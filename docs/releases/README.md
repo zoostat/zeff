@@ -1,0 +1,1 @@
+Each release has two files in this folder: a checklist file named `<version>.md`, written when the release starts and ticked off step by step as the work is committed, and a notes file named `<version>-notes.md`, written when the release is closed and recording what shipped.
