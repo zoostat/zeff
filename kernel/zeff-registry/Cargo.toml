@@ -1,0 +1,10 @@
+[package]
+name = "zeff-registry"
+description = "Engine kernel: the function registry and the display registry."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true

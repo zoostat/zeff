@@ -1,0 +1,14 @@
+[package]
+name = "zeff-ir"
+description = "The typed intermediate representation and diagnostics."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-syntax.workspace = true
+zeff-registry.workspace = true

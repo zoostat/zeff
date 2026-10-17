@@ -1,0 +1,19 @@
+[package]
+name = "zeff-engine"
+description = "The engine: projects, interpreter and the assembled function registry."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-syntax.workspace = true
+zeff-ir.workspace = true
+zeff-core.workspace = true
+zeff-data.workspace = true
+zeff-columns.workspace = true
+zeff-numeric.workspace = true
+zeff-registry.workspace = true

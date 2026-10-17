@@ -1,0 +1,48 @@
+[workspace]
+resolver = "3"
+members = [
+    "kernel/zeff-columns",
+    "kernel/zeff-numeric",
+    "kernel/zeff-registry",
+    "packages/tier0/core",
+    "packages/tier1/data",
+    "crates/zeff-syntax",
+    "crates/zeff-ir",
+    "crates/zeff-engine",
+    "crates/zeff-cli",
+    "tools/xtask",
+]
+
+[workspace.package]
+version = "0.1.0-dev"
+edition = "2024"
+license = "Apache-2.0"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+
+[workspace.dependencies]
+zeff-columns = { path = "kernel/zeff-columns" }
+zeff-numeric = { path = "kernel/zeff-numeric" }
+zeff-registry = { path = "kernel/zeff-registry" }
+zeff-core = { path = "packages/tier0/core" }
+zeff-data = { path = "packages/tier1/data" }
+zeff-syntax = { path = "crates/zeff-syntax" }
+zeff-ir = { path = "crates/zeff-ir" }
+zeff-engine = { path = "crates/zeff-engine" }
+
+# Determinism (Engine Specification, section 8.3, point 3): Rust never fuses multiply-add or
+# reorders floating-point operations unless asked, and nothing here asks. Integer overflow is
+# checked in every profile because an Int overflow is an error in the language.
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = "fat"
+overflow-checks = true
+debug-assertions = false
+
+[profile.dev]
+overflow-checks = true

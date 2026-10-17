@@ -31,3 +31,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 1, the workspace skeleton and the tier rule `[engine]`.
 
 **For the owner to decide.** The three printing questions in `docs/releases/0.1.0.md`.
+
+## 18 October 2026, step 1 of release 0.1.0
+
+**Done.** Step 1 `[engine]`: the Cargo workspace (kernel crates, `core`, `data`, the language crates, the command line crate and the tooling crate), the tier-rule check with tests on crafted violations, and the CI jobs build, lint (format and clippy with warnings denied), test and tiers. Decisions on layout, profile, Arrow and Parquet versions and the four-target plan are in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all tests (10 for the tier check) and the tier check pass locally. The CI run on GitHub is to be read after the push.
+
+**Next.** Step 2, the numeric kernel `[engine]`.
+
+**For the owner to decide.** Nothing at present (the three printing questions are first needed at step 19).

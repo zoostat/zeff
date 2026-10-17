@@ -64,7 +64,49 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install the pinned Rust toolchain
-        run: rustup toolchain install --profile minimal
+        run: rustup toolchain install
 
-      - name: Show the cargo version (placeholder until the workspace exists in 0.1.0)
-        run: cargo --version
+      - name: Build the workspace
+        run: cargo build --workspace --locked
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy with warnings denied
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Run every test
+        run: cargo test --workspace --locked
+
+  tiers:
+    name: tiers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Core depends only on kernel crates, and every call goes down (section 8.1)
+        run: cargo run --locked -p xtask -- check-tiers

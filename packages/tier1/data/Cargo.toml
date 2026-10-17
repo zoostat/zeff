@@ -1,0 +1,16 @@
+[package]
+name = "zeff-data"
+description = "Package data (tier 1): frames, reducers and files."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-core.workspace = true
+zeff-columns.workspace = true
+zeff-numeric.workspace = true
+zeff-registry.workspace = true

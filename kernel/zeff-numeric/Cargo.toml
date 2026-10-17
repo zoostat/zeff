@@ -1,0 +1,10 @@
+[package]
+name = "zeff-numeric"
+description = "Engine kernel: compensated sums and the other fixed-order numerical routines."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true

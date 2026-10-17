@@ -1,0 +1,10 @@
+[package]
+name = "zeff-syntax"
+description = "Lexer and parser for the Zeff grammar."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true

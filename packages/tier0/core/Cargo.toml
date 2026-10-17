@@ -1,0 +1,14 @@
+[package]
+name = "zeff-core"
+description = "Package core (tier 0): the language and the types every package shares."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-columns.workspace = true
+zeff-registry.workspace = true
