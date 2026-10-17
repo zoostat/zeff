@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  words:
+    name: words
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository with its full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refuse forbidden words in names, contents and history
+        env:
+          FORBIDDEN_WORDS: ${{ vars.FORBIDDEN_WORDS }}
+        run: |
+          if [ -z "${FORBIDDEN_WORDS}" ]; then
+            echo "The repository variable FORBIDDEN_WORDS is empty or missing."
+            exit 1
+          fi
+          failed=0
+
+          echo "1. Tracked file and folder names"
+          if git ls-files | grep -i -E -e "${FORBIDDEN_WORDS}"; then
+            echo "A tracked file name contains a forbidden word (matching lines above)."
+            failed=1
+          fi
+
+          echo "2. Contents of tracked text files"
+          if git grep -i -I -n -E -e "${FORBIDDEN_WORDS}"; then
+            echo "A tracked file contains a forbidden word (file:line:text above)."
+            failed=1
+          fi
+
+          echo "3. Commit messages, author and committer names and emails, all branches and tags"
+          hits=$(git log --all --format='%H' | while read -r sha; do
+            git log -1 --format='%B%n%an%n%ae%n%cn%n%ce' "$sha" \
+              | grep -i -E -e "${FORBIDDEN_WORDS}" \
+              | sed "s/^/commit ${sha}: /" || true
+          done)
+          if [ -n "${hits}" ]; then
+            echo "${hits}"
+            echo "The history contains a forbidden word (commit and matching line above)."
+            failed=1
+          fi
+
+          if [ "${failed}" -ne 0 ]; then
+            exit 1
+          fi
+          echo "No forbidden word found."
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install --profile minimal
+
+      - name: Show the cargo version (placeholder until the workspace exists in 0.1.0)
+        run: cargo --version
