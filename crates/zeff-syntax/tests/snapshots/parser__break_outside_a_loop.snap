@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0313]: `break` is only allowed inside a loop
+ --> scripts/main.zeff:1:1
+  |
+1 | break
+  | ^^^^^ outside a loop
+  |
+  = help: use it in the body of a `for` loop

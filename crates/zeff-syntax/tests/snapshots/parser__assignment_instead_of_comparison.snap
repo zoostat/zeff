@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0315]: expected `{` and a block, found `=`
+ --> scripts/main.zeff:1:6
+  |
+1 | if x = 1 {
+  |      ^ `=` binds a name; it does not compare
+  |
+  = help: write `==` to compare; `=` is for `let name = value` and for defining a column, as in `add(x = ...)`

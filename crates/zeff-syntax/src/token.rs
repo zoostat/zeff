@@ -141,7 +141,12 @@ pub enum TokenKind {
     RParen,
     LBracket,
     RBracket,
+    /// `{` of a record literal or a record type.
     LBrace,
+    /// `{` that opens a body: a block, the arms of a `case`, a `model { }` or a `dag { }`. The
+    /// lexer tells the two apart because a line break means something different inside them.
+    LBlock,
+    /// `}` of either kind.
     RBrace,
     Comma,
     /// `.`

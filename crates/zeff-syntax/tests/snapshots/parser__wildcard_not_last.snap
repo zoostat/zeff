@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0316]: `_` may appear once in a `case`, and only as the last arm
+ --> scripts/main.zeff:2:5
+  |
+2 |     _ => 1,
+  |     ^^^^^^ arms after this one can never be reached
+  |
+  = help: put the `_` arm last

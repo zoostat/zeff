@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0301]: `while` is reserved for later use
+ --> scripts/main.zeff:1:1
+  |
+1 | while x {
+  | ^^^^^ reserved word
+  |
+  = help: Zeff has no `while`; loops are `for` over a known length, and `iterate` repeats until convergence

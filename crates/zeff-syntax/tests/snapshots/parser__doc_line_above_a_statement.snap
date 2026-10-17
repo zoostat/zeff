@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0318]: a `///` line must be directly above a `fn`
+ --> scripts/main.zeff:1:1
+  |
+1 | /// note
+  | ^^^^^^^^ not above a function
+  |
+  = help: doc lines become the help of the function below them, with no blank or `//` line between; use `//` for an ordinary comment

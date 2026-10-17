@@ -1,0 +1,27 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: "sexp::script(&parsed.script)"
+---
+(seed 20261015)
+(let wages (method panel (method label (method add (method where (import "data/wages.csv" na_values:[(neg 99)]) (>= year 2010)) lwage=(log wage) exper2=(^ exper 2) industry=(category industry) age_group=(case ((< age 25) => "young") ((< age 55) => "prime") (_ => "older"))) female (mapping (0 => "male") (1 => "female"))) unit:worker time:year))
+(assert (> (method n_rows wages) 0) "no rows left after filtering")
+(method describe wages)
+(method summary wages [lwage educ exper] by:female)
+(method tabulate wages [industry age_group] percent:row)
+(method export (method histogram wages lwage by:female) "output/fig1.pdf" size:one_column)
+(let f (~ lwage (+ (+ (+ educ exper) exper2) female)))
+(let m1 (method reg wages f se:robust))
+(let m2 (method reg wages f fe:(+ industry year) cluster:worker))
+(method export (report [m1 m2] stats:[n_obs r_squared]) "output/table1.docx")
+(let fits (list-(for y (vars lwage hours) (block (method reg wages (~ y (+ educ exper)) fe:(+ industry year) cluster:worker)))))
+(method export (report fits) "output/table2.docx")
+(let card (import "data/card.csv"))
+(let iv (method ivreg card (~ lwage (+ (+ (+ exper (^ exper 2)) black) educ)) fe:region instruments:(~ educ nearc4) se:robust first:true))
+(method first_stage iv)
+(let counties (method panel (import "data/counties.csv") unit:county time:year))
+(let dd (method reg counties (~ emp (* treated post)) fe:(+ county year) cluster:county))
+(method export (method coef_plot dd) "output/fig2.pdf" size:two_column)
+(method t_test wages lwage group:female)
+(let lg (method logistic wages (~ union (+ (+ educ exper) female)) cluster:worker))
+(let engage (import "data/engagement.csv"))
+(method reliability engage [(.. eng1 eng6)])

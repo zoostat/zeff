@@ -813,7 +813,8 @@ impl<'a> Lexer<'a> {
                 | TokenKind::Float(_)
                 | TokenKind::Str(_)
                 | TokenKind::RawStr(_)
-                | TokenKind::Question,
+                | TokenKind::Question
+                | TokenKind::Gt,
             ) => Bracket::Block,
             Some(TokenKind::FatArrow) => {
                 if self.brace_starts_a_record() {
@@ -866,7 +867,8 @@ impl<'a> Lexer<'a> {
         let token = match kind {
             Bracket::Paren => TokenKind::LParen,
             Bracket::Square => TokenKind::LBracket,
-            _ => TokenKind::LBrace,
+            Bracket::Record => TokenKind::LBrace,
+            Bracket::Case | Bracket::Block | Bracket::Model | Bracket::Dag => TokenKind::LBlock,
         };
         self.push(token, start);
     }

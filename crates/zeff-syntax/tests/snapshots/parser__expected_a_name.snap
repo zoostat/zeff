@@ -1,0 +1,9 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0301]: expected a name, found `=`
+ --> scripts/main.zeff:1:5
+  |
+1 | let = 1
+  |     ^ expected a name

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0301]: expected `,` or `)`, found the name `b`
+ --> scripts/main.zeff:1:5
+  |
+1 | f(a b)
+  |     ^ expected `,` or `)`
+  |
+  = help: separate arguments with commas

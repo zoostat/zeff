@@ -528,7 +528,7 @@ fn else_after_the_closing_brace_on_one_line() {
         .position(|k| *k == K::Keyword(Keyword::Else))
         .unwrap();
     assert_eq!(tokens[else_at - 1], K::RBrace);
-    assert_eq!(tokens[else_at + 1], K::LBrace);
+    assert_eq!(tokens[else_at + 1], K::LBlock);
     // Statements inside the blocks are separated by line breaks.
     assert_eq!(tokens.iter().filter(|k| **k == K::Newline).count(), 5);
 }

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0314]: a formula has one `~`; formula operators do not chain
+ --> scripts/main.zeff:1:15
+  |
+1 | let a = y ~ x ~ z
+  |               ^ a second formula operator
+  |
+  = help: put each relation on its own line of a `model { }` block

@@ -52,7 +52,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 38 | Setup files for Zeff, Zemp Lite and Zemp | None until #23 is decided: `zeff app install` and the package managers cover the desktop apps; plan setup files with #23 | 0.11.0 |
 | 39 | Zemp Lite: paid features and AI in Lite; the web address; a desktop preview before 0.5 | Free-tier only through 1.0, revisited with #27 and #28; Lite web at a path on Zemp web's origin; no earlier desktop preview | Zemp 0.2 alpha (the address); the rest with #27 and #28 |
 | 40 | A specification freeze while 0.1.0 to 0.3.0 are built | Freeze the normative text except for bugs found while coding; record further design work here with a deadline release (risk register, R12) | 0.1.0 |
-| 41 | Diagnostic codes for three syntax conditions the specification does not number | Z0301 an unexpected character or an unclosed quoted name; Z0303 an unmatched closing bracket; Z0304 a construct the grammar has but this release does not run | 0.1.0 |
+| 41 | Diagnostic codes for three syntax conditions the specification does not number | Z0301 something the grammar does not allow at that place (an unexpected character, an unclosed quoted name, an unexpected token); Z0303 an unmatched closing bracket; Z0304 a construct the grammar has but this release does not run | 0.1.0 |
 
 ---
 
@@ -410,12 +410,12 @@ The risk register's R12 recommends freezing the specification while the first th
 
 ### 41. Diagnostic codes for three syntax conditions the specification does not number
 
-Found while writing the lexer and parser of 0.1.0 (docs/releases/0.1.0.md, steps 6 and 7). Section 3 of the Language Reference numbers the syntax errors it describes (Z0302 to Z0322), but three conditions arise that it gives no code to. The engine uses the numbers below provisionally, from the unused Z0301, Z0303 and Z0304, so that the messages have a code; the specification text is not edited (decision #40).
+Found while writing the lexer and parser of 0.1.0 (docs/releases/0.1.0.md, steps 6, 7 and 12). Section 3 of the Language Reference numbers the syntax errors it describes (Z0302 to Z0322), but three conditions arise that it gives no code to. The engine uses the numbers below provisionally, from the unused Z0301, Z0303 and Z0304, so that the messages have a code; the specification text is not edited (decision #40).
 
 | Condition | Proposed code | Message in 0.1.0 |
 | --- | --- | --- |
-| A character that is not part of the grammar (for example `#`, `$`, `@`, a letter outside ASCII outside backticks), or a backtick name that is empty or never closed | Z0301 | `unexpected character` with a help line where the intent is known (`#` starts no comment; use `//`) |
+| Something the grammar does not allow at that place: a character that is not part of it (for example `#`, `$`, `@`, a letter outside ASCII outside backticks), a backtick name that is empty or never closed, or a token the parser did not expect (`expected an expression, found `)``) | Z0301 | `unexpected character`, or `expected X, found Y`, with a help line where the intent is known (`#` starts no comment; use `//`; separate arguments with commas) |
 | A closing bracket with no matching opener | Z0303 | `unexpected closing )` |
-| A construct the grammar has but this release does not run (`fn`, `for`, `use`, `case`, `if`, `model`, `dag`) | Z0304 | `not available in this release` (step 7; ends when 0.5.0 and later releases run them) |
+| A construct the grammar has but this release does not run (`fn`, `for`, `use`, `case`, `if`, `model`, `dag`) | Z0304 | `not available in this release`, raised by the checker (step 12 of 0.1.0; ends when 0.5.0 and later releases run them) |
 
 *Recommendation.* Accept the three numbers and add them to section 11 of the Language Reference at the next minor release, after the freeze (0.3.0). Deadline: 0.1.0 (the numbers appear in printed messages from this release).

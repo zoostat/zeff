@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0301]: expected the end of the line, found `let`
+ --> scripts/main.zeff:1:11
+  |
+1 | let a = 1 let b = 2
+  |           ^^^ expected the end of the line
+  |
+  = help: put each statement on its own line

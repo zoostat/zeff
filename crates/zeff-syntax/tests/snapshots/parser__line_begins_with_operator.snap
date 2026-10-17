@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0305]: this line begins with an operator
+ --> scripts/main.zeff:3:1
+  |
+3 | + c
+  | ^ begins with `+`
+  |
+  = help: did you mean to continue the previous line? End that line with the operator

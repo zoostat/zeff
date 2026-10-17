@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0315]: `|` is not used in Zeff expressions
+ --> scripts/main.zeff:1:11
+  |
+1 | let a = x | y
+  |           ^ not a Zeff token
+  |
+  = help: write `||` for or, and `&&` for and

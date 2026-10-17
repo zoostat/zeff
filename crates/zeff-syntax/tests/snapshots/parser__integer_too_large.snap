@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0310]: this integer does not fit in 64 bits
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = 9223372036854775808
+  |         ^^^^^^^^^^^^^^^^^^^ too large for an Int
+  |
+  = help: the largest Int is 9223372036854775807 and the smallest, written with its minus sign, -9223372036854775808; write a Float for larger numbers, as in `1e30`

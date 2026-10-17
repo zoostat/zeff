@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0308]: `as` is only allowed inside a `model { }` block
+ --> scripts/main.zeff:1:11
+  |
+1 | let a = x as y
+  |           ^^ outside a model block
+  |
+  = help: a label names a parameter in a model block, as in `dem60 ~ ind60 as a`

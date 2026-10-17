@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0309]: `use` must come before the first statement
+ --> scripts/main.zeff:2:1
+  |
+2 | use clean
+  | ^^^ after a statement
+  |
+  = help: move the `use` lines to the top of the file

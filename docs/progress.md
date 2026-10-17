@@ -91,3 +91,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 7, the parser `[engine]`.
 
 **For the owner to decide.** Open decision #41 (three diagnostic codes), deadline 0.1.0; it can wait until the release is closed.
+
+## 18 October 2026, step 7 of release 0.1.0
+
+**Done.** Step 7 `[engine]`: the parser for the whole grammar (`ast`, `parser`, `sexp` in `crates/zeff-syntax`). 75 tests added: precedence and associativity, every construct, 24 message snapshots, error recovery (every bad statement reported, the rest still parsed), the nesting limits, the specification's sample script and complete analysis parsed in full, and property tests (no panic on any text; line endings change nothing; 4,000 generated expressions rebuild exactly). The stack measurements led to a decision on stack size (`docs/decisions.md`) and a release-mode guard run by CI. The checker, not the parser, will refuse constructs 0.1.0 does not run (checklist step 12).
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the release-mode stack guard and the tier check pass locally. The GitHub runs are to be read after the push.
+
+**Next.** Step 8, projects and the first commands `[engine]`.
+
+**For the owner to decide.** Open decision #41 (three diagnostic codes), deadline 0.1.0; it can wait until the release is closed.

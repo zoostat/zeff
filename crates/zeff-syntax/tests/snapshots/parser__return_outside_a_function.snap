@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0313]: `return` is only allowed inside a function
+ --> scripts/main.zeff:1:1
+  |
+1 | return 1
+  | ^^^^^^ outside a function
+  |
+  = help: a script's value is its last statement; use `return` only in a `fn`

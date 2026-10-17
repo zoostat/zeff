@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0301]: `case` is a reserved word and cannot be a name
+ --> scripts/main.zeff:1:5
+  |
+1 | let case = 1
+  |     ^^^^ reserved word
+  |
+  = help: a column with this name is written in backticks: `` `case` ``
