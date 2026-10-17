@@ -61,3 +61,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 4, bundle size and cold start tracked on every build `[engine]`.
 
 **For the owner to decide.** Nothing at present.
+
+## 18 October 2026, step 4 of release 0.1.0
+
+**Done.** Step 4 `[engine]`: `tools/bundle/measure.cjs` measures the compressed WebAssembly bundle (brotli and gzip) and the cold start (median of five fresh Node processes) on every build, writes a table into the job summary and a JSON artefact, and fails above 5 MB compressed or 1 s. Locally the conformance bundle is 11.5 kB compressed and starts in 2.4 ms (a floor: the engine itself is not in it yet). Thresholds and method are in `docs/decisions.md`.
+
+**Green.** Locally: the script's 5 tests pass and a tight limit makes it exit 1. The GitHub run is to be read after the push.
+
+**Next.** Step 5, diagnostics as data `[engine]`: the first step of the vertical slice.
+
+**For the owner to decide.** Nothing at present.

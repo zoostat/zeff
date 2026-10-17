@@ -202,6 +202,19 @@ jobs:
           name: identity-wasm
           path: report/cases.txt
 
+      - name: Test the measuring script
+        run: node --test tools/bundle/measure.test.cjs
+
+      - name: Measure the compressed bundle and the cold start (risks R2 and R4)
+        run: node tools/bundle/measure.cjs wasm-pkg zeff_conformance bundle/bundle.json
+
+      - name: Keep the measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-wasm
+          path: bundle/bundle.json
+
   identity-compare:
     name: identity (compare)
     needs: [identity, identity-wasm]
