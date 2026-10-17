@@ -1,0 +1,281 @@
+// zeff_samples.zeff: sample Zeff code, valid for Zeff 1.0 unless marked "from 1.x"
+//
+// Project setup (command line):
+//     zeff new schooling        creates zeff.toml, scripts/main.zeff and data/
+//     zeff check                checks names, arguments and types against file schemas
+//     zeff run                  runs scripts/main.zeff
+//
+// zeff.toml:
+//     [project]
+//     name = "schooling"
+//     zeff = "1.0.0"
+//     edition = "2027"
+//
+//     [data]
+//     lfs = { path = "D:/surveys/lfs" }          # data roots are always read-only
+
+use functions::robustness          // functions/robustness.zeff, shown in section 6; use comes first
+
+seed(20261015)
+
+
+// ── 1. Import and clean ──────────────────────────────────────────────
+
+let wages = import("data/wages.csv",
+                   na_values: [-99, -98],
+                   types: {hours: Str},
+                   names: snake)                     // "Gross Wage" becomes gross_wage
+    .where(year >= 2010 && age >= 18)
+    .add(lwage = log(gross_wage),
+         exper2 = exper^2,
+         hours = to(hours, Float),                    // "varies" becomes NA, with a warning
+         industry = category(industry),
+         edu = category(edu, levels: ["school", "college", "postgrad"], ordered: true),
+         age_group = case {
+             age < 25 => "young",
+             age < 55 => "prime",
+             _        => "older",
+         })
+    .label(female, [0 => "male", 1 => "female"])
+    .recode(industry, ["Mining" => "Other", "Utilities" => "Other"])
+    .panel(unit: worker, time: year)
+
+assert(wages.n_rows() > 1000, "too few rows left after cleaning")
+
+// A large shared dataset read in place from a data root
+let lfs = import("lfs:lfs_2024.parquet").select([region, wage, sector])
+
+
+// ── 2. Describe ──────────────────────────────────────────────────────
+
+wages.describe()
+wages.summary([lwage, educ, exper, hours], by: female)
+wages.tabulate([industry, age_group], percent: row)
+wages.correlation([lwage, educ, exper, hours], method: spearman, p_values: true)
+
+wages.histogram(lwage, bins: 40, by: female).export("output/fig_lwage.pdf", size: one_column)
+wages.scatter(educ, lwage, fit: linear, color: female).export("output/fig_educ.png")
+
+
+// ── 3. Reshape, merge, aggregate ─────────────────────────────────────
+
+let firms = import("data/firms.csv")
+let firm_sales = import("data/sales_wide.csv")
+    .to_long("sales_", id: firm_id, names_to: "year", values_to: "sales")
+    .merge(firms, on: firm_id, relation: many_to_one)          // reports unmatched rows
+    .add(log_sales = log1p(sales))
+
+let by_industry = firm_sales.aggregate(avg_sales = mean(sales),
+                                       med_sales = median(sales),
+                                       firms = n(),
+                                  by: [industry, year])
+by_industry.sort([industry, year]).save("output/industry_year.csv")
+
+
+// ── 4. Panel variables ───────────────────────────────────────────────
+
+let wages = wages.add(wage_growth = diff(lwage),          // within each worker, in year order
+                      lag_hours = lag(hours),
+                      lwage_w = winsorize(lwage, at: 0.01))
+let wages = wages.add(dev_firm = lwage - mean(lwage), by: firm)   // deviation from firm mean
+
+
+// ── 5. Regression ────────────────────────────────────────────────────
+
+let f = lwage ~ educ + exper + exper2 + female
+
+let m1 = wages.reg(f, se: robust)
+let m2 = wages.reg(f, fe: industry + year, cluster: worker)
+let m3 = wages.reg(f + educ:female, fe: worker + year, cluster: worker)
+let m4 = wages.reg(f, fe: industry:year, cluster: firm, weights: sample_wt)
+
+m2                                                    // prints the full table
+m3.test(educ == exper)                                // Wald test, in coefficient space
+m1.vif()
+m1.influence()                                        // leverage and Cook's distance per row
+
+report([m1, m2, m3, m4],
+       stats: [n_obs, r_squared],
+       labels: {educ: "Years of schooling", exper: "Experience"})
+    .export("output/table1.docx")
+
+m3.coef_plot().export("output/fig_coef.pdf", size: one_column)
+
+
+// ── 6. Loops and your own functions ──────────────────────────────────
+
+// One model per outcome, collected into one table
+let fits = [for y in vars(lwage, hours, wage_growth) {
+    wages.reg(y ~ educ + exper + exper2, fe: industry + year, cluster: worker)
+}]
+report(fits).export("output/table2.docx")
+
+// functions/robustness.zeff contains:
+//
+//     /// Three standard robustness checks for one specification.
+//     fn robustness(data: Frame, f: Formula, cluster: Var = firm) -> List<RegFit> {
+//         [
+//             data.reg(f, se: robust),
+//             data.reg(f, cluster: cluster),
+//             data.where(year >= 2015).reg(f, se: robust),
+//         ]
+//     }
+
+report(wages.robustness(f, cluster: worker)).export("output/table3.docx")
+
+
+// ── 7. Instrumental variables ────────────────────────────────────────
+
+let card = import("data/card.csv")
+let iv = card.ivreg(lwage ~ exper + exper^2 + black + educ,
+                    fe: region,
+                    instruments: educ ~ nearc4,
+                    se: robust,
+                    first: true)
+iv.first_stage()                                      // effective F and Kleibergen–Paap F
+report([card.reg(lwage ~ exper + exper^2 + black + educ, fe: region, se: robust), iv])
+    .export("output/table_iv.tex")
+
+
+// ── 8. Two-period difference-in-differences ──────────────────────────
+
+let counties = import("data/counties.csv").panel(unit: county, time: year)
+let dd = counties.reg(emp ~ treated * post, fe: county + year, cluster: county)
+dd
+
+
+// ── 9. Classical tests ───────────────────────────────────────────────
+
+wages.t_test(lwage, group: female)                    // Welch, with Hedges' g
+wages.t_test(lwage, mu: 3)
+wages.wilcoxon_test(hours, group: female)
+wages.anova(lwage, group: industry)
+wages.chi2_test(industry, female)
+wages.proportion_test(union, group: female)
+
+// Several outcomes, with a multiple-testing correction
+let p = [for v in vars(lwage, hours, educ) {
+    wages.t_test(v, group: female).p_values()
+}]
+p_adjust(p, method: holm)
+
+
+// ── 10. Binary outcomes ──────────────────────────────────────────────
+
+let lg = wages.logistic(union ~ educ + exper + female + industry, cluster: worker)
+let pr = wages.probit(union ~ educ + exper + female + industry, cluster: worker)
+report([lg, pr]).export("output/table_union.docx")
+let lr1 = wages.logistic(union ~ educ + exper + female + industry)
+let lr0 = wages.logistic(union ~ educ + exper)
+lr1.compare(lr0)                                      // likelihood-ratio test on the same rows
+lg.test(female == 0)                                  // Wald test with clustered SEs
+
+
+// ── 11. A small simulation, keeping going when a fit fails ───────────
+
+let size = 200
+let sims = [for s in 1..500 {
+    let d = frame(x = dist.normal().draw(n: size, seed: s),
+                  u = dist.uniform().draw(n: size, seed: s + 10000))
+        .add(y = case { inv_logit(0.5 * x) > u => 1, _ => 0 })
+    attempt(d.logistic(y ~ x))                        // separation gives a Failed value
+}]
+len(sims)                                             // warns how many fits failed
+let slopes = [for m in sims {
+    if m.is(Failed) { continue }
+    m.coef(x)
+}]
+frame(b = slopes).summary([b])                         // sampling distribution of the slope
+
+
+// ── 12. Reliability of a survey scale ────────────────────────────────
+
+let engage = import("data/engagement.csv")
+engage.reliability([eng1..eng6])                      // alpha and item-total statistics; omega from 1.3
+let engage = engage.add(engagement = row_mean([eng1..eng6], min_valid: 5))
+
+
+// ── 13. Causal graph: check the model against its assumptions ────────
+
+let g = dag {
+    ability -> training -> productivity
+    ability -> productivity
+    training -> tenure -> productivity
+    [age, region] -> training
+    latent ability
+}
+g.adjustment_sets(exposure: training, outcome: productivity)   // none: ability is latent
+g.implied_independencies()
+g.plot().export("output/fig_dag.pdf", size: one_column)
+
+let staff = import("data/staff.csv")
+let mt = staff.reg(productivity ~ training + tenure + age + region, cluster: firm)
+mt.check(g, exposure: training)                       // warns: tenure is a mediator
+
+
+// ── 14. Contrasts and nonlinear combinations ─────────────────────────
+
+let wages = wages.add(industry = category(industry, contrast: sum))
+let m5 = wages.reg(lwage ~ educ + exper + exper2 + industry, se: robust)
+m5.derive(peak_exper = -exper / (2 * exper2),          // experience at peak earnings
+          educ_vs_exper = educ / exper)                // delta-method SEs
+
+
+// ── 15. Layered plots: the grammar behind the quick plots ────────────
+
+wages.scatter(educ, lwage)                            // a shorthand: the same Plot value as below
+plot(wages, x: educ, y: lwage, color: female)         // a bare name maps a variable, a string sets a constant
+    .points(alpha: 0.3)
+    .facet(by: industry, scales: free_y)
+    .scale_y(log)
+    .labels(title: "Schooling and wages by industry", y: "log wage")
+    .theme(journal)
+    .export("output/fig_wages.pdf", size: two_column)
+
+let means = wages.aggregate(mean_lwage = mean(lwage), se = sd(lwage) / sqrt(n()), by: [industry, female])
+plot(means, x: industry, y: mean_lwage, color: female)
+    .bars(position: dodge)                            // values, since y is mapped; the baseline is zero
+    .errorbars(low: mean_lwage - 1.96 * se, high: mean_lwage + 1.96 * se)
+    .legend(top)
+
+// ── Previews: syntax fixed now, available from 1.x ───────────────────
+
+// From 1.1: bootstrap SEs that tolerate failed draws (the engine release: threads, bootstrap, lazy chains)
+//     let b = wages.logistic(union ~ educ, se: bootstrap, reps: 2000, on_fail: skip)
+//
+// From 1.2: staggered difference-in-differences
+//     let cs = counties.did(emp, cohort: first_treat, method: cs, control: not_yet)
+//     cs.combine(type: event).plot().export("output/fig_event.pdf")
+//     cs.pre_trends()
+//
+// From 1.2: Poisson with fixed effects
+//     let trade = flows.poisson(exports ~ log_dist + rta, fe: exporter:year + importer:year)
+//
+// From 1.3: confirmatory factor analysis and SEM
+//     let m = model {
+//         engagement =~ eng1 + eng2 + eng3 + eng4 + eng5 + eng6
+//         support    =~ sup1 + sup2 + sup3
+//         engagement ~ support as a
+//         turnover   ~ engagement as b + support as c
+//         indirect   := a * b
+//     }
+//     let fit = staff.sem(m, estimator: mlr, missing: fiml)
+//     fit.summary(standardized: true, fit_measures: true)
+//     fit.effects()
+//
+// From 1.4: multilevel models
+//     let ml = pupils.mixed(score ~ ses + female,
+//                           re: [school => 1 + ses, school:class => 1])
+//     let cr = ratings.mixed(rating ~ tenure, re: [employee => 1, rater => 1])
+//
+// From 1.5: leakage-safe prediction (splits are roles, recipes are re-estimated inside every fold)
+//     let d = loans.holdout(frac: 0.2, seed: 7, strata: default, group: borrower)
+//     let rec = recipe()
+//         .impute([income, age], with: median)
+//         .add(lincome = log(income))
+//         .standardize([lincome, age, x1..x9])
+//         .one_hot(industry, other: 0.01)
+//     let cv = d.training().folds(k: 10, strata: default)
+//     let tuned = cv.tune(default ~ . - id, recipe: rec, model: spec.lasso(penalty: grid(20)), metric: auc)
+//     let fit = d.training().learn(default ~ . - id, recipe: rec, model: spec.lasso(penalty: tuned.best()))
+//     fit.score(d.testing())                                // the one permitted look at the test rows
