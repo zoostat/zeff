@@ -8,3 +8,10 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+arrow-array = { version = "=60.0.0", default-features = false }
+arrow-schema = { version = "=60.0.0", default-features = false }
+
+[dev-dependencies]
+proptest = "=1.12.0"

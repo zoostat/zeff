@@ -111,3 +111,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 9, the column store on Arrow and the NA rules `[engine]`.
 
 **For the owner to decide.** Open decisions #41 and #42 (five diagnostic codes in all), deadline 0.1.0; they can wait until the release is closed.
+
+## 18 October 2026, step 9 of release 0.1.0
+
+**Done.** Step 9 `[engine]`: the column store on Arrow (`kernel/zeff-columns`): the seven column types stored as the specification's table says, missing values as the validity bitmap, `NaN` never stored (converted to `NA` and counted), typed access without exposing Arrow, `slice`, categories, a numeric view for the reducers, a small `Table`, and three-valued logic tested against the specification's truth table. 32 tests including 9 property tests. The build check now fails if any crate but `zeff-columns` uses Arrow (shown to fire on a real violation). Licences of the 27 crates Arrow brings are recorded; one (tiny-keccak, CC0-1.0, build time only) is outside the standing list and is noted.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (220), the tier and Arrow check, and a WebAssembly compile pass locally. The GitHub run is to be read after the push. Step 8's run passed.
+
+**Next.** Step 10, the CSV reader `[engine]`.
+
+**For the owner to decide.** Nothing new. Open decisions #41 and #42 (five diagnostic codes), deadline 0.1.0.

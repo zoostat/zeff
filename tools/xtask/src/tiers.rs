@@ -7,11 +7,20 @@
 //! * Any other package depends only on kernel crates, on packages of a lower tier, and on packages
 //!   listed before it in its own tier (rules 2 and 3), and never on the engine crates.
 //!
+//! * Only `zeff-columns` may depend on Arrow or Parquet (risk R6).
+//!
 //! Test-only (development) dependencies are not part of the rules.
 
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::Path;
+
+/// The one crate that may use the Arrow and Parquet libraries.
+const ARROW_LAYER: &str = "zeff-columns";
+
+fn is_arrow(name: &str) -> bool {
+    name == "arrow" || name.starts_with("arrow-") || name == "parquet"
+}
 
 /// The packages of each tier in the order of section 8.2, which is also their build order.
 const TIERS: [&[&str]; 4] = [
@@ -128,6 +137,12 @@ pub fn check(metadata: &Value) -> Result<Vec<String>, String> {
                 continue;
             }
             let target = dependency["name"].as_str().unwrap_or_default();
+            if is_arrow(target) && name != ARROW_LAYER {
+                violations.push(format!(
+                    "{name} depends on {target}; only {ARROW_LAYER} may use Arrow, so that its API \
+                     (and its frequent breaking releases) stays behind one layer (risk R6)"
+                ));
+            }
             let inside = dependency["source"].is_null();
             let target_class = if inside { classes.get(target) } else { None };
 
@@ -334,6 +349,59 @@ mod tests {
         );
         let found = check(&replace(workspace(vec![]), "zeff-data", bad)).unwrap();
         assert!(found.iter().any(|v| v.contains("neither")), "{found:?}");
+    }
+
+    #[test]
+    fn only_the_column_layer_may_use_arrow() {
+        let layer = pkg(
+            "zeff-columns",
+            "kernel/zeff-columns",
+            vec![
+                dep("arrow-array", false, None),
+                dep("arrow-schema", false, None),
+            ],
+        );
+        assert!(
+            check(&replace(workspace(vec![]), "zeff-columns", layer))
+                .unwrap()
+                .is_empty()
+        );
+        for crate_name in ["arrow", "arrow-array", "arrow-ipc", "parquet"] {
+            let bad = pkg(
+                "zeff-data",
+                "packages/tier1/data",
+                vec![dep(crate_name, false, None)],
+            );
+            let found = check(&replace(workspace(vec![]), "zeff-data", bad)).unwrap();
+            assert!(
+                found
+                    .iter()
+                    .any(|v| v.contains("only zeff-columns may use Arrow")),
+                "{crate_name}: {found:?}"
+            );
+        }
+        // A test-only use is not a use by the engine.
+        let tests = pkg(
+            "zeff-data",
+            "packages/tier1/data",
+            vec![dep("arrow-array", false, Some("dev"))],
+        );
+        assert!(
+            check(&replace(workspace(vec![]), "zeff-data", tests))
+                .unwrap()
+                .is_empty()
+        );
+        // A crate whose name merely contains the word is not Arrow.
+        let other = pkg(
+            "zeff-data",
+            "packages/tier1/data",
+            vec![dep("narrow", false, None)],
+        );
+        assert!(
+            check(&replace(workspace(vec![]), "zeff-data", other))
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
