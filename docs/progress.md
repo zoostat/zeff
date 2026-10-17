@@ -41,3 +41,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 2, the numeric kernel `[engine]`.
 
 **For the owner to decide.** Nothing at present (the three printing questions are first needed at step 19).
+
+## 18 October 2026, step 2 of release 0.1.0
+
+**Done.** Step 2 `[engine]`: the numeric kernel (`sum`, `mean`, `variance`, `sd`: compensated sums, corrected two-pass variance, fixed order), with 10 unit tests, 6 property tests, and reference tests on five datasets against Python's exact `statistics` module at 1e-12 relative. The Python script and its JSON are in `tests/reference/`. Decisions and licences are in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all 34 tests and the tier check pass locally.
+
+**Next.** Step 3, the conformance harness and the four-target identity check `[engine]`.
+
+**For the owner to decide.** Nothing at present.
