@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0311]: unknown escape `\d` in a string
+ --> scripts/main.zeff:1:10
+  |
+1 | let p = "\d+"
+  |          ^^ not an escape
+  |
+  = help: a string has the escapes `\n`, `\t`, `\r`, `\"`, `\\` and `\u{XXXX}`; a raw string has none, and is the form for regular expressions and Windows paths: `r"\d+"`

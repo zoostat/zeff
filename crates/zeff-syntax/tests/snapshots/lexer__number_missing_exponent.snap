@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0310]: `1e+` has an exponent without digits
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = 1e+
+  |         ^^^ digits expected after the `e`
+  |
+  = help: write an exponent such as `1e6` or `1e-6`

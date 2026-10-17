@@ -81,3 +81,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 6, the lexer for the whole token set `[engine]`.
 
 **For the owner to decide.** Nothing at present.
+
+## 18 October 2026, step 6 of release 0.1.0
+
+**Done.** Step 6 `[engine]`: the lexer for the whole token set (`crates/zeff-syntax`): names, the 26 reserved words, numbers, strings and raw strings, doc lines, every operator, the line-break rules of section 3.1 with a bracket stack, and recovery that never stops. 43 tests: unit tests for each token form and rule, 32 message snapshots, five property tests of 2,000 cases each (no panic on any text; every byte accounted for; CRLF and byte-order mark change nothing; valid lexemes round-trip), and tests that lex the specification's sample script and its complete analysis of section 10 without a diagnostic and reproduce its Z0302 example exactly. Open decision #41 records three diagnostic codes the specification does not number (Z0301, Z0303, Z0304).
+
+**Green.** Format, clippy with warnings denied, all workspace tests and the tier check pass locally. The GitHub runs are to be read after the push.
+
+**Next.** Step 7, the parser `[engine]`.
+
+**For the owner to decide.** Open decision #41 (three diagnostic codes), deadline 0.1.0; it can wait until the release is closed.

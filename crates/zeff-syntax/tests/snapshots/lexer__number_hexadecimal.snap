@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0310]: `0x10` runs a number into a name
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = 0x10
+  |         ^^^^ not a number
+  |
+  = help: numbers are decimal or scientific only (`1e-6`); there are no hexadecimal or octal forms and no `L` suffix

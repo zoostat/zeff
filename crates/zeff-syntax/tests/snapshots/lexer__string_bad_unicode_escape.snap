@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0311]: malformed escape `\u{110000}` in a string
+ --> scripts/main.zeff:1:10
+  |
+1 | let p = "\u{110000}"
+  |          ^^^^^^^^^^ expected `\u{...}`
+  |
+  = help: write one to six hexadecimal digits in braces that name a Unicode scalar value, as in `\u{00e9}`

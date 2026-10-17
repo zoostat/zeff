@@ -1,0 +1,17 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0301]: this name in backticks is never closed
+ --> scripts/main.zeff:1:12
+  |
+1 | wages.mean(`gross sales)
+  |            ^ opened here
+  |
+  = help: close it with another backtick on the same line
+
+error[Z0302]: this `(` is never closed
+ --> scripts/main.zeff:1:11
+  |
+1 | wages.mean(`gross sales)
+  |           ^ opened here

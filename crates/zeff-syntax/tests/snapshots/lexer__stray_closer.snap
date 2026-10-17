@@ -1,0 +1,9 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0303]: unexpected closing `)`
+ --> scripts/main.zeff:1:10
+  |
+1 | let a = 1)
+  |          ^ no `(` is open here

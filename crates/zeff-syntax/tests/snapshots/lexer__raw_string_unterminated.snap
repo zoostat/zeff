@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0311]: this raw string is never closed
+ --> scripts/main.zeff:1:9
+  |
+1 | let p = r"abc
+  |         ^^^^^ opened here
+  |
+  = help: a string must end on the line it starts on; build longer text with `join` or `format`

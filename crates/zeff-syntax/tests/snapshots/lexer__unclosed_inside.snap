@@ -1,0 +1,9 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0302]: this `[` is never closed
+ --> scripts/main.zeff:1:11
+  |
+1 | let a = f([1, 2)
+  |           ^ opened here

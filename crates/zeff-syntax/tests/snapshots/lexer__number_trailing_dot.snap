@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0310]: `5.` is not a number
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = 5.
+  |         ^^ a decimal point needs digits after it
+  |
+  = help: write `5` or `5.0`

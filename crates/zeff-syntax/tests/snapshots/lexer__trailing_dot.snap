@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0312]: a line may not end with `.`
+ --> scripts/main.zeff:1:6
+  |
+1 | wages.
+  |      ^ a name must follow the dot
+  |
+  = help: write the method name after the dot, or remove the dot

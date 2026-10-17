@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0310]: this integer does not fit in 64 bits
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = 18446744073709551616
+  |         ^^^^^^^^^^^^^^^^^^^^ too large for an Int
+  |
+  = help: Int values are 64-bit; write a Float for larger numbers, as in `1e30`

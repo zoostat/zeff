@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0315]: single quotes are not used in Zeff
+ --> scripts/main.zeff:1:9
+  |
+1 | let p = 'male'
+  |         ^^^^^^ text is written in double quotes
+  |
+  = help: write text in double quotes: "male"

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0301]: a name in backticks cannot be empty
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = ``
+  |         ^^ no name between the backticks
+  |
+  = help: write the column's name between the backticks, as in `` `gross sales` ``

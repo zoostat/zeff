@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0310]: `2x` runs a number into a name
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = 2x
+  |         ^^ not a number
+  |
+  = help: put a space or an operator between the number and the name, as in `2 * x`

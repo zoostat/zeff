@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0310]: this number is too large for a Float
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = 1e999
+  |         ^^^^^ beyond the largest Float
+  |
+  = help: Float values reach about 1.8e308

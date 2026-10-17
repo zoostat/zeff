@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0315]: `NULL` is not a Zeff word
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = NULL
+  |         ^^^^ not a Zeff word
+  |
+  = help: a missing value is `NA`

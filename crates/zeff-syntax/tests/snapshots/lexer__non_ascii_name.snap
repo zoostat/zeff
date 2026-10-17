@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0301]: unexpected character `é`
+ --> scripts/main.zeff:1:8
+  |
+1 | let café = 1
+  |        ^ not part of the Zeff grammar
+  |
+  = help: names use ASCII letters, digits and `_`; a column named otherwise is written in backticks

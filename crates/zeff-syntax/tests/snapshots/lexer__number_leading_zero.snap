@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/lexer.rs
+expression: render(text)
+---
+error[Z0310]: `007` has a zero before another digit
+ --> scripts/main.zeff:1:9
+  |
+1 | let a = 007
+  |         ^^^ leading zero
+  |
+  = help: write `7`
