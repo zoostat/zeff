@@ -1,6 +1,6 @@
 [package]
 name = "zeff-ir"
-description = "The typed intermediate representation and diagnostics."
+description = "The typed intermediate representation."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

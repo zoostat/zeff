@@ -555,6 +555,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeff-diagnostics"
+version = "0.1.0-dev"
+
+[[package]]
 name = "zeff-engine"
 version = "0.1.0-dev"
 dependencies = [

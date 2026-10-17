@@ -71,3 +71,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 5, diagnostics as data `[engine]`: the first step of the vertical slice.
 
 **For the owner to decide.** Nothing at present.
+
+## 18 October 2026, step 5 of release 0.1.0
+
+**Done.** Step 5 `[engine]`: the `zeff-diagnostics` crate (diagnostic records with code, severity, labels, help and fixes; sources and positions in scalar values; the Rust-style renderer; the record form with line and column). 19 tests, including one that reads the ten printed errors from the Language Reference and requires the renderer to reproduce each exactly. The test found one slip in the specification (the Z0701 example had one caret too many); it was corrected and logged as the first entry of `docs/spec_changes.md`.
+
+**Green.** Format, clippy with warnings denied, all tests and the tier check pass locally. The GitHub runs are to be read after the push.
+
+**Next.** Step 6, the lexer for the whole token set `[engine]`.
+
+**For the owner to decide.** Nothing at present.

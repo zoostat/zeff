@@ -1,1 +1,1 @@
-//! The typed intermediate representation and diagnostics.
+//! The typed intermediate representation.

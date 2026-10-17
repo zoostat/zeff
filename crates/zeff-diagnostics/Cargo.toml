@@ -1,0 +1,10 @@
+[package]
+name = "zeff-diagnostics"
+description = "Diagnostics as data: code, span, message, labels, help and fixes, with the Rust-style renderer."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true

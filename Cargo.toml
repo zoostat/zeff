@@ -6,6 +6,7 @@ members = [
     "kernel/zeff-registry",
     "packages/tier0/core",
     "packages/tier1/data",
+    "crates/zeff-diagnostics",
     "crates/zeff-syntax",
     "crates/zeff-ir",
     "crates/zeff-engine",
@@ -31,6 +32,7 @@ zeff-numeric = { path = "kernel/zeff-numeric" }
 zeff-registry = { path = "kernel/zeff-registry" }
 zeff-core = { path = "packages/tier0/core" }
 zeff-data = { path = "packages/tier1/data" }
+zeff-diagnostics = { path = "crates/zeff-diagnostics" }
 zeff-syntax = { path = "crates/zeff-syntax" }
 zeff-ir = { path = "crates/zeff-ir" }
 zeff-engine = { path = "crates/zeff-engine" }

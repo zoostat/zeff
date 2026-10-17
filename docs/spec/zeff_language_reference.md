@@ -1347,7 +1347,7 @@ error[Z0701]: path `../shared/wages.csv` is outside the project
  --> scripts/main.zeff:2:20
   |
 2 | let wages = import("../shared/wages.csv")
-  |                    ^^^^^^^^^^^^^^^^^^^^^^ projects read only their own files and declared data roots
+  |                    ^^^^^^^^^^^^^^^^^^^^^ projects read only their own files and declared data roots
   |
   = help: declare the folder under [data] in zeff.toml and write `import("shared:wages.csv")`, or copy the file into data/
 ```
