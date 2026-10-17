@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: unknown key `netwrk` in [project]
+ --> zeff.toml:5:1
+  |
+5 | netwrk = true
+  | ^^^^^^ not a setting of Zeff
+  |
+  = help: did you mean `network`?

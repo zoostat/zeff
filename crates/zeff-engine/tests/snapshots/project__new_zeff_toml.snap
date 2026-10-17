@@ -1,0 +1,8 @@
+---
+source: crates/zeff-engine/tests/project.rs
+expression: "fs.read_to_string(&root.join(\"zeff.toml\")).unwrap().replace(VERSION,\n\"0.1.0-dev\")"
+---
+[project]
+name = "schooling"        # the project's name
+zeff = "0.1.0-dev"        # the engine this project runs on, exactly
+edition = "preview"       # "2027" from Zeff 1.0.0

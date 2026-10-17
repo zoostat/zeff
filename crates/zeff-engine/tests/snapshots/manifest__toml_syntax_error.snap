@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0712]: zeff.toml is not valid TOML: unclosed table, expected `]`
+ --> zeff.toml:1:9
+  |
+1 | [project
+  |         ^ unclosed table, expected `]`
+  |
+  = help: a project file looks like `[project]` followed by `name = "..."` lines

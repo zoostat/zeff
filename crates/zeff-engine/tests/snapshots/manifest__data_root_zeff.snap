@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: `zeff` is the name of the data root that ships with the engine
+ --> zeff.toml:6:1
+  |
+6 | zeff = { path = "x" }
+  | ^^^^ cannot be used as a data root
+  |
+  = help: choose another name for this folder

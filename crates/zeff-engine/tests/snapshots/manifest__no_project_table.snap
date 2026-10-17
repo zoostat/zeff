@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: zeff.toml needs a [project] table
+ --> zeff.toml:1:1
+  |
+1 | [data]
+  | ^^^^^^ no [project]
+  |
+  = help: start the file with `[project]`, `name = "..."`, `zeff = "0.1.0-dev"` and `edition = "preview"`

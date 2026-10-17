@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/project.rs
+expression: "show(PathProblem::Unwritable(\"it is outside the project\".into()),\n\"../out/table.csv\")"
+---
+error[Z0707]: cannot write `../out/table.csv`: it is outside the project
+ --> scripts/main.zeff:1:16
+  |
+1 | let w = import("data/wages.csv")
+  |                ^^^^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/table.csv`

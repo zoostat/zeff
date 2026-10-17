@@ -101,3 +101,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 8, projects and the first commands `[engine]`.
 
 **For the owner to decide.** Open decision #41 (three diagnostic codes), deadline 0.1.0; it can wait until the release is closed.
+
+## 18 October 2026, step 8 of release 0.1.0
+
+**Done.** Step 8 `[engine]`: projects and the first commands. The engine now reads and checks `zeff.toml` (every problem reported at once, each at the offending value), finds a project from inside it, checks the engine pin (exit code 4 on a mismatch), applies the path rules (outside the project, data roots, case, links, writes), and creates projects (`zeff new`); `zeff version` prints the version; `run`, `check`, `fmt` and `test` find and check the project and stop there until steps 12 and 13. The engine reads files through an interface, so the same code can run in WebAssembly. 44 tests added (manifest, project, paths, creation, 11 script tests of the real program) and one small helper in the diagnostics crate ("did you mean"). Open decision #42 records two codes the specification lacks (Z0712, Z0713).
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the release-mode stack guard and the tier check pass locally. The GitHub runs are to be read after the push.
+
+**Next.** Step 9, the column store on Arrow and the NA rules `[engine]`.
+
+**For the owner to decide.** Open decisions #41 and #42 (five diagnostic codes in all), deadline 0.1.0; they can wait until the release is closed.

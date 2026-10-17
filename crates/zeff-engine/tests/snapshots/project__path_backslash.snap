@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/project.rs
+expression: "show(PathProblem::Backslash, \"data\\\\wages.csv\")"
+---
+error[Z0701]: path `data\wages.csv` uses `\`
+ --> scripts/main.zeff:1:16
+  |
+1 | let w = import("data/wages.csv")
+  |                ^^^^^^^^^^^^^^^^ paths are written with `/` on every system
+  |
+  = help: write `/` between folders; `\` is neither a separator nor a valid escape in a string

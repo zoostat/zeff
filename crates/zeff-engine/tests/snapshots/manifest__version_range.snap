@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: `zeff = "^0.1"` is not an exact version
+ --> zeff.toml:3:8
+  |
+3 | zeff = "^0.1"
+  |        ^^^^^^ pin one exact engine version
+  |
+  = help: write three numbers, as in `zeff = "0.1.0"`; a project never takes a range

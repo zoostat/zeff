@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/project.rs
+expression: "show(PathProblem::Empty, \"\")"
+---
+error[Z0701]: the path is empty
+ --> scripts/main.zeff:1:16
+  |
+1 | let w = import("data/wages.csv")
+  |                ^^^^^^^^^^^^^^^^ no path
+  |
+  = help: write a path from the project folder, such as `data/wages.csv`

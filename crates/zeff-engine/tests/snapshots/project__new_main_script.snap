@@ -1,0 +1,6 @@
+---
+source: crates/zeff-engine/tests/project.rs
+expression: "fs.read_to_string(&root.join(\"scripts/main.zeff\")).unwrap()"
+---
+// scripts/main.zeff — the script `zeff run` starts from.
+// Put your data in data/ and read it with import("data/yourfile.csv").

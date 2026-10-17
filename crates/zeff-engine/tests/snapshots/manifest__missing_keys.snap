@@ -1,0 +1,27 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: [project] needs `name`
+ --> zeff.toml:1:2
+  |
+1 | [project]
+  |  ^^^^^^^ `name` is missing
+  |
+  = help: add `name = "schooling"`
+
+error[Z0713]: [project] needs `zeff`
+ --> zeff.toml:1:2
+  |
+1 | [project]
+  |  ^^^^^^^ `zeff` is missing
+  |
+  = help: add `zeff = "0.1.0-dev"`, the engine version the project runs on
+
+error[Z0713]: [project] needs `edition`
+ --> zeff.toml:1:2
+  |
+1 | [project]
+  |  ^^^^^^^ `edition` is missing
+  |
+  = help: add `edition = "preview"`

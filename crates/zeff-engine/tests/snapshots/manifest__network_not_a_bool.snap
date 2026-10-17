@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: `network` in [project] must be true or false
+ --> zeff.toml:5:11
+  |
+5 | network = "yes"
+  |           ^^^^^ this is text
+  |
+  = help: write `network = true` to let `fetch` reach the network, or leave it out

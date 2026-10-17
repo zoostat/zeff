@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: `memory = "lots"` is not a size
+ --> zeff.toml:5:10
+  |
+5 | memory = "lots"
+  |          ^^^^^^ expected a number and KB, MB or GB
+  |
+  = help: write a size such as `memory = "3.5GB"`

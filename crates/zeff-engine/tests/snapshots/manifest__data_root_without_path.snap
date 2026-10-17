@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: the data root `lfs` needs a `path`
+ --> zeff.toml:6:7
+  |
+6 | lfs = { }
+  |       ^^^ `path` is missing
+  |
+  = help: write `lfs = { path = "D:/surveys/lfs" }`

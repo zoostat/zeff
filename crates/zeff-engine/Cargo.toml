@@ -17,3 +17,9 @@ zeff-data.workspace = true
 zeff-columns.workspace = true
 zeff-numeric.workspace = true
 zeff-registry.workspace = true
+toml = { version = "=1.1.8", default-features = false, features = ["parse", "std"] }
+zeff-diagnostics.workspace = true
+
+[dev-dependencies]
+insta = "=1.49.0"
+tempfile = "=3.27.0"

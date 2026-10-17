@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: unknown key `databse` in zeff.toml
+ --> zeff.toml:1:2
+  |
+1 | [databse]
+  |  ^^^^^^^ not a setting of Zeff
+  |
+  = help: zeff.toml takes: project, data, packages

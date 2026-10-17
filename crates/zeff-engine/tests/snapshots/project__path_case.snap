@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/project.rs
+expression: "show(PathProblem::CaseMismatch\n{ written: \"data/wages.csv\".into(), actual: \"data/Wages.csv\".into() },\n\"data/wages.csv\")"
+---
+error[Z0702]: path `data/wages.csv` differs only in case from `data/Wages.csv`
+ --> scripts/main.zeff:1:16
+  |
+1 | let w = import("data/wages.csv")
+  |                ^^^^^^^^^^^^^^^^ the file is called differently
+  |
+  = help: write `data/Wages.csv`, so that the script also works on systems that tell upper and lower case apart

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0706]: `2030` is not an edition this Zeff knows
+ --> zeff.toml:4:11
+  |
+4 | edition = "2030"
+  |           ^^^^^^ unknown edition
+  |
+  = help: before Zeff 1.0.0 the only edition is `"preview"`

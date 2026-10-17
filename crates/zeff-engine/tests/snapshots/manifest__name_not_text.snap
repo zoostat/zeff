@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: `name` in [project] must be text
+ --> zeff.toml:2:8
+  |
+2 | name = 5
+  |        ^ this is a whole number
+  |
+  = help: write it between quotation marks, as in `name = "..."`

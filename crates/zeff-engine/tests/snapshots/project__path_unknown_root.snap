@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/project.rs
+expression: "show(PathProblem::UnknownRoot(\"lfs\".into()), \"lfs:wages.parquet\")"
+---
+error[Z0701]: path `lfs:wages.parquet` is outside the project: there is no data root `lfs`
+ --> scripts/main.zeff:1:16
+  |
+1 | let w = import("data/wages.csv")
+  |                ^^^^^^^^^^^^^^^^ unknown data root
+  |
+  = help: declare it under [data] in zeff.toml, as `lfs = { path = "..." }`

@@ -8,8 +8,10 @@
 
 mod render;
 mod source;
+mod suggest;
 
 pub use source::{Position, Source, Sources, Span};
+pub use suggest::did_you_mean;
 
 /// How serious a diagnostic is (Language Reference, section 11, "Kind").
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

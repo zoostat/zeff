@@ -141,3 +141,33 @@ CI runs the report on: Linux x86-64 at the baseline instruction set; the same Li
 **Choice.** The lexer emits `LBrace` for a record literal or record type and `LBlock` for a `{` that opens a body (a block, the arms of a `case`, a `model { }` or a `dag { }`), because it already had to tell them apart to decide what a line break means. The parser relies on this to tell an arm's block from a record after `=>`. A `{` after `>` (the end of a type such as `List<RegFit>`) opens a body.
 
 **Reason.** One decision made in one place; found when the specification's own function example failed to parse.
+
+## 18 October 2026: The engine reads files through an interface
+
+**Choice.** The engine never calls `std::fs` itself. It uses the `FileSystem` interface (read, list, canonicalise, create, write, remove): `StdFileSystem` for the machine, `MemoryFileSystem` for tests and for the browser, where the user grants a folder once and a file system supplied from JavaScript will stand behind the same interface (step 13). Project discovery, the path rules and `zeff new` all work through it.
+
+**Reason.** The same engine must run natively and in WebAssembly, where there is no `std::fs`; adding the interface later would mean rewriting code and tests that already pass. It also makes most tests in-memory and fast, with a few on a real folder for what only a real disk shows (case and links).
+
+## 18 October 2026: `zeff.toml`, the project file
+
+**Choice.** `zeff.toml` is read with the `toml` crate 1.1.8 (default features off, `parse` and `std` only, so no serde), which keeps the position of every value, so each message points at the value that causes it. All problems are reported at once, in the order of the file. Unknown keys and tables are errors (with "did you mean" for near misses), not warnings. `[project]` needs `name`, `zeff` (one exact version of three numbers, with an optional pre-release tag so that a development build, `0.1.0-dev`, can pin itself; `^0.1` and the like are refused with the exact form suggested) and `edition`; `memory` is a number with KB, MB or GB, kept as written until the memory budget arrives (0.7.0); `network` is true or false. `edition = "preview"` is the only edition before 1.0.0; `"2027"` and anything else give Z0706 (exit code 4). `[data]` takes name = { path = "..." }; the names are letters, digits and `_`, and `zeff` is reserved for the built-in data root of 0.2.0. `[packages]` must be empty before 1.0. Two codes the specification does not give — a file that is not valid TOML (Z0712) and a file that is wrong for Zeff (Z0713) — are used provisionally and put to the owner as open decision #42 (Z0704 and Z0705 are taken by the memory budget and by cancellation).
+
+**Exit codes.** Z0706, Z0710 and Z0703 are exit code 4 (the engine, edition or lock does not match the project); every other problem in the project, the script or the way a command was typed is exit code 1; 2 stays for internal errors. A mistake in how a command is typed is the user's to fix, so it is a 1 and not a 2.
+
+**Reason.** Section 2 and section 3.8 of the Language Reference; a copied project must re-run unchanged, so nothing in its file may be ignored silently.
+
+## 18 October 2026: Finding the project, the pin, and the commands of this build
+
+**Choice.** `zeff` walks up from the current folder to the nearest `zeff.toml`; outside a project `run`, `check`, `fmt` and `test` stop with Z0709 and exit code 1. The project must pin exactly the running engine (Z0710, exit code 4), because before 0.9.0 launcher and engine are one binary and cannot install another; the message says that installing engines arrives with 0.9.0. `zeff new <name>` makes `zeff.toml` (pinning the running version), `scripts/main.zeff` (comments only), `data/` and a `.gitignore` that leaves out `.zeff/cache/`, `.zeff/fetched/`, `.zeff/runs/`, `.zeff/open.lock` (the lock file that stops a project being opened twice; its name is mine, the specification says only "a lock file in `.zeff/`"), `.zeff/session.zeff`, `.zemp/views.json` and `data/`; it never touches an existing folder and removes what it made if it fails half-way. A project name is lowercase letters and digits with `_` or `-`, starting with a letter or digit, in at most 64 characters, with the corrected spelling suggested. `zeff version` prints `zeff <version>`. `run`, `check`, `fmt` and `test` find and check the project and then say that they are not available yet; the commands the specification lists for later releases say the same; anything else is an unknown command. The flags (`--project`, `--color`, `--format`, `--quiet` and the rest) arrive with 0.2.0 as section 14 says.
+
+**Reason.** Section 2 and the 0.1.0 row of section 14. The placeholder messages are temporary: steps 12 and 13 replace them.
+
+## 18 October 2026: The path rules
+
+**Choice.** A script's path is a string written with `/`, from the project folder. It is refused (Z0701) if it is empty, uses `\`, is absolute (`/x`, `C:/x`), climbs above the project with `..`, or leaves it through a symbolic link; `root:file` reads under a declared data root (relative roots are relative to the project), and an unknown root, a `..` or an absolute path after the root's name is refused as well. Each part of a path is compared with the folder listing, and a part that differs only in case from a real file is Z0702, with the real spelling suggested, on every system. A write (`save`, `export`) must land under the project folder; a data root, an absolute path, `..` out of the project, a link out, an empty path or the project folder itself is Z0707. The message for a path outside the project reproduces the specification's own example exactly (tested against the text).
+
+**Reason.** Section 2, "Paths from the root", "Data roots" and "Writes"; Language Reference section 3.8, "Paths". Two real-disk tests (case and a link) cover what the in-memory file system cannot.
+
+## 18 October 2026: Dependencies added (with licences)
+
+`toml` 1.1.8 in `zeff-engine`, with toml_parser, toml_datetime, serde_spanned, winnow and serde_core; `tempfile` 3.27.0 (already present through `proptest`) as a development dependency of the engine and the command line, and `insta` 1.49.0 in the same two crates for message snapshots. Licences: MIT or Apache-2.0, or both as alternatives, throughout (winnow MIT). The engine crate compiles for `wasm32-unknown-unknown`.

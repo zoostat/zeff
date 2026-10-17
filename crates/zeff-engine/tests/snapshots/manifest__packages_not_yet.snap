@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/manifest.rs
+expression: render(text)
+---
+error[Z0713]: third-party packages are not available yet
+ --> zeff.toml:5:2
+  |
+5 | [packages]
+  |  ^^^^^^^^ [packages] must be empty
+  |
+  = help: third-party packages arrive after Zeff 1.0; every function of this release is built in

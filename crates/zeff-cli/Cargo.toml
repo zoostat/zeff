@@ -9,5 +9,17 @@ publish = false
 [lints]
 workspace = true
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "zeff"
+path = "src/main.rs"
+
 [dependencies]
 zeff-engine.workspace = true
+zeff-diagnostics.workspace = true
+
+[dev-dependencies]
+tempfile = "=3.27.0"
+insta = "=1.49.0"

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/project.rs
+expression: "d.render(&sources).replace(VERSION, \"0.1.0-dev\")"
+---
+error[Z0710]: this project needs Zeff 9.9.9, but this is Zeff 0.1.0-dev
+ --> zeff.toml:3:8
+  |
+3 | zeff = "9.9.9"
+  |        ^^^^^^^ the engine the project pins
+  |
+  = help: run it with Zeff 9.9.9, or change `zeff` in zeff.toml to 0.1.0-dev; installing other engines (`zeff engine install 9.9.9`) arrives with release 0.9.0
