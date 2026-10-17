@@ -1,0 +1,23 @@
+[package]
+name = "zeff-conformance"
+description = "The conformance cases whose result hashes must be identical on every target."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "zeff-conformance"
+path = "src/main.rs"
+
+[dependencies]
+zeff-numeric.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "=0.2.129"

@@ -110,3 +110,117 @@ jobs:
 
       - name: Core depends only on kernel crates, and every call goes down (section 8.1)
         run: cargo run --locked -p xtask -- check-tiers
+
+  identity:
+    name: identity (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86-64
+            runner: ubuntu-latest
+            rustflags: ""
+          - name: linux-x86-64-v3
+            runner: ubuntu-latest
+            rustflags: "-C target-cpu=x86-64-v3"
+          - name: linux-arm64
+            runner: ubuntu-24.04-arm
+            rustflags: ""
+          - name: macos-arm64
+            runner: macos-latest
+            rustflags: ""
+    runs-on: ${{ matrix.runner }}
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Show the processor (the x86-64 levels are told apart by these flags)
+        run: |
+          if [ "$(uname -s)" = "Linux" ]; then
+            grep -m1 'model name' /proc/cpuinfo || true
+            grep -m1 -E '^(flags|Features)' /proc/cpuinfo | tr ' ' '\n' | grep -E '^(sse2|avx|avx2|avx512f|fma|asimd|neon)$' | sort -u | tr '\n' ' ' || true
+            echo
+          else
+            sysctl -n machdep.cpu.brand_string
+          fi
+
+      - name: Run the conformance cases of a release build
+        run: |
+          cargo build --release --locked -p zeff-conformance
+          mkdir -p report
+          ./target/release/zeff-conformance > report/cases.txt
+          cat report/cases.txt
+
+      - name: Keep the report for the comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity-${{ matrix.name }}
+          path: report/cases.txt
+
+  identity-wasm:
+    name: identity (wasm)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Restore the WebAssembly binding tool
+        id: tool
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-0.2.129-${{ runner.os }}
+
+      - name: Install the WebAssembly binding tool at the pinned version
+        if: steps.tool.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version '=0.2.129' --locked
+
+      - name: Build for WebAssembly with SIMD128
+        env:
+          RUSTFLAGS: -C target-feature=+simd128
+        run: |
+          cargo build --release --locked -p zeff-conformance --target wasm32-unknown-unknown
+          wasm-bindgen --target nodejs --out-dir wasm-pkg target/wasm32-unknown-unknown/release/zeff_conformance.wasm
+
+      - name: Run the conformance cases under Node
+        run: |
+          node --version
+          node crates/zeff-conformance/wasm/run.cjs wasm-pkg report/cases.txt
+          cat report/cases.txt
+
+      - name: Keep the report for the comparison
+        uses: actions/upload-artifact@v4
+        with:
+          name: identity-wasm
+          path: report/cases.txt
+
+  identity-compare:
+    name: identity (compare)
+    needs: [identity, identity-wasm]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Collect the reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: identity-*
+          path: reports
+
+      - name: Add the committed report
+        run: cp crates/zeff-conformance/expected.txt reports/expected.txt
+
+      - name: Every target gives the committed report, bit for bit
+        run: cargo run --locked -p xtask -- compare-identity reports 6

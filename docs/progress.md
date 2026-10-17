@@ -51,3 +51,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 3, the conformance harness and the four-target identity check `[engine]`.
 
 **For the owner to decide.** Nothing at present.
+
+## 18 October 2026, step 3 of release 0.1.0
+
+**Done.** Step 3 `[engine]`: the conformance crate (36 cases and a committed expected report), the comparison tool `xtask compare-identity` with 5 tests, and CI jobs that run the cases on Linux x86-64 (baseline and the wider `x86-64-v3` level), Linux ARM64, macOS ARM64 and WebAssembly under Node, then compare all five reports with the committed one. Decisions are in `docs/decisions.md`.
+
+**Green.** Locally: format, clippy with warnings denied, 42 tests, the tier check, and the WebAssembly report is identical to the native one on this Mac. The GitHub run is to be read after the push.
+
+**Next.** Step 4, bundle size and cold start tracked on every build `[engine]`.
+
+**For the owner to decide.** Nothing at present.

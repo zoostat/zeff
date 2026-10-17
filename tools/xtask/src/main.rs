@@ -1,5 +1,6 @@
 //! Build tooling. `cargo run -p xtask -- check-tiers` enforces the tier rules of section 8.1.
 
+mod identity;
 mod tiers;
 
 use std::process::{Command, ExitCode};
@@ -7,8 +8,12 @@ use std::process::{Command, ExitCode};
 fn main() -> ExitCode {
     match std::env::args().nth(1).as_deref() {
         Some("check-tiers") => check_tiers(),
+        Some("compare-identity") => compare_identity(),
         _ => {
-            eprintln!("usage: cargo run -p xtask -- check-tiers");
+            eprintln!(
+                "usage: cargo run -p xtask -- check-tiers\n       \
+                 cargo run -p xtask -- compare-identity <folder> <number of reports>"
+            );
             ExitCode::from(2)
         }
     }
@@ -57,4 +62,61 @@ fn check_tiers() -> ExitCode {
             ExitCode::from(2)
         }
     }
+}
+
+/// Compare the `*.txt` reports found under a folder: `compare-identity <folder> <how many>`.
+fn compare_identity() -> ExitCode {
+    let args: Vec<String> = std::env::args().skip(2).collect();
+    let [folder, count] = args.as_slice() else {
+        eprintln!("usage: cargo run -p xtask -- compare-identity <folder> <number of reports>");
+        return ExitCode::from(2);
+    };
+    let Ok(count) = count.parse::<usize>() else {
+        eprintln!("`{count}` is not a number");
+        return ExitCode::from(2);
+    };
+    let mut reports = Vec::new();
+    if let Err(error) = collect(
+        std::path::Path::new(folder),
+        std::path::Path::new(folder),
+        &mut reports,
+    ) {
+        eprintln!("could not read {folder}: {error}");
+        return ExitCode::from(2);
+    }
+    reports.sort();
+    let problems = identity::compare(&reports, count);
+    if problems.is_empty() {
+        println!("identical: {} reports agree on every case", reports.len());
+        for (label, _) in &reports {
+            println!("  {label}");
+        }
+        ExitCode::SUCCESS
+    } else {
+        for problem in &problems {
+            eprintln!("not identical: {problem}");
+        }
+        ExitCode::from(1)
+    }
+}
+
+fn collect(
+    root: &std::path::Path,
+    folder: &std::path::Path,
+    reports: &mut Vec<(String, String)>,
+) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(folder)? {
+        let path = entry?.path();
+        if path.is_dir() {
+            collect(root, &path, reports)?;
+        } else if path.extension().is_some_and(|e| e == "txt") {
+            let label = path
+                .strip_prefix(root)
+                .unwrap_or(&path)
+                .display()
+                .to_string();
+            reports.push((label, std::fs::read_to_string(&path)?));
+        }
+    }
+    Ok(())
 }

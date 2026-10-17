@@ -1,0 +1,76 @@
+sum/uniform 9457c494f7a03b4c
+# sum/uniform bits 40b37004a34ea7d0
+mean/uniform df2764b8e5fe169e
+# mean/uniform bits 3fdfd8b544e816a2
+variance/uniform 9d6081a289c51f98
+# variance/uniform bits 3fb58f41b1623d9b
+sd/uniform 85853d92f4241cf6
+# sd/uniform bits 3fd292ab3454ff9c
+sum/offset 13d77bc2729f3d94
+# sum/offset bits 42a2309ce56708b9
+mean/offset cbead0d9a5f46dfd
+# mean/offset bits 41cdcd65003ff413
+variance/offset ffa237ed81aa95f1
+# variance/offset bits 3fb56fb895a42664
+sd/offset 85b2f4269c576609
+# sd/offset bits 3fd28510db4250bb
+sum/wide 926916e5ef186498
+# sum/wide bits 4198a4f4b1333f27
+mean/wide 1c38a89c3f24ddf1
+# mean/wide bits 40d4304beef5f662
+variance/wide b628c6b121b4c2e3
+# variance/wide bits 42e5b16a1ef8d096
+sd/wide cb380a32bc48dcf0
+# sd/wide bits 416a58e46c79a2b3
+sum/constant 0996b0313d19f181
+# sum/constant bits 4074500000000000
+mean/constant a8b3543228087a0f
+# mean/constant bits 400a000000000000
+variance/constant a8c7f832281a39c5
+# variance/constant bits 0000000000000000
+sd/constant a8c7f832281a39c5
+# sd/constant bits 0000000000000000
+sum/pair aab1693229ba1db8
+# sum/pair bits 3ff0000000000000
+mean/pair aae7e93229e886a8
+# mean/pair bits 3fe0000000000000
+variance/pair a85af83227bd67e5
+# variance/pair bits 4020000000000000
+sd/pair 9871bc18b65e8194
+# sd/pair bits 4006a09e667f3bcd
+sum/single 4fa09cc0eec310c4
+# sum/single bits 3fb999999999999a
+mean/single 4fa09cc0eec310c4
+# mean/single bits 3fb999999999999a
+variance/single 8cfd18291fe05eb9
+# variance/single bits 7ff0000000000001
+sd/single 8cfd18291fe05eb9
+# sd/single bits 7ff0000000000001
+sum/empty a8c7f832281a39c5
+# sum/empty bits 0000000000000000
+mean/empty 8cfd18291fe05eb9
+# mean/empty bits 7ff0000000000001
+variance/empty 8cfd18291fe05eb9
+# variance/empty bits 7ff0000000000001
+sd/empty 8cfd18291fe05eb9
+# sd/empty bits 7ff0000000000001
+sum/infinite aab1293229b9b0f8
+# sum/infinite bits 7ff0000000000000
+mean/infinite aab1293229b9b0f8
+# mean/infinite bits 7ff0000000000000
+variance/infinite aa96293229a2e940
+# variance/infinite bits 7ff8000000000000
+sd/infinite aa96293229a2e940
+# sd/infinite bits 7ff8000000000000
+sum/mixed_infinite aa96293229a2e940
+# sum/mixed_infinite bits 7ff8000000000000
+mean/mixed_infinite aa96293229a2e940
+# mean/mixed_infinite bits 7ff8000000000000
+variance/mixed_infinite aa96293229a2e940
+# variance/mixed_infinite bits 7ff8000000000000
+sd/mixed_infinite aa96293229a2e940
+# sd/mixed_infinite bits 7ff8000000000000
+canary/multiply_add_orbit 70faf405f1efa7d7
+canary/square_roots 7bcc69e88f345a72
+canary/subnormal_descent 72e5e723a0efa7e0
+canary/quotients 0ede72b5f65216ff

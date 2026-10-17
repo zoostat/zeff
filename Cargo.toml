@@ -10,6 +10,7 @@ members = [
     "crates/zeff-ir",
     "crates/zeff-engine",
     "crates/zeff-cli",
+    "crates/zeff-conformance",
     "tools/xtask",
 ]
 
