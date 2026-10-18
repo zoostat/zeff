@@ -73,6 +73,20 @@ pub struct Diagnostic {
     pub fixes: Vec<Fix>,
 }
 
+/// A count as messages print it, with thousands separators (Language Reference, section 3.8):
+/// `18,412`. Every message that reports a count uses this.
+pub fn count(n: u64) -> String {
+    let digits = n.to_string();
+    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out
+}
+
 /// Whether a code has the form of the specification's codes: `Z` or `W` and four digits.
 pub fn is_valid_code(code: &str) -> bool {
     let bytes = code.as_bytes();
@@ -81,7 +95,10 @@ pub fn is_valid_code(code: &str) -> bool {
 
 impl Diagnostic {
     fn new(severity: Severity, code: &str, message: impl Into<String>) -> Self {
-        debug_assert!(is_valid_code(code), "`{code}` is not a diagnostic code");
+        debug_assert!(
+            is_valid_code(code) || (code.is_empty() && severity == Severity::Note),
+            "`{code}` is not a diagnostic code"
+        );
         Diagnostic {
             code: code.to_string(),
             severity,
@@ -101,8 +118,15 @@ impl Diagnostic {
         Self::new(Severity::Warning, code, message)
     }
 
+    /// A note with a code. Most notes have none (Language Reference, section 10.2): use
+    /// [`Diagnostic::plain_note`] for those.
     pub fn note(code: &str, message: impl Into<String>) -> Self {
         Self::new(Severity::Note, code, message)
+    }
+
+    /// A note without a code, printed as `note: ...`.
+    pub fn plain_note(message: impl Into<String>) -> Self {
+        Self::new(Severity::Note, "", message)
     }
 
     /// The file the labels refer to.
@@ -276,6 +300,26 @@ impl IntoIterator for Diagnostics {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn counts_carry_thousands_separators() {
+        assert_eq!(count(0), "0");
+        assert_eq!(count(999), "999");
+        assert_eq!(count(1000), "1,000");
+        assert_eq!(count(18412), "18,412");
+        assert_eq!(count(14207), "14,207");
+        assert_eq!(count(1_234_567_890), "1,234,567,890");
+    }
+
+    #[test]
+    fn a_plain_note_has_no_code() {
+        let n = Diagnostic::plain_note("211 values of wage read as NA from na_values -99");
+        assert_eq!(n.code, "");
+        assert_eq!(
+            n.render(&Sources::new()),
+            "note: 211 values of wage read as NA from na_values -99\n"
+        );
+    }
 
     #[test]
     fn codes_have_the_specified_form() {

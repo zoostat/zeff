@@ -1,0 +1,13 @@
+[package]
+name = "zeff-dates"
+description = "Engine kernel: the calendar, and the parsing and printing of dates and times."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+proptest = "=1.12.0"

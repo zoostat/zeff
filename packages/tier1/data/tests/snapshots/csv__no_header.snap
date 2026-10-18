@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0605]: `data/wages.csv` has no header line
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ the file is empty
+  |
+  = help: the first row names the columns; a file without one is read with `header: false`

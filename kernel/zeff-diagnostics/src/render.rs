@@ -53,13 +53,22 @@ fn place<'a>(source: &Source, label: &'a Label) -> Placed<'a> {
 
 pub(crate) fn render(diagnostic: &Diagnostic, sources: &Sources) -> String {
     let mut out = String::new();
-    let _ = writeln!(
-        out,
-        "{}[{}]: {}",
-        diagnostic.severity.word(),
-        diagnostic.code,
-        diagnostic.message
-    );
+    if diagnostic.code.is_empty() {
+        let _ = writeln!(
+            out,
+            "{}: {}",
+            diagnostic.severity.word(),
+            diagnostic.message
+        );
+    } else {
+        let _ = writeln!(
+            out,
+            "{}[{}]: {}",
+            diagnostic.severity.word(),
+            diagnostic.code,
+            diagnostic.message
+        );
+    }
 
     let source = diagnostic
         .file

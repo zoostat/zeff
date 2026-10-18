@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0606]: row 1,002 of `data/wages.csv` has text in a numeric column
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ column `hours` read as Float from the first 1,000 rows; row 1,002 holds "varies"
+  |
+  = help: declare it with `types: {hours: Str}`, add "varies" to `na_values:`, or fix the file

@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0605]: `names: snake` would give both `Gross Sales` and `gross_sales` the name `gross_sales`
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ two columns, one name
+  |
+  = help: rename one of them in the file, or keep the original names with `names: keep`

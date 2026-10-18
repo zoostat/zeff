@@ -121,3 +121,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 10, the CSV reader `[engine]`.
 
 **For the owner to decide.** Nothing new. Open decisions #41 and #42 (five diagnostic codes), deadline 0.1.0.
+
+## 18 October 2026, step 10 of release 0.1.0
+
+**Done.** Step 10 `[engine]`: the CSV reader (`packages/tier1/data/src/csv.rs`), with the dates kernel crate it needs (`kernel/zeff-dates`: calendar, ISO 8601, formats) and the diagnostics crate moved into the kernel so that packages can raise diagnostics. The reader follows sections 3.8, 4.1 and 6.1: RFC 4180 with lenient quotes, delimiter detection, `header`, `skip`, `na_values`, `types` (with date formats), `names: snake`, types guessed from the first 1,000 rows, and Z0605 to Z0608, W0601 and W0702, with Z0606 printed exactly as the specification's example. 48 tests in the data package (31 on the reader, including 17 files compared field by field with Python's `csv` module and the specification's Z0606 example; 3 property tests; 5 on names; plus 9 unit tests), 14 on dates, 2 new on diagnostics. The rules the specification leaves open (row numbering, blank lines, which spellings of infinity, snake-case details) are recorded in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (275), the release-mode stack guard, the tier check and the WebAssembly compile of the data and engine crates pass locally. Step 9's GitHub run passed; step 10's is to be read after the push.
+
+**Next.** Step 11, the function registry and the help build check `[engine]`.
+
+**For the owner to decide.** Nothing new. Open decisions #41 and #42 (five diagnostic codes), deadline 0.1.0.

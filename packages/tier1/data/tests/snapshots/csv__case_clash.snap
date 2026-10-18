@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0605]: `data/wages.csv` has columns `Wage` and `wage`, which differ only in case
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ names are case-sensitive, so these would be confused
+  |
+  = help: rename one of them in the file

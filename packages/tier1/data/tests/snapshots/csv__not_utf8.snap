@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0608]: row 3 of `data/wages.csv` is not valid UTF-8
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ the file must be UTF-8
+  |
+  = help: save the file as UTF-8 from the program that made it; `encoding:` on import, for files in other encodings, arrives with release 0.2.0

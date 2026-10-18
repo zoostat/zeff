@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0605]: `data/wages.csv` has two columns called `wage` (positions 1 and 3)
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ column names must be distinct
+  |
+  = help: rename one of them in the file, or read without names (`header: false`) and rename afterwards

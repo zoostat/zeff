@@ -1,0 +1,305 @@
+{
+ "reference": {
+  "software": "Python csv module (standard library)",
+  "python": "3.14.8"
+ },
+ "files": {
+  "plain.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "id",
+     "wage",
+     "female"
+    ],
+    [
+     "1",
+     "23.4",
+     "true"
+    ],
+    [
+     "2",
+     "19.0",
+     "false"
+    ],
+    [
+     "3",
+     "",
+     "true"
+    ]
+   ]
+  },
+  "quoted.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "name",
+     "note",
+     "n"
+    ],
+    [
+     "Smith, John",
+     "He said \"hello\"",
+     "1"
+    ],
+    [
+     "two\nlines",
+     "plain",
+     "2"
+    ],
+    [
+     "",
+     "",
+     "3"
+    ]
+   ]
+  },
+  "crlf.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "1",
+     "2"
+    ],
+    [
+     "3",
+     "4"
+    ]
+   ]
+  },
+  "no_final_newline.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "1",
+     "2"
+    ],
+    [
+     "3",
+     "4"
+    ]
+   ]
+  },
+  "bom.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "1",
+     "2"
+    ]
+   ]
+  },
+  "semicolon.csv": {
+   "delimiter": ";",
+   "rows": [
+    [
+     "a",
+     "b",
+     "c"
+    ],
+    [
+     "1",
+     "2",
+     "3"
+    ],
+    [
+     "4",
+     "5",
+     "6"
+    ]
+   ]
+  },
+  "tab.tsv": {
+   "delimiter": "\t",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "1",
+     "2"
+    ],
+    [
+     "3",
+     "4"
+    ]
+   ]
+  },
+  "unicode.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "Gross Sales (total)",
+     "café",
+     "日本語",
+     "`case`"
+    ],
+    [
+     "1",
+     "naïve",
+     "東京",
+     "x"
+    ],
+    [
+     "2",
+     "😀",
+     "大阪",
+     "y"
+    ]
+   ]
+  },
+  "empty_fields.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b",
+     "c"
+    ],
+    [
+     "",
+     "",
+     ""
+    ],
+    [
+     "1",
+     "",
+     "3"
+    ],
+    [
+     "",
+     "2",
+     ""
+    ]
+   ]
+  },
+  "trailing_delimiter.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b",
+     ""
+    ],
+    [
+     "1",
+     "2",
+     ""
+    ]
+   ]
+  },
+  "blank_lines.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "1",
+     "2"
+    ],
+    [
+     "3",
+     "4"
+    ]
+   ]
+  },
+  "single_column.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a"
+    ],
+    [
+     "1"
+    ],
+    [
+     "2"
+    ]
+   ]
+  },
+  "spaces.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     " b ",
+     "c"
+    ],
+    [
+     " 1 ",
+     "2",
+     " 3"
+    ]
+   ]
+  },
+  "quoted_delimiters.csv": {
+   "delimiter": ";",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "1;2",
+     "3"
+    ],
+    [
+     "x",
+     "y;z"
+    ]
+   ]
+  },
+  "quotes_in_unquoted_field.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "it\"s",
+     "1"
+    ]
+   ]
+  },
+  "escaped_quote_only.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a"
+    ],
+    [
+     "\""
+    ]
+   ]
+  },
+  "long_quoted_block.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "line\nline\nline\nline\nline\n",
+     "1"
+    ]
+   ]
+  }
+ }
+}

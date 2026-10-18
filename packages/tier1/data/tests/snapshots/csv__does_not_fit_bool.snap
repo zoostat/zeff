@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0606]: row 1,002 of `data/wages.csv` has a value that is not true or false in a Bool column
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ column `flag` read as Bool from the first 1,000 rows; row 1,002 holds "maybe"
+  |
+  = help: declare it with `types: {flag: Str}`, add "maybe" to `na_values:`, or fix the file

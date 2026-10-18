@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0607]: row 2 of `data/wages.csv` opens a quote that is never closed
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ the rest of the file was read as one value
+  |
+  = help: a quotation mark inside a quoted value is written twice: "5"" tall"

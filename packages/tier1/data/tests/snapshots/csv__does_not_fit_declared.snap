@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0606]: row 3 of `data/wages.csv` has text in a numeric column
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ column `Gross Sales` declared as Int by `types:`; row 3 holds "x"
+  |
+  = help: add "x" to `na_values:`, or fix the file

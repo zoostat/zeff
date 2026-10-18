@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "shown.join(\"\\n\")"
+---
+note: sold looks like dates (16/10/2026, 04/05/2026) and was read as text
+  = help: declare `types: {sold: Date("%d/%m/%Y")}`
+
+warning[W0702]: 1 value of at carried a time-zone offset and was converted to UTC
+
+warning[W0601]: city holds values that differ only in their Unicode normalisation form, such as "café" and "café"
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one

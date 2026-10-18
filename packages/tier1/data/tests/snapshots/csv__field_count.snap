@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0607]: row 14,207 of `data/wages.csv` has 3 fields, but the header has 4
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ every row must have the same number of fields
+  |
+  = help: a delimiter inside a value must be in quotes, as in "Smith, John"; otherwise fix the row

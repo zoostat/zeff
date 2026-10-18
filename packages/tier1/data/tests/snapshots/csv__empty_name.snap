@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: "render(&e, \"data/wages.csv\")"
+---
+error[Z0605]: `data/wages.csv` has an empty column name at position 2
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/wages.csv")
+  |         ^^^^^^ every column needs a name
+  |
+  = help: name the column in the first row of the file, or read without names: `header: false`
