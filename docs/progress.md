@@ -97,3 +97,9 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 8, explained-code pages, `--format json`, and decision #45 `[engine]`: it needs the owner's answer to question 3 (whether a warning under a result shows its code).
 
 **For the owner to decide.** Question 3 at the top of the checklist, before step 8 can finish.
+
+## 18 October 2026, decision #45 taken
+
+**Done.** The owner took open decision #45 as recommended (a warning under a result without its code until 0.7.0; the code in `--format json` and the pages); recorded in the register and the logs. Step 8 is unblocked.
+
+**Next.** Step 8, explained-code pages and `--format json` `[engine]`.

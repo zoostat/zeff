@@ -18,3 +18,7 @@ The owner's decisions at the close of 0.1.0 recorded in the register: #40 to #44
 ## 18 October 2026 — zeff_open_decisions.md, new entry #46
 
 Two provisional diagnostic codes for expressions over values (Z0221, Z0222), recorded as an open decision with deadline 0.3.0, as the freeze requires; no normative text changed.
+
+## 18 October 2026 — zeff_open_decisions.md, entry #45
+
+The owner's decision recorded in the register: a warning under a result prints without its code until the pragma of 0.7.0, with the code in `--format json` and the explained-code pages. No normative text changed.

@@ -483,3 +483,9 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **The message-snapshot rule.** `cargo run -p xtask -- check-messages` lists every diagnostic code written in the engine's sources (string literals `"Z0101"`, `"W0201"` in `src/`, outside comments and outside each file's `#[cfg(test)]` module) and requires a snapshot file to prove each: an error or check-time warning as `[Z0101]` in its rendered form; a warning printed under a result, which carries no code (open decision #45), by a phrase of its wording kept in the tool. A code a source mentions without raising it (Z0703, the lock mismatch of the exit-code table) is listed as such. CI runs the check in the tiers job. It found nine gaps: three were codes quoted in the diagnostics kernel's own tests (the scanner now skips test modules), one was the unreachable Z0210 arm (a Date against text, removed until Date values exist at 0.3.0), and four were codes raised without a stored wording (Z0307 for the nesting and chain limits, Z0709 outside a project, Z0714 for a script the project lacks, Z9001), which now have snapshots. 64 codes, 174 snapshot files.
 
 **Reason.** Language Reference, sections 3.8 (exit codes) and 11 ("Internal errors" and "Message snapshots", both at 0.2.0), 11.1.
+
+## 18 October 2026: Owner decision on open decision #45 (question 3 of the 0.2.0 checklist)
+
+**Decided by the owner.** A warning printed under a result shows no code until the pragma `// zeff: allow(CODE)` arrives at 0.7.0: the line reads as section 10.2 shows it. From 0.2.0 the code is carried in `--format json` and the explained-code pages name it. Errors keep their code in the printed line.
+
+**Reason.** The printed layout of section 10.2 and the needs of the pragma and `zeff explain`, put to the owner with the alternative; the alternative (the code shown now) was declined.
