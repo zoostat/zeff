@@ -2,10 +2,13 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: out(&o)
 ---
-data · tier 1 · 3 of 59 functions in this release
+data · tier 1 · 6 of 59 functions in this release
 
-  frame    Create a frame from named lists of values
-  import   Read a data file into a frame
-  mean     Mean of a variable
+  frame       Create a frame from named lists of values
+  import      Read a data file into a frame
+  n_rows      Number of rows
+  n_cols      Number of variables
+  variables   List of variable names
+  mean        Mean of a variable
 
 the rest arrive with later releases; `zeff help <name>` says when

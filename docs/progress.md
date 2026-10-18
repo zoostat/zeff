@@ -187,3 +187,13 @@ The repository was put on GitHub with the continuous-integration workflow (forbi
 **Next.** Step 18, `n_rows`, `n_cols`, `variables` `[function]`.
 
 **For the owner to decide.** Nothing new. Open decisions #41 to #45.
+
+## 18 October 2026, step 18 of release 0.1.0
+
+**Done.** Step 18 `[function]`: `n_rows`, `n_cols` and `variables`, three frame methods with their pages, in a new module `look` of the `data` package. The definition of done: the reference on every dataset (rows, variables and names against the files themselves), the edge cases (no rows, one row, all missing, awkward names kept and made snake, a frame built in the script), a property on random frames, snapshots of the long list and of every message a wrong call gives, and the three in the four-target identity script. 8 tests added.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the refreshed conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 19, `describe` and frame printing `[function]`: it needs the owner's answers to printing questions 1 and 2 at the top of `docs/releases/0.1.0.md`.
+
+**For the owner to decide.** Printing questions 1 and 2 (the example column of `describe`; how a wide frame prints). Open decisions #41 to #45.

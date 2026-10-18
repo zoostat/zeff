@@ -3,6 +3,7 @@
 pub mod csv;
 pub mod frame;
 pub mod import;
+pub mod look;
 pub mod names;
 pub mod reducers;
 
@@ -96,6 +97,48 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: import::import,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "n_rows",
+                package: "data",
+                method: true,
+                params: vec![ParamSpec::required("data", "Frame")],
+                rest: None,
+                returns: "Int",
+                diagnostics: vec![],
+                help: include_str!("../help/n_rows.md"),
+                accuracy: None,
+            },
+            body: look::n_rows,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "n_cols",
+                package: "data",
+                method: true,
+                params: vec![ParamSpec::required("data", "Frame")],
+                rest: None,
+                returns: "Int",
+                diagnostics: vec![],
+                help: include_str!("../help/n_cols.md"),
+                accuracy: None,
+            },
+            body: look::n_cols,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "variables",
+                package: "data",
+                method: true,
+                params: vec![ParamSpec::required("data", "Frame")],
+                rest: None,
+                returns: "List<Str>",
+                diagnostics: vec![],
+                help: include_str!("../help/variables.md"),
+                accuracy: None,
+            },
+            body: look::variables,
         },
         Function {
             spec: FunctionSpec {

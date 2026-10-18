@@ -1,0 +1,48 @@
+---
+source: packages/tier1/data/tests/look.rs
+expression: all
+---
+## not_a_frame
+error[Z0401]: `n_rows` cannot be called on an Int
+ --> scripts/main.zeff:1:8
+  |
+1 | n_rows(3)
+  |        ^ this is an Int
+  |
+  = help: usage: `data.n_rows()`
+
+## no_frame
+error[Z0406]: `n_cols` needs `data`
+ --> scripts/main.zeff:1:1
+  |
+1 | n_cols()
+  | ^^^^^^ `data` is missing
+  |
+  = help: usage: `data.n_cols()`
+
+## an_argument_too_many
+error[Z0407]: `variables` takes 0 arguments, but more were given
+ --> scripts/main.zeff:2:13
+  |
+2 | w.variables(wage)
+  |             ^^^^ one too many
+  |
+  = help: usage: `data.variables()`
+
+## an_option
+error[Z0404]: `n_rows` has no argument called `by`
+ --> scripts/main.zeff:2:10
+  |
+2 | w.n_rows(by: id)
+  |          ^^ unknown argument
+  |
+  = help: usage: `data.n_rows()`
+
+## not_a_method_of_an_int
+error[Z0401]: `n_rows` cannot be called on an Int
+ --> scripts/main.zeff:2:1
+  |
+2 | n.n_rows()
+  | ^ this is an Int
+  |
+  = help: `n_rows` is a method of Frame

@@ -313,3 +313,11 @@ CI runs the report on: Linux x86-64 at the baseline instruction set; the same Li
 **Testkit.** `zeff_testkit::run_with(files, script)` runs a script in the dataset project with more files added, so a function test can write the file a case needs without a dependency on the engine crate.
 
 **Reason.** Language Reference, sections 6.1 and 4.1; the ruling on `import` options in the 0.1.0 checklist.
+
+## 18 October 2026: `n_rows`, `n_cols`, `variables`
+
+**Choice.** The three "Look" methods of section 6 live in `packages/tier1/data/src/look.rs`, where `describe`, `head` and `tail` will join them. `n_rows` and `n_cols` return `Int`; `variables` returns `List<Str>`, the names as the frame has them and in its order, printed one per line by the list rule of section 3.8 (twenty, then the count of the rest). It is text, not a `Vars`, because a `Vars` is a thing a script writes where a frame method expects variables, and R's `names()` is what users reach for here. The bodies give no message of their own; every wrong call is caught by the checker (Z0401, Z0404, Z0406, Z0407), and those messages are snapshotted in the function's tests.
+
+**Definition of done (testing handbook, section 4).** Reference: every dataset's rows, variable count and names against the file. Edge cases: no rows, one row, all missing, awkward names kept and made snake, a frame built with `frame`. Property: a random frame reports its rows, columns and names. Snapshots: the long list, every wrong call. Identity: the milestone script now calls all three. Help pages complete, examples run (they show the import note, as every example that imports now does). No benchmark.
+
+**Reason.** Language Reference, section 6 and the catalogue rows 99 to 101.
