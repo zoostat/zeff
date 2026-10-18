@@ -215,5 +215,43 @@ pub fn functions() -> Vec<Function> {
             },
             body: reducers::sd,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "summary",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option("vars", "Vars"),
+                    ParamSpec::option("stats", "List<n | missing | mean | sd | min | max>"),
+                ],
+                rest: None,
+                returns: "Table",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0201",
+                        "missing values skipped, with the count for each variable in one line; a variable with all values missing, or no rows at all",
+                    ),
+                    DiagnosticDecl::new("W0204", "Inf and -Inf both present, so a mean is NA"),
+                    DiagnosticDecl::new(
+                        "W0205",
+                        "one value only or an infinite value, so a sd is NA",
+                    ),
+                    DiagnosticDecl::new("Z0101", "no such variable in the frame"),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not Bool, Int or Float; stats: with an empty list or a value that is not one of the six words",
+                    ),
+                    DiagnosticDecl::new("Z0402", "stats: names a word that is not a statistic"),
+                ],
+                help: include_str!("../help/summary.md"),
+                accuracy: None,
+            },
+            body: reducers::summary,
+        },
     ]
 }

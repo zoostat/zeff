@@ -1,0 +1,19 @@
+---
+source: packages/tier1/data/tests/summary.rs
+expression: stdout
+---
+summary · w
+
+  variable   N   missing     mean      sd      min      max
+  wage       3         0   24.533   6.178   19.000   31.200
+summary · w
+
+  variable      max   N
+  hours      40.000   2
+  wage       31.200   3
+summary · w
+
+  variable      sd
+  id         1.000
+  wage       6.178
+  hours      3.536

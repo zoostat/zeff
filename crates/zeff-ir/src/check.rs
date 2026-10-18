@@ -455,6 +455,21 @@ impl Checker<'_> {
                     kind: ExprKind::Var(text),
                 };
             }
+            Some(Ty::List(inner)) if matches!(**inner, Ty::Words(_)) => {
+                if let Ty::Words(words) = &**inner
+                    && words.contains(&text)
+                {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!("`{text}` must be written in a list here"),
+                        )
+                        .primary(span, "a word where a list of words is expected")
+                        .help(format!("write `[{text}]`; several words go in one list")),
+                    );
+                    return Expr::error(span);
+                }
+            }
             Some(Ty::Words(words)) => {
                 if words.contains(&text) {
                     return Expr {

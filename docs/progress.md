@@ -185,3 +185,13 @@ Steps 1 to 5 `[engine]`, each green and committed in turn: the tiered Cargo work
 **Next.** Step 22, `summary` and `print` complete `[function]`: it needs the owner's answer to printing question 3 (`summary`'s `stats:` list).
 
 **For the owner to decide.** Printing question 3 (recommendation at the top of `docs/releases/0.1.0.md`). Open decisions #41 to #45.
+
+## 18 October 2026, step 22 of release 0.1.0
+
+**Done.** Step 22 `[function]`: `summary` and `print` complete, with the owner's decision on `stats:` applied. `summary` prints the table of section 10.2 (three decimals, the skipped rows in one warning line), takes `vars` and `stats:`, and returns a `Table`; the checker now reads `List<word | word>` parameter types and tells a bare word from a list of words; `zeff help` names a later home after a shipped page. `print`'s page gained the value types and a frame example, and every value type is tested through `print` and on its own. All ten functions of the release are now shipped. 11 tests added.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the refreshed conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 23, script tests and the sample script `[engine]`.
+
+**For the owner to decide.** Nothing new. Open decisions #41 to #45.

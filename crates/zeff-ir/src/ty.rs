@@ -45,6 +45,16 @@ impl Ty {
     /// in lower case are words.
     pub fn parse(text: &str) -> Option<Ty> {
         let text = text.trim();
+        // A generic first, so that `List<n | missing>` is a list of words, not a union.
+        if let Some(inner) = text
+            .strip_prefix("Column<")
+            .and_then(|t| t.strip_suffix('>'))
+        {
+            return Ty::parse(inner).map(|t| Ty::Column(Box::new(t)));
+        }
+        if let Some(inner) = text.strip_prefix("List<").and_then(|t| t.strip_suffix('>')) {
+            return Ty::parse(inner).map(|t| Ty::List(Box::new(t)));
+        }
         if text.contains('|') {
             let parts: Vec<&str> = text.split('|').map(str::trim).collect();
             if parts.iter().any(|p| p.is_empty()) {
@@ -67,15 +77,6 @@ impl Ty {
                 return Some(Ty::Words(parts.iter().map(|p| (*p).to_string()).collect()));
             }
             return None;
-        }
-        if let Some(inner) = text
-            .strip_prefix("Column<")
-            .and_then(|t| t.strip_suffix('>'))
-        {
-            return Ty::parse(inner).map(|t| Ty::Column(Box::new(t)));
-        }
-        if let Some(inner) = text.strip_prefix("List<").and_then(|t| t.strip_suffix('>')) {
-            return Ty::parse(inner).map(|t| Ty::List(Box::new(t)));
         }
         Some(match text {
             "Bool" => Ty::Bool,

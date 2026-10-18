@@ -1,0 +1,97 @@
+---
+source: packages/tier1/data/tests/summary.rs
+expression: all
+---
+## one_row (exit 0)
+summary · frame
+
+  variable   N   missing     mean   sd      min      max
+  x          1         0   42.000   NA   42.000   42.000
+  y          1         0    3.500   NA    3.500    3.500
+  flag       1         0    1.000   NA    1.000    1.000
+warning: sd needs at least two values, but x has one: its sd is NA (line 1)
+warning: sd needs at least two values, but y has one: its sd is NA (line 1)
+warning: sd needs at least two values, but flag has one: its sd is NA (line 1)
+
+## all_na (exit 0)
+summary · frame
+
+  variable   N   missing   mean   sd   min   max
+  x          0         3     NA   NA    NA    NA
+  y          0         3     NA   NA    NA    NA
+  z          0         3     NA   NA    NA    NA
+warning: all 3 rows have NA in x: its statistics are NA (line 1)
+warning: all 3 rows have NA in y: its statistics are NA (line 1)
+warning: all 3 rows have NA in z: its statistics are NA (line 1)
+
+## empty (exit 0)
+summary · frame
+
+  variable   N   missing   mean   sd   min   max
+  x          0         0     NA   NA    NA    NA
+warning: x has no values: its statistics are NA (line 1)
+
+## zero_variance (exit 0)
+summary · frame
+
+  variable           N   missing             mean      sd              min              max
+  constant           4         0            3.250   0.000            3.250            3.250
+  constant_with_na   3         1            7.000   0.000            7.000            7.000
+  big_constant       4         0   1000000000.500   0.000   1000000000.500   1000000000.500
+warning: 1 row with NA in constant_with_na was skipped (line 1)
+
+## infinities (exit 0)
+summary · frame
+
+  variable    N   missing    mean      sd     min     max
+  plus        3         0     Inf      NA   1.000     Inf
+  minus       3         0    -Inf      NA    -Inf   2.000
+  both        3         0      NA      NA    -Inf     Inf
+  nan_mixed   1         2   1.500      NA   1.500   1.500
+  finite      3         0   2.000   1.000   1.000   3.000
+note: 2 values of nan_mixed read as NA from NaN (line 1)
+warning: 2 rows with NA in nan_mixed were skipped (line 1)
+warning: plus holds an infinite value, so its sd is NA (line 1)
+warning: minus holds an infinite value, so its sd is NA (line 1)
+warning: both holds both Inf and -Inf, so its mean is NA (line 1)
+warning: both holds an infinite value, so its sd is NA (line 1)
+warning: sd needs at least two values, but nan_mixed has one: its sd is NA (line 1)
+
+## bools (exit 0)
+summary · frame
+
+  variable     N   missing    mean      sd     min     max
+  treated      4         0   0.750   0.500   0.000   1.000
+  mixed_case   4         0   0.500   0.577   0.000   1.000
+  with_na      2         2   0.500   0.707   0.000   1.000
+warning: 2 rows with NA in with_na were skipped (line 1)
+
+## wages_large (exit 0)
+summary · frame
+
+  variable       N   missing      mean        sd      min        max
+  id         1,200         0   600.500   346.554    1.000   1200.000
+  wage       1,200         0    22.847    11.892    4.720    100.060
+  hours      1,139        61    39.669    11.863   20.000     60.000
+  female     1,200         0     0.483     0.500    0.000      1.000
+  educ       1,200         0    14.087     3.834    8.000     20.000
+warning: 61 rows with NA in hours were skipped (line 1)
+
+## magnitudes (exit 0)
+summary · frame
+
+  variable             mean             sd              min              max
+  offset     1000000000.497          0.287   1000000000.001   1000000001.000
+  wide         -1059068.768   14316931.445    -98633316.736     87468242.179
+  tiny                0.000          0.000            0.000            0.000
+
+## no_numeric_variable (exit 1)
+warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
+error[Z0401]: `summary` needs a Bool, Int or Float, but `city` is Str
+ --> scripts/main.zeff:1:43
+  |
+1 | import("data/unicode_labels.csv").summary([city])
+  |                                           ^^^^^^ a Str variable of the frame
+  |
+  = help: choose a Bool, Int or Float variable; `the frame.describe()` lists the types

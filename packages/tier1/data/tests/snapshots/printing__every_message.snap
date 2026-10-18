@@ -1,0 +1,55 @@
+---
+source: packages/tier1/data/tests/printing.rs
+expression: all
+---
+## nothing_to_print (exit 1)
+error[Z0406]: `print` needs `x`
+ --> scripts/main.zeff:1:1
+  |
+1 | print()
+  | ^^^^^ `x` is missing
+  |
+  = help: usage: `print(x, ...)`
+
+## the_result_bound (exit 1)
+error[Z0206]: this gives no value, so it cannot be bound
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = print(1)
+  |         ^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+## the_result_passed (exit 1)
+error[Z0206]: this gives no value, so it cannot be passed
+ --> scripts/main.zeff:1:7
+  |
+1 | print(print(1))
+  |       ^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing
+
+## the_result_as_a_method_receiver (exit 1)
+error[Z0401]: `n_rows` cannot be called on a Nothing
+ --> scripts/main.zeff:1:1
+  |
+1 | print(1).n_rows()
+  | ^^^^^^^^ this is a Nothing
+  |
+  = help: `n_rows` is a method of Frame
+
+## a_bare_name (exit 1)
+error[Z0101]: nothing is called `wage` here
+ --> scripts/main.zeff:1:7
+  |
+1 | print(wage)
+  |       ^^^^ not a binding
+
+## an_option (exit 1)
+error[Z0404]: `print` has no argument called `sep`
+ --> scripts/main.zeff:1:10
+  |
+1 | print(1, sep: " ")
+  |          ^^^ unknown argument
+  |
+  = help: usage: `print(x, ...)`

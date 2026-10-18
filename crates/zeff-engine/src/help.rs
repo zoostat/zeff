@@ -8,11 +8,28 @@ use zeff_registry::Registry;
 pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
     let catalogue = registry.catalogue();
 
-    // A registered function: its page, one per home when a name has several.
+    // A registered function: its page, one per home when a name has several; a home of a later
+    // release is named after the page.
     let registered = registry.named(name);
     if !registered.is_empty() {
-        let pages: Vec<String> = registered.iter().map(|f| f.page()).collect();
-        return Ok(pages.join("\n"));
+        let mut text: String = registered
+            .iter()
+            .map(|f| f.page())
+            .collect::<Vec<_>>()
+            .join("\n");
+        let shipped: Vec<&str> = registered.iter().map(|f| f.spec.package).collect();
+        let later: Vec<String> = catalogue
+            .rows_named(name)
+            .iter()
+            .filter(|row| !shipped.contains(&row.package.as_str()))
+            .map(|row| arrives_line(row))
+            .collect();
+        if !later.is_empty() {
+            text.push('\n');
+            text.push_str(&later.join("\n"));
+            text.push('\n');
+        }
+        return Ok(text);
     }
 
     // A package with at least one function shipped: its functions.
@@ -49,20 +66,7 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
     // A function of a later release, or a package with nothing shipped yet.
     let later = catalogue.rows_named(name);
     if !later.is_empty() {
-        let lines: Vec<String> = later
-            .iter()
-            .map(|row| {
-                let when = if row.status == "planned" {
-                    format!("release {}", row.release)
-                } else {
-                    "a release after 1.0".to_string()
-                };
-                format!(
-                    "`{}` arrives with {when}, in the `{}` package: {}",
-                    row.name, row.package, row.description
-                )
-            })
-            .collect();
+        let lines: Vec<String> = later.iter().map(|row| arrives_line(row)).collect();
         return Ok(lines.join("\n") + "\n");
     }
     let packages: Vec<&str> = {
@@ -102,4 +106,17 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
         ),
     }
     Err(message)
+}
+
+/// The line that says when a catalogued function arrives and where.
+fn arrives_line(row: &zeff_registry::CatalogueRow) -> String {
+    let when = if row.status == "planned" {
+        format!("release {}", row.release)
+    } else {
+        "a release after 1.0".to_string()
+    };
+    format!(
+        "`{}` arrives with {when}, in the `{}` package: {}",
+        row.name, row.package, row.description
+    )
 }

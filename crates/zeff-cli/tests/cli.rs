@@ -389,12 +389,26 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&later)
     );
-    let two_homes = zeff(dir.path(), &["help", "summary"]);
+    let two_homes = zeff(dir.path(), &["help", "min"]);
     assert_eq!(
         out(&two_homes).lines().count(),
         2,
         "one line per home: {}",
         out(&two_homes)
+    );
+    // A name shipped in one package and planned in another: the page, then where the other arrives.
+    let shipped_and_later = zeff(dir.path(), &["help", "summary"]);
+    assert!(
+        out(&shipped_and_later).starts_with("summary — Table of N, missing, mean, SD, min and max"),
+        "{}",
+        out(&shipped_and_later)
+    );
+    assert!(
+        out(&shipped_and_later).ends_with(
+            "\n`summary` arrives with release 0.4.0, in the `results` package: Full printed summary of a model or test\n"
+        ),
+        "{}",
+        out(&shipped_and_later)
     );
     let package_later = zeff(dir.path(), &["help", "regress"]);
     assert!(
