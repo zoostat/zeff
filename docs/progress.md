@@ -114,3 +114,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps.
 
+## 18 October 2026, step 9 of release 0.2.0
+
+**Done.** Step 9 `[engine]`: the command-line options of section 2.1 that this release has (`--project`, `--color` with `NO_COLOR`, `--ascii`, `--width`, `--quiet`, `--verbose`, read from anywhere on the line); `zeff eval "2 + 2"` prints 4 outside a project, in the scratch project `~/.zeff/scratch/` (`ZEFF_HOME` honoured), made on first use; `zeff repl`, the console, keeps every statement in `.zeff/session.zeff`, re-runs the session with each new statement, drops a statement that fails, continues chains and unfinished lines, resumes the session next time, and has `:undo`, `:vars`, `:save`, `:load`, `:help` and `:quit`. One specification sentence corrected (a later `let` in the console shadows, as the Language Reference says) and logged. 9 tests added, 1 snapshot.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 10, the R reference harness and BLAKE3 hashing `[engine]`.
+
+**For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps.
+

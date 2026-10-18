@@ -61,11 +61,22 @@ pub struct Outcome {
 
 /// Run the text of a script called `script` (a project-relative name) in `project`.
 /// How a run is made; the defaults are what `zeff run` does.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunOptions {
+    /// The page width frames and tables wrap at (`--width`; 118 by default).
+    pub width: usize,
     /// A test hook: the statement at this line panics before it runs (see `Interpreter`).
     #[doc(hidden)]
     pub panic_at_line: Option<u32>,
+}
+
+impl Default for RunOptions {
+    fn default() -> Self {
+        RunOptions {
+            width: zeff_core::display::PAGE_WIDTH,
+            panic_at_line: None,
+        }
+    }
 }
 
 pub fn run_script(fs: &dyn FileSystem, project: &Project, script: &str, text: &str) -> Outcome {
@@ -136,7 +147,8 @@ pub fn run_script_with(
         script,
         &source,
     )
-    .with_panic_at(options.panic_at_line);
+    .with_panic_at(options.panic_at_line)
+    .with_width(options.width);
     match interpreter.run(&mut output) {
         Ok(()) => Outcome {
             output,

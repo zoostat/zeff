@@ -164,7 +164,7 @@ pub fn alignment(ty: ColumnType) -> Align {
 
 /// A frame as a statement prints it: the header, a blank line, the first ten rows numbered, and
 /// the count of the rows left.
-fn frame_text(frame: &Frame) -> String {
+fn frame_text(frame: &Frame, width: usize) -> String {
     let table = &frame.table;
     let shown = table.rows().min(FRAME_ROWS);
     let mut columns = vec![(String::new(), Align::Right)];
@@ -186,7 +186,7 @@ fn frame_text(frame: &Frame) -> String {
         })
         .collect();
     let mut out = format!("{}\n\n", frame_header(frame));
-    out.push_str(&grid(&columns, &rows, true));
+    out.push_str(&grid(&columns, &rows, true, width));
     if table.rows() > shown {
         let rest = table.rows() - shown;
         out.push_str(&format!(
@@ -199,11 +199,11 @@ fn frame_text(frame: &Frame) -> String {
 }
 
 /// A table as it prints: its title, a blank line, then its grid.
-fn table_text(table: &Table) -> String {
+fn table_text(table: &Table, width: usize) -> String {
     format!(
         "{}\n\n{}",
         table.title,
-        grid(&table.columns, &table.rows, false)
+        grid(&table.columns, &table.rows, false, width)
     )
 }
 
@@ -213,10 +213,15 @@ fn width(text: &str) -> usize {
 }
 
 /// Rows of cells under their headings: two spaces in, three between columns, each column as wide
-/// as its widest cell or heading, aligned as the column says. Columns that do not fit the page go
-/// into further blocks separated by a blank line; with `repeat_first`, the first column (a frame's
-/// row numbers) starts every block.
-fn grid(columns: &[(String, Align)], rows: &[Vec<String>], repeat_first: bool) -> String {
+/// as its widest cell or heading, aligned as the column says. Columns that do not fit the page
+/// (`page_width` characters) go into further blocks separated by a blank line; with
+/// `repeat_first`, the first column (a frame's row numbers) starts every block.
+fn grid(
+    columns: &[(String, Align)],
+    rows: &[Vec<String>],
+    repeat_first: bool,
+    page_width: usize,
+) -> String {
     let widths: Vec<usize> = columns
         .iter()
         .enumerate()
@@ -242,7 +247,7 @@ fn grid(columns: &[(String, Align)], rows: &[Vec<String>], repeat_first: bool) -
     for i in fixed.len()..columns.len() {
         let mut candidate = block.clone();
         candidate.push(i);
-        if line_width(&candidate) > PAGE_WIDTH && block.len() > fixed.len() {
+        if line_width(&candidate) > page_width && block.len() > fixed.len() {
             blocks.push(block);
             block = fixed.clone();
             block.push(i);
@@ -288,8 +293,14 @@ fn grid(columns: &[(String, Align)], rows: &[Vec<String>], repeat_first: bool) -
 }
 
 /// What a statement that is not a `let` prints for its value: the text, ending in a line break,
-/// or nothing at all for `Nothing`.
+/// or nothing at all for `Nothing`; frames and tables wrap at the default page width.
 pub fn show(value: &Value) -> String {
+    show_width(value, PAGE_WIDTH)
+}
+
+/// [`show`] with the page width `width` (`--width`, Engine and Project Specification, section
+/// 2.1): a frame or table wider than it prints in blocks of columns.
+pub fn show_width(value: &Value, width: usize) -> String {
     match value {
         Value::Nothing => String::new(),
         Value::List(items) => lines(items.iter().map(inline), items.len(), "item"),
@@ -305,8 +316,8 @@ pub fn show(value: &Value) -> String {
             entries.len(),
             "entry",
         ),
-        Value::Frame(f) => frame_text(f),
-        Value::Table(t) => table_text(t),
+        Value::Frame(f) => frame_text(f, width),
+        Value::Table(t) => table_text(t, width),
         Value::Column(c) => {
             let mut out = format!("{}\n", column_header(c));
             out.push_str(&lines(

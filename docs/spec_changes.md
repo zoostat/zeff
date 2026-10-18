@@ -22,3 +22,8 @@ Two provisional diagnostic codes for expressions over values (Z0221, Z0222), rec
 ## 18 October 2026 — zeff_open_decisions.md, entry #45
 
 The owner's decision recorded in the register: a warning under a result prints without its code until the pragma of 0.7.0, with the code in `--format json` and the explained-code pages. No normative text changed.
+
+## 18 October 2026 — zeff_engine_specification.md, section 2.1, "The console"
+
+The sentence on the session script said a second `let m` in the console is refused. Section 3.1 of the Language Reference says a later `let` shadows the earlier one, and the console runs its session as a script, so the two texts disagreed. The sentence now reads "a later `let m` shadows the earlier one, as in any script". Found while coding step 9 of 0.2.0; the Language Reference is the authority on the language.
+

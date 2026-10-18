@@ -403,6 +403,7 @@ fn a_panic_inside_the_engine_is_z9001_and_the_run_stops_cleanly() {
         "print(\"before\")\nlet w = import(\"data/wages.csv\")\nprint(\"after\")\n",
         &RunOptions {
             panic_at_line: Some(2),
+            ..RunOptions::default()
         },
     );
     assert_eq!(

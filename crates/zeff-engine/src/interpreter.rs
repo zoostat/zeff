@@ -5,7 +5,7 @@
 
 use crate::registry::Bodies;
 use std::collections::HashMap;
-use zeff_core::display::{format_float, show};
+use zeff_core::display::{PAGE_WIDTH, format_float, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Note, Notes, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, fail};
 use zeff_core::value::{TypeValue, Value};
@@ -44,6 +44,8 @@ pub struct Interpreter<'a> {
     /// A test hook: the statement at this line panics before it runs, to prove that a failure
     /// inside the engine becomes Z9001 and never a crash.
     panic_at_line: Option<u32>,
+    /// The page width printed frames and tables wrap at.
+    width: usize,
 }
 
 impl<'a> Interpreter<'a> {
@@ -62,7 +64,14 @@ impl<'a> Interpreter<'a> {
             env: HashMap::new(),
             program,
             panic_at_line: None,
+            width: PAGE_WIDTH,
         }
+    }
+
+    /// The page width frames and tables wrap at (`--width`).
+    pub fn with_width(mut self, width: usize) -> Self {
+        self.width = width;
+        self
     }
 
     /// The test hook: make the statement at `line` panic before it runs.
@@ -99,7 +108,7 @@ impl<'a> Interpreter<'a> {
                     }
                     Statement::Print { value, .. } => self
                         .eval(value, &mut printed, &mut messages)
-                        .map(|v| printed.push_str(&show(&v))),
+                        .map(|v| printed.push_str(&show_width(&v, self.width))),
                 }
             }));
             let result = match evaluation {

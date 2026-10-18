@@ -10,8 +10,32 @@ fn zeff(cwd: &Path, args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_zeff"))
         .args(args)
         .current_dir(cwd)
+        .env_remove("NO_COLOR")
         .output()
         .expect("zeff runs")
+}
+
+/// `zeff` with `ZEFF_HOME` set to `home` and `input` on standard input.
+fn zeff_with(cwd: &Path, home: &Path, input: &str, args: &[&str]) -> Output {
+    use std::io::Write;
+    use std::process::Stdio;
+    let mut child = Command::new(env!("CARGO_BIN_EXE_zeff"))
+        .args(args)
+        .current_dir(cwd)
+        .env("ZEFF_HOME", home)
+        .env_remove("NO_COLOR")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("zeff starts");
+    child
+        .stdin
+        .take()
+        .expect("stdin")
+        .write_all(input.as_bytes())
+        .unwrap();
+    child.wait_with_output().expect("zeff runs")
 }
 
 fn out(o: &Output) -> String {
@@ -310,7 +334,7 @@ fn unknown_and_later_commands() {
     let o = zeff(dir.path(), &["frobnicate"]);
     assert_eq!(code(&o), 1);
     assert!(err(&o).contains("unknown command `frobnicate`") && err(&o).contains("zeff help"));
-    for later in ["lsp", "repl", "selftest", "engine", "verify"] {
+    for later in ["lsp", "doctor", "selftest", "engine", "verify"] {
         let o = zeff(dir.path(), &[later]);
         assert_eq!(code(&o), 1);
         assert!(
@@ -515,4 +539,316 @@ fn the_sample_project_runs_to_its_stored_output() {
     );
     let checked = zeff(&sample, &["check"]);
     assert_eq!(code(&checked), 0, "{}", err(&checked));
+}
+
+// ----- the options of section 2.1 -----
+
+/// A file wide enough to wrap at a narrow page.
+const WIDE: &str = "a_long_variable_name_01,a_long_variable_name_02,a_long_variable_name_03,a_long_variable_name_04\n1,2,3,4\n5,6,7,8\n";
+
+#[test]
+fn width_and_ascii_change_how_a_frame_prints() {
+    let (_dir, project) = demo();
+    std::fs::write(project.join("data/wide.csv"), WIDE).unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wide = import(\"data/wide.csv\")\nwide\n",
+    )
+    .unwrap();
+    let plain = zeff(&project, &["run", "-q"]);
+    assert_eq!(code(&plain), 0, "{}", err(&plain));
+    assert_eq!(err(&plain), "", "quiet hides the note");
+    assert!(
+        out(&plain).contains("wide · 2 rows × 4 variables"),
+        "{}",
+        out(&plain)
+    );
+    assert_eq!(out(&plain).lines().count(), 5, "{}", out(&plain));
+    let narrow = zeff(&project, &["run", "--width", "60", "--ascii", "--quiet"]);
+    assert_eq!(code(&narrow), 0, "{}", err(&narrow));
+    let text = out(&narrow);
+    assert!(text.starts_with("wide | 2 rows x 4 variables\n"), "{text}");
+    assert!(text.lines().all(|l| l.chars().count() <= 60), "{text}");
+    assert!(text.lines().count() > 5, "blocks of columns:\n{text}");
+    insta::assert_snapshot!("run_width_60_ascii", text);
+    for args in [
+        &["run", "--width", "20"][..],
+        &["run", "--width"][..],
+        &["run", "--width=wide"][..],
+    ] {
+        let o = zeff(&project, args);
+        assert_eq!(code(&o), 1, "{args:?}");
+        assert!(err(&o).contains("--width"), "{}", err(&o));
+    }
+}
+
+#[test]
+fn colour_quiet_verbose_and_project_options() {
+    let (dir, project) = demo();
+    std::fs::write(project.join("data/wages.csv"), WAGES).unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = import(\"data/wages.csv\")\nwages.mean(hours)\n",
+    )
+    .unwrap();
+    // Off a terminal there is no colour; `--color always` paints the word before the colon.
+    let o = zeff(&project, &["run"]);
+    assert!(
+        err(&o).starts_with("note: data/wages.csv read as CSV"),
+        "{}",
+        err(&o)
+    );
+    assert!(
+        err(&o).contains("warning: 1 row with NA in hours"),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(&project, &["run", "--color", "always"]);
+    assert!(
+        err(&o).contains("\x1b[1;36mnote\x1b[0m: data/wages.csv"),
+        "{}",
+        err(&o)
+    );
+    assert!(
+        err(&o).contains("\x1b[1;33mwarning\x1b[0m: 1 row"),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(&project, &["run", "--color", "never"]);
+    assert!(!err(&o).contains("\x1b["), "{}", err(&o));
+    let o = zeff(&project, &["run", "--color", "sometimes"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("--color"), "{}", err(&o));
+    std::fs::write(project.join("scripts/main.zeff"), "wges\n").unwrap();
+    let o = zeff(&project, &["check", "--color=always"]);
+    assert!(
+        err(&o).starts_with("\x1b[1;31merror[Z0101]\x1b[0m: nothing is called `wges`"),
+        "{}",
+        err(&o)
+    );
+    // Quiet hides notes and nothing else.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = import(\"data/wages.csv\")\nwages.mean(hours)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["--quiet", "run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(
+        err(&o),
+        "warning: 1 row with NA in hours was skipped (line 2)\n"
+    );
+    assert_eq!(out(&o), "37.5\n");
+    // Verbose adds a timing line.
+    let o = zeff(&project, &["run", "-v"]);
+    assert!(
+        err(&o)
+            .lines()
+            .last()
+            .unwrap()
+            .starts_with("ran scripts/main.zeff: 2 statements in "),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(&project, &["version", "--verbose"]);
+    assert!(
+        out(&o).starts_with(&format!("zeff {VERSION}\ntarget: ")),
+        "{}",
+        out(&o)
+    );
+    // `--project` names the project from anywhere.
+    let o = zeff(dir.path(), &["--project", "demo", "check"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "checked scripts/main.zeff: no problems\n");
+    let o = zeff(dir.path(), &["-p", "nowhere", "check"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("is not a folder"), "{}", err(&o));
+    // Options of later releases and unknown ones are refused by name.
+    let o = zeff(&project, &["run", "--frozen"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("`--frozen` is not available in this release yet"),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(&project, &["run", "--bogus"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("unknown option `--bogus`"), "{}", err(&o));
+}
+
+// ----- zeff eval and the scratch project -----
+
+#[test]
+fn eval_runs_a_statement_in_the_scratch_project() {
+    let dir = tempfile::tempdir().unwrap();
+    let home = dir.path().join("zeff-home");
+    let o = zeff_with(dir.path(), &home, "", &["eval", "2 + 2"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "4\n");
+    assert_eq!(err(&o), "");
+    assert!(home.join("scratch/zeff.toml").is_file());
+    assert!(home.join("scratch/scripts/main.zeff").is_file());
+    let o = zeff_with(dir.path(), &home, "", &["eval", "foo"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o), "");
+    assert!(
+        err(&o).starts_with("error[Z0101]: nothing is called `foo` here\n --> eval:1:1"),
+        "{}",
+        err(&o)
+    );
+    // A scratch project left by another engine is repinned, not refused.
+    std::fs::write(
+        home.join("scratch/zeff.toml"),
+        "[project]\nname = \"scratch\"\nzeff = \"0.0.1\"\nedition = \"preview\"\n",
+    )
+    .unwrap();
+    let o = zeff_with(dir.path(), &home, "", &["eval", "1.5 * 2"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "3\n");
+    for args in [&["eval"][..], &["eval", "2", "+", "2"][..]] {
+        let o = zeff_with(dir.path(), &home, "", args);
+        assert_eq!(code(&o), 1, "{args:?}");
+        assert!(err(&o).contains("zeff eval \"2 + 2\""), "{}", err(&o));
+    }
+}
+
+// ----- zeff repl -----
+
+#[test]
+fn the_console_keeps_a_session_in_the_project() {
+    let (_dir, project) = demo();
+    let home = project.join("unused-home");
+    std::fs::write(project.join("data/wages.csv"), WAGES).unwrap();
+    std::fs::write(project.join("scripts/clean.zeff"), "let two = 1 + 1\ntwo\n").unwrap();
+    let input = "\
+let x = 2
+x * 21
+let x = 3
+:vars
+wages
+print(1 +
+1)
+let w = import(\"data/wages.csv\")
+w
+.describe()
+:undo
+:save scripts/explore.zeff
+:save scripts/explore.zeff
+:save scripts/main.zeff
+:load scripts/clean.zeff
+:help
+:bogus
+:quit
+let never = 1
+";
+    let o = zeff_with(&project, &home, input, &["repl", "-q"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let (text, messages) = (out(&o), err(&o));
+    assert!(
+        messages.starts_with(&format!("Zeff {VERSION} console in the project `demo`")),
+        "{messages}"
+    );
+    assert!(text.starts_with("42\nx  Int\n2\n"), "{text}");
+    assert!(
+        text.contains("w · 3 rows × 3 variables\n\n      id   wage   hours\n"),
+        "{text}"
+    );
+    assert!(
+        text.contains("  variable   type    non-missing"),
+        "the chain was continued:\n{text}"
+    );
+    assert!(
+        text.contains(":undo             drop the last statement"),
+        "{text}"
+    );
+    assert!(
+        messages.contains("error[Z0101]: nothing is called `wages` here"),
+        "{messages}"
+    );
+    assert!(messages.contains("undid: w\n"), "{messages}");
+    assert!(
+        messages.contains("saved the 5 statements of the session to scripts/explore.zeff\n"),
+        "{messages}"
+    );
+    assert!(
+        messages.contains("error: `scripts/main.zeff` already exists"),
+        "{messages}"
+    );
+    assert!(
+        messages.contains("loaded 2 statements from scripts/clean.zeff"),
+        "{messages}"
+    );
+    assert!(
+        messages.contains("unknown console command `:bogus`"),
+        "{messages}"
+    );
+    assert!(
+        !home.exists(),
+        "a project's console does not touch the scratch project"
+    );
+    let session = std::fs::read_to_string(project.join(".zeff/session.zeff")).unwrap();
+    assert_eq!(
+        session,
+        "let x = 2\nx * 21\nlet x = 3\nprint(1 +\n1)\nlet w = import(\"data/wages.csv\")\nlet two = 1 + 1\ntwo\n"
+    );
+    let explore = std::fs::read_to_string(project.join("scripts/explore.zeff")).unwrap();
+    assert_eq!(
+        explore,
+        "let x = 2\nx * 21\nlet x = 3\nprint(1 +\n1)\nlet w = import(\"data/wages.csv\")\n"
+    );
+    // A second console resumes the session and `:vars` shows the bindings as they are now.
+    let o = zeff_with(&project, &home, "x + two\n:vars\n", &["repl", "--quiet"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(
+        err(&o).contains("resumed 7 statements from .zeff/session.zeff"),
+        "{}",
+        err(&o)
+    );
+    assert_eq!(out(&o), "5\nx    Int\nw    Frame\ntwo  Int\n");
+    // `zeff repl <script>` loads the script first.
+    std::fs::remove_file(project.join(".zeff/session.zeff")).unwrap();
+    let o = zeff_with(
+        &project,
+        &home,
+        "two + 1\n",
+        &["repl", "scripts/clean.zeff"],
+    );
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "2\n3\n");
+}
+
+#[test]
+fn the_console_outside_a_project_uses_the_scratch_project_and_can_make_one() {
+    let dir = tempfile::tempdir().unwrap();
+    let home = dir.path().join("zeff-home");
+    let input = "let q = 7\nq * 6\n:save\n:save bad name\n:save fresh\n:save fresh\n";
+    let o = zeff_with(dir.path(), &home, input, &["repl"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "42\n");
+    let messages = err(&o);
+    assert!(
+        messages.contains("console in the scratch project"),
+        "{messages}"
+    );
+    assert!(messages.contains("`:save` needs a path"), "{messages}");
+    assert!(
+        messages.contains("is not a good project name"),
+        "{messages}"
+    );
+    assert!(
+        messages.contains("created the project `fresh`"),
+        "{messages}"
+    );
+    assert!(messages.contains("already exists"), "{messages}");
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("fresh/scripts/main.zeff")).unwrap(),
+        "let q = 7\nq * 6\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(home.join("scratch/.zeff/session.zeff")).unwrap(),
+        "let q = 7\nq * 6\n"
+    );
+    let o = zeff_with(&dir.path().join("fresh"), &home, "", &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "42\n");
 }

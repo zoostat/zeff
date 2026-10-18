@@ -12,6 +12,8 @@ pub mod paths;
 pub mod project;
 pub mod registry;
 pub mod run;
+pub mod scratch;
+pub mod session;
 
 /// The engine's version: the version of this build of Zeff.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
