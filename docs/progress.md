@@ -185,3 +185,11 @@ Steps 6 to 12 `[engine]`, each green and committed in turn: the lexer for the wh
 **Done.** The owner took open decisions #40 to #44 (all due at 0.1.0), each as recommended; recorded in `docs/spec/zeff_open_decisions.md`, logged in `docs/spec_changes.md` and `docs/decisions.md`. Nothing in the code changes: the codes confirmed are the ones already printed.
 
 **Next.** "Start release 0.2.0" when the owner says so. Open decision #45 is due at 0.2.0.
+
+## 18 October 2026, release 0.2.0 started
+
+**Done.** The previous release is tagged (`v0.1.0`) and the tree was clean. The 0.2.0 row of section 14, every section it names in both volumes, the 50 catalogue rows, the testing handbook and the open decision due (#45) were read, and the checklist written in `docs/releases/0.2.0.md`: 21 steps, the ten engine pieces first, each tagged. The owner said "go". Step 1: the version is `0.2.0-dev`, the sample project pins it, the engine-version snapshots follow.
+
+**Next.** Step 2, expressions over values `[engine]`.
+
+**For the owner to decide.** Three questions at the top of the checklist: weighted statistics (step 17), the synthetic `wages` dataset (step 18), open decision #45 (step 8).
