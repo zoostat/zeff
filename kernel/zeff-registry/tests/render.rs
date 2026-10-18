@@ -118,8 +118,8 @@ drop_missing, select, sort, distinct, sample, is_missing
 > wages.where(year >= 2010 && female == 1).n_rows()
 4217
 > wages.where(exper > 10).n_rows()
-note: 13 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them
 7902
+note: 13 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them
 ",
         accuracy: Some(AccuracyRecord {
             reference: "the same rows, in the same order, as dplyr::filter() once its NA rows are removed; part of every verb test".into(),

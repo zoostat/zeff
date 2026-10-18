@@ -200,8 +200,8 @@ EXAMPLES
     > wages.where(year >= 2010 && female == 1).n_rows()
     4217
     > wages.where(exper > 10).n_rows()
-    note: 13 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them
     7902
+    note: 13 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them
 ```
 
 ## `zeff help merge`
