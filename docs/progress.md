@@ -172,3 +172,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Nothing until the dataset draft at step 18.
 
+## 19 October 2026, step 14 of release 0.2.0
+
+**Done.** Step 14 `[function]`: `import` reads delimited text with every option of section 6.1: another quote character or none, a decimal comma (which makes `;` the usual delimiter), grouped digits removed only where they stand between groups of three, and any encoding of the WHATWG list (through `encoding_rs`, pinned and recorded), with an undecodable byte named by row. The catalogue's usage of `import` lacked `quote:` and was corrected (logged). 7 tests and 5 reference files added, 3 snapshots; the help page gained the options and an example on a German-style file.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally; the CSV reference script reproduces its files. GitHub run to be read after the push.
+
+**Next.** Step 15, frame verbs part 1: `head`, `tail`, `where`, `select`, `drop`, `rename` `[function]`.
+
+**For the owner to decide.** Nothing until the dataset draft at step 18.
+

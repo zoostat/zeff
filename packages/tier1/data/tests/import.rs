@@ -505,3 +505,65 @@ fn property_cases(usual: u32) -> u32 {
         .and_then(|m| m.parse::<u32>().ok())
         .map_or(usual, |m| usual.saturating_mul(m))
 }
+
+// ----- the options of release 0.2.0 -----
+
+const GERMAN: &[u8] = b"id;name;wage;hours\n1;J\xf6rg;1.234,5;40\n2;Aim\xe9e;987,25;35\n";
+
+#[test]
+fn quote_decimal_thousands_and_encoding_read_a_german_file() {
+    let (code, stdout, stderr) = go_with(
+        &[("data/wages_de.csv", GERMAN)],
+        "let d = import(\"data/wages_de.csv\", decimal: \",\", thousands: \".\", encoding: \"windows-1252\")\nd\nd.mean(wage)\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(
+        stdout,
+        "d · 2 rows × 4 variables\n\n      id   name      wage   hours\n  1    1   Jörg    1234.5      40\n  2    2   Aimée   987.25      35\n1110.88\n"
+    );
+    assert_eq!(
+        without_format_notes(&stderr),
+        "note: delimiter `;` detected from the first line (line 1)\n"
+    );
+    // With the plain reader the file is refused as not UTF-8, naming its row.
+    let (code, _, stderr) = go_with(
+        &[("data/wages_de.csv", GERMAN)],
+        "import(\"data/wages_de.csv\")\n",
+    );
+    assert_eq!(code, 1);
+    assert!(
+        stderr.starts_with("error[Z0608]: row 2 of `data/wages_de.csv` is not valid UTF-8"),
+        "{stderr}"
+    );
+    // Another quote character, and none.
+    let (code, stdout, stderr) = go_with(
+        &[("data/q.csv", b"name,n\n'Smith, John',1\n")],
+        "import(\"data/q.csv\", quote: \"'\")\nimport(\"data/q.csv\", quote: \"\")\n",
+    );
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stdout.contains("Smith, John"), "{stdout}");
+    assert!(
+        stderr.contains("error[Z0607]: row 2 of `data/q.csv` has 3 fields, but the header has 2"),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn the_option_values_are_checked() {
+    let mut all = String::new();
+    for script in [
+        "import(\"data/wages.csv\", quote: \"ab\")\n",
+        "import(\"data/wages.csv\", decimal: \"\")\n",
+        "import(\"data/wages.csv\", thousands: 5)\n",
+        "import(\"data/wages.csv\", decimal: \",\", thousands: \",\")\n",
+        "import(\"data/wages.csv\", delim: \",\", decimal: \",\")\n",
+        "import(\"data/wages.csv\", encoding: \"latin-9000\")\n",
+    ] {
+        let (code, _, stderr) = go(script);
+        assert_eq!(code, 1, "{script}");
+        all.push_str(&stderr);
+        all.push('\n');
+    }
+    assert_eq!(all.matches("error[Z0401]").count(), 6, "{all}");
+    insta::assert_snapshot!("option_values_checked", all);
+}

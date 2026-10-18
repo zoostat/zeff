@@ -97,6 +97,7 @@ fn the_parameters_of_a_usage() {
             "object",
             "columns",
             "delim",
+            "quote",
             "decimal",
             "header",
             "skip",

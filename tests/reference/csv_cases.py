@@ -48,12 +48,25 @@ cases = {
         ("a,b\n" + '"' + "line\n" * 5 + '",1\n').encode("utf-8"),
         ",",
     ),
+    # The options of release 0.2.0: another quote character, no quoting at all, an encoding other
+    # than UTF-8, a decimal comma with a semicolon delimiter, and grouped digits in quotes.
+    "single_quotes.csv": (b"name,n\n'Smith, John',1\n'it''s',2\n", ",", {"quotechar": "'"}),
+    "no_quotes.csv": (b'a,b\n"x,1\n2,"y"\n', ",", {"quotechar": None}),
+    "latin1.csv": ("name,n\ncafé,1\nJörg,2\n".encode("cp1252"), ",", {"encoding": "windows-1252"}),
+    "decimal_comma.csv": (b"a;b\n1,5;2,25\n-3,0;1e3\n", ";", {}),
+    "thousands.csv": (b'a,b\n"1,234",5\n"12,345,678",6\n', ",", {}),
 }
 
 
-def rows_of(data, delimiter):
-    text = data.decode("utf-8-sig")  # strips a byte-order mark, as the reader does
-    rows = list(csv.reader(io.StringIO(text, newline=""), delimiter=delimiter))
+def rows_of(data, delimiter, options):
+    encoding = options.get("encoding", "utf-8-sig")  # utf-8-sig strips a byte-order mark
+    text = data.decode(encoding)
+    quotechar = options.get("quotechar", '"')
+    if quotechar is None:
+        reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter, quoting=csv.QUOTE_NONE)
+    else:
+        reader = csv.reader(io.StringIO(text, newline=""), delimiter=delimiter, quotechar=quotechar)
+    rows = list(reader)
     return [r for r in rows if not (len(r) == 0 or (len(r) == 1 and r[0].strip() == ""))]
 
 
@@ -61,10 +74,17 @@ out = {
     "reference": {"software": "Python csv module (standard library)", "python": platform.python_version()},
     "files": {},
 }
-for name, (data, delimiter) in cases.items():
+for name, case in cases.items():
+    data, delimiter = case[0], case[1]
+    options = case[2] if len(case) > 2 else {}
     with open(os.path.join(folder, name), "wb") as f:
         f.write(data)
-    out["files"][name] = {"delimiter": delimiter, "rows": rows_of(data, delimiter)}
+    entry = {"delimiter": delimiter, "rows": rows_of(data, delimiter, options)}
+    if "quotechar" in options:
+        entry["quotechar"] = options["quotechar"]
+    if "encoding" in options:
+        entry["encoding"] = options["encoding"]
+    out["files"][name] = entry
 
 with open(os.path.join(here, "csv_cases.json"), "w", encoding="utf-8") as f:
     json.dump(out, f, indent=1, ensure_ascii=False)

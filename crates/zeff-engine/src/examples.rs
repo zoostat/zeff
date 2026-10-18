@@ -15,11 +15,19 @@ use std::fmt;
 use std::path::Path;
 use zeff_registry::Registry;
 
-/// The files every example may read, as `data/<name>` in the fixture project.
-pub const FIXTURE_FILES: [(&str, &str); 1] = [(
-    "wages.csv",
-    "id,wage,hours\n1,23.4,40\n2,19.0,35\n3,31.2,\n",
-)];
+/// The files every example may read, as `data/<name>` in the fixture project: the small wages
+/// file, and the same kind of file as a German spreadsheet writes it (`;` between fields, a
+/// decimal comma, `.` between groups of digits, Windows-1252 for the accented letters).
+pub const FIXTURE_FILES: [(&str, &[u8]); 2] = [
+    (
+        "wages.csv",
+        b"id,wage,hours\n1,23.4,40\n2,19.0,35\n3,31.2,\n",
+    ),
+    (
+        "wages_de.csv",
+        b"id;name;wage;hours\n1;J\xf6rg;1.234,5;40\n2;Aim\xe9e;987,25;35\n",
+    ),
+];
 
 /// The fixture project, in memory.
 pub fn fixture_project() -> (MemoryFileSystem, Project) {

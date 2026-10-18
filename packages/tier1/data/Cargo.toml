@@ -18,6 +18,7 @@ zeff-hash.workspace = true
 zeff-numeric.workspace = true
 zeff-registry.workspace = true
 unicode-normalization = "=0.1.26"
+encoding_rs = "=0.8.42"
 
 [dev-dependencies]
 zeff-testkit.workspace = true

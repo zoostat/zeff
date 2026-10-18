@@ -1,0 +1,51 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: all
+---
+error[Z0401]: `quote:` must be one character, but this is `ab`
+ --> scripts/main.zeff:1:33
+  |
+1 | import("data/wages.csv", quote: "ab")
+  |                                 ^^^^ not one character
+  |
+  = help: write the character the file uses, as in `quote: "'"`
+
+error[Z0401]: `decimal:` must be one character, but this is ``
+ --> scripts/main.zeff:1:35
+  |
+1 | import("data/wages.csv", decimal: "")
+  |                                   ^^ not one character
+  |
+  = help: write the character the file uses, as in `decimal: ","`
+
+error[Z0401]: `thousands` of `import` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:37
+  |
+1 | import("data/wages.csv", thousands: 5)
+  |                                     ^ an Int
+  |
+  = help: usage: `import(path, delim: Str, header: Bool = true, skip: Int = 0, na_values: List, types: Record, names: keep | snake = keep, quote: Str, decimal: Str, thousands: Str, encoding: Str = "utf-8")`
+
+error[Z0401]: `decimal:` and `thousands:` are both `,`
+ --> scripts/main.zeff:1:51
+  |
+1 | import("data/wages.csv", decimal: ",", thousands: ",")
+  |                                                   ^^^ the same character twice
+  |
+  = help: a file with a decimal comma groups digits with `.` or a space: `decimal: ",", thousands: "."`
+
+error[Z0401]: `delim:` and `decimal:` are both `,`
+ --> scripts/main.zeff:1:47
+  |
+1 | import("data/wages.csv", delim: ",", decimal: ",")
+  |                                               ^^^ the delimiter cannot also be the decimal mark
+  |
+  = help: a file with a decimal comma is usually delimited by `;`: `import(path, decimal: ",")` detects it
+
+error[Z0401]: `encoding: "latin-9000"` is not an encoding
+ --> scripts/main.zeff:1:36
+  |
+1 | import("data/wages.csv", encoding: "latin-9000")
+  |                                    ^^^^^^^^^^^^ not on the WHATWG list
+  |
+  = help: write a name from the WHATWG encoding list, such as `utf-8`, `windows-1252`, `iso-8859-15`, `utf-16le` or `shift_jis`

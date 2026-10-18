@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/csv.rs
+expression: shown
+---
+error[Z0608]: row 3 of `data/f.csv` cannot be decoded as ISO-8859-15
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv")
+  |         ^^^^^^ a byte the encoding does not have
+  |
+  = help: check the file's encoding in the program that made it; the names of the WHATWG list are accepted, such as `windows-1252`, `iso-8859-15` or `utf-16le`

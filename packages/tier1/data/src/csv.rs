@@ -84,6 +84,12 @@ pub struct CsvOptions {
     /// Types declared for columns, by name.
     pub types: Vec<(String, TypeSpec)>,
     pub names: NameRule,
+    /// The quote character, as one ASCII character; `None` reads every character literally.
+    pub quote: Option<u8>,
+    /// The decimal mark (`.`), and the digit-grouping separator a number may carry (none).
+    pub numbers: NumberFormat,
+    /// The file's encoding when it is not UTF-8, from the WHATWG list.
+    pub encoding: Option<&'static encoding_rs::Encoding>,
 }
 
 impl Default for CsvOptions {
@@ -95,7 +101,72 @@ impl Default for CsvOptions {
             na_values: Vec::new(),
             types: Vec::new(),
             names: NameRule::Keep,
+            quote: Some(b'"'),
+            numbers: NumberFormat::default(),
+            encoding: None,
         }
+    }
+}
+
+/// How numbers are written in a file (`decimal:` and `thousands:`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NumberFormat {
+    pub decimal: u8,
+    pub thousands: Option<u8>,
+}
+
+impl Default for NumberFormat {
+    fn default() -> Self {
+        NumberFormat {
+            decimal: b'.',
+            thousands: None,
+        }
+    }
+}
+
+impl NumberFormat {
+    /// `text` as a number is written in Zeff (a `.` decimal mark, no grouping), or `None` when it
+    /// is not a number under this format: a grouping separator must stand between groups of three
+    /// digits after the first group, and only before the decimal mark.
+    fn normalise<'a>(&self, text: &'a str) -> Option<std::borrow::Cow<'a, str>> {
+        if self.decimal == b'.' && self.thousands.is_none() {
+            return Some(std::borrow::Cow::Borrowed(text));
+        }
+        let decimal = self.decimal as char;
+        let (sign, unsigned) = match text.strip_prefix(['-', '+']) {
+            Some(rest) => (&text[..1], rest),
+            None => ("", text),
+        };
+        // The words `Inf`, `Infinity` and `NaN` are numbers in every format.
+        if unsigned.bytes().all(|b| b.is_ascii_alphabetic()) {
+            return Some(std::borrow::Cow::Borrowed(text));
+        }
+        // The integer part ends at the decimal mark or the exponent.
+        let end = unsigned.find([decimal, 'e', 'E']).unwrap_or(unsigned.len());
+        let (integer, rest) = unsigned.split_at(end);
+        let integer = match self.thousands {
+            Some(sep) if integer.contains(sep as char) => {
+                let groups: Vec<&str> = integer.split(sep as char).collect();
+                let first_ok = !groups[0].is_empty()
+                    && groups[0].len() <= 3
+                    && groups[0].bytes().all(|b| b.is_ascii_digit());
+                let rest_ok = groups[1..]
+                    .iter()
+                    .all(|g| g.len() == 3 && g.bytes().all(|b| b.is_ascii_digit()));
+                if !(first_ok && rest_ok) {
+                    return None;
+                }
+                groups.concat()
+            }
+            _ => integer.to_string(),
+        };
+        // The digits before the decimal mark are digits alone: a `.` that is not the decimal
+        // mark, or a separator where none was declared, is not part of a number.
+        if !integer.bytes().all(|b| b.is_ascii_digit()) || (decimal != '.' && rest.contains('.')) {
+            return None;
+        }
+        let rest = rest.replacen(decimal, ".", 1);
+        Some(std::borrow::Cow::Owned(format!("{sign}{integer}{rest}")))
     }
 }
 
@@ -122,6 +193,8 @@ pub struct CsvRead {
 pub enum CsvError {
     /// A row is not valid UTF-8 (Z0608).
     NotUtf8 { row: usize },
+    /// A row holds a byte the encoding named by `encoding:` cannot decode (Z0608).
+    Undecodable { row: usize, encoding: String },
     /// The file has no header line (Z0605).
     NoHeader,
     /// A header name is empty (Z0605); the position is 1-based.
@@ -183,7 +256,12 @@ fn is_blank(fields: &[String], saw_quote: bool) -> bool {
 
 /// Split the body of a file into records. Delimiters and quotes are ASCII, and no byte of a
 /// multi-byte UTF-8 character is ASCII, so the bytes can be scanned before the text is decoded.
-fn split_records(bytes: &[u8], delim: u8, first_row: usize) -> Result<Split, CsvError> {
+fn split_records(
+    bytes: &[u8],
+    delim: u8,
+    quote: Option<u8>,
+    first_row: usize,
+) -> Result<Split, CsvError> {
     let mut records = Vec::new();
     let mut blank_rows = 0;
     let n = bytes.len();
@@ -198,7 +276,8 @@ fn split_records(bytes: &[u8], delim: u8, first_row: usize) -> Result<Split, Csv
         let mut saw_quote = false;
         loop {
             let mut field: Vec<u8> = Vec::new();
-            if i < n && bytes[i] == b'"' {
+            if i < n && quote == Some(bytes[i]) {
+                let q = bytes[i];
                 saw_quote = true;
                 i += 1;
                 loop {
@@ -206,11 +285,11 @@ fn split_records(bytes: &[u8], delim: u8, first_row: usize) -> Result<Split, Csv
                         return Err(CsvError::UnclosedQuote { row: start_row });
                     }
                     match bytes[i] {
-                        b'"' if i + 1 < n && bytes[i + 1] == b'"' => {
-                            field.push(b'"');
+                        b if b == q && i + 1 < n && bytes[i + 1] == q => {
+                            field.push(q);
                             i += 2;
                         }
-                        b'"' => {
+                        b if b == q => {
                             i += 1;
                             break;
                         }
@@ -272,12 +351,68 @@ fn split_records(bytes: &[u8], delim: u8, first_row: usize) -> Result<Split, Csv
 /// The records of a file as text, for the reference tests and for tools: the byte-order mark is
 /// removed, blank lines are skipped, and the fields of every row are returned in order.
 pub fn parse_records(bytes: &[u8], delim: u8) -> Result<Vec<Vec<String>>, CsvError> {
-    let body = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes);
-    Ok(split_records(body, delim, 1)?
+    parse_records_with(
+        bytes,
+        &CsvOptions {
+            delim: Some(delim),
+            ..CsvOptions::default()
+        },
+    )
+}
+
+/// [`parse_records`] with every option: the delimiter (detected when none is given), the quote
+/// character and the encoding.
+pub fn parse_records_with(
+    bytes: &[u8],
+    options: &CsvOptions,
+) -> Result<Vec<Vec<String>>, CsvError> {
+    let decoded = decode(bytes, options)?;
+    let body = decoded.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(&decoded);
+    let delim = options
+        .delim
+        .or_else(|| detect_delimiter(body, options.quote))
+        .unwrap_or(b',');
+    Ok(split_records(body, delim, options.quote, 1)?
         .records
         .into_iter()
         .map(|r| r.fields)
         .collect())
+}
+
+/// The file's bytes as UTF-8: as they are for a UTF-8 file, or decoded from `encoding:`; a byte
+/// the encoding cannot decode is Z0608 naming its row.
+fn decode<'a>(
+    bytes: &'a [u8],
+    options: &CsvOptions,
+) -> Result<std::borrow::Cow<'a, [u8]>, CsvError> {
+    let Some(encoding) = options.encoding else {
+        return Ok(std::borrow::Cow::Borrowed(bytes));
+    };
+    if encoding == encoding_rs::UTF_8 {
+        return Ok(std::borrow::Cow::Borrowed(bytes));
+    }
+    let (text, had_errors) = encoding.decode_without_bom_handling(bytes);
+    if had_errors {
+        // The row of the first byte the encoding cannot decode. In UTF-16 a line break is two
+        // bytes and the lines cannot be decoded apart, so the row is not named there.
+        let utf16 = encoding.name().starts_with("UTF-16");
+        for (row, line) in (1..).zip(bytes.split(|&b| b == b'\n' && !utf16)) {
+            if encoding
+                .decode_without_bom_handling_and_without_replacement(line)
+                .is_none()
+            {
+                return Err(CsvError::Undecodable {
+                    row,
+                    encoding: encoding.name().to_string(),
+                });
+            }
+        }
+        return Err(CsvError::Undecodable {
+            row: 1,
+            encoding: encoding.name().to_string(),
+        });
+    }
+    Ok(std::borrow::Cow::Owned(text.into_owned().into_bytes()))
 }
 
 /// The first `lines` lines of `bytes`, as a byte offset past them.
@@ -293,13 +428,13 @@ fn skip_lines(bytes: &[u8], lines: usize) -> usize {
 }
 
 /// The delimiter the first line suggests: `;` or a tab when the line has them and no comma.
-fn detect_delimiter(body: &[u8]) -> Option<u8> {
+fn detect_delimiter(body: &[u8], quote: Option<u8>) -> Option<u8> {
     let end = body.iter().position(|&b| b == b'\n').unwrap_or(body.len());
     let (mut commas, mut semicolons, mut tabs) = (0, 0, 0);
     let mut quoted = false;
     for &b in &body[..end] {
         match b {
-            b'"' => quoted = !quoted,
+            b if quote == Some(b) => quoted = !quoted,
             b',' if !quoted => commas += 1,
             b';' if !quoted => semicolons += 1,
             b'\t' if !quoted => tabs += 1,
@@ -331,12 +466,12 @@ enum Cell<'a> {
     Value(&'a str),
 }
 
-fn classify<'a>(raw: &'a str, na_values: &[NaValue]) -> Cell<'a> {
+fn classify<'a>(raw: &'a str, na_values: &[NaValue], fmt: &NumberFormat) -> Cell<'a> {
     let trimmed = raw.trim();
     if trimmed.is_empty() || trimmed == "NA" || trimmed == "." {
         return Cell::Missing;
     }
-    let number = parse_float(trimmed);
+    let number = parse_float(trimmed, fmt);
     for (i, na) in na_values.iter().enumerate() {
         if na.text == trimmed || (na.number.is_some() && na.number == number) {
             return Cell::NaValue(i);
@@ -355,9 +490,11 @@ fn parse_bool(text: &str) -> Option<bool> {
     }
 }
 
-/// A whole decimal number with an optional minus sign, within 64 bits (section 3.7).
-fn parse_int(text: &str) -> Option<i64> {
-    let digits = text.strip_prefix('-').unwrap_or(text);
+/// A whole decimal number with an optional minus sign, within 64 bits (section 3.7), grouped
+/// digits allowed where `fmt` has a separator.
+fn parse_int(text: &str, fmt: &NumberFormat) -> Option<i64> {
+    let text = fmt.normalise(text)?;
+    let digits = text.strip_prefix('-').unwrap_or(&text);
     if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
         return None;
     }
@@ -365,9 +502,12 @@ fn parse_int(text: &str) -> Option<i64> {
 }
 
 /// A decimal or scientific number (`4.2e1`, `.5`, `-1e-6`), or the words `Inf`, `-Inf` and
-/// `NaN` in any case, as R and Python write them. Grouped digits (`1,000`) and a decimal comma are
-/// not numbers here: `thousands:` and `decimal:` arrive with release 0.2.0.
-fn parse_float(text: &str) -> Option<f64> {
+/// `NaN` in any case, as R and Python write them; the decimal mark and grouped digits as `fmt`
+/// says (`decimal:` and `thousands:`), so that `1,5` and `1.234,5` are numbers in a file with a
+/// decimal comma and a `.` separator.
+fn parse_float(text: &str, fmt: &NumberFormat) -> Option<f64> {
+    let normalised = fmt.normalise(text)?;
+    let text = normalised.as_ref();
     let unsigned = text.strip_prefix(['-', '+']).unwrap_or(text);
     if unsigned.eq_ignore_ascii_case("inf") || unsigned.eq_ignore_ascii_case("infinity") {
         return Some(if text.starts_with('-') {
@@ -386,15 +526,15 @@ fn parse_float(text: &str) -> Option<f64> {
 }
 
 /// The type the first rows of a column suggest.
-fn guess<'a>(values: impl Iterator<Item = &'a str>) -> ColumnType {
+fn guess<'a>(values: impl Iterator<Item = &'a str>, fmt: &NumberFormat) -> ColumnType {
     let (mut bool_ok, mut int_ok, mut float_ok, mut date_ok, mut datetime_ok) =
         (true, true, true, true, true);
     let mut any = false;
     for value in values {
         any = true;
         bool_ok = bool_ok && parse_bool(value).is_some();
-        int_ok = int_ok && parse_int(value).is_some();
-        float_ok = float_ok && parse_float(value).is_some();
+        int_ok = int_ok && parse_int(value, fmt).is_some();
+        float_ok = float_ok && parse_float(value, fmt).is_some();
         date_ok = date_ok && parse_iso_date(value).is_some();
         datetime_ok = datetime_ok && parse_iso_datetime(value).is_some();
         if !(bool_ok || int_ok || float_ok || date_ok || datetime_ok) {
@@ -474,6 +614,8 @@ fn shown(name: &str) -> String {
 fn read(bytes: &[u8], options: &CsvOptions, full: bool) -> Result<CsvRead, CsvError> {
     let mut messages: Vec<Diagnostic> = Vec::new();
 
+    let decoded = decode(bytes, options)?;
+    let bytes: &[u8] = &decoded;
     let body = match bytes.strip_prefix(b"\xEF\xBB\xBF") {
         Some(rest) => {
             messages.push(Diagnostic::plain_note(
@@ -485,9 +627,15 @@ fn read(bytes: &[u8], options: &CsvOptions, full: bool) -> Result<CsvRead, CsvEr
     };
     let body = &body[skip_lines(body, options.skip)..];
 
+    // With a decimal comma the comma cannot be the delimiter: `;` is the default then.
+    let usual = if options.numbers.decimal == b',' {
+        b';'
+    } else {
+        b','
+    };
     let delim = match options.delim {
         Some(d) => d,
-        None => match detect_delimiter(body) {
+        None => match detect_delimiter(body, options.quote) {
             Some(b'\t') => {
                 messages.push(Diagnostic::plain_note(
                     "delimiter tab detected from the first line",
@@ -501,14 +649,14 @@ fn read(bytes: &[u8], options: &CsvOptions, full: bool) -> Result<CsvRead, CsvEr
                 )));
                 d
             }
-            None => b',',
+            None => usual,
         },
     };
 
     let Split {
         records,
         blank_rows,
-    } = split_records(body, delim, options.skip + 1)?;
+    } = split_records(body, delim, options.quote, options.skip + 1)?;
     if blank_rows > 0 {
         messages.push(Diagnostic::plain_note(format!(
             "{} blank {} skipped",
@@ -561,7 +709,7 @@ fn read(bytes: &[u8], options: &CsvOptions, full: bool) -> Result<CsvRead, CsvEr
         .iter()
         .map(|t| NaValue {
             text: t.trim().to_string(),
-            number: parse_float(t.trim()),
+            number: parse_float(t.trim(), &options.numbers),
         })
         .collect();
 
@@ -572,12 +720,12 @@ fn read(bytes: &[u8], options: &CsvOptions, full: bool) -> Result<CsvRead, CsvEr
             Some(spec) => spec.clone(),
             None => {
                 let sample = data.iter().take(GUESS_ROWS).filter_map(|r| {
-                    match classify(&r.fields[c], &na_values) {
+                    match classify(&r.fields[c], &na_values, &options.numbers) {
                         Cell::Value(v) => Some(v),
                         _ => None,
                     }
                 });
-                TypeSpec::guessed(guess(sample))
+                TypeSpec::guessed(guess(sample, &options.numbers))
             }
         };
         specs.push(spec);
@@ -715,14 +863,16 @@ fn build_column(
     // Each cell as either a value to parse or a missing value.
     let mut cells: Vec<Option<&str>> = Vec::with_capacity(data.len());
     for record in data {
-        cells.push(match classify(&record.fields[c], na_values) {
-            Cell::Missing => None,
-            Cell::NaValue(i) => {
-                *na_hits.entry(i).or_insert(0) += 1;
-                None
-            }
-            Cell::Value(v) => Some(v),
-        });
+        cells.push(
+            match classify(&record.fields[c], na_values, &options.numbers) {
+                Cell::Missing => None,
+                Cell::NaValue(i) => {
+                    *na_hits.entry(i).or_insert(0) += 1;
+                    None
+                }
+                Cell::Value(v) => Some(v),
+            },
+        );
     }
 
     let column = match spec {
@@ -741,7 +891,9 @@ fn build_column(
             for (record, cell) in data.iter().zip(&cells) {
                 out.push(match cell {
                     None => None,
-                    Some(v) => Some(parse_int(v).ok_or_else(|| does_not_fit(record, v))?),
+                    Some(v) => Some(
+                        parse_int(v, &options.numbers).ok_or_else(|| does_not_fit(record, v))?,
+                    ),
                 });
             }
             Column::ints(out)
@@ -752,7 +904,8 @@ fn build_column(
                 out.push(match cell {
                     None => None,
                     Some(v) => {
-                        let x = parse_float(v).ok_or_else(|| does_not_fit(record, v))?;
+                        let x = parse_float(v, &options.numbers)
+                            .ok_or_else(|| does_not_fit(record, v))?;
                         if x.is_nan() {
                             nan_count += 1;
                             None
@@ -962,8 +1115,11 @@ impl CsvError {
     pub fn diagnostic(&self, path: &str, span: Span, file: &str) -> Diagnostic {
         let d = match self {
             CsvError::NotUtf8 { row } => Diagnostic::error("Z0608", format!("row {} of `{path}` is not valid UTF-8", count(*row as u64)))
-                .primary(span, "the file must be UTF-8")
-                .help("save the file as UTF-8 from the program that made it; `encoding:` on import, for files in other encodings, arrives with release 0.2.0"),
+                .primary(span, "the file must be UTF-8, or name its encoding")
+                .help("name the file's encoding, as in `encoding: \"windows-1252\"` (the names of the WHATWG list), or save it as UTF-8 from the program that made it"),
+            CsvError::Undecodable { row, encoding } => Diagnostic::error("Z0608", format!("row {} of `{path}` cannot be decoded as {encoding}", count(*row as u64)))
+                .primary(span, "a byte the encoding does not have")
+                .help("check the file's encoding in the program that made it; the names of the WHATWG list are accepted, such as `windows-1252`, `iso-8859-15` or `utf-16le`"),
             CsvError::NoHeader => Diagnostic::error("Z0605", format!("`{path}` has no header line"))
                 .primary(span, "the file is empty")
                 .help("the first row names the columns; a file without one is read with `header: false`"),
@@ -1015,7 +1171,8 @@ fn does_not_fit(
 ) -> Diagnostic {
     let row_text = count(row as u64);
     let col = shown(column);
-    let decimal_in_int = ty == ColumnType::Int && parse_float(value).is_some();
+    let decimal_in_int =
+        ty == ColumnType::Int && parse_float(value, &NumberFormat::default()).is_some();
     let message = match ty {
         ColumnType::Int if decimal_in_int => {
             format!("row {row_text} of `{path}` has a decimal in a whole-number column")

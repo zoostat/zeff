@@ -4,7 +4,8 @@
 use serde_json::Value;
 use zeff_columns::{ColumnType, Value as V};
 use zeff_data::csv::{
-    CsvError, CsvOptions, NameRule, TypeSpec, csv_schema, parse_records, read_csv,
+    CsvError, CsvOptions, NameRule, NumberFormat, TypeSpec, csv_schema, parse_records,
+    parse_records_with, read_csv,
 };
 use zeff_dates::{DateFormat, days_from_civil, parse_iso_datetime};
 use zeff_diagnostics::{Severity, Source, Sources, Span};
@@ -91,7 +92,7 @@ fn every_reference_file_splits_into_the_fields_python_sees() {
     let reference: Value = serde_json::from_str(json).unwrap();
     assert!(reference["reference"]["python"].as_str().is_some());
     let files = reference["files"].as_object().unwrap();
-    assert!(files.len() >= 15);
+    assert!(files.len() >= 22);
     for (name, case) in files {
         let path = format!(
             "{}/../../../tests/reference/csv/{name}",
@@ -111,8 +112,31 @@ fn every_reference_file_splits_into_the_fields_python_sees() {
                     .collect()
             })
             .collect();
-        let found = parse_records(&bytes, delimiter).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        let quote = match case.get("quotechar") {
+            None => Some(b'"'),
+            Some(Value::Null) => None,
+            Some(q) => Some(q.as_str().unwrap().as_bytes()[0]),
+        };
+        let encoding = case
+            .get("encoding")
+            .and_then(|e| e.as_str())
+            .and_then(|e| encoding_rs::Encoding::for_label(e.as_bytes()));
+        let options = CsvOptions {
+            delim: Some(delimiter),
+            quote,
+            encoding,
+            ..CsvOptions::default()
+        };
+        let found =
+            parse_records_with(&bytes, &options).unwrap_or_else(|e| panic!("{name}: {e:?}"));
         assert_eq!(found, expected, "{name}");
+        if quote == Some(b'"') && encoding.is_none() {
+            assert_eq!(
+                parse_records(&bytes, delimiter).unwrap(),
+                expected,
+                "{name}"
+            );
+        }
     }
 }
 
@@ -1022,4 +1046,204 @@ fn types_may_name_a_column_by_its_header_or_its_snake_name() {
             "{declared}"
         );
     }
+}
+
+// ----- the options of release 0.2.0: quote, decimal, thousands, encoding -----
+
+#[test]
+fn another_quote_character_or_none() {
+    let single = read_with(
+        "name,n\n'Smith, John',1\n'it''s',2\n",
+        CsvOptions {
+            quote: Some(b'\''),
+            ..CsvOptions::default()
+        },
+    );
+    assert_eq!(
+        strs(&single, "name"),
+        [Some("Smith, John".to_string()), Some("it's".to_string())]
+    );
+    assert_eq!(ints(&single, "n"), [Some(1), Some(2)]);
+    // Without quoting, a quotation mark is an ordinary character and never opens a value.
+    let none = read_with(
+        "a,b\n\"x,1\n2,\"y\"\n",
+        CsvOptions {
+            quote: None,
+            ..CsvOptions::default()
+        },
+    );
+    assert_eq!(
+        strs(&none, "a"),
+        [Some("\"x".to_string()), Some("2".to_string())]
+    );
+    assert_eq!(
+        strs(&none, "b"),
+        [Some("1".to_string()), Some("\"y\"".to_string())]
+    );
+    // With the usual quote, the same file reads `"x,1\n2,"` as one value and has too few fields.
+    assert!(matches!(
+        error("a,b\n\"x,1\n2,\"y\"\n"),
+        CsvError::FieldCount {
+            row: 2,
+            found: 1,
+            expected: 2
+        }
+    ));
+    assert!(matches!(
+        error("a,b\n\"x,1\n"),
+        CsvError::UnclosedQuote { row: 2 }
+    ));
+}
+
+#[test]
+fn a_decimal_comma_makes_the_semicolon_the_default_delimiter() {
+    let comma = CsvOptions {
+        numbers: NumberFormat {
+            decimal: b',',
+            thousands: None,
+        },
+        ..CsvOptions::default()
+    };
+    let read = read_with("a;b;c\n1,5;2;x\n-3,0;1e3;y\n", comma.clone());
+    assert_eq!(
+        read.schema.types,
+        [ColumnType::Float, ColumnType::Float, ColumnType::Str]
+    );
+    assert_eq!(floats(&read, "a"), [Some(1.5), Some(-3.0)]);
+    assert_eq!(floats(&read, "b"), [Some(2.0), Some(1000.0)]);
+    // A `.` is then not a decimal mark: `1.5` is text.
+    let dotted = read_with("a;b\n1.5;2\n", comma.clone());
+    assert_eq!(dotted.schema.types, [ColumnType::Str, ColumnType::Int]);
+    // Whole numbers stay Ints, and `na_values:` codes are read under the same format.
+    let codes = read_with(
+        "a;b\n-99;1,5\n2;-99,5\n",
+        CsvOptions {
+            na_values: vec!["-99".into(), "-99,5".into()],
+            ..comma
+        },
+    );
+    assert_eq!(ints(&codes, "a"), [None, Some(2)]);
+    assert_eq!(floats(&codes, "b"), [Some(1.5), None]);
+}
+
+#[test]
+fn thousands_separators_are_removed_only_between_groups_of_three() {
+    let grouped = CsvOptions {
+        numbers: NumberFormat {
+            decimal: b'.',
+            thousands: Some(b','),
+        },
+        ..CsvOptions::default()
+    };
+    let read = read_with(
+        "a,b\n\"1,234\",\"1,234.5\"\n\"12,345,678\",7\n5,\"-1,000.25\"\n",
+        grouped.clone(),
+    );
+    assert_eq!(read.schema.types, [ColumnType::Int, ColumnType::Float]);
+    assert_eq!(ints(&read, "a"), [Some(1234), Some(12_345_678), Some(5)]);
+    assert_eq!(
+        floats(&read, "b"),
+        [Some(1234.5), Some(7.0), Some(-1000.25)]
+    );
+    // Badly grouped digits are text, not a number read wrongly.
+    let bad = read_with("a\n\"1,23\"\n\"12,3456\"\n\",123\"\n", grouped);
+    assert_eq!(bad.schema.types, [ColumnType::Str]);
+    // The German way: `.` between groups and a decimal comma.
+    let german = read_with(
+        "a;b\n1.234,5;1\n987,25;2\n1.000.000;3\n",
+        CsvOptions {
+            numbers: NumberFormat {
+                decimal: b',',
+                thousands: Some(b'.'),
+            },
+            ..CsvOptions::default()
+        },
+    );
+    assert_eq!(german.schema.types, [ColumnType::Float, ColumnType::Int]);
+    assert_eq!(
+        floats(&german, "a"),
+        [Some(1234.5), Some(987.25), Some(1_000_000.0)]
+    );
+    // A space as the separator, as French files have it.
+    let spaced = read_with(
+        "a\n\"1 234\"\n\"12 345 678\"\n",
+        CsvOptions {
+            numbers: NumberFormat {
+                decimal: b'.',
+                thousands: Some(b' '),
+            },
+            ..CsvOptions::default()
+        },
+    );
+    assert_eq!(ints(&spaced, "a"), [Some(1234), Some(12_345_678)]);
+}
+
+#[test]
+fn an_encoding_decodes_the_file_and_an_undecodable_byte_is_z0608() {
+    let latin1 = encoding_rs::Encoding::for_label(b"windows-1252");
+    let bytes = b"name,n\ncaf\xe9,1\nJ\xf6rg,2\n";
+    let read = zeff_data::csv::read_csv(
+        bytes,
+        &CsvOptions {
+            encoding: latin1,
+            ..CsvOptions::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        strs(&read, "name"),
+        [Some("café".to_string()), Some("Jörg".to_string())]
+    );
+    assert_eq!(ints(&read, "n"), [Some(1), Some(2)]);
+    // Without the option, the same bytes are not UTF-8.
+    assert!(matches!(
+        zeff_data::csv::read_csv(bytes, &CsvOptions::default()),
+        Err(CsvError::NotUtf8 { row: 2 })
+    ));
+    // UTF-16 with its byte-order mark, as Excel exports Unicode text.
+    let mut utf16: Vec<u8> = vec![0xFF, 0xFE];
+    for unit in "a,b\n1,東京\n".encode_utf16() {
+        utf16.extend_from_slice(&unit.to_le_bytes());
+    }
+    let read = zeff_data::csv::read_csv(
+        &utf16,
+        &CsvOptions {
+            encoding: encoding_rs::Encoding::for_label(b"utf-16le"),
+            ..CsvOptions::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(strs(&read, "b"), [Some("東京".to_string())]);
+    // A byte sequence the encoding does not have (a Shift_JIS lead byte before a space), named
+    // by row; the single-byte encodings of the WHATWG list give every byte a character.
+    let bad = zeff_data::csv::read_csv(
+        b"a\n1\n\x81 \n",
+        &CsvOptions {
+            encoding: encoding_rs::Encoding::for_label(b"shift_jis"),
+            ..CsvOptions::default()
+        },
+    );
+    match bad {
+        Err(CsvError::Undecodable { row, encoding }) => {
+            assert_eq!(row, 3);
+            assert_eq!(encoding, "Shift_JIS");
+        }
+        other => panic!("{other:?}"),
+    }
+    let shown = render(
+        &CsvError::Undecodable {
+            row: 3,
+            encoding: "ISO-8859-15".to_string(),
+        },
+        "data/f.csv",
+    );
+    assert!(
+        shown.starts_with("error[Z0608]: row 3 of `data/f.csv` cannot be decoded as ISO-8859-15"),
+        "{shown}"
+    );
+    insta::assert_snapshot!("undecodable_byte", shown);
+    insta::assert_snapshot!(
+        "not_utf8_suggests_encoding",
+        render(&CsvError::NotUtf8 { row: 2 }, "data/f.csv")
+    );
 }

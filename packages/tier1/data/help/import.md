@@ -7,9 +7,11 @@ Read a data file into a frame
 Reads a file in the project (`import("data/wages.csv")`) or in a declared data root
 (`import("lfs:wages.parquet")`) and chooses the reader from the extension. This release reads
 delimited text: CSV, TSV and text files, following RFC 4180, with the delimiter detected from the
-first line when it is `;` or a tab. The other formats of section 6.1 arrive with release 0.11.0,
-and the remaining options of this function (`format:`, `encoding:`, `decimal:`, `thousands:` and
-the rest) with the releases that implement them.
+first line when it is `;` or a tab, and with every option of a delimited file: another quote
+character or none (`quote:`), a decimal comma (`decimal: ","`, which makes `;` the usual
+delimiter), grouped digits (`thousands: "."`), and a file that is not UTF-8 (`encoding:
+"windows-1252"`, any name of the WHATWG list). The other formats of section 6.1 arrive with release
+0.11.0, and their options (`format:`, `sheet:` and the rest) with them.
 
 The type of each column is guessed from its first 1,000 rows: Bool, Int, Float, Date (ISO 8601),
 DateTime or Str. A later value that does not fit stops the run naming the row, the column and the
@@ -35,6 +37,19 @@ changed or could not keep.
   date format, `types: {sold: Date("%d/%m/%Y")}`. A column may be named as the file writes it or
   by the name `names: snake` gives it.
 - names: Keep the names of the file, or turn each into a snake_case name and print the changes.
+- quote: The quote character, one character; `"` by default. A quoted value may hold the
+  delimiter and line breaks, and the quote itself written twice. `quote: ""` reads every character
+  literally, for a file that never quotes.
+- decimal: The decimal mark, one character; `.` by default. With `decimal: ","` the delimiter is
+  `;` unless the first line shows a tab or `delim:` says otherwise, and `1,5` reads as a number
+  while `1.5` is text.
+- thousands: The character between groups of three digits, which a number may carry: `"."` in a
+  German file, `","` in an English one with quoted values such as `"1,234"`, `" "` in a French one.
+  Digits grouped any other way are text. It cannot be the decimal mark.
+- encoding: The file's encoding when it is not UTF-8, by its name on the WHATWG list:
+  `"windows-1252"` for files from Western European Windows programs, `"iso-8859-15"`, `"utf-16le"`
+  for Unicode text exported by Excel, `"shift_jis"`. A byte the encoding cannot decode stops the
+  import naming the row (Z0608).
 
 ## Value
 A `Frame` with one column per variable of the file.
@@ -57,3 +72,11 @@ wages · 3 rows × 3 variables
 note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 3)
 note: 1 value of hours read as NA from na_values 40 (line 3)
 warning: 2 rows with NA in hours were skipped (line 3)
+> import("data/wages_de.csv", decimal: ",", thousands: ".", encoding: "windows-1252")
+frame · 2 rows × 4 variables
+
+      id   name      wage   hours
+  1    1   Jörg    1234.5      40
+  2    2   Aimée   987.25      35
+note: data/wages_de.csv read as CSV: 2 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 4)
+note: delimiter `;` detected from the first line (line 4)

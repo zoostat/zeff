@@ -107,9 +107,9 @@ error[Z0608]: row 3 of `data/f.csv` is not valid UTF-8
  --> scripts/main.zeff:1:9
   |
 1 | let d = import("data/f.csv")
-  |         ^^^^^^ the file must be UTF-8
+  |         ^^^^^^ the file must be UTF-8, or name its encoding
   |
-  = help: save the file as UTF-8 from the program that made it; `encoding:` on import, for files in other encodings, arrives with release 0.2.0
+  = help: name the file's encoding, as in `encoding: "windows-1252"` (the names of the WHATWG list), or save it as UTF-8 from the program that made it
 
 ## declared_type_does_not_fit (exit 1)
 error[Z0606]: row 3 of `data/f.csv` has text in a numeric column

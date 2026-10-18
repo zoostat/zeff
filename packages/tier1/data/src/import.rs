@@ -15,6 +15,10 @@ const SKIP: usize = 3;
 const NA_VALUES: usize = 4;
 const TYPES: usize = 5;
 const NAMES: usize = 6;
+const QUOTE: usize = 7;
+const DECIMAL: usize = 8;
+const THOUSANDS: usize = 9;
+const ENCODING: usize = 10;
 
 pub fn import(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
     let Some(Value::Str(path)) = args.take(PATH) else {
@@ -113,6 +117,89 @@ pub fn import(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
         } else {
             NameRule::Keep
         };
+    }
+
+    // One ASCII character, or none for `quote: ""`.
+    let one_char = |ctx: &CallContext<'_>,
+                    at: usize,
+                    name: &str,
+                    empty_allowed: bool|
+     -> Result<Option<u8>, Fail> {
+        match args.get(at) {
+            None | Some(Value::Na) => Ok(None),
+            Some(Value::Str(s)) if s.is_empty() && empty_allowed => Ok(Some(0)),
+            Some(Value::Str(s))
+                if s.len() == 1
+                    && s.is_ascii()
+                    && !s.as_bytes()[0].is_ascii_digit()
+                    && s != "\n"
+                    && s != "\r" =>
+            {
+                Ok(Some(s.as_bytes()[0]))
+            }
+            Some(other) => Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{name}:` must be one character, but this is {}",
+                        match other {
+                            Value::Str(s) => format!("`{s}`"),
+                            other => article(other.type_name()),
+                        }
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(at), "not one character")
+                .help(format!(
+                    "write the character the file uses, as in `{name}: \"{}\"`",
+                    if name == "quote" {
+                        "'"
+                    } else if name == "decimal" {
+                        ","
+                    } else {
+                        "."
+                    }
+                )),
+            )),
+        }
+    };
+    if let Some(q) = one_char(ctx, QUOTE, "quote", true)? {
+        options.quote = if q == 0 { None } else { Some(q) };
+    }
+    if let Some(d) = one_char(ctx, DECIMAL, "decimal", false)? {
+        options.numbers.decimal = d;
+    }
+    if let Some(s) = one_char(ctx, THOUSANDS, "thousands", false)? {
+        options.numbers.thousands = Some(s);
+    }
+    if options.numbers.thousands == Some(options.numbers.decimal) {
+        return Err(fail(
+            Diagnostic::error("Z0401", format!("`decimal:` and `thousands:` are both `{}`", options.numbers.decimal as char))
+                .in_file(ctx.script)
+                .primary(ctx.span_of(THOUSANDS), "the same character twice")
+                .help("a file with a decimal comma groups digits with `.` or a space: `decimal: \",\", thousands: \".\"`"),
+        ));
+    }
+    if options.delim == Some(options.numbers.decimal) {
+        return Err(fail(
+            Diagnostic::error("Z0401", format!("`delim:` and `decimal:` are both `{}`", options.numbers.decimal as char))
+                .in_file(ctx.script)
+                .primary(ctx.span_of(DECIMAL), "the delimiter cannot also be the decimal mark")
+                .help("a file with a decimal comma is usually delimited by `;`: `import(path, decimal: \",\")` detects it"),
+        ));
+    }
+    if let Some(Value::Str(label)) = args.get(ENCODING) {
+        match encoding_rs::Encoding::for_label(label.trim().as_bytes()) {
+            Some(encoding) => options.encoding = Some(encoding),
+            None => {
+                return Err(fail(
+                    Diagnostic::error("Z0401", format!("`encoding: \"{label}\"` is not an encoding"))
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(ENCODING), "not on the WHATWG list")
+                        .help("write a name from the WHATWG encoding list, such as `utf-8`, `windows-1252`, `iso-8859-15`, `utf-16le` or `shift_jis`"),
+                ));
+            }
+        }
     }
 
     let path_span = ctx.span_of(PATH);

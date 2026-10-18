@@ -300,6 +300,94 @@
      "1"
     ]
    ]
+  },
+  "single_quotes.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "name",
+     "n"
+    ],
+    [
+     "Smith, John",
+     "1"
+    ],
+    [
+     "it's",
+     "2"
+    ]
+   ],
+   "quotechar": "'"
+  },
+  "no_quotes.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "\"x",
+     "1"
+    ],
+    [
+     "2",
+     "\"y\""
+    ]
+   ],
+   "quotechar": null
+  },
+  "latin1.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "name",
+     "n"
+    ],
+    [
+     "café",
+     "1"
+    ],
+    [
+     "Jörg",
+     "2"
+    ]
+   ],
+   "encoding": "windows-1252"
+  },
+  "decimal_comma.csv": {
+   "delimiter": ";",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "1,5",
+     "2,25"
+    ],
+    [
+     "-3,0",
+     "1e3"
+    ]
+   ]
+  },
+  "thousands.csv": {
+   "delimiter": ",",
+   "rows": [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "1,234",
+     "5"
+    ],
+    [
+     "12,345,678",
+     "6"
+    ]
+   ]
   }
  }
 }
