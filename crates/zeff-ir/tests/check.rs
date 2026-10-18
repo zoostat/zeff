@@ -9,12 +9,15 @@ use zeff_ir::{Ty, check_source};
 use zeff_registry::{Catalogue, FunctionSpec, ParamSpec, Registry, Rest};
 
 /// A complete page with the given arguments, so that the registry accepts the fixture.
-fn page(name: &str, args: &[&str], statistical: bool) -> &'static str {
+fn page(name: &str, args: &[&str], statistical: bool, rest: bool) -> &'static str {
     let mut text = format!(
         "# {name}\n\n## Summary\nA fixture for {name}\n\n## Description\nTests only.\n\n## Arguments\n"
     );
     for a in args {
         text.push_str(&format!("- {a}: The {a}.\n"));
+    }
+    if rest {
+        text.push_str("- ...: More.\n");
     }
     text.push_str("\n## Value\nA value.\n");
     if statistical {
@@ -36,6 +39,7 @@ fn spec(
     statistical: bool,
 ) -> FunctionSpec {
     let names: Vec<&str> = params.iter().map(|p| p.name).collect();
+    let has_rest = rest.is_some();
     FunctionSpec {
         name,
         package,
@@ -44,7 +48,7 @@ fn spec(
         rest,
         returns,
         diagnostics: vec![],
-        help: page(name, &names, statistical),
+        help: page(name, &names, statistical, has_rest),
         accuracy: None,
     }
 }

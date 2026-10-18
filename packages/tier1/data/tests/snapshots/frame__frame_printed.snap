@@ -1,0 +1,6 @@
+---
+source: packages/tier1/data/tests/frame.rs
+expression: "stdout(\"let d = frame(x = [1, 2], y = [\\\"a\\\", \\\"b\\\"])\\nd\\nprint(d)\\n\")"
+---
+d · 2 rows × 2 variables
+d · 2 rows × 2 variables

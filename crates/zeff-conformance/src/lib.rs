@@ -197,7 +197,7 @@ fn milestone_cases() -> Vec<Line> {
         "/p/data/wages.csv",
         "id,wage,hours\n1,23.4,40\n2,19.0,35\n3,31.2,\n4,27.75,38\n5,1000000.125,41\n6,0.000031,39\n",
     );
-    let script = "let wages = import(\"data/wages.csv\")\nwages.mean(wage)\nwages.mean(hours)\nprint(wages, [1, 2.5], 1e-7)\nwages.mean(id)\n";
+    let script = "let wages = import(\"data/wages.csv\")\nwages.mean(wage)\nwages.mean(hours)\nprint(wages, [1, 2.5], 1e-7)\nwages.mean(id)\nlet built = frame(x = [1, 2.5, NA], flag = [true, false, true], name = [\"a\", \"b\", \"c\"])\nbuilt\nbuilt.mean(x)\nbuilt.mean(flag)\n";
     let outcome = match Project::open(&fs, Path::new("/p")) {
         Ok(project) => run_script(&fs, &project, "scripts/main.zeff", script),
         Err(_) => return vec![text("milestone/project", "could not open")],

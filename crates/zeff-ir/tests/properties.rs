@@ -6,7 +6,7 @@ use zeff_ir::check_source;
 use zeff_registry::{Catalogue, FunctionSpec, ParamSpec, Registry, Rest};
 
 fn registry() -> Registry {
-    let help = "# print\n\n## Summary\nPrint\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n\n## Value\nNothing.\n\n## See also\nprint\n\n## Examples\n> print(1)\n1\n";
+    let help = "# print\n\n## Summary\nPrint\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n- ...: More values.\n\n## Value\nNothing.\n\n## See also\nprint\n\n## Examples\n> print(1)\n1\n";
     let print = FunctionSpec {
         name: "print",
         package: "core",

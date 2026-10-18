@@ -1,17 +1,44 @@
 //! Package data (tier 1): frames, reducers and files.
 
 pub mod csv;
+pub mod frame;
 pub mod import;
 pub mod names;
 pub mod reducers;
 
 use zeff_core::runtime::Function;
-use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec};
+use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec, Rest};
 
 /// The functions of `data` in this release, with their help pages. A function is registered when
 /// it runs; the remaining functions of 0.1.0 join as they are implemented.
 pub fn functions() -> Vec<Function> {
     vec![
+        Function {
+            spec: FunctionSpec {
+                name: "frame",
+                package: "data",
+                method: false,
+                params: vec![],
+                rest: Some(Rest::Definitions("List")),
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0214", "a list holds values of more than one type"),
+                    DiagnosticDecl::new("Z0217", "the lists have different lengths"),
+                    DiagnosticDecl::new(
+                        "Z0219",
+                        "a list has no value, or none but NA, so its type is unknown",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a definition is not a list, or a list holds a value a column cannot (a list, a record, a frame)",
+                    ),
+                    DiagnosticDecl::new("Z0406", "no column is defined"),
+                ],
+                help: include_str!("../help/frame.md"),
+                accuracy: None,
+            },
+            body: frame::frame,
+        },
         Function {
             spec: FunctionSpec {
                 name: "import",

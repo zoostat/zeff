@@ -293,3 +293,13 @@ CI runs the report on: Linux x86-64 at the baseline instruction set; the same Li
 **First consumer.** `packages/tier1/data/tests/reference_mean.rs` runs `mean` on every numeric column of every dataset (all-missing columns declared `Float`, since the reader types them as text) and checks the printed mean and the count in the warning: 36 columns, twelve datasets.
 
 **Reason.** Testing handbook, sections 1.1, 1.2 and 4; Engine Specification, section 13.
+
+## 18 October 2026: `frame`
+
+**Choice.** `frame(name = [values], ...)` makes one column per definition, in the order written. A list's values are Bool, Int, Float or Str, with Int and Float joining as Float and `NA` fitting any of them; the lists must have one length (Z0217, with both lists marked); a list with no value or none but `NA` has no type and is refused (Z0219); a list holding a list, a record or a frame is refused (Z0401, until the opaque column types after 1.0); a definition that is not a list, such as `frame(x = NA)`, is Z0401; `frame()` with nothing defined is Z0406, reported by the checker, which now requires at least one definition of any function that takes them. Two column names that differ only in case are allowed here (the user wrote both), unlike at import, where Z0605 protects against files. Text never becomes a category, and a list of one value is a column of one row, not a value recycled, unlike R's `data.frame`.
+
+**The help contract.** A function that takes any number of further arguments documents them under one entry, `- ...:`, which the page renders as a row called `...` with the type of the values (`Any` for `print`, `name = List` for `frame`); the entry is required when the function takes such arguments and refused when it does not.
+
+**Definition of done (testing handbook, section 4).** Reference: frames rebuilt from the values of four datasets give the reference means. Edge cases: the empty list, all `NA`, one row, unequal lengths, nested values, mixed types, a backtick name. Property: for random lists with gaps, the mean of the frame is the kernel's mean of the values, with the count skipped. Snapshots: every message and the printed frame. Identity: the conformance milestone script now builds a frame and reports on it. Help page complete, examples run. No benchmark (not in the performance table). The catalogue row's status changes at the release close, as the standing instructions set out, not per function. The message article is `an NA`, said letter by letter.
+
+**Reason.** Language Reference, sections 3.7 and 4.1; the catalogue's row for `frame`.

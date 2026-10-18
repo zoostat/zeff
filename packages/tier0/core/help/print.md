@@ -12,6 +12,7 @@ stands on its own. Several values print one after another, each on its own lines
 
 ## Arguments
 - x: The value to print; any type.
+- ...: Further values, each printed after the one before.
 
 ## Value
 Nothing.

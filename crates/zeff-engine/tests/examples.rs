@@ -22,7 +22,7 @@ fn every_example_of_every_registered_function_prints_what_its_page_says() {
 
 #[test]
 fn an_example_that_prints_something_else_is_reported() {
-    let help: &'static str = "# print\n\n## Summary\nPrint values\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n\n## Value\nNothing.\n\n## See also\nprint\n\n## Examples\n> print(42)\n42\n> print(\"a\", 1)\na\n2\n";
+    let help: &'static str = "# print\n\n## Summary\nPrint values\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n- ...: More values.\n\n## Value\nNothing.\n\n## See also\nprint\n\n## Examples\n> print(42)\n42\n> print(\"a\", 1)\na\n2\n";
     let spec = FunctionSpec {
         name: "print",
         package: "core",
@@ -55,7 +55,7 @@ fn an_example_that_prints_something_else_is_reported() {
 
 #[test]
 fn an_example_that_fails_to_run_is_reported_with_the_error() {
-    let help: &'static str = "# print\n\n## Summary\nPrint values\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n\n## Value\nNothing.\n\n## See also\nprint\n\n## Examples\n> print(nothing_here)\n1\n";
+    let help: &'static str = "# print\n\n## Summary\nPrint values\n\n## Description\nTests.\n\n## Arguments\n- x: The value.\n- ...: More values.\n\n## Value\nNothing.\n\n## See also\nprint\n\n## Examples\n> print(nothing_here)\n1\n";
     let spec = FunctionSpec {
         name: "print",
         package: "core",

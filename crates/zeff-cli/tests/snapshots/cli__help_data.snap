@@ -2,8 +2,9 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: out(&o)
 ---
-data · tier 1 · 2 of 59 functions in this release
+data · tier 1 · 3 of 59 functions in this release
 
+  frame    Create a frame from named lists of values
   import   Read a data file into a frame
   mean     Mean of a variable
 

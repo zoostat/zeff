@@ -138,7 +138,9 @@ impl Ty {
     /// A type's name as a message writes it, with an article: `a Frame`, `an Int`.
     pub fn with_article(&self) -> String {
         let name = self.to_string();
-        let vowel = name.starts_with(['A', 'E', 'I', 'O', 'U']) && !name.starts_with("Union");
+        // `NA` is said letter by letter, so it takes `an`.
+        let vowel = name == "NA"
+            || (name.starts_with(['A', 'E', 'I', 'O', 'U']) && !name.starts_with("Union"));
         format!("{} {name}", if vowel { "an" } else { "a" })
     }
 }

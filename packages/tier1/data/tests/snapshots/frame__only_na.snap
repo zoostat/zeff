@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/frame.rs
+expression: run(script).output.stderr
+---
+error[Z0219]: `x` holds only `NA`, so its type is unknown
+ --> scripts/main.zeff:1:11
+  |
+1 | frame(x = [NA, NA])
+  |           ^^^^^^^^ NA of what type?
+  |
+  = help: give the column at least one value beside the `NA`s

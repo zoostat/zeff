@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/frame.rs
+expression: run(script).output.stderr
+---
+error[Z0401]: `x` holds a List; a column holds Bool, Int, Float or Str values
+ --> scripts/main.zeff:1:11
+  |
+1 | frame(x = [[1], [2]])
+  |           ^^^^^^^^^^ not a value a column can hold
+  |
+  = help: a frame's columns are flat lists of values; nested lists and records arrive with the opaque column types after 1.0

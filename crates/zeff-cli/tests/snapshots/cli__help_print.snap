@@ -16,6 +16,7 @@ DESCRIPTION
 
 ARGUMENTS
     x           Any. The value to print; any type.
+    ...         Any. Further values, each printed after the one before.
 
 VALUE
     Nothing.

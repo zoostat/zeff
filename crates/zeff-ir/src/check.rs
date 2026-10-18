@@ -739,6 +739,8 @@ impl Checker<'_> {
             next_positional = 1;
         }
         let mut named_seen = false;
+        // An argument mistake in this call; a message that would only follow from it is not added.
+        let mut argument_error = false;
         for arg in args {
             match arg {
                 ast::Arg::Positional(e) => {
@@ -783,6 +785,20 @@ impl Checker<'_> {
                     named_seen = true;
                     let Some(position) = params.iter().position(|(n, _, _)| *n == arg_name.text)
                     else {
+                        argument_error = true;
+                        if matches!(spec.rest, Some(Rest::Definitions(_)))
+                            && params.len() == usize::from(spec.method)
+                        {
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0404",
+                                    format!("`{fname}` takes definitions, not options; `{}:` sets an option", arg_name.text),
+                                )
+                                .primary(arg_name.span, "`:` sets an option, `=` defines")
+                                .help(format!("write `{} = ...` to define the column; usage: `{}`", arg_name.text, spec.usage())),
+                            );
+                            continue;
+                        }
                         let mut d = Diagnostic::error(
                             "Z0404",
                             format!("`{fname}` has no argument called `{}`", arg_name.text),
@@ -851,6 +867,7 @@ impl Checker<'_> {
                                 continue;
                             }
                             if !ty.accepts(&lowered.ty) {
+                                argument_error = true;
                                 self.report(
                                     Diagnostic::error(
                                         "Z0401",
@@ -870,6 +887,7 @@ impl Checker<'_> {
                             definitions.push((def_name.text.clone(), lowered));
                         }
                         _ => {
+                            argument_error = true;
                             self.report(
                             Diagnostic::error("Z0404", format!("`{fname}` takes no definitions; `{} = ...` defines a column", def_name.text))
                                 .primary(def_name.span, "`=` defines, `:` sets an option")
@@ -899,6 +917,16 @@ impl Checker<'_> {
             }
         }
 
+        if matches!(spec.rest, Some(Rest::Definitions(_)))
+            && definitions.is_empty()
+            && !argument_error
+        {
+            self.report(
+                Diagnostic::error("Z0406", format!("`{fname}` needs at least one definition"))
+                    .primary(callee_span, "nothing defined")
+                    .help(format!("usage: `{}`", spec.usage())),
+            );
+        }
         // Required arguments, and the type of each given one.
         for (i, (pname, ty, option)) in params.iter().enumerate() {
             match &slots[i] {

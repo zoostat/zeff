@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/frame.rs
+expression: run(script).output.stderr
+---
+error[Z0401]: `x` must be a list of values, not an NA
+ --> scripts/main.zeff:1:11
+  |
+1 | frame(x = NA)
+  |           ^^ not a list
+  |
+  = help: write the values in brackets: `x = [1, 2, 3]`

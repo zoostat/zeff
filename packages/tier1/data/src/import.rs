@@ -135,7 +135,9 @@ fn shortest(x: f64) -> String {
 }
 
 fn article(type_name: &str) -> String {
-    let vowel = type_name.starts_with(['A', 'E', 'I', 'O', 'U', 'a', 'e', 'i', 'o', 'u']);
+    // `NA` is said letter by letter, so it takes `an`.
+    let vowel = type_name == "NA"
+        || type_name.starts_with(['A', 'E', 'I', 'O', 'U', 'a', 'e', 'i', 'o', 'u']);
     format!("{} {type_name}", if vowel { "an" } else { "a" })
 }
 

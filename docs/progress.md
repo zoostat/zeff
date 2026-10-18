@@ -183,3 +183,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 16, `frame` `[function]`: the first function step; the owner may choose the model for it.
 
 **For the owner to decide.** Nothing new. Open decisions #41 to #45.
+
+## 18 October 2026, step 16 of release 0.1.0
+
+**Done.** Step 16 `[function]`: `frame`, with its page and the whole definition of done: column types from the values, Int and Float joined, `NA` typed by its list, unequal lengths and untyped or nested lists refused with their codes, a property test against the kernel, the reference matched on four datasets rebuilt from their values, message snapshots, and the frame in the four-target identity script. The help contract gained the `- ...:` entry for open-ended arguments. 9 tests added.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the release-mode stack guard and the tier check pass locally. GitHub run to be read after the push.
+
+**Next.** Step 17, `import` complete `[function]`.
+
+**For the owner to decide.** Nothing new. Open decisions #41 to #45.

@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/frame.rs
+expression: run(script).output.stderr
+---
+error[Z0219]: `x` has no values, so its type is unknown
+ --> scripts/main.zeff:1:11
+  |
+1 | frame(x = [])
+  |           ^^ an empty list of what?
+  |
+  = help: give the column at least one value

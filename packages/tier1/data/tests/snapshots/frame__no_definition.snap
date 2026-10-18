@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/frame.rs
+expression: run(script).output.stderr
+---
+error[Z0406]: `frame` needs at least one definition
+ --> scripts/main.zeff:1:1
+  |
+1 | frame()
+  | ^^^^^ nothing defined
+  |
+  = help: usage: `frame(name = List, ...)`

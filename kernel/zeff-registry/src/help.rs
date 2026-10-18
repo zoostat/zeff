@@ -15,6 +15,7 @@
 //! ## Arguments
 //! - data: The frame.
 //! - var: The variable whose mean is taken.
+//! (a function that takes any number of further arguments documents them under `- ...:`)
 //!
 //! ## Value
 //! ## Details        (statistical methods)
@@ -255,11 +256,12 @@ pub fn parse_help(text: &str) -> Result<HelpDoc, Vec<HelpError>> {
                 for line in lines.iter().map(|l| l.trim()).filter(|l| !l.is_empty()) {
                     match line.strip_prefix("- ").and_then(|l| l.split_once(':')) {
                         Some((name, text))
-                            if !name.trim().is_empty()
-                                && name
-                                    .trim()
-                                    .chars()
-                                    .all(|c| c.is_ascii_alphanumeric() || c == '_') =>
+                            if name.trim() == "..."
+                                || (!name.trim().is_empty()
+                                    && name
+                                        .trim()
+                                        .chars()
+                                        .all(|c| c.is_ascii_alphanumeric() || c == '_')) =>
                         {
                             doc.arguments
                                 .push((name.trim().to_string(), text.trim().to_string()));
@@ -391,8 +393,15 @@ pub fn check_help(
             errors.push(HelpError::ArgumentWithoutEntry(param.name.to_string()));
         }
     }
+    if spec.rest.is_some() && !doc.arguments.iter().any(|(n, _)| n == "...") {
+        errors.push(HelpError::ArgumentWithoutEntry("...".to_string()));
+    }
     for (i, (name, _)) in doc.arguments.iter().enumerate() {
-        if spec.param(name).is_none() {
+        if name == "..." {
+            if spec.rest.is_none() {
+                errors.push(HelpError::EntryNamesNoParameter(name.clone()));
+            }
+        } else if spec.param(name).is_none() {
             errors.push(HelpError::EntryNamesNoParameter(name.clone()));
         } else if doc.arguments[..i].iter().any(|(n, _)| n == name) {
             errors.push(HelpError::DuplicateEntry(name.clone()));

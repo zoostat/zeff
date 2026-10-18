@@ -17,7 +17,7 @@
 use crate::catalogue::CatalogueRow;
 use crate::help::{Block, HelpDoc};
 use crate::shared::shared_argument;
-use crate::spec::FunctionSpec;
+use crate::spec::{FunctionSpec, Rest};
 
 /// The width of the header line, as the examples of section 9.1 have it.
 pub const PAGE_WIDTH: usize = 118;
@@ -153,34 +153,44 @@ pub fn render_page(spec: &FunctionSpec, doc: &HelpDoc, row: &CatalogueRow) -> St
     blocks(&mut out, &doc.description);
 
     heading(&mut out, "ARGUMENTS");
-    let shown: Vec<String> = spec
+    // Each parameter, then the open-ended arguments as `...` when the function takes them.
+    let mut rows: Vec<(String, String, Option<&str>, bool)> = spec
         .params
         .iter()
         .map(|p| {
-            if p.option {
+            let name = if p.option {
                 format!("{}:", p.name)
             } else {
                 p.name.to_string()
-            }
+            };
+            let ty = match (p.option, p.default) {
+                (true, Some(default)) => format!("{} = {default}", p.ty),
+                _ => p.ty.to_string(),
+            };
+            (name, ty, Some(p.name), p.is_shared())
         })
         .collect();
+    match &spec.rest {
+        Some(Rest::Values(ty)) => rows.push(("...".to_string(), (*ty).to_string(), None, false)),
+        Some(Rest::Definitions(ty)) => {
+            rows.push(("...".to_string(), format!("name = {ty}"), None, false))
+        }
+        None => {}
+    }
+    let shown: Vec<String> = rows.iter().map(|(name, _, _, _)| name.clone()).collect();
     let column = shown.iter().map(|s| width(s)).max().unwrap_or(0).max(10) + 2;
     let hanging = " ".repeat(INDENT.len() + column);
-    for (param, name) in spec.params.iter().zip(&shown) {
+    for ((name, ty, param_name, is_shared), _) in rows.iter().zip(&shown) {
+        let key = param_name.unwrap_or("...");
         let written = doc
             .arguments
             .iter()
-            .find(|(n, _)| n == param.name)
+            .find(|(n, _)| n == key)
             .map(|(_, t)| t.as_str())
             .unwrap_or("");
-        let shared = param
-            .is_shared()
-            .then(|| shared_argument(param.name))
+        let shared = is_shared
+            .then(|| param_name.and_then(shared_argument))
             .flatten();
-        let ty = match (param.option, param.default) {
-            (true, Some(default)) => format!("{} = {default}", param.ty),
-            _ => param.ty.to_string(),
-        };
         let meaning = match shared {
             Some(s) if written.is_empty() => s.meaning.to_string(),
             Some(s) => format!("{} {written}", s.meaning),
