@@ -1,0 +1,53 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: text
+---
+error[Z0404]: `import` has no argument called `heade`
+ --> scripts/main.zeff:1:38
+  |
+1 | let wages = import("data/wages.csv", heade: false)
+  |                                      ^^^^^ unknown argument
+  |
+  = help: did you mean `header:`?
+
+error[Z0101]: nothing is called `wges` here
+ --> scripts/main.zeff:2:1
+  |
+2 | wges.maen(wage)
+  | ^^^^ not a binding
+  |
+  = help: did you mean `wages`?
+
+error[Z0103]: no function is called `maen`
+ --> scripts/main.zeff:2:6
+  |
+2 | wges.maen(wage)
+  |      ^^^^ not a function of Zeff
+  |
+  = help: did you mean `mean`?
+
+warning[W0101]: `mean` hides the function `data::mean`
+ --> scripts/main.zeff:3:5
+  |
+3 | let mean = 3
+  |     ^^^^ a binding with a built-in name
+  |
+  = help: the function is still reachable as `data::mean`; a different name avoids the confusion
+
+error[Z0401]: `var` of `mean` must be a Var, but this is a Str
+ --> scripts/main.zeff:4:12
+  |
+4 | wages.mean("wage")
+  |            ^^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+error[Z0304]: `for` is not available in this release
+ --> scripts/main.zeff:5:1
+  |
+5 | for i in [1] {
+  | ^^^^^^^^^^^^^^ arrives with Zeff 0.5.0
+  |
+  = help: loops arrive with release 0.5.0
+
+scripts/main.zeff: 5 errors, 1 warning

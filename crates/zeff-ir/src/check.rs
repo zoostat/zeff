@@ -303,7 +303,7 @@ impl Checker<'_> {
             ast::ExprKind::Unary { .. } | ast::ExprKind::Binary { .. } => {
                 self.not_yet(
                     span,
-                    "operators",
+                    "an operator",
                     "0.2.0",
                     "expressions over values and columns arrive with release 0.2.0",
                 );

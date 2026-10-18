@@ -144,11 +144,11 @@ fn zeff_check_reports_every_problem_and_exits_1() {
     assert_eq!(code(&o), 1);
     assert_eq!(out(&o), "");
     let text = err(&o);
-    for code in ["Z0404", "Z0101", "W0101", "Z0401", "Z0304"] {
+    for code in ["Z0404", "Z0101", "Z0103", "W0101", "Z0401", "Z0304"] {
         assert!(text.contains(&format!("[{code}]")), "{code} in\n{text}");
     }
     assert!(
-        text.ends_with("scripts/main.zeff: 4 errors, 1 warning\n"),
+        text.ends_with("scripts/main.zeff: 5 errors, 1 warning\n"),
         "{text}"
     );
     insta::assert_snapshot!("check_with_problems", text);

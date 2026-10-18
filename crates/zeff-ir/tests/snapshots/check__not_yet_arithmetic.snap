@@ -2,7 +2,7 @@
 source: crates/zeff-ir/tests/check.rs
 expression: render(text)
 ---
-error[Z0304]: operators is not available in this release
+error[Z0304]: an operator is not available in this release
  --> scripts/main.zeff:1:9
   |
 1 | let x = 1 + 2
