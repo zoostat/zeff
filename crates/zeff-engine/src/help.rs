@@ -42,7 +42,7 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
         let total = catalogue
             .rows()
             .iter()
-            .filter(|r| r.package == package && r.status == "planned")
+            .filter(|r| r.package == package && r.status != "roadmap")
             .count();
         let tier = functions[0].row.tier;
         let width = functions
@@ -83,7 +83,7 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
         let first = catalogue
             .rows()
             .iter()
-            .filter(|r| r.package == name && r.status == "planned")
+            .filter(|r| r.package == name && r.status != "roadmap")
             .map(|r| r.release.as_str())
             .min();
         return Ok(match first {
@@ -110,7 +110,7 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
 
 /// The line that says when a catalogued function arrives and where.
 fn arrives_line(row: &zeff_registry::CatalogueRow) -> String {
-    let when = if row.status == "planned" {
+    let when = if row.status != "roadmap" {
         format!("release {}", row.release)
     } else {
         "a release after 1.0".to_string()

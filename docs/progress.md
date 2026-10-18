@@ -159,3 +159,13 @@ Steps 6 to 12 `[engine]`, each green and committed in turn: the lexer for the wh
 **Next.** "Release 0.1.0" when the owner says so: notes, catalogue status, risk register and open decisions review, version, tag, GitHub release.
 
 **For the owner to decide.** Open decisions #41 to #45 are due at this release (the provisional diagnostic codes and the short-form warning); the closing report will list them.
+
+## 18 October 2026, release 0.1.0 closed
+
+**Done.** The release procedure: the routine of the testing handbook's section 2.4 ran on the four targets (see the entry above); the release notes are `docs/releases/0.1.0-notes.md`; the catalogue marks the ten functions `implemented`; the risk register had its first review (R2, R4, R7, R9, R12 lowered; no risk added) and the open decisions due at this release are listed in the notes; the version is 0.1.0 and the sample pins it; tagged `v0.1.0`, pushed, and published as a GitHub release. The first scheduled weekly job on GitHub passed its coverage step (kernel at 80% or more) and was still in its mutation-testing step when this entry was written.
+
+**State.** Release 0.1.0 "First engine" is done. 422 tests; every CI run of the release green on all four targets.
+
+**Next.** When the owner says "Start release 0.2.0", read its row in section 14 of the Engine and Project Specification and write `docs/releases/0.2.0.md`.
+
+**For the owner to decide.** Open decisions #41 to #44 (provisional diagnostic codes), due at this release: confirm or renumber. #45 at 0.2.0. The three printing questions of 0.1.0 are settled.

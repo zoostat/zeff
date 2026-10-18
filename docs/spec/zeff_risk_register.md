@@ -9,17 +9,17 @@ Likelihood and impact are rated High, Medium or Low. The owner is the project le
 | ID | Risk | Likelihood | Impact | First test |
 | --- | --- | --- | --- | --- |
 | R1 | Scope outruns the time available | High | High | 0.1.0 to 0.3.0 cadence |
-| R2 | Bit-identical results across targets prove hard to keep | High | Medium | 0.1.0 CI |
+| R2 | Bit-identical results across targets prove hard to keep | Medium | Medium | 0.1.0 CI |
 | R3 | Matching R and Stata on edge cases takes far longer than the easy cases | High | Medium | 0.4.0 |
-| R4 | Browser build limits: memory, download size, threads, C code | Medium | High | 0.1.0 bundle size; 1.1 ReadStat |
+| R4 | Browser build limits: memory, download size, threads, C code | Low | High | 0.1.0 bundle size; 1.1 ReadStat |
 | R5 | Language tooling (checker, messages, language server) is underestimated | Medium | High | 0.5.0 to 0.7.0 |
 | R6 | Dependency churn, above all `arrow-rs` | Medium | Medium | Every upgrade |
-| R7 | Rust learning curve and slow builds | Medium | Medium | 0.1.0 to 0.2.0 |
+| R7 | Rust learning curve and slow builds | Low | Medium | 0.1.0 to 0.2.0 |
 | R8 | Byte-identical plot export (SVG, PDF, fonts) | Medium | Low | 0.7.0 |
-| R9 | CI and reference costs (ARM runners, second x86 machine, Stata licence) | Medium | Low | 0.1.0 CI |
+| R9 | CI and reference costs (ARM runners, second x86 machine, Stata licence) | Low | Low | 0.1.0 CI |
 | R10 | Adoption: researchers stay with R and Stata | High | High | Zemp Lite preview, 0.8.0 |
 | R11 | Momentum: a long solo build with no users | Medium | High | Any release that slips twice |
-| R12 | The specification grows faster than the code | High | Medium | Now |
+| R12 | The specification grows faster than the code | Medium | Medium | Now |
 
 ## Risks
 
@@ -112,3 +112,7 @@ The two specification volumes, catalogue and companion documents changed many ti
 ## The first test of the register
 
 0.1.0 (ten functions, the tiered workspace, four-target CI, the help build-check and the first five commands) tests R1, R2, R4, R6 and R7 within weeks. Its review is the register's first scheduled update.
+
+## Review at 0.1.0 (18 October 2026)
+
+The release's 25 steps were built and tagged on 18 October 2026, within the cadence, so R1's early warning was not seen; its rating stands until 0.2.0 and 0.3.0 give more points. R2: the four-target identity check ran from the first commit and no run showed a cross-target difference, the kernel's elementary paths are pure Rust and the build profile forbids fused operations and fast maths; likelihood lowered to Medium. R4: the compressed engine bundle is 355 kB against the 5 MB warning level and the cold start 21 ms against 1,000 ms, measured on every build; likelihood lowered to Low (the impact stays High: threads and ReadStat are untested). R6: no upgrade yet; Arrow is pinned at 60.0.0 behind the column store, Parquet is not linked; unchanged. R7: a clean release build takes 23 s and the tiered workspace keeps incremental builds short; likelihood lowered to Low. R9: the free GitHub-hosted runners covered all four targets, ARM64 included; likelihood and impact lowered to Low. R12: the freeze of open decision #40 held, with two corrections logged in `docs/spec_changes.md` and five design questions recorded as open decisions rather than edits; likelihood lowered to Medium. No early warning of any risk was seen and no new risk is added.

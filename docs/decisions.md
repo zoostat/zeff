@@ -397,3 +397,9 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **First local run, 18 October 2026.** Coverage: 94.6% of the kernel's 2,553 lines (`zeff-columns` 94.5%, `zeff-dates` 98.6%, `zeff-diagnostics` 97.8%, `zeff-numeric` 99.4%, `zeff-registry` 89.3%); workspace 94.0%. Mutation testing of `zeff-numeric`: 99 mutants, 93 caught, 0 missed, 6 timed out, every timeout a mutation of `power_of_two_scale` under which a property test runs past the limit; the weekly job's multiplier is 5 so that such mutants are more often caught outright.
 
 **Reason.** Testing handbook, sections 1, 2.2 and 2.3; the release row's "weekly and nightly jobs".
+
+## 18 October 2026: Closing release 0.1.0
+
+**Choice.** The ten functions' rows in the catalogue carry the status `implemented` (the Zemp Specification's word for a shipped function, beside `planned` and `roadmap`); the help page header keeps printing `1.0` for both `planned` and `implemented`, since the field says that the function is part of 1.0, and `zeff help <package>` counts both as "functions in this release". The version in `Cargo.toml` is `0.1.0`; the sample project pins it; the help-page snapshot of `mean` no longer rewrites the version, since the page shows the release a function arrived with, not the engine's version. The release notes are `docs/releases/0.1.0-notes.md`; the risk register had its first scheduled review (R2, R4, R7, R9 and R12 lowered with the figures measured, no risk added), logged in `docs/spec_changes.md` as a non-normative edit. The tag is `v0.1.0`, and the GitHub release carries the notes.
+
+**Reason.** The standing release procedure; Engine Specification, section 14 (the 0.1.0 row) and the testing handbook, section 2.4.

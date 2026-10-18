@@ -35,7 +35,10 @@ fn the_ten_functions_of_this_release() {
             ("data", "summary"),
         ]
     );
-    assert!(rows.iter().all(|r| r.status == "planned"));
+    assert!(
+        rows.iter().all(|r| r.status == "implemented"),
+        "the ten functions shipped with 0.1.0"
+    );
 }
 
 #[test]

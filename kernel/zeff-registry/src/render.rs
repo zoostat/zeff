@@ -90,7 +90,8 @@ fn heading(out: &mut String, title: &str) {
 /// The availability as the header prints it: `data · tier 1 · since 0.2.0 · 1.0 · exact`.
 pub fn availability(row: &CatalogueRow) -> String {
     let status = match row.status.as_str() {
-        "planned" => "1.0",
+        // Planned for 1.0 or already implemented: the function is part of 1.0.
+        "planned" | "implemented" => "1.0",
         other => other,
     };
     format!(

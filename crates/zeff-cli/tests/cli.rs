@@ -365,7 +365,7 @@ fn zeff_help_prints_a_functions_page() {
     assert!(text.contains("\nUSAGE\n    data.mean(var)\n"), "{text}");
     assert!(text.contains("\nEXAMPLES\n"), "{text}");
     assert_eq!(err(&o), "");
-    insta::assert_snapshot!("help_mean", text.replace(zeff_engine::VERSION, "0.1.0-dev"));
+    insta::assert_snapshot!("help_mean", text);
     insta::assert_snapshot!("help_import", out(&zeff(dir.path(), &["help", "import"])));
     insta::assert_snapshot!("help_print", out(&zeff(dir.path(), &["help", "print"])));
 }

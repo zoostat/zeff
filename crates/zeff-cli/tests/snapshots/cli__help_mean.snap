@@ -1,6 +1,6 @@
 ---
 source: crates/zeff-cli/tests/cli.rs
-expression: "text.replace(zeff_engine::VERSION, \"0.1.0-dev\")"
+expression: text
 ---
 mean — Mean of a variable                                              data · tier 1 · since 0.1.0 · 1.0 · closed form
 
