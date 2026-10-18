@@ -321,3 +321,9 @@ CI runs the report on: Linux x86-64 at the baseline instruction set; the same Li
 **Definition of done (testing handbook, section 4).** Reference: every dataset's rows, variable count and names against the file. Edge cases: no rows, one row, all missing, awkward names kept and made snake, a frame built with `frame`. Property: a random frame reports its rows, columns and names. Snapshots: the long list, every wrong call. Identity: the milestone script now calls all three. Help pages complete, examples run (they show the import note, as every example that imports now does). No benchmark.
 
 **Reason.** Language Reference, section 6 and the catalogue rows 99 to 101.
+
+## 18 October 2026: Owner decisions on printing (questions 1 and 2 of the 0.1.0 checklist)
+
+**Decided by the owner.** (1) The "example" column of `describe` shows the first non-missing value of each variable, so the same file always shows the same example; it prints as the value prints elsewhere in Zeff (six significant digits for a Float, so `23.4`, not the `23.40` of the illustration in section 10.2, which is marked illustrative). (2) A frame wider than the page (118 characters) prints its columns in blocks, as R does: as many whole columns as fit, then the next columns for the same ten rows, until every column has been shown; nothing is hidden. Row numbers, the alignment (text left, numbers right) and the first-ten-rows rule stay as section 3.1 and 10.2 have them.
+
+**Reason.** Both keep Zeff's output identical on every run and machine and readable in a log file, and they match what R users expect. The alternatives (the commonest value; cutting the line with an ellipsis) were put to the owner and declined.
