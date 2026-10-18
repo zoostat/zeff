@@ -454,7 +454,7 @@ fn every_message_import_can_give() {
 // ----- a property: random tables come back with their shape and their means -----
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(64))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(64)))]
     #[test]
     fn a_random_table_of_integers_imports_with_its_shape_and_means(
         // Two columns at least: a one-column row with no value is a blank line, which is skipped.
@@ -495,4 +495,13 @@ proptest! {
             }
         }
     }
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
 }

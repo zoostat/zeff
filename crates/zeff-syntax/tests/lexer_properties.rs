@@ -61,7 +61,7 @@ fn check_invariants(text: &str) -> Result<(), TestCaseError> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(2000))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(2000)))]
 
     #[test]
     fn never_panics_and_accounts_for_every_byte_on_code_like_text(text in code_like()) {
@@ -143,3 +143,12 @@ const LEXEMES: &[Lexeme] = &[
     ("|", || K::Pipe),
     ("?", || K::Question),
 ];
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
+}

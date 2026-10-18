@@ -169,7 +169,7 @@ fn prints_as(printed: &str, x: f64) -> bool {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(48))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(48)))]
 
     #[test]
     fn the_sd_of_integers_is_the_exact_sd_rounded(
@@ -284,4 +284,13 @@ fn every_message_sd_can_give() {
         ));
     }
     insta::assert_snapshot!("every_message", all);
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
 }

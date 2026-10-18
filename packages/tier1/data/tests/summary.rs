@@ -199,7 +199,7 @@ fn the_edge_cases_print_na_where_a_statistic_is_undefined() {
 // ----- a property -----
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(48))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(48)))]
     #[test]
     fn a_random_frame_summarises_to_consistent_counts_and_bounds(
         columns in prop::collection::vec(prop::collection::vec(prop::option::weighted(0.8, -500i64..500), 2..30), 1..5)
@@ -338,4 +338,13 @@ fn every_message_summary_can_give() {
         "{}",
         outcome.output.stderr
     );
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
 }

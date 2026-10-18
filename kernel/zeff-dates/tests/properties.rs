@@ -5,7 +5,7 @@ use proptest::prelude::*;
 use zeff_dates::*;
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(3000))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(3000)))]
 
     #[test]
     fn a_day_count_round_trips_through_the_calendar(days in MIN_DAYS..=MAX_DAYS) {
@@ -49,4 +49,13 @@ proptest! {
         let us = DateFormat::new("%m-%d-%Y").unwrap();
         prop_assert_eq!(us.parse_date(&format!("{m:02}-{d:02}-{y:04}")), Some(days));
     }
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
 }

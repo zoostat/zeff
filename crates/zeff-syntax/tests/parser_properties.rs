@@ -43,7 +43,7 @@ fn check_any_text(text: String) -> Result<(), TestCaseError> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(1500))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(1500)))]
 
     #[test]
     fn code_like_text_never_panics(text in code_like()) {
@@ -242,7 +242,7 @@ fn expressions() -> impl Strategy<Value = Gen> {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(4000))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(4000)))]
 
     #[test]
     fn operator_precedence_is_right_for_every_generated_expression(g in expressions()) {
@@ -272,4 +272,13 @@ proptest! {
         let tree = tree.trim_end().strip_prefix("(let t ").and_then(|s| s.strip_suffix(')')).unwrap().to_string();
         prop_assert_eq!(without_parens(&tree), expected(&g));
     }
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
 }

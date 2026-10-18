@@ -137,3 +137,13 @@ Steps 6 to 12 `[engine]`, each green and committed in turn: the lexer for the wh
 **Next.** Step 24, the weekly and nightly jobs `[engine]`.
 
 **For the owner to decide.** Nothing new. Open decisions #41 to #45.
+
+## 18 October 2026, step 24 of release 0.1.0
+
+**Done.** Step 24 `[engine]`: the scheduled jobs. Nightly, the suite in release mode with every property run 25 times longer; weekly, coverage with the kernel held to 80% or more and mutation testing of `zeff-numeric`, results on each run's summary page and in its artifacts. The first local run: kernel coverage 94.6% (lowest crate `zeff-registry`, 89.3%); 99 mutants of `zeff-numeric`, 93 caught, none missed, 6 timed out (mutations of the scaling function that make a property test run past the limit). Both jobs were started once on GitHub after the push; the result is recorded below when read.
+
+**Green.** Format, clippy with warnings denied, all workspace tests and the tier check pass locally.
+
+**Next.** Step 25, the pre-release routine `[engine]` (testing handbook, section 2.4), then "Release 0.1.0" when the owner says so.
+
+**For the owner to decide.** Nothing new. Open decisions #41 to #45 are due at this release: the owner may confirm the provisional codes when the release closes.

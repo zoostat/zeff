@@ -1,0 +1,114 @@
+name: Scheduled
+
+# The nightly and weekly jobs of the testing handbook, sections 2.2 and 2.3. Both can also be
+# started by hand from the Actions page. Results go to each run's summary page and its artifacts.
+on:
+  schedule:
+    - cron: "17 2 * * *"   # nightly, 02:17 UTC
+    - cron: "41 3 * * 1"   # weekly, Mondays 03:41 UTC
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Which job to run"
+        type: choice
+        options: [both, nightly, weekly]
+        default: both
+
+permissions:
+  contents: read
+
+jobs:
+  nightly:
+    name: nightly (long property runs)
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'nightly')
+      || github.event.schedule == '17 2 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Run every test with every property run 25 times longer, in release mode
+        env:
+          ZEFF_PROPERTY_MULTIPLIER: "25"
+        run: cargo test --workspace --locked --release 2>&1 | tee nightly.log
+
+      - name: Write the note
+        if: always()
+        run: |
+          {
+            echo "## Nightly: long property runs"
+            echo
+            echo "Every property test ran 25 times its usual number of cases, in release mode."
+            echo
+            echo '```'
+            grep -E "^test result|^test .*FAILED|minimal failing" nightly.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-log
+          path: nightly.log
+
+  weekly:
+    name: weekly (coverage and mutation testing)
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
+      || github.event.schedule == '41 3 * * 1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain with the LLVM tools
+        run: |
+          rustup toolchain install
+          rustup component add llvm-tools-preview
+
+      - name: Install cargo-llvm-cov and cargo-mutants
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov,cargo-mutants
+
+      - name: Measure coverage
+        run: |
+          cargo llvm-cov --workspace --locked --json --output-path coverage.json
+          cargo llvm-cov report --summary-only | tee coverage-summary.txt
+
+      - name: The kernel is covered to 80% or more (testing handbook, section 1)
+        run: python3 -I tools/coverage/kernel_coverage.py coverage.json 80 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Mutation testing of the numeric kernel
+        run: |
+          # Surviving mutants and timeouts are a note to act on, not a failure of the job.
+          (cargo mutants --package zeff-numeric --test-workspace true --timeout-multiplier 5 --output mutants || true) 2>&1 | tail -40
+          {
+            echo "## Weekly: mutation testing of zeff-numeric"
+            echo
+            echo "Caught: $(wc -l < mutants/mutants.out/caught.txt | tr -d ' ')"
+            echo "Missed (surviving mutants, each a test to write): $(wc -l < mutants/mutants.out/missed.txt | tr -d ' ')"
+            echo "Timed out: $(wc -l < mutants/mutants.out/timeout.txt | tr -d ' ')"
+            echo "Unviable: $(wc -l < mutants/mutants.out/unviable.txt | tr -d ' ')"
+            echo
+            echo '```'
+            cat mutants/mutants.out/missed.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-reports
+          path: |
+            coverage.json
+            coverage-summary.txt
+            mutants/mutants.out

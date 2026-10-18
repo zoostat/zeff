@@ -62,7 +62,7 @@ fn on_a_big_stack<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) 
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(600))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(600)))]
 
     #[test]
     fn any_text_is_checked_without_a_panic(text in prop::string::string_regex("[a-z0-9_ \\t\\n\"'`.,:;=~+*/^!<>&|%?(){}\\[\\]-]{0,200}").unwrap()) {
@@ -92,4 +92,13 @@ proptest! {
             let _ = check_source("a.zeff", &text, &registry);
         });
     }
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
 }

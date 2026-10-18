@@ -273,7 +273,7 @@ fn literal(value: Option<f64>) -> String {
 }
 
 proptest! {
-    #![proptest_config(ProptestConfig::with_cases(200))]
+    #![proptest_config(ProptestConfig::with_cases(property_cases(200)))]
 
     #[test]
     fn a_frame_built_from_values_has_their_mean(
@@ -362,4 +362,13 @@ fn frames_built_from_the_datasets_values_match_the_reference() {
         }
     }
     assert!(compared >= 10, "{compared}");
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
 }
