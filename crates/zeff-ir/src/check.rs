@@ -1591,8 +1591,49 @@ impl Checker<'_> {
                 }
             }
         }
+        // `Join` (section 3.7, "Joining types"): the one type of every argument, `coalesce`'s rule;
+        // types that do not join are an error naming both (Z0214).
+        let mut ty = if spec.returns == "Join" {
+            let mut joined: Option<Ty> = None;
+            let mut failed = false;
+            for given in slots.iter().flatten().chain(rest.iter()) {
+                let row_ty = match &given.ty {
+                    Ty::Column(inner) => (**inner).clone(),
+                    other => other.clone(),
+                };
+                joined = Some(match &joined {
+                    None => row_ty,
+                    Some(so_far) => match Ty::join(so_far, &row_ty) {
+                        Some(j) => j,
+                        None => {
+                            failed = true;
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0214",
+                                    format!(
+                                        "`{fname}` needs values of one type, but these are {} and {}",
+                                        so_far.with_article(),
+                                        row_ty.with_article()
+                                    ),
+                                )
+                                .primary(given.span, row_ty.with_article())
+                                .help("Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant"),
+                            );
+                            break;
+                        }
+                    },
+                });
+            }
+            if failed {
+                Ty::Unknown
+            } else {
+                match joined {
+                    Some(Ty::Na) | None => Ty::Unknown,
+                    Some(t) => t,
+                }
+            }
         // `Number` (section 3.7): Int when every number given is an Int, Float otherwise.
-        let mut ty = if spec.returns == "Number" {
+        } else if spec.returns == "Number" {
             let numbers = slots
                 .iter()
                 .flatten()

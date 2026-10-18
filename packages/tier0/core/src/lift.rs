@@ -38,17 +38,34 @@ fn common_length(args: &Args) -> Result<usize, (usize, usize)> {
     Ok(length.unwrap_or(0))
 }
 
-/// Whether every number among the arguments is an Int (a column of Ints, or an Int scalar).
-fn all_ints(args: &Args) -> bool {
-    args.values
-        .iter()
-        .flatten()
-        .chain(args.rest.iter())
-        .all(|v| match v {
-            Value::Column(c) => c.ty() != ColumnType::Float,
-            Value::Float(_) => false,
-            _ => true,
-        })
+/// The kinds of value among the arguments, for the type of a result column that no row fills.
+#[derive(Debug, Clone, Copy, Default)]
+struct Inputs {
+    float: bool,
+    int: bool,
+    bool: bool,
+    str: bool,
+}
+
+fn inputs_of(args: &Args) -> Inputs {
+    let mut inputs = Inputs::default();
+    for value in args.values.iter().flatten().chain(args.rest.iter()) {
+        match value {
+            Value::Column(c) => match c.ty() {
+                ColumnType::Float => inputs.float = true,
+                ColumnType::Int => inputs.int = true,
+                ColumnType::Bool => inputs.bool = true,
+                ColumnType::Str | ColumnType::Category => inputs.str = true,
+                _ => {}
+            },
+            Value::Float(_) => inputs.float = true,
+            Value::Int(_) => inputs.int = true,
+            Value::Bool(_) => inputs.bool = true,
+            Value::Str(_) => inputs.str = true,
+            _ => {}
+        }
+    }
+    inputs
 }
 
 /// Call `body` once per row of the columns among `args`, and return the column of its results.
@@ -71,7 +88,7 @@ pub fn call_rowwise(
             .help("combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)"),
         )
     })?;
-    let ints = all_ints(&args);
+    let inputs = inputs_of(&args);
     let mut results: Vec<Value> = Vec::with_capacity(len);
     // Warnings by code and wording, with the rows they were raised in, in the order first seen.
     let mut counted: Vec<(Diagnostic, usize)> = Vec::new();
@@ -123,7 +140,7 @@ pub fn call_rowwise(
         );
         ctx.message(diagnostic);
     }
-    Ok(Value::Column(column_of(results, returns, ints)))
+    Ok(Value::Column(column_of(results, returns, inputs)))
 }
 
 fn row_value(value: &Value, row: usize) -> Value {
@@ -133,35 +150,55 @@ fn row_value(value: &Value, row: usize) -> Value {
     }
 }
 
-/// The column holding `results`, typed by the values present, or by the declared return type
-/// when every value is `NA`.
-fn column_of(results: Vec<Value>, returns: &str, ints: bool) -> Column {
+/// The column holding `results`, typed by the values present, or, when every row is `NA`, by the
+/// declared result type (`Float`, `Int`, `Bool`, `Str`) or, for `Number` and `Join`, by the kinds
+/// of the inputs as the checker joins them.
+fn column_of(results: Vec<Value>, returns: &str, inputs: Inputs) -> Column {
     let any = |f: fn(&Value) -> bool| results.iter().any(f);
-    let float = any(|v| matches!(v, Value::Float(_)))
-        || (!any(|v| matches!(v, Value::Int(_) | Value::Bool(_) | Value::Str(_)))
-            && (returns == "Float" || (returns == "Number" && !ints)));
-    if float {
-        let (column, _) = Column::floats(results.iter().map(|v| match v {
-            Value::Float(x) => Some(*x),
-            Value::Int(i) => Some(*i as f64),
+    let present = any(|v| !matches!(v, Value::Na));
+    let joins = matches!(returns, "Number" | "Join");
+    let kind = if present {
+        if any(|v| matches!(v, Value::Float(_))) || (joins && inputs.float) {
+            // A Float among the inputs makes the joined type Float even where every Float cell
+            // was NA in the rows that gave a value (section 3.7, "Joining types").
+            "Float"
+        } else if any(|v| matches!(v, Value::Int(_))) {
+            "Int"
+        } else if any(|v| matches!(v, Value::Bool(_))) {
+            "Bool"
+        } else {
+            "Str"
+        }
+    } else {
+        match returns {
+            "Float" | "Int" | "Bool" | "Str" => returns,
+            _ if inputs.float => "Float",
+            _ if inputs.int => "Int",
+            _ if inputs.str => "Str",
+            _ if inputs.bool => "Bool",
+            _ => "Float",
+        }
+    };
+    match kind {
+        "Float" => {
+            let (column, _) = Column::floats(results.iter().map(|v| match v {
+                Value::Float(x) => Some(*x),
+                Value::Int(i) => Some(*i as f64),
+                _ => None,
+            }));
+            column
+        }
+        "Int" => Column::ints(results.iter().map(|v| match v {
+            Value::Int(i) => Some(*i),
             _ => None,
-        }));
-        return column;
-    }
-    if any(|v| matches!(v, Value::Bool(_))) || returns == "Bool" {
-        return Column::bools(results.iter().map(|v| match v {
+        })),
+        "Bool" => Column::bools(results.iter().map(|v| match v {
             Value::Bool(b) => Some(*b),
             _ => None,
-        }));
-    }
-    if any(|v| matches!(v, Value::Str(_))) || returns == "Str" {
-        return Column::strs(results.iter().map(|v| match v {
+        })),
+        _ => Column::strs(results.iter().map(|v| match v {
             Value::Str(s) => Some(s.as_str()),
             _ => None,
-        }));
+        })),
     }
-    Column::ints(results.iter().map(|v| match v {
-        Value::Int(i) => Some(*i),
-        _ => None,
-    }))
 }

@@ -162,3 +162,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Nothing until the dataset draft at step 18.
 
+## 19 October 2026, step 13 of release 0.2.0
+
+**Done.** Step 13 `[function]`: `is_missing`, `coalesce`, `warn` and `error`, each with its help page and examples. `coalesce` joins its arguments' types as section 3.7 says, refusing a mixture (Z0214) at check time or, for a column whose type is only known when the script runs, at run time; `warn` prints the script's own warning and carries on; `error` stops the script with Z0001, whose page was written. 5 tests added, 3 snapshots; the catalogue rows marked implemented. 32 of the 68 functions of `core` ship.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 14, `import`'s remaining options: `quote:`, `decimal:`, `thousands:`, `encoding:` `[function]`.
+
+**For the owner to decide.** Nothing until the dataset draft at step 18.
+

@@ -156,6 +156,16 @@ impl Ty {
 
     /// A type's name as a message writes it, with an article: `a Frame`, `an Int`.
     pub fn with_article(&self) -> String {
+        // A union reads as a choice: `a Bool, Int, Float or Str`.
+        if let Ty::Union(options) = self
+            && options.len() > 1
+        {
+            let names: Vec<String> = options.iter().map(ToString::to_string).collect();
+            let (last, first) = names.split_last().unwrap();
+            let head = options[0].with_article();
+            let article = head.split(' ').next().unwrap_or("a");
+            return format!("{article} {} or {last}", first.join(", "));
+        }
         let name = self.to_string();
         // `NA` is said letter by letter, so it takes `an`.
         let vowel = name == "NA"

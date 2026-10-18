@@ -2,6 +2,7 @@
 //! keep this list complete). Generated from the files in `crates/zeff-engine/codes/`.
 
 pub const PAGES: &[(&str, &str)] = &[
+    ("Z0001", include_str!("../codes/Z0001.md")),
     ("W0101", include_str!("../codes/W0101.md")),
     ("W0201", include_str!("../codes/W0201.md")),
     ("W0204", include_str!("../codes/W0204.md")),

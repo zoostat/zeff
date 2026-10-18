@@ -3,7 +3,9 @@
 pub mod display;
 pub mod lift;
 pub mod maths;
+pub mod missing;
 pub mod operators;
+pub mod program;
 pub mod runtime;
 pub mod value;
 
@@ -40,5 +42,7 @@ pub fn functions() -> Vec<Function> {
         body: print,
     }];
     all.extend(maths::functions());
+    all.extend(missing::functions());
+    all.extend(program::functions());
     all
 }

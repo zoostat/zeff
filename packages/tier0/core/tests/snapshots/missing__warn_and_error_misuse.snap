@@ -1,0 +1,33 @@
+---
+source: packages/tier0/core/tests/missing.rs
+expression: all
+---
+error[Z0206]: this gives no value, so it cannot be bound
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = warn("a")
+  |         ^^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+error[Z0206]: this gives no value, so it cannot be passed
+ --> scripts/main.zeff:1:7
+  |
+1 | print(error("a"))
+  |       ^^^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing
+
+error[Z0401]: `message` of `warn` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:6
+  |
+1 | warn(1)
+  |      ^ an Int
+  |
+  = help: usage: `warn(message)`
+
+error[Z0001]: NA
+ --> scripts/main.zeff:1:1
+  |
+1 | error(NA)
+  | ^^^^^ the script stops here

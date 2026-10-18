@@ -99,7 +99,7 @@ pub fn is_valid_code(code: &str) -> bool {
 impl Diagnostic {
     fn new(severity: Severity, code: &str, message: impl Into<String>) -> Self {
         debug_assert!(
-            is_valid_code(code) || (code.is_empty() && severity == Severity::Note),
+            is_valid_code(code) || (code.is_empty() && severity != Severity::Error),
             "`{code}` is not a diagnostic code"
         );
         Diagnostic {
@@ -130,6 +130,12 @@ impl Diagnostic {
     /// A note without a code, printed as `note: ...`.
     pub fn plain_note(message: impl Into<String>) -> Self {
         Self::new(Severity::Note, "", message)
+    }
+
+    /// A warning without a code, printed as `warning: ...`: the script's own, raised by `warn`
+    /// (Language Reference, section 5.4); the engine's warnings carry a code.
+    pub fn plain_warning(message: impl Into<String>) -> Self {
+        Self::new(Severity::Warning, "", message)
     }
 
     /// The file the labels refer to.

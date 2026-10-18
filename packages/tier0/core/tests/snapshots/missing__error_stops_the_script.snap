@@ -1,0 +1,9 @@
+---
+source: packages/tier0/core/tests/missing.rs
+expression: stderr
+---
+error[Z0001]: the sample has no treated units
+ --> scripts/main.zeff:2:1
+  |
+2 | error("the sample has no treated units")
+  | ^^^^^ the script stops here

@@ -1,0 +1,43 @@
+---
+source: packages/tier0/core/tests/missing.rs
+expression: all
+---
+error[Z0214]: `coalesce` needs values of one type, but these are an Int and a Str
+ --> scripts/main.zeff:1:13
+  |
+1 | coalesce(1, "a")
+  |             ^^^ a Str
+  |
+  = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant
+
+error[Z0214]: `coalesce` needs values of one type, but these are a Bool and an Int
+ --> scripts/main.zeff:1:20
+  |
+1 | coalesce(NA, true, 2)
+  |                    ^ an Int
+  |
+  = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant
+
+error[Z0214]: `coalesce` needs values of one type, but these are an Int and a Str (row 1)
+ --> scripts/main.zeff:2:1
+  |
+2 | coalesce(w["hours"], "none")
+  | ^^^^^^^^ values of two types
+  |
+  = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant
+
+error[Z0406]: `coalesce` needs `b`
+ --> scripts/main.zeff:1:1
+  |
+1 | coalesce(1)
+  | ^^^^^^^^ `b` is missing
+  |
+  = help: usage: `coalesce(a, b, ...)`
+
+error[Z0401]: `x` of `is_missing` must be a Bool, Int, Float or Str, but this is a List<Int>
+ --> scripts/main.zeff:1:12
+  |
+1 | is_missing([1, NA])
+  |            ^^^^^^^ a List<Int>
+  |
+  = help: usage: `is_missing(x)`
