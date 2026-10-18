@@ -171,6 +171,15 @@ mod tests {
         let center = plain.iter().sum::<f64>() / 3.0;
         let squares: f64 = plain.iter().map(|x| (x - center) * (x - center)).sum();
         assert_eq!(variance(&plain), Some(squares / 2.0));
+        // Deviations in the subnormal range (below 2.2e-308) take the capped scale; the spread of
+        // 1e-310 and 3e-310 is √2 × 1e-310, not 0. The first weekly mutation run (18 October
+        // 2026) found no test here.
+        let subnormal = sd(&[1e-310, 3e-310]).unwrap();
+        assert!(
+            (subnormal - 2f64.sqrt() * 1e-310).abs() <= 1e-324 * 16.0,
+            "{subnormal:e}"
+        );
+        assert_eq!(power_of_two_scale(1e-310), f64::from_bits(2045u64 << 52));
         assert_eq!(power_of_two_scale(1.5), 1.0);
         assert_eq!(power_of_two_scale(1e-301), 2f64.powi(1000));
         assert_eq!(power_of_two_scale(1e200), 2f64.powi(-664));

@@ -169,3 +169,13 @@ Steps 6 to 12 `[engine]`, each green and committed in turn: the lexer for the wh
 **Next.** When the owner says "Start release 0.2.0", read its row in section 14 of the Engine and Project Specification and write `docs/releases/0.2.0.md`.
 
 **For the owner to decide.** Open decisions #41 to #44 (provisional diagnostic codes), due at this release: confirm or renumber. #45 at 0.2.0. The three printing questions of 0.1.0 are settled.
+
+## 18 October 2026, after the release: the first weekly run
+
+**Done.** The first scheduled weekly job on GitHub passed: kernel coverage 94.6%, and mutation testing of `zeff-numeric` with 98 of 99 mutants caught and one missed: deleting the minus sign of `-1022` in the scaling function's subnormal branch, which no test reached (locally that mutant had timed out, which hid it). A kernel unit test now takes the standard deviation of two subnormal values and checks the scale of a subnormal, and kills the mutant. The reason for the timeouts was found as well: the whole workspace's tests take longer than the 20-second budget cargo-mutants sets from its fast baseline, so the job now allows two minutes per mutant; against that budget the mutant is caught in 45 seconds. The CI run on the release commit passed on every job.
+
+**Green.** Format, clippy with warnings denied, all workspace tests pass locally.
+
+**Next.** "Start release 0.2.0" when the owner says so.
+
+**For the owner to decide.** Open decisions #41 to #44, as above.

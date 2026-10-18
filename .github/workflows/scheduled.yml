@@ -89,7 +89,7 @@ jobs:
       - name: Mutation testing of the numeric kernel
         run: |
           # Surviving mutants and timeouts are a note to act on, not a failure of the job.
-          (cargo mutants --package zeff-numeric --test-workspace true --timeout-multiplier 5 --output mutants || true) 2>&1 | tail -40
+          (cargo mutants --package zeff-numeric --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants || true) 2>&1 | tail -40
           {
             echo "## Weekly: mutation testing of zeff-numeric"
             echo

@@ -403,3 +403,9 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Choice.** The ten functions' rows in the catalogue carry the status `implemented` (the Zemp Specification's word for a shipped function, beside `planned` and `roadmap`); the help page header keeps printing `1.0` for both `planned` and `implemented`, since the field says that the function is part of 1.0, and `zeff help <package>` counts both as "functions in this release". The version in `Cargo.toml` is `0.1.0`; the sample project pins it; the help-page snapshot of `mean` no longer rewrites the version, since the page shows the release a function arrived with, not the engine's version. The release notes are `docs/releases/0.1.0-notes.md`; the risk register had its first scheduled review (R2, R4, R7, R9 and R12 lowered with the figures measured, no risk added), logged in `docs/spec_changes.md` as a non-normative edit. The tag is `v0.1.0`, and the GitHub release carries the notes.
 
 **Reason.** The standing release procedure; Engine Specification, section 14 (the 0.1.0 row) and the testing handbook, section 2.4.
+
+## 18 October 2026: After the first weekly run
+
+**Choice.** The mutation-testing step allows at least two minutes per mutant (`--minimum-test-timeout 120`): cargo-mutants sets its budget from a baseline run that the whole workspace's tests exceed, so mutants that were in fact caught were reported as timeouts, and one that no test reached hid among them locally. A kernel test now covers the subnormal branch of `power_of_two_scale` (the one survivor of the first weekly run on GitHub). The rule from this: a timeout in the weekly report is read as "not shown to be caught", and the budget is raised before a survivor is believed.
+
+**Reason.** Testing handbook, section 2.3; the first weekly run of 18 October 2026.
