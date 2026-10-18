@@ -1085,6 +1085,9 @@ dependencies = [
 [[package]]
 name = "zeff-registry"
 version = "0.1.0-dev"
+dependencies = [
+ "insta",
+]
 
 [[package]]
 name = "zeff-syntax"

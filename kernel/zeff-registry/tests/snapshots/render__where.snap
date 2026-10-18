@@ -1,0 +1,44 @@
+---
+source: kernel/zeff-registry/tests/render.rs
+expression: ours
+---
+where — Keep the rows where a condition is true                              data · tier 1 · since 0.2.0 · 1.0 · exact
+
+USAGE
+    data.where(condition)
+
+DESCRIPTION
+    Returns the rows for which `condition` is `true`. Rows where it is `NA` are dropped and counted, so
+    `where(age > 30)` and `where(!(age > 30))` both drop rows with missing age, and the note of each says
+    so; the two never partition a frame silently. Stata's `keep if age > 30` keeps missing age.
+
+    Row order is kept. Nothing is copied: the result records which rows were kept and shares every column
+    with its parent until a later step reads one (Zeff Specification, section 6).
+
+ARGUMENTS
+    data        Frame. The frame to filter.
+    condition   Column<Bool>. An expression over the frame's variables, such as `year >= 2010 &&
+                !is_missing(wage)`. A single Bool, or a column of another type, is an error that names the
+                problem (Z0203).
+
+VALUE
+    A `Frame` with the same columns and a subset of the rows; a panel declaration survives.
+
+WARNINGS AND NOTES
+    Note    rows dropped because the condition was NA, with the count and a statement that lists them
+    Note    no row kept: the result is empty
+
+ACCURACY
+    Exact: the same rows, in the same order, as dplyr::filter() once its NA rows are removed; part of every
+    verb test. Last run: 0.2.0, build 611, 22 of 22 cases passed on all four targets.
+
+SEE ALSO
+    drop_missing, select, sort, distinct, sample, is_missing
+
+EXAMPLES
+    > let wages = import("zeff:wages.csv")
+    > wages.where(year >= 2010 && female == 1).n_rows()
+    4217
+    > wages.where(exper > 10).n_rows()
+    note: 13 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them
+    7902

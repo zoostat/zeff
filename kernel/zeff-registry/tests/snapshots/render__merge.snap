@@ -1,0 +1,55 @@
+---
+source: kernel/zeff-registry/tests/render.rs
+expression: ours
+---
+merge — Join two frames on key variables                                     data · tier 1 · since 0.6.0 · 1.0 · exact
+
+USAGE
+    data.merge(frame, on: Vars, join: left | inner | full = left,
+               relation: one_to_one | many_to_one | one_to_many, suffixes: List)
+
+DESCRIPTION
+    Joins `data` (the left frame) with `frame` (the right) on the key variables in `on:`, which must exist
+    in both with the same type. Every merge prints how many rows matched and how many did not on each side,
+    as Stata's `_merge` table does. `NA` keys never match and are reported as unmatched (dplyr matches
+    them). The result keeps the left frame's row order, and within one left row the right frame's order.
+
+    `relation:` states the key structure you expect and refuses the data when it differs: `many_to_one`
+    means each left key appears at most once on the right. A many-to-many merge is always refused (Z0603),
+    since it is nearly always a mistake. A non-key column present in both frames is an error (Z0604) that
+    lists the columns, unless `suffixes:` gives the two suffixes that tell them apart.
+
+ARGUMENTS
+    data        Frame. The left frame.
+    frame       Frame. The right frame.
+    on:         Vars. The key variables, present in both frames with the same type; when the names differ,
+                `rename` one frame first.
+    join:       left | inner | full = left. Which rows to keep: all left rows, matched rows only, or all
+                rows of both frames.
+    relation:   one_to_one | many_to_one | one_to_many. The expected key structure, checked before joining.
+    suffixes:   List. Added to non-key columns that both frames share.
+
+VALUE
+    A `Frame` with the left frame's columns, then the right frame's non-key columns; labels, categories and
+    a panel declaration on other keys are kept.
+
+WARNINGS AND NOTES
+    Note    matched and unmatched rows on each side, with counts
+    Z0603   the keys form a many-to-many relation, or relation: does not hold
+    Z0604   a non-key column exists in both frames and no suffixes: is given
+    Z0101   a key variable is missing from one frame
+
+ACCURACY
+    Exact: the same rows and values as dplyr 1.1 joins with NA keys excluded, in the order stated above.
+    Last run: 0.6.0, build 1 902, 31 of 31 cases passed on all four targets.
+
+SEE ALSO
+    append, to_long, to_wide, aggregate, rename
+
+EXAMPLES
+    > let firms = import("zeff:firms.csv")
+    > let wages = import("zeff:wages.csv").merge(firms, on: firm, relation: many_to_one)
+    merge: 18,201 rows matched; 0 left rows unmatched; 3 right rows unmatched (firms with no workers)
+    > wages.merge(firms, on: firm)
+    error[Z0604]: columns `size` exist in both frames and are not keys
+    = help: give suffixes: ["_w", "_f"], or drop one of them first

@@ -1,0 +1,44 @@
+---
+source: kernel/zeff-registry/tests/render.rs
+expression: page
+---
+reg — Linear regression by least squares, with fixed effects        regress · tier 2 · since 0.4.0 · 1.0 · closed form
+
+USAGE
+    data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3 = classical, level: Float = 0.95)
+
+DESCRIPTION
+    Fits the outcome of `formula` on its regressors by least squares.
+
+ARGUMENTS
+    data        Frame. The data.
+    formula     Formula. `y ~ x1 + x2`.
+    fe:         Terms. Fixed effects absorbed, as fixest and reghdfe: `fe: firm + year`; `firm:year` for
+                interacted effects; singletons are dropped and reported.                                      (shared)
+    se:         classical | robust | hc2 | hc3 = classical. Standard-error type; `robust` is HC1, as Stata's
+                `robust`; `bootstrap` from 1.1. With sampling weights the default is `robust`, and `se:
+                classical` is an error (Z0410). With `weight_type: frequency`, classical errors are valid
+                and the observation count is the sum of the weights.                                          (shared)
+    level:      Float = 0.95. Confidence level. Confidence level for `ci` and the printed table.              (shared)
+
+VALUE
+    A `RegFit`.
+
+DETAILS
+    Tall-skinny Householder QR.
+
+WARNINGS AND NOTES
+    W1001   near-singular design, with the condition number
+
+ACCURACY
+    Closed form: within 1e-6 relative of R 4.4 lm.
+
+REFERENCES
+    Davidson & MacKinnon (2004), Econometric Theory and Methods, chapters 3 and 5.
+
+SEE ALSO
+    ivreg, report
+
+EXAMPLES
+    > wages.reg(lwage ~ educ)
+    ...

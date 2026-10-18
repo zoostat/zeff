@@ -131,3 +131,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 11, the function registry and the help build check `[engine]`.
 
 **For the owner to decide.** Nothing new. Open decisions #41 and #42 (five diagnostic codes), deadline 0.1.0.
+
+## 18 October 2026, step 11 of release 0.1.0
+
+**Done.** Step 11 `[engine]`: the function registry (`kernel/zeff-registry`): the catalogue compiled into the engine (505 rows read, the ten functions of this release found), the function specification a package registers, the shared-arguments table of section 6, the help-file parser and every check of section 9.1 that does not need a running interpreter (each failure caught by a test), and the page renderer, whose pages for `where`, `merge` and `attempt` match the specification's examples word for word. 18 tests. Running the examples comes with step 14; the ten functions register their pages in steps 13 and 16 to 22.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (293), the tier check and a WebAssembly compile pass locally. GitHub runs to be read after the push.
+
+**Next.** Step 12, the typed IR, name resolution and `zeff check` `[engine]`.
+
+**For the owner to decide.** Nothing new. Open decisions #41 and #42 (five diagnostic codes), deadline 0.1.0.

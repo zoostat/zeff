@@ -1,0 +1,43 @@
+---
+source: kernel/zeff-registry/tests/render.rs
+expression: ours
+---
+attempt — Run an expression and carry on if it fails                         core · tier 0 · since 0.5.0 · 1.0 · exact
+
+USAGE
+    attempt(expr)
+
+DESCRIPTION
+    Evaluates `expr`. If it succeeds, its value is returned unchanged. If it stops with an error, `attempt`
+    returns a `Failed` value holding the error's code, message and line instead of ending the script. It is
+    the one way to continue after an error: Zeff has no try/catch, because an analysis that fails at the top
+    level should stop where it fails, and it is repeated work that needs protection.
+
+    A `Failed` value may sit in any `List<T>`, so `[for ...]` with `attempt` gives a list in which some
+    entries failed; `report`, `len` and the other collecting functions skip them and say how many. Using a
+    `Failed` value anywhere else is an error that reports the original failure (Z0220).
+
+ARGUMENTS
+    expr        Any. Any expression, evaluated once: a model fit, a chain, a function call.
+
+VALUE
+    The value of `expr`, or a `Failed`. `x.is(Failed)` tells which; after `if x.is(Failed) { continue }` the
+    checker knows `x` succeeded for the rest of the block (Zeff Specification, section 3.7, Narrowing).
+
+WARNINGS AND NOTES
+    W0801   failed draws or fits skipped by a collecting function, with the count and the first codes
+    Z0220   a Failed value used outside a list
+
+ACCURACY
+    Exact.
+
+SEE ALSO
+    is, iterate, error, warn, on_fail: (shared argument)
+
+EXAMPLES
+    > let sims = import("zeff:sims.csv")
+    > let fits = [for s in 1..200 {
+    >     attempt(sims.where(rep == s).logistic(y ~ treat + x))
+    > }]
+    > report(fits)
+    warning[W0801]: 3 of 200 fits failed (Z0803 at line 3) and were skipped
