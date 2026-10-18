@@ -2,6 +2,8 @@
 
 pub mod create;
 pub mod examples;
+pub mod explain;
+mod explain_pages;
 pub mod fs;
 pub mod help;
 pub mod interpreter;

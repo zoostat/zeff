@@ -22,7 +22,8 @@ fn main() -> ExitCode {
     }
 }
 
-/// Every diagnostic code written in the sources has a snapshot of its wording (section 11).
+/// Every diagnostic code written in the sources has a snapshot of its wording (section 11) and an
+/// explained page (section 11.1), and no page is left for a code nothing raises.
 fn check_messages() -> ExitCode {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let (sources, snapshots) = match messages::gather(&root) {
@@ -37,9 +38,17 @@ fn check_messages() -> ExitCode {
         .iter()
         .flat_map(|(_, text)| messages::codes_in_source(text))
         .collect();
-    if gaps.is_empty() {
+    let pages = match messages::pages(&root) {
+        Ok(pages) => pages,
+        Err(error) => {
+            eprintln!("could not read the explained pages: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let (without_page, stale) = messages::page_gaps(&total, &pages);
+    if gaps.is_empty() && without_page.is_empty() && stale.is_empty() {
         println!(
-            "every one of the {} diagnostic codes in the sources has a snapshot ({} snapshot files)",
+            "every one of the {} diagnostic codes in the sources has a snapshot ({} snapshot files) and an explained page",
             total.len(),
             snapshots.len()
         );
@@ -48,11 +57,19 @@ fn check_messages() -> ExitCode {
         for (code, files) in &gaps {
             eprintln!("{code} has no snapshot; raised in {}", files.join(", "));
         }
-        eprintln!(
-            "{} of {} codes have no snapshot: add a test that renders each with insta",
-            gaps.len(),
-            total.len()
-        );
+        if !gaps.is_empty() {
+            eprintln!(
+                "{} of {} codes have no snapshot: add a test that renders each with insta",
+                gaps.len(),
+                total.len()
+            );
+        }
+        for code in &without_page {
+            eprintln!("{code} has no explained page: write crates/zeff-engine/codes/{code}.md");
+        }
+        for code in &stale {
+            eprintln!("crates/zeff-engine/codes/{code}.md explains a code nothing raises");
+        }
         ExitCode::from(1)
     }
 }

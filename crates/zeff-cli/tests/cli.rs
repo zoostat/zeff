@@ -47,6 +47,64 @@ fn version_prints_the_version_on_standard_output() {
 }
 
 #[test]
+fn format_json_gives_records_for_version_and_check() {
+    let (_dir, project) = demo();
+    let o = zeff(&project, &["version", "--format", "json"]);
+    assert_eq!(code(&o), 0);
+    assert_eq!(out(&o), format!("{{\"version\": \"{VERSION}\"}}\n"));
+    let o = zeff(&project, &["--format=json", "check"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "[\n]\n");
+    assert_eq!(err(&o), "");
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = import(\"data/wages.csv\", heade: false)\nwges.maen(wage)\nlet mean = 3\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check", "--format", "json"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(err(&o), "");
+    let text = out(&o);
+    assert!(text.starts_with("[\n  {\"code\": \"Z0404\""), "{text}");
+    assert!(
+        text.contains("\"span\": {\"line\": 2, \"column\": 1, \"end_line\": 2, \"end_column\": 5}"),
+        "{text}"
+    );
+    assert!(text.contains("\"severity\": \"warning\""), "{text}");
+    insta::assert_snapshot!("check_json", text);
+    for (args, message) in [
+        (&["check", "--format"][..], "needs a value"),
+        (&["check", "--format", "xml"][..], "not a format"),
+        (
+            &["run", "--format", "json"][..],
+            "applies to `zeff check` and `zeff version`",
+        ),
+    ] {
+        let o = zeff(&project, args);
+        assert_eq!(code(&o), 1, "{args:?}");
+        assert!(err(&o).contains(message), "{args:?}: {}", err(&o));
+    }
+}
+
+#[test]
+fn help_explains_a_code() {
+    let dir = tempfile::tempdir().unwrap();
+    let o = zeff(dir.path(), &["help", "Z0101"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "");
+    let text = out(&o);
+    assert!(text.starts_with("Z0101 — "), "{text}");
+    for part in ["MEANING", "COMMON CAUSES", "EXAMPLE", "FIX"] {
+        assert!(text.contains(&format!("\n{part}\n")), "{part} in\n{text}");
+    }
+    insta::assert_snapshot!("help_Z0101", text);
+    let o = zeff(dir.path(), &["help", "Z0000"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(err(&o), "error: no code `Z0000`\n");
+    assert_eq!(out(&o), "");
+}
+
+#[test]
 fn no_arguments_and_help_show_the_commands() {
     let dir = tempfile::tempdir().unwrap();
     for args in [&[][..], &["help"], &["--help"], &["-h"]] {

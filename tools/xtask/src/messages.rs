@@ -3,7 +3,9 @@
 //! the codes written in the sources (`"Z0101"`, `"W0201"`) and looks for each in the snapshot
 //! files: an error or a check-time warning appears as `[Z0101]` in its rendered form; a warning
 //! printed under a result has no code (open decision #45), so it is found by a phrase of its
-//! wording, kept in the table below.
+//! wording, kept in the table below. From 0.2.0 every code also has an explained page,
+//! `crates/zeff-engine/codes/<CODE>.md` (Language Reference, section 11.1), and a page for a code
+//! nothing raises is stale: the check reports both.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -113,6 +115,29 @@ pub fn missing(
     missing
 }
 
+/// The codes without a page and the pages without a code, given the codes in the sources and the
+/// codes that have a page.
+pub fn page_gaps(
+    raised: &BTreeSet<String>,
+    pages: &BTreeSet<String>,
+) -> (Vec<String>, Vec<String>) {
+    let without_page = raised.difference(pages).cloned().collect();
+    let stale = pages.difference(raised).cloned().collect();
+    (without_page, stale)
+}
+
+/// The codes that have an explained page: the `<CODE>.md` files of the pages folder.
+pub fn pages(root: &Path) -> std::io::Result<BTreeSet<String>> {
+    let mut found = BTreeSet::new();
+    for entry in std::fs::read_dir(root.join("crates/zeff-engine/codes"))? {
+        let name = entry?.file_name().to_string_lossy().into_owned();
+        if let Some(code) = name.strip_suffix(".md") {
+            found.insert(code.to_string());
+        }
+    }
+    Ok(found)
+}
+
 /// Source files as (path, text).
 pub type Sources = Vec<(String, String)>;
 
@@ -192,5 +217,14 @@ mod tests {
             gaps["Z0999"],
             ["crates/a/src/lib.rs", "crates/b/src/lib.rs"]
         );
+    }
+
+    #[test]
+    fn pages_are_matched_against_the_codes_raised() {
+        let raised: BTreeSet<String> = ["Z0101", "Z0999"].iter().map(|s| s.to_string()).collect();
+        let pages: BTreeSet<String> = ["Z0101", "Z0555"].iter().map(|s| s.to_string()).collect();
+        let (without_page, stale) = page_gaps(&raised, &pages);
+        assert_eq!(without_page, ["Z0999"]);
+        assert_eq!(stale, ["Z0555"]);
     }
 }

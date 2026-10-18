@@ -1,0 +1,23 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: text
+---
+Z0101 — no such name
+
+MEANING
+    A name is not a variable of the frame (inside a frame method), not a binding made with `let`,
+    or not a column of a frame indexed with brackets. The message says which, with a suggestion
+    when a close name exists.
+
+COMMON CAUSES
+    - A misspelt variable: `wges.mean(wage)` or `wages.mean(wge)`.
+    - A category level written without quotes.
+    - A binding used before its `let`, or outside the block that made it.
+
+EXAMPLE
+    > wages.mean(wge)
+    error[Z0101]: no variable `wge` in `wages`
+      = help: did you mean `wage`?
+
+FIX
+    Correct the spelling, or quote the text if a level or a column name was meant.

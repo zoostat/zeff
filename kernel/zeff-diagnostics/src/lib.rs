@@ -6,11 +6,13 @@
 //! from the same record ([`Diagnostic::record`], whose positions are lines and columns, never byte
 //! offsets). Nothing here knows about the parser or the engine, so every stage can produce one.
 
+mod json;
 pub mod messages;
 mod render;
 mod source;
 mod suggest;
 
+pub use json::json_string;
 pub use source::{Position, Source, Sources, Span};
 pub use suggest::did_you_mean;
 

@@ -1,0 +1,10 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: text
+---
+[
+  {"code": "Z0404", "severity": "error", "message": "`import` has no argument called `heade`", "file": "scripts/main.zeff", "span": {"line": 1, "column": 38, "end_line": 1, "end_column": 43}, "labels": [{"text": "unknown argument", "primary": true, "line": 1, "column": 38, "end_line": 1, "end_column": 43}], "help": ["did you mean `header:`?"], "fixes": []},
+  {"code": "Z0101", "severity": "error", "message": "nothing is called `wges` here", "file": "scripts/main.zeff", "span": {"line": 2, "column": 1, "end_line": 2, "end_column": 5}, "labels": [{"text": "not a binding", "primary": true, "line": 2, "column": 1, "end_line": 2, "end_column": 5}], "help": ["did you mean `wages`?"], "fixes": []},
+  {"code": "Z0103", "severity": "error", "message": "no function is called `maen`", "file": "scripts/main.zeff", "span": {"line": 2, "column": 6, "end_line": 2, "end_column": 10}, "labels": [{"text": "not a function of Zeff", "primary": true, "line": 2, "column": 6, "end_line": 2, "end_column": 10}], "help": ["did you mean `mean`?"], "fixes": []},
+  {"code": "W0101", "severity": "warning", "message": "`mean` hides the function `data::mean`", "file": "scripts/main.zeff", "span": {"line": 3, "column": 5, "end_line": 3, "end_column": 9}, "labels": [{"text": "a binding with a built-in name", "primary": true, "line": 3, "column": 5, "end_line": 3, "end_column": 9}], "help": ["the function is still reachable as `data::mean`; a different name avoids the confusion"], "fixes": []}
+]

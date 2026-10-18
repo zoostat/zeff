@@ -489,3 +489,16 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Decided by the owner.** A warning printed under a result shows no code until the pragma `// zeff: allow(CODE)` arrives at 0.7.0: the line reads as section 10.2 shows it. From 0.2.0 the code is carried in `--format json` and the explained-code pages name it. Errors keep their code in the printed line.
 
 **Reason.** The printed layout of section 10.2 and the needs of the pragma and `zeff explain`, put to the owner with the alternative; the alternative (the code shown now) was declined.
+
+## 18 October 2026: Explained-code pages and `--format json`
+
+**Choice.** Every diagnostic code the engine raises has a page, `crates/zeff-engine/codes/<CODE>.md`, in one fixed shape: `# CODE — title`, then the parts `Meaning`, `Common causes` (a bullet list), `Example` (a fenced block that begins with a `> ` statement and shows what prints) and `Fix`, in that order. The pages are compiled into the engine with `include_str!` through a generated list, parsed by `zeff_engine::explain`, and printed by `zeff help Z0101` in the shape of a help page (the `zeff explain` command and the editor's links arrive with 0.8.0, when the specification places them). A malformed page fails `cargo test`, and `xtask check-messages` now also requires a page for every code the sources raise and reports a page whose code nothing raises, so pages and codes cannot drift apart. The 64 pages were written from the specification's wording of each rule; the examples reuse the stored message wordings. Where a page points to a remedy of a later release it says which release.
+
+**The JSON record.** `Diagnostic::to_json` in the diagnostics kernel writes the record of section 8.3, point 1, by hand (no serialisation crate in the kernel): `code`, `severity`, `message`, `file`, `span` (1-based line and column of the primary label, start and end), every `label`, `help` and `fixes` with their edits. `zeff check --format json` prints one JSON array of those records on standard output, one record per line, and nothing on standard error; the exit code is unchanged. `zeff version --format json` prints `{"version": "..."}`. `--format` (also `--format=json`) is read before the command, applies to `check` and `version` in this release (the other commands the specification names arrive with them), and a wrong value is a usage error. Problems in opening the project itself (not in a project, an invalid `zeff.toml`, a pin mismatch) are still printed as text on standard error in JSON mode: they are the launcher's business, and the editor's check is of the script.
+
+**Decision #45 applied.** Warnings under results keep printing without a code; the code travels in the JSON record and names the page.
+
+**Tests.** Every page parses and renders (engine unit test); the JSON of a diagnostic with positions and of one without a file (kernel unit test); the command line through the binary: `version --format json`, `check --format json` on a sound script (`[]`) and on one with problems (snapshot), the three usage errors, `zeff help Z0101` (snapshot) and an unknown code; the page-gap function of the tool.
+
+**Reason.** Language Reference, section 11.1 (pages from 0.2.0); Engine and Project Specification, sections 2.1 (`--format text | json`) and 8.3, point 1; open decision #45.
+

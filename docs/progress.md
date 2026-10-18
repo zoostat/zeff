@@ -103,3 +103,14 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Done.** The owner took open decision #45 as recommended (a warning under a result without its code until 0.7.0; the code in `--format json` and the pages); recorded in the register and the logs. Step 8 is unblocked.
 
 **Next.** Step 8, explained-code pages and `--format json` `[engine]`.
+
+## 18 October 2026, step 8 of release 0.2.0
+
+**Done.** Step 8 `[engine]`: one explained page for each of the 64 diagnostic codes (meaning, common causes, an example, the fix), compiled into the engine and printed by `zeff help Z0101`; a malformed or missing page fails the build, and `check-messages` also reports a page for a code nothing raises. `zeff check --format json` prints the diagnostic records (code, severity, message, file, span, labels, help, fixes) for an editor, and `zeff version --format json` the version. Decision #45 applied: a warning under a result shows no code; the code is in the JSON record. 7 tests added, 2 new snapshots.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the message check pass locally. GitHub run to be read after the push.
+
+**Next.** Step 9, the command line: flags, the console and the scratch project `[engine]`.
+
+**For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps.
+
