@@ -409,3 +409,7 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Choice.** The mutation-testing step allows at least two minutes per mutant (`--minimum-test-timeout 120`): cargo-mutants sets its budget from a baseline run that the whole workspace's tests exceed, so mutants that were in fact caught were reported as timeouts, and one that no test reached hid among them locally. A kernel test now covers the subnormal branch of `power_of_two_scale` (the one survivor of the first weekly run on GitHub). The rule from this: a timeout in the weekly report is read as "not shown to be caught", and the budget is raised before a survivor is believed.
 
 **Reason.** Testing handbook, section 2.3; the first weekly run of 18 October 2026.
+
+## 18 October 2026: Open decisions #40 to #44 taken by the owner
+
+**Decided by the owner**, each as recommended, after the five were put in plain words one at a time: the specification freeze holds until 0.3.0 (#40); the diagnostic codes the engine has printed since 0.1.0 are confirmed — Z0301, Z0303, Z0304 (#41), Z0712 to Z0715 with an unknown `zeff.toml` key an error (#42), Z0103, Z0105, W0101 and Z0401 to Z0409 (#43), W0201 and W0204 with W0205 for an undefined standard deviation (#44). Recorded in the register with the date; section 11 of the Language Reference gains the codes at 0.3.0. #45 (the short-form warning without its code) is due at 0.2.0.

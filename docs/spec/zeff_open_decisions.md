@@ -8,6 +8,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (17 October 2026, third audit).** The third audit (zeff_audit_2026-10-17c.md) was applied: #33 now records the dark-theme decision of 17 October and keeps its other four questions; #23 notes that the command line and `zeff app install` need no operating-system signing, so its deadline is tied to the setup-file decision; #8's option A reads 1.11, not 2.0; and three decisions were added from the Zemp Specification's section 17 and the risk register: #38 (setup files), #39 (Zemp Lite's paid features, web address and desktop preview) and #40 (a specification freeze while 0.1.0 to 0.3.0 are built). 31 decisions are open. Next deadlines: #40 at 0.1.0; #30 by 0.4.0; #4, #5 and #17 by 0.5.0.
 
+**Status (18 October 2026, at the close of release 0.1.0).** The owner took the five decisions due at this release, each as recommended: #40 the specification stays frozen until 0.3.0, changed only to correct errors found while coding; #41 Z0301, Z0303 and Z0304; #42 Z0712 to Z0715, an unknown key in `zeff.toml` being an error; #43 Z0103, Z0105, W0101 and Z0401 to Z0409; #44 W0201 and W0204, with the specification's W0205 used for an undefined standard deviation. The codes are written into section 11 of the Language Reference when the freeze ends (0.3.0). #45 is due at 0.2.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -51,11 +53,11 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 37 | Trademark filing for Zeff and Zemp | File in the home jurisdiction before the public alpha; Apache 2.0 gives others no right to the names | Zemp 0.2 alpha |
 | 38 | Setup files for Zeff, Zemp Lite and Zemp | None until #23 is decided: `zeff app install` and the package managers cover the desktop apps; plan setup files with #23 | 0.11.0 |
 | 39 | Zemp Lite: paid features and AI in Lite; the web address; a desktop preview before 0.5 | Free-tier only through 1.0, revisited with #27 and #28; Lite web at a path on Zemp web's origin; no earlier desktop preview | Zemp 0.2 alpha (the address); the rest with #27 and #28 |
-| 40 | A specification freeze while 0.1.0 to 0.3.0 are built | Freeze the normative text except for bugs found while coding; record further design work here with a deadline release (risk register, R12) | 0.1.0 |
-| 41 | Diagnostic codes for three syntax conditions the specification does not number | Z0301 something the grammar does not allow at that place (an unexpected character, an unclosed quoted name, an unexpected token); Z0303 an unmatched closing bracket; Z0304 a construct the grammar has but this release does not run | 0.1.0 |
-| 42 | Diagnostic codes for two conditions of the project file | Z0712 `zeff.toml` is not valid TOML; Z0713 `zeff.toml` has an unknown key, a missing key or a value of the wrong kind | 0.1.0 |
-| 43 | Diagnostic codes for the checker's own messages | Z0103 no such function; Z0105 a `let` reuses a `core` name; W0101 a `let` hides a package's function; Z0401 an argument of the wrong type; Z0404 unknown argument; Z0405 an argument given twice; Z0406 a required argument missing; Z0407 too many arguments; Z0408 a positional argument after a named one; Z0409 a bad date format | 0.1.0 |
-| 44 | Diagnostic codes for the descriptive reducers' warnings | W0201 missing values skipped, with the count; W0204 infinite values of both signs, so the result is NA | 0.1.0 |
+| 40 | A specification freeze while 0.1.0 to 0.3.0 are built | Freeze the normative text except for bugs found while coding; record further design work here with a deadline release (risk register, R12) | decided 18 October 2026 |
+| 41 | Diagnostic codes for three syntax conditions the specification does not number | Z0301 something the grammar does not allow at that place (an unexpected character, an unclosed quoted name, an unexpected token); Z0303 an unmatched closing bracket; Z0304 a construct the grammar has but this release does not run | decided 18 October 2026 |
+| 42 | Diagnostic codes for two conditions of the project file | Z0712 `zeff.toml` is not valid TOML; Z0713 `zeff.toml` has an unknown key, a missing key or a value of the wrong kind | decided 18 October 2026 |
+| 43 | Diagnostic codes for the checker's own messages | Z0103 no such function; Z0105 a `let` reuses a `core` name; W0101 a `let` hides a package's function; Z0401 an argument of the wrong type; Z0404 unknown argument; Z0405 an argument given twice; Z0406 a required argument missing; Z0407 too many arguments; Z0408 a positional argument after a named one; Z0409 a bad date format | decided 18 October 2026 |
+| 44 | Diagnostic codes for the descriptive reducers' warnings | W0201 missing values skipped, with the count; W0204 infinite values of both signs, so the result is NA | decided 18 October 2026 |
 | 45 | Whether a warning printed under a result shows its code | Follow section 10.2 for now: `warning: 211 rows ... were skipped (line 21)` without the code; the run record keeps it | 0.2.0 |
 
 ---
@@ -412,6 +414,8 @@ The risk register's R12 recommends freezing the specification while the first th
 
 *Recommendation.* A, from the first commit of 0.1.0; this register is reviewed at each of the three releases together with the risk register.
 
+*Decided 18 October 2026.* Option A: the freeze holds until 0.3.0.
+
 ### 41. Diagnostic codes for three syntax conditions the specification does not number
 
 Found while writing the lexer and parser of 0.1.0 (docs/releases/0.1.0.md, steps 6, 7 and 12). Section 3 of the Language Reference numbers the syntax errors it describes (Z0302 to Z0322), but three conditions arise that it gives no code to. The engine uses the numbers below provisionally, from the unused Z0301, Z0303 and Z0304, so that the messages have a code; the specification text is not edited (decision #40).
@@ -423,6 +427,8 @@ Found while writing the lexer and parser of 0.1.0 (docs/releases/0.1.0.md, steps
 | A construct the grammar has but this release does not run (`fn`, `for`, `use`, `case`, `if`, `model`, `dag`) | Z0304 | `not available in this release`, raised by the checker (step 12 of 0.1.0; ends when 0.5.0 and later releases run them) |
 
 *Recommendation.* Accept the three numbers and add them to section 11 of the Language Reference at the next minor release, after the freeze (0.3.0). Deadline: 0.1.0 (the numbers appear in printed messages from this release).
+
+*Decided 18 October 2026.* Accepted: Z0301, Z0303 and Z0304.
 
 ### 42. Diagnostic codes for two conditions of the project file
 
@@ -436,6 +442,8 @@ Found while writing the project file reader of 0.1.0 (docs/releases/0.1.0.md, st
 | `import` of a path inside the project at which there is no file, or a file that cannot be read | Z0715 | 1 |
 
 *Recommendation.* Accept both numbers and add them to the Z07xx row of section 11 of the Language Reference after the freeze (0.3.0). Unknown keys are errors, not warnings, so that a misspelt setting such as `netwrk` cannot be ignored without anyone noticing. Deadline: 0.1.0.
+
+*Decided 18 October 2026.* Accepted as proposed: Z0712 to Z0715, an unknown key an error.
 
 ### 43. Diagnostic codes for the checker's own messages
 
@@ -458,6 +466,8 @@ Unknown bare names stay Z0101, as section 3.7 says ("elsewhere it is an unknown 
 
 *Recommendation.* Accept the numbers and add them to section 11 after the freeze (0.3.0). Deadline: 0.1.0.
 
+*Decided 18 October 2026.* Accepted: Z0103, Z0105, W0101 and Z0401 to Z0409.
+
 ### 44. Diagnostic codes for the descriptive reducers' warnings
 
 Found while registering `mean` and `sd` for 0.1.0 (docs/releases/0.1.0.md, steps 12 and 20). Section 4.1 of the Language Reference says that statistics skip `NA` with a warning giving the count, that `Inf` and `-Inf` together give `NA` with a warning, and that a sum of all-`NA` input is `NA`, but gives these warnings no number. W0202 and W0203 are taken by the conversions of `to`.
@@ -468,6 +478,8 @@ Found while registering `mean` and `sd` for 0.1.0 (docs/releases/0.1.0.md, steps
 | `Inf` and `-Inf` both present, so the result is `NA` | W0204 |
 
 *Recommendation.* Accept both and add them to section 11 after the freeze (0.3.0). Deadline: 0.1.0.
+
+*Decided 18 October 2026.* Accepted: W0201 and W0204; an undefined standard deviation (one value, or an infinite value) uses W0205, the specification's code for a result that is NA from 0/0 or Inf − Inf.
 
 ### 45. Whether a warning printed under a result shows its code
 

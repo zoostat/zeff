@@ -179,3 +179,9 @@ Steps 6 to 12 `[engine]`, each green and committed in turn: the lexer for the wh
 **Next.** "Start release 0.2.0" when the owner says so.
 
 **For the owner to decide.** Open decisions #41 to #44, as above.
+
+## 18 October 2026, open decisions taken
+
+**Done.** The owner took open decisions #40 to #44 (all due at 0.1.0), each as recommended; recorded in `docs/spec/zeff_open_decisions.md`, logged in `docs/spec_changes.md` and `docs/decisions.md`. Nothing in the code changes: the codes confirmed are the ones already printed.
+
+**Next.** "Start release 0.2.0" when the owner says so. Open decision #45 is due at 0.2.0.

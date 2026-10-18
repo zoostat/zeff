@@ -10,3 +10,7 @@ While the specification freeze is in force (open decision #40), the normative te
 ## 18 October 2026 — zeff_risk_register.md, summary table and a new review section; zeff_functions.csv, status column
 
 The register's first scheduled review, at the close of 0.1.0, as the register itself and the standing release procedure require: the ratings of R2, R4, R7, R9 and R12 updated with the figures measured, a dated review section added, no risk added. In the catalogue, the status of the ten functions of 0.1.0 changed from `planned` to `implemented`. Neither is a change of normative language text.
+
+## 18 October 2026 — zeff_open_decisions.md, status, summary table and entries #40 to #44
+
+The owner's decisions at the close of 0.1.0 recorded in the register: #40 to #44, each as recommended. The register is the place the freeze itself names for design questions; no normative text changed. The accepted codes go into section 11 of the Language Reference at 0.3.0, when the freeze ends.
