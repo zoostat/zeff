@@ -361,3 +361,9 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Definition of done (testing handbook, section 4).** Reference: every numeric column of every dataset against Python's `statistics.stdev` (24 columns; closed form at six significant digits). Edge cases: one value, two values with one missing, all missing, no rows, a constant at three magnitudes, the four infinity columns, a Bool column, the large file, the offset and tiny magnitudes. Properties: the sd of integers is the exact sd rounded (computed in 128-bit integers); shifting leaves it, scaling multiplies it by the absolute factor, reversing the rows changes nothing; two values have sd |a − b|/√2. Snapshots: every run-time and check-time message. Identity: the milestone script takes five standard deviations. Help page complete with details and references, examples run.
 
 **Reason.** Language Reference, section 4.1 (Statistics) and section 11 (W0205); Engine Specification, section 8.3 (numerical methods); the catalogue row for `sd` (closed form).
+
+## 18 October 2026: Owner decision on `summary`'s `stats:` (question 3 of the 0.1.0 checklist)
+
+**Decided by the owner.** `stats:` takes a list of bare words from the six statistics of the table in section 10.2 — `n`, `missing`, `mean`, `sd`, `min`, `max` — and prints those columns in the order written; omitted, all six print in the order of section 10.2. Any other word is an error that lists the six. No median or quantiles in 0.1.0 (they need the sort-based kernel of a later release and can join the list then). The headings print as section 10.2 shows them (`N`, `missing`, `mean`, `sd`, `min`, `max`), and `N` counts the non-missing values, so that `N + missing` is the number of rows.
+
+**Reason.** The catalogue promises the argument; this is the smallest meaning that honours it and leaves room to grow. The alternative, no `stats:` until later, was put to the owner and declined.
