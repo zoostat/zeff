@@ -168,6 +168,8 @@ Steps 1 to 5 `[engine]`, each green and committed in turn: the tiered Cargo work
 
 **Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the conformance report (unchanged) pass locally. GitHub run to be read after the push.
 
+**A test too strict.** The GitHub run on `bacb102` failed in one property test: a random sample of forty integers had the exact mean 8834.725, a tie at the sixth digit, and the engine printed 8834.72 where the test demanded the rounded quotient's 8834.73. Both are within a rounding of the exact value, which is what `mean` promises; the test now accepts the exact mean or either neighbouring float, and the tie is kept as a fixed case.
+
 **Next.** Step 21, `sd` `[function]`.
 
 **For the owner to decide.** Printing question 3 (`summary`'s `stats:` list), first needed at step 22. Open decisions #41 to #45.

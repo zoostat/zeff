@@ -168,8 +168,11 @@ proptest! {
         if present.is_empty() {
             prop_assert_eq!(printed, "NA");
         } else {
+            // The engine's mean is within a rounding of the exact mean (its help page's promise),
+            // so at a tie of the sixth digit it may print either neighbour of the exact value.
             let exact = present.iter().map(|&v| v as i128).sum::<i128>() as f64 / present.len() as f64;
-            prop_assert_eq!(printed, format_float(exact));
+            let accepted = [format_float(exact), format_float(exact.next_up()), format_float(exact.next_down())];
+            prop_assert!(accepted.contains(&printed), "printed {printed}, exact {}", format_float(exact));
         }
         let skipped = values.len() - present.len();
         let messages = &outcome.output.statements[1].stderr;
@@ -219,6 +222,38 @@ proptest! {
         let want = if present == 0 { "NA".to_string() } else { format_float(trues as f64 / present as f64) };
         prop_assert_eq!(outcome.output.statements[1].stdout.trim(), want.as_str());
     }
+}
+
+/// Forty integers whose exact mean is 8834.725, a tie at six significant digits: the GitHub run of
+/// 18 October 2026 found the engine one unit in the last place on the other side of the tie from
+/// the rounded quotient, which the promise "within a rounding" allows.
+#[test]
+fn a_tie_at_the_sixth_digit_prints_one_of_its_neighbours() {
+    let values = [
+        -96538i64, 7348, 22436, -45345, -1315, 27004, 92122, 80317, -12216, 42710, 11074, 78114,
+        -26098, 33108, 27914, 20724, -9559, -17499, 40071, -81500, 13996, -769, -75812, -50937,
+        -94214, -9443, 88112, 31503, 29215, 14779, 5577, 66379, 43005, 35966, 95385, -7053, 19013,
+        -78217, 98318, -64286,
+    ];
+    assert_eq!(
+        values.iter().sum::<i64>(),
+        353_389,
+        "the mean is 353389/40 = 8834.725"
+    );
+    let mut text = String::from("x\n");
+    for v in values {
+        text.push_str(&format!("{v}\n"));
+    }
+    let outcome = run_with(
+        &[("data/tie.csv", text.as_bytes())],
+        "let d = import(\"data/tie.csv\")\nd.mean(x)\n",
+    );
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    let printed = outcome.output.statements[1].stdout.trim().to_string();
+    assert!(
+        printed == "8834.72" || printed == "8834.73",
+        "printed {printed}"
+    );
 }
 
 // ----- every message -----
