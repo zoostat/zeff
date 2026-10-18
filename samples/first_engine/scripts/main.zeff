@@ -1,0 +1,30 @@
+// The sample project of release 0.1.0: every function of the first engine on one data file.
+// `zeff run` in this folder prints what expected/stdout.txt holds, and its messages are
+// expected/stderr.txt; the script tests compare both byte for byte on every target.
+
+// Read the file and look at it.
+let wages = import("data/wages.csv")
+wages
+wages.n_rows()
+wages.n_cols()
+wages.variables()
+wages.describe()
+
+// One statistic at a time: the mean and the standard deviation, missing values counted.
+wages.mean(wage)
+wages.sd(wage)
+wages.mean(hours)
+wages.sd(hours)
+wages.mean(female)
+
+// The table of section 10.2, for chosen variables and chosen statistics.
+wages.summary([wage, hours, educ])
+wages.summary(stats: [n, mean, sd])
+
+// A frame built in the script, and values printed together.
+let scores = frame(group = ["a", "b", "c", "d"], score = [1.5, NA, 3, 4.25], passed = [true, false, true, true])
+scores
+scores.describe()
+scores.summary()
+print("rows:", scores.n_rows(), "mean score:", scores.mean(score))
+print(scores.variables(), 1e-7, 1234567.891, NA)

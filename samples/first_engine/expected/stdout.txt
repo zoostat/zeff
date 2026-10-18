@@ -1,0 +1,78 @@
+wages · 1,200 rows × 6 variables
+
+       id    wage   hours   female   region      educ
+   1    1   29.46      49   false    Québec        20
+   2    2   13.16      37   true     Zürich        19
+   3    3   31.19      28   false    São Paulo      9
+   4    4   57.63      33   false    Québec         9
+   5    5   39.48      55   true     Zürich        20
+   6    6    8.65      NA   false    東京            16
+   7    7    13.4      49   false    Łódź          15
+   8    8   21.79      32   true     Łódź          17
+   9    9   24.29      21   true     São Paulo     12
+  10   10   18.13      43   true     Łódź          11
+  … and 1,190 more rows
+1200
+6
+id
+wage
+hours
+female
+region
+educ
+wages · 1,200 rows × 6 variables
+
+  variable   type    non-missing   missing   example
+  id         Int           1,200         0   1
+  wage       Float         1,200         0   29.46
+  hours      Int           1,139        61   49
+  female     Bool          1,200         0   false
+  region     Str           1,200         0   Québec
+  educ       Int           1,200         0   20
+22.8465
+11.8916
+39.669
+11.8626
+0.4825
+summary · wages
+
+  variable       N   missing     mean       sd      min       max
+  wage       1,200         0   22.847   11.892    4.720   100.060
+  hours      1,139        61   39.669   11.863   20.000    60.000
+  educ       1,200         0   14.087    3.834    8.000    20.000
+summary · wages
+
+  variable       N      mean        sd
+  id         1,200   600.500   346.554
+  wage       1,200    22.847    11.892
+  hours      1,139    39.669    11.863
+  female     1,200     0.483     0.500
+  educ       1,200    14.087     3.834
+scores · 4 rows × 3 variables
+
+      group   score   passed
+  1   a         1.5   true
+  2   b          NA   false
+  3   c           3   true
+  4   d        4.25   true
+scores · 4 rows × 3 variables
+
+  variable   type    non-missing   missing   example
+  group      Str               4         0   a
+  score      Float             3         1   1.5
+  passed     Bool              4         0   true
+summary · scores
+
+  variable   N   missing    mean      sd     min     max
+  score      3         1   2.917   1.377   1.500   4.250
+  passed     4         0   0.750   0.500   0.000   1.000
+rows:
+4
+mean score:
+2.91667
+group
+score
+passed
+1e-07
+1234568
+NA

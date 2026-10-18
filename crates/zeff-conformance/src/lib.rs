@@ -212,10 +212,53 @@ fn milestone_cases() -> Vec<Line> {
     ]
 }
 
+/// The sample project of the release (`samples/first_engine`), compiled into the binary and run on
+/// an in-memory copy: a script test on every target (testing handbook, section 1). The stored
+/// output in `samples/first_engine/expected/` is what every target must print, byte for byte.
+pub fn sample_run() -> zeff_engine::run::Outcome {
+    use std::path::Path;
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::interpreter::Output;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::{Outcome, run_script};
+
+    let fs = MemoryFileSystem::new();
+    fs.add_file("/s/zeff.toml", SAMPLE_MANIFEST);
+    fs.add_file("/s/data/wages.csv", SAMPLE_DATA);
+    fs.add_file("/s/scripts/main.zeff", SAMPLE_SCRIPT);
+    match Project::open(&fs, Path::new("/s")) {
+        Ok(project) => run_script(&fs, &project, "scripts/main.zeff", SAMPLE_SCRIPT),
+        Err(_) => Outcome {
+            output: Output::default(),
+            exit_code: 4,
+        },
+    }
+}
+
+pub const SAMPLE_MANIFEST: &str = include_str!("../../../samples/first_engine/zeff.toml");
+pub const SAMPLE_DATA: &str = include_str!("../../../samples/first_engine/data/wages.csv");
+pub const SAMPLE_SCRIPT: &str = include_str!("../../../samples/first_engine/scripts/main.zeff");
+/// What the sample must print, as stored.
+pub const SAMPLE_STDOUT: &str = include_str!("../../../samples/first_engine/expected/stdout.txt");
+pub const SAMPLE_STDERR: &str = include_str!("../../../samples/first_engine/expected/stderr.txt");
+
+fn sample_cases() -> Vec<Line> {
+    let outcome = sample_run();
+    vec![
+        text("sample/stdout", &outcome.output.stdout),
+        text("sample/stderr", &outcome.output.stderr),
+        scalar(
+            "sample/exit_code".to_string(),
+            Some(f64::from(outcome.exit_code)),
+        ),
+    ]
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
     lines.extend(milestone_cases());
+    lines.extend(sample_cases());
     lines
 }
 
@@ -257,6 +300,17 @@ mod tests {
     #[test]
     fn the_report_is_the_same_twice() {
         assert_eq!(report(), report());
+    }
+
+    #[test]
+    fn the_sample_project_prints_its_stored_output_byte_for_byte() {
+        let outcome = sample_run();
+        assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+        assert_eq!(
+            outcome.output.stdout, SAMPLE_STDOUT,
+            "regenerate with `zeff run` in samples/first_engine when the change is intended"
+        );
+        assert_eq!(outcome.output.stderr, SAMPLE_STDERR);
     }
 
     #[test]

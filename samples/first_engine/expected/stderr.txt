@@ -1,0 +1,7 @@
+note: data/wages.csv read as CSV: 1,200 rows × 6 variables, types guessed; CSV carries no labels, value labels or categories (line 6)
+warning: 61 rows with NA in hours were skipped (line 16)
+warning: 61 rows with NA in hours were skipped (line 17)
+warning: 61 rows with NA in hours were skipped (line 21)
+warning: 61 rows with NA in hours were skipped (line 22)
+warning: 1 row with NA in score was skipped (line 28)
+warning: 1 row with NA in score was skipped (line 29)
