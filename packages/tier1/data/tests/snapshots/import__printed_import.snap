@@ -1,0 +1,10 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stdout
+---
+frame · 3 rows × 4 variables
+
+      id   wage   hours   name
+  1    1   23.4      40   Ann
+  2    2     19      35   Bob
+  3    3   31.2      NA   Cy

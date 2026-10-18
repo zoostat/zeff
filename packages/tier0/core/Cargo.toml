@@ -11,5 +11,6 @@ workspace = true
 
 [dependencies]
 zeff-columns.workspace = true
+zeff-dates.workspace = true
 zeff-registry.workspace = true
 zeff-diagnostics.workspace = true

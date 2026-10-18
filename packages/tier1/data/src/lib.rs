@@ -142,6 +142,20 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "describe",
+                package: "data",
+                method: true,
+                params: vec![ParamSpec::required("data", "Frame")],
+                rest: None,
+                returns: "Table",
+                diagnostics: vec![],
+                help: include_str!("../help/describe.md"),
+                accuracy: None,
+            },
+            body: look::describe,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "mean",
                 package: "data",
                 method: true,

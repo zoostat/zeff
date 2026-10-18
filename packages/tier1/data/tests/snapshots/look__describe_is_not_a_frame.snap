@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/look.rs
+expression: stderr
+---
+error[Z0401]: `mean` cannot be called on a Table
+ --> scripts/main.zeff:2:1
+  |
+2 | d.describe().mean(x)
+  | ^^^^^^^^^^^^ this is a Table
+  |
+  = help: `mean` is a method of Frame

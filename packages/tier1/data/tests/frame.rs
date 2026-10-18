@@ -168,15 +168,21 @@ fn a_frame_from_lists_prints_and_computes() {
     let out = stdout(
         "let d = frame(wage = [23.4, 19.0, 31.2], female = [true, false, true])\nd\nd.mean(wage)\nd.mean(female)\nframe(x = [1, 2.5, NA]).mean(x)\n",
     );
-    assert_eq!(out, "d · 3 rows × 2 variables\n24.5333\n0.666667\n1.75\n");
-    assert_eq!(stdout("frame(x = [1])\n"), "frame · 1 row × 1 variable\n");
+    assert_eq!(
+        out,
+        "d · 3 rows × 2 variables\n\n      wage   female\n  1   23.4   true\n  2     19   false\n  3   31.2   true\n24.5333\n0.666667\n1.75\n"
+    );
+    assert_eq!(
+        stdout("frame(x = [1])\n"),
+        "frame · 1 row × 1 variable\n\n      x\n  1   1\n"
+    );
     assert_eq!(
         stdout("frame(`gross wage` = [1, 2], `1st` = [3, 4]).mean(`gross wage`)\n"),
         "1.5\n"
     );
     assert_eq!(
         stdout("let d = frame(a = [\"x\", NA, \"z\"], n = [1, 2, 3])\nd\n"),
-        "d · 3 rows × 2 variables\n"
+        "d · 3 rows × 2 variables\n\n      a    n\n  1   x    1\n  2   NA   2\n  3   z    3\n"
     );
 }
 

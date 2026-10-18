@@ -16,55 +16,9 @@ The repository was put on GitHub with the continuous-integration workflow (forbi
 
 **For the owner to decide.** The three printing questions in `docs/releases/0.1.0.md`.
 
-## 18 October 2026, step 1 of release 0.1.0
+## 18 October 2026, steps 1 to 5 of release 0.1.0
 
-**Done.** Step 1 `[engine]`: the Cargo workspace (kernel crates, `core`, `data`, the language crates, the command line crate and the tooling crate), the tier-rule check with tests on crafted violations, and the CI jobs build, lint (format and clippy with warnings denied), test and tiers. Decisions on layout, profile, Arrow and Parquet versions and the four-target plan are in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all tests (10 for the tier check) and the tier check pass locally. The CI run on GitHub is to be read after the push.
-
-**Next.** Step 2, the numeric kernel `[engine]`.
-
-**For the owner to decide.** Nothing at present (the three printing questions are first needed at step 19).
-
-## 18 October 2026, step 2 of release 0.1.0
-
-**Done.** Step 2 `[engine]`: the numeric kernel (`sum`, `mean`, `variance`, `sd`: compensated sums, corrected two-pass variance, fixed order), with 10 unit tests, 6 property tests, and reference tests on five datasets against Python's exact `statistics` module at 1e-12 relative. The Python script and its JSON are in `tests/reference/`. Decisions and licences are in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all 34 tests and the tier check pass locally.
-
-**Next.** Step 3, the conformance harness and the four-target identity check `[engine]`.
-
-**For the owner to decide.** Nothing at present.
-
-## 18 October 2026, step 3 of release 0.1.0
-
-**Done.** Step 3 `[engine]`: the conformance crate (36 cases and a committed expected report), the comparison tool `xtask compare-identity` with 5 tests, and CI jobs that run the cases on Linux x86-64 (baseline and the wider `x86-64-v3` level), Linux ARM64, macOS ARM64 and WebAssembly under Node, then compare all five reports with the committed one. Decisions are in `docs/decisions.md`.
-
-**Green.** Locally: format, clippy with warnings denied, 42 tests, the tier check, and the WebAssembly report is identical to the native one on this Mac. The GitHub run is to be read after the push.
-
-**Next.** Step 4, bundle size and cold start tracked on every build `[engine]`.
-
-**For the owner to decide.** Nothing at present.
-
-## 18 October 2026, step 4 of release 0.1.0
-
-**Done.** Step 4 `[engine]`: `tools/bundle/measure.cjs` measures the compressed WebAssembly bundle (brotli and gzip) and the cold start (median of five fresh Node processes) on every build, writes a table into the job summary and a JSON artefact, and fails above 5 MB compressed or 1 s. Locally the conformance bundle is 11.5 kB compressed and starts in 2.4 ms (a floor: the engine itself is not in it yet). Thresholds and method are in `docs/decisions.md`.
-
-**Green.** Locally: the script's 5 tests pass and a tight limit makes it exit 1. The GitHub run is to be read after the push.
-
-**Next.** Step 5, diagnostics as data `[engine]`: the first step of the vertical slice.
-
-**For the owner to decide.** Nothing at present.
-
-## 18 October 2026, step 5 of release 0.1.0
-
-**Done.** Step 5 `[engine]`: the `zeff-diagnostics` crate (diagnostic records with code, severity, labels, help and fixes; sources and positions in scalar values; the Rust-style renderer; the record form with line and column). 19 tests, including one that reads the ten printed errors from the Language Reference and requires the renderer to reproduce each exactly. The test found one slip in the specification (the Z0701 example had one caret too many); it was corrected and logged as the first entry of `docs/spec_changes.md`.
-
-**Green.** Format, clippy with warnings denied, all tests and the tier check pass locally. The GitHub runs are to be read after the push.
-
-**Next.** Step 6, the lexer for the whole token set `[engine]`.
-
-**For the owner to decide.** Nothing at present.
+Steps 1 to 5 `[engine]`, each green and committed in turn: the tiered Cargo workspace with the `check-tiers` rule and the first CI jobs; the numeric kernel (compensated sums, two-pass variance, fixed order, reference-tested against Python); the conformance report and the four-target identity check (the second x86-64 SIMD level built from the same source, WebAssembly under Node); the bundle size and cold-start measurement on every build; and diagnostics as data with the Rust-style renderer. Details of each are in `docs/decisions.md` under the same date.
 
 ## 18 October 2026, step 6 of release 0.1.0
 
@@ -197,3 +151,13 @@ The repository was put on GitHub with the continuous-integration workflow (forbi
 **Next.** Step 19, `describe` and frame printing `[function]`: it needs the owner's answers to printing questions 1 and 2 at the top of `docs/releases/0.1.0.md`.
 
 **For the owner to decide.** Printing questions 1 and 2 (the example column of `describe`; how a wide frame prints). Open decisions #41 to #45.
+
+## 18 October 2026, step 19 of release 0.1.0
+
+**Done.** Step 19 `[function]`: `describe`, with the owner's two printing decisions recorded and applied. `core` gained the `Table` value of section 3.8, which `describe` returns and `summary` will; a frame now prints its header and first ten rows as an aligned grid with row numbers, in blocks of columns when wider than the page, then the count of the rows left. The help parser accepts the blank line a printed table has after its title. Definition of done met: reference counts on every dataset, the edge cases, a property, layout snapshots of every case (a wide frame in blocks among them), the identity script describing both of its frames, and the page. The pages of `frame` and `import` now show the full printed frame. 7 tests added.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the refreshed conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 20, `mean` complete `[function]`.
+
+**For the owner to decide.** Printing question 3 (`summary`'s `stats:` list), first needed at step 22. Open decisions #41 to #45.

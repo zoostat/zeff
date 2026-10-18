@@ -299,11 +299,25 @@ pub fn parse_help(text: &str) -> Result<HelpDoc, Vec<HelpError>> {
             }
             "Examples" => {
                 let mut current: Option<Example> = None;
+                // An example ends at the next `> ` line after its output, or at a blank line
+                // before any output; a blank line inside the output is part of it (a printed
+                // frame or table has one after its title), and trailing blank lines are dropped.
+                let close = |example: Option<Example>, doc: &mut HelpDoc| {
+                    if let Some(mut example) = example {
+                        while example.output.last().is_some_and(|l| l.is_empty()) {
+                            example.output.pop();
+                        }
+                        doc.examples.push(example);
+                    }
+                };
                 for line in lines.iter() {
                     let trimmed = line.trim_end();
                     if trimmed.trim().is_empty() {
-                        if let Some(example) = current.take() {
-                            doc.examples.push(example);
+                        match current.as_mut() {
+                            Some(example) if !example.output.is_empty() => {
+                                example.output.push(String::new())
+                            }
+                            _ => close(current.take(), &mut doc),
                         }
                         continue;
                     }
@@ -313,9 +327,7 @@ pub fn parse_help(text: &str) -> Result<HelpDoc, Vec<HelpError>> {
                             Some(example) if example.output.is_empty() => example.code.push(code),
                             Some(_) => {
                                 // A new statement after output: a new example.
-                                if let Some(example) = current.take() {
-                                    doc.examples.push(example);
-                                }
+                                close(current.take(), &mut doc);
                                 current = Some(Example {
                                     code: vec![code],
                                     output: Vec::new(),
@@ -337,9 +349,7 @@ pub fn parse_help(text: &str) -> Result<HelpDoc, Vec<HelpError>> {
                         }
                     }
                 }
-                if let Some(example) = current.take() {
-                    doc.examples.push(example);
-                }
+                close(current.take(), &mut doc);
             }
             _ => {}
         }

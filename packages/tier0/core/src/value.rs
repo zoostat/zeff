@@ -2,18 +2,18 @@
 //! every package handles the same values (Engine and Project Specification, section 8.1, rule 4).
 
 use std::rc::Rc;
-use zeff_columns::Table;
+use zeff_columns::Table as Columns;
 
 /// A frame: named columns of equal length, shared rather than copied, and the name it was bound
 /// to, which its printed form and its messages use (`no variable `incme` in `poll``).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Frame {
-    pub table: Rc<Table>,
+    pub table: Rc<Columns>,
     pub name: Option<String>,
 }
 
 impl Frame {
-    pub fn new(table: Table) -> Frame {
+    pub fn new(table: Columns) -> Frame {
         Frame {
             table: Rc::new(table),
             name: None,
@@ -33,6 +33,22 @@ pub struct TypeValue {
     pub format: Option<String>,
 }
 
+/// How a column of a printed table lines up: numbers to the right, text to the left.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Align {
+    Left,
+    Right,
+}
+
+/// A printed table (Language Reference, sections 3.8 and 10.2): a title line, then columns of
+/// text under their headings, aligned. `describe` and `summary` return one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Table {
+    pub title: String,
+    pub columns: Vec<(String, Align)>,
+    pub rows: Vec<Vec<String>>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     /// The value of a call that returns none; it prints nothing.
@@ -43,6 +59,7 @@ pub enum Value {
     Float(f64),
     Str(String),
     Frame(Frame),
+    Table(Table),
     List(Vec<Value>),
     Record(Vec<(String, Value)>),
     /// A variable name given to a parameter of type `Var`.
@@ -64,6 +81,7 @@ impl Value {
             Value::Int(_) => "Int",
             Value::Float(_) => "Float",
             Value::Str(_) => "Str",
+            Value::Table(_) => "Table",
             Value::Frame(_) => "Frame",
             Value::List(_) => "List",
             Value::Record(_) => "Record",

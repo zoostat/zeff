@@ -47,6 +47,11 @@ frame, describe, n_rows, variables
 note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
 > wages
 wages · 3 rows × 3 variables
+
+      id   wage   hours
+  1    1   23.4      40
+  2    2     19      35
+  3    3   31.2      NA
 > import("data/wages.csv", na_values: [40]).mean(hours)
 35
 note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 3)

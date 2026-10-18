@@ -8,7 +8,8 @@ note: data/f.csv read as CSV: 1 row × 2 variables, types guessed; CSV carries n
 note: a byte-order mark at the start of the file was removed (line 1)
 
 ## blank_lines_skipped (exit 0)
-d · 2 rows × 2 variables
+2
+2
 note: data/f.csv read as CSV: 2 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
 note: 2 blank lines skipped (line 1)
 
@@ -19,18 +20,21 @@ note: 2 values of x read as NA from NaN (line 1)
 warning: 2 rows with NA in x were skipped (line 2)
 
 ## date_like_text_proposes_types (exit 0)
-d · 3 rows × 1 variable
+3
+1
 note: data/f.csv read as CSV: 3 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 1)
 note: sold looks like dates (16/10/2026, 04/05/2026, 01/01/2026) and was read as text (line 1)
   = help: declare `types: {sold: Date("%d/%m/%Y")}`
 
 ## datetime_offsets_to_utc (exit 0)
-d · 2 rows × 1 variable
+2
+1
 note: data/f.csv read as CSV: 2 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 1)
 warning: 2 values of at carried a time-zone offset and were converted to UTC (line 1)
 
 ## normalisation_differs (exit 0)
-d · 2 rows × 1 variable
+2
+1
 note: data/f.csv read as CSV: 2 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 1)
 warning: x holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
   = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one

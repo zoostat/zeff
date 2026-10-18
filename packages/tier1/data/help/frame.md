@@ -27,6 +27,11 @@ import, describe, mean
 > let d = frame(wage = [23.4, 19.0, 31.2], female = [true, false, true])
 > d
 d · 3 rows × 2 variables
+
+      wage   female
+  1   23.4   true
+  2     19   false
+  3   31.2   true
 > d.mean(wage)
 24.5333
 > frame(x = [1, 2.5, NA]).mean(x)

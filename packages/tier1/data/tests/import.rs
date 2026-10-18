@@ -49,13 +49,9 @@ fn format_note(path: &str, rows: usize, cols: usize, line: usize) -> String {
     )
 }
 
-/// What a frame prints for its header (section 3.8).
-fn header(name: &str, rows: usize, cols: usize) -> String {
-    format!(
-        "{name} · {} × {}\n",
-        plural(rows, "row", "rows"),
-        plural(cols, "variable", "variables")
-    )
+/// What `n_rows()` and `n_cols()` print, one under the other.
+fn shape(rows: usize, cols: usize) -> String {
+    format!("{rows}\n{cols}\n")
 }
 
 // ----- the reference: every dataset through the function -----
@@ -68,10 +64,13 @@ fn every_dataset_imports_and_the_note_gives_its_rows_and_variables() {
         let file = root().join(&dataset.file);
         let text = std::fs::read_to_string(&file).unwrap();
         let cols = text.lines().next().unwrap().split(',').count();
-        let script = format!("let d = {}\nd\n", dataset.import_call(""));
+        let script = format!(
+            "let d = {}\nd.n_rows()\nd.n_cols()\n",
+            dataset.import_call("")
+        );
         let (code, stdout, stderr) = go(&script);
         assert_eq!(code, 0, "{name}:\n{stderr}");
-        assert_eq!(stdout, header("d", dataset.rows, cols), "{name}");
+        assert_eq!(stdout, shape(dataset.rows, cols), "{name}");
         assert!(
             stderr.starts_with(&format_note(&dataset.script_path(), dataset.rows, cols, 1)),
             "{name}: the format note comes first:\n{stderr}"
@@ -111,7 +110,7 @@ fn every_dataset_imports_and_the_note_gives_its_rows_and_variables() {
 fn the_note_prints_once_per_import_under_the_statement_that_imports() {
     let (code, stdout, stderr) = go("print(import(\"data/wages.csv\"))\n");
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(stdout, header("frame", 3, 4));
+    insta::assert_snapshot!("printed_import", stdout);
     assert_eq!(stderr, format_note("data/wages.csv", 3, 4, 1));
     // The same file read twice is two imports and two notes; a bound frame used twice is one.
     let (_, _, stderr) = go(
@@ -131,15 +130,17 @@ fn the_note_prints_once_per_import_under_the_statement_that_imports() {
 
 #[test]
 fn a_file_of_one_row_and_a_file_of_none() {
-    let (code, stdout, stderr) =
-        go("let d = import(\"data/one_row.csv\")\nd\nd.mean(x)\nd.mean(flag)\n");
+    let (code, stdout, stderr) = go(
+        "let d = import(\"data/one_row.csv\")\nd.n_rows()\nd.n_cols()\nd.mean(x)\nd.mean(flag)\n",
+    );
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(stdout, format!("{}42\n1\n", header("d", 1, 3)));
+    assert_eq!(stdout, format!("{}42\n1\n", shape(1, 3)));
     assert_eq!(stderr, format_note("data/one_row.csv", 1, 3, 1));
     // A header alone is a frame of no rows; its columns have no values to type, so they are text.
-    let (code, stdout, stderr) = go("let d = import(\"data/empty.csv\")\nd\nd.mean(x)\n");
+    let (code, stdout, stderr) =
+        go("let d = import(\"data/empty.csv\")\nd.n_rows()\nd.n_cols()\nd.mean(x)\n");
     assert_eq!(code, 1);
-    assert_eq!(stdout, header("d", 0, 2));
+    assert_eq!(stdout, shape(0, 2));
     assert!(
         without_format_notes(&stderr)
             .starts_with("error[Z0401]: `mean` needs a Bool, Int or Float, but `x` is Str"),
@@ -150,9 +151,10 @@ fn a_file_of_one_row_and_a_file_of_none() {
 
 #[test]
 fn a_file_whose_columns_hold_only_missing_values() {
-    let (code, stdout, stderr) = go("let d = import(\"data/all_na.csv\")\nd\nd.mean(y)\n");
+    let (code, stdout, stderr) =
+        go("let d = import(\"data/all_na.csv\")\nd.n_rows()\nd.n_cols()\nd.mean(y)\n");
     assert_eq!(code, 1);
-    assert_eq!(stdout, header("d", 3, 3));
+    assert_eq!(stdout, shape(3, 3));
     assert!(
         without_format_notes(&stderr)
             .starts_with("error[Z0401]: `mean` needs a Bool, Int or Float, but `y` is Str"),
@@ -181,10 +183,11 @@ fn the_guess_boundary_file_needs_its_declaration() {
         "{stderr}"
     );
     insta::assert_snapshot!("guess_boundary_undeclared", stderr);
-    let (code, stdout, stderr) =
-        go("let d = import(\"data/guess_boundary.csv\", types: {hours: Str})\nd\nd.mean(id)\n");
+    let (code, stdout, stderr) = go(
+        "let d = import(\"data/guess_boundary.csv\", types: {hours: Str})\nd.n_rows()\nd.n_cols()\nd.mean(id)\n",
+    );
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(stdout, format!("{}501\n", header("d", 1001, 2)));
+    assert_eq!(stdout, format!("{}501\n", shape(1001, 2)));
     assert_eq!(stderr, format_note("data/guess_boundary.csv", 1001, 2, 1));
 }
 
@@ -213,9 +216,10 @@ fn bool_columns_in_every_spelling() {
 
 #[test]
 fn unicode_text_and_awkward_names_are_kept_as_the_file_has_them() {
-    let (code, stdout, stderr) = go("let d = import(\"data/unicode_labels.csv\")\nd\nd.mean(n)\n");
+    let (code, stdout, stderr) =
+        go("let d = import(\"data/unicode_labels.csv\")\nd.n_rows()\nd.n_cols()\nd.mean(n)\n");
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(stdout, format!("{}2.5\n", header("d", 4, 3)));
+    assert_eq!(stdout, format!("{}2.5\n", shape(4, 3)));
     // The file holds "café" in both normalisation forms on purpose: the warning of section 3.8.
     assert!(
         without_format_notes(&stderr).starts_with(
@@ -225,10 +229,10 @@ fn unicode_text_and_awkward_names_are_kept_as_the_file_has_them() {
     );
     insta::assert_snapshot!("unicode_labels", stderr);
     let (code, stdout, stderr) = go(
-        "let d = import(\"data/awkward_names.csv\")\nd\nd.mean(`Gross Sales (total)`)\nd.mean(`x y`)\nd.mean(`1st`)\nd.mean(`日本語`)\n",
+        "let d = import(\"data/awkward_names.csv\")\nd.n_rows()\nd.n_cols()\nd.mean(`Gross Sales (total)`)\nd.mean(`x y`)\nd.mean(`1st`)\nd.mean(`日本語`)\n",
     );
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(stdout, format!("{}1226.92\n2\n5\n4\n", header("d", 3, 7)));
+    assert_eq!(stdout, format!("{}1226.92\n2\n5\n4\n", shape(3, 7)));
     assert_eq!(stderr, format_note("data/awkward_names.csv", 3, 7, 1));
     // `names: snake` makes every name plain and says what it changed.
     let (code, stdout, stderr) =
@@ -245,9 +249,11 @@ fn the_large_and_the_degenerate_datasets_read_with_the_note_alone() {
         ("magnitudes.csv", 500, 3),
         ("zero_variance.csv", 4, 3),
     ] {
-        let (code, stdout, stderr) = go(&format!("let d = import(\"data/{file}\")\nd\n"));
+        let (code, stdout, stderr) = go(&format!(
+            "let d = import(\"data/{file}\")\nd.n_rows()\nd.n_cols()\n"
+        ));
         assert_eq!(code, 0, "{file}: {stderr}");
-        assert_eq!(stdout, header("d", rows, cols), "{file}");
+        assert_eq!(stdout, shape(rows, cols), "{file}");
         assert_eq!(
             stderr,
             format_note(&format!("data/{file}"), rows, cols, 1),
@@ -271,11 +277,11 @@ fn every_option_of_this_release() {
     insta::assert_snapshot!("delimiter_detected", stderr);
     let (code, stdout, stderr) = go_with(
         files,
-        "let d = import(\"data/odd.csv\", delim: \";\", skip: 1, na_values: [-99], types: {Sold: Date(\"%d/%m/%Y\"), flag: Bool}, names: snake)\nd\nd.mean(flag)\nd.mean(gross_wage)\n",
+        "let d = import(\"data/odd.csv\", delim: \";\", skip: 1, na_values: [-99], types: {Sold: Date(\"%d/%m/%Y\"), flag: Bool}, names: snake)\nd.n_rows()\nd.n_cols()\nd.mean(flag)\nd.mean(gross_wage)\n",
     );
     // `19,5` is text, so the column is Str and its mean stops the run.
     assert_eq!(code, 1, "{stderr}");
-    assert_eq!(stdout, format!("{}0.666667\n", header("d", 3, 4)));
+    assert_eq!(stdout, format!("{}0.666667\n", shape(3, 4)));
     assert!(
         without_format_notes(&stderr)
             .contains("error[Z0401]: `mean` needs a Bool, Int or Float, but `gross_wage` is Str"),
@@ -286,10 +292,10 @@ fn every_option_of_this_release() {
     let plain: &[(&str, &[u8])] = &[("data/plain.csv", b"1,2\n3,4\n")];
     let (code, stdout, stderr) = go_with(
         plain,
-        "let d = import(\"data/plain.csv\", header: false)\nd\nd.mean(v1)\nd.mean(v2)\n",
+        "let d = import(\"data/plain.csv\", header: false)\nd.n_rows()\nd.n_cols()\nd.mean(v1)\nd.mean(v2)\n",
     );
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(stdout, format!("{}2\n3\n", header("d", 2, 2)));
+    assert_eq!(stdout, format!("{}2\n3\n", shape(2, 2)));
     // `na_values:` takes numbers or text, one type per list (section 3.7).
     let coded: &[(&str, &[u8])] = &[("data/coded.csv", b"x,y\n1,a\n-99,none\n3,c\n")];
     let (code, stdout, stderr) = go_with(
@@ -343,7 +349,7 @@ fn every_message_import_can_give() {
         (
             "blank_lines_skipped",
             b"x,y\n1,2\n\n\n3,4\n",
-            "let d = import(\"data/f.csv\")\nd\n",
+            "let d = import(\"data/f.csv\")\nd.n_rows()\nd.n_cols()\n",
         ),
         (
             "nan_becomes_na",
@@ -353,17 +359,17 @@ fn every_message_import_can_give() {
         (
             "date_like_text_proposes_types",
             b"sold\n16/10/2026\n04/05/2026\n01/01/2026\n",
-            "let d = import(\"data/f.csv\")\nd\n",
+            "let d = import(\"data/f.csv\")\nd.n_rows()\nd.n_cols()\n",
         ),
         (
             "datetime_offsets_to_utc",
             b"at\n2026-10-16T10:00:00+02:00\n2026-10-16T09:00:00Z\n",
-            "let d = import(\"data/f.csv\")\nd\n",
+            "let d = import(\"data/f.csv\")\nd.n_rows()\nd.n_cols()\n",
         ),
         (
             "normalisation_differs",
             "x\ncaf\u{e9}\ncafe\u{301}\n".as_bytes(),
-            "let d = import(\"data/f.csv\")\nd\n",
+            "let d = import(\"data/f.csv\")\nd.n_rows()\nd.n_cols()\n",
         ),
         ("no_header", b"", "let d = import(\"data/f.csv\")\n"),
         (
@@ -466,26 +472,26 @@ proptest! {
         }
         // A column with no value at all is text at import (section 3.8), so only the others have a mean.
         let numeric: Vec<usize> = (0..cols).filter(|&c| rows.iter().any(|r| r[c].is_some())).collect();
-        let mut script = String::from("let d = import(\"data/r.csv\")\nd\n");
+        let mut script = String::from("let d = import(\"data/r.csv\")\nd.n_rows()\nd.n_cols()\n");
         for c in &numeric {
             script.push_str(&format!("d.mean(c{c})\n"));
         }
         let outcome = run_with(&[("data/r.csv", csv.as_bytes())], &script);
         prop_assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
         let statements = &outcome.output.statements;
-        prop_assert_eq!(statements[1].stdout.clone(), header("d", rows.len(), cols));
+        prop_assert_eq!(format!("{}{}", statements[1].stdout, statements[2].stdout), shape(rows.len(), cols));
         for (i, &c) in numeric.iter().enumerate() {
             let present: Vec<i64> = rows.iter().filter_map(|r| r[c]).collect();
             let want = format_float(present.iter().sum::<i64>() as f64 / present.len() as f64);
-            prop_assert_eq!(statements[2 + i].stdout.trim(), want.as_str(), "column c{}", c);
+            prop_assert_eq!(statements[3 + i].stdout.trim(), want.as_str(), "column c{}", c);
             let skipped = rows.len() - present.len();
             if skipped > 0 {
                 prop_assert!(
-                    statements[2 + i].stderr.contains(&format!("{} with NA in c{c}", plural(skipped, "row", "rows"))),
-                    "{}", statements[2 + i].stderr
+                    statements[3 + i].stderr.contains(&format!("{} with NA in c{c}", plural(skipped, "row", "rows"))),
+                    "{}", statements[3 + i].stderr
                 );
             } else {
-                prop_assert_eq!(statements[2 + i].stderr.as_str(), "");
+                prop_assert_eq!(statements[3 + i].stderr.as_str(), "");
             }
         }
     }

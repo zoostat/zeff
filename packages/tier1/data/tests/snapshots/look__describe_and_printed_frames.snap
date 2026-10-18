@@ -1,0 +1,225 @@
+---
+source: packages/tier1/data/tests/look.rs
+expression: all
+---
+## dates_and_large_numbers
+d · 3 rows × 3 variables
+
+  variable   type    non-missing   missing   example
+  sold       Date              2         1   2026-10-16
+  big        Float             3         0   1000000
+  flag       Bool              2         1   true
+d · 3 rows × 3 variables
+
+      sold             big   flag
+  1   2026-10-16   1000000   true
+  2   NA             1e+15   NA
+  3   2026-01-01     3e-05   false
+
+## wages
+frame · 3 rows × 4 variables
+
+  variable   type    non-missing   missing   example
+  id         Int               3         0   1
+  wage       Float             3         0   23.4
+  hours      Int               2         1   40
+  name       Str               3         0   Ann
+
+## all_na
+frame · 3 rows × 3 variables
+
+  variable   type   non-missing   missing   example
+  x          Str              0         3   NA
+  y          Str              0         3   NA
+  z          Str              0         3   NA
+
+## empty
+frame · 0 rows × 2 variables
+
+  variable   type   non-missing   missing   example
+  x          Str              0         0   NA
+  y          Str              0         0   NA
+
+## one_row
+frame · 1 row × 3 variables
+
+  variable   type    non-missing   missing   example
+  x          Int               1         0   42
+  y          Float             1         0   3.5
+  flag       Bool              1         0   true
+
+## bools_and_text
+frame · 4 rows × 3 variables
+
+  variable   type   non-missing   missing   example
+  city       Str              4         0   café
+  note       Str              3         1   naïve
+  n          Int              4         0   1
+
+## infinities
+frame · 3 rows × 5 variables
+
+  variable    type    non-missing   missing   example
+  plus        Float             3         0   1
+  minus       Float             3         0   1
+  both        Float             3         0   1
+  nan_mixed   Float             1         2   1.5
+  finite      Int               3         0   1
+
+## awkward_names
+frame · 3 rows × 7 variables
+
+  variable              type    non-missing   missing   example
+  Gross Sales (total)   Float             3         0   1200.5
+  x y                   Int               3         0   1
+  `case`                Int               3         0   2
+  日本語                   Int               3         0   3
+  1st                   Int               3         0   4
+  Wage                  Int               3         0   10
+  wage_2                Int               3         0   11
+
+## large
+frame · 1,200 rows × 6 variables
+
+  variable   type    non-missing   missing   example
+  id         Int           1,200         0   1
+  wage       Float         1,200         0   29.46
+  hours      Int           1,139        61   49
+  female     Bool          1,200         0   false
+  region     Str           1,200         0   Québec
+  educ       Int           1,200         0   20
+
+## printed_wages
+frame · 3 rows × 4 variables
+
+      id   wage   hours   name
+  1    1   23.4      40   Ann
+  2    2     19      35   Bob
+  3    3   31.2      NA   Cy
+
+## printed_large
+w · 1,200 rows × 6 variables
+
+       id    wage   hours   female   region      educ
+   1    1   29.46      49   false    Québec        20
+   2    2   13.16      37   true     Zürich        19
+   3    3   31.19      28   false    São Paulo      9
+   4    4   57.63      33   false    Québec         9
+   5    5   39.48      55   true     Zürich        20
+   6    6    8.65      NA   false    東京            16
+   7    7    13.4      49   false    Łódź          15
+   8    8   21.79      32   true     Łódź          17
+   9    9   24.29      21   true     São Paulo     12
+  10   10   18.13      43   true     Łódź          11
+  … and 1,190 more rows
+
+## printed_empty
+e · 0 rows × 2 variables
+
+     x   y
+
+## printed_one_row
+frame · 1 row × 3 variables
+
+       x     y   flag
+  1   42   3.5   true
+
+## printed_awkward
+frame · 3 rows × 7 variables
+
+      Gross Sales (total)   x y   `case`   日本語   1st   Wage   wage_2
+  1                1200.5     1        2     3     4     10       11
+  2                980.25     2        3     4     5     20       21
+  3                  1500     3        4     5     6     30       31
+
+## printed_magnitudes
+frame · 500 rows × 3 variables
+
+           offset           wide           tiny
+   1   1000000000        -899860   4.94066e-324
+   2   1000000001   -6.15495e-07   5.96371e-301
+   3   1000000000       87468242   8.85704e-301
+   4   1000000000        5352.12   4.32338e-302
+   5   1000000001    0.000718345   5.52312e-301
+   6   1000000001    0.000249908   4.31451e-301
+   7   1000000000     0.00986542   3.34174e-302
+   8   1000000000        -2700.4   4.52645e-301
+   9   1000000000   -2.60896e-09   7.08938e-301
+  10   1000000000       -8068.28   6.75956e-302
+  … and 490 more rows
+
+## printed_wide
+frame · 2 rows × 30 variables
+
+  variable             type   non-missing   missing   example
+  variable_number_01   Int              2         0   1
+  variable_number_02   Int              2         0   2
+  variable_number_03   Int              2         0   3
+  variable_number_04   Int              2         0   4
+  variable_number_05   Int              2         0   5
+  variable_number_06   Int              2         0   6
+  variable_number_07   Int              2         0   7
+  variable_number_08   Int              2         0   8
+  variable_number_09   Int              2         0   9
+  variable_number_10   Int              2         0   10
+  variable_number_11   Int              2         0   11
+  variable_number_12   Int              2         0   12
+  variable_number_13   Int              2         0   13
+  variable_number_14   Int              2         0   14
+  variable_number_15   Int              2         0   15
+  variable_number_16   Int              2         0   16
+  variable_number_17   Int              2         0   17
+  variable_number_18   Int              2         0   18
+  variable_number_19   Int              2         0   19
+  variable_number_20   Int              2         0   20
+  variable_number_21   Int              2         0   21
+  variable_number_22   Int              2         0   22
+  variable_number_23   Int              2         0   23
+  variable_number_24   Int              2         0   24
+  variable_number_25   Int              2         0   25
+  variable_number_26   Int              2         0   26
+  variable_number_27   Int              2         0   27
+  variable_number_28   Int              2         0   28
+  variable_number_29   Int              2         0   29
+  variable_number_30   Int              2         0   30
+frame · 2 rows × 30 variables
+
+      variable_number_01   variable_number_02   variable_number_03   variable_number_04   variable_number_05
+  1                    1                    2                    3                    4                    5
+  2                 1000                 2000                 3000                 4000                 5000
+
+      variable_number_06   variable_number_07   variable_number_08   variable_number_09   variable_number_10
+  1                    6                    7                    8                    9                   10
+  2                 6000                 7000                 8000                 9000                10000
+
+      variable_number_11   variable_number_12   variable_number_13   variable_number_14   variable_number_15
+  1                   11                   12                   13                   14                   15
+  2                11000                12000                13000                14000                15000
+
+      variable_number_16   variable_number_17   variable_number_18   variable_number_19   variable_number_20
+  1                   16                   17                   18                   19                   20
+  2                16000                17000                18000                19000                20000
+
+      variable_number_21   variable_number_22   variable_number_23   variable_number_24   variable_number_25
+  1                   21                   22                   23                   24                   25
+  2                21000                22000                23000                24000                25000
+
+      variable_number_26   variable_number_27   variable_number_28   variable_number_29   variable_number_30
+  1                   26                   27                   28                   29                   30
+  2                26000                27000                28000                29000                30000
+
+## printed_through_print
+d · 3 rows × 4 variables
+
+  variable   type    non-missing   missing   example
+  id         Int               3         0   1
+  wage       Float             3         0   23.4
+  hours      Int               2         1   40
+  name       Str               3         0   Ann
+d · 3 rows × 4 variables
+
+      id   wage   hours   name
+  1    1   23.4      40   Ann
+  2    2     19      35   Bob
+  3    3   31.2      NA   Cy
+1

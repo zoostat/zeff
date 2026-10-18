@@ -289,8 +289,10 @@ pub fn render_page(spec: &FunctionSpec, doc: &HelpDoc, row: &CatalogueRow) -> St
             out.push('\n');
         }
         for output in &example.output {
-            out.push_str(INDENT);
-            out.push_str(output);
+            if !output.is_empty() {
+                out.push_str(INDENT);
+                out.push_str(output);
+            }
             out.push('\n');
         }
     }

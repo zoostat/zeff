@@ -9,6 +9,13 @@ use zeff_engine::run::{Outcome, run_script};
 
 const WAGES: &str = "id,wage,hours,name\n1,23.4,40,Ann\n2,19.0,35,Bob\n3,31.2,,Cy\n";
 
+/// What `WAGES` prints as a frame called `name` (section 3.1): the header and its rows.
+fn wages_printed(name: &str) -> String {
+    format!(
+        "{name} · 3 rows × 4 variables\n\n      id   wage   hours   name\n  1    1   23.4      40   Ann\n  2    2     19      35   Bob\n  3    3   31.2      NA   Cy\n"
+    )
+}
+
 /// A project at /p with `data/wages.csv` and the extra files given; run `script`.
 fn run_with(files: &[(&str, &str)], script: &str) -> Outcome {
     let fs = MemoryFileSystem::new();
@@ -69,7 +76,11 @@ fn the_pipeline_runs_in_order_and_prints_each_statement() {
     );
     assert_eq!(
         out,
-        "rows:\n3\n2\nwages · 3 rows × 4 variables\nwages · 3 rows × 4 variables\n"
+        format!(
+            "rows:\n3\n2\n{}{}",
+            wages_printed("wages"),
+            wages_printed("wages")
+        )
     );
 }
 
@@ -78,7 +89,8 @@ fn a_let_prints_nothing_and_a_later_let_shadows() {
     let out =
         ok("let x = 1\nlet x = \"two\"\nx\nlet w = import(\"data/wages.csv\")\nlet w2 = w\nw2\n");
     assert_eq!(
-        out, "two\nw2 · 3 rows × 4 variables\n",
+        out,
+        format!("two\n{}", wages_printed("w2")),
         "a frame takes the name it is bound to"
     );
 }
@@ -199,7 +211,15 @@ fn import_with_every_option_of_this_release() {
         "let d = import(\"data/odd.csv\", delim: \";\", skip: 1, na_values: [-99], types: {Sold: Date(\"%d/%m/%Y\")}, names: snake)\nd\nd.mean(id)\n",
     );
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
-    assert_eq!(outcome.output.stdout, "d · 3 rows × 4 variables\n2\n");
+    assert!(
+        outcome
+            .output
+            .stdout
+            .starts_with("d · 3 rows × 4 variables\n\n")
+            && outcome.output.stdout.ends_with("\n2\n"),
+        "{}",
+        outcome.output.stdout
+    );
     assert_eq!(
         without_format_notes(&outcome.output.stderr),
         "note: names: snake renamed 3 columns: `ID` → `id`, `Gross Wage` → `gross_wage`, `Sold` → `sold` (line 1)\nnote: 1 value of gross_wage read as NA from na_values -99 (line 1)\n"
@@ -217,7 +237,7 @@ fn import_with_every_option_of_this_release() {
 #[test]
 fn a_frame_is_an_import_without_a_let() {
     let out = ok("import(\"data/wages.csv\")\n");
-    assert_eq!(out, "frame · 3 rows × 4 variables\n");
+    assert_eq!(out, wages_printed("frame"));
 }
 
 #[test]

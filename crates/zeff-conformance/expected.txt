@@ -74,7 +74,7 @@ canary/multiply_add_orbit 70faf405f1efa7d7
 canary/square_roots 7bcc69e88f345a72
 canary/subnormal_descent 72e5e723a0efa7e0
 canary/quotients 0ede72b5f65216ff
-milestone/stdout f03ce2621e7d3027
+milestone/stdout cd2e5c86d77b322a
 milestone/stderr fc9ea53d2a9d2d62
 milestone/exit_code a8c7f832281a39c5
 # milestone/exit_code bits 0000000000000000
