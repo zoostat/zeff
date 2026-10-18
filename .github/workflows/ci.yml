@@ -188,7 +188,7 @@ jobs:
 
       - name: Build for WebAssembly with SIMD128
         env:
-          RUSTFLAGS: -C target-feature=+simd128
+          RUSTFLAGS: -C target-feature=+simd128 -C link-arg=-zstack-size=8388608
         run: |
           cargo build --release --locked -p zeff-conformance --target wasm32-unknown-unknown
           wasm-bindgen --target nodejs --out-dir wasm-pkg target/wasm32-unknown-unknown/release/zeff_conformance.wasm

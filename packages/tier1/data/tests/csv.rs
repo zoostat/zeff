@@ -1004,3 +1004,22 @@ fn messages() {
         .collect();
     insta::assert_snapshot!("notes_and_warnings", shown.join("\n"));
 }
+
+#[test]
+fn types_may_name_a_column_by_its_header_or_its_snake_name() {
+    let text = "Gross Wage,ID\n00123,1\n00456,2\n";
+    for declared in ["Gross Wage", "gross_wage"] {
+        let options = CsvOptions {
+            names: NameRule::Snake,
+            types: vec![(declared.into(), TypeSpec::Str)],
+            ..CsvOptions::default()
+        };
+        let r = read_with(text, options);
+        assert_eq!(r.schema.names, ["gross_wage", "id"]);
+        assert_eq!(
+            strs(&r, "gross_wage"),
+            [Some("00123".into()), Some("00456".into())],
+            "{declared}"
+        );
+    }
+}

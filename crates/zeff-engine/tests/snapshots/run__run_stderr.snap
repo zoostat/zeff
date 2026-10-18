@@ -1,0 +1,12 @@
+---
+source: crates/zeff-engine/tests/run.rs
+expression: outcome.output.stderr
+---
+warning: 1 row with NA in hours was skipped (line 2)
+error[Z0101]: no variable `wge` in `wages`
+ --> scripts/main.zeff:3:12
+  |
+3 | wages.mean(wge)
+  |            ^^^ not a variable of wages
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`

@@ -261,3 +261,91 @@ fn unknown_and_later_commands() {
     let o = zeff(dir.path(), &["version", "extra"]);
     assert_eq!(code(&o), 1);
 }
+
+// ----- zeff run -----
+
+const WAGES: &str = "id,wage,hours\n1,23.4,40\n2,19.0,35\n3,31.2,\n";
+
+#[test]
+fn zeff_run_prints_the_mean_of_a_csv_column() {
+    let (_dir, project) = demo();
+    std::fs::write(project.join("data/wages.csv"), WAGES).unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = import(\"data/wages.csv\")\nwages.mean(wage)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "24.5333\n");
+    assert_eq!(err(&o), "");
+}
+
+#[test]
+fn zeff_run_writes_output_to_stdout_and_messages_to_stderr() {
+    let (_dir, project) = demo();
+    std::fs::write(project.join("data/wages.csv"), WAGES).unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = import(\"data/wages.csv\")\nwages.mean(hours)\nprint(\"done\")\n",
+    )
+    .unwrap();
+    let o = zeff(&project.join("data"), &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "37.5\ndone\n");
+    assert_eq!(
+        err(&o),
+        "warning: 1 row with NA in hours was skipped (line 2)\n"
+    );
+}
+
+#[test]
+fn zeff_run_stops_at_the_first_error_with_exit_code_1() {
+    let (_dir, project) = demo();
+    std::fs::write(project.join("data/wages.csv"), WAGES).unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = import(\"data/wages.csv\")\nwages.mean(wge)\nprint(\"not reached\")\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o), "");
+    assert!(
+        err(&o).starts_with("error[Z0101]: no variable `wge` in `wages`"),
+        "{}",
+        err(&o)
+    );
+    std::fs::write(project.join("scripts/main.zeff"), "foo\nbar\n").unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(err(&o).matches("error[").count(), 1, "the first error only");
+}
+
+#[test]
+fn zeff_run_takes_a_script_and_needs_a_project() {
+    let (_dir, project) = demo();
+    std::fs::write(project.join("scripts/other.zeff"), "print(1, 2)\n").unwrap();
+    let o = zeff(&project, &["run", "scripts/other.zeff"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "1\n2\n");
+    let o = zeff(&project, &["run", "scripts/none.zeff"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).starts_with("error[Z0714]"));
+    let dir = tempfile::tempdir().unwrap();
+    let o = zeff(dir.path(), &["run"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).starts_with("error[Z0709]"));
+    let o = zeff(&project, &["run", "a", "b"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("takes at most one script"));
+}
+
+#[test]
+fn a_new_project_runs_to_nothing() {
+    let (_dir, project) = demo();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "");
+    assert_eq!(err(&o), "");
+}

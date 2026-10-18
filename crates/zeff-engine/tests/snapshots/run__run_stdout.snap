@@ -1,0 +1,5 @@
+---
+source: crates/zeff-engine/tests/run.rs
+expression: outcome.output.stdout
+---
+37.5

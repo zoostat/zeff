@@ -20,6 +20,7 @@ Usage: zeff <command>
 
 Commands:
   new <name>        create a project folder named <name> in the current folder
+  run [script]      run scripts/main.zeff, or the script named
   check [script]    check a script's names, arguments and types without running it
                     (scripts/main.zeff unless another is named)
   version           print the version of Zeff
@@ -27,8 +28,7 @@ Commands:
 ";
 
 /// Commands the specification names that this release does not have yet.
-const LATER: [&str; 16] = [
-    "run",
+const LATER: [&str; 15] = [
     "fmt",
     "test",
     "lsp",
@@ -80,7 +80,13 @@ pub fn run(
             err,
             "`zeff check` takes at most one script, as in `zeff check scripts/clean.zeff`",
         ),
-        [command @ ("run" | "fmt" | "test"), ..] => needs_a_project(fs, cwd, command, err),
+        ["run"] => run_command(fs, cwd, None, out, err),
+        ["run", script] => run_command(fs, cwd, Some(script), out, err),
+        ["run", ..] => usage_error(
+            err,
+            "`zeff run` takes at most one script, as in `zeff run scripts/clean.zeff`",
+        ),
+        [command @ ("fmt" | "test"), ..] => needs_a_project(fs, cwd, command, err),
         [command, ..] if LATER.contains(command) => usage_error(
             err,
             &format!("`zeff {command}` is not available in this release yet"),
@@ -187,17 +193,15 @@ fn needs_a_project(fs: &dyn FileSystem, cwd: &Path, command: &str, err: &mut dyn
 
 /// `zeff check [script]`: parse and check a script against the registry, report every problem,
 /// and exit 0 when there is none, 1 otherwise (Language Reference, section 3.8, "Exit codes").
-fn check_command(
+/// The script a command works on: the project, the script's name as shown in messages, and its
+/// text; or the exit code after the problem has been reported.
+fn script_of(
     fs: &dyn FileSystem,
     cwd: &Path,
     script: Option<&str>,
-    _out: &mut dyn Write,
     err: &mut dyn Write,
-) -> i32 {
-    let project = match open_project(fs, cwd, err) {
-        Ok(project) => project,
-        Err(code) => return code,
-    };
+) -> Result<(Project, String, String), i32> {
+    let project = open_project(fs, cwd, err)?;
     let written = script.unwrap_or("scripts/main.zeff");
     let shown = written.trim_start_matches("./").to_string();
     let path = match project.resolve_read(fs, written) {
@@ -210,21 +214,56 @@ fn check_command(
                 ..d
             };
             show(err, &d, &Sources::new());
-            return 1;
+            return Err(1);
         }
     };
     if !fs.is_file(&path) {
-        let d = Diagnostic::error("Z0714", format!("no script `{shown}` in the project"))
-            .help("scripts live in `scripts/`; `zeff check` alone checks `scripts/main.zeff`");
+        let d = Diagnostic::error("Z0714", format!("no script `{shown}` in the project")).help(
+            "scripts live in `scripts/`; `zeff run` and `zeff check` alone use `scripts/main.zeff`",
+        );
         show(err, &d, &Sources::new());
-        return 1;
+        return Err(1);
     }
-    let text = match fs.read_to_string(&path) {
-        Ok(text) => text,
+    match fs.read_to_string(&path) {
+        Ok(text) => Ok((project, shown, text)),
         Err(error) => {
             let _ = writeln!(err, "error: cannot read {shown}: {error}");
-            return 1;
+            Err(1)
         }
+    }
+}
+
+/// `zeff run [script]`: what the script prints goes to standard output, diagnostics to standard
+/// error, and the exit code is that of Language Reference section 3.8.
+fn run_command(
+    fs: &dyn FileSystem,
+    cwd: &Path,
+    script: Option<&str>,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    let (project, shown, text) = match script_of(fs, cwd, script, err) {
+        Ok(found) => found,
+        Err(code) => return code,
+    };
+    let outcome = zeff_engine::run::run_script(fs, &project, &shown, &text);
+    let _ = out.write_all(outcome.output.stdout.as_bytes());
+    let _ = err.write_all(outcome.output.stderr.as_bytes());
+    outcome.exit_code
+}
+
+/// `zeff check [script]`: parse and check a script against the registry, report every problem,
+/// and exit 0 when there is none, 1 otherwise (Language Reference, section 3.8, "Exit codes").
+fn check_command(
+    fs: &dyn FileSystem,
+    cwd: &Path,
+    script: Option<&str>,
+    _out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    let (_project, shown, text) = match script_of(fs, cwd, script, err) {
+        Ok(found) => found,
+        Err(code) => return code,
     };
     let registry = match zeff_engine::registry::registry() {
         Ok(registry) => registry,

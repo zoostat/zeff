@@ -5,7 +5,7 @@
 //! script shows with the rest. A statement that fails still leaves an expression in the IR, typed
 //! `Unknown`, which no later check reports again.
 
-use crate::ir::{Binding, BindingId, Call, Expr, ExprKind, Program, Statement};
+use crate::ir::{Binding, BindingId, Call, Expr, ExprKind, Program, Slot, Statement};
 use crate::ty::Ty;
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
 use zeff_registry::{Registered, Registry, Rest};
@@ -731,9 +731,11 @@ impl Checker<'_> {
         let mut slots: Vec<Option<Expr>> = vec![None; params.len()];
         let mut rest: Vec<Expr> = Vec::new();
         let mut definitions: Vec<(String, Expr)> = Vec::new();
+        let mut order: Vec<Slot> = Vec::new();
         let mut next_positional = 0usize;
         if let Some(r) = receiver {
             slots[0] = Some(r);
+            order.push(Slot::Param(0));
             next_positional = 1;
         }
         let mut named_seen = false;
@@ -752,10 +754,12 @@ impl Checker<'_> {
                         let (_, ty, _) = &params[next_positional];
                         let lowered = self.expr(e, Some(ty));
                         slots[next_positional] = Some(lowered);
+                        order.push(Slot::Param(next_positional));
                         next_positional += 1;
                     } else if let Some(Rest::Values(ty)) = &spec.rest {
                         let ty = Ty::parse(ty).unwrap_or(Ty::Any);
                         let lowered = self.expr(e, Some(&ty));
+                        order.push(Slot::Rest(rest.len()));
                         rest.push(lowered);
                     } else {
                         let takes = params.len() - usize::from(spec.method);
@@ -824,6 +828,7 @@ impl Checker<'_> {
                     let (_, ty, _) = &params[position];
                     let lowered = self.expr(value, Some(ty));
                     slots[position] = Some(lowered);
+                    order.push(Slot::Param(position));
                 }
                 ast::Arg::Define {
                     name: def_name,
@@ -861,6 +866,7 @@ impl Checker<'_> {
                                 );
                                 continue;
                             }
+                            order.push(Slot::Definition(definitions.len()));
                             definitions.push((def_name.text.clone(), lowered));
                         }
                         _ => {
@@ -947,6 +953,7 @@ impl Checker<'_> {
                 args: slots,
                 rest,
                 definitions,
+                order,
             }),
         }
     }

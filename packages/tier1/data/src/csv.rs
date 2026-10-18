@@ -541,7 +541,12 @@ fn read(bytes: &[u8], options: &CsvOptions, full: bool) -> Result<CsvRead, CsvEr
     // Declared types.
     let mut declared: BTreeMap<usize, TypeSpec> = BTreeMap::new();
     for (name, spec) in &options.types {
-        let Some(position) = names.iter().position(|n| n == name) else {
+        // By the name the script will use, or by the header as the file writes it.
+        let Some(position) = names
+            .iter()
+            .position(|n| n == name)
+            .or_else(|| originals.iter().position(|n| n == name))
+        else {
             return Err(CsvError::NoSuchColumn {
                 name: name.clone(),
                 candidates: names.clone(),

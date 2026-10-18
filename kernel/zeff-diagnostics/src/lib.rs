@@ -6,6 +6,7 @@
 //! from the same record ([`Diagnostic::record`], whose positions are lines and columns, never byte
 //! offsets). Nothing here knows about the parser or the engine, so every stage can produce one.
 
+pub mod messages;
 mod render;
 mod source;
 mod suggest;
@@ -171,6 +172,20 @@ impl Diagnostic {
     /// lines under the labels; a diagnostic whose file is unknown is printed without them.
     pub fn render(&self, sources: &Sources) -> String {
         render::render(self, sources)
+    }
+
+    /// The short form a warning or note takes under the output it belongs to (Language Reference,
+    /// section 10.2): `warning: 211 rows ... were skipped (line 21)`, then `= help:` lines.
+    pub fn short(&self, line: Option<u32>) -> String {
+        let mut out = format!("{}: {}", self.severity.word(), self.message);
+        if let Some(line) = line {
+            out.push_str(&format!(" (line {line})"));
+        }
+        out.push('\n');
+        for help in &self.help {
+            out.push_str(&format!("  = help: {help}\n"));
+        }
+        out
     }
 
     /// The record that leaves the engine: the same content with positions in place of byte

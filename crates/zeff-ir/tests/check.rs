@@ -2,9 +2,9 @@
 //! pages): resolution, calls, types, every message, and the specification's examples of Z0101 and
 //! Z0102.
 
+use zeff_diagnostics::messages::{no_variable, wrong_column_type};
 use zeff_diagnostics::{Diagnostic, Severity, Source, Sources, Span};
 use zeff_ir::ir::{ExprKind, Statement};
-use zeff_ir::messages::{no_variable, wrong_column_type};
 use zeff_ir::{Ty, check_source};
 use zeff_registry::{Catalogue, FunctionSpec, ParamSpec, Registry, Rest};
 

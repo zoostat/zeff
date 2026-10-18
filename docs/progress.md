@@ -153,3 +153,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 13, the interpreter and the first green milestone `[engine]`: `zeff run` printing the mean of a CSV column.
 
 **For the owner to decide.** Open decisions #41 to #44 (eighteen provisional diagnostic codes in all), deadline 0.1.0; they can wait until the release is closed.
+
+## 18 October 2026, step 13 of release 0.1.0
+
+**Done.** Step 13 `[engine]`: the first green milestone. `core` declares values, the display interface (section 3.8 printing) and the calling convention; `import`, `mean` and `print` have bodies; the interpreter runs the IR in written order and prints warnings under the output in the short form; `zeff run` works with the exit codes of section 3.8; the engine runs as WebAssembly under Node with output identical to the native build, and the milestone is part of the four-target identity report. `zeff run` on a project with a CSV prints the mean of a column. 43 tests added; the browser bundle with the whole engine is 330 kB compressed with a 23 ms cold start. Open decision #45 asks whether a warning under a result should show its code.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the release-mode stack guard, the tier check, and the WebAssembly build and run pass locally. GitHub runs to be read after the push: the identity check across the four targets is the milestone's last condition.
+
+**Next.** Step 14, `zeff help` and the example runner `[engine]`.
+
+**For the owner to decide.** Open decisions #41 to #45 (nineteen provisional codes and the short-form question), deadline 0.1.0 or 0.2.0; none blocks the next steps.

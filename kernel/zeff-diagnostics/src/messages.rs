@@ -1,7 +1,7 @@
 //! Messages the interpreter raises when a name meets the data (Language Reference, sections 3.6
 //! and 11): the checker cannot raise them before the schema pass of 0.6.0.
 
-use zeff_diagnostics::{Diagnostic, Span, did_you_mean};
+use crate::{Diagnostic, Span, did_you_mean};
 
 /// Z0101 or Z0102: `name` is not a variable of the frame called `frame`, whose variables are
 /// `columns`. A name that matches one of them when case is ignored is Z0102 with the exact spelling

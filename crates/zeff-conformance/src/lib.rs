@@ -161,9 +161,61 @@ fn canary_cases() -> Vec<Line> {
     ]
 }
 
+/// A text as a line: the digest of its bytes.
+fn text(name: &str, value: &str) -> Line {
+    let mut digest = Digest::new();
+    for chunk in value.as_bytes().chunks(8) {
+        let mut word = [0u8; 8];
+        word[..chunk.len()].copy_from_slice(chunk);
+        digest.write(u64::from_le_bytes(word));
+    }
+    Line {
+        name: name.to_string(),
+        digest: digest.0,
+        detail: None,
+    }
+}
+
+/// The first milestone of release 0.1.0: a script that reads a CSV and prints the mean of a
+/// column, run through the lexer, parser, checker and interpreter on an in-memory project. Its
+/// printed output must be the same bytes on every target.
+fn milestone_cases() -> Vec<Line> {
+    use std::path::Path;
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/p/zeff.toml",
+        format!(
+            "[project]\nname = \"p\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    fs.add_file(
+        "/p/data/wages.csv",
+        "id,wage,hours\n1,23.4,40\n2,19.0,35\n3,31.2,\n4,27.75,38\n5,1000000.125,41\n6,0.000031,39\n",
+    );
+    let script = "let wages = import(\"data/wages.csv\")\nwages.mean(wage)\nwages.mean(hours)\nprint(wages, [1, 2.5], 1e-7)\nwages.mean(id)\n";
+    let outcome = match Project::open(&fs, Path::new("/p")) {
+        Ok(project) => run_script(&fs, &project, "scripts/main.zeff", script),
+        Err(_) => return vec![text("milestone/project", "could not open")],
+    };
+    vec![
+        text("milestone/stdout", &outcome.output.stdout),
+        text("milestone/stderr", &outcome.output.stderr),
+        scalar(
+            "milestone/exit_code".to_string(),
+            Some(f64::from(outcome.exit_code)),
+        ),
+    ]
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
+    lines.extend(milestone_cases());
     lines
 }
 

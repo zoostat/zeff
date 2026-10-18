@@ -56,6 +56,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 42 | Diagnostic codes for two conditions of the project file | Z0712 `zeff.toml` is not valid TOML; Z0713 `zeff.toml` has an unknown key, a missing key or a value of the wrong kind | 0.1.0 |
 | 43 | Diagnostic codes for the checker's own messages | Z0103 no such function; Z0105 a `let` reuses a `core` name; W0101 a `let` hides a package's function; Z0401 an argument of the wrong type; Z0404 unknown argument; Z0405 an argument given twice; Z0406 a required argument missing; Z0407 too many arguments; Z0408 a positional argument after a named one; Z0409 a bad date format | 0.1.0 |
 | 44 | Diagnostic codes for the descriptive reducers' warnings | W0201 missing values skipped, with the count; W0204 infinite values of both signs, so the result is NA | 0.1.0 |
+| 45 | Whether a warning printed under a result shows its code | Follow section 10.2 for now: `warning: 211 rows ... were skipped (line 21)` without the code; the run record keeps it | 0.2.0 |
 
 ---
 
@@ -432,6 +433,7 @@ Found while writing the project file reader of 0.1.0 (docs/releases/0.1.0.md, st
 | `zeff.toml` is not valid TOML | Z0712 | 1 |
 | `zeff.toml` is valid TOML but wrong for Zeff: an unknown key or table (a setting that would otherwise be ignored silently), a missing `name`, `zeff` or `edition`, a value of the wrong kind, a pin that is not one exact version, a size that is not a size, a data root without a `path`, or a non-empty `[packages]` before 1.0 | Z0713 | 1 |
 | A script named on the command line (`zeff check scripts/x.zeff`) that the project does not have | Z0714 | 1 |
+| `import` of a path inside the project at which there is no file, or a file that cannot be read | Z0715 | 1 |
 
 *Recommendation.* Accept both numbers and add them to the Z07xx row of section 11 of the Language Reference after the freeze (0.3.0). Unknown keys are errors, not warnings, so that a misspelt setting such as `netwrk` cannot be ignored without anyone noticing. Deadline: 0.1.0.
 
@@ -466,3 +468,14 @@ Found while registering `mean` and `sd` for 0.1.0 (docs/releases/0.1.0.md, steps
 | `Inf` and `-Inf` both present, so the result is `NA` | W0204 |
 
 *Recommendation.* Accept both and add them to section 11 after the freeze (0.3.0). Deadline: 0.1.0.
+
+### 45. Whether a warning printed under a result shows its code
+
+Found while writing the interpreter of 0.1.0 (docs/releases/0.1.0.md, step 13). Section 10.2 prints warnings and notes under the output they belong to as `warning: 12 rows gave −Inf from log(sales) where sales = 0 (line 9)` and `note: 211 values of wage read as NA from na_values -99 (line 5)`, without a code, while section 11 numbers every warning and the pragma `// zeff: allow(W0203)` of section 11.1 needs the code. The engine follows section 10.2.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As section 10.2 prints it, without the code | Reads as a sentence; the code is in the run record and in `--format json` | A user who wants to allow the warning must look its code up |
+| B. `warning[W0201]: 12 rows ... (line 9)` | The code is at hand for `allow(CODE)` and `zeff explain` | Heavier; departs from the printed layout of section 10.2 |
+
+*Recommendation.* B, when the pragma arrives (0.7.0); A until then. Deadline: 0.2.0, when `zeff explain` pages begin.

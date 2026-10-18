@@ -69,6 +69,14 @@ pub enum ExprKind {
     Error,
 }
 
+/// One argument of a call, by where it is kept.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Slot {
+    Param(usize),
+    Rest(usize),
+    Definition(usize),
+}
+
 /// A call of a built-in function, with its arguments in parameter order.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Call {
@@ -83,6 +91,9 @@ pub struct Call {
     pub rest: Vec<Expr>,
     /// `name = expr` definitions, for a function that takes them (`frame`).
     pub definitions: Vec<(String, Expr)>,
+    /// The arguments in the order written, receiver first: the order they are evaluated in
+    /// (section 3.7, "Arguments").
+    pub order: Vec<Slot>,
 }
 
 impl Expr {
