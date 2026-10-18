@@ -148,6 +148,8 @@ This file is the running record of the work: at the end of every session a dated
 
 **Green.** Format, clippy with warnings denied, all workspace tests, the release-mode stack guard, the tier check and a WebAssembly compile of the checker and engine pass locally. GitHub runs to be read after the push.
 
+**A slip.** Commit 1edb6b4 was pushed with one command-line test failing and the checklist not ticked, because a patch script stopped half-way and the commit ran anyway; a1fafa0 repairs it, and commits now run only after the tests pass. Its continuous-integration run will show the failure.
+
 **Next.** Step 13, the interpreter and the first green milestone `[engine]`: `zeff run` printing the mean of a CSV column.
 
 **For the owner to decide.** Open decisions #41 to #44 (eighteen provisional diagnostic codes in all), deadline 0.1.0; they can wait until the release is closed.
