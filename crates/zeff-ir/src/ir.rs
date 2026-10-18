@@ -5,6 +5,7 @@
 
 use crate::ty::Ty;
 use zeff_diagnostics::Span;
+pub use zeff_syntax::ast::{BinaryOp, UnaryOp};
 
 /// A `let` binding, by position in [`Program::bindings`].
 pub type BindingId = usize;
@@ -64,6 +65,41 @@ pub enum ExprKind {
     Word(String),
     List(Vec<Expr>),
     Record(Vec<(String, Expr)>),
+    /// `[k => v, ...]`, keys unique.
+    Mapping(Vec<(Expr, Expr)>),
+    /// `-x` or `!x`.
+    Unary {
+        op: UnaryOp,
+        operand: Box<Expr>,
+    },
+    /// An operator of section 3.3 on two values; `..` and the formula operators have their own
+    /// nodes or are refused.
+    Binary {
+        op: BinaryOp,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
+    /// `start..end`, both Ints, both included: a `List<Int>`.
+    Range {
+        start: Box<Expr>,
+        end: Box<Expr>,
+    },
+    /// `xs[i]` on a list (1-based) or `m[k]` on a mapping.
+    Index {
+        receiver: Box<Expr>,
+        index: Box<Expr>,
+    },
+    /// `xs[a..b]`: the sub-list from `a` to `b`, both included.
+    Slice {
+        receiver: Box<Expr>,
+        start: Box<Expr>,
+        end: Box<Expr>,
+    },
+    /// `r.name` on a record.
+    Field {
+        receiver: Box<Expr>,
+        name: String,
+    },
     Call(Call),
     /// An expression that could not be lowered; its error has been reported.
     Error,

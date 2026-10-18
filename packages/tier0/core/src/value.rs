@@ -62,6 +62,8 @@ pub enum Value {
     Table(Table),
     List(Vec<Value>),
     Record(Vec<(String, Value)>),
+    /// `[k => v, ...]`: one key type, one value type, keys unique and in insertion order.
+    Mapping(Vec<(Value, Value)>),
     /// A variable name given to a parameter of type `Var`.
     Var(String),
     /// Variable names given to a parameter of type `Vars`.
@@ -85,6 +87,7 @@ impl Value {
             Value::Frame(_) => "Frame",
             Value::List(_) => "List",
             Value::Record(_) => "Record",
+            Value::Mapping(_) => "Mapping",
             Value::Var(_) => "Var",
             Value::Vars(_) => "Vars",
             Value::Word(_) => "a word",

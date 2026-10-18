@@ -5,10 +5,12 @@
 
 use crate::registry::Bodies;
 use std::collections::HashMap;
-use zeff_core::display::show;
+use zeff_core::display::{format_float, show};
+use zeff_core::operators::{self, Note, Op, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, fail};
 use zeff_core::value::{TypeValue, Value};
 use zeff_diagnostics::{Diagnostic, Source};
+use zeff_ir::ir::{BinaryOp, UnaryOp};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
 
 /// What one statement wrote.
@@ -149,6 +151,141 @@ impl<'a> Interpreter<'a> {
                 }
                 Value::Record(values)
             }
+            ExprKind::Mapping(entries) => {
+                let mut values = Vec::with_capacity(entries.len());
+                for (key, value) in entries {
+                    let k = self.eval(key, printed, messages)?;
+                    let v = self.eval(value, printed, messages)?;
+                    if values.iter().any(|(e, _)| operators::identical(e, &k)) {
+                        return Err(fail(
+                            Diagnostic::error(
+                                "Z0222",
+                                "a mapping's keys are unique, but this key appears twice",
+                            )
+                            .in_file(self.script)
+                            .primary(key.span, format!("`{}` again", shown(&k)))
+                            .help("keep one entry for the key"),
+                        ));
+                    }
+                    values.push((k, v));
+                }
+                Value::Mapping(values)
+            }
+            ExprKind::Unary { op, operand } => {
+                let value = self.eval(operand, printed, messages)?;
+                match op {
+                    UnaryOp::Not => operators::not(&value),
+                    UnaryOp::Neg => {
+                        operators::negate(&value).map_err(|trouble| self.trouble(trouble, expr))?
+                    }
+                }
+            }
+            ExprKind::Binary { op, lhs, rhs } => {
+                let op = operator(*op);
+                let left = self.eval(lhs, printed, messages)?;
+                if let Some(decided) = operators::decided_by_left(op, &left) {
+                    decided
+                } else {
+                    let right = self.eval(rhs, printed, messages)?;
+                    let (value, note) = operators::binary(op, &left, &right)
+                        .map_err(|trouble| self.trouble(trouble, expr))?;
+                    if let Some(note) = note {
+                        messages.push(warning_of(note, &value));
+                    }
+                    value
+                }
+            }
+            ExprKind::Range { start, end } => {
+                let (a, b) = (
+                    self.eval(start, printed, messages)?,
+                    self.eval(end, printed, messages)?,
+                );
+                match (a, b) {
+                    (Value::Int(a), Value::Int(b)) => {
+                        Value::List((a..=b).map(Value::Int).collect())
+                    }
+                    _ => {
+                        return Err(fail(
+                            Diagnostic::error("Z0207", "a range end is NA")
+                                .in_file(self.script)
+                                .primary(expr.span, "both ends must be Ints")
+                                .help("a range runs from one whole number to another: `2..5`"),
+                        ));
+                    }
+                }
+            }
+            ExprKind::Index { receiver, index } => {
+                let target = self.eval(receiver, printed, messages)?;
+                let key = self.eval(index, printed, messages)?;
+                match target {
+                    Value::List(items) => {
+                        let position = match key {
+                            Value::Int(i) if i >= 1 && (i as usize) <= items.len() => i as usize,
+                            other => return Err(self.outside(&other, items.len(), index.span)),
+                        };
+                        items[position - 1].clone()
+                    }
+                    Value::Mapping(entries) => {
+                        match entries.iter().find(|(k, _)| operators::identical(k, &key)) {
+                            Some((_, v)) => v.clone(),
+                            None => {
+                                return Err(fail(
+                                Diagnostic::error("Z0204", format!("no key `{}` in the mapping", shown(&key)))
+                                    .in_file(self.script)
+                                    .primary(index.span, "not a key")
+                                    .help("`is_in(k, keys(m))` tests for a key first (release 0.5.0); the keys are those written in the mapping"),
+                            ));
+                            }
+                        }
+                    }
+                    _ => {
+                        return Err(
+                            self.internal(expr, "indexing a value that is not a list or a mapping")
+                        );
+                    }
+                }
+            }
+            ExprKind::Slice {
+                receiver,
+                start,
+                end,
+            } => {
+                let target = self.eval(receiver, printed, messages)?;
+                let Value::List(items) = target else {
+                    return Err(self.internal(expr, "slicing a value that is not a list"));
+                };
+                let a = self.eval(start, printed, messages)?;
+                let b = self.eval(end, printed, messages)?;
+                let (Value::Int(a), Value::Int(b)) = (&a, &b) else {
+                    let which = if matches!(a, Value::Int(_)) { b } else { a };
+                    return Err(self.outside(&which, items.len(), expr.span));
+                };
+                if *a < 1 || (*a as usize) > items.len() {
+                    return Err(self.outside(&Value::Int(*a), items.len(), start.span));
+                }
+                if *b < 1 || (*b as usize) > items.len() {
+                    return Err(self.outside(&Value::Int(*b), items.len(), end.span));
+                }
+                if b < a {
+                    Value::List(Vec::new())
+                } else {
+                    Value::List(items[(*a as usize - 1)..(*b as usize)].to_vec())
+                }
+            }
+            ExprKind::Field { receiver, name } => {
+                let target = self.eval(receiver, printed, messages)?;
+                match target {
+                    Value::Record(fields) => match fields.into_iter().find(|(n, _)| n == name) {
+                        Some((_, v)) => v,
+                        None => {
+                            return Err(
+                                self.internal(expr, "a record field the checker did not see")
+                            );
+                        }
+                    },
+                    _ => return Err(self.internal(expr, "a field of a value that is not a record")),
+                }
+            }
             ExprKind::Call(call) => self.call(call, printed, messages)?,
             ExprKind::Error => {
                 return Err(self.internal(expr, "an expression that failed to check was run"));
@@ -215,6 +352,42 @@ impl<'a> Interpreter<'a> {
         )
     }
 
+    /// Z0211: an Int result that does not fit.
+    fn trouble(&self, trouble: Trouble, expr: &Expr) -> Fail {
+        match trouble {
+            Trouble::Overflow(operation) => fail(
+                Diagnostic::error(
+                    "Z0211",
+                    format!("Int overflow: {operation} does not fit in 64 bits"),
+                )
+                .in_file(self.script)
+                .primary(expr.span, "the operation")
+                .help("Ints are 64-bit; a Float (`1.0 * x`) holds larger magnitudes with 53 bits of precision"),
+            ),
+        }
+    }
+
+    /// Z0207: an index outside the list, or NA.
+    fn outside(&self, index: &Value, len: usize, span: zeff_diagnostics::Span) -> Fail {
+        let message = match index {
+            Value::Na => "the index is NA".to_string(),
+            other => format!("index {} is outside 1..{}", shown(other), len),
+        };
+        fail(
+            Diagnostic::error("Z0207", message)
+                .in_file(self.script)
+                .primary(
+                    span,
+                    format!(
+                        "the list has {} {}",
+                        len,
+                        if len == 1 { "item" } else { "items" }
+                    ),
+                )
+                .help("positions count from 1 to the list's length"),
+        )
+    }
+
     fn internal(&self, expr: &Expr, what: &str) -> Fail {
         fail(
             Diagnostic::error(
@@ -225,4 +398,47 @@ impl<'a> Interpreter<'a> {
             .primary(expr.span, "here"),
         )
     }
+}
+
+/// The IR's operator as the value rules know it.
+fn operator(op: BinaryOp) -> Op {
+    match op {
+        BinaryOp::Pow => Op::Pow,
+        BinaryOp::Mul => Op::Mul,
+        BinaryOp::Div => Op::Div,
+        BinaryOp::Add => Op::Add,
+        BinaryOp::Sub => Op::Sub,
+        BinaryOp::Eq => Op::Eq,
+        BinaryOp::Ne => Op::Ne,
+        BinaryOp::Lt => Op::Lt,
+        BinaryOp::Le => Op::Le,
+        BinaryOp::Gt => Op::Gt,
+        BinaryOp::Ge => Op::Ge,
+        BinaryOp::And => Op::And,
+        BinaryOp::Or => Op::Or,
+        // The checker turns `..` into a Range node and refuses `:`.
+        BinaryOp::Range | BinaryOp::Interact => Op::Eq,
+    }
+}
+
+/// The warning of section 4.1 for a note on a single value.
+fn warning_of(note: Note, value: &Value) -> Diagnostic {
+    match note {
+        Note::DivisionByZero => Diagnostic::warning(
+            "W0204",
+            format!(
+                "division by zero gave {}",
+                match value {
+                    Value::Float(x) => format_float(*x),
+                    _ => "Inf".to_string(),
+                }
+            ),
+        )
+        .help("test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`"),
+        Note::Invalid(cause) => Diagnostic::warning("W0205", format!("{cause} gave NA")),
+    }
+}
+
+fn shown(value: &Value) -> String {
+    show(value).trim_end().to_string()
 }

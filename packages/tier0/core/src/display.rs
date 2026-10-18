@@ -5,7 +5,7 @@
 //! | --- | --- |
 //! | `Int`, `Float` | An Int in full; a Float to six significant digits with trailing zeros dropped, in exponent form below 1e-4 and from 1e15; `-0.0` as `0`; `NA`, `Inf`, `-Inf` as written |
 //! | `Str`, `Bool` | The value itself |
-//! | List, Record | One line per item or field, up to 20, then the count of the rest |
+//! | List, Record, Mapping | One line per item, field or `key => value` entry, up to 20, then the count of the rest |
 //! | `Nothing` | Nothing |
 //! | Frame | Its `describe` header, a blank line, and its first ten rows with their numbers, the columns aligned as a table's are; then the count of the rows left |
 //! | Table | Its title, a blank line, and its rows under their headings: two spaces in, three between columns, numbers to the right and text to the left |
@@ -96,6 +96,14 @@ fn inline(value: &Value) -> String {
                     .join(", ")
             )
         }
+        Value::Mapping(entries) => format!(
+            "[{}]",
+            entries
+                .iter()
+                .map(|(k, v)| format!("{} => {}", inline(k), inline(v)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
         Value::Var(name) | Value::Word(name) => name.clone(),
         Value::Vars(names) => names.join(", "),
         Value::Type(t) => match &t.format {
@@ -276,6 +284,13 @@ pub fn show(value: &Value) -> String {
             fields.iter().map(|(n, v)| format!("{n}: {}", inline(v))),
             fields.len(),
             "field",
+        ),
+        Value::Mapping(entries) => lines(
+            entries
+                .iter()
+                .map(|(k, v)| format!("{} => {}", inline(k), inline(v))),
+            entries.len(),
+            "entry",
         ),
         Value::Frame(f) => frame_text(f),
         Value::Table(t) => table_text(t),

@@ -1,0 +1,14 @@
+---
+source: crates/zeff-engine/tests/expressions.rs
+expression: outcome.output.stderr
+---
+warning: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+warning: division by zero gave -Inf (line 2)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+warning: 0 / 0 gave NA (line 3)
+warning: Inf - Inf gave NA (line 4)
+warning: Inf * 0 gave NA (line 5)
+warning: -8 ^ 0.5 (no real value) gave NA (line 6)
+warning: division by zero gave Inf (line 7)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`

@@ -1024,6 +1024,7 @@ dependencies = [
  "zeff-columns",
  "zeff-dates",
  "zeff-diagnostics",
+ "zeff-numeric",
  "zeff-registry",
 ]
 
@@ -1060,6 +1061,7 @@ name = "zeff-engine"
 version = "0.2.0-dev"
 dependencies = [
  "insta",
+ "proptest",
  "tempfile",
  "toml",
  "zeff-columns",
@@ -1088,6 +1090,7 @@ dependencies = [
 name = "zeff-numeric"
 version = "0.2.0-dev"
 dependencies = [
+ "libm",
  "proptest",
  "serde_json",
 ]

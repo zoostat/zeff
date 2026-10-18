@@ -984,7 +984,7 @@ impl Problem {
                 format!("write `0{lexeme}`"),
             ),
             Problem::TrailingDot => {
-                let whole = lexeme.trim_end_matches('.');
+                let whole = lexeme.split('.').next().unwrap_or(lexeme);
                 (
                     format!("`{lexeme}` is not a number"),
                     "a decimal point needs digits after it".to_string(),

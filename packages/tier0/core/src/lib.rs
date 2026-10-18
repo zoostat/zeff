@@ -1,6 +1,7 @@
 //! Package core (tier 0): the language and the types every package shares.
 
 pub mod display;
+pub mod operators;
 pub mod runtime;
 pub mod value;
 

@@ -14,3 +14,7 @@ The register's first scheduled review, at the close of 0.1.0, as the register it
 ## 18 October 2026 — zeff_open_decisions.md, status, summary table and entries #40 to #44
 
 The owner's decisions at the close of 0.1.0 recorded in the register: #40 to #44, each as recommended. The register is the place the freeze itself names for design questions; no normative text changed. The accepted codes go into section 11 of the Language Reference at 0.3.0, when the freeze ends.
+
+## 18 October 2026 — zeff_open_decisions.md, new entry #46
+
+Two provisional diagnostic codes for expressions over values (Z0221, Z0222), recorded as an open decision with deadline 0.3.0, as the freeze requires; no normative text changed.

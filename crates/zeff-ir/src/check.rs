@@ -290,25 +290,10 @@ impl Checker<'_> {
                     span,
                     kind: ExprKind::Float(f64::NEG_INFINITY),
                 },
-                _ => {
-                    self.not_yet(
-                        span,
-                        "arithmetic",
-                        "0.2.0",
-                        "expressions over values and columns arrive with release 0.2.0",
-                    );
-                    Expr::error(span)
-                }
+                _ => self.unary(ast::UnaryOp::Neg, operand, span),
             },
-            ast::ExprKind::Unary { .. } | ast::ExprKind::Binary { .. } => {
-                self.not_yet(
-                    span,
-                    "an operator",
-                    "0.2.0",
-                    "expressions over values and columns arrive with release 0.2.0",
-                );
-                Expr::error(span)
-            }
+            ast::ExprKind::Unary { op, operand } => self.unary(*op, operand, span),
+            ast::ExprKind::Binary { op, lhs, rhs } => self.binary(*op, lhs, rhs, span, expected),
             ast::ExprKind::Paren(inner) => self.expr(inner, expected),
             ast::ExprKind::Name(path) => self.name(path, span, expected),
             ast::ExprKind::Call { callee, args } => self.call(callee, None, args, span, expected),
@@ -328,33 +313,9 @@ impl Checker<'_> {
                 );
                 Expr::error(span)
             }
-            ast::ExprKind::Field { .. } => {
-                self.not_yet(
-                    span,
-                    "a record field",
-                    "0.2.0",
-                    "records arrive with release 0.2.0",
-                );
-                Expr::error(span)
-            }
-            ast::ExprKind::Index { .. } => {
-                self.not_yet(
-                    span,
-                    "indexing",
-                    "0.2.0",
-                    "lists and indexing arrive with release 0.2.0",
-                );
-                Expr::error(span)
-            }
-            ast::ExprKind::Mapping(_) => {
-                self.not_yet(
-                    span,
-                    "a mapping",
-                    "0.2.0",
-                    "mappings arrive with release 0.2.0",
-                );
-                Expr::error(span)
-            }
+            ast::ExprKind::Field { receiver, name } => self.field(receiver, name, span),
+            ast::ExprKind::Index { receiver, index } => self.index(receiver, index, span),
+            ast::ExprKind::Mapping(entries) => self.mapping(entries, span, expected),
             ast::ExprKind::ListFor(_) => {
                 self.not_yet(
                     span,
@@ -595,6 +556,528 @@ impl Checker<'_> {
             ty: Ty::List(Box::new(element_ty)),
             span,
             kind: ExprKind::List(lowered),
+        }
+    }
+
+    // ----- operators (sections 3.3, 3.7 and 4.1) -----
+
+    /// Z0221 (provisional, open decision #46): an operator applied to types it does not take.
+    fn wrong_operands(&mut self, span: Span, message: String, label: String, help: &str) -> Expr {
+        self.report(
+            Diagnostic::error("Z0221", message)
+                .primary(span, label)
+                .help(help),
+        );
+        Expr::error(span)
+    }
+
+    fn unary(&mut self, op: ast::UnaryOp, operand: &ast::Expr, span: Span) -> Expr {
+        let inner = self.expr(operand, None);
+        let inner = self.no_nothing(inner, "negated");
+        let ty = match (op, &inner.ty) {
+            (_, Ty::Unknown) => Ty::Unknown,
+            (ast::UnaryOp::Neg, Ty::Int) => Ty::Int,
+            (ast::UnaryOp::Neg, Ty::Float) => Ty::Float,
+            (ast::UnaryOp::Neg, Ty::Na) => Ty::Na,
+            (ast::UnaryOp::Not, Ty::Bool) => Ty::Bool,
+            (ast::UnaryOp::Not, Ty::Na) => Ty::Na,
+            (ast::UnaryOp::Neg, Ty::Column(_)) | (ast::UnaryOp::Not, Ty::Column(_)) => {
+                self.not_yet(
+                    span,
+                    "an operator on a column",
+                    "0.2.0",
+                    "expressions over columns arrive with the next step of release 0.2.0",
+                );
+                return Expr::error(span);
+            }
+            (ast::UnaryOp::Neg, other) => {
+                let other = other.clone();
+                return self.wrong_operands(
+                    span,
+                    format!("`-` needs a number, but this is {}", other.with_article()),
+                    other.with_article(),
+                    if other == Ty::Bool {
+                        "Bool is not a number; `to(x, Int)` turns true and false into 1 and 0"
+                    } else {
+                        "only an Int or a Float can be negated"
+                    },
+                );
+            }
+            (ast::UnaryOp::Not, other) => {
+                let other = other.clone();
+                return self.wrong_operands(
+                    span,
+                    format!("`!` needs a Bool, but this is {}", other.with_article()),
+                    other.with_article(),
+                    "`!` negates true, false and NA; compare a number first, as in `!(x > 0)`",
+                );
+            }
+        };
+        Expr {
+            ty,
+            span,
+            kind: ExprKind::Unary {
+                op,
+                operand: Box::new(inner),
+            },
+        }
+    }
+
+    fn binary(
+        &mut self,
+        op: ast::BinaryOp,
+        lhs: &ast::Expr,
+        rhs: &ast::Expr,
+        span: Span,
+        expected: Option<&Ty>,
+    ) -> Expr {
+        use ast::BinaryOp as B;
+        if op == B::Interact {
+            self.report(
+                Diagnostic::error("Z0306", "`:` is an interaction and belongs in a formula")
+                    .primary(span, "not in a formula")
+                    .help(
+                        "write `a:b` inside a formula or a `fe:` argument; multiplication is `*`",
+                    ),
+            );
+            return Expr::error(span);
+        }
+        let _ = expected;
+        // A chained comparison or range (`a < b < c`, `1..2..3`) is the parser's Z0314; the
+        // checker adds nothing to it.
+        let comparison = |o: B| matches!(o, B::Eq | B::Ne | B::Lt | B::Le | B::Gt | B::Ge);
+        let chained = |e: &ast::Expr| {
+            matches!(&e.kind, ast::ExprKind::Binary { op: inner, .. }
+                if (comparison(*inner) && comparison(op)) || (*inner == B::Range && op == B::Range))
+        };
+        if chained(lhs) || chained(rhs) {
+            return Expr::error(span);
+        }
+        let left = self.expr(lhs, None);
+        let left = self.no_nothing(left, "used in an expression");
+        let right = self.expr(rhs, None);
+        let right = self.no_nothing(right, "used in an expression");
+        if left.ty == Ty::Unknown || right.ty == Ty::Unknown {
+            return Expr {
+                ty: Ty::Unknown,
+                span,
+                kind: ExprKind::Binary {
+                    op,
+                    lhs: Box::new(left),
+                    rhs: Box::new(right),
+                },
+            };
+        }
+        if matches!(left.ty, Ty::Column(_)) || matches!(right.ty, Ty::Column(_)) {
+            self.not_yet(
+                span,
+                "an operator on a column",
+                "0.2.0",
+                "expressions over columns arrive with the next step of release 0.2.0",
+            );
+            return Expr::error(span);
+        }
+        if op == B::Range {
+            if !is_int_like(&left.ty) || !is_int_like(&right.ty) {
+                let found = if !is_int_like(&left.ty) {
+                    &left.ty
+                } else {
+                    &right.ty
+                }
+                .clone();
+                return self.wrong_operands(
+                    span,
+                    format!(
+                        "`..` needs two Ints, but one end is {}",
+                        found.with_article()
+                    ),
+                    found.with_article(),
+                    "a range runs from one whole number to another: `2..5`",
+                );
+            }
+            return Expr {
+                ty: Ty::List(Box::new(Ty::Int)),
+                span,
+                kind: ExprKind::Range {
+                    start: Box::new(left),
+                    end: Box::new(right),
+                },
+            };
+        }
+        let symbol = op.symbol();
+        let ty = match op {
+            B::And | B::Or => {
+                if !is_bool_like(&left.ty) || !is_bool_like(&right.ty) {
+                    let found = if !is_bool_like(&left.ty) {
+                        &left.ty
+                    } else {
+                        &right.ty
+                    }
+                    .clone();
+                    return self.wrong_operands(
+                        span,
+                        format!(
+                            "`{symbol}` needs two Bools, but one side is {}",
+                            found.with_article()
+                        ),
+                        found.with_article(),
+                        "`&&` and `||` combine comparisons, as in `age > 18 && female`",
+                    );
+                }
+                Ty::Bool
+            }
+            B::Eq | B::Ne | B::Lt | B::Le | B::Gt | B::Ge => {
+                if is_compound(&left.ty) || is_compound(&right.ty) {
+                    let found = if is_compound(&left.ty) {
+                        &left.ty
+                    } else {
+                        &right.ty
+                    }
+                    .clone();
+                    self.report(
+                        Diagnostic::error("Z0208", format!("`{symbol}` is not defined for {}", found.with_article()))
+                            .primary(span, "compared here")
+                            .help("comparison is for single values: numbers, text, Bool, dates and NA; compare the items of a list one by one"),
+                    );
+                    return Expr::error(span);
+                }
+                let same = match (&left.ty, &right.ty) {
+                    (Ty::Na, _) | (_, Ty::Na) => true,
+                    (a, b) if is_number(a) && is_number(b) => true,
+                    (Ty::Str, Ty::Str) | (Ty::Bool, Ty::Bool) => true,
+                    (Ty::Date, Ty::Date) | (Ty::DateTime, Ty::DateTime) => true,
+                    _ => false,
+                };
+                if !same {
+                    if matches!(
+                        (&left.ty, &right.ty),
+                        (Ty::Date, Ty::Str) | (Ty::Str, Ty::Date)
+                    ) {
+                        self.report(
+                            Diagnostic::error("Z0210", "a Date never compares with text")
+                                .primary(span, "a Date and a Str")
+                                .help("write the date as a value: `date(\"2020-01-01\")`"),
+                        );
+                        return Expr::error(span);
+                    }
+                    let (l, r) = (left.ty.clone(), right.ty.clone());
+                    return self.wrong_operands(
+                        span,
+                        format!("`{symbol}` compares values of one type, but these are {} and {}", l.with_article(), r.with_article()),
+                        "different types".to_string(),
+                        "Int and Float compare as numbers; text compares with text and Bool with Bool",
+                    );
+                }
+                if matches!(op, B::Lt | B::Le | B::Gt | B::Ge)
+                    && (left.ty == Ty::Bool || right.ty == Ty::Bool)
+                    && !(left.ty == Ty::Bool && right.ty == Ty::Bool)
+                {
+                    return self.wrong_operands(
+                        span,
+                        format!("`{symbol}` compares a Bool only with a Bool"),
+                        "a Bool beside a number".to_string(),
+                        "false sorts before true; to count, `to(x, Int)` turns true into 1",
+                    );
+                }
+                Ty::Bool
+            }
+            B::Add | B::Sub | B::Mul | B::Div | B::Pow => {
+                if left.ty == Ty::Str || right.ty == Ty::Str {
+                    self.report(
+                        Diagnostic::error("Z0215", format!("`{symbol}` does not apply to text"))
+                            .primary(span, "text in arithmetic")
+                            .help("`join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`"),
+                    );
+                    return Expr::error(span);
+                }
+                if !is_number(&left.ty) || !is_number(&right.ty) {
+                    let found = if !is_number(&left.ty) {
+                        &left.ty
+                    } else {
+                        &right.ty
+                    }
+                    .clone();
+                    let help = if found == Ty::Bool {
+                        "Bool is not a number; `to(x, Int)` turns true and false into 1 and 0"
+                    } else {
+                        "arithmetic takes Ints and Floats"
+                    };
+                    return self.wrong_operands(
+                        span,
+                        format!(
+                            "`{symbol}` needs numbers, but one side is {}",
+                            found.with_article()
+                        ),
+                        found.with_article(),
+                        help,
+                    );
+                }
+                match op {
+                    B::Div | B::Pow => Ty::Float,
+                    _ => match (&left.ty, &right.ty) {
+                        (Ty::Float, _) | (_, Ty::Float) => Ty::Float,
+                        (Ty::Na, Ty::Na) => Ty::Na,
+                        _ => Ty::Int,
+                    },
+                }
+            }
+            B::Interact | B::Range => unreachable!("handled above"),
+        };
+        Expr {
+            ty,
+            span,
+            kind: ExprKind::Binary {
+                op,
+                lhs: Box::new(left),
+                rhs: Box::new(right),
+            },
+        }
+    }
+
+    /// `xs[i]`, `xs[a..b]` or `m[k]` (section 3.7, "Indexing" and "Mappings").
+    fn index(&mut self, receiver: &ast::Expr, index: &ast::Expr, span: Span) -> Expr {
+        let target = self.expr(receiver, None);
+        let target = self.no_nothing(target, "indexed");
+        match target.ty.clone() {
+            Ty::Unknown => {
+                let i = self.expr(index, None);
+                Expr {
+                    ty: Ty::Unknown,
+                    span,
+                    kind: ExprKind::Index {
+                        receiver: Box::new(target),
+                        index: Box::new(i),
+                    },
+                }
+            }
+            Ty::List(item) => {
+                if let ast::ExprKind::Binary {
+                    op: ast::BinaryOp::Range,
+                    lhs,
+                    rhs,
+                } = &index.kind
+                {
+                    let start = self.expr(lhs, Some(&Ty::Int));
+                    let end = self.expr(rhs, Some(&Ty::Int));
+                    for bound in [&start, &end] {
+                        if !is_int_like(&bound.ty) {
+                            let found = bound.ty.clone();
+                            return self.wrong_operands(
+                                bound.span,
+                                format!(
+                                    "a sub-list's bounds are Ints, but this is {}",
+                                    found.with_article()
+                                ),
+                                found.with_article(),
+                                "write `xs[2..4]` for the items from 2 to 4",
+                            );
+                        }
+                    }
+                    return Expr {
+                        ty: Ty::List(item),
+                        span,
+                        kind: ExprKind::Slice {
+                            receiver: Box::new(target),
+                            start: Box::new(start),
+                            end: Box::new(end),
+                        },
+                    };
+                }
+                let i = self.expr(index, Some(&Ty::Int));
+                if !is_int_like(&i.ty) {
+                    let found = i.ty.clone();
+                    return self.wrong_operands(
+                        i.span,
+                        format!(
+                            "a list is indexed by an Int, but this is {}",
+                            found.with_article()
+                        ),
+                        found.with_article(),
+                        "positions count from 1: `xs[1]` is the first item",
+                    );
+                }
+                Expr {
+                    ty: *item,
+                    span,
+                    kind: ExprKind::Index {
+                        receiver: Box::new(target),
+                        index: Box::new(i),
+                    },
+                }
+            }
+            Ty::Mapping(key, value) => {
+                let k = self.expr(index, Some(&key));
+                if !key.accepts(&k.ty) {
+                    let (found, wanted) = (k.ty.clone(), (*key).clone());
+                    return self.wrong_operands(
+                        k.span,
+                        format!(
+                            "this mapping's keys are {}, but this is {}",
+                            wanted.with_article(),
+                            found.with_article()
+                        ),
+                        found.with_article(),
+                        "look a mapping up by a key of its own type",
+                    );
+                }
+                Expr {
+                    ty: *value,
+                    span,
+                    kind: ExprKind::Index {
+                        receiver: Box::new(target),
+                        index: Box::new(k),
+                    },
+                }
+            }
+            Ty::Frame => {
+                self.not_yet(
+                    span,
+                    "a frame's column as a value",
+                    "0.2.0",
+                    "`wages[\"lwage\"]` arrives with the next step of release 0.2.0",
+                );
+                Expr::error(span)
+            }
+            other => self.wrong_operands(
+                span,
+                format!(
+                    "`[ ]` indexes a list or a mapping, not {}",
+                    other.with_article()
+                ),
+                other.with_article(),
+                "`xs[2]` takes the second item of a list; `m[k]` looks a key up in a mapping",
+            ),
+        }
+    }
+
+    /// `r.name` on a record (Z0209 for a missing field, Z0213 on anything else).
+    fn field(&mut self, receiver: &ast::Expr, name: &ast::Ident, span: Span) -> Expr {
+        let target = self.expr(receiver, None);
+        let target = self.no_nothing(target, "read as a record");
+        match &target.ty {
+            Ty::Unknown | Ty::AnyRecord => Expr {
+                ty: Ty::Unknown,
+                span,
+                kind: ExprKind::Field {
+                    receiver: Box::new(target),
+                    name: name.text.clone(),
+                },
+            },
+            Ty::Record(fields) => match fields.iter().find(|(n, _)| *n == name.text) {
+                Some((_, ty)) => Expr {
+                    ty: ty.clone(),
+                    span,
+                    kind: ExprKind::Field {
+                        receiver: Box::new(target),
+                        name: name.text.clone(),
+                    },
+                },
+                None => {
+                    let names: Vec<&str> = fields.iter().map(|(n, _)| n.as_str()).collect();
+                    let mut d = Diagnostic::error(
+                        "Z0209",
+                        format!("the record has no field `{}`", name.text),
+                    )
+                    .primary(name.span, format!("its fields are {}", names.join(", ")));
+                    if let Some(near) = did_you_mean(&name.text, names.iter().copied()) {
+                        d = d.help(format!("did you mean `{near}`?"));
+                    }
+                    self.report(d);
+                    Expr::error(span)
+                }
+            },
+            other => {
+                let other = other.clone();
+                self.report(
+                    Diagnostic::error(
+                        "Z0213",
+                        format!(
+                            "`.{}` reads a record field, but this is {}",
+                            name.text,
+                            other.with_article()
+                        ),
+                    )
+                    .primary(span, other.with_article())
+                    .help(format!("a method call has parentheses: `.{}()`", name.text)),
+                );
+                Expr::error(span)
+            }
+        }
+    }
+
+    /// `[k => v, ...]`: one key type, one value type, keys unique (section 3.7, "Mappings").
+    fn mapping(
+        &mut self,
+        entries: &[(ast::Expr, ast::Expr)],
+        span: Span,
+        expected: Option<&Ty>,
+    ) -> Expr {
+        let (want_key, want_value) = match expected {
+            Some(Ty::Mapping(k, v)) => (Some((**k).clone()), Some((**v).clone())),
+            _ => (None, None),
+        };
+        let mut lowered = Vec::with_capacity(entries.len());
+        let mut key_ty: Option<Ty> = want_key.clone();
+        let mut value_ty: Option<Ty> = want_value.clone();
+        for (key, value) in entries {
+            let k = self.expr(key, want_key.as_ref());
+            let k = self.no_nothing(k, "used as a key");
+            let v = self.expr(value, want_value.as_ref());
+            let v = self.no_nothing(v, "put in a mapping");
+            for (so_far, ty, what) in [(&mut key_ty, &k.ty, "key"), (&mut value_ty, &v.ty, "value")]
+            {
+                *so_far = match so_far.take() {
+                    None => Some(ty.clone()),
+                    Some(t) => match Ty::join(&t, ty) {
+                        Some(joined) => Some(joined),
+                        None => {
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0214",
+                                    format!(
+                                        "a mapping has one {what} type: this one has {} and {}",
+                                        t.with_article(),
+                                        ty.with_article()
+                                    ),
+                                )
+                                .primary(
+                                    if what == "key" { k.span } else { v.span },
+                                    ty.with_article(),
+                                )
+                                .help("give every entry the same kinds of key and value"),
+                            );
+                            Some(Ty::Unknown)
+                        }
+                    },
+                };
+            }
+            // Z0222 (provisional, open decision #46): a key written twice.
+            if let Some((earlier, _)) = lowered
+                .iter()
+                .find(|(e, _): &&(Expr, Expr)| same_literal(&e.kind, &k.kind))
+            {
+                let earlier: &Expr = earlier;
+                self.report(
+                    Diagnostic::error(
+                        "Z0222",
+                        "a mapping's keys are unique, but this key is written twice",
+                    )
+                    .primary(k.span, "the second time")
+                    .secondary(earlier.span, "the first time")
+                    .help("keep one entry for the key"),
+                );
+                return Expr::error(span);
+            }
+            lowered.push((k, v));
+        }
+        let ty = match (key_ty, value_ty) {
+            (Some(k), Some(v)) => Ty::Mapping(Box::new(k), Box::new(v)),
+            _ => Ty::Unknown,
+        };
+        Expr {
+            ty,
+            span,
+            kind: ExprKind::Mapping(lowered),
         }
     }
 
@@ -1079,4 +1562,39 @@ fn path_text(path: &ast::Path) -> String {
         .map(|s| s.text.as_str())
         .collect::<Vec<_>>()
         .join("::")
+}
+
+fn is_number(ty: &Ty) -> bool {
+    matches!(ty, Ty::Int | Ty::Float | Ty::Na)
+}
+
+fn is_int_like(ty: &Ty) -> bool {
+    matches!(ty, Ty::Int | Ty::Na | Ty::Unknown)
+}
+
+fn is_bool_like(ty: &Ty) -> bool {
+    matches!(ty, Ty::Bool | Ty::Na)
+}
+
+/// The types `==` is not defined for (section 3.7, "Compound values").
+fn is_compound(ty: &Ty) -> bool {
+    matches!(
+        ty,
+        Ty::List(_) | Ty::Record(_) | Ty::AnyRecord | Ty::Mapping(_, _) | Ty::Frame | Ty::Table
+    )
+}
+
+/// Whether two lowered expressions are the same literal (for the keys of a mapping literal).
+fn same_literal(a: &ExprKind, b: &ExprKind) -> bool {
+    match (a, b) {
+        (ExprKind::Int(x), ExprKind::Int(y)) => x == y,
+        (ExprKind::Float(x), ExprKind::Float(y)) => x == y,
+        (ExprKind::Int(x), ExprKind::Float(y)) | (ExprKind::Float(y), ExprKind::Int(x)) => {
+            *x as f64 == *y
+        }
+        (ExprKind::Str(x), ExprKind::Str(y)) => x == y,
+        (ExprKind::Bool(x), ExprKind::Bool(y)) => x == y,
+        (ExprKind::Na, ExprKind::Na) => true,
+        _ => false,
+    }
 }

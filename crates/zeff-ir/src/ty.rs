@@ -28,6 +28,8 @@ pub enum Ty {
     Type,
     Column(Box<Ty>),
     List(Box<Ty>),
+    /// `Mapping<K, V>`: one key type and one value type (section 3.7).
+    Mapping(Box<Ty>, Box<Ty>),
     /// A record literal's own type: its fields and their types.
     Record(Vec<(String, Ty)>),
     /// `Record` alone in a signature: any record.
@@ -54,6 +56,16 @@ impl Ty {
         }
         if let Some(inner) = text.strip_prefix("List<").and_then(|t| t.strip_suffix('>')) {
             return Ty::parse(inner).map(|t| Ty::List(Box::new(t)));
+        }
+        if let Some(inner) = text
+            .strip_prefix("Mapping<")
+            .and_then(|t| t.strip_suffix('>'))
+        {
+            let (key, value) = inner.split_once(',')?;
+            return Some(Ty::Mapping(
+                Box::new(Ty::parse(key)?),
+                Box::new(Ty::parse(value)?),
+            ));
         }
         if text.contains('|') {
             let parts: Vec<&str> = text.split('|').map(str::trim).collect();
@@ -111,6 +123,7 @@ impl Ty {
             (Ty::Vars, Ty::Var) => true,
             (Ty::AnyRecord, Ty::Record(_) | Ty::AnyRecord) => true,
             (Ty::Column(a), Ty::Column(b)) | (Ty::List(a), Ty::List(b)) => a.accepts(b),
+            (Ty::Mapping(k1, v1), Ty::Mapping(k2, v2)) => k1.accepts(k2) && v1.accepts(v2),
             (Ty::Union(options), other) => options.iter().any(|o| o.accepts(other)),
             (Ty::Record(a), Ty::Record(b)) => {
                 a.len() == b.len()
@@ -131,6 +144,10 @@ impl Ty {
             (Ty::Int, Ty::Float) | (Ty::Float, Ty::Int) => Some(Ty::Float),
             (Ty::List(x), Ty::List(y)) => Ty::join(x, y).map(|t| Ty::List(Box::new(t))),
             (Ty::Column(x), Ty::Column(y)) => Ty::join(x, y).map(|t| Ty::Column(Box::new(t))),
+            (Ty::Mapping(k1, v1), Ty::Mapping(k2, v2)) => Some(Ty::Mapping(
+                Box::new(Ty::join(k1, k2)?),
+                Box::new(Ty::join(v1, v2)?),
+            )),
             (x, y) if x == y => Some(x.clone()),
             _ => None,
         }
@@ -165,6 +182,7 @@ impl fmt::Display for Ty {
             Ty::Column(t) => write!(f, "Column<{t}>"),
             Ty::List(t) if **t == Ty::Any => write!(f, "List"),
             Ty::List(t) => write!(f, "List<{t}>"),
+            Ty::Mapping(k, v) => write!(f, "Mapping<{k}, {v}>"),
             Ty::Record(fields) => {
                 write!(f, "{{")?;
                 for (i, (name, ty)) in fields.iter().enumerate() {
@@ -212,6 +230,7 @@ mod tests {
             "Column<Bool>",
             "List<Str>",
             "List<List<Int>>",
+            "Mapping<Int, Str>",
         ] {
             let ty = Ty::parse(text).unwrap_or_else(|| panic!("{text}"));
             assert_eq!(ty.to_string(), text);

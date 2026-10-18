@@ -1,0 +1,255 @@
+---
+source: crates/zeff-engine/tests/expressions.rs
+expression: all
+---
+## text_in_arithmetic (exit 1)
+error[Z0215]: `+` does not apply to text
+ --> scripts/main.zeff:1:1
+  |
+1 | "a" + "b"
+  | ^^^^^^^^^ text in arithmetic
+  |
+  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+
+## bool_in_arithmetic (exit 1)
+error[Z0221]: `+` needs numbers, but one side is a Bool
+ --> scripts/main.zeff:1:1
+  |
+1 | true + 1
+  | ^^^^^^^^ a Bool
+  |
+  = help: Bool is not a number; `to(x, Int)` turns true and false into 1 and 0
+
+## negating_text (exit 1)
+error[Z0221]: `-` needs a number, but this is a Str
+ --> scripts/main.zeff:2:7
+  |
+2 | print(-t)
+  |       ^^ a Str
+  |
+  = help: only an Int or a Float can be negated
+
+## not_on_a_number (exit 1)
+error[Z0221]: `!` needs a Bool, but this is an Int
+ --> scripts/main.zeff:1:1
+  |
+1 | !3
+  | ^^ an Int
+  |
+  = help: `!` negates true, false and NA; compare a number first, as in `!(x > 0)`
+
+## logic_on_numbers (exit 1)
+error[Z0221]: `&&` needs two Bools, but one side is an Int
+ --> scripts/main.zeff:1:1
+  |
+1 | 1 && 2
+  | ^^^^^^ an Int
+  |
+  = help: `&&` and `||` combine comparisons, as in `age > 18 && female`
+
+## comparing_different_types (exit 1)
+error[Z0221]: `==` compares values of one type, but these are an Int and a Str
+ --> scripts/main.zeff:1:1
+  |
+1 | 1 == "1"
+  | ^^^^^^^^ different types
+  |
+  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+
+## ordering_a_bool_with_a_number (exit 1)
+error[Z0221]: `<` compares values of one type, but these are a Bool and an Int
+ --> scripts/main.zeff:1:1
+  |
+1 | true < 2
+  | ^^^^^^^^ different types
+  |
+  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+
+## comparing_lists (exit 1)
+error[Z0208]: `==` is not defined for a List<Int>
+ --> scripts/main.zeff:1:1
+  |
+1 | [1] == [1]
+  | ^^^^^^^^^^ compared here
+  |
+  = help: comparison is for single values: numbers, text, Bool, dates and NA; compare the items of a list one by one
+
+## interaction_outside_a_formula (exit 1)
+error[Z0306]: `:` is an interaction and belongs in a formula
+ --> scripts/main.zeff:1:1
+  |
+1 | 2 : 3
+  | ^^^^^ not in a formula
+  |
+  = help: write `a:b` inside a formula or a `fe:` argument; multiplication is `*`
+
+## range_of_floats (exit 1)
+error[Z0221]: `..` needs two Ints, but one end is a Float
+ --> scripts/main.zeff:1:1
+  |
+1 | 1.5..3
+  | ^^^^^^ a Float
+  |
+  = help: a range runs from one whole number to another: `2..5`
+
+## indexing_a_number (exit 1)
+error[Z0221]: `[ ]` indexes a list or a mapping, not an Int
+ --> scripts/main.zeff:1:1
+  |
+1 | 3[1]
+  | ^^^^ an Int
+  |
+  = help: `xs[2]` takes the second item of a list; `m[k]` looks a key up in a mapping
+
+## indexing_a_list_with_text (exit 1)
+error[Z0221]: a list is indexed by an Int, but this is a Str
+ --> scripts/main.zeff:1:8
+  |
+1 | [1, 2]["a"]
+  |        ^^^ a Str
+  |
+  = help: positions count from 1: `xs[1]` is the first item
+
+## mapping_key_of_the_wrong_type (exit 1)
+error[Z0221]: this mapping's keys are an Int, but this is a Str
+ --> scripts/main.zeff:1:12
+  |
+1 | [1 => "a"]["x"]
+  |            ^^^ a Str
+  |
+  = help: look a mapping up by a key of its own type
+
+## mixed_mapping_keys (exit 1)
+error[Z0214]: a mapping has one key type: this one has an Int and a Str
+ --> scripts/main.zeff:1:12
+  |
+1 | [1 => "a", "b" => "c"]
+  |            ^^^ a Str
+  |
+  = help: give every entry the same kinds of key and value
+
+## mixed_mapping_values (exit 1)
+error[Z0214]: a mapping has one value type: this one has a Str and an Int
+ --> scripts/main.zeff:1:17
+  |
+1 | [1 => "a", 2 => 3]
+  |                 ^ an Int
+  |
+  = help: give every entry the same kinds of key and value
+
+## duplicate_mapping_key (exit 1)
+error[Z0222]: a mapping's keys are unique, but this key is written twice
+ --> scripts/main.zeff:1:12
+  |
+1 | [1 => "a", 1 => "b"]
+  |  - the first time
+  |            ^ the second time
+  |
+  = help: keep one entry for the key
+
+## duplicate_key_at_run_time (exit 1)
+error[Z0222]: a mapping's keys are unique, but this key appears twice
+ --> scripts/main.zeff:2:26
+  |
+2 | [1 => "a", 1 + 1 => "b", k => "c"]
+  |                          ^ `2` again
+  |
+  = help: keep one entry for the key
+
+## missing_record_field (exit 1)
+error[Z0209]: the record has no field `b`
+ --> scripts/main.zeff:1:15
+  |
+1 | {a: 1, bb: 2}.b
+  |               ^ its fields are a, bb
+  |
+  = help: did you mean `a`?
+
+## field_of_a_number (exit 1)
+error[Z0213]: `.a` reads a record field, but this is an Int
+ --> scripts/main.zeff:2:1
+  |
+2 | n.a
+  | ^^^ an Int
+  |
+  = help: a method call has parentheses: `.a()`
+
+## nothing_in_arithmetic (exit 1)
+error[Z0206]: this gives no value, so it cannot be used in an expression
+ --> scripts/main.zeff:1:1
+  |
+1 | print(1) + 1
+  | ^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+## int_overflow (exit 1)
+error[Z0211]: Int overflow: 9223372036854775807 + 1 does not fit in 64 bits
+ --> scripts/main.zeff:1:1
+  |
+1 | 9223372036854775807 + 1
+  | ^^^^^^^^^^^^^^^^^^^^^^^ the operation
+  |
+  = help: Ints are 64-bit; a Float (`1.0 * x`) holds larger magnitudes with 53 bits of precision
+
+## index_outside (exit 1)
+error[Z0207]: index 4 is outside 1..3
+ --> scripts/main.zeff:1:11
+  |
+1 | [1, 2, 3][4]
+  |           ^ the list has 3 items
+  |
+  = help: positions count from 1 to the list's length
+
+## index_na (exit 1)
+error[Z0207]: the index is NA
+ --> scripts/main.zeff:1:11
+  |
+1 | [1, 2, 3][[NA, 1][1]]
+  |           ^^^^^^^^^^ the list has 3 items
+  |
+  = help: positions count from 1 to the list's length
+
+## slice_outside (exit 1)
+error[Z0207]: index 9 is outside 1..3
+ --> scripts/main.zeff:1:14
+  |
+1 | [1, 2, 3][2..9]
+  |              ^ the list has 3 items
+  |
+  = help: positions count from 1 to the list's length
+
+## range_end_na (exit 1)
+error[Z0207]: a range end is NA
+ --> scripts/main.zeff:1:1
+  |
+1 | 1..[NA, 1][1]
+  | ^^^^^^^^^^^^^ both ends must be Ints
+  |
+  = help: a range runs from one whole number to another: `2..5`
+
+## no_such_key (exit 1)
+error[Z0204]: no key `2` in the mapping
+ --> scripts/main.zeff:1:12
+  |
+1 | [1 => "a"][2]
+  |            ^ not a key
+  |
+  = help: `is_in(k, keys(m))` tests for a key first (release 0.5.0); the keys are those written in the mapping
+
+## division_by_zero (exit 0)
+Inf
+warning: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+
+## zero_over_zero (exit 0)
+NA
+warning: 0 / 0 gave NA (line 1)
+
+## inf_minus_inf (exit 0)
+NA
+warning: Inf - Inf gave NA (line 1)
+
+## power_without_a_real_value (exit 0)
+NA
+warning: -8 ^ 0.5 (no real value) gave NA (line 1)

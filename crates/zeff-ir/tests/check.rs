@@ -498,13 +498,6 @@ fn constructs_of_later_releases_are_z0304_with_their_release() {
         ("let x = if true { 1 } else { 2 }\n", "0.5.0"),
         ("let x = case {\n    true => 1,\n    _ => 2,\n}\n", "0.5.0"),
         ("let x = [for i in [1] { i }]\n", "0.5.0"),
-        ("let x = 1 + 2\n", "0.2.0"),
-        ("let x = !true\n", "0.2.0"),
-        ("let x = -\"a\"\n", "0.2.0"),
-        ("let x = [1, 2][1]\n", "0.2.0"),
-        ("let x = {a: 1}.a\n", "0.2.0"),
-        ("let x = [0 => \"a\"]\n", "0.2.0"),
-        ("let x = 1..5\n", "0.2.0"),
         ("let f = y ~ x\n", "0.4.0"),
         ("let m = model {\n    y ~ x\n}\n", "1.3"),
         ("let g = dag {\n    a -> b\n}\n", "0.10.0"),
@@ -673,10 +666,73 @@ fn messages() {
             "import(\"d.csv\", types: {sold: Date(\"%d/%m/%Y %H:%M\")})\n",
         ),
         ("not_yet_for", "for i in [1, 2] {\n    print(i)\n}\n"),
-        ("not_yet_arithmetic", "let x = 1 + 2\n"),
         ("not_yet_formula", "let f = y ~ x\n"),
     ];
     for (name, text) in cases {
         insta::assert_snapshot!(*name, render(text));
     }
+}
+
+// ----- expressions over values (sections 3.3 and 3.7) -----
+
+#[test]
+fn expressions_have_the_types_of_section_3_7() {
+    let cases = [
+        ("let x = 1 + 2", "Int"),
+        ("let x = 1 + 2.5", "Float"),
+        ("let x = 7 / 2", "Float"),
+        ("let x = 2 ^ 3", "Float"),
+        ("let x = -4", "Int"),
+        ("let x = -(4 * 2)", "Int"),
+        ("let x = NA + 1", "Int"),
+        ("let x = 1 < 2", "Bool"),
+        ("let x = \"a\" == \"b\"", "Bool"),
+        ("let x = true && NA", "Bool"),
+        ("let x = !true", "Bool"),
+        ("let x = 1..5", "List<Int>"),
+        ("let x = [1, 2, 3][2]", "Int"),
+        ("let x = [1, 2, 3][1..2]", "List<Int>"),
+        ("let x = [1 => \"a\"]", "Mapping<Int, Str>"),
+        ("let x = [1 => \"a\", 2.5 => NA]", "Mapping<Float, Str>"),
+        ("let x = [1 => \"a\"][1]", "Str"),
+        ("let x = {a: 1, b: \"x\"}.b", "Str"),
+        ("let x = {a: [1.5]}.a[1]", "Float"),
+    ];
+    for (text, ty) in cases {
+        let program = clean(&format!("{text}\n"));
+        assert_eq!(program.bindings[0].ty.to_string(), ty, "{text}");
+    }
+}
+
+#[test]
+fn the_codes_of_expressions() {
+    let cases = [
+        ("\"a\" + 1\n", "Z0215"),
+        ("\"a\" * 2\n", "Z0215"),
+        ("true + 1\n", "Z0221"),
+        ("let t = \"a\"\nprint(-t)\n", "Z0221"),
+        ("!1\n", "Z0221"),
+        ("1 && true\n", "Z0221"),
+        ("1 == \"a\"\n", "Z0221"),
+        ("true < 1\n", "Z0221"),
+        ("[1] == [1]\n", "Z0208"),
+        ("{a: 1} != {a: 1}\n", "Z0208"),
+        ("1 : 2\n", "Z0306"),
+        ("1.5..2\n", "Z0221"),
+        ("3[1]\n", "Z0221"),
+        ("[1][\"a\"]\n", "Z0221"),
+        ("[1 => 2][\"a\"]\n", "Z0221"),
+        ("[1 => 2, \"a\" => 3]\n", "Z0214"),
+        ("[1 => 2, 2 => \"a\"]\n", "Z0214"),
+        ("[1 => 2, 1 => 3]\n", "Z0222"),
+        ("{a: 1}.b\n", "Z0209"),
+        ("let n = 1\nn.a\n", "Z0213"),
+        ("print(1) + 1\n", "Z0206"),
+    ];
+    for (text, code) in cases {
+        let found = codes(text);
+        assert_eq!(found, vec![code.to_string()], "{text:?}\n{}", render(text));
+    }
+    // Chained comparisons are the parser's Z0314; the checker never sees them.
+    assert_eq!(codes("1 < 2 < 3\n"), vec!["Z0314".to_string()]);
 }

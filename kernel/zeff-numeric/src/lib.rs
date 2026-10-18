@@ -150,9 +150,31 @@ fn power_of_two_scale(x: f64) -> f64 {
     f64::from_bits(field << 52)
 }
 
+/// `x` to the power `y`, from the pure-Rust `libm` (Engine Specification, section 8.3, point 3:
+/// one implementation of the elementary functions on every target, never the platform's).
+/// The result is not-a-number where the real power does not exist; the caller turns that into
+/// the language's `NA` with its warning.
+pub fn pow(x: f64, y: f64) -> f64 {
+    libm::pow(x, y)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn powers_are_exact_where_the_answer_is_and_na_where_there_is_none() {
+        assert_eq!(pow(2.0, 10.0), 1024.0);
+        assert_eq!(pow(2.0, 0.5), 2f64.sqrt());
+        assert_eq!(pow(0.0, 0.0), 1.0);
+        assert_eq!(pow(-2.0, 3.0), -8.0);
+        assert_eq!(pow(10.0, -2.0), 0.01);
+        assert!(
+            pow(-8.0, 1.0 / 3.0).is_nan(),
+            "no real cube root through pow"
+        );
+        assert_eq!(pow(2.0, 1100.0), f64::INFINITY);
+    }
 
     #[test]
     fn the_spread_of_very_small_and_very_large_values_survives_squaring() {
