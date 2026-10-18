@@ -144,3 +144,11 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps. Open decision #46 now also holds Z0410, due at 0.3.0.
 
+## 19 October 2026, questions 1 and 2 decided
+
+**Done.** The owner took questions 1 (weighted statistics) and 2 (the synthetic wages dataset) as recommended; recorded in the checklist and the decisions log. Step 17 applies the weighted formulas; before step 18 the generating model of the dataset is drafted for the owner's approval.
+
+**Next.** Step 12, maths part 2 `[function]`.
+
+**For the owner to decide.** Nothing until the dataset draft at step 18.
+
