@@ -41,15 +41,14 @@ for (i in seq_along(to_signif)) for (sig in c(1L, 2L, 3L, 6L)) {
   significant[[length(significant) + 1]] <- list(decimal("significant")[i], sig, num(signif(to_signif[i], sig)))
 }
 
-# Floored division and remainder: R's %/% and %% have the sign of the divisor, as Zeff's div and
-# mod do. R has no 64-bit integers, so the two extreme values of maths.py are left out.
+# Floored division and remainder on whole numbers: R's %/% and %% have the sign of the divisor,
+# as Zeff's div and mod do. R has no 64-bit integers, so the two extreme values of maths.py are
+# left out. On Floats R's %% is computed in extended precision where the processor has it (x86)
+# and in double elsewhere, so its last bits differ between platforms and it is no reference;
+# Python's exact `//` and `%` in maths.py are.
 divisions <- list()
 for (a in c(7, -7, 6, -6, 0, 1, -1, 100, -100)) for (b in c(2, -2, 3, -3, 7, -7, 1, -1, 10)) {
   divisions[[length(divisions) + 1]] <- list(as.integer(a), as.integer(b), as.integer(a %/% b), as.integer(a %% b))
-}
-float_divisions <- list()
-for (a in c(7.5, -7.5, 6.0, -6.0, 0.0, 1e10, -1e10, 0.3)) for (b in c(2.0, -2.0, 3.0, 0.1, -0.1, 7.0)) {
-  float_divisions[[length(float_divisions) + 1]] <- list(num(a), num(b), num(a %/% b), num(a %% b))
 }
 
 out <- list(
@@ -60,7 +59,6 @@ out <- list(
   pow = pow_pairs,
   round = rounding,
   round_significant = significant,
-  div_mod_int = divisions,
-  div_mod_float = float_divisions
+  div_mod_int = divisions
 )
 write_json(out, file.path(here(), "maths.json"))

@@ -168,16 +168,6 @@ fn rounding_and_division_agree_with_r_except_where_r_departs_from_the_exact_rule
             "mod({a}, {b})"
         );
     }
-    for case in reference["div_mod_float"].as_array().unwrap() {
-        let (a, b) = (number(&case[0]), number(&case[1]));
-        assert_eq!(maths::div_float(a, b), number(&case[2]), "div({a}, {b})");
-        agree(
-            &format!("mod({a}, {b})"),
-            maths::mod_float(a, b),
-            number(&case[3]),
-            FIFTEEN_DIGITS,
-        );
-    }
 }
 
 #[test]

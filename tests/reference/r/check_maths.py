@@ -59,7 +59,7 @@ def main(committed_path, regenerated_path):
         for case_a, case_b in zip(committed[key], regenerated[key]):
             if case_a[:2] != case_b[:2] or not close(case_a[2], case_b[2]):
                 problems.append(f"{key}{tuple(case_a[:2])}: committed {case_a[2]}, regenerated {case_b[2]}")
-    for key in ("round", "round_significant", "div_mod_int", "div_mod_float"):
+    for key in ("round", "round_significant", "div_mod_int"):
         if committed[key] != regenerated[key]:
             problems.append(f"{key} differs exactly where it must not")
     if problems:
