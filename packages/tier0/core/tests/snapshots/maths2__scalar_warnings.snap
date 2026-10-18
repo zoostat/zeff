@@ -1,0 +1,34 @@
+---
+source: packages/tier0/core/tests/maths2.rs
+expression: stderr
+---
+warning: log of zero gave -Inf (line 1)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+warning: log of a negative number gave NA (line 2)
+  = help: a negative number has no real logarithm; `where(x > 0)` keeps the rows that have one
+warning: log of zero gave Inf (line 3)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+warning: log to a base that is not positive or is 1 gave NA (line 4)
+  = help: a logarithm needs a positive base other than 1; `base: 2`, `base: 10` and `E` are the usual ones
+warning: log to a base that is not positive or is 1 gave NA (line 5)
+  = help: a logarithm needs a positive base other than 1; `base: 2`, `base: 10` and `E` are the usual ones
+warning: log2 of zero gave -Inf (line 6)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+warning: log10 of a negative number gave NA (line 7)
+  = help: a negative number has no real logarithm; `where(x > 0)` keeps the rows that have one
+warning: log1p of -1 gave -Inf (line 8)
+  = help: log1p(x) is log(1 + x), which has no value at -1; `where(x > -1)` keeps the rows that have one
+warning: log1p below -1 gave NA (line 9)
+  = help: log1p(x) is log(1 + x), which has no real value below -1; `where(x > -1)` keeps the rows that have one
+warning: division by zero gave Inf (line 10)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+warning: sin of an infinite value gave NA (line 11)
+  = help: an angle must be finite; `where(is_finite(x))` keeps the rows that are
+warning: cos of an infinite value gave NA (line 12)
+  = help: an angle must be finite; `where(is_finite(x))` keeps the rows that are
+warning: tan of an infinite value gave NA (line 13)
+  = help: an angle must be finite; `where(is_finite(x))` keeps the rows that are
+warning: asin outside [-1, 1] gave NA (line 14)
+  = help: a sine or cosine lies between -1 and 1, so its inverse has no value elsewhere; `where(abs(x) <= 1)` keeps the rows that have one
+warning: acos outside [-1, 1] gave NA (line 15)
+  = help: a sine or cosine lies between -1 and 1, so its inverse has no value elsewhere; `where(abs(x) <= 1)` keeps the rows that have one

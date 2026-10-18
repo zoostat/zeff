@@ -1,0 +1,35 @@
+---
+source: packages/tier0/core/tests/maths2.rs
+expression: all
+---
+error[Z0401]: `x` of `exp` must be a Float, but this is a Str
+ --> scripts/main.zeff:1:5
+  |
+1 | exp("a")
+  |     ^^^ a Str
+  |
+  = help: usage: `exp(x)`
+
+error[Z0401]: `base` of `log` must be a Float, but this is a Str
+ --> scripts/main.zeff:1:14
+  |
+1 | log(2, base: "e")
+  |              ^^^ a Str
+  |
+  = help: usage: `log(x, base: Float = E)`
+
+error[Z0406]: `atan2` needs `x`
+ --> scripts/main.zeff:1:1
+  |
+1 | atan2(1)
+  | ^^^^^ `x` is missing
+  |
+  = help: usage: `atan2(y, x)`
+
+error[Z0401]: `x` of `sin` must be a Float, but this is a Bool
+ --> scripts/main.zeff:1:5
+  |
+1 | sin(true)
+  |     ^^^^ a Bool
+  |
+  = help: usage: `sin(x)`

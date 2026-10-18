@@ -152,3 +152,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Nothing until the dataset draft at step 18.
 
+## 19 October 2026, step 12 of release 0.2.0
+
+**Done.** Step 12 `[function]`: `exp`, `log` with `base:`, `log2`, `log10`, `log1p`, `expm1`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan` and `atan2`, each with its help page and examples, on scalars and columns, with the warnings of section 4.1 (the logarithm of zero and of a negative number, an infinite angle, an inverse outside [-1, 1]). 6 tests added (grid against the exact and the R references, edges, columns, wrong kinds, a property of the identities), 3 snapshots; the catalogue rows marked implemented. 28 of the 68 functions of `core` ship.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 13, `is_missing`, `coalesce`, `warn`, `error` `[function]`.
+
+**For the owner to decide.** Nothing until the dataset draft at step 18.
+

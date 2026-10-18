@@ -15,7 +15,12 @@ const PHRASES: &[(&str, &[&str])] = &[
     ("W0201", &["with NA in", "has no values", "have NA in"]),
     (
         "W0204",
-        &["division by zero gave", "holds both Inf and -Inf"],
+        &[
+            "division by zero gave",
+            "holds both Inf and -Inf",
+            "of zero gave",
+            "log1p of -1 gave",
+        ],
     ),
     (
         "W0205",

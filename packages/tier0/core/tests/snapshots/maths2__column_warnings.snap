@@ -1,0 +1,10 @@
+---
+source: packages/tier0/core/tests/maths2.rs
+expression: without_format_notes(&stderr)
+---
+warning: log of zero gave -Inf in 1 row (line 5)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+warning: log of zero gave -Inf in 1 row (line 6)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+warning: log of a negative number gave NA in 1 row (line 6)
+  = help: a negative number has no real logarithm; `where(x > 0)` keeps the rows that have one

@@ -1,6 +1,7 @@
 //! The maths functions of `core` (Language Reference, section 3.7, "Numbers", and 4.1): `abs`,
-//! `sign`, `sqrt`, `floor`, `ceil`, `truncate`, `round`, `min`, `max`, `div`, `mod`, `is_finite`
-//! and the constants `PI` and `E`, written for one value each; a column is handled row by row by
+//! `sign`, `sqrt`, `floor`, `ceil`, `truncate`, `round`, `min`, `max`, `div`, `mod`, `is_finite`,
+//! the constants `PI` and `E`, the exponential and the logarithms, and the trigonometric
+//! functions, written for one value each; a column is handled row by row by
 //! `lift`. The arithmetic itself is the maths kernel's (`zeff_numeric::maths`), one pure-Rust
 //! implementation on every target.
 //!
@@ -294,6 +295,167 @@ fn e(_ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
     Ok(Value::Float(std::f64::consts::E))
 }
 
+/// W0204: an operation gave an infinity; the wording names the cause, as `gave_na` does.
+fn gave_inf(ctx: &mut CallContext<'_>, cause: &str, sign_negative: bool, help: &str) {
+    let inf = if sign_negative { "-Inf" } else { "Inf" };
+    ctx.message(Diagnostic::warning("W0204", format!("{cause} gave {inf}")).help(help));
+}
+
+const LOG_HELP: &str =
+    "`log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`";
+
+/// The logarithm rules of section 4.1 for `x` under `name`: zero gives an infinity with W0204 and a
+/// negative number gives `NA` with W0205. `value` is the logarithm already computed.
+fn logarithm(ctx: &mut CallContext<'_>, name: &str, x: f64, value: f64) -> Value {
+    if x == 0.0 {
+        gave_inf(
+            ctx,
+            &format!("{name} of zero"),
+            value.is_sign_negative(),
+            LOG_HELP,
+        );
+        return Value::Float(value);
+    }
+    if x < 0.0 || value.is_nan() {
+        gave_na(
+            ctx,
+            &format!("{name} of a negative number"),
+            "a negative number has no real logarithm; `where(x > 0)` keeps the rows that have one",
+        );
+        return Value::Na;
+    }
+    float(value)
+}
+
+fn exp(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(as_float(number(args.get(0))).map_or(Value::Na, |x| float(maths::exp(x))))
+}
+
+fn expm1(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(as_float(number(args.get(0))).map_or(Value::Na, |x| float(maths::expm1(x))))
+}
+
+/// `log(x, base: Float = E)`.
+fn log(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(x) = as_float(number(args.get(0))) else {
+        return Ok(Value::Na);
+    };
+    let base = match args.get(1) {
+        None => None,
+        Some(Value::Na) => return Ok(Value::Na),
+        other => as_float(number(other)),
+    };
+    match base {
+        None => Ok(logarithm(ctx, "log", x, maths::log(x))),
+        Some(base) if base <= 0.0 || base == 1.0 || base.is_nan() => {
+            gave_na(
+                ctx,
+                "log to a base that is not positive or is 1",
+                "a logarithm needs a positive base other than 1; `base: 2`, `base: 10` and `E` are the usual ones",
+            );
+            Ok(Value::Na)
+        }
+        Some(base) => Ok(logarithm(ctx, "log", x, maths::log_base(x, base))),
+    }
+}
+
+fn log2(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(as_float(number(args.get(0)))
+        .map_or(Value::Na, |x| logarithm(ctx, "log2", x, maths::log2(x))))
+}
+
+fn log10(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(as_float(number(args.get(0)))
+        .map_or(Value::Na, |x| logarithm(ctx, "log10", x, maths::log10(x))))
+}
+
+fn log1p(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(x) = as_float(number(args.get(0))) else {
+        return Ok(Value::Na);
+    };
+    if x == -1.0 {
+        gave_inf(
+            ctx,
+            "log1p of -1",
+            true,
+            "log1p(x) is log(1 + x), which has no value at -1; `where(x > -1)` keeps the rows that have one",
+        );
+        return Ok(Value::Float(f64::NEG_INFINITY));
+    }
+    if x < -1.0 {
+        gave_na(
+            ctx,
+            "log1p below -1",
+            "log1p(x) is log(1 + x), which has no real value below -1; `where(x > -1)` keeps the rows that have one",
+        );
+        return Ok(Value::Na);
+    }
+    Ok(float(maths::log1p(x)))
+}
+
+/// A trigonometric function, which has no value at an infinity (W0205).
+fn trigonometric(ctx: &mut CallContext<'_>, name: &str, args: &Args, f: fn(f64) -> f64) -> Value {
+    let Some(x) = as_float(number(args.get(0))) else {
+        return Value::Na;
+    };
+    if x.is_infinite() {
+        gave_na(
+            ctx,
+            &format!("{name} of an infinite value"),
+            "an angle must be finite; `where(is_finite(x))` keeps the rows that are",
+        );
+        return Value::Na;
+    }
+    float(f(x))
+}
+
+fn sin(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(trigonometric(ctx, "sin", &args, maths::sin))
+}
+
+fn cos(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(trigonometric(ctx, "cos", &args, maths::cos))
+}
+
+fn tan(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(trigonometric(ctx, "tan", &args, maths::tan))
+}
+
+/// An inverse sine or cosine, defined on [-1, 1] only (W0205 outside).
+fn inverse(ctx: &mut CallContext<'_>, name: &str, args: &Args, f: fn(f64) -> f64) -> Value {
+    let Some(x) = as_float(number(args.get(0))) else {
+        return Value::Na;
+    };
+    if !(-1.0..=1.0).contains(&x) {
+        gave_na(
+            ctx,
+            &format!("{name} outside [-1, 1]"),
+            "a sine or cosine lies between -1 and 1, so its inverse has no value elsewhere; `where(abs(x) <= 1)` keeps the rows that have one",
+        );
+        return Value::Na;
+    }
+    float(f(x))
+}
+
+fn asin(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(inverse(ctx, "asin", &args, maths::asin))
+}
+
+fn acos(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(inverse(ctx, "acos", &args, maths::acos))
+}
+
+fn atan(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    Ok(as_float(number(args.get(0))).map_or(Value::Na, |x| float(maths::atan(x))))
+}
+
+fn atan2(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let (Some(y), Some(x)) = (as_float(number(args.get(0))), as_float(number(args.get(1)))) else {
+        return Ok(Value::Na);
+    };
+    Ok(float(maths::atan2(y, x)))
+}
+
 /// A function of one number.
 fn unary(
     name: &'static str,
@@ -485,6 +647,138 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: pi,
+        },
+        unary("exp", "Float", include_str!("../help/exp.md"), exp, vec![]),
+        Function {
+            spec: FunctionSpec {
+                name: "log",
+                package: "core",
+                method: false,
+                params: vec![
+                    ParamSpec::required("x", "Float"),
+                    ParamSpec::option_with_default("base", "Float", "E"),
+                ],
+                rest: None,
+                returns: "Float",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0204",
+                        "log of zero gave -Inf (or Inf for a base below 1)",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0205",
+                        "log of a negative number, or to a base that is not positive or is 1, gave NA",
+                    ),
+                ],
+                help: include_str!("../help/log.md"),
+                accuracy: None,
+            },
+            body: log,
+        },
+        unary(
+            "log2",
+            "Float",
+            include_str!("../help/log2.md"),
+            log2,
+            vec![
+                DiagnosticDecl::new("W0204", "log2 of zero gave -Inf"),
+                DiagnosticDecl::new("W0205", "log2 of a negative number gave NA"),
+            ],
+        ),
+        unary(
+            "log10",
+            "Float",
+            include_str!("../help/log10.md"),
+            log10,
+            vec![
+                DiagnosticDecl::new("W0204", "log10 of zero gave -Inf"),
+                DiagnosticDecl::new("W0205", "log10 of a negative number gave NA"),
+            ],
+        ),
+        unary(
+            "log1p",
+            "Float",
+            include_str!("../help/log1p.md"),
+            log1p,
+            vec![
+                DiagnosticDecl::new("W0204", "log1p of -1 gave -Inf"),
+                DiagnosticDecl::new("W0205", "log1p below -1 gave NA"),
+            ],
+        ),
+        unary(
+            "expm1",
+            "Float",
+            include_str!("../help/expm1.md"),
+            expm1,
+            vec![],
+        ),
+        unary(
+            "sin",
+            "Float",
+            include_str!("../help/sin.md"),
+            sin,
+            vec![DiagnosticDecl::new(
+                "W0205",
+                "sin of an infinite value gave NA",
+            )],
+        ),
+        unary(
+            "cos",
+            "Float",
+            include_str!("../help/cos.md"),
+            cos,
+            vec![DiagnosticDecl::new(
+                "W0205",
+                "cos of an infinite value gave NA",
+            )],
+        ),
+        unary(
+            "tan",
+            "Float",
+            include_str!("../help/tan.md"),
+            tan,
+            vec![DiagnosticDecl::new(
+                "W0205",
+                "tan of an infinite value gave NA",
+            )],
+        ),
+        unary(
+            "asin",
+            "Float",
+            include_str!("../help/asin.md"),
+            asin,
+            vec![DiagnosticDecl::new("W0205", "asin outside [-1, 1] gave NA")],
+        ),
+        unary(
+            "acos",
+            "Float",
+            include_str!("../help/acos.md"),
+            acos,
+            vec![DiagnosticDecl::new("W0205", "acos outside [-1, 1] gave NA")],
+        ),
+        unary(
+            "atan",
+            "Float",
+            include_str!("../help/atan.md"),
+            atan,
+            vec![],
+        ),
+        Function {
+            spec: FunctionSpec {
+                name: "atan2",
+                package: "core",
+                method: false,
+                params: vec![
+                    ParamSpec::required("y", "Float"),
+                    ParamSpec::required("x", "Float"),
+                ],
+                rest: None,
+                returns: "Float",
+                diagnostics: vec![],
+                help: include_str!("../help/atan2.md"),
+                accuracy: None,
+            },
+            body: atan2,
         },
         Function {
             spec: FunctionSpec {
