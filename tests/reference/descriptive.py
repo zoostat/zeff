@@ -50,8 +50,21 @@ for name, values in datasets.items():
         "sd": text(statistics.stdev(values)),
     }
 
-path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "descriptive.json")
+here = os.path.dirname(os.path.abspath(__file__))
+path = os.path.join(here, "descriptive.json")
 with open(path, "w", encoding="utf-8") as f:
     json.dump(out, f, indent=1)
     f.write("\n")
 print("wrote", path)
+
+# The same datasets as one-column CSV files, for the R scripts in r/ (testing handbook, section
+# 1.1): every value is the shortest text that reads back to the same double, so R reads the very
+# numbers Python computed with.
+data_dir = os.path.join(here, "data")
+os.makedirs(data_dir, exist_ok=True)
+for name, values in datasets.items():
+    with open(os.path.join(data_dir, f"{name}.csv"), "w", encoding="utf-8", newline="\n") as f:
+        f.write("x\n")
+        for v in values:
+            f.write(text(v) + "\n")
+print("wrote", len(datasets), "datasets to", data_dir)

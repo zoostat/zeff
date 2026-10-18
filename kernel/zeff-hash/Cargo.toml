@@ -1,0 +1,15 @@
+[package]
+name = "zeff-hash"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Content hashing for the Zeff engine: BLAKE3 of every input file, cached copy, output and fetched response"
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# Pure Rust on every target (no C or assembly build), so the build is the same everywhere;
+# the multi-core mode arrives with the run record, when large files are hashed in earnest.
+blake3 = { version = "=1.8.7", default-features = false, features = ["std", "pure"] }

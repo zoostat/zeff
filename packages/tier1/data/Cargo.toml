@@ -14,6 +14,7 @@ zeff-core.workspace = true
 zeff-columns.workspace = true
 zeff-dates.workspace = true
 zeff-diagnostics.workspace = true
+zeff-hash.workspace = true
 zeff-numeric.workspace = true
 zeff-registry.workspace = true
 unicode-normalization = "=0.1.26"

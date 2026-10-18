@@ -301,10 +301,26 @@ out["div_mod_int"] = divisions
 float_divisions = []
 for a in (7.5, -7.5, 6.0, -6.0, 0.0, 1e10, -1e10, 0.3):
     for b in (2.0, -2.0, 3.0, 0.1, -0.1, 7.0):
-        float_divisions.append([repr(a), repr(b), repr(math.floor(a / b)), repr(a - b * math.floor(a / b))])
+        # Python's // and % are exact (the remainder from fmod, the quotient from it), where
+        # floor(a / b) would round 7.5 / 0.1 up to 75 and miss the true remainder; R's %/% and %%
+        # agree with them.
+        float_divisions.append([repr(a), repr(b), repr(a // b), repr(a % b)])
 out["div_mod_float"] = float_divisions
 
 with open(os.path.join(here, "maths.json"), "w", encoding="utf-8") as f:
     json.dump(out, f, indent=1, ensure_ascii=False)
     f.write("\n")
 print("wrote maths.json:", len(grid), "grid points,", len(rounding), "roundings")
+
+# The inputs for the R script r/maths.R, each with its exact hexadecimal form: R's own reading
+# of a decimal such as 1e300 is a few bits off (its parser multiplies by powers of ten), and a
+# function as sensitive as sin at 1e100 would then be evaluated at another point. R reads a
+# hexadecimal float exactly.
+inputs_path = os.path.join(here, "data", "maths_inputs.csv")
+os.makedirs(os.path.dirname(inputs_path), exist_ok=True)
+with open(inputs_path, "w", encoding="utf-8", newline="\n") as f:
+    f.write("set,decimal,hex\n")
+    for name, values in (("grid", grid), ("round", to_round), ("significant", [x for x, _, _ in [(123456.0, 0, 0), (0.00123456, 0, 0), (1.25, 0, 0), (9.99, 0, 0), (-987.654, 0, 0), (5.0, 0, 0), (0.5, 0, 0), (1500.0, 0, 0), (2.5e-7, 0, 0)]])):
+        for x in values:
+            f.write(f"{name},{text(x)},{float.hex(x)}\n")
+print("wrote", inputs_path)

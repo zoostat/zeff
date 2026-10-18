@@ -241,19 +241,52 @@ pub fn mod_int(a: i64, b: i64) -> Option<i64> {
     }
 }
 
-/// Floored division of Floats: `floor(a / b)`, following `/` at zero (section 3.7).
+/// Floored division of Floats, as Python's `//` and R's `%/%` compute it: the quotient is taken
+/// from the exact remainder (`a - mod(a, b)`) / `b`, never from `floor(a / b)`, which rounds
+/// 7.5 / 0.1 up to 75 although 0.1 is a little more than a tenth; the sign rules of section 3.7.
 pub fn div_float(a: f64, b: f64) -> f64 {
-    (a / b).floor()
+    if !a.is_finite() || !b.is_finite() || b == 0.0 {
+        return (a / b).floor();
+    }
+    let remainder = a % b;
+    let mut quotient = (a - remainder) / b;
+    if remainder != 0.0 && ((b < 0.0) != (remainder < 0.0)) {
+        quotient -= 1.0;
+    }
+    if quotient == 0.0 {
+        return 0.0f64.copysign(a / b);
+    }
+    let floored = quotient.floor();
+    // The division above can land a hair below the whole number it is.
+    if quotient - floored > 0.5 {
+        floored + 1.0
+    } else {
+        floored
+    }
 }
 
-/// The Float remainder with the sign of `b`: `a - b * floor(a / b)`.
+/// The Float remainder with the sign of `b`: the exact IEEE remainder (`fmod`, which Rust's `%`
+/// computes exactly) moved into [0, b) or (b, 0], as Python's `%` and R's `%%` give it.
 pub fn mod_float(a: f64, b: f64) -> f64 {
-    let r = a - b * (a / b).floor();
-    // A rounding can leave a result at `b` itself; the remainder lies in [0, b) or (b, 0].
-    if b.is_finite() && r != 0.0 && (r.abs() >= b.abs() || (r < 0.0) != (b < 0.0)) {
-        0.0
+    if !a.is_finite() || b.is_nan() || b == 0.0 {
+        return f64::NAN;
+    }
+    if b.is_infinite() {
+        // A finite number divided by an infinity: the quotient is zero and the remainder is a
+        // itself, or b's side of zero when the signs differ.
+        return if a == 0.0 || (a < 0.0) == (b < 0.0) {
+            a
+        } else {
+            b
+        };
+    }
+    let remainder = a % b;
+    if remainder == 0.0 {
+        0.0f64.copysign(b)
+    } else if (b < 0.0) != (remainder < 0.0) {
+        remainder + b
     } else {
-        r
+        remainder
     }
 }
 
@@ -314,6 +347,21 @@ mod tests {
 
     #[test]
     fn floored_division_and_remainder_as_python_and_r() {
+        // The divisor 0.1 is a little more than a tenth, so 7.5 holds it 74 times, as Python's
+        // `7.5 // 0.1` and R's `7.5 %/% 0.1` say; floor(7.5 / 0.1) would say 75.
+        assert_eq!(div_float(7.5, 0.1), 74.0);
+        assert_eq!(mod_float(7.5, 0.1), 0.09999999999999959);
+        assert_eq!(div_float(-7.5, 0.1), -75.0);
+        assert_eq!(mod_float(-7.5, 0.1), 4.163336342344337e-16);
+        assert_eq!(div_float(7.5, 2.0), 3.0);
+        assert_eq!(mod_float(7.5, 2.0), 1.5);
+        assert_eq!(mod_float(-7.5, 2.0), 0.5);
+        assert_eq!(mod_float(7.5, -2.0), -0.5);
+        assert_eq!(mod_float(6.0, 3.0), 0.0);
+        assert!(mod_float(6.0, -3.0).is_sign_negative());
+        assert_eq!(div_float(0.0, 5.0), 0.0);
+        assert!(div_float(1.0, 0.0).is_infinite() && mod_float(1.0, 0.0).is_nan());
+        assert_eq!(mod_float(2.0, f64::INFINITY), 2.0);
         assert_eq!(div_int(7, 2), Some(3));
         assert_eq!(div_int(-7, 2), Some(-4));
         assert_eq!(div_int(7, -2), Some(-4));

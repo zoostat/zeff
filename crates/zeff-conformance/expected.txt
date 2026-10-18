@@ -90,7 +90,7 @@ maths/sqrt d61d9ca83ed1beb1
 maths/pow 2520359d3fb094d3
 maths/atan2 743e1b3f9a7e4c68
 maths/round 07137f618c4ad92e
-maths/div_mod 59637839b4687ce8
+maths/div_mod 6edabcb027cce20f
 milestone/stdout cbf29ce484222325
 milestone/stderr 7965ffa1fba557ae
 milestone/exit_code aab1693229ba1db8

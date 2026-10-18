@@ -127,8 +127,11 @@ pub fn import(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
     for message in read.messages {
         ctx.message(message);
     }
-    // Every reader fills the `source` key (section 4.3, rule 3).
-    Ok(Value::Frame(Frame::new(read.table.with_source(&path))))
+    // Every reader fills the `source` key (section 4.3, rule 3) with the path and the BLAKE3 hash
+    // of the file's bytes, the hash the run record will carry (Engine Specification, section 8.3,
+    // point 10).
+    let source = format!("{path} {}", zeff_hash::labelled(&bytes));
+    Ok(Value::Frame(Frame::new(read.table.with_source(&source))))
 }
 
 /// The one note every import prints (Language Reference, section 6.1): what the format carried
