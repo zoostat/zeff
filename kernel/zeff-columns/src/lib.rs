@@ -8,18 +8,23 @@
 //!
 //! Every column type is declared through one interface (`declaration`), carries a metadata store
 //! (`metadata`), and round-trips through Arrow IPC with both (`ipc`); selection vectors and shared
-//! columns arrive with 0.6.0.
+//! columns arrive with 0.6.0. Grouping by keys in key order (`grouping`) and the weight rules
+//! (`weights`) serve `by:` and `weights:` on every statistic.
 
 mod column;
 mod declaration;
+mod grouping;
 mod ipc;
 mod logic;
 mod metadata;
 mod table;
+mod weights;
 
 pub use column::{Column, ColumnError, ColumnType, NumericValues, Value};
 pub use declaration::{Frequency, Opaque, Relations, TypeDeclaration};
+pub use grouping::{GroupError, Groups, Key};
 pub use ipc::{IpcError, read as read_ipc, write as write_ipc};
 pub use logic::{and, not, or};
 pub use metadata::{FrameMetadata, Metadata, MetadataKey};
 pub use table::{Table, TableError};
+pub use weights::{WeightError, WeightType, Weights};

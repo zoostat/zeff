@@ -15,6 +15,7 @@ arrow-schema = { version = "=60.0.0", default-features = false }
 arrow-ipc = { version = "=60.0.0", default-features = false }
 arrow-buffer = { version = "=60.0.0", default-features = false }
 zeff-dates.workspace = true
+zeff-numeric.workspace = true
 
 [dev-dependencies]
 proptest = "=1.12.0"

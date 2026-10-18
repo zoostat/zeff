@@ -75,3 +75,15 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 6, grouping and weights `[engine]`.
 
 **For the owner to decide.** Nothing new; question 1 (weighted statistics) is first applied at step 17.
+
+## 18 October 2026, step 6 of release 0.2.0
+
+**A slip repaired first.** The GitHub run on step 5 failed in the `reference` job: the maths reference had been taken from Python's `math` module, the platform's own library, and Linux wrote a different file from the Mac. The script now computes the exact values with the `decimal` module and is the same everywhere; the kernel agrees within two units in the last place, and the Mac's library differed from the truth at 46 of 754 points.
+
+**Done.** Step 6 `[engine]`: grouping and weights. The group index by the identity rules with groups in key order and `NA` last, and the weight vector with the rules of section 4.1 (NA dropped and counted, zero left out with a note, negative an error listing rows, frequency weights whole numbers). 7 tests added, one a property that grouping is a partition in key order.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 7, internal errors never crash and the message-snapshot rule `[engine]`.
+
+**For the owner to decide.** Nothing new.

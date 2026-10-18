@@ -461,3 +461,17 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Tests.** Unit tests of every rule; the reference tests; properties: `log(exp(x)) = x`, `sin² + cos² = 1` and `√x² = x` within a rounding, rounding idempotent and within half a unit of the exact value, floored division and remainder recompose the dividend with the remainder's sign that of the divisor.
 
 **Reason.** Language Reference, section 3.7 ("Numbers"), 4.1; Engine Specification, sections 8.3 (point 3) and 13; the catalogue rows of `round`, `div` and `mod`.
+
+## 18 October 2026: The maths reference is exact, not the platform's
+
+**Choice.** The first version of `tests/reference/maths.py` took its values from Python's `math` module, which is the platform's C library: the GitHub runner (Linux) wrote a different `maths.json` from the Mac at 112 lines, and the `reference` job failed. The script now computes every elementary function with Python's `decimal` module at 50 significant digits (pi to 420 digits for the argument reduction of angles as large as 1e300; the odd functions return tiny and signed-zero arguments as themselves) and rounds once to the nearest double, so the reference is the correctly rounded true value and identical on every machine. The kernel agrees with it within two units in the last place at every point and exactly where the answer is exact; the Mac's own library differed from the exact values at 46 of the 754 points, which is the case for the pure-Rust kernel in one number.
+
+**Reason.** Testing handbook, section 1.1 (a reference must be reproducible); Engine Specification, section 8.3, point 3.
+
+## 18 October 2026: Grouping and weights
+
+**Choice.** `zeff_columns::Groups` builds the group index of one or more key columns by the identity relation of section 3.7 (`NA` its own group, `-0.0` with `0.0`, categories by level position), with the groups in key order (`false < true`, numbers numerically, text by code point, dates chronologically, levels in order) and `NA` last, lexicographic across keys, rows kept in order within a group; never hash order. An opaque column cannot be a key. The index is built once per call for every reducer in it. `zeff_columns::Weights` turns a numeric column into the weight vector under section 4.1's rules: an `NA` weight drops its row and is counted (for the warning), a zero weight leaves the row out and is counted (for the note), a negative or infinite weight is an error listing the first twenty rows and the count, and a frequency weight must be a whole number (it counts rows, as Stata's `fweight`), while analytic and sampling weights are any non-negative Floats. The total is a compensated sum (`zeff-numeric`, now a dependency of `zeff-columns`, kernel to kernel). The weighted formulas themselves are the owner's question 1 and are applied at step 17; the messages are worded there too.
+
+**Tests.** Key order with `NA` last and rows in order; identity rather than comparison; categories by level order and dates chronologically; two keys lexicographic; no key, one group, an empty table, the refusals; every weight rule with the listing cap; a property that grouping partitions the rows in strictly increasing key order with identical keys within a group.
+
+**Reason.** Language Reference, sections 3.7 ("Identity"), 4.1 ("Weights") and 6 ("Row order", `by:`, `weights:`, `weight_type:`).
