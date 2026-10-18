@@ -128,7 +128,7 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **Done.** Step 10 `[engine]`: the R reference harness in `tests/reference/r/` (maths, the descriptive reducers with the nine quantile definitions, and the frame verbs for steps 15 to 17), base R 4.6.0 pinned with `renv.lock`, run again by the CI reference job; `kernel/zeff-hash` on `blake3`, and every imported file hashed into its `source` metadata. The harness found that `div` and `mod` on Floats were inexact for divisors such as 0.1 (now the exact remainder, as R and Python), and that R mis-reads decimals at extreme exponents (the inputs now go to R in hexadecimal). 4 tests added; the conformance digest of `div_mod` changed with the fix.
 
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally; the Python and R reference scripts reproduce their committed files. GitHub run to be read after the push.
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally; the Python and R reference scripts reproduce their committed files. The first GitHub run failed its reference job: R's maths values differ in their last digit between Linux and macOS (R uses the platform's maths library), so CI now compares that one file within a relative 1e-13 and the others byte for byte.
 
 **Next.** Step 11, maths part 1: `abs`, `sign`, `sqrt`, `floor`, `ceil`, `truncate`, `round`, `min`, `max`, `div`, `mod`, `PI`, `E`, `is_finite` `[function]`.
 

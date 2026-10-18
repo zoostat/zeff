@@ -277,5 +277,14 @@ jobs:
           Rscript tests/reference/r/descriptive.R
           Rscript tests/reference/r/frames.R
 
+      - name: R's maths values agree with the committed copy within tolerance
+        # R uses the platform's maths library, so its last bits differ between Linux and macOS;
+        # the committed copy is compared within 1e-13 and the differences are printed.
+        run: |
+          git show HEAD:tests/reference/r/maths.json > /tmp/committed_r_maths.json
+          git diff --stat -- tests/reference/r/maths.json
+          python3 -I tests/reference/r/check_maths.py /tmp/committed_r_maths.json tests/reference/r/maths.json
+          git checkout -- tests/reference/r/maths.json
+
       - name: The committed references and datasets are what the scripts write
         run: git diff --exit-code --stat -- tests/
