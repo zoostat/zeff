@@ -240,3 +240,25 @@ jobs:
 
       - name: Every target gives the committed report, bit for bit
         run: cargo run --locked -p xtask -- compare-identity reports 6
+
+  reference:
+    name: reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the Python the references were made with
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: tests/reference/.python-version
+
+      - name: Rebuild the references and the datasets with the standard library's exact arithmetic
+        run: |
+          python3 --version
+          python3 -I tests/reference/descriptive.py
+          python3 -I tests/reference/functions.py
+          python3 -I tests/reference/csv_cases.py
+
+      - name: The committed references and datasets are what the scripts write
+        run: git diff --exit-code --stat -- tests/

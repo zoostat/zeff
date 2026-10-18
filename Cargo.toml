@@ -14,6 +14,7 @@ members = [
     "crates/zeff-cli",
     "crates/zeff-conformance",
     "tools/xtask",
+    "tools/zeff-testkit",
 ]
 
 [workspace.package]
@@ -38,6 +39,7 @@ zeff-diagnostics = { path = "kernel/zeff-diagnostics" }
 zeff-syntax = { path = "crates/zeff-syntax" }
 zeff-ir = { path = "crates/zeff-ir" }
 zeff-engine = { path = "crates/zeff-engine" }
+zeff-testkit = { path = "tools/zeff-testkit" }
 
 # Determinism (Engine Specification, section 8.3, point 3): Rust never fuses multiply-add or
 # reorders floating-point operations unless asked, and nothing here asks. Integer overflow is

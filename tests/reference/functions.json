@@ -1,0 +1,404 @@
+{
+ "reference": {
+  "software": "Python statistics module (standard library), exact rational arithmetic",
+  "python": "3.14.8"
+ },
+ "datasets": {
+  "wages": {
+   "file": "tests/datasets/wages.csv",
+   "rows": 3,
+   "import_options": "",
+   "columns": {
+    "id": {
+     "n": 3,
+     "missing": 0,
+     "mean": "2.0",
+     "sd": "1.0",
+     "min": "1.0",
+     "max": "3.0"
+    },
+    "wage": {
+     "n": 3,
+     "missing": 0,
+     "mean": "24.53333333333333",
+     "sd": "6.178457196852086",
+     "min": "19.0",
+     "max": "31.2"
+    },
+    "hours": {
+     "n": 2,
+     "missing": 1,
+     "mean": "37.5",
+     "sd": "3.5355339059327378",
+     "min": "35.0",
+     "max": "40.0"
+    }
+   }
+  },
+  "wages_large": {
+   "file": "tests/datasets/wages_large.csv",
+   "rows": 1200,
+   "import_options": "",
+   "columns": {
+    "id": {
+     "n": 1200,
+     "missing": 0,
+     "mean": "600.5",
+     "sd": "346.5544690232691",
+     "min": "1.0",
+     "max": "1200.0"
+    },
+    "wage": {
+     "n": 1200,
+     "missing": 0,
+     "mean": "22.846516666666666",
+     "sd": "11.891554640143644",
+     "min": "4.72",
+     "max": "100.06"
+    },
+    "hours": {
+     "n": 1139,
+     "missing": 61,
+     "mean": "39.66900790166813",
+     "sd": "11.862577804942761",
+     "min": "20.0",
+     "max": "60.0"
+    },
+    "female": {
+     "n": 1200,
+     "missing": 0,
+     "mean": "0.4825",
+     "sd": "0.4999019920625009",
+     "min": "0.0",
+     "max": "1.0"
+    },
+    "educ": {
+     "n": 1200,
+     "missing": 0,
+     "mean": "14.086666666666666",
+     "sd": "3.833588730900455",
+     "min": "8.0",
+     "max": "20.0"
+    }
+   }
+  },
+  "awkward_names": {
+   "file": "tests/datasets/awkward_names.csv",
+   "rows": 3,
+   "import_options": "",
+   "columns": {
+    "Gross Sales (total)": {
+     "n": 3,
+     "missing": 0,
+     "mean": "1226.9166666666667",
+     "sd": "260.8800410789092",
+     "min": "980.25",
+     "max": "1500.0"
+    },
+    "x y": {
+     "n": 3,
+     "missing": 0,
+     "mean": "2.0",
+     "sd": "1.0",
+     "min": "1.0",
+     "max": "3.0"
+    },
+    "`case`": {
+     "n": 3,
+     "missing": 0,
+     "mean": "3.0",
+     "sd": "1.0",
+     "min": "2.0",
+     "max": "4.0"
+    },
+    "日本語": {
+     "n": 3,
+     "missing": 0,
+     "mean": "4.0",
+     "sd": "1.0",
+     "min": "3.0",
+     "max": "5.0"
+    },
+    "1st": {
+     "n": 3,
+     "missing": 0,
+     "mean": "5.0",
+     "sd": "1.0",
+     "min": "4.0",
+     "max": "6.0"
+    },
+    "Wage": {
+     "n": 3,
+     "missing": 0,
+     "mean": "20.0",
+     "sd": "10.0",
+     "min": "10.0",
+     "max": "30.0"
+    },
+    "wage_2": {
+     "n": 3,
+     "missing": 0,
+     "mean": "21.0",
+     "sd": "10.0",
+     "min": "11.0",
+     "max": "31.0"
+    }
+   }
+  },
+  "all_na": {
+   "file": "tests/datasets/all_na.csv",
+   "rows": 3,
+   "import_options": "",
+   "columns": {
+    "x": {
+     "n": 0,
+     "missing": 3,
+     "mean": null,
+     "sd": null,
+     "min": null,
+     "max": null
+    },
+    "y": {
+     "n": 0,
+     "missing": 3,
+     "mean": null,
+     "sd": null,
+     "min": null,
+     "max": null
+    },
+    "z": {
+     "n": 0,
+     "missing": 3,
+     "mean": null,
+     "sd": null,
+     "min": null,
+     "max": null
+    }
+   }
+  },
+  "one_row": {
+   "file": "tests/datasets/one_row.csv",
+   "rows": 1,
+   "import_options": "",
+   "columns": {
+    "x": {
+     "n": 1,
+     "missing": 0,
+     "mean": "42.0",
+     "sd": null,
+     "min": "42.0",
+     "max": "42.0"
+    },
+    "y": {
+     "n": 1,
+     "missing": 0,
+     "mean": "3.5",
+     "sd": null,
+     "min": "3.5",
+     "max": "3.5"
+    },
+    "flag": {
+     "n": 1,
+     "missing": 0,
+     "mean": "1.0",
+     "sd": null,
+     "min": "1.0",
+     "max": "1.0"
+    }
+   }
+  },
+  "zero_variance": {
+   "file": "tests/datasets/zero_variance.csv",
+   "rows": 4,
+   "import_options": "",
+   "columns": {
+    "constant": {
+     "n": 4,
+     "missing": 0,
+     "mean": "3.25",
+     "sd": "0.0",
+     "min": "3.25",
+     "max": "3.25"
+    },
+    "constant_with_na": {
+     "n": 3,
+     "missing": 1,
+     "mean": "7.0",
+     "sd": "0.0",
+     "min": "7.0",
+     "max": "7.0"
+    },
+    "big_constant": {
+     "n": 4,
+     "missing": 0,
+     "mean": "1000000000.5",
+     "sd": "0.0",
+     "min": "1000000000.5",
+     "max": "1000000000.5"
+    }
+   }
+  },
+  "empty": {
+   "file": "tests/datasets/empty.csv",
+   "rows": 0,
+   "import_options": "",
+   "columns": {
+    "x": {
+     "n": 0,
+     "missing": 0,
+     "mean": null,
+     "sd": null,
+     "min": null,
+     "max": null
+    },
+    "y": {
+     "n": 0,
+     "missing": 0,
+     "mean": null,
+     "sd": null,
+     "min": null,
+     "max": null
+    }
+   }
+  },
+  "infinities": {
+   "file": "tests/datasets/infinities.csv",
+   "rows": 3,
+   "import_options": "",
+   "columns": {
+    "plus": {
+     "n": 3,
+     "missing": 0,
+     "mean": "Inf",
+     "sd": "NA",
+     "min": "1.0",
+     "max": "Inf"
+    },
+    "minus": {
+     "n": 3,
+     "missing": 0,
+     "mean": "-Inf",
+     "sd": "NA",
+     "min": "-Inf",
+     "max": "2.0"
+    },
+    "both": {
+     "n": 3,
+     "missing": 0,
+     "mean": "NA",
+     "sd": "NA",
+     "min": "-Inf",
+     "max": "Inf"
+    },
+    "nan_mixed": {
+     "n": 1,
+     "missing": 2,
+     "mean": "1.5",
+     "sd": null,
+     "min": "1.5",
+     "max": "1.5"
+    },
+    "finite": {
+     "n": 3,
+     "missing": 0,
+     "mean": "2.0",
+     "sd": "1.0",
+     "min": "1.0",
+     "max": "3.0"
+    }
+   }
+  },
+  "magnitudes": {
+   "file": "tests/datasets/magnitudes.csv",
+   "rows": 500,
+   "import_options": "",
+   "columns": {
+    "offset": {
+     "n": 500,
+     "missing": 0,
+     "mean": "1000000000.4967389",
+     "sd": "0.2867196646036987",
+     "min": "1000000000.000634",
+     "max": "1000000000.999886"
+    },
+    "wide": {
+     "n": 500,
+     "missing": 0,
+     "mean": "-1059068.7677093286",
+     "sd": "14316931.445285812",
+     "min": "-98633316.73556066",
+     "max": "87468242.17882133"
+    },
+    "tiny": {
+     "n": 500,
+     "missing": 0,
+     "mean": "4.969964307895458e-301",
+     "sd": "2.810168711380131e-301",
+     "min": "5e-324",
+     "max": "9.991602602212906e-301"
+    }
+   }
+  },
+  "bools": {
+   "file": "tests/datasets/bools.csv",
+   "rows": 4,
+   "import_options": "",
+   "columns": {
+    "treated": {
+     "n": 4,
+     "missing": 0,
+     "mean": "0.75",
+     "sd": "0.5",
+     "min": "0.0",
+     "max": "1.0"
+    },
+    "mixed_case": {
+     "n": 4,
+     "missing": 0,
+     "mean": "0.5",
+     "sd": "0.5773502691896257",
+     "min": "0.0",
+     "max": "1.0"
+    },
+    "with_na": {
+     "n": 2,
+     "missing": 2,
+     "mean": "0.5",
+     "sd": "0.7071067811865476",
+     "min": "0.0",
+     "max": "1.0"
+    }
+   }
+  },
+  "guess_boundary": {
+   "file": "tests/datasets/guess_boundary.csv",
+   "rows": 1001,
+   "import_options": ", types: {hours: Str}",
+   "columns": {
+    "id": {
+     "n": 1001,
+     "missing": 0,
+     "mean": "501.0",
+     "sd": "289.10811126635656",
+     "min": "1.0",
+     "max": "1001.0"
+    }
+   }
+  },
+  "unicode_labels": {
+   "file": "tests/datasets/unicode_labels.csv",
+   "rows": 4,
+   "import_options": "",
+   "columns": {
+    "n": {
+     "n": 4,
+     "missing": 0,
+     "mean": "2.5",
+     "sd": "1.2909944487358056",
+     "min": "1.0",
+     "max": "4.0"
+    }
+   }
+  }
+ }
+}

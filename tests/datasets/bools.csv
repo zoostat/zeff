@@ -1,0 +1,5 @@
+treated,mixed_case,with_na
+true,TRUE,true
+false,False,
+true,false,NA
+true,TRUE,false

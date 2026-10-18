@@ -1040,6 +1040,7 @@ dependencies = [
  "zeff-diagnostics",
  "zeff-numeric",
  "zeff-registry",
+ "zeff-testkit",
 ]
 
 [[package]]
@@ -1104,6 +1105,15 @@ dependencies = [
  "insta",
  "proptest",
  "zeff-diagnostics",
+]
+
+[[package]]
+name = "zeff-testkit"
+version = "0.1.0-dev"
+dependencies = [
+ "serde_json",
+ "zeff-core",
+ "zeff-engine",
 ]
 
 [[package]]
