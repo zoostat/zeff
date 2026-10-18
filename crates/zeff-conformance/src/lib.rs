@@ -254,9 +254,132 @@ fn sample_cases() -> Vec<Line> {
     ]
 }
 
+/// The maths kernel on a fixed grid (release 0.2.0, step 5): every elementary function, the
+/// roundings and the divisions, so that the four targets prove the pure-Rust implementation gives
+/// the same bits everywhere.
+fn maths_cases() -> Vec<Line> {
+    use zeff_numeric::maths::{self, RoundingMode};
+    let grid: [f64; 58] = [
+        0.0,
+        -0.0,
+        1e-300,
+        -1e-300,
+        1e-10,
+        0.001,
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        0.9,
+        0.999,
+        1.0,
+        1.001,
+        1.5,
+        2.0,
+        std::f64::consts::E,
+        3.0,
+        std::f64::consts::PI,
+        4.0,
+        5.5,
+        8.0,
+        10.0,
+        12.5,
+        100.0,
+        1000.0,
+        123456.789,
+        1e6,
+        1e10,
+        1e15,
+        1e100,
+        1e300,
+        -1e-10,
+        -0.001,
+        -0.25,
+        -0.5,
+        -0.75,
+        -1.0,
+        -1.5,
+        -2.0,
+        -3.0,
+        -std::f64::consts::PI,
+        -10.0,
+        -100.0,
+        -1e6,
+        -1e100,
+        std::f64::consts::FRAC_PI_4,
+        std::f64::consts::FRAC_PI_2,
+        std::f64::consts::PI,
+        std::f64::consts::TAU,
+        100.5,
+        -99.5,
+        1e-5,
+        2.5e-8,
+        7.0,
+        0.3,
+        0.6,
+        0.123456789,
+    ];
+    type Elementary = fn(f64) -> f64;
+    let functions: [(&str, Elementary); 13] = [
+        ("exp", maths::exp),
+        ("log", maths::log),
+        ("log2", maths::log2),
+        ("log10", maths::log10),
+        ("log1p", maths::log1p),
+        ("expm1", maths::expm1),
+        ("sin", maths::sin),
+        ("cos", maths::cos),
+        ("tan", maths::tan),
+        ("asin", maths::asin),
+        ("acos", maths::acos),
+        ("atan", maths::atan),
+        ("sqrt", maths::sqrt),
+    ];
+    let mut lines = Vec::new();
+    for (name, f) in functions {
+        let values: Vec<f64> = grid.iter().map(|&x| f(x)).collect();
+        lines.push(series(&format!("maths/{name}"), &values));
+    }
+    let powers: Vec<f64> = grid
+        .iter()
+        .flat_map(|&x| [0.5, 2.0, -1.0, 3.0, 0.1].map(|y| zeff_numeric::pow(x, y)))
+        .collect();
+    lines.push(series("maths/pow", &powers));
+    let angles: Vec<f64> = grid
+        .iter()
+        .flat_map(|&y| [1.0, -1.0, 0.0, 2.5].map(|x| maths::atan2(y, x)))
+        .collect();
+    lines.push(series("maths/atan2", &angles));
+    let rounded: Vec<f64> = grid
+        .iter()
+        .flat_map(|&x| {
+            [0, 1, 2, 3, -1].into_iter().flat_map(move |d| {
+                [
+                    maths::round(x, d, RoundingMode::Even),
+                    maths::round(x, d, RoundingMode::Away),
+                ]
+            })
+        })
+        .chain(
+            grid.iter()
+                .map(|&x| maths::round_significant(x, 3, RoundingMode::Even)),
+        )
+        .collect();
+    lines.push(series("maths/round", &rounded));
+    let divisions: Vec<f64> = grid
+        .iter()
+        .flat_map(|&a| {
+            [2.0, -3.0, 0.1, 7.5].map(|b| maths::div_float(a, b) + 1000.0 * maths::mod_float(a, b))
+        })
+        .collect();
+    lines.push(series("maths/div_mod", &divisions));
+    lines
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
+    lines.extend(maths_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());
     lines

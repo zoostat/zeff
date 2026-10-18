@@ -56,3 +56,57 @@ proptest! {
         prop_assert_eq!(sd(&values).unwrap().to_bits(), sd(&values).unwrap().to_bits());
     }
 }
+
+// ----- the maths kernel (release 0.2.0, step 5) -----
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases_maths(300)))]
+
+    #[test]
+    fn log_undoes_exp_and_the_circle_closes(x in -700.0f64..700.0) {
+        let back = zeff_numeric::maths::log(zeff_numeric::maths::exp(x));
+        prop_assert!((back - x).abs() <= 1e-13 * (1.0 + x.abs()), "log(exp({x})) = {back}");
+        let (s, c) = (zeff_numeric::maths::sin(x), zeff_numeric::maths::cos(x));
+        prop_assert!((s * s + c * c - 1.0).abs() <= 4e-16, "sin² + cos² at {x}: {}", s * s + c * c);
+        let root = zeff_numeric::maths::sqrt(x.abs());
+        // A correctly rounded root squared is within two units in the last place of x.
+        prop_assert!((root * root - x.abs()).abs() <= 5e-16 * (1.0 + x.abs()));
+    }
+
+    #[test]
+    fn rounding_is_idempotent_and_within_half_a_unit(x in -1e9f64..1e9, digits in -3i32..6) {
+        use zeff_numeric::maths::{RoundingMode, round};
+        for mode in [RoundingMode::Even, RoundingMode::Away] {
+            let once = round(x, digits, mode);
+            prop_assert_eq!(round(once, digits, mode).to_bits(), once.to_bits(), "idempotent");
+            let unit = 10f64.powi(-digits);
+            // Within half a unit of the exact value, allowing for the spacing of doubles at x.
+            prop_assert!((once - x).abs() <= unit / 2.0 + 1e-15 * (1.0 + x.abs()), "round({x}, {digits}) = {once}");
+            prop_assert!(once.is_finite());
+        }
+    }
+
+    #[test]
+    fn floored_division_and_remainder_recompose(a in any::<i64>(), b in any::<i64>()) {
+        use zeff_numeric::maths::{div_int, mod_int};
+        prop_assume!(b != 0);
+        if a == i64::MIN && b == -1 {
+            prop_assert_eq!(div_int(a, b), None);
+            prop_assert_eq!(mod_int(a, b), Some(0));
+        } else {
+            let (q, r) = (div_int(a, b).unwrap(), mod_int(a, b).unwrap());
+            prop_assert_eq!((b as i128) * (q as i128) + (r as i128), a as i128);
+            prop_assert!(r == 0 || (r < 0) == (b < 0), "the remainder takes the sign of b");
+            prop_assert!((r as i128).abs() < (b as i128).abs());
+        }
+    }
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases_maths(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
+}

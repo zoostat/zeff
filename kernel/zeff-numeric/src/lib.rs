@@ -13,6 +13,8 @@
 //! These routines work on slices of `f64` without missing values. Skipping `NA` and counting what
 //! was skipped belongs to the column layer, which passes only the valid values here.
 
+pub mod maths;
+
 /// A running compensated (Neumaier) sum.
 #[derive(Debug, Clone, Copy, Default)]
 struct Accumulator {

@@ -65,3 +65,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 5, the elementary functions and the maths kernel `[engine]`.
 
 **For the owner to decide.** Nothing new.
+
+## 18 October 2026, step 5 of release 0.2.0
+
+**Done.** Step 5 `[engine]`: the maths kernel. The elementary functions from one pure-Rust library on every target, rounding decided on the exact value with ties to even or away from zero and to significant digits, floored division and remainder; a Python reference on a fixed grid (two units in the last place for the transcendental functions, exact for roundings and divisions), seventeen new lines in the conformance report, and properties. 7 tests added (20 unit assertions in the kernel among them).
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the refreshed conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 6, grouping and weights `[engine]`.
+
+**For the owner to decide.** Nothing new; question 1 (weighted statistics) is first applied at step 17.

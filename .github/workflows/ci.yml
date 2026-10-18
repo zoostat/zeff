@@ -259,6 +259,7 @@ jobs:
           python3 -I tests/reference/descriptive.py
           python3 -I tests/reference/functions.py
           python3 -I tests/reference/csv_cases.py
+          python3 -I tests/reference/maths.py
 
       - name: The committed references and datasets are what the scripts write
         run: git diff --exit-code --stat -- tests/
