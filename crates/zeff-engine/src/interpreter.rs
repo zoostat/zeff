@@ -6,7 +6,7 @@
 use crate::registry::Bodies;
 use std::collections::HashMap;
 use zeff_core::display::{format_float, show};
-use zeff_core::operators::{self, Note, Op, Trouble};
+use zeff_core::operators::{self, ColumnTrouble, Note, Notes, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, fail};
 use zeff_core::value::{TypeValue, Value};
 use zeff_diagnostics::{Diagnostic, Source};
@@ -173,27 +173,39 @@ impl<'a> Interpreter<'a> {
             }
             ExprKind::Unary { op, operand } => {
                 let value = self.eval(operand, printed, messages)?;
+                if let Value::Column(column) = &value {
+                    let result = operators::column_unary(*op == UnaryOp::Neg, column)
+                        .map_err(|trouble| self.column_trouble(trouble, expr))?;
+                    return Ok(Value::Column(result));
+                }
                 match op {
                     UnaryOp::Not => operators::not(&value),
-                    UnaryOp::Neg => {
-                        operators::negate(&value).map_err(|trouble| self.trouble(trouble, expr))?
-                    }
+                    UnaryOp::Neg => operators::negate(&value),
                 }
+                .map_err(|trouble| self.trouble(trouble, expr))?
             }
             ExprKind::Binary { op, lhs, rhs } => {
                 let op = operator(*op);
                 let left = self.eval(lhs, printed, messages)?;
-                if let Some(decided) = operators::decided_by_left(op, &left) {
-                    decided
-                } else {
-                    let right = self.eval(rhs, printed, messages)?;
-                    let (value, note) = operators::binary(op, &left, &right)
-                        .map_err(|trouble| self.trouble(trouble, expr))?;
-                    if let Some(note) = note {
-                        messages.push(warning_of(note, &value));
-                    }
-                    value
+                if !matches!(left, Value::Column(_))
+                    && let Some(decided) = operators::decided_by_left(op, &left)
+                {
+                    return Ok(decided);
                 }
+                let right = self.eval(rhs, printed, messages)?;
+                if matches!(left, Value::Column(_)) || matches!(right, Value::Column(_)) {
+                    let (result, notes) =
+                        operators::column_binary(op, operand(&left), operand(&right))
+                            .map_err(|trouble| self.column_trouble(trouble, expr))?;
+                    warnings_of(notes, messages);
+                    return Ok(Value::Column(result));
+                }
+                let (value, note) = operators::binary(op, &left, &right)
+                    .map_err(|trouble| self.trouble(trouble, expr))?;
+                if let Some(note) = note {
+                    messages.push(warning_of(note, &value));
+                }
+                value
             }
             ExprKind::Range { start, end } => {
                 let (a, b) = (
@@ -218,6 +230,26 @@ impl<'a> Interpreter<'a> {
                 let target = self.eval(receiver, printed, messages)?;
                 let key = self.eval(index, printed, messages)?;
                 match target {
+                    Value::Frame(frame) => {
+                        let Value::Str(name) = &key else {
+                            return Err(self
+                                .internal(expr, "a frame indexed by something that is not text"));
+                        };
+                        match frame.table.column(name) {
+                            Some(column) => Value::Column(column.clone()),
+                            None => {
+                                let columns: Vec<&str> =
+                                    frame.table.names().iter().map(String::as_str).collect();
+                                return Err(fail(zeff_diagnostics::messages::no_variable(
+                                    self.script,
+                                    index.span,
+                                    &frame.shown_name(),
+                                    name,
+                                    &columns,
+                                )));
+                            }
+                        }
+                    }
                     Value::List(items) => {
                         let position = match key {
                             Value::Int(i) if i >= 1 && (i as usize) <= items.len() => i as usize,
@@ -355,6 +387,16 @@ impl<'a> Interpreter<'a> {
     /// Z0211: an Int result that does not fit.
     fn trouble(&self, trouble: Trouble, expr: &Expr) -> Fail {
         match trouble {
+            Trouble::Types {
+                code,
+                message,
+                help,
+            } => fail(
+                Diagnostic::error(code, message)
+                    .in_file(self.script)
+                    .primary(expr.span, "the operation")
+                    .help(help),
+            ),
             Trouble::Overflow(operation) => fail(
                 Diagnostic::error(
                     "Z0211",
@@ -363,6 +405,50 @@ impl<'a> Interpreter<'a> {
                 .in_file(self.script)
                 .primary(expr.span, "the operation")
                 .help("Ints are 64-bit; a Float (`1.0 * x`) holds larger magnitudes with 53 bits of precision"),
+            ),
+        }
+    }
+
+    /// The errors of a row-wise operation: Z0217 for lengths, Z0211 with the row, Z0304 for a
+    /// column type no operator computes on yet.
+    fn column_trouble(&self, trouble: ColumnTrouble, expr: &Expr) -> Fail {
+        match trouble {
+            ColumnTrouble::Lengths(a, b) => fail(
+                Diagnostic::error(
+                    "Z0217",
+                    format!("columns of {a} and {b} rows cannot be combined"),
+                )
+                .in_file(self.script)
+                .primary(expr.span, "two lengths")
+                .help("combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)"),
+            ),
+            ColumnTrouble::Overflow { row, operation } => fail(
+                Diagnostic::error(
+                    "Z0211",
+                    format!("Int overflow in row {}: {operation} does not fit in 64 bits", zeff_diagnostics::count(row as u64)),
+                )
+                .in_file(self.script)
+                .primary(expr.span, "the operation")
+                .help("Ints are 64-bit; a Float column (`1.0 * x`) holds larger magnitudes with 53 bits of precision"),
+            ),
+            ColumnTrouble::Types {
+                code,
+                message,
+                help,
+            } => fail(
+                Diagnostic::error(code, message)
+                    .in_file(self.script)
+                    .primary(expr.span, "the operation, row by row")
+                    .help(help),
+            ),
+            ColumnTrouble::Unsupported(ty) => fail(
+                Diagnostic::error(
+                    "Z0304",
+                    format!("operators on a {} column are not available in this release", ty.name()),
+                )
+                .in_file(self.script)
+                .primary(expr.span, "arrives with the package that computes on it")
+                .help("dates and categories gain their operators with the `time` package and `category` (releases 0.3.0 and 0.5.0)"),
             ),
         }
     }
@@ -436,6 +522,43 @@ fn warning_of(note: Note, value: &Value) -> Diagnostic {
         )
         .help("test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`"),
         Note::Invalid(cause) => Diagnostic::warning("W0205", format!("{cause} gave NA")),
+    }
+}
+
+/// A value as one side of a row-wise operation.
+fn operand(value: &Value) -> Operand<'_> {
+    match value {
+        Value::Column(c) => Operand::Column(c),
+        other => Operand::Scalar(other),
+    }
+}
+
+/// The warnings of section 4.1 for a column, with their row counts.
+fn warnings_of(notes: Notes, messages: &mut Vec<Diagnostic>) {
+    let rows = |n: usize| {
+        format!(
+            "{} {}",
+            zeff_diagnostics::count(n as u64),
+            if n == 1 { "row" } else { "rows" }
+        )
+    };
+    if notes.division_by_zero > 0 {
+        messages.push(
+            Diagnostic::warning(
+                "W0204",
+                format!(
+                    "division by zero gave Inf or -Inf in {}",
+                    rows(notes.division_by_zero)
+                ),
+            )
+            .help("`where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise"),
+        );
+    }
+    for (cause, n) in notes.invalid {
+        messages.push(Diagnostic::warning(
+            "W0205",
+            format!("{cause} gave NA in {}", rows(n)),
+        ));
     }
 }
 

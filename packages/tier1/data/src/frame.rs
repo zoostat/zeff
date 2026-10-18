@@ -18,6 +18,33 @@ pub fn frame(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .get(i)
             .copied()
             .unwrap_or(ctx.callee_span);
+        // A column value (`wages["wage"]`, or an expression over columns) is a column as it is.
+        if let Value::Column(column) = value {
+            let n = column.len();
+            match &first {
+                None => first = Some((name.clone(), n, span)),
+                Some((first_name, m, first_span)) if *m != n => {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0217",
+                            format!(
+                                "`frame` needs lists of one length: `{first_name}` has {} {} and `{name}` has {}",
+                                count(*m as u64),
+                                if *m == 1 { "value" } else { "values" },
+                                count(n as u64)
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(span, format!("{} here", count(n as u64)))
+                        .secondary(*first_span, format!("{} here", count(*m as u64)))
+                        .help("give every column the same number of values; write `NA` for a value that is missing"),
+                    ));
+                }
+                Some(_) => {}
+            }
+            columns.push((name.clone(), column.clone()));
+            continue;
+        }
         let Value::List(items) = value else {
             return Err(fail(
                 Diagnostic::error(

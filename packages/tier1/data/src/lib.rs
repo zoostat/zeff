@@ -20,7 +20,7 @@ pub fn functions() -> Vec<Function> {
                 package: "data",
                 method: false,
                 params: vec![],
-                rest: Some(Rest::Definitions("List")),
+                rest: Some(Rest::Definitions("List | Column")),
                 returns: "Frame",
                 diagnostics: vec![
                     DiagnosticDecl::new("Z0214", "a list holds values of more than one type"),

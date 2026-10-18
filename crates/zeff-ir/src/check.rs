@@ -258,9 +258,11 @@ impl Checker<'_> {
                 span,
                 kind: ExprKind::Bool(*b),
             },
+            // A bare NA takes the type of its place; where that place takes several types (a
+            // union), it stays NA, which every type accepts.
             ast::ExprKind::Na => Expr {
                 ty: expected
-                    .filter(|t| **t != Ty::Any)
+                    .filter(|t| **t != Ty::Any && !matches!(t, Ty::Union(_)))
                     .cloned()
                     .unwrap_or(Ty::Na),
                 span,
@@ -507,6 +509,11 @@ impl Checker<'_> {
         }
         let element = match expected {
             Some(Ty::List(inner)) => Some((**inner).clone()),
+            // Where the place takes a list among other types, the list literal is that list.
+            Some(Ty::Union(options)) => options.iter().find_map(|o| match o {
+                Ty::List(inner) => Some((**inner).clone()),
+                _ => None,
+            }),
             _ => None,
         };
         let mut lowered = Vec::with_capacity(items.len());
@@ -574,22 +581,15 @@ impl Checker<'_> {
     fn unary(&mut self, op: ast::UnaryOp, operand: &ast::Expr, span: Span) -> Expr {
         let inner = self.expr(operand, None);
         let inner = self.no_nothing(inner, "negated");
-        let ty = match (op, &inner.ty) {
+        // A column takes the operator row by row (section 3.7, "Columns and scalars").
+        let (column, element) = unwrap_column(&inner.ty);
+        let ty = match (op, &element) {
             (_, Ty::Unknown) => Ty::Unknown,
             (ast::UnaryOp::Neg, Ty::Int) => Ty::Int,
             (ast::UnaryOp::Neg, Ty::Float) => Ty::Float,
             (ast::UnaryOp::Neg, Ty::Na) => Ty::Na,
             (ast::UnaryOp::Not, Ty::Bool) => Ty::Bool,
             (ast::UnaryOp::Not, Ty::Na) => Ty::Na,
-            (ast::UnaryOp::Neg, Ty::Column(_)) | (ast::UnaryOp::Not, Ty::Column(_)) => {
-                self.not_yet(
-                    span,
-                    "an operator on a column",
-                    "0.2.0",
-                    "expressions over columns arrive with the next step of release 0.2.0",
-                );
-                return Expr::error(span);
-            }
             (ast::UnaryOp::Neg, other) => {
                 let other = other.clone();
                 return self.wrong_operands(
@@ -613,6 +613,7 @@ impl Checker<'_> {
                 );
             }
         };
+        let ty = if column { Ty::Column(Box::new(ty)) } else { ty };
         Expr {
             ty,
             span,
@@ -657,9 +658,31 @@ impl Checker<'_> {
         let left = self.no_nothing(left, "used in an expression");
         let right = self.expr(rhs, None);
         let right = self.no_nothing(right, "used in an expression");
-        if left.ty == Ty::Unknown || right.ty == Ty::Unknown {
+        // Columns take the operator row by row; the rules below apply to their element types,
+        // and the result is a column when either side is one.
+        let (left_column, left_ty) = unwrap_column(&left.ty);
+        let (right_column, right_ty) = unwrap_column(&right.ty);
+        let column = left_column || right_column;
+        if column && op == B::Range {
+            return self.wrong_operands(
+                span,
+                "`..` needs two Ints, not a column".to_string(),
+                "a column".to_string(),
+                "a range runs from one whole number to another: `2..5`",
+            );
+        }
+        if left_ty == Ty::Unknown || right_ty == Ty::Unknown {
+            let ty = if column {
+                Ty::Column(Box::new(if comparison_or_logic(op) {
+                    Ty::Bool
+                } else {
+                    Ty::Unknown
+                }))
+            } else {
+                Ty::Unknown
+            };
             return Expr {
-                ty: Ty::Unknown,
+                ty,
                 span,
                 kind: ExprKind::Binary {
                     op,
@@ -668,15 +691,16 @@ impl Checker<'_> {
                 },
             };
         }
-        if matches!(left.ty, Ty::Column(_)) || matches!(right.ty, Ty::Column(_)) {
-            self.not_yet(
-                span,
-                "an operator on a column",
-                "0.2.0",
-                "expressions over columns arrive with the next step of release 0.2.0",
-            );
-            return Expr::error(span);
-        }
+        let (left, right) = (
+            Expr {
+                ty: left_ty,
+                ..left
+            },
+            Expr {
+                ty: right_ty,
+                ..right
+            },
+        );
         if op == B::Range {
             if !is_int_like(&left.ty) || !is_int_like(&right.ty) {
                 let found = if !is_int_like(&left.ty) {
@@ -823,6 +847,25 @@ impl Checker<'_> {
             }
             B::Interact | B::Range => unreachable!("handled above"),
         };
+        let ty = if column { Ty::Column(Box::new(ty)) } else { ty };
+        let (left, right) = (
+            Expr {
+                ty: if left_column {
+                    Ty::Column(Box::new(left.ty.clone()))
+                } else {
+                    left.ty.clone()
+                },
+                ..left
+            },
+            Expr {
+                ty: if right_column {
+                    Ty::Column(Box::new(right.ty.clone()))
+                } else {
+                    right.ty.clone()
+                },
+                ..right
+            },
+        );
         Expr {
             ty,
             span,
@@ -929,14 +972,39 @@ impl Checker<'_> {
                     },
                 }
             }
+            // `wages["lwage"]`: a column as a value; its type is known when the statement runs
+            // (the schema pass of `zeff check` arrives with 0.6.0).
             Ty::Frame => {
-                self.not_yet(
+                if let ast::ExprKind::Name(path) = &index.kind
+                    && path.segments.len() == 1
+                    && self.lookup(&path.segments[0].text).is_none()
+                {
+                    let written = &path.segments[0].text;
+                    return self.wrong_operands(
+                        index.span,
+                        format!("a frame's column is named in quotes: `[\"{written}\"]`"),
+                        "a bare name".to_string(),
+                        "inside a frame method the bare name names the column; between brackets it is text",
+                    );
+                }
+                let name = self.expr(index, Some(&Ty::Str));
+                if !matches!(name.ty, Ty::Str | Ty::Unknown) {
+                    let found = name.ty.clone();
+                    return self.wrong_operands(
+                        name.span,
+                        format!("a frame's column is named in quotes, but this is {}", found.with_article()),
+                        found.with_article(),
+                        "write `wages[\"lwage\"]`; inside a frame method, the bare name `lwage` names the column",
+                    );
+                }
+                Expr {
+                    ty: Ty::Column(Box::new(Ty::Unknown)),
                     span,
-                    "a frame's column as a value",
-                    "0.2.0",
-                    "`wages[\"lwage\"]` arrives with the next step of release 0.2.0",
-                );
-                Expr::error(span)
+                    kind: ExprKind::Index {
+                        receiver: Box::new(target),
+                        index: Box::new(name),
+                    },
+                }
             }
             other => self.wrong_operands(
                 span,
@@ -1597,4 +1665,21 @@ fn same_literal(a: &ExprKind, b: &ExprKind) -> bool {
         (ExprKind::Na, ExprKind::Na) => true,
         _ => false,
     }
+}
+
+/// A column type's element type, and whether it was a column.
+fn unwrap_column(ty: &Ty) -> (bool, Ty) {
+    match ty {
+        Ty::Column(inner) => (true, (**inner).clone()),
+        other => (false, other.clone()),
+    }
+}
+
+/// Whether an operator gives a Bool: a comparison or `&&`/`||`.
+fn comparison_or_logic(op: ast::BinaryOp) -> bool {
+    use ast::BinaryOp as B;
+    matches!(
+        op,
+        B::Eq | B::Ne | B::Lt | B::Le | B::Gt | B::Ge | B::And | B::Or
+    )
 }

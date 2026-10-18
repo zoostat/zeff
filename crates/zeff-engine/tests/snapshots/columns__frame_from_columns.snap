@@ -1,0 +1,18 @@
+---
+source: crates/zeff-engine/tests/columns.rs
+expression: out
+---
+d · 3 rows × 3 variables
+
+      id   double   high
+  1    1     46.8   true
+  2    2       38   false
+  3    3     62.4   true
+49.0667
+0.666667
+d · 3 rows × 3 variables
+
+  variable   type    non-missing   missing   example
+  id         Int               3         0   1
+  double     Float             3         0   46.8
+  high       Bool              3         0   true

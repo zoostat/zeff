@@ -1,0 +1,19 @@
+---
+source: crates/zeff-engine/tests/columns.rs
+expression: "format!(\"{}\\n{}\", outcome.output.stdout,\nwithout_format_notes(&outcome.output.stderr))"
+---
+Column<Float> · 4 values
+Inf
+NA
+-Inf
+2
+Column<Float> · 4 values
+1
+0
+NA
+2
+
+warning: division by zero gave Inf or -Inf in 2 rows (line 2)
+  = help: `where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise
+warning: 0 / 0 gave NA in 1 row (line 2)
+warning: -2 ^ 0.5 (no real value) gave NA in 1 row (line 3)

@@ -1,0 +1,116 @@
+---
+source: crates/zeff-engine/tests/columns.rs
+expression: all
+---
+## no_such_column (exit 1)
+error[Z0101]: no variable `wge` in `w`
+ --> scripts/main.zeff:2:3
+  |
+2 | w["wge"]
+  |   ^^^^^ not a variable of w
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+## column_named_without_quotes (exit 1)
+error[Z0221]: a frame's column is named in quotes: `["wage"]`
+ --> scripts/main.zeff:2:3
+  |
+2 | w[wage]
+  |   ^^^^ a bare name
+  |
+  = help: inside a frame method the bare name names the column; between brackets it is text
+
+## column_named_by_a_number (exit 1)
+error[Z0221]: a frame's column is named in quotes, but this is an Int
+ --> scripts/main.zeff:2:3
+  |
+2 | w[2]
+  |   ^ an Int
+  |
+  = help: write `wages["lwage"]`; inside a frame method, the bare name `lwage` names the column
+
+## different_lengths (exit 1)
+error[Z0217]: columns of 3 and 2 rows cannot be combined
+ --> scripts/main.zeff:3:1
+  |
+3 | w["id"] + d["x"]
+  | ^^^^^^^^^^^^^^^^ two lengths
+  |
+  = help: combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)
+
+## int_overflow_in_a_row (exit 1)
+error[Z0211]: Int overflow in row 2: 9223372036854775807 + 1 does not fit in 64 bits
+ --> scripts/main.zeff:2:1
+  |
+2 | d["x"] + 1
+  | ^^^^^^^^^^ the operation
+  |
+  = help: Ints are 64-bit; a Float column (`1.0 * x`) holds larger magnitudes with 53 bits of precision
+
+## text_column_in_arithmetic (exit 1)
+error[Z0215]: `+` does not apply to text
+ --> scripts/main.zeff:2:1
+  |
+2 | w["name"] + 1
+  | ^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+
+## bool_column_in_arithmetic (exit 1)
+error[Z0221]: `*` needs numbers, but one side is a Bool
+ --> scripts/main.zeff:2:1
+  |
+2 | w["flag"] * 2
+  | ^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: Bool is not a number; `to(x, Int)` turns true and false into 1 and 0
+
+## comparing_column_types (exit 1)
+error[Z0221]: `==` compares values of one type, but these are text and a number
+ --> scripts/main.zeff:2:1
+  |
+2 | w["name"] == 1
+  | ^^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+
+## logic_on_a_number_column (exit 1)
+error[Z0221]: `&&` needs two Bools, but one side is a number
+ --> scripts/main.zeff:2:1
+  |
+2 | w["id"] && true
+  | ^^^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: `&&` and `||` combine comparisons, as in `age > 18 && female`
+
+## range_of_a_column (exit 1)
+error[Z0221]: `..` needs two Ints, not a column
+ --> scripts/main.zeff:2:1
+  |
+2 | 1..w["id"]
+  | ^^^^^^^^^^ a column
+  |
+  = help: a range runs from one whole number to another: `2..5`
+
+## date_column (exit 1)
+error[Z0221]: `==` is not defined for this value
+ --> scripts/main.zeff:2:1
+  |
+2 | d["sold"] == d["sold"]
+  | ^^^^^^^^^^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: comparison is for numbers, text, Bool and NA
+
+## column_in_a_list (exit 0)
+Column<Int> · 3 values
+Column<Int> · 3 values
+
+## column_as_a_frame_definition_of_another_length (exit 1)
+error[Z0217]: `frame` needs lists of one length: `a` has 2 values and `b` has 3
+ --> scripts/main.zeff:2:23
+  |
+2 | frame(a = [1, 2], b = w["id"])
+  |           ------ 2 here
+  |                       ^^^^^^^ 3 here
+  |
+  = help: give every column the same number of values; write `NA` for a value that is missing

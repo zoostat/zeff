@@ -8,4 +8,4 @@ error[Z0406]: `frame` needs at least one definition
 1 | frame()
   | ^^^^^ nothing defined
   |
-  = help: usage: `frame(name = List, ...)`
+  = help: usage: `frame(name = List | Column, ...)`

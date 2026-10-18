@@ -45,3 +45,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 3, expressions over columns `[engine]`.
 
 **For the owner to decide.** Nothing new now; the three questions at the top of the checklist are needed at steps 8, 17 and 18. Open decision #46 is due at 0.3.0.
+
+## 18 October 2026, step 3 of release 0.2.0
+
+**Done.** Step 3 `[engine]`: expressions over columns. `wages["wage"]` is a value, every operator applies row by row with a scalar standing in every row, the warnings of section 4.1 count their rows, an overflow names its row, different lengths are refused, a column prints as section 3.8 says, and `frame` takes a column as a definition. The type check a frame's column cannot get before it runs happens once per operation when it runs, with the checker's own codes and words. 7 tests added, one of them a property comparing every row with the value rules.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the refreshed conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 4, the column-type interface, metadata and the opaque rule `[engine]`.
+
+**For the owner to decide.** Nothing new.

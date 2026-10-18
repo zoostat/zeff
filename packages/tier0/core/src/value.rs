@@ -2,7 +2,7 @@
 //! every package handles the same values (Engine and Project Specification, section 8.1, rule 4).
 
 use std::rc::Rc;
-use zeff_columns::Table as Columns;
+use zeff_columns::{Column, Table as Columns};
 
 /// A frame: named columns of equal length, shared rather than copied, and the name it was bound
 /// to, which its printed form and its messages use (`no variable `incme` in `poll``).
@@ -60,6 +60,9 @@ pub enum Value {
     Str(String),
     Frame(Frame),
     Table(Table),
+    /// A column as a value: `wages["lwage"]`, or the result of an expression over columns
+    /// (section 3.7, "Columns and scalars").
+    Column(Column),
     List(Vec<Value>),
     Record(Vec<(String, Value)>),
     /// `[k => v, ...]`: one key type, one value type, keys unique and in insertion order.
@@ -85,6 +88,7 @@ impl Value {
             Value::Str(_) => "Str",
             Value::Table(_) => "Table",
             Value::Frame(_) => "Frame",
+            Value::Column(_) => "Column",
             Value::List(_) => "List",
             Value::Record(_) => "Record",
             Value::Mapping(_) => "Mapping",

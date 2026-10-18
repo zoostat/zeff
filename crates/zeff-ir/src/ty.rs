@@ -105,6 +105,7 @@ impl Ty {
             "Vars" => Ty::Vars,
             "Type" => Ty::Type,
             "List" => Ty::List(Box::new(Ty::Any)),
+            "Column" => Ty::Column(Box::new(Ty::Unknown)),
             "Record" => Ty::AnyRecord,
             _ => return None,
         })
@@ -179,6 +180,7 @@ impl fmt::Display for Ty {
             Ty::Var => write!(f, "Var"),
             Ty::Vars => write!(f, "Vars"),
             Ty::Type => write!(f, "Type"),
+            Ty::Column(t) if **t == Ty::Unknown => write!(f, "Column"),
             Ty::Column(t) => write!(f, "Column<{t}>"),
             Ty::List(t) if **t == Ty::Any => write!(f, "List"),
             Ty::List(t) => write!(f, "List<{t}>"),

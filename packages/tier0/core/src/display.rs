@@ -9,6 +9,7 @@
 //! | `Nothing` | Nothing |
 //! | Frame | Its `describe` header, a blank line, and its first ten rows with their numbers, the columns aligned as a table's are; then the count of the rows left |
 //! | Table | Its title, a blank line, and its rows under their headings: two spaces in, three between columns, numbers to the right and text to the left |
+//! | `Column<T>` | Its type and length on one line, then its values as a list prints them |
 //!
 //! A table wider than the page (118 characters, the width of a help page) prints its columns in
 //! blocks, as R does, every value shown; a frame repeats the row numbers at the start of each block.
@@ -82,6 +83,7 @@ fn inline(value: &Value) -> String {
         Value::Str(s) => s.clone(),
         Value::Frame(f) => frame_header(f),
         Value::Table(t) => t.title.clone(),
+        Value::Column(c) => column_header(c),
         Value::List(items) => format!(
             "[{}]",
             items.iter().map(inline).collect::<Vec<_>>().join(", ")
@@ -111,6 +113,16 @@ fn inline(value: &Value) -> String {
             None => t.name.clone(),
         },
     }
+}
+
+/// The first line of a printed column: `Column<Float> · 5 values` (section 3.8).
+pub fn column_header(column: &zeff_columns::Column) -> String {
+    format!(
+        "Column<{}> · {} {}",
+        column.ty().name(),
+        count(column.len() as u64),
+        if column.len() == 1 { "value" } else { "values" }
+    )
 }
 
 /// The header line of a frame: `wages · 18,412 rows × 13 variables`.
@@ -294,6 +306,15 @@ pub fn show(value: &Value) -> String {
         ),
         Value::Frame(f) => frame_text(f),
         Value::Table(t) => table_text(t),
+        Value::Column(c) => {
+            let mut out = format!("{}\n", column_header(c));
+            out.push_str(&lines(
+                (0..c.len()).map(|r| cell(c.get(r).unwrap_or(Cell::Na))),
+                c.len(),
+                "value",
+            ));
+            out
+        }
         other => format!("{}\n", inline(other)),
     }
 }
