@@ -1,0 +1,10 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: without_format_notes(&stderr)
+---
+warning: div(0, 0) gave NA in 1 row (line 2)
+  = help: the quotient has no value here; `where(b != 0)` keeps the rows with a divisor
+warning: division by zero gave Inf or -Inf in 2 rows (line 2)
+  = help: `where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise
+warning: mod by zero gave NA in 3 rows (line 3)
+  = help: the remainder has no value here; `where(b != 0)` keeps the rows with a divisor

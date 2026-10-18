@@ -1,0 +1,11 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: stderr
+---
+error[Z0211]: Int overflow: abs(-9223372036854775808) does not fit in 64 bits
+ --> scripts/main.zeff:1:5
+  |
+1 | abs(-9223372036854775807 - 1)
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^ the operation
+  |
+  = help: Ints are 64-bit; a Float (`1.0 * x`) holds larger magnitudes with 53 bits of precision

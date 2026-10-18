@@ -134,3 +134,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps.
 
+## 19 October 2026, step 11 of release 0.2.0
+
+**Done.** Step 11 `[function]`: `abs`, `sign`, `sqrt`, `floor`, `ceil`, `truncate`, `round` (decimal places, significant digits, half to even or away), `min`, `max`, `div`, `mod`, `is_finite`, `PI` and `E`, each with its help page and examples, on scalars and on columns. The engine piece underneath: a scalar function of `core` given a column now applies row by row and returns a column, with its warnings counted once per cause and an error naming its row. Two codes added with their pages: Z0212 (whole-number division by zero) and the provisional Z0410 (`round` with both `digits:` and `sig:`, added to open decision #46). 15 tests added, 10 snapshots; the catalogue rows marked implemented. 15 of the 68 functions of `core` now ship.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 12, maths part 2: `exp`, `log` (with `base:`), `log2`, `log10`, `log1p`, `expm1`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2` `[function]`.
+
+**For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps. Open decision #46 now also holds Z0410, due at 0.3.0.
+

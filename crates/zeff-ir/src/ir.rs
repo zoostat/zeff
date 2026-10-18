@@ -130,6 +130,12 @@ pub struct Call {
     /// The arguments in the order written, receiver first: the order they are evaluated in
     /// (section 3.7, "Arguments").
     pub order: Vec<Slot>,
+    /// A scalar function of `core` given a column: it applies row by row and returns a column
+    /// (section 3.7, "Columns and scalars").
+    pub lifted: bool,
+    /// The declared return type of one row's call (`Float`, `Int`, `Bool`, `Number`), which
+    /// types the column of a lifted call when no row gives a value.
+    pub returns: String,
 }
 
 impl Expr {

@@ -1,0 +1,11 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: without_format_notes(&stderr)
+---
+error[Z0212]: division by zero: `div(35, 0)` has no value (row 2)
+ --> scripts/main.zeff:2:17
+  |
+2 | div(w["hours"], w["id"] - 2)
+  |                 ^^^^^^^^^^^ a divisor of zero
+  |
+  = help: test the divisor first, as in `b != 0 && div(a, b) > 1`; with Floats, `div` and `mod` follow `/` and give Inf or NA with a warning

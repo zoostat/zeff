@@ -1115,11 +1115,15 @@ dependencies = [
 name = "zeff-core"
 version = "0.2.0-dev"
 dependencies = [
+ "insta",
+ "proptest",
+ "serde_json",
  "zeff-columns",
  "zeff-dates",
  "zeff-diagnostics",
  "zeff-numeric",
  "zeff-registry",
+ "zeff-testkit",
 ]
 
 [[package]]

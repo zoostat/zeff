@@ -1,0 +1,35 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: all
+---
+error[Z0401]: `x` of `abs` must be a Float, but this is a Str
+ --> scripts/main.zeff:1:5
+  |
+1 | abs("a")
+  |     ^^^ a Str
+  |
+  = help: usage: `abs(x)`
+
+error[Z0401]: `x` of `abs` must be a Float, but this is a Bool
+ --> scripts/main.zeff:1:5
+  |
+1 | abs(true)
+  |     ^^^^ a Bool
+  |
+  = help: usage: `abs(x)`
+
+error[Z0401]: every further argument of `min` must be a Float, but this is a Str
+ --> scripts/main.zeff:1:11
+  |
+1 | min(1, 2, "a")
+  |           ^^^ a Str
+  |
+  = help: usage: `min(a, b, ...)`
+
+error[Z0401]: `x` of `sqrt` must be a Float, but this is a List<Int>
+ --> scripts/main.zeff:1:6
+  |
+1 | sqrt([1, 2])
+  |      ^^^^^^ a List<Int>
+  |
+  = help: usage: `sqrt(x)`

@@ -1,0 +1,11 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: stderr
+---
+error[Z0401]: `sig:` of `round` must be at least 1, but this is 0
+ --> scripts/main.zeff:1:21
+  |
+1 | round(123.456, sig: 0)
+  |                     ^ not a count of significant digits
+  |
+  = help: `sig: 3` keeps three significant digits: 123456 becomes 123000

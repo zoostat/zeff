@@ -410,14 +410,16 @@ impl<'a> Interpreter<'a> {
             output: printed,
             messages,
         };
-        body(
-            &mut ctx,
-            Args {
-                values,
-                rest,
-                definitions,
-            },
-        )
+        let args = Args {
+            values,
+            rest,
+            definitions,
+        };
+        if call.lifted {
+            // A scalar function of `core` given a column: row by row (section 3.7).
+            return zeff_core::lift::call_rowwise(*body, &mut ctx, args, &call.returns);
+        }
+        body(&mut ctx, args)
     }
 
     /// Z0211: an Int result that does not fit.

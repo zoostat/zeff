@@ -1,0 +1,14 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: stderr
+---
+warning: division by zero gave Inf or -Inf (line 1)
+  = help: `where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise
+warning: div(0, 0) gave NA (line 2)
+  = help: the quotient has no value here; `where(b != 0)` keeps the rows with a divisor
+warning: mod by zero gave NA (line 3)
+  = help: the remainder has no value here; `where(b != 0)` keeps the rows with a divisor
+warning: division by zero gave Inf (line 4)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+warning: mod of an infinite value gave NA (line 5)
+  = help: the remainder has no value here; `where(b != 0)` keeps the rows with a divisor

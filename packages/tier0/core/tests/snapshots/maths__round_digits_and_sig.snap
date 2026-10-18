@@ -1,0 +1,11 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: stderr
+---
+error[Z0410]: `round` takes `digits:` or `sig:`, not both
+ --> scripts/main.zeff:1:32
+  |
+1 | round(123.456, digits: 2, sig: 3)
+  |                                ^ `sig:` beside `digits:`
+  |
+  = help: `digits:` counts decimal places and `sig:` significant digits; keep the one you mean

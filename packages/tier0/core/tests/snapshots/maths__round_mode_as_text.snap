@@ -1,0 +1,11 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: stderr
+---
+error[Z0403]: expected one of even, away, found text
+ --> scripts/main.zeff:1:18
+  |
+1 | round(2.5, mode: "away")
+  |                  ^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `away`

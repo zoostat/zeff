@@ -1,0 +1,11 @@
+---
+source: packages/tier0/core/tests/maths.rs
+expression: stderr
+---
+error[Z0212]: division by zero: `div(7, 0)` has no value
+ --> scripts/main.zeff:2:8
+  |
+2 | div(7, 0)
+  |        ^ a divisor of zero
+  |
+  = help: test the divisor first, as in `b != 0 && div(a, b) > 1`; with Floats, `div` and `mod` follow `/` and give Inf or NA with a warning

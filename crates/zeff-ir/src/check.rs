@@ -481,6 +481,26 @@ impl Checker<'_> {
                 },
             };
         }
+        // A constant of `core` (`PI`, `E`) is a bare name that calls a function of no arguments.
+        if let Some(constant) = self.registry.function("core", &text)
+            && constant.row.kind == "constant"
+        {
+            return Expr {
+                ty: Ty::parse(constant.spec.returns).unwrap_or(Ty::Unknown),
+                span,
+                kind: ExprKind::Call(Call {
+                    package: "core".to_string(),
+                    name: text,
+                    callee_span: span,
+                    args: Vec::new(),
+                    rest: Vec::new(),
+                    definitions: Vec::new(),
+                    order: Vec::new(),
+                    lifted: false,
+                    returns: constant.spec.returns.to_string(),
+                }),
+            };
+        }
         let mut d = Diagnostic::error("Z0101", format!("nothing is called `{text}` here"))
             .primary(span, "not a binding");
         let candidates: Vec<&str> = self.scope.iter().map(|(n, _)| n.as_str()).collect();
@@ -1495,8 +1515,21 @@ impl Checker<'_> {
                     .help(format!("usage: `{}`", spec.usage())),
             );
         }
+        // A scalar function of `core` applies row by row to a column and gives a column (section
+        // 3.7, "Columns and scalars"); its parameter types are read as the types of one row.
+        let liftable = spec.package == "core" && !spec.method;
+        let lifts = |ty: &Ty, given: &Ty| -> bool {
+            liftable && scalar_type(ty) && matches!(given, Ty::Column(inner) if ty.accepts(inner))
+        };
+        let mut lifted = false;
         // Required arguments, and the type of each given one.
         for (i, (pname, ty, option)) in params.iter().enumerate() {
+            if let Some(given) = &slots[i]
+                && lifts(ty, &given.ty)
+            {
+                lifted = true;
+                continue;
+            }
             match &slots[i] {
                 None if !option => {
                     self.report(
@@ -1537,7 +1570,56 @@ impl Checker<'_> {
                 _ => {}
             }
         }
-        let ty = Ty::parse(spec.returns).unwrap_or(Ty::Unknown);
+        if let Some(Rest::Values(rest_ty)) = &spec.rest {
+            let rest_ty = Ty::parse(rest_ty).unwrap_or(Ty::Any);
+            for given in &rest {
+                if lifts(&rest_ty, &given.ty) {
+                    lifted = true;
+                } else if !rest_ty.accepts(&given.ty) {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "every further argument of `{fname}` must be {}, but this is {}",
+                                rest_ty.with_article(),
+                                given.ty.with_article()
+                            ),
+                        )
+                        .primary(given.span, given.ty.with_article())
+                        .help(format!("usage: `{}`", spec.usage())),
+                    );
+                }
+            }
+        }
+        // `Number` (section 3.7): Int when every number given is an Int, Float otherwise.
+        let mut ty = if spec.returns == "Number" {
+            let numbers = slots
+                .iter()
+                .flatten()
+                .chain(rest.iter())
+                .map(|e| match &e.ty {
+                    Ty::Column(inner) => (**inner).clone(),
+                    other => other.clone(),
+                })
+                .filter(|t| matches!(t, Ty::Int | Ty::Float | Ty::Unknown));
+            let mut result = Ty::Int;
+            for t in numbers {
+                match t {
+                    Ty::Unknown => {
+                        result = Ty::Unknown;
+                        break;
+                    }
+                    Ty::Float => result = Ty::Float,
+                    _ => {}
+                }
+            }
+            result
+        } else {
+            Ty::parse(spec.returns).unwrap_or(Ty::Unknown)
+        };
+        if lifted && ty != Ty::Unknown {
+            ty = Ty::Column(Box::new(ty));
+        }
         let _ = expected;
         Expr {
             ty,
@@ -1550,6 +1632,8 @@ impl Checker<'_> {
                 rest,
                 definitions,
                 order,
+                lifted,
+                returns: spec.returns.to_string(),
             }),
         }
     }
@@ -1615,6 +1699,15 @@ impl Checker<'_> {
                 format: Some(format),
             },
         }
+    }
+}
+
+/// A parameter type that names one row's value, so that a column may stand in for it.
+fn scalar_type(ty: &Ty) -> bool {
+    match ty {
+        Ty::Bool | Ty::Int | Ty::Float | Ty::Str | Ty::Date | Ty::DateTime => true,
+        Ty::Union(options) => options.iter().all(scalar_type),
+        _ => false,
     }
 }
 

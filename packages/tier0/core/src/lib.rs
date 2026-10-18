@@ -1,6 +1,8 @@
 //! Package core (tier 0): the language and the types every package shares.
 
 pub mod display;
+pub mod lift;
+pub mod maths;
 pub mod operators;
 pub mod runtime;
 pub mod value;
@@ -20,7 +22,7 @@ fn print(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 /// The functions of `core` in this release, with their help pages.
 pub fn functions() -> Vec<Function> {
-    vec![Function {
+    let mut all = vec![Function {
         spec: FunctionSpec {
             name: "print",
             package: "core",
@@ -36,5 +38,7 @@ pub fn functions() -> Vec<Function> {
             accuracy: None,
         },
         body: print,
-    }]
+    }];
+    all.extend(maths::functions());
+    all
 }
