@@ -195,12 +195,14 @@ proptest! {
         let shifted: Vec<Option<f64>> = values.iter().map(|v| v.map(|x| x + shift)).collect();
         let (moved, _) = mean_of(&shifted);
         let moved: f64 = moved.parse().unwrap();
-        // Printed values carry six significant digits, so the comparison is at that precision.
-        prop_assert!((moved - (base + shift)).abs() <= 1e-4 * (1.0 + (base + shift).abs()), "shift: {moved} vs {}", base + shift);
+        // Printed values carry six significant digits of their own magnitude, so the comparison
+        // is at the precision of the larger quantities that went in, not of the result (which may
+        // be small when the shift cancels the mean).
+        prop_assert!((moved - (base + shift)).abs() <= 1e-5 * (1.0 + base.abs() + shift.abs()), "shift: {moved} vs {}", base + shift);
         let scaled: Vec<Option<f64>> = values.iter().map(|v| v.map(|x| x * scale)).collect();
         let (times, _) = mean_of(&scaled);
         let times: f64 = times.parse().unwrap();
-        prop_assert!((times - base * scale).abs() <= 1e-4 * (1.0 + (base * scale).abs()), "scale: {times} vs {}", base * scale);
+        prop_assert!((times - base * scale).abs() <= 1e-5 * (1.0 + (base * scale).abs()), "scale: {times} vs {}", base * scale);
         let mut reversed = values.clone();
         reversed.reverse();
         let (back, _) = mean_of(&reversed);

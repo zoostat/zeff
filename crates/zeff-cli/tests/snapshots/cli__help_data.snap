@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: out(&o)
 ---
-data · tier 1 · 7 of 59 functions in this release
+data · tier 1 · 8 of 59 functions in this release
 
   frame       Create a frame from named lists of values
   import      Read a data file into a frame
@@ -11,5 +11,6 @@ data · tier 1 · 7 of 59 functions in this release
   variables   List of variable names
   describe    Type, non-missing and missing count of each variable
   mean        Mean of a variable
+  sd          Sample standard deviation
 
 the rest arrive with later releases; `zeff help <name>` says when

@@ -173,3 +173,15 @@ Steps 1 to 5 `[engine]`, each green and committed in turn: the tiered Cargo work
 **Next.** Step 21, `sd` `[function]`.
 
 **For the owner to decide.** Printing question 3 (`summary`'s `stats:` list), first needed at step 22. Open decisions #41 to #45.
+
+## 18 October 2026, step 21 of release 0.1.0
+
+**Done.** Step 21 `[function]`: `sd`, with its page and the whole definition of done (reference on 24 columns, the edge cases, four properties, every message, the identity script). The reference caught a real numerical fault: the standard deviation of values near 1e-301 came out as 0 because the squared deviations underflow; the kernel's variance now scales the deviations by a power of two before squaring, exactly, so ordinary results are unchanged bit for bit (the conformance report's 36 numeric cases are identical) and tiny or huge values are right. 10 tests added.
+
+**Also.** The shift property of `mean` was found too tight on a random draw where the shift cancelled the mean: it compared a small result to the precision of six printed digits of large inputs; it now allows for the magnitude of the inputs.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the conformance report (refreshed for the new statements only) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 22, `summary` and `print` complete `[function]`: it needs the owner's answer to printing question 3 (`summary`'s `stats:` list).
+
+**For the owner to decide.** Printing question 3 (recommendation at the top of `docs/releases/0.1.0.md`). Open decisions #41 to #45.

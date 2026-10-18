@@ -1,0 +1,87 @@
+---
+source: packages/tier1/data/tests/sd.rs
+expression: all
+---
+## rows_skipped (exit 0)
+3.53553
+warning: 1 row with NA in hours was skipped (line 2)
+
+## all_missing (exit 0)
+NA
+warning: all 3 rows have NA in x: the result is NA (line 2)
+
+## no_values (exit 0)
+NA
+warning: x has no values: the result is NA (line 2)
+
+## one_value (exit 0)
+NA
+warning: sd needs at least two values, but y has one: the result is NA (line 2)
+
+## infinite (exit 0)
+NA
+note: 2 values of nan_mixed read as NA from NaN (line 1)
+warning: plus holds an infinite value, so its sd is NA (line 2)
+
+## no_such_variable (exit 1)
+error[Z0101]: no variable `wge` in `wages`
+ --> scripts/main.zeff:2:10
+  |
+2 | wages.sd(wge)
+  |          ^^^ not a variable of wages
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+## case_differs (exit 1)
+error[Z0102]: no variable `Wage` in `wages`; names are case-sensitive
+ --> scripts/main.zeff:2:10
+  |
+2 | wages.sd(Wage)
+  |          ^^^^ differs only in case from `wage`
+  |
+  = help: write `wage`
+
+## text_column (exit 1)
+error[Z0401]: `sd` needs a Bool, Int or Float, but `name` is Str
+ --> scripts/main.zeff:2:10
+  |
+2 | wages.sd(name)
+  |          ^^^^ a Str variable of wages
+  |
+  = help: choose a Bool, Int or Float variable; `wages.describe()` lists the types
+
+## no_variable (exit 1)
+error[Z0406]: `sd` needs `var`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.sd()
+  |   ^^ `var` is missing
+  |
+  = help: usage: `data.sd(var)`
+
+## text_for_the_variable (exit 1)
+error[Z0401]: `var` of `sd` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:6
+  |
+2 | w.sd("wage")
+  |      ^^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+## two_variables (exit 1)
+error[Z0407]: `sd` takes 1 argument, but more were given
+ --> scripts/main.zeff:2:12
+  |
+2 | w.sd(wage, hours)
+  |            ^^^^^ one too many
+  |
+  = help: usage: `data.sd(var)`
+
+## not_a_frame (exit 1)
+error[Z0401]: `sd` cannot be called on an Int
+ --> scripts/main.zeff:1:4
+  |
+1 | sd(3, wage)
+  |    ^ this is an Int
+  |
+  = help: usage: `data.sd(var)`

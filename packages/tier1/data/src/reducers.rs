@@ -1,4 +1,4 @@
-//! The descriptive reducers as frame methods: `data.mean(var)` in this step; `sd` follows.
+//! The descriptive reducers as frame methods: `data.mean(var)` and `data.sd(var)`.
 //!
 //! The rules of Language Reference section 4.1, "Statistics": `NA` skipped with a warning giving
 //! the count; any `Inf` gives `Inf`; `Inf` and `-Inf` together give `NA` with a warning; nothing
@@ -93,5 +93,49 @@ pub fn mean(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
         Some(x) => Ok(Value::Float(x)),
         None => Ok(Value::Na),
+    }
+}
+
+/// `data.sd(var)`: the sample standard deviation (divisor n − 1) of the non-missing values.
+/// Fewer than two values, or an infinite value, make it undefined: `NA` with a warning (W0205,
+/// the cause named); a constant column gives 0.
+pub fn sd(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let (Some(Value::Frame(frame)), Some(Value::Var(var))) = (args.get(0), args.get(1)) else {
+        return Err(fail(Diagnostic::error("Z9001", "internal error: this is a bug in Zeff, not in your script (sd was called without a frame and a variable)").in_file(ctx.script).primary(ctx.callee_span, "the call that failed")));
+    };
+    let column = numeric_column(ctx, "sd", frame, var, 1)?;
+    let values = column
+        .numeric_values()
+        .unwrap_or(zeff_columns::NumericValues {
+            values: Vec::new(),
+            missing: column.len(),
+        });
+    skipped(ctx, var, values.missing, column.len());
+    if values.values.is_empty() {
+        return Ok(Value::Na);
+    }
+    if values.values.len() == 1 {
+        ctx.message(Diagnostic::warning(
+            "W0205",
+            format!("sd needs at least two values, but {var} has one: the result is NA"),
+        ));
+        return Ok(Value::Na);
+    }
+    if values.values.iter().any(|x| x.is_infinite()) {
+        ctx.message(Diagnostic::warning(
+            "W0205",
+            format!("{var} holds an infinite value, so its sd is NA"),
+        ));
+        return Ok(Value::Na);
+    }
+    match zeff_numeric::sd(&values.values) {
+        Some(x) if x.is_finite() => Ok(Value::Float(x)),
+        _ => {
+            ctx.message(Diagnostic::warning(
+                "W0205",
+                format!("the squared deviations of {var} overflow, so its sd is NA"),
+            ));
+            Ok(Value::Na)
+        }
     }
 }

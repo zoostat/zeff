@@ -183,5 +183,37 @@ pub fn functions() -> Vec<Function> {
             },
             body: reducers::mean,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "sd",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                ],
+                rest: None,
+                returns: "Float",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0201",
+                        "missing values skipped, with the count; all missing, or no rows at all, gives NA",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0205",
+                        "one value only, an infinite value, or squared deviations that overflow, so the result is NA",
+                    ),
+                    DiagnosticDecl::new("Z0101", "no such variable in the frame"),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new("Z0401", "the variable is not Bool, Int or Float"),
+                ],
+                help: include_str!("../help/sd.md"),
+                accuracy: None,
+            },
+            body: reducers::sd,
+        },
     ]
 }

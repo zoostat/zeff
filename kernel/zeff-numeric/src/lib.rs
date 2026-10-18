@@ -83,38 +83,98 @@ pub fn mean(values: &[f64]) -> Option<f64> {
 /// The sample variance (divisor n − 1) of `values`, or `None` for fewer than two values.
 ///
 /// The corrected two-pass algorithm: the mean first, then the sum of squared deviations from it
-/// less the correction for the mean's own rounding error. The result is never negative. If any
-/// value is not finite the result is not-a-number; the caller decides what that means.
+/// less the correction for the mean's own rounding error. The deviations are scaled by a power of
+/// two so that the largest lies in [1, 2) before squaring, which is exact and keeps the squares of
+/// very small or very large deviations from underflowing or overflowing; for ordinary values the
+/// result is bit for bit the unscaled one. The result is never negative. If any value is not
+/// finite the result is not-a-number; the caller decides what that means.
 pub fn variance(values: &[f64]) -> Option<f64> {
+    scaled_variance(values).map(|(scaled, scale)| scaled / scale / scale)
+}
+
+/// The sample standard deviation (divisor n − 1), or `None` for fewer than two values.
+///
+/// The square root is taken of the scaled variance and the scale undone afterwards, so that a
+/// standard deviation whose square underflows (values near 1e-300) is still exact to a rounding.
+pub fn sd(values: &[f64]) -> Option<f64> {
+    scaled_variance(values).map(|(scaled, scale)| scaled.sqrt() / scale)
+}
+
+/// The variance of the deviations multiplied by `scale`, and the scale: a power of two that puts
+/// the largest absolute deviation in [1, 2), or 1 when every deviation is zero or not finite.
+fn scaled_variance(values: &[f64]) -> Option<(f64, f64)> {
     if values.len() < 2 {
         return None;
     }
     let n = values.len() as f64;
     let center = mean(values)?;
+    let deviations: Vec<f64> = values.iter().map(|&x| x - center).collect();
+    let largest = deviations
+        .iter()
+        .map(|d| d.abs())
+        .filter(|d| d.is_finite())
+        .fold(0.0f64, f64::max);
+    let scale = if largest == 0.0 {
+        1.0
+    } else {
+        power_of_two_scale(largest)
+    };
     let mut squares = Accumulator::default();
-    let mut deviations = Accumulator::default();
-    for &x in values {
-        let d = x - center;
+    let mut sum = Accumulator::default();
+    for d in deviations {
+        let d = d * scale;
         squares.add(d * d);
-        deviations.add(d);
+        sum.add(d);
     }
-    let correction = deviations.value();
+    let correction = sum.value();
     let result = (squares.value() - correction * correction / n) / (n - 1.0);
     if result.is_nan() {
-        Some(result)
+        Some((result, scale))
     } else {
-        Some(result.max(0.0))
+        Some((result.max(0.0), scale))
     }
 }
 
-/// The sample standard deviation (divisor n − 1), or `None` for fewer than two values.
-pub fn sd(values: &[f64]) -> Option<f64> {
-    variance(values).map(f64::sqrt)
+/// The power of two that brings a positive finite `x` into [1, 2): 2 to the minus its binary
+/// exponent, read from the bits so that no library function is involved.
+fn power_of_two_scale(x: f64) -> f64 {
+    let exponent_field = ((x.to_bits() >> 52) & 0x7ff) as i64;
+    // A subnormal has the exponent of the smallest normal number less one; its scale is capped at
+    // the largest finite power of two, which still brings it into a safe range.
+    let exponent = if exponent_field == 0 {
+        -1022
+    } else {
+        exponent_field - 1023
+    };
+    let field = (1023 - exponent).clamp(1, 2046) as u64;
+    f64::from_bits(field << 52)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_spread_of_very_small_and_very_large_values_survives_squaring() {
+        // Squares of deviations near 1e-301 underflow and near 1e200 overflow; the scaling keeps
+        // the spread, which is 1e-301 and 1e200 to a rounding in both cases.
+        let tiny = [1e-301, 2e-301, 3e-301];
+        let small = sd(&tiny).unwrap();
+        assert!((small - 1e-301).abs() <= 1e-316, "{small:e}");
+        let huge = [1e200, 2e200, 3e200];
+        let large = sd(&huge).unwrap();
+        assert!((large - 1e200).abs() <= 1e185, "{large:e}");
+        assert_eq!(variance(&[5.0, 5.0, 5.0]), Some(0.0));
+        assert_eq!(sd(&[5.0, 5.0, 5.0]), Some(0.0));
+        // Ordinary values give the plain two-pass result, bit for bit.
+        let plain = [23.4, 19.0, 31.2];
+        let center = plain.iter().sum::<f64>() / 3.0;
+        let squares: f64 = plain.iter().map(|x| (x - center) * (x - center)).sum();
+        assert_eq!(variance(&plain), Some(squares / 2.0));
+        assert_eq!(power_of_two_scale(1.5), 1.0);
+        assert_eq!(power_of_two_scale(1e-301), 2f64.powi(1000));
+        assert_eq!(power_of_two_scale(1e200), 2f64.powi(-664));
+    }
 
     #[test]
     fn the_sum_of_nothing_is_zero_and_the_mean_of_nothing_is_none() {
