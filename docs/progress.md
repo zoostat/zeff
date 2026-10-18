@@ -147,3 +147,15 @@ Steps 6 to 12 `[engine]`, each green and committed in turn: the lexer for the wh
 **Next.** Step 25, the pre-release routine `[engine]` (testing handbook, section 2.4), then "Release 0.1.0" when the owner says so.
 
 **For the owner to decide.** Nothing new. Open decisions #41 to #45 are due at this release: the owner may confirm the provisional codes when the release closes.
+
+## 18 October 2026, step 25 of release 0.1.0: the pre-release routine
+
+**Done.** Testing handbook, section 2.4, items 1 to 3 and 6 as they exist at this release. Features are frozen: only fixes from here until the release is tagged. The full suite ran locally in debug (422 tests) and release (423, the stack guard among them), with format, clippy with warnings denied and the tier check; the WebAssembly build (SIMD128, 8 MiB stack) produced a conformance report identical to the committed one under Node 24; on GitHub, every push of the release has run on the four targets, and the last (8703acd) is green on all. The first scheduled nightly job (long property runs) ran green; the first weekly job (coverage and mutation testing) was still running when this entry was written and is recorded below when read. The sample script's output was read by eye: a frame prints its header and ten rows, `describe` and `summary` their tables, each statistic its six digits, each note and warning under its statement with its line; nothing read wrong. The known-issues list is `docs/known_issues.md`. The words audit (names, contents, whole history) found nothing.
+
+**Figures for the release notes.** Reference: Python 3.14.8, `statistics` (exact rational arithmetic) and `csv` of the standard library; no R or Stata output at this release. Risk R1 (cadence): the release's 25 steps were done on 18 October 2026, within its planned cadence. R2 (identity): no cross-target mismatch in any CI run of the release; 43 conformance cases plus the sample. R4 (browser limits): compressed engine bundle 355 kB brotli (444 kB gzip, 1.26 MB raw) against the 5 MB limit; cold start 21 ms against 1,000 ms. R6 (dependencies): `arrow-array` and `arrow-schema` pinned at 60.0.0, Parquet not linked, 126 crates in the lock file, no upgrade since the first commit. R7 (builds): a clean release build of the workspace in 23 s on the development machine.
+
+**Not done here, by design.** The sample's engine pin and the version in `Cargo.toml` change together in the release commit, so the sample test keeps passing at every commit.
+
+**Next.** "Release 0.1.0" when the owner says so: notes, catalogue status, risk register and open decisions review, version, tag, GitHub release.
+
+**For the owner to decide.** Open decisions #41 to #45 are due at this release (the provisional diagnostic codes and the short-form warning); the closing report will list them.
