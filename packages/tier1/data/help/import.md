@@ -30,7 +30,8 @@ file has them unless `names: snake` turns them into valid snake_case names.
 - na_values: Values read as missing besides the empty cell, `NA` and `.`, as numbers or text:
   `na_values: [-99, -98]`.
 - types: A record declaring a column's type when the guess is wrong: `types: {hours: Str}`, or a
-  date format, `types: {sold: Date("%d/%m/%Y")}`.
+  date format, `types: {sold: Date("%d/%m/%Y")}`. A column may be named as the file writes it or
+  by the name `names: snake` gives it.
 - names: Keep the names of the file, or turn each into a snake_case name and print the changes.
 
 ## Value
@@ -41,5 +42,9 @@ frame, describe, n_rows, variables
 
 ## Examples
 > let wages = import("data/wages.csv")
-> wages.n_rows()
-3
+> wages
+wages · 3 rows × 3 variables
+> import("data/wages.csv", na_values: [40]).mean(hours)
+35
+note: 1 value of hours read as NA from na_values 40 (line 3)
+warning: 2 rows with NA in hours were skipped (line 3)

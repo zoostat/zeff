@@ -163,3 +163,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 14, `zeff help` and the example runner `[engine]`.
 
 **For the owner to decide.** Open decisions #41 to #45 (nineteen provisional codes and the short-form question), deadline 0.1.0 or 0.2.0; none blocks the next steps.
+
+## 18 October 2026, step 14 of release 0.1.0
+
+**Done.** Step 14 `[engine]`: `zeff help <name>` prints a function's page, lists a shipped package, says when a later function arrives, and refuses an unknown name with a hint; the example runner runs every example of every registered page in a fixture project and compares the output, statement by statement, and it is part of `cargo test`. It caught a wrong number in the `import` page at once. 7 tests added. Step 13's milestone passed the four-target identity check on GitHub.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the release-mode stack guard and the tier check pass locally. GitHub run to be read after the push.
+
+**Next.** Step 15, the reference and edge-case harness `[engine]`.
+
+**For the owner to decide.** Nothing new. Open decisions #41 to #45.

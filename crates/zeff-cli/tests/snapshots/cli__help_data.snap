@@ -1,0 +1,10 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: out(&o)
+---
+data · tier 1 · 2 of 59 functions in this release
+
+  import   Read a data file into a frame
+  mean     Mean of a variable
+
+the rest arrive with later releases; `zeff help <name>` says when

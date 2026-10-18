@@ -32,6 +32,9 @@ Higham (2002), Accuracy and Stability of Numerical Algorithms, second edition, c
 sd, summary, describe
 
 ## Examples
-> let d = frame(wage = [23.4, 19.0, 31.2])
-> d.mean(wage)
+> let wages = import("data/wages.csv")
+> wages.mean(wage)
 24.5333
+> wages.mean(hours)
+37.5
+warning: 1 row with NA in hours was skipped (line 3)

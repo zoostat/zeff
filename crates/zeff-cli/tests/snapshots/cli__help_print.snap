@@ -1,0 +1,37 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: "out(&zeff(dir.path(), &[\"help\", \"print\"]))"
+---
+print — Print values                                                         core · tier 0 · since 0.1.0 · 1.0 · exact
+
+USAGE
+    print(x, ...)
+
+DESCRIPTION
+    Prints each value through the display interface that `core` declares and every type implements, so a
+    frame, a table, a number or a text prints the way it prints when a statement that is not a `let` stands
+    on its own. Several values print one after another, each on its own lines.
+
+    `print` returns nothing: it is a statement, and its result cannot be bound or passed on (Z0206).
+
+ARGUMENTS
+    x           Any. The value to print; any type.
+
+VALUE
+    Nothing.
+
+WARNINGS AND NOTES
+    Z0206   the result of print is bound or passed; it has none
+
+ACCURACY
+    Exact.
+
+SEE ALSO
+    describe, summary
+
+EXAMPLES
+    > print(42)
+    42
+    > print("hello", 0.1)
+    hello
+    0.1

@@ -27,7 +27,8 @@
 //!
 //! Paragraphs, `code` and bullet lists are the only markup. Usage, Warnings and notes, Accuracy and
 //! Availability are generated and may not be written. An example is a run of `> ` lines (its
-//! statement, continued over several lines when needed) followed by the lines it prints.
+//! statement, continued over several lines when needed) followed by the lines it prints, kept
+//! as written, since a table's alignment is part of what it prints.
 
 use crate::catalogue::CatalogueRow;
 use crate::spec::FunctionSpec;
@@ -327,7 +328,7 @@ pub fn parse_help(text: &str) -> Result<HelpDoc, Vec<HelpError>> {
                         }
                     } else {
                         match current.as_mut() {
-                            Some(example) => example.output.push(trimmed.trim_start().to_string()),
+                            Some(example) => example.output.push(trimmed.to_string()),
                             None => {
                                 errors.push(HelpError::MalformedExample(trimmed.trim().to_string()))
                             }

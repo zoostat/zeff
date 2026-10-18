@@ -349,3 +349,72 @@ fn a_new_project_runs_to_nothing() {
     assert_eq!(out(&o), "");
     assert_eq!(err(&o), "");
 }
+
+// ----- zeff help -----
+
+#[test]
+fn zeff_help_prints_a_functions_page() {
+    let dir = tempfile::tempdir().unwrap();
+    let o = zeff(dir.path(), &["help", "mean"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let text = out(&o);
+    assert!(text.starts_with("mean — Mean of a variable"), "{text}");
+    assert!(text.contains("\nUSAGE\n    data.mean(var)\n"), "{text}");
+    assert!(text.contains("\nEXAMPLES\n"), "{text}");
+    assert_eq!(err(&o), "");
+    insta::assert_snapshot!("help_mean", text.replace(zeff_engine::VERSION, "0.1.0-dev"));
+    insta::assert_snapshot!("help_import", out(&zeff(dir.path(), &["help", "import"])));
+    insta::assert_snapshot!("help_print", out(&zeff(dir.path(), &["help", "print"])));
+}
+
+#[test]
+fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
+    let dir = tempfile::tempdir().unwrap();
+    let o = zeff(dir.path(), &["help", "data"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    insta::assert_snapshot!("help_data", out(&o));
+    let core = zeff(dir.path(), &["help", "core"]);
+    assert!(
+        out(&core).starts_with("core · tier 0 · 1 of 68 functions in this release"),
+        "{}",
+        out(&core)
+    );
+    let later = zeff(dir.path(), &["help", "reg"]);
+    assert_eq!(code(&later), 0);
+    assert!(
+        out(&later).starts_with("`reg` arrives with release 0.4.0, in the `regress` package: "),
+        "{}",
+        out(&later)
+    );
+    let two_homes = zeff(dir.path(), &["help", "summary"]);
+    assert_eq!(
+        out(&two_homes).lines().count(),
+        2,
+        "one line per home: {}",
+        out(&two_homes)
+    );
+    let package_later = zeff(dir.path(), &["help", "regress"]);
+    assert!(
+        out(&package_later)
+            .contains("has no function in this release; its first arrives with release 0.4.0"),
+        "{}",
+        out(&package_later)
+    );
+}
+
+#[test]
+fn zeff_help_refuses_an_unknown_name_with_a_hint() {
+    let dir = tempfile::tempdir().unwrap();
+    let o = zeff(dir.path(), &["help", "maen"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(
+        err(&o),
+        "error: no function or package is called `maen`; did you mean `mean`?\n"
+    );
+    assert_eq!(out(&o), "");
+    let o = zeff(dir.path(), &["help", "zzzz"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("`zeff help data` the functions of a package"));
+    let o = zeff(dir.path(), &["help", "a", "b"]);
+    assert_eq!(code(&o), 1);
+}

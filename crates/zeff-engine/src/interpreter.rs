@@ -11,6 +11,16 @@ use zeff_core::value::{TypeValue, Value};
 use zeff_diagnostics::{Diagnostic, Source};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
 
+/// What one statement wrote.
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct StatementOutput {
+    /// The line the statement starts on.
+    pub line: u32,
+    pub stdout: String,
+    /// Its warnings and notes in the short form, and the error that stopped the run, if any.
+    pub stderr: String,
+}
+
 /// What a run wrote: the script's output, and the messages beside it.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Output {
@@ -18,6 +28,8 @@ pub struct Output {
     pub stdout: String,
     /// Warnings, notes and the error that stopped the run, if any (standard error).
     pub stderr: String,
+    /// The same, statement by statement, for the example runner.
+    pub statements: Vec<StatementOutput>,
 }
 
 pub struct Interpreter<'a> {
@@ -76,15 +88,25 @@ impl<'a> Interpreter<'a> {
                     (line, result)
                 }
             };
-            output.stdout.push_str(&printed);
+            let mut statement_errors = String::new();
             for message in &messages {
-                output.stderr.push_str(&message.short(Some(line)));
+                statement_errors.push_str(&message.short(Some(line)));
             }
-            if let Err(error) = result {
+            let failed = result.is_err();
+            if let Err(error) = &result {
                 let mut sources = zeff_diagnostics::Sources::new();
                 sources.add(self.source.clone());
-                output.stderr.push_str(&error.render(&sources));
-                return Err(error);
+                statement_errors.push_str(&error.render(&sources));
+            }
+            output.stdout.push_str(&printed);
+            output.stderr.push_str(&statement_errors);
+            output.statements.push(StatementOutput {
+                line,
+                stdout: printed,
+                stderr: statement_errors,
+            });
+            if failed {
+                return result.map(|_| ());
             }
         }
         Ok(())

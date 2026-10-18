@@ -52,4 +52,4 @@ EXAMPLES
     merge: 18,201 rows matched; 0 left rows unmatched; 3 right rows unmatched (firms with no workers)
     > wages.merge(firms, on: firm)
     error[Z0604]: columns `size` exist in both frames and are not keys
-    = help: give suffixes: ["_w", "_f"], or drop one of them first
+      = help: give suffixes: ["_w", "_f"], or drop one of them first

@@ -23,6 +23,7 @@ Commands:
   run [script]      run scripts/main.zeff, or the script named
   check [script]    check a script's names, arguments and types without running it
                     (scripts/main.zeff unless another is named)
+  help <name>       print a function's help page, or list a package's functions
   version           print the version of Zeff
   help              show this text
 ";
@@ -70,9 +71,10 @@ pub fn run(
         ["version" | "--version" | "-V", ..] => {
             usage_error(err, "`zeff version` takes no arguments")
         }
-        ["help", name, ..] => usage_error(
+        ["help", name] => help_command(name, out, err),
+        ["help", ..] => usage_error(
             err,
-            &format!("there is no help page for `{name}` yet; `zeff help` lists the commands"),
+            "`zeff help` takes one name, as in `zeff help mean` or `zeff help data`",
         ),
         ["check"] => check_command(fs, cwd, None, out, err),
         ["check", script] => check_command(fs, cwd, Some(script), out, err),
@@ -314,4 +316,31 @@ fn check_command(
         );
     }
     if errors > 0 { 1 } else { 0 }
+}
+
+/// `zeff help <name>`: a function's page or a package's functions, on standard output.
+fn help_command(name: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    let registry = match zeff_engine::registry::registry() {
+        Ok(registry) => registry,
+        Err(errors) => {
+            let _ = writeln!(
+                err,
+                "error[Z9001]: internal error: this is a bug in Zeff, not in your script"
+            );
+            for problem in errors {
+                let _ = writeln!(err, "  {problem}");
+            }
+            return 2;
+        }
+    };
+    match zeff_engine::help::help_text(registry, name) {
+        Ok(text) => {
+            let _ = out.write_all(text.as_bytes());
+            0
+        }
+        Err(message) => {
+            let _ = writeln!(err, "error: {message}");
+            1
+        }
+    }
 }

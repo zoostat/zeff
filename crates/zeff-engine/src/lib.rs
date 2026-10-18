@@ -1,7 +1,9 @@
 //! The engine: projects, the interpreter and the assembled function registry.
 
 pub mod create;
+pub mod examples;
 pub mod fs;
+pub mod help;
 pub mod interpreter;
 pub mod manifest;
 pub mod paths;
