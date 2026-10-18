@@ -1,11 +1,12 @@
 """Reference values of the maths kernel on a fixed grid (release 0.2.0, step 5).
 
-Writes `tests/reference/maths.json`: for every elementary function the value Python's `math`
-module gives at each point of a fixed grid (the platform's C library; the kernel must agree within
-two units in the last place, exactly where the answer is exact), the roundings of a fixed set of
-numbers half to even (Python's `round`, decided on the exact binary value as R decides it) and half
-away from zero (the `decimal` module's ROUND_HALF_UP on the exact value, as Stata and Excel round),
-and floored division and remainder as Python computes them. Run with
+Writes `tests/reference/maths.json`: for every elementary function its correctly rounded value at
+each point of a fixed grid, computed with Python's `decimal` module at 50 significant digits and
+then rounded once to the nearest double, so that the file is the same on every machine (Python's
+`math` module is the platform's C library and differs between systems, which is the very thing the
+kernel avoids); the roundings of a fixed set of numbers half to even (Python's `round`, decided on
+the exact binary value as R decides it) and half away from zero (ROUND_HALF_UP on the exact value,
+as Stata and Excel round); and floored division and remainder as Python computes them. Run with
 `python3 -I tests/reference/maths.py`; continuous integration re-runs it and fails if anything
 committed differs.
 """
@@ -15,8 +16,13 @@ import json
 import math
 import os
 import platform
+from decimal import Decimal
 
 here = os.path.dirname(os.path.abspath(__file__))
+
+decimal.getcontext().prec = 50
+decimal.getcontext().Emax = 999_999
+decimal.getcontext().Emin = -999_999
 
 # A grid that reaches the special points and the ranges a user meets: around zero, around one,
 # large and small magnitudes, negative values, and the boundaries of the inverse trigonometric
@@ -29,50 +35,217 @@ grid = [
     6.283185307179586, 100.5, -99.5, 1e-5, 2.5e-8, 7.0, 0.3, 0.6, 0.123456789,
 ]
 
-functions = {
-    "exp": math.exp,
-    "log": math.log,
-    "log2": math.log2,
-    "log10": math.log10,
-    "log1p": math.log1p,
-    "expm1": math.expm1,
-    "sin": math.sin,
-    "cos": math.cos,
-    "tan": math.tan,
-    "asin": math.asin,
-    "acos": math.acos,
-    "atan": math.atan,
-    "sqrt": math.sqrt,
-}
+
+# ----- the elementary functions in exact decimal arithmetic -----
+
+def pi():
+    """Pi to 420 digits (the recipe of the decimal module's documentation): enough to reduce an
+    argument as large as 1e300 to its angle with 50 digits to spare."""
+    decimal.getcontext().prec = 422
+    three = Decimal(3)
+    lasts, t, s, n, na, d, da = 0, three, 3, 1, 0, 0, 24
+    while s != lasts:
+        lasts = s
+        n, na = n + na, na + 8
+        d, da = d + da, da + 32
+        t = (t * n) / d
+        s += t
+    decimal.getcontext().prec = 420
+    s = +s
+    decimal.getcontext().prec = 50
+    return s
 
 
-def value(f, x):
-    """The function at x as text: a double's shortest form, `NA` where it has no value, or an
-    infinity's name. Python raises at a logarithm of zero where Zeff gives `-Inf` (Language
-    Reference, section 4.1); the reference writes Zeff's answer there."""
-    if f in (math.log, math.log2, math.log10) and x == 0:
-        return "-Inf"
-    if f is math.log1p and x == -1:
-        return "-Inf"
-    try:
-        y = f(x)
-    except ValueError:
-        return "NA"
-    except OverflowError:
-        return "Inf"
-    if math.isnan(y):
-        return "NA"
+PI = pi()
+
+
+def reduce_angle(x):
+    """x reduced to [-pi, pi], at a precision that holds every digit of x before the point."""
+    with decimal.localcontext() as ctx:
+        ctx.prec = 60 + max(0, x.adjusted())
+        two_pi = 2 * PI
+        k = (x / two_pi).to_integral_value(rounding=decimal.ROUND_HALF_EVEN)
+        reduced = x - k * two_pi
+    return +reduced
+
+
+def dsin(x):
+    extra = 4 + max(0, x.adjusted())
+    decimal.getcontext().prec += extra
+    x = reduce_angle(x)
+    i, lasts, s, fact, num, sign = 1, 0, x, 1, x, 1
+    while s != lasts:
+        lasts = s
+        i += 2
+        fact *= i * (i - 1)
+        num *= x * x
+        sign *= -1
+        s += num / fact * sign
+    decimal.getcontext().prec -= extra
+    return +s
+
+
+def dcos(x):
+    extra = 4 + max(0, x.adjusted())
+    decimal.getcontext().prec += extra
+    x = reduce_angle(x)
+    i, lasts, s, fact, num, sign = 0, 0, 1, 1, 1, 1
+    while s != lasts:
+        lasts = s
+        i += 2
+        fact *= i * (i - 1)
+        num *= x * x
+        sign *= -1
+        s += num / fact * sign
+    decimal.getcontext().prec -= extra
+    return +s
+
+
+def datan(x):
+    """arctan by its series after halving the argument until it is small."""
+    decimal.getcontext().prec += 4
+    halvings = 0
+    while abs(x) > Decimal("0.2"):
+        x = x / (1 + (1 + x * x).sqrt())
+        halvings += 1
+    i, lasts, s, num, sign = 1, 0, x, x, 1
+    while s != lasts:
+        lasts = s
+        i += 2
+        num *= x * x
+        sign *= -1
+        s += sign * num / i
+    s *= 2 ** halvings
+    decimal.getcontext().prec -= 4
+    return +s
+
+
+def to_double(r):
+    """A decimal rounded once to the nearest double, as text."""
+    y = float(r)
     if math.isinf(y):
         return "Inf" if y > 0 else "-Inf"
+    if y == 0:
+        return "-0.0" if r.is_signed() else "0.0"
     return repr(y)
 
 
+def value_of(name, x):
+    """The function at the double x, correctly rounded to a double, as text: a shortest form,
+    `Inf`/`-Inf`, or `NA` where the function has no value. Zeff's answers at the edges (section
+    4.1): a logarithm of zero is `-Inf`."""
+    d = Decimal(x)
+    # At zero and for tiny arguments the odd functions return x itself, sign included: no decimal
+    # arithmetic could keep the sign of -0.0 or the last digits of 1e-300.
+    if name in ("sin", "tan", "asin", "atan", "log1p", "expm1") and abs(x) < 1e-17:
+        return text(x)
+    try:
+        if name == "exp":
+            if x > 709.8:
+                return "Inf"
+            if x < -746:
+                return "0.0"
+            r = d.exp()
+        elif name == "log":
+            if x == 0:
+                return "-Inf"
+            if x < 0:
+                return "NA"
+            r = d.ln()
+        elif name == "log2":
+            if x == 0:
+                return "-Inf"
+            if x < 0:
+                return "NA"
+            r = d.ln() / Decimal(2).ln()
+        elif name == "log10":
+            if x == 0:
+                return "-Inf"
+            if x < 0:
+                return "NA"
+            r = d.log10()
+        elif name == "log1p":
+            if x == -1:
+                return "-Inf"
+            if x < -1:
+                return "NA"
+            r = (1 + d).ln()
+        elif name == "expm1":
+            if x > 709.8:
+                return "Inf"
+            if x < -40:
+                return "-1.0"
+            r = d.exp() - 1
+        elif name == "sqrt":
+            if x < 0:
+                return "NA"
+            r = d.sqrt()
+        elif name == "sin":
+            r = dsin(d)
+        elif name == "cos":
+            r = dcos(d)
+        elif name == "tan":
+            r = dsin(d) / dcos(d)
+        elif name == "atan":
+            r = datan(d)
+        elif name == "asin":
+            if abs(x) > 1:
+                return "NA"
+            if abs(x) == 1:
+                r = PI / 2 * (1 if x > 0 else -1)
+            else:
+                r = datan(d / (1 - d * d).sqrt())
+        elif name == "acos":
+            if abs(x) > 1:
+                return "NA"
+            if x == 1:
+                return "0.0"
+            if x == -1:
+                r = PI
+            else:
+                r = PI / 2 - datan(d / (1 - d * d).sqrt())
+        else:
+            raise ValueError(name)
+    except (decimal.InvalidOperation, decimal.Overflow):
+        return "NA"
+    return to_double(r)
+
+
+def atan2_value(y, x):
+    """The angle of the point (x, y), as IEEE atan2 defines it at the axes and the origin."""
+    if x == 0 and y == 0:
+        if math.copysign(1, x) > 0:
+            return "0.0" if math.copysign(1, y) > 0 else "-0.0"
+        return to_double(PI) if math.copysign(1, y) > 0 else to_double(-PI)
+    if x == 0:
+        return to_double(PI / 2 if y > 0 else -PI / 2)
+    a = datan(Decimal(y) / Decimal(x))
+    if x < 0:
+        a = a + PI if y >= 0 else a - PI
+    if y == 0 and x < 0:
+        return to_double(PI) if math.copysign(1, y) > 0 else to_double(-PI)
+    return to_double(a)
+
+
 def power_value(x, y):
-    """x ** y as IEEE pow gives it: Python raises at 0 ** negative, where the power is an infinity
-    (the rule of 1 / 0 in Language Reference 4.1)."""
+    """x ** y as IEEE pow gives it, correctly rounded: a negative base with a fractional exponent
+    has no real value (`NA`) and 0 ** negative is an infinity, as 1 / 0 (section 4.1)."""
     if x == 0 and y < 0:
         return "Inf"
-    return value(lambda _: math.pow(x, y), 0)
+    if x == 0 and y == 0:
+        return "1.0"
+    if x == 0:
+        return "0.0"
+    try:
+        if y == int(y):
+            r = Decimal(x) ** int(y)
+        else:
+            if x < 0:
+                return "NA"
+            r = Decimal(x) ** Decimal(y)
+    except (decimal.InvalidOperation, decimal.Overflow):
+        return "NA"
+    return to_double(r)
 
 
 def text(x):
@@ -81,14 +254,16 @@ def text(x):
     return repr(x)
 
 
+names = ["exp", "log", "log2", "log10", "log1p", "expm1", "sin", "cos", "tan", "asin", "acos", "atan", "sqrt"]
+
 out = {
     "reference": {
-        "software": "Python math module (the platform C library) and decimal module",
+        "software": "Python decimal module at 50 significant digits, rounded once to a double",
         "python": platform.python_version(),
     },
     "grid": [text(x) for x in grid],
-    "functions": {name: [value(f, x) for x in grid] for name, f in functions.items()},
-    "atan2": [[text(y), text(x), value(lambda _: math.atan2(y, x), 0)] for y in (0.0, 1.0, -1.0, 2.5) for x in (0.0, 1.0, -1.0, -0.5)],
+    "functions": {name: [value_of(name, x) for x in grid] for name in names},
+    "atan2": [[text(y), text(x), atan2_value(y, x)] for y in (0.0, 1.0, -1.0, 2.5) for x in (0.0, 1.0, -1.0, -0.5)],
     "pow": [[text(x), text(y), power_value(x, y)] for x in (2.0, 0.5, 10.0, -2.0, 1.5, 0.0) for y in (0.0, 1.0, 2.0, 3.0, 0.5, -1.0, 10.0, -0.5)],
 }
 
@@ -98,24 +273,21 @@ to_round = [
     -0.4, 1e300, 123456.789, 2.345, 2.355, 7.5, -7.5, 1.0000000000000002, 0.1 + 0.2,
     1234567.891, 0.045, 0.055, 1.45, 1.55, 100.0, 5.000000000000001, 3.14159,
 ]
-decimal.getcontext().prec = 500
-decimal.getcontext().Emax = 999_999
-decimal.getcontext().Emin = -999_999
 rounding = []
 for x in to_round:
     for digits in (0, 1, 2, 3, -1, -2):
         even = round(x, digits)
-        exact = decimal.Decimal(x)
-        quantum = decimal.Decimal(1).scaleb(-digits)
-        away = float(exact.quantize(quantum, rounding=decimal.ROUND_HALF_UP))
+        exact = Decimal(x)
+        quantum = Decimal(1).scaleb(-digits)
+        with decimal.localcontext() as ctx:
+            ctx.prec = 500  # 1e300 at two decimals needs 303 digits
+            away = float(exact.quantize(quantum, rounding=decimal.ROUND_HALF_UP))
         rounding.append([repr(x), digits, repr(float(even)), repr(away)])
 out["round"] = rounding
 
 significant = []
 for x in (123456.0, 0.00123456, 1.25, 9.99, -987.654, 5.0, 0.5, 1500.0, 2.5e-7):
     for sig in (1, 2, 3, 6):
-        if x == 0:
-            continue
         exponent = math.floor(math.log10(abs(x)))
         digits = sig - 1 - exponent
         significant.append([repr(x), sig, repr(float(round(x, digits)))])
