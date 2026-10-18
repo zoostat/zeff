@@ -1,0 +1,6 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: err(&o)
+---
+error[Z0714]: no script `scripts/other.zeff` in the project
+  = help: scripts live in `scripts/`; `zeff run` and `zeff check` alone use `scripts/main.zeff`

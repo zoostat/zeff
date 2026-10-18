@@ -1,6 +1,7 @@
 //! Build tooling. `cargo run -p xtask -- check-tiers` enforces the tier rules of section 8.1.
 
 mod identity;
+mod messages;
 mod tiers;
 
 use std::process::{Command, ExitCode};
@@ -9,13 +10,50 @@ fn main() -> ExitCode {
     match std::env::args().nth(1).as_deref() {
         Some("check-tiers") => check_tiers(),
         Some("compare-identity") => compare_identity(),
+        Some("check-messages") => check_messages(),
         _ => {
             eprintln!(
                 "usage: cargo run -p xtask -- check-tiers\n       \
+                 cargo run -p xtask -- check-messages\n       \
                  cargo run -p xtask -- compare-identity <folder> <number of reports>"
             );
             ExitCode::from(2)
         }
+    }
+}
+
+/// Every diagnostic code written in the sources has a snapshot of its wording (section 11).
+fn check_messages() -> ExitCode {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let (sources, snapshots) = match messages::gather(&root) {
+        Ok(found) => found,
+        Err(error) => {
+            eprintln!("could not read the workspace: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let gaps = messages::missing(&sources, &snapshots);
+    let total: std::collections::BTreeSet<String> = sources
+        .iter()
+        .flat_map(|(_, text)| messages::codes_in_source(text))
+        .collect();
+    if gaps.is_empty() {
+        println!(
+            "every one of the {} diagnostic codes in the sources has a snapshot ({} snapshot files)",
+            total.len(),
+            snapshots.len()
+        );
+        ExitCode::SUCCESS
+    } else {
+        for (code, files) in &gaps {
+            eprintln!("{code} has no snapshot; raised in {}", files.join(", "));
+        }
+        eprintln!(
+            "{} of {} codes have no snapshot: add a test that renders each with insta",
+            gaps.len(),
+            total.len()
+        );
+        ExitCode::from(1)
     }
 }
 

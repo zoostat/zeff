@@ -114,6 +114,9 @@ jobs:
       - name: Core depends only on kernel crates, and every call goes down (section 8.1)
         run: cargo run --locked -p xtask -- check-tiers
 
+      - name: Every diagnostic code has a snapshot of its wording (section 11)
+        run: cargo run --locked -p xtask -- check-messages
+
   identity:
     name: identity (${{ matrix.name }})
     strategy:

@@ -16,6 +16,9 @@ fn main() -> ExitCode {
         eprintln!("error: cannot tell which folder this is");
         return ExitCode::from(2);
     };
+    // A failure inside the engine is reported as Z9001 by the interpreter (Language Reference,
+    // section 11.1); the default hook's own report, with source paths, would only add noise.
+    std::panic::set_hook(Box::new(|_| {}));
     let worker = std::thread::Builder::new()
         .stack_size(STACK_SIZE)
         .spawn(move || {
@@ -27,7 +30,12 @@ fn main() -> ExitCode {
             code
         });
     let code = match worker {
-        Ok(handle) => handle.join().unwrap_or(2),
+        Ok(handle) => handle.join().unwrap_or_else(|_| {
+            eprintln!(
+                "error[Z9001]: internal error: this is a bug in Zeff, not in your script\n  = help: please report what you ran"
+            );
+            2
+        }),
         Err(_) => 2,
     };
     ExitCode::from(u8::try_from(code).unwrap_or(2))

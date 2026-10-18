@@ -582,3 +582,66 @@ fn a_long_flat_list_is_fine() {
     );
     assert!(on_a_big_stack(move || codes(&text)).is_empty());
 }
+
+// ----- the nesting and chain limits of section 3.8 (Z0307) -----
+
+#[test]
+fn too_deep_a_nesting_and_too_long_a_chain_are_z0307() {
+    // The parser needs the stack the command line gives it (64 MiB); a test thread has less.
+    std::thread::Builder::new()
+        .stack_size(64 << 20)
+        .spawn(limits)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+fn limits() {
+    let nested = format!("let x = {}1{}\n", "(".repeat(300), ")".repeat(300));
+    let parsed = zeff_syntax::parse("deep.zeff", &nested);
+    let mut sources = Sources::new();
+    sources.add(Source::new("deep.zeff", &nested));
+    let deep: Vec<String> = parsed
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "Z0307")
+        .map(|d| d.render(&sources))
+        .collect();
+    assert_eq!(deep.len(), 1, "{:?}", parsed.diagnostics);
+    assert!(
+        deep[0].contains("nested more than 256 levels deep"),
+        "{}",
+        deep[0]
+    );
+    let chain = format!("let y = x{}\n", ".f()".repeat(1100));
+    let parsed = zeff_syntax::parse("chain.zeff", &chain);
+    let mut sources = Sources::new();
+    sources.add(Source::new("chain.zeff", &chain));
+    let long: Vec<String> = parsed
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "Z0307")
+        .map(|d| d.render(&sources))
+        .collect();
+    assert_eq!(long.len(), 1, "{:?}", parsed.diagnostics);
+    assert!(
+        long[0].contains("chain has more than 1024 steps"),
+        "{}",
+        long[0]
+    );
+    // The rendered forms, without the thousand-character source lines.
+    let shorten = |text: &str| -> String {
+        text.lines()
+            .map(|l| {
+                if l.len() > 100 {
+                    format!("{}…", &l[..100])
+                } else {
+                    l.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    insta::assert_snapshot!("too_deep", shorten(&deep[0]));
+    insta::assert_snapshot!("too_long_a_chain", shorten(&long[0]));
+}

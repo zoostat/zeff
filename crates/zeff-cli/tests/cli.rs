@@ -108,6 +108,7 @@ fn commands_that_need_a_project_say_so_outside_one() {
             err(&o)
         );
     }
+    insta::assert_snapshot!("outside_a_project", err(&zeff(dir.path(), &["run"])));
 }
 
 #[test]
@@ -168,6 +169,7 @@ fn zeff_check_takes_a_script_and_refuses_one_that_is_not_there() {
         "{}",
         err(&o)
     );
+    insta::assert_snapshot!("no_such_script", err(&o));
     let o = zeff(&project, &["check", "../outside.zeff"]);
     assert_eq!(code(&o), 1);
     assert!(err(&o).starts_with("error[Z0701]"), "{}", err(&o));

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: "shorten(&deep[0])"
+---
+error[Z0307]: this is nested more than 256 levels deep
+ --> deep.zeff:1:265
+  |
+1 | let x = ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((…
+  |                                                                                                 …
+  |
+  = help: split the expression into steps with `let`

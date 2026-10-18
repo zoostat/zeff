@@ -41,6 +41,9 @@ pub struct Interpreter<'a> {
     source: &'a Source,
     env: HashMap<usize, Value>,
     program: &'a Program,
+    /// A test hook: the statement at this line panics before it runs, to prove that a failure
+    /// inside the engine becomes Z9001 and never a crash.
+    panic_at_line: Option<u32>,
 }
 
 impl<'a> Interpreter<'a> {
@@ -58,7 +61,15 @@ impl<'a> Interpreter<'a> {
             source,
             env: HashMap::new(),
             program,
+            panic_at_line: None,
         }
+    }
+
+    /// The test hook: make the statement at `line` panic before it runs.
+    #[doc(hidden)]
+    pub fn with_panic_at(mut self, line: Option<u32>) -> Self {
+        self.panic_at_line = line;
+        self
     }
 
     /// Run every statement. The error that stopped the run, if any, is rendered into
@@ -67,28 +78,44 @@ impl<'a> Interpreter<'a> {
         for statement in &self.program.statements {
             let mut printed = String::new();
             let mut messages: Vec<Diagnostic> = Vec::new();
-            let (line, result) = match statement {
-                Statement::Let {
-                    binding,
-                    value,
-                    span,
-                } => {
-                    let line = self.source.line_of(span.start);
-                    let result = self.eval(value, &mut printed, &mut messages).map(|mut v| {
-                        if let Value::Frame(frame) = &mut v {
-                            frame.name = Some(self.program.bindings[*binding].name.clone());
-                        }
-                        self.env.insert(*binding, v);
-                    });
-                    (line, result)
+            let span = match statement {
+                Statement::Let { span, .. } | Statement::Print { span, .. } => *span,
+            };
+            let line = self.source.line_of(span.start);
+            // A failure inside the engine never crashes the run: it is Z9001 at the statement,
+            // and the run stops as it would at any error (Language Reference, section 11.1).
+            let evaluation = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                if self.panic_at_line == Some(line) {
+                    panic!("a test panic injected at line {line}");
                 }
-                Statement::Print { value, span } => {
-                    let line = self.source.line_of(span.start);
-                    let result = self
+                match statement {
+                    Statement::Let { binding, value, .. } => {
+                        self.eval(value, &mut printed, &mut messages).map(|mut v| {
+                            if let Value::Frame(frame) = &mut v {
+                                frame.name = Some(self.program.bindings[*binding].name.clone());
+                            }
+                            self.env.insert(*binding, v);
+                        })
+                    }
+                    Statement::Print { value, .. } => self
                         .eval(value, &mut printed, &mut messages)
-                        .map(|v| printed.push_str(&show(&v)));
-                    (line, result)
+                        .map(|v| printed.push_str(&show(&v))),
                 }
+            }));
+            let result = match evaluation {
+                Ok(result) => result,
+                Err(payload) => Err(fail(
+                    Diagnostic::error(
+                        "Z9001",
+                        format!(
+                            "internal error: this is a bug in Zeff, not in your script ({})",
+                            panic_text(payload.as_ref())
+                        ),
+                    )
+                    .in_file(self.script)
+                    .primary(span, "the statement that failed inside the engine")
+                    .help("the statements before it ran; please report the script and the data that led here"),
+                )),
             };
             let mut statement_errors = String::new();
             for message in &messages {
@@ -559,6 +586,17 @@ fn warnings_of(notes: Notes, messages: &mut Vec<Diagnostic>) {
             "W0205",
             format!("{cause} gave NA in {}", rows(n)),
         ));
+    }
+}
+
+/// What a panic said, for the message.
+fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(text) = payload.downcast_ref::<&str>() {
+        (*text).to_string()
+    } else if let Some(text) = payload.downcast_ref::<String>() {
+        text.clone()
+    } else {
+        "no further detail".to_string()
     }
 }
 

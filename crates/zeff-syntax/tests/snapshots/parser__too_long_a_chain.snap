@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: "shorten(&long[0])"
+---
+error[Z0307]: this chain has more than 1024 steps
+ --> chain.zeff:1:4106
+  |
+1 | let y = x.f().f().f().f().f().f().f().f().f().f().f().f().f().f().f().f().f().f().f().f().f().f(…
+  |                                                                                                 …
+  |
+  = help: name an intermediate result with `let`

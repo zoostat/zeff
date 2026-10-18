@@ -1,0 +1,5 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: "err(&zeff(dir.path(), &[\"run\"]))"
+---
+error[Z0709]: not inside a Zeff project; `zeff new <name>` creates one

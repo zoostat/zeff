@@ -87,3 +87,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 7, internal errors never crash and the message-snapshot rule `[engine]`.
 
 **For the owner to decide.** Nothing new.
+
+## 18 October 2026, step 7 of release 0.2.0
+
+**Done.** Step 7 `[engine]`: a failure inside the engine during a statement is Z9001 at that statement with exit code 2, never a crash (proven by a test hook that injects a panic); `xtask check-messages` requires a snapshot for every diagnostic code the sources can raise and runs in CI; it found four codes without one, which now have snapshots, and one unreachable arm (Z0210), which waits for Date values. 4 tests added; 64 codes, every one with a stored wording.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 8, explained-code pages, `--format json`, and decision #45 `[engine]`: it needs the owner's answer to question 3 (whether a warning under a result shows its code).
+
+**For the owner to decide.** Question 3 at the top of the checklist, before step 8 can finish.

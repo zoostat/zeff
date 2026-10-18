@@ -5,7 +5,7 @@ use std::path::Path;
 use zeff_engine::VERSION;
 use zeff_engine::fs::MemoryFileSystem;
 use zeff_engine::project::Project;
-use zeff_engine::run::{Outcome, run_script};
+use zeff_engine::run::{Outcome, RunOptions, run_script, run_script_with};
 
 const WAGES: &str = "id,wage,hours,name\n1,23.4,40,Ann\n2,19.0,35,Bob\n3,31.2,,Cy\n";
 
@@ -382,4 +382,52 @@ fn the_messages_of_a_run_as_a_snapshot() {
     assert_eq!(outcome.exit_code, 1);
     insta::assert_snapshot!("run_stdout", outcome.output.stdout);
     insta::assert_snapshot!("run_stderr", outcome.output.stderr);
+}
+
+// ----- a failure inside the engine (section 11.1) -----
+
+#[test]
+fn a_panic_inside_the_engine_is_z9001_and_the_run_stops_cleanly() {
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/p/zeff.toml",
+        format!("[project]\nname = \"p\"\nzeff = \"{VERSION}\"\nedition = \"preview\"\n"),
+    );
+    fs.add_file("/p/data/wages.csv", WAGES);
+    let project = Project::open(&fs, Path::new("/p")).unwrap();
+    // The hook makes the second statement panic as a bug in a function body would.
+    let outcome = run_script_with(
+        &fs,
+        &project,
+        "scripts/main.zeff",
+        "print(\"before\")\nlet w = import(\"data/wages.csv\")\nprint(\"after\")\n",
+        &RunOptions {
+            panic_at_line: Some(2),
+        },
+    );
+    assert_eq!(
+        outcome.exit_code, 2,
+        "an internal error exits with 2 (section 3.8), not a crash"
+    );
+    assert_eq!(
+        outcome.output.stdout, "before\n",
+        "the statements before it ran; nothing after"
+    );
+    assert!(
+        outcome
+            .output
+            .stderr
+            .starts_with("error[Z9001]: internal error: this is a bug in Zeff, not in your script (a test panic injected at line 2)"),
+        "{}",
+        outcome.output.stderr
+    );
+    insta::assert_snapshot!("internal_error", outcome.output.stderr);
+    // Without the hook the same script runs through.
+    let fine = run_script(
+        &fs,
+        &project,
+        "scripts/main.zeff",
+        "print(\"before\")\nlet w = import(\"data/wages.csv\")\nprint(\"after\")\n",
+    );
+    assert_eq!(fine.exit_code, 0);
 }

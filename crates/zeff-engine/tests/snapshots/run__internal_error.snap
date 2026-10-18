@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/run.rs
+expression: outcome.output.stderr
+---
+error[Z9001]: internal error: this is a bug in Zeff, not in your script (a test panic injected at line 2)
+ --> scripts/main.zeff:2:1
+  |
+2 | let w = import("data/wages.csv")
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the statement that failed inside the engine
+  |
+  = help: the statements before it ran; please report the script and the data that led here

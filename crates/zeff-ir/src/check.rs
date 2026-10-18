@@ -784,17 +784,8 @@ impl Checker<'_> {
                     _ => false,
                 };
                 if !same {
-                    if matches!(
-                        (&left.ty, &right.ty),
-                        (Ty::Date, Ty::Str) | (Ty::Str, Ty::Date)
-                    ) {
-                        self.report(
-                            Diagnostic::error("Z0210", "a Date never compares with text")
-                                .primary(span, "a Date and a Str")
-                                .help("write the date as a value: `date(\"2020-01-01\")`"),
-                        );
-                        return Expr::error(span);
-                    }
+                    // A Date against text is Z0210 (section 3.7); it joins when Date values exist
+                    // (release 0.3.0), since no expression can hold a Date yet.
                     let (l, r) = (left.ty.clone(), right.ty.clone());
                     return self.wrong_operands(
                         span,
