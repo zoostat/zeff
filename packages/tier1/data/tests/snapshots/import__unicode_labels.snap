@@ -1,0 +1,7 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+note: data/unicode_labels.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one

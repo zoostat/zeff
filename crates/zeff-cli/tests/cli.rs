@@ -278,7 +278,10 @@ fn zeff_run_prints_the_mean_of_a_csv_column() {
     let o = zeff(&project, &["run"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert_eq!(out(&o), "24.5333\n");
-    assert_eq!(err(&o), "");
+    assert_eq!(
+        err(&o),
+        "note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)\n"
+    );
 }
 
 #[test]
@@ -295,7 +298,7 @@ fn zeff_run_writes_output_to_stdout_and_messages_to_stderr() {
     assert_eq!(out(&o), "37.5\ndone\n");
     assert_eq!(
         err(&o),
-        "warning: 1 row with NA in hours was skipped (line 2)\n"
+        "note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)\nwarning: 1 row with NA in hours was skipped (line 2)\n"
     );
 }
 
@@ -312,7 +315,7 @@ fn zeff_run_stops_at_the_first_error_with_exit_code_1() {
     assert_eq!(code(&o), 1);
     assert_eq!(out(&o), "");
     assert!(
-        err(&o).starts_with("error[Z0101]: no variable `wge` in `wages`"),
+        err(&o).contains("\nerror[Z0101]: no variable `wge` in `wages`"),
         "{}",
         err(&o)
     );

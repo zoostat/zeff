@@ -1,0 +1,14 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+note: data/odd.csv read as CSV: 3 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: names: snake renamed 3 columns: `ID` → `id`, `Gross Wage` → `gross_wage`, `Sold` → `sold` (line 1)
+note: 1 value of gross_wage read as NA from na_values -99 (line 1)
+error[Z0401]: `mean` needs a Bool, Int or Float, but `gross_wage` is Str
+ --> scripts/main.zeff:4:8
+  |
+4 | d.mean(gross_wage)
+  |        ^^^^^^^^^^ a Str variable of d
+  |
+  = help: choose a Bool, Int or Float variable; `d.describe()` lists the types

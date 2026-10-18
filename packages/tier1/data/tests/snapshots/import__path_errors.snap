@@ -1,0 +1,48 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: all
+---
+## missing
+error[Z0715]: no file `data/missing.csv` in the project
+ --> scripts/main.zeff:1:16
+  |
+1 | let d = import("data/missing.csv")
+  |                ^^^^^^^^^^^^^^^^^^ the file is not there
+  |
+  = help: put the file in the project and write its path from the project folder, as in `data/missing.csv`
+
+## outside
+error[Z0701]: path `../shared/wages.csv` is outside the project
+ --> scripts/main.zeff:1:16
+  |
+1 | let d = import("../shared/wages.csv")
+  |                ^^^^^^^^^^^^^^^^^^^^^ projects read only their own files and declared data roots
+  |
+  = help: declare the folder under [data] in zeff.toml and write `import("shared:wages.csv")`, or copy the file into data/
+
+## absolute
+error[Z0701]: path `/etc/passwd` is outside the project
+ --> scripts/main.zeff:1:16
+  |
+1 | let d = import("/etc/passwd")
+  |                ^^^^^^^^^^^^^ projects read only their own files and declared data roots
+  |
+  = help: declare the folder under [data] in zeff.toml and write `import("shared:passwd")`, or copy the file into data/
+
+## case
+error[Z0702]: path `data/Wages.csv` differs only in case from `data/wages.csv`
+ --> scripts/main.zeff:1:16
+  |
+1 | let d = import("data/Wages.csv")
+  |                ^^^^^^^^^^^^^^^^ the file is called differently
+  |
+  = help: write `data/wages.csv`, so that the script also works on systems that tell upper and lower case apart
+
+## folder
+error[Z0715]: `data` is a folder, not a file
+ --> scripts/main.zeff:1:16
+  |
+1 | let d = import("data")
+  |                ^^^^^^ a folder
+  |
+  = help: write the path of a file inside it, as in `data/wages.csv`

@@ -5,7 +5,7 @@ use zeff_core::display::format_float;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Frame, Value};
 use zeff_dates::DateFormat;
-use zeff_diagnostics::Diagnostic;
+use zeff_diagnostics::{Diagnostic, count};
 
 /// The positions of `import`'s parameters.
 const PATH: usize = 0;
@@ -119,10 +119,27 @@ pub fn import(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
     let bytes = ctx.files.read(&path, path_span, ctx.script)?;
     let read = read_csv(&bytes, &options)
         .map_err(|e| fail(e.diagnostic(&path, ctx.callee_span, ctx.script)))?;
+    ctx.message(Diagnostic::plain_note(format_note(
+        &path,
+        read.table.rows(),
+        read.table.n_cols(),
+    )));
     for message in read.messages {
         ctx.message(message);
     }
     Ok(Value::Frame(Frame::new(read.table)))
+}
+
+/// The one note every import prints (Language Reference, section 6.1): what the format carried
+/// and what it could not. A CSV carries values alone.
+pub fn format_note(path: &str, rows: usize, cols: usize) -> String {
+    format!(
+        "{path} read as CSV: {} {} × {} {}, types guessed; CSV carries no labels, value labels or categories",
+        count(rows as u64),
+        if rows == 1 { "row" } else { "rows" },
+        count(cols as u64),
+        if cols == 1 { "variable" } else { "variables" }
+    )
 }
 
 /// The shortest text that reads back to the same number, for a code given as a Float.

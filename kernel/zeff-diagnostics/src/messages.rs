@@ -66,6 +66,6 @@ pub fn wrong_column_type(
     .in_file(file)
     .primary(span, format!("a {found} variable of {frame}"))
     .help(format!(
-        "choose a {wanted} variable; `{frame}.describe()` lists the types"
+        "choose {wanted} variable; `{frame}.describe()` lists the types"
     ))
 }

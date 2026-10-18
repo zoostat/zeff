@@ -178,7 +178,16 @@ pub fn project() -> (MemoryFileSystem, Project) {
 
 /// Run a script in the project of every dataset.
 pub fn run(script: &str) -> Outcome {
+    run_with(&[], script)
+}
+
+/// Run a script in the project of every dataset with more files added, each given by its path
+/// from the project root and its bytes.
+pub fn run_with(files: &[(&str, &[u8])], script: &str) -> Outcome {
     let (fs, project) = project();
+    for (path, bytes) in files {
+        fs.add_file(format!("/t/{path}"), bytes);
+    }
     run_script(&fs, &project, "scripts/main.zeff", script)
 }
 

@@ -75,6 +75,6 @@ canary/square_roots 7bcc69e88f345a72
 canary/subnormal_descent 72e5e723a0efa7e0
 canary/quotients 0ede72b5f65216ff
 milestone/stdout 28f46da00323d77d
-milestone/stderr 0c9d78d5e10b6695
+milestone/stderr fc9ea53d2a9d2d62
 milestone/exit_code a8c7f832281a39c5
 # milestone/exit_code bits 0000000000000000

@@ -2,10 +2,10 @@
 source: crates/zeff-ir/tests/check.rs
 expression: render(text)
 ---
-error[Z0409]: `%d/%m/%Q` is not a date format: `%Q` is not a directive of a date format
+error[Z0409]: `%d/%m/%Q` is not a date format
  --> scripts/main.zeff:1:36
   |
 1 | import("d.csv", types: {sold: Date("%d/%m/%Q")})
-  |                                    ^^^^^^^^^^ not a format
+  |                                    ^^^^^^^^^^ `%Q` is not a directive of a date format
   |
   = help: a format uses %Y, %y, %m, %b, %d, %H, %M and %S, as in `Date("%d/%m/%Y")`

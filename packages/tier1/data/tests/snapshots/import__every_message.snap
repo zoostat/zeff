@@ -1,0 +1,171 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: all
+---
+## bom_removed (exit 0)
+1
+note: data/f.csv read as CSV: 1 row × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: a byte-order mark at the start of the file was removed (line 1)
+
+## blank_lines_skipped (exit 0)
+d · 2 rows × 2 variables
+note: data/f.csv read as CSV: 2 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 2 blank lines skipped (line 1)
+
+## nan_becomes_na (exit 0)
+1
+note: data/f.csv read as CSV: 3 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 2 values of x read as NA from NaN (line 1)
+warning: 2 rows with NA in x were skipped (line 2)
+
+## date_like_text_proposes_types (exit 0)
+d · 3 rows × 1 variable
+note: data/f.csv read as CSV: 3 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: sold looks like dates (16/10/2026, 04/05/2026, 01/01/2026) and was read as text (line 1)
+  = help: declare `types: {sold: Date("%d/%m/%Y")}`
+
+## datetime_offsets_to_utc (exit 0)
+d · 2 rows × 1 variable
+note: data/f.csv read as CSV: 2 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning: 2 values of at carried a time-zone offset and were converted to UTC (line 1)
+
+## normalisation_differs (exit 0)
+d · 2 rows × 1 variable
+note: data/f.csv read as CSV: 2 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning: x holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
+
+## no_header (exit 1)
+error[Z0605]: `data/f.csv` has no header line
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv")
+  |         ^^^^^^ the file is empty
+  |
+  = help: the first row names the columns; a file without one is read with `header: false`
+
+## empty_name (exit 1)
+error[Z0605]: `data/f.csv` has an empty column name at position 2
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv")
+  |         ^^^^^^ every column needs a name
+  |
+  = help: name the column in the first row of the file, or read without names: `header: false`
+
+## repeated_name (exit 1)
+error[Z0605]: `data/f.csv` has two columns called `x` (positions 1 and 3)
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv")
+  |         ^^^^^^ column names must be distinct
+  |
+  = help: rename one of them in the file, or read without names (`header: false`) and rename afterwards
+
+## case_clash (exit 1)
+error[Z0605]: `data/f.csv` has columns `Wage` and `wage`, which differ only in case
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv")
+  |         ^^^^^^ names are case-sensitive, so these would be confused
+  |
+  = help: rename one of them in the file
+
+## snake_clash (exit 1)
+error[Z0605]: `names: snake` would give both `Gross Sales` and `gross_sales` the name `gross_sales`
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv", names: snake)
+  |         ^^^^^^ two columns, one name
+  |
+  = help: rename one of them in the file, or keep the original names with `names: keep`
+
+## field_count (exit 1)
+error[Z0607]: row 3 of `data/f.csv` has 1 field, but the header has 2
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv")
+  |         ^^^^^^ every row must have the same number of fields
+  |
+  = help: a delimiter inside a value must be in quotes, as in "Smith, John"; otherwise fix the row
+
+## unclosed_quote (exit 1)
+error[Z0607]: row 2 of `data/f.csv` opens a quote that is never closed
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv")
+  |         ^^^^^^ the rest of the file was read as one value
+  |
+  = help: a quotation mark inside a quoted value is written twice: "5"" tall"
+
+## not_utf8 (exit 1)
+error[Z0608]: row 3 of `data/f.csv` is not valid UTF-8
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv")
+  |         ^^^^^^ the file must be UTF-8
+  |
+  = help: save the file as UTF-8 from the program that made it; `encoding:` on import, for files in other encodings, arrives with release 0.2.0
+
+## declared_type_does_not_fit (exit 1)
+error[Z0606]: row 3 of `data/f.csv` has text in a numeric column
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv", types: {x: Int})
+  |         ^^^^^^ column `x` declared as Int by `types:`; row 3 holds "two"
+  |
+  = help: add "two" to `na_values:`, or fix the file
+
+## types_names_a_missing_column (exit 1)
+error[Z0101]: no column `y` in `data/f.csv`
+ --> scripts/main.zeff:1:9
+  |
+1 | let d = import("data/f.csv", types: {y: Int})
+  |         ^^^^^^ named in `types:`, but not in the file
+  |
+  = help: did you mean `x`?
+
+## bad_delim (exit 1)
+error[Z0401]: `delim:` takes one character, not "ab"
+ --> scripts/main.zeff:1:37
+  |
+1 | let d = import("data/f.csv", delim: "ab")
+  |                                     ^^^^ not a delimiter
+  |
+  = help: write the one character between the fields, as in `delim: ";"` or `delim: "\t"`
+
+## bad_skip (exit 1)
+error[Z0401]: `skip:` cannot be -1
+ --> scripts/main.zeff:1:36
+  |
+1 | let d = import("data/f.csv", skip: -1)
+  |                                    ^^ a count of lines
+  |
+  = help: write the number of lines to skip at the top of the file, 0 or more
+
+## bad_types_value (exit 1)
+error[Z0401]: `types:` takes type names, but `x` is an Int
+ --> scripts/main.zeff:1:37
+  |
+1 | let d = import("data/f.csv", types: {x: 1})
+  |                                     ^^^^^^ not a type
+  |
+  = help: write a type for each column, as in `types: {hours: Str, sold: Date("%d/%m/%Y")}`
+
+## bad_na_values (exit 1)
+error[Z0401]: `na_values:` takes numbers and text, not a Bool
+ --> scripts/main.zeff:1:41
+  |
+1 | let d = import("data/f.csv", na_values: [true])
+  |                                         ^^^^^^ not a missing-value code
+  |
+  = help: write the codes as they appear in the file: `na_values: [-99, "varies"]`
+
+## bad_date_format (exit 1)
+error[Z0409]: `%Q` is not a date format
+ --> scripts/main.zeff:1:46
+  |
+1 | let d = import("data/f.csv", types: {x: Date("%Q")})
+  |                                              ^^^^ `%Q` is not a directive of a date format
+  |
+  = help: a format uses %Y, %y, %m, %b, %d, %H, %M and %S, as in `Date("%d/%m/%Y")`

@@ -1,0 +1,6 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+note: data/awkward_names.csv read as CSV: 3 rows × 7 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: names: snake renamed 6 columns: `Gross Sales (total)` → `gross_sales_total`, `x y` → `x_y`, ``case`` → `case`, `日本語` → `v4`, `1st` → `x1st`, `Wage` → `wage` (line 1)

@@ -1,0 +1,8 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+note: data/odd.csv read as CSV: 3 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: delimiter `;` detected from the first line (line 1)
+note: Sold looks like dates (16/10/2026, 04/05/2026) and was read as text (line 1)
+  = help: declare `types: {Sold: Date("%d/%m/%Y")}`

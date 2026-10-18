@@ -22,6 +22,17 @@ impl Files for ProjectFiles<'_> {
             .project
             .resolve_read(self.fs, written)
             .map_err(|p| fail(p.diagnostic(written, span, script)))?;
+        if self.fs.is_dir(&path) {
+            return Err(fail(
+                Diagnostic::error("Z0715", format!("`{written}` is a folder, not a file"))
+                    .in_file(script)
+                    .primary(span, "a folder")
+                    .help(format!(
+                        "write the path of a file inside it, as in `{}/wages.csv`",
+                        written.trim_end_matches('/')
+                    )),
+            ));
+        }
         if !self.fs.is_file(&path) {
             return Err(fail(
                 Diagnostic::error("Z0715", format!("no file `{written}` in the project"))

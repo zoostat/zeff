@@ -2,25 +2,9 @@
 
 This file is the running record of the work: at the end of every session a dated entry says what was done, what is green, what comes next and anything the owner must decide. It is kept under 200 lines by folding entries older than the current release into one paragraph each.
 
-## 18 October 2026
+## 18 October 2026, before the release
 
-**Done.** The repository is on GitHub, the continuous-integration workflow is in place and passing (it refuses forbidden words in names, contents and history, and shows the pinned Rust version), and the specification is in `docs/spec/`. The working files in `docs/` have been created.
-
-**State.** Release 0.1.0 has not started. There is no code yet.
-
-**Next.** When the owner says "Start release 0.1.0", read the release's row in section 14 of the Engine and Project Specification and write its checklist in `docs/releases/0.1.0.md`.
-
-**For the owner to decide.** Nothing at present.
-
-## 18 October 2026, end of session
-
-**Done.** The working files were checked at the start of the session, and an audit of the folder (working files, names, the whole history, branch and tag names) found no forbidden word. No code was written.
-
-**Green.** The continuous-integration run on the last commit passed (both the forbidden-words check and the build placeholder). The working tree is clean and `main` matches GitHub.
-
-**Next.** Start release 0.1.0 when the owner says so: write the checklist in `docs/releases/0.1.0.md`, show the plan, and wait for "go". The checklist's steps will carry the `[engine]` or `[function]` tags.
-
-**For the owner to decide.** Nothing at present.
+The repository was put on GitHub with the continuous-integration workflow (forbidden words refused in names, contents and history; the pinned Rust version shown), the specification in `docs/spec/` and the working files in `docs/`. An audit of the folder, names and the whole history found no forbidden word. No code was written before the owner started release 0.1.0.
 
 ## 18 October 2026, release 0.1.0 started
 
@@ -191,5 +175,15 @@ This file is the running record of the work: at the end of every session a dated
 **Green.** Format, clippy with warnings denied, all workspace tests, the release-mode stack guard and the tier check pass locally. GitHub run to be read after the push.
 
 **Next.** Step 17, `import` complete `[function]`.
+
+**For the owner to decide.** Nothing new. Open decisions #41 to #45.
+
+## 18 October 2026, step 17 of release 0.1.0
+
+**Done.** Step 17 `[function]`: `import` complete. Every import now prints the one note of section 6.1 (file, rows × variables, types guessed, and that CSV carries no labels, value labels or categories) before any note about what the reader changed; the pages of `import` and `mean` show it. The definition of done: the reference means through `import` on every dataset, each edge-case file with its outcome (one row, none, all missing, the guess boundary, infinities and NaN, Bool spellings, Unicode and awkward names, the large and degenerate files), every option on its own, the path rules, a property on random tables, and a snapshot of every message. Two messages were improved on the way (a folder given as a file; a bad date format) and a doubled article in the Z0401 help was removed. 13 tests added.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the conformance report (refreshed for the note) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 18, `n_rows`, `n_cols`, `variables` `[function]`.
 
 **For the owner to decide.** Nothing new. Open decisions #41 to #45.

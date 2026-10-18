@@ -17,7 +17,9 @@ value (Z0606); nothing is ever coerced to `NA` silently. Empty cells, `NA` and `
 `na_values:` adds codes; `Inf` and `-Inf` are infinity; `NaN` becomes `NA` with a note. Dates are read
 only in the ISO form, or with the format `types:` gives; a column that looks like dates in another
 form is read as text, with a note that proposes the `types:` entry. Variable names are kept as the
-file has them unless `names: snake` turns them into valid snake_case names.
+file has them unless `names: snake` turns them into valid snake_case names. Every import prints one
+note saying what was read and what the format carries; further notes report what the reader
+changed or could not keep.
 
 ## Arguments
 - path: The file, written with `/` from the project folder, or `root:file` for a data root. A path
@@ -42,9 +44,11 @@ frame, describe, n_rows, variables
 
 ## Examples
 > let wages = import("data/wages.csv")
+note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
 > wages
 wages · 3 rows × 3 variables
 > import("data/wages.csv", na_values: [40]).mean(hours)
 35
+note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 3)
 note: 1 value of hours read as NA from na_values 40 (line 3)
 warning: 2 rows with NA in hours were skipped (line 3)

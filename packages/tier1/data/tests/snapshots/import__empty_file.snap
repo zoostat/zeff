@@ -1,0 +1,12 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+note: data/empty.csv read as CSV: 0 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0401]: `mean` needs a Bool, Int or Float, but `x` is Str
+ --> scripts/main.zeff:3:8
+  |
+3 | d.mean(x)
+  |        ^ a Str variable of d
+  |
+  = help: choose a Bool, Int or Float variable; `d.describe()` lists the types

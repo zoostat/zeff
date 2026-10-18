@@ -33,6 +33,7 @@ sd, summary, describe
 
 ## Examples
 > let wages = import("data/wages.csv")
+note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
 > wages.mean(wage)
 24.5333
 > wages.mean(hours)

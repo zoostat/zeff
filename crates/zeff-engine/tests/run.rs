@@ -28,10 +28,23 @@ fn run(script: &str) -> Outcome {
     run_with(&[], script)
 }
 
+/// The one note every import prints (section 6.1), removed where a test looks at other messages.
+fn without_format_notes(stderr: &str) -> String {
+    stderr
+        .lines()
+        .filter(|l| !l.contains(" read as CSV: "))
+        .map(|l| format!("{l}\n"))
+        .collect()
+}
+
 fn ok(script: &str) -> String {
     let outcome = run(script);
     assert_eq!(outcome.exit_code, 0, "stderr:\n{}", outcome.output.stderr);
-    assert_eq!(outcome.output.stderr, "", "no messages expected");
+    assert_eq!(
+        without_format_notes(&outcome.output.stderr),
+        "",
+        "no messages expected"
+    );
     outcome.output.stdout
 }
 
@@ -42,7 +55,11 @@ fn the_first_milestone_prints_the_mean_of_a_csv_column() {
     let outcome = run("let wages = import(\"data/wages.csv\")\nwages.mean(wage)\n");
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert_eq!(outcome.output.stdout, "24.5333\n");
-    assert_eq!(outcome.output.stderr, "");
+    assert_eq!(
+        outcome.output.stderr,
+        "note: data/wages.csv read as CSV: 3 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 1)\n",
+        "the one note of every import"
+    );
 }
 
 #[test]
@@ -85,7 +102,7 @@ fn mean_skips_missing_values_with_a_warning_under_the_output() {
     assert_eq!(outcome.exit_code, 0);
     assert_eq!(outcome.output.stdout, "37.5\n");
     assert_eq!(
-        outcome.output.stderr,
+        without_format_notes(&outcome.output.stderr),
         "warning: 1 row with NA in hours was skipped (line 2)\n"
     );
 }
@@ -99,7 +116,7 @@ fn mean_of_a_bool_column_is_the_share_and_of_all_missing_is_na() {
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert_eq!(outcome.output.stdout, "0.666667\nNA\n");
     assert_eq!(
-        outcome.output.stderr,
+        without_format_notes(&outcome.output.stderr),
         "warning: all 3 rows have NA in empty: the result is NA (line 3)\n"
     );
 }
@@ -113,7 +130,7 @@ fn infinities_in_a_mean() {
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert_eq!(outcome.output.stdout, "Inf\nNA\n");
     assert_eq!(
-        outcome.output.stderr,
+        without_format_notes(&outcome.output.stderr),
         "warning: b holds both Inf and -Inf, so its mean is NA (line 3)\n"
     );
 }
@@ -127,7 +144,7 @@ fn a_variable_that_is_not_there_stops_the_run_with_the_frames_name() {
         outcome.output.stdout, "",
         "the run stops at the first error"
     );
-    let text = &outcome.output.stderr;
+    let text = &without_format_notes(&outcome.output.stderr);
     assert!(
         text.starts_with("error[Z0101]: no variable `wge` in `wages`"),
         "{text}"
@@ -136,17 +153,14 @@ fn a_variable_that_is_not_there_stops_the_run_with_the_frames_name() {
     assert!(text.contains(" --> scripts/main.zeff:2:12"), "{text}");
     let case = run("let wages = import(\"data/wages.csv\")\nwages.mean(Wage)\n");
     assert!(
-        case.output
-            .stderr
+        without_format_notes(&case.output.stderr)
             .starts_with("error[Z0102]: no variable `Wage` in `wages`; names are case-sensitive"),
         "{}",
         case.output.stderr
     );
     let unnamed = run("import(\"data/wages.csv\").mean(wge)\n");
     assert!(
-        unnamed
-            .output
-            .stderr
+        without_format_notes(&unnamed.output.stderr)
             .starts_with("error[Z0101]: no variable `wge` in `the frame`"),
         "{}",
         unnamed.output.stderr
@@ -157,7 +171,7 @@ fn a_variable_that_is_not_there_stops_the_run_with_the_frames_name() {
 fn a_text_column_cannot_have_a_mean() {
     let outcome = run("let wages = import(\"data/wages.csv\")\nwages.mean(name)\n");
     assert_eq!(outcome.exit_code, 1);
-    let text = &outcome.output.stderr;
+    let text = &without_format_notes(&outcome.output.stderr);
     assert!(
         text.starts_with("error[Z0401]: `mean` needs a Bool, Int or Float, but `name` is Str"),
         "{text}"
@@ -187,8 +201,16 @@ fn import_with_every_option_of_this_release() {
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert_eq!(outcome.output.stdout, "d · 3 rows × 4 variables\n2\n");
     assert_eq!(
-        outcome.output.stderr,
+        without_format_notes(&outcome.output.stderr),
         "note: names: snake renamed 3 columns: `ID` → `id`, `Gross Wage` → `gross_wage`, `Sold` → `sold` (line 1)\nnote: 1 value of gross_wage read as NA from na_values -99 (line 1)\n"
+    );
+    assert!(
+        outcome
+            .output
+            .stderr
+            .starts_with("note: data/odd.csv read as CSV: 3 rows × 4 variables"),
+        "the format note comes first:\n{}",
+        outcome.output.stderr
     );
 }
 

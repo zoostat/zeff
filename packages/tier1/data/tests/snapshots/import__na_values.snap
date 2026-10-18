@@ -1,0 +1,9 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+note: data/coded.csv read as CSV: 3 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 1 value of x read as NA from na_values -99 (line 1)
+warning: 1 row with NA in x was skipped (line 2)
+note: data/coded.csv read as CSV: 3 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 3)
+note: 1 value of y read as NA from na_values none (line 3)

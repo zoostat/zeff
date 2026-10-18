@@ -1,0 +1,8 @@
+---
+source: packages/tier1/data/tests/import.rs
+expression: stderr
+---
+note: data/infinities.csv read as CSV: 3 rows × 5 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 2 values of nan_mixed read as NA from NaN (line 1)
+warning: both holds both Inf and -Inf, so its mean is NA (line 4)
+warning: 2 rows with NA in nan_mixed were skipped (line 5)

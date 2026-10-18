@@ -1023,8 +1023,8 @@ impl Checker<'_> {
                 Ok(_) => s.clone(),
                 Err(reason) => {
                     self.report(
-                            Diagnostic::error("Z0409", format!("`{s}` is not a date format: {reason}"))
-                                .primary(*arg_span, "not a format")
+                            Diagnostic::error("Z0409", format!("`{s}` is not a date format"))
+                                .primary(*arg_span, reason.to_string())
                                 .help("a format uses %Y, %y, %m, %b, %d, %H, %M and %S, as in `Date(\"%d/%m/%Y\")`"),
                         );
                     return Expr::error(span);
