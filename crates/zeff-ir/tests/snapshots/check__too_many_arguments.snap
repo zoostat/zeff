@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0407]: `mean` takes 1 argument, but more were given
+ --> scripts/main.zeff:2:18
+  |
+2 | wages.mean(wage, hours)
+  |                  ^^^^^ one too many
+  |
+  = help: usage: `data.mean(var)`

@@ -12,3 +12,9 @@ workspace = true
 [dependencies]
 zeff-syntax.workspace = true
 zeff-registry.workspace = true
+zeff-diagnostics.workspace = true
+zeff-dates.workspace = true
+
+[dev-dependencies]
+insta = "=1.49.0"
+proptest = "=1.12.0"

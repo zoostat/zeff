@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0402]: `snak` is not one of the allowed words
+ --> scripts/main.zeff:1:24
+  |
+1 | import("d.csv", names: snak)
+  |                        ^^^^ expected one of keep, snake
+  |
+  = help: did you mean `snake`?

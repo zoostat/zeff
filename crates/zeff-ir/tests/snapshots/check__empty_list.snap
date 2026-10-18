@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0219]: `[]` alone has no type
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = []
+  |         ^^ an empty list of what?
+  |
+  = help: where a parameter takes the list, its type is known; elsewhere give one value

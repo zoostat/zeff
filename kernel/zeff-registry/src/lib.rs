@@ -17,7 +17,7 @@ pub use catalogue::{Catalogue, CatalogueError, CatalogueRow};
 pub use help::{Block, Example, HelpDoc, HelpError, check_help, parse_help};
 pub use render::{PAGE_WIDTH, TEXT_WIDTH, render_page};
 pub use shared::{SHARED, SharedArgument, shared_argument};
-pub use spec::{AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec};
+pub use spec::{AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec, Rest};
 
 /// A function that passed every check, with its parsed page and its catalogue row.
 #[derive(Debug, Clone)]

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0105]: `print` is a name of `core` and cannot be rebound
+ --> scripts/main.zeff:1:5
+  |
+1 | let print = 1
+  |     ^^^^^ a built-in name
+  |
+  = help: choose another name; the names of `core` are fixed

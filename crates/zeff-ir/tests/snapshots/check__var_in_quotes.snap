@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0401]: `var` of `mean` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:12
+  |
+2 | wages.mean("wage")
+  |            ^^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes

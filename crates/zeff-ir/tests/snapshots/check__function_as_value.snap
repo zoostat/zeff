@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0101]: nothing is called `mean` here
+ --> scripts/main.zeff:1:9
+  |
+1 | let m = mean
+  |         ^^^^ not a binding
+  |
+  = help: `mean` is a function; call it with parentheses: `mean(...)`

@@ -19,15 +19,16 @@ Zeff, a language for statistics
 Usage: zeff <command>
 
 Commands:
-  new <name>    create a project folder named <name> in the current folder
-  version       print the version of Zeff
-  help          show this text
+  new <name>        create a project folder named <name> in the current folder
+  check [script]    check a script's names, arguments and types without running it
+                    (scripts/main.zeff unless another is named)
+  version           print the version of Zeff
+  help              show this text
 ";
 
 /// Commands the specification names that this release does not have yet.
-const LATER: [&str; 17] = [
+const LATER: [&str; 16] = [
     "run",
-    "check",
     "fmt",
     "test",
     "lsp",
@@ -73,9 +74,13 @@ pub fn run(
             err,
             &format!("there is no help page for `{name}` yet; `zeff help` lists the commands"),
         ),
-        [command @ ("run" | "check" | "fmt" | "test"), ..] => {
-            needs_a_project(fs, cwd, command, err)
-        }
+        ["check"] => check_command(fs, cwd, None, out, err),
+        ["check", script] => check_command(fs, cwd, Some(script), out, err),
+        ["check", ..] => usage_error(
+            err,
+            "`zeff check` takes at most one script, as in `zeff check scripts/clean.zeff`",
+        ),
+        [command @ ("run" | "fmt" | "test"), ..] => needs_a_project(fs, cwd, command, err),
         [command, ..] if LATER.contains(command) => usage_error(
             err,
             &format!("`zeff {command}` is not available in this release yet"),
@@ -178,4 +183,96 @@ fn needs_a_project(fs: &dyn FileSystem, cwd: &Path, command: &str, err: &mut dyn
             &format!("`zeff {command}` is not available in this release yet"),
         ),
     }
+}
+
+/// `zeff check [script]`: parse and check a script against the registry, report every problem,
+/// and exit 0 when there is none, 1 otherwise (Language Reference, section 3.8, "Exit codes").
+fn check_command(
+    fs: &dyn FileSystem,
+    cwd: &Path,
+    script: Option<&str>,
+    _out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    let project = match open_project(fs, cwd, err) {
+        Ok(project) => project,
+        Err(code) => return code,
+    };
+    let written = script.unwrap_or("scripts/main.zeff");
+    let shown = written.trim_start_matches("./").to_string();
+    let path = match project.resolve_read(fs, written) {
+        Ok(path) => path,
+        Err(problem) => {
+            let d = problem.diagnostic(written, zeff_diagnostics::Span::new(0, 0), "");
+            let d = Diagnostic {
+                file: None,
+                labels: Vec::new(),
+                ..d
+            };
+            show(err, &d, &Sources::new());
+            return 1;
+        }
+    };
+    if !fs.is_file(&path) {
+        let d = Diagnostic::error("Z0714", format!("no script `{shown}` in the project"))
+            .help("scripts live in `scripts/`; `zeff check` alone checks `scripts/main.zeff`");
+        show(err, &d, &Sources::new());
+        return 1;
+    }
+    let text = match fs.read_to_string(&path) {
+        Ok(text) => text,
+        Err(error) => {
+            let _ = writeln!(err, "error: cannot read {shown}: {error}");
+            return 1;
+        }
+    };
+    let registry = match zeff_engine::registry::registry() {
+        Ok(registry) => registry,
+        Err(errors) => {
+            let _ = writeln!(
+                err,
+                "error[Z9001]: internal error: this is a bug in Zeff, not in your script"
+            );
+            for problem in errors {
+                let _ = writeln!(err, "  {problem}");
+            }
+            return 2;
+        }
+    };
+    let checked = zeff_ir::check_source(&shown, &text, registry);
+    let mut sources = Sources::new();
+    sources.add(Source::new(shown.clone(), text));
+    let (mut errors, mut warnings) = (0usize, 0usize);
+    for (i, diagnostic) in checked.diagnostics.iter().enumerate() {
+        match diagnostic.severity {
+            zeff_diagnostics::Severity::Error => errors += 1,
+            zeff_diagnostics::Severity::Warning => warnings += 1,
+            zeff_diagnostics::Severity::Note => {}
+        }
+        if i > 0 {
+            let _ = writeln!(err);
+        }
+        show(err, diagnostic, &sources);
+    }
+    let plural = |n: usize, word: &str| {
+        if n == 1 {
+            format!("{n} {word}")
+        } else {
+            format!("{n} {word}s")
+        }
+    };
+    if errors == 0 && warnings == 0 {
+        let _ = writeln!(err, "checked {shown}: no problems");
+    } else {
+        if !checked.diagnostics.is_empty() {
+            let _ = writeln!(err);
+        }
+        let _ = writeln!(
+            err,
+            "{shown}: {}, {}",
+            plural(errors, "error"),
+            plural(warnings, "warning")
+        );
+    }
+    if errors > 0 { 1 } else { 0 }
 }

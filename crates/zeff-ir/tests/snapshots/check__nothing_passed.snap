@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0206]: this gives no value, so it cannot be passed
+ --> scripts/main.zeff:1:7
+  |
+1 | print(print(1))
+  |       ^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing

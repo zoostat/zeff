@@ -82,6 +82,7 @@ fn where_spec() -> FunctionSpec {
         package: "data",
         method: true,
         params: vec![ParamSpec::required("data", "Frame"), ParamSpec::required("condition", "Column<Bool>")],
+        rest: None,
         returns: "Frame",
         diagnostics: vec![
             DiagnosticDecl::note("rows dropped because the condition was NA, with the count and a statement that lists them"),
@@ -140,6 +141,7 @@ fn merge_spec() -> FunctionSpec {
             ParamSpec::option("relation", "one_to_one | many_to_one | one_to_many"),
             ParamSpec::option("suffixes", "List"),
         ],
+        rest: None,
         returns: "Frame",
         diagnostics: vec![
             DiagnosticDecl::note("matched and unmatched rows on each side, with counts"),
@@ -199,6 +201,7 @@ fn attempt_spec() -> FunctionSpec {
         package: "core",
         method: false,
         params: vec![ParamSpec::required("expr", "Any")],
+        rest: None,
         returns: "Any",
         diagnostics: vec![
             DiagnosticDecl::new("W0801", "failed draws or fits skipped by a collecting function, with the count and the first codes"),
@@ -306,6 +309,7 @@ fn a_shared_argument_is_marked_and_takes_its_text_from_the_table() {
             ParamSpec::option_with_default("se", "classical | robust | hc2 | hc3", "classical"),
             ParamSpec::option_with_default("level", "Float", "0.95"),
         ],
+        rest: None,
         returns: "RegFit",
         diagnostics: vec![DiagnosticDecl::new(
             "W1001",

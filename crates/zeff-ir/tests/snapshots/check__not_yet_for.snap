@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0304]: `for` is not available in this release
+ --> scripts/main.zeff:1:1
+  |
+1 | for i in [1, 2] {
+  | ^^^^^^^^^^^^^^^^^ arrives with Zeff 0.5.0
+  |
+  = help: loops arrive with release 0.5.0

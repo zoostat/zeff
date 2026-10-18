@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0405]: `header` is given twice
+ --> scripts/main.zeff:1:32
+  |
+1 | import("d.csv", header: false, header: true)
+  |                                ^^^^^^ the second time
+  |
+  = help: remove one of them

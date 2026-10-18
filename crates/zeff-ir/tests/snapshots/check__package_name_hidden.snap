@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+warning[W0101]: `mean` hides the function `data::mean`
+ --> scripts/main.zeff:1:5
+  |
+1 | let mean = 3
+  |     ^^^^ a binding with a built-in name
+  |
+  = help: the function is still reachable as `data::mean`; a different name avoids the confusion

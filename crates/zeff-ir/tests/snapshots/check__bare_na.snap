@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0219]: `NA` alone has no type, so `x` cannot be bound to it
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = NA
+  |         ^^ the type is unknown
+  |
+  = help: give it the type of its use, as in `let x = to(NA, Int)`

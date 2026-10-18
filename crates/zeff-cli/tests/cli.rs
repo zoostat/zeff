@@ -114,14 +114,80 @@ fn commands_that_need_a_project_say_so_outside_one() {
 fn a_project_is_found_from_a_folder_inside_it() {
     let (_dir, project) = demo();
     let o = zeff(&project.join("scripts"), &["check"]);
-    // The project is found and accepted; the command itself arrives in a later step.
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "checked scripts/main.zeff: no problems\n");
+    assert_eq!(out(&o), "");
+}
+
+#[test]
+fn zeff_check_passes_a_sound_script() {
+    let (_dir, project) = demo();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = import(\"data/wages.csv\", na_values: [-99])\nwages.mean(wage)\nprint(wages.mean(hours), \"hours\")\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "checked scripts/main.zeff: no problems\n");
+}
+
+#[test]
+fn zeff_check_reports_every_problem_and_exits_1() {
+    let (_dir, project) = demo();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = import(\"data/wages.csv\", heade: false)\nwges.maen(wage)\nlet mean = 3\nwages.mean(\"wage\")\nfor i in [1] {\n    print(i)\n}\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o), "");
+    let text = err(&o);
+    for code in ["Z0404", "Z0101", "W0101", "Z0401", "Z0304"] {
+        assert!(text.contains(&format!("[{code}]")), "{code} in\n{text}");
+    }
+    assert!(
+        text.ends_with("scripts/main.zeff: 4 errors, 1 warning\n"),
+        "{text}"
+    );
+    insta::assert_snapshot!("check_with_problems", text);
+}
+
+#[test]
+fn zeff_check_takes_a_script_and_refuses_one_that_is_not_there() {
+    let (_dir, project) = demo();
+    std::fs::write(project.join("scripts/clean.zeff"), "print(1)\n").unwrap();
+    let o = zeff(&project, &["check", "scripts/clean.zeff"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "checked scripts/clean.zeff: no problems\n");
+    let o = zeff(&project, &["check", "scripts/other.zeff"]);
     assert_eq!(code(&o), 1);
     assert!(
-        err(&o).contains("not available in this release yet"),
+        err(&o).starts_with("error[Z0714]: no script `scripts/other.zeff` in the project"),
         "{}",
         err(&o)
     );
-    assert!(!err(&o).contains("Z0709"));
+    let o = zeff(&project, &["check", "../outside.zeff"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).starts_with("error[Z0701]"), "{}", err(&o));
+    let o = zeff(&project, &["check", "a", "b"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("takes at most one script"));
+}
+
+#[test]
+fn a_parse_error_is_reported_by_zeff_check_too() {
+    let (_dir, project) = demo();
+    std::fs::write(project.join("scripts/main.zeff"), "let a = 5.\n").unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("error[Z0310]"), "{}", err(&o));
+    assert!(
+        err(&o).ends_with("scripts/main.zeff: 1 error, 0 warnings\n"),
+        "{}",
+        err(&o)
+    );
 }
 
 #[test]

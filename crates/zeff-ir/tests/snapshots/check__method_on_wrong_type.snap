@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0401]: `mean` cannot be called on an Int
+ --> scripts/main.zeff:2:1
+  |
+2 | n.mean(wage)
+  | ^ this is an Int
+  |
+  = help: `mean` is a method of Frame

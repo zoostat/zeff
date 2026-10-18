@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0401]: `frame` defines columns from a List, but `x` is an Int
+ --> scripts/main.zeff:1:11
+  |
+1 | frame(x = 1)
+  |           ^ an Int
+  |
+  = help: usage: `frame(name = List, ...)`

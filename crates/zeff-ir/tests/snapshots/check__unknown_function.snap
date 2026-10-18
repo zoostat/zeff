@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0103]: no function is called `maen`
+ --> scripts/main.zeff:2:7
+  |
+2 | wages.maen(wage)
+  |       ^^^^ not a function of Zeff
+  |
+  = help: did you mean `mean`?

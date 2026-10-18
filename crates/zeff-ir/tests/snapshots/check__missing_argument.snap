@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0406]: `import` needs `path`
+ --> scripts/main.zeff:1:1
+  |
+1 | import()
+  | ^^^^^^ `path` is missing
+  |
+  = help: usage: `import(path, delim: Str, header: Bool = true, skip: Int = 0, na_values: List, types: Record, names: keep | snake = keep)`

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0214]: a list holds one type: this one has an Int and a Str
+ --> scripts/main.zeff:1:13
+  |
+1 | let x = [1, "a"]
+  |             ^^^ a Str
+  |
+  = help: put values of one type in a list; Int and Float join as Float

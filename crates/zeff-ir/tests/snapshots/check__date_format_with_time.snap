@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0409]: `%d/%m/%Y %H:%M` has a time, so it is a DateTime format
+ --> scripts/main.zeff:1:36
+  |
+1 | import("d.csv", types: {sold: Date("%d/%m/%Y %H:%M")})
+  |                                    ^^^^^^^^^^^^^^^^ a Date has no time of day
+  |
+  = help: write `DateTime("%d/%m/%Y %H:%M")`, or remove the time directives

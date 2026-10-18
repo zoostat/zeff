@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0103]: no function is called `nope::import`
+ --> scripts/main.zeff:1:1
+  |
+1 | nope::import("d.csv")
+  | ^^^^^^^^^^^^ not a function of Zeff
+  |
+  = help: `zeff help` lists the functions of this release

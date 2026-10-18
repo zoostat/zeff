@@ -54,6 +54,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 40 | A specification freeze while 0.1.0 to 0.3.0 are built | Freeze the normative text except for bugs found while coding; record further design work here with a deadline release (risk register, R12) | 0.1.0 |
 | 41 | Diagnostic codes for three syntax conditions the specification does not number | Z0301 something the grammar does not allow at that place (an unexpected character, an unclosed quoted name, an unexpected token); Z0303 an unmatched closing bracket; Z0304 a construct the grammar has but this release does not run | 0.1.0 |
 | 42 | Diagnostic codes for two conditions of the project file | Z0712 `zeff.toml` is not valid TOML; Z0713 `zeff.toml` has an unknown key, a missing key or a value of the wrong kind | 0.1.0 |
+| 43 | Diagnostic codes for the checker's own messages | Z0103 no such function; Z0105 a `let` reuses a `core` name; W0101 a `let` hides a package's function; Z0401 an argument of the wrong type; Z0404 unknown argument; Z0405 an argument given twice; Z0406 a required argument missing; Z0407 too many arguments; Z0408 a positional argument after a named one; Z0409 a bad date format | 0.1.0 |
+| 44 | Diagnostic codes for the descriptive reducers' warnings | W0201 missing values skipped, with the count; W0204 infinite values of both signs, so the result is NA | 0.1.0 |
 
 ---
 
@@ -429,5 +431,38 @@ Found while writing the project file reader of 0.1.0 (docs/releases/0.1.0.md, st
 | --- | --- | --- |
 | `zeff.toml` is not valid TOML | Z0712 | 1 |
 | `zeff.toml` is valid TOML but wrong for Zeff: an unknown key or table (a setting that would otherwise be ignored silently), a missing `name`, `zeff` or `edition`, a value of the wrong kind, a pin that is not one exact version, a size that is not a size, a data root without a `path`, or a non-empty `[packages]` before 1.0 | Z0713 | 1 |
+| A script named on the command line (`zeff check scripts/x.zeff`) that the project does not have | Z0714 | 1 |
 
 *Recommendation.* Accept both numbers and add them to the Z07xx row of section 11 of the Language Reference after the freeze (0.3.0). Unknown keys are errors, not warnings, so that a misspelt setting such as `netwrk` cannot be ignored without anyone noticing. Deadline: 0.1.0.
+
+### 43. Diagnostic codes for the checker's own messages
+
+Found while writing the typed IR and `zeff check` of 0.1.0 (docs/releases/0.1.0.md, step 12). Section 11 of the Language Reference numbers the areas (Z01xx names, Z02xx types, Z04xx arguments) and gives codes to many conditions, but not to these, which the checker meets at once. The specification's own text settles two of them without a number: "an unknown name or a repeated argument is an error" and "once one is named, the rest must be" (section 3.1); "a `let` cannot reuse a name from `core`" and "a binding may shadow a name from any other package, with a warning" (section 3.6). The engine uses the free numbers below provisionally.
+
+| Condition | Proposed code |
+| --- | --- |
+| A call names no function of Zeff (`wages.maen(wage)`), with "did you mean" | Z0103 |
+| A `let` reuses a name of `core` (`let print = 1`) | Z0105 |
+| A `let` hides a function of another package (`let mean = 3`); a warning | W0101 |
+| An argument, a receiver or a definition of the wrong type (`wages.mean("wage")`, `5.mean(x)`) | Z0401 |
+| An argument name the function does not have, a definition given to a function that takes options, or a receiver written as an option | Z0404 |
+| An argument or a definition given twice | Z0405 |
+| A required argument missing | Z0406 |
+| More positional arguments than the function takes | Z0407 |
+| A positional argument after a named one | Z0408 |
+| `Date("...")` or `DateTime("...")` with a format that is not one, or of the other kind | Z0409 |
+
+Unknown bare names stay Z0101, as section 3.7 says ("elsewhere it is an unknown name (Z0101)"), with the wording "nothing is called `x` here" outside a frame method and "no variable `x` in `wages`" inside one.
+
+*Recommendation.* Accept the numbers and add them to section 11 after the freeze (0.3.0). Deadline: 0.1.0.
+
+### 44. Diagnostic codes for the descriptive reducers' warnings
+
+Found while registering `mean` and `sd` for 0.1.0 (docs/releases/0.1.0.md, steps 12 and 20). Section 4.1 of the Language Reference says that statistics skip `NA` with a warning giving the count, that `Inf` and `-Inf` together give `NA` with a warning, and that a sum of all-`NA` input is `NA`, but gives these warnings no number. W0202 and W0203 are taken by the conversions of `to`.
+
+| Condition | Proposed code |
+| --- | --- |
+| Missing values skipped by a reducer, with the count (also an all-missing column, whose result is `NA`) | W0201 |
+| `Inf` and `-Inf` both present, so the result is `NA` | W0204 |
+
+*Recommendation.* Accept both and add them to section 11 after the freeze (0.3.0). Deadline: 0.1.0.

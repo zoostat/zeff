@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0404]: `import` has no argument called `heade`
+ --> scripts/main.zeff:1:17
+  |
+1 | import("d.csv", heade: false)
+  |                 ^^^^^ unknown argument
+  |
+  = help: did you mean `header:`?

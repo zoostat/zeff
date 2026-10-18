@@ -141,3 +141,13 @@ This file is the running record of the work: at the end of every session a dated
 **Next.** Step 12, the typed IR, name resolution and `zeff check` `[engine]`.
 
 **For the owner to decide.** Nothing new. Open decisions #41 and #42 (five diagnostic codes), deadline 0.1.0.
+
+## 18 October 2026, step 12 of release 0.1.0
+
+**Done.** Step 12 `[engine]`: the typed IR and the checker (`crates/zeff-ir`): resolution by parameter type, method lookup by receiver type, argument matching, type checking with the joining rules, Z0304 for every construct of a later release, and the run-time messages Z0101 and Z0102 reproduced exactly from the specification's examples. `zeff check` is a real command: it reports every problem in order with a summary line and the exit codes of section 3.8. `import`, `mean` and `print` are registered with first drafts of their help pages, and the engine builds its registry from the packages. 55 tests added (checker, properties, engine registry, command line). Open decisions #43 and #44 record the codes the specification does not give (ten for the checker, two for the reducers' warnings).
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the release-mode stack guard, the tier check and a WebAssembly compile of the checker and engine pass locally. GitHub runs to be read after the push.
+
+**Next.** Step 13, the interpreter and the first green milestone `[engine]`: `zeff run` printing the mean of a CSV column.
+
+**For the owner to decide.** Open decisions #41 to #44 (eighteen provisional diagnostic codes in all), deadline 0.1.0; they can wait until the release is closed.

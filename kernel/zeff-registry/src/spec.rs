@@ -86,6 +86,16 @@ pub struct AccuracyRecord {
     pub last_run: Option<String>,
 }
 
+/// Arguments a function takes beyond its listed parameters: `print(x, ...)` takes any number of
+/// values, `frame(name = [values], ...)` any number of definitions.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Rest {
+    /// Further positional values of this type.
+    Values(&'static str),
+    /// `name = expr` definitions whose expressions have this type.
+    Definitions(&'static str),
+}
+
 /// A built-in function as its package registers it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionSpec {
@@ -95,6 +105,8 @@ pub struct FunctionSpec {
     /// the receiver.
     pub method: bool,
     pub params: Vec<ParamSpec>,
+    /// Arguments beyond the listed parameters, if the function takes them.
+    pub rest: Option<Rest>,
     /// The type returned, as the language writes it.
     pub returns: &'static str,
     pub diagnostics: Vec<DiagnosticDecl>,
@@ -127,7 +139,7 @@ impl FunctionSpec {
             ),
             None => (self.name.to_string(), &self.params[..]),
         };
-        let args: Vec<String> = rest
+        let mut args: Vec<String> = rest
             .iter()
             .map(|p| {
                 if p.option {
@@ -140,6 +152,11 @@ impl FunctionSpec {
                 }
             })
             .collect();
+        match &self.rest {
+            Some(Rest::Values(_)) => args.push("...".to_string()),
+            Some(Rest::Definitions(ty)) => args.push(format!("name = {ty}, ...")),
+            None => {}
+        }
         format!("{head}({})", args.join(", "))
     }
 }

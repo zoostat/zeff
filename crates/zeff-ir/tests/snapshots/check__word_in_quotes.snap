@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0403]: expected one of keep, snake, found text
+ --> scripts/main.zeff:1:24
+  |
+1 | import("d.csv", names: "snake")
+  |                        ^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `snake`

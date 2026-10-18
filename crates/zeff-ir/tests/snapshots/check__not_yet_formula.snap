@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0304]: a formula is not available in this release
+ --> scripts/main.zeff:1:9
+  |
+1 | let f = y ~ x
+  |         ^^^^^ arrives with Zeff 0.4.0
+  |
+  = help: formulas and regression arrive with release 0.4.0

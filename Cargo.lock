@@ -995,6 +995,8 @@ dependencies = [
  "tempfile",
  "zeff-diagnostics",
  "zeff-engine",
+ "zeff-ir",
+ "zeff-registry",
 ]
 
 [[package]]
@@ -1070,6 +1072,10 @@ dependencies = [
 name = "zeff-ir"
 version = "0.1.0-dev"
 dependencies = [
+ "insta",
+ "proptest",
+ "zeff-dates",
+ "zeff-diagnostics",
  "zeff-registry",
  "zeff-syntax",
 ]
