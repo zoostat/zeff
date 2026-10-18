@@ -55,3 +55,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 4, the column-type interface, metadata and the opaque rule `[engine]`.
 
 **For the owner to decide.** Nothing new.
+
+## 18 October 2026, step 4 of release 0.2.0
+
+**Done.** Step 4 `[engine]`: the column-type interface. Every type is declared once with its Arrow extension name, storage, abbreviation, NA rule, relations and conversions; the seven opaque kinds are stored, carried and printed as their summaries and refused by every operator; every column carries the metadata store with the nine keys and `import` fills `source`; a table round-trips through Arrow IPC with its types and metadata, byte-identical when written twice; the type names and the reserved values cannot be rebound. 13 tests added, one of them a property on random tables.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the conformance report (unchanged) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 5, the elementary functions and the maths kernel `[engine]`.
+
+**For the owner to decide.** Nothing new.

@@ -442,7 +442,7 @@ fn cell_value(cell: Cell<'_>, ty: ColumnType) -> Result<Value, ColumnTrouble> {
         Cell::Int(i) => Value::Int(i),
         Cell::Float(x) => Value::Float(x),
         Cell::Str(s) => Value::Str(s.to_string()),
-        Cell::Date(_) | Cell::DateTime(_) | Cell::Category(_) => {
+        Cell::Date(_) | Cell::DateTime(_) | Cell::Category(_) | Cell::Opaque(_) => {
             return Err(ColumnTrouble::Unsupported(ty));
         }
     })

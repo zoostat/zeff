@@ -54,7 +54,8 @@ impl TypeSpec {
             ColumnType::Float => TypeSpec::Float,
             ColumnType::Date => TypeSpec::Date(None),
             ColumnType::DateTime => TypeSpec::DateTime(None),
-            ColumnType::Str | ColumnType::Category => TypeSpec::Str,
+            // A CSV file carries no opaque kind; its text is text.
+            ColumnType::Str | ColumnType::Category | ColumnType::Opaque(_) => TypeSpec::Str,
         }
     }
 }
@@ -1031,7 +1032,7 @@ fn does_not_fit(
         ColumnType::DateTime => format!(
             "row {row_text} of `{path}` has a value that is not a date and time in a DateTime column"
         ),
-        ColumnType::Str | ColumnType::Category => {
+        ColumnType::Str | ColumnType::Category | ColumnType::Opaque(_) => {
             format!("row {row_text} of `{path}` has a value that does not fit its column")
         }
     };

@@ -179,6 +179,17 @@ impl Checker<'_> {
     /// A `let` may not reuse a `core` name, and shadowing another package's name is a warning
     /// (section 3.6, "Built-in names").
     fn check_binding_name(&mut self, name: &ast::Ident) {
+        if RESERVED_CORE_NAMES.contains(&name.text.as_str()) {
+            self.report(
+                Diagnostic::error(
+                    "Z0105",
+                    format!("`{}` is a name of `core` and cannot be rebound", name.text),
+                )
+                .primary(name.span, "a reserved name")
+                .help("type names and the names reserved for later values belong to `core` (sections 3.7 and 4.3); choose another name"),
+            );
+            return;
+        }
         let homes: Vec<&Registered> = self.registry.named(&name.text);
         if homes.is_empty() {
             return;
@@ -1683,3 +1694,48 @@ fn comparison_or_logic(op: ast::BinaryOp) -> bool {
         B::Eq | B::Ne | B::Lt | B::Le | B::Gt | B::Ge | B::And | B::Or
     )
 }
+
+/// The names of `core` that are not functions: the type names (section 3.7, "Words and types")
+/// and the values reserved for later with their meaning fixed (section 4.3, rules 2 and 5).
+const RESERVED_CORE_NAMES: &[&str] = &[
+    "Bool",
+    "Int",
+    "Float",
+    "Str",
+    "Date",
+    "DateTime",
+    "Category",
+    "Frame",
+    "Table",
+    "Column",
+    "List",
+    "Record",
+    "Mapping",
+    "Range",
+    "Var",
+    "Vars",
+    "Term",
+    "Terms",
+    "Formula",
+    "Model",
+    "Dag",
+    "Distribution",
+    "Result",
+    "Failed",
+    "Nothing",
+    "Any",
+    "Type",
+    "Plot",
+    "SurveyDesign",
+    "Geometry",
+    "Bytes",
+    "FileRef",
+    "Duration",
+    "Period",
+    "Matrix",
+    "Vector",
+    "Network",
+    "matrix",
+    "vector",
+    "transpose",
+];

@@ -127,7 +127,8 @@ pub fn import(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
     for message in read.messages {
         ctx.message(message);
     }
-    Ok(Value::Frame(Frame::new(read.table)))
+    // Every reader fills the `source` key (section 4.3, rule 3).
+    Ok(Value::Frame(Frame::new(read.table.with_source(&path))))
 }
 
 /// The one note every import prints (Language Reference, section 6.1): what the format carried

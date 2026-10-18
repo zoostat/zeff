@@ -736,3 +736,40 @@ fn the_codes_of_expressions() {
     // Chained comparisons are the parser's Z0314; the checker never sees them.
     assert_eq!(codes("1 < 2 < 3\n"), vec!["Z0314".to_string()]);
 }
+
+// ----- the reserved names of core (sections 3.7 and 4.3) -----
+
+#[test]
+fn type_names_and_reserved_values_cannot_be_rebound() {
+    for name in [
+        "Str",
+        "Float",
+        "Frame",
+        "Matrix",
+        "Vector",
+        "Network",
+        "Geometry",
+        "Period",
+        "matrix",
+        "vector",
+        "transpose",
+        "Failed",
+        "Nothing",
+    ] {
+        let text = format!("let {name} = 1\n");
+        assert_eq!(
+            codes(&text),
+            vec!["Z0105".to_string()],
+            "{text:?}\n{}",
+            render(&text)
+        );
+    }
+    assert_eq!(
+        codes("let matrices = 1\n"),
+        Vec::<String>::new(),
+        "only the exact names"
+    );
+    assert!(
+        render("let Matrix = 1\n").contains("`Matrix` is a name of `core` and cannot be rebound")
+    );
+}

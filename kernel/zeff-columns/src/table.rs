@@ -1,6 +1,7 @@
 //! A table: named columns of equal length, in order.
 
 use crate::column::Column;
+use crate::metadata::{FrameMetadata, MetadataKey};
 
 /// Why a table could not be made.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,6 +45,7 @@ pub struct Table {
     names: Vec<String>,
     columns: Vec<Column>,
     rows: usize,
+    metadata: FrameMetadata,
 }
 
 impl Table {
@@ -69,7 +71,35 @@ impl Table {
             names,
             columns: data,
             rows,
+            metadata: FrameMetadata::default(),
         })
+    }
+
+    /// The frame's own store: source and panel declaration (section 4.3, rule 3).
+    pub fn metadata(&self) -> &FrameMetadata {
+        &self.metadata
+    }
+
+    pub fn with_metadata(mut self, metadata: FrameMetadata) -> Table {
+        self.metadata = metadata;
+        self
+    }
+
+    /// The table as read from `source`: the frame's source, and every column's `source` key, as
+    /// every reader fills them.
+    pub fn with_source(mut self, source: &str) -> Table {
+        self.metadata.source = Some(source.to_string());
+        self.columns = self
+            .columns
+            .into_iter()
+            .map(|c| c.with_entry(MetadataKey::Source, source))
+            .collect();
+        self
+    }
+
+    /// The columns with their names, in order.
+    pub fn columns(&self) -> impl Iterator<Item = (&String, &Column)> {
+        self.names.iter().zip(&self.columns)
     }
 
     pub fn rows(&self) -> usize {
@@ -103,6 +133,7 @@ impl Table {
             names: self.names.clone(),
             columns: self.columns.iter().map(|c| c.slice(0, n)).collect(),
             rows: n.min(self.rows),
+            metadata: self.metadata.clone(),
         }
     }
 }

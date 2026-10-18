@@ -150,6 +150,7 @@ pub fn cell(value: Cell<'_>) -> String {
         Cell::Str(s) | Cell::Category(s) => s.to_string(),
         Cell::Date(days) => format_iso_date(days),
         Cell::DateTime(micros) => format_iso_datetime(micros),
+        Cell::Opaque(summary) => summary,
     }
 }
 
@@ -540,6 +541,44 @@ mod tests {
             "wages · 3 rows × 3 variables\n\n  variable   non-missing   example\n  id                   3   1\n  hours                2   40\n"
         );
         assert_eq!(inline(&Value::Table(table)), "wages · 3 rows × 3 variables");
+    }
+
+    #[test]
+    fn opaque_columns_print_their_summaries_in_a_frame() {
+        let table = Table::new(vec![
+            ("id".into(), zeff_columns::Column::ints([Some(1), Some(2)])),
+            (
+                "scan".into(),
+                zeff_columns::Column::file_refs([
+                    Some(("scans/0142.jpg", Some([0u8; 32]))),
+                    None::<(&str, Option<[u8; 32]>)>,
+                ]),
+            ),
+            (
+                "blob".into(),
+                zeff_columns::Column::bytes([Some(vec![0u8; 2100]), Some(vec![1u8; 3])]),
+            ),
+            (
+                "shape".into(),
+                zeff_columns::Column::geometries([
+                    Some(vec![1u8, 3, 0, 0, 0]),
+                    Some(vec![1u8, 1, 0, 0, 0]),
+                ]),
+            ),
+            (
+                "q".into(),
+                zeff_columns::Column::periods(
+                    zeff_columns::Frequency::Quarter,
+                    [Some(199), Some(200)],
+                ),
+            ),
+        ])
+        .unwrap();
+        let text = show(&Value::Frame(Frame::new(table)));
+        assert_eq!(
+            text,
+            "frame · 2 rows × 5 variables\n\n      id   scan                    blob             shape       q\n  1    1   <file scans/0142.jpg>   <bytes 2.1 kB>   <polygon>   2019Q4\n  2    2   NA                      <bytes 3 B>      <point>     2020Q1\n"
+        );
     }
 
     use zeff_columns::Table;

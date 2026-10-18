@@ -109,3 +109,53 @@ proptest! {
         prop_assert_eq!(t.rows(), if columns == 0 { 0 } else { rows });
     }
 }
+
+// ----- the Arrow IPC round trip on random tables (section 4.3; Engine 8.3, point 5) -----
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(64)))]
+
+    #[test]
+    fn a_random_table_round_trips_through_arrow_ipc(
+        n in 0usize..30,
+        seed in any::<u64>(),
+        label in "[a-zA-Z ]{0,12}",
+    ) {
+        // Deterministic pseudo-random contents from the seed, so the case is reproducible.
+        let mut state = seed;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let bools: Vec<Option<bool>> = (0..n).map(|_| { let r = next(); (r % 5 != 0).then_some(r % 2 == 0) }).collect();
+        let ints: Vec<Option<i64>> = (0..n).map(|_| { let r = next(); (r % 7 != 0).then_some((r >> 8) as i64 - (1 << 55)) }).collect();
+        let floats: Vec<Option<f64>> = (0..n).map(|_| { let r = next(); (r % 6 != 0).then_some(((r >> 11) as f64 / (1u64 << 53) as f64 - 0.5) * 1e6) }).collect();
+        let strs: Vec<Option<String>> = (0..n).map(|_| { let r = next(); (r % 4 != 0).then(|| format!("v{}é", r % 1000)) }).collect();
+        let mut columns = vec![
+            ("b".to_string(), zeff_columns::Column::bools(bools)),
+            ("i".to_string(), zeff_columns::Column::ints(ints)),
+            ("f".to_string(), zeff_columns::Column::floats(floats).0),
+            ("s".to_string(), zeff_columns::Column::strs(strs)),
+        ];
+        if !label.trim().is_empty() {
+            let (name, column) = columns.remove(1);
+            columns.insert(1, (name, column.with_entry(zeff_columns::MetadataKey::Label, label.trim())));
+        }
+        let table = zeff_columns::Table::new(columns).unwrap().with_source("data/random.csv");
+        let bytes = zeff_columns::write_ipc(&table).unwrap();
+        let back = zeff_columns::read_ipc(&bytes).unwrap();
+        prop_assert_eq!(&back, &table);
+        prop_assert_eq!(zeff_columns::write_ipc(&back).unwrap(), bytes, "the bytes are the same twice");
+    }
+}
+
+/// The number of cases of a property run: the usual number, multiplied by `ZEFF_PROPERTY_MULTIPLIER`
+/// when the nightly job sets it (testing handbook, section 2.2).
+fn property_cases(usual: u32) -> u32 {
+    std::env::var("ZEFF_PROPERTY_MULTIPLIER")
+        .ok()
+        .and_then(|m| m.parse::<u32>().ok())
+        .map_or(usual, |m| usual.saturating_mul(m))
+}
