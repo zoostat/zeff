@@ -168,7 +168,7 @@ pub fn functions() -> Vec<Function> {
                 diagnostics: vec![
                     DiagnosticDecl::new(
                         "W0201",
-                        "missing values skipped, with the count; all missing gives NA",
+                        "missing values skipped, with the count; all missing, or no rows at all, gives NA",
                     ),
                     DiagnosticDecl::new("W0204", "Inf and -Inf both present, so the result is NA"),
                     DiagnosticDecl::new("Z0101", "no such variable in the frame"),

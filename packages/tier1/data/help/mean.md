@@ -5,7 +5,7 @@ Mean of a variable
 
 ## Description
 The arithmetic mean of the non-missing values of `var`. Missing values are skipped with a warning
-that gives their count; a column with no value left gives `NA` with the same warning. On a Bool
+that gives their count; a column with no value left, or none at all, gives `NA` with a warning. On a Bool
 column the mean is the share of `true` values, the commonest summary of a treatment indicator. An
 infinite value gives `Inf` or `-Inf`; `Inf` and `-Inf` together give `NA` with a warning.
 

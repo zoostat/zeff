@@ -161,3 +161,13 @@ Steps 1 to 5 `[engine]`, each green and committed in turn: the tiered Cargo work
 **Next.** Step 20, `mean` complete `[function]`.
 
 **For the owner to decide.** Printing question 3 (`summary`'s `stats:` list), first needed at step 22. Open decisions #41 to #45.
+
+## 18 October 2026, step 20 of release 0.1.0
+
+**Done.** Step 20 `[function]`: `mean` complete. The body gained the warning for a column with no rows (every `NA` result is now announced); the definition of done was completed with the edge-case files and their outcomes, three property tests (exact mean of integers; shift, scale and order; the Bool share) and a snapshot of every message the function can give at run time and at check time. Stale property-test seed files were removed. 9 tests added.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the conformance report (unchanged) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 21, `sd` `[function]`.
+
+**For the owner to decide.** Printing question 3 (`summary`'s `stats:` list), first needed at step 22. Open decisions #41 to #45.

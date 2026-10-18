@@ -39,8 +39,16 @@ fn numeric_column<'a>(
     }
 }
 
-/// W0201: `n` rows with NA in `var` were skipped (section 10.2's wording).
+/// W0201: `n` rows with NA in `var` were skipped (section 10.2's wording); all of them, or a
+/// column with no rows at all, gives NA with the warning too.
 fn skipped(ctx: &mut CallContext<'_>, var: &str, missing: usize, of: usize) {
+    if of == 0 {
+        ctx.message(Diagnostic::warning(
+            "W0201",
+            format!("{var} has no values: the result is NA"),
+        ));
+        return;
+    }
     if missing == 0 {
         return;
     }

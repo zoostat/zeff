@@ -1,0 +1,132 @@
+---
+source: packages/tier1/data/tests/mean.rs
+expression: all
+---
+## one_row_skipped (exit 0)
+37.5
+warning: 1 row with NA in hours was skipped (line 2)
+
+## rows_skipped (exit 0)
+39.669
+warning: 61 rows with NA in hours were skipped (line 2)
+
+## all_missing (exit 0)
+NA
+warning: all 3 rows have NA in x: the result is NA (line 2)
+
+## no_values (exit 0)
+NA
+warning: x has no values: the result is NA (line 2)
+
+## inf_and_minus_inf (exit 0)
+NA
+note: 2 values of nan_mixed read as NA from NaN (line 1)
+warning: both holds both Inf and -Inf, so its mean is NA (line 2)
+
+## no_such_variable (exit 1)
+error[Z0101]: no variable `wge` in `wages`
+ --> scripts/main.zeff:2:12
+  |
+2 | wages.mean(wge)
+  |            ^^^ not a variable of wages
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+## case_differs (exit 1)
+error[Z0102]: no variable `Wage` in `wages`; names are case-sensitive
+ --> scripts/main.zeff:2:12
+  |
+2 | wages.mean(Wage)
+  |            ^^^^ differs only in case from `wage`
+  |
+  = help: write `wage`
+
+## unnamed_frame (exit 1)
+error[Z0101]: no variable `wge` in `the frame`
+ --> scripts/main.zeff:1:31
+  |
+1 | import("data/wages.csv").mean(wge)
+  |                               ^^^ not a variable of the frame
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+## text_column (exit 1)
+error[Z0401]: `mean` needs a Bool, Int or Float, but `name` is Str
+ --> scripts/main.zeff:2:12
+  |
+2 | wages.mean(name)
+  |            ^^^^ a Str variable of wages
+  |
+  = help: choose a Bool, Int or Float variable; `wages.describe()` lists the types
+
+## date_column (exit 1)
+error[Z0401]: `mean` needs a Bool, Int or Float, but `sold` is Date
+ --> scripts/main.zeff:2:8
+  |
+2 | d.mean(sold)
+  |        ^^^^ a Date variable of d
+  |
+  = help: choose a Bool, Int or Float variable; `d.describe()` lists the types
+
+## no_arguments (exit 1)
+error[Z0406]: `mean` needs `data`
+ --> scripts/main.zeff:1:1
+  |
+1 | mean()
+  | ^^^^ `data` is missing
+  |
+  = help: usage: `data.mean(var)`
+
+## no_variable (exit 1)
+error[Z0406]: `mean` needs `var`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.mean()
+  |   ^^^^ `var` is missing
+  |
+  = help: usage: `data.mean(var)`
+
+## a_number_for_the_variable (exit 1)
+error[Z0401]: `var` of `mean` must be a Var, but this is an Int
+ --> scripts/main.zeff:2:8
+  |
+2 | w.mean(1)
+  |        ^ an Int
+  |
+  = help: name a variable of the frame, without quotes
+
+## text_for_the_variable (exit 1)
+error[Z0401]: `var` of `mean` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:8
+  |
+2 | w.mean("wage")
+  |        ^^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+## two_variables (exit 1)
+error[Z0407]: `mean` takes 1 argument, but more were given
+ --> scripts/main.zeff:2:14
+  |
+2 | w.mean(wage, hours)
+  |              ^^^^^ one too many
+  |
+  = help: usage: `data.mean(var)`
+
+## an_option (exit 1)
+error[Z0404]: `mean` has no argument called `by`
+ --> scripts/main.zeff:2:14
+  |
+2 | w.mean(wage, by: id)
+  |              ^^ unknown argument
+  |
+  = help: usage: `data.mean(var)`
+
+## not_a_frame (exit 1)
+error[Z0401]: `mean` cannot be called on an Int
+ --> scripts/main.zeff:1:6
+  |
+1 | mean(3, wage)
+  |      ^ this is an Int
+  |
+  = help: usage: `data.mean(var)`
