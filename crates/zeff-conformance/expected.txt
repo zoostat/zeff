@@ -101,8 +101,8 @@ special/incomplete_beta 948805e8d32d7820
 special/incomplete_beta_inverse e2d3878f2bec9144
 random/philox bfcc0e89d2e2c989
 random/uniform 2be774397b461029
-dist/values 36470581b4accc38
-dist/draws b20ddfbc1e7f87e3
+dist/values 4e454cba46b60c9c
+dist/draws 97b2440b83d1d7ac
 milestone/stdout cbf29ce484222325
 milestone/stderr 7965ffa1fba557ae
 milestone/exit_code aab1693229ba1db8

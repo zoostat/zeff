@@ -44,75 +44,9 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **Done, folded.** Step 10, the R reference harness (`tests/reference/r/`, base R 4.6.0 pinned, run in CI with its platform-dependent files compared within tolerance), BLAKE3 hashing of imported files, and the exact Float `div` and `mod` the harness exposed. Step 11, maths part 1 (`abs` to `is_finite`, `PI`, `E`) and scalar functions applied to columns row by row; provisional Z0410 added to #46. Questions 1 (weighted statistics) and 2 (the synthetic wages dataset) decided by the owner as recommended. Step 12, maths part 2 (the exponential, logarithms and trigonometric functions with the warnings of section 4.1). Step 13, `is_missing`, `coalesce` (types joined, Z0214), `warn` (a codeless warning) and `error` (Z0001). Step 14, the remaining options of `import` for delimited text (`quote:`, `decimal:`, `thousands:`, `encoding:` through `encoding_rs`); the catalogue's usage of `import` lacked `quote:` and was corrected.
 
-## 19 October 2026, step 15 of release 0.2.0
+## 19 October 2026, steps 15 to 21 of release 0.2.0
 
-**Done.** Step 15 `[function]`: `head`, `tail`, `where`, `select`, `drop` and `rename`, each with its help page and examples, and the engine piece they needed: inside a frame method's argument a bare name is the frame's variable first and a binding second, resolved when the statement runs, with a warning (provisional W0102, added to open decision #46) when it is both; variable ranges `x1..x9`; row and column selection in the table kernel through `arrow-select`. `where` drops the `NA` rows with the note the specification shows, naming the variable to inspect. 8 tests added against R's frames reference and the edge cases, 6 snapshots; the catalogue rows marked implemented.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 16, frame verbs part 2: `add`, `update`, `sort` `[function]`.
-
-**For the owner to decide.** Nothing until the dataset draft at step 18. Open decision #46 now holds four provisional codes (Z0221, Z0222, Z0410, W0102), due at 0.3.0.
-
-## 19 October 2026, step 16 of release 0.2.0
-
-**Done.** Step 16 `[function]`: `add` (definitions left to right, each seeing the ones before it; a replaced variable noted), `update` (values changed everywhere or where a condition holds, the variable keeping its type and metadata; rows where the condition was `NA` left unchanged and counted) and `sort` (stable, `NA` last in both directions, text by code point), each with its help page and examples; the kernel gained stable row sorting by identity order and column replacement. 7 tests added against R's sort reference and the rules, 5 snapshots; the catalogue rows marked implemented. The progress log was folded to stay under 200 lines.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 17, the reducers: `variance`, `median`, `quantile`, `min`, `max`, `sum`, `n`, `n_distinct`, and `by:` and `weights:` on every statistic `[function]`.
-
-**For the owner to decide.** Nothing until the dataset draft at step 18.
-
-## 19 October 2026, step 17 of release 0.2.0
-
-**Done.** Step 17 `[function]`: `variance`, `median`, `quantile` (the nine Hyndman and Fan definitions, agreeing with R to the bit), `min`, `max`, `sum`, `n` and `n_distinct`, each with its help page; `by:` on every statistic and on `summary` and `describe`, giving tables in key order; `weights:` with `weight_type:` under the formulas the owner approved, checked against R; reducers inside `add` and `update`, evaluated group by group under `by:`. 10 tests added against the R and Python references and the rules, 6 snapshots; the catalogue rows marked implemented.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally; the R reference script reproduces its file. GitHub run to be read after the push.
-
-**Next.** Step 18, the `datasets` package: `dataset`, `datasets`, the `zeff:` root and the dataset help pages `[function]`. Before it begins, the generating model of the synthetic wages dataset goes to the owner for approval.
-
-**For the owner to decide.** The dataset draft, at the start of step 18.
-
-## 19 October 2026, step 18 of release 0.2.0
-
-**Done.** The owner approved the wages dataset draft (missing values as empty cells). Step 18 `[function]`: the `datasets` package with `dataset` and `datasets`, the `zeff:` root, and the dataset help pages `wages` and `sleep` (Format tables checked against the files' metadata). Both datasets ship as CSV and Arrow IPC with labels, units, value labels, categories and the panel declaration; Parquet waits for 0.11.0 as the specification orders it. The generating scripts and `cargo xtask build-datasets` reproduce the files, CI checks that they do, and `data/CHECKSUMS` records them. Labelled values now print their labels in frames, tables and `describe`. 4 tests added, 1 snapshot; the catalogue rows marked implemented.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (566), the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 19, the script tests and the 0.2.0 sample project `[engine]`.
-
-**For the owner to decide.** Nothing at present.
-
-## 19 October 2026, step 19 of release 0.2.0
-
-**Done.** Step 19 `[engine]`: the second sample project, `samples/data_cleaning/`, a data-cleaning script end to end (a German spreadsheet export imported with its options and snake-case names, `where`, `rename`, `add` with expressions and a reducer by region, `update`, `sort`, `select`, `head`, `summary(by:)`, `mean(by:)`, `quantile`, `median`, `n_distinct`, `print`, and the `sleep` and `wages` datasets), its stored output, and its three cases in the conformance report so the four targets compare it byte for byte. The command-line test runs both samples.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (566), the tier check, the message check and the conformance report (three new lines, nothing else changed) pass locally. GitHub run to be read after the push.
-
-**Next.** Step 20, fuzzing in the nightly job `[engine]`.
-
-**For the owner to decide.** Nothing at present.
-
-## 19 October 2026, step 20 of release 0.2.0
-
-**Done.** Step 20 `[engine]`: four fuzz targets in `fuzz/` (the lexer, the parser, the checker against the engine's registry, and the CSV reader with its options chosen by the first bytes), built with `cargo-fuzz` on a nightly toolchain only in the new `fuzz` job of the scheduled workflow, which seeds each corpus from the repository's scripts and data files, runs each target for ten minutes and writes its note to the run's summary. Locally every target ran 25 and then 150 seconds without a crash.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (566), the tier check, the message check and the conformance report pass locally. The first run of the fuzz job on GitHub (run 39196510164) found no crash: in ten minutes each, the lexer ran 1,786,539 inputs, the parser 664,085, the checker 166,511 and the CSV reader 429,011, with no crash input left behind. Its first attempt failed before fuzzing because the prebuilt `cargo-fuzz` chose a statically linked build target; the job now names the runner's own target.
-
-**Next.** Step 21, the pre-release routine `[engine]`.
-
-**For the owner to decide.** Nothing at present.
-
-## 19 October 2026, step 21 of release 0.2.0
-
-**Done.** Step 21 `[engine]`, the pre-release routine: the suite is green on the four targets; the nightly, fuzz and weekly jobs each ran by hand and passed (567 tests at 25 times the property cases; no crash in about three million fuzz inputs; coverage 90.0% of the kernel and 90.5% of the workspace; 502 mutants of the numeric kernel, 500 caught, 1 unviable, 1 survivor, now covered by a unit test of the tie guard); both samples' output read by eye; the known-issues list rewritten for 0.2.0; the figures for risks R3, R4, R5, R6 and R7 and the reference versions collected in `docs/decisions.md`. Every step of the 0.2.0 checklist is ticked.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** The owner's "Release 0.2.0": version and sample pins to `0.2.0`, the release notes, the catalogue's status column, the reviews of the risk register and the open decisions, the tag and the GitHub release.
-
-**For the owner to decide.** Nothing before "Release 0.2.0". Open decision #46 is due at 0.3.0.
+**Done, folded.** Step 15, the frame verbs `head` to `rename` and names inside a frame method (W0102 provisional). Step 16, `add`, `update` and `sort`. Step 17, the reducers with `by:` and `weights:` under the owner's formulas, reducers inside `add` and `update`. Step 18, the `datasets` package with `wages` and `sleep` (CSV and Arrow IPC; Parquet at 0.11.0), labelled values printing their labels. Step 19, the `data_cleaning` sample project in the conformance report. Step 20, four fuzz targets in the nightly job (no crash in three million inputs). Step 21, the pre-release routine (coverage 90 per cent; 502 mutants, one survivor covered; the known-issues list rewritten).
 
 ## 19 October 2026, release 0.2.0 closed
 
@@ -187,5 +121,15 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (two new lines) pass locally. GitHub run to be read after the push.
 
 **Next.** Step 8, the continuous families on the incomplete functions: `dist.t`, `dist.chi2`, `dist.f`, `dist.gamma`, `dist.beta` `[function]`.
+
+**For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.
+
+## 19 October 2026, step 8 of release 0.3.0
+
+**Done.** Step 8 `[function]`: `dist.t`, `dist.chi2`, `dist.f`, `dist.gamma` and `dist.beta` on the kernel's incomplete functions, each with its page; R's reference extended by fifteen parameter sets, every printed value agreeing at six digits; the t distribution follows R's normal approximation above 400,000 degrees of freedom. 1 test added and 2 extended (the edges, the refusals, the stochastic class on nine families); 5 catalogue rows marked implemented. The progress log was folded to stay under 200 lines.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 9, the discrete families `dist.binomial`, `dist.poisson`, `dist.negbinomial` `[function]`.
 
 **For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.

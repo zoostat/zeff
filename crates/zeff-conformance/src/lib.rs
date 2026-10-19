@@ -568,7 +568,7 @@ fn distribution_cases() -> Vec<Line> {
         1.0 - 1e-6,
         1.0 - 1e-10,
     ];
-    let families: [(&str, &[(&str, f64)]); 7] = [
+    let families: [(&'static str, &[(&'static str, f64)]); 15] = [
         ("normal", &[("mean", 0.0), ("sd", 1.0)]),
         ("normal", &[("mean", 100.0), ("sd", 15.0)]),
         ("lognormal", &[("meanlog", 0.0), ("sdlog", 1.0)]),
@@ -576,17 +576,20 @@ fn distribution_cases() -> Vec<Line> {
         ("uniform", &[("min", 2.0), ("max", 5.0)]),
         ("exponential", &[("rate", 1.0)]),
         ("exponential", &[("rate", 0.1)]),
+        ("t", &[("df", 3.0)]),
+        ("t", &[("df", 24.0)]),
+        ("t", &[("df", 1e6)]),
+        ("chi2", &[("df", 5.0)]),
+        ("f", &[("df1", 3.0), ("df2", 20.0)]),
+        ("gamma", &[("shape", 2.0), ("rate", 3.0)]),
+        ("gamma", &[("shape", 100.0), ("rate", 0.1)]),
+        ("beta", &[("a", 2.0), ("b", 3.0)]),
     ];
     let mut values = Vec::new();
     let mut draws = Vec::new();
     for (name, params) in families {
         let d = Distribution::Family {
-            name: match name {
-                "normal" => "normal",
-                "lognormal" => "lognormal",
-                "uniform" => "uniform",
-                _ => "exponential",
-            },
+            name,
             params: params.to_vec(),
         };
         for &x in &xs {

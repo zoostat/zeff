@@ -38,7 +38,23 @@ families <- list(
   family("exponential", list(rate = 0.1),
          function(x) dexp(x, 0.1), function(x, lower.tail = TRUE) pexp(x, 0.1, lower.tail = lower.tail), function(p) qexp(p, 0.1)),
   family("exponential", list(rate = 25),
-         function(x) dexp(x, 25), function(x, lower.tail = TRUE) pexp(x, 25, lower.tail = lower.tail), function(p) qexp(p, 25))
+         function(x) dexp(x, 25), function(x, lower.tail = TRUE) pexp(x, 25, lower.tail = lower.tail), function(p) qexp(p, 25)),
+  family("t", list(df = 1), function(x) dt(x, 1), function(x, lower.tail = TRUE) pt(x, 1, lower.tail = lower.tail), function(p) qt(p, 1)),
+  family("t", list(df = 3), function(x) dt(x, 3), function(x, lower.tail = TRUE) pt(x, 3, lower.tail = lower.tail), function(p) qt(p, 3)),
+  family("t", list(df = 24), function(x) dt(x, 24), function(x, lower.tail = TRUE) pt(x, 24, lower.tail = lower.tail), function(p) qt(p, 24)),
+  family("t", list(df = 1e6), function(x) dt(x, 1e6), function(x, lower.tail = TRUE) pt(x, 1e6, lower.tail = lower.tail), function(p) qt(p, 1e6)),
+  family("chi2", list(df = 1), function(x) dchisq(x, 1), function(x, lower.tail = TRUE) pchisq(x, 1, lower.tail = lower.tail), function(p) qchisq(p, 1)),
+  family("chi2", list(df = 5), function(x) dchisq(x, 5), function(x, lower.tail = TRUE) pchisq(x, 5, lower.tail = lower.tail), function(p) qchisq(p, 5)),
+  family("chi2", list(df = 100), function(x) dchisq(x, 100), function(x, lower.tail = TRUE) pchisq(x, 100, lower.tail = lower.tail), function(p) qchisq(p, 100)),
+  family("f", list(df1 = 3, df2 = 20), function(x) df(x, 3, 20), function(x, lower.tail = TRUE) pf(x, 3, 20, lower.tail = lower.tail), function(p) qf(p, 3, 20)),
+  family("f", list(df1 = 1, df2 = 1), function(x) df(x, 1, 1), function(x, lower.tail = TRUE) pf(x, 1, 1, lower.tail = lower.tail), function(p) qf(p, 1, 1)),
+  family("f", list(df1 = 100, df2 = 1000), function(x) df(x, 100, 1000), function(x, lower.tail = TRUE) pf(x, 100, 1000, lower.tail = lower.tail), function(p) qf(p, 100, 1000)),
+  family("gamma", list(shape = 0.5, rate = 1), function(x) dgamma(x, 0.5, 1), function(x, lower.tail = TRUE) pgamma(x, 0.5, 1, lower.tail = lower.tail), function(p) qgamma(p, 0.5, 1)),
+  family("gamma", list(shape = 2, rate = 3), function(x) dgamma(x, 2, 3), function(x, lower.tail = TRUE) pgamma(x, 2, 3, lower.tail = lower.tail), function(p) qgamma(p, 2, 3)),
+  family("gamma", list(shape = 100, rate = 0.1), function(x) dgamma(x, 100, 0.1), function(x, lower.tail = TRUE) pgamma(x, 100, 0.1, lower.tail = lower.tail), function(p) qgamma(p, 100, 0.1)),
+  family("beta", list(a = 0.5, b = 0.5), function(x) dbeta(x, 0.5, 0.5), function(x, lower.tail = TRUE) pbeta(x, 0.5, 0.5, lower.tail = lower.tail), function(p) qbeta(p, 0.5, 0.5)),
+  family("beta", list(a = 2, b = 3), function(x) dbeta(x, 2, 3), function(x, lower.tail = TRUE) pbeta(x, 2, 3, lower.tail = lower.tail), function(p) qbeta(p, 2, 3)),
+  family("beta", list(a = 100, b = 100), function(x) dbeta(x, 100, 100), function(x, lower.tail = TRUE) pbeta(x, 100, 100, lower.tail = lower.tail), function(p) qbeta(p, 100, 100))
 )
 
 write_json(list(reference = reference_block(), families = families), file.path(here(), "distributions.json"))

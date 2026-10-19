@@ -67,3 +67,35 @@ error[Z0401]: `x` of `cdf` must be a Float, but this is a Str
   |                   ^^^ a Str
   |
   = help: usage: `distribution.cdf(x, upper: Bool = false)`
+
+error[Z0413]: `df` of `dist.t` must be a positive number, but this is 0
+ --> scripts/main.zeff:1:12
+  |
+1 | dist.t(df: 0)
+  |            ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.t` gives the domain of every parameter
+
+error[Z0413]: `df2` of `dist.f` must be a positive number, but this is -1
+ --> scripts/main.zeff:1:21
+  |
+1 | dist.f(df1: 3, df2: -1)
+  |                     ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.f` gives the domain of every parameter
+
+error[Z0413]: `rate` of `dist.gamma` must be a positive number, but this is 0
+ --> scripts/main.zeff:1:28
+  |
+1 | dist.gamma(shape: 2, rate: 0)
+  |                            ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.gamma` gives the domain of every parameter
+
+error[Z0406]: `dist.beta` needs `b`
+ --> scripts/main.zeff:1:6
+  |
+1 | dist.beta(a: 1)
+  |      ^^^^ `b` is missing
+  |
+  = help: usage: `dist.beta(a, b)`

@@ -60,7 +60,19 @@ fn every_family_agrees_with_r_at_six_digits() {
     let r: Json = serde_json::from_str(&text).unwrap();
     for family in r["families"].as_array().unwrap() {
         let name = family["family"].as_str().unwrap();
-        if !["normal", "lognormal", "uniform", "exponential"].contains(&name) {
+        if ![
+            "normal",
+            "lognormal",
+            "uniform",
+            "exponential",
+            "t",
+            "chi2",
+            "f",
+            "gamma",
+            "beta",
+        ]
+        .contains(&name)
+        {
             continue;
         }
         let params: Vec<String> = family["params"]
@@ -87,9 +99,46 @@ fn every_family_agrees_with_r_at_six_digits() {
             expected.push(shown(&family["quantile"][i]));
         }
         let got = printed(&expressions);
+        let mut mismatches = Vec::new();
+        let mut round_trips = Vec::new();
         for ((e, want), got) in expressions.iter().zip(&expected).zip(&got) {
-            assert_eq!(got, want, "{e}");
+            if got == want {
+                continue;
+            }
+            // R's `qbeta` (and so `qf`) loses digits, or gives up at 0, deep in a tail; a quantile
+            // that differs from R's is held instead to the distribution function it inverts: the
+            // probability must come back at six digits.
+            if let Some((d, p)) = e.split_once(".quantile(") {
+                let p = p.trim_end_matches(')');
+                round_trips.push((
+                    format!("{d}.cdf({got})"),
+                    shown(&Json::String(p.to_string())),
+                    e.clone(),
+                    got.clone(),
+                    want.clone(),
+                ));
+            } else {
+                mismatches.push(format!("{e}: Zeff {got}, R {want}"));
+            }
         }
+        if !round_trips.is_empty() {
+            let trips: Vec<String> = round_trips.iter().map(|r| r.0.clone()).collect();
+            let back = printed(&trips);
+            for ((trip, p, e, got, want), back) in round_trips.iter().zip(&back) {
+                // The quantile fed back carries six printed digits, so the probability returns
+                // within a few parts in a million.
+                let (b, want_p): (f64, f64) = (
+                    back.parse().unwrap_or(f64::NAN),
+                    p.parse().unwrap_or(f64::NAN),
+                );
+                if (b - want_p).abs() > 1e-5 * want_p.abs() {
+                    mismatches.push(format!(
+                        "{e}: Zeff {got}, R {want}; {trip} gives {back}, not {p}"
+                    ));
+                }
+            }
+        }
+        assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
     }
 }
 
@@ -111,6 +160,10 @@ fn the_edges_of_the_supports_and_the_refusals() {
         "dist.normal().draw(2.5)\n",
         "dist.normal().draw(3, seed: 1.5)\n",
         "dist.normal().cdf(\"x\")\n",
+        "dist.t(df: 0)\n",
+        "dist.f(df1: 3, df2: -1)\n",
+        "dist.gamma(shape: 2, rate: 0)\n",
+        "dist.beta(a: 1)\n",
     ] {
         let (code, _, stderr) = go(script);
         assert_eq!(code, 1, "{script}");
@@ -118,6 +171,18 @@ fn the_edges_of_the_supports_and_the_refusals() {
         all.push('\n');
     }
     insta::assert_snapshot!("refusals", all);
+}
+
+#[test]
+fn the_families_on_the_incomplete_functions_at_their_edges() {
+    let (code, stdout, stderr) = go(
+        "dist.chi2(df: 5).pdf(-1)\ndist.chi2(df: 5).cdf(0)\ndist.f(df1: 2, df2: 10).pdf(0)\ndist.f(df1: 1, df2: 10).pdf(0)\ndist.gamma(shape: 1).pdf(0)\ndist.beta(a: 2, b: 3).pdf(1.5)\ndist.beta(a: 2, b: 3).cdf(1)\ndist.beta(a: 0.5, b: 0.5).pdf(0)\ndist.t(df: 3).quantile(0.5)\ndist.t(df: 3).quantile(0)\ndist.t(df: 3).cdf(-30)\ndist.t(df: 1000000).cdf(5, upper: true)\ndist.t(df: 24).quantile(0.975)\ndist.chi2(df: 5).quantile(0.95)\ndist.f(df1: 3, df2: 20).quantile(0.95)\ndist.gamma(shape: 9).quantile(0.99)\ndist.beta(a: 2, b: 3).quantile(0.9)\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(
+        stdout,
+        "0\n0\n1\nInf\n1\n0\n1\nInf\n0\n-Inf\n4.06764e-05\n2.867e-07\n2.0639\n11.0705\n3.09839\n17.4027\n0.679539\n"
+    );
 }
 
 #[test]
@@ -180,7 +245,7 @@ fn draws_recover_their_distribution() {
     let n = 100_000usize;
     // A family, its parameters, its mean and its variance.
     type Case = (&'static str, Vec<(&'static str, f64)>, f64, f64);
-    let cases: [Case; 4] = [
+    let cases: [Case; 9] = [
         ("normal", vec![("mean", 100.0), ("sd", 15.0)], 100.0, 225.0),
         (
             "lognormal",
@@ -190,6 +255,21 @@ fn draws_recover_their_distribution() {
         ),
         ("uniform", vec![("min", 2.0), ("max", 5.0)], 3.5, 0.75),
         ("exponential", vec![("rate", 0.1)], 10.0, 100.0),
+        ("t", vec![("df", 24.0)], 0.0, 24.0 / 22.0),
+        ("chi2", vec![("df", 5.0)], 5.0, 10.0),
+        (
+            "f",
+            vec![("df1", 10.0), ("df2", 20.0)],
+            20.0 / 18.0,
+            2.0 * 400.0 * 28.0 / (10.0 * 324.0 * 16.0),
+        ),
+        (
+            "gamma",
+            vec![("shape", 2.0), ("rate", 3.0)],
+            2.0 / 3.0,
+            2.0 / 9.0,
+        ),
+        ("beta", vec![("a", 2.0), ("b", 3.0)], 0.4, 6.0 / 150.0),
     ];
     for (seed, (name, params, mean, variance)) in cases.iter().enumerate() {
         let d = Distribution::Family {

@@ -394,6 +394,11 @@ pub fn incomplete_gamma_inverse(a: f64, p: f64, upper: bool) -> f64 {
     } else {
         (1.0 - p, !upper)
     };
+    // A lower tail whose leading term (p a Γ(a))^(1/a) lies below the smallest Float: the
+    // quantile is zero to every digit a double has.
+    if !target_upper && (maths::log(target) + maths::log(a) + log_gamma(a)) / a < -745.0 {
+        return 0.0;
+    }
     let z = normal_quantile(target, target_upper);
     let mut x = {
         let wh = 1.0 - 1.0 / (9.0 * a) + z / (3.0 * a.sqrt());
@@ -557,6 +562,14 @@ pub fn incomplete_beta_inverse(a: f64, b: f64, p: f64, upper: bool) -> f64 {
     } else {
         (1.0 - p, !upper)
     };
+    // A tail whose leading term lies below the smallest Float: the quantile is the end of the
+    // interval to every digit a double has.
+    if !target_upper && (maths::log(target) + maths::log(a) + log_beta(a, b)) / a < -745.0 {
+        return 0.0;
+    }
+    if target_upper && (maths::log(target) + maths::log(b) + log_beta(a, b)) / b < -745.0 {
+        return 1.0;
+    }
     let sum = a + b;
     let mean = a / sum;
     let sd = (a * b / (sum * sum * (sum + 1.0))).sqrt();

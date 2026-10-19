@@ -206,6 +206,76 @@ pub fn exponential(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
     family(ctx, "exponential", &EXPONENTIAL, &args)
 }
 
+const T: [Param; 1] = [Param {
+    name: "df",
+    default: f64::NAN,
+    rule: Rule::Positive,
+}];
+
+/// `dist.t(df: Float)`.
+pub fn t(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "t", &T, &args)
+}
+
+/// `dist.chi2(df: Float)`.
+pub fn chi2(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "chi2", &T, &args)
+}
+
+const F: [Param; 2] = [
+    Param {
+        name: "df1",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+    Param {
+        name: "df2",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+];
+
+/// `dist.f(df1: Float, df2: Float)`.
+pub fn f(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "f", &F, &args)
+}
+
+const GAMMA: [Param; 2] = [
+    Param {
+        name: "shape",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+    Param {
+        name: "rate",
+        default: 1.0,
+        rule: Rule::Positive,
+    },
+];
+
+/// `dist.gamma(shape: Float, rate: Float = 1)`.
+pub fn gamma(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "gamma", &GAMMA, &args)
+}
+
+const BETA: [Param; 2] = [
+    Param {
+        name: "a",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+    Param {
+        name: "b",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+];
+
+/// `dist.beta(a: Float, b: Float)`.
+pub fn beta(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "beta", &BETA, &args)
+}
+
 // ----- the methods on a distribution -----
 
 /// The distribution a method was called on.
@@ -424,6 +494,50 @@ pub fn functions() -> Vec<Function> {
             include_str!("../help/dist.exponential.md"),
             "R 4.6.0 dexp, pexp, qexp",
             exponential,
+        ),
+        constructor(
+            "dist.t",
+            vec![ParamSpec::required("df", "Float")],
+            include_str!("../help/dist.t.md"),
+            "R 4.6.0 dt, pt, qt",
+            t,
+        ),
+        constructor(
+            "dist.chi2",
+            vec![ParamSpec::required("df", "Float")],
+            include_str!("../help/dist.chi2.md"),
+            "R 4.6.0 dchisq, pchisq, qchisq",
+            chi2,
+        ),
+        constructor(
+            "dist.f",
+            vec![
+                ParamSpec::required("df1", "Float"),
+                ParamSpec::required("df2", "Float"),
+            ],
+            include_str!("../help/dist.f.md"),
+            "R 4.6.0 df, pf, qf",
+            f,
+        ),
+        constructor(
+            "dist.gamma",
+            vec![
+                ParamSpec::required("shape", "Float"),
+                ParamSpec::option_with_default("rate", "Float", "1"),
+            ],
+            include_str!("../help/dist.gamma.md"),
+            "R 4.6.0 dgamma, pgamma, qgamma and the exact decimal reference of the kernel",
+            gamma,
+        ),
+        constructor(
+            "dist.beta",
+            vec![
+                ParamSpec::required("a", "Float"),
+                ParamSpec::required("b", "Float"),
+            ],
+            include_str!("../help/dist.beta.md"),
+            "R 4.6.0 dbeta, pbeta, qbeta and the exact decimal reference of the kernel",
+            beta,
         ),
         method(
             "pdf",
