@@ -18,6 +18,8 @@ members = [
     "tools/xtask",
     "tools/zeff-testkit",
 ]
+# The fuzz targets are a package of their own, built by `cargo +nightly fuzz` in the nightly job.
+exclude = ["fuzz"]
 
 [workspace.package]
 version = "0.2.0-dev"

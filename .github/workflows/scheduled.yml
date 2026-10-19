@@ -1,6 +1,7 @@
 name: Scheduled
 
-# The nightly and weekly jobs of the testing handbook, sections 2.2 and 2.3. Both can also be
+# The nightly and weekly jobs of the testing handbook, sections 2.2 and 2.3: the long property
+# runs and the fuzzing every night, coverage and mutation testing every week. All can also be
 # started by hand from the Actions page. Results go to each run's summary page and its artifacts.
 on:
   schedule:
@@ -11,7 +12,7 @@ on:
       job:
         description: "Which job to run"
         type: choice
-        options: [both, nightly, weekly]
+        options: [both, nightly, fuzz, weekly]
         default: both
 
 permissions:
@@ -56,6 +57,86 @@ jobs:
         with:
           name: nightly-log
           path: nightly.log
+
+  fuzz:
+    name: nightly (fuzzing)
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'fuzz')
+      || github.event.schedule == '17 2 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned toolchain and a nightly one for libFuzzer
+        run: |
+          rustup toolchain install
+          rustup toolchain install nightly --profile minimal
+
+      - name: Install cargo-fuzz
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+
+      - name: Seed each corpus with the scripts and data files of the repository
+        run: |
+          mkdir -p fuzz/corpus/lexer fuzz/corpus/parser fuzz/corpus/checker fuzz/corpus/csv
+          for target in lexer parser checker; do
+            cp docs/spec/zeff_samples.zeff "fuzz/corpus/$target/"
+            for script in samples/*/scripts/main.zeff; do
+              cp "$script" "fuzz/corpus/$target/$(echo "$script" | tr '/' '_')"
+            done
+          done
+          for file in tests/datasets/*.csv samples/data_cleaning/data/staff_de.csv; do
+            # Four option bytes (delimiter detected, quote `"`, decimal `.`, header) before the file.
+            { printf '\000\001\000\000'; cat "$file"; } > "fuzz/corpus/csv/$(basename "$file")"
+          done
+
+      - name: Build the fuzz targets
+        working-directory: fuzz
+        run: cargo +nightly fuzz build
+
+      - name: Fuzz the lexer, the parser, the checker and the CSV reader for ten minutes each
+        working-directory: fuzz
+        run: |
+          status=0
+          for target in lexer parser checker csv; do
+            echo "::group::$target"
+            if ! cargo +nightly fuzz run "$target" -- -max_total_time=600 -timeout=20 2>&1 | tee "fuzz-$target.log" | tail -5; then
+              status=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $status
+
+      - name: Write the note
+        if: always()
+        working-directory: fuzz
+        run: |
+          {
+            echo "## Nightly: fuzzing"
+            echo
+            echo "Each target ran for ten minutes under libFuzzer (nightly toolchain, fuzz targets only)."
+            echo "A crash leaves its input under \`artifacts/<target>/\`; it becomes a regression test (testing handbook, section 1)."
+            echo
+            echo '```'
+            for target in lexer parser checker csv; do
+              echo "$target: $(grep -E '^Done|^#[0-9]+ +DONE' "fuzz-$target.log" | tail -1)"
+            done
+            echo "crash inputs: $(find artifacts -type f 2>/dev/null | wc -l | tr -d ' ')"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the logs and any crash input
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-logs
+          path: |
+            fuzz/fuzz-*.log
+            fuzz/artifacts
+          if-no-files-found: ignore
 
   weekly:
     name: weekly (coverage and mutation testing)
