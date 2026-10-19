@@ -70,6 +70,9 @@ fn every_family_agrees_with_r_at_six_digits() {
             "f",
             "gamma",
             "beta",
+            "binomial",
+            "poisson",
+            "negbinomial",
         ]
         .contains(&name)
         {
@@ -79,7 +82,17 @@ fn every_family_agrees_with_r_at_six_digits() {
             .as_object()
             .unwrap()
             .iter()
-            .map(|(k, v)| format!("{k}: {}", literal(v)))
+            .map(|(k, v)| {
+                // The binomial's `n` is an Int parameter.
+                if k == "n" {
+                    format!(
+                        "{k}: {}",
+                        v.as_str().unwrap().parse::<f64>().unwrap() as i64
+                    )
+                } else {
+                    format!("{k}: {}", literal(v))
+                }
+            })
             .collect();
         let d = format!("dist.{name}({})", params.join(", "));
         let mut expressions = Vec::new();
@@ -164,6 +177,13 @@ fn the_edges_of_the_supports_and_the_refusals() {
         "dist.f(df1: 3, df2: -1)\n",
         "dist.gamma(shape: 2, rate: 0)\n",
         "dist.beta(a: 1)\n",
+        "dist.binomial(n: 10.5, p: 0.3)\n",
+        "dist.binomial(n: 10, p: 1.5)\n",
+        "dist.binomial(n: -2, p: 0.3)\n",
+        "dist.poisson(lambda: -1)\n",
+        "dist.negbinomial(size: 3, p: 0.4, mu: 2)\n",
+        "dist.negbinomial(size: 3)\n",
+        "dist.negbinomial(size: 3, p: 0)\n",
     ] {
         let (code, _, stderr) = go(script);
         assert_eq!(code, 1, "{script}");
@@ -182,6 +202,18 @@ fn the_families_on_the_incomplete_functions_at_their_edges() {
     assert_eq!(
         stdout,
         "0\n0\n1\nInf\n1\n0\n1\nInf\n0\n-Inf\n4.06764e-05\n2.867e-07\n2.0639\n11.0705\n3.09839\n17.4027\n0.679539\n"
+    );
+}
+
+#[test]
+fn the_discrete_families_at_their_edges_and_their_int_draws() {
+    let (code, stdout, stderr) = go(
+        "let b = dist.binomial(n: 10, p: 0.3)\nb.pdf(2.5)\nb.pdf(11)\nb.cdf(-1)\nb.cdf(10)\nb.cdf(3.7)\nb.quantile(0)\nb.quantile(1)\nb.quantile(0.5)\ndist.poisson(lambda: 2).quantile(1)\ndist.poisson(lambda: 2).pdf(0)\ndist.negbinomial(size: 3, p: 1).pdf(0)\ndist.negbinomial(size: 3, p: 1).quantile(1)\ndist.negbinomial(mu: 4.5, size: 3).pdf(2)\ndist.negbinomial(size: 3, p: 0.4).pdf(2)\nb.draw(4, seed: 2)\ndist.poisson(lambda: 4).draw(3, seed: 2)\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(
+        stdout,
+        "0\n0\n0\n1\n0.649611\n0\n10\n3\nInf\n0.135335\n1\n0\n0.13824\n0.13824\nColumn<Int> · 4 values\n3\n6\n1\n6\nColumn<Int> · 3 values\n3\n8\n1\n"
     );
 }
 
@@ -245,7 +277,7 @@ fn draws_recover_their_distribution() {
     let n = 100_000usize;
     // A family, its parameters, its mean and its variance.
     type Case = (&'static str, Vec<(&'static str, f64)>, f64, f64);
-    let cases: [Case; 9] = [
+    let cases: [Case; 12] = [
         ("normal", vec![("mean", 100.0), ("sd", 15.0)], 100.0, 225.0),
         (
             "lognormal",
@@ -270,6 +302,9 @@ fn draws_recover_their_distribution() {
             2.0 / 9.0,
         ),
         ("beta", vec![("a", 2.0), ("b", 3.0)], 0.4, 6.0 / 150.0),
+        ("binomial", vec![("n", 20.0), ("p", 0.3)], 6.0, 4.2),
+        ("poisson", vec![("lambda", 4.0)], 4.0, 4.0),
+        ("negbinomial", vec![("size", 3.0), ("p", 0.4)], 4.5, 11.25),
     ];
     for (seed, (name, params, mean, variance)) in cases.iter().enumerate() {
         let d = Distribution::Family {
@@ -295,11 +330,26 @@ fn draws_recover_their_distribution() {
         );
         draws.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let mut largest = 0.0f64;
-        for (i, x) in draws.iter().enumerate() {
-            let f = families::cdf(&d, *x).lower;
-            largest = largest
-                .max((f - i as f64 / n as f64).abs())
-                .max(((i + 1) as f64 / n as f64 - f).abs());
+        if families::is_discrete(&d) {
+            // At each distinct value: the empirical share at or below it against F.
+            let mut i = 0;
+            while i < n {
+                let x = draws[i];
+                let mut j = i;
+                while j < n && draws[j] == x {
+                    j += 1;
+                }
+                let f = families::cdf(&d, x).lower;
+                largest = largest.max((f - j as f64 / n as f64).abs());
+                i = j;
+            }
+        } else {
+            for (i, x) in draws.iter().enumerate() {
+                let f = families::cdf(&d, *x).lower;
+                largest = largest
+                    .max((f - i as f64 / n as f64).abs())
+                    .max(((i + 1) as f64 / n as f64 - f).abs());
+            }
         }
         assert!(
             largest < 1.95 / (n as f64).sqrt(),

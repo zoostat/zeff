@@ -14,9 +14,9 @@ family <- function(name, params, d, p, q) {
     family = name,
     params = lapply(params, dec),
     x = as.list(dec(xs)),
-    pdf = as.list(num(d(xs))),
-    lower = as.list(num(p(xs))),
-    upper = as.list(num(p(xs, lower.tail = FALSE))),
+    pdf = as.list(num(suppressWarnings(d(xs)))),
+    lower = as.list(num(suppressWarnings(p(xs)))),
+    upper = as.list(num(suppressWarnings(p(xs, lower.tail = FALSE)))),
     p = as.list(dec(ps)),
     quantile = as.list(num(q(ps)))
   )
@@ -54,7 +54,16 @@ families <- list(
   family("gamma", list(shape = 100, rate = 0.1), function(x) dgamma(x, 100, 0.1), function(x, lower.tail = TRUE) pgamma(x, 100, 0.1, lower.tail = lower.tail), function(p) qgamma(p, 100, 0.1)),
   family("beta", list(a = 0.5, b = 0.5), function(x) dbeta(x, 0.5, 0.5), function(x, lower.tail = TRUE) pbeta(x, 0.5, 0.5, lower.tail = lower.tail), function(p) qbeta(p, 0.5, 0.5)),
   family("beta", list(a = 2, b = 3), function(x) dbeta(x, 2, 3), function(x, lower.tail = TRUE) pbeta(x, 2, 3, lower.tail = lower.tail), function(p) qbeta(p, 2, 3)),
-  family("beta", list(a = 100, b = 100), function(x) dbeta(x, 100, 100), function(x, lower.tail = TRUE) pbeta(x, 100, 100, lower.tail = lower.tail), function(p) qbeta(p, 100, 100))
+  family("beta", list(a = 100, b = 100), function(x) dbeta(x, 100, 100), function(x, lower.tail = TRUE) pbeta(x, 100, 100, lower.tail = lower.tail), function(p) qbeta(p, 100, 100)),
+  family("binomial", list(n = 10, p = 0.3), function(x) dbinom(x, 10, 0.3), function(x, lower.tail = TRUE) pbinom(x, 10, 0.3, lower.tail = lower.tail), function(p) qbinom(p, 10, 0.3)),
+  family("binomial", list(n = 1000, p = 0.5), function(x) dbinom(x, 1000, 0.5), function(x, lower.tail = TRUE) pbinom(x, 1000, 0.5, lower.tail = lower.tail), function(p) qbinom(p, 1000, 0.5)),
+  family("binomial", list(n = 1e6, p = 1e-3), function(x) dbinom(x, 1e6, 1e-3), function(x, lower.tail = TRUE) pbinom(x, 1e6, 1e-3, lower.tail = lower.tail), function(p) qbinom(p, 1e6, 1e-3)),
+  family("poisson", list(lambda = 2), function(x) dpois(x, 2), function(x, lower.tail = TRUE) ppois(x, 2, lower.tail = lower.tail), function(p) qpois(p, 2)),
+  family("poisson", list(lambda = 0.01), function(x) dpois(x, 0.01), function(x, lower.tail = TRUE) ppois(x, 0.01, lower.tail = lower.tail), function(p) qpois(p, 0.01)),
+  family("poisson", list(lambda = 1000), function(x) dpois(x, 1000), function(x, lower.tail = TRUE) ppois(x, 1000, lower.tail = lower.tail), function(p) qpois(p, 1000)),
+  family("negbinomial", list(size = 3, p = 0.4), function(x) dnbinom(x, 3, 0.4), function(x, lower.tail = TRUE) pnbinom(x, 3, 0.4, lower.tail = lower.tail), function(p) qnbinom(p, 3, 0.4)),
+  family("negbinomial", list(mu = 4.5, size = 3), function(x) dnbinom(x, size = 3, mu = 4.5), function(x, lower.tail = TRUE) pnbinom(x, size = 3, mu = 4.5, lower.tail = lower.tail), function(p) qnbinom(p, size = 3, mu = 4.5)),
+  family("negbinomial", list(size = 0.5, p = 0.1), function(x) dnbinom(x, 0.5, 0.1), function(x, lower.tail = TRUE) pnbinom(x, 0.5, 0.1, lower.tail = lower.tail), function(p) qnbinom(p, 0.5, 0.1))
 )
 
 write_json(list(reference = reference_block(), families = families), file.path(here(), "distributions.json"))

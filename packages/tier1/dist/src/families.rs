@@ -7,6 +7,8 @@ use zeff_core::value::Distribution;
 use zeff_numeric::maths;
 use zeff_numeric::special::{self, Tails};
 
+const LN_SQRT_2PI: f64 = 0.918_938_533_204_672_8;
+
 /// A family's parameter by name, which every constructor fills in.
 fn param(params: &[(&'static str, f64)], name: &str) -> f64 {
     params
@@ -110,8 +112,159 @@ pub fn pdf(d: &Distribution, x: f64) -> f64 {
                 special::beta_density(a, b, x)
             }
         }
+        "binomial" => {
+            let (n, p) = (param(params, "n"), param(params, "p"));
+            match whole(x) {
+                Some(k) if (0.0..=n).contains(&k) => binomial_mass(k, n, p),
+                _ => 0.0,
+            }
+        }
+        "poisson" => {
+            let lambda = param(params, "lambda");
+            match whole(x) {
+                Some(k) if k >= 0.0 => poisson_mass(k, lambda),
+                _ => 0.0,
+            }
+        }
+        "negbinomial" => {
+            let (size, p) = negbinomial_size_p(params);
+            match whole(x) {
+                Some(k) if k >= 0.0 && p == 1.0 => f64::from(u8::from(k == 0.0)),
+                // size / (size + k) times the binomial mass of `size` successes in k + size trials.
+                Some(k) if k >= 0.0 => size / (size + k) * binomial_mass(size, k + size, p),
+                _ => 0.0,
+            }
+        }
         _ => f64::NAN,
     }
+}
+
+/// A discrete distribution's argument as a whole number: a value within 1e-7 (relative) of one
+/// counts as it, as R's `dbinom` and its kin treat floating-point noise; `None` otherwise.
+fn whole(x: f64) -> Option<f64> {
+    if x < 0.0 {
+        return None;
+    }
+    let k = x.round();
+    if (x - k).abs() <= 1e-7 * x.abs().max(1.0) {
+        Some(k)
+    } else {
+        None
+    }
+}
+
+/// The largest whole number not above `x`, with the same tolerance for noise just below one.
+fn floor_whole(x: f64) -> f64 {
+    if x < 0.0 {
+        return -1.0;
+    }
+    (x + 1e-7 * x.abs().max(1.0)).floor()
+}
+
+/// The negative binomial's size and success probability, from either parameterisation.
+fn negbinomial_size_p(params: &[(&'static str, f64)]) -> (f64, f64) {
+    let size = param(params, "size");
+    let p = param(params, "p");
+    if p.is_nan() {
+        let mu = param(params, "mu");
+        (size, size / (size + mu))
+    } else {
+        (size, p)
+    }
+}
+
+/// C(n, k) p^k (1 − p)^(n − k) for a real n and k by Loader's saddle-point form: the Stirling
+/// remainders and the deviance terms keep every digit where the logarithm of a large binomial
+/// coefficient would not.
+fn binomial_mass(k: f64, n: f64, p: f64) -> f64 {
+    if p == 0.0 {
+        return f64::from(u8::from(k == 0.0));
+    }
+    if p == 1.0 {
+        return f64::from(u8::from(k == n));
+    }
+    if k == 0.0 {
+        return maths::exp(n * maths::log1p(-p));
+    }
+    if k == n {
+        return maths::exp(n * maths::log(p));
+    }
+    let remainder = special::stirling_remainder(n)
+        - special::stirling_remainder(k)
+        - special::stirling_remainder(n - k);
+    let deviance = special::deviance(k, n * p) + special::deviance(n - k, n * (1.0 - p));
+    let log_scale = -0.5 * maths::log(k * (n - k) / n) - LN_SQRT_2PI;
+    maths::exp(remainder - deviance + log_scale)
+}
+
+/// e^−λ λ^k / k! by the same saddle-point form.
+fn poisson_mass(k: f64, lambda: f64) -> f64 {
+    if k == 0.0 {
+        return maths::exp(-lambda);
+    }
+    maths::exp(
+        -special::stirling_remainder(k)
+            - special::deviance(k, lambda)
+            - 0.5 * maths::log(k)
+            - LN_SQRT_2PI,
+    )
+}
+
+/// The smallest whole number k with F(k) ≥ p, found from a start near the mean by widening a
+/// bracket and then halving it, so that a far quantile costs a few dozen evaluations of F.
+fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> f64 {
+    if p <= 0.0 {
+        return 0.0;
+    }
+    if p >= 1.0 {
+        return upper_bound;
+    }
+    let f = |k: f64| cdf(d, k).lower;
+    let mut k = start.round().clamp(0.0, upper_bound);
+    // Bracket: lo has F(lo) < p (or lo = -1), hi has F(hi) >= p.
+    let (mut lo, mut hi);
+    if f(k) >= p {
+        hi = k;
+        let mut step = 1.0;
+        loop {
+            let next = hi - step;
+            if next < 0.0 {
+                lo = -1.0;
+                break;
+            }
+            if f(next) < p {
+                lo = next;
+                break;
+            }
+            hi = next;
+            step *= 2.0;
+        }
+    } else {
+        lo = k;
+        let mut step = 1.0;
+        loop {
+            let next = lo + step;
+            if next >= upper_bound {
+                hi = upper_bound;
+                break;
+            }
+            if f(next) >= p {
+                hi = next;
+                break;
+            }
+            lo = next;
+            step *= 2.0;
+        }
+    }
+    while hi - lo > 1.0 {
+        k = ((lo + hi) / 2.0).floor();
+        if f(k) >= p {
+            hi = k;
+        } else {
+            lo = k;
+        }
+    }
+    hi
 }
 
 /// The t distribution's tails: half the incomplete beta function at ν / (ν + t²), on the side of
@@ -296,6 +449,44 @@ pub fn cdf(d: &Distribution, x: f64) -> Tails {
                 special::incomplete_beta(a, b, x)
             }
         }
+        "binomial" => {
+            let (n, p) = (param(params, "n"), param(params, "p"));
+            let k = floor_whole(x);
+            if k < 0.0 {
+                exact(0.0)
+            } else if k >= n {
+                exact(1.0)
+            } else {
+                // P(X ≤ k) = I_{1−p}(n − k, k + 1), both tails on their own side.
+                special::incomplete_beta(n - k, k + 1.0, 1.0 - p)
+            }
+        }
+        "poisson" => {
+            let lambda = param(params, "lambda");
+            let k = floor_whole(x);
+            if k < 0.0 {
+                exact(0.0)
+            } else {
+                // P(X ≤ k) = Q(k + 1, λ).
+                let tails = special::incomplete_gamma(k + 1.0, lambda);
+                Tails {
+                    lower: tails.upper,
+                    upper: tails.lower,
+                }
+            }
+        }
+        "negbinomial" => {
+            let (size, p) = negbinomial_size_p(params);
+            let k = floor_whole(x);
+            if k < 0.0 {
+                exact(0.0)
+            } else if p == 1.0 {
+                exact(1.0)
+            } else {
+                // P(X ≤ k) = I_p(size, k + 1).
+                special::incomplete_beta(size, k + 1.0, p)
+            }
+        }
         _ => Tails {
             lower: f64::NAN,
             upper: f64::NAN,
@@ -342,6 +533,31 @@ pub fn quantile(d: &Distribution, p: f64) -> f64 {
         }
         "beta" => {
             special::incomplete_beta_inverse(param(params, "a"), param(params, "b"), p, false)
+        }
+        "binomial" => {
+            let (n, q) = (param(params, "n"), param(params, "p"));
+            let mean = n * q;
+            let sd = (n * q * (1.0 - q)).sqrt();
+            let start = mean + sd * special::normal_quantile(p.clamp(1e-300, 1.0 - 1e-16), false);
+            discrete_quantile(d, p, start, n)
+        }
+        "poisson" => {
+            let lambda = param(params, "lambda");
+            if p >= 1.0 {
+                return f64::INFINITY;
+            }
+            let start = lambda + lambda.sqrt() * special::normal_quantile(p.max(1e-300), false);
+            discrete_quantile(d, p, start, f64::INFINITY)
+        }
+        "negbinomial" => {
+            let (size, q) = negbinomial_size_p(params);
+            if p >= 1.0 {
+                return if q == 1.0 { 0.0 } else { f64::INFINITY };
+            }
+            let mean = size * (1.0 - q) / q;
+            let sd = (mean / q).sqrt();
+            let start = mean + sd * special::normal_quantile(p.max(1e-300), false);
+            discrete_quantile(d, p, start, f64::INFINITY)
         }
         _ => f64::NAN,
     }

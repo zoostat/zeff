@@ -133,3 +133,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 9, the discrete families `dist.binomial`, `dist.poisson`, `dist.negbinomial` `[function]`.
 
 **For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.
+
+## 19 October 2026, step 9 of release 0.3.0
+
+**Done.** Step 9 `[function]`: `dist.binomial`, `dist.poisson` and `dist.negbinomial` (in both its forms), each with its page, their probabilities in Loader's saddle-point form on a new kernel deviance function, their distribution functions on the incomplete beta and gamma functions, their quantiles by a bracket search, their draws as Int columns; the registry reads a usage with several forms. R's reference extended by nine parameter sets, every printed value agreeing at six digits. 1 test added and 3 extended; 3 catalogue rows marked implemented. The twelve families of the release are complete.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 10, `dist.truncated` and `dist.mixture` `[function]`.
+
+**For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.

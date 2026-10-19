@@ -49,14 +49,30 @@ impl CatalogueRow {
     /// `data.reg(formula, fe: Terms, se: classical | robust = classical)` gives
     /// `["data", "formula", "fe", "se"]`.
     pub fn usage_parameters(&self) -> Vec<String> {
+        // A function with several forms writes them joined by ` or ` (`t_test`, `dist.negbinomial`);
+        // the parameters are those of every form, each once, in order of first appearance.
+        let mut names: Vec<String> = Vec::new();
+        for form in self.usage.split(" or ") {
+            for name in form_parameters(&self.name, form.trim()) {
+                if !names.contains(&name) {
+                    names.push(name);
+                }
+            }
+        }
+        names
+    }
+}
+
+/// The parameter names of one form of a usage, receiver included.
+fn form_parameters(function: &str, usage: &str) -> Vec<String> {
+    {
         let mut names = Vec::new();
-        let usage = self.usage.as_str();
         let Some(open) = usage.find('(') else {
             return names;
         };
         let head = &usage[..open];
         // `dist.normal(...)` is a namespaced name, not a method; `data.reg(...)` has a receiver.
-        if head != self.name
+        if head != function
             && let Some((receiver, _)) = head.split_once('.')
             && !receiver.is_empty()
             && receiver

@@ -146,7 +146,7 @@ pub fn beta(a: f64, b: f64) -> f64 {
 
 /// lgamma(x) - [(x - 0.5) ln x - x + ln sqrt(2 pi)]: the Stirling series for x ≥ 10, the
 /// difference itself below.
-fn stirling_remainder(x: f64) -> f64 {
+pub fn stirling_remainder(x: f64) -> f64 {
     if x < 10.0 {
         return log_gamma(x) - ((x - 0.5) * maths::log(x) - x + LN_SQRT_2PI);
     }
@@ -170,6 +170,28 @@ fn stirling_remainder(x: f64) -> f64 {
         power *= inverse_square;
     }
     total
+}
+
+/// x ln(x / m) + m − x, the deviance term of Loader's binomial and Poisson probabilities, by its
+/// series when x is near m (where the plain form cancels) and plainly otherwise.
+pub fn deviance(x: f64, m: f64) -> f64 {
+    if (x - m).abs() < 0.1 * (x + m) {
+        let v = (x - m) / (x + m);
+        let mut total = (x - m) * v;
+        let mut term = 2.0 * x * v;
+        let v2 = v * v;
+        let mut j = 1.0;
+        loop {
+            term *= v2;
+            let next = term / (2.0 * j + 1.0);
+            total += next;
+            if next.abs() <= total.abs() * 1e-17 {
+                return total;
+            }
+            j += 1.0;
+        }
+    }
+    x * maths::log(x / m) + m - x
 }
 
 /// log1p(d) - d, accurate when `d` is small (the series) and plain otherwise.

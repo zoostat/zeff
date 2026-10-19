@@ -99,3 +99,59 @@ error[Z0406]: `dist.beta` needs `b`
   |      ^^^^ `b` is missing
   |
   = help: usage: `dist.beta(a, b)`
+
+error[Z0401]: `n` of `dist.binomial` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:18
+  |
+1 | dist.binomial(n: 10.5, p: 0.3)
+  |                  ^^^^ a Float
+  |
+  = help: usage: `dist.binomial(n, p)`
+
+error[Z0413]: `p` of `dist.binomial` must be a probability between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:25
+  |
+1 | dist.binomial(n: 10, p: 1.5)
+  |                         ^^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.binomial` gives the domain of every parameter
+
+error[Z0413]: `n` of `dist.binomial` must be a whole number of 0 or more, but this is -2
+ --> scripts/main.zeff:1:18
+  |
+1 | dist.binomial(n: -2, p: 0.3)
+  |                  ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.binomial` gives the domain of every parameter
+
+error[Z0413]: `lambda` of `dist.poisson` must be a positive number, but this is -1
+ --> scripts/main.zeff:1:22
+  |
+1 | dist.poisson(lambda: -1)
+  |                      ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.poisson` gives the domain of every parameter
+
+error[Z0410]: `dist.negbinomial` takes `p:` or `mu:`, not both
+ --> scripts/main.zeff:1:39
+  |
+1 | dist.negbinomial(size: 3, p: 0.4, mu: 2)
+  |                                       ^ a second parameterisation
+  |
+  = help: `size:` with `p:` counts failures before the size-th success; `mu:` with `size:` is the mean parameterisation (NB2)
+
+error[Z0406]: `dist.negbinomial` needs `p:` or `mu:`
+ --> scripts/main.zeff:1:6
+  |
+1 | dist.negbinomial(size: 3)
+  |      ^^^^^^^^^^^ neither is given
+  |
+  = help: `dist.negbinomial(size: 3, p: 0.4)` or `dist.negbinomial(mu: 4.5, size: 3)`
+
+error[Z0413]: `p` of `dist.negbinomial` must be a probability above 0 and at most 1, but this is 0
+ --> scripts/main.zeff:1:30
+  |
+1 | dist.negbinomial(size: 3, p: 0)
+  |                              ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.negbinomial` gives the domain of every parameter

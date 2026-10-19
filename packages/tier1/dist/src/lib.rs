@@ -22,6 +22,12 @@ struct Param {
 enum Rule {
     Any,
     Positive,
+    /// A whole number of 0 or more.
+    Count,
+    /// In [0, 1].
+    Probability,
+    /// In (0, 1].
+    ProbabilityNotZero,
 }
 
 impl Rule {
@@ -29,6 +35,9 @@ impl Rule {
         match self {
             Rule::Any => value.is_finite(),
             Rule::Positive => value.is_finite() && value > 0.0,
+            Rule::Count => value.is_finite() && value >= 0.0 && value.fract() == 0.0,
+            Rule::Probability => (0.0..=1.0).contains(&value),
+            Rule::ProbabilityNotZero => value > 0.0 && value <= 1.0,
         }
     }
 
@@ -36,6 +45,9 @@ impl Rule {
         match self {
             Rule::Any => "a finite number",
             Rule::Positive => "a positive number",
+            Rule::Count => "a whole number of 0 or more",
+            Rule::Probability => "a probability between 0 and 1",
+            Rule::ProbabilityNotZero => "a probability above 0 and at most 1",
         }
     }
 }
@@ -47,6 +59,19 @@ fn family(
     name: &'static str,
     params: &[Param],
     args: &Args,
+) -> Result<Value, Fail> {
+    let positions: Vec<usize> = (0..params.len()).collect();
+    family_with_spans(ctx, name, params, args, &positions)
+}
+
+/// `family` with each parameter's argument position given, for a call whose arguments were
+/// reordered.
+fn family_with_spans(
+    ctx: &CallContext<'_>,
+    name: &'static str,
+    params: &[Param],
+    args: &Args,
+    positions: &[usize],
 ) -> Result<Value, Fail> {
     let mut filled = Vec::with_capacity(params.len());
     for (i, param) in params.iter().enumerate() {
@@ -85,7 +110,7 @@ fn family(
                     ),
                 )
                 .in_file(ctx.script)
-                .primary(ctx.span_of(i), "outside the parameter's domain")
+                .primary(ctx.span_of(positions[i]), "outside the parameter's domain")
                 .help(format!(
                     "`zeff help dist.{name}` gives the domain of every parameter"
                 )),
@@ -274,6 +299,96 @@ const BETA: [Param; 2] = [
 /// `dist.beta(a: Float, b: Float)`.
 pub fn beta(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     family(ctx, "beta", &BETA, &args)
+}
+
+const BINOMIAL: [Param; 2] = [
+    Param {
+        name: "n",
+        default: f64::NAN,
+        rule: Rule::Count,
+    },
+    Param {
+        name: "p",
+        default: f64::NAN,
+        rule: Rule::Probability,
+    },
+];
+
+/// `dist.binomial(n: Int, p: Float)`.
+pub fn binomial(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "binomial", &BINOMIAL, &args)
+}
+
+const POISSON: [Param; 1] = [Param {
+    name: "lambda",
+    default: f64::NAN,
+    rule: Rule::Positive,
+}];
+
+/// `dist.poisson(lambda: Float)`.
+pub fn poisson(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "poisson", &POISSON, &args)
+}
+
+const NEGBINOMIAL_P: [Param; 2] = [
+    Param {
+        name: "size",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+    Param {
+        name: "p",
+        default: f64::NAN,
+        rule: Rule::ProbabilityNotZero,
+    },
+];
+
+const NEGBINOMIAL_MU: [Param; 2] = [
+    Param {
+        name: "mu",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+    Param {
+        name: "size",
+        default: f64::NAN,
+        rule: Rule::Positive,
+    },
+];
+
+/// `dist.negbinomial(size: Float, p: Float)` or `dist.negbinomial(mu: Float, size: Float)`: one
+/// of `p:` and `mu:`, never both (Z0410) nor neither (Z0406).
+pub fn negbinomial(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    // The registered parameters are size, p, mu in that order.
+    let has_p = args.get(1).is_some();
+    let has_mu = args.get(2).is_some();
+    match (has_p, has_mu) {
+        (true, true) => Err(fail(
+            Diagnostic::error(
+                "Z0410",
+                "`dist.negbinomial` takes `p:` or `mu:`, not both",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(2), "a second parameterisation")
+            .help("`size:` with `p:` counts failures before the size-th success; `mu:` with `size:` is the mean parameterisation (NB2)"),
+        )),
+        (false, false) => Err(fail(
+            Diagnostic::error("Z0406", "`dist.negbinomial` needs `p:` or `mu:`")
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "neither is given")
+                .help("`dist.negbinomial(size: 3, p: 0.4)` or `dist.negbinomial(mu: 4.5, size: 3)`"),
+        )),
+        (true, false) => family(ctx, "negbinomial", &NEGBINOMIAL_P, &args),
+        (false, true) => {
+            // Reorder the arguments to (mu, size) for the table.
+            let reordered = Args {
+                values: vec![args.get(2).cloned(), args.get(0).cloned()],
+                rest: Vec::new(),
+                definitions: Vec::new(),
+            };
+            family_with_spans(ctx, "negbinomial", &NEGBINOMIAL_MU, &reordered, &[2, 0])
+        }
+    }
 }
 
 // ----- the methods on a distribution -----
@@ -539,6 +654,45 @@ pub fn functions() -> Vec<Function> {
             "R 4.6.0 dbeta, pbeta, qbeta and the exact decimal reference of the kernel",
             beta,
         ),
+        constructor(
+            "dist.binomial",
+            vec![
+                ParamSpec::required("n", "Int"),
+                ParamSpec::required("p", "Float"),
+            ],
+            include_str!("../help/dist.binomial.md"),
+            "R 4.6.0 dbinom, pbinom, qbinom",
+            binomial,
+        ),
+        constructor(
+            "dist.poisson",
+            vec![ParamSpec::required("lambda", "Float")],
+            include_str!("../help/dist.poisson.md"),
+            "R 4.6.0 dpois, ppois, qpois",
+            poisson,
+        ),
+        Function {
+            spec: FunctionSpec {
+                name: "dist.negbinomial",
+                package: "dist",
+                method: false,
+                params: vec![
+                    ParamSpec::required("size", "Float"),
+                    ParamSpec::option("p", "Float"),
+                    ParamSpec::option("mu", "Float"),
+                ],
+                rest: None,
+                returns: "Distribution",
+                diagnostics: vec![
+                    z0413(),
+                    DiagnosticDecl::new("Z0410", "both `p:` and `mu:` given"),
+                    DiagnosticDecl::new("Z0406", "neither `p:` nor `mu:` given"),
+                ],
+                help: include_str!("../help/dist.negbinomial.md"),
+                accuracy: accuracy("R 4.6.0 dnbinom, pnbinom, qnbinom"),
+            },
+            body: negbinomial,
+        },
         method(
             "pdf",
             vec![ParamSpec::required("x", "Float")],
