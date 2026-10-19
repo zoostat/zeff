@@ -178,7 +178,9 @@ fn draws_recover_their_distribution() {
     use zeff_dist::families;
     use zeff_numeric::random::Stream;
     let n = 100_000usize;
-    let cases: [(&'static str, Vec<(&'static str, f64)>, f64, f64); 4] = [
+    // A family, its parameters, its mean and its variance.
+    type Case = (&'static str, Vec<(&'static str, f64)>, f64, f64);
+    let cases: [Case; 4] = [
         ("normal", vec![("mean", 100.0), ("sd", 15.0)], 100.0, 225.0),
         (
             "lognormal",
