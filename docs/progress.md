@@ -179,3 +179,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 7, the first four distributions and the four methods `[function]`. It needs the owner's answer to question 3 (draws from discrete distributions as Int columns); the recommendation stands if none comes before step 9, where the discrete families arrive.
 
 **For the owner to decide.** Question 3 before step 9; question 2 (the correlation table) before step 11; open decision #46 at the close.
+
+## 19 October 2026, step 7 of release 0.3.0
+
+**Done.** The owner decided question 3 (Int columns for discrete draws, Float otherwise, `draw(1)` a column). Step 7 `[function]`: `dist.lognormal`, `dist.uniform` and `dist.exponential` beside `dist.normal`, and the methods `pdf`, `cdf` (with `upper:`), `quantile` and `draw` (by inverse CDF from the Philox stream, the chosen seed noted once), each with its page; R's distribution functions as a reference file compared in CI; two checker rules widened so that the methods apply to columns row by row and a distribution bound to a name can be used inside `add`. 5 tests added (R at six digits, the edges, columns, draws, the stochastic class on 100,000 draws), 2 snapshots, 2 conformance series; 8 catalogue rows marked implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (two new lines) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 8, the continuous families on the incomplete functions: `dist.t`, `dist.chi2`, `dist.f`, `dist.gamma`, `dist.beta` `[function]`.
+
+**For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.

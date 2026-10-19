@@ -547,12 +547,68 @@ fn random_cases() -> Vec<Line> {
     lines
 }
 
+/// The distribution functions (release 0.3.0, steps 7 to 10): density, both tails, quantile and
+/// the first draws of each family at fixed parameters, so that the four targets prove the same
+/// values and the same draws everywhere.
+fn distribution_cases() -> Vec<Line> {
+    use zeff_core::value::Distribution;
+    use zeff_dist::families;
+    use zeff_numeric::random::Stream;
+    let xs: [f64; 14] = [
+        -40.0, -5.0, -1.0, -1e-10, 0.0, 1e-10, 0.25, 0.5, 1.0, 1.96, 3.0, 10.0, 40.0, 1e6,
+    ];
+    let ps: [f64; 9] = [
+        1e-300,
+        1e-10,
+        0.001,
+        0.025,
+        0.5,
+        0.975,
+        0.999,
+        1.0 - 1e-6,
+        1.0 - 1e-10,
+    ];
+    let families: [(&str, &[(&str, f64)]); 7] = [
+        ("normal", &[("mean", 0.0), ("sd", 1.0)]),
+        ("normal", &[("mean", 100.0), ("sd", 15.0)]),
+        ("lognormal", &[("meanlog", 0.0), ("sdlog", 1.0)]),
+        ("lognormal", &[("meanlog", 3.0), ("sdlog", 0.5)]),
+        ("uniform", &[("min", 2.0), ("max", 5.0)]),
+        ("exponential", &[("rate", 1.0)]),
+        ("exponential", &[("rate", 0.1)]),
+    ];
+    let mut values = Vec::new();
+    let mut draws = Vec::new();
+    for (name, params) in families {
+        let d = Distribution::Family {
+            name: match name {
+                "normal" => "normal",
+                "lognormal" => "lognormal",
+                "uniform" => "uniform",
+                _ => "exponential",
+            },
+            params: params.to_vec(),
+        };
+        for &x in &xs {
+            let tails = families::cdf(&d, x);
+            values.extend([families::pdf(&d, x), tails.lower, tails.upper]);
+        }
+        for &p in &ps {
+            values.push(families::quantile(&d, p));
+        }
+        let mut stream = Stream::new(20_261_019, 1, 0);
+        draws.extend((0..8).map(|_| families::draw(&d, stream.uniform())));
+    }
+    vec![series("dist/values", &values), series("dist/draws", &draws)]
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
     lines.extend(maths_cases());
     lines.extend(special_cases());
     lines.extend(random_cases());
+    lines.extend(distribution_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());
     lines

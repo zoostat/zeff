@@ -1,0 +1,32 @@
+---
+source: packages/tier1/dist/tests/distributions.rs
+expression: "format!(\"{stdout}---\\n{}\", without_format_notes(&stderr))"
+---
+Column<Float> · 4 values
+0.0249979
+0.5
+0.975002
+NA
+Column<Float> · 4 values
+0.975002
+0.5
+0.0249979
+NA
+Column<Float> · 4 values
+0.0584409
+0.398942
+0.0584409
+NA
+Column<Float> · 4 values
+-1.95996
+0
+1.95996
+NA
+frame · 4 rows × 4 variables
+
+          z       p          q     density
+  1   -1.96   0.025   -1.95996   0.0584409
+  2       0     0.5          0    0.398942
+  3    1.96   0.975    1.95996   0.0584409
+  4      NA      NA         NA          NA
+---

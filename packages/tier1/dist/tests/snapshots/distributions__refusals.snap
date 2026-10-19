@@ -1,0 +1,69 @@
+---
+source: packages/tier1/dist/tests/distributions.rs
+expression: all
+---
+error[Z0413]: `p` of `quantile` must be a probability between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:24
+  |
+1 | dist.normal().quantile(1.5)
+  |                        ^^^ not a probability
+
+error[Z0413]: `p` of `quantile` must be a probability between 0 and 1, but this is -0.1
+ --> scripts/main.zeff:1:24
+  |
+1 | dist.normal().quantile(-0.1)
+  |                        ^^^^ not a probability
+
+error[Z0413]: `max` of `dist.uniform` must exceed `min`
+ --> scripts/main.zeff:1:27
+  |
+1 | dist.uniform(min: 3, max: 1)
+  |                           ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.uniform` gives the domain of every parameter
+
+error[Z0413]: `sdlog` of `dist.lognormal` must be a positive number, but this is -1
+ --> scripts/main.zeff:1:23
+  |
+1 | dist.lognormal(sdlog: -1)
+  |                       ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.lognormal` gives the domain of every parameter
+
+error[Z0413]: `rate` of `dist.exponential` must be a positive number, but this is 0
+ --> scripts/main.zeff:1:24
+  |
+1 | dist.exponential(rate: 0)
+  |                        ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.exponential` gives the domain of every parameter
+
+error[Z0401]: `n` of `draw` must be 0 or more, but this is -1
+ --> scripts/main.zeff:1:20
+  |
+1 | dist.normal().draw(-1)
+  |                    ^^ a negative count
+
+error[Z0401]: `n` of `draw` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:20
+  |
+1 | dist.normal().draw(2.5)
+  |                    ^^^ a Float
+  |
+  = help: usage: `distribution.draw(n, seed: Int)`
+
+error[Z0401]: `seed` of `draw` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:29
+  |
+1 | dist.normal().draw(3, seed: 1.5)
+  |                             ^^^ a Float
+  |
+  = help: usage: `distribution.draw(n, seed: Int)`
+
+error[Z0401]: `x` of `cdf` must be a Float, but this is a Str
+ --> scripts/main.zeff:1:19
+  |
+1 | dist.normal().cdf("x")
+  |                   ^^^ a Str
+  |
+  = help: usage: `distribution.cdf(x, upper: Bool = false)`

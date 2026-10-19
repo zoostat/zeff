@@ -1297,7 +1297,24 @@ impl Checker<'_> {
             }
             other => (name, other),
         };
-        let receiver = receiver.map(|r| self.expr(r, None));
+        // A method's receiver written as a bare name inside a frame method's argument is the
+        // binding of that name when one exists: a column has no methods in this release, so the
+        // run-time choice between column and binding (section 3.7) does not arise for a receiver.
+        let receiver = receiver.map(|r| match &r.kind {
+            ast::ExprKind::Name(path)
+                if path.segments.len() == 1
+                    && self.frame_scope > 0
+                    && self.lookup(&path.segments[0].text).is_some() =>
+            {
+                let id = self.lookup(&path.segments[0].text).unwrap();
+                Expr {
+                    ty: self.bindings[id].ty.clone(),
+                    span: r.span,
+                    kind: ExprKind::Binding(id),
+                }
+            }
+            _ => self.expr(r, None),
+        });
 
         // Find the function: by package when qualified, by the receiver's type for a method, by
         // the name otherwise (one home per name per type, section 8.1, rule 6).
@@ -1622,7 +1639,12 @@ impl Checker<'_> {
         }
         // A scalar function of `core` applies row by row to a column and gives a column (section
         // 3.7, "Columns and scalars"); its parameter types are read as the types of one row.
-        let liftable = spec.package == "core" && !spec.method;
+        // A scalar function of `core`, or a method on a value that is not a frame and returns a
+        // scalar (`d.pdf(x)` on a distribution), applies to a column row by row (section 3.7).
+        let liftable = (spec.package == "core" && !spec.method)
+            || (spec.method
+                && params.first().is_some_and(|(_, ty, _)| *ty != Ty::Frame)
+                && Ty::parse(spec.returns).is_some_and(|t| scalar_type(&t)));
         let lifts = |ty: &Ty, given: &Ty| -> bool {
             liftable && scalar_type(ty) && matches!(given, Ty::Column(inner) if ty.accepts(inner))
         };

@@ -287,6 +287,7 @@ jobs:
           Rscript --version
           Rscript tests/reference/r/maths.R
           Rscript tests/reference/r/special.R
+          Rscript tests/reference/r/distributions.R
           Rscript tests/reference/r/descriptive.R
           Rscript tests/reference/r/frames.R
 
@@ -295,7 +296,7 @@ jobs:
         # last bits differ between Linux and macOS; the committed copies are compared within
         # tolerance (tests/reference/r/check_r.py) and the differences are printed.
         run: |
-          for name in maths descriptive special; do
+          for name in maths descriptive special distributions; do
             git show HEAD:tests/reference/r/$name.json > /tmp/committed_r_$name.json
             git diff --stat -- tests/reference/r/$name.json
             python3 -I tests/reference/r/check_r.py $name /tmp/committed_r_$name.json tests/reference/r/$name.json

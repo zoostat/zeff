@@ -17,7 +17,9 @@ named rather than positional.
   is refused (Z0413).
 
 ## Value
-A `Distribution`. Its methods: `pdf(x)`, `cdf(x, upper:)`, `quantile(p)` and `draw(n, seed:)`.
+A `Distribution`. Its methods: `pdf(x)` the density, `cdf(x, upper:)` the distribution function
+and its upper tail, `quantile(p)` the value at cumulative probability `p`, and `draw(n, seed:)` a
+column of `n` draws.
 
 ## Details
 The density is φ((x − μ)/σ)/σ with φ(z) = exp(−z²/2)/√(2π). The distribution function Φ is
@@ -39,5 +41,14 @@ dist.lognormal, dist.t
 > dist.normal()
 normal distribution · mean: 0, sd: 1
 > let iq = dist.normal(mean: 100, sd: 15)
-> iq
-normal distribution · mean: 100, sd: 15
+> iq.quantile(0.9)
+119.223
+> iq.cdf(130)
+0.97725
+> dist.normal().cdf(1.96, upper: true)
+0.0249979
+> dist.normal().draw(3, seed: 1)
+Column<Float> · 3 values
+1.22791
+0.216564
+0.445438
