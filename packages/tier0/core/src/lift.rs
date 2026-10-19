@@ -174,6 +174,8 @@ pub fn call_rowwise(
                 definition_spans: Vec::new(),
                 output: ctx.output,
                 messages: &mut messages,
+                random: ctx.random,
+                statement: ctx.statement,
             };
             body(&mut row_ctx, row_args)
         };

@@ -4,7 +4,7 @@
 use proptest::prelude::*;
 use zeff_columns::ColumnType;
 use zeff_core::display::format_float;
-use zeff_core::runtime::{Args, CallContext, Fail, Files};
+use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness};
 use zeff_core::value::Value;
 use zeff_data::frame::frame;
 use zeff_diagnostics::{Diagnostic, Span};
@@ -26,6 +26,7 @@ fn build(
 ) -> Result<Vec<(String, ColumnType, usize, usize)>, String> {
     let mut output = String::new();
     let mut messages: Vec<Diagnostic> = Vec::new();
+    let mut random = Randomness::default();
     let spans: Vec<Span> = (0..definitions.len())
         .map(|i| Span::new(i * 10, i * 10 + 5))
         .collect();
@@ -41,6 +42,8 @@ fn build(
         definition_spans: spans,
         output: &mut output,
         messages: &mut messages,
+        random: &mut random,
+        statement: 1,
     };
     let args = Args {
         values: Vec::new(),

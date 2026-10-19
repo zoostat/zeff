@@ -7,7 +7,7 @@ use crate::registry::Bodies;
 use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, format_float, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Note, Notes, Op, Operand, Trouble};
-use zeff_core::runtime::{Args, CallContext, Fail, Files, fail};
+use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
 use zeff_core::value::{Frame, TypeValue, Value};
 use zeff_diagnostics::{Diagnostic, Source, Span};
 use zeff_ir::ir::{BinaryOp, UnaryOp};
@@ -49,6 +49,10 @@ pub struct Interpreter<'a> {
     /// The frames whose methods are being called, innermost last, with the columns each call's
     /// arguments have named so far (section 3.7, "Name lookup").
     receivers: Vec<Receiver>,
+    /// The run's randomness: its seed and whether a draw has used it (section 8.3, point 3).
+    random: Randomness,
+    /// The ordinal of the statement being run, 1 for the first; every draw's stream is keyed by it.
+    statement: u32,
 }
 
 /// A frame whose method is being called: the frame as given, which its options see; the frame
@@ -93,6 +97,8 @@ impl<'a> Interpreter<'a> {
             panic_at_line: None,
             width: PAGE_WIDTH,
             receivers: Vec::new(),
+            random: Randomness::default(),
+            statement: 0,
         }
     }
 
@@ -113,6 +119,7 @@ impl<'a> Interpreter<'a> {
     /// `output.stderr` and returned.
     pub fn run(mut self, output: &mut Output) -> Result<(), Fail> {
         for statement in &self.program.statements {
+            self.statement += 1;
             let mut printed = String::new();
             let mut messages: Vec<Diagnostic> = Vec::new();
             let span = match statement {
@@ -732,6 +739,8 @@ impl<'a> Interpreter<'a> {
             definition_spans: call.definitions.iter().map(|(_, e)| e.span).collect(),
             output: printed,
             messages,
+            random: &mut self.random,
+            statement: self.statement,
         };
         let args = Args {
             values,

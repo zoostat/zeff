@@ -516,11 +516,43 @@ fn special_cases() -> Vec<Line> {
     lines
 }
 
+/// The random stream (release 0.3.0, step 4): Philox blocks at fixed counters and keys, and the
+/// first uniforms of several streams, so that the four targets prove the same draws everywhere.
+fn random_cases() -> Vec<Line> {
+    use zeff_numeric::random::{Stream, philox4x32_10};
+    let mut words: Vec<f64> = Vec::new();
+    for (counter, key) in [
+        ([0u32, 0, 0, 0], [0u32, 0]),
+        ([u32::MAX; 4], [u32::MAX; 2]),
+        (
+            [0x243f_6a88, 0x85a3_08d3, 0x1319_8a2e, 0x0370_7344],
+            [0xa409_3822, 0x299f_31d0],
+        ),
+        ([7, 0, 3, 1], [20_261_019, 0]),
+    ] {
+        words.extend(philox4x32_10(counter, key).map(f64::from));
+    }
+    let mut lines = vec![series("random/philox", &words)];
+    let mut uniforms = Vec::new();
+    for (seed, ordinal, pass) in [
+        (20_261_019u64, 1u32, 0u32),
+        (20_261_019, 2, 0),
+        (42, 1, 3),
+        (u64::MAX, 7, 0),
+    ] {
+        let mut stream = Stream::new(seed, ordinal, pass);
+        uniforms.extend((0..16).map(|_| stream.uniform()));
+    }
+    lines.push(series("random/uniform", &uniforms));
+    lines
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
     lines.extend(maths_cases());
     lines.extend(special_cases());
+    lines.extend(random_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());
     lines

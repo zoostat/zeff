@@ -171,3 +171,35 @@ proptest! {
         prop_assert!((back - p).abs() <= 1e-13 * p, "normal: p {p} -> z {z} -> {back}");
     }
 }
+
+// ----- the random stream (release 0.3.0, step 4) -----
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases_maths(200)))]
+
+    /// A stream is a pure function of (seed, statement, pass): the same triple gives the same
+    /// draws, and a change to any part changes the first draw; every uniform is one of the 2^53
+    /// values in [0, 1).
+    #[test]
+    fn the_stream_is_a_function_of_its_key_and_position(
+        seed in any::<u64>(), ordinal in 1..1_000_000u32, pass in 0..1000u32, n in 1..64usize
+    ) {
+        use zeff_numeric::random::Stream;
+        let draws: Vec<f64> = (0..n).map(|_| Stream::new(seed, ordinal, pass)).enumerate()
+            .map(|(i, mut s)| { for _ in 0..i { s.uniform(); } s.uniform() })
+            .collect();
+        let mut straight = Stream::new(seed, ordinal, pass);
+        for (i, want) in draws.iter().enumerate() {
+            let got = straight.uniform();
+            prop_assert_eq!(got, *want, "draw {} differs between a fresh and a running stream", i);
+            prop_assert!((0.0..1.0).contains(&got));
+            prop_assert_eq!((got * 9_007_199_254_740_992.0).fract(), 0.0);
+        }
+        let mut other = Stream::new(seed, ordinal + 1, pass);
+        prop_assert_ne!(other.uniform(), draws[0]);
+        let mut other = Stream::new(seed ^ 1, ordinal, pass);
+        prop_assert_ne!(other.uniform(), draws[0]);
+        let mut other = Stream::new(seed, ordinal, pass + 1);
+        prop_assert_ne!(other.uniform(), draws[0]);
+    }
+}

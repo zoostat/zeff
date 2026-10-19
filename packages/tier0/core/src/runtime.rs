@@ -7,6 +7,7 @@
 
 use crate::value::Value;
 use zeff_diagnostics::{Diagnostic, Span};
+use zeff_numeric::random::Stream;
 use zeff_registry::FunctionSpec;
 
 /// The error that stops a script, boxed so that results stay small.
@@ -21,6 +22,60 @@ pub fn fail(diagnostic: Diagnostic) -> Fail {
 /// of the project; a refusal comes back as the diagnostic to show, positioned at the path.
 pub trait Files {
     fn read(&self, written: &str, span: Span, script: &str) -> Result<Vec<u8>, Fail>;
+}
+
+/// The run's randomness (Engine and Project Specification, section 8.3, point 3): the seed the
+/// draws derive from, how it was chosen, and whether a statement has drawn yet, so that `seed(n)`
+/// can refuse to come second (Z0111). One per run; the interpreter holds it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Randomness {
+    /// The seed in force: given by `seed(n)`, or chosen from the system at the first draw.
+    pub seed: Option<i64>,
+    /// Whether the seed was chosen by the engine rather than written in the script.
+    pub chosen: bool,
+    /// Whether a statement has drawn from the stream.
+    pub used: bool,
+}
+
+impl Randomness {
+    /// The stream for a draw in the statement with ordinal `statement`: under `explicit` (a
+    /// `seed:` given to the call) a stream of its own, the same wherever the call is written;
+    /// otherwise the run's seed, chosen from the system at the first draw and reported back as a
+    /// note so that the run can be repeated with `seed(n)`.
+    pub fn stream(
+        &mut self,
+        explicit: Option<i64>,
+        statement: u32,
+    ) -> (Stream, Option<Diagnostic>) {
+        if let Some(seed) = explicit {
+            return (Stream::new(seed as u64, 0, 0), None);
+        }
+        let mut note = None;
+        let seed = match self.seed {
+            Some(seed) => seed,
+            None => {
+                let seed = system_seed();
+                self.seed = Some(seed);
+                self.chosen = true;
+                note = Some(Diagnostic::plain_note(format!(
+                    "no seed was set, so {seed} was chosen for this run; `seed({seed})` at the top of the script repeats it"
+                )));
+                seed
+            }
+        };
+        self.used = true;
+        (Stream::new(seed as u64, statement, 0), note)
+    }
+}
+
+/// A seed from the operating system's randomness, as a positive Int a script can write back:
+/// below 2^31, so that it reads as an ordinary number.
+fn system_seed() -> i64 {
+    use std::hash::{BuildHasher, Hasher};
+    let raw = std::collections::hash_map::RandomState::new()
+        .build_hasher()
+        .finish();
+    (raw % 2_147_483_646) as i64 + 1
 }
 
 /// Where a call stands and where its output and messages go.
@@ -46,6 +101,10 @@ pub struct CallContext<'a> {
     pub output: &'a mut String,
     /// Warnings and notes raised by the statement, printed under its output.
     pub messages: &'a mut Vec<Diagnostic>,
+    /// The run's randomness, shared by every statement.
+    pub random: &'a mut Randomness,
+    /// The ordinal of the statement within the run, 1 for the first.
+    pub statement: u32,
 }
 
 impl CallContext<'_> {
@@ -62,6 +121,16 @@ impl CallContext<'_> {
             .copied()
             .flatten()
             .unwrap_or(self.callee_span)
+    }
+
+    /// A stream of uniform numbers for this call (section 8.3, point 3): under `explicit` its own,
+    /// otherwise the run's, whose seed is chosen and noted at the first draw.
+    pub fn stream(&mut self, explicit: Option<i64>) -> Stream {
+        let (stream, note) = self.random.stream(explicit, self.statement);
+        if let Some(note) = note {
+            self.messages.push(note);
+        }
+        stream
     }
 
     /// Print text as the statement's output.
@@ -104,4 +173,37 @@ pub type Body = fn(&mut CallContext<'_>, Args) -> Result<Value, Fail>;
 pub struct Function {
     pub spec: FunctionSpec,
     pub body: Body,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_runs_seed_is_chosen_once_and_noted_and_an_explicit_seed_stands_alone() {
+        let mut random = Randomness::default();
+        let (mut first, note) = random.stream(None, 1);
+        let note = note.expect("the first draw notes the chosen seed");
+        assert!(note.code.is_empty() && note.message.contains("was chosen for this run"));
+        let seed = random.seed.expect("a seed is now in force");
+        assert!((1..=2_147_483_647).contains(&seed) && random.chosen && random.used);
+        // The second statement draws from the same seed without a second note, and differs.
+        let (mut second, note) = random.stream(None, 2);
+        assert!(note.is_none());
+        assert_ne!(first.uniform(), second.uniform());
+        // A seed given to the call is its own stream, the same wherever it is written.
+        let (mut a, note) = random.stream(Some(42), 3);
+        assert!(note.is_none());
+        let (mut b, _) = random.stream(Some(42), 9);
+        assert_eq!(a.uniform(), b.uniform());
+        // A seed set by the script is used as it is, without a note.
+        let mut scripted = Randomness {
+            seed: Some(20_261_019),
+            ..Randomness::default()
+        };
+        let (mut s, note) = scripted.stream(None, 1);
+        assert!(note.is_none() && !scripted.chosen && scripted.used);
+        let mut same = zeff_numeric::random::Stream::new(20_261_019, 1, 0);
+        assert_eq!(s.uniform(), same.uniform());
+    }
 }

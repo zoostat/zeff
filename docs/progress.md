@@ -149,3 +149,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 4, Philox random streams and `seed` `[engine]`.
 
 **For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.
+
+## 19 October 2026, step 4 of release 0.3.0
+
+**Done.** Step 4 `[engine]`: Philox4x32-10 in the numeric kernel, checked against the published known-answer vectors; the uniform stream keyed by seed, statement ordinal, loop pass and block, 53 bits per uniform; the run's randomness in the interpreter and the call context (the seed chosen from the system at the first draw and noted so that `seed(N)` repeats the run; a `seed:` given to one call as a stream of its own); two conformance series. 3 tests added.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (two new lines) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 5, `zeff selftest` `[engine]`.
+
+**For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.

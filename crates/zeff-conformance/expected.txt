@@ -99,6 +99,8 @@ special/incomplete_gamma 178181e6ffc44efd
 special/incomplete_gamma_inverse d898c98019df6cb4
 special/incomplete_beta 948805e8d32d7820
 special/incomplete_beta_inverse e2d3878f2bec9144
+random/philox bfcc0e89d2e2c989
+random/uniform 2be774397b461029
 milestone/stdout cbf29ce484222325
 milestone/stderr 7965ffa1fba557ae
 milestone/exit_code aab1693229ba1db8
