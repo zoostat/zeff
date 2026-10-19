@@ -1,0 +1,21 @@
+[package]
+name = "zeff-datasets"
+description = "Package datasets (tier 1): the shipped datasets, the zeff: data root and the functions dataset and datasets."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-core.workspace = true
+zeff-columns.workspace = true
+zeff-diagnostics.workspace = true
+zeff-registry.workspace = true
+
+[dev-dependencies]
+zeff-testkit.workspace = true
+zeff-hash.workspace = true
+insta = "=1.49.0"

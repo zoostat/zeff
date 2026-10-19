@@ -1,5 +1,6 @@
 //! Build tooling. `cargo run -p xtask -- check-tiers` enforces the tier rules of section 8.1.
 
+mod datasets;
 mod identity;
 mod messages;
 mod tiers;
@@ -11,10 +12,12 @@ fn main() -> ExitCode {
         Some("check-tiers") => check_tiers(),
         Some("compare-identity") => compare_identity(),
         Some("check-messages") => check_messages(),
+        Some("build-datasets") => datasets::build(),
         _ => {
             eprintln!(
                 "usage: cargo run -p xtask -- check-tiers\n       \
                  cargo run -p xtask -- check-messages\n       \
+                 cargo run -p xtask -- build-datasets\n       \
                  cargo run -p xtask -- compare-identity <folder> <number of reports>"
             );
             ExitCode::from(2)

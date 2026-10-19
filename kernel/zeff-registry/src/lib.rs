@@ -8,12 +8,17 @@
 //! the checker and the editor all read the registry.
 
 pub mod catalogue;
+pub mod dataset;
 pub mod help;
 pub mod render;
 pub mod shared;
 pub mod spec;
 
 pub use catalogue::{Catalogue, CatalogueError, CatalogueRow};
+pub use dataset::{
+    DatasetDoc, DatasetSpec, FormatRow, RegisteredDataset, check_dataset_help, parse_dataset_help,
+    render_dataset_page,
+};
 pub use help::{Block, Example, HelpDoc, HelpError, check_help, parse_help};
 pub use render::{PAGE_WIDTH, TEXT_WIDTH, render_page};
 pub use shared::{SHARED, SharedArgument, shared_argument};
@@ -60,6 +65,11 @@ pub enum RegistryError {
         name: String,
         errors: Vec<HelpError>,
     },
+    /// Problems with a dataset's page.
+    DatasetHelp {
+        name: String,
+        errors: Vec<HelpError>,
+    },
 }
 
 impl std::fmt::Display for RegistryError {
@@ -93,6 +103,13 @@ impl std::fmt::Display for RegistryError {
                 }
                 Ok(())
             }
+            RegistryError::DatasetHelp { name, errors } => {
+                write!(f, "the page of the dataset `{name}` is incomplete:")?;
+                for e in errors {
+                    write!(f, "\n  {e}")?;
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -103,6 +120,7 @@ impl std::error::Error for RegistryError {}
 #[derive(Debug, Clone)]
 pub struct Registry {
     functions: Vec<Registered>,
+    datasets: Vec<RegisteredDataset>,
     catalogue: Catalogue,
 }
 
@@ -179,6 +197,7 @@ impl Registry {
         if errors.is_empty() {
             Ok(Registry {
                 functions,
+                datasets: Vec::new(),
                 catalogue,
             })
         } else {
@@ -186,8 +205,60 @@ impl Registry {
         }
     }
 
+    /// Add the shipped datasets, checking every page (section 8.5: a dataset without a complete
+    /// page does not ship); all problems are returned together.
+    pub fn with_datasets(
+        mut self,
+        specs: Vec<DatasetSpec>,
+    ) -> Result<Registry, Vec<RegistryError>> {
+        let mut errors = Vec::new();
+        let names: Vec<&str> = specs.iter().map(|s| s.name).collect();
+        let known = |name: &str| -> bool {
+            let first = name.split_whitespace().next().unwrap_or(name);
+            self.catalogue.has_name(first) || names.contains(&first)
+        };
+        let mut datasets = Vec::new();
+        for spec in specs {
+            let name = spec.name.to_string();
+            let doc = match parse_dataset_help(spec.help) {
+                Ok(doc) => doc,
+                Err(found) => {
+                    errors.push(RegistryError::DatasetHelp {
+                        name,
+                        errors: found,
+                    });
+                    continue;
+                }
+            };
+            let found = check_dataset_help(&spec, &doc, &known);
+            if !found.is_empty() {
+                errors.push(RegistryError::DatasetHelp {
+                    name,
+                    errors: found,
+                });
+                continue;
+            }
+            datasets.push(RegisteredDataset { spec, doc });
+        }
+        if errors.is_empty() {
+            self.datasets = datasets;
+            Ok(self)
+        } else {
+            Err(errors)
+        }
+    }
+
     pub fn functions(&self) -> &[Registered] {
         &self.functions
+    }
+
+    /// The shipped datasets, in the order the package gives them.
+    pub fn datasets(&self) -> &[RegisteredDataset] {
+        &self.datasets
+    }
+
+    pub fn dataset(&self, name: &str) -> Option<&RegisteredDataset> {
+        self.datasets.iter().find(|d| d.spec.name == name)
     }
 
     pub fn catalogue(&self) -> &Catalogue {

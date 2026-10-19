@@ -11,3 +11,6 @@ workspace = true
 
 [dependencies]
 serde_json = "=1.0.154"
+zeff-columns.workspace = true
+zeff-data.workspace = true
+zeff-hash.workspace = true

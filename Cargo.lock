@@ -1107,6 +1107,9 @@ name = "xtask"
 version = "0.2.0-dev"
 dependencies = [
  "serde_json",
+ "zeff-columns",
+ "zeff-data",
+ "zeff-hash",
 ]
 
 [[package]]
@@ -1179,6 +1182,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeff-datasets"
+version = "0.2.0-dev"
+dependencies = [
+ "insta",
+ "zeff-columns",
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-hash",
+ "zeff-registry",
+ "zeff-testkit",
+]
+
+[[package]]
 name = "zeff-dates"
 version = "0.2.0-dev"
 dependencies = [
@@ -1200,6 +1216,7 @@ dependencies = [
  "zeff-columns",
  "zeff-core",
  "zeff-data",
+ "zeff-datasets",
  "zeff-diagnostics",
  "zeff-ir",
  "zeff-numeric",

@@ -13,7 +13,7 @@
 //! enclosing frame or, under `by:`, the group.
 
 use zeff_columns::{Column, ColumnType, Groups, WeightError, WeightType, Weights};
-use zeff_core::display::cell;
+use zeff_core::display::labelled_cell;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Align, Frame, Table, Value};
 use zeff_diagnostics::messages::{no_variable, wrong_column_type};
@@ -569,7 +569,7 @@ fn statistic_method(
                 let first = groups.rows(g)[0];
                 let mut row: Vec<String> = key_columns
                     .iter()
-                    .map(|c| cell(c.get(first).unwrap_or(zeff_columns::Value::Na)))
+                    .map(|c| labelled_cell(c, first))
                     .collect();
                 row.push(outcome.cell());
                 rows_out.push(row);
@@ -868,7 +868,7 @@ pub fn summary(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     let first = groups.rows(g)[0];
                     let cells: Vec<String> = key_columns
                         .iter()
-                        .map(|c| cell(c.get(first).unwrap_or(zeff_columns::Value::Na)))
+                        .map(|c| labelled_cell(c, first))
                         .collect();
                     (cells, groups.rows(g))
                 })

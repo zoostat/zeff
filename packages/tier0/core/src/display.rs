@@ -15,7 +15,7 @@
 //! blocks, as R does, every value shown; a frame repeats the row numbers at the start of each block.
 
 use crate::value::{Align, Frame, Table, Value};
-use zeff_columns::{ColumnType, Value as Cell};
+use zeff_columns::{ColumnType, MetadataKey, Value as Cell};
 use zeff_dates::{format_iso_date, format_iso_datetime};
 use zeff_diagnostics::count;
 
@@ -129,8 +129,12 @@ pub fn column_header(column: &zeff_columns::Column) -> String {
 pub fn frame_header(frame: &Frame) -> String {
     let rows = frame.table.rows();
     let cols = frame.table.n_cols();
+    let panel = match &frame.table.metadata().panel {
+        Some((unit, time)) => format!(" · panel {unit} × {time}"),
+        None => String::new(),
+    };
     format!(
-        "{} · {} {} × {} {}",
+        "{} · {} {} × {} {}{panel}",
         frame.name.as_deref().unwrap_or("frame"),
         count(rows as u64),
         if rows == 1 { "row" } else { "rows" },
@@ -154,11 +158,49 @@ pub fn cell(value: Cell<'_>) -> String {
     }
 }
 
+/// A cell of `column` as it prints, a labelled value by its label (section 10.2: a variable with
+/// value labels, `female` with 0 male and 1 female, prints the labels).
+pub fn labelled_cell(column: &zeff_columns::Column, row: usize) -> String {
+    let value = column.get(row).unwrap_or(Cell::Na);
+    if let Some(labels) = column.metadata().get(MetadataKey::ValueLabels)
+        && let Some(label) = value_label(labels, &value)
+    {
+        return label;
+    }
+    cell(value)
+}
+
+/// The label of `value` in `labels`, a JSON object such as `{"0": "male", "1": "female"}`.
+fn value_label(labels: &str, value: &Cell<'_>) -> Option<String> {
+    let key = match value {
+        Cell::Int(i) => i.to_string(),
+        Cell::Float(x) => format_float(*x),
+        Cell::Str(s) => (*s).to_string(),
+        Cell::Bool(b) => b.to_string(),
+        _ => return None,
+    };
+    labels
+        .trim_matches(['{', '}'])
+        .split(',')
+        .filter_map(|pair| pair.split_once(':'))
+        .find(|(k, _)| k.trim().trim_matches('"') == key)
+        .map(|(_, v)| v.trim().trim_matches('"').to_string())
+}
+
 /// How a column's cells line up: numbers to the right, everything else to the left.
 pub fn alignment(ty: ColumnType) -> Align {
     match ty {
         ColumnType::Int | ColumnType::Float => Align::Right,
         _ => Align::Left,
+    }
+}
+
+/// The alignment of a column as printed: a labelled number prints as text.
+pub fn column_alignment(column: &zeff_columns::Column) -> Align {
+    if column.metadata().get(MetadataKey::ValueLabels).is_some() {
+        Align::Left
+    } else {
+        alignment(column.ty())
     }
 }
 
@@ -169,18 +211,17 @@ fn frame_text(frame: &Frame, width: usize) -> String {
     let shown = table.rows().min(FRAME_ROWS);
     let mut columns = vec![(String::new(), Align::Right)];
     for (i, name) in table.names().iter().enumerate() {
-        let ty = table.column_at(i).map_or(ColumnType::Str, |c| c.ty());
-        columns.push((name.clone(), alignment(ty)));
+        let align = table.column_at(i).map_or(Align::Left, column_alignment);
+        columns.push((name.clone(), align));
     }
     let rows: Vec<Vec<String>> = (0..shown)
         .map(|r| {
             let mut row = vec![(r + 1).to_string()];
             for i in 0..table.n_cols() {
-                let value = table
-                    .column_at(i)
-                    .and_then(|c| c.get(r))
-                    .unwrap_or(Cell::Na);
-                row.push(cell(value));
+                row.push(match table.column_at(i) {
+                    Some(column) => labelled_cell(column, r),
+                    None => "NA".to_string(),
+                });
             }
             row
         })

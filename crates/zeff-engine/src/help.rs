@@ -32,6 +32,14 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
         return Ok(text);
     }
 
+    // A shipped dataset: its page (section 8.5).
+    if let Some(dataset) = registry.dataset(name) {
+        return Ok(zeff_registry::render_dataset_page(
+            &dataset.spec,
+            &dataset.doc,
+        ));
+    }
+
     // A package with at least one function shipped: its functions.
     if let Some(package) = registry.packages_shipped().into_iter().find(|p| *p == name) {
         let functions: Vec<_> = registry

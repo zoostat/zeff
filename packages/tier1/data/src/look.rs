@@ -4,7 +4,7 @@
 //! Each takes the frame alone and gives no message of its own.
 
 use zeff_columns::Value as Cell;
-use zeff_core::display::{cell, frame_header};
+use zeff_core::display::{cell, frame_header, labelled_cell};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Align, Frame, Table, Value};
 use zeff_diagnostics::{Diagnostic, count};
@@ -62,7 +62,7 @@ pub fn describe(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     let first = groups.rows(g)[0];
                     let cells: Vec<String> = key_columns
                         .iter()
-                        .map(|c| cell(c.get(first).unwrap_or(Cell::Na)))
+                        .map(|c| labelled_cell(c, first))
                         .collect();
                     (cells, groups.rows(g).to_vec())
                 })
@@ -115,9 +115,10 @@ fn describe_rows(table: &zeff_columns::Table) -> Vec<Vec<String>> {
                 Some(Cell::Na) | None => None,
                 Some(value) => Some(value),
             });
-            let example = match first {
-                None => "NA".to_string(),
-                Some(Cell::Category(label)) => {
+            let first_row = (0..column.len()).find(|r| !column.is_na(*r));
+            let example = match (first, first_row) {
+                (None, _) => "NA".to_string(),
+                (Some(Cell::Category(label)), _) => {
                     let levels = column.levels().map_or(0, |l| l.len());
                     format!(
                         "{label} ({} {})",
@@ -125,11 +126,22 @@ fn describe_rows(table: &zeff_columns::Table) -> Vec<Vec<String>> {
                         if levels == 1 { "level" } else { "levels" }
                     )
                 }
-                Some(value) => cell(value),
+                (Some(_), Some(row)) => labelled_cell(column, row),
+                (Some(value), None) => cell(value),
+            };
+            // A labelled variable (value labels in its store) is marked, as section 10.2 prints it.
+            let ty = if column
+                .metadata()
+                .get(zeff_columns::MetadataKey::ValueLabels)
+                .is_some()
+            {
+                format!("{} (lab)", column.ty().name())
+            } else {
+                column.ty().name().to_string()
             };
             vec![
                 name.clone(),
-                column.ty().name().to_string(),
+                ty,
                 count(column.n_valid() as u64),
                 count(column.n_missing() as u64),
                 example,

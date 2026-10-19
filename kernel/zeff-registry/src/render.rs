@@ -30,6 +30,15 @@ fn width(text: &str) -> usize {
 }
 
 /// Greedy wrapping on spaces; a word longer than the width stands alone on its line.
+pub(crate) fn wrap_text(
+    text: &str,
+    first_indent: &str,
+    rest_indent: &str,
+    max: usize,
+) -> Vec<String> {
+    wrap(text, first_indent, rest_indent, max)
+}
+
 fn wrap(text: &str, first_indent: &str, rest_indent: &str, max: usize) -> Vec<String> {
     let mut lines = Vec::new();
     let mut line = first_indent.to_string();
@@ -57,7 +66,7 @@ fn wrap(text: &str, first_indent: &str, rest_indent: &str, max: usize) -> Vec<St
     lines
 }
 
-fn blocks(out: &mut String, blocks: &[Block]) {
+pub(crate) fn blocks(out: &mut String, blocks: &[Block]) {
     for (i, block) in blocks.iter().enumerate() {
         if i > 0 {
             out.push('\n');
@@ -79,6 +88,19 @@ fn blocks(out: &mut String, blocks: &[Block]) {
             }
         }
     }
+}
+
+/// A count with thousands separators, for the header of a dataset page.
+pub(crate) fn count(n: usize) -> String {
+    let digits = n.to_string();
+    let mut out = String::new();
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out
 }
 
 fn heading(out: &mut String, title: &str) {

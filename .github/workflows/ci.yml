@@ -270,6 +270,12 @@ jobs:
           r-version: '4.6.0'
           use-public-rspm: true
 
+      - name: Rebuild the shipped datasets from their generating scripts
+        run: |
+          python3 -I packages/tier1/datasets/generate/wages.py
+          python3 -I packages/tier1/datasets/generate/sleep.py
+          cargo run -q -p xtask -- build-datasets
+
       - name: Rebuild the R references
         run: |
           Rscript --version
@@ -290,4 +296,4 @@ jobs:
           done
 
       - name: The committed references and datasets are what the scripts write
-        run: git diff --exit-code --stat -- tests/
+        run: git diff --exit-code --stat -- tests/ packages/tier1/datasets/data/

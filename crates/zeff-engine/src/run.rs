@@ -18,6 +18,29 @@ pub struct ProjectFiles<'a> {
 
 impl Files for ProjectFiles<'_> {
     fn read(&self, written: &str, span: Span, script: &str) -> Result<Vec<u8>, Fail> {
+        // The `zeff:` data root: the files of the shipped datasets (section 8.5).
+        if let Some(name) = written.strip_prefix("zeff:") {
+            return zeff_datasets::file(name)
+                .map(<[u8]>::to_vec)
+                .ok_or_else(|| {
+                    let files = zeff_datasets::files();
+                    let mut d = Diagnostic::error(
+                        "Z0715",
+                        format!("no file `zeff:{name}` ships with Zeff"),
+                    )
+                    .in_file(script)
+                    .primary(span, "not a shipped dataset file");
+                    d = match zeff_diagnostics::did_you_mean(name, files.iter().map(String::as_str))
+                    {
+                        Some(near) => d.help(format!("did you mean `zeff:{near}`?")),
+                        None => d.help(format!(
+                            "the `zeff:` root holds: {}; `datasets()` lists the datasets",
+                            files.join(", ")
+                        )),
+                    };
+                    fail(d)
+                });
+        }
         let path = self
             .project
             .resolve_read(self.fs, written)

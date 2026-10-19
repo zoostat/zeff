@@ -84,12 +84,24 @@ impl fmt::Display for ExampleFailure {
 pub fn run_examples(registry: &Registry) -> Vec<ExampleFailure> {
     let (fs, project) = fixture_project();
     let mut failures = Vec::new();
-    for function in registry.functions() {
+    // Every page: the functions', then the datasets'.
+    let pages: Vec<(&str, &str, &[zeff_registry::Example])> = registry
+        .functions()
+        .iter()
+        .map(|f| (f.spec.package, f.spec.name, f.doc.examples.as_slice()))
+        .chain(
+            registry
+                .datasets()
+                .iter()
+                .map(|d| ("datasets", d.spec.name, d.doc.examples.as_slice())),
+        )
+        .collect();
+    for (package, name, examples) in pages {
         // One script per page; remember which lines belong to which example.
         let mut script = String::new();
         let mut ranges: Vec<(u32, u32)> = Vec::new();
         let mut line = 1u32;
-        for example in &function.doc.examples {
+        for example in examples {
             let start = line;
             for code in &example.code {
                 script.push_str(code);
@@ -108,7 +120,7 @@ pub fn run_examples(registry: &Registry) -> Vec<ExampleFailure> {
             .all(|s| s.stderr.is_empty());
         let mut unplaced_error =
             (outcome.exit_code != 0 && no_statement_failed).then(|| outcome.output.stderr.clone());
-        for (i, (example, (start, end))) in function.doc.examples.iter().zip(&ranges).enumerate() {
+        for (i, (example, (start, end))) in examples.iter().zip(&ranges).enumerate() {
             let mut found = String::new();
             for statement in outcome
                 .output
@@ -133,8 +145,8 @@ pub fn run_examples(registry: &Registry) -> Vec<ExampleFailure> {
                 .collect();
             if found_lines != expected_lines {
                 failures.push(ExampleFailure {
-                    package: function.spec.package.to_string(),
-                    function: function.spec.name.to_string(),
+                    package: package.to_string(),
+                    function: name.to_string(),
                     example: i + 1,
                     code: example.code.clone(),
                     expected: expected_lines,
@@ -144,10 +156,10 @@ pub fn run_examples(registry: &Registry) -> Vec<ExampleFailure> {
         }
         // An error that stopped the script before an example ran shows as that example's output;
         // an error in a statement the ranges do not cover (a page without examples) shows here.
-        if outcome.exit_code != 0 && function.doc.examples.is_empty() {
+        if outcome.exit_code != 0 && examples.is_empty() {
             failures.push(ExampleFailure {
-                package: function.spec.package.to_string(),
-                function: function.spec.name.to_string(),
+                package: package.to_string(),
+                function: name.to_string(),
                 example: 0,
                 code: Vec::new(),
                 expected: Vec::new(),

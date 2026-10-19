@@ -158,7 +158,7 @@ const WRITTEN: [&str; 8] = [
 const GENERATED: [&str; 4] = ["Usage", "Warnings and notes", "Accuracy", "Availability"];
 
 /// Turn the lines of a section into paragraphs and bullet lists.
-fn blocks(lines: &[&str]) -> Vec<Block> {
+pub(crate) fn blocks(lines: &[&str]) -> Vec<Block> {
     let mut out = Vec::new();
     let mut paragraph: Vec<&str> = Vec::new();
     let mut bullets: Vec<String> = Vec::new();
@@ -297,60 +297,7 @@ pub fn parse_help(text: &str) -> Result<HelpDoc, Vec<HelpError>> {
                     .filter(|n| !n.is_empty())
                     .collect();
             }
-            "Examples" => {
-                let mut current: Option<Example> = None;
-                // An example ends at the next `> ` line after its output, or at a blank line
-                // before any output; a blank line inside the output is part of it (a printed
-                // frame or table has one after its title), and trailing blank lines are dropped.
-                let close = |example: Option<Example>, doc: &mut HelpDoc| {
-                    if let Some(mut example) = example {
-                        while example.output.last().is_some_and(|l| l.is_empty()) {
-                            example.output.pop();
-                        }
-                        doc.examples.push(example);
-                    }
-                };
-                for line in lines.iter() {
-                    let trimmed = line.trim_end();
-                    if trimmed.trim().is_empty() {
-                        match current.as_mut() {
-                            Some(example) if !example.output.is_empty() => {
-                                example.output.push(String::new())
-                            }
-                            _ => close(current.take(), &mut doc),
-                        }
-                        continue;
-                    }
-                    if let Some(code) = trimmed.strip_prefix('>') {
-                        let code = code.strip_prefix(' ').unwrap_or(code).to_string();
-                        match current.as_mut() {
-                            Some(example) if example.output.is_empty() => example.code.push(code),
-                            Some(_) => {
-                                // A new statement after output: a new example.
-                                close(current.take(), &mut doc);
-                                current = Some(Example {
-                                    code: vec![code],
-                                    output: Vec::new(),
-                                });
-                            }
-                            None => {
-                                current = Some(Example {
-                                    code: vec![code],
-                                    output: Vec::new(),
-                                })
-                            }
-                        }
-                    } else {
-                        match current.as_mut() {
-                            Some(example) => example.output.push(trimmed.to_string()),
-                            None => {
-                                errors.push(HelpError::MalformedExample(trimmed.trim().to_string()))
-                            }
-                        }
-                    }
-                }
-                close(current.take(), &mut doc);
-            }
+            "Examples" => parse_examples(lines, &mut doc.examples, &mut errors),
             _ => {}
         }
     }
@@ -439,4 +386,61 @@ pub fn check_help(
         }
     }
     errors
+}
+
+/// The examples of a page: each a run of `> ` lines, then the output it prints (the help
+/// contract of section 9.1).
+pub(crate) fn parse_examples(
+    lines: &[&str],
+    examples: &mut Vec<Example>,
+    errors: &mut Vec<HelpError>,
+) {
+    let mut current: Option<Example> = None;
+    // An example ends at the next `> ` line after its output, or at a blank line
+    // before any output; a blank line inside the output is part of it (a printed
+    // frame or table has one after its title), and trailing blank lines are dropped.
+    let close = |example: Option<Example>, examples: &mut Vec<Example>| {
+        if let Some(mut example) = example {
+            while example.output.last().is_some_and(|l| l.is_empty()) {
+                example.output.pop();
+            }
+            examples.push(example);
+        }
+    };
+    for line in lines.iter() {
+        let trimmed = line.trim_end();
+        if trimmed.trim().is_empty() {
+            match current.as_mut() {
+                Some(example) if !example.output.is_empty() => example.output.push(String::new()),
+                _ => close(current.take(), examples),
+            }
+            continue;
+        }
+        if let Some(code) = trimmed.strip_prefix('>') {
+            let code = code.strip_prefix(' ').unwrap_or(code).to_string();
+            match current.as_mut() {
+                Some(example) if example.output.is_empty() => example.code.push(code),
+                Some(_) => {
+                    // A new statement after output: a new example.
+                    close(current.take(), examples);
+                    current = Some(Example {
+                        code: vec![code],
+                        output: Vec::new(),
+                    });
+                }
+                None => {
+                    current = Some(Example {
+                        code: vec![code],
+                        output: Vec::new(),
+                    })
+                }
+            }
+        } else {
+            match current.as_mut() {
+                Some(example) => example.output.push(trimmed.to_string()),
+                None => errors.push(HelpError::MalformedExample(trimmed.trim().to_string())),
+            }
+        }
+    }
+    close(current.take(), examples);
 }

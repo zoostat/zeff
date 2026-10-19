@@ -74,3 +74,12 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** The dataset draft, at the start of step 18.
 
+## 19 October 2026, step 18 of release 0.2.0
+
+**Done.** The owner approved the wages dataset draft (missing values as empty cells). Step 18 `[function]`: the `datasets` package with `dataset` and `datasets`, the `zeff:` root, and the dataset help pages `wages` and `sleep` (Format tables checked against the files' metadata). Both datasets ship as CSV and Arrow IPC with labels, units, value labels, categories and the panel declaration; Parquet waits for 0.11.0 as the specification orders it. The generating scripts and `cargo xtask build-datasets` reproduce the files, CI checks that they do, and `data/CHECKSUMS` records them. Labelled values now print their labels in frames, tables and `describe`. 4 tests added, 1 snapshot; the catalogue rows marked implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (566), the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 19, the script tests and the 0.2.0 sample project `[engine]`.
+
+**For the owner to decide.** Nothing at present.
