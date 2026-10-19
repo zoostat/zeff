@@ -103,3 +103,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 21, the pre-release routine `[engine]`.
 
 **For the owner to decide.** Nothing at present.
+
+## 19 October 2026, step 21 of release 0.2.0
+
+**Done.** Step 21 `[engine]`, the pre-release routine: the suite is green on the four targets; the nightly, fuzz and weekly jobs each ran by hand and passed (567 tests at 25 times the property cases; no crash in about three million fuzz inputs; coverage 90.0% of the kernel and 90.5% of the workspace; 502 mutants of the numeric kernel, 500 caught, 1 unviable, 1 survivor, now covered by a unit test of the tie guard); both samples' output read by eye; the known-issues list rewritten for 0.2.0; the figures for risks R3, R4, R5, R6 and R7 and the reference versions collected in `docs/decisions.md`. Every step of the 0.2.0 checklist is ticked.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** The owner's "Release 0.2.0": version and sample pins to `0.2.0`, the release notes, the catalogue's status column, the reviews of the risk register and the open decisions, the tag and the GitHub release.
+
+**For the owner to decide.** Nothing before "Release 0.2.0". Open decision #46 is due at 0.3.0.

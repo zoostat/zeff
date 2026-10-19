@@ -5,25 +5,45 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
-## As of 0.1.0
+## As of 0.2.0
 
 - **Printed tables count width in characters.** An East Asian wide character takes two cells in a
   terminal, so a frame or table holding such text misaligns by one cell per character. Values are
-  never cut. A Unicode width table is a dependency decision for a later release.
-- **`summary` prints fixed three-decimal statistics.** Values below 0.0005 in magnitude print as
-  `0.000` and very large values print every digit before the point (section 10.2's form). `mean`
-  and `sd` on their own print six significant digits and are the way to read such columns.
+  never cut. A Unicode width table is a dependency decision for a later release. (Since 0.1.0.)
+- **`summary` and the grouped tables print fixed three-decimal statistics.** Values below 0.0005 in
+  magnitude print as `0.000` and very large values print every digit before the point (section
+  10.2's form). A statistic on its own (`mean`, `sd`, `quantile`, …) prints six significant digits
+  and is the way to read such columns. `quantile` with a list of probabilities prints one value per
+  line, not a table. (Since 0.1.0.)
 - **Dates are read from CSV only in ISO form or with a declared format.** A column that looks like
-  dates in another form is read as text, with a note proposing the `types:` entry.
-- **No `by:` on the statistics yet.** `mean`, `sd` and `summary` work on the whole frame; grouping
-  arrives with `aggregate` (0.6.0).
-- **A line beginning with `-` is refused (Z0305).** `-7` on its own line is not a statement; write
-  `print(-7)` or `let x = -7`. Expressions over values arrive with 0.2.0.
-- **`import` reads CSV only**, UTF-8, with `delim:`, `header:`, `skip:`, `na_values:`, `types:`
-  and `names:`. `thousands:`, `encoding:`, compressed files and the other formats arrive from
-  0.2.0 onwards, as the catalogue says.
-- **Each project pins the exact engine version** (`zeff = "0.1.0"`). An engine of another
+  dates in another form is read as text, with a note proposing the `types:` entry. (Since 0.1.0.)
+- **Labels, value labels and categories come only from the shipped datasets.** A CSV carries none
+  (the import note says so), and `label`, `category` and `recode` arrive at later releases, so a
+  script cannot yet attach them. A labelled variable prints its labels; its stored number is what
+  computes and what `print` of the bare column shows. (Since 0.2.0.)
+- **A line beginning with `-` is refused (Z0305).** The grammar of section 3.4 ends a statement
+  at the line break, so `-7` on its own line has nothing on its left; write `print(-7)` or
+  `let x = -7`, and continue a long expression with the operator at the end of the line. (Since
+  0.1.0; by design.)
+- **`import` reads delimited text only** (UTF-8 or a declared encoding, with every option of
+  section 6.1 for delimited text). Compressed files and the other formats arrive from 0.3.0 onwards,
+  as the catalogue says. The `zeff:` data root holds the two shipped datasets as CSV and Arrow IPC;
+  Parquet, and the Parquet copies of the datasets, arrive with the reader and writer of 0.11.0.
+  (Since 0.1.0; the formats narrowed at 0.2.0.)
+- **The console's `:undo` re-runs the whole session** without its last statement, so a long
+  session with large imports takes a moment to undo; the result cache that makes it immediate is
+  0.11.0. (Since 0.2.0.)
+- **The browser engine bundle is 1.1 MB compressed** (brotli), up from 355 kB at 0.1.0, because
+  the two datasets are embedded so that the browser needs no fetch; it stays well under the 5 MB
+  warning level of risk R4, and the cold start is 132 ms against 1,000 ms. (Since 0.2.0.)
+- **Each project pins the exact engine version** (`zeff = "0.2.0"`). An engine of another
   version refuses the project with exit code 4; there is no launcher yet to pick the pinned engine
-  (0.9.0).
+  (0.9.0). (Since 0.1.0.)
 - **The function catalogue's status column** is updated at each release close, not per function,
-  so between releases it lags the registry; `zeff help <package>` shows what is shipped.
+  so between releases it lags the registry; `zeff help <package>` shows what is shipped. (Since
+  0.1.0.)
+
+## Resolved at 0.2.0
+
+- `by:` on every statistic, on `summary` and on `describe` (listed at 0.1.0 as missing).
+- `thousands:`, `encoding:`, `quote:` and `decimal:` on `import` (listed at 0.1.0 as missing).

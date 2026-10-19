@@ -294,6 +294,28 @@ pub fn mod_float(a: f64, b: f64) -> f64 {
 mod tests {
     use super::*;
 
+    /// The guard of `is_tie` refuses zero, the infinities and not-a-number on its own, not only
+    /// through `round`: zero would otherwise count as a tie at 1009 digits (its bit pattern has
+    /// an exponent of -1010 after the shift), and not-a-number at -1024 digits would overflow the
+    /// power of ten. The weekly mutation run of 19 October 2026 found this guard unobserved.
+    #[test]
+    fn the_tie_test_refuses_zero_infinities_and_not_a_number_by_itself() {
+        for digits in [-1024, -15, -2, 0, 3, 15, 1009] {
+            assert!(!is_tie(0.0, digits), "zero at {digits} digits");
+            assert!(!is_tie(-0.0, digits), "negative zero at {digits} digits");
+            assert!(
+                !is_tie(f64::INFINITY, digits),
+                "infinity at {digits} digits"
+            );
+            assert!(
+                !is_tie(f64::NEG_INFINITY, digits),
+                "-infinity at {digits} digits"
+            );
+            assert!(!is_tie(f64::NAN, digits), "not-a-number at {digits} digits");
+        }
+        assert!(is_tie(2.5, 0) && is_tie(0.125, 2) && is_tie(25.0, -1) && !is_tie(0.1, 1));
+    }
+
     #[test]
     fn rounding_decides_on_the_exact_value_and_breaks_ties_as_asked() {
         let even = RoundingMode::Even;
