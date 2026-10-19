@@ -169,3 +169,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 6, the special functions `factorial`, `choose`, `gamma`, `log_gamma`, `beta` `[function]`.
 
 **For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.
+
+## 19 October 2026, step 6 of release 0.3.0
+
+**Done.** Step 6 `[function]`: `factorial`, `choose`, `gamma`, `log_gamma` and `beta` in `core`, each with its complete help page, on values and on columns row by row, with the warnings of section 4.1 (`NA` at a pole or a negative argument, `Inf` beyond the largest Float, each help line naming the logarithmic form that stays finite). 5 tests added (R at six digits, the edges, columns, refusals, the identities), 3 snapshots; the catalogue rows marked implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 7, the first four distributions and the four methods `[function]`. It needs the owner's answer to question 3 (draws from discrete distributions as Int columns); the recommendation stands if none comes before step 9, where the discrete families arrive.
+
+**For the owner to decide.** Question 3 before step 9; question 2 (the correlation table) before step 11; open decision #46 at the close.

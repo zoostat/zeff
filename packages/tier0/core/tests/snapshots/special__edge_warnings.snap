@@ -1,0 +1,26 @@
+---
+source: packages/tier0/core/tests/special.rs
+expression: stderr
+---
+warning: factorial of a negative number gave NA (line 2)
+  = help: n! is defined for whole numbers from 0; `gamma(x + 1)` extends it to other numbers
+warning: factorial above 170 gave Inf (line 3)
+  = help: 171! exceeds the largest Float; `log_gamma(n + 1)` gives the logarithm, which stays finite
+warning: choose with a negative n gave NA (line 6)
+  = help: the number of ways to choose k of n needs a whole number n of 0 or more
+warning: choose beyond the largest Float gave Inf (line 7)
+  = help: `log_gamma(n + 1) - log_gamma(k + 1) - log_gamma(n - k + 1)` gives the logarithm, which stays finite
+warning: gamma at a pole gave NA (line 8)
+  = help: Γ has poles at zero and the negative whole numbers; between them it is finite
+warning: gamma at a pole gave NA (line 9)
+  = help: Γ has poles at zero and the negative whole numbers; between them it is finite
+warning: gamma above 171.6 gave Inf (line 10)
+  = help: Γ(x) exceeds the largest Float; `log_gamma(x)` gives the logarithm, which stays finite
+warning: log_gamma at a pole gave Inf (line 12)
+  = help: Γ has poles at zero and the negative whole numbers, so its logarithm is infinite there
+warning: beta with an argument that is not positive gave NA (line 14)
+  = help: B(a, b) is defined for positive a and b
+warning: beta with an argument that is not positive gave NA (line 15)
+  = help: B(a, b) is defined for positive a and b
+warning: beta of tiny arguments gave Inf (line 16)
+  = help: B(a, b) exceeds the largest Float; `log_gamma(a) + log_gamma(b) - log_gamma(a + b)` gives the logarithm

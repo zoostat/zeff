@@ -1,0 +1,43 @@
+---
+source: packages/tier0/core/tests/special.rs
+expression: all
+---
+error[Z0401]: `n` of `factorial` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:11
+  |
+1 | factorial(2.5)
+  |           ^^^ a Float
+  |
+  = help: usage: `factorial(n)`
+
+error[Z0401]: `k` of `choose` must be an Int, but this is a Str
+ --> scripts/main.zeff:1:11
+  |
+1 | choose(5, "two")
+  |           ^^^^^ a Str
+  |
+  = help: usage: `choose(n, k)`
+
+error[Z0401]: `x` of `gamma` must be a Float, but this is a Bool
+ --> scripts/main.zeff:1:7
+  |
+1 | gamma(true)
+  |       ^^^^ a Bool
+  |
+  = help: usage: `gamma(x)`
+
+error[Z0406]: `beta` needs `b`
+ --> scripts/main.zeff:1:1
+  |
+1 | beta(1)
+  | ^^^^ `b` is missing
+  |
+  = help: usage: `beta(a, b)`
+
+error[Z0406]: `log_gamma` needs `x`
+ --> scripts/main.zeff:1:1
+  |
+1 | log_gamma()
+  | ^^^^^^^^^ `x` is missing
+  |
+  = help: usage: `log_gamma(x)`

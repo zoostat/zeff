@@ -1,0 +1,47 @@
+---
+source: packages/tier0/core/tests/special.rs
+expression: "format!(\"{stdout}---\\n{}\", without_format_notes(&stderr))"
+---
+Column<Float> · 5 values
+1.77245
+NA
+24
+NA
+NA
+Column<Float> · 5 values
+6
+NA
+Inf
+2.4329e+18
+NA
+Column<Float> · 5 values
+3
+NA
+14535
+190
+NA
+Column<Float> · 5 values
+1.33333
+NA
+0.0333333
+NA
+NA
+Column<Float> · 5 values
+0.572365
+Inf
+3.17805
+Inf
+NA
+---
+warning: gamma at a pole gave NA in 2 rows (line 2)
+  = help: Γ has poles at zero and the negative whole numbers; between them it is finite
+warning: factorial of a negative number gave NA in 1 row (line 3)
+  = help: n! is defined for whole numbers from 0; `gamma(x + 1)` extends it to other numbers
+warning: factorial above 170 gave Inf in 1 row (line 3)
+  = help: 171! exceeds the largest Float; `log_gamma(n + 1)` gives the logarithm, which stays finite
+warning: choose with a negative n gave NA in 1 row (line 4)
+  = help: the number of ways to choose k of n needs a whole number n of 0 or more
+warning: beta with an argument that is not positive gave NA in 2 rows (line 5)
+  = help: B(a, b) is defined for positive a and b
+warning: log_gamma at a pole gave Inf in 2 rows (line 6)
+  = help: Γ has poles at zero and the negative whole numbers, so its logarithm is infinite there

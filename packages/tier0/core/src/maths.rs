@@ -18,13 +18,13 @@ use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec, Rest};
 
 /// The number in an argument: Int, Float, or `NA`; the checker admits nothing else.
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Number {
+pub(crate) enum Number {
     Int(i64),
     Float(f64),
     Na,
 }
 
-fn number(value: Option<&Value>) -> Number {
+pub(crate) fn number(value: Option<&Value>) -> Number {
     match value {
         Some(Value::Int(i)) => Number::Int(*i),
         Some(Value::Float(x)) => Number::Float(*x),
@@ -32,7 +32,7 @@ fn number(value: Option<&Value>) -> Number {
     }
 }
 
-fn as_float(n: Number) -> Option<f64> {
+pub(crate) fn as_float(n: Number) -> Option<f64> {
     match n {
         Number::Int(i) => Some(i as f64),
         Number::Float(x) => Some(x),
@@ -41,7 +41,7 @@ fn as_float(n: Number) -> Option<f64> {
 }
 
 /// A Float result: `NA` for not-a-number, as section 4.1 has it.
-fn float(x: f64) -> Value {
+pub(crate) fn float(x: f64) -> Value {
     if x.is_nan() {
         Value::Na
     } else {
@@ -64,7 +64,7 @@ fn overflow(ctx: &CallContext<'_>, at: usize, operation: &str) -> Fail {
 
 /// W0205: an operation with no value gave `NA`; the wording names the cause and not the value,
 /// so that a column's rows count under one line.
-fn gave_na(ctx: &mut CallContext<'_>, cause: &str, help: &str) {
+pub(crate) fn gave_na(ctx: &mut CallContext<'_>, cause: &str, help: &str) {
     ctx.message(Diagnostic::warning("W0205", format!("{cause} gave NA")).help(help));
 }
 
@@ -296,7 +296,7 @@ fn e(_ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
 }
 
 /// W0204: an operation gave an infinity; the wording names the cause, as `gave_na` does.
-fn gave_inf(ctx: &mut CallContext<'_>, cause: &str, sign_negative: bool, help: &str) {
+pub(crate) fn gave_inf(ctx: &mut CallContext<'_>, cause: &str, sign_negative: bool, help: &str) {
     let inf = if sign_negative { "-Inf" } else { "Inf" };
     ctx.message(Diagnostic::warning("W0204", format!("{cause} gave {inf}")).help(help));
 }
