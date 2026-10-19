@@ -1,6 +1,6 @@
 # Zeff and Zemp: Risk Register
 
-Status: 17 October 2026. Companion to the Engine and Project Specification (`zeff_engine_specification.md`), the Zemp Specification (`zemp_specification.md`) and the testing handbook (`zeff_testing.md`). The register is reviewed at every minor release: each risk's rating is updated, retired risks are kept with the release that closed them, and a new risk is added the first time its early warning is seen.
+Status: 19 October 2026 (reviewed at the close of 0.2.0). Companion to the Engine and Project Specification (`zeff_engine_specification.md`), the Zemp Specification (`zemp_specification.md`) and the testing handbook (`zeff_testing.md`). The register is reviewed at every minor release: each risk's rating is updated, retired risks are kept with the release that closed them, and a new risk is added the first time its early warning is seen.
 
 Likelihood and impact are rated High, Medium or Low. The owner is the project lead until the project has more maintainers.
 
@@ -8,7 +8,7 @@ Likelihood and impact are rated High, Medium or Low. The owner is the project le
 
 | ID | Risk | Likelihood | Impact | First test |
 | --- | --- | --- | --- | --- |
-| R1 | Scope outruns the time available | High | High | 0.1.0 to 0.3.0 cadence |
+| R1 | Scope outruns the time available | Medium | High | 0.1.0 to 0.3.0 cadence |
 | R2 | Bit-identical results across targets prove hard to keep | Medium | Medium | 0.1.0 CI |
 | R3 | Matching R and Stata on edge cases takes far longer than the easy cases | High | Medium | 0.4.0 |
 | R4 | Browser build limits: memory, download size, threads, C code | Low | High | 0.1.0 bundle size; 1.1 ReadStat |
@@ -116,3 +116,7 @@ The two specification volumes, catalogue and companion documents changed many ti
 ## Review at 0.1.0 (18 October 2026)
 
 The release's 25 steps were built and tagged on 18 October 2026, within the cadence, so R1's early warning was not seen; its rating stands until 0.2.0 and 0.3.0 give more points. R2: the four-target identity check ran from the first commit and no run showed a cross-target difference, the kernel's elementary paths are pure Rust and the build profile forbids fused operations and fast maths; likelihood lowered to Medium. R4: the compressed engine bundle is 355 kB against the 5 MB warning level and the cold start 21 ms against 1,000 ms, measured on every build; likelihood lowered to Low (the impact stays High: threads and ReadStat are untested). R6: no upgrade yet; Arrow is pinned at 60.0.0 behind the column store, Parquet is not linked; unchanged. R7: a clean release build takes 23 s and the tiered workspace keeps incremental builds short; likelihood lowered to Low. R9: the free GitHub-hosted runners covered all four targets, ARM64 included; likelihood and impact lowered to Low. R12: the freeze of open decision #40 held, with two corrections logged in `docs/spec_changes.md` and five design questions recorded as open decisions rather than edits; likelihood lowered to Medium. No early warning of any risk was seen and no new risk is added.
+
+## Review at 0.2.0 (19 October 2026)
+
+The release's 21 steps were built and tagged on 19 October 2026, the second release in a row within its cadence, so R1's early warning (a release taking more than twice its planned time) was not seen at either of the two releases it names; likelihood lowered to Medium, the impact unchanged, since the model releases from 0.4.0 are the heavier ones. R3: the R harness of this release matched the descriptive statistics within 1e-12 and the nine quantile definitions to the bit, and the edge cases that cost time were platform ones (R's `%%` on Floats and the elementary functions differing between macOS and Linux, met with tolerances and hex-float inputs), not statistical; the risk is first tested by the model releases, so the rating stands. R4: the compressed bundle grew from 355 kB to 1.10 MB because the two datasets are embedded, against the 5 MB warning level, and the cold start from 21 ms to 132 ms against 1,000 ms; rating unchanged, with a note that each further embedded dataset costs its compressed size and that the budget is to be checked before any dataset is added. R5: 69 codes, each from the diagnostics-as-data path with a snapshot and an explained page; `--format json` carries them to an editor; the language server is still to come, so the rating stands. R6: no upgrade in the release; 15 crates added (126 to 141 in the lock file), each pinned and recorded with its licence, none changing a result; unchanged. R7: a clean release build takes 60 s (23 s at 0.1.0) against the ten-minute warning, with the engine six times the functions; unchanged at Low. R12: the freeze of #40 held, with one normative correction and one catalogue correction logged in `docs/spec_changes.md` and one design question (#46) recorded as an open decision; unchanged. No early warning of any risk was seen and no new risk is added.

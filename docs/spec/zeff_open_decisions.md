@@ -12,6 +12,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (18 October 2026, release 0.2.0, step 8).** The owner took #45 as recommended: a warning printed under a result shows no code until the pragma of 0.7.0; the code is carried in `--format json` and in the explained-code pages.
 
+**Status (19 October 2026, at the close of release 0.2.0).** No decision fell due at this release: #45 was taken at step 8. #46 (the four provisional codes Z0221, Z0222, Z0410 and W0102, raised during 0.2.0) is due at 0.3.0, and the freeze of #40 holds until 0.3.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |

@@ -113,3 +113,11 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** The owner's "Release 0.2.0": version and sample pins to `0.2.0`, the release notes, the catalogue's status column, the reviews of the risk register and the open decisions, the tag and the GitHub release.
 
 **For the owner to decide.** Nothing before "Release 0.2.0". Open decision #46 is due at 0.3.0.
+
+## 19 October 2026, release 0.2.0 closed
+
+**Done.** The owner said "Release 0.2.0". The pre-release routine's results stood (CI green on the commit of step 21, run 39217387061). The release notes `docs/releases/0.2.0-notes.md` were written; the risk register reviewed (R1 lowered to Medium likelihood; no risk added) and the open-decisions register given its status line, both logged in `docs/spec_changes.md`; the version set to `0.2.0` in `Cargo.toml`, both sample pins and the four version snapshots; the tag `v0.2.0` pushed and the GitHub release published with the notes.
+
+**Next.** The owner's "Start release 0.3.0" (Distributions): 26 functions, the special functions, the twelve distributions, Philox random streams, `seed`, `zeff selftest`. Open decision #46 is due at 0.3.0.
+
+**For the owner to decide.** Open decision #46 (the four provisional diagnostic codes), at 0.3.0.

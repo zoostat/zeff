@@ -677,3 +677,9 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **For the release notes.** Reference versions: R 4.6.0 (base R only, no packages, pinned in `tests/reference/r/renv.lock`, run in CI through `r-lib/actions/setup-r`), Python 3.14.8 (`statistics`, `decimal`, `csv`), Node 22 for WebAssembly. The version in `Cargo.toml` and the pins of both sample projects change together from `0.2.0-dev` to `0.2.0` when the owner closes the release, as at 0.1.0, so the tree is clean but still at the development version after this step.
 
 **Reason.** Testing handbook, section 2.4; the checklist's step 21; the register's review schedule.
+
+## 19 October 2026: Closing release 0.2.0
+
+**Choice.** The version in `Cargo.toml` is `0.2.0`; both sample projects pin it; the four snapshots that print the engine version (three manifest messages and the file `zeff new` writes) follow. The 50 catalogue rows of the release already carried the status `implemented`, each set in the step that shipped it (the known-issues entry on the status column lagging between releases stays, since the column is read by the help listing and only the release close is held to it). The release notes are `docs/releases/0.2.0-notes.md`; the risk register had its second scheduled review (R1 lowered to Medium likelihood, the rest confirmed with the figures of the pre-release routine, no risk added) and the open-decisions register its status line, both logged in `docs/spec_changes.md` as non-normative edits. The tag is `v0.2.0`, and the GitHub release carries the notes.
+
+**Reason.** The standing release procedure; Engine Specification, section 14 (the 0.2.0 row) and the testing handbook, section 2.4.
