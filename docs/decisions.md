@@ -739,3 +739,7 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Tests.** `packages/tier0/core/tests/special.rs`: every value of R's `special.json` printed at six significant digits (gamma and its logarithm on the grid, the factorials, the binomial coefficients, the beta pairs); the edges of section 4.1 with their warnings as a snapshot; columns row by row with the warnings counted; the wrong kinds of argument refused before the run; and the identities Γ(n + 1) = n!, C(n, k) = C(n, n − k), B(a, b) = B(b, a) exactly and ln Γ(x + 1) − ln Γ(x) = ln x within rounding, as properties.
 
 **Reason.** Language Reference, sections 3.7 and 4.1; the catalogue rows 28 to 32; testing handbook, section 4; the checklist's step 6.
+
+## 19 October 2026: The type of a draw (the owner's decision on question 3 of 0.3.0)
+
+**Decision.** `draw(n)` from a binomial, Poisson or negative binomial distribution gives a `Column<Int>`, as R's `rpois` and its kin give integers, so that `wages.add(y = dist.poisson(lambda: 2).draw(n))` makes an Int variable; every other family gives a `Column<Float>`; and `draw(1)` is still a column of one value, never a scalar, so that every draw prints and binds the same way. Taken by the owner as recommended; steps 7 and 9 implement it.
