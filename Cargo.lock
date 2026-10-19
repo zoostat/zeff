@@ -1206,6 +1206,18 @@ name = "zeff-diagnostics"
 version = "0.3.0-dev"
 
 [[package]]
+name = "zeff-dist"
+version = "0.3.0-dev"
+dependencies = [
+ "insta",
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-numeric",
+ "zeff-registry",
+ "zeff-testkit",
+]
+
+[[package]]
 name = "zeff-engine"
 version = "0.3.0-dev"
 dependencies = [
@@ -1218,6 +1230,7 @@ dependencies = [
  "zeff-data",
  "zeff-datasets",
  "zeff-diagnostics",
+ "zeff-dist",
  "zeff-ir",
  "zeff-numeric",
  "zeff-registry",

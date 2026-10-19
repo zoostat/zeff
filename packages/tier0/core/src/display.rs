@@ -14,7 +14,7 @@
 //! A table wider than the page (118 characters, the width of a help page) prints its columns in
 //! blocks, as R does, every value shown; a frame repeats the row numbers at the start of each block.
 
-use crate::value::{Align, Frame, Table, Value};
+use crate::value::{Align, Distribution, Frame, Table, Value};
 use zeff_columns::{ColumnType, MetadataKey, Value as Cell};
 use zeff_dates::{format_iso_date, format_iso_datetime};
 use zeff_diagnostics::count;
@@ -84,6 +84,7 @@ fn inline(value: &Value) -> String {
         Value::Frame(f) => frame_header(f),
         Value::Table(t) => t.title.clone(),
         Value::Column(c) => column_header(c),
+        Value::Distribution(d) => distribution_text(d),
         Value::List(items) => format!(
             "[{}]",
             items.iter().map(inline).collect::<Vec<_>>().join(", ")
@@ -394,6 +395,43 @@ fn lines(items: impl Iterator<Item = String>, total: usize, what: &str) -> Strin
         out.push_str("[]\n");
     }
     out
+}
+
+/// A distribution on one line, in the form of the call that made it, the defaults filled in
+/// (the owner's decision of 19 October 2026 on question 1 of 0.3.0): `t distribution · df: 24`,
+/// `normal distribution · mean: 0, sd: 1`; a truncated distribution adds its bounds and a
+/// mixture its components.
+pub fn distribution_text(d: &Distribution) -> String {
+    match d {
+        Distribution::Family { name, params } => {
+            let listed: Vec<String> = params
+                .iter()
+                .map(|(k, v)| format!("{k}: {}", format_float(*v)))
+                .collect();
+            if listed.is_empty() {
+                format!("{name} distribution")
+            } else {
+                format!("{name} distribution · {}", listed.join(", "))
+            }
+        }
+        Distribution::Truncated {
+            inner,
+            lower,
+            upper,
+        } => format!(
+            "{} · truncated to [{}, {}]",
+            distribution_text(inner),
+            format_float(*lower),
+            format_float(*upper)
+        ),
+        Distribution::Mixture { parts } => {
+            let listed: Vec<String> = parts
+                .iter()
+                .map(|(d, p)| format!("{} × ({})", format_float(*p), distribution_text(d)))
+                .collect();
+            format!("mixture · {}", listed.join(" + "))
+        }
+    }
 }
 
 #[cfg(test)]

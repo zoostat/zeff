@@ -16,6 +16,8 @@ pub enum Ty {
     DateTime,
     Frame,
     Table,
+    /// A probability distribution (section 4; `dist.normal()`).
+    Distribution,
     /// The type of a call that returns no value; it cannot be bound or passed.
     Nothing,
     /// Any value at all (`print`).
@@ -99,6 +101,7 @@ impl Ty {
             "DateTime" => Ty::DateTime,
             "Frame" => Ty::Frame,
             "Table" => Ty::Table,
+            "Distribution" => Ty::Distribution,
             "Nothing" => Ty::Nothing,
             "Any" => Ty::Any,
             "Var" => Ty::Var,
@@ -185,6 +188,7 @@ impl fmt::Display for Ty {
             Ty::DateTime => write!(f, "DateTime"),
             Ty::Frame => write!(f, "Frame"),
             Ty::Table => write!(f, "Table"),
+            Ty::Distribution => write!(f, "Distribution"),
             Ty::Nothing => write!(f, "Nothing"),
             Ty::Any => write!(f, "Any"),
             Ty::Var => write!(f, "Var"),

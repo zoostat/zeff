@@ -11,6 +11,7 @@ pub fn functions() -> Vec<Function> {
     let mut all = zeff_core::functions();
     all.extend(zeff_data::functions());
     all.extend(zeff_datasets::functions());
+    all.extend(zeff_dist::functions());
     all
 }
 
@@ -63,7 +64,10 @@ mod tests {
         assert!(registry.function("core", "print").is_some());
         assert!(registry.function("data", "import").is_some());
         assert!(registry.function("data", "mean").is_some());
-        assert_eq!(registry.packages_shipped(), ["core", "data", "datasets"]);
+        assert_eq!(
+            registry.packages_shipped(),
+            ["core", "data", "dist", "datasets"]
+        );
         assert_eq!(registry.datasets().len(), 2);
         for f in registry.functions() {
             assert!(

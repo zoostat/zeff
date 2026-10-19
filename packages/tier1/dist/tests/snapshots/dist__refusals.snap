@@ -1,0 +1,61 @@
+---
+source: packages/tier1/dist/tests/dist.rs
+expression: all
+---
+error[Z0413]: `sd` of `dist.normal` must be a positive number, but this is 0
+ --> scripts/main.zeff:1:17
+  |
+1 | dist.normal(sd: 0)
+  |                 ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.normal` gives the domain of every parameter
+
+error[Z0413]: `sd` of `dist.normal` must be a positive number, but this is -2
+ --> scripts/main.zeff:1:26
+  |
+1 | dist.normal(mean: 1, sd: -2)
+  |                          ^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.normal` gives the domain of every parameter
+
+warning: sqrt of a negative number gave NA (line 1)
+  = help: a negative number has no real square root; `where(x >= 0)` keeps the rows that have one
+error[Z0413]: `sd` of `dist.normal` must be a positive number, but this is NA
+ --> scripts/main.zeff:1:17
+  |
+1 | dist.normal(sd: sqrt(-1))
+  |                 ^^^^^^^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.normal` gives the domain of every parameter
+
+error[Z0105]: `dist` is a name of `core` and cannot be rebound
+ --> scripts/main.zeff:1:5
+  |
+1 | let dist = 3
+  |     ^^^^ a reserved name
+  |
+  = help: type names and the names reserved for later values belong to `core` (sections 3.7 and 4.3); choose another name
+
+error[Z0103]: no function is called `dist.gaussian`
+ --> scripts/main.zeff:1:6
+  |
+1 | dist.gaussian(sd: 2)
+  |      ^^^^^^^^ not a function of Zeff
+  |
+  = help: `zeff help dist` lists the functions of the `dist` namespace
+
+error[Z0401]: `mean` cannot be called on a Distribution
+ --> scripts/main.zeff:1:1
+  |
+1 | dist.normal().mean(x)
+  | ^^^^^^^^^^^^^ this is a Distribution
+  |
+  = help: `mean` is a method of Frame
+
+error[Z0401]: `sd` of `dist.normal` must be a Float, but this is a Str
+ --> scripts/main.zeff:1:17
+  |
+1 | dist.normal(sd: "wide")
+  |                 ^^^^^^ a Str
+  |
+  = help: usage: `dist.normal(mean: Float = 0, sd: Float = 1)`

@@ -1282,6 +1282,21 @@ impl Checker<'_> {
             return self.type_constructor(&name, args, span);
         }
 
+        // `dist.normal(...)`: `dist`, `power` and `spec` are namespaces, not values (section 3.7,
+        // "Namespaces"), so the call names the function `dist.normal` and has no receiver; a
+        // binding of that name cannot exist (Z0105).
+        let (name, receiver) = match receiver {
+            Some(ast::Expr {
+                kind: ast::ExprKind::Name(path),
+                ..
+            }) if path.segments.len() == 1
+                && NAMESPACES.contains(&path.segments[0].text.as_str())
+                && callee.segments.len() == 1 =>
+            {
+                (format!("{}.{name}", path.segments[0].text), None)
+            }
+            other => (name, other),
+        };
         let receiver = receiver.map(|r| self.expr(r, None));
 
         // Find the function: by package when qualified, by the receiver's type for a method, by
@@ -1295,11 +1310,13 @@ impl Checker<'_> {
             self.registry.named(&name)
         };
         if homes.is_empty() {
-            let mut d = Diagnostic::error(
-                "Z0103",
-                format!("no function is called `{}`", path_text(callee)),
-            )
-            .primary(callee_span, "not a function of Zeff");
+            let written = if name.contains('.') {
+                name.clone()
+            } else {
+                path_text(callee)
+            };
+            let mut d = Diagnostic::error("Z0103", format!("no function is called `{written}`"))
+                .primary(callee_span, "not a function of Zeff");
             let names: Vec<&str> = self
                 .registry
                 .functions()
@@ -1308,6 +1325,10 @@ impl Checker<'_> {
                 .collect();
             if let Some(near) = did_you_mean(&name, names) {
                 d = d.help(format!("did you mean `{near}`?"));
+            } else if let Some((namespace, _)) = name.split_once('.') {
+                d = d.help(format!(
+                    "`zeff help {namespace}` lists the functions of the `{namespace}` namespace"
+                ));
             } else if self.lookup(&name).is_some() {
                 d = d.help(format!("`{name}` is a binding; a binding is not called"));
             } else {
@@ -1951,6 +1972,9 @@ fn comparison_or_logic(op: ast::BinaryOp) -> bool {
 
 /// The names of `core` that are not functions: the type names (section 3.7, "Words and types")
 /// and the values reserved for later with their meaning fixed (section 4.3, rules 2 and 5).
+/// The namespaces of section 3.7: `dist.normal(...)` names a function, not a method on a value.
+const NAMESPACES: &[&str] = &["dist", "power", "spec"];
+
 const RESERVED_CORE_NAMES: &[&str] = &[
     "Bool",
     "Int",
@@ -1992,4 +2016,7 @@ const RESERVED_CORE_NAMES: &[&str] = &[
     "matrix",
     "vector",
     "transpose",
+    "dist",
+    "power",
+    "spec",
 ];

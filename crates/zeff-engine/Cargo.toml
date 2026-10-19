@@ -15,6 +15,7 @@ zeff-ir.workspace = true
 zeff-core.workspace = true
 zeff-data.workspace = true
 zeff-datasets.workspace = true
+zeff-dist.workspace = true
 zeff-columns.workspace = true
 zeff-numeric.workspace = true
 zeff-registry.workspace = true

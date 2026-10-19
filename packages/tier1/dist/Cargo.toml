@@ -1,0 +1,20 @@
+[package]
+name = "zeff-dist"
+description = "Package dist (tier 1): probability distributions as values, with pdf, cdf, quantile and draw."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-core.workspace = true
+zeff-numeric.workspace = true
+zeff-diagnostics.workspace = true
+zeff-registry.workspace = true
+
+[dev-dependencies]
+zeff-testkit.workspace = true
+insta = "=1.49.0"

@@ -139,3 +139,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 3, the `Distribution` value, the `dist.` namespace and methods on a value `[engine]`. It needs the owner's answer to question 1 (how a distribution prints); the recommendation stands if none comes.
 
 **For the owner to decide.** Question 1 before step 3; questions 2 and 3 before steps 11 and 7; open decision #46 at the close.
+
+## 19 October 2026, step 3 of release 0.3.0
+
+**Done.** The owner decided question 1 (a distribution prints as its call with the defaults filled in). Step 3 `[engine]`: the `Distribution` value in `core` with its printing, `Ty::Distribution` in the checker, the `dist.` namespace (a namespaced call names the function `dist.normal`; `dist`, `power` and `spec` are reserved names), the new `dist` package with `dist.normal` and its complete page, the parameter-domain check Z0413 with its explained page, and the refusals as snapshots. 3 tests added, 1 snapshot; 70 diagnostic codes now.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (580), the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 4, Philox random streams and `seed` `[engine]`.
+
+**For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.

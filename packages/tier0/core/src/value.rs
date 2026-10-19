@@ -49,6 +49,27 @@ pub struct Table {
     pub rows: Vec<Vec<String>>,
 }
 
+/// A probability distribution as a value (Language Reference, section 4: `dist.t(df: 24)` is a
+/// value like any other). Declared here as a shared type (Engine and Project Specification,
+/// section 8.1, rule 4) and implemented by the `dist` package.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Distribution {
+    /// One of the twelve families, with its parameters named as the catalogue names them, every
+    /// default filled in: `("mean", 0.0), ("sd", 1.0)`.
+    Family {
+        name: &'static str,
+        params: Vec<(&'static str, f64)>,
+    },
+    /// A distribution restricted to an interval (`dist.truncated`).
+    Truncated {
+        inner: Box<Distribution>,
+        lower: f64,
+        upper: f64,
+    },
+    /// A finite mixture (`dist.mixture`): the components with their probabilities.
+    Mixture { parts: Vec<(Distribution, f64)> },
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     /// The value of a call that returns none; it prints nothing.
@@ -74,6 +95,7 @@ pub enum Value {
     /// A word from a parameter's fixed list.
     Word(String),
     Type(TypeValue),
+    Distribution(Distribution),
 }
 
 impl Value {
@@ -96,6 +118,7 @@ impl Value {
             Value::Vars(_) => "Vars",
             Value::Word(_) => "a word",
             Value::Type(_) => "Type",
+            Value::Distribution(_) => "Distribution",
         }
     }
 }
