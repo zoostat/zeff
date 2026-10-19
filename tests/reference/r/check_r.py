@@ -8,17 +8,19 @@ these files identical everywhere. Continuous integration therefore regenerates t
 script against the committed copies: in `maths.json` every function value must agree to a
 relative 1e-13 and the inputs, roundings and whole-number divisions exactly; in
 `descriptive.json` every count must agree exactly and every statistic to a relative 1e-12 (R's
-variance on the offset dataset carries that much error of its own). `frames.json` holds only row
+variance on the offset dataset carries that much error of its own); in `special.json` every value to a
+relative 1e-12, the class tolerance of the distribution functions, since R's `pgamma` and `pbeta`
+carry errors of that order in their far tails on some platforms. `frames.json` holds only row
 numbers and is compared byte for byte by the workflow itself.
 
-Usage: python3 -I tests/reference/r/check_r.py maths|descriptive <committed.json> <regenerated.json>
+Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special <committed.json> <regenerated.json>
 """
 
 import json
 import math
 import sys
 
-TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12}
+TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12}
 
 
 def number(text):
@@ -89,13 +91,39 @@ def check_descriptive(committed, regenerated, problems):
                     problems.append(f"{name}.{column} {key}: committed {value}, regenerated {other_stats[key]}")
 
 
+def check_special(committed, regenerated, problems):
+    """Every list of the file: scalars compared within tolerance, inputs exactly."""
+    tolerance = TOLERANCE["special"]
+
+    def walk(path, a, b):
+        if isinstance(a, list) and isinstance(b, list):
+            if len(a) != len(b):
+                problems.append(f"{path}: {len(a)} against {len(b)} entries")
+                return
+            for i, (x, y) in enumerate(zip(a, b)):
+                walk(f"{path}[{i}]", x, y)
+        elif isinstance(a, str) and isinstance(b, str):
+            if not close(a, b, tolerance):
+                problems.append(f"{path}: committed {a}, regenerated {b}")
+        elif a != b:
+            problems.append(f"{path}: committed {a!r}, regenerated {b!r}")
+
+    for key, value in committed.items():
+        if key == "reference":
+            continue
+        if key not in regenerated:
+            problems.append(f"{key}: missing")
+            continue
+        walk(key, value, regenerated[key])
+
+
 def main(which, committed_path, regenerated_path):
     with open(committed_path, encoding="utf-8") as f:
         committed = json.load(f)
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    {"maths": check_maths, "descriptive": check_descriptive}[which](committed, regenerated, problems)
+    {"maths": check_maths, "descriptive": check_descriptive, "special": check_special}[which](committed, regenerated, problems)
     if problems:
         for problem in problems:
             print(problem)

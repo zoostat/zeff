@@ -5,6 +5,15 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
+## As of 0.3.0 (in development)
+
+- **Distribution functions with a parameter above 100,000 are accurate to about 1e-10, not the
+  class's 1e-12.** The incomplete beta and gamma functions use continued fractions whose stopping
+  rule cannot see below a unit in the last place; at such parameters the fraction converges slowly
+  and leaves an error of about 2e-11 in the tails (a t distribution with a million degrees of
+  freedom meets it). R's own values there carry errors of the same order. The asymptotic
+  expansions of Temme close it in a later step. (Since 0.3.0, step 2.)
+
 ## As of 0.2.0
 
 - **Printed tables count width in characters.** An East Asian wide character takes two cells in a

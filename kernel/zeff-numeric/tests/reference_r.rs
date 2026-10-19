@@ -380,3 +380,155 @@ fn the_weighted_statistics_agree_with_r() {
         }
     }
 }
+
+/// The special functions against R (`special.json`, written by `special.R`): within 1e-12, the
+/// class tolerance of the distribution functions, widened in the deep tails and for a parameter
+/// above 1e5 in the same measure as the exact-reference test, since R's `pgamma` and `pbeta`
+/// carry errors of that order there too; the exact decimal reference holds the kernel tighter.
+#[test]
+fn the_special_functions_agree_with_r() {
+    use zeff_numeric::special::*;
+    let r = reference("special.json");
+    let list = |key: &str| r[key].as_array().unwrap().clone();
+    let tolerance = 1e-12;
+    let deep = |want: f64, largest: f64| {
+        let tail = (want.abs().ln().abs() / 50.0).max(1.0);
+        let size = if largest > 1e5 { 100.0 } else { 1.0 };
+        tolerance * tail.max(size)
+    };
+    for ((x, lg), g) in list("gamma_grid")
+        .iter()
+        .zip(list("log_gamma").iter())
+        .zip(list("gamma").iter())
+    {
+        let x = number(x);
+        agree(&format!("lgamma({x})"), log_gamma(x), number(lg), tolerance);
+        agree(&format!("gamma({x})"), gamma(x), number(g), tolerance);
+    }
+    for case in list("factorial") {
+        let n = case[0].as_i64().unwrap();
+        agree(
+            &format!("factorial({n})"),
+            factorial(n),
+            number(&case[1]),
+            tolerance,
+        );
+    }
+    for case in list("choose") {
+        let (n, k) = (number(&case[0]) as i64, number(&case[1]) as i64);
+        agree(
+            &format!("choose({n}, {k})"),
+            choose(n, k),
+            number(&case[2]),
+            tolerance,
+        );
+    }
+    for case in list("beta") {
+        let (a, b) = (number(&case[0]), number(&case[1]));
+        agree(
+            &format!("lbeta({a}, {b})"),
+            log_beta(a, b),
+            number(&case[2]),
+            tolerance,
+        );
+        agree(
+            &format!("beta({a}, {b})"),
+            beta(a, b),
+            number(&case[3]),
+            tolerance,
+        );
+    }
+    for ((x, lower), upper) in list("normal_grid")
+        .iter()
+        .zip(list("normal_lower").iter())
+        .zip(list("normal_upper").iter())
+    {
+        let x = number(x);
+        agree(
+            &format!("pnorm({x})"),
+            normal_tails(x).lower,
+            number(lower),
+            tolerance,
+        );
+        agree(
+            &format!("pnorm({x}, upper)"),
+            normal_tails(x).upper,
+            number(upper),
+            tolerance,
+        );
+    }
+    for case in list("normal_quantile") {
+        let p = number(&case[0]);
+        agree(
+            &format!("qnorm({p})"),
+            normal_quantile(p, false),
+            number(&case[1]),
+            tolerance,
+        );
+        agree(
+            &format!("qnorm({p}, upper)"),
+            normal_quantile(p, true),
+            number(&case[2]),
+            tolerance,
+        );
+    }
+    for case in list("incomplete_gamma") {
+        let (a, x) = (number(&case[0]), number(&case[1]));
+        let (p, q) = (number(&case[2]), number(&case[3]));
+        let tails = incomplete_gamma(a, x);
+        agree(&format!("pgamma({x}, {a})"), tails.lower, p, deep(p, a));
+        agree(
+            &format!("pgamma({x}, {a}, upper)"),
+            tails.upper,
+            q,
+            deep(q, a),
+        );
+    }
+    for case in list("incomplete_gamma_inverse") {
+        let (a, p) = (number(&case[0]), number(&case[1]));
+        agree(
+            &format!("qgamma({p}, {a})"),
+            incomplete_gamma_inverse(a, p, false),
+            number(&case[2]),
+            tolerance,
+        );
+        agree(
+            &format!("qgamma({p}, {a}, upper)"),
+            incomplete_gamma_inverse(a, p, true),
+            number(&case[3]),
+            tolerance,
+        );
+    }
+    for case in list("incomplete_beta") {
+        let (a, b, x) = (number(&case[0]), number(&case[1]), number(&case[2]));
+        let (lower, upper) = (number(&case[3]), number(&case[4]));
+        let tails = incomplete_beta(a, b, x);
+        agree(
+            &format!("pbeta({x}, {a}, {b})"),
+            tails.lower,
+            lower,
+            deep(lower, a.max(b)),
+        );
+        agree(
+            &format!("pbeta({x}, {a}, {b}, upper)"),
+            tails.upper,
+            upper,
+            deep(upper, a.max(b)),
+        );
+    }
+    for case in list("incomplete_beta_inverse") {
+        let (a, b, p) = (number(&case[0]), number(&case[1]), number(&case[2]));
+        agree(
+            &format!("qbeta({p}, {a}, {b})"),
+            incomplete_beta_inverse(a, b, p, false),
+            number(&case[3]),
+            tolerance,
+        );
+        agree(
+            &format!("qbeta({p}, {a}, {b}, upper)"),
+            incomplete_beta_inverse(a, b, p, true),
+            number(&case[4]),
+            tolerance,
+        );
+    }
+}

@@ -129,3 +129,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 2, the special-function kernel `[engine]`.
 
 **For the owner to decide.** Four questions at the top of the checklist: how a distribution prints (step 3), the correlation table layout (step 11), whether discrete draws are Int columns (step 7), open decision #46 (step 15).
+
+## 19 October 2026, step 2 of release 0.3.0
+
+**Done.** Step 2 `[engine]`: the special-function kernel in `zeff_numeric::special`: the gamma and beta functions, factorials and binomial coefficients, the error functions and the normal tails and quantile, the regularised incomplete gamma and beta functions with both tails computed directly and their inverses, all in pure Rust. An exact reference in Python's `decimal` module at 70 digits (`tests/reference/special.py`, 599 values) and an R reference (`special.R`) with its CI comparison; the kernel holds the exact reference to 1e-12 in the distribution class, tighter where the arithmetic allows, and to 1e-10 only for a parameter above 100,000, recorded as a known issue. 3 property tests, 2 unit tests, 4 reference tests, 8 conformance series.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (eight new lines) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 3, the `Distribution` value, the `dist.` namespace and methods on a value `[engine]`. It needs the owner's answer to question 1 (how a distribution prints); the recommendation stands if none comes.
+
+**For the owner to decide.** Question 1 before step 3; questions 2 and 3 before steps 11 and 7; open decision #46 at the close.

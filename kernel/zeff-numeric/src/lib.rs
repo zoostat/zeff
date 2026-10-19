@@ -15,6 +15,7 @@
 
 pub mod maths;
 pub mod order;
+pub mod special;
 
 /// A running compensated (Neumaier) sum.
 #[derive(Debug, Clone, Copy, Default)]

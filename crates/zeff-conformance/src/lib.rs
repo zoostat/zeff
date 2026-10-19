@@ -425,10 +425,102 @@ fn maths_cases() -> Vec<Line> {
     lines
 }
 
+/// The special functions on fixed grids (release 0.3.0, step 2): the gamma and beta functions,
+/// the error functions and the normal tails and quantiles, the incomplete gamma and beta functions
+/// and their inverses, so that the four targets prove the same bits everywhere, deep tails
+/// included.
+fn special_cases() -> Vec<Line> {
+    use zeff_numeric::special::*;
+    let positives: [f64; 16] = [
+        1e-10, 0.001, 0.1, 0.5, 1.5, 2.5, 4.5, 7.25, 10.0, 15.5, 30.0, 100.0, 170.5, 1000.0,
+        12345.678, 1e5,
+    ];
+    let signed: [f64; 8] = [-0.5, -1.5, -3.7, -10.5, -100.5, -0.001, 0.75, 2.0];
+    let mut lines = Vec::new();
+    let gammas: Vec<f64> = positives
+        .iter()
+        .chain(signed.iter())
+        .flat_map(|&x| [log_gamma(x), gamma(x)])
+        .collect();
+    lines.push(series("special/gamma", &gammas));
+    let betas: Vec<f64> = positives
+        .iter()
+        .flat_map(|&a| positives.iter().map(move |&b| log_beta(a, b)))
+        .collect();
+    lines.push(series("special/log_beta", &betas));
+    let erfs: Vec<f64> = [
+        0.0, 1e-10, 0.1, 0.5, 1.0, 2.0, 3.0, 5.0, 6.0, 10.0, 20.0, 27.2, -0.5, -3.0, -10.0,
+    ]
+    .iter()
+    .flat_map(|&x| {
+        [
+            erf(x),
+            erfc(x),
+            normal_tails(x).lower,
+            normal_tails(x).upper,
+        ]
+    })
+    .collect();
+    lines.push(series("special/erf", &erfs));
+    let probabilities: [f64; 12] = [
+        1e-300, 1e-100, 1e-20, 1e-10, 1e-6, 0.001, 0.025, 0.1, 0.5, 0.9, 0.975, 0.999_999,
+    ];
+    let quantiles: Vec<f64> = probabilities
+        .iter()
+        .flat_map(|&p| [normal_quantile(p, false), normal_quantile(p, true)])
+        .collect();
+    lines.push(series("special/normal_quantile", &quantiles));
+    let shapes: [f64; 9] = [0.1, 0.5, 1.0, 2.5, 10.0, 100.0, 1000.0, 1e4, 1e5];
+    let mut gammas = Vec::new();
+    let mut gamma_inverses = Vec::new();
+    for &a in &shapes {
+        for factor in [0.01, 0.5, 0.9, 1.0, 1.1, 2.0, 3.0] {
+            let tails = incomplete_gamma(a, a * factor);
+            gammas.extend([tails.lower, tails.upper]);
+        }
+        for &p in &probabilities[2..] {
+            gamma_inverses.extend([
+                incomplete_gamma_inverse(a, p, false),
+                incomplete_gamma_inverse(a, p, true),
+            ]);
+        }
+    }
+    lines.push(series("special/incomplete_gamma", &gammas));
+    lines.push(series("special/incomplete_gamma_inverse", &gamma_inverses));
+    let pairs: [(f64, f64); 8] = [
+        (0.5, 0.5),
+        (2.0, 3.0),
+        (0.5, 10.0),
+        (5.0, 5.0),
+        (30.0, 70.0),
+        (1000.0, 1000.0),
+        (1e4, 1e4),
+        (5e5, 0.5),
+    ];
+    let mut betas = Vec::new();
+    let mut beta_inverses = Vec::new();
+    for &(a, b) in &pairs {
+        for x in [1e-6, 0.01, 0.1, 0.3, 0.5, 0.7, 0.9, 0.99, 0.999_999] {
+            let tails = incomplete_beta(a, b, x);
+            betas.extend([tails.lower, tails.upper]);
+        }
+        for &p in &probabilities[2..] {
+            beta_inverses.extend([
+                incomplete_beta_inverse(a, b, p, false),
+                incomplete_beta_inverse(a, b, p, true),
+            ]);
+        }
+    }
+    lines.push(series("special/incomplete_beta", &betas));
+    lines.push(series("special/incomplete_beta_inverse", &beta_inverses));
+    lines
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
     lines.extend(maths_cases());
+    lines.extend(special_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());
     lines

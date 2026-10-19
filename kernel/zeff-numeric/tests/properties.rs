@@ -110,3 +110,64 @@ fn property_cases_maths(usual: u32) -> u32 {
         .and_then(|m| m.parse::<u32>().ok())
         .map_or(usual, |m| usual.saturating_mul(m))
 }
+
+// ----- the special functions (release 0.3.0, step 2) -----
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases_maths(200)))]
+
+    /// Γ(x + 1) = x Γ(x), and ln Γ likewise, for x where neither side overflows.
+    #[test]
+    fn the_gamma_recurrence_holds(x in 0.05..150.0_f64) {
+        use zeff_numeric::special::{gamma, log_gamma};
+        let left = gamma(x + 1.0);
+        let right = x * gamma(x);
+        prop_assert!((left - right).abs() <= 1e-13 * right.abs(), "gamma: {left} against {right}");
+        let left = log_gamma(x + 1.0);
+        let right = log_gamma(x) + x.ln();
+        prop_assert!((left - right).abs() <= 1e-13 * right.abs().max(1.0), "log_gamma: {left} against {right}");
+    }
+
+    /// Both tails of every incomplete function sum to one, lie in [0, 1], and the lower tail does
+    /// not fall as x rises.
+    #[test]
+    fn the_incomplete_functions_are_probabilities(
+        a in 0.05..2000.0_f64, b in 0.05..2000.0_f64, x in 0.0..1.0_f64, y in 0.0..1.0_f64
+    ) {
+        use zeff_numeric::special::{incomplete_beta, incomplete_gamma};
+        let gx = x * 3.0 * a;
+        let gy = y * 3.0 * a;
+        let g1 = incomplete_gamma(a, gx.min(gy));
+        let g2 = incomplete_gamma(a, gx.max(gy));
+        prop_assert!((0.0..=1.0).contains(&g1.lower) && (0.0..=1.0).contains(&g1.upper));
+        prop_assert!((g1.lower + g1.upper - 1.0).abs() <= 1e-14);
+        prop_assert!(g1.lower <= g2.lower + 1e-15, "P not monotone: {} then {}", g1.lower, g2.lower);
+        let b1 = incomplete_beta(a, b, x.min(y));
+        let b2 = incomplete_beta(a, b, x.max(y));
+        prop_assert!((0.0..=1.0).contains(&b1.lower) && (0.0..=1.0).contains(&b1.upper));
+        prop_assert!((b1.lower + b1.upper - 1.0).abs() <= 1e-14);
+        prop_assert!(b1.lower <= b2.lower + 1e-15, "I not monotone: {} then {}", b1.lower, b2.lower);
+        // Symmetry: I_x(a, b) = 1 - I_{1-x}(b, a).
+        let direct = incomplete_beta(a, b, x);
+        let mirrored = incomplete_beta(b, a, 1.0 - x);
+        prop_assert!((direct.lower - mirrored.upper).abs() <= 1e-12 * direct.lower.max(mirrored.upper) + 1e-300,
+            "symmetry: {} against {}", direct.lower, mirrored.upper);
+    }
+
+    /// Every inverse undoes its function: the probability comes back within the class tolerance.
+    #[test]
+    fn the_inverses_round_trip(
+        a in 0.1..500.0_f64, b in 0.1..500.0_f64, p in 1e-12..0.999_999_f64, upper in any::<bool>()
+    ) {
+        use zeff_numeric::special::*;
+        let x = incomplete_gamma_inverse(a, p, upper);
+        let back = incomplete_gamma(a, x).tail(upper);
+        prop_assert!((back - p).abs() <= 1e-11 * p, "gamma: p {p} -> x {x} -> {back}");
+        let x = incomplete_beta_inverse(a, b, p, upper);
+        let back = incomplete_beta(a, b, x).tail(upper);
+        prop_assert!((back - p).abs() <= 1e-11 * p, "beta: p {p} -> x {x} -> {back}");
+        let z = normal_quantile(p, upper);
+        let back = normal_tails(z).tail(upper);
+        prop_assert!((back - p).abs() <= 1e-13 * p, "normal: p {p} -> z {z} -> {back}");
+    }
+}

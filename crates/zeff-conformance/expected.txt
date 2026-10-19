@@ -91,6 +91,14 @@ maths/pow 2520359d3fb094d3
 maths/atan2 743e1b3f9a7e4c68
 maths/round 07137f618c4ad92e
 maths/div_mod 6edabcb027cce20f
+special/gamma e2a8f9eff30d1358
+special/log_beta 7306a188f4e2caa3
+special/erf e4a3d148af097cc3
+special/normal_quantile a65a9dcd6e8e94ed
+special/incomplete_gamma 178181e6ffc44efd
+special/incomplete_gamma_inverse d898c98019df6cb4
+special/incomplete_beta 948805e8d32d7820
+special/incomplete_beta_inverse e2d3878f2bec9144
 milestone/stdout cbf29ce484222325
 milestone/stderr 7965ffa1fba557ae
 milestone/exit_code aab1693229ba1db8
