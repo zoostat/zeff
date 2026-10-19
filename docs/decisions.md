@@ -697,3 +697,7 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Tests.** `reference_special.rs` (the exact reference, 599 values), the special section of `reference_r.rs` (R), three property tests (the gamma recurrence; both tails are probabilities that sum to one, are monotone and mirror between I_x(a, b) and 1 − I_{1−x}(b, a); every inverse round-trips its function to 1e-11), and the unit tests of the domain edges and the deep tails.
 
 **Reason.** Engine and Project Specification, sections 8.3 point 3 (one pure-Rust implementation, fixed order) and 13 (tails computed directly; the distribution class); testing handbook, section 1.1; the checklist's step 2.
+
+## 19 October 2026: How a distribution prints (the owner's decision on question 1 of 0.3.0)
+
+**Decision.** A `Distribution` typed on its own prints as one line in the form of the call that made it, with the parameters named and the defaults filled in: `t distribution · df: 24`, `normal distribution · mean: 0, sd: 1`; a truncated distribution adds its bounds and a mixture its components. Taken by the owner as recommended; step 3 implements it.
