@@ -83,3 +83,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 19, the script tests and the 0.2.0 sample project `[engine]`.
 
 **For the owner to decide.** Nothing at present.
+
+## 19 October 2026, step 19 of release 0.2.0
+
+**Done.** Step 19 `[engine]`: the second sample project, `samples/data_cleaning/`, a data-cleaning script end to end (a German spreadsheet export imported with its options and snake-case names, `where`, `rename`, `add` with expressions and a reducer by region, `update`, `sort`, `select`, `head`, `summary(by:)`, `mean(by:)`, `quantile`, `median`, `n_distinct`, `print`, and the `sleep` and `wages` datasets), its stored output, and its three cases in the conformance report so the four targets compare it byte for byte. The command-line test runs both samples.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (566), the tier check, the message check and the conformance report (three new lines, nothing else changed) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 20, fuzzing in the nightly job `[engine]`.
+
+**For the owner to decide.** Nothing at present.

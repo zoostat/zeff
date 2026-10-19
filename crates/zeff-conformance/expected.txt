@@ -99,3 +99,7 @@ sample/stdout 60d5ee6c5a58ba4b
 sample/stderr 5b699554f238e67e
 sample/exit_code a8c7f832281a39c5
 # sample/exit_code bits 0000000000000000
+data_cleaning/stdout 04c6367e4ed6627d
+data_cleaning/stderr 6a1e703d86af604b
+data_cleaning/exit_code a8c7f832281a39c5
+# data_cleaning/exit_code bits 0000000000000000

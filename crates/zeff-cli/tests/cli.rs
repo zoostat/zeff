@@ -524,24 +524,26 @@ fn zeff_help_refuses_an_unknown_name_with_a_hint() {
 }
 
 #[test]
-fn the_sample_project_runs_to_its_stored_output() {
-    let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples/first_engine");
-    let o = zeff(&sample, &["run"]);
-    assert_eq!(code(&o), 0, "{}", err(&o));
-    let stdout = std::fs::read(sample.join("expected/stdout.txt")).unwrap();
-    let stderr = std::fs::read(sample.join("expected/stderr.txt")).unwrap();
-    assert!(
-        o.stdout == stdout,
-        "the sample's output changed; regenerate expected/stdout.txt with `zeff run` there if that is intended:\n{}",
-        out(&o)
-    );
-    assert!(
-        o.stderr == stderr,
-        "the sample's messages changed:\n{}",
-        err(&o)
-    );
-    let checked = zeff(&sample, &["check"]);
-    assert_eq!(code(&checked), 0, "{}", err(&checked));
+fn every_sample_project_runs_to_its_stored_output() {
+    for name in ["first_engine", "data_cleaning"] {
+        let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../samples/{name}"));
+        let o = zeff(&sample, &["run"]);
+        assert_eq!(code(&o), 0, "{name}: {}", err(&o));
+        let stdout = std::fs::read(sample.join("expected/stdout.txt")).unwrap();
+        let stderr = std::fs::read(sample.join("expected/stderr.txt")).unwrap();
+        assert!(
+            o.stdout == stdout,
+            "the output of samples/{name} changed; regenerate expected/stdout.txt with `zeff run` there if that is intended:\n{}",
+            out(&o)
+        );
+        assert!(
+            o.stderr == stderr,
+            "the messages of samples/{name} changed:\n{}",
+            err(&o)
+        );
+        let checked = zeff(&sample, &["check"]);
+        assert_eq!(code(&checked), 0, "{name}: {}", err(&checked));
+    }
 }
 
 // ----- the options of section 2.1 -----

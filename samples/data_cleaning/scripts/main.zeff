@@ -1,0 +1,36 @@
+// The sample project of release 0.2.0: a data-cleaning script end to end, from a spreadsheet
+// export in German format to grouped summaries and a shipped dataset. `zeff run` in this folder
+// prints what expected/stdout.txt holds, and its messages are expected/stderr.txt; the script
+// tests compare both byte for byte on every target.
+
+// 1. Import. The file has `;` between fields, a decimal comma, a point between groups of digits,
+//    Windows-1252 letters, -99 for a missing value, and headers with spaces, which `names: snake`
+//    turns into names a script can write.
+let raw = import("data/staff_de.csv", decimal: ",", thousands: ".", encoding: "windows-1252",
+                 na_values: [-99], names: snake)
+raw.describe()
+raw.head(5)
+
+// 2. Clean. Keep the rows of working age with a recorded wage, give the variables short names,
+//    derive what the analysis needs, and compute each worker's log-wage gap within their region.
+let staff = raw
+    .where(age >= 18 && age <= 65 && !is_missing(monthly_wage))
+    .rename(wage = monthly_wage, hours = weekly_hours, educ = years_of_education)
+    .add(lwage = log(wage), hourly = wage / (hours * 4.33), exper = age - educ - 6)
+    .update(exper = 0, where: exper < 0)
+    .add(wage_gap = lwage - mean(lwage), by: region)
+staff.describe()
+
+// 3. Look. The highest wages, the cheapest hours by region, and the statistics by group.
+staff.sort(wage, desc: true).select([staff_id, region, wage, hours, educ]).head(5)
+staff.sort([region, hourly]).select([region, hourly, hours, wage]).head(5)
+staff.summary([wage, hourly, hours, educ], by: female)
+staff.mean(wage, by: region)
+staff.quantile(hourly, p: [0.1, 0.5, 0.9])
+print("workers:", staff.n_rows(), "regions:", n_distinct(staff["region"]), "median hourly wage:", staff.median(hourly))
+
+// 4. A shipped dataset, loaded with its labels and categories, and the same statistics on it.
+let sleep = dataset(sleep)
+sleep
+sleep.mean(extra, by: group)
+dataset(wages).summary([wage, educ], by: union)

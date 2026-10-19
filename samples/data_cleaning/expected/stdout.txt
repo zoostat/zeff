@@ -1,0 +1,102 @@
+raw · 360 rows × 7 variables
+
+  variable             type    non-missing   missing   example
+  staff_id             Int             360         0   1
+  region               Str             360         0   Düsseldorf
+  monthly_wage         Float           352         8   5408.46
+  weekly_hours         Float           348        12   32.4
+  age                  Int             360         0   46
+  years_of_education   Int             360         0   13
+  female               Int             360         0   1
+frame · 5 rows × 7 variables
+
+      staff_id   region       monthly_wage   weekly_hours   age   years_of_education   female
+  1          1   Düsseldorf        5408.46             NA    46                   13        1
+  2          2   Düsseldorf        8517.01           32.4    57                   13        1
+  3          3   Málaga            6036.34           27.8    70                   16        1
+  4          4   Málaga            11719.5           44.9    52                   18        0
+  5          5   Genève            3489.56           24.2    36                   12        1
+staff · 319 rows × 11 variables
+
+  variable   type    non-missing   missing   example
+  staff_id   Int             319         0   1
+  region     Str             319         0   Düsseldorf
+  wage       Float           319         0   5408.46
+  hours      Float           308        11   32.4
+  age        Int             319         0   46
+  educ       Int             319         0   13
+  female     Int             319         0   1
+  lwage      Float           319         0   8.59572
+  hourly     Float           308        11   60.7092
+  exper      Int             319         0   27
+  wage_gap   Float           319         0   -0.166133
+frame · 5 rows × 5 variables
+
+      staff_id   region          wage   hours   educ
+  1        107   Zürich       15546.7    26.2     17
+  2        354   Genève       14409.1    48.2     19
+  3        251   Düsseldorf   14036.8    41.2     16
+  4        148   Zürich       13789.4    39.6     17
+  5         17   Málaga       13387.7    42.3     19
+frame · 5 rows × 4 variables
+
+      region        hourly   hours      wage
+  1   Düsseldorf   12.1196    44.1   2314.27
+  2   Düsseldorf   21.2748    40.3   3712.43
+  3   Düsseldorf   21.6709    44.4   4166.28
+  4   Düsseldorf   25.2565    31.1   3401.11
+  5   Düsseldorf   25.8836    48.8   5469.31
+summary · by female
+
+  female   variable     N   missing       mean         sd        min         max
+  0        wage       173         0   6695.859   2405.559   2314.270   15546.680
+  1        wage       146         0   6541.789   2311.708   3048.010   13387.670
+  0        hourly     169         4     42.232     17.797     12.120     137.040
+  1        hourly     139         7     43.742     16.198     18.142      96.806
+  0        hours      169         4     38.066      6.794     17.100      56.900
+  1        hours      139         7     35.837      6.509     19.400      52.100
+  0        educ       173         0     13.399      2.461      8.000      19.000
+  1        educ       146         0     13.740      2.571      8.000      20.000
+mean · wage by region
+
+  region           mean
+  Düsseldorf   6786.886
+  Genève       7030.408
+  Köln         6462.992
+  Málaga       5594.079
+  Zürich       7246.524
+24.8178
+40.3326
+65.9933
+workers:
+319
+regions:
+5
+median hourly wage:
+40.3326
+sleep · 20 rows × 3 variables
+
+       extra   group                id
+   1     0.7   dextro-hyoscyamine    1
+   2    -1.6   dextro-hyoscyamine    2
+   3    -0.2   dextro-hyoscyamine    3
+   4    -1.2   dextro-hyoscyamine    4
+   5    -0.1   dextro-hyoscyamine    5
+   6     3.4   dextro-hyoscyamine    6
+   7     3.7   dextro-hyoscyamine    7
+   8     0.8   dextro-hyoscyamine    8
+   9       0   dextro-hyoscyamine    9
+  10       2   dextro-hyoscyamine   10
+  … and 10 more rows
+mean · extra by group
+
+  group                 mean
+  dextro-hyoscyamine   0.750
+  laevo-hyoscyamine    2.330
+summary · by union
+
+  union   variable        N   missing     mean       sd     min       max
+  no      wage       12,413       143   26.463   13.606   3.530   152.390
+  yes     wage        5,788        68   29.314   14.703   4.640   140.240
+  no      educ       12,556         0   13.543    2.491   8.000    20.000
+  yes     educ        5,856         0   13.381    2.467   8.000    20.000

@@ -212,10 +212,53 @@ fn milestone_cases() -> Vec<Line> {
     ]
 }
 
-/// The sample project of the release (`samples/first_engine`), compiled into the binary and run on
-/// an in-memory copy: a script test on every target (testing handbook, section 1). The stored
-/// output in `samples/first_engine/expected/` is what every target must print, byte for byte.
-pub fn sample_run() -> zeff_engine::run::Outcome {
+/// A sample project of a release (`samples/<name>`), compiled into the binary and run on an
+/// in-memory copy: a script test on every target (testing handbook, section 1). The stored output
+/// in `samples/<name>/expected/` is what every target must print, byte for byte.
+pub struct Sample {
+    /// The folder under `samples/`, and the prefix of its cases in the report.
+    pub name: &'static str,
+    pub manifest: &'static str,
+    /// The data files, as `data/<file>`, in the bytes the project holds (one is Windows-1252).
+    pub data: &'static [(&'static str, &'static [u8])],
+    pub script: &'static str,
+    /// What the sample must print, as stored.
+    pub stdout: &'static str,
+    pub stderr: &'static str,
+}
+
+/// The sample of release 0.1.0: every function of the first engine on one data file.
+pub const FIRST_ENGINE: Sample = Sample {
+    name: "first_engine",
+    manifest: include_str!("../../../samples/first_engine/zeff.toml"),
+    data: &[(
+        "wages.csv",
+        include_bytes!("../../../samples/first_engine/data/wages.csv"),
+    )],
+    script: include_str!("../../../samples/first_engine/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/first_engine/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/first_engine/expected/stderr.txt"),
+};
+
+/// The sample of release 0.2.0: a data-cleaning script end to end, from a German spreadsheet
+/// export to grouped summaries and a shipped dataset.
+pub const DATA_CLEANING: Sample = Sample {
+    name: "data_cleaning",
+    manifest: include_str!("../../../samples/data_cleaning/zeff.toml"),
+    data: &[(
+        "staff_de.csv",
+        include_bytes!("../../../samples/data_cleaning/data/staff_de.csv"),
+    )],
+    script: include_str!("../../../samples/data_cleaning/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/data_cleaning/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/data_cleaning/expected/stderr.txt"),
+};
+
+/// Every sample project, oldest first; each adds three cases to the report.
+pub const SAMPLES: [&Sample; 2] = [&FIRST_ENGINE, &DATA_CLEANING];
+
+/// Run a sample project on an in-memory copy of its files.
+pub fn sample_run(sample: &Sample) -> zeff_engine::run::Outcome {
     use std::path::Path;
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::interpreter::Output;
@@ -223,11 +266,13 @@ pub fn sample_run() -> zeff_engine::run::Outcome {
     use zeff_engine::run::{Outcome, run_script};
 
     let fs = MemoryFileSystem::new();
-    fs.add_file("/s/zeff.toml", SAMPLE_MANIFEST);
-    fs.add_file("/s/data/wages.csv", SAMPLE_DATA);
-    fs.add_file("/s/scripts/main.zeff", SAMPLE_SCRIPT);
+    fs.add_file("/s/zeff.toml", sample.manifest);
+    for (file, bytes) in sample.data {
+        fs.add_file(format!("/s/data/{file}"), *bytes);
+    }
+    fs.add_file("/s/scripts/main.zeff", sample.script);
     match Project::open(&fs, Path::new("/s")) {
-        Ok(project) => run_script(&fs, &project, "scripts/main.zeff", SAMPLE_SCRIPT),
+        Ok(project) => run_script(&fs, &project, "scripts/main.zeff", sample.script),
         Err(_) => Outcome {
             output: Output::default(),
             exit_code: 4,
@@ -235,23 +280,27 @@ pub fn sample_run() -> zeff_engine::run::Outcome {
     }
 }
 
-pub const SAMPLE_MANIFEST: &str = include_str!("../../../samples/first_engine/zeff.toml");
-pub const SAMPLE_DATA: &str = include_str!("../../../samples/first_engine/data/wages.csv");
-pub const SAMPLE_SCRIPT: &str = include_str!("../../../samples/first_engine/scripts/main.zeff");
-/// What the sample must print, as stored.
-pub const SAMPLE_STDOUT: &str = include_str!("../../../samples/first_engine/expected/stdout.txt");
-pub const SAMPLE_STDERR: &str = include_str!("../../../samples/first_engine/expected/stderr.txt");
-
 fn sample_cases() -> Vec<Line> {
-    let outcome = sample_run();
-    vec![
-        text("sample/stdout", &outcome.output.stdout),
-        text("sample/stderr", &outcome.output.stderr),
-        scalar(
-            "sample/exit_code".to_string(),
-            Some(f64::from(outcome.exit_code)),
-        ),
-    ]
+    SAMPLES
+        .iter()
+        .flat_map(|sample| {
+            let outcome = sample_run(sample);
+            // The first sample keeps the case names of release 0.1.0.
+            let prefix = if sample.name == "first_engine" {
+                "sample".to_string()
+            } else {
+                sample.name.to_string()
+            };
+            vec![
+                text(&format!("{prefix}/stdout"), &outcome.output.stdout),
+                text(&format!("{prefix}/stderr"), &outcome.output.stderr),
+                scalar(
+                    format!("{prefix}/exit_code"),
+                    Some(f64::from(outcome.exit_code)),
+                ),
+            ]
+        })
+        .collect()
 }
 
 /// The maths kernel on a fixed grid (release 0.2.0, step 5): every elementary function, the
@@ -426,14 +475,21 @@ mod tests {
     }
 
     #[test]
-    fn the_sample_project_prints_its_stored_output_byte_for_byte() {
-        let outcome = sample_run();
-        assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
-        assert_eq!(
-            outcome.output.stdout, SAMPLE_STDOUT,
-            "regenerate with `zeff run` in samples/first_engine when the change is intended"
-        );
-        assert_eq!(outcome.output.stderr, SAMPLE_STDERR);
+    fn every_sample_project_prints_its_stored_output_byte_for_byte() {
+        for sample in SAMPLES {
+            let outcome = sample_run(sample);
+            assert_eq!(
+                outcome.exit_code, 0,
+                "{}: {}",
+                sample.name, outcome.output.stderr
+            );
+            assert_eq!(
+                outcome.output.stdout, sample.stdout,
+                "the output of samples/{} changed; regenerate expected/ with `zeff run` there when the change is intended",
+                sample.name
+            );
+            assert_eq!(outcome.output.stderr, sample.stderr, "{}", sample.name);
+        }
     }
 
     #[test]
