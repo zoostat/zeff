@@ -98,7 +98,7 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **Done.** Step 20 `[engine]`: four fuzz targets in `fuzz/` (the lexer, the parser, the checker against the engine's registry, and the CSV reader with its options chosen by the first bytes), built with `cargo-fuzz` on a nightly toolchain only in the new `fuzz` job of the scheduled workflow, which seeds each corpus from the repository's scripts and data files, runs each target for ten minutes and writes its note to the run's summary. Locally every target ran 25 and then 150 seconds without a crash.
 
-**Green.** Format, clippy with warnings denied, all workspace tests (566), the tier check, the message check and the conformance report pass locally. The first run of the fuzz job on GitHub is recorded below once read.
+**Green.** Format, clippy with warnings denied, all workspace tests (566), the tier check, the message check and the conformance report pass locally. The first run of the fuzz job on GitHub (run 39196510164) found no crash: in ten minutes each, the lexer ran 1,786,539 inputs, the parser 664,085, the checker 166,511 and the CSV reader 429,011, with no crash input left behind. Its first attempt failed before fuzzing because the prebuilt `cargo-fuzz` chose a statically linked build target; the job now names the runner's own target.
 
 **Next.** Step 21, the pre-release routine `[engine]`.
 
