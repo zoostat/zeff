@@ -73,28 +73,33 @@ fn every_family_agrees_with_r_at_six_digits() {
             "binomial",
             "poisson",
             "negbinomial",
+            "composite",
         ]
         .contains(&name)
         {
             continue;
         }
-        let params: Vec<String> = family["params"]
-            .as_object()
-            .unwrap()
-            .iter()
-            .map(|(k, v)| {
-                // The binomial's `n` is an Int parameter.
-                if k == "n" {
-                    format!(
-                        "{k}: {}",
-                        v.as_str().unwrap().parse::<f64>().unwrap() as i64
-                    )
-                } else {
-                    format!("{k}: {}", literal(v))
-                }
-            })
-            .collect();
-        let d = format!("dist.{name}({})", params.join(", "));
+        let d = if name == "composite" {
+            family["expression"].as_str().unwrap().to_string()
+        } else {
+            let params: Vec<String> = family["params"]
+                .as_object()
+                .unwrap()
+                .iter()
+                .map(|(k, v)| {
+                    // The binomial's `n` is an Int parameter.
+                    if k == "n" {
+                        format!(
+                            "{k}: {}",
+                            v.as_str().unwrap().parse::<f64>().unwrap() as i64
+                        )
+                    } else {
+                        format!("{k}: {}", literal(v))
+                    }
+                })
+                .collect();
+            format!("dist.{name}({})", params.join(", "))
+        };
         let mut expressions = Vec::new();
         let mut expected = Vec::new();
         let xs = family["x"].as_array().unwrap();
@@ -118,6 +123,14 @@ fn every_family_agrees_with_r_at_six_digits() {
             if got == want {
                 continue;
             }
+            // A truncation or mixture subtracts near-equal probabilities on both sides, so its
+            // last printed digit may differ: within one part in a hundred thousand.
+            if name == "composite"
+                && let (Ok(g), Ok(w)) = (got.parse::<f64>(), want.parse::<f64>())
+                && (g - w).abs() <= 1e-5 * w.abs().max(1e-300)
+            {
+                continue;
+            }
             // R's `qbeta` (and so `qf`) loses digits, or gives up at 0, deep in a tail; a quantile
             // that differs from R's is held instead to the distribution function it inverts: the
             // probability must come back at six digits.
@@ -135,6 +148,26 @@ fn every_family_agrees_with_r_at_six_digits() {
             }
         }
         if !round_trips.is_empty() {
+            // A discrete quantile is the smallest k with F(k) ≥ p: F(k) ≥ p and F(k − 1) < p.
+            let discrete = ["binomial", "poisson", "negbinomial"]
+                .iter()
+                .any(|f| d.contains(f));
+            if discrete {
+                let mut trips = Vec::new();
+                for (_, p, _, got, _) in &round_trips {
+                    trips.push(format!("{d}.cdf({got}) >= {p}"));
+                    trips.push(format!("{d}.cdf({got} - 1) < {p}"));
+                }
+                let back = printed(&trips);
+                for (i, (_, p, e, got, want)) in round_trips.iter().enumerate() {
+                    if back[2 * i] != "true" || back[2 * i + 1] != "true" {
+                        mismatches.push(format!(
+                            "{e}: Zeff {got}, R {want}; not the smallest k with F(k) >= {p}"
+                        ));
+                    }
+                }
+                continue;
+            }
             let trips: Vec<String> = round_trips.iter().map(|r| r.0.clone()).collect();
             let back = printed(&trips);
             for ((trip, p, e, got, want), back) in round_trips.iter().zip(&back) {
@@ -184,6 +217,13 @@ fn the_edges_of_the_supports_and_the_refusals() {
         "dist.negbinomial(size: 3, p: 0.4, mu: 2)\n",
         "dist.negbinomial(size: 3)\n",
         "dist.negbinomial(size: 3, p: 0)\n",
+        "dist.truncated(dist.normal(), lower: 2, upper: 1)\n",
+        "dist.truncated(dist.uniform(), lower: 5, upper: 6)\n",
+        "dist.truncated(dist.normal(), lower: sqrt(-1))\n",
+        "dist.mixture([dist.normal()], probs: [0.3, 0.7])\n",
+        "dist.mixture([dist.normal(), dist.normal(mean: 3)], probs: [0.3, 0.6])\n",
+        "dist.mixture([dist.normal(), dist.normal(mean: 3)])\n",
+        "dist.mixture([], probs: [])\n",
     ] {
         let (code, _, stderr) = go(script);
         assert_eq!(code, 1, "{script}");
@@ -215,6 +255,15 @@ fn the_discrete_families_at_their_edges_and_their_int_draws() {
         stdout,
         "0\n0\n0\n1\n0.649611\n0\n10\n3\nInf\n0.135335\n1\n0\n0.13824\n0.13824\nColumn<Int> · 4 values\n3\n6\n1\n6\nColumn<Int> · 3 values\n3\n8\n1\n"
     );
+}
+
+#[test]
+fn truncations_and_mixtures_print_compute_and_draw() {
+    let (code, stdout, stderr) = go(
+        "let tn = dist.truncated(dist.normal(), lower: -1, upper: 2)\ntn\ntn.pdf(-2)\ntn.cdf(-1)\ntn.cdf(2)\ntn.quantile(0)\ntn.quantile(1)\ntn.cdf(0.5)\ntn.cdf(0.5, upper: true)\nlet tp = dist.truncated(dist.poisson(lambda: 3), lower: 1, upper: 6)\ntp\ntp.pdf(0)\ntp.pdf(1)\ntp.quantile(0.5)\ntp.draw(4, seed: 3)\nlet m = dist.mixture([dist.normal(), dist.normal(mean: 3, sd: 0.5)], probs: [0.3, 0.7])\nm\nm.pdf(3)\nm.cdf(1.5)\nm.quantile(0.3)\nm.draw(3, seed: 5)\ndist.mixture([dist.poisson(lambda: 1), dist.poisson(lambda: 10)], probs: [0.5, 0.5]).draw(3, seed: 5)\ndist.truncated(dist.exponential(rate: 2), upper: 1).quantile(0.5)\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    insta::assert_snapshot!("composite", stdout);
 }
 
 #[test]
@@ -306,15 +355,68 @@ fn draws_recover_their_distribution() {
         ("poisson", vec![("lambda", 4.0)], 4.0, 4.0),
         ("negbinomial", vec![("size", 3.0), ("p", 0.4)], 4.5, 11.25),
     ];
-    for (seed, (name, params, mean, variance)) in cases.iter().enumerate() {
-        let d = Distribution::Family {
-            name,
-            params: params.clone(),
-        };
+    // A truncated standard normal on [-1, 2] and a mixture of two normals, with their moments.
+    let standard = || Distribution::Family {
+        name: "normal",
+        params: vec![("mean", 0.0), ("sd", 1.0)],
+    };
+    let (a, b) = (-1.0f64, 2.0f64);
+    let z = families::truncated_mass(&standard(), a, b);
+    let phi = |x: f64| (-0.5 * x * x).exp() / (2.0 * std::f64::consts::PI).sqrt();
+    let truncated_mean = (phi(a) - phi(b)) / z;
+    let truncated_variance = 1.0 + (a * phi(a) - b * phi(b)) / z - truncated_mean * truncated_mean;
+    let mixture_mean = 0.7 * 3.0;
+    let mixture_variance = 0.3 * 1.0 + 0.7 * (0.25 + 9.0) - mixture_mean * mixture_mean;
+    let composites: Vec<(Distribution, f64, f64)> = vec![
+        (
+            Distribution::Truncated {
+                inner: Box::new(standard()),
+                lower: a,
+                upper: b,
+            },
+            truncated_mean,
+            truncated_variance,
+        ),
+        (
+            Distribution::Mixture {
+                parts: vec![
+                    (standard(), 0.3),
+                    (
+                        Distribution::Family {
+                            name: "normal",
+                            params: vec![("mean", 3.0), ("sd", 0.5)],
+                        },
+                        0.7,
+                    ),
+                ],
+            },
+            mixture_mean,
+            mixture_variance,
+        ),
+    ];
+    let all: Vec<(String, Distribution, f64, f64)> = cases
+        .iter()
+        .map(|(name, params, mean, variance)| {
+            (
+                (*name).to_string(),
+                Distribution::Family {
+                    name,
+                    params: params.clone(),
+                },
+                *mean,
+                *variance,
+            )
+        })
+        .chain(
+            composites
+                .into_iter()
+                .enumerate()
+                .map(|(i, (d, m, v))| (format!("composite {i}"), d, m, v)),
+        )
+        .collect();
+    for (seed, (name, d, mean, variance)) in all.iter().enumerate() {
         let mut stream = Stream::new(seed as u64 + 1, 1, 0);
-        let mut draws: Vec<f64> = (0..n)
-            .map(|_| families::draw(&d, stream.uniform()))
-            .collect();
+        let mut draws: Vec<f64> = (0..n).map(|_| families::draw(d, &mut stream)).collect();
         let sample_mean = draws.iter().sum::<f64>() / n as f64;
         let se = (variance / n as f64).sqrt();
         assert!(
@@ -330,7 +432,7 @@ fn draws_recover_their_distribution() {
         );
         draws.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let mut largest = 0.0f64;
-        if families::is_discrete(&d) {
+        if families::is_discrete(d) {
             // At each distinct value: the empirical share at or below it against F.
             let mut i = 0;
             while i < n {
@@ -339,13 +441,13 @@ fn draws_recover_their_distribution() {
                 while j < n && draws[j] == x {
                     j += 1;
                 }
-                let f = families::cdf(&d, x).lower;
+                let f = families::cdf(d, x).lower;
                 largest = largest.max((f - j as f64 / n as f64).abs());
                 i = j;
             }
         } else {
             for (i, x) in draws.iter().enumerate() {
-                let f = families::cdf(&d, *x).lower;
+                let f = families::cdf(d, *x).lower;
                 largest = largest
                     .max((f - i as f64 / n as f64).abs())
                     .max(((i + 1) as f64 / n as f64 - f).abs());

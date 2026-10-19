@@ -143,3 +143,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 10, `dist.truncated` and `dist.mixture` `[function]`.
 
 **For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.
+
+## 19 October 2026, step 10 of release 0.3.0
+
+**Done.** Step 10 `[function]`: `dist.truncated` (closed interval, both tails direct, exact draws by one uniform) and `dist.mixture` (weighted sums, a bracket-and-halving quantile, two uniforms per draw), each with its page; the R reference extended with four composites from base R's functions (the `truncdist` package cannot be installed under the rules); a correction of the t distribution near its centre; the catalogue's usage of `dist.mixture` corrected and logged. 1 test added and 3 extended, 1 snapshot; 2 catalogue rows marked implemented. The distributions of the release are complete.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 11, `correlation` and `covariance` in the new `stats` package `[function]`. It needs the owner's answer to question 2 (the correlation table's layout); the recommendation stands if none comes.
+
+**For the owner to decide.** Question 2 before step 11; open decision #46 at the close.

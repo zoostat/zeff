@@ -149,23 +149,42 @@ proptest! {
         prop_assert!(b1.lower <= b2.lower + 1e-15, "I not monotone: {} then {}", b1.lower, b2.lower);
         // Symmetry: I_x(a, b) = 1 - I_{1-x}(b, a).
         let direct = incomplete_beta(a, b, x);
+        // 1 − x is rounded, and a tail's sensitivity to x is about a / x, so a far tail may move
+        // by a / x units in the last place: within 1e-9 here (a up to 2000, x down to 1e-3 or so).
         let mirrored = incomplete_beta(b, a, 1.0 - x);
-        prop_assert!((direct.lower - mirrored.upper).abs() <= 1e-12 * direct.lower.max(mirrored.upper) + 1e-300,
+        prop_assert!((direct.lower - mirrored.upper).abs() <= 1e-9 * direct.lower.max(mirrored.upper) + 1e-300,
             "symmetry: {} against {}", direct.lower, mirrored.upper);
     }
 
-    /// Every inverse undoes its function: the probability comes back within the class tolerance.
+    /// Every inverse undoes its function: the probability comes back within the class tolerance,
+    /// or, where the function is so steep that neighbouring doubles straddle p (a beta tail near
+    /// one with a small shape), the returned double is the nearest one: its neighbours' tails lie
+    /// on both sides of p.
     #[test]
     fn the_inverses_round_trip(
         a in 0.1..500.0_f64, b in 0.1..500.0_f64, p in 1e-12..0.999_999_f64, upper in any::<bool>()
     ) {
         use zeff_numeric::special::*;
+        fn nearest(f: impl Fn(f64) -> f64, x: f64, p: f64) -> bool {
+            let back = f(x);
+            if (back - p).abs() <= 1e-11 * p {
+                return true;
+            }
+            let below = f(f64::from_bits(x.to_bits() - 1));
+            let above = f(f64::from_bits(x.to_bits() + 1));
+            let (lo, hi) = (below.min(above), below.max(above));
+            lo <= p && p <= hi
+        }
         let x = incomplete_gamma_inverse(a, p, upper);
-        let back = incomplete_gamma(a, x).tail(upper);
-        prop_assert!((back - p).abs() <= 1e-11 * p, "gamma: p {p} -> x {x} -> {back}");
+        prop_assert!(nearest(|x| incomplete_gamma(a, x).tail(upper), x, p), "gamma: p {p} -> x {x} -> {}", incomplete_gamma(a, x).tail(upper));
         let x = incomplete_beta_inverse(a, b, p, upper);
-        let back = incomplete_beta(a, b, x).tail(upper);
-        prop_assert!((back - p).abs() <= 1e-11 * p, "beta: p {p} -> x {x} -> {back}");
+        if x == 1.0 {
+            // The quantile is not representable below one: the nearest double has a larger tail.
+            let inside = incomplete_beta(a, b, 1.0 - f64::EPSILON / 2.0).tail(upper);
+            prop_assert!(inside >= p, "beta at one: p {p}, the tail just below one is {inside}");
+        } else {
+            prop_assert!(nearest(|x| incomplete_beta(a, b, x).tail(upper), x, p), "beta: p {p} -> x {x} -> {}", incomplete_beta(a, b, x).tail(upper));
+        }
         let z = normal_quantile(p, upper);
         let back = normal_tails(z).tail(upper);
         prop_assert!((back - p).abs() <= 1e-13 * p, "normal: p {p} -> z {z} -> {back}");

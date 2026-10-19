@@ -5,6 +5,7 @@
 
 use zeff_core::value::Distribution;
 use zeff_numeric::maths;
+use zeff_numeric::random::Stream;
 use zeff_numeric::special::{self, Tails};
 
 const LN_SQRT_2PI: f64 = 0.918_938_533_204_672_8;
@@ -30,8 +31,21 @@ pub fn is_discrete(d: &Distribution) -> bool {
 
 /// The density at `x` (the probability mass for a discrete distribution).
 pub fn pdf(d: &Distribution, x: f64) -> f64 {
-    let Distribution::Family { name, params } = d else {
-        return f64::NAN;
+    let (name, params) = match d {
+        Distribution::Family { name, params } => (name, params),
+        Distribution::Truncated {
+            inner,
+            lower,
+            upper,
+        } => {
+            if x < *lower || x > *upper {
+                return 0.0;
+            }
+            return pdf(inner, x) / truncated_mass(inner, *lower, *upper);
+        }
+        Distribution::Mixture { parts } => {
+            return parts.iter().map(|(d, p)| p * pdf(d, x)).sum();
+        }
     };
     match *name {
         "normal" => {
@@ -301,6 +315,11 @@ fn t_tails(df: f64, t: f64) -> Tails {
         let a = df / 2.0;
         let ln_x = maths::log(df) - 2.0 * maths::log(t.abs());
         0.5 * maths::exp(a * ln_x - maths::log(a) - special::log_beta(a, 0.5))
+    } else if t * t < df {
+        // Near the centre the ratio ν / (ν + t²) rounds towards one and loses the digits of
+        // F(t) − ½, so the complement y = t² / (ν + t²) serves: I_x(ν/2, ½) = 1 − I_y(½, ν/2).
+        let y = t * t / (df + t * t);
+        0.5 * special::incomplete_beta(0.5, df / 2.0, y).upper
     } else {
         let x = df / (df + t * t);
         0.5 * special::incomplete_beta(df / 2.0, 0.5, x).lower
@@ -364,13 +383,82 @@ fn t_quantile(df: f64, p: f64) -> f64 {
     if negative { -magnitude } else { magnitude }
 }
 
+/// P(X < x): the lower tail just below x, which for a discrete distribution leaves out the mass at
+/// x itself.
+fn below(d: &Distribution, x: f64) -> f64 {
+    let at = cdf(d, x);
+    if is_discrete(d) {
+        (at.lower - pdf(d, x)).max(0.0)
+    } else {
+        at.lower
+    }
+}
+
+/// The probability a distribution gives to [lower, upper].
+pub fn truncated_mass(inner: &Distribution, lower: f64, upper: f64) -> f64 {
+    let top = if upper.is_infinite() {
+        1.0
+    } else {
+        cdf(inner, upper).lower
+    };
+    let bottom = if lower.is_infinite() {
+        0.0
+    } else {
+        below(inner, lower)
+    };
+    top - bottom
+}
+
 /// P(X ≤ x) and P(X > x), each computed on its own side.
 pub fn cdf(d: &Distribution, x: f64) -> Tails {
-    let Distribution::Family { name, params } = d else {
-        return Tails {
-            lower: f64::NAN,
-            upper: f64::NAN,
-        };
+    let (name, params) = match d {
+        Distribution::Family { name, params } => (name, params),
+        Distribution::Truncated {
+            inner,
+            lower,
+            upper,
+        } => {
+            if x < *lower {
+                return Tails {
+                    lower: 0.0,
+                    upper: 1.0,
+                };
+            }
+            if x >= *upper {
+                return Tails {
+                    lower: 1.0,
+                    upper: 0.0,
+                };
+            }
+            let mass = truncated_mass(inner, *lower, *upper);
+            let at = cdf(inner, x);
+            // Each tail from the inner tails on its own side: (F(x) − F(lower⁻)) and
+            // (S(x) − S(upper)), divided by the interval's mass.
+            let bottom = if lower.is_infinite() {
+                0.0
+            } else {
+                below(inner, *lower)
+            };
+            let top_upper = if upper.is_infinite() {
+                0.0
+            } else {
+                cdf(inner, *upper).upper
+            };
+            return Tails {
+                lower: ((at.lower - bottom) / mass).clamp(0.0, 1.0),
+                upper: ((at.upper - top_upper) / mass).clamp(0.0, 1.0),
+            };
+        }
+        Distribution::Mixture { parts } => {
+            let mut lower = 0.0;
+            let mut upper = 0.0;
+            for (d, p) in parts {
+                let tails = cdf(d, x);
+                lower += p * tails.lower;
+                upper += p * tails.upper;
+            }
+            return Tails { lower, upper };
+        }
     };
     let exact = |lower: f64| Tails {
         lower,
@@ -496,8 +584,33 @@ pub fn cdf(d: &Distribution, x: f64) -> Tails {
 
 /// The smallest x with P(X ≤ x) ≥ p, for p in [0, 1].
 pub fn quantile(d: &Distribution, p: f64) -> f64 {
-    let Distribution::Family { name, params } = d else {
-        return f64::NAN;
+    let (name, params) = match d {
+        Distribution::Family { name, params } => (name, params),
+        Distribution::Truncated {
+            inner,
+            lower,
+            upper,
+        } => {
+            if p <= 0.0 {
+                return if is_discrete(inner) {
+                    quantile(inner, below(inner, *lower) + f64::EPSILON * 0.0).max(*lower)
+                } else {
+                    *lower
+                };
+            }
+            if p >= 1.0 {
+                return *upper;
+            }
+            // The inner quantile at F(lower⁻) + p · mass, held inside the interval.
+            let bottom = if lower.is_infinite() {
+                0.0
+            } else {
+                below(inner, *lower)
+            };
+            let target = bottom + p * truncated_mass(inner, *lower, *upper);
+            return quantile(inner, target.min(1.0)).clamp(*lower, *upper);
+        }
+        Distribution::Mixture { parts } => return mixture_quantile(parts, p),
     };
     match *name {
         "normal" => {
@@ -563,8 +676,75 @@ pub fn quantile(d: &Distribution, p: f64) -> f64 {
     }
 }
 
-/// One draw from a uniform number in [0, 1): the inverse CDF at the uniform shifted by half a grid
-/// step, so that a draw never meets the quantile's endpoints.
-pub fn draw(d: &Distribution, uniform: f64) -> f64 {
-    quantile(d, uniform + 5.551_115_123_125_783e-17)
+/// The smallest x with the mixed distribution function at or above p: bracketed by the
+/// components' own quantiles, then halved until the bracket closes, which lands on a jump when the
+/// components are discrete.
+fn mixture_quantile(parts: &[(Distribution, f64)], p: f64) -> f64 {
+    if p <= 0.0 || p >= 1.0 {
+        let ends = parts.iter().map(|(d, _)| quantile(d, p));
+        return if p <= 0.0 {
+            ends.fold(f64::INFINITY, f64::min)
+        } else {
+            ends.fold(f64::NEG_INFINITY, f64::max)
+        };
+    }
+    let mixed = Distribution::Mixture {
+        parts: parts.to_vec(),
+    };
+    let f = |x: f64| cdf(&mixed, x).lower;
+    let mut lo = f64::INFINITY;
+    let mut hi = f64::NEG_INFINITY;
+    for (d, _) in parts {
+        let q = quantile(d, p);
+        lo = lo.min(q);
+        hi = hi.max(q);
+    }
+    if lo == hi {
+        return lo;
+    }
+    // Widen the bracket where a component's quantile does not bound the mixture's.
+    while lo.is_finite() && f(lo) >= p {
+        lo -= (hi - lo).max(1.0);
+    }
+    while hi.is_finite() && f(hi) < p {
+        hi += (hi - lo).max(1.0);
+    }
+    for _ in 0..200 {
+        let mid = 0.5 * (lo + hi);
+        if mid <= lo || mid >= hi {
+            break;
+        }
+        if f(mid) >= p {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+    if all_discrete(parts) { hi.ceil() } else { hi }
+}
+
+fn all_discrete(parts: &[(Distribution, f64)]) -> bool {
+    parts.iter().all(|(d, _)| is_discrete(d))
+}
+
+/// One draw from the stream: the inverse CDF at a uniform shifted by half a grid step, so that a
+/// draw never meets the quantile's endpoints; a mixture spends one uniform choosing the component
+/// and one drawing from it (Engine and Project Specification, section 8.3, point 3).
+pub fn draw(d: &Distribution, stream: &mut Stream) -> f64 {
+    const HALF_STEP: f64 = 5.551_115_123_125_783e-17;
+    match d {
+        Distribution::Mixture { parts } => {
+            let choice = stream.uniform();
+            let mut cumulative = 0.0;
+            for (component, p) in parts {
+                cumulative += p;
+                if choice < cumulative {
+                    return draw(component, stream);
+                }
+            }
+            // Rounding at the top: the last component.
+            draw(&parts[parts.len() - 1].0, stream)
+        }
+        _ => quantile(d, stream.uniform() + HALF_STEP),
+    }
 }

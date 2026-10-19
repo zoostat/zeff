@@ -66,4 +66,58 @@ families <- list(
   family("negbinomial", list(size = 0.5, p = 0.1), function(x) dnbinom(x, 0.5, 0.1), function(x, lower.tail = TRUE) pnbinom(x, 0.5, 0.1, lower.tail = lower.tail), function(p) qnbinom(p, 0.5, 0.1))
 )
 
+# Truncations and mixtures (step 10), from base R's functions: a truncated density is d(x) / Z on
+# the interval with Z the interval's probability, its distribution function (F(x) - F(a-)) / Z, its
+# quantile Q(F(a-) + p Z); a mixture's density and distribution function are weighted sums, its
+# quantile the root of the mixed distribution function (uniroot). These are the formulas of the
+# truncdist package, written out so that no package is needed.
+composite <- function(expression, d, p, s, q) {
+  list(
+    family = "composite",
+    expression = expression,
+    x = as.list(dec(xs)),
+    pdf = as.list(num(suppressWarnings(d(xs)))),
+    lower = as.list(num(suppressWarnings(p(xs)))),
+    upper = as.list(num(suppressWarnings(s(xs)))),
+    p = as.list(dec(ps)),
+    quantile = as.list(num(q(ps)))
+  )
+}
+trunc_norm <- local({
+  a <- -1; b <- 2; Z <- pnorm(b) - pnorm(a)
+  composite("dist.truncated(dist.normal(), lower: -1, upper: 2)",
+    function(x) ifelse(x < a | x > b, 0, dnorm(x) / Z),
+    function(x) pmin(1, pmax(0, (pnorm(x) - pnorm(a)) / Z)),
+    function(x) pmin(1, pmax(0, (pnorm(x, lower.tail = FALSE) - pnorm(b, lower.tail = FALSE)) / Z)),
+    function(p) qnorm(pnorm(a) + p * Z))
+})
+trunc_t <- local({
+  a <- 0; Z <- 1 - pt(a, 5)
+  composite("dist.truncated(dist.t(df: 5), lower: 0)",
+    function(x) ifelse(x < a, 0, dt(x, 5) / Z),
+    function(x) pmin(1, pmax(0, (pt(x, 5) - pt(a, 5)) / Z)),
+    function(x) pmin(1, pmax(0, pt(x, 5, lower.tail = FALSE) / Z)),
+    function(p) qt(pt(a, 5) + p * Z, 5))
+})
+trunc_pois <- local({
+  a <- 1; b <- 6; Z <- ppois(b, 3) - ppois(a - 1, 3)
+  composite("dist.truncated(dist.poisson(lambda: 3), lower: 1, upper: 6)",
+    function(x) ifelse(x < a | x > b, 0, dpois(x, 3) / Z),
+    function(x) pmin(1, pmax(0, (ppois(x, 3) - ppois(a - 1, 3)) / Z)),
+    function(x) pmin(1, pmax(0, (ppois(x, 3, lower.tail = FALSE) - ppois(b, 3, lower.tail = FALSE)) / Z)),
+    function(p) qpois(ppois(a - 1, 3) + p * Z, 3))
+})
+mix_norm <- local({
+  dmix <- function(x) 0.3 * dnorm(x) + 0.7 * dnorm(x, 3, 0.5)
+  pmix <- function(x) 0.3 * pnorm(x) + 0.7 * pnorm(x, 3, 0.5)
+  smix <- function(x) 0.3 * pnorm(x, lower.tail = FALSE) + 0.7 * pnorm(x, 3, 0.5, lower.tail = FALSE)
+  qmix <- function(p) vapply(p, function(pp) {
+    if (pp <= 0) return(-Inf)
+    if (pp >= 1) return(Inf)
+    uniroot(function(x) pmix(x) - pp, c(-60, 60), tol = 1e-14)$root
+  }, 0)
+  composite("dist.mixture([dist.normal(), dist.normal(mean: 3, sd: 0.5)], probs: [0.3, 0.7])", dmix, pmix, smix, qmix)
+})
+families <- c(families, list(trunc_norm, trunc_t, trunc_pois, mix_norm))
+
 write_json(list(reference = reference_block(), families = families), file.path(here(), "distributions.json"))

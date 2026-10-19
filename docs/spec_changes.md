@@ -34,3 +34,7 @@ The usage of `import` lacked `quote: Str`, although section 6.1 of the Language 
 ## 19 October 2026 — zeff_risk_register.md, summary table and a new review section; zeff_open_decisions.md, status
 
 The register's second scheduled review, at the close of 0.2.0: R1 lowered to Medium likelihood with the figures measured, the other ratings confirmed, a dated review section added, no risk added. The open-decisions register gains a status line saying that nothing fell due at this release and that #46 is due at 0.3.0. Neither is a change of normative language text.
+
+## 19 October 2026 — zeff_functions.csv, row 426 (`dist.mixture`), usage
+
+The usage was written `dist.mixture([d1, d2, ...], probs: List)`, an example literal in the place of the first parameter, where every other row names its parameters (`name(required, optional: Type = default)`, section 9); the help contract's check that a page documents every parameter of the usage therefore had no name for the list of components. Corrected to `dist.mixture(parts, probs: List)`. Found at release 0.3.0, step 10.

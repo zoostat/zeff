@@ -391,6 +391,150 @@ pub fn negbinomial(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
     }
 }
 
+/// `dist.truncated(d: Distribution, lower: Float = -Inf, upper: Float = Inf)`.
+pub fn truncated(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let inner = match args.get(0) {
+        Some(Value::Distribution(d)) => d.clone(),
+        other => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z9001",
+                    format!(
+                        "internal error: this is a bug in Zeff, not in your script (`d` of `dist.truncated` reached the body as {})",
+                        other.map_or("nothing", Value::type_name)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "the call that failed"),
+            ));
+        }
+    };
+    let bound = |i: usize, default: f64| -> Result<f64, Fail> {
+        match args.get(i) {
+            None => Ok(default),
+            Some(Value::Float(x)) if !x.is_nan() => Ok(*x),
+            Some(Value::Int(n)) => Ok(*n as f64),
+            Some(_) => Err(fail(
+                Diagnostic::error(
+                    "Z0413",
+                    format!(
+                        "`{}` of `dist.truncated` must be a number, but this is NA",
+                        if i == 1 { "lower" } else { "upper" }
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(i), "outside the parameter's domain"),
+            )),
+        }
+    };
+    let lower = bound(1, f64::NEG_INFINITY)?;
+    let upper = bound(2, f64::INFINITY)?;
+    if lower >= upper {
+        return Err(fail(
+            Diagnostic::error("Z0413", "`upper` of `dist.truncated` must exceed `lower`")
+                .in_file(ctx.script)
+                .primary(ctx.span_of(2), "not above `lower`")
+                .help("`zeff help dist.truncated` gives the domain of every parameter"),
+        ));
+    }
+    let mass = families::truncated_mass(&inner, lower, upper);
+    if mass.is_nan() || mass <= 0.0 {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0413",
+                "the interval of `dist.truncated` holds no probability of the distribution",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "an empty truncation")
+            .help("choose bounds inside the distribution's support, where its probability is not zero"),
+        ));
+    }
+    Ok(Value::Distribution(Distribution::Truncated {
+        inner: Box::new(inner),
+        lower,
+        upper,
+    }))
+}
+
+/// `dist.mixture([d1, d2, ...], probs: List)`.
+pub fn mixture(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let components: Vec<Distribution> = match args.get(0) {
+        Some(Value::List(items)) => items
+            .iter()
+            .filter_map(|v| match v {
+                Value::Distribution(d) => Some(d.clone()),
+                _ => None,
+            })
+            .collect(),
+        _ => Vec::new(),
+    };
+    if components.is_empty() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`dist.mixture` needs a list of at least one distribution",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "no distributions here"),
+        ));
+    }
+    let probs: Vec<f64> = match args.get(1) {
+        Some(Value::List(items)) => items
+            .iter()
+            .map(|v| match v {
+                Value::Float(x) => *x,
+                Value::Int(n) => *n as f64,
+                _ => f64::NAN,
+            })
+            .collect(),
+        None => {
+            return Err(fail(
+                Diagnostic::error("Z0406", "`dist.mixture` needs `probs:`")
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "`probs:` is missing")
+                    .help("one probability per distribution, summing to one: `probs: [0.3, 0.7]`"),
+            ));
+        }
+        Some(_) => Vec::new(),
+    };
+    if probs.len() != components.len() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`probs` of `dist.mixture` must hold one probability per distribution: {} distributions, {} probabilities",
+                    components.len(),
+                    probs.len()
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(1), "the wrong number of probabilities"),
+        ));
+    }
+    let total: f64 = probs.iter().sum();
+    if probs.iter().any(|p| p.is_nan() || *p < 0.0) || (total - 1.0).abs() > 1e-9 {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0413",
+                "`probs` of `dist.mixture` must be probabilities of 0 or more that sum to one",
+            )
+            .in_file(ctx.script)
+            .primary(
+                ctx.span_of(1),
+                format!("these sum to {}", zeff_core::display::format_float(total)),
+            )
+            .help("`zeff help dist.mixture` gives the domain of every parameter"),
+        ));
+    }
+    // Normalise away the last digit of the sum.
+    let parts: Vec<(Distribution, f64)> = components
+        .into_iter()
+        .zip(probs)
+        .map(|(d, p)| (d, p / total))
+        .collect();
+    Ok(Value::Distribution(Distribution::Mixture { parts }))
+}
+
 // ----- the methods on a distribution -----
 
 /// The distribution a method was called on.
@@ -496,13 +640,13 @@ pub fn draw(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     if families::is_discrete(&d) {
         let values: Vec<Option<i64>> = (0..n)
             .map(|_| {
-                let x = families::draw(&d, stream.uniform());
+                let x = families::draw(&d, &mut stream);
                 if x.is_finite() { Some(x as i64) } else { None }
             })
             .collect();
         return Ok(Value::Column(Column::ints(values)));
     }
-    let (column, _) = Column::floats((0..n).map(|_| Some(families::draw(&d, stream.uniform()))));
+    let (column, _) = Column::floats((0..n).map(|_| Some(families::draw(&d, &mut stream))));
     Ok(Value::Column(column))
 }
 
@@ -692,6 +836,43 @@ pub fn functions() -> Vec<Function> {
                 accuracy: accuracy("R 4.6.0 dnbinom, pnbinom, qnbinom"),
             },
             body: negbinomial,
+        },
+        constructor(
+            "dist.truncated",
+            vec![
+                ParamSpec::required("d", "Distribution"),
+                ParamSpec::option_with_default("lower", "Float", "-Inf"),
+                ParamSpec::option_with_default("upper", "Float", "Inf"),
+            ],
+            include_str!("../help/dist.truncated.md"),
+            "base R: the density, distribution function and quantile of the inner family on the interval, the formulas of the truncdist package",
+            truncated,
+        ),
+        Function {
+            spec: FunctionSpec {
+                name: "dist.mixture",
+                package: "dist",
+                method: false,
+                params: vec![
+                    ParamSpec::required("parts", "List<Distribution>"),
+                    ParamSpec::option("probs", "List<Float>"),
+                ],
+                rest: None,
+                returns: "Distribution",
+                diagnostics: vec![
+                    z0413(),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the lists differ in length, or no distribution is given",
+                    ),
+                    DiagnosticDecl::new("Z0406", "`probs:` is missing"),
+                ],
+                help: include_str!("../help/dist.mixture.md"),
+                accuracy: accuracy(
+                    "base R: weighted sums of the components' functions, the quantile by uniroot",
+                ),
+            },
+            body: mixture,
         },
         method(
             "pdf",

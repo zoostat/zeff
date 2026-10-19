@@ -603,7 +603,45 @@ fn distribution_cases() -> Vec<Line> {
             values.push(families::quantile(&d, p));
         }
         let mut stream = Stream::new(20_261_019, 1, 0);
-        draws.extend((0..8).map(|_| families::draw(&d, stream.uniform())));
+        draws.extend((0..8).map(|_| families::draw(&d, &mut stream)));
+    }
+    // A truncation and a mixture (step 10), on the same grids.
+    let truncated = Distribution::Truncated {
+        inner: Box::new(Distribution::Family {
+            name: "normal",
+            params: vec![("mean", 0.0), ("sd", 1.0)],
+        }),
+        lower: -1.0,
+        upper: 2.0,
+    };
+    let mixture = Distribution::Mixture {
+        parts: vec![
+            (
+                Distribution::Family {
+                    name: "normal",
+                    params: vec![("mean", 0.0), ("sd", 1.0)],
+                },
+                0.3,
+            ),
+            (
+                Distribution::Family {
+                    name: "normal",
+                    params: vec![("mean", 3.0), ("sd", 0.5)],
+                },
+                0.7,
+            ),
+        ],
+    };
+    for d in [truncated, mixture] {
+        for &x in &xs {
+            let tails = families::cdf(&d, x);
+            values.extend([families::pdf(&d, x), tails.lower, tails.upper]);
+        }
+        for &p in &ps {
+            values.push(families::quantile(&d, p));
+        }
+        let mut stream = Stream::new(20_261_019, 2, 0);
+        draws.extend((0..8).map(|_| families::draw(&d, &mut stream)));
     }
     vec![series("dist/values", &values), series("dist/draws", &draws)]
 }

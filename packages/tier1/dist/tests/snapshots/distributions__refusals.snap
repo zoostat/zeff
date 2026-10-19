@@ -155,3 +155,55 @@ error[Z0413]: `p` of `dist.negbinomial` must be a probability above 0 and at mos
   |                              ^ outside the parameter's domain
   |
   = help: `zeff help dist.negbinomial` gives the domain of every parameter
+
+error[Z0413]: `upper` of `dist.truncated` must exceed `lower`
+ --> scripts/main.zeff:1:48
+  |
+1 | dist.truncated(dist.normal(), lower: 2, upper: 1)
+  |                                                ^ not above `lower`
+  |
+  = help: `zeff help dist.truncated` gives the domain of every parameter
+
+error[Z0413]: the interval of `dist.truncated` holds no probability of the distribution
+ --> scripts/main.zeff:1:6
+  |
+1 | dist.truncated(dist.uniform(), lower: 5, upper: 6)
+  |      ^^^^^^^^^ an empty truncation
+  |
+  = help: choose bounds inside the distribution's support, where its probability is not zero
+
+warning: sqrt of a negative number gave NA (line 1)
+  = help: a negative number has no real square root; `where(x >= 0)` keeps the rows that have one
+error[Z0413]: `lower` of `dist.truncated` must be a number, but this is NA
+ --> scripts/main.zeff:1:38
+  |
+1 | dist.truncated(dist.normal(), lower: sqrt(-1))
+  |                                      ^^^^^^^^ outside the parameter's domain
+
+error[Z0401]: `probs` of `dist.mixture` must hold one probability per distribution: 1 distributions, 2 probabilities
+ --> scripts/main.zeff:1:38
+  |
+1 | dist.mixture([dist.normal()], probs: [0.3, 0.7])
+  |                                      ^^^^^^^^^^ the wrong number of probabilities
+
+error[Z0413]: `probs` of `dist.mixture` must be probabilities of 0 or more that sum to one
+ --> scripts/main.zeff:1:60
+  |
+1 | dist.mixture([dist.normal(), dist.normal(mean: 3)], probs: [0.3, 0.6])
+  |                                                            ^^^^^^^^^^ these sum to 0.9
+  |
+  = help: `zeff help dist.mixture` gives the domain of every parameter
+
+error[Z0406]: `dist.mixture` needs `probs:`
+ --> scripts/main.zeff:1:6
+  |
+1 | dist.mixture([dist.normal(), dist.normal(mean: 3)])
+  |      ^^^^^^^ `probs:` is missing
+  |
+  = help: one probability per distribution, summing to one: `probs: [0.3, 0.7]`
+
+error[Z0401]: `dist.mixture` needs a list of at least one distribution
+ --> scripts/main.zeff:1:14
+  |
+1 | dist.mixture([], probs: [])
+  |              ^^ no distributions here

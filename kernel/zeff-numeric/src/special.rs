@@ -589,7 +589,9 @@ pub fn incomplete_beta_inverse(a: f64, b: f64, p: f64, upper: bool) -> f64 {
     if !target_upper && (maths::log(target) + maths::log(a) + log_beta(a, b)) / a < -745.0 {
         return 0.0;
     }
-    if target_upper && (maths::log(target) + maths::log(b) + log_beta(a, b)) / b < -745.0 {
+    // An upper tail whose leading term (p b B(a, b))^(1/b) is below half a unit in the last place
+    // of one: no double below one has so small a tail, so the quantile is one.
+    if target_upper && (maths::log(target) + maths::log(b) + log_beta(a, b)) / b < -36.8 {
         return 1.0;
     }
     let sum = a + b;
