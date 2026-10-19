@@ -107,6 +107,8 @@ pub fn call_rowwise(
             let mut row_ctx = CallContext {
                 files: ctx.files,
                 script: ctx.script,
+                text: ctx.text,
+                columns_used: Vec::new(),
                 callee_span: ctx.callee_span,
                 arg_spans: ctx.arg_spans.clone(),
                 rest_spans: ctx.rest_spans.clone(),

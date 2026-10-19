@@ -61,7 +61,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 43 | Diagnostic codes for the checker's own messages | Z0103 no such function; Z0105 a `let` reuses a `core` name; W0101 a `let` hides a package's function; Z0401 an argument of the wrong type; Z0404 unknown argument; Z0405 an argument given twice; Z0406 a required argument missing; Z0407 too many arguments; Z0408 a positional argument after a named one; Z0409 a bad date format | decided 18 October 2026 |
 | 44 | Diagnostic codes for the descriptive reducers' warnings | W0201 missing values skipped, with the count; W0204 infinite values of both signs, so the result is NA | decided 18 October 2026 |
 | 45 | Whether a warning printed under a result shows its code | Follow section 10.2 for now: `warning: 211 rows ... were skipped (line 21)` without the code; the run record keeps it | decided 18 October 2026 |
-| 46 | Diagnostic codes for three conditions of expressions and calls | Z0221 an operator applied to types it does not take (a Bool in arithmetic, `!` on a number, `&&` on numbers, a comparison across types, an index of the wrong kind); Z0222 a mapping key written or computed twice; Z0410 two options of one call that exclude each other (`round` with `digits:` and `sig:`) | 0.3.0 |
+| 46 | Diagnostic codes for four conditions of expressions and calls | Z0221 an operator applied to types it does not take (a Bool in arithmetic, `!` on a number, `&&` on numbers, a comparison across types, an index of the wrong kind); Z0222 a mapping key written or computed twice; Z0410 two options of one call that exclude each other (`round` with `digits:` and `sig:`); W0102 a name in a frame method that is both a variable and a binding | 0.3.0 |
 
 ---
 
@@ -497,7 +497,7 @@ Found while writing the interpreter of 0.1.0 (docs/releases/0.1.0.md, step 13). 
 
 *Decided 18 October 2026.* Option A until the pragma arrives (0.7.0): a warning under a result prints without its code, as section 10.2 shows; the code is in `--format json` from 0.2.0 and in the explained-code pages. Errors keep their code.
 
-### 46. Diagnostic codes for three conditions of expressions and calls
+### 46. Diagnostic codes for four conditions of expressions and calls
 
 Found while writing the operators of 0.2.0 (docs/releases/0.2.0.md, step 2). Section 3.7 settles the conditions in words but gives them no number: "Bool is not a number: `female + 1` with a Bool `female` is an error that suggests `to(female, Int)`"; comparison "only between values of one type"; a list indexed by something that is not an Int; a mapping looked up by a key of another type; "keys are unique". The engine uses the free numbers below provisionally, in the Z02xx range of types and values; the specification text is not edited (decision #40).
 
@@ -506,5 +506,6 @@ Found while writing the operators of 0.2.0 (docs/releases/0.2.0.md, step 2). Sec
 | An operator applied to types it does not take: a Bool or `Nothing` in arithmetic (text has its own Z0215), `-` on text, `!` on a number, `&&` or `||` on numbers, a comparison across types (`1 == "1"`, `true < 2`), `..` with a Float end, `[ ]` on a number, a list indexed by text, a mapping key of another type | Z0221 |
 | A mapping key written twice in a literal (check time) or computed twice (run time) | Z0222 |
 | Two options of one call that exclude each other, given together: `round(x, digits: 2, sig: 3)` (found at step 11; section 3.7 gives `round` both options and no rule for the pair) | Z0410 |
+| A bare name inside a frame method's argument that is both a variable of the frame and a binding: the variable is used, with a warning (found at step 15; section 3.7, "Name lookup", asks for the warning and gives it no code) | W0102 |
 
-*Recommendation.* Accept all three and add them to section 11 with the codes of #41 to #44 after the freeze (0.3.0). Deadline: 0.3.0.
+*Recommendation.* Accept all four and add them to section 11 with the codes of #41 to #44 after the freeze (0.3.0). Deadline: 0.3.0.

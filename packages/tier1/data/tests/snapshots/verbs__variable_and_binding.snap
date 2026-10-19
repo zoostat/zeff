@@ -1,0 +1,7 @@
+---
+source: packages/tier1/data/tests/verbs.rs
+expression: without_format_notes(&stderr)
+---
+warning: `hours` is both a variable of w and a binding; the variable was used (line 3)
+  = help: rename the binding, or write `w["hours"]` and the binding apart; inside a frame method a bare name is the frame's variable first
+note: 1 row dropped where `hours > 36` was NA; `w.where(is_missing(hours))` lists them (line 3)

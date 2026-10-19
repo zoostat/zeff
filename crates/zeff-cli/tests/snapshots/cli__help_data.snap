@@ -2,13 +2,19 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: out(&o)
 ---
-data · tier 1 · 9 of 59 functions in this release
+data · tier 1 · 15 of 59 functions in this release
 
   frame       Create a frame from named lists of values
   import      Read a data file into a frame
   n_rows      Number of rows
   n_cols      Number of variables
   variables   List of variable names
+  head        First n rows
+  tail        Last n rows
+  where       Keep the rows where a condition is true
+  select      Keep only the named variables
+  drop        Remove the named variables
+  rename      Rename variables; the new name is on the left
   describe    Type, non-missing and missing count of each variable
   mean        Mean of a variable
   sd          Sample standard deviation

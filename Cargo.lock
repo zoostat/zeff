@@ -1129,6 +1129,7 @@ dependencies = [
  "arrow-buffer",
  "arrow-ipc",
  "arrow-schema",
+ "arrow-select",
  "proptest",
  "zeff-dates",
  "zeff-numeric",

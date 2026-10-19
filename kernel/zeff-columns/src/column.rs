@@ -357,6 +357,26 @@ impl Column {
         }
     }
 
+    /// The rows at `rows`, in that order, as a column of their own (a selection: `where`, `sort`,
+    /// `head` of a non-contiguous choice). A row may appear more than once or not at all.
+    pub fn take(&self, rows: &[usize]) -> Column {
+        let indices = arrow_array::UInt64Array::from_iter_values(rows.iter().map(|&r| r as u64));
+        let taken = arrow_select::take::take(self.to_arrow().as_ref(), &indices, None)
+            .expect("row positions within the column");
+        let data = match &self.data {
+            Data::Opaque(kind, _) => Data::Opaque(*kind, taken),
+            _ => {
+                Column::from_arrow(taken, self.ty())
+                    .expect("the taken array has the column's type")
+                    .data
+            }
+        };
+        Column {
+            data,
+            metadata: self.metadata.clone(),
+        }
+    }
+
     // ----- typed access: `None` when the column is of another type -----
 
     pub fn as_bools(&self) -> Option<impl Iterator<Item = Option<bool>> + '_> {

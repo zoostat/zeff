@@ -136,4 +136,67 @@ impl Table {
             metadata: self.metadata.clone(),
         }
     }
+
+    /// The last `n` rows (every row when `n` is larger), sharing the buffers.
+    pub fn tail(&self, n: usize) -> Table {
+        let n = n.min(self.rows);
+        let offset = self.rows - n;
+        Table {
+            names: self.names.clone(),
+            columns: self.columns.iter().map(|c| c.slice(offset, n)).collect(),
+            rows: n,
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    /// The rows at `rows`, in that order: the selection a verb such as `where` or `sort` makes.
+    /// Every column's metadata and the frame's are kept.
+    pub fn take_rows(&self, rows: &[usize]) -> Table {
+        Table {
+            names: self.names.clone(),
+            columns: self.columns.iter().map(|c| c.take(rows)).collect(),
+            rows: rows.len(),
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    /// The columns at `positions`, in that order, sharing the buffers (`select`); the frame's
+    /// metadata is kept.
+    pub fn select(&self, positions: &[usize]) -> Table {
+        Table {
+            names: positions.iter().map(|&p| self.names[p].clone()).collect(),
+            columns: positions.iter().map(|&p| self.columns[p].clone()).collect(),
+            rows: self.rows,
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    /// Every column but those at `positions` (`drop`).
+    pub fn without(&self, positions: &[usize]) -> Table {
+        let kept: Vec<usize> = (0..self.columns.len())
+            .filter(|p| !positions.contains(p))
+            .collect();
+        self.select(&kept)
+    }
+
+    /// The table with the column at `position` called `name`; the columns and their metadata are
+    /// the same. A name another column has is an error.
+    pub fn rename(&self, position: usize, name: &str) -> Result<Table, TableError> {
+        if self
+            .names
+            .iter()
+            .enumerate()
+            .any(|(i, n)| i != position && n == name)
+        {
+            return Err(TableError::DuplicateName(name.to_string()));
+        }
+        let mut names = self.names.clone();
+        names[position] = name.to_string();
+        Ok(Table {
+            names,
+            columns: self.columns.clone(),
+            rows: self.rows,
+            metadata: self.metadata.clone(),
+        })
+    }
 }

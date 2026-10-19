@@ -1,0 +1,27 @@
+---
+source: packages/tier1/data/tests/verbs.rs
+expression: all
+---
+error[Z0401]: `n:` of `head` cannot be -1
+ --> scripts/main.zeff:2:8
+  |
+2 | w.head(-1)
+  |        ^^ a count of rows
+  |
+  = help: write how many rows to show, 0 or more: `head(n: 5)`
+
+error[Z0401]: `n` of `tail` must be an Int, but this is a Float
+ --> scripts/main.zeff:2:11
+  |
+2 | w.tail(n: 2.5)
+  |           ^^^ a Float
+  |
+  = help: usage: `data.tail(n: Int = 10)`
+
+error[Z0401]: `n:` of `head` cannot be NA
+ --> scripts/main.zeff:2:8
+  |
+2 | w.head(NA)
+  |        ^^ a count of rows
+  |
+  = help: write how many rows to show: `head(n: 5)`

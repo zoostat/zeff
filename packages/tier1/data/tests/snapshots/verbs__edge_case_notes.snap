@@ -1,0 +1,7 @@
+---
+source: packages/tier1/data/tests/verbs.rs
+expression: without_format_notes(&stderr)
+---
+note: no row kept: the result is empty (line 2)
+note: 3 rows dropped where `x > 1` was NA; `a.where(is_missing(x))` lists them (line 6)
+note: no row kept: the result is empty (line 6)

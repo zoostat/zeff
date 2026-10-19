@@ -1,0 +1,59 @@
+---
+source: packages/tier1/data/tests/verbs.rs
+expression: all
+---
+error[Z0101]: no variable `wge` in `w`
+ --> scripts/main.zeff:2:10
+  |
+2 | w.select(wge)
+  |          ^^^ not a variable of w
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+error[Z0102]: no variable `Hours` in `w`; names are case-sensitive
+ --> scripts/main.zeff:2:8
+  |
+2 | w.drop([id, Hours])
+  |        ^^^^^^^^^^^ differs only in case from `hours`
+  |
+  = help: write `hours`
+
+error[Z0401]: the range `hours..id` runs backwards: `id` comes before `hours` in w
+ --> scripts/main.zeff:2:10
+  |
+2 | w.select(hours..id)
+  |          ^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of w, in order: id, wage, hours, name
+
+error[Z0401]: `rename` would give two variables of w the name `wage`
+ --> scripts/main.zeff:2:17
+  |
+2 | w.rename(wage = id)
+  |                 ^^ a name another variable has
+  |
+  = help: `drop(wage)` first, or choose another name
+
+error[Z0101]: no variable `wge` in `w`
+ --> scripts/main.zeff:2:16
+  |
+2 | w.rename(pay = wge)
+  |                ^^^ not a variable of w
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+error[Z0401]: `rename` defines columns from a Var, but `pay` is a Str
+ --> scripts/main.zeff:2:16
+  |
+2 | w.rename(pay = "wage")
+  |                ^^^^^^ a Str
+  |
+  = help: usage: `data.rename(name = Var, ...)`
+
+error[Z0401]: `vars` of `select` must be a Vars, but this is a Str
+ --> scripts/main.zeff:2:10
+  |
+2 | w.select("wage")
+  |          ^^^^^^ a Str
+  |
+  = help: name the variables in a list, as in `[lwage, educ]`

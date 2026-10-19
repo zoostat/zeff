@@ -32,6 +32,8 @@ fn build(
     let mut ctx = CallContext {
         files: &NoFiles,
         script: "t.zeff",
+        text: "",
+        columns_used: Vec::new(),
         callee_span: Span::new(0, 5),
         arg_spans: Vec::new(),
         rest_spans: Vec::new(),

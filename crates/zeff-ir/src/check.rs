@@ -41,6 +41,7 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
         found: Diagnostics::new(),
         bindings: Vec::new(),
         scope: Vec::new(),
+        frame_scope: 0,
     };
     let mut statements = Vec::new();
     for item in &script.items {
@@ -83,6 +84,9 @@ struct Checker<'a> {
     bindings: Vec<Binding>,
     /// The bindings in scope, by name; a later `let` shadows an earlier one.
     scope: Vec<(String, BindingId)>,
+    /// How many frame-method arguments that take columns enclose the expression being checked:
+    /// inside one, a bare name is a column of the receiver before it is a binding.
+    frame_scope: usize,
 }
 
 impl Checker<'_> {
@@ -395,6 +399,20 @@ impl Checker<'_> {
         }
     }
 
+    /// An argument of a call: inside a frame method, an argument whose parameter takes a column
+    /// is checked with the receiver's columns in scope (section 3.7, "Name lookup").
+    fn argument(&mut self, value: &ast::Expr, ty: &Ty, frame_method: bool) -> Expr {
+        let columns = frame_method && takes_columns(ty);
+        if columns {
+            self.frame_scope += 1;
+        }
+        let lowered = self.expr(value, Some(ty));
+        if columns {
+            self.frame_scope -= 1;
+        }
+        lowered
+    }
+
     /// A bare name: what it means depends on the parameter's type (section 3.7, "Resolution by
     /// parameter type").
     fn name(&mut self, path: &ast::Path, span: Span, expected: Option<&Ty>) -> Expr {
@@ -464,6 +482,26 @@ impl Checker<'_> {
             }
             _ => {}
         }
+        if self.frame_scope > 0 {
+            // Inside a frame method's column argument: the receiver's column first, then a
+            // binding; which one is known only when the statement runs (section 3.7).
+            let binding = self.lookup(&text);
+            // With a binding of the name in scope the value may be either, so its type is not
+            // known; without one it is a column.
+            let ty = if binding.is_some() {
+                Ty::Unknown
+            } else {
+                Ty::Column(Box::new(Ty::Unknown))
+            };
+            return Expr {
+                ty,
+                span,
+                kind: ExprKind::FrameName {
+                    name: text,
+                    binding,
+                },
+            };
+        }
         if let Some(id) = self.lookup(&text) {
             return Expr {
                 ty: self.bindings[id].ty.clone(),
@@ -526,6 +564,13 @@ impl Checker<'_> {
                 match &item.kind {
                     ast::ExprKind::Name(p) if p.segments.len() == 1 => {
                         names.push(p.segments[0].text.clone())
+                    }
+                    ast::ExprKind::Binary {
+                        op: ast::BinaryOp::Range,
+                        lhs,
+                        rhs,
+                    } if variable_range(lhs, rhs).is_some() => {
+                        names.push(variable_range(lhs, rhs).unwrap_or_default())
                     }
                     _ => all_names = false,
                 }
@@ -663,6 +708,16 @@ impl Checker<'_> {
         span: Span,
         expected: Option<&Ty>,
     ) -> Expr {
+        if op == ast::BinaryOp::Range
+            && accepts_vars(expected)
+            && let Some(range) = variable_range(lhs, rhs)
+        {
+            return Expr {
+                ty: Ty::Vars,
+                span,
+                kind: ExprKind::Vars(vec![range]),
+            };
+        }
         use ast::BinaryOp as B;
         if op == B::Interact {
             self.report(
@@ -1326,6 +1381,8 @@ impl Checker<'_> {
             order.push(Slot::Param(0));
             next_positional = 1;
         }
+        // A method on a frame: its column-taking arguments see the receiver's columns.
+        let frame_method = spec.method && params.first().is_some_and(|(_, ty, _)| *ty == Ty::Frame);
         let mut named_seen = false;
         // An argument mistake in this call; a message that would only follow from it is not added.
         let mut argument_error = false;
@@ -1342,7 +1399,7 @@ impl Checker<'_> {
                     }
                     if next_positional < params.len() {
                         let (_, ty, _) = &params[next_positional];
-                        let lowered = self.expr(e, Some(ty));
+                        let lowered = self.argument(e, ty, frame_method);
                         slots[next_positional] = Some(lowered);
                         order.push(Slot::Param(next_positional));
                         next_positional += 1;
@@ -1430,7 +1487,7 @@ impl Checker<'_> {
                         continue;
                     }
                     let (_, ty, _) = &params[position];
-                    let lowered = self.expr(value, Some(ty));
+                    let lowered = self.argument(value, ty, frame_method);
                     slots[position] = Some(lowered);
                     order.push(Slot::Param(position));
                 }
@@ -1441,7 +1498,7 @@ impl Checker<'_> {
                     match &spec.rest {
                         Some(Rest::Definitions(ty)) => {
                             let ty = Ty::parse(ty).unwrap_or(Ty::Any);
-                            let lowered = self.expr(value, Some(&ty));
+                            let lowered = self.argument(value, &ty, frame_method);
                             let lowered = self.no_nothing(lowered, "defined");
                             if definitions.iter().any(|(n, _)| *n == def_name.text) {
                                 self.report(
@@ -1536,6 +1593,23 @@ impl Checker<'_> {
                         Diagnostic::error("Z0406", format!("`{fname}` needs `{pname}`"))
                             .primary(callee_span, format!("`{pname}` is missing"))
                             .help(format!("usage: `{}`", spec.usage())),
+                    );
+                }
+                // A single value where a condition over the rows is wanted (Z0203, section 5.6).
+                Some(given)
+                    if matches!(ty, Ty::Column(inner) if **inner == Ty::Bool)
+                        && matches!(given.ty, Ty::Bool | Ty::Na) =>
+                {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0203",
+                            format!(
+                                "`{fname}` needs a condition that is true or false in every row, but this is {}",
+                                if given.ty == Ty::Na { "NA".to_string() } else { "a single Bool".to_string() }
+                            ),
+                        )
+                        .primary(given.span, "not a condition over the rows")
+                        .help("a condition is an expression over the frame's variables, such as `hours > 40`; `is_missing(x)` tests for a missing value"),
                     );
                 }
                 Some(given) if !ty.accepts(&given.ty) => {
@@ -1740,6 +1814,29 @@ impl Checker<'_> {
                 format: Some(format),
             },
         }
+    }
+}
+
+/// A parameter type that takes a column, so that a bare name in the argument is a column of
+/// the receiver (`where(condition)`, the definitions of `add`).
+fn takes_columns(ty: &Ty) -> bool {
+    match ty {
+        Ty::Column(_) => true,
+        Ty::Union(options) => options.iter().any(takes_columns),
+        _ => false,
+    }
+}
+
+/// `a..b` with two bare names where variables are expected: a variable range (section 3.7,
+/// "Variable ranges"), kept as one entry and expanded against the frame when the statement runs.
+fn variable_range(lhs: &ast::Expr, rhs: &ast::Expr) -> Option<String> {
+    match (&lhs.kind, &rhs.kind) {
+        (ast::ExprKind::Name(a), ast::ExprKind::Name(b))
+            if a.segments.len() == 1 && b.segments.len() == 1 =>
+        {
+            Some(format!("{}..{}", a.segments[0].text, b.segments[0].text))
+        }
+        _ => None,
     }
 }
 

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, format_float, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Note, Notes, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, fail};
-use zeff_core::value::{TypeValue, Value};
+use zeff_core::value::{Frame, TypeValue, Value};
 use zeff_diagnostics::{Diagnostic, Source};
 use zeff_ir::ir::{BinaryOp, UnaryOp};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
@@ -46,6 +46,9 @@ pub struct Interpreter<'a> {
     panic_at_line: Option<u32>,
     /// The page width printed frames and tables wrap at.
     width: usize,
+    /// The frames whose methods are being called, innermost last, with the columns each call's
+    /// arguments have named so far (section 3.7, "Name lookup").
+    receivers: Vec<(Frame, Vec<String>)>,
 }
 
 impl<'a> Interpreter<'a> {
@@ -65,6 +68,7 @@ impl<'a> Interpreter<'a> {
             program,
             panic_at_line: None,
             width: PAGE_WIDTH,
+            receivers: Vec::new(),
         }
     }
 
@@ -172,6 +176,9 @@ impl<'a> Interpreter<'a> {
             },
             ExprKind::Var(name) => Value::Var(name.clone()),
             ExprKind::Vars(names) => Value::Vars(names.clone()),
+            ExprKind::FrameName { name, binding } => {
+                self.frame_name(expr, name, *binding, messages)?
+            }
             ExprKind::Word(word) => Value::Word(word.clone()),
             ExprKind::List(items) => {
                 let mut values = Vec::with_capacity(items.len());
@@ -361,6 +368,55 @@ impl<'a> Interpreter<'a> {
         })
     }
 
+    /// A bare name inside a frame method's argument: the receiver's column of that name, else the
+    /// binding; both at once is the column with a warning (section 3.7, "Name lookup").
+    fn frame_name(
+        &mut self,
+        expr: &Expr,
+        name: &str,
+        binding: Option<zeff_ir::BindingId>,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let Some((frame, used)) = self.receivers.last_mut() else {
+            return Err(self.internal(expr, "a frame name was read outside a frame method"));
+        };
+        if let Some(column) = frame.table.column(name) {
+            if !used.iter().any(|u| u == name) {
+                used.push(name.to_string());
+            }
+            let column = column.clone();
+            if let Some(id) = binding {
+                let frame_name = frame.shown_name();
+                let bound = self.program.bindings[id].name.clone();
+                messages.push(
+                    Diagnostic::warning(
+                        "W0102",
+                        format!("`{bound}` is both a variable of {frame_name} and a binding; the variable was used"),
+                    )
+                    .help(format!("rename the binding, or write `{frame_name}[\"{bound}\"]` and the binding apart; inside a frame method a bare name is the frame's variable first")),
+                );
+            }
+            return Ok(Value::Column(column));
+        }
+        match binding {
+            Some(id) => match self.env.get(&id) {
+                Some(value) => Ok(value.clone()),
+                None => Err(self.internal(expr, "a binding was read before it was made")),
+            },
+            None => {
+                let frame_name = frame.shown_name();
+                let columns: Vec<&str> = frame.table.names().iter().map(String::as_str).collect();
+                Err(fail(zeff_diagnostics::messages::no_variable(
+                    self.script,
+                    expr.span,
+                    &frame_name,
+                    name,
+                    &columns,
+                )))
+            }
+        }
+    }
+
     fn call(
         &mut self,
         call: &Call,
@@ -381,20 +437,63 @@ impl<'a> Interpreter<'a> {
             .iter()
             .map(|(n, _)| (n.clone(), Value::Nothing))
             .collect();
-        // In the order written (section 3.7, "Arguments").
+        // In the order written (section 3.7, "Arguments"). A frame receiver, evaluated first, is
+        // in scope for the arguments that follow it.
+        let mut pushed = false;
         for slot in &call.order {
             match slot {
                 Slot::Param(i) => {
                     if let Some(expr) = &call.args[*i] {
-                        values[*i] = Some(self.eval(expr, printed, messages)?);
+                        let value = self.eval(expr, printed, messages);
+                        let value = match value {
+                            Ok(v) => v,
+                            Err(e) => {
+                                if pushed {
+                                    self.receivers.pop();
+                                }
+                                return Err(e);
+                            }
+                        };
+                        if *i == 0
+                            && !pushed
+                            && let Value::Frame(frame) = &value
+                        {
+                            self.receivers.push((frame.clone(), Vec::new()));
+                            pushed = true;
+                        }
+                        values[*i] = Some(value);
                     }
                 }
-                Slot::Rest(i) => rest[*i] = self.eval(&call.rest[*i], printed, messages)?,
+                Slot::Rest(i) => match self.eval(&call.rest[*i], printed, messages) {
+                    Ok(v) => rest[*i] = v,
+                    Err(e) => {
+                        if pushed {
+                            self.receivers.pop();
+                        }
+                        return Err(e);
+                    }
+                },
                 Slot::Definition(i) => {
-                    definitions[*i].1 = self.eval(&call.definitions[*i].1, printed, messages)?
+                    match self.eval(&call.definitions[*i].1, printed, messages) {
+                        Ok(v) => definitions[*i].1 = v,
+                        Err(e) => {
+                            if pushed {
+                                self.receivers.pop();
+                            }
+                            return Err(e);
+                        }
+                    }
                 }
             }
         }
+        let columns_used = if pushed {
+            self.receivers
+                .pop()
+                .map(|(_, used)| used)
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
         let arg_spans: Vec<Option<zeff_diagnostics::Span>> = call
             .args
             .iter()
@@ -403,6 +502,8 @@ impl<'a> Interpreter<'a> {
         let mut ctx = CallContext {
             files: self.files,
             script: self.script,
+            text: self.source.text(),
+            columns_used,
             callee_span: call.callee_span,
             arg_spans,
             rest_spans: call.rest.iter().map(|e| e.span).collect(),

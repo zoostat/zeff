@@ -12,6 +12,7 @@ use std::path::Path;
 
 /// For the warnings printed without their code, a phrase every snapshot of them contains.
 const PHRASES: &[(&str, &[&str])] = &[
+    ("W0102", &["and a binding; the variable was used"]),
     ("W0201", &["with NA in", "has no values", "have NA in"]),
     (
         "W0204",

@@ -28,6 +28,11 @@ pub struct CallContext<'a> {
     pub files: &'a dyn Files,
     /// The script's name, for diagnostics.
     pub script: &'a str,
+    /// The script's text, so that a message may quote an argument as written.
+    pub text: &'a str,
+    /// The receiver's columns that a frame method's arguments named, in the order first used
+    /// (`where` names the one with `NA` in its note).
+    pub columns_used: Vec<String>,
     /// Where the function's name is written.
     pub callee_span: Span,
     /// Where each argument is written, by parameter position; `None` for an omitted argument.
@@ -41,6 +46,12 @@ pub struct CallContext<'a> {
 }
 
 impl CallContext<'_> {
+    /// The text of the argument at parameter position `i`, as the script writes it.
+    pub fn text_of(&self, i: usize) -> &str {
+        let span = self.span_of(i);
+        self.text.get(span.start..span.end).unwrap_or("")
+    }
+
     /// The span of the argument at parameter position `i`, or the call's name when it was omitted.
     pub fn span_of(&self, i: usize) -> Span {
         self.arg_spans

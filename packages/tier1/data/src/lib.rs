@@ -6,6 +6,7 @@ pub mod import;
 pub mod look;
 pub mod names;
 pub mod reducers;
+pub mod verbs;
 
 use zeff_core::runtime::Function;
 use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec, Rest};
@@ -143,6 +144,137 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: look::variables,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "head",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option_with_default("n", "Int", "10"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![DiagnosticDecl::new("Z0401", "n: is negative or NA")],
+                help: include_str!("../help/head.md"),
+                accuracy: None,
+            },
+            body: verbs::head,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "tail",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option_with_default("n", "Int", "10"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![DiagnosticDecl::new("Z0401", "n: is negative or NA")],
+                help: include_str!("../help/tail.md"),
+                accuracy: None,
+            },
+            body: verbs::tail,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "where",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("condition", "Column<Bool>"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows dropped because the condition was NA, with the count and a statement that lists them; no row kept",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in the condition is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the condition names a variable the frame does not have",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0203",
+                        "the condition is a single Bool, NA, or a column of another type",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0217",
+                        "the condition has another number of rows than the frame",
+                    ),
+                ],
+                help: include_str!("../help/where.md"),
+                accuracy: None,
+            },
+            body: verbs::where_,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "select",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("vars", "Vars"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new("Z0401", "a range that runs backwards"),
+                ],
+                help: include_str!("../help/select.md"),
+                accuracy: None,
+            },
+            body: verbs::select,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "drop",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("vars", "Vars"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new("Z0401", "a range that runs backwards"),
+                ],
+                help: include_str!("../help/drop.md"),
+                accuracy: None,
+            },
+            body: verbs::drop,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "rename",
+                package: "data",
+                method: true,
+                params: vec![ParamSpec::required("data", "Frame")],
+                rest: Some(Rest::Definitions("Var")),
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0101", "the old name is not a variable of the frame"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the new name is another variable's, or the old name is not a bare name",
+                    ),
+                ],
+                help: include_str!("../help/rename.md"),
+                accuracy: None,
+            },
+            body: verbs::rename,
         },
         Function {
             spec: FunctionSpec {

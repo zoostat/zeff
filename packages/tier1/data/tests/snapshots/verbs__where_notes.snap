@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/verbs.rs
+expression: without_format_notes(&stderr)
+---
+note: 1 row dropped where `hours > 36` was NA; `w.where(is_missing(hours))` lists them (line 2)
+note: no row kept: the result is empty (line 5)
+note: 1 row dropped where `!(hours > 36)` was NA; `w.where(is_missing(hours))` lists them (line 6)
+note: 1 row dropped where `hours > limit` was NA; `w.where(is_missing(hours))` lists them (line 8)
+warning: 1 row with NA in hours was skipped (line 9)
+note: 1 row dropped where `hours > w.mean(hours)` was NA; `w.where(is_missing(hours))` lists them (line 9)
+note: 1 row dropped where `abs(hours - 40) < 3` was NA; `w.where(is_missing(hours))` lists them (line 10)

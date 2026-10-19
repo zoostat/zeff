@@ -1,0 +1,46 @@
+---
+source: packages/tier1/data/tests/verbs.rs
+expression: all
+---
+error[Z0203]: `where` needs a condition that is true or false in every row, but this is a Column<Int>
+ --> scripts/main.zeff:2:9
+  |
+2 | w.where(hours)
+  |         ^^^^^ not a condition over the rows
+  |
+  = help: write a comparison or a Bool variable: `where(hours > 40)`, `where(female)`, `where(is_missing(hours))`
+
+error[Z0203]: `where` needs a condition that is true or false in every row, but this is a single Bool
+ --> scripts/main.zeff:2:9
+  |
+2 | w.where(true)
+  |         ^^^^ not a condition over the rows
+  |
+  = help: a condition is an expression over the frame's variables, such as `hours > 40`; `is_missing(x)` tests for a missing value
+
+error[Z0203]: `where` needs a condition that is true or false in every row, but this is NA
+ --> scripts/main.zeff:2:9
+  |
+2 | w.where(NA)
+  |         ^^ not a condition over the rows
+  |
+  = help: `x == NA` is always NA (section 4.1); `is_missing(x)` tests for a missing value
+
+error[Z0101]: no variable `hour` in `w`
+ --> scripts/main.zeff:2:9
+  |
+2 | w.where(hour > 36)
+  |         ^^^^ not a variable of w
+  |
+  = help: did you mean `hours`? If you meant a category level, write it in quotes: `"hours"`
+
+error[Z0217]: the condition has 1 row and w has 3 rows
+ --> scripts/main.zeff:3:9
+  |
+3 | w.where(o["x"] > 1)
+  |         ^^^^^^^^^^ a column of another frame
+  |
+  = help: a condition is built from the frame's own variables; `merge` joins frames (release 0.6.0)
+
+note: 3 rows dropped where `hours == NA` was NA; `w.where(is_missing(hours))` lists them (line 2)
+note: no row kept: the result is empty (line 2)

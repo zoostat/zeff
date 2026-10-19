@@ -182,3 +182,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Nothing until the dataset draft at step 18.
 
+## 19 October 2026, step 15 of release 0.2.0
+
+**Done.** Step 15 `[function]`: `head`, `tail`, `where`, `select`, `drop` and `rename`, each with its help page and examples, and the engine piece they needed: inside a frame method's argument a bare name is the frame's variable first and a binding second, resolved when the statement runs, with a warning (provisional W0102, added to open decision #46) when it is both; variable ranges `x1..x9`; row and column selection in the table kernel through `arrow-select`. `where` drops the `NA` rows with the note the specification shows, naming the variable to inspect. 8 tests added against R's frames reference and the edge cases, 6 snapshots; the catalogue rows marked implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 16, frame verbs part 2: `add`, `update`, `sort` `[function]`.
+
+**For the owner to decide.** Nothing until the dataset draft at step 18. Open decision #46 now holds four provisional codes (Z0221, Z0222, Z0410, W0102), due at 0.3.0.
+

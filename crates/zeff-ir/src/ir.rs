@@ -59,8 +59,16 @@ pub enum ExprKind {
     /// A bare name where a parameter takes a variable; resolved against the frame when the
     /// statement runs (the schema pass of `zeff check` arrives with 0.6.0).
     Var(String),
-    /// One or more bare names where a parameter takes variables.
+    /// One or more bare names where a parameter takes variables; `x1..x9` is kept as one entry
+    /// and expanded against the frame.
     Vars(Vec<String>),
+    /// A bare name inside a frame method's argument (section 3.7, "Name lookup"): the receiver's
+    /// column of that name when the frame has one, else the binding, resolved when the statement
+    /// runs because the frame's columns are not known before.
+    FrameName {
+        name: String,
+        binding: Option<BindingId>,
+    },
     /// A word from a parameter's fixed list.
     Word(String),
     List(Vec<Expr>),
