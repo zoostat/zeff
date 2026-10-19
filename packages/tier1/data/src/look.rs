@@ -9,6 +9,9 @@ use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Align, Frame, Table, Value};
 use zeff_diagnostics::{Diagnostic, count};
 
+/// A group's key cells and the rows it holds, for `describe(by:)`.
+type GroupBlock = (Vec<String>, Vec<usize>);
+
 /// The frame a look method was called on.
 fn the_frame<'a>(ctx: &CallContext<'_>, name: &str, args: &'a Args) -> Result<&'a Frame, Fail> {
     match args.get(0) {
@@ -43,9 +46,66 @@ pub fn n_cols(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 /// owner's decision of 18 October 2026), printed as the value prints elsewhere; a category's
 /// example adds its number of levels.
 pub fn describe(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let frame = the_frame(ctx, "describe", &args)?;
-    let table = &frame.table;
-    let rows = table
+    let frame = the_frame(ctx, "describe", &args)?.clone();
+    // With `by:`, one block of rows per group, the group's keys in the first columns.
+    let grouped = crate::reducers::groups_for(ctx, &frame, &args, 1)?;
+    let (key_names, group_rows): (Vec<String>, Vec<GroupBlock>) = match &grouped {
+        None => (
+            Vec::new(),
+            vec![(Vec::new(), (0..frame.table.rows()).collect())],
+        ),
+        Some((keys, groups)) => {
+            let key_columns: Vec<&zeff_columns::Column> =
+                keys.iter().filter_map(|k| frame.table.column(k)).collect();
+            let blocks = (0..groups.len())
+                .map(|g| {
+                    let first = groups.rows(g)[0];
+                    let cells: Vec<String> = key_columns
+                        .iter()
+                        .map(|c| cell(c.get(first).unwrap_or(Cell::Na)))
+                        .collect();
+                    (cells, groups.rows(g).to_vec())
+                })
+                .collect();
+            (keys.clone(), blocks)
+        }
+    };
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    for (key_cells, members) in &group_rows {
+        let table = if grouped.is_some() {
+            frame.table.take_rows(members)
+        } else {
+            (*frame.table).clone()
+        };
+        for row in describe_rows(&table) {
+            let mut full = key_cells.clone();
+            full.extend(row);
+            rows.push(full);
+        }
+    }
+    let mut columns: Vec<(String, Align)> =
+        key_names.iter().map(|k| (k.clone(), Align::Left)).collect();
+    columns.extend([
+        ("variable".to_string(), Align::Left),
+        ("type".to_string(), Align::Left),
+        ("non-missing".to_string(), Align::Right),
+        ("missing".to_string(), Align::Right),
+        ("example".to_string(), Align::Left),
+    ]);
+    let title = match &grouped {
+        Some((keys, _)) => format!("{} · by {}", frame_header(&frame), keys.join(", ")),
+        None => frame_header(&frame),
+    };
+    Ok(Value::Table(Table {
+        title,
+        columns,
+        rows,
+    }))
+}
+
+/// One row per variable of `table`: name, type, counts and an example value.
+fn describe_rows(table: &zeff_columns::Table) -> Vec<Vec<String>> {
+    table
         .names()
         .iter()
         .enumerate()
@@ -75,18 +135,7 @@ pub fn describe(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 example,
             ]
         })
-        .collect();
-    Ok(Value::Table(Table {
-        title: frame_header(frame),
-        columns: vec![
-            ("variable".to_string(), Align::Left),
-            ("type".to_string(), Align::Left),
-            ("non-missing".to_string(), Align::Right),
-            ("missing".to_string(), Align::Right),
-            ("example".to_string(), Align::Left),
-        ],
-        rows,
-    }))
+        .collect()
 }
 
 /// `data.variables()`: the variable names in the frame's order, as a list of Str.

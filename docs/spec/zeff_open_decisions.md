@@ -505,7 +505,7 @@ Found while writing the operators of 0.2.0 (docs/releases/0.2.0.md, step 2). Sec
 | --- | --- |
 | An operator applied to types it does not take: a Bool or `Nothing` in arithmetic (text has its own Z0215), `-` on text, `!` on a number, `&&` or `||` on numbers, a comparison across types (`1 == "1"`, `true < 2`), `..` with a Float end, `[ ]` on a number, a list indexed by text, a mapping key of another type | Z0221 |
 | A mapping key written twice in a literal (check time) or computed twice (run time) | Z0222 |
-| Two options of one call that exclude each other, given together: `round(x, digits: 2, sig: 3)` (found at step 11; section 3.7 gives `round` both options and no rule for the pair) | Z0410 |
+| Two options of one call that exclude each other, given together: `round(x, digits: 2, sig: 3)` (found at step 11; section 3.7 gives `round` both options and no rule for the pair). Section 6 already uses Z0410 for one such pair, `se: classical` with `weight_type: sampling`; the page generalises that use | Z0410 |
 | A bare name inside a frame method's argument that is both a variable of the frame and a binding: the variable is used, with a warning (found at step 15; section 3.7, "Name lookup", asks for the warning and gives it no code) | W0102 |
 
 *Recommendation.* Accept all four and add them to section 11 with the codes of #41 to #44 after the freeze (0.3.0). Deadline: 0.3.0.

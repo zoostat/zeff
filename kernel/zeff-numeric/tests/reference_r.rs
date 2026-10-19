@@ -256,3 +256,127 @@ fn the_descriptive_reducers_agree_with_r() {
         }
     }
 }
+
+#[test]
+fn the_nine_quantile_types_and_the_median_agree_with_r_to_the_bit() {
+    let reference = reference("descriptive.json");
+    for (name, dataset) in reference["datasets"].as_object().unwrap() {
+        let Some(file) = dataset["file"].as_str() else {
+            continue;
+        };
+        if !file.starts_with("tests/reference/data/") {
+            continue;
+        }
+        let text = std::fs::read_to_string(root().join(file)).unwrap();
+        let mut values: Vec<f64> = text.lines().skip(1).map(|l| l.parse().unwrap()).collect();
+        values.sort_by(f64::total_cmp);
+        let stats = &dataset["columns"]["x"];
+        let probs: Vec<f64> = stats["quantiles"]["probs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(number)
+            .collect();
+        for kind in 1..=9u8 {
+            let expected = stats["quantiles"][format!("type{kind}")]
+                .as_array()
+                .unwrap();
+            for (p, want) in probs.iter().zip(expected) {
+                let got = zeff_numeric::order::quantile(&values, *p, kind).unwrap();
+                // R's values carry 15 digits; the arithmetic is R's own, so they agree to those.
+                agree(
+                    &format!("{name}: type {kind} at {p}"),
+                    got,
+                    number(want),
+                    FIFTEEN_DIGITS,
+                );
+            }
+        }
+        agree(
+            &format!("{name}: median"),
+            zeff_numeric::order::median(&values).unwrap(),
+            number(&stats["median"]),
+            FIFTEEN_DIGITS,
+        );
+    }
+}
+
+#[test]
+fn the_weighted_statistics_agree_with_r() {
+    use zeff_numeric::order::{
+        WeightKind, weighted_mean, weighted_quantile, weighted_sum, weighted_variance,
+    };
+    let reference = reference("descriptive.json");
+    let weighted = &reference["datasets"]["wages_large"]["weighted"];
+    assert_eq!(weighted["weights"].as_str(), Some("educ"));
+    let text = std::fs::read_to_string(root().join("tests/datasets/wages_large.csv")).unwrap();
+    let mut lines = text.lines();
+    let header: Vec<&str> = lines.next().unwrap().split(',').collect();
+    let column = |name: &str| header.iter().position(|h| *h == name).unwrap();
+    let (wage_at, hours_at, educ_at) = (column("wage"), column("hours"), column("educ"));
+    let rows: Vec<Vec<&str>> = lines.map(|l| l.split(',').collect()).collect();
+    for (name, at) in [("wage", wage_at), ("hours", hours_at)] {
+        let mut pairs: Vec<(f64, f64)> = rows
+            .iter()
+            .filter(|r| !r[at].is_empty())
+            .map(|r| (r[at].parse().unwrap(), r[educ_at].parse().unwrap()))
+            .collect();
+        let values: Vec<f64> = pairs.iter().map(|p| p.0).collect();
+        let weights: Vec<f64> = pairs.iter().map(|p| p.1).collect();
+        let r = &weighted[name];
+        assert_eq!(r["n"].as_u64().unwrap() as usize, values.len());
+        let tolerance = 1e-12;
+        agree(
+            &format!("{name}: weighted mean"),
+            weighted_mean(&values, &weights).unwrap(),
+            number(&r["mean"]),
+            tolerance,
+        );
+        agree(
+            &format!("{name}: frequency variance"),
+            weighted_variance(&values, &weights, WeightKind::Frequency).unwrap(),
+            number(&r["variance_frequency"]),
+            tolerance,
+        );
+        agree(
+            &format!("{name}: analytic variance"),
+            weighted_variance(&values, &weights, WeightKind::Analytic).unwrap(),
+            number(&r["variance_analytic"]),
+            tolerance,
+        );
+        agree(
+            &format!("{name}: frequency sum"),
+            weighted_sum(&values, &weights, WeightKind::Frequency),
+            number(&r["sum_frequency"]),
+            tolerance,
+        );
+        agree(
+            &format!("{name}: analytic sum"),
+            weighted_sum(&values, &weights, WeightKind::Analytic),
+            number(&r["sum_analytic"]),
+            tolerance,
+        );
+        pairs.sort_by(|a, b| a.0.total_cmp(&b.0));
+        assert_eq!(
+            weighted_quantile(&pairs, 0.5),
+            Some(number(&r["median"])),
+            "{name}: weighted median"
+        );
+        let probs: Vec<f64> = r["quantiles"]["probs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(number)
+            .collect();
+        for (p, want) in probs
+            .iter()
+            .zip(r["quantiles"]["values"].as_array().unwrap())
+        {
+            assert_eq!(
+                weighted_quantile(&pairs, *p),
+                Some(number(want)),
+                "{name}: weighted quantile at {p}"
+            );
+        }
+    }
+}

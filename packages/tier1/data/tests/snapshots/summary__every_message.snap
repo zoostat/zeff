@@ -123,13 +123,22 @@ error[Z0401]: `summary` cannot be called on an Int
 1 | summary(3)
   |         ^ this is an Int
   |
-  = help: usage: `data.summary(vars: Vars, stats: List<n | missing | mean | sd | min | max>)`
+  = help: usage: `data.summary(vars: Vars, stats: List<n | missing | mean | sd | min | max>, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)`
 
-## unknown_option (exit 1)
-error[Z0404]: `summary` has no argument called `by`
- --> scripts/main.zeff:2:11
-  |
-2 | w.summary(by: id)
-  |           ^^ unknown argument
-  |
-  = help: usage: `data.summary(vars: Vars, stats: List<n | missing | mean | sd | min | max>)`
+## unknown_option (exit 0)
+summary · by id
+
+  id   variable   N   missing     mean   sd      min      max
+  1    id         1         0    1.000   NA    1.000    1.000
+  2    id         1         0    2.000   NA    2.000    2.000
+  3    id         1         0    3.000   NA    3.000    3.000
+  1    wage       1         0   23.400   NA   23.400   23.400
+  2    wage       1         0   19.000   NA   19.000   19.000
+  3    wage       1         0   31.200   NA   31.200   31.200
+  1    hours      1         0   40.000   NA   40.000   40.000
+  2    hours      1         0   35.000   NA   35.000   35.000
+  3    hours      0         1       NA   NA       NA       NA
+warning: 1 row with NA in hours was skipped (line 2)
+warning: sd needs at least two values, but id has one: its sd is NA (line 2)
+warning: sd needs at least two values, but wage has one: its sd is NA (line 2)
+warning: sd needs at least two values, but hours has one: its sd is NA (line 2)

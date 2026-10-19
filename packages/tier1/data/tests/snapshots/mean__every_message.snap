@@ -75,7 +75,7 @@ error[Z0406]: `mean` needs `data`
 1 | mean()
   | ^^^^ `data` is missing
   |
-  = help: usage: `data.mean(var)`
+  = help: usage: `data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)`
 
 ## no_variable (exit 1)
 error[Z0406]: `mean` needs `var`
@@ -84,7 +84,7 @@ error[Z0406]: `mean` needs `var`
 2 | w.mean()
   |   ^^^^ `var` is missing
   |
-  = help: usage: `data.mean(var)`
+  = help: usage: `data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)`
 
 ## a_number_for_the_variable (exit 1)
 error[Z0401]: `var` of `mean` must be a Var, but this is an Int
@@ -104,23 +104,21 @@ error[Z0401]: `var` of `mean` must be a Var, but this is a Str
   |
   = help: name a variable of the frame, without quotes
 
-## two_variables (exit 1)
-error[Z0407]: `mean` takes 1 argument, but more were given
- --> scripts/main.zeff:2:14
-  |
-2 | w.mean(wage, hours)
-  |              ^^^^^ one too many
-  |
-  = help: usage: `data.mean(var)`
+## two_variables (exit 0)
+mean · wage by hours
 
-## an_option (exit 1)
-error[Z0404]: `mean` has no argument called `by`
- --> scripts/main.zeff:2:14
-  |
-2 | w.mean(wage, by: id)
-  |              ^^ unknown argument
-  |
-  = help: usage: `data.mean(var)`
+  hours     mean
+  35      19.000
+  40      23.400
+  NA      31.200
+
+## an_option (exit 0)
+mean · wage by id
+
+  id     mean
+  1    23.400
+  2    19.000
+  3    31.200
 
 ## not_a_frame (exit 1)
 error[Z0401]: `mean` cannot be called on an Int
@@ -129,4 +127,4 @@ error[Z0401]: `mean` cannot be called on an Int
 1 | mean(3, wage)
   |      ^ this is an Int
   |
-  = help: usage: `data.mean(var)`
+  = help: usage: `data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)`

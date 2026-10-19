@@ -45,4 +45,43 @@ datasets[["wages_large"]] <- list(
   )
 )
 
+# Weighted statistics (the owner's decision of 19 October 2026): on wages_large, the weights are
+# educ (whole numbers, so they serve as frequency weights too). Frequency weights replicate rows:
+# N = sum(w), variance divisor sum(w) - 1. Analytic and sampling weights give the mean
+# weighted.mean(x, w) and the variance with the weights scaled to sum to n, divisor n - 1, as
+# Stata's summarize [aweight]; the weighted sum is sum(w * x) (for analytic weights, scaled by
+# n / sum(w)); the weighted quantile is the smallest value whose cumulative weight reaches p of the
+# total. Rows with NA in the value are left out, as the reducers skip them.
+weighted_reference <- function(x, w) {
+  keep <- !is.na(x) & !is.na(w)
+  x <- x[keep]
+  w <- w[keep]
+  n <- length(x)
+  m <- weighted.mean(x, w)
+  freq_var <- sum(w * (x - m)^2) / (sum(w) - 1)
+  scaled <- w * n / sum(w)
+  aw_var <- sum(scaled * (x - m)^2) / (n - 1)
+  o <- order(x, method = "radix")
+  cw <- cumsum(w[o])
+  wq <- function(p) x[o][which(cw >= p * sum(w))[1]]
+  list(
+    n = n,
+    weight_sum = num(sum(w)),
+    mean = num(m),
+    variance_frequency = num(freq_var),
+    sd_frequency = num(sqrt(freq_var)),
+    variance_analytic = num(aw_var),
+    sd_analytic = num(sqrt(aw_var)),
+    sum_frequency = num(sum(w * x)),
+    sum_analytic = num(sum(w * x) * n / sum(w)),
+    median = num(wq(0.5)),
+    quantiles = list(probs = as.list(num(probs)), values = as.list(num(sapply(probs, wq))))
+  )
+}
+datasets[["wages_large"]]$weighted <- list(
+  weights = "educ",
+  wage = weighted_reference(wages$wage, wages$educ),
+  hours = weighted_reference(wages$hours, wages$educ)
+)
+
 write_json(list(reference = reference_block(), datasets = datasets), file.path(here(), "descriptive.json"))

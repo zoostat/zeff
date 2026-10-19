@@ -1,0 +1,35 @@
+---
+source: packages/tier1/data/tests/reducers2.rs
+expression: outcome.output.stdout
+---
+mean · x by g
+
+  g      mean
+  a     2.000
+  b    15.000
+  NA    7.000
+sum · x by g
+
+  g    sum
+  a      4
+  b     30
+  NA     7
+6
+quantiles · x by g
+
+  g      p0.5       p1
+  a     2.000    3.000
+  b    15.000   20.000
+  NA    7.000    7.000
+summary · by g
+
+  g    variable   N     mean
+  a    x          2    2.000
+  b    x          2   15.000
+  NA   x          1    7.000
+mean · x by g
+
+  g      mean
+  a     2.000
+  b    15.000
+  NA    7.000

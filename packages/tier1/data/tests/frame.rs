@@ -34,6 +34,7 @@ fn build(
         script: "t.zeff",
         text: "",
         columns_used: Vec::new(),
+        frame: None,
         callee_span: Span::new(0, 5),
         arg_spans: Vec::new(),
         rest_spans: Vec::new(),

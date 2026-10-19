@@ -9,7 +9,7 @@ use zeff_core::display::{PAGE_WIDTH, format_float, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Note, Notes, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, fail};
 use zeff_core::value::{Frame, TypeValue, Value};
-use zeff_diagnostics::{Diagnostic, Source};
+use zeff_diagnostics::{Diagnostic, Source, Span};
 use zeff_ir::ir::{BinaryOp, UnaryOp};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
 
@@ -59,7 +59,20 @@ struct Receiver {
     original: Frame,
     extended: Frame,
     in_definition: bool,
+    /// Under `by:`, the group whose definition is being evaluated: its rows of `extended`.
+    view: Option<Frame>,
     used: Vec<String>,
+}
+
+impl Receiver {
+    /// The frame a name or a reducer inside the call sees now.
+    fn current(&self) -> &Frame {
+        match (&self.view, self.in_definition) {
+            (Some(view), true) => view,
+            (_, true) => &self.extended,
+            _ => &self.original,
+        }
+    }
 }
 
 impl<'a> Interpreter<'a> {
@@ -391,11 +404,7 @@ impl<'a> Interpreter<'a> {
         let Some(receiver) = self.receivers.last_mut() else {
             return Err(self.internal(expr, "a frame name was read outside a frame method"));
         };
-        let frame = if receiver.in_definition {
-            &receiver.extended
-        } else {
-            &receiver.original
-        };
+        let frame = receiver.current().clone();
         if let Some(column) = frame.table.column(name) {
             if !receiver.used.iter().any(|u| u == name) {
                 receiver.used.push(name.to_string());
@@ -433,6 +442,132 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    /// The group index of `by:` on `frame` (section 6, "Row order"): keys in order, `NA` last.
+    fn group_by(
+        &self,
+        frame: &Frame,
+        by: &[String],
+        at: &Option<Expr>,
+    ) -> Result<zeff_columns::Groups, Fail> {
+        let span = at.as_ref().map_or(Span::new(0, 0), |e| e.span);
+        let shown = frame.shown_name();
+        let columns: Vec<&str> = frame.table.names().iter().map(String::as_str).collect();
+        let mut keys: Vec<&zeff_columns::Column> = Vec::with_capacity(by.len());
+        for name in by {
+            match frame.table.column(name) {
+                Some(c) => keys.push(c),
+                None => {
+                    return Err(fail(zeff_diagnostics::messages::no_variable(
+                        self.script,
+                        span,
+                        &shown,
+                        name,
+                        &columns,
+                    )));
+                }
+            }
+        }
+        zeff_columns::Groups::by(&keys).map_err(|e| match e {
+            zeff_columns::GroupError::OpaqueKey(ty) => fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("a {} variable cannot group rows", ty.name()),
+                )
+                .in_file(self.script)
+                .primary(span, "an opaque variable in `by:`")
+                .help("group by a Bool, Int, Float, Str, Date, DateTime or Category variable"),
+            ),
+            other => fail(
+                Diagnostic::error(
+                    "Z9001",
+                    format!(
+                        "internal error: this is a bug in Zeff, not in your script ({other:?})"
+                    ),
+                )
+                .in_file(self.script)
+                .primary(span, "the grouping that failed"),
+            ),
+        })
+    }
+
+    /// A definition under `by:`: evaluated once per group on the group's rows, each result (a
+    /// column of the group's length or one value for every row of the group) put back in row
+    /// order (section 6: `add(dev = lwage - mean(lwage), by: firm)`).
+    fn eval_by_group(
+        &mut self,
+        expr: &Expr,
+        groups: &zeff_columns::Groups,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let rows = self.receivers.last().map_or(0, |r| r.extended.table.rows());
+        let mut per_row: Vec<Value> = vec![Value::Na; rows];
+        let mut group_messages: Vec<Diagnostic> = Vec::new();
+        for g in 0..groups.len() {
+            let members = groups.rows(g);
+            if let Some(receiver) = self.receivers.last_mut() {
+                receiver.view = Some(Frame {
+                    table: std::rc::Rc::new(receiver.extended.table.take_rows(members)),
+                    name: receiver.extended.name.clone(),
+                });
+            }
+            let mut these: Vec<Diagnostic> = Vec::new();
+            let value = self.eval(expr, printed, &mut these)?;
+            for message in these {
+                if !group_messages
+                    .iter()
+                    .any(|m| m.code == message.code && m.message == message.message)
+                {
+                    group_messages.push(message);
+                }
+            }
+            match &value {
+                Value::Column(c) if c.len() == members.len() => {
+                    for (k, &row) in members.iter().enumerate() {
+                        per_row[row] = cell_value(c, k);
+                    }
+                }
+                Value::Column(c) => {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0217",
+                            format!(
+                                "the definition gives {} for a group of {}",
+                                plural_rows(c.len()),
+                                plural_rows(members.len())
+                            ),
+                        )
+                        .in_file(self.script)
+                        .primary(expr.span, "a column of another length")
+                        .help("under `by:` a definition is evaluated group by group and must give one value per row of the group, or one value for the group"),
+                    ));
+                }
+                scalar => {
+                    for &row in members {
+                        per_row[row] = scalar.clone();
+                    }
+                }
+            }
+        }
+        messages.extend(group_messages);
+        if rows == 0 {
+            return Ok(Value::Na);
+        }
+        match zeff_core::lift::collect_column(&per_row) {
+            Some(column) => Ok(Value::Column(column)),
+            None if per_row.iter().all(|v| matches!(v, Value::Na)) => Ok(Value::Na),
+            None => Err(fail(
+                Diagnostic::error(
+                    "Z0214",
+                    "the definition gives values of more than one type across the groups",
+                )
+                .in_file(self.script)
+                .primary(expr.span, "types that do not join")
+                .help("a variable holds one type; make every group's value the same type"),
+            )),
+        }
+    }
+
     fn call(
         &mut self,
         call: &Call,
@@ -454,9 +589,35 @@ impl<'a> Interpreter<'a> {
             .map(|(n, _)| (n.clone(), Value::Nothing))
             .collect();
         // In the order written (section 3.7, "Arguments"). A frame receiver, evaluated first, is
-        // in scope for the arguments that follow it.
+        // in scope for the arguments that follow it. The options of a frame method that takes
+        // definitions (`by:` of `add`) come before its definitions, which they shape.
         let mut pushed = false;
-        for slot in &call.order {
+        let has_definitions = !call.definitions.is_empty();
+        let order: Vec<Slot> = if has_definitions {
+            let mut first: Vec<Slot> = call
+                .order
+                .iter()
+                .filter(|s| !matches!(s, Slot::Definition(_)))
+                .cloned()
+                .collect();
+            first.extend(
+                call.order
+                    .iter()
+                    .filter(|s| matches!(s, Slot::Definition(_)))
+                    .cloned(),
+            );
+            first
+        } else {
+            call.order.clone()
+        };
+        // The groups of `by:` on a frame method with definitions, each evaluated group by group.
+        let mut groups: Option<zeff_columns::Groups> = None;
+        if call.implicit_receiver
+            && let Some(receiver) = self.receivers.last()
+        {
+            values[0] = Some(Value::Frame(receiver.current().clone()));
+        }
+        for slot in &order {
             match slot {
                 Slot::Param(i) => {
                     if let Some(expr) = &call.args[*i] {
@@ -470,6 +631,16 @@ impl<'a> Interpreter<'a> {
                                 return Err(e);
                             }
                         };
+                        if has_definitions
+                            && pushed
+                            && *i > 0
+                            && let Some(receiver) = self.receivers.last()
+                            && let Some(by) = by_names(&value)
+                            && call.by_slot == Some(*i)
+                        {
+                            groups =
+                                Some(self.group_by(&receiver.original, &by, &call.args[*i])?);
+                        }
                         if *i == 0
                             && !pushed
                             && let Value::Frame(frame) = &value
@@ -478,6 +649,7 @@ impl<'a> Interpreter<'a> {
                                 original: frame.clone(),
                                 extended: frame.clone(),
                                 in_definition: false,
+                                view: None,
                                 used: Vec::new(),
                             });
                             pushed = true;
@@ -498,9 +670,15 @@ impl<'a> Interpreter<'a> {
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
                         receiver.in_definition = true;
                     }
-                    let evaluated = self.eval(&call.definitions[*i].1, printed, messages);
+                    let evaluated = match (&groups, pushed) {
+                        (Some(groups), true) => {
+                            self.eval_by_group(&call.definitions[*i].1, groups, printed, messages)
+                        }
+                        _ => self.eval(&call.definitions[*i].1, printed, messages),
+                    };
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
                         receiver.in_definition = false;
+                        receiver.view = None;
                     }
                     match evaluated {
                         Ok(v) => {
@@ -541,11 +719,13 @@ impl<'a> Interpreter<'a> {
             .iter()
             .map(|a| a.as_ref().map(|e| e.span))
             .collect();
+        let enclosing = self.receivers.last().map(|r| r.current().clone());
         let mut ctx = CallContext {
             files: self.files,
             script: self.script,
             text: self.source.text(),
             columns_used,
+            frame: enclosing,
             callee_span: call.callee_span,
             arg_spans,
             rest_spans: call.rest.iter().map(|e| e.span).collect(),
@@ -752,6 +932,35 @@ fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
     } else {
         "no further detail".to_string()
     }
+}
+
+/// The variables a `by:` argument names.
+fn by_names(value: &Value) -> Option<Vec<String>> {
+    match value {
+        Value::Var(name) => Some(vec![name.clone()]),
+        Value::Vars(names) => Some(names.clone()),
+        _ => None,
+    }
+}
+
+/// One cell of a column as a value.
+fn cell_value(column: &zeff_columns::Column, row: usize) -> Value {
+    match column.get(row).unwrap_or(zeff_columns::Value::Na) {
+        zeff_columns::Value::Na => Value::Na,
+        zeff_columns::Value::Bool(b) => Value::Bool(b),
+        zeff_columns::Value::Int(i) => Value::Int(i),
+        zeff_columns::Value::Float(x) => Value::Float(x),
+        zeff_columns::Value::Str(s) | zeff_columns::Value::Category(s) => Value::Str(s.to_string()),
+        _ => Value::Na,
+    }
+}
+
+fn plural_rows(n: usize) -> String {
+    format!(
+        "{} {}",
+        zeff_diagnostics::count(n as u64),
+        if n == 1 { "row" } else { "rows" }
+    )
 }
 
 fn shown(value: &Value) -> String {

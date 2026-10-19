@@ -18,7 +18,7 @@ the result `NA` silently.
 - var: The variable, which must be Bool, Int or Float.
 
 ## Value
-A `Float`.
+A `Float`; a `Table` with `by:`.
 
 ## Details
 The corrected two-pass algorithm: the mean first (a compensated sum, corrected once), then the

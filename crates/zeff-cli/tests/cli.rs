@@ -446,7 +446,10 @@ fn zeff_help_prints_a_functions_page() {
     assert_eq!(code(&o), 0, "{}", err(&o));
     let text = out(&o);
     assert!(text.starts_with("mean — Mean of a variable"), "{text}");
-    assert!(text.contains("\nUSAGE\n    data.mean(var)\n"), "{text}");
+    assert!(
+        text.contains("\nUSAGE\n    data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)\n"),
+        "{text}"
+    );
     assert!(text.contains("\nEXAMPLES\n"), "{text}");
     assert_eq!(err(&o), "");
     insta::assert_snapshot!("help_mean", text);

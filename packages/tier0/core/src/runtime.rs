@@ -33,6 +33,9 @@ pub struct CallContext<'a> {
     /// The receiver's columns that a frame method's arguments named, in the order first used
     /// (`where` names the one with `NA` in its note).
     pub columns_used: Vec<String>,
+    /// The frame whose method encloses this call, as the call sees it (the group's rows under
+    /// `by:`), for the reducers `n()` and `n_distinct(x)` inside `add` and `aggregate`.
+    pub frame: Option<crate::value::Frame>,
     /// Where the function's name is written.
     pub callee_span: Span,
     /// Where each argument is written, by parameter position; `None` for an omitted argument.

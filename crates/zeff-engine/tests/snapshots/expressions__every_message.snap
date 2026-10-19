@@ -166,6 +166,13 @@ error[Z0209]: the record has no field `b`
   = help: did you mean `a`?
 
 ## field_of_a_number (exit 1)
+warning[W0101]: `n` hides the function `data::n`
+ --> scripts/main.zeff:1:5
+  |
+1 | let n = 3
+  |     ^ a binding with a built-in name
+  |
+  = help: the function is still reachable as `data::n`; a different name avoids the confusion
 error[Z0213]: `.a` reads a record field, but this is an Int
  --> scripts/main.zeff:2:1
   |

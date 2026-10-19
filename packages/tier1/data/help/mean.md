@@ -10,14 +10,16 @@ column the mean is the share of `true` values, the commonest summary of a treatm
 infinite value gives `Inf` or `-Inf`; `Inf` and `-Inf` together give `NA` with a warning.
 
 Unlike R's `mean`, which needs `na.rm = TRUE`, missing values never make the result `NA` silently:
-they are skipped and counted.
+they are skipped and counted. With `by:` the result is a table with one row per group, in key
+order with `NA` last; with `weights:` the mean is Σwx / Σw, whatever `weight_type:` says. Inside
+`add` the same function is a reducer: `add(dev = wage - mean(wage), by: region)` takes group means.
 
 ## Arguments
 - data: The frame.
 - var: The variable, which must be Bool, Int or Float.
 
 ## Value
-A `Float`.
+A `Float`; a `Table` with `by:`.
 
 ## Details
 The sum is a compensated (Neumaier) sum taken in row order, divided by the count and corrected once
@@ -39,3 +41,10 @@ note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carr
 > wages.mean(hours)
 37.5
 warning: 1 row with NA in hours was skipped (line 3)
+> wages.mean(wage, by: hours)
+mean · wage by hours
+
+  hours     mean
+  35      19.000
+  40      23.400
+  NA      31.200

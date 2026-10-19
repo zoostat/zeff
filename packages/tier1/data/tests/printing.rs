@@ -66,7 +66,8 @@ fn every_value_prints_the_same_through_print_and_on_its_own() {
 
 #[test]
 fn several_values_print_one_after_another_and_a_let_prints_nothing() {
-    let outcome = run("let d = frame(x = [1])\nlet n = d.n_rows()\nprint(n, \"rows\", d, [n])\n");
+    let outcome =
+        run("let d = frame(x = [1])\nlet rows = d.n_rows()\nprint(rows, \"rows\", d, [rows])\n");
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert_eq!(
         outcome.output.stdout,

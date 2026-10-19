@@ -16,7 +16,7 @@ error[Z0401]: `add` defines columns from a Column, Bool, Int, Float or Str, but 
 2 | w.add(z = [1, 2, 3])
   |           ^^^^^^^^^ a List<Int>
   |
-  = help: usage: `data.add(name = Column | Bool | Int | Float | Str, ...)`
+  = help: usage: `data.add(by: Vars, name = Column | Bool | Int | Float | Str, ...)`
 
 error[Z0217]: `z` has 1 row and the frame has 3 rows
  --> scripts/main.zeff:3:11
@@ -40,4 +40,4 @@ error[Z0406]: `add` needs at least one definition
 2 | w.add()
   |   ^^^ nothing defined
   |
-  = help: usage: `data.add(name = Column | Bool | Int | Float | Str, ...)`
+  = help: usage: `data.add(by: Vars, name = Column | Bool | Int | Float | Str, ...)`

@@ -57,7 +57,7 @@ error[Z0406]: `sd` needs `var`
 2 | w.sd()
   |   ^^ `var` is missing
   |
-  = help: usage: `data.sd(var)`
+  = help: usage: `data.sd(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)`
 
 ## text_for_the_variable (exit 1)
 error[Z0401]: `var` of `sd` must be a Var, but this is a Str
@@ -68,14 +68,14 @@ error[Z0401]: `var` of `sd` must be a Var, but this is a Str
   |
   = help: name a variable of the frame, without quotes
 
-## two_variables (exit 1)
-error[Z0407]: `sd` takes 1 argument, but more were given
- --> scripts/main.zeff:2:12
-  |
-2 | w.sd(wage, hours)
-  |            ^^^^^ one too many
-  |
-  = help: usage: `data.sd(var)`
+## two_variables (exit 0)
+sd · wage by hours
+
+  hours   sd
+  35      NA
+  40      NA
+  NA      NA
+warning: sd needs at least two values, but wage has one: the result is NA (line 2)
 
 ## not_a_frame (exit 1)
 error[Z0401]: `sd` cannot be called on an Int
@@ -84,4 +84,4 @@ error[Z0401]: `sd` cannot be called on an Int
 1 | sd(3, wage)
   |    ^ this is an Int
   |
-  = help: usage: `data.sd(var)`
+  = help: usage: `data.sd(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)`

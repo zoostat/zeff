@@ -1,0 +1,33 @@
+---
+source: packages/tier1/data/tests/reducers2.rs
+expression: all
+---
+error[Z0401]: `weights:` has 1 negative value in row: 2
+ --> scripts/main.zeff:2:20
+  |
+2 | d.mean(x, weights: neg)
+  |                    ^^^ a weight is never negative
+  |
+  = help: `where(neg >= 0)` keeps the rows with a usable weight; a zero weight leaves its row out
+
+error[Z0401]: frequency weights are whole numbers, but `frac` has 1 fraction in row: 2
+ --> scripts/main.zeff:2:20
+  |
+2 | d.mean(x, weights: frac, weight_type: frequency)
+  |                    ^^^^ a frequency weight counts rows
+  |
+  = help: a weight with fractions is an analytic or a sampling weight: `weight_type: analytic`
+
+error[Z0101]: no variable `nope` in `d`
+ --> scripts/main.zeff:2:20
+  |
+2 | d.mean(x, weights: nope)
+  |                    ^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: x, w, neg, frac, zero, wna
+
+error[Z0402]: `heavy` is not one of the allowed words
+ --> scripts/main.zeff:2:36
+  |
+2 | d.mean(x, weights: x, weight_type: heavy)
+  |                                    ^^^^^ expected one of frequency, analytic, sampling

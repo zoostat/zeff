@@ -64,3 +64,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Nothing until the dataset draft at step 18.
 
+## 19 October 2026, step 17 of release 0.2.0
+
+**Done.** Step 17 `[function]`: `variance`, `median`, `quantile` (the nine Hyndman and Fan definitions, agreeing with R to the bit), `min`, `max`, `sum`, `n` and `n_distinct`, each with its help page; `by:` on every statistic and on `summary` and `describe`, giving tables in key order; `weights:` with `weight_type:` under the formulas the owner approved, checked against R; reducers inside `add` and `update`, evaluated group by group under `by:`. 10 tests added against the R and Python references and the rules, 6 snapshots; the catalogue rows marked implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally; the R reference script reproduces its file. GitHub run to be read after the push.
+
+**Next.** Step 18, the `datasets` package: `dataset`, `datasets`, the `zeff:` root and the dataset help pages `[function]`. Before it begins, the generating model of the synthetic wages dataset goes to the owner for approval.
+
+**For the owner to decide.** The dataset draft, at the start of step 18.
+

@@ -13,6 +13,9 @@ is the frame's header, the same line that prints before a frame's first ten rows
 
 Like R's `str` and Stata's `describe`, with counts of missing values in place of storage details.
 
+
+With `by:` the table has one block of rows per group, the group's keys in its first columns, so that
+the variables of each group can be read side by side.
 ## Arguments
 - data: The frame.
 

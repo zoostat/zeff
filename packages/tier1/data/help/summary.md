@@ -27,7 +27,7 @@ beside the count of observations.
   Omitted, all six in the order N, missing, mean, sd, min, max.
 
 ## Value
-A `Table`, which prints as shown and can be passed to `print`.
+A `Table`, with the `by:` variables as its first columns when groups are asked for, which prints as shown and can be passed to `print`.
 
 ## Details
 The mean is a compensated sum corrected once; the standard deviation is the corrected two-pass

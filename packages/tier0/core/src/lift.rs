@@ -10,6 +10,50 @@ use crate::value::Value;
 use zeff_columns::{Column, ColumnType, Value as Cell};
 use zeff_diagnostics::{Diagnostic, count};
 
+/// A column from one value per row (a definition evaluated group by group and put back in row
+/// order): Floats when any value is a Float, else Ints, Bools or Strs; `None` when the values are
+/// of kinds that do not join, or are all `NA` (whose type nothing fixes).
+pub fn collect_column(values: &[Value]) -> Option<Column> {
+    let mut kinds = (false, false, false, false);
+    for v in values {
+        match v {
+            Value::Float(_) => kinds.0 = true,
+            Value::Int(_) => kinds.1 = true,
+            Value::Bool(_) => kinds.2 = true,
+            Value::Str(_) => kinds.3 = true,
+            Value::Na => {}
+            _ => return None,
+        }
+    }
+    let number = kinds.0 || kinds.1;
+    if (number as u8 + kinds.2 as u8 + kinds.3 as u8) != 1 {
+        return None;
+    }
+    Some(if kinds.0 {
+        Column::floats(values.iter().map(|v| match v {
+            Value::Float(x) => Some(*x),
+            Value::Int(i) => Some(*i as f64),
+            _ => None,
+        }))
+        .0
+    } else if kinds.1 {
+        Column::ints(values.iter().map(|v| match v {
+            Value::Int(i) => Some(*i),
+            _ => None,
+        }))
+    } else if kinds.2 {
+        Column::bools(values.iter().map(|v| match v {
+            Value::Bool(b) => Some(*b),
+            _ => None,
+        }))
+    } else {
+        Column::strs(values.iter().map(|v| match v {
+            Value::Str(s) => Some(s.as_str()),
+            _ => None,
+        }))
+    })
+}
+
 /// A scalar as a column of `rows` copies of it (a scalar beside a column stands for its value in
 /// every row, section 3.7); a column is itself; `None` for a value no column holds (`NA` alone,
 /// whose type is unknown, a list, a record).
@@ -123,6 +167,7 @@ pub fn call_rowwise(
                 script: ctx.script,
                 text: ctx.text,
                 columns_used: Vec::new(),
+                frame: ctx.frame.clone(),
                 callee_span: ctx.callee_span,
                 arg_spans: ctx.arg_spans.clone(),
                 rest_spans: ctx.rest_spans.clone(),

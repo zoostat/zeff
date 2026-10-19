@@ -1,0 +1,59 @@
+---
+source: packages/tier1/data/tests/reducers2.rs
+expression: all
+---
+error[Z0406]: `quantile` needs `p:`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.quantile(wage)
+  |   ^^^^^^^^ `p:` is missing
+  |
+  = help: usage: `data.quantile(var, p: 0.9)` or `p: [0.25, 0.5, 0.75]`
+
+error[Z0401]: `p:` of `quantile` must lie between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:2:21
+  |
+2 | w.quantile(wage, p: 1.5)
+  |                     ^^^ outside [0, 1]
+  |
+  = help: a quantile's probability is a share of the values: `p: 0.9` is the ninetieth percentile
+
+error[Z0401]: `type:` of `quantile` must be one of the nine definitions, 1 to 9, not 10
+ --> scripts/main.zeff:2:32
+  |
+2 | w.quantile(wage, p: 0.5, type: 10)
+  |                                ^^ not a quantile definition
+  |
+  = help: `type: 7` is R's default; Hyndman and Fan (1996) number the nine definitions
+
+error[Z0401]: `p` of `quantile` must be a Float or List, but this is a Str
+ --> scripts/main.zeff:2:21
+  |
+2 | w.quantile(wage, p: "half")
+  |                     ^^^^^^ a Str
+  |
+  = help: usage: `data.quantile(var, p: Float | List, type: Int = 7, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)`
+
+error[Z0401]: `n()` counts the rows of a frame and stands inside `add` or `aggregate`
+ --> scripts/main.zeff:1:1
+  |
+1 | n()
+  | ^ no frame here
+  |
+  = help: write `wages.n_rows()` for a frame's row count, or `wages.add(share = x / n())` for a count inside a definition
+
+error[Z0401]: `mean` needs a Bool, Int or Float, but `name` is Str
+ --> scripts/main.zeff:2:8
+  |
+2 | w.mean(name)
+  |        ^^^^ a Str variable of w
+  |
+  = help: choose a Bool, Int or Float variable; `w.describe()` lists the types
+
+error[Z0101]: no variable `nope` in `w`
+ --> scripts/main.zeff:2:18
+  |
+2 | w.mean(wage, by: nope)
+  |                  ^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: id, wage, hours, name

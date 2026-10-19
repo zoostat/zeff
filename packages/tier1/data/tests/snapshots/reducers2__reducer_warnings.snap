@@ -1,0 +1,11 @@
+---
+source: packages/tier1/data/tests/reducers2.rs
+expression: without_format_notes(&stderr)
+---
+warning: 1 row with NA in hours was skipped (line 2)
+warning: 1 row with NA in hours was skipped (line 3)
+warning: all 3 rows have NA in x: the result is NA (line 10)
+warning: all 3 rows have NA in y: the result is NA (line 11)
+warning: all 3 rows have NA in x: the result is NA (line 12)
+warning: x has no values: the result is NA (line 14)
+warning: y has no values: the result is NA (line 15)

@@ -1,0 +1,6 @@
+---
+source: packages/tier1/data/tests/reducers2.rs
+expression: without_format_notes(&outcome.output.stderr)
+---
+note: 1 row with zero weight was left out (line 3)
+warning: 1 row with NA in wna was dropped (line 4)

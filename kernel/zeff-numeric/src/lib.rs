@@ -14,6 +14,7 @@
 //! was skipped belongs to the column layer, which passes only the valid values here.
 
 pub mod maths;
+pub mod order;
 
 /// A running compensated (Neumaier) sum.
 #[derive(Debug, Clone, Copy, Default)]

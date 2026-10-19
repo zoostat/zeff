@@ -535,6 +535,8 @@ impl Checker<'_> {
                     definitions: Vec::new(),
                     order: Vec::new(),
                     lifted: false,
+                    implicit_receiver: false,
+                    by_slot: None,
                     returns: constant.spec.returns.to_string(),
                 }),
             };
@@ -1354,7 +1356,24 @@ impl Checker<'_> {
                     }
                 }
             }
-            None => homes[0],
+            None => {
+                // Inside a frame method's definition, a name with a row-wise home in `core` and a
+                // reducer home in `data` (`min`, `max`) is the reducer when the arguments fit it:
+                // one variable, where the row-wise function needs two values (section 8.1, rule 6).
+                let positional = args
+                    .iter()
+                    .filter(|a| matches!(a, ast::Arg::Positional(_)))
+                    .count();
+                let reducer = homes.iter().find(|f| {
+                    f.spec.method
+                        && f.spec.params.first().is_some_and(|p| p.ty == "Frame")
+                        && f.spec.params.iter().skip(1).filter(|p| !p.option).count() == positional
+                });
+                match reducer {
+                    Some(f) if self.frame_scope > 0 && homes.len() > 1 => f,
+                    _ => homes[0],
+                }
+            }
         };
         let spec = chosen.spec.clone();
         let (package, fname) = (spec.package.to_string(), spec.name.to_string());
@@ -1376,9 +1395,17 @@ impl Checker<'_> {
         let mut definitions: Vec<(String, Expr)> = Vec::new();
         let mut order: Vec<Slot> = Vec::new();
         let mut next_positional = 0usize;
+        // A frame method called without a receiver inside another frame method's definition is a
+        // reducer: the enclosing frame (or its group) is the receiver (section 6).
+        let implicit_receiver = receiver.is_none()
+            && spec.method
+            && self.frame_scope > 0
+            && spec.params.first().is_some_and(|p| p.ty == "Frame");
         if let Some(r) = receiver {
             slots[0] = Some(r);
             order.push(Slot::Param(0));
+            next_positional = 1;
+        } else if implicit_receiver {
             next_positional = 1;
         }
         // A method on a frame: its column-taking arguments see the receiver's columns.
@@ -1581,6 +1608,9 @@ impl Checker<'_> {
         let mut lifted = false;
         // Required arguments, and the type of each given one.
         for (i, (pname, ty, option)) in params.iter().enumerate() {
+            if i == 0 && implicit_receiver {
+                continue;
+            }
             if let Some(given) = &slots[i]
                 && lifts(ty, &given.ty)
             {
@@ -1748,6 +1778,8 @@ impl Checker<'_> {
                 definitions,
                 order,
                 lifted,
+                implicit_receiver,
+                by_slot: params.iter().position(|(n, _, _)| n == "by"),
                 returns: spec.returns.to_string(),
             }),
         }

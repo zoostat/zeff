@@ -281,7 +281,10 @@ pub fn functions() -> Vec<Function> {
                 name: "add",
                 package: "data",
                 method: true,
-                params: vec![ParamSpec::required("data", "Frame")],
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option("by", "Vars"),
+                ],
                 rest: Some(Rest::Definitions("Column | Bool | Int | Float | Str")),
                 returns: "Frame",
                 diagnostics: vec![
@@ -317,6 +320,7 @@ pub fn functions() -> Vec<Function> {
                 params: vec![
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::option("where", "Column<Bool>"),
+                    ParamSpec::option("by", "Vars"),
                 ],
                 rest: Some(Rest::Definitions("Column | Bool | Int | Float | Str")),
                 returns: "Frame",
@@ -372,7 +376,10 @@ pub fn functions() -> Vec<Function> {
                 name: "describe",
                 package: "data",
                 method: true,
-                params: vec![ParamSpec::required("data", "Frame")],
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option("by", "Vars"),
+                ],
                 rest: None,
                 returns: "Table",
                 diagnostics: vec![],
@@ -389,6 +396,13 @@ pub fn functions() -> Vec<Function> {
                 params: vec![
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::required("var", "Var"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
                 ],
                 rest: None,
                 returns: "Float",
@@ -418,6 +432,13 @@ pub fn functions() -> Vec<Function> {
                 params: vec![
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::required("var", "Var"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
                 ],
                 rest: None,
                 returns: "Float",
@@ -444,6 +465,279 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "variance",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "Float",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0201",
+                        "rows with NA in the variable, or in the weights, were skipped",
+                    ),
+                    DiagnosticDecl::note("rows with zero weight were left out"),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the variable, a `by:` variable or the weights variable is not in the frame",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the variable is not numeric, or the weights are negative, infinite or not whole numbers under frequency weights",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0205",
+                        "fewer than two values, an infinite value, or squared deviations that overflow",
+                    ),
+                ],
+                help: include_str!("../help/variance.md"),
+                accuracy: None,
+            },
+            body: reducers::variance,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "median",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "Float",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0201",
+                        "rows with NA in the variable, or in the weights, were skipped",
+                    ),
+                    DiagnosticDecl::note("rows with zero weight were left out"),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the variable, a `by:` variable or the weights variable is not in the frame",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the variable is not numeric, or the weights are negative, infinite or not whole numbers under frequency weights",
+                    ),
+                    DiagnosticDecl::new("W0205", "the quantile falls between Inf and -Inf"),
+                ],
+                help: include_str!("../help/median.md"),
+                accuracy: None,
+            },
+            body: reducers::median,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "quantile",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("p", "Float | List"),
+                    ParamSpec::option_with_default("type", "Int", "7"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "Float",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0201",
+                        "rows with NA in the variable, or in the weights, were skipped",
+                    ),
+                    DiagnosticDecl::new("W0205", "the quantile falls between Inf and -Inf"),
+                    DiagnosticDecl::note("rows with zero weight were left out"),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the variable, a `by:` variable or the weights variable is not in the frame",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "p: is not a probability, type: is not 1 to 9, the variable is not numeric, or the weights are unusable",
+                    ),
+                    DiagnosticDecl::new("Z0406", "p: is missing"),
+                ],
+                help: include_str!("../help/quantile.md"),
+                accuracy: None,
+            },
+            body: reducers::quantile,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "min",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "Number",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0201",
+                        "rows with NA in the variable, or in the weights, were skipped",
+                    ),
+                    DiagnosticDecl::note("rows with zero weight were left out"),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the variable, a `by:` variable or the weights variable is not in the frame",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the variable is not numeric, or the weights are negative, infinite or not whole numbers under frequency weights",
+                    ),
+                ],
+                help: include_str!("../help/min.md"),
+                accuracy: None,
+            },
+            body: reducers::min,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "max",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "Number",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0201",
+                        "rows with NA in the variable, or in the weights, were skipped",
+                    ),
+                    DiagnosticDecl::note("rows with zero weight were left out"),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the variable, a `by:` variable or the weights variable is not in the frame",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the variable is not numeric, or the weights are negative, infinite or not whole numbers under frequency weights",
+                    ),
+                ],
+                help: include_str!("../help/max.md"),
+                accuracy: None,
+            },
+            body: reducers::max,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "sum",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "Number",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0201",
+                        "rows with NA in the variable, or in the weights, were skipped",
+                    ),
+                    DiagnosticDecl::note("rows with zero weight were left out"),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the variable, a `by:` variable or the weights variable is not in the frame",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the variable is not numeric, or the weights are negative, infinite or not whole numbers under frequency weights",
+                    ),
+                    DiagnosticDecl::new("W0205", "the variable holds both Inf and -Inf"),
+                    DiagnosticDecl::new(
+                        "Z0211",
+                        "the sum of an Int variable does not fit in 64 bits",
+                    ),
+                ],
+                help: include_str!("../help/sum.md"),
+                accuracy: None,
+            },
+            body: reducers::sum,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "n",
+                package: "data",
+                method: false,
+                params: vec![],
+                rest: None,
+                returns: "Int",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "n() stands outside a frame method",
+                )],
+                help: include_str!("../help/n.md"),
+                accuracy: None,
+            },
+            body: reducers::n,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "n_distinct",
+                package: "data",
+                method: false,
+                params: vec![ParamSpec::required("x", "Column")],
+                rest: None,
+                returns: "Int",
+                diagnostics: vec![DiagnosticDecl::new("Z0401", "the variable is opaque")],
+                help: include_str!("../help/n_distinct.md"),
+                accuracy: None,
+            },
+            body: reducers::n_distinct,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "summary",
                 package: "data",
                 method: true,
@@ -451,6 +745,13 @@ pub fn functions() -> Vec<Function> {
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::option("vars", "Vars"),
                     ParamSpec::option("stats", "List<n | missing | mean | sd | min | max>"),
+                    ParamSpec::option("by", "Vars"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
                 ],
                 rest: None,
                 returns: "Table",

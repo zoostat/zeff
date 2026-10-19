@@ -5,7 +5,7 @@ expression: text
 mean — Mean of a variable                                              data · tier 1 · since 0.1.0 · 1.0 · closed form
 
 USAGE
-    data.mean(var)
+    data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
 
 DESCRIPTION
     The arithmetic mean of the non-missing values of `var`. Missing values are skipped with a warning that
@@ -14,14 +14,21 @@ DESCRIPTION
     infinite value gives `Inf` or `-Inf`; `Inf` and `-Inf` together give `NA` with a warning.
 
     Unlike R's `mean`, which needs `na.rm = TRUE`, missing values never make the result `NA` silently: they
-    are skipped and counted.
+    are skipped and counted. With `by:` the result is a table with one row per group, in key order with `NA`
+    last; with `weights:` the mean is Σwx / Σw, whatever `weight_type:` says. Inside `add` the same function
+    is a reducer: `add(dev = wage - mean(wage), by: region)` takes group means.
 
 ARGUMENTS
-    data        Frame. The frame.
-    var         Var. The variable, which must be Bool, Int or Float.
+    data          Frame. The frame.
+    var           Var. The variable, which must be Bool, Int or Float.
+    by:           Vars. Repeat the computation within each group; plots draw one panel per group.             (shared)
+    weights:      Var. Weight variable.                                                                       (shared)
+    weight_type:  frequency | analytic | sampling = sampling. Stata's fweight, aweight and pweight. In 1.0
+                  the tests refuse `weights:` with `weight_type: sampling` (Z0411) and point to regression
+                  with robust errors.                                                                         (shared)
 
 VALUE
-    A `Float`.
+    A `Float`; a `Table` with `by:`.
 
 DETAILS
     The sum is a compensated (Neumaier) sum taken in row order, divided by the count and corrected once by
@@ -53,3 +60,10 @@ EXAMPLES
     > wages.mean(hours)
     37.5
     warning: 1 row with NA in hours was skipped (line 3)
+    > wages.mean(wage, by: hours)
+    mean · wage by hours
+
+      hours     mean
+      35      19.000
+      40      23.400
+      NA      31.200
