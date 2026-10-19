@@ -328,9 +328,16 @@ proptest! {
         );
         prop_assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
         let lines: Vec<&str> = outcome.output.stdout.lines().collect();
-        // The mean of the group means put back on every row is the grand mean, and the deviations
-        // from group means sum to zero.
-        prop_assert_eq!(lines[0], lines[1]);
+        // The mean of the group means put back on every row is the grand mean (two routes through
+        // floating point: within 1e-12, since a total of zero leaves a rounding residue of 1e-16),
+        // and the deviations from group means sum to zero.
+        let (via_groups, grand): (f64, f64) = (lines[0].parse().unwrap(), lines[1].parse().unwrap());
+        prop_assert!(
+            (via_groups - grand).abs() <= 1e-12 * grand.abs().max(1.0),
+            "{} against {}",
+            lines[0],
+            lines[1]
+        );
         let dev: f64 = lines[2].parse().unwrap();
         prop_assert!(dev.abs() < 1e-9, "{}", lines[2]);
         let total: i64 = values.iter().map(|(_, x)| *x).sum();

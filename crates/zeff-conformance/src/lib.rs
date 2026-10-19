@@ -558,6 +558,56 @@ fn all_cases() -> Vec<Line> {
     lines
 }
 
+/// The published report of this release: `expected.txt`, compiled in, so that `zeff selftest` can
+/// compare any installation with it (Engine and Project Specification, sections 2.1 and 8.3,
+/// point 3, "Proof").
+pub const PUBLISHED: &str = include_str!("../expected.txt");
+
+/// One case of the self-test: its digest in the published report and in this build.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SelftestCase {
+    pub name: String,
+    /// `None` when the published report has no such case (a build newer than its report).
+    pub published: Option<u64>,
+    pub actual: u64,
+}
+
+impl SelftestCase {
+    pub fn matches(&self) -> bool {
+        self.published == Some(self.actual)
+    }
+}
+
+/// `zeff selftest`: every case of this build against the published report. The environment
+/// variable `ZEFF_SELFTEST_FORCE_MISMATCH`, naming a case, flips that case's digest: a test hook,
+/// so that the path that names a differing case is exercised.
+pub fn selftest() -> Vec<SelftestCase> {
+    let published: std::collections::HashMap<&str, u64> = PUBLISHED
+        .lines()
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .filter_map(|l| {
+            let (name, digest) = l.split_once(' ')?;
+            Some((name, u64::from_str_radix(digest, 16).ok()?))
+        })
+        .collect();
+    let forced = std::env::var("ZEFF_SELFTEST_FORCE_MISMATCH").ok();
+    all_cases()
+        .into_iter()
+        .map(|line| {
+            let actual = if forced.as_deref() == Some(line.name.as_str()) {
+                line.digest ^ 1
+            } else {
+                line.digest
+            };
+            SelftestCase {
+                published: published.get(line.name.as_str()).copied(),
+                name: line.name,
+                actual,
+            }
+        })
+        .collect()
+}
+
 /// The report of this build: a `name digest` line per case in a fixed order, each single-result
 /// case followed by a comment line holding the result's bits.
 pub fn report() -> String {

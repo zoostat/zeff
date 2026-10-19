@@ -18,6 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 zeff-engine.workspace = true
+zeff-conformance.workspace = true
 zeff-diagnostics.workspace = true
 zeff-ir.workspace = true
 zeff-registry.workspace = true

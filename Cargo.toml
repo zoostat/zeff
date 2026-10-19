@@ -47,6 +47,7 @@ zeff-hash = { path = "kernel/zeff-hash" }
 zeff-syntax = { path = "crates/zeff-syntax" }
 zeff-ir = { path = "crates/zeff-ir" }
 zeff-engine = { path = "crates/zeff-engine" }
+zeff-conformance = { path = "crates/zeff-conformance" }
 zeff-testkit = { path = "tools/zeff-testkit" }
 
 # Determinism (Engine Specification, section 8.3, point 3): Rust never fuses multiply-add or

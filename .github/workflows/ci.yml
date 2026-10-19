@@ -162,6 +162,11 @@ jobs:
           ./target/release/zeff-conformance > report/cases.txt
           cat report/cases.txt
 
+      - name: This build is conformant on this target (zeff selftest, Engine 2.1)
+        run: |
+          cargo build --release --locked -p zeff-cli
+          ./target/release/zeff selftest
+
       - name: Keep the report for the comparison
         uses: actions/upload-artifact@v4
         with:

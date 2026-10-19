@@ -101,7 +101,7 @@ fn format_json_gives_records_for_version_and_check() {
         (&["check", "--format", "xml"][..], "not a format"),
         (
             &["run", "--format", "json"][..],
-            "applies to `zeff check` and `zeff version`",
+            "applies to `zeff check`, `zeff version` and `zeff selftest`",
         ),
     ] {
         let o = zeff(&project, args);
@@ -334,7 +334,7 @@ fn unknown_and_later_commands() {
     let o = zeff(dir.path(), &["frobnicate"]);
     assert_eq!(code(&o), 1);
     assert!(err(&o).contains("unknown command `frobnicate`") && err(&o).contains("zeff help"));
-    for later in ["lsp", "doctor", "selftest", "engine", "verify"] {
+    for later in ["lsp", "doctor", "engine", "verify"] {
         let o = zeff(dir.path(), &[later]);
         assert_eq!(code(&o), 1);
         assert!(
@@ -856,4 +856,93 @@ fn the_console_outside_a_project_uses_the_scratch_project_and_can_make_one() {
     let o = zeff_with(&dir.path().join("fresh"), &home, "", &["run"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert_eq!(out(&o), "42\n");
+}
+
+// ----- zeff selftest (release 0.3.0, step 5) -----
+
+/// `zeff` with one environment variable set.
+fn zeff_env(cwd: &Path, key: &str, value: &str, args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_zeff"))
+        .args(args)
+        .current_dir(cwd)
+        .env(key, value)
+        .env_remove("NO_COLOR")
+        .output()
+        .expect("zeff runs")
+}
+
+#[test]
+fn selftest_says_this_build_is_conformant() {
+    let dir = tempfile::tempdir().unwrap();
+    let o = zeff(dir.path(), &["selftest"]);
+    assert_eq!(code(&o), 0, "{}", out(&o));
+    let text = out(&o);
+    assert!(
+        text.starts_with("conformant: ")
+            && text.contains(&format!(
+                " cases match the published results of Zeff {VERSION} on this machine ("
+            )),
+        "{text}"
+    );
+    assert_eq!(err(&o), "");
+    let o = zeff(dir.path(), &["selftest", "--format", "json"]);
+    assert_eq!(code(&o), 0);
+    let lines: Vec<&str> = out(&o)
+        .lines()
+        .map(str::to_owned)
+        .collect::<Vec<_>>()
+        .leak()
+        .iter()
+        .map(String::as_str)
+        .collect();
+    assert!(lines.len() > 70, "{}", lines.len());
+    assert!(
+        lines
+            .iter()
+            .all(|l| l.starts_with("{\"case\": \"") && l.ends_with("\"match\": true}")),
+        "{}",
+        lines[0]
+    );
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains("\"case\": \"random/uniform\""))
+    );
+    let o = zeff(dir.path(), &["selftest", "now"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("`zeff selftest` takes no arguments"),
+        "{}",
+        err(&o)
+    );
+}
+
+#[test]
+fn selftest_names_a_case_that_differs_and_fails() {
+    let dir = tempfile::tempdir().unwrap();
+    let o = zeff_env(
+        dir.path(),
+        "ZEFF_SELFTEST_FORCE_MISMATCH",
+        "maths/exp",
+        &["selftest"],
+    );
+    assert_eq!(code(&o), 1);
+    let text = out(&o);
+    assert!(text.starts_with("not conformant: 1 of "), "{text}");
+    assert!(
+        text.contains("  maths/exp: published 30bcae2e6caaaf20, this build 30bcae2e6caaaf21\n"),
+        "{text}"
+    );
+    assert!(
+        text.contains("please report it with `zeff version --verbose`"),
+        "{text}"
+    );
+    let o = zeff_env(
+        dir.path(),
+        "ZEFF_SELFTEST_FORCE_MISMATCH",
+        "maths/exp",
+        &["selftest", "--format", "json"],
+    );
+    assert_eq!(code(&o), 1);
+    assert!(out(&o).contains("{\"case\": \"maths/exp\", \"published\": \"30bcae2e6caaaf20\", \"actual\": \"30bcae2e6caaaf21\", \"match\": false}"), "{}", out(&o));
 }

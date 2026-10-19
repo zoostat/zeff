@@ -159,3 +159,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 5, `zeff selftest` `[engine]`.
 
 **For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.
+
+## 19 October 2026, step 5 of release 0.3.0
+
+**Done.** Step 5 `[engine]`: `zeff selftest` runs the 76 conformance cases of the build against the published report compiled into the engine and says whether the installation is conformant (exit code 0) or names the cases that differ (exit code 1); `--format json` gives the cases as records; a test hook forces a mismatch so the failing path is tested; CI's native identity jobs run the command on each target. 2 command-line tests added. A property test of the reducers that asked two floating-point routes to agree exactly was loosened to 1e-12 after a random case summing to zero exposed a 4e-16 residue; the engine is unchanged.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (586), the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 6, the special functions `factorial`, `choose`, `gamma`, `log_gamma`, `beta` `[function]`.
+
+**For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.

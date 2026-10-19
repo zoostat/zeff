@@ -33,12 +33,14 @@ Commands:
   help <name>       print a function's help page, list a package's functions, or
                     explain a code such as Z0101
   version           print the version of Zeff
+  selftest          run the conformance cases shipped with the engine against their published
+                    results and say whether this installation is conformant
   help              show this text
 
 Options:
   -p, --project <dir>     the project to act on (default: the nearest folder with zeff.toml)
-  --format text|json      for `check` and `version`: text (the default), or JSON records
-                          for an editor
+  --format text|json      for `check`, `version` and `selftest`: text (the default), or JSON
+                          records for an editor
   --color auto|always|never
                           colour in messages; `auto` means a terminal, and NO_COLOR is honoured
   --ascii                 rules and symbols in ASCII, for fonts without them
@@ -384,12 +386,12 @@ pub fn run(
     if settings.format == Format::Json
         && !matches!(
             words.first(),
-            Some(&("check" | "version" | "--version" | "-V"))
+            Some(&("check" | "version" | "--version" | "-V" | "selftest"))
         )
     {
         return usage_error(
             &mut err,
-            "`--format json` applies to `zeff check` and `zeff version` in this release",
+            "`--format json` applies to `zeff check`, `zeff version` and `zeff selftest` in this release",
         );
     }
     let cwd = match &settings.project {
@@ -426,6 +428,8 @@ pub fn run(
         ["version" | "--version" | "-V", ..] => {
             usage_error(&mut err, "`zeff version` takes no arguments")
         }
+        ["selftest"] => selftest_command(&command, &mut out),
+        ["selftest", ..] => usage_error(&mut err, "`zeff selftest` takes no arguments"),
         ["help", name] => help_command(name, &mut out, &mut err),
         ["help", ..] => usage_error(
             &mut err,
@@ -497,6 +501,70 @@ fn version(command: &Command<'_, '_>, out: &mut dyn Write) -> i32 {
         }
     }
     0
+}
+
+/// `zeff selftest`: the conformance cases of this build against the published report (Engine and
+/// Project Specification, section 2.1; section 8.3, point 3, "Proof"). Exit code 0 when every
+/// case matches, 1 otherwise, with the differing cases named.
+fn selftest_command(command: &Command<'_, '_>, out: &mut dyn Write) -> i32 {
+    let cases = zeff_conformance::selftest();
+    let total = cases.len();
+    let differing: Vec<&zeff_conformance::SelftestCase> =
+        cases.iter().filter(|c| !c.matches()).collect();
+    let target = match std::env::consts::ARCH {
+        "x86_64" => "x86-64",
+        "aarch64" => "ARM64",
+        "wasm32" => "WebAssembly",
+        other => other,
+    };
+    match command.settings.format {
+        Format::Json => {
+            for case in &cases {
+                let published = match case.published {
+                    Some(d) => format!("\"{d:016x}\""),
+                    None => "null".to_string(),
+                };
+                let _ = writeln!(
+                    out,
+                    "{{\"case\": {}, \"published\": {published}, \"actual\": \"{:016x}\", \"match\": {}}}",
+                    zeff_diagnostics::json_string(&case.name),
+                    case.actual,
+                    case.matches()
+                );
+            }
+        }
+        Format::Text => {
+            if differing.is_empty() {
+                let _ = writeln!(
+                    out,
+                    "conformant: {total} of {total} cases match the published results of Zeff {VERSION} on this machine ({target})"
+                );
+            } else {
+                let _ = writeln!(
+                    out,
+                    "not conformant: {} of {total} cases differ from the published results of Zeff {VERSION} on this machine ({target})",
+                    differing.len()
+                );
+                for case in &differing {
+                    let published = case
+                        .published
+                        .map_or("not in the published report".to_string(), |d| {
+                            format!("published {d:016x}")
+                        });
+                    let _ = writeln!(
+                        out,
+                        "  {}: {published}, this build {:016x}",
+                        case.name, case.actual
+                    );
+                }
+                let _ = writeln!(
+                    out,
+                    "  this installation does not reproduce the published results; please report it with `zeff version --verbose`"
+                );
+            }
+        }
+    }
+    i32::from(!differing.is_empty())
 }
 
 fn new_project(
