@@ -1,0 +1,6 @@
+---
+source: packages/tier1/data/tests/verbs2.rs
+expression: without_format_notes(&stderr)
+---
+note: `wage` replaced the variable of that name (line 4)
+note: `hours` replaced the variable of that name (line 6)

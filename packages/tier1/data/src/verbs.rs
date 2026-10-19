@@ -5,7 +5,8 @@
 //! carries opaque columns through untouched (section 4.3).
 
 use std::rc::Rc;
-use zeff_columns::ColumnType;
+use zeff_columns::{Column, ColumnType, GroupError, sort_rows};
+use zeff_core::lift::broadcast;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Frame, Value};
 use zeff_diagnostics::messages::no_variable;
@@ -307,4 +308,254 @@ pub fn rename(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         })?;
     }
     Ok(derived(table))
+}
+
+/// A definition's value as a column of the frame's length: a column of that length, or a scalar
+/// in every row (section 3.7); `NA` alone has no type (Z0219), and anything else is refused.
+fn definition_column(
+    ctx: &CallContext<'_>,
+    verb: &str,
+    name: &str,
+    value: &Value,
+    rows: usize,
+    span: zeff_diagnostics::Span,
+) -> Result<Column, Fail> {
+    match value {
+        Value::Column(c) if c.len() != rows => Err(fail(
+            Diagnostic::error(
+                "Z0217",
+                format!("`{name}` has {} and the frame has {}", self::rows(c.len()), self::rows(rows)),
+            )
+            .in_file(ctx.script)
+            .primary(span, "a column of another length")
+            .help("build the new variable from the frame's own variables; `merge` joins frames (release 0.6.0)"),
+        )),
+        Value::Na => Err(fail(
+            Diagnostic::error("Z0219", format!("`{name} = NA` has no type"))
+                .in_file(ctx.script)
+                .primary(span, "NA alone")
+                .help("a variable of only NA needs a type: build it from one of the frame's, as in `x * NA`; `to(NA, Float)` arrives with release 0.5.0"),
+        )),
+        other => broadcast(other, rows).ok_or_else(|| {
+            fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{name}` of `{verb}` must be a value or an expression over the frame's variables, not {}",
+                        article(other.type_name())
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(span, "not a value a variable can hold")
+                .help("write an expression such as `lwage = log(wage)` or a value such as `year = 2026`"),
+            )
+        }),
+    }
+}
+
+fn internal(ctx: &CallContext<'_>, what: impl std::fmt::Display) -> Fail {
+    fail(
+        Diagnostic::error(
+            "Z9001",
+            format!("internal error: this is a bug in Zeff, not in your script ({what})"),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "the call that failed"),
+    )
+}
+
+/// `data.add(name = expr, ...)`: new variables, each an expression over the frame's variables and
+/// the definitions before it; a name the frame has is replaced, with a note.
+pub fn add(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let frame = the_frame(ctx, "add", &args)?.clone();
+    let mut table = (*frame.table).clone();
+    let rows = table.rows();
+    for (i, (name, value)) in args.definitions.iter().enumerate() {
+        let span = ctx
+            .definition_spans
+            .get(i)
+            .copied()
+            .unwrap_or(ctx.callee_span);
+        let column = definition_column(ctx, "add", name, value, rows, span)?;
+        let replaced = table.position(name).is_some();
+        table = table
+            .with_column(name, column)
+            .map_err(|e| internal(ctx, e))?;
+        if replaced {
+            ctx.message(Diagnostic::plain_note(format!(
+                "`{name}` replaced the variable of that name"
+            )));
+        }
+    }
+    Ok(derived(table))
+}
+
+/// `data.update(name = expr, ..., where: condition)`: the values of existing variables changed,
+/// everywhere or only in the rows where `where:` is true; the variable keeps its type and its
+/// metadata.
+pub fn update(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let frame = the_frame(ctx, "update", &args)?.clone();
+    let shown = frame.shown_name();
+    let mut table = (*frame.table).clone();
+    let rows = table.rows();
+    // The rows to change: every row, or those where the condition is true.
+    let mask: Option<Vec<bool>> = match args.get(1) {
+        None => None,
+        Some(Value::Column(c)) if c.ty() == ColumnType::Bool && c.len() == rows => {
+            let values: Vec<Option<bool>> = c.as_bools().map(Iterator::collect).unwrap_or_default();
+            let na = values.iter().filter(|v| v.is_none()).count();
+            if na > 0 {
+                let condition = ctx.text_of(1).trim().to_string();
+                ctx.message(Diagnostic::plain_note(format!(
+                    "{} where `{condition}` was NA {} left unchanged",
+                    self::rows(na),
+                    if na == 1 { "was" } else { "were" }
+                )));
+            }
+            Some(values.into_iter().map(|v| v == Some(true)).collect())
+        }
+        Some(Value::Column(c)) if c.ty() == ColumnType::Bool => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0217",
+                    format!(
+                        "`where:` has {} and {shown} has {}",
+                        self::rows(c.len()),
+                        self::rows(rows)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(1), "a column of another frame")
+                .help("a condition is built from the frame's own variables"),
+            ));
+        }
+        Some(other) => {
+            let what = match other {
+                Value::Column(c) => format!("a Column<{}>", c.ty().name()),
+                Value::Bool(_) => "a single Bool".to_string(),
+                Value::Na => "NA".to_string(),
+                other => article(other.type_name()),
+            };
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0203",
+                    format!("`where:` of `update` needs a condition that is true or false in every row, but this is {what}"),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(1), "not a condition over the rows")
+                .help("write a comparison or a Bool variable: `where: hours > 40`, `where: is_missing(hours)`"),
+            ));
+        }
+    };
+    for (i, (name, value)) in args.definitions.iter().enumerate() {
+        let span = ctx
+            .definition_spans
+            .get(i)
+            .copied()
+            .unwrap_or(ctx.callee_span);
+        let columns: Vec<&str> = table.names().iter().map(String::as_str).collect();
+        let Some(position) = table.position(name) else {
+            let mut d = no_variable(ctx.script, span, &shown, name, &columns);
+            d = d.help("`update` changes a variable the frame has; `add` creates a new one");
+            return Err(fail(d));
+        };
+        let old = table
+            .column_at(position)
+            .cloned()
+            .ok_or_else(|| internal(ctx, "a column position without a column"))?;
+        let new = definition_column(ctx, "update", name, value, rows, span)?;
+        let changed = |row: usize| mask.as_ref().is_none_or(|m| m[row]);
+        let refuse = |found: &str| {
+            fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("`{name}` is {} variable, but the new values are {found}", article(old.ty().name())),
+                )
+                .in_file(ctx.script)
+                .primary(span, "values of another type")
+                .help(format!("`update` keeps a variable's type; `add({name} = ...)` replaces the variable with one of the new type")),
+            )
+        };
+        let merged = match (old.ty(), new.ty()) {
+            (ColumnType::Bool, ColumnType::Bool) => {
+                let (o, n): (Vec<_>, Vec<_>) = (
+                    old.as_bools().unwrap().collect(),
+                    new.as_bools().unwrap().collect(),
+                );
+                Column::bools((0..rows).map(|r| if changed(r) { n[r] } else { o[r] }))
+            }
+            (ColumnType::Int, ColumnType::Int) => {
+                let (o, n): (Vec<_>, Vec<_>) = (
+                    old.as_ints().unwrap().collect(),
+                    new.as_ints().unwrap().collect(),
+                );
+                Column::ints((0..rows).map(|r| if changed(r) { n[r] } else { o[r] }))
+            }
+            (ColumnType::Float, ColumnType::Float | ColumnType::Int) => {
+                let o: Vec<Option<f64>> = old.as_floats().unwrap().collect();
+                let n: Vec<Option<f64>> = match new.as_floats() {
+                    Some(values) => values.collect(),
+                    None => new
+                        .as_ints()
+                        .unwrap()
+                        .map(|v| v.map(|i| i as f64))
+                        .collect(),
+                };
+                Column::floats((0..rows).map(|r| if changed(r) { n[r] } else { o[r] })).0
+            }
+            (ColumnType::Str, ColumnType::Str) => {
+                let (o, n): (Vec<Option<&str>>, Vec<Option<&str>>) = (
+                    old.as_strs().unwrap().collect(),
+                    new.as_strs().unwrap().collect(),
+                );
+                Column::strs((0..rows).map(|r| if changed(r) { n[r] } else { o[r] }))
+            }
+            (ColumnType::Bool | ColumnType::Int | ColumnType::Float | ColumnType::Str, found) => {
+                return Err(refuse(&format!("{}s", found.name())));
+            }
+            (other, _) => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0304",
+                        format!(
+                            "updating a {} variable is not available in this release",
+                            other.name()
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(span, "arrives with the package that computes on it")
+                    .help("dates and categories gain their functions with release 0.3.0"),
+                ));
+            }
+        };
+        let merged = merged.with_metadata(old.metadata().clone());
+        table = table
+            .with_column(name, merged)
+            .map_err(|e| internal(ctx, e))?;
+    }
+    Ok(derived(table))
+}
+
+/// `data.sort(vars, desc: Bool = false)`: the rows in key order, stable, `NA` last.
+pub fn sort(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let frame = the_frame(ctx, "sort", &args)?;
+    let positions = resolve_vars(ctx, frame, &vars_of(&args, 1), 1)?;
+    let descending = matches!(args.get(2), Some(Value::Bool(true)));
+    let keys: Vec<&Column> = positions
+        .iter()
+        .filter_map(|&p| frame.table.column_at(p))
+        .collect();
+    let order = sort_rows(&keys, descending).map_err(|e| match e {
+        GroupError::OpaqueKey(ty) => fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("a {} variable cannot order rows", ty.name()),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(1), "an opaque variable")
+            .help("sort by a Bool, Int, Float, Str, Date, DateTime or Category variable"),
+        ),
+        other => internal(ctx, format!("{other:?}")),
+    })?;
+    Ok(derived(frame.table.take_rows(&order)))
 }

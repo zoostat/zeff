@@ -36,151 +36,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Three questions at the top of the checklist: weighted statistics (step 17), the synthetic `wages` dataset (step 18), open decision #45 (step 8).
 
-## 18 October 2026, step 2 of release 0.2.0
+## 18 October 2026, steps 2 to 9 of release 0.2.0
 
-**Done.** Step 2 `[engine]`: expressions over values. Every operator of section 3.3 runs on numbers, text, Bool and NA by the rules of sections 3.7 and 4.1 (Int stays Int with overflow an error; `/` and `^` give Float; division by zero and invalid operations give `Inf` or `NA` with their warnings; three-valued comparison and logic), with ranges, list indexing and sub-lists, record fields and mappings; the rules live in `core` for the column step to reuse; `^` comes from the pure-Rust `libm`. Two conditions without a code in the specification got provisional numbers in a new open decision #46 (deadline 0.3.0). 11 tests added, plus the checker's two tables of types and codes and four unit tests of the rules.
+**Done, folded.** Step 2, expressions over values (operators, ranges, mappings, the truth table, Int overflow, provisional codes Z0221 and Z0222 in open decision #46). Step 3, expressions over columns (row-by-row kernels with counted warnings, `Column` values, `wages["x"]`). Step 4, the column-type interface, the nine metadata keys, the opaque kinds and the reserved names (Z0105), with Arrow IPC round trips. Step 5, the maths kernel on `libm` with exact rounding and floored division, its Python reference rewritten in exact decimal arithmetic after the Linux runner disagreed with the Mac. Step 6, grouping by identity and weights with their rules. Step 7, internal errors caught as Z9001 (exit code 2) and the message-snapshot rule `xtask check-messages`. Decision #45 taken by the owner (a warning under a result shows no code). Step 8, the explained-code pages (`zeff help Z0101`) and `--format json`. Step 9, the command-line options, `zeff eval`, the console with `.zeff/session.zeff` and the scratch project; one specification sentence corrected (a later `let` in the console shadows).
 
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the refreshed conformance report pass locally. GitHub run to be read after the push.
+## 19 October 2026, steps 10 to 14 of release 0.2.0
 
-**Next.** Step 3, expressions over columns `[engine]`.
-
-**For the owner to decide.** Nothing new now; the three questions at the top of the checklist are needed at steps 8, 17 and 18. Open decision #46 is due at 0.3.0.
-
-## 18 October 2026, step 3 of release 0.2.0
-
-**Done.** Step 3 `[engine]`: expressions over columns. `wages["wage"]` is a value, every operator applies row by row with a scalar standing in every row, the warnings of section 4.1 count their rows, an overflow names its row, different lengths are refused, a column prints as section 3.8 says, and `frame` takes a column as a definition. The type check a frame's column cannot get before it runs happens once per operation when it runs, with the checker's own codes and words. 7 tests added, one of them a property comparing every row with the value rules.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the refreshed conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 4, the column-type interface, metadata and the opaque rule `[engine]`.
-
-**For the owner to decide.** Nothing new.
-
-## 18 October 2026, step 4 of release 0.2.0
-
-**Done.** Step 4 `[engine]`: the column-type interface. Every type is declared once with its Arrow extension name, storage, abbreviation, NA rule, relations and conversions; the seven opaque kinds are stored, carried and printed as their summaries and refused by every operator; every column carries the metadata store with the nine keys and `import` fills `source`; a table round-trips through Arrow IPC with its types and metadata, byte-identical when written twice; the type names and the reserved values cannot be rebound. 13 tests added, one of them a property on random tables.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the conformance report (unchanged) pass locally. GitHub run to be read after the push.
-
-**Next.** Step 5, the elementary functions and the maths kernel `[engine]`.
-
-**For the owner to decide.** Nothing new.
-
-## 18 October 2026, step 5 of release 0.2.0
-
-**Done.** Step 5 `[engine]`: the maths kernel. The elementary functions from one pure-Rust library on every target, rounding decided on the exact value with ties to even or away from zero and to significant digits, floored division and remainder; a Python reference on a fixed grid (two units in the last place for the transcendental functions, exact for roundings and divisions), seventeen new lines in the conformance report, and properties. 7 tests added (20 unit assertions in the kernel among them).
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the refreshed conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 6, grouping and weights `[engine]`.
-
-**For the owner to decide.** Nothing new; question 1 (weighted statistics) is first applied at step 17.
-
-## 18 October 2026, step 6 of release 0.2.0
-
-**A slip repaired first.** The GitHub run on step 5 failed in the `reference` job: the maths reference had been taken from Python's `math` module, the platform's own library, and Linux wrote a different file from the Mac. The script now computes the exact values with the `decimal` module and is the same everywhere; the kernel agrees within two units in the last place, and the Mac's library differed from the truth at 46 of 754 points.
-
-**Done.** Step 6 `[engine]`: grouping and weights. The group index by the identity rules with groups in key order and `NA` last, and the weight vector with the rules of section 4.1 (NA dropped and counted, zero left out with a note, negative an error listing rows, frequency weights whole numbers). 7 tests added, one a property that grouping is a partition in key order.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 7, internal errors never crash and the message-snapshot rule `[engine]`.
-
-**For the owner to decide.** Nothing new.
-
-## 18 October 2026, step 7 of release 0.2.0
-
-**Done.** Step 7 `[engine]`: a failure inside the engine during a statement is Z9001 at that statement with exit code 2, never a crash (proven by a test hook that injects a panic); `xtask check-messages` requires a snapshot for every diagnostic code the sources can raise and runs in CI; it found four codes without one, which now have snapshots, and one unreachable arm (Z0210), which waits for Date values. 4 tests added; 64 codes, every one with a stored wording.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 8, explained-code pages, `--format json`, and decision #45 `[engine]`: it needs the owner's answer to question 3 (whether a warning under a result shows its code).
-
-**For the owner to decide.** Question 3 at the top of the checklist, before step 8 can finish.
-
-## 18 October 2026, decision #45 taken
-
-**Done.** The owner took open decision #45 as recommended (a warning under a result without its code until 0.7.0; the code in `--format json` and the pages); recorded in the register and the logs. Step 8 is unblocked.
-
-**Next.** Step 8, explained-code pages and `--format json` `[engine]`.
-
-## 18 October 2026, step 8 of release 0.2.0
-
-**Done.** Step 8 `[engine]`: one explained page for each of the 64 diagnostic codes (meaning, common causes, an example, the fix), compiled into the engine and printed by `zeff help Z0101`; a malformed or missing page fails the build, and `check-messages` also reports a page for a code nothing raises. `zeff check --format json` prints the diagnostic records (code, severity, message, file, span, labels, help, fixes) for an editor, and `zeff version --format json` the version. Decision #45 applied: a warning under a result shows no code; the code is in the JSON record. 7 tests added, 2 new snapshots.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check and the message check pass locally. GitHub run to be read after the push.
-
-**Next.** Step 9, the command line: flags, the console and the scratch project `[engine]`.
-
-**For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps.
-
-## 18 October 2026, step 9 of release 0.2.0
-
-**Done.** Step 9 `[engine]`: the command-line options of section 2.1 that this release has (`--project`, `--color` with `NO_COLOR`, `--ascii`, `--width`, `--quiet`, `--verbose`, read from anywhere on the line); `zeff eval "2 + 2"` prints 4 outside a project, in the scratch project `~/.zeff/scratch/` (`ZEFF_HOME` honoured), made on first use; `zeff repl`, the console, keeps every statement in `.zeff/session.zeff`, re-runs the session with each new statement, drops a statement that fails, continues chains and unfinished lines, resumes the session next time, and has `:undo`, `:vars`, `:save`, `:load`, `:help` and `:quit`. One specification sentence corrected (a later `let` in the console shadows, as the Language Reference says) and logged. 9 tests added, 1 snapshot.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 10, the R reference harness and BLAKE3 hashing `[engine]`.
-
-**For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps.
-
-## 19 October 2026, step 10 of release 0.2.0
-
-**Done.** Step 10 `[engine]`: the R reference harness in `tests/reference/r/` (maths, the descriptive reducers with the nine quantile definitions, and the frame verbs for steps 15 to 17), base R 4.6.0 pinned with `renv.lock`, run again by the CI reference job; `kernel/zeff-hash` on `blake3`, and every imported file hashed into its `source` metadata. The harness found that `div` and `mod` on Floats were inexact for divisors such as 0.1 (now the exact remainder, as R and Python), and that R mis-reads decimals at extreme exponents (the inputs now go to R in hexadecimal). 4 tests added; the conformance digest of `div_mod` changed with the fix.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally; the Python and R reference scripts reproduce their committed files. The first GitHub run failed its reference job: R's maths values differ in their last digit between Linux and macOS (R uses the platform's maths library), and R's means are accumulated in extended precision on x86, so CI now compares R's maths and descriptive files within tolerance (1e-13 and 1e-12) and the frames file byte for byte; R's Float remainder differs between platforms too and was dropped from the reference.
-
-**Next.** Step 11, maths part 1: `abs`, `sign`, `sqrt`, `floor`, `ceil`, `truncate`, `round`, `min`, `max`, `div`, `mod`, `PI`, `E`, `is_finite` `[function]`.
-
-**For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps.
-
-## 19 October 2026, step 11 of release 0.2.0
-
-**Done.** Step 11 `[function]`: `abs`, `sign`, `sqrt`, `floor`, `ceil`, `truncate`, `round` (decimal places, significant digits, half to even or away), `min`, `max`, `div`, `mod`, `is_finite`, `PI` and `E`, each with its help page and examples, on scalars and on columns. The engine piece underneath: a scalar function of `core` given a column now applies row by row and returns a column, with its warnings counted once per cause and an error naming its row. Two codes added with their pages: Z0212 (whole-number division by zero) and the provisional Z0410 (`round` with both `digits:` and `sig:`, added to open decision #46). 15 tests added, 10 snapshots; the catalogue rows marked implemented. 15 of the 68 functions of `core` now ship.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 12, maths part 2: `exp`, `log` (with `base:`), `log2`, `log10`, `log1p`, `expm1`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2` `[function]`.
-
-**For the owner to decide.** Questions 1 (weighted statistics, step 17) and 2 (the synthetic wages dataset, step 18) remain open; neither blocks the next steps. Open decision #46 now also holds Z0410, due at 0.3.0.
-
-## 19 October 2026, questions 1 and 2 decided
-
-**Done.** The owner took questions 1 (weighted statistics) and 2 (the synthetic wages dataset) as recommended; recorded in the checklist and the decisions log. Step 17 applies the weighted formulas; before step 18 the generating model of the dataset is drafted for the owner's approval.
-
-**Next.** Step 12, maths part 2 `[function]`.
-
-**For the owner to decide.** Nothing until the dataset draft at step 18.
-
-## 19 October 2026, step 12 of release 0.2.0
-
-**Done.** Step 12 `[function]`: `exp`, `log` with `base:`, `log2`, `log10`, `log1p`, `expm1`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan` and `atan2`, each with its help page and examples, on scalars and columns, with the warnings of section 4.1 (the logarithm of zero and of a negative number, an infinite angle, an inverse outside [-1, 1]). 6 tests added (grid against the exact and the R references, edges, columns, wrong kinds, a property of the identities), 3 snapshots; the catalogue rows marked implemented. 28 of the 68 functions of `core` ship.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 13, `is_missing`, `coalesce`, `warn`, `error` `[function]`.
-
-**For the owner to decide.** Nothing until the dataset draft at step 18.
-
-## 19 October 2026, step 13 of release 0.2.0
-
-**Done.** Step 13 `[function]`: `is_missing`, `coalesce`, `warn` and `error`, each with its help page and examples. `coalesce` joins its arguments' types as section 3.7 says, refusing a mixture (Z0214) at check time or, for a column whose type is only known when the script runs, at run time; `warn` prints the script's own warning and carries on; `error` stops the script with Z0001, whose page was written. 5 tests added, 3 snapshots; the catalogue rows marked implemented. 32 of the 68 functions of `core` ship.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 14, `import`'s remaining options: `quote:`, `decimal:`, `thousands:`, `encoding:` `[function]`.
-
-**For the owner to decide.** Nothing until the dataset draft at step 18.
-
-## 19 October 2026, step 14 of release 0.2.0
-
-**Done.** Step 14 `[function]`: `import` reads delimited text with every option of section 6.1: another quote character or none, a decimal comma (which makes `;` the usual delimiter), grouped digits removed only where they stand between groups of three, and any encoding of the WHATWG list (through `encoding_rs`, pinned and recorded), with an undecodable byte named by row. The catalogue's usage of `import` lacked `quote:` and was corrected (logged). 7 tests and 5 reference files added, 3 snapshots; the help page gained the options and an example on a German-style file.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally; the CSV reference script reproduces its files. GitHub run to be read after the push.
-
-**Next.** Step 15, frame verbs part 1: `head`, `tail`, `where`, `select`, `drop`, `rename` `[function]`.
-
-**For the owner to decide.** Nothing until the dataset draft at step 18.
+**Done, folded.** Step 10, the R reference harness (`tests/reference/r/`, base R 4.6.0 pinned, run in CI with its platform-dependent files compared within tolerance), BLAKE3 hashing of imported files, and the exact Float `div` and `mod` the harness exposed. Step 11, maths part 1 (`abs` to `is_finite`, `PI`, `E`) and scalar functions applied to columns row by row; provisional Z0410 added to #46. Questions 1 (weighted statistics) and 2 (the synthetic wages dataset) decided by the owner as recommended. Step 12, maths part 2 (the exponential, logarithms and trigonometric functions with the warnings of section 4.1). Step 13, `is_missing`, `coalesce` (types joined, Z0214), `warn` (a codeless warning) and `error` (Z0001). Step 14, the remaining options of `import` for delimited text (`quote:`, `decimal:`, `thousands:`, `encoding:` through `encoding_rs`); the catalogue's usage of `import` lacked `quote:` and was corrected.
 
 ## 19 October 2026, step 15 of release 0.2.0
 
@@ -191,4 +53,14 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 16, frame verbs part 2: `add`, `update`, `sort` `[function]`.
 
 **For the owner to decide.** Nothing until the dataset draft at step 18. Open decision #46 now holds four provisional codes (Z0221, Z0222, Z0410, W0102), due at 0.3.0.
+
+## 19 October 2026, step 16 of release 0.2.0
+
+**Done.** Step 16 `[function]`: `add` (definitions left to right, each seeing the ones before it; a replaced variable noted), `update` (values changed everywhere or where a condition holds, the variable keeping its type and metadata; rows where the condition was `NA` left unchanged and counted) and `sort` (stable, `NA` last in both directions, text by code point), each with its help page and examples; the kernel gained stable row sorting by identity order and column replacement. 7 tests added against R's sort reference and the rules, 5 snapshots; the catalogue rows marked implemented. The progress log was folded to stay under 200 lines.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 17, the reducers: `variance`, `median`, `quantile`, `min`, `max`, `sum`, `n`, `n_distinct`, and `by:` and `weights:` on every statistic `[function]`.
+
+**For the owner to decide.** Nothing until the dataset draft at step 18.
 

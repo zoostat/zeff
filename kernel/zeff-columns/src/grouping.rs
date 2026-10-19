@@ -108,6 +108,45 @@ pub struct Groups {
     rows: Vec<Vec<usize>>,
 }
 
+/// The rows in the order `sort` gives (Language Reference, section 6, "Row order"): by the key
+/// columns in turn, each in the order of section 3.7, stable (rows with equal keys keep their
+/// order), and `NA` last whether ascending or descending.
+pub fn sort_rows(keys: &[&Column], descending: bool) -> Result<Vec<usize>, GroupError> {
+    let n = keys.first().map_or(0, |c| c.len());
+    for column in keys {
+        if column.len() != n {
+            return Err(GroupError::Lengths(n, column.len()));
+        }
+        if let ColumnType::Opaque(_) = column.ty() {
+            return Err(GroupError::OpaqueKey(column.ty()));
+        }
+    }
+    let row_keys: Vec<Vec<Key>> = (0..n)
+        .map(|row| {
+            keys.iter()
+                .map(|c| Key::of(c, row).unwrap_or(Key::Na))
+                .collect()
+        })
+        .collect();
+    let mut order: Vec<usize> = (0..n).collect();
+    order.sort_by(|&a, &b| {
+        for (ka, kb) in row_keys[a].iter().zip(&row_keys[b]) {
+            let o = match (ka, kb) {
+                (Key::Na, Key::Na) => Ordering::Equal,
+                (Key::Na, _) => Ordering::Greater,
+                (_, Key::Na) => Ordering::Less,
+                _ if descending => kb.cmp(ka),
+                _ => ka.cmp(kb),
+            };
+            if o != Ordering::Equal {
+                return o;
+            }
+        }
+        Ordering::Equal
+    });
+    Ok(order)
+}
+
 impl Groups {
     /// Group the rows by the key columns given, all of one length; no key gives one group of
     /// every row.

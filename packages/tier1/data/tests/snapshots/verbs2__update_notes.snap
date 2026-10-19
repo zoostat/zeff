@@ -1,0 +1,6 @@
+---
+source: packages/tier1/data/tests/verbs2.rs
+expression: without_format_notes(&stderr)
+---
+note: 1 row where `hours > 36` was NA was left unchanged (line 3)
+note: 3 rows where `hours == NA` was NA were left unchanged (line 7)

@@ -48,7 +48,18 @@ pub struct Interpreter<'a> {
     width: usize,
     /// The frames whose methods are being called, innermost last, with the columns each call's
     /// arguments have named so far (section 3.7, "Name lookup").
-    receivers: Vec<(Frame, Vec<String>)>,
+    receivers: Vec<Receiver>,
+}
+
+/// A frame whose method is being called: the frame as given, which its options see; the frame
+/// with the definitions evaluated so far added, which the definitions after them see (section
+/// 3.7, "Definitions in one call"); whether a definition is being evaluated now; and the columns
+/// the arguments have named so far.
+struct Receiver {
+    original: Frame,
+    extended: Frame,
+    in_definition: bool,
+    used: Vec<String>,
 }
 
 impl<'a> Interpreter<'a> {
@@ -377,12 +388,17 @@ impl<'a> Interpreter<'a> {
         binding: Option<zeff_ir::BindingId>,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
-        let Some((frame, used)) = self.receivers.last_mut() else {
+        let Some(receiver) = self.receivers.last_mut() else {
             return Err(self.internal(expr, "a frame name was read outside a frame method"));
         };
+        let frame = if receiver.in_definition {
+            &receiver.extended
+        } else {
+            &receiver.original
+        };
         if let Some(column) = frame.table.column(name) {
-            if !used.iter().any(|u| u == name) {
-                used.push(name.to_string());
+            if !receiver.used.iter().any(|u| u == name) {
+                receiver.used.push(name.to_string());
             }
             let column = column.clone();
             if let Some(id) = binding {
@@ -458,7 +474,12 @@ impl<'a> Interpreter<'a> {
                             && !pushed
                             && let Value::Frame(frame) = &value
                         {
-                            self.receivers.push((frame.clone(), Vec::new()));
+                            self.receivers.push(Receiver {
+                                original: frame.clone(),
+                                extended: frame.clone(),
+                                in_definition: false,
+                                used: Vec::new(),
+                            });
                             pushed = true;
                         }
                         values[*i] = Some(value);
@@ -474,8 +495,32 @@ impl<'a> Interpreter<'a> {
                     }
                 },
                 Slot::Definition(i) => {
-                    match self.eval(&call.definitions[*i].1, printed, messages) {
-                        Ok(v) => definitions[*i].1 = v,
+                    if pushed && let Some(receiver) = self.receivers.last_mut() {
+                        receiver.in_definition = true;
+                    }
+                    let evaluated = self.eval(&call.definitions[*i].1, printed, messages);
+                    if pushed && let Some(receiver) = self.receivers.last_mut() {
+                        receiver.in_definition = false;
+                    }
+                    match evaluated {
+                        Ok(v) => {
+                            // A definition of a frame method is a variable for the definitions
+                            // after it (section 3.7, "Definitions in one call"); the options of
+                            // the call keep seeing the frame as given.
+                            if pushed
+                                && let Some(receiver) = self.receivers.last_mut()
+                                && let Some(column) =
+                                    zeff_core::lift::broadcast(&v, receiver.extended.table.rows())
+                                && column.len() == receiver.extended.table.rows()
+                                && let Ok(table) = receiver
+                                    .extended
+                                    .table
+                                    .with_column(&call.definitions[*i].0, column)
+                            {
+                                receiver.extended.table = std::rc::Rc::new(table);
+                            }
+                            definitions[*i].1 = v;
+                        }
                         Err(e) => {
                             if pushed {
                                 self.receivers.pop();
@@ -487,10 +532,7 @@ impl<'a> Interpreter<'a> {
             }
         }
         let columns_used = if pushed {
-            self.receivers
-                .pop()
-                .map(|(_, used)| used)
-                .unwrap_or_default()
+            self.receivers.pop().map(|r| r.used).unwrap_or_default()
         } else {
             Vec::new()
         };

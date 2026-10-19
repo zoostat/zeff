@@ -22,7 +22,7 @@ mod weights;
 
 pub use column::{Column, ColumnError, ColumnType, NumericValues, Value};
 pub use declaration::{Frequency, Opaque, Relations, TypeDeclaration};
-pub use grouping::{GroupError, Groups, Key};
+pub use grouping::{GroupError, Groups, Key, sort_rows};
 pub use ipc::{IpcError, read as read_ipc, write as write_ipc};
 pub use logic::{and, not, or};
 pub use metadata::{FrameMetadata, Metadata, MetadataKey};

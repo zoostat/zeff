@@ -10,6 +10,20 @@ use crate::value::Value;
 use zeff_columns::{Column, ColumnType, Value as Cell};
 use zeff_diagnostics::{Diagnostic, count};
 
+/// A scalar as a column of `rows` copies of it (a scalar beside a column stands for its value in
+/// every row, section 3.7); a column is itself; `None` for a value no column holds (`NA` alone,
+/// whose type is unknown, a list, a record).
+pub fn broadcast(value: &Value, rows: usize) -> Option<Column> {
+    Some(match value {
+        Value::Column(c) => c.clone(),
+        Value::Int(i) => Column::ints(std::iter::repeat_n(Some(*i), rows)),
+        Value::Float(x) => Column::floats(std::iter::repeat_n(Some(*x), rows)).0,
+        Value::Bool(b) => Column::bools(std::iter::repeat_n(Some(*b), rows)),
+        Value::Str(s) => Column::strs(std::iter::repeat_n(Some(s.as_str()), rows)),
+        _ => return None,
+    })
+}
+
 /// The values of one cell, as the body sees them.
 fn cell_value(column: &Column, row: usize) -> Value {
     match column.get(row).unwrap_or(Cell::Na) {

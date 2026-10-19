@@ -278,6 +278,97 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "add",
+                package: "data",
+                method: true,
+                params: vec![ParamSpec::required("data", "Frame")],
+                rest: Some(Rest::Definitions("Column | Bool | Int | Float | Str")),
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::note("a definition replaced a variable of that name"),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in a definition is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "a definition names a variable the frame does not have",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0217",
+                        "a definition's column has another number of rows",
+                    ),
+                    DiagnosticDecl::new("Z0219", "a definition is NA alone, whose type is unknown"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a definition is a list, a record or another value no variable holds",
+                    ),
+                ],
+                help: include_str!("../help/add.md"),
+                accuracy: None,
+            },
+            body: verbs::add,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "update",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option("where", "Column<Bool>"),
+                ],
+                rest: Some(Rest::Definitions("Column | Bool | Int | Float | Str")),
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::note("rows where the condition was NA were left unchanged"),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "a definition names a variable the frame does not have",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0203",
+                        "where: is a single Bool, NA, or a column of another type",
+                    ),
+                    DiagnosticDecl::new("Z0217", "a column of another number of rows"),
+                    DiagnosticDecl::new("Z0219", "a definition is NA alone"),
+                    DiagnosticDecl::new("Z0304", "the variable is a Date, DateTime or Category"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the new values are of another type than the variable",
+                    ),
+                ],
+                help: include_str!("../help/update.md"),
+                accuracy: None,
+            },
+            body: verbs::update,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "sort",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("vars", "Vars"),
+                    ParamSpec::option_with_default("desc", "Bool", "false"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a range that runs backwards, or an opaque variable as a key",
+                    ),
+                ],
+                help: include_str!("../help/sort.md"),
+                accuracy: None,
+            },
+            body: verbs::sort,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "describe",
                 package: "data",
                 method: true,

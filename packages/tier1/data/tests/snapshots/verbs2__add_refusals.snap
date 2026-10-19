@@ -1,0 +1,43 @@
+---
+source: packages/tier1/data/tests/verbs2.rs
+expression: all
+---
+error[Z0219]: `z = NA` has no type
+ --> scripts/main.zeff:2:11
+  |
+2 | w.add(z = NA)
+  |           ^^ NA alone
+  |
+  = help: a variable of only NA needs a type: build it from one of the frame's, as in `x * NA`; `to(NA, Float)` arrives with release 0.5.0
+
+error[Z0401]: `add` defines columns from a Column, Bool, Int, Float or Str, but `z` is a List<Int>
+ --> scripts/main.zeff:2:11
+  |
+2 | w.add(z = [1, 2, 3])
+  |           ^^^^^^^^^ a List<Int>
+  |
+  = help: usage: `data.add(name = Column | Bool | Int | Float | Str, ...)`
+
+error[Z0217]: `z` has 1 row and the frame has 3 rows
+ --> scripts/main.zeff:3:11
+  |
+3 | w.add(z = o["x"])
+  |           ^^^^^^ a column of another length
+  |
+  = help: build the new variable from the frame's own variables; `merge` joins frames (release 0.6.0)
+
+error[Z0101]: no variable `wge` in `w`
+ --> scripts/main.zeff:2:11
+  |
+2 | w.add(z = wge + 1)
+  |           ^^^ not a variable of w
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+error[Z0406]: `add` needs at least one definition
+ --> scripts/main.zeff:2:3
+  |
+2 | w.add()
+  |   ^^^ nothing defined
+  |
+  = help: usage: `data.add(name = Column | Bool | Int | Float | Str, ...)`

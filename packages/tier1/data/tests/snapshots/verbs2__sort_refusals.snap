@@ -1,0 +1,27 @@
+---
+source: packages/tier1/data/tests/verbs2.rs
+expression: all
+---
+error[Z0101]: no variable `wge` in `w`
+ --> scripts/main.zeff:2:8
+  |
+2 | w.sort(wge)
+  |        ^^^ not a variable of w
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+error[Z0401]: `desc` of `sort` must be a Bool, but this is an Int
+ --> scripts/main.zeff:2:20
+  |
+2 | w.sort(wage, desc: 1)
+  |                    ^ an Int
+  |
+  = help: usage: `data.sort(vars, desc: Bool = false)`
+
+error[Z0401]: `vars` of `sort` must be a Vars, but this is a Str
+ --> scripts/main.zeff:2:8
+  |
+2 | w.sort("wage")
+  |        ^^^^^^ a Str
+  |
+  = help: name the variables in a list, as in `[lwage, educ]`

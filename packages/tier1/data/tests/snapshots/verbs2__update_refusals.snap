@@ -1,0 +1,52 @@
+---
+source: packages/tier1/data/tests/verbs2.rs
+expression: all
+---
+error[Z0101]: no variable `pay` in `w`
+ --> scripts/main.zeff:2:16
+  |
+2 | w.update(pay = 1)
+  |                ^ not a variable of w
+  |
+  = help: the variables of `w` are: id, wage, hours, name
+  = help: `update` changes a variable the frame has; `add` creates a new one
+
+error[Z0401]: `hours` is an Int variable, but the new values are Floats
+ --> scripts/main.zeff:2:18
+  |
+2 | w.update(hours = 2.5)
+  |                  ^^^ values of another type
+  |
+  = help: `update` keeps a variable's type; `add(hours = ...)` replaces the variable with one of the new type
+
+error[Z0401]: `name` is a Str variable, but the new values are Ints
+ --> scripts/main.zeff:2:17
+  |
+2 | w.update(name = 1)
+  |                 ^ values of another type
+  |
+  = help: `update` keeps a variable's type; `add(name = ...)` replaces the variable with one of the new type
+
+error[Z0203]: `where:` of `update` needs a condition that is true or false in every row, but this is a Column<Int>
+ --> scripts/main.zeff:2:27
+  |
+2 | w.update(wage = 1, where: hours)
+  |                           ^^^^^ not a condition over the rows
+  |
+  = help: write a comparison or a Bool variable: `where: hours > 40`, `where: is_missing(hours)`
+
+error[Z0203]: `update` needs a condition that is true or false in every row, but this is a single Bool
+ --> scripts/main.zeff:2:27
+  |
+2 | w.update(wage = 1, where: true)
+  |                           ^^^^ not a condition over the rows
+  |
+  = help: a condition is an expression over the frame's variables, such as `hours > 40`; `is_missing(x)` tests for a missing value
+
+error[Z0217]: `where:` has 1 row and w has 3 rows
+ --> scripts/main.zeff:3:27
+  |
+3 | w.update(wage = 1, where: o["x"] > 1)
+  |                           ^^^^^^^^^^ a column of another frame
+  |
+  = help: a condition is built from the frame's own variables

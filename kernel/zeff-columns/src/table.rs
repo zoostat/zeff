@@ -179,6 +179,30 @@ impl Table {
         self.select(&kept)
     }
 
+    /// The table with `column` as `name`: in place of the column of that name when there is one
+    /// (`add` replacing a variable), appended otherwise. The length must match.
+    pub fn with_column(&self, name: &str, column: Column) -> Result<Table, TableError> {
+        if column.len() != self.rows && !(self.columns.is_empty()) {
+            return Err(TableError::LengthMismatch {
+                name: name.to_string(),
+                expected: self.rows,
+                found: column.len(),
+            });
+        }
+        let mut table = self.clone();
+        match table.names.iter().position(|n| n == name) {
+            Some(p) => table.columns[p] = column,
+            None => {
+                if table.columns.is_empty() {
+                    table.rows = column.len();
+                }
+                table.names.push(name.to_string());
+                table.columns.push(column);
+            }
+        }
+        Ok(table)
+    }
+
     /// The table with the column at `position` called `name`; the columns and their metadata are
     /// the same. A name another column has is an error.
     pub fn rename(&self, position: usize, name: &str) -> Result<Table, TableError> {
