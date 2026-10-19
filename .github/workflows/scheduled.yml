@@ -95,7 +95,8 @@ jobs:
 
       - name: Build the fuzz targets
         working-directory: fuzz
-        run: cargo +nightly fuzz build
+        # The runner's own target, named so that cargo-fuzz never picks a statically linked one.
+        run: cargo +nightly fuzz build --target x86_64-unknown-linux-gnu
 
       - name: Fuzz the lexer, the parser, the checker and the CSV reader for ten minutes each
         working-directory: fuzz
@@ -103,7 +104,7 @@ jobs:
           status=0
           for target in lexer parser checker csv; do
             echo "::group::$target"
-            if ! cargo +nightly fuzz run "$target" -- -max_total_time=600 -timeout=20 2>&1 | tee "fuzz-$target.log" | tail -5; then
+            if ! cargo +nightly fuzz run --target x86_64-unknown-linux-gnu "$target" -- -max_total_time=600 -timeout=20 2>&1 | tee "fuzz-$target.log" | tail -5; then
               status=1
             fi
             echo "::endgroup::"
