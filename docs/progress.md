@@ -121,3 +121,11 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** The owner's "Start release 0.3.0" (Distributions): 26 functions, the special functions, the twelve distributions, Philox random streams, `seed`, `zeff selftest`. Open decision #46 is due at 0.3.0.
 
 **For the owner to decide.** Open decision #46 (the four provisional diagnostic codes), at 0.3.0.
+
+## 19 October 2026, release 0.3.0 started
+
+**Done.** The previous release is tagged (`v0.2.0`) and the tree was clean. The 0.3.0 row of section 14, every section it names in both volumes, the 26 catalogue rows, the testing handbook, the risk register and the open decision due (#46) were read, and the checklist written in `docs/releases/0.3.0.md`: 15 steps, the five engine pieces first, each tagged. The owner said "go". Step 1: the version is `0.3.0-dev`, both sample projects pin it, the four version snapshots follow.
+
+**Next.** Step 2, the special-function kernel `[engine]`.
+
+**For the owner to decide.** Four questions at the top of the checklist: how a distribution prints (step 3), the correlation table layout (step 11), whether discrete draws are Int columns (step 7), open decision #46 (step 15).

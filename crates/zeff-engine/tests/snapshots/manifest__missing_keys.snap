@@ -16,7 +16,7 @@ error[Z0713]: [project] needs `zeff`
 1 | [project]
   |  ^^^^^^^ `zeff` is missing
   |
-  = help: add `zeff = "0.2.0"`, the engine version the project runs on
+  = help: add `zeff = "0.3.0-dev"`, the engine version the project runs on
 
 error[Z0713]: [project] needs `edition`
  --> zeff.toml:1:2
