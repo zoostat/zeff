@@ -793,3 +793,7 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Tests.** The R comparison extended by four composites (a truncated normal on [−1, 2], a t with five degrees of freedom on [0, ∞), a Poisson on [1, 6], a mixture of two normals); a snapshot of their printing, edges and draws; the refusals; the stochastic class on 100,000 draws of the truncated normal and of the mixture against their exact moments; both in the conformance series. The two catalogue rows are `implemented`; the twelve families, the two constructions and the four methods of the release are complete.
 
 **Reason.** The catalogue rows 425 and 426; Engine and Project Specification, sections 8.3 point 3 and 13; the checklist's step 10.
+
+## 19 October 2026: The correlation and covariance tables (the owner's decision on question 2 of 0.3.0)
+
+**Decision.** `correlation` and `covariance` print a square table with the variables as both rows and columns, three decimals; `p_values: true` adds a second table of the same shape headed `p-values`; the N per pair is a third table only under pairwise deletion when the Ns differ, otherwise one line `N = 1,139` under the title. Taken by the owner as recommended; step 11 implements it.
