@@ -192,6 +192,7 @@ pub fn datasets(_ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> 
             ("size".to_string(), Align::Right),
         ],
         rows,
+        more: Vec::new(),
     }))
 }
 

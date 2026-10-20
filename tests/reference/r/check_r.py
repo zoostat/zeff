@@ -13,14 +13,14 @@ relative 1e-12, the class tolerance of the distribution functions, since R's `pg
 carry errors of that order in their far tails on some platforms. `frames.json` holds only row
 numbers and is compared byte for byte by the workflow itself.
 
-Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions <committed.json> <regenerated.json>
+Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association <committed.json> <regenerated.json>
 """
 
 import json
 import math
 import sys
 
-TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12}
+TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12}
 
 
 def number(text):
@@ -135,7 +135,7 @@ def main(which, committed_path, regenerated_path):
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    {"maths": check_maths, "descriptive": check_descriptive, "special": check_special, "distributions": check_special}[which](committed, regenerated, problems)
+    {"maths": check_maths, "descriptive": check_descriptive, "special": check_special, "distributions": check_special, "association": check_special}[which](committed, regenerated, problems)
     if problems:
         for problem in problems:
             print(problem)

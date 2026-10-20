@@ -1,0 +1,47 @@
+---
+source: packages/tier1/stats/tests/association.rs
+expression: all
+---
+error[Z0401]: `correlation` needs at least two variables
+ --> scripts/main.zeff:2:15
+  |
+2 | f.correlation(x)
+  |               ^ one variable
+  |
+  = help: name the variables as a list: `correlation([wage, educ, hours])`
+
+error[Z0401]: `correlation` needs a Bool, Int or Float, but `s` is Str
+ --> scripts/main.zeff:2:15
+  |
+2 | f.correlation([x, s])
+  |               ^^^^^^ a Str variable of f
+  |
+  = help: choose a Bool, Int or Float variable; `f.describe()` lists the types
+
+error[Z0101]: no variable `z` in `f`
+ --> scripts/main.zeff:2:15
+  |
+2 | f.correlation([x, z])
+  |               ^^^^^^ not a variable of f
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+
+error[Z0402]: `cosine` is not one of the allowed words
+ --> scripts/main.zeff:2:31
+  |
+2 | f.correlation([x, y], method: cosine)
+  |                               ^^^^^^ expected one of pearson, spearman, kendall
+
+error[Z0402]: `never` is not one of the allowed words
+ --> scripts/main.zeff:2:31
+  |
+2 | f.covariance([x, y], missing: never)
+  |                               ^^^^^ expected one of pairwise, listwise
+
+error[Z0406]: `correlation` needs `vars`
+ --> scripts/main.zeff:1:1
+  |
+1 | correlation([x, y])
+  | ^^^^^^^^^^^ `vars` is missing
+  |
+  = help: usage: `data.correlation(vars, method: pearson | spearman | kendall = pearson, missing: pairwise | listwise = pairwise, p_values: Bool = false)`

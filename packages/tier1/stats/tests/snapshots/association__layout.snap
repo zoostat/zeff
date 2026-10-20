@@ -1,0 +1,64 @@
+---
+source: packages/tier1/stats/tests/association.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+correlation · f · pearson
+N = 8
+
+          x       y
+  x   1.000   0.833
+  y   0.833   1.000
+
+p-values
+
+          x       y
+  x           0.010
+  y   0.010
+correlation · f · pearson
+N = 8
+
+          x       y       c
+  x   1.000   0.833      NA
+  y   0.833   1.000      NA
+  c      NA      NA   1.000
+correlation · f · pearson
+
+          x       y       g
+  x   1.000   0.833   1.000
+  y   0.833   1.000   0.800
+  g   1.000   0.800   1.000
+
+N per pair
+
+      x   y   g
+  x   8   8   7
+  y   8   8   7
+  g   7   7   7
+correlation · f · pearson
+N = 7
+
+          x       g
+  x   1.000   1.000
+  g   1.000   1.000
+covariance · f
+N = 8
+
+          x       y
+  x   6.000   5.000
+  y   5.000   6.000
+covariance · f
+
+          x       g       y
+  x   6.000   4.667   5.000
+  g   4.667   4.667   4.167
+  y   5.000   4.167   6.000
+
+N per pair
+
+      x   g   y
+  x   8   7   8
+  g   7   7   7
+  y   8   7   8
+---
+warning: correlation of c, which does not vary, gave NA (line 3)
+  = help: a constant has no correlation with anything; `describe()` shows each variable's spread

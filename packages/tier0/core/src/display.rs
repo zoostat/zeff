@@ -242,11 +242,16 @@ fn frame_text(frame: &Frame, width: usize) -> String {
 
 /// A table as it prints: its title, a blank line, then its grid.
 fn table_text(table: &Table, width: usize) -> String {
-    format!(
+    let mut text = format!(
         "{}\n\n{}",
         table.title,
         grid(&table.columns, &table.rows, false, width)
-    )
+    );
+    for further in &table.more {
+        text.push('\n');
+        text.push_str(&table_text(further, width));
+    }
+    text
 }
 
 /// The width of a cell in characters.
@@ -622,6 +627,7 @@ mod tests {
                 ("example".into(), Align::Left),
             ],
             rows: vec![
+            more: Vec::new(),
                 vec!["id".into(), "3".into(), "1".into()],
                 vec!["hours".into(), "2".into(), "40".into()],
             ],

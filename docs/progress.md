@@ -153,3 +153,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 11, `correlation` and `covariance` in the new `stats` package `[function]`. It needs the owner's answer to question 2 (the correlation table's layout); the recommendation stands if none comes.
 
 **For the owner to decide.** Question 2 before step 11; open decision #46 at the close.
+
+## 20 October 2026, step 11 of release 0.3.0
+
+**Done.** The owner decided question 2 (the layout of the correlation tables). Step 11 `[function]`: the `stats` package with `correlation` (Pearson, Spearman, Kendall tau-b; pairwise or listwise deletion; p-values reproducing R's `cor.test` branch by branch, exact distributions included) and `covariance`, each with its page, printing as the owner decided; `Table` can carry further tables. R's `cor`, `cov` and `cor.test` as a reference file compared in CI; every estimate and p-value of 22 pairs agrees to twelve digits. 3 tests added, 2 snapshots; 2 catalogue rows marked implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 12, `seed` `[function]`.
+
+**For the owner to decide.** Nothing before the close; open decision #46 at the close.

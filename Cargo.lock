@@ -1239,6 +1239,7 @@ dependencies = [
  "zeff-ir",
  "zeff-numeric",
  "zeff-registry",
+ "zeff-stats",
  "zeff-syntax",
 ]
 
@@ -1275,6 +1276,21 @@ name = "zeff-registry"
 version = "0.3.0-dev"
 dependencies = [
  "insta",
+]
+
+[[package]]
+name = "zeff-stats"
+version = "0.3.0-dev"
+dependencies = [
+ "insta",
+ "serde_json",
+ "zeff-columns",
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-dist",
+ "zeff-numeric",
+ "zeff-registry",
+ "zeff-testkit",
 ]
 
 [[package]]

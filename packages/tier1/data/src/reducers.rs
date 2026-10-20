@@ -585,6 +585,7 @@ fn statistic_method(
                 title: format!("{name} · {var} by {}", keys.join(", ")),
                 columns,
                 rows: rows_out,
+                more: Vec::new(),
             }))
         }
     }
@@ -741,6 +742,7 @@ pub fn quantile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 title,
                 columns,
                 rows,
+                more: Vec::new(),
             }))
         }
         _ => Ok(Value::List(results)),
@@ -1016,6 +1018,7 @@ pub fn summary(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         title,
         columns,
         rows,
+        more: Vec::new(),
     }))
 }
 

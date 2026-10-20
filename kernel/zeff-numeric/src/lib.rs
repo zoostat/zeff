@@ -13,6 +13,7 @@
 //! These routines work on slices of `f64` without missing values. Skipping `NA` and counting what
 //! was skipped belongs to the column layer, which passes only the valid values here.
 
+pub mod association;
 pub mod maths;
 pub mod order;
 pub mod random;
@@ -20,13 +21,13 @@ pub mod special;
 
 /// A running compensated (Neumaier) sum.
 #[derive(Debug, Clone, Copy, Default)]
-struct Accumulator {
+pub(crate) struct Accumulator {
     total: f64,
     compensation: f64,
 }
 
 impl Accumulator {
-    fn add(&mut self, x: f64) {
+    pub(crate) fn add(&mut self, x: f64) {
         let t = self.total + x;
         if self.total.abs() >= x.abs() {
             self.compensation += (self.total - t) + x;
@@ -36,7 +37,7 @@ impl Accumulator {
         self.total = t;
     }
 
-    fn value(self) -> f64 {
+    pub(crate) fn value(self) -> f64 {
         self.total + self.compensation
     }
 }

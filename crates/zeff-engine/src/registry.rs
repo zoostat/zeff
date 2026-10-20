@@ -12,6 +12,7 @@ pub fn functions() -> Vec<Function> {
     all.extend(zeff_data::functions());
     all.extend(zeff_datasets::functions());
     all.extend(zeff_dist::functions());
+    all.extend(zeff_stats::functions());
     all
 }
 
@@ -66,7 +67,7 @@ mod tests {
         assert!(registry.function("data", "mean").is_some());
         assert_eq!(
             registry.packages_shipped(),
-            ["core", "data", "dist", "datasets"]
+            ["core", "data", "dist", "stats", "datasets"]
         );
         assert_eq!(registry.datasets().len(), 2);
         for f in registry.functions() {

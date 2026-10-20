@@ -47,6 +47,9 @@ pub struct Table {
     pub title: String,
     pub columns: Vec<(String, Align)>,
     pub rows: Vec<Vec<String>>,
+    /// Further tables printed after this one, each with its own title (the p-values and the N
+    /// per pair of `correlation`), separated by a blank line.
+    pub more: Vec<Table>,
 }
 
 /// A probability distribution as a value (Language Reference, section 4: `dist.t(df: 24)` is a

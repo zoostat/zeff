@@ -100,6 +100,7 @@ pub fn describe(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         title,
         columns,
         rows,
+        more: Vec::new(),
     }))
 }
 
