@@ -163,3 +163,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 12, `seed` `[function]`.
 
 **For the owner to decide.** Nothing before the close; open decision #46 at the close.
+
+## 20 October 2026, step 12 of release 0.3.0
+
+**Done.** Step 12 `[function]`: `seed(n)` sets the run's seed once, before any draw, with Z0111 (a new explained code) when it comes too late or twice, and its page. 2 tests added, 1 snapshot; the catalogue row marked implemented. The 26 functions of the release are complete.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
+
+**Next.** Step 13, the 0.3.0 sample project and its script tests `[engine]`.
+
+**For the owner to decide.** Nothing before the close; open decision #46 at the close.

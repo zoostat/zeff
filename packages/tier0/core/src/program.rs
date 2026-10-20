@@ -28,9 +28,70 @@ fn error(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     ))
 }
 
+/// `seed(n)`: the run's seed, set once per script before any draw (Engine and Project
+/// Specification, section 8.3, point 3; the catalogue's row 63). A second `seed`, or one after a
+/// statement has drawn, is Z0111: the draws before it would not be reproduced by the seed printed.
+fn seed(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let n = match args.get(0) {
+        Some(Value::Int(n)) => *n,
+        _ => {
+            return Err(fail(
+                Diagnostic::error("Z0401", "`n` of `seed` must be an Int, but this is NA")
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(0), "not a seed"),
+            ));
+        }
+    };
+    if ctx.random.used {
+        let chosen = ctx.random.seed.unwrap_or_default();
+        return Err(fail(
+            Diagnostic::error(
+                "Z0111",
+                "`seed` comes after a statement that has already drawn random numbers",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "too late to set the seed")
+            .help(format!(
+                "put `seed({n})` at the top of the script, before the first draw; the draws so far used the seed {chosen}"
+            )),
+        ));
+    }
+    if ctx.random.seed.is_some() {
+        return Err(fail(
+            Diagnostic::error("Z0111", "`seed` is set once per script, and it is set already")
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "a second seed")
+                .help("one seed makes the whole run repeatable; a `seed:` given to one `draw` has a stream of its own"),
+        ));
+    }
+    ctx.random.seed = Some(n);
+    ctx.random.chosen = false;
+    Ok(Value::Nothing)
+}
+
 /// The program functions of `core` in this release, `print` apart.
 pub fn functions() -> Vec<Function> {
     vec![
+        Function {
+            spec: FunctionSpec {
+                name: "seed",
+                package: "core",
+                method: false,
+                params: vec![ParamSpec::required("n", "Int")],
+                rest: None,
+                returns: "Nothing",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0111", "a second seed, or one after a draw"),
+                    DiagnosticDecl::new(
+                        "Z0206",
+                        "the result of seed is bound or passed; it has none",
+                    ),
+                ],
+                help: include_str!("../help/seed.md"),
+                accuracy: None,
+            },
+            body: seed,
+        },
         Function {
             spec: FunctionSpec {
                 name: "warn",

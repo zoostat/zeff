@@ -1,0 +1,35 @@
+---
+source: packages/tier0/core/tests/seed.rs
+expression: all
+---
+error[Z0111]: `seed` is set once per script, and it is set already
+ --> scripts/main.zeff:2:1
+  |
+2 | seed(2)
+  | ^^^^ a second seed
+  |
+  = help: one seed makes the whole run repeatable; a `seed:` given to one `draw` has a stream of its own
+
+error[Z0111]: `seed` comes after a statement that has already drawn random numbers
+ --> scripts/main.zeff:3:1
+  |
+3 | seed(1)
+  | ^^^^ too late to set the seed
+  |
+  = help: put `seed(1)` at the top of the script, before the first draw; the draws so far used the seed 1
+
+error[Z0206]: this gives no value, so it cannot be bound
+ --> scripts/main.zeff:1:9
+  |
+1 | let s = seed(1)
+  |         ^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+error[Z0401]: `n` of `seed` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:6
+  |
+1 | seed(2.5)
+  |      ^^^ a Float
+  |
+  = help: usage: `seed(n)`

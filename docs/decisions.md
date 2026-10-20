@@ -811,3 +811,11 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **Tests.** `packages/tier1/stats/tests/association.rs`: the matrices and the N against R, the 22 pairs to twelve digits, and snapshots of the layout (p-values, the N line and the N table, a constant variable's warning, `NA` through) and of the refusals (one variable, a text variable, an unknown variable, an unknown method word, a method called without a frame). The two catalogue rows are `implemented`.
 
 **Reason.** The owner's decision on question 2; Language Reference, sections 4 ("Matrix results are Tables") and 6; Engine and Project Specification, sections 8.2 and 13 (`cor`, `pwcorr`, `correlate`); the catalogue rows 167 and 168; the checklist's step 11.
+
+## 20 October 2026: `seed`
+
+**Choice.** `seed(n: Int)` in `core`'s program functions sets the run's seed on the `Randomness` of step 4 and returns nothing. It is refused with Z0111 in two cases, each with its own wording: after a statement has drawn ("comes after a statement that has already drawn random numbers", the help naming the seed those draws used, so that a run can still be repeated), and when a seed is set already ("set once per script"). A `seed:` given to one `draw` is untouched by it and leaves it untouched, and such a draw does not count as a use of the run's stream, so `seed` may still follow it. The code is new to the engine (its page `codes/Z0111.md`; the catalogue's row 63 names it). The page records the one difference from R's `set.seed` and Stata's `set seed`: a statement's draws are keyed by its position in the run, so inserting a statement that does not draw changes the draws after it (as in R and Stata) while a `seed:` given to one call does not move.
+
+**Tests.** `packages/tier0/core/tests/seed.rs`: the same seed gives the same draws and no note, another seed or a shifted position gives other draws, a `seed:` of one call is its own stream; the refusals (a late seed naming the chosen seed, a second seed, a bound result Z0206, a Float seed Z0401) as a snapshot.
+
+**Reason.** Engine and Project Specification, section 8.3, point 3; the catalogue's row 63; Language Reference, sections 3.7 ("Random methods") and 11; the checklist's step 12.
