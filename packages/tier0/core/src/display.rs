@@ -627,10 +627,10 @@ mod tests {
                 ("example".into(), Align::Left),
             ],
             rows: vec![
-            more: Vec::new(),
                 vec!["id".into(), "3".into(), "1".into()],
                 vec!["hours".into(), "2".into(), "40".into()],
             ],
+            more: Vec::new(),
         };
         assert_eq!(
             show(&Value::Table(table.clone())),
