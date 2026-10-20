@@ -33,7 +33,7 @@ def number(text):
     return float(text)
 
 
-def close(a, b, tolerance):
+def close(a, b, tolerance, absolute=0.0):
     a, b = number(a), number(b)
     if math.isnan(a) and math.isnan(b):
         return True
@@ -41,7 +41,7 @@ def close(a, b, tolerance):
         return True
     if math.isinf(a) or math.isinf(b):
         return False
-    return abs(a - b) <= tolerance * max(abs(a), abs(b))
+    return abs(a - b) <= tolerance * max(abs(a), abs(b)) or abs(a - b) <= absolute
 
 
 def check_maths(committed, regenerated, problems):
@@ -91,10 +91,16 @@ def check_descriptive(committed, regenerated, problems):
                     problems.append(f"{name}.{column} {key}: committed {value}, regenerated {other_stats[key]}")
 
 
-def check_special(committed, regenerated, problems):
-    """Every list of the file (special.json and distributions.json alike): scalars compared within
-    tolerance, inputs exactly."""
-    tolerance = TOLERANCE["special"]
+# An absolute floor beside the relative tolerance, for files whose values are bounded: a
+# correlation in [-1, 1] that is exactly zero comes out as 0 on one platform and 6.5e-18 on another.
+ABSOLUTE = {"association": 1e-15}
+
+
+def check_special(committed, regenerated, problems, which="special"):
+    """Every list of the file (special.json, distributions.json and association.json alike):
+    scalars compared within tolerance, inputs exactly."""
+    tolerance = TOLERANCE[which]
+    absolute = ABSOLUTE.get(which, 0.0)
 
     def walk(path, a, b):
         if isinstance(a, dict) and isinstance(b, dict):
@@ -112,7 +118,7 @@ def check_special(committed, regenerated, problems):
                 walk(f"{path}[{i}]", x, y)
         elif isinstance(a, str) and isinstance(b, str):
             try:
-                same = close(a, b, tolerance)
+                same = close(a, b, tolerance, absolute)
             except ValueError:
                 same = a == b  # a name, not a number
             if not same:
@@ -135,7 +141,11 @@ def main(which, committed_path, regenerated_path):
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    {"maths": check_maths, "descriptive": check_descriptive, "special": check_special, "distributions": check_special, "association": check_special}[which](committed, regenerated, problems)
+    checks = {"maths": check_maths, "descriptive": check_descriptive}
+    if which in checks:
+        checks[which](committed, regenerated, problems)
+    else:
+        check_special(committed, regenerated, problems, which)
     if problems:
         for problem in problems:
             print(problem)
