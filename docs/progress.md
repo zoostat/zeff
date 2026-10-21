@@ -173,3 +173,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 13, the 0.3.0 sample project and its script tests `[engine]`.
 
 **For the owner to decide.** Nothing before the close; open decision #46 at the close.
+
+## 21 October 2026, performance review
+
+**Done.** The owner's performance review was discussed and three open decisions recorded: #47 (a fixed shape for every sum), #48 (blocked kernels now, threads when proven) and #49 (when fused passes arrive). The other points (grouping by hashing or sorting, a different fixed-effects solver, a bytecode interpreter, build settings) are left for the releases that need them. No code or specification text changed.
+
+**Green.** Nothing built; documents only.
+
+**Next.** Step 13 of release 0.3.0 `[engine]`.
+
+**For the owner to decide.** Open decisions #47 to #49, by 0.4.0.

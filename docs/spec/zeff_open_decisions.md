@@ -511,3 +511,48 @@ Found while writing the operators of 0.2.0 (docs/releases/0.2.0.md, step 2). Sec
 | A bare name inside a frame method's argument that is both a variable of the frame and a binding: the variable is used, with a warning (found at step 15; section 3.7, "Name lookup", asks for the warning and gives it no code) | W0102 |
 
 *Recommendation.* Accept all four and add them to section 11 with the codes of #41 to #44 after the freeze (0.3.0). Deadline: 0.3.0.
+
+## Performance
+
+### 47. A fixed reduction shape for every sum: independent accumulators in a fixed order
+
+Raised on 21 October 2026 in a review of the performance plan. Bit-identity depends on the order of the additions, not on how many are done at once. If every sum over rows is defined as N independent running totals, row i going to total i mod N, the totals combined in one fixed order, and no fused multiply-add, then a scalar loop, SSE2, AVX2, AVX-512, NEON and simd128 give the same bits, and a native build may use the widest vectors it finds. Section 8.3, point 3 asks for "fixed blocking and reduction order"; this decision names the shape.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Keep today's order in each kernel, no named shape | No change to any result | Vector width is limited to what each loop happens to allow; the order is a convention kept in each kernel, not a rule |
+| B. N independent accumulators (N = 8 proposed), combined in a fixed order, for every reducer | One rule for all kernels; wide vectors allowed natively; the cross-target check is the proof | N becomes part of the numerical definition; sums change in the last digits against earlier versions, and the snapshots and the R comparisons of the stats functions already shipped must be re-read |
+
+The gain should be measured before the rule is adopted: a micro-benchmark of one sum and one cross-product, scalar against 8 accumulators, on the arm64 and x86 targets. The wide x86 levels matter less than the shape itself; the owner's machine is arm64 (128-bit).
+
+*Recommendation.* B, with N fixed by that measurement and recorded once. Changes to the shipped functions' last digits are logged in the notes of the release that makes them. Deadline: 0.4.0, before the first release whose cost depends on a long sum.
+
+### 48. Blocked kernels from the start, threads when proven
+
+Raised on 21 October 2026 in a review of the performance plan. Section 14 puts threads in 1.1. A deterministic parallel design exists: rows in fixed-size blocks (the size independent of the number of threads), one partial result per block, the partials combined in a fixed order, so 1 thread or 64 give the same bits. Writing the kernels this way costs little; adding threads to kernels written as one long loop means rewriting them.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Single-threaded kernels now, rewrite for threads in 1.1 | Nothing new to test | The rewrite touches every kernel and risks the results already validated |
+| B. Kernels blocked from now, the blocks run one after another; threads switched on later | The switch cannot change a bit; no scheduling to debug in early releases; the block structure is also what #47 and #49 need | A small cost in code shape now |
+| C. Threads from 0.1.0 | The largest speed-up, native | Brings forward work the build order puts later; browser threads need cross-origin isolation and a nightly toolchain; a service-worker shim is fragile on first load |
+
+Two conditions in any case: random draws use one stream per draw, derived from the seed and the draw's number, so the thread count never changes a result; and a test runs each blocked kernel at 1 and at several threads and demands equal bits.
+
+*Recommendation.* B for the engine and the native build; the browser build stays single-threaded until threads there are shown to work. Deadline: 0.4.0 for the shape; 1.1 for the threads.
+
+### 49. When fused passes arrive: 0.2.0 or 0.6.0
+
+Raised on 21 October 2026 in a review of the performance plan. Large-data kernels are limited by memory traffic. Processing rows in cache-sized blocks across all the columns a statement uses, and carrying `where` as a selection of rows instead of copying them, can speed up the frame verbs and the regression pipeline by a factor of two or three. Section 14 places fused expressions at 0.6.0.
+
+Two corrections to the claim as first made. Fixed-effects demeaning needs several sweeps, so only the last sweep can feed the cross-products directly. And accumulating X′X directly favours the normal equations, which are less stable than a QR decomposition; section 6 decides which the regression uses.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As planned, fused expressions in 0.6.0 | Verbs are first written plainly and validated | Verbs may need rewriting once |
+| B. The block and selection interface in the verbs from now; fusion itself at 0.6.0 | The later change is a swap inside the interface | A small cost in the verbs now |
+| C. Fusion at 0.2.0 | Earliest gain | Brings work forward; complicates the verbs while they are being validated |
+
+Whichever is chosen, every fused result is tested against the unfused one for equal bits.
+
+*Recommendation.* B. Deadline: 0.4.0.
