@@ -595,3 +595,14 @@ Raised on 21 October 2026 in a review of the performance plan. The testing handb
 The suite measures time only; a result it produces is also checked for equal bits against the stored snapshot, so a benchmark can never be made faster by a numerical change.
 
 *Recommendation.* B, as a new section of the testing handbook, added after the freeze (0.3.0) and run from 0.4.0. Deadline: 0.4.0.
+
+### 53. Options rather than functions: HAC standard errors and weights on the descriptives
+
+Raised on 21 October 2026 with the catalogue additions of that date (rows 506 to 524). Two of the suggested additions are options on existing functions, so they cannot be catalogue rows, and both would extend a usage frozen at 1.0.
+
+* `se: newey_west` (with `lags: Int`) and `se: driscoll_kraay` on `reg`, `ivreg` and the panel models: autocorrelation-robust standard errors for time series and panels. Conley spatial errors are already in section 14.1; these are their simpler cousins and share the variance layer's kernel form.
+* A `weights: Var` option on `mean`, `sd`, `variance`, `median`, `quantile`, `correlation` and `tabulate`, for frequency weights, before the survey package of 1.9 brings design weights.
+
+An option with a default that keeps earlier behaviour is an addition a minor release may make after 1.0 (section 14, Version numbers), so neither needs the freeze lifted; the question is only which release and whether the two kinds of weight (frequency now, design at 1.9) share the one option name.
+
+*Recommendation.* The `se:` variants with the panel models of 1.4; `weights:` on the descriptives at 1.1, as frequency weights, with `survey()` of 1.9 overriding them by design weights where a design is declared. Deadline: 1.1.

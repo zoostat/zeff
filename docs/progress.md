@@ -193,3 +193,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 13 of release 0.3.0 `[engine]`.
 
 **For the owner to decide.** Open decisions #47 to #52, by 0.4.0; whether any of the discussed additions go into the catalogue as roadmap rows.
+
+## 21 October 2026, catalogue additions
+
+**Done.** Nineteen roadmap rows (506 to 524, release after 1.0) added to the function catalogue from the method review: seven classical tests, two residual diagnostics, `roc` and `confusion`, five inequality and concentration measures, `rolling` and `bland_altman`; logged in docs/spec_changes.md. Open decision #53 records the two suggestions that are options rather than functions (HAC standard errors; `weights:` on the descriptives). The catalogue test's row count updated.
+
+**Green.** Format, clippy with warnings denied and all workspace tests pass locally.
+
+**Next.** Step 13 of release 0.3.0 `[engine]`.
+
+**For the owner to decide.** Open decisions #47 to #53.
