@@ -183,3 +183,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 13 of release 0.3.0 `[engine]`.
 
 **For the owner to decide.** Open decisions #47 to #49, by 0.4.0.
+
+## 21 October 2026, performance review (continued)
+
+**Done.** Three more open decisions recorded from the review: #50 (compact column storage), #51 (reading files in parallel by chunk) and #52 (a benchmark suite from 0.4.0). The owner's method list was checked against the catalogue and found to match it name for name; additions beyond it were discussed, none recorded.
+
+**Green.** Nothing built; documents only.
+
+**Next.** Step 13 of release 0.3.0 `[engine]`.
+
+**For the owner to decide.** Open decisions #47 to #52, by 0.4.0; whether any of the discussed additions go into the catalogue as roadmap rows.

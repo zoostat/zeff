@@ -556,3 +556,42 @@ Two corrections to the claim as first made. Fixed-effects demeaning needs severa
 Whichever is chosen, every fused result is tested against the unfused one for equal bits.
 
 *Recommendation.* B. Deadline: 0.4.0.
+
+### 50. Compact column storage: narrow types, dictionary codes and a validity mask
+
+Raised on 21 October 2026 in a review of the performance plan. Every pass over a column costs in proportion to its bytes. Section 4.3 of the Language Reference fixes the column types and the Arrow metadata; this decision concerns only how each is held in memory, which no script can observe.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Every numeric column as 64-bit floats; text as text; missing values as a sentinel checked on every row | Simplest kernels | Ten million dates or categories weigh 80 MB each; every reducer tests for the sentinel on every row |
+| B. Each column in its narrowest honest form: dates as day counts (Int32), categories as small integer codes with a sorted dictionary, Bool as one bit per row, missing values in a separate validity bitmap; floats stay 64-bit | Three to ten times fewer bytes on the common columns; grouping by a categorical variable is a counting pass over the codes, with the groups in key order from the sorted dictionary; the validity bitmap lets a kernel skip whole blocks with no missing values | More kinds of column for each kernel to accept; the dictionary must stay sorted after `append` and `recode` |
+
+Floats never change width: no reduced precision on any result-bearing path. The arithmetic is defined over the values, so the storage cannot change a bit.
+
+*Recommendation.* B, settled before the panel verbs of 0.6.0, since `aggregate`, `panel` and the joins are written against the column interface. Deadline: 0.4.0.
+
+### 51. Reading files in parallel by chunk, with deterministic boundaries
+
+Raised on 21 October 2026 in a review of the performance plan. Parsing a CSV is often the slowest step of a session and sits outside every kernel. Splitting the file at fixed byte offsets, moving each split to the next newline (with quoted newlines handled by a fixed rule), parsing the chunks independently and concatenating them in order gives the same frame from the same bytes whatever the number of threads, so it belongs with the thread pool of 1.1 and the Arrow cache of section 8.7 rather than with the determinism contract.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. One pass, one thread, as now | Nothing to prove | Import of a large file is minutes, and the cache only helps the second time |
+| B. Chunked parsing from the start, chunks run one after another until 1.1; the chunk boundaries and the row order fixed by the bytes alone | The switch to threads in 1.1 cannot change the frame; type inference is done once over the whole file, not per chunk, so a chunk cannot infer a type that another contradicts | A chunked reader is more code; quoted newlines need a scan to settle the boundaries |
+
+Type inference and the `na_values` rules of section 6.1 are applied to the whole column after the chunks are joined, so a chunk never decides a type.
+
+*Recommendation.* B, in the reader rewrite of 0.11.0 at the latest; earlier if the 0.6.0 panel work shows import to be the bottleneck. Deadline: 0.6.0.
+
+### 52. A benchmark suite run at every release
+
+Raised on 21 October 2026 in a review of the performance plan. The testing handbook has no benchmark. Without one, a speed-up is a guess and a slow-down goes unseen until a user reports it; section 14 names a public benchmark suite only at 1.0.0.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The public benchmark suite at 1.0.0, nothing before | No work now | Ten releases of kernels written without measurement |
+| B. A small suite from 0.4.0: `import` of a CSV, `aggregate` by a categorical variable, `merge` on sorted keys, one `reg` with and one without `fe:`, at three sizes (10⁴, 10⁶, 10⁷ rows), run on the arm64 and x86 native targets and in the browser build, with the times recorded in each release's notes | Every change is measured; the 1.0.0 public suite grows out of it | Times vary with the machine; a threshold that fails CI would be noisy, so the suite reports and the release notes judge |
+
+The suite measures time only; a result it produces is also checked for equal bits against the stored snapshot, so a benchmark can never be made faster by a numerical change.
+
+*Recommendation.* B, as a new section of the testing handbook, added after the freeze (0.3.0) and run from 0.4.0. Deadline: 0.4.0.
