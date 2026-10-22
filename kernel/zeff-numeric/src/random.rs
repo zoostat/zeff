@@ -32,7 +32,8 @@ pub fn philox4x32_10(counter: [u32; 4], key: [u32; 2]) -> [u32; 4] {
 /// A stream of uniform numbers: the seed as the key, the statement's ordinal and the loop pass in
 /// the counter's high words, and the draw number in its low words. The second word holds the
 /// index of the call within its statement (0 for the first), so that two draws written in one
-/// statement are independent streams; a draw number stays below 2^32 blocks.
+/// statement are independent streams. A stream holds 2^32 blocks, 2^33 uniforms; asking for more
+/// is an internal error rather than a silent repeat of the first block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stream {
     key: [u32; 2],
@@ -70,6 +71,10 @@ impl Stream {
     /// The next 32-bit word.
     pub fn next_u32(&mut self) -> u32 {
         let block_index = self.position / 4;
+        assert!(
+            block_index <= u64::from(u32::MAX),
+            "a random stream of more than 2^33 uniforms was asked for"
+        );
         if block_index != self.block_index {
             self.block = philox4x32_10(
                 [block_index as u32, self.call, self.ordinal, self.pass],

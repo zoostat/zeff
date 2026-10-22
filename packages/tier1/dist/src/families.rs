@@ -172,7 +172,9 @@ fn floor_whole(x: f64) -> f64 {
     if x < 0.0 {
         return -1.0;
     }
-    (x + 1e-7 * x.abs().max(1.0)).floor()
+    // R's fuzz: an absolute 1e-7, so that 2.9999999 counts as 3. It was once relative (1e-7 of
+    // x), which at x = 1e9 added 100 and gave P(X ≤ 1e9 + 100) for P(X ≤ 1e9).
+    (x + 1e-7).floor()
 }
 
 /// The negative binomial's size and success probability, from either parameterisation.

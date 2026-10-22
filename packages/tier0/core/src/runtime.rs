@@ -36,7 +36,9 @@ pub struct Randomness {
     /// Whether a statement has drawn from the stream.
     pub used: bool,
     /// The statement that drew last and how many calls it has made, so that each call of one
-    /// statement has a stream of its own.
+    /// statement has a stream of its own. When loops arrive (`for`, a later release) the count
+    /// must start again at each pass, keyed by (statement, pass), so that the first call of a
+    /// statement in every pass keeps the stream (seed, ordinal, pass, 0).
     pub last_statement: u32,
     pub calls_in_statement: u32,
 }

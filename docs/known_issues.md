@@ -14,11 +14,14 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   freedom meets it). R's own values there carry errors of the same order. The asymptotic
   expansions of Temme close it in a later step. (Since 0.3.0, step 2.)
 
-- **Distribution functions return `NA` where the incomplete functions cannot be evaluated.** For a
-  shape or rate beyond about 1e10 the series and continued fractions reach their limit of two
-  million terms; the distribution function there is `NA`, and a quantile or a draw that would need
-  it is `NA` too (a discrete draw beyond the Ints is `NA`). The call returns at once rather than
-  searching. Asymptotic expansions close it in a later step. (Since 0.3.0.)
+- **Distribution functions return `NA` where their series cannot converge.** The gamma family,
+  and the Poisson and chi-square distributions through it, need about 8√a terms near the centre
+  with shape a (or λ, or df/2); past two million terms, from a shape of about 1e11, the answer is
+  `NA` rather than a wrong partial sum, and a quantile or a draw that would need it is `NA` too
+  (a discrete draw beyond the Ints is `NA` as well). The incomplete beta function, behind the
+  beta, t, F, binomial and negative binomial distributions, still converges at 1e14 but loses
+  digits slowly near its centre: about 3e-10 at parameters of 1e12 and 6e-10 at 1e13. Asymptotic
+  expansions close both in a later step. (Since 0.3.0.)
 - **`correlation` with `method: kendall` costs time quadratic in the rows.** 1,200 rows take a
   moment and 18,412 a few seconds; Knight's O(n log n) algorithm replaces the counting loop later.
   (Since 0.3.0.)

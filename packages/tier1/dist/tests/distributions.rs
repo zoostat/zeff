@@ -386,3 +386,93 @@ fn a_quantile_where_the_distribution_function_is_na_answers_instead_of_searching
     let na_draws = "Column<Int> · 2 values\nNA\nNA\n";
     assert_eq!(out, format!("NA\n{na_draws}{na_draws}{na_draws}"));
 }
+
+#[test]
+fn the_discrete_families_hold_r_at_large_parameters() {
+    // Found in the review before the 0.3.0 tag: the point x was floored with a fuzz of 1e-7 of x,
+    // so P(X ≤ 1e9) was computed as P(X ≤ 1e9 + 100), wrong by 2.5e-3. R 4.6.0's values, from
+    // `ppois`, `pnbinom`, `pbinom` and their quantiles, written with fifteen digits.
+    use zeff_core::value::Distribution;
+    use zeff_dist::families;
+    let fam = |name: &'static str, params: Vec<(&'static str, f64)>| Distribution::Family {
+        name,
+        params,
+    };
+    let poisson = |lambda: f64| fam("poisson", vec![("lambda", lambda)]);
+    let negbinomial = |size: f64| fam("negbinomial", vec![("size", size), ("p", 0.5)]);
+    let binomial = |n: f64| fam("binomial", vec![("n", n), ("p", 0.5)]);
+    // The gamma path holds 1e-10 here; the incomplete beta behind the binomial loses digits at
+    // n = 1e12 (about 3e-10 near its centre, a known issue), so those two rows allow 1e-9.
+    let close_to = |got: f64, r: f64, tolerance: f64, what: &str| {
+        assert!(
+            ((got - r) / r).abs() < tolerance,
+            "{what}: {got} against R's {r}"
+        );
+    };
+    let close = |got: f64, r: f64, what: &str| close_to(got, r, 1e-10, what);
+    close(
+        families::cdf(&poisson(1e7), 1e7).lower,
+        0.500084104416326,
+        "ppois(1e7, 1e7)",
+    );
+    close(
+        families::cdf(&poisson(1e9), 1e9).lower,
+        0.5000084104417389,
+        "ppois(1e9, 1e9)",
+    );
+    close(
+        families::cdf(&poisson(1e9), 1e9).upper,
+        0.499991589558261,
+        "ppois(1e9, 1e9, upper)",
+    );
+    close(
+        families::cdf(&poisson(1e9), 1e9 + 3e4).upper,
+        0.1713866995188297,
+        "ppois(1e9 + 3e4, 1e9, upper)",
+    );
+    close(
+        families::cdf(&poisson(1e10), 1e10).lower,
+        0.5000026596152026,
+        "ppois(1e10, 1e10)",
+    );
+    close(
+        families::cdf(&negbinomial(1e9), 1e9).lower,
+        0.5000089206205796,
+        "pnbinom(1e9, 1e9, 0.5)",
+    );
+    close(
+        families::cdf(&negbinomial(1e9), 1e9 - 5e4).lower,
+        0.1317780292251666,
+        "pnbinom(1e9 - 5e4, 1e9, 0.5)",
+    );
+    close_to(
+        families::cdf(&binomial(1e12), 5e11).lower,
+        0.5000003989422803,
+        1e-9,
+        "pbinom(5e11, 1e12, 0.5)",
+    );
+    close_to(
+        families::cdf(&binomial(1e12), 5e11 + 1e6).upper,
+        0.02275007795723969,
+        1e-9,
+        "pbinom(5e11 + 1e6, 1e12, 0.5, upper)",
+    );
+    assert_eq!(
+        families::quantile(&poisson(1e9), 0.5),
+        1e9,
+        "qpois(0.5, 1e9)"
+    );
+    assert_eq!(
+        families::quantile(&negbinomial(1e9), 0.9),
+        1_000_057_313.0,
+        "qnbinom(0.9, 1e9, 0.5)"
+    );
+    assert_eq!(
+        families::quantile(&binomial(1e12), 0.1),
+        499_999_359_224.0,
+        "qbinom(0.1, 1e12, 0.5)"
+    );
+    // Where the gamma series cannot converge the answer is NA, not a wrong number.
+    assert!(families::cdf(&poisson(1e12), 1e12).lower.is_nan());
+    assert!(families::quantile(&poisson(1e12), 0.5).is_nan());
+}

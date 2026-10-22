@@ -345,13 +345,20 @@ pub fn incomplete_gamma(a: f64, x: f64) -> Tails {
         let mut term = 1.0 / a;
         let mut total = term;
         let mut n = 0.0;
+        let mut converged = false;
         for _ in 0..MAX_ITERATIONS {
             n += 1.0;
             term *= x / (a + n);
             total += term;
             if term.abs() < total.abs() * EPSILON {
+                converged = true;
                 break;
             }
+        }
+        if !converged {
+            // The series needs about 8√a terms near x = a: past the limit the partial sum would
+            // be a wrong number, and not-a-number is the honest answer (Temme's expansions later).
+            return Tails::nan();
         }
         Tails::direct_lower(prefix * total)
     } else {
@@ -361,6 +368,7 @@ pub fn incomplete_gamma(a: f64, x: f64) -> Tails {
         let mut d = 1.0 / b;
         let mut h = d;
         let mut i = 0.0;
+        let mut converged = false;
         for _ in 0..MAX_ITERATIONS {
             i += 1.0;
             let an = -i * (i - a);
@@ -377,8 +385,12 @@ pub fn incomplete_gamma(a: f64, x: f64) -> Tails {
             let delta = d * c;
             h *= delta;
             if (delta - 1.0).abs() < EPSILON {
+                converged = true;
                 break;
             }
+        }
+        if !converged {
+            return Tails::nan();
         }
         Tails::direct_upper(prefix * h)
     }
@@ -490,6 +502,7 @@ fn beta_fraction(a: f64, b: f64, x: f64) -> f64 {
     d = 1.0 / d;
     let mut h = d;
     let mut m = 0.0;
+    let mut converged = false;
     for _ in 0..MAX_ITERATIONS {
         m += 1.0;
         let m2 = 2.0 * m;
@@ -517,10 +530,12 @@ fn beta_fraction(a: f64, b: f64, x: f64) -> f64 {
         let delta = d * c;
         h *= delta;
         if (delta - 1.0).abs() < EPSILON {
+            converged = true;
             break;
         }
     }
-    h
+    // Past the limit the fraction would be a wrong number; not-a-number is the honest answer.
+    if converged { h } else { f64::NAN }
 }
 
 /// I_x(a, b) and 1 - I_x(a, b), the regularised incomplete beta function and its complement, for
@@ -858,6 +873,17 @@ const FACTORIALS: [f64; 171] = [
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Past the limit of terms the series and fractions give not-a-number, never a partial sum:
+    /// at 1e12 the gamma series once returned 0.477 where 0.5000001 is right.
+    #[test]
+    fn an_incomplete_function_past_its_limit_of_terms_is_not_a_number() {
+        assert!(incomplete_gamma(1e12, 1e12).lower.is_nan());
+        assert!(incomplete_gamma(1e12, 1e12).upper.is_nan());
+        assert!((incomplete_gamma(1e10, 1e10).lower - 0.500001329807601).abs() < 2e-12);
+        let near_centre = incomplete_beta(1e13, 1e13, 0.5 + 1e-13f64.sqrt()).lower;
+        assert!((near_centre - 0.997661132509).abs() < 1e-9);
+    }
 
     #[test]
     fn the_edges_of_the_domains_are_answered_not_crashed() {
