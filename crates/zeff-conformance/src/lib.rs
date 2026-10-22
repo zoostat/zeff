@@ -656,6 +656,80 @@ fn distribution_cases() -> Vec<Line> {
     vec![series("dist/values", &values), series("dist/draws", &draws)]
 }
 
+/// The linear-algebra kernel (release 0.4.0, step 2): the reduction shape, the blocked QR with
+/// its limited pivoting, the triangular inverse, the Cholesky factor and the singular values, on
+/// generated data with magnitudes up to 1e12, so that the four targets prove the same bits.
+fn kernels_cases() -> Vec<Line> {
+    use zeff_kernels::cholesky::cholesky;
+    use zeff_kernels::product::gram;
+    use zeff_kernels::qr::least_squares;
+    use zeff_kernels::svd::{condition_number, singular_values};
+    use zeff_kernels::triangular::inverse_upper;
+    use zeff_kernels::{Matrix, dot, sum, sum_of_squares};
+    let mut rng = SplitMix64(0x0400_0002_5EED_0001);
+    let values: Vec<f64> = (0..10_007)
+        .map(|i| {
+            let u = rng.unit() - 0.5;
+            if i % 7 == 0 { u * 1e12 } else { u }
+        })
+        .collect();
+    let others: Vec<f64> = (0..10_007).map(|_| rng.unit() * 1e7 - 5e6).collect();
+    let mut lines = vec![series(
+        "kernels/reductions",
+        &[sum(&values), dot(&values, &others), sum_of_squares(&others)],
+    )];
+    // A 1,000 × 6 design: an intercept, two uniform columns, one at 1e9, one at 1e12, and a
+    // column that is the sum of the two uniform ones, which the pivoting leaves out; the rows go
+    // through the tall-skinny QR in blocks of 256, so four block factors are folded.
+    let n = 1000;
+    let mut columns = vec![vec![1.0; n]];
+    for scale in [1.0, 1.0, 1e9, 1e12] {
+        columns.push((0..n).map(|_| rng.unit() * scale).collect());
+    }
+    let duplicate: Vec<f64> = (0..n).map(|i| columns[1][i] + columns[2][i]).collect();
+    columns.push(duplicate);
+    let x = Matrix::from_columns(&columns);
+    let y: Vec<f64> = (0..n)
+        .map(|i| {
+            2.0 + 0.5 * x.get(i, 1) - 0.25 * x.get(i, 2)
+                + 1e-9 * x.get(i, 3)
+                + 1e-12 * x.get(i, 4)
+                + (rng.unit() - 0.5)
+        })
+        .collect();
+    let fit = least_squares(&x, &y, 1e-7, 256);
+    let mut summary: Vec<f64> = fit
+        .coefficients
+        .iter()
+        .map(|c| c.unwrap_or(f64::NAN))
+        .collect();
+    summary.push(fit.residual_sum_of_squares);
+    summary.push(fit.rank as f64);
+    summary.extend(fit.order.iter().map(|&o| o as f64));
+    lines.push(series("kernels/least_squares", &summary));
+    lines.push(series("kernels/r_factor", fit.r.data()));
+    lines.push(series(
+        "kernels/inverse",
+        inverse_upper(&fit.r).expect("accepted pivots").data(),
+    ));
+    let kept = Matrix::from_columns(
+        &fit.order[..fit.rank]
+            .iter()
+            .map(|&j| x.column(j).to_vec())
+            .collect::<Vec<_>>(),
+    );
+    lines.push(series(
+        "kernels/cholesky",
+        cholesky(&gram(&kept))
+            .expect("a positive-definite Gram matrix")
+            .data(),
+    ));
+    let mut spectrum = singular_values(&x);
+    spectrum.push(condition_number(&fit.r));
+    lines.push(series("kernels/singular_values", &spectrum));
+    lines
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
@@ -663,6 +737,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(special_cases());
     lines.extend(random_cases());
     lines.extend(distribution_cases());
+    lines.extend(kernels_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());
     lines

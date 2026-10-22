@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "kernel/zeff-columns",
     "kernel/zeff-numeric",
+    "kernel/zeff-kernels",
     "kernel/zeff-registry",
     "kernel/zeff-dates",
     "kernel/zeff-diagnostics",
@@ -37,6 +38,7 @@ all = { level = "deny", priority = -1 }
 [workspace.dependencies]
 zeff-columns = { path = "kernel/zeff-columns" }
 zeff-numeric = { path = "kernel/zeff-numeric" }
+zeff-kernels = { path = "kernel/zeff-kernels" }
 zeff-registry = { path = "kernel/zeff-registry" }
 zeff-core = { path = "packages/tier0/core" }
 zeff-data = { path = "packages/tier1/data" }

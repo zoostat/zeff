@@ -12,7 +12,7 @@ on:
       job:
         description: "Which job to run"
         type: choice
-        options: [both, nightly, fuzz, weekly, coverage]
+        options: [both, nightly, fuzz, weekly, coverage, bench]
         default: both
 
 permissions:
@@ -70,6 +70,45 @@ jobs:
           path: |
             nightly.log
             stochastic.log
+          if-no-files-found: ignore
+
+  bench:
+    # The micro-benchmark of open decision #47 on the x86-64 runner: the reduction shape of
+    # zeff-kernels against the scalar sum of zeff-numeric. Started by hand only; its figures go to
+    # the run's summary page and are recorded in docs/decisions.md.
+    name: benchmark (the reduction shape, x86-64)
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'bench'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Run the micro-benchmark of the reductions
+        run: cargo bench -p zeff-kernels --locked --bench reduction 2>&1 | tee bench.log
+
+      - name: Write the note
+        if: always()
+        run: |
+          {
+            echo "## Benchmark: the reduction shape of open decision #47"
+            echo
+            echo "Processor: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^ //')"
+            echo
+            echo '```'
+            grep -B1 "time:" bench.log | grep -v "^--$" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-log
+          path: bench.log
           if-no-files-found: ignore
 
   fuzz:

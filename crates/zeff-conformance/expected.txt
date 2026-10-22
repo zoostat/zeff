@@ -103,6 +103,12 @@ random/philox bfcc0e89d2e2c989
 random/uniform 2be774397b461029
 dist/values 611216e2d82cdc3d
 dist/draws ca2799137318d776
+kernels/reductions 7a3f4eedc240791f
+kernels/least_squares 40ea244b286771b1
+kernels/r_factor eac858aa0c7c3fb3
+kernels/inverse 5b7382e62c183d11
+kernels/cholesky 85270cf23d1a64ab
+kernels/singular_values 196e8a08c4421003
 milestone/stdout cbf29ce484222325
 milestone/stderr 7965ffa1fba557ae
 milestone/exit_code aab1693229ba1db8

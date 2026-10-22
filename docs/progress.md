@@ -147,3 +147,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 2, the `zeff-kernels` crate `[engine]`; question 1 is answered, so it can start.
 
 **For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`, each with a recommendation; question 2 (R packages and Stata for the references) is needed at step 10.
+
+## 23 October 2026, step 2 of release 0.4.0
+
+**Done.** Step 2 `[engine]`: the `zeff-kernels` crate, the linear-algebra module of the kernel: reductions in the fixed shape of open decision #47 (sixteen independent compensated accumulators, chosen by the micro-benchmark of this step: four times the speed of the scalar sum shipped since 0.1.0, on this machine), matrix products, Householder QR with a tall-skinny accumulator that folds block factors in block order (the shape of #48), the limited column pivoting of R's `lm` for the collinearity rule, triangular solves, Cholesky and Jacobi singular values. 39 tests: exact small cases, properties (among them a column scaled by a power of two scaling its coefficient to the bit), an exact rational reference in Python and R 4.6.0's `qr`, `chol` and `backsolve`; six conformance series. R's own LU solve was found to lose four digits on an ill-scaled case, so its reference solves through its Cholesky factor. Step 2b added to the checklist: the reducers of `zeff-numeric` move to the shape, as the owner's rule for a fourfold gain says. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all 665 workspace tests, the tier check, the message check and the conformance report (six new lines, none changed) pass locally; the four-target run and the benchmark on the x86-64 runner to be read after the push.
+
+**Next.** Step 2b, the reducers of `zeff-numeric` on the reduction shape `[engine]`.
+
+**For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 (R packages and Stata for the references) is needed at step 10.

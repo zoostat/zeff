@@ -18,6 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 zeff-numeric.workspace = true
+zeff-kernels.workspace = true
 zeff-engine.workspace = true
 zeff-dist.workspace = true
 zeff-core.workspace = true
