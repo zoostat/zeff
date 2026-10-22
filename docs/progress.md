@@ -137,3 +137,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** The owner's "Start release 0.4.0" (Regression). Open decisions #47 to #53 are due by 0.4.0.
 
 **For the owner to decide.** Open decisions #47 to #53.
+
+## 23 October 2026, release 0.4.0 started
+
+**Done.** The previous release is tagged (`v0.3.0`) and the tree was clean. The 0.4.0 row of section 14, every section it names in both volumes, the 29 catalogue rows, the testing handbook, the risk register (R1 to R3) and the open decisions due (#30, #47 to #53) were read, and the checklist written in `docs/releases/0.4.0.md`: 22 steps, the engine pieces before the functions that need them, each tagged, ending with the pre-release routine. No code was written.
+
+**State.** Waiting for the owner's "go" and for the seven questions at the top of the checklist (the open decisions due; R packages and Stata for the references; the printed layouts the specification leaves open; what the accessors return; the term names under the other contrasts; `label`'s signature and `recode`'s rules; `influence`'s definitions), the first needed at step 2.
+
+**Next.** Step 1, opening the release `[engine]`.
+
+**For the owner to decide.** The seven questions, each with a recommendation, in `docs/releases/0.4.0.md`.
