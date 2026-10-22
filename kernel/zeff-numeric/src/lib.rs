@@ -3,12 +3,14 @@
 //! The determinism contract (Engine and Project Specification, section 8.3, point 3) asks for the
 //! same bits on every target. Everything here is written so that it holds:
 //!
-//! * Every loop runs from the first element to the last, one element at a time, so the order of
-//!   the floating-point operations is fixed by the code and not by the SIMD width or the target.
+//! * Every sum over values has the reduction shape of `zeff-kernels` (open decision #47, taken
+//!   on 23 October 2026): independent compensated accumulators in a fixed order, so the bits
+//!   depend on that shape alone and not on the SIMD width or the target. Every other loop (a
+//!   series, a continued fraction, a running total) runs from the first element to the last.
 //! * Only IEEE 754 operations that are exactly specified are used (`+`, `-`, `*`, `/`, `sqrt`,
 //!   `abs`); no fused multiply-add and no platform maths library.
-//! * Sums are compensated (Neumaier) and variances use the corrected two-pass algorithm
-//!   (section 13), so the result does not depend on the size of the numbers.
+//! * Variances use the corrected two-pass algorithm (section 13), so the result does not depend
+//!   on the size of the numbers.
 //!
 //! These routines work on slices of `f64` without missing values. Skipping `NA` and counting what
 //! was skipped belongs to the column layer, which passes only the valid values here.
@@ -19,50 +21,14 @@ pub mod order;
 pub mod random;
 pub mod special;
 
-/// A running compensated (Neumaier) sum.
-#[derive(Debug, Clone, Copy, Default)]
-pub(crate) struct Accumulator {
-    total: f64,
-    compensation: f64,
-}
-
-impl Accumulator {
-    pub(crate) fn add(&mut self, x: f64) {
-        let t = self.total + x;
-        if self.total.abs() >= x.abs() {
-            self.compensation += (self.total - t) + x;
-        } else {
-            self.compensation += (x - t) + self.total;
-        }
-        self.total = t;
-    }
-
-    pub(crate) fn value(self) -> f64 {
-        self.total + self.compensation
-    }
-}
-
-/// The plain left-to-right sum, used only to give an infinite or overflowing sum its IEEE value.
-fn plain_sum(values: &[f64]) -> f64 {
-    values.iter().fold(0.0, |total, &x| total + x)
-}
-
-/// The sum of `values`, compensated, in order from first to last. The sum of no values is `0.0`.
+/// The sum of `values` in the reduction shape of `zeff-kernels` (compensated, in a fixed order).
+/// The sum of no values is `0.0`.
 ///
-/// If the result is not finite (an infinite input, or an overflow) the plain IEEE sum is returned
-/// instead: `Inf` for `Inf` alone, and not-a-number for `Inf` with `-Inf`. The caller turns that
-/// into the language's rules for infinity and `NA`.
+/// If the result is not finite (an infinite input, or an overflow) the plain left-to-right IEEE
+/// sum is returned instead: `Inf` for `Inf` alone, and not-a-number for `Inf` with `-Inf`. The
+/// caller turns that into the language's rules for infinity and `NA`.
 pub fn sum(values: &[f64]) -> f64 {
-    let mut accumulator = Accumulator::default();
-    for &x in values {
-        accumulator.add(x);
-    }
-    let result = accumulator.value();
-    if result.is_finite() {
-        result
-    } else {
-        plain_sum(values)
-    }
+    zeff_kernels::sum(values)
 }
 
 /// The mean of `values`, or `None` for no values.
@@ -79,11 +45,8 @@ pub fn mean(values: &[f64]) -> Option<f64> {
     if !first.is_finite() {
         return Some(first);
     }
-    let mut deviations = Accumulator::default();
-    for &x in values {
-        deviations.add(x - first);
-    }
-    Some(first + deviations.value() / n)
+    let deviations: Vec<f64> = values.iter().map(|&x| x - first).collect();
+    Some(first + sum(&deviations) / n)
 }
 
 /// The sample variance (divisor n − 1) of `values`, or `None` for fewer than two values.
@@ -125,15 +88,10 @@ fn scaled_variance(values: &[f64]) -> Option<(f64, f64)> {
     } else {
         power_of_two_scale(largest)
     };
-    let mut squares = Accumulator::default();
-    let mut sum = Accumulator::default();
-    for d in deviations {
-        let d = d * scale;
-        squares.add(d * d);
-        sum.add(d);
-    }
-    let correction = sum.value();
-    let result = (squares.value() - correction * correction / n) / (n - 1.0);
+    let scaled: Vec<f64> = deviations.iter().map(|d| d * scale).collect();
+    let squares = zeff_kernels::sum_of_squares(&scaled);
+    let correction = sum(&scaled);
+    let result = (squares - correction * correction / n) / (n - 1.0);
     if result.is_nan() {
         Some((result, scale))
     } else {
@@ -167,6 +125,55 @@ pub fn pow(x: f64, y: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The plain left-to-right sum, for what the compensated sum must improve on.
+    fn plain_sum(values: &[f64]) -> f64 {
+        values.iter().fold(0.0, |total, &x| total + x)
+    }
+
+    /// Each moved routine is the kernel's lane sum, to the bit (release 0.4.0, step 2b).
+    #[test]
+    fn the_reducers_are_the_kernels_lane_sums_to_the_bit() {
+        let values: Vec<f64> = (0..1_003)
+            .map(|i| ((i * 7919) % 1000) as f64 * 1e-3 + 1e8 * ((i % 3) as f64) - 5e7)
+            .collect();
+        assert_eq!(sum(&values).to_bits(), zeff_kernels::sum(&values).to_bits());
+        let n = values.len() as f64;
+        let first = zeff_kernels::sum(&values) / n;
+        let deviations: Vec<f64> = values.iter().map(|&x| x - first).collect();
+        let expected_mean = first + zeff_kernels::sum(&deviations) / n;
+        assert_eq!(mean(&values).unwrap().to_bits(), expected_mean.to_bits());
+        let centred: Vec<f64> = values.iter().map(|&x| x - expected_mean).collect();
+        let largest = centred.iter().fold(0.0f64, |m, d| m.max(d.abs()));
+        let scale = power_of_two_scale(largest);
+        let scaled: Vec<f64> = centred.iter().map(|d| d * scale).collect();
+        let correction = zeff_kernels::sum(&scaled);
+        let expected_variance = (zeff_kernels::sum_of_squares(&scaled)
+            - correction * correction / n)
+            / (n - 1.0)
+            / scale
+            / scale;
+        assert_eq!(
+            variance(&values).unwrap().to_bits(),
+            expected_variance.to_bits()
+        );
+        let others: Vec<f64> = values.iter().rev().map(|v| v * 0.5 + 1.0).collect();
+        let mean_y = mean(&others).unwrap();
+        let dy: Vec<f64> = others.iter().map(|y| y - mean_y).collect();
+        let expected_covariance = zeff_kernels::dot(&centred, &dy) / (n - 1.0);
+        assert_eq!(
+            association::covariance(&values, &others).unwrap().to_bits(),
+            expected_covariance.to_bits()
+        );
+        let expected_pearson = (zeff_kernels::dot(&centred, &dy)
+            / zeff_kernels::sum_of_squares(&centred).sqrt()
+            / zeff_kernels::sum_of_squares(&dy).sqrt())
+        .clamp(-1.0, 1.0);
+        assert_eq!(
+            association::pearson(&values, &others).unwrap().to_bits(),
+            expected_pearson.to_bits()
+        );
+    }
 
     #[test]
     fn powers_are_exact_where_the_answer_is_and_na_where_there_is_none() {

@@ -157,3 +157,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 2b, the reducers of `zeff-numeric` on the reduction shape `[engine]`.
 
 **For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 (R packages and Stata for the references) is needed at step 10.
+
+## 23 October 2026, step 2b of release 0.4.0
+
+**Done.** Step 2b `[engine]`: every sum over values in `zeff-numeric` (`sum`, `mean`, `variance`, `sd`, the weighted statistics, `covariance`, `pearson`, and through them the weight totals and the `sum` statistic) now uses the reduction shape of `zeff-kernels`; the old accumulator is gone; the kernel's whole-slice sums keep the fallback to the plain IEEE sum for a result that is not finite. Not one published digit changed: the conformance report, the samples' output, the references and the snapshots are identical, as a compensated sum of these lengths is correctly rounded whatever its order (checked independently in exact arithmetic). Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report (unchanged) pass locally; the four-target run to be read after the push.
+
+**Next.** Step 3, the metadata store completed: ordered categories, contrasts and comparisons on categories `[engine]`.
+
+**For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10.

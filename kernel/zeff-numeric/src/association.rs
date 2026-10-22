@@ -3,8 +3,8 @@
 //! null distributions of Spearman's and Kendall's statistics that R's `cor.test` uses for small
 //! samples without ties, so that the p-values agree with R to the last digit.
 
-use crate::Accumulator;
 use crate::maths;
+use zeff_kernels::{dot, sum_of_squares};
 
 /// The sample covariance (divisor n − 1) of two series of equal length, two-pass with compensated
 /// sums; `None` below two pairs or when a value is not finite.
@@ -18,11 +18,9 @@ pub fn covariance(x: &[f64], y: &[f64]) -> Option<f64> {
     if !(mean_x.is_finite() && mean_y.is_finite()) {
         return None;
     }
-    let mut products = Accumulator::default();
-    for (a, b) in x.iter().zip(y) {
-        products.add((a - mean_x) * (b - mean_y));
-    }
-    Some(products.value() / (n as f64 - 1.0))
+    let dx: Vec<f64> = x.iter().map(|a| a - mean_x).collect();
+    let dy: Vec<f64> = y.iter().map(|b| b - mean_y).collect();
+    Some(dot(&dx, &dy) / (n as f64 - 1.0))
 }
 
 /// Pearson's correlation: Σ dx dy / √(Σ dx² Σ dy²) on the deviations from the means; `None`
@@ -37,22 +35,13 @@ pub fn pearson(x: &[f64], y: &[f64]) -> Option<f64> {
     if !(mean_x.is_finite() && mean_y.is_finite()) {
         return None;
     }
-    let (mut xy, mut xx, mut yy) = (
-        Accumulator::default(),
-        Accumulator::default(),
-        Accumulator::default(),
-    );
-    for (a, b) in x.iter().zip(y) {
-        let (dx, dy) = (a - mean_x, b - mean_y);
-        xy.add(dx * dy);
-        xx.add(dx * dx);
-        yy.add(dy * dy);
-    }
-    let (xx, yy) = (xx.value(), yy.value());
+    let dx: Vec<f64> = x.iter().map(|a| a - mean_x).collect();
+    let dy: Vec<f64> = y.iter().map(|b| b - mean_y).collect();
+    let (xx, yy) = (sum_of_squares(&dx), sum_of_squares(&dy));
     if xx <= 0.0 || yy <= 0.0 {
         return None;
     }
-    Some((xy.value() / xx.sqrt() / yy.sqrt()).clamp(-1.0, 1.0))
+    Some((dot(&dx, &dy) / xx.sqrt() / yy.sqrt()).clamp(-1.0, 1.0))
 }
 
 /// The ranks of the values, ties given the average of the ranks they span (R's `rank`), 1-based.

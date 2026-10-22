@@ -166,25 +166,43 @@ impl<const N: usize> Lanes<N> {
     }
 }
 
-/// The sum of a slice in the engine's reduction shape.
+/// The sum of a slice in the engine's reduction shape. A result that is not finite (an infinite
+/// input, or an overflow) is replaced by the plain left-to-right IEEE sum, which gives `Inf` for
+/// `Inf` alone and not-a-number for `Inf` with `-Inf`, and which may still be finite where the
+/// lanes overflowed on the way.
 pub fn sum(xs: &[f64]) -> f64 {
     let mut lanes = LaneSum::new();
     lanes.push_slice(xs);
-    lanes.value()
+    let result = lanes.value();
+    if result.is_finite() {
+        result
+    } else {
+        xs.iter().fold(0.0, |total, &x| total + x)
+    }
 }
 
-/// The dot product of two slices of one length.
+/// The dot product of two slices of one length, with the same fallback as [`sum`].
 pub fn dot(xs: &[f64], ys: &[f64]) -> f64 {
     let mut lanes = LaneSum::new();
     lanes.push_products(xs, ys);
-    lanes.value()
+    let result = lanes.value();
+    if result.is_finite() {
+        result
+    } else {
+        xs.iter().zip(ys).fold(0.0, |total, (&x, &y)| total + x * y)
+    }
 }
 
-/// The sum of squares of a slice.
+/// The sum of squares of a slice, with the same fallback as [`sum`].
 pub fn sum_of_squares(xs: &[f64]) -> f64 {
     let mut lanes = LaneSum::new();
     lanes.push_squares(xs);
-    lanes.value()
+    let result = lanes.value();
+    if result.is_finite() {
+        result
+    } else {
+        xs.iter().fold(0.0, |total, &x| total + x * x)
+    }
 }
 
 /// The Euclidean norm of a slice.
@@ -283,6 +301,17 @@ mod tests {
         assert_eq!(sum(&[f64::INFINITY, 1.0]), f64::INFINITY);
         assert!(sum(&[f64::INFINITY, f64::NEG_INFINITY]).is_nan());
         assert_eq!(sum_of_squares(&[1e200]), f64::INFINITY);
+        assert_eq!(dot(&[1e200], &[1e200]), f64::INFINITY);
+        // Lanes that overflow where the plain order does not: the plain sum is the answer.
+        let mut alternating = vec![0.0; 2 * LANES];
+        for (i, x) in alternating.iter_mut().enumerate() {
+            *x = if i % 2 == 0 { 1e308 } else { -1e308 };
+        }
+        assert_eq!(sum(&alternating), 0.0);
+        // The streaming accumulator has no slice to fall back on: its lanes' plain fold.
+        let mut lanes = LaneSum::new();
+        lanes.push_slice(&[1e308, 1e308]);
+        assert_eq!(lanes.value(), f64::INFINITY);
     }
 
     #[test]
