@@ -271,3 +271,71 @@ pub fn spearman_exact_tail(n: usize, is: f64, lower: bool) -> f64 {
     pv = pv.clamp(0.0, 1.0);
     if lower { 1.0 - pv } else { pv }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The guards: fewer than two pairs, series of different lengths and a series whose mean is
+    /// not finite give `None`; two pairs give a value.
+    #[test]
+    fn covariance_and_pearson_refuse_what_they_cannot_compute() {
+        assert_eq!(covariance(&[1.0], &[2.0]), None);
+        assert_eq!(covariance(&[1.0, 2.0, 3.0], &[1.0, 2.0]), None);
+        assert_eq!(
+            covariance(&[1.0, 2.0, 3.0], &[1.0, f64::INFINITY, 3.0]),
+            None
+        );
+        assert_eq!(covariance(&[f64::NEG_INFINITY, 2.0], &[1.0, 2.0]), None);
+        assert_eq!(covariance(&[1.0, 2.0], &[1.0, 2.0]), Some(0.5));
+        assert_eq!(pearson(&[1.0], &[2.0]), None);
+        assert_eq!(pearson(&[1.0, 2.0, 3.0], &[1.0, 2.0]), None);
+        assert_eq!(pearson(&[1.0, f64::INFINITY], &[1.0, 2.0]), None);
+        assert_eq!(pearson(&[1.0, 2.0], &[1.0, f64::NAN]), None);
+        let r = pearson(&[1.0, 2.0], &[1.0, 2.0]).unwrap();
+        assert!((r - 1.0).abs() < 1e-15, "{r}");
+    }
+
+    /// Two-pass covariance under a large offset: the deviations from the means are exact, so the
+    /// result is; a sum of products with the raw values in them would not be.
+    #[test]
+    fn covariance_is_exact_under_a_large_offset() {
+        let x = [1e15 + 1.0, 1e15 + 2.0, 1e15 + 3.0];
+        let y = [1e15 + 1.0, 1e15 + 2.0, 1e15 + 4.0];
+        assert_eq!(covariance(&x, &y), Some(1.5));
+        // The offset in one series only: a product with the raw values of the other in it would
+        // round at multiples of four.
+        let x = [-1.0, 0.0, 1.0];
+        let y = [1e16, 1e16 + 2.0, 1e16 + 4.0];
+        assert_eq!(covariance(&x, &y), Some(2.0));
+    }
+
+    #[test]
+    fn ranks_are_one_based_with_ties_averaged() {
+        assert_eq!(ranks(&[10.0, 20.0, 20.0, 30.0]), vec![1.0, 2.5, 2.5, 4.0]);
+        assert_eq!(ranks(&[3.0, 1.0, 2.0]), vec![3.0, 1.0, 2.0]);
+        assert_eq!(ranks(&[5.0, 5.0, 7.0]), vec![1.5, 1.5, 3.0]);
+        assert_eq!(ranks(&[]), Vec::<f64>::new());
+    }
+
+    #[test]
+    fn kendall_counts_pairs_and_ties_in_either_series() {
+        let k = kendall(&[1.0, 2.0, 3.0, 4.0], &[1.0, 3.0, 2.0, 4.0]).unwrap();
+        assert_eq!((k.concordant, k.discordant, k.s()), (5.0, 1.0, 4.0));
+        assert!((k.tau_b().unwrap() - 2.0 / 3.0).abs() < 1e-15);
+        assert!(!k.has_ties());
+        let x_tied = kendall(&[1.0, 1.0, 2.0, 3.0], &[1.0, 2.0, 3.0, 4.0]).unwrap();
+        assert_eq!(
+            (x_tied.ties_x.clone(), x_tied.ties_y.clone()),
+            (vec![2.0], vec![])
+        );
+        assert!(x_tied.has_ties());
+        let y_tied = kendall(&[1.0, 2.0, 3.0, 4.0], &[2.0, 2.0, 3.0, 4.0]).unwrap();
+        assert_eq!(
+            (y_tied.ties_x.clone(), y_tied.ties_y.clone()),
+            (vec![], vec![2.0])
+        );
+        assert!(y_tied.has_ties());
+        assert_eq!(kendall(&[1.0], &[1.0]), None);
+    }
+}

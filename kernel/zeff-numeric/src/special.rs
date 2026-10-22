@@ -181,7 +181,9 @@ pub fn deviance(x: f64, m: f64) -> f64 {
         let mut term = 2.0 * x * v;
         let v2 = v * v;
         let mut j = 1.0;
-        loop {
+        // |v| < 0.1, so each term is at most a hundredth of the last and nine terms reach the
+        // precision; the cap turns a broken series into not-a-number rather than a hang.
+        for _ in 0..100 {
             term *= v2;
             let next = term / (2.0 * j + 1.0);
             total += next;
@@ -190,31 +192,32 @@ pub fn deviance(x: f64, m: f64) -> f64 {
             }
             j += 1.0;
         }
+        return f64::NAN;
     }
     x * maths::log(x / m) + m - x
 }
 
-/// log1p(d) - d, accurate when `d` is small (the series) and plain otherwise.
+/// log1p(d) - d for |d| < 0.1, by its series -d²/2 + d³/3 - d⁴/4 + …, where the plain form
+/// cancels; the one caller takes the plain logarithm of the ratio outside that range.
 fn log1p_minus(d: f64) -> f64 {
-    if d.abs() < 0.1 {
-        // -d^2/2 + d^3/3 - d^4/4 + ...
-        let mut power = d * d;
-        let mut sign = -1.0;
-        let mut k = 2.0;
-        let mut total = -power / 2.0;
-        loop {
-            power *= d;
-            sign = -sign;
-            k += 1.0;
-            let next = sign * power / k;
-            total += next;
-            if next.abs() <= total.abs() * 1e-17 {
-                return total;
-            }
+    debug_assert!(d.abs() < 0.1);
+    let mut power = d * d;
+    let mut sign = -1.0;
+    let mut k = 2.0;
+    let mut total = -power / 2.0;
+    // Each term is at most a tenth of the last, so seventeen terms reach the precision; the cap
+    // turns a broken series into not-a-number rather than a hang.
+    for _ in 0..100 {
+        power *= d;
+        sign = -sign;
+        k += 1.0;
+        let next = sign * power / k;
+        total += next;
+        if next.abs() <= total.abs() * 1e-17 {
+            return total;
         }
-    } else {
-        maths::log1p(d) - d
     }
+    f64::NAN
 }
 
 /// a (ln(x / a) - (x - a) / a): the exponent's data-dependent part, through the series near the
@@ -927,6 +930,68 @@ mod tests {
         assert_eq!(beta_density(1.0, 1.0, 0.0), 1.0);
         assert_eq!(beta_density(0.5, 2.0, 0.0), f64::INFINITY);
         assert_eq!(beta_density(2.0, 2.0, 1.0), 0.0);
+    }
+
+    /// Binomial coefficients are exact while the integers fit and rounded once after; a product
+    /// of rounded ratios would differ in the last digits.
+    #[test]
+    fn binomial_coefficients_are_exact_or_rounded_once() {
+        assert_eq!(choose(50, 25), 126_410_606_437_752_f64);
+        assert_eq!(choose(60, 30), 118_264_581_564_861_424_u128 as f64);
+        assert_eq!(
+            choose(100, 50),
+            100_891_344_545_564_193_334_812_497_256_u128 as f64
+        );
+        // C(1200, 600) is past the largest Float: the computed value overflows to Inf, as the
+        // early answer for k > 600 does.
+        assert_eq!(choose(1200, 600), f64::INFINITY);
+    }
+
+    /// Loader's deviance x ln(x / m) + m − x, by its series near m and plainly away from it,
+    /// against values computed exactly in decimal arithmetic; the plain form alone would lose
+    /// digits to cancellation near m (2e-10 of the value at x = 1,000,001, m = 1,000,000).
+    #[test]
+    fn the_deviance_holds_its_exact_values() {
+        let cases = [
+            (100.0, 110.0, 0.468982019567514),
+            (1000.5, 1000.0, 0.00012497917187343803),
+            (1_000_001.0, 1_000_000.0, 4.999998333334166e-07),
+            (3.0, 2.9, 0.0017046550270440448),
+            (0.5, 0.6, 0.008839221603022687),
+            (1.0, 10.0, 6.697414907005954),
+            (50.0, 2.0, 112.94379124341003),
+        ];
+        for (x, m, want) in cases {
+            let got = deviance(x, m);
+            assert!(
+                ((got - want) / want).abs() <= 1e-14,
+                "deviance({x}, {m}) = {got:e}, exact {want:e}"
+            );
+        }
+        assert_eq!(deviance(10.0, 10.0), 0.0);
+    }
+
+    #[test]
+    fn log_beta_refuses_a_zero_parameter() {
+        assert!(log_beta(1.0, 0.0).is_nan());
+        assert!(log_beta(0.0, 0.0).is_nan());
+        assert!(log_beta(2.5, 0.0).is_nan());
+    }
+
+    /// The gamma inverse refuses a shape that is not positive, or not a number, before the edges
+    /// p = 0 and p = 1 are answered; a tiny shape's median is tiny but far above the underflow
+    /// guard; a tail whose quantile lies below the smallest Float is zero.
+    #[test]
+    fn the_gamma_inverse_guards_its_shape_and_its_underflow() {
+        assert!(incomplete_gamma_inverse(0.0, 0.0, false).is_nan());
+        assert!(incomplete_gamma_inverse(-1.0, 1.0, false).is_nan());
+        assert!(incomplete_gamma_inverse(f64::NAN, 0.0, true).is_nan());
+        assert!(incomplete_gamma_inverse(0.0, 0.5, false).is_nan());
+        // R 4.6.0: qgamma(0.5, shape = 0.01).
+        let median = incomplete_gamma_inverse(0.01, 0.5, false);
+        let r = 4.465535018910372e-31;
+        assert!((median - r).abs() <= 1e-14 * r, "{median:e}");
+        assert_eq!(incomplete_gamma_inverse(0.1, 1e-33, false), 0.0);
     }
 
     #[test]

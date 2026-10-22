@@ -220,8 +220,13 @@ jobs:
 
       - name: Mutation testing of the numeric kernel, one twelfth of the mutants
         run: |
-          # Surviving mutants and timeouts are a note to act on, not a failure of the job.
-          (cargo mutants --package zeff-numeric --shard ${{ matrix.shard }}/12 --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants || true) 2>&1 | tail -40
+          # Surviving mutants and timeouts are a note to act on, not a failure of the job. Two
+          # tests of the dist package make over a million calls into the kernel (the moments of
+          # 100,000 draws per distribution; R's grid of every family) and under a mutant that
+          # stops a series converging they run for hours before failing, where the kernel's own
+          # exact reference rejects the mutant in seconds; they are skipped here and run in CI
+          # on every push.
+          (cargo mutants --package zeff-numeric --shard ${{ matrix.shard }}/12 --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
           {
             echo "## Weekly: mutation testing of zeff-numeric, shard ${{ matrix.shard }} of 12"
             echo
