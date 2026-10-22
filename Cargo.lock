@@ -1104,7 +1104,7 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "xtask"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "serde_json",
  "zeff-columns",
@@ -1114,7 +1114,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-cli"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
  "tempfile",
@@ -1127,7 +1127,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-columns"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "arrow-array",
  "arrow-buffer",
@@ -1141,7 +1141,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-conformance"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "wasm-bindgen",
  "zeff-core",
@@ -1152,7 +1152,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-core"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
  "proptest",
@@ -1167,7 +1167,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-data"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "encoding_rs",
  "insta",
@@ -1186,7 +1186,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-datasets"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
  "zeff-columns",
@@ -1199,18 +1199,18 @@ dependencies = [
 
 [[package]]
 name = "zeff-dates"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
 name = "zeff-diagnostics"
-version = "0.3.0"
+version = "0.4.0-dev"
 
 [[package]]
 name = "zeff-dist"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
  "serde_json",
@@ -1224,7 +1224,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-engine"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
  "proptest",
@@ -1245,14 +1245,14 @@ dependencies = [
 
 [[package]]
 name = "zeff-hash"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "blake3",
 ]
 
 [[package]]
 name = "zeff-ir"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
  "proptest",
@@ -1264,7 +1264,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-numeric"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "libm",
  "proptest",
@@ -1273,14 +1273,14 @@ dependencies = [
 
 [[package]]
 name = "zeff-registry"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
 ]
 
 [[package]]
 name = "zeff-stats"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
  "serde_json",
@@ -1295,7 +1295,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-syntax"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "insta",
  "proptest",
@@ -1304,7 +1304,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-testkit"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "serde_json",
  "zeff-core",

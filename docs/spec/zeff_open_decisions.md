@@ -16,6 +16,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (22 October 2026, at the close of release 0.3.0).** The owner took #46 as recommended (Z0221, Z0222, Z0410 and W0102) and ended the freeze of #40. The codes of #41 to #44 and #46, with Z0413 and Z0111, are in section 11 of the Language Reference. Decisions #47 to #53 are due by 0.4.0.
 
+**Status (23 October 2026, release 0.4.0 started).** The owner said "go" for release 0.4.0. The summary table gains the rows of #47 to #53, whose deadlines are those of their entries (#47 to #50 and #52 at 0.4.0, with #30; #51 at 0.6.0; #53 at 1.1). The decisions due are put to the owner at the top of `docs/releases/0.4.0.md` with the register's recommendations, and each answer is recorded here when it is given.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -66,6 +68,13 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 44 | Diagnostic codes for the descriptive reducers' warnings | W0201 missing values skipped, with the count; W0204 infinite values of both signs, so the result is NA | decided 18 October 2026 |
 | 45 | Whether a warning printed under a result shows its code | Follow section 10.2 for now: `warning: 211 rows ... were skipped (line 21)` without the code; the run record keeps it | decided 18 October 2026 |
 | 46 | Diagnostic codes for four conditions of expressions and calls | Z0221 an operator applied to types it does not take (a Bool in arithmetic, `!` on a number, `&&` on numbers, a comparison across types, an index of the wrong kind); Z0222 a mapping key written or computed twice; Z0410 two options of one call that exclude each other (`round` with `digits:` and `sig:`); W0102 a name in a frame method that is both a variable and a binding | decided 22 October 2026 |
+| 47 | A fixed reduction shape for every sum | B: N independent accumulators combined in a fixed order, N fixed by a micro-benchmark and recorded once | 0.4.0 |
+| 48 | Blocked kernels from the start, threads when proven | B: every kernel blocked from now and run one block after another; threads at 1.1; the browser single-threaded until proven | 0.4.0 (the shape); 1.1 (threads) |
+| 49 | When fused passes arrive | B: the block and selection interface now, fusion itself at 0.6.0 | 0.4.0 |
+| 50 | Compact column storage | B: each column in its narrowest honest form, Floats always 64-bit | 0.4.0 |
+| 51 | Reading files in parallel by chunk | B: chunked parsing with boundaries fixed by the bytes alone, in the reader rewrite of 0.11.0 at the latest | 0.6.0 |
+| 52 | A benchmark suite run at every release | B: a small suite from 0.4.0 as a new section of the testing handbook, reporting rather than failing | 0.4.0 |
+| 53 | Options rather than functions: HAC standard errors and weights on the descriptives | The `se:` variants with the panel models of 1.4; `weights:` on the descriptives at 1.1 as frequency weights | 1.1 |
 
 ---
 
