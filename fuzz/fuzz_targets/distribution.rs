@@ -99,15 +99,16 @@ fuzz_target!(|data: &[u8]| {
         x = literal(x),
         p = literal(p),
     );
-    let fs = MemoryFileSystem::new();
-    fs.add_file(
-        "/s/zeff.toml",
-        "[project]\nname = \"fuzz\"\nzeff = \"0.3.0-dev\"\nedition = \"preview\"\n",
+    // The pin follows the engine's version, so that a release bump cannot leave every input
+    // refused at the project and the target testing nothing.
+    let manifest = format!(
+        "[project]\nname = \"fuzz\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+        zeff_engine::VERSION
     );
+    let fs = MemoryFileSystem::new();
+    fs.add_file("/s/zeff.toml", manifest.as_str());
     fs.add_file("/s/scripts/main.zeff", script.as_str());
-    let Ok(project) = Project::open(&fs, Path::new("/s")) else {
-        return;
-    };
+    let project = Project::open(&fs, Path::new("/s")).expect("the fuzz project opens");
     let outcome = run_script(&fs, &project, "scripts/main.zeff", &script);
     assert!(
         !outcome.output.stderr.contains("Z9001"),
