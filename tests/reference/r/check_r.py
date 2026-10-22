@@ -135,13 +135,60 @@ def check_special(committed, regenerated, problems, which="special"):
         walk(key, value, regenerated[key])
 
 
+def check_kernels(committed, regenerated, problems):
+    """kernels.json: each quantity within what its conditioning allows. A least-squares case's
+    coefficients, fitted values and leverages carry the condition number of its equilibrated
+    design (R's own values move by that much between platforms); the raw condition number and
+    the small singular values are computed by LAPACK to an absolute accuracy of about epsilon
+    times the largest singular value; the entries of the R factor in a column left out are
+    residual-sized; and the residual sum of squares of an exact fit is rounding noise."""
+    base = TOLERANCE["kernels"]
+    for name, case in committed["least_squares"].items():
+        other = regenerated["least_squares"].get(name)
+        if other is None:
+            problems.append(f"least_squares.{name}: missing")
+            continue
+        kappa = number(case["condition_number_scaled"])
+        raw = number(case["condition_number"])
+        tolerance = max(base, 1e-14 * kappa)
+        if case["rank"] != other["rank"] or case["pivot"] != other["pivot"]:
+            problems.append(f"least_squares.{name}: rank or pivot order differs")
+            continue
+        for key in ("coefficients", "fitted", "leverage"):
+            values = [number(v) for v in case[key]]
+            scale = max((abs(v) for v in values if not math.isnan(v)), default=1.0)
+            for i, (a, b) in enumerate(zip(case[key], other[key])):
+                if not close(a, b, tolerance, tolerance * max(scale, 1.0)):
+                    problems.append(f"least_squares.{name}.{key}[{i}]: committed {a}, regenerated {b}")
+        fitted_scale = max((abs(number(v)) for v in case["fitted"]), default=1.0)
+        if not close(case["residual_sum_of_squares"], other["residual_sum_of_squares"], tolerance, 1e-20 * max(fitted_scale, 1.0) ** 2):
+            problems.append(f"least_squares.{name}.residual_sum_of_squares: committed {case['residual_sum_of_squares']}, regenerated {other['residual_sum_of_squares']}")
+        rows = case["r"]
+        for j in range(len(rows[0])):
+            column_scale = max(abs(number(row[j])) for row in rows)
+            for i, (row_a, row_b) in enumerate(zip(rows, other["r"])):
+                if not close(row_a[j], row_b[j], base, 1e-11 * column_scale):
+                    problems.append(f"least_squares.{name}.r[{i}][{j}]: committed {row_a[j]}, regenerated {row_b[j]}")
+        largest = max(number(v) for v in case["singular_values"])
+        for i, (a, b) in enumerate(zip(case["singular_values"], other["singular_values"])):
+            if not close(a, b, base, 1e-12 * largest):
+                problems.append(f"least_squares.{name}.singular_values[{i}]: committed {a}, regenerated {b}")
+        if not close(case["condition_number"], other["condition_number"], 1e-13 * max(raw, 1.0)):
+            problems.append(f"least_squares.{name}.condition_number: committed {case['condition_number']}, regenerated {other['condition_number']}")
+        if not close(case["condition_number_scaled"], other["condition_number_scaled"], tolerance):
+            problems.append(f"least_squares.{name}.condition_number_scaled: committed {case['condition_number_scaled']}, regenerated {other['condition_number_scaled']}")
+    rest_committed = {k: v for k, v in committed.items() if k not in ("reference", "least_squares")}
+    rest_regenerated = {k: v for k, v in regenerated.items() if k not in ("reference", "least_squares")}
+    check_special(rest_committed, rest_regenerated, problems, "kernels")
+
+
 def main(which, committed_path, regenerated_path):
     with open(committed_path, encoding="utf-8") as f:
         committed = json.load(f)
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    checks = {"maths": check_maths, "descriptive": check_descriptive}
+    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels}
     if which in checks:
         checks[which](committed, regenerated, problems)
     else:

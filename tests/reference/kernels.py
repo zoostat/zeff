@@ -2,7 +2,9 @@
 
 Writes `tests/reference/kernels.json`: least-squares cases with their exact solutions, computed in
 rational arithmetic with Python's `fractions` on the exact binary values of the inputs and rounded
-once to the nearest double; the collinearity rule of section 7.2 of the Language Reference (R's
+once to the nearest double (the inputs come from Python's seeded generator through additions and
+multiplications only, never through the platform's maths library, so the file is the same on
+every machine); the collinearity rule of section 7.2 of the Language Reference (R's
 `dqrdc2`: a column whose remaining norm is below 1e-7 of its own norm is left out) applied
 exactly; a triangular system with its exact solution and inverse; a symmetric positive-definite
 system; and sums whose compensation matters. Every case has inputs from 1e7 to 1e12 beside its
@@ -154,7 +156,7 @@ def cases():
     out["plain"] = (x, y)
 
     x = [[1.0] + row for row in uniform_matrix(rng, 20, 2, 5.0, decimals=2)]
-    y = [round(2.0 + 0.5 * row[1] - 0.25 * row[2] + rng.gauss(0, 0.3), 3) for row in x]
+    y = [round(2.0 + 0.5 * row[1] - 0.25 * row[2] + (rng.random() - 0.5) * 0.6, 3) for row in x]
     out["intercept"] = (x, y)
 
     scales = [1.0, 1e7, 1e9, 1e12]
@@ -178,7 +180,7 @@ def cases():
         out[name] = (rows, y)
 
     x = uniform_matrix(rng, 300, 5, [1.0, 2.0, 1e7, 0.5, 1e12])
-    y = [row[0] - row[1] + 1e-7 * row[2] + rng.gauss(0, 0.1) for row in x]
+    y = [row[0] - row[1] + 1e-7 * row[2] + (rng.random() - 0.5) * 0.2 for row in x]
     out["tall"] = (x, y)
 
     x = [[float(v)] for v in (1.5, 2.5, 3.0, 4.25, 5.0)]
