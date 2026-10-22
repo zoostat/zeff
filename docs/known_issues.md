@@ -5,7 +5,7 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
-## As of 0.3.0 (in development)
+## As of 0.3.0
 
 - **Distribution functions with a parameter above 100,000 are accurate to about 1e-10, not the
   class's 1e-12.** The incomplete beta and gamma functions use continued fractions whose stopping
@@ -13,6 +13,25 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   and leaves an error of about 2e-11 in the tails (a t distribution with a million degrees of
   freedom meets it). R's own values there carry errors of the same order. The asymptotic
   expansions of Temme close it in a later step. (Since 0.3.0, step 2.)
+
+- **Distribution functions return `NA` where the incomplete functions cannot be evaluated.** For a
+  shape or rate beyond about 1e10 the series and continued fractions reach their limit of two
+  million terms; the distribution function there is `NA`, and a quantile or a draw that would need
+  it is `NA` too (a discrete draw beyond the Ints is `NA`). The call returns at once rather than
+  searching. Asymptotic expansions close it in a later step. (Since 0.3.0.)
+- **`correlation` with `method: kendall` costs time quadratic in the rows.** 1,200 rows take a
+  moment and 18,412 a few seconds; Knight's O(n log n) algorithm replaces the counting loop later.
+  (Since 0.3.0.)
+- **Draws are keyed by position.** As in R and Stata, inserting a statement that draws changes the
+  draws after it, and inserting a drawing call into a statement changes the later calls of that
+  statement. A `seed:` given to one call is a stream of its own, so two calls with the same `seed:`
+  in one statement repeat each other. (Since 0.3.0; by design, section 8.3.)
+- **The reference for `dist.truncated` is written from base R's functions**, not the `truncdist`
+  package, which the rules do not allow to be installed; a discrete truncation keeps the mass at
+  `lower:` (the package drops it). (Since 0.3.0.)
+- **The fuzz target for distribution parameters runs slowly** (some thousands of inputs in ten
+  minutes), since huge parameters make the kernel work to its limit; it is a smoke test of
+  termination and of internal errors, not a search of the whole parameter space. (Since 0.3.0.)
 
 ## As of 0.2.0
 

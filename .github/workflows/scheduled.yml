@@ -155,13 +155,13 @@ jobs:
             fuzz/artifacts
           if-no-files-found: ignore
 
-  weekly:
-    name: weekly (coverage and mutation testing)
+  coverage:
+    name: weekly (coverage)
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
       || github.event.schedule == '41 3 * * 1'
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 120
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -171,10 +171,10 @@ jobs:
           rustup toolchain install
           rustup component add llvm-tools-preview
 
-      - name: Install cargo-llvm-cov and cargo-mutants
+      - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@v2
         with:
-          tool: cargo-llvm-cov,cargo-mutants
+          tool: cargo-llvm-cov
 
       - name: Measure coverage
         run: |
@@ -184,12 +184,46 @@ jobs:
       - name: The kernel is covered to 80% or more (testing handbook, section 1)
         run: python3 -I tools/coverage/kernel_coverage.py coverage.json 80 | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Mutation testing of the numeric kernel
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage.json
+            coverage-summary.txt
+
+  mutation:
+    # The numeric kernel has grown past what one runner tests in three hours (the special functions
+    # of 0.3.0 doubled the mutants), so the mutants are shared among four runners.
+    name: weekly (mutation testing, shard ${{ matrix.shard }} of 4)
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
+      || github.event.schedule == '41 3 * * 1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Install cargo-mutants
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants
+
+      - name: Mutation testing of the numeric kernel, one quarter of the mutants
         run: |
           # Surviving mutants and timeouts are a note to act on, not a failure of the job.
-          (cargo mutants --package zeff-numeric --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants || true) 2>&1 | tail -40
+          (cargo mutants --package zeff-numeric --shard ${{ matrix.shard }}/4 --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants || true) 2>&1 | tail -40
           {
-            echo "## Weekly: mutation testing of zeff-numeric"
+            echo "## Weekly: mutation testing of zeff-numeric, shard ${{ matrix.shard }} of 4"
             echo
             echo "Caught: $(wc -l < mutants/mutants.out/caught.txt | tr -d ' ')"
             echo "Missed (surviving mutants, each a test to write): $(wc -l < mutants/mutants.out/missed.txt | tr -d ' ')"
@@ -205,8 +239,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: weekly-reports
-          path: |
-            coverage.json
-            coverage-summary.txt
-            mutants/mutants.out
+          name: mutation-reports-${{ matrix.shard }}
+          path: mutants/mutants.out

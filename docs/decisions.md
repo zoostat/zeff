@@ -851,3 +851,9 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **What happened.** With the job now failing on a failing target (`pipefail`), the second run (39722071331) failed on the CSV target, not on the distributions, which ran 16,447 inputs cleanly. A 34 KB input of delimiters took 19 seconds (18 KB took 5.6): the check of the column names compared every name with every earlier one, lower-casing both each time, so a header of tens of thousands of names cost the square of their number. A fault of release 0.1.0 that the earlier fuzz runs, blind to failures, never reported.
 
 **The repair.** A map from each lower-cased name to its first position finds the first earlier column with the same name, ignoring case, in one step; it reports exactly what the pairwise loop reported (an exact repeat, a snake-case clash or a case clash, with the same positions). The 34 KB input now takes 0.7 seconds, the 18 KB one 0.25. A regression test reads a header of 40,000 names and checks that the first repeat and the first case clash are still the ones named. A remaining 0.7 seconds for 34 KB is linear-ish work on a very wide file and is left as it is.
+
+## 22 October 2026: the weekly job in two parts
+
+**What happened.** The weekly job of the pre-release routine (run 39732935569) measured coverage but its mutation step hit the job's three-hour limit and was cancelled: the special functions of this release roughly doubled the mutants of the numeric kernel, and each mutant runs the whole workspace's tests. At 0.2.0 the same step finished within the limit.
+
+**The repair.** The weekly job is now a coverage job and a mutation job in four shards (`cargo mutants --shard k/4`, matrix of four runners, 340 minutes each, `fail-fast` off), each shard writing its own summary and report. Surviving mutants stay a note to act on, as before. The totals for the release are the four shards added together.
