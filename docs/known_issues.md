@@ -22,6 +22,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   beta, t, F, binomial and negative binomial distributions, still converges at 1e14 but loses
   digits slowly near its centre: about 3e-10 at parameters of 1e12 and 6e-10 at 1e13. Asymptotic
   expansions close both in a later step. (Since 0.3.0.)
+- **A quantile within 1e-13 of one does not round-trip to six digits.** For a beta distribution
+  with a small second shape the quantile of a middling probability lies within 1e-13 of one, where
+  the doubles are so far apart that even the nearest one gives back a probability a few parts in a
+  million off: `d.cdf(d.quantile(0.92))` prints 0.92094 for such a `d`. The quantile itself is
+  right to a few units in the last place (the inverse stops when its bracket is within 4ε of x),
+  and R's `qbeta` has the same limit. (Since 0.3.0; a property of doubles, not of the engine.)
 - **`correlation` with `method: kendall` costs time quadratic in the rows.** 1,200 rows take a
   moment and 18,412 a few seconds; Knight's O(n log n) algorithm replaces the counting loop later.
   (Since 0.3.0.)
@@ -57,16 +63,18 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   `let x = -7`, and continue a long expression with the operator at the end of the line. (Since
   0.1.0; by design.)
 - **`import` reads delimited text only** (UTF-8 or a declared encoding, with every option of
-  section 6.1 for delimited text). Compressed files and the other formats arrive from 0.3.0 onwards,
-  as the catalogue says. The `zeff:` data root holds the two shipped datasets as CSV and Arrow IPC;
-  Parquet, and the Parquet copies of the datasets, arrive with the reader and writer of 0.11.0.
-  (Since 0.1.0; the formats narrowed at 0.2.0.)
+  section 6.1 for delimited text). The other formats arrive at the releases section 6.1 names:
+  fixed width, Excel, OpenDocument, Parquet and Arrow, Stata and JSON at 0.11.0; SPSS, SAS, R and
+  HTML tables at 1.1; local databases after 1.1. The `zeff:` data root holds the two shipped
+  datasets as CSV and Arrow IPC; their Parquet copies arrive with the reader and writer of 0.11.0.
+  (Since 0.1.0; the formats narrowed at 0.2.0; the releases corrected at 0.3.0.)
 - **The console's `:undo` re-runs the whole session** without its last statement, so a long
   session with large imports takes a moment to undo; the result cache that makes it immediate is
   0.11.0. (Since 0.2.0.)
-- **The browser engine bundle is 1.1 MB compressed** (brotli), up from 355 kB at 0.1.0, because
-  the two datasets are embedded so that the browser needs no fetch; it stays well under the 5 MB
-  warning level of risk R4, and the cold start is 132 ms against 1,000 ms. (Since 0.2.0.)
+- **The browser engine bundle is 1.15 MB compressed** (brotli; 1.10 MB at 0.2.0, 355 kB at
+  0.1.0), because the two datasets are embedded and the special functions and distributions were
+  added; it stays well under the 5 MB warning level of risk R4, and the cold start is 140 ms
+  against 1,000 ms. (Since 0.2.0; the figures are those of 0.3.0.)
 - **Each project pins the exact engine version** (`zeff = "0.2.0"`). An engine of another
   version refuses the project with exit code 4; there is no launcher yet to pick the pinned engine
   (0.9.0). (Since 0.1.0.)

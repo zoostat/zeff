@@ -12,7 +12,7 @@ on:
       job:
         description: "Which job to run"
         type: choice
-        options: [both, nightly, fuzz, weekly]
+        options: [both, nightly, fuzz, weekly, coverage]
         default: both
 
 permissions:
@@ -158,7 +158,7 @@ jobs:
   coverage:
     name: weekly (coverage)
     if: >-
-      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly' || inputs.job == 'coverage')
       || github.event.schedule == '41 3 * * 1'
     runs-on: ubuntu-latest
     timeout-minutes: 120
