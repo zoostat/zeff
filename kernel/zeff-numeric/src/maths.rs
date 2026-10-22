@@ -294,6 +294,28 @@ pub fn mod_float(a: f64, b: f64) -> f64 {
 mod tests {
     use super::*;
 
+    /// Floored division and the remainder at infinite operands keep IEEE's answers (an infinite
+    /// dividend divides to itself; a remainder of infinities is not a number; a finite number
+    /// divided by an infinity leaves itself, or the infinity's side of zero when the signs
+    /// differ), where the remainder arithmetic alone would not.
+    #[test]
+    fn floored_division_and_the_remainder_at_infinity() {
+        assert_eq!(div_float(f64::INFINITY, 2.0), f64::INFINITY);
+        assert_eq!(div_float(f64::NEG_INFINITY, 2.0), f64::NEG_INFINITY);
+        assert_eq!(div_float(2.0, f64::INFINITY), 0.0);
+        // A quotient of zero carries the sign of the quotient, not of the remainder: -1 by -2
+        // is +0, where the remainder is -1.
+        assert_eq!(div_float(-1.0, -2.0).to_bits(), 0.0f64.to_bits());
+        assert_eq!(div_float(1.0, -2.0), -1.0);
+        assert!(mod_float(f64::INFINITY, f64::INFINITY).is_nan());
+        assert!(mod_float(f64::NEG_INFINITY, 2.0).is_nan());
+        assert_eq!(mod_float(0.0, f64::NEG_INFINITY), 0.0);
+        assert_eq!(mod_float(3.0, f64::INFINITY), 3.0);
+        assert_eq!(mod_float(-3.0, f64::INFINITY), f64::INFINITY);
+        assert_eq!(mod_float(-3.0, f64::NEG_INFINITY), -3.0);
+        assert_eq!(mod_float(3.0, f64::NEG_INFINITY), f64::NEG_INFINITY);
+    }
+
     /// The guard of `is_tie` refuses zero, the infinities and not-a-number on its own, not only
     /// through `round`: zero would otherwise count as a tie at 1009 digits (its bit pattern has
     /// an exponent of -1010 after the shift), and not-a-number at -1024 digits would overflow the

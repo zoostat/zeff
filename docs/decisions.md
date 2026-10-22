@@ -902,3 +902,25 @@ Equivalent, with the reason, by site in today's numbering:
 **Checks.** Format, clippy with warnings denied, all workspace tests (the kernel's unit tests 25 to 32), the tier and message checks and the conformance report, unchanged, pass; a rerun of every mutant of `deviance`, `log1p_minus` and `covariance` (85) caught 83 with no timeout. The final figures come from the twelve-shard weekly run on this commit, recorded in the release notes.
 
 **Reason.** Testing handbook, sections 1 (mutation testing) and 2.4; the owner's instruction of 22 October 2026 to hold 0.3.0 until the survivors had tests and the timeouts verdicts.
+
+## 22 October 2026: a second batch of surviving mutants, uncovered by the repaired property
+
+**What happened.** The twelve-shard run on commit b743541 (run 39804949977) tested 1,874 mutants: 1,784 caught, 74 missed, 6 timed out, 10 unviable: 27 more survivors than the four-shard run, in functions that had shown none. The shards' logs explained it: in the four-shard run those mutants had been "caught" by `the_inverses_round_trip`, the property the coverage job exposed as flaky the same evening (it failed on about one run in sixty whatever was mutated), and a few by the two dist tests the job now skips. The twelve-shard run still carried the flaky property, having started before its repair, so some of its catches may be false too; its survivors are real, and each has a test or a reason below.
+
+**The 74 survivors: 20 now caught by a test, 54 equivalent** (maths 5 and 17; special 11 and 31; association 4 and 4; order 0 and 2).
+
+Tests added, all kernel unit tests, so that the kernel's own suite catches them in seconds:
+- Floored division and the remainder at infinite operands (an infinite dividend divides to itself; a remainder of infinities is not a number; a finite number divided by an infinity leaves itself, or the infinity's side of zero when the signs differ), and the signed zero of a zero quotient (−1 by −2 is +0 where the remainder is −1; until now only the command line's self-test noticed that one).
+- The incomplete beta function, its density and its inverse refuse a zero shape before their edges x = 0, x = 1, p = 0 and p = 1 are answered; the density's values at the ends.
+- Kendall: two pairs give an estimate; a tie group away from the start has its size; a pair tied in one series only counts as neither concordant nor discordant; the exact null distribution counts the permutations (1, 2, 2, 1 over 3! and 1, 3, 5, 6, 5, 3, 1 over 4!), and a q beyond the range answers 1, which also exercises the clamp that keeps the count inside its vector.
+- The smallest probability a double holds has a finite normal quantile, a statement of fact beside the equivalent mutant below.
+
+Equivalent, with the reason:
+- `maths.rs`: `round` 135 and `round_significant` 199, the early return for a non-finite or zero x short-cuts a path that gives the same answer (Rust formats and parses not-a-number and the infinities as themselves, and a zero keeps its sign); `round` 143, a tie's even rounding never equals x; `away_from_zero` 189, a decimal point with no digits after it parses to the same number; `div_int` 219 and `mod_int` 237 (two each), `div_float` 253 (two) and `mod_float` 286 (two), a remainder of zero or a divisor of zero is excluded before the signs are compared; `div_float` 257, the sign of a product is the sign of the quotient; 261, the quotient lands a hair below the whole number, never a half; `mod_float` 271 (the second `||`) and 277 (two), with b not a number, zero or infinite the remainder arithmetic gives the guard's own answer.
+- `special.rs`: `normal_quantile` 286, p = ½ is answered before the comparison; 294, the density underflows to zero only for a probability below the smallest double (the smallest one's quantile is −38.47, where the density is 6e-322), and an f of zero ends the loop by a zero step anyway; `incomplete_gamma` 330, a negative or not-a-number x makes the prefix not a number by arithmetic, so the guard only saves two million terms; 356, one iteration at exact equality. The 27 recorded in the first batch stand.
+- `association.rs`: `tie_groups` 143, the loop bound's equality short-circuits before any index; `kendall` 164, a self-pair is skipped as a tie; 165, a product of ±1 signs equals their quotient; 169, the sign is never zero where it is compared; `kendall_exact_cdf` 199 (three), a scratch vector sized generously keeps zeros beyond the true maximum and every probability is the same.
+- `order.rs` `quantile` 65 and 72: |h| equal to the fuzz exactly is unreachable, as is h = 1 (h lies in [−fuzz, 1 − fuzz)); the branch mirrors R's `quantile` and stays.
+
+**Timeouts.** The run's six are the hangs by nature (`ranks` 67 and 73, `tie_groups` 146 and 151, `choose` 110 and 114) and nothing else.
+
+**Checks.** Format, clippy with warnings denied, all workspace tests and the conformance report, unchanged, pass; reruns of every mutant of the affected functions against the kernel's own tests leave only the equivalents. The release's figures come from the weekly run on this commit, the first with the repaired property.

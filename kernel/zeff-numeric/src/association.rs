@@ -330,6 +330,8 @@ mod tests {
             (vec![2.0], vec![])
         );
         assert!(x_tied.has_ties());
+        // A pair tied in one series only counts as neither concordant nor discordant.
+        assert_eq!((x_tied.concordant, x_tied.discordant), (5.0, 0.0));
         let y_tied = kendall(&[1.0, 2.0, 3.0, 4.0], &[2.0, 2.0, 3.0, 4.0]).unwrap();
         assert_eq!(
             (y_tied.ties_x.clone(), y_tied.ties_y.clone()),
@@ -337,5 +339,26 @@ mod tests {
         );
         assert!(y_tied.has_ties());
         assert_eq!(kendall(&[1.0], &[1.0]), None);
+        let two = kendall(&[1.0, 2.0], &[1.0, 2.0]).unwrap();
+        assert_eq!(
+            (two.concordant, two.discordant, two.tau_b()),
+            (1.0, 0.0, Some(1.0))
+        );
+        // A tie group away from the start, so that its size is counted from its own first index.
+        let triple = kendall(&[0.0, 1.0, 1.0, 1.0, 2.0], &[1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
+        assert_eq!(triple.ties_x, vec![3.0]);
+    }
+
+    /// The exact null distribution of Kendall's concordant count: over the 3! = 6 orderings the
+    /// inversion counts are 1, 2, 2, 1 and over the 4! = 24 they are 1, 3, 5, 6, 5, 3, 1.
+    #[test]
+    fn kendall_exact_cdf_counts_the_permutations() {
+        assert_eq!(kendall_exact_cdf(0.0, 3), 1.0 / 6.0);
+        assert_eq!(kendall_exact_cdf(1.0, 3), 0.5);
+        assert_eq!(kendall_exact_cdf(2.0, 3), 5.0 / 6.0);
+        assert_eq!(kendall_exact_cdf(3.0, 3), 1.0);
+        assert_eq!(kendall_exact_cdf(2.0, 4), 9.0 / 24.0);
+        assert_eq!(kendall_exact_cdf(-1.0, 4), 0.0);
+        assert_eq!(kendall_exact_cdf(100.0, 4), 1.0);
     }
 }

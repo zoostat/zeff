@@ -971,6 +971,34 @@ mod tests {
         assert_eq!(deviance(10.0, 10.0), 0.0);
     }
 
+    /// The incomplete beta function, its density and its inverse refuse a shape that is not
+    /// positive before the edges x = 0, x = 1, p = 0 and p = 1 are answered; the density at the
+    /// ends is infinite for a shape below one, the other shape at one, and zero above one.
+    #[test]
+    fn the_beta_functions_refuse_a_zero_shape_at_their_edges() {
+        assert!(incomplete_beta(0.0, 1.0, 0.0).lower.is_nan());
+        assert!(incomplete_beta(1.0, 0.0, 0.0).lower.is_nan());
+        assert!(incomplete_beta(0.0, 1.0, 1.0).lower.is_nan());
+        assert!(incomplete_beta_inverse(0.0, 1.0, 0.0, false).is_nan());
+        assert!(incomplete_beta_inverse(1.0, 0.0, 1.0, true).is_nan());
+        assert!(incomplete_beta_inverse(0.0, 1.0, 1.0, false).is_nan());
+        assert_eq!(beta_density(2.0, 0.5, 1.0), f64::INFINITY);
+        assert_eq!(beta_density(1.0, 2.0, 0.0), 2.0);
+        assert_eq!(beta_density(2.0, 1.0, 1.0), 2.0);
+        assert_eq!(beta_density(2.0, 0.5, 0.0), 0.0);
+        assert_eq!(beta_density(0.5, 2.0, 1.0), 0.0);
+    }
+
+    /// The smallest probability a double holds has a finite quantile: the Halley step stops
+    /// where the density underflows rather than dividing by it.
+    #[test]
+    fn the_normal_quantile_of_the_smallest_probability_is_finite() {
+        let z = normal_quantile(f64::from_bits(1), false);
+        assert!(z.is_finite() && (-39.0..-38.0).contains(&z), "{z}");
+        let z = normal_quantile(f64::from_bits(1), true);
+        assert!(z.is_finite() && (38.0..39.0).contains(&z), "{z}");
+    }
+
     #[test]
     fn log_beta_refuses_a_zero_parameter() {
         assert!(log_beta(1.0, 0.0).is_nan());
