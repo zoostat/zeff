@@ -127,3 +127,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 15, the pre-release routine `[engine]`; then the owner's "Release 0.3.0".
 
 **For the owner to decide.** Open decision #46 at the close; #47 to #53 by 0.4.0.
+
+## 22 and 23 October 2026, step 15 of release 0.3.0 and the close
+
+**Done.** Step 15 `[engine]`, the pre-release routine, with everything it turned up: the weekly mutation job outgrew one runner and now runs twelve shards; a review of the engine changes of steps 13 and 14 found and fixed two wrong results at large parameters (the discrete distributions' point floored with a relative fuzz; a series returning a partial sum past its limit); the owner held the release until every surviving mutant had a test or a reason and every timeout a verdict, which took three runs, 16 tests for real gaps, 82 equivalents recorded, a flaky property repaired and the job's skips for two million-call tests; the figures are in the release notes. The owner took open decision #46 and ended the freeze (#40). The release notes are `docs/releases/0.3.0-notes.md`; the risk register and the open-decisions register have their reviews; the version is 0.3.0; the tag `v0.3.0` carries the notes as a GitHub release.
+
+**Green.** Everything of the routine: 626 tests, the four-target identity check, the nightly, fuzz and weekly jobs, the conformance report, `zeff selftest` 81 of 81 on the release build.
+
+**Next.** The owner's "Start release 0.4.0" (Regression). Open decisions #47 to #53 are due by 0.4.0.
+
+**For the owner to decide.** Open decisions #47 to #53.

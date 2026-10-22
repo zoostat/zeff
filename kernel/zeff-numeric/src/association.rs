@@ -349,6 +349,60 @@ mod tests {
         assert_eq!(triple.ties_x, vec![3.0]);
     }
 
+    /// Kendall's variance of S with the tie corrections of Kendall (1970): for n = 8,
+    /// v0 = 8·7·21 = 1,176; a tie of two in x takes 2·1·9 = 18, a tie of three in y 3·2·11 = 66,
+    /// the cross term adds (2·1)(3·2) / (2·8·7), and ties of three in both series add
+    /// (3·2·1)(3·2·1) / (9·8·7·6).
+    #[test]
+    fn kendall_variance_carries_the_tie_corrections() {
+        let k = |ties_x: Vec<f64>, ties_y: Vec<f64>| Kendall {
+            concordant: 0.0,
+            discordant: 0.0,
+            ties_x,
+            ties_y,
+            n: 8,
+        };
+        let close = |got: f64, want: f64| (got - want).abs() <= 1e-12 * want;
+        assert!(close(k(vec![], vec![]).variance_of_s(), 1176.0 / 18.0));
+        assert!(close(
+            k(vec![2.0], vec![]).variance_of_s(),
+            (1176.0 - 18.0) / 18.0
+        ));
+        assert!(close(
+            k(vec![3.0, 2.0], vec![]).variance_of_s(),
+            (1176.0 - 84.0) / 18.0
+        ));
+        assert!(close(
+            k(vec![2.0], vec![3.0]).variance_of_s(),
+            (1176.0 - 18.0 - 66.0) / 18.0 + 12.0 / 112.0
+        ));
+        // A tie of three against a tie of two: the third term is (3·2·1)(2·1·0) = 0, exactly.
+        assert!(close(
+            k(vec![3.0], vec![2.0]).variance_of_s(),
+            (1176.0 - 66.0 - 18.0) / 18.0 + 12.0 / 112.0
+        ));
+        // Ties of three in both series bring in the third term: (3·2·1)(3·2·1) / (9·8·7·6).
+        assert!(close(
+            k(vec![3.0], vec![3.0]).variance_of_s(),
+            (1176.0 - 66.0 - 66.0) / 18.0 + 36.0 / 112.0 + 36.0 / 3024.0
+        ));
+    }
+
+    /// Spearman's exact tail at and beyond the largest Σd², n(n² − 1)/3: at the maximum the
+    /// reversed ordering alone reaches it (one permutation in n! for n ≤ 9), and beyond it no
+    /// ordering does.
+    #[test]
+    fn spearman_exact_tail_at_and_beyond_its_maximum() {
+        assert_eq!(spearman_exact_tail(5, 40.0, false), 1.0 / 120.0);
+        assert_eq!(spearman_exact_tail(5, 40.0, true), 1.0 - 1.0 / 120.0);
+        assert_eq!(spearman_exact_tail(5, 42.0, false), 0.0);
+        assert_eq!(spearman_exact_tail(5, 42.0, true), 1.0);
+        // Above n = 9 the Edgeworth series at the maximum is negative and clamps to zero, as R's.
+        assert_eq!(spearman_exact_tail(10, 330.0, false), 0.0);
+        assert_eq!(spearman_exact_tail(10, 332.0, false), 0.0);
+        assert_eq!(spearman_exact_tail(10, 332.0, true), 1.0);
+    }
+
     /// The exact null distribution of Kendall's concordant count: over the 3! = 6 orderings the
     /// inversion counts are 1, 2, 2, 1 and over the 4! = 24 they are 1, 3, 5, 6, 5, 3, 1.
     #[test]

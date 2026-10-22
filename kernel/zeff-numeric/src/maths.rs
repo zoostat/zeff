@@ -294,6 +294,22 @@ pub fn mod_float(a: f64, b: f64) -> f64 {
 mod tests {
     use super::*;
 
+    /// A tie is an exact half at the digit: 2.5 at units, 2.25 at tenths, 250 at hundreds; an
+    /// integer whose last digits are not exactly half (7 at tens) is not one, nor is a subnormal.
+    #[test]
+    fn ties_are_exact_halves_at_the_digit() {
+        assert!(is_tie(2.5, 0));
+        assert!(is_tie(2.25, 1));
+        assert!(is_tie(-0.125, 2));
+        assert!(is_tie(250.0, -2));
+        assert!(is_tie(15.0, -1));
+        assert!(!is_tie(2.4, 0));
+        assert!(!is_tie(7.0, -1));
+        assert!(!is_tie(16.0, -1));
+        assert!(!is_tie(15.1, -1));
+        assert!(!is_tie(1e-310, 0));
+    }
+
     /// Floored division and the remainder at infinite operands keep IEEE's answers (an infinite
     /// dividend divides to itself; a remainder of infinities is not a number; a finite number
     /// divided by an infinity leaves itself, or the infinity's side of zero when the signs

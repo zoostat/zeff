@@ -182,6 +182,17 @@ pub fn weighted_quantile(pairs: &[(f64, f64)], p: f64) -> Option<f64> {
 mod tests {
     use super::*;
 
+    /// The weighted quantile refuses a probability outside [0, 1] and never answers with a value
+    /// of zero weight.
+    #[test]
+    fn the_weighted_quantile_guards_its_probability_and_its_weights() {
+        assert_eq!(weighted_quantile(&[(1.0, 1.0)], 1.5), None);
+        assert_eq!(weighted_quantile(&[(1.0, 1.0)], -0.5), None);
+        assert_eq!(weighted_quantile(&[], 0.5), None);
+        assert_eq!(weighted_quantile(&[(1.0, 0.0), (2.0, 1.0)], 0.0), Some(2.0));
+        assert_eq!(weighted_quantile(&[(1.0, 1.0), (2.0, 0.0)], 1.0), Some(1.0));
+    }
+
     #[test]
     fn the_nine_types_on_a_small_sample() {
         // R: quantile(c(1, 2, 3, 4, 10), 0.5, type = k) is 3 for every type but 3 (SAS's

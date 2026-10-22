@@ -945,6 +945,22 @@ mod tests {
         // C(1200, 600) is past the largest Float: the computed value overflows to Inf, as the
         // early answer for k > 600 does.
         assert_eq!(choose(1200, 600), f64::INFINITY);
+        // C(n, k) = C(n, n − k) to the bit: both are computed from the smaller index.
+        assert_eq!(choose(200, 150), choose(200, 50));
+        assert_eq!(choose(300, 290), choose(300, 10));
+        assert_eq!(choose(300, 10), 1_398_320_233_241_701_770_u64 as f64);
+    }
+
+    /// The beta inverse's underflow guards: an upper tail whose quantile has no double below one
+    /// answers one, and a lower tail far above the guard is computed (the median of a beta with
+    /// shapes 0.01 and 1 is 0.5^100).
+    #[test]
+    fn the_beta_inverse_guards_only_what_underflows() {
+        assert_eq!(incomplete_beta_inverse(0.5, 0.5, 1e-300, true), 1.0);
+        assert_eq!(incomplete_beta_inverse(0.5, 0.5, 1e-300, false), 0.0);
+        let median = incomplete_beta_inverse(0.01, 1.0, 0.5, false);
+        let exact = 0.5f64.powi(100);
+        assert!((median - exact).abs() <= 1e-13 * exact, "{median:e}");
     }
 
     /// Loader's deviance x ln(x / m) + m − x, by its series near m and plainly away from it,
