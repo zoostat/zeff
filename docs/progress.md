@@ -140,10 +140,10 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 ## 23 October 2026, release 0.4.0 started
 
-**Done.** The previous release is tagged (`v0.3.0`), the tree was clean and CI on the release commit is green. The 0.4.0 row of section 14, every section it names in both volumes, the 29 catalogue rows, the testing handbook, the risk register (R1 to R3) and the open decisions due (#30, #47 to #53) were read, and the checklist written in `docs/releases/0.4.0.md`: 22 steps, the engine pieces before the functions that need them, each tagged, ending with the pre-release routine. The owner said "go". Step 1 `[engine]`: the version is `0.4.0-dev`, the three sample projects pin it, the four version snapshots follow (the one of `zeff new` by its comment alignment), and the open-decisions register has its summary rows for #47 to #53, with the deadlines of their entries, and a status line (logged in `docs/spec_changes.md`).
+**Done.** The previous release is tagged (`v0.3.0`), the tree was clean and CI on the release commit is green. The 0.4.0 row of section 14, every section it names in both volumes, the 29 catalogue rows, the testing handbook, the risk register (R1 to R3) and the open decisions due (#30, #47 to #53) were read, and the checklist written in `docs/releases/0.4.0.md`: 22 steps, the engine pieces before the functions that need them, each tagged, ending with the pre-release routine. The owner said "go". Step 1 `[engine]`: the version is `0.4.0-dev`, the three sample projects pin it, the four version snapshots follow (the one of `zeff new` by its comment alignment), and the open-decisions register has its summary rows for #47 to #53, with the deadlines of their entries, and a status line (logged in `docs/spec_changes.md`). The owner then took open decisions #30, #47 to #50 and #52 as recommended, #51 and #53 waiting for their own deadlines; recorded in the register, in `docs/decisions.md` and on the checklist.
 
 **Green.** Format, clippy with warnings denied, all 626 workspace tests, the tier check and the message check pass locally; CI to be read after the push.
 
-**Next.** Step 2, the `zeff-kernels` crate `[engine]`, which needs the answer to question 1 (#47 to #50).
+**Next.** Step 2, the `zeff-kernels` crate `[engine]`; question 1 is answered, so it can start.
 
-**For the owner to decide.** The seven questions at the top of `docs/releases/0.4.0.md`, each with a recommendation; the first before step 2.
+**For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`, each with a recommendation; question 2 (R packages and Stata for the references) is needed at step 10.

@@ -18,6 +18,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (23 October 2026, release 0.4.0 started).** The owner said "go" for release 0.4.0. The summary table gains the rows of #47 to #53, whose deadlines are those of their entries (#47 to #50 and #52 at 0.4.0, with #30; #51 at 0.6.0; #53 at 1.1). The decisions due are put to the owner at the top of `docs/releases/0.4.0.md` with the register's recommendations, and each answer is recorded here when it is given.
 
+**Status (23 October 2026, release 0.4.0, after step 1).** The owner took #30, #47, #48, #49, #50 and #52, each as recommended; #51 and #53 wait for their own deadlines (0.6.0 and 1.1). Each entry records its decision.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -51,7 +53,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 27 | Hosting Zemp web; sync; a Zemp server | A static host that sets cross-origin isolation headers; sync through the user's own folder sync, no server. The business model's paid sync, server compute and self-hosting need a server and a change to Zemp section 13: decide the two together | Zemp 0.2 alpha |
 | 28 | AI assistance model | User's own key to a remote model, a local model as the private option, both off by default; whether Zemp also sells metered access of its own (the business model's Pro tier) is part of the same decision | Zemp 1.11 |
 | 29 | Zemp version coupling | Follow Zeff's minors until 1.11 | 1.0 |
-| 30 | Performance targets | Put the two stress cases in the benchmark suite now; set targets at first measurement, tighten each release | 0.4.0 |
+| 30 | Performance targets | Put the two stress cases in the benchmark suite now; set targets at first measurement, tighten each release | decided 23 October 2026 |
 | 31 | Names: domain and GitHub organisation | `zeff-lang.org` with the `zeff-lang` organisation; the installer URL and signing-key list depend on it | before 0.9.0 |
 | 32 | A file of several frames and fitted results | A zip of Arrow files and JSON result descriptions, at 1.5 with the heavy models; never a binary format of Zeff's own | 1.5 |
 | 33 | Interface revamp: density, icons, desktop menus, tablet and phone (the dark theme was decided on 17 October 2026) | As zemp_gui_revamp.md section 4 recommends for the four: one density with a larger-type setting; no icons; native menus mirroring the palette; no tablet or phone in 1.0 | Zemp 0.2 alpha |
@@ -68,12 +70,12 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 44 | Diagnostic codes for the descriptive reducers' warnings | W0201 missing values skipped, with the count; W0204 infinite values of both signs, so the result is NA | decided 18 October 2026 |
 | 45 | Whether a warning printed under a result shows its code | Follow section 10.2 for now: `warning: 211 rows ... were skipped (line 21)` without the code; the run record keeps it | decided 18 October 2026 |
 | 46 | Diagnostic codes for four conditions of expressions and calls | Z0221 an operator applied to types it does not take (a Bool in arithmetic, `!` on a number, `&&` on numbers, a comparison across types, an index of the wrong kind); Z0222 a mapping key written or computed twice; Z0410 two options of one call that exclude each other (`round` with `digits:` and `sig:`); W0102 a name in a frame method that is both a variable and a binding | decided 22 October 2026 |
-| 47 | A fixed reduction shape for every sum | B: N independent accumulators combined in a fixed order, N fixed by a micro-benchmark and recorded once | 0.4.0 |
-| 48 | Blocked kernels from the start, threads when proven | B: every kernel blocked from now and run one block after another; threads at 1.1; the browser single-threaded until proven | 0.4.0 (the shape); 1.1 (threads) |
-| 49 | When fused passes arrive | B: the block and selection interface now, fusion itself at 0.6.0 | 0.4.0 |
-| 50 | Compact column storage | B: each column in its narrowest honest form, Floats always 64-bit | 0.4.0 |
+| 47 | A fixed reduction shape for every sum | B: N independent accumulators combined in a fixed order, N fixed by a micro-benchmark and recorded once | decided 23 October 2026 |
+| 48 | Blocked kernels from the start, threads when proven | B: every kernel blocked from now and run one block after another; threads at 1.1; the browser single-threaded until proven | decided 23 October 2026 (the shape; threads at 1.1) |
+| 49 | When fused passes arrive | B: the block and selection interface now, fusion itself at 0.6.0 | decided 23 October 2026 |
+| 50 | Compact column storage | B: each column in its narrowest honest form, Floats always 64-bit | decided 23 October 2026 |
 | 51 | Reading files in parallel by chunk | B: chunked parsing with boundaries fixed by the bytes alone, in the reader rewrite of 0.11.0 at the latest | 0.6.0 |
-| 52 | A benchmark suite run at every release | B: a small suite from 0.4.0 as a new section of the testing handbook, reporting rather than failing | 0.4.0 |
+| 52 | A benchmark suite run at every release | B: a small suite from 0.4.0 as a new section of the testing handbook, reporting rather than failing | decided 23 October 2026 |
 | 53 | Options rather than functions: HAC standard errors and weights on the descriptives | The `se:` variants with the panel models of 1.4; `weights:` on the descriptives at 1.1 as frequency weights | 1.1 |
 
 ---
@@ -326,6 +328,8 @@ The plan requires these to be adopted or dropped by 0.7.0; deciding now removes 
 
 *Recommendation.* Add the two stress cases (double lasso on a 2 GB file; Callaway–Sant'Anna on 4 million panel rows) to the benchmark suite now; set each target at the first measurement and tighten it with each release, rather than guessing numbers before the engine exists.
 
+*Decided 23 October 2026, as recommended.* The two stress cases join the benchmark suite when their methods exist (1.2 and 1.5); at 0.4.0 the suite of #52 records the first measurements of `reg`, and the targets are set from them and tightened at each release.
+
 ### 31. Names: the domain and the GitHub organisation
 
 The installer script, the documentation, the registry index (#9) and the signed key list the launcher trusts all live under one host name, and the GitHub organisation holds the repositories, the release archives and the Action (Zeff Specification, section 2.1). Both must be fixed before the launcher ships in 0.9.0, because a key list URL cannot move without a launcher update.
@@ -542,6 +546,8 @@ The gain should be measured before the rule is adopted: a micro-benchmark of one
 
 *Recommendation.* B, with N fixed by that measurement and recorded once. Changes to the shipped functions' last digits are logged in the notes of the release that makes them. Deadline: 0.4.0, before the first release whose cost depends on a long sum.
 
+*Decided 23 October 2026, as recommended (option B).* N is set by the micro-benchmark of step 2 of release 0.4.0 (a sum and a dot product, scalar against N lanes, on the owner's ARM64 machine and the x86-64 runner) and recorded once in `docs/decisions.md`; every kernel of `zeff-kernels` is written to the shape from its first line; the reducers shipped at 0.1.0 to 0.3.0 move to it at 0.4.0 only if the measurement shows a gain of a fifth or more, since the move changes the last digits of the published conformance cases and the samples' output.
+
 ### 48. Blocked kernels from the start, threads when proven
 
 Raised on 21 October 2026 in a review of the performance plan. Section 14 puts threads in 1.1. A deterministic parallel design exists: rows in fixed-size blocks (the size independent of the number of threads), one partial result per block, the partials combined in a fixed order, so 1 thread or 64 give the same bits. Writing the kernels this way costs little; adding threads to kernels written as one long loop means rewriting them.
@@ -555,6 +561,8 @@ Raised on 21 October 2026 in a review of the performance plan. Section 14 puts t
 Two conditions in any case: random draws use one stream per draw, derived from the seed and the draw's number, so the thread count never changes a result; and a test runs each blocked kernel at 1 and at several threads and demands equal bits.
 
 *Recommendation.* B for the engine and the native build; the browser build stays single-threaded until threads there are shown to work. Deadline: 0.4.0 for the shape; 1.1 for the threads.
+
+*Decided 23 October 2026, as recommended (option B).* The kernels consume row blocks of a fixed size, run one after another; a test runs each kernel at several block sizes and demands equal bits; threads arrive at 1.1 for the engine and the native build, and the browser build stays single-threaded until threads there are shown to work.
 
 ### 49. When fused passes arrive: 0.2.0 or 0.6.0
 
@@ -572,6 +580,8 @@ Whichever is chosen, every fused result is tested against the unfused one for eq
 
 *Recommendation.* B. Deadline: 0.4.0.
 
+*Decided 23 October 2026, as recommended (option B).* The block interface of #48 is the one the verbs adopt at 0.6.0 with the fused passes; nothing in the verbs changes at 0.4.0.
+
 ### 50. Compact column storage: narrow types, dictionary codes and a validity mask
 
 Raised on 21 October 2026 in a review of the performance plan. Every pass over a column costs in proportion to its bytes. Section 4.3 of the Language Reference fixes the column types and the Arrow metadata; this decision concerns only how each is held in memory, which no script can observe.
@@ -584,6 +594,8 @@ Raised on 21 October 2026 in a review of the performance plan. Every pass over a
 Floats never change width: no reduced precision on any result-bearing path. The arithmetic is defined over the values, so the storage cannot change a bit.
 
 *Recommendation.* B, settled before the panel verbs of 0.6.0, since `aggregate`, `panel` and the joins are written against the column interface. Deadline: 0.4.0.
+
+*Decided 23 October 2026, as recommended (option B).* The column store already holds each column in this form (Arrow dictionary codes for a category, Int32 days for a date, one bit per row for a Bool, a validity bitmap; Int stays Int64 and Float 64-bit, as section 3.8 of the Language Reference says); the decision confirms it, and the model matrix of 0.4.0 reads a category's codes directly.
 
 ### 51. Reading files in parallel by chunk, with deterministic boundaries
 
@@ -610,6 +622,8 @@ Raised on 21 October 2026 in a review of the performance plan. The testing handb
 The suite measures time only; a result it produces is also checked for equal bits against the stored snapshot, so a benchmark can never be made faster by a numerical change.
 
 *Recommendation.* B, as a new section of the testing handbook, added after the freeze (0.3.0) and run from 0.4.0. Deadline: 0.4.0.
+
+*Decided 23 October 2026, as recommended (option B).* The suite is step 21 of release 0.4.0, written into a new section of the testing handbook and run from 0.4.0; it reports its times, and the release notes judge them.
 
 ### 53. Options rather than functions: HAC standard errors and weights on the descriptives
 
