@@ -194,9 +194,9 @@ jobs:
             coverage-summary.txt
 
   mutation:
-    # The numeric kernel has grown past what one runner tests in three hours (the special functions
-    # of 0.3.0 doubled the mutants), so the mutants are shared among four runners.
-    name: weekly (mutation testing, shard ${{ matrix.shard }} of 4)
+    # The numeric kernel has grown past what one runner tests in three hours (1,879 mutants at
+    # 0.3.0, each running the workspace's tests), so the mutants are shared among twelve runners.
+    name: weekly (mutation testing, shard ${{ matrix.shard }} of 12)
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
       || github.event.schedule == '41 3 * * 1'
@@ -205,7 +205,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -218,12 +218,12 @@ jobs:
         with:
           tool: cargo-mutants
 
-      - name: Mutation testing of the numeric kernel, one quarter of the mutants
+      - name: Mutation testing of the numeric kernel, one twelfth of the mutants
         run: |
           # Surviving mutants and timeouts are a note to act on, not a failure of the job.
-          (cargo mutants --package zeff-numeric --shard ${{ matrix.shard }}/4 --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants || true) 2>&1 | tail -40
+          (cargo mutants --package zeff-numeric --shard ${{ matrix.shard }}/12 --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants || true) 2>&1 | tail -40
           {
-            echo "## Weekly: mutation testing of zeff-numeric, shard ${{ matrix.shard }} of 4"
+            echo "## Weekly: mutation testing of zeff-numeric, shard ${{ matrix.shard }} of 12"
             echo
             echo "Caught: $(wc -l < mutants/mutants.out/caught.txt | tr -d ' ')"
             echo "Missed (surviving mutants, each a test to write): $(wc -l < mutants/mutants.out/missed.txt | tr -d ' ')"
