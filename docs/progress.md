@@ -118,12 +118,12 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Open decision #46 at the close; #47 to #53 by 0.4.0.
 
-## 22 October 2026, step 14 of release 0.3.0 (built, waiting for the job)
+## 22 October 2026, step 14 of release 0.3.0
 
-**Done.** Step 14 `[engine]`: the stochastic class as a nightly test (14 distributions, 50 seeds of 100,000 draws, exact moments and distribution functions; 68 seconds in release mode), its note in the nightly summary, and a fifth fuzz target for distribution parameters and probabilities. The fuzz target found in its first minute a call that never returned (a discrete quantile when the mean lies beyond the largest Float); fixed, with a regression test, and a discrete draw beyond the Ints is now `NA`. Details in `docs/decisions.md`. The step stays unticked until the scheduled job (run 39715680802, started by hand) has finished green and its note is read. The CI run of step 13 (commit ca829b6) was green.
+**Done.** Step 14 `[engine]`: the stochastic class as a nightly test (14 distributions, 50 seeds of 100,000 draws, exact moments and distribution functions, identical figures on the Mac and on Linux), its note in the nightly summary, and a fifth fuzz target for distribution parameters and probabilities. The first scheduled runs found three real faults, all repaired with regression tests: a discrete quantile search that never returned when the mean lay beyond the Floats (a draw beyond the Ints is now `NA`), a search that spent eight seconds a draw where the distribution function is `NA` (it now ends with `NA` at the first `NA`), and a CSV header check that compared every pair of names (19 seconds for 34 KB; now a map). The job also could not fail on a fuzz crash (the status of `tail` was read); it now can. The third fuzz run (39727701712) was green: five targets, ten minutes each, no crash input. Details in `docs/decisions.md`.
 
-**Green.** Format, clippy with warnings denied (the fuzz package too), all workspace tests, the tier check, the message check and the conformance report (unchanged) pass locally. About a minute of fuzzing locally found no further crash.
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (unchanged) pass; CI green on c21a082.
 
-**Next.** Read the scheduled run, tick step 14, then step 15, the pre-release routine `[engine]`.
+**Next.** Step 15, the pre-release routine `[engine]`; then the owner's "Release 0.3.0".
 
 **For the owner to decide.** Open decision #46 at the close; #47 to #53 by 0.4.0.
