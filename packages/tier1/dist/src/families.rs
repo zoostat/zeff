@@ -233,7 +233,16 @@ fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> 
     if p >= 1.0 {
         return upper_bound;
     }
-    let f = |k: f64| cdf(d, k).lower;
+    // Where the distribution function is NA (parameters so large that the incomplete functions
+    // cannot be evaluated) there is nothing to search: the first NA ends the search with NA.
+    let undefined = std::cell::Cell::new(false);
+    let f = |k: f64| {
+        let value = cdf(d, k).lower;
+        if value.is_nan() {
+            undefined.set(true);
+        }
+        value
+    };
     // A start beyond the largest Float (a mean of Inf) is searched from the largest Float.
     let mut k = if start.is_nan() {
         0.0
@@ -259,10 +268,16 @@ fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> 
                 lo = next;
                 break;
             }
+            if undefined.get() {
+                return f64::NAN;
+            }
             hi = next;
             step *= 2.0;
         }
     } else {
+        if undefined.get() {
+            return f64::NAN;
+        }
         lo = k;
         let mut step = first_step;
         loop {
@@ -275,15 +290,17 @@ fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> 
                 hi = next;
                 break;
             }
+            if undefined.get() {
+                return f64::NAN;
+            }
             lo = next;
             step *= 2.0;
         }
     }
     if hi.is_infinite() {
         // No whole number a Float can hold reaches p: the quantile is beyond the Floats.
-        let reach = f(f64::MAX);
-        if reach.is_nan() || reach < p {
-            return hi;
+        if f(f64::MAX) < p || undefined.get() {
+            return if undefined.get() { f64::NAN } else { hi };
         }
         hi = f64::MAX;
     }
@@ -297,6 +314,9 @@ fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> 
             hi = k;
         } else {
             lo = k;
+        }
+        if undefined.get() {
+            return f64::NAN;
         }
     }
     hi

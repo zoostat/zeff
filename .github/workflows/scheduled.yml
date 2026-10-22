@@ -115,6 +115,8 @@ jobs:
       - name: Fuzz the lexer, the parser, the checker, the CSV reader and the distributions for ten minutes each
         working-directory: fuzz
         run: |
+          # The status of the fuzzer, not of `tail`: a crash or a timeout fails the job.
+          set -o pipefail
           status=0
           for target in lexer parser checker csv distribution; do
             echo "::group::$target"

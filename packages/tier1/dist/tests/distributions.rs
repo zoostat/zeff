@@ -373,16 +373,16 @@ fn draws_recover_their_distribution() {
 }
 
 #[test]
-fn a_quantile_beyond_the_floats_answers_instead_of_searching_for_ever() {
+fn a_quantile_where_the_distribution_function_is_na_answers_instead_of_searching() {
     // Found by the nightly fuzz target: a negative binomial with a mean beyond the largest Float
-    // sent the bracket search round a loop that never moved, and a Poisson near 1e300 took a
-    // thousand evaluations of the incomplete gamma function.
+    // sent the bracket search round a loop that never moved (size 13,827, p 1.2e-321); another
+    // (size 4.3e232, p 2.3e-322) took eight seconds a draw, a thousand evaluations of a function
+    // that is NA; a Poisson near 1e300 needed a thousand doublings. Now the first NA ends the
+    // search with NA, and a draw beyond the Ints is NA too.
     let (code, out, stderr) = go(
-        "let d = dist.negbinomial(size: 13827.029, p: 1.2e-321)\nprint(d.quantile(0.9))\nprint(d.draw(2, seed: 1))\nprint(dist.poisson(lambda: 1e300).draw(2, seed: 1))\n",
+        "let a = dist.negbinomial(size: 13827.029, p: 1.2e-321)\nprint(a.quantile(0.9))\nprint(a.draw(2, seed: 1))\nprint(dist.negbinomial(size: 4.291379375431708e232, p: 2.3e-322).draw(2, seed: 0))\nprint(dist.poisson(lambda: 1e300).draw(2, seed: 1))\n",
     );
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(
-        out,
-        "Inf\nColumn<Int> · 2 values\nNA\nNA\nColumn<Int> · 2 values\nNA\nNA\n"
-    );
+    let na_draws = "Column<Int> · 2 values\nNA\nNA\n";
+    assert_eq!(out, format!("NA\n{na_draws}{na_draws}{na_draws}"));
 }
