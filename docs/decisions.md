@@ -857,3 +857,7 @@ A frame prints its header, a blank line, and its first ten rows as the same grid
 **What happened.** The weekly job of the pre-release routine (run 39732935569) measured coverage but its mutation step hit the job's three-hour limit and was cancelled: the special functions of this release roughly doubled the mutants of the numeric kernel, and each mutant runs the whole workspace's tests. At 0.2.0 the same step finished within the limit.
 
 **The repair.** The weekly job is now a coverage job and a mutation job in four shards (`cargo mutants --shard k/4`, matrix of four runners, 340 minutes each, `fail-fast` off), each shard writing its own summary and report. Surviving mutants stay a note to act on, as before. The totals for the release are the four shards added together.
+
+## 22 October 2026: #46 taken and the freeze ended (the owner's decisions)
+
+**Decision.** The owner accepted #46 as recommended (Z0221, Z0222, Z0410, W0102) and ended the specification freeze of #40 at the close of 0.3.0. The codes of #41 to #44 and #46, with Z0413 and Z0111, are in section 11 of the Language Reference; the register and `docs/spec_changes.md` record it. From 0.4.0 a change to the normative text is an ordinary design decision, still logged with its date, section and reason; the standing instructions outside the repository still describe the freeze and are the owner's to edit.

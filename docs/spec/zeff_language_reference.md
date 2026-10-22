@@ -1280,6 +1280,22 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W1xxx | Statistical warnings: the code is right but the result is fragile (section 11.1) |
 | Z9xxx | Internal errors: a bug in Zeff, not in the script (section 11.1) |
 
+**Codes numbered while the engine was built.** These conditions are described in the sections named, or in the Engine and Project Specification, and received their numbers during releases 0.1.0 to 0.3.0 (open decisions #41 to #44 and #46; Z0413 and Z0111 with the distributions). `zeff help <code>` gives each one's explained page.
+
+| Code | Condition |
+| --- | --- |
+| Z0301, Z0303, Z0304 | Something the grammar does not allow at that place; a closing bracket with no opener; a construct the grammar has but this release does not run |
+| Z0103, Z0105, W0101 | A call names no function; a `let` reuses a name of `core`; a `let` hides a function of another package (warning) |
+| Z0401, Z0404 to Z0409 | An argument of the wrong type; an unknown argument name; an argument given twice; a required argument missing; too many positional arguments; a positional argument after a named one; a date format that is not one |
+| Z0221 | An operator applied to types it does not take (a Bool in arithmetic, `!` on a number, `&&` on numbers, a comparison across types, an index of the wrong kind) |
+| Z0222 | A mapping key written or computed twice |
+| Z0410 | Two options of one call that exclude each other, given together (`round` with `digits:` and `sig:`; `se: classical` with sampling weights) |
+| Z0413 | A parameter of a distribution outside its domain, or `NA` |
+| Z0111 | `seed` called after a draw, or a second time |
+| W0102 | A name in a frame method's argument that is both a variable of the frame and a binding: the variable is used, with a warning |
+| W0201, W0204 | Missing values skipped by a reducer, with the count; `Inf` and `-Inf` both present, so the result is `NA` |
+| Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |
+
 Examples:
 
 ```
