@@ -35,6 +35,10 @@ pub struct Randomness {
     pub chosen: bool,
     /// Whether a statement has drawn from the stream.
     pub used: bool,
+    /// The statement that drew last and how many calls it has made, so that each call of one
+    /// statement has a stream of its own.
+    pub last_statement: u32,
+    pub calls_in_statement: u32,
 }
 
 impl Randomness {
@@ -64,7 +68,13 @@ impl Randomness {
             }
         };
         self.used = true;
-        (Stream::new(seed as u64, statement, 0), note)
+        if self.last_statement != statement {
+            self.last_statement = statement;
+            self.calls_in_statement = 0;
+        }
+        let call = self.calls_in_statement;
+        self.calls_in_statement += 1;
+        (Stream::for_call(seed as u64, statement, 0, call), note)
     }
 }
 

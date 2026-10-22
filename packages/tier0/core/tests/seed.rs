@@ -64,3 +64,23 @@ fn a_late_or_second_seed_is_refused() {
     );
     insta::assert_snapshot!("seed_refusals", all);
 }
+
+#[test]
+fn two_draws_in_one_statement_are_independent_streams() {
+    // Found while writing the 0.3.0 sample: both columns used to take the same uniforms, so two
+    // draws written in one statement were perfectly correlated.
+    let (code, out, stderr) = go(
+        "seed(5)\nlet f = frame(a = dist.normal().draw(2000), b = dist.normal().draw(2000))\nf.correlation([a, b], p_values: true)\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert!(
+        out.contains("-0.007"),
+        "the two columns must be uncorrelated:\n{out}"
+    );
+    // The first call of a statement keeps the stream it always had.
+    let (_, alone, _) = go("seed(5)\nlet a = dist.normal().draw(3)\na\n");
+    let (_, first_of_two, _) = go(
+        "seed(5)\nlet f = frame(a = dist.normal().draw(3), b = dist.normal().draw(3))\nf[\"a\"]\n",
+    );
+    assert_eq!(alone, first_of_two);
+}

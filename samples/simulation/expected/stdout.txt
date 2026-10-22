@@ -1,0 +1,64 @@
+sim · 400 rows × 4 variables
+
+  variable   type    non-missing   missing   example
+  score      Float           400         0   114.657
+  wait       Float           400         0   0.22237
+  visits     Int             400         0   3
+  wage       Float           400         0   18.3213
+summary · sim
+
+  variable     N   missing      mean       sd      min       max
+  score      400         0   100.286   15.754   56.668   142.994
+  wait       400         0     2.067    2.037    0.002    12.266
+  visits     400         0     2.970    1.672    0.000    10.000
+  wage       400         0    17.268    8.006    4.524    63.679
+correlation · sim · pearson
+N = 400
+
+           score     wait   visits     wage
+  score    1.000    0.002    0.098    0.021
+  wait     0.002    1.000    0.012   -0.070
+  visits   0.098    0.012    1.000    0.003
+  wage     0.021   -0.070    0.003    1.000
+
+p-values
+
+           score    wait   visits    wage
+  score            0.962    0.049   0.673
+  wait     0.962            0.817   0.163
+  visits   0.049   0.817            0.952
+  wage     0.673   0.163    0.952
+correlation · sim · spearman
+N = 400
+
+          score    wage
+  score   1.000   0.018
+  wage    0.018   1.000
+covariance · sim
+N = 400
+
+            score    wait
+  score   248.186   0.077
+  wait      0.077   4.150
+z:
+0.362787
+one-sided p:
+0.358382
+two-sided p:
+0.716764
+P(Z > 8):
+6.22096e-16
+t 0.975 quantile, 24 df:
+2.0639
+normal distribution · mean: 100, sd: 15 · truncated to [70, 130]
+P(X <= 100) in the truncated distribution:
+0.5
+frame · 300 rows × 1 variable
+
+  variable   type    non-missing   missing   example
+  cut        Float           300         0   122.584
+mixture · 0.6 × (lognormal distribution · meanlog: 2.5, sdlog: 0.3) + 0.4 × (lognormal distribution · meanlog: 3.1, sdlog: 0.4)
+mixture median:
+14.6802
+mixture P(wage > 40):
+0.0282157

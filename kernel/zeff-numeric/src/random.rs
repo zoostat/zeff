@@ -30,12 +30,15 @@ pub fn philox4x32_10(counter: [u32; 4], key: [u32; 2]) -> [u32; 4] {
 }
 
 /// A stream of uniform numbers: the seed as the key, the statement's ordinal and the loop pass in
-/// the counter's high words, and the draw number in its low words.
+/// the counter's high words, and the draw number in its low words. The second word holds the
+/// index of the call within its statement (0 for the first), so that two draws written in one
+/// statement are independent streams; a draw number stays below 2^32 blocks.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stream {
     key: [u32; 2],
     ordinal: u32,
     pass: u32,
+    call: u32,
     /// The number of 32-bit words handed out so far.
     position: u64,
     block: [u32; 4],
@@ -47,13 +50,19 @@ impl Stream {
     /// for a `seed:` given to one call, which has a stream of its own wherever it is written) in
     /// loop pass `pass` (0 outside a loop), under `seed`.
     pub fn new(seed: u64, ordinal: u32, pass: u32) -> Stream {
+        Stream::for_call(seed, ordinal, pass, 0)
+    }
+
+    /// The stream of the `call`-th drawing call (0 for the first) of the statement `ordinal`.
+    pub fn for_call(seed: u64, ordinal: u32, pass: u32, call: u32) -> Stream {
         let key = [seed as u32, (seed >> 32) as u32];
         Stream {
             key,
             ordinal,
             pass,
+            call,
             position: 0,
-            block: philox4x32_10([0, 0, ordinal, pass], key),
+            block: philox4x32_10([0, call, ordinal, pass], key),
             block_index: 0,
         }
     }
@@ -63,12 +72,7 @@ impl Stream {
         let block_index = self.position / 4;
         if block_index != self.block_index {
             self.block = philox4x32_10(
-                [
-                    block_index as u32,
-                    (block_index >> 32) as u32,
-                    self.ordinal,
-                    self.pass,
-                ],
+                [block_index as u32, self.call, self.ordinal, self.pass],
                 self.key,
             );
             self.block_index = block_index;
@@ -136,6 +140,10 @@ mod tests {
         assert_ne!(other_statement.uniform(), first[0]);
         assert_ne!(other_seed.uniform(), first[0]);
         assert_ne!(other_pass.uniform(), first[0]);
+        let mut second_call = Stream::for_call(20_261_019, 1, 0, 1);
+        assert_ne!(second_call.uniform(), first[0]);
+        let mut first_call = Stream::for_call(20_261_019, 1, 0, 0);
+        assert_eq!(first_call.uniform(), first[0]);
         assert_eq!(a.draws(), 100);
     }
 }

@@ -1,0 +1,43 @@
+// The sample project of release 0.3.0: a simulation and its p-values end to end, with no data
+// file. `zeff run` in this folder prints what expected/stdout.txt holds, and its messages are
+// expected/stderr.txt; the script tests compare both byte for byte on every target.
+
+// 1. One seed for the whole run, set before any draw, so that the script repeats exactly.
+seed(2026)
+
+// 2. Draws from several families into a frame. The scores follow a normal distribution, the
+//    waiting times an exponential one, the visits a Poisson one, and the wage index is a mixture
+//    of two kinds of worker.
+let wage_mix = dist.mixture([dist.lognormal(meanlog: 2.5, sdlog: 0.3), dist.lognormal(meanlog: 3.1, sdlog: 0.4)],
+                            probs: [0.6, 0.4])
+let sim = frame(score = dist.normal(mean: 100, sd: 15).draw(400),
+                wait = dist.exponential(rate: 0.5).draw(400),
+                visits = dist.poisson(lambda: 3).draw(400),
+                wage = wage_mix.draw(400))
+sim.describe()
+sim.summary([score, wait, visits, wage])
+
+// 3. Association: the three correlation methods, with p-values for the Pearson one.
+sim.correlation([score, wait, visits, wage], p_values: true)
+sim.correlation([score, wage], method: spearman)
+sim.covariance([score, wait])
+
+// 4. A p-value from a tail. The z statistic of the mean score against 100, one-sided and
+//    two-sided, from the upper tail of the normal distribution computed directly.
+let z = (sim.mean(score) - 100) / (sim.sd(score) / sqrt(sim.n_rows()))
+print("z:", z)
+print("one-sided p:", dist.normal().cdf(z, upper: true))
+print("two-sided p:", 2 * dist.normal().cdf(abs(z), upper: true))
+
+// 5. A far tail keeps its digits, and the quantile inverts the distribution function.
+print("P(Z > 8):", dist.normal().cdf(8, upper: true))
+print("t 0.975 quantile, 24 df:", dist.t(df: 24).quantile(0.975))
+
+// 6. A truncated and a mixed distribution: values and draws.
+let cut = dist.truncated(dist.normal(mean: 100, sd: 15), lower: 70, upper: 130)
+cut
+print("P(X <= 100) in the truncated distribution:", cut.cdf(100))
+frame(cut = cut.draw(300, seed: 7)).describe()
+wage_mix
+print("mixture median:", wage_mix.quantile(0.5))
+print("mixture P(wage > 40):", wage_mix.cdf(40, upper: true))

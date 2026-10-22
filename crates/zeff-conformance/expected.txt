@@ -115,3 +115,7 @@ data_cleaning/stdout 04c6367e4ed6627d
 data_cleaning/stderr 6a1e703d86af604b
 data_cleaning/exit_code a8c7f832281a39c5
 # data_cleaning/exit_code bits 0000000000000000
+simulation/stdout 178da8a8350c10df
+simulation/stderr cbf29ce484222325
+simulation/exit_code a8c7f832281a39c5
+# simulation/exit_code bits 0000000000000000

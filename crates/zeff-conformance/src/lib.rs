@@ -254,8 +254,18 @@ pub const DATA_CLEANING: Sample = Sample {
     stderr: include_str!("../../../samples/data_cleaning/expected/stderr.txt"),
 };
 
+/// The sample of release 0.3.0: a simulation and its p-values end to end, with no data file.
+pub const SIMULATION: Sample = Sample {
+    name: "simulation",
+    manifest: include_str!("../../../samples/simulation/zeff.toml"),
+    data: &[],
+    script: include_str!("../../../samples/simulation/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/simulation/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/simulation/expected/stderr.txt"),
+};
+
 /// Every sample project, oldest first; each adds three cases to the report.
-pub const SAMPLES: [&Sample; 2] = [&FIRST_ENGINE, &DATA_CLEANING];
+pub const SAMPLES: [&Sample; 3] = [&FIRST_ENGINE, &DATA_CLEANING, &SIMULATION];
 
 /// Run a sample project on an in-memory copy of its files.
 pub fn sample_run(sample: &Sample) -> zeff_engine::run::Outcome {

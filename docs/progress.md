@@ -64,115 +64,9 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **For the owner to decide.** Four questions at the top of the checklist: how a distribution prints (step 3), the correlation table layout (step 11), whether discrete draws are Int columns (step 7), open decision #46 (step 15).
 
-## 19 October 2026, step 2 of release 0.3.0
+## 19 to 20 October 2026, steps 2 to 12 of release 0.3.0
 
-**Done.** Step 2 `[engine]`: the special-function kernel in `zeff_numeric::special`: the gamma and beta functions, factorials and binomial coefficients, the error functions and the normal tails and quantile, the regularised incomplete gamma and beta functions with both tails computed directly and their inverses, all in pure Rust. An exact reference in Python's `decimal` module at 70 digits (`tests/reference/special.py`, 599 values) and an R reference (`special.R`) with its CI comparison; the kernel holds the exact reference to 1e-12 in the distribution class, tighter where the arithmetic allows, and to 1e-10 only for a parameter above 100,000, recorded as a known issue. 3 property tests, 2 unit tests, 4 reference tests, 8 conformance series.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (eight new lines) pass locally. GitHub run to be read after the push.
-
-**Next.** Step 3, the `Distribution` value, the `dist.` namespace and methods on a value `[engine]`. It needs the owner's answer to question 1 (how a distribution prints); the recommendation stands if none comes.
-
-**For the owner to decide.** Question 1 before step 3; questions 2 and 3 before steps 11 and 7; open decision #46 at the close.
-
-## 19 October 2026, step 3 of release 0.3.0
-
-**Done.** The owner decided question 1 (a distribution prints as its call with the defaults filled in). Step 3 `[engine]`: the `Distribution` value in `core` with its printing, `Ty::Distribution` in the checker, the `dist.` namespace (a namespaced call names the function `dist.normal`; `dist`, `power` and `spec` are reserved names), the new `dist` package with `dist.normal` and its complete page, the parameter-domain check Z0413 with its explained page, and the refusals as snapshots. 3 tests added, 1 snapshot; 70 diagnostic codes now.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (580), the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 4, Philox random streams and `seed` `[engine]`.
-
-**For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.
-
-## 19 October 2026, step 4 of release 0.3.0
-
-**Done.** Step 4 `[engine]`: Philox4x32-10 in the numeric kernel, checked against the published known-answer vectors; the uniform stream keyed by seed, statement ordinal, loop pass and block, 53 bits per uniform; the run's randomness in the interpreter and the call context (the seed chosen from the system at the first draw and noted so that `seed(N)` repeats the run; a `seed:` given to one call as a stream of its own); two conformance series. 3 tests added.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (two new lines) pass locally. GitHub run to be read after the push.
-
-**Next.** Step 5, `zeff selftest` `[engine]`.
-
-**For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.
-
-## 19 October 2026, step 5 of release 0.3.0
-
-**Done.** Step 5 `[engine]`: `zeff selftest` runs the 76 conformance cases of the build against the published report compiled into the engine and says whether the installation is conformant (exit code 0) or names the cases that differ (exit code 1); `--format json` gives the cases as records; a test hook forces a mismatch so the failing path is tested; CI's native identity jobs run the command on each target. 2 command-line tests added. A property test of the reducers that asked two floating-point routes to agree exactly was loosened to 1e-12 after a random case summing to zero exposed a 4e-16 residue; the engine is unchanged.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (586), the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 6, the special functions `factorial`, `choose`, `gamma`, `log_gamma`, `beta` `[function]`.
-
-**For the owner to decide.** Question 3 (discrete draws as Int columns) before step 7; question 2 (the correlation table) before step 11; open decision #46 at the close.
-
-## 19 October 2026, step 6 of release 0.3.0
-
-**Done.** Step 6 `[function]`: `factorial`, `choose`, `gamma`, `log_gamma` and `beta` in `core`, each with its complete help page, on values and on columns row by row, with the warnings of section 4.1 (`NA` at a pole or a negative argument, `Inf` beyond the largest Float, each help line naming the logarithmic form that stays finite). 5 tests added (R at six digits, the edges, columns, refusals, the identities), 3 snapshots; the catalogue rows marked implemented.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 7, the first four distributions and the four methods `[function]`. It needs the owner's answer to question 3 (draws from discrete distributions as Int columns); the recommendation stands if none comes before step 9, where the discrete families arrive.
-
-**For the owner to decide.** Question 3 before step 9; question 2 (the correlation table) before step 11; open decision #46 at the close.
-
-## 19 October 2026, step 7 of release 0.3.0
-
-**Done.** The owner decided question 3 (Int columns for discrete draws, Float otherwise, `draw(1)` a column). Step 7 `[function]`: `dist.lognormal`, `dist.uniform` and `dist.exponential` beside `dist.normal`, and the methods `pdf`, `cdf` (with `upper:`), `quantile` and `draw` (by inverse CDF from the Philox stream, the chosen seed noted once), each with its page; R's distribution functions as a reference file compared in CI; two checker rules widened so that the methods apply to columns row by row and a distribution bound to a name can be used inside `add`. 5 tests added (R at six digits, the edges, columns, draws, the stochastic class on 100,000 draws), 2 snapshots, 2 conformance series; 8 catalogue rows marked implemented.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (two new lines) pass locally. GitHub run to be read after the push.
-
-**Next.** Step 8, the continuous families on the incomplete functions: `dist.t`, `dist.chi2`, `dist.f`, `dist.gamma`, `dist.beta` `[function]`.
-
-**For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.
-
-## 19 October 2026, step 8 of release 0.3.0
-
-**Done.** Step 8 `[function]`: `dist.t`, `dist.chi2`, `dist.f`, `dist.gamma` and `dist.beta` on the kernel's incomplete functions, each with its page; R's reference extended by fifteen parameter sets, every printed value agreeing at six digits; the t distribution follows R's normal approximation above 400,000 degrees of freedom. 1 test added and 2 extended (the edges, the refusals, the stochastic class on nine families); 5 catalogue rows marked implemented. The progress log was folded to stay under 200 lines.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 9, the discrete families `dist.binomial`, `dist.poisson`, `dist.negbinomial` `[function]`.
-
-**For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.
-
-## 19 October 2026, step 9 of release 0.3.0
-
-**Done.** Step 9 `[function]`: `dist.binomial`, `dist.poisson` and `dist.negbinomial` (in both its forms), each with its page, their probabilities in Loader's saddle-point form on a new kernel deviance function, their distribution functions on the incomplete beta and gamma functions, their quantiles by a bracket search, their draws as Int columns; the registry reads a usage with several forms. R's reference extended by nine parameter sets, every printed value agreeing at six digits. 1 test added and 3 extended; 3 catalogue rows marked implemented. The twelve families of the release are complete.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 10, `dist.truncated` and `dist.mixture` `[function]`.
-
-**For the owner to decide.** Question 2 (the correlation table) before step 11; open decision #46 at the close.
-
-## 19 October 2026, step 10 of release 0.3.0
-
-**Done.** Step 10 `[function]`: `dist.truncated` (closed interval, both tails direct, exact draws by one uniform) and `dist.mixture` (weighted sums, a bracket-and-halving quantile, two uniforms per draw), each with its page; the R reference extended with four composites from base R's functions (the `truncdist` package cannot be installed under the rules); a correction of the t distribution near its centre; the catalogue's usage of `dist.mixture` corrected and logged. 1 test added and 3 extended, 1 snapshot; 2 catalogue rows marked implemented. The distributions of the release are complete.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 11, `correlation` and `covariance` in the new `stats` package `[function]`. It needs the owner's answer to question 2 (the correlation table's layout); the recommendation stands if none comes.
-
-**For the owner to decide.** Question 2 before step 11; open decision #46 at the close.
-
-## 20 October 2026, step 11 of release 0.3.0
-
-**Done.** The owner decided question 2 (the layout of the correlation tables). Step 11 `[function]`: the `stats` package with `correlation` (Pearson, Spearman, Kendall tau-b; pairwise or listwise deletion; p-values reproducing R's `cor.test` branch by branch, exact distributions included) and `covariance`, each with its page, printing as the owner decided; `Table` can carry further tables. R's `cor`, `cov` and `cor.test` as a reference file compared in CI; every estimate and p-value of 22 pairs agrees to twelve digits. 3 tests added, 2 snapshots; 2 catalogue rows marked implemented.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 12, `seed` `[function]`.
-
-**For the owner to decide.** Nothing before the close; open decision #46 at the close.
-
-## 20 October 2026, step 12 of release 0.3.0
-
-**Done.** Step 12 `[function]`: `seed(n)` sets the run's seed once, before any draw, with Z0111 (a new explained code) when it comes too late or twice, and its page. 2 tests added, 1 snapshot; the catalogue row marked implemented. The 26 functions of the release are complete.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report pass locally. GitHub run to be read after the push.
-
-**Next.** Step 13, the 0.3.0 sample project and its script tests `[engine]`.
-
-**For the owner to decide.** Nothing before the close; open decision #46 at the close.
+**Done, folded.** Step 2, the special-function kernel (gamma, beta, error functions, incomplete gamma and beta with inverses; exact reference in Python's `decimal`, R comparison). Step 3, the `Distribution` value and the `dist.` namespace (question 1 decided: it prints as its call with defaults filled in; Z0413). Step 4, Philox4x32-10 streams and the run's seed. Step 5, `zeff selftest`. Step 6, `factorial` to `beta`. Steps 7 to 10, the twelve families, `dist.truncated` and `dist.mixture` with `pdf`, `cdf`, `quantile` and `draw` (question 3 decided: Int columns for discrete draws). Step 11, `correlation` and `covariance` in the `stats` package (question 2 decided; p-values reproduce R's `cor.test`). Step 12, `seed` with Z0111. All green locally at each step.
 
 ## 21 October 2026, performance review
 
@@ -213,3 +107,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 13 of release 0.3.0 `[engine]`.
 
 **For the owner to decide.** Open decisions #47 to #53; #2 settles the MANOVA spelling when it is taken.
+
+## 22 October 2026, step 13 of release 0.3.0
+
+**Done.** Step 13 `[engine]`: the third sample project `samples/simulation` (a seeded simulation with p-values end to end), its stored output, a place in the conformance report and in the command-line script test. Writing it exposed a defect: two draws in one statement used the same uniforms and were perfectly correlated. Each drawing call of a statement now has a stream of its own; the first call keeps its old stream, so no earlier result changed. 2 tests added; details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (three new lines, none changed) pass locally. GitHub run to be read after the push.
+
+**Next.** Step 14, the stochastic and truth-recovery runs in the nightly job `[engine]`.
+
+**For the owner to decide.** Open decision #46 at the close; #47 to #53 by 0.4.0.
