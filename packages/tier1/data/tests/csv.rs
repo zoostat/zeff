@@ -1247,3 +1247,27 @@ fn an_encoding_decodes_the_file_and_an_undecodable_byte_is_z0608() {
         render(&CsvError::NotUtf8 { row: 2 }, "data/f.csv")
     );
 }
+
+#[test]
+fn a_header_of_tens_of_thousands_of_names_is_read_without_comparing_them_in_pairs() {
+    // Found by the nightly fuzz target: 34 KB of delimiters took nineteen seconds, because every
+    // column name was compared, lower-cased, with every earlier one.
+    let n = 40_000;
+    let header: Vec<String> = (0..n).map(|i| format!("v{i}")).collect();
+    let row: Vec<String> = (0..n).map(|i| i.to_string()).collect();
+    let text = format!("{}\n{}\n", header.join(","), row.join(","));
+    let started = std::time::Instant::now();
+    let read = read_csv(text.as_bytes(), &CsvOptions::default()).unwrap();
+    assert_eq!(read.table.n_cols(), n);
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(20),
+        "{:?}",
+        started.elapsed()
+    );
+    // The first repeat and the first case clash are still the ones reported.
+    let clash = format!("{},V3\n1,2,3,4,5\n", "v0,v1,v2,v3,v4");
+    assert!(matches!(
+        read_csv(clash.as_bytes(), &CsvOptions::default()),
+        Err(CsvError::CaseClash { .. })
+    ));
+}

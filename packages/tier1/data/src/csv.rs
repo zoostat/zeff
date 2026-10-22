@@ -805,34 +805,38 @@ fn name_columns(
             )));
         }
     }
+    // The first earlier column whose name is the same, ignoring case, is the one reported: an
+    // exact repeat or a case clash. A map from the lower-case name to its first position finds it
+    // in one step, so that a header of tens of thousands of names is not compared in pairs.
+    let mut first_at: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     for (i, name) in names.iter().enumerate() {
         if name.is_empty() {
             return Err(CsvError::EmptyName { position: i + 1 });
         }
-        for (j, earlier) in names[..i].iter().enumerate() {
-            if earlier == name {
-                return Err(
-                    if options.names == NameRule::Snake && originals[j] != originals[i] {
-                        CsvError::SnakeClash {
-                            first: originals[j].clone(),
-                            second: originals[i].clone(),
-                            snake: name.clone(),
-                        }
-                    } else {
-                        CsvError::RepeatedName {
-                            name: name.clone(),
-                            positions: (j + 1, i + 1),
-                        }
-                    },
-                );
-            }
-            if earlier.to_lowercase() == name.to_lowercase() {
-                return Err(CsvError::CaseClash {
+        let lower = name.to_lowercase();
+        if let Some(&j) = first_at.get(&lower) {
+            let earlier = &names[j];
+            return Err(if earlier == name {
+                if options.names == NameRule::Snake && originals[j] != originals[i] {
+                    CsvError::SnakeClash {
+                        first: originals[j].clone(),
+                        second: originals[i].clone(),
+                        snake: name.clone(),
+                    }
+                } else {
+                    CsvError::RepeatedName {
+                        name: name.clone(),
+                        positions: (j + 1, i + 1),
+                    }
+                }
+            } else {
+                CsvError::CaseClash {
                     first: earlier.clone(),
                     second: name.clone(),
-                });
-            }
+                }
+            });
         }
+        first_at.insert(lower, i);
     }
     Ok(names)
 }
