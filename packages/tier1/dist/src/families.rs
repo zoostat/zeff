@@ -234,12 +234,21 @@ fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> 
         return upper_bound;
     }
     let f = |k: f64| cdf(d, k).lower;
-    let mut k = start.round().clamp(0.0, upper_bound);
+    // A start beyond the largest Float (a mean of Inf) is searched from the largest Float.
+    let mut k = if start.is_nan() {
+        0.0
+    } else {
+        start.round().clamp(0.0, upper_bound.min(f64::MAX))
+    };
+    // The bracket widens by doubling from a step that is one at small start and a fraction of the
+    // start at large, so that a quantile near 1e300 is bracketed in about forty evaluations of F
+    // rather than a thousand.
+    let first_step = (k * 2.0f64.powi(-40)).max(1.0);
     // Bracket: lo has F(lo) < p (or lo = -1), hi has F(hi) >= p.
     let (mut lo, mut hi);
     if f(k) >= p {
         hi = k;
-        let mut step = 1.0;
+        let mut step = first_step;
         loop {
             let next = hi - step;
             if next < 0.0 {
@@ -255,7 +264,7 @@ fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> 
         }
     } else {
         lo = k;
-        let mut step = 1.0;
+        let mut step = first_step;
         loop {
             let next = lo + step;
             if next >= upper_bound {
@@ -270,8 +279,20 @@ fn discrete_quantile(d: &Distribution, p: f64, start: f64, upper_bound: f64) -> 
             step *= 2.0;
         }
     }
+    if hi.is_infinite() {
+        // No whole number a Float can hold reaches p: the quantile is beyond the Floats.
+        let reach = f(f64::MAX);
+        if reach.is_nan() || reach < p {
+            return hi;
+        }
+        hi = f64::MAX;
+    }
     while hi - lo > 1.0 {
-        k = ((lo + hi) / 2.0).floor();
+        k = (lo / 2.0 + hi / 2.0).floor();
+        // Above 2^53 neighbouring Floats are more than 1 apart and the middle is one of them.
+        if k <= lo || k >= hi {
+            break;
+        }
         if f(k) >= p {
             hi = k;
         } else {

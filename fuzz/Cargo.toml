@@ -48,4 +48,11 @@ test = false
 doc = false
 bench = false
 
+[[bin]]
+name = "distribution"
+path = "fuzz_targets/distribution.rs"
+test = false
+doc = false
+bench = false
+
 [workspace]

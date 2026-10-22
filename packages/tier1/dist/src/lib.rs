@@ -641,7 +641,12 @@ pub fn draw(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         let values: Vec<Option<i64>> = (0..n)
             .map(|_| {
                 let x = families::draw(&d, &mut stream);
-                if x.is_finite() { Some(x as i64) } else { None }
+                // A draw beyond the Ints (a Poisson with lambda of 1e300) is NA, not the largest Int.
+                if x.abs() < 9.2e18 {
+                    Some(x as i64)
+                } else {
+                    None
+                }
             })
             .collect();
         return Ok(Value::Column(Column::ints(values)));
