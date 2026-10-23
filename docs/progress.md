@@ -165,3 +165,13 @@ Step 10 `[engine]`: the first regression. `wages.reg(log(wage) ~ educ + exper + 
 **Next.** Step 14, `reg` complete `[function]`.
 
 **For the owner to decide.** Questions 3 (b) to (d), 4 and 7 at the top of `docs/releases/0.4.0.md`; open decision #54 by 0.6.0. Question 2's Stata file, if there is one, is needed at step 14.
+
+## 23 October 2026, step 14 of release 0.4.0
+
+**Done.** Step 14 `[function]`: `reg` complete. The R harness gains Wooldridge's `wage1` and `wage2` (the `wooldridge` package, harness only; the extracts written beside the references with seventeen significant digits, so that every platform writes the same file) and the helmert and poly contrasts: thirty-six reference fits agree with R within 1e-10, covering every kind of standard error, cluster and weight, the contrasts, interactions and transformations, on four datasets. The shipped `wages` recovers its generating model: the return to schooling inside its 95 per cent interval with errors clustered by worker, the other coefficients inside their 99 per cent intervals, the industry effects jointly by a Wald test. Every edge-case dataset of the handbook runs with its expected value, note or error, which found an engine fault: a regressor such as a calendar year made the sandwich variances fail the symmetry self-check through rounding, and the variance layer now makes each matrix symmetric after a scale-aware check. Dropped columns are noted by cause (a level with no observations, a zero column, a column too small to scale, collinearity) and an essentially perfect fit by R's rule. The page is complete, with classical, robust and clustered examples; the catalogue row is marked implemented. No Stata file was given.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (113 suites), the tier check, the message check (89 codes), the conformance report (unchanged) and the export check pass locally; CI green on 4b342dc (run 39995311214) after fb44be2, the four targets identical and the reference job rebuilding the extracts and the thirty-six R cases identically.
+
+**Next.** Step 15, the result interface `[function]`: `summary`, `estimates`, `std_errors`, `p_values`, `ci` and `n_obs`, which needs questions 3 (d) and 4.
+
+**For the owner to decide.** Questions 3 (b) to (d), 4 and 7 at the top of `docs/releases/0.4.0.md`; 3 (d) and 4 before step 15; open decision #54 by 0.6.0.
