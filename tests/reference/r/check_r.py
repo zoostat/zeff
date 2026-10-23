@@ -13,14 +13,14 @@ relative 1e-12, the class tolerance of the distribution functions, since R's `pg
 carry errors of that order in their far tails on some platforms. `frames.json` holds only row
 numbers and is compared byte for byte by the workflow itself.
 
-Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design <committed.json> <regenerated.json>
+Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression <committed.json> <regenerated.json>
 """
 
 import json
 import math
 import sys
 
-TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12}
+TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10}
 
 
 def number(text):
@@ -205,13 +205,36 @@ def check_design(committed, regenerated, problems):
                     problems.append(f"cases.{name}.{column}.{key}: committed {values[key]}, regenerated {theirs[key]}")
 
 
+def check_regression(committed, regenerated, problems):
+    """regression.json: every term's statistics and every fit measure of every case within the
+    tolerance (R's lm on the platform's LAPACK), the terms, the omitted ones and the counts exactly."""
+    tolerance = TOLERANCE["regression"]
+    for name, case in committed["cases"].items():
+        other = regenerated["cases"].get(name)
+        if other is None:
+            problems.append(f"cases.{name}: missing")
+            continue
+        for key in ("terms", "omitted", "nobs", "df_residual"):
+            if case[key] != other[key]:
+                problems.append(f"cases.{name}.{key}: committed {case[key]}, regenerated {other[key]}")
+        for term, values in case["columns"].items():
+            theirs = other["columns"].get(term, {})
+            for key, a in values.items():
+                b = theirs.get(key)
+                if b is None or not close(a, b, tolerance, 1e-14):
+                    problems.append(f"cases.{name}.{term}.{key}: committed {a}, regenerated {b}")
+        for key in ("r_squared", "adj_r_squared", "sigma", "rss", "log_likelihood"):
+            if not close(case[key], other[key], tolerance, 1e-14):
+                problems.append(f"cases.{name}.{key}: committed {case[key]}, regenerated {other[key]}")
+
+
 def main(which, committed_path, regenerated_path):
     with open(committed_path, encoding="utf-8") as f:
         committed = json.load(f)
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design}
+    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design, "regression": check_regression}
     if which in checks:
         checks[which](committed, regenerated, problems)
     else:

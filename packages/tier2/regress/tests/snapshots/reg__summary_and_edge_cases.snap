@@ -1,0 +1,287 @@
+---
+source: packages/tier2/regress/tests/reg.rs
+expression: all
+---
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + exper^2 + female)
+m
+type_of(m)
+m.is(Result)
+m.is(RegFit)
+[m]
+reg · log(wage) ~ educ + exper + exper^2 + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.7873      0.0236     75.74    <0.001   [1.7410, 1.8335]
+  educ            0.0758      0.0014     55.80    <0.001   [0.0731, 0.0785]
+  exper           0.0421      0.0016     26.36    <0.001   [0.0389, 0.0452]
+  exper^2        -0.0007      0.0001    -13.09    <0.001   [-0.0008, -0.0006]
+  female         -0.1319      0.0064    -20.63    <0.001   [-0.1445, -0.1194]
+
+R² 0.210 · adjusted R² 0.210
+RegFit
+true
+true
+RegFit · reg · log(wage) ~ educ + exper + exper^2 + female
+--- messages ---
+[exit 0]
+
+> dataset(wages).reg(log(wage) ~ category(industry, contrast: sum) + educ, level: 0.9)
+reg · log(wage) ~ category(industry, contrast: sum) + educ
+N = 18,201 (211 rows dropped for NA in model variables)
+standard errors: classical
+
+  term                             estimate   std.error   t value   p value   90% CI
+  (intercept)                        2.4617      0.0191    129.07    <0.001   [2.4303, 2.4931]
+  industry=Mining                    0.0269      0.0302      0.89     0.373   [-0.0228, 0.0766]
+  industry=Utilities                 0.0548      0.0225      2.43     0.015   [0.0178, 0.0918]
+  industry=Construction              0.0546      0.0120      4.55    <0.001   [0.0349, 0.0743]
+  industry=Manufacturing             0.0296      0.0096      3.09     0.002   [0.0138, 0.0454]
+  industry=Retail                   -0.0515      0.0092     -5.60    <0.001   [-0.0667, -0.0364]
+  industry=Transport                -0.0217      0.0144     -1.51     0.131   [-0.0453, 0.0020]
+  industry=Finance                   0.0914      0.0117      7.82    <0.001   [0.0722, 0.1107]
+  industry=Services                 -0.0912      0.0095     -9.61    <0.001   [-0.1068, -0.0756]
+  industry=Education                 0.0135      0.0113      1.19     0.235   [-0.0052, 0.0321]
+  industry=Health                    0.0077      0.0104      0.74     0.458   [-0.0094, 0.0247]
+  industry=Public administration     0.0769      0.0122      6.32    <0.001   [0.0569, 0.0970]
+  educ                               0.0543      0.0014     39.40    <0.001   [0.0520, 0.0566]
+
+R² 0.096 · adjusted R² 0.095
+--- messages ---
+[exit 0]
+
+> dataset(wages).reg(wage ~ educ + exper - 1)
+reg · wage ~ educ + exper - 1
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: classical
+
+  term    estimate   std.error   t value   p value   95% CI
+  educ      1.5093      0.0134    112.48    <0.001   [1.4830, 1.5356]
+  exper     0.4798      0.0109     43.91    <0.001   [0.4583, 0.5012]
+
+R² 0.824 · adjusted R² 0.824
+--- messages ---
+[exit 0]
+
+> let w = import("data/wages_large.csv")
+w.reg(wage ~ educ + hours + (educ * 2))
+reg · wage ~ educ + hours + (educ * 2)
+N = 1,139 (61 rows dropped for NA in model variables)
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)     25.8870      1.7621     14.69    <0.001   [22.4297, 29.3443]
+  educ            -0.0393      0.0912     -0.43     0.667   [-0.2183, 0.1397]
+  hours           -0.0638      0.0296     -2.15     0.031   [-0.1220, -0.0057]
+  (educ * 2)    (omitted)
+
+R² 0.004 · adjusted R² 0.003
+--- messages ---
+note: data/wages_large.csv read as CSV: 1,200 rows × 6 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: `(educ * 2)` is collinear with the columns before it and was dropped (line 2)
+[exit 0]
+
+> dataset(wages).add(one = 1).reg(wage ~ educ + one)
+reg · wage ~ educ + one
+N = 18,201 (211 rows dropped for NA in model variables)
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)      7.1866      0.5531     12.99    <0.001   [6.1025, 8.2706]
+  educ             1.4964      0.0403     37.11    <0.001   [1.4174, 1.5755]
+  one           (omitted)
+
+R² 0.070 · adjusted R² 0.070
+--- messages ---
+note: `one` is collinear with the columns before it and was dropped (line 1)
+[exit 0]
+
+> dataset(wages).reg(wage ~ educ + exper + educ)
+reg · wage ~ educ + exper + educ
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)    -9.6924      0.6479    -14.96    <0.001   [-10.9623, -8.4225]
+  educ            2.0814      0.0405     51.39    <0.001   [2.0020, 2.1608]
+  exper           0.5970      0.0134     44.58    <0.001   [0.5707, 0.6232]
+
+R² 0.162 · adjusted R² 0.162
+--- messages ---
+note: `educ` is written twice and is kept once (line 1)
+[exit 0]
+
+> dataset(wages).head(3).reg(wage ~ educ + exper + female)
+reg · wage ~ educ + exper + female
+N = 3
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)      4.5133     12.8888      0.35     0.786   [-159.2543, 168.2810]
+  educ          (omitted)
+  exper            1.4250      1.2846      1.11     0.467   [-14.8974, 17.7474]
+  female        (omitted)
+
+R² 0.552 · adjusted R² 0.103
+--- messages ---
+note: `educ`, `female` are collinear with the columns before them and were dropped (line 1)
+[exit 0]
+
+> dataset(wages).head(1).reg(wage ~ educ)
+--- messages ---
+error[Z0802]: no residual degrees of freedom: 1 row and 1 regressor
+ --> scripts/main.zeff:1:24
+  |
+1 | dataset(wages).head(1).reg(wage ~ educ)
+  |                        ^^^ as many regressors as rows, or more
+  |
+  = help: a model needs more rows than regressors; drop terms or use more data
+[exit 1]
+
+> dataset(wages).add(c = 5).reg(c ~ educ)
+reg · c ~ educ
+N = 18,412
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     5.0000      0.0000   1.38e17    <0.001   [5.0000, 5.0000]
+  educ            0.0000      0.0000      1.41     0.158   [0.0000, 0.0000]
+
+R² NA · adjusted R² NA
+--- messages ---
+note: `c` has no variation, so R² is undefined (line 1)
+[exit 0]
+
+> dataset(wages).where(wage > 1e9).reg(wage ~ educ)
+--- messages ---
+note: 211 rows dropped where `wage > 1e9` was NA; `wages.where(is_missing(wage))` lists them (line 1)
+note: no row kept: the result is empty (line 1)
+error[Z0801]: no row remains to fit the model: the frame has no rows
+ --> scripts/main.zeff:1:34
+  |
+1 | dataset(wages).where(wage > 1e9).reg(wage ~ educ)
+  |                                  ^^^ nothing to estimate
+  |
+  = help: a model needs rows; the frame's own steps left none
+[exit 1]
+
+> let w = import("data/wages_large.csv")
+w.where(is_missing(hours)).reg(wage ~ hours)
+--- messages ---
+note: data/wages_large.csv read as CSV: 1,200 rows × 6 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0801]: no row remains to fit the model: every row has NA in a model variable
+ --> scripts/main.zeff:2:28
+  |
+2 | w.where(is_missing(hours)).reg(wage ~ hours)
+  |                            ^^^ nothing to estimate
+  |
+  = help: `describe` shows each variable's missing count; `where(!is_missing(x))` or `recode` fills the gaps
+[exit 1]
+
+> dataset(wages).reg(log(wage) ~ exper + exper^2 + exper^3 + exper^4 + exper^5)
+reg · log(wage) ~ exper + exper^2 + exper^3 + exper^4 + exper^5
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     2.9635      0.0214    138.17    <0.001   [2.9215, 3.0056]
+  exper          -0.0156      0.0121     -1.29     0.197   [-0.0393, 0.0081]
+  exper^2         0.0059      0.0023      2.61     0.009   [0.0015, 0.0104]
+  exper^3        -0.0004      0.0002     -2.04     0.041   [-0.0007, 0.0000]
+  exper^4         0.0000      0.0000      1.51     0.131   [0.0000, 0.0000]
+  exper^5         0.0000      0.0000     -1.22     0.223   [0.0000, 0.0000]
+
+R² 0.059 · adjusted R² 0.059
+--- messages ---
+[exit 0]
+
+> dataset(wages).reg(wage ~ educ, level: 1.5)
+--- messages ---
+error[Z0401]: `level:` is a probability strictly between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:40
+  |
+1 | dataset(wages).reg(wage ~ educ, level: 1.5)
+  |                                        ^^^ not a confidence level
+  |
+  = help: the usual levels are 0.9, 0.95 and 0.99
+[exit 1]
+
+> dataset(wages).reg(wage ~ educ, se: robust)
+--- messages ---
+error[Z0304]: `se: robust` is not available in this release
+ --> scripts/main.zeff:1:37
+  |
+1 | dataset(wages).reg(wage ~ educ, se: robust)
+  |                                     ^^^^^^ arrives with the variance layer of Zeff 0.4.0
+  |
+  = help: classical standard errors are available now; robust and clustered errors follow at step 11 of this release
+[exit 1]
+
+> dataset(wages).reg(wage ~ region)
+--- messages ---
+error[Z0101]: no variable `region` in `wages`
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).reg(wage ~ region)
+  |                ^^^ not a variable of wages
+  |
+  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+[exit 1]
+
+> let w = import("data/wages_large.csv")
+w.reg(wage ~ region)
+--- messages ---
+note: data/wages_large.csv read as CSV: 1,200 rows × 6 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0401]: `region` is text, and a model needs numbers or a category
+ --> scripts/main.zeff:2:3
+  |
+2 | w.reg(wage ~ region)
+  |   ^^^ a text variable in the model
+  |
+  = help: `category(region)` makes it a category, in the formula or with `add`
+[exit 1]
+
+> dataset(wages).reg(industry ~ educ)
+--- messages ---
+error[Z0401]: the outcome `industry` is a category, and this model needs a number
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).reg(industry ~ educ)
+  |                ^^^ a category on the left of `~`
+  |
+  = help: `to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `logistic` (release 0.5.0)
+[exit 1]
+
+> let f = log(wage) ~ educ
+dataset(wages).reg(f + female - 1)
+reg · log(wage) ~ educ + female - 1
+N = 18,201 (211 rows dropped for NA in model variables)
+standard errors: classical
+
+  term     estimate   std.error   t value   p value   95% CI
+  educ       0.2304      0.0005    481.00    <0.001   [0.2294, 0.2313]
+  female     0.0086      0.0094      0.91     0.361   [-0.0099, 0.0271]
+
+R² 0.960 · adjusted R² 0.960
+--- messages ---
+[exit 0]
+
+> let d = frame(a = [1.1, -0.7, 2.3, 0.4, -1.9, 0.8, 1.5, -2.2, 0.3, 1.7, -0.5, 2.9], u = [0.3, 1.4, -0.8, 2.1, 0.6, -1.3, 0.9, 0.2, -1.7, 1.1, 2.4, -0.4], v = [-1.2, 0.5, 0.7, -0.3, 1.8, 0.1, -0.9, 1.3, 0.6, -2.1, 0.8, 1.0], w = [2.0, 1.0, 3.0, 0.5, 1.5, 2.5, 3.5, 0.0, 1.2, 2.2, 0.7, 1.9])
+let e = d.add(y = a + 1e-5 * u, z = u + 1e-5 * v)
+e.reg(w ~ a + y + z)
+reg · w ~ a + y + z
+N = 12
+standard errors: classical
+
+  term                  estimate         std.error   t value   p value   95% CI
+  (intercept)             1.6163            0.3069      5.27     0.001   [0.9086, 2.3241]
+  a             -1888542988.1707   2781922552.4538     -0.68     0.516   [-8303667897.9469, 4526581921.6055]
+  y              1888542988.5234   2781922552.3350      0.68     0.516   [-4526581920.9789, 8303667898.0256]
+  z                  -18885.6323        27819.3151     -0.68     0.516   [-83037.0879, 45265.8233]
+
+R² 0.547 · adjusted R² 0.377
+--- messages ---
+warning: near-singular regressors: the condition number of the scaled design is 3.847e10 (line 3)
+  = help: two regressors are almost the same column; drop one, or combine them
+[exit 0]

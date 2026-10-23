@@ -14,7 +14,7 @@
 //! A table wider than the page (118 characters, the width of a help page) prints its columns in
 //! blocks, as R does, every value shown; a frame repeats the row numbers at the start of each block.
 
-use crate::value::{Align, Distribution, Frame, Table, Value};
+use crate::value::{Align, Distribution, Frame, Summary, Table, Value};
 use zeff_columns::{ColumnType, MetadataKey, Value as Cell};
 use zeff_dates::{format_iso_date, format_iso_datetime};
 use zeff_diagnostics::count;
@@ -86,6 +86,7 @@ fn inline(value: &Value) -> String {
         Value::Column(c) => column_header(c),
         Value::Distribution(d) => distribution_text(d),
         Value::Formula(formula) => formula.to_string(),
+        Value::Fit(fit) => format!("{} · {}", fit.kind, fit.summary.table.title),
         Value::List(items) => format!(
             "[{}]",
             items.iter().map(inline).collect::<Vec<_>>().join(", ")
@@ -241,6 +242,66 @@ fn frame_text(frame: &Frame, width: usize) -> String {
 }
 
 /// A table as it prints: its title, a blank line, then its grid.
+/// A result's summary (section 10.2): the title, the lines before the grid, the grid, and the
+/// lines after it.
+pub fn summary_text(summary: &Summary, width: usize) -> String {
+    let mut text = format!("{}\n", summary.table.title);
+    for line in &summary.before {
+        text.push_str(line);
+        text.push('\n');
+    }
+    text.push('\n');
+    text.push_str(&grid(
+        &summary.table.columns,
+        &summary.table.rows,
+        false,
+        width,
+    ));
+    if !summary.after.is_empty() {
+        text.push('\n');
+        for line in &summary.after {
+            text.push_str(line);
+            text.push('\n');
+        }
+    }
+    text
+}
+
+/// A number to `decimals` places, half to even on an exact tie, as the tables of section 3.8
+/// round; a negative zero prints without its sign.
+pub fn fixed(x: f64, decimals: usize) -> String {
+    if x.is_nan() {
+        return "NA".to_string();
+    }
+    if x.is_infinite() {
+        return if x > 0.0 { "Inf" } else { "-Inf" }.to_string();
+    }
+    // Beyond the Float rule's 1e15 the plain form is all digits: the exponent form instead.
+    let text = if x.abs() >= 1e15 {
+        format!("{x:.decimals$e}")
+    } else {
+        format!("{x:.decimals$}")
+    };
+    if text.starts_with('-') && text[1..].chars().all(|c| c == '0' || c == '.') {
+        text[1..].to_string()
+    } else {
+        text
+    }
+}
+
+/// A p-value to three places, `<0.001` below (section 3.8).
+pub fn p_value_text(p: f64) -> String {
+    if p.is_nan() {
+        return "NA".to_string();
+    }
+    let text = fixed(p, 3);
+    if text == "0.000" {
+        "<0.001".to_string()
+    } else {
+        text
+    }
+}
+
 fn table_text(table: &Table, width: usize) -> String {
     let mut text = format!(
         "{}\n\n{}",
@@ -365,6 +426,7 @@ pub fn show_width(value: &Value, width: usize) -> String {
         ),
         Value::Frame(f) => frame_text(f, width),
         Value::Table(t) => table_text(t, width),
+        Value::Fit(fit) => summary_text(&fit.summary, width),
         Value::Column(c) => {
             let mut out = format!("{}\n", column_header(c));
             out.push_str(&lines(

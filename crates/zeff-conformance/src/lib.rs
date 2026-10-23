@@ -739,6 +739,56 @@ fn kernels_cases() -> Vec<Line> {
     lines
 }
 
+/// The regressions of release 0.4.0 (step 10): three fits through the whole engine, on the
+/// shipped `wages` and on an in-memory frame, their printed summaries and messages digested, so
+/// that the four targets prove the same estimates to the printed digit and the same bits in the
+/// fit's values.
+fn regress_cases() -> Vec<Line> {
+    use std::path::Path;
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/r/zeff.toml",
+        format!(
+            "[project]\nname = \"r\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let project = match Project::open(&fs, Path::new("/r")) {
+        Ok(project) => project,
+        Err(_) => return vec![text("regress/project", "the project did not open")],
+    };
+    let scripts = [
+        (
+            "arithmetic",
+            "dataset(wages).reg(log(wage) ~ educ + exper + exper^2 + female)\n",
+        ),
+        (
+            "categories",
+            "dataset(wages).reg(log(wage) ~ category(industry, contrast: sum) + educ * female, level: 0.9)\n",
+        ),
+        (
+            "collinear",
+            "let w = dataset(wages).add(twice = educ * 2, big = hours * 1e9)\nw.reg(wage ~ educ + twice + big + exper - 1)\n",
+        ),
+    ];
+    let mut lines = Vec::new();
+    for (name, script) in scripts {
+        let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+        lines.push(text(
+            &format!("regress/{name}/stdout"),
+            &outcome.output.stdout,
+        ));
+        lines.push(text(
+            &format!("regress/{name}/stderr"),
+            &outcome.output.stderr,
+        ));
+    }
+    lines
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
@@ -746,6 +796,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(special_cases());
     lines.extend(random_cases());
     lines.extend(distribution_cases());
+    lines.extend(regress_cases());
     lines.extend(kernels_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());

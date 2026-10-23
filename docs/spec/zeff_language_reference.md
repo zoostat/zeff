@@ -1289,6 +1289,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0103, Z0105, W0101 | A call names no function; a `let` reuses a name of `core`; a `let` hides a function of another package (warning) |
 | Z0401, Z0404 to Z0409 | An argument of the wrong type; an unknown argument name; an argument given twice; a required argument missing; too many positional arguments; a positional argument after a named one; a date format that is not one |
 | Z0221 | An operator applied to types it does not take (a Bool in arithmetic, `!` on a number, `&&` on numbers, a comparison across types, an index of the wrong kind) |
+| Z0801, Z0802 | No row remains to fit a model once the rows with `NA` are dropped; no residual degrees of freedom (as many regressors as rows, or more), or no regressor at all |
 | Z0222 | A mapping key written or computed twice |
 | Z0410 | Two options of one call that exclude each other, given together (`round` with `digits:` and `sig:`; `se: classical` with sampling weights) |
 | Z0413 | A parameter of a distribution outside its domain, or `NA` |

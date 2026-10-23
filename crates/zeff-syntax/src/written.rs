@@ -119,9 +119,16 @@ fn path_text(p: &Path) -> String {
     p.segments.iter().map(ident).collect::<Vec<_>>().join("::")
 }
 
-/// A Float literal that reads back as the same Float: `2.0`, `0.1`, `1e300`.
+/// A Float literal that reads back as the same Float, the shorter of the plain and the exponent
+/// forms: `2.0`, `0.1`, `1e7`, `1e-9`, `1e300`.
 fn float_text(x: f64) -> String {
-    format!("{x:?}")
+    let plain = format!("{x:?}");
+    let exponent = format!("{x:e}");
+    if exponent.len() < plain.len() {
+        exponent
+    } else {
+        plain
+    }
 }
 
 /// A string literal with the escapes of section 3.2.

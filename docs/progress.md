@@ -183,3 +183,13 @@ Step 15 `[engine]`, the pre-release routine, with everything it turned up: the w
 **Next.** Step 10, the estimator trait, the OLS fit and the printed result `[engine]`, which needs questions 2 and 3 (a).
 
 **For the owner to decide.** Questions 2 and 3 (a) before step 10; questions 3 (b) to (d), 4 and 7 later; open decision #54 by 0.6.0.
+
+## 23 October 2026, step 10 of release 0.4.0
+
+**Done.** Step 10 `[engine]`: the first regression. `wages.reg(log(wage) ~ educ + exper + exper^2 + female)` fits by ordinary least squares on the kernels (unit-norm scaling, the blocked QR of [X y], the pivoted QR with the 1e-7 tolerance, collinear columns dropped and named, residuals and leverage from a second pass) and prints the summary of question 3 (a), taken as recommended: the formula, N with the rows dropped, the kind of standard error, the t table with intervals at `level:`, and R² with its adjusted value. The result value `RegFit` is declared in `core` and shared by every model to come; the estimator trait, the first kind of the variance layer and the summary live in `results`. Question 2 taken as recommended (CRAN packages for the R harness alone, installed when first needed). Two new codes (Z0801, Z0802) and the W1001 warning have their pages; the catalogue's usage of `reg` corrected (logged). Eleven fits agree with R's `lm` within 1e-10 and the exact small cases within rounding; 8 tests; the conformance report gains three regressions. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (three new case lines) pass locally; CI runs on the push.
+
+**Next.** Step 11, the variance layer: robust and clustered errors, weights and the statistical warnings `[engine]`.
+
+**For the owner to decide.** Questions 3 (b) to (d), 4 and 7 at the top of `docs/releases/0.4.0.md`; open decision #54 by 0.6.0.

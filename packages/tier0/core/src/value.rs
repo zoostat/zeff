@@ -166,6 +166,61 @@ impl fmt::Display for Formula {
     }
 }
 
+/// The printed summary of a result (Language Reference, section 10.2): the lines between the
+/// title and the grid, the grid, and the lines after it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Summary {
+    pub before: Vec<String>,
+    pub table: Table,
+    pub after: Vec<String>,
+}
+
+/// A fitted model as a value (Language Reference, section 4: `RegFit` and the result types to
+/// come, every one of them a `Result`): what every estimator fills and `results` reads (Engine
+/// and Project Specification, section 8.1, rule 5). The columns with an estimate are `terms`;
+/// the vectors over them are parallel; `omitted` names the columns dropped as collinear.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Fit {
+    /// The result type: `RegFit`.
+    pub kind: &'static str,
+    /// The method that fitted it: `reg`.
+    pub method: String,
+    /// The formula as written.
+    pub formula: String,
+    pub terms: Vec<String>,
+    pub omitted: Vec<String>,
+    pub estimates: Vec<f64>,
+    pub std_errors: Vec<f64>,
+    pub statistics: Vec<f64>,
+    pub p_values: Vec<f64>,
+    pub intervals: Vec<(f64, f64)>,
+    /// The variance matrix of the estimates, row-major, `terms.len()` square.
+    pub vcov: Vec<f64>,
+    /// The kind of standard error: `classical`, `robust (HC1)`, ...
+    pub se_kind: String,
+    pub level: f64,
+    /// The rows used, the rows dropped for `NA` and their counts by variable.
+    pub n: usize,
+    pub dropped: usize,
+    pub dropped_in: Vec<(String, usize)>,
+    pub df_residual: usize,
+    /// The rows of the frame the fit used, and the residuals, fitted values and leverages of
+    /// those rows, in order.
+    pub rows: Vec<usize>,
+    pub residuals: Vec<f64>,
+    pub fitted: Vec<f64>,
+    pub leverage: Vec<f64>,
+    /// The fit measures; R² is `None` when the outcome has no variation.
+    pub r_squared: Option<f64>,
+    pub adjusted_r_squared: Option<f64>,
+    pub log_likelihood: f64,
+    pub residual_sum_of_squares: f64,
+    pub sigma: f64,
+    pub condition_number: f64,
+    pub notes: Vec<String>,
+    pub summary: Summary,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     /// The value of a call that returns none; it prints nothing.
@@ -193,6 +248,8 @@ pub enum Value {
     Type(TypeValue),
     Distribution(Distribution),
     Formula(Formula),
+    /// A fitted model, shared rather than copied.
+    Fit(Rc<Fit>),
 }
 
 impl Value {
@@ -228,6 +285,7 @@ impl Value {
             Value::Type(_) => "Type",
             Value::Distribution(_) => "Distribution",
             Value::Formula(_) => "Formula",
+            Value::Fit(fit) => fit.kind,
         }
     }
 }

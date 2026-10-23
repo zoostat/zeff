@@ -26,6 +26,7 @@ const PHRASES: &[(&str, &[&str])] = &[
         &["could not be converted to", "none of the levels given"],
     ),
     ("W0602", &["levels, more than"]),
+    ("W1001", &["near-singular regressors"]),
     (
         "W0206",
         &[

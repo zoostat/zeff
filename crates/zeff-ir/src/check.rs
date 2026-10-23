@@ -101,6 +101,7 @@ const TYPE_NAMES: &[&str] = &[
     "Terms",
     "Term",
     "Result",
+    "RegFit",
     "Failed",
     "Any",
     "Type",

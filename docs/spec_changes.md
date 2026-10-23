@@ -78,3 +78,11 @@ The owner's decision on question 6 of release 0.4.0 makes a key of `recode` that
 ## 23 October 2026 — zeff_language_reference.md, section 4.1 ("Models"): the code of an `Inf` in a model variable
 
 Section 4.1 makes `Inf` in a model variable an error listing the rows but gives it no code, and section 11 lists none. The model matrix of release 0.4.0 (step 8) raises it as Z0223, the next code of the Z02xx family (types and values), where an infinite value in data belongs; the row of section 4.1 now names it. The specification freeze ended at 0.3.0; the code settles nothing else.
+
+## 23 October 2026 — zeff_functions.csv, row 238 (`reg`), usage
+
+The usage was written `data.reg(y ~ x1 + x2, fe: fe1 + fe2)`, an example where every other row writes the parameters' names (section 9), so the registry had no name for the formula and none of the options of section 6. Corrected to `data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`, the options of section 6 and the `fe:` of section 7.1 (`bootstrap` joins `se:` at 1.1, as section 6 says). Found at release 0.4.0, step 10.
+
+## 23 October 2026 — zeff_language_reference.md, section 11: the codes Z0801 and Z0802
+
+Section 5.6 makes a model that cannot be estimated a Z08xx error with the diagnosis, and section 11 names only Z0803 (separation) and Z0804 (under-identification). The first regression of release 0.4.0 (step 10) assigns Z0801 to a model with no row left after the rows with `NA` are dropped and Z0802 to a model with no residual degrees of freedom or no regressor at all, and section 11's table gains a row naming them. The freeze ended at 0.3.0; the codes settle nothing else.
