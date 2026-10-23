@@ -42,8 +42,6 @@ error[Z0103]: no function is called `test`
  --> zeff_samples.zeff:93:4
 error[Z0103]: no function is called `vif`
  --> zeff_samples.zeff:94:4
-error[Z0103]: no function is called `influence`
- --> zeff_samples.zeff:95:4
 error[Z0103]: no function is called `report`
  --> zeff_samples.zeff:97:1
 error[Z0103]: no function is called `coef_plot`

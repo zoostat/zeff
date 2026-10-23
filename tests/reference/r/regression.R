@@ -149,7 +149,10 @@ case <- function(zeff, data_file, r_formula, data, factors = list(), level = 0.9
     vcov = lapply(seq_len(nrow(V_out)), function(i) lapply(V_out[i, ], num17)),
     predict_10 = lapply(predicted, num17),
     residuals_20 = lapply(head(as.numeric(residuals(fit)), 20), num17),
-    fitted_20 = lapply(head(as.numeric(fitted(fit)), 20), num17)
+    fitted_20 = lapply(head(as.numeric(fitted(fit)), 20), num17),
+    hat_20 = lapply(head(as.numeric(hatvalues(fit)), 20), num17),
+    cooks_20 = lapply(head(as.numeric(cooks.distance(fit)), 20), num17),
+    rstudent_20 = lapply(head(as.numeric(rstudent(fit)), 20), num17)
   )
 }
 

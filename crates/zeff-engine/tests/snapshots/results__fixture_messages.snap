@@ -3,7 +3,7 @@ source: crates/zeff-engine/tests/results.rs
 expression: text
 ---
 warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
-  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `nope` is not a term of this fit
  --> scripts/main.zeff:3:14
   |
@@ -13,7 +13,7 @@ error[Z0414]: `nope` is not a term of this fit
   = help: the terms are `(intercept)`, `hours`, `educ`
 
 warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
-  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `hour` is not a term of this fit
  --> scripts/main.zeff:3:14
   |
@@ -23,7 +23,7 @@ error[Z0414]: `hour` is not a term of this fit
   = help: did you mean `hours`? the terms are `(intercept)`, `hours`, `educ`
 
 warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
-  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `educ:hours` is not a term of this fit
  --> scripts/main.zeff:3:14
   |
@@ -33,7 +33,7 @@ error[Z0414]: `educ:hours` is not a term of this fit
   = help: the terms are `(intercept)`, `hours`, `educ`
 
 warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
-  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `hours` names a term, but a test's result has no terms
  --> scripts/main.zeff:4:14
   |

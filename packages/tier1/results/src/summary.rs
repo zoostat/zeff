@@ -156,6 +156,8 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         model: setting.model.clone(),
         levels: setting.levels.clone(),
         frame_rows: setting.frame_rows,
+        weights: design.weights.clone(),
+        weight_kind: design.weight_kind,
     }
 }
 

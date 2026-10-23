@@ -5,6 +5,7 @@ use crate::operators::Op;
 use std::fmt;
 use std::rc::Rc;
 use zeff_columns::{Column, Table as Columns};
+use zeff_numeric::order::WeightKind;
 
 /// A frame: named columns of equal length, shared rather than copied, and the name it was bound
 /// to, which its printed form and its messages use (`no variable `incme` in `poll``).
@@ -228,6 +229,10 @@ pub struct Fit {
     pub model: Formula,
     pub levels: Vec<(String, Vec<String>)>,
     pub frame_rows: usize,
+    /// The weight of each row used and the kind of the weights, when the fit is weighted: what
+    /// the influence measures need to weight a residual or to count a row's observations.
+    pub weights: Option<Vec<f64>>,
+    pub weight_kind: Option<WeightKind>,
 }
 
 /// A test statistic with its degrees of freedom: `F(1, 18179)`, `t(23.4)`, `z`.

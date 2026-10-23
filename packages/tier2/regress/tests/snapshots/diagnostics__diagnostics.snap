@@ -1,0 +1,109 @@
+---
+source: packages/tier2/regress/tests/diagnostics.rs
+expression: all
+---
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.r_squared()
+m.r_squared().adjusted
+type_of(m.r_squared())
+r_squared: 0.202792
+adjusted: 0.20266
+0.20266
+Record
+--- messages ---
+[exit 0]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.influence()
+m.influence().summary([leverage, cooks_distance, studentized])
+m.influence().where(cooks_distance > 0.001).n_rows()
+wages.add(h = m.influence()["leverage"]).where(is_missing(h)).n_rows()
+frame · 18,412 rows × 3 variables
+
+          leverage   cooks_distance   studentized
+   1   0.000226575      7.42663e-05      -1.14492
+   2   0.000221556      9.36868e-05      -1.30043
+   3   0.000218713      4.51265e-05     -0.908361
+   4   0.000218048      0.000144293      -1.62685
+   5   0.000219558      1.23548e-05     -0.474369
+   6   0.000223246      7.78291e-10   -0.00373378
+   7    0.00022911      1.75525e-05     -0.553503
+   8   0.000133326      4.67209e-05       1.18387
+   9   0.000133558      1.59344e-06      0.218436
+  10   0.000135965      2.06578e-05      0.779513
+  … and 18,402 more rows
+summary · frame
+
+  variable              N   missing    mean      sd      min     max
+  leverage         18,179       233   0.000   0.000    0.000   0.001
+  cooks_distance   18,179       233   0.000   0.000    0.000   0.002
+  studentized      18,179       233   0.000   1.000   -4.639   3.537
+4
+233
+--- messages ---
+warning: 233 rows with NA in leverage, 233 with NA in cooks_distance and 233 with NA in studentized were skipped (line 4)
+note: 233 rows dropped where `cooks_distance > 0.001` was NA; `where(is_missing(cooks_distance))` lists them (line 5)
+[exit 0]
+
+> let w = dataset(wages)
+w.reg(log(wage) ~ educ + female, weights: hours).influence().summary([leverage, cooks_distance, studentized])
+w.reg(log(wage) ~ educ + female, weights: exper, weight_type: frequency).influence().summary([leverage, cooks_distance, studentized])
+summary · frame
+
+  variable              N   missing    mean      sd      min     max
+  leverage         18,167       245   0.000   0.000    0.000   0.001
+  cooks_distance   18,167       245   0.000   0.000    0.000   0.003
+  studentized      18,167       245   0.000   1.000   -4.365   3.870
+summary · frame
+
+  variable              N   missing     mean      sd      min     max
+  leverage         17,839       573    0.000   0.000    0.000   0.000
+  cooks_distance   17,839       573    0.000   0.000    0.000   0.000
+  studentized      17,839       573   -0.156   1.023   -4.976   3.674
+--- messages ---
+warning: 245 rows with NA in leverage, 245 with NA in cooks_distance and 245 with NA in studentized were skipped (line 2)
+note: 340 rows with a zero weight left out of the estimate and the observation count (line 3)
+warning: 573 rows with NA in leverage, 573 with NA in cooks_distance and 573 with NA in studentized were skipped (line 3)
+[exit 0]
+
+> dataset(wages).add(c = 5).reg(c ~ educ).r_squared()
+r_squared: NA
+adjusted: NA
+--- messages ---
+note: `c` has no variation, so R² is undefined (line 1)
+note: the fit is essentially perfect, so the standard errors and t values say nothing (line 1)
+[exit 0]
+
+> dataset(wages).add(y2 = 3 * educ + 1).reg(y2 ~ educ).influence().summary([leverage, cooks_distance, studentized])
+summary · frame
+
+  variable              N   missing     mean      sd      min     max
+  leverage         18,412         0    0.000   0.000    0.000   0.000
+  cooks_distance   18,412         0    0.000   0.000    0.000   0.000
+  studentized      18,412         0   -0.941   0.338   -1.063   0.000
+--- messages ---
+note: the fit is essentially perfect, so the standard errors and t values say nothing (line 1)
+[exit 0]
+
+> dataset(wages).r_squared()
+--- messages ---
+error[Z0401]: `r_squared` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).r_squared()
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `r_squared` is a method of RegFit
+[exit 1]
+
+> dataset(wages).describe().influence()
+--- messages ---
+error[Z0401]: `influence` cannot be called on a Table
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).describe().influence()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^ this is a Table
+  |
+  = help: `influence` is a method of RegFit
+[exit 1]

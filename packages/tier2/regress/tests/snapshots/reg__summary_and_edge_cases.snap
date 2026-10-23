@@ -485,7 +485,7 @@ R² 0.000 · adjusted R² 0.000
 warning: extreme weights: the effective sample size is 7 of 18,201 rows (line 1)
   = help: a few rows carry most of the weight; check them, or trim the weights
 warning: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 4, 6) (line 1)
-  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 [exit 0]
 
 > dataset(wages).reg(log(wage) ~ educ, weights: industry)
@@ -553,7 +553,7 @@ R² 0.547 · adjusted R² 0.377
 warning: near-singular regressors: the condition number of the scaled design is 3.847e10 (line 3)
   = help: two regressors are almost the same column; drop one, or combine them
 warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 3)
-  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 [exit 0]
 
 > import("data/all_na.csv", types: {x: Float, y: Float}).reg(y ~ x)
@@ -633,7 +633,7 @@ note: data/unicode_labels.csv read as CSV: 4 rows × 3 variables, types guessed;
 warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
   = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
 warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 4) (line 1)
-  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 [exit 0]
 
 > let a = import("data/awkward_names.csv")

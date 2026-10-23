@@ -120,13 +120,6 @@ fn fixture(
     }
 }
 
-fn fixture_r_squared(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    Ok(match args.get(0) {
-        Some(Value::Fit(fit)) => Value::Float(fit.r_squared.unwrap_or(f64::NAN)),
-        _ => Value::Na,
-    })
-}
-
 fn test_result(title: &str, table: Option<Table>, df: Vec<f64>, p: f64) -> Value {
     Value::TestResult(Rc::new(TestResult {
         method: "test".to_string(),
@@ -201,13 +194,6 @@ fn run_with_fixtures(script: &str) -> Outcome {
     let mut all = specs();
     all.extend([
         fixture(
-            "r_squared",
-            "regress",
-            vec![P::required("fit", "RegFit")],
-            None,
-            "Float",
-        ),
-        fixture(
             "test",
             "results",
             vec![P::required("fit", "Result")],
@@ -225,8 +211,7 @@ fn run_with_fixtures(script: &str) -> Outcome {
     let registry = Registry::build_with(all, Catalogue::compiled().unwrap())
         .unwrap_or_else(|e| panic!("{e:?}"));
     let mut bodies = bodies().clone();
-    let fixtures: [(&str, &str, Body); 3] = [
-        ("regress", "r_squared", fixture_r_squared),
+    let fixtures: [(&str, &str, Body); 2] = [
         ("results", "test", fixture_test),
         ("results", "compare", fixture_compare),
     ];

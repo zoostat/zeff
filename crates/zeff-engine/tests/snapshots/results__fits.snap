@@ -31,4 +31,4 @@ standard errors: classical
 R² 1.000 · adjusted R² 1.000
 --- messages ---
 warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
-  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row

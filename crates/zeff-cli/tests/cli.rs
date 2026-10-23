@@ -458,8 +458,15 @@ fn zeff_help_prints_a_functions_page() {
     // A function returning a result type lists the methods of that type under Value (section
     // 9.1), as sentences after the written text, grouped as the catalogue groups them.
     let reg = out(&zeff(dir.path(), &["help", "reg"]));
-    assert!(
-        reg.contains("\nVALUE\n    A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci,\n    n_obs. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted.\n\nDETAILS\n"),
+    let value = reg
+        .split("\nVALUE\n")
+        .nth(1)
+        .and_then(|rest| rest.split("\nDETAILS\n").next())
+        .unwrap_or("")
+        .replace("\n    ", " ");
+    assert_eq!(
+        value.trim(),
+        "A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci, n_obs. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted. Result methods: r_squared, influence.",
         "{reg}"
     );
     insta::assert_snapshot!("help_reg", reg);

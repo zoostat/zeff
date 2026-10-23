@@ -1,7 +1,9 @@
 //! Package regress (tier 2): linear regression (Engine and Project Specification, section 13;
 //! release 0.4.0): `reg`, ordinary least squares on the kernels with the variance layer of
-//! `results`, and `interact`, the formula term of section 7.2.
+//! `results`; `interact`, the formula term of section 7.2; and the methods of regression fits,
+//! `r_squared` and `influence`.
 
+pub mod diagnostics;
 pub mod ols;
 pub mod reg;
 
@@ -112,6 +114,34 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: interact,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "r_squared",
+                package: "regress",
+                method: true,
+                params: vec![ParamSpec::required("fit", "RegFit")],
+                rest: None,
+                returns: "Record",
+                diagnostics: vec![],
+                help: include_str!("../help/r_squared.md"),
+                accuracy: None,
+            },
+            body: diagnostics::r_squared,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "influence",
+                package: "regress",
+                method: true,
+                params: vec![ParamSpec::required("fit", "RegFit")],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![],
+                help: include_str!("../help/influence.md"),
+                accuracy: None,
+            },
+            body: diagnostics::influence,
         },
     ]
 }

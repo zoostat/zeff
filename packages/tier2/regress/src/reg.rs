@@ -384,7 +384,7 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     "{observations} {verb} a coefficient: removing {which} moves an estimate by more than its standard error (row{plural} {listed}{more})"
                 ),
             )
-            .help("check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)"),
+            .help("check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row"),
         );
     }
     // The summary.
