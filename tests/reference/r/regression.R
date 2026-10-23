@@ -262,5 +262,141 @@ cases$wage2_na_rows <- case("lwage ~ educ + meduc + feduc", "wage2", lwage ~ edu
 cases$wage2_cluster_hc <- case("lwage ~ educ + exper + IQ", "wage2", lwage ~ educ + exper + IQ, wage2,
   se = "cluster", cluster = named(wage2$age, "age"))
 
-out <- list(reference = reference_block(), cases = cases)
+# ----- step 18: the Wald test, nested models and the delta method -----
+# A fit with its variance matrix in Zeff's names (classical, sandwich's HC1 or HC3, or vcovCL
+# as above) and the degrees of freedom of its t table; restrictions as named coefficients over the
+# terms and a constant (Rβ = c), the Wald F written out in base R; `anova` on two nested
+# classical fits and the Wald F of the extra terms under robust or clustered errors; the delta
+# method through `deriv`, the gradient at the estimates over the full variance matrix, with the t
+# and the interval on the fit's degrees of freedom at the 95 per cent level.
+fit_v <- function(zeff, data_file, r_formula, data, se = "classical", cluster = NULL) {
+  fit <- lm(r_formula, data = data)
+  df <- fit$df.residual
+  V <- vcov(fit)
+  if (se == "cluster") {
+    g <- cluster[as.integer(rownames(model.frame(fit)))]
+    df <- length(unique(g)) - 1
+    V <- vcovCL(fit, cluster = g, type = "HC1", cadjust = TRUE)
+  } else if (se != "classical") {
+    V <- vcovHC(fit, type = se)
+  }
+  terms <- vapply(names(coef(fit)), zeff_name, "", factors = list())
+  b <- coef(fit)
+  names(b) <- terms
+  rownames(V) <- colnames(V) <- terms
+  list(zeff = zeff, data = data_file, se = se, cluster = if (is.null(cluster)) "" else attr(cluster, "name"),
+       fit = fit, b = b, V = V, df = df, terms = terms, level = 0.95)
+}
+
+restriction <- function(text, coefs, constant = 0) list(text = text, coefs = coefs, constant = constant)
+
+wald <- function(info, restrictions) {
+  k <- length(info$b)
+  R <- t(vapply(restrictions, function(x) {
+    r <- setNames(rep(0, k), info$terms)
+    for (t in names(x$coefs)) r[[t]] <- x$coefs[[t]]
+    r
+  }, numeric(k)))
+  cc <- vapply(restrictions, function(x) x$constant, 0)
+  d <- as.numeric(R %*% info$b - cc)
+  F <- as.numeric(t(d) %*% solve(R %*% info$V %*% t(R)) %*% d) / nrow(R)
+  list(restrictions = lapply(restrictions, function(x) list(text = x$text, coefs = lapply(x$coefs, num17),
+                                                            constant = num17(x$constant))),
+       f = num17(F), p = num17(pf(F, nrow(R), info$df, lower.tail = FALSE)), q = nrow(R), df = as.integer(info$df))
+}
+
+compare_fits <- function(small_key, big_key) {
+  small <- fits[[small_key]]
+  big <- fits[[big_key]]
+  extra <- setdiff(big$terms, small$terms)
+  if (big$se == "classical") {
+    a <- anova(small$fit, big$fit)
+    w <- list(f = num17(a$F[2]), p = num17(a[["Pr(>F)"]][2]), q = length(extra), df = as.integer(big$df))
+  } else {
+    w <- wald(big, lapply(extra, function(t) restriction(t, setNames(list(1), t))))
+    w$restrictions <- NULL
+  }
+  c(list(small = small_key, big = big_key), w)
+}
+
+delta <- function(info, name, text, expr) {
+  vars <- all.vars(expr)
+  g <- deriv(expr, vars)
+  env <- new.env()
+  for (v in vars) assign(v, info$b[[v]], envir = env)
+  val <- eval(g, env)
+  grad <- attr(val, "gradient")
+  G <- setNames(rep(0, length(info$b)), info$terms)
+  G[colnames(grad)] <- grad[1, ]
+  se <- sqrt(as.numeric(t(G) %*% info$V %*% G))
+  value <- as.numeric(val)
+  t <- value / se
+  q <- qt(1 - (1 - info$level) / 2, info$df)
+  list(name = name, text = text, value = num17(value), se = num17(se), t = num17(t),
+       p = num17(2 * pt(abs(t), info$df, lower.tail = FALSE)),
+       lower = num17(value - q * se), upper = num17(value + q * se))
+}
+
+fits <- list(
+  A = fit_v("log(wage) ~ educ + exper + female", "wages", log(wage) ~ educ + exper + female, wages),
+  A0 = fit_v("log(wage) ~ educ + exper", "wages", log(wage) ~ educ + exper, wages),
+  B = fit_v("log(wage) ~ educ + exper + female", "wages", log(wage) ~ educ + exper + female, wages, se = "HC1"),
+  B0 = fit_v("log(wage) ~ educ + exper", "wages", log(wage) ~ educ + exper, wages, se = "HC1"),
+  C = fit_v("log(wage) ~ educ + exper + female", "wages", log(wage) ~ educ + exper + female, wages,
+            se = "cluster", cluster = named(wages$worker, "worker")),
+  C0 = fit_v("log(wage) ~ educ + exper", "wages", log(wage) ~ educ + exper, wages,
+             se = "cluster", cluster = named(wages$worker, "worker")),
+  D = fit_v("lwage ~ educ + exper + tenure", "wage1", lwage ~ educ + exper + tenure, wage1),
+  D0 = fit_v("lwage ~ educ", "wage1", lwage ~ educ, wage1),
+  E = fit_v("lwage ~ educ + exper + exper^2", "wage1", lwage ~ educ + exper + I(exper^2), wage1, se = "HC3"),
+  E0 = fit_v("lwage ~ educ", "wage1", lwage ~ educ, wage1, se = "HC3")
+)
+one <- list(restriction("educ == exper", list(educ = 1, exper = -1)))
+two <- list(restriction("educ + exper == 0.1", list(educ = 1, exper = 1), 0.1),
+            restriction("female == -0.1", list(female = 1), -0.1))
+three <- list(restriction("2 * educ - exper == 0", list(educ = 2, exper = -1)),
+              restriction("female == 0", list(female = 1)),
+              restriction("`(intercept)` == 1", list(`(intercept)` = 1), 1))
+tests <- list(
+  c(list(fit = "A"), wald(fits$A, one)), c(list(fit = "A"), wald(fits$A, two)), c(list(fit = "A"), wald(fits$A, three)),
+  c(list(fit = "B"), wald(fits$B, one)), c(list(fit = "B"), wald(fits$B, two)), c(list(fit = "B"), wald(fits$B, three)),
+  c(list(fit = "C"), wald(fits$C, one)), c(list(fit = "C"), wald(fits$C, two)), c(list(fit = "C"), wald(fits$C, three)),
+  c(list(fit = "D"), wald(fits$D, list(restriction("exper == tenure", list(exper = 1, tenure = -1))))),
+  c(list(fit = "D"), wald(fits$D, list(restriction("educ == 0.09", list(educ = 1), 0.09)))),
+  c(list(fit = "D"), wald(fits$D, list(restriction("exper == 0", list(exper = 1)), restriction("tenure == 0", list(tenure = 1))))),
+  c(list(fit = "E"), wald(fits$E, list(restriction("`exper^2` == 0", list(`exper^2` = 1))))),
+  c(list(fit = "E"), wald(fits$E, list(restriction("exper + 50 * `exper^2` == 0", list(exper = 1, `exper^2` = 50)))))
+)
+comparisons <- list(compare_fits("A0", "A"), compare_fits("B0", "B"), compare_fits("C0", "C"),
+                    compare_fits("D0", "D"), compare_fits("E0", "E"))
+on_wages <- function(info) list(
+  delta(info, "ratio", "educ / exper", quote(educ / exper)),
+  delta(info, "gain", "exp(educ * 4) - 1", quote(exp(educ * 4) - 1)),
+  delta(info, "root", "sqrt(educ)", quote(sqrt(educ))),
+  delta(info, "logged", "log(educ / exper)", quote(log(educ / exper))),
+  delta(info, "square", "educ ^ 2", quote(educ^2)),
+  delta(info, "product", "educ * female + exper", quote(educ * female + exper)),
+  delta(info, "scaled", "100 * educ - 2", quote(100 * educ - 2)),
+  delta(info, "tenth", "log10(educ)", quote(log(educ) / log(10))),
+  delta(info, "l1p", "log1p(exper)", quote(log(1 + exper))),
+  delta(info, "e1", "expm1(educ)", quote(exp(educ) - 1)),
+  delta(info, "l2", "log2(educ)", quote(log(educ) / log(2))),
+  delta(info, "neg", "-educ / (exper - female)", quote(-educ / (exper - female))),
+  delta(info, "power", "(educ + exper) ^ 1.5", quote((educ + exper)^1.5))
+)
+derivations <- c(
+  lapply(on_wages(fits$A), function(d) c(list(fit = "A"), d)),
+  lapply(on_wages(fits$B), function(d) c(list(fit = "B"), d)),
+  lapply(on_wages(fits$C), function(d) c(list(fit = "C"), d)),
+  list(c(list(fit = "E"), delta(fits$E, "ratio2", "exper / `exper^2`", quote(exper / `exper^2`))),
+       c(list(fit = "E"), delta(fits$E, "turning", "-exper / (2 * `exper^2`)", quote(-exper / (2 * `exper^2`)))),
+       c(list(fit = "D"), delta(fits$D, "years", "tenure / exper", quote(tenure / exper))))
+)
+inference <- list(
+  fits = lapply(fits, function(info) list(formula = info$zeff, data = info$data, se = info$se, cluster = info$cluster,
+                                          terms = as.list(unname(info$terms)))),
+  tests = tests, compare = comparisons, derive = derivations
+)
+
+out <- list(reference = reference_block(), cases = cases, inference = inference)
 write_json(out, file.path(here(), "regression.json"))

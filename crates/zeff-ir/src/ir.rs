@@ -75,6 +75,10 @@ pub enum ExprKind {
     /// type"): a bare name, lowered to its text, or text; checked against the result's term
     /// names when the statement runs.
     Term(Box<Expr>),
+    /// An expression over term names (section 7.2: the restrictions of `test`, the definitions
+    /// of `derive`), kept as written: the interpreter hands it to the function as a value, with
+    /// its bare names as term references, instead of evaluating it.
+    TermExpr(Box<Expr>),
     List(Vec<Expr>),
     Record(Vec<(String, Expr)>),
     /// `[k => v, ...]`, keys unique.

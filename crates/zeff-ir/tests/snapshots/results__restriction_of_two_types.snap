@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/results.rs
+expression: render(text)
+---
+error[Z0221]: `==` compares values of one type, but these are a Float and a Str
+ --> scripts/main.zeff:4:8
+  |
+4 | m.test(hours == "a")
+  |        ^^^^^^^^^^^^ different types
+  |
+  = help: Int and Float compare as numbers; text compares with text and Bool with Bool

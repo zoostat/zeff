@@ -1,20 +1,14 @@
-//! Results through the engine (Language Reference, sections 3.7 and 4; release 0.4.0, step 12):
-//! `type_of` and `is` on a fit, lists of results and the refusal of a frame method on a fit, with
-//! the engine's own functions; then, with fixture result methods registered beside them, dispatch
-//! by the receiver's type, `Term` arguments checked against the fit's terms (Z0414) and the
-//! printed `TestResult` and its accessors.
+//! Results through the engine (Language Reference, sections 3.7, 4 and 7.2; release 0.4.0, steps
+//! 12 and 18): `type_of` and `is` on a fit, lists of results and the refusal of a frame method on
+//! a fit; then dispatch by the receiver's type, `Term` arguments checked against the fit's terms
+//! (Z0414), an expression over the terms whose bare names are coefficients even beside a binding
+//! of that name, and the printed `TestResult` of `test` and `compare` with its accessors.
 
 use std::path::Path;
-use std::rc::Rc;
-use zeff_core::display::fixed;
-use zeff_core::runtime::{Args, Body, CallContext, Fail};
-use zeff_core::value::{Align, Statistic, Table, TestResult, Value};
 use zeff_engine::VERSION;
 use zeff_engine::fs::MemoryFileSystem;
 use zeff_engine::project::Project;
-use zeff_engine::registry::{bodies, specs};
-use zeff_engine::run::{Outcome, RunOptions, run_script, run_script_in};
-use zeff_registry::{Catalogue, FunctionSpec, ParamSpec, Registry, Rest};
+use zeff_engine::run::{Outcome, run_script};
 
 /// Twelve rows of `wage = 5 + 0.4 hours + 1.2 educ` with a noise of ±0.3 alternating, so that no
 /// one row drives a coefficient.
@@ -79,194 +73,51 @@ fn every_message_of_the_engine() {
     insta::assert_snapshot!("every_message", text);
 }
 
-// ----- fixture result methods beside the engine's functions -----
-
-/// A complete page with the given arguments, so that the registry accepts the fixture.
-fn page(name: &str, args: &[&str], rest: bool) -> &'static str {
-    let mut text = format!(
-        "# {name}\n\n## Summary\nA fixture for {name}\n\n## Description\nTests only.\n\n## Arguments\n"
-    );
-    for a in args {
-        text.push_str(&format!("- {a}: The {a}.\n"));
-    }
-    if rest {
-        text.push_str("- ...: More.\n");
-    }
-    text.push_str(&format!(
-        "\n## Value\nA value.\n\n## Details\nFixture.\n\n## References\nNone (1900).\n\n## See also\nprint\n\n## Examples\n> {name}\n1\n"
-    ));
-    Box::leak(text.into_boxed_str())
-}
-
-fn fixture(
-    name: &'static str,
-    package: &'static str,
-    params: Vec<ParamSpec>,
-    rest: Option<Rest>,
-    returns: &'static str,
-) -> FunctionSpec {
-    let names: Vec<&str> = params.iter().map(|p| p.name).collect();
-    let has_rest = rest.is_some();
-    FunctionSpec {
-        name,
-        package,
-        method: true,
-        params,
-        rest,
-        returns,
-        diagnostics: vec![],
-        help: page(name, &names, has_rest),
-        accuracy: None,
-    }
-}
-
-fn test_result(title: &str, table: Option<Table>, df: Vec<f64>, p: f64) -> Value {
-    Value::TestResult(Rc::new(TestResult {
-        method: "test".to_string(),
-        title: title.to_string(),
-        header: Vec::new(),
-        table,
-        statistic: Statistic {
-            name: "F".to_string(),
-            value: 4.213,
-            df,
-        },
-        p_value: p,
-        after: Vec::new(),
-        notes: Vec::new(),
-        n: 12,
-    }))
-}
-
-fn fixture_test(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let df = match args.get(0) {
-        Some(Value::Fit(fit)) => fit.df_residual as f64,
-        _ => 0.0,
-    };
-    Ok(test_result(
-        "test · m · hours == 0",
-        None,
-        vec![1.0, df],
-        0.0402,
-    ))
-}
-
-fn fixture_compare(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let row = |label: &str, value: Option<&Value>| -> Vec<String> {
-        match value {
-            Some(Value::Fit(fit)) => vec![
-                label.to_string(),
-                fit.n.to_string(),
-                fixed(fit.residual_sum_of_squares, 2),
-                fixed(fit.r_squared.unwrap_or(f64::NAN), 3),
-            ],
-            _ => vec![label.to_string(), "NA".into(), "NA".into(), "NA".into()],
-        }
-    };
-    let table = Table {
-        title: String::new(),
-        columns: vec![
-            ("model".to_string(), Align::Left),
-            ("N".to_string(), Align::Right),
-            ("RSS".to_string(), Align::Right),
-            ("R²".to_string(), Align::Right),
-        ],
-        rows: vec![row("(1)", args.get(1)), row("(2)", args.get(0))],
-        more: Vec::new(),
-        before: Vec::new(),
-        after: Vec::new(),
-    };
-    let df = match args.get(0) {
-        Some(Value::Fit(fit)) => fit.df_residual as f64,
-        _ => 0.0,
-    };
-    Ok(test_result(
-        "compare · m against m",
-        Some(table),
-        vec![1.0, df],
-        0.000_4,
-    ))
-}
-
-/// The engine's registry and bodies with the fixture result methods added.
-fn run_with_fixtures(script: &str) -> Outcome {
-    use ParamSpec as P;
-    let mut all = specs();
-    all.extend([
-        fixture(
-            "test",
-            "results",
-            vec![P::required("fit", "Result")],
-            Some(Rest::Values("Bool")),
-            "TestResult",
-        ),
-        fixture(
-            "compare",
-            "results",
-            vec![P::required("fit", "Result"), P::required("other", "Result")],
-            None,
-            "TestResult",
-        ),
-    ]);
-    let registry = Registry::build_with(all, Catalogue::compiled().unwrap())
-        .unwrap_or_else(|e| panic!("{e:?}"));
-    let mut bodies = bodies().clone();
-    let fixtures: [(&str, &str, Body); 2] = [
-        ("results", "test", fixture_test),
-        ("results", "compare", fixture_compare),
-    ];
-    for (package, name, body) in fixtures {
-        bodies.insert((package.to_string(), name.to_string()), body);
-    }
-    let (fs, project) = project();
-    run_script_in(
-        &fs,
-        &project,
-        "scripts/main.zeff",
-        script,
-        &RunOptions::default(),
-        &registry,
-        &bodies,
-    )
-}
+// ----- the result methods of `results` and `regress` through the engine -----
 
 #[test]
 fn result_methods_dispatch_and_terms_resolve_against_the_fit() {
     let script = format!(
         "{SETUP}m.std_errors(hours)\nm.std_errors(\"(intercept)\")\nm.std_errors()\n\
          let educ = 5\nm.std_errors(educ)\nstd_errors(m, hours)\nm.r_squared()\n\
-         let t = m.test(true)\nt\ntype_of(t)\nt.is(Result)\nt.is(TestResult)\nt.is(RegFit)\n\
+         let t = m.test(hours == 0)\nt\ntype_of(t)\nt.is(Result)\nt.is(TestResult)\nt.is(RegFit)\n\
          [m, t]\ntype_of([m, t])\nt.std_errors()\nt.p_values()\nt.n_obs()\nt.summary()\nt.estimates()\nt.ci()\n\
          t.coef()\nt.vcov()\nt.fit_measures()\nt.residuals()\nt.fitted()\nt.predict(newdata: wages)\n\
          let c = m.compare(wages.reg(wage ~ hours))\nc\nc.summary()\nc.p_values()\ntype_of(c.p_values())\n\
-         let twice = wages.add(h2 = hours * 2).reg(wage ~ hours + h2)\ntwice.std_errors(h2)\n"
+         let twice = wages.add(h2 = hours * 2).reg(wage ~ hours + h2)\ntwice.std_errors(h2)\n\
+         m.test(educ == 0)\nm.test(hours == educ, educ + hours == 1)\nm.derive(ratio = educ / hours)\n\
+         test(m, hours == 0)\n"
     );
-    let (code, stdout, stderr) = go(run_with_fixtures(&script));
+    let (code, stdout, stderr) = go(run(&script));
     assert_eq!(code, 0, "{stderr}");
     insta::assert_snapshot!(
-        "fixture_methods",
+        "result_methods",
         format!("{stdout}--- messages ---\n{stderr}")
     );
 }
 
 #[test]
-fn every_message_of_the_fixture_methods() {
+fn every_message_of_the_result_methods() {
     let cases = [
         format!("{SETUP}m.std_errors(nope)\n"),
         format!("{SETUP}m.std_errors(hour)\n"),
         format!("{SETUP}m.std_errors(\"educ:hours\")\n"),
-        format!("{SETUP}let t = m.test(true)\nt.std_errors(hours)\n"),
-        format!("{SETUP}let t = m.test(true)\nt.r_squared()\n"),
-        format!("{SETUP}let t = m.test(true)\n[m, t][1].r_squared()\n"),
+        format!("{SETUP}let t = m.test(hours == 0)\nt.std_errors(hours)\n"),
+        format!("{SETUP}let t = m.test(hours == 0)\nt.r_squared()\n"),
+        format!("{SETUP}let t = m.test(hours == 0)\n[m, t][1].r_squared()\n"),
         format!("{SETUP}m.std_errors(1)\n"),
         format!("{SETUP}wages.r_squared()\n"),
+        format!("{SETUP}m.test(hours)\n"),
+        format!("{SETUP}m.test(wage == 0)\n"),
+        format!("{SETUP}m.derive(r = hours == 0)\n"),
+        format!("{SETUP}m.test(hours == 0).test(hours == 0)\n"),
     ];
     let mut text = String::new();
     for script in &cases {
-        let (code, _, stderr) = go(run_with_fixtures(script));
+        let (code, _, stderr) = go(run(script));
         assert_eq!(code, 1, "{script}");
         text.push_str(&stderr);
         text.push('\n');
     }
-    insta::assert_snapshot!("fixture_messages", text);
+    insta::assert_snapshot!("result_messages", text);
 }

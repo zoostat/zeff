@@ -180,6 +180,8 @@ impl fmt::Display for Formula {
 pub struct Fit {
     /// The result type: `RegFit`.
     pub kind: &'static str,
+    /// The name the fit was bound to, which the titles of `test`, `compare` and `derive` use.
+    pub name: Option<String>,
     /// The method that fitted it: `reg`.
     pub method: String,
     /// The formula as written.
@@ -306,6 +308,12 @@ pub enum Value {
     /// A term name given to a parameter of type `Term`, checked against the result it is used
     /// with (section 3.7, "Resolution by parameter type").
     Term(String),
+    /// An expression over term names, as `test` and `derive` take it (section 7.2): the
+    /// expression with its bare names as `Var`s, and its text as written.
+    TermExpr {
+        expr: ColumnExpr,
+        text: String,
+    },
 }
 
 impl Value {
@@ -343,7 +351,7 @@ impl Value {
             Value::Formula(_) => "Formula",
             Value::Fit(fit) => fit.kind,
             Value::TestResult(_) => "TestResult",
-            Value::Term(_) => "Term",
+            Value::Term(_) | Value::TermExpr { .. } => "Term",
         }
     }
 }

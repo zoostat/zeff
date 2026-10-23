@@ -1294,6 +1294,9 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0410 | Two options of one call that exclude each other, given together (`round` with `digits:` and `sig:`; `se: classical` with sampling weights) |
 | Z0413 | A parameter of a distribution outside its domain, or `NA` |
 | Z0414 | A term name given to a result method that the result does not have; the message lists the fit's terms, and a test's result has none |
+| Z0415 | A restriction given to `test` that is not an equality linear in the coefficients, or restrictions that repeat one another |
+| Z0416 | A `compare` of two regressions on different rows, with the same terms, or not nested |
+| Z0417 | A definition given to `derive` that it cannot differentiate |
 | Z0111 | `seed` called after a draw, or a second time |
 | W0102 | A name in a frame method's argument that is both a variable of the frame and a binding: the variable is used, with a warning |
 | W0201, W0204 | Missing values skipped by a reducer, with the count; `Inf` and `-Inf` both present, so the result is `NA` |

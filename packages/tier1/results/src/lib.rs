@@ -1,18 +1,19 @@
 //! Package results (tier 1): the model matrix of section 7.2 of the Language Reference, the
 //! estimator trait and the variance layer (Engine and Project Specification, section 8.3, point
 //! 2), and the shared result value assembled with its printed summary (section 8.1, rule 5). It
-//! registers `export` on tables (step 13), the result interface (step 15) and the first part of
-//! the estimator interface (step 16).
+//! registers `export` on tables (step 13), the result interface (step 15) and the estimator
+//! interface (steps 16 and 18).
 
 pub mod design;
 pub mod estimator;
 pub mod export;
+pub mod inference;
 pub mod interface;
 pub mod summary;
 pub mod variance;
 
 use zeff_core::runtime::Function;
-use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec};
+use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec, Rest};
 
 /// A method of every result: the receiver `fit` of type `Result`.
 fn result_method(
@@ -163,6 +164,85 @@ pub fn functions() -> Vec<Function> {
             include_str!("../help/fitted.md"),
             interface::fitted,
         ),
+        Function {
+            spec: FunctionSpec {
+                name: "test",
+                package: "results",
+                method: true,
+                params: vec![ParamSpec::required("fit", "Result")],
+                rest: Some(Rest::Values("Term<Bool>")),
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a receiver that is not a regression fit, or a restriction that is not an equality over the terms",
+                    ),
+                    DiagnosticDecl::new("Z0406", "no restriction given"),
+                    DiagnosticDecl::new(
+                        "Z0414",
+                        "a term the fit does not have, or one omitted as collinear",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0415",
+                        "a restriction that is not linear in the coefficients, or restrictions that repeat one another",
+                    ),
+                ],
+                help: include_str!("../help/test.md"),
+                accuracy: None,
+            },
+            body: inference::test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "compare",
+                package: "results",
+                method: true,
+                params: vec![
+                    ParamSpec::required("fit", "Result"),
+                    ParamSpec::required("other", "Result"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a receiver or an argument that is not a regression fit",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0416",
+                        "two regressions on different rows, with the same terms, or not nested",
+                    ),
+                ],
+                help: include_str!("../help/compare.md"),
+                accuracy: None,
+            },
+            body: inference::compare,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "derive",
+                package: "results",
+                method: true,
+                params: vec![ParamSpec::required("fit", "Result")],
+                rest: Some(Rest::Definitions("Term<Float>")),
+                returns: "Table",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a receiver that is not a regression fit, or a definition that is not an expression over the terms",
+                    ),
+                    DiagnosticDecl::new("Z0406", "no definition given"),
+                    DiagnosticDecl::new(
+                        "Z0414",
+                        "a term the fit does not have, or one omitted as collinear",
+                    ),
+                    DiagnosticDecl::new("Z0417", "an expression `derive` cannot differentiate"),
+                ],
+                help: include_str!("../help/derive.md"),
+                accuracy: None,
+            },
+            body: inference::derive,
+        },
         Function {
             spec: FunctionSpec {
                 name: "export",

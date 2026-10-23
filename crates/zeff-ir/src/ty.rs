@@ -56,6 +56,11 @@ pub enum Ty {
     /// A term name of a result's model matrix (section 7.2): a bare name or text in a call,
     /// checked against the result when the statement runs.
     Term,
+    /// An expression over term names giving the inner type (`Term<Bool>` for a restriction of
+    /// `test`, `Term<Float>` for a definition of `derive`): inside it a bare name is a
+    /// coefficient, never a column or a binding (section 7.2), and the expression is kept as
+    /// written for the function to read.
+    TermExpr(Box<Ty>),
     /// The type of a call that returns no value; it cannot be bound or passed.
     Nothing,
     /// Any value at all (`print`).
@@ -96,6 +101,9 @@ impl Ty {
         }
         if let Some(inner) = text.strip_prefix("List<").and_then(|t| t.strip_suffix('>')) {
             return Ty::parse(inner).map(|t| Ty::List(Box::new(t)));
+        }
+        if let Some(inner) = text.strip_prefix("Term<").and_then(|t| t.strip_suffix('>')) {
+            return Ty::parse(inner).map(|t| Ty::TermExpr(Box::new(t)));
         }
         if let Some(inner) = text
             .strip_prefix("Mapping<")
@@ -172,7 +180,9 @@ impl Ty {
             (Ty::Result(None), Ty::Result(_)) => true,
             (Ty::Term, Ty::Str) => true,
             (Ty::AnyRecord, Ty::Record(_) | Ty::AnyRecord) => true,
-            (Ty::Column(a), Ty::Column(b)) | (Ty::List(a), Ty::List(b)) => a.accepts(b),
+            (Ty::Column(a), Ty::Column(b))
+            | (Ty::List(a), Ty::List(b))
+            | (Ty::TermExpr(a), Ty::TermExpr(b)) => a.accepts(b),
             (Ty::Mapping(k1, v1), Ty::Mapping(k2, v2)) => k1.accepts(k2) && v1.accepts(v2),
             (Ty::Union(options), other) => options.iter().any(|o| o.accepts(other)),
             (Ty::Record(a), Ty::Record(b)) => {
@@ -242,6 +252,7 @@ impl fmt::Display for Ty {
             Ty::Result(None) => write!(f, "Result"),
             Ty::Result(Some(kind)) => write!(f, "{}", kind.name()),
             Ty::Term => write!(f, "Term"),
+            Ty::TermExpr(inner) => write!(f, "Term<{inner}>"),
             Ty::Nothing => write!(f, "Nothing"),
             Ty::Any => write!(f, "Any"),
             Ty::Var => write!(f, "Var"),
@@ -289,6 +300,8 @@ mod tests {
             "RegFit",
             "TestResult",
             "Term",
+            "Term<Bool>",
+            "Term<Float>",
             "Mapping",
             "Var",
             "Vars",

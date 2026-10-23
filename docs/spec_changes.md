@@ -102,3 +102,7 @@ Section 3.8 says `.export()` writes a table and the catalogue (row 165) that the
 ## 24 October 2026 — zeff_language_reference.md, section 11: the code W0207
 
 The checklist of release 0.4.0 (step 16) has `predict` give `NA` with a warning for a row of new data whose level the fit never saw, a condition the specification describes without a number (one of those listed for open decision #54's successors). Step 16 assigns W0207, the next code of the W02xx family (types and values), and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.
+
+## 24 October 2026 — zeff_language_reference.md, section 11: the codes Z0415 to Z0417
+
+The checklist of release 0.4.0 (step 18) refuses a nonlinear restriction given to `test`, a `compare` of models on different rows or not nested, and an expression `derive` cannot differentiate, three conditions the specification describes without a number (listed among those for open decision #54's successors). Step 18 assigns Z0415, Z0416 and Z0417, the next codes of the Z04xx family (arguments), and adds their rows to the table of codes numbered while the engine was built. The change settles nothing else.

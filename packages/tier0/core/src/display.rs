@@ -89,6 +89,7 @@ fn inline(value: &Value) -> String {
         Value::Fit(fit) => format!("{} · {}", fit.kind, fit.summary.title),
         Value::TestResult(result) => format!("TestResult · {}", result.title),
         Value::Term(name) => name.clone(),
+        Value::TermExpr { text, .. } => text.clone(),
         Value::List(items) => format!(
             "[{}]",
             items.iter().map(inline).collect::<Vec<_>>().join(", ")

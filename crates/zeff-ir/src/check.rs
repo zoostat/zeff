@@ -47,6 +47,7 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
         scope: Vec::new(),
         frame_scope: 0,
         formula_depth: 0,
+        term_depth: 0,
     };
     let mut statements = Vec::new();
     for item in &script.items {
@@ -121,6 +122,9 @@ struct Checker<'a> {
     /// How many formulas are being lowered: inside one, a bare name is a variable of the frame the
     /// formula will be used with (section 3.7, "Resolution by parameter type").
     formula_depth: usize,
+    /// How many expressions over terms are being lowered (`test`, `derive`): inside one, a bare
+    /// name is a coefficient of the fit, never a column or a binding (section 7.2).
+    term_depth: usize,
 }
 
 impl Checker<'_> {
@@ -423,6 +427,40 @@ impl Checker<'_> {
     /// An argument of a call: inside a frame method, an argument whose parameter takes a column
     /// is checked with the receiver's columns in scope (section 3.7, "Name lookup").
     fn argument(&mut self, value: &ast::Expr, ty: &Ty, frame_method: bool) -> Expr {
+        // An expression over the terms of a fit (`test`, `derive`): lowered with bare names as
+        // coefficients, checked to give the inner type, and kept as written for the function.
+        if let Ty::TermExpr(inner) = ty {
+            self.term_depth += 1;
+            let lowered = self.expr(value, Some(inner));
+            self.term_depth -= 1;
+            if lowered.ty == Ty::Unknown {
+                return lowered;
+            }
+            if !inner.accepts(&lowered.ty) {
+                self.report(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "this must be {} over the terms of the fit, but it is {}",
+                            inner.with_article(),
+                            lowered.ty.with_article()
+                        ),
+                    )
+                    .primary(lowered.span, lowered.ty.with_article())
+                    .help(if **inner == Ty::Bool {
+                        "a restriction is an equality over the terms, such as `educ == exper` or `educ + exper == 1`"
+                    } else {
+                        "a definition is an expression over the terms, such as `educ / exper` or `exp(educ * 10)`"
+                    }),
+                );
+                return Expr::error(lowered.span);
+            }
+            return Expr {
+                ty: ty.clone(),
+                span: lowered.span,
+                kind: ExprKind::TermExpr(Box::new(lowered)),
+            };
+        }
         let columns = frame_method && takes_columns(ty);
         if columns {
             self.frame_scope += 1;
@@ -538,6 +576,15 @@ impl Checker<'_> {
                 return Expr::error(span);
             }
             _ => {}
+        }
+        if self.term_depth > 0 {
+            // Inside a restriction or a definition over the terms, a bare name is a coefficient
+            // of the fit (section 7.2), a number whose term is checked when the statement runs.
+            return Expr {
+                ty: Ty::Float,
+                span,
+                kind: ExprKind::Var(text),
+            };
         }
         if self.formula_depth > 0 {
             // Inside a formula a bare name is a variable of the frame the formula is used with,
@@ -2110,7 +2157,7 @@ impl Checker<'_> {
                         next_positional += 1;
                     } else if let Some(Rest::Values(ty)) = &spec.rest {
                         let ty = Ty::parse(ty).unwrap_or(Ty::Any);
-                        let lowered = self.expr(e, Some(&ty));
+                        let lowered = self.argument(e, &ty, frame_method);
                         order.push(Slot::Rest(rest.len()));
                         rest.push(lowered);
                     } else {

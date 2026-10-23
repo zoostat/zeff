@@ -1,0 +1,571 @@
+---
+source: packages/tier1/results/tests/inference.rs
+expression: all
+---
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ == exper)
+m.test(educ + exper == 0.1, female == -0.1)
+m.test(educ == exper, female == 0, educ + female == exper)
+m.test(`(intercept)` == 1)
+let t = m.test(educ == 0.1 ^ 2)
+t
+t.p_values()
+type_of(t)
+let educ = 3
+m.test(educ == exper)
+wages.reg(log(wage) ~ educ + exper + female).test(educ == 0)
+test · m · educ == exper
+F(1, 18,175) = 1748.67   p < 0.001
+test · m · educ + exper == 0.1, female == -0.1
+F(2, 18,175) = 13.88   p < 0.001
+test · m · educ == exper, female == 0, educ + female == exper
+F(3, 18,175) = 720.43   p < 0.001
+test · m · `(intercept)` == 1
+F(1, 18,175) = 1661.13   p < 0.001
+test · m · educ == 0.1 ^ 2
+F(1, 18,175) = 2339.24   p < 0.001
+0
+TestResult
+test · m · educ == exper
+F(1, 18,175) = 1748.67   p < 0.001
+test · log(wage) ~ educ + exper + female · educ == 0
+F(1, 18,175) = 3101.70   p < 0.001
+--- messages ---
+[exit 0]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper)
+let m2 = wages.reg(log(wage) ~ educ + exper + female)
+m2.compare(m1)
+m1.compare(m2)
+let c = m2.compare(m1)
+c.p_values()
+c.summary()
+type_of(c)
+wages.reg(log(wage) ~ educ + exper + female).compare(m1)
+compare · m2 against m1
+
+  model        N       RSS      R²
+  m2      18,179   3402.75   0.203
+  m1      18,179   3482.91   0.184
+
+F(1, 18,175) = 428.19   p < 0.001
+compare · m1 against m2
+
+  model        N       RSS      R²
+  m1      18,179   3482.91   0.184
+  m2      18,179   3402.75   0.203
+
+F(1, 18,175) = 428.19   p < 0.001
+4.86824e-94
+compare · m2 against m1
+
+  model        N       RSS      R²
+  m2      18,179   3402.75   0.203
+  m1      18,179   3482.91   0.184
+
+F(1, 18,175) = 428.19   p < 0.001
+TestResult
+compare · log(wage) ~ educ + exper + female against m1
+
+  model                                    N       RSS      R²
+  log(wage) ~ educ + exper + female   18,179   3402.75   0.203
+  m1                                  18,179   3482.91   0.184
+
+F(1, 18,175) = 428.19   p < 0.001
+--- messages ---
+[exit 0]
+
+> let wages = dataset(wages)
+let r = wages.reg(log(wage) ~ educ + exper + female, se: robust)
+let r1 = wages.reg(log(wage) ~ educ + exper, se: robust)
+r.test(educ == exper)
+r.compare(r1)
+r.derive(ratio = educ / exper)
+let c = wages.reg(log(wage) ~ educ + exper + female, cluster: worker)
+c.test(educ == exper, female == 0)
+c.derive(ratio = educ / exper)
+c.compare(wages.reg(log(wage) ~ educ + exper, cluster: worker))
+test · r · educ == exper
+F(1, 18,175) = 1768.92   p < 0.001
+compare · r against r1
+
+  model        N       RSS      R²
+  r       18,179   3402.75   0.203
+  r1      18,179   3482.91   0.184
+
+F(1, 18,175) = 428.39   p < 0.001
+derive · r
+
+  term    estimate   std.error   t value   p value   95% CI
+  ratio     3.4518      0.0775     44.57    <0.001   [3.3000, 3.6036]
+test · c · educ == exper, female == 0
+F(2, 3,910) = 306.77   p < 0.001
+derive · c
+
+  term    estimate   std.error   t value   p value   95% CI
+  ratio     3.4518      0.1473     23.44    <0.001   [3.1630, 3.7405]
+compare · c against log(wage) ~ educ + exper
+
+  model                           N       RSS      R²
+  c                          18,179   3402.75   0.203
+  log(wage) ~ educ + exper   18,179   3482.91   0.184
+
+F(1, 3,910) = 117.85   p < 0.001
+--- messages ---
+note: 33 of the 3,911 clusters hold one observation (line 7)
+note: 33 of the 3,911 clusters hold one observation (line 10)
+[exit 0]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.derive(ratio = educ / exper, gain = exp(educ * 4) - 1)
+m.derive(a = abs(female), b = -educ, c = educ ^ exper, d = (educ + exper) ^ 1.5, k = 2)
+m.derive(s = educ / 0, l = log(female))
+m.derive(r = educ / exper).export("output/derive.tex")
+wages.reg(log(wage) ~ educ + exper + female).derive(r = educ / exper)
+derive · m
+
+  term    estimate   std.error   t value   p value   95% CI
+  ratio     3.4518      0.0775     44.55    <0.001   [3.2999, 3.6037]
+  gain      0.3553      0.0074     48.02    <0.001   [0.3408, 0.3698]
+derive · m
+
+  term   estimate   std.error   t value   p value   95% CI
+  a        0.1329      0.0064     20.69    <0.001   [0.1203, 0.1455]
+  b       -0.0760      0.0014    -55.69    <0.001   [-0.0787, -0.0733]
+  c        0.9448      0.0010    908.70    <0.001   [0.9428, 0.9469]
+  d        0.0307      0.0007     41.62    <0.001   [0.0292, 0.0321]
+  k        2.0000      0.0000       Inf    <0.001   [2.0000, 2.0000]
+derive · m
+
+  term   estimate   std.error   t value   p value   95% CI
+  s           Inf          NA        NA        NA   NA
+  l            NA          NA        NA        NA   NA
+derive · log(wage) ~ educ + exper + female
+
+  term   estimate   std.error   t value   p value   95% CI
+  r        3.4518      0.0775     44.55    <0.001   [3.2999, 3.6037]
+--- messages ---
+[exit 0]
+
+> let w = dataset(wages).add(twice = educ * 2)
+let m = w.reg(log(wage) ~ educ + twice + female)
+m.test(educ == 0)
+m.derive(r = educ / female)
+let f = dataset(wages).reg(log(wage) ~ educ + exper + female, weights: hours)
+f.test(educ == exper)
+f.derive(r = educ / exper)
+test · m · educ == 0
+F(1, 18,198) = 1576.79   p < 0.001
+derive · m
+
+  term   estimate   std.error   t value   p value   95% CI
+  r       -0.3889      0.0213    -18.30    <0.001   [-0.4306, -0.3473]
+test · f · educ == exper
+F(1, 18,141) = 1697.96   p < 0.001
+derive · f
+
+  term   estimate   std.error   t value   p value   95% CI
+  r        3.4806      0.0808     43.05    <0.001   [3.3221, 3.6390]
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 2)
+[exit 0]
+
+> let w = dataset(wages).add(twice = educ * 2)
+let m = w.reg(log(wage) ~ educ + twice + female)
+m.test(twice == 0)
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 2)
+error[Z0414]: `twice` was dropped as collinear and has no coefficient
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(twice == 0)
+  |        ^^^^^^^^^^ an omitted term
+  |
+  = help: the terms with an estimate are `(intercept)`, `educ`, `female`
+[exit 1]
+
+> let w = dataset(wages).add(twice = educ * 2)
+let m = w.reg(log(wage) ~ educ + twice + female)
+m.derive(r = twice / educ)
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 2)
+error[Z0414]: `twice` was dropped as collinear and has no coefficient
+ --> scripts/main.zeff:3:14
+  |
+3 | m.derive(r = twice / educ)
+  |              ^^^^^^^^^^^^ an omitted term
+  |
+  = help: the terms with an estimate are `(intercept)`, `educ`, `female`
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ / exper == 1)
+--- messages ---
+error[Z0415]: `educ / exper == 1` is not a linear restriction on the coefficients: a division by a coefficient
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(educ / exper == 1)
+  |        ^^^^^^^^^^^^^^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ == exper, 2 * educ == 2 * exper)
+--- messages ---
+error[Z0415]: the restrictions repeat one another, so their covariance is singular
+ --> scripts/main.zeff:3:3
+  |
+3 | m.test(educ == exper, 2 * educ == 2 * exper)
+  |   ^^^^ redundant restrictions
+  |
+  = help: drop a restriction the others imply
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(hours == 0)
+--- messages ---
+error[Z0414]: `hours` is not a term of this fit
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(hours == 0)
+  |        ^^^^^^^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `educ`, `exper`, `female`
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(exper == 0, femal == 0)
+--- messages ---
+error[Z0414]: `femal` is not a term of this fit
+ --> scripts/main.zeff:3:20
+  |
+3 | m.test(exper == 0, femal == 0)
+  |                    ^^^^^^^^^^ unknown term
+  |
+  = help: did you mean `female`? the terms are `(intercept)`, `educ`, `exper`, `female`
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(true)
+--- messages ---
+error[Z0415]: `true` is not a linear restriction on the coefficients: no `==`; a restriction is an equality
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(true)
+  |        ^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test()
+--- messages ---
+error[Z0406]: `test` needs at least one restriction
+ --> scripts/main.zeff:3:3
+  |
+3 | m.test()
+  |   ^^^^ nothing to test
+  |
+  = help: write each restriction as an equality over the terms: `m.test(educ == exper)`
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ == exper && female == 0)
+--- messages ---
+error[Z0415]: `educ == exper && female == 0` is not a linear restriction on the coefficients: `&&`; write one restriction per argument
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(educ == exper && female == 0)
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ != exper)
+--- messages ---
+error[Z0415]: `educ != exper` is not a linear restriction on the coefficients: `!=`; a restriction is an equality
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(educ != exper)
+  |        ^^^^^^^^^^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ * exper == 0)
+--- messages ---
+error[Z0415]: `educ * exper == 0` is not a linear restriction on the coefficients: a product of two coefficients
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(educ * exper == 0)
+  |        ^^^^^^^^^^^^^^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(1 == 1)
+--- messages ---
+error[Z0415]: `1 == 1` is not a linear restriction on the coefficients: no coefficient in it
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(1 == 1)
+  |        ^^^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ / 0 == 1)
+--- messages ---
+error[Z0415]: `educ / 0 == 1` is not a linear restriction on the coefficients: a division by zero
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(educ / 0 == 1)
+  |        ^^^^^^^^^^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ ^ 2 == 1)
+--- messages ---
+error[Z0415]: `educ ^ 2 == 1` is not a linear restriction on the coefficients: a power of a coefficient
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(educ ^ 2 == 1)
+  |        ^^^^^^^^^^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(exp(educ) == 1)
+--- messages ---
+error[Z0415]: `exp(educ) == 1` is not a linear restriction on the coefficients: a call of `exp`
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(exp(educ) == 1)
+  |        ^^^^^^^^^^^^^^ not linear in the coefficients
+  |
+  = help: `test` takes equalities linear in the coefficients, `educ == exper` or `educ + exper == 1`; `derive` computes a nonlinear combination with its standard error
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ)
+--- messages ---
+error[Z0401]: this must be a Bool over the terms of the fit, but it is a Float
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(educ)
+  |        ^^^^ a Float
+  |
+  = help: a restriction is an equality over the terms, such as `educ == exper` or `educ + exper == 1`
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test("educ" == 1)
+--- messages ---
+error[Z0221]: `==` compares values of one type, but these are a Str and an Int
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test("educ" == 1)
+  |        ^^^^^^^^^^^ different types
+  |
+  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.test(educ == exper).test(educ == 0)
+--- messages ---
+error[Z0401]: `test` needs a regression fit, but this is a TestResult
+ --> scripts/main.zeff:3:1
+  |
+3 | m.test(educ == exper).test(educ == 0)
+  | ^^^^^^^^^^^^^^^^^^^^^ not a regression fit
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.compare(m)
+--- messages ---
+error[Z0416]: the two regressions have the same terms, so neither is nested in the other
+ --> scripts/main.zeff:3:11
+  |
+3 | m.compare(m)
+  |           ^ the same terms
+  |
+  = help: `compare` tests the terms the larger model adds to the smaller
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.compare(m.test(educ == 0))
+--- messages ---
+error[Z0401]: `compare` needs a regression fit, but this is a TestResult
+ --> scripts/main.zeff:3:11
+  |
+3 | m.compare(m.test(educ == 0))
+  |           ^^^^^^^^^^^^^^^^^ not a regression fit
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+wages.reg(log(wage) ~ educ + hours).compare(m)
+--- messages ---
+error[Z0416]: `compare` needs two regressions on the same rows, but these used 18,167 and 18,179 rows
+ --> scripts/main.zeff:3:45
+  |
+3 | wages.reg(log(wage) ~ educ + hours).compare(m)
+  |                                             ^ fitted on other rows
+  |
+  = help: fit both models on one frame with the same rows; `where(!is_missing(x))` first keeps the rows a variable of one model would drop
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+wages.where(educ > 10).reg(log(wage) ~ educ + exper + female).compare(m)
+--- messages ---
+error[Z0416]: `compare` needs two regressions on the same rows, but these used 16,098 and 18,179 rows
+ --> scripts/main.zeff:3:71
+  |
+3 | wages.where(educ > 10).reg(log(wage) ~ educ + exper + female).compare(m)
+  |                                                                       ^ fitted on other rows
+  |
+  = help: fit both models on one frame with the same rows; `where(!is_missing(x))` first keeps the rows a variable of one model would drop
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+wages.reg(log(wage) ~ educ + exper + exper^2).compare(wages.reg(log(wage) ~ educ + exper + educ^2))
+--- messages ---
+error[Z0416]: the two regressions are not nested: `exper^2` is in one alone and `educ^2` in the other
+ --> scripts/main.zeff:3:55
+  |
+3 | wages.reg(log(wage) ~ educ + exper + exper^2).compare(wages.reg(log(wage) ~ educ + exper + educ^2))
+  |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not nested
+  |
+  = help: every term of the smaller model must be a term of the larger
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.derive(r = round(educ / exper))
+--- messages ---
+error[Z0417]: `round(educ / exper)` cannot be differentiated: `round` cannot be differentiated
+ --> scripts/main.zeff:3:14
+  |
+3 | m.derive(r = round(educ / exper))
+  |              ^^^^^^^^^^^^^^^^^^^ no derivative
+  |
+  = help: `derive` differentiates `+`, `-`, `*`, `/`, `^`, `log`, `exp`, `sqrt`, `log1p`, `expm1`, `log10`, `log2` and `abs` over the terms
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.derive(r = min(educ, exper))
+--- messages ---
+error[Z0417]: `min(educ, exper)` cannot be differentiated: `min` cannot be differentiated
+ --> scripts/main.zeff:3:14
+  |
+3 | m.derive(r = min(educ, exper))
+  |              ^^^^^^^^^^^^^^^^ no derivative
+  |
+  = help: `derive` differentiates `+`, `-`, `*`, `/`, `^`, `log`, `exp`, `sqrt`, `log1p`, `expm1`, `log10`, `log2` and `abs` over the terms
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.derive(r = educ > exper)
+--- messages ---
+error[Z0401]: this must be a Float over the terms of the fit, but it is a Bool
+ --> scripts/main.zeff:3:14
+  |
+3 | m.derive(r = educ > exper)
+  |              ^^^^^^^^^^^^ a Bool
+  |
+  = help: a definition is an expression over the terms, such as `educ / exper` or `exp(educ * 10)`
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.derive()
+--- messages ---
+error[Z0406]: `derive` needs at least one definition
+ --> scripts/main.zeff:3:3
+  |
+3 | m.derive()
+  |   ^^^^^^ nothing defined
+  |
+  = help: usage: `fit.derive(name = Term<Float>, ...)`
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.derive(r = educ / exper, r = educ)
+--- messages ---
+error[Z0405]: `r` is defined twice
+ --> scripts/main.zeff:3:28
+  |
+3 | m.derive(r = educ / exper, r = educ)
+  |                            ^ the second time
+  |
+  = help: give each definition its own name
+[exit 1]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+m.derive(r = educ / nope)
+--- messages ---
+error[Z0414]: `nope` is not a term of this fit
+ --> scripts/main.zeff:3:14
+  |
+3 | m.derive(r = educ / nope)
+  |              ^^^^^^^^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `educ`, `exper`, `female`
+[exit 1]
+
+> dataset(wages).test(educ == 0)
+--- messages ---
+error[Z0401]: `test` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).test(educ == 0)
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `test` is a method of Result
+[exit 1]
+
+> dataset(wages).derive(r = educ)
+--- messages ---
+error[Z0401]: `derive` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).derive(r = educ)
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `derive` is a method of Result
+[exit 1]

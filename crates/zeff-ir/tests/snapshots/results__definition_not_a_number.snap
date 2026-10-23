@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/results.rs
+expression: render(text)
+---
+error[Z0401]: this must be a Float over the terms of the fit, but it is a Bool
+ --> scripts/main.zeff:4:14
+  |
+4 | m.derive(r = hours == 1)
+  |              ^^^^^^^^^^ a Bool
+  |
+  = help: a definition is an expression over the terms, such as `educ / exper` or `exp(educ * 10)`

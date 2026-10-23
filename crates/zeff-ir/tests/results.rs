@@ -131,8 +131,16 @@ fn registry() -> Registry {
             "results",
             true,
             vec![P::required("fit", "Result")],
-            Some(Rest::Values("Bool")),
+            Some(Rest::Values("Term<Bool>")),
             "TestResult",
+        ),
+        spec(
+            "derive",
+            "results",
+            true,
+            vec![P::required("fit", "Result")],
+            Some(Rest::Definitions("Term<Float>")),
+            "Table",
         ),
         spec(
             "is",
@@ -175,7 +183,7 @@ fn codes(text: &str) -> Vec<String> {
 }
 
 const SETUP: &str =
-    "let wages = import(\"d.csv\")\nlet m = wages.reg(wage ~ hours)\nlet t = m.test(true)\n";
+    "let wages = import(\"d.csv\")\nlet m = wages.reg(wage ~ hours)\nlet t = m.test(hours == 0)\n";
 
 #[test]
 fn result_types_dispatch_and_join() {
@@ -184,7 +192,8 @@ fn result_types_dispatch_and_join() {
          let e = m.std_errors(hours)\nlet e2 = m.std_errors(\"hours\")\nlet e3 = m.std_errors()\n\
          let educ = 5\nlet e4 = m.std_errors(educ)\nlet both = [m, t]\nlet fits = [m, m]\n\
          let k = type_of(m)\nlet b = m.is(Result)\nlet c = t.is(TestResult)\nlet f = fits[1]\n\
-         let any = both[2]\nlet tests = [t, t]\n"
+         let any = both[2]\nlet tests = [t, t]\n\
+         let t2 = m.test(hours == educ, 2 * hours + educ == 1, nope == 0)\nlet d = m.derive(r = hours / educ, s = -nope * 2)\n"
     );
     let checked = check_source("scripts/main.zeff", &script, &registry());
     assert!(checked.diagnostics.is_empty(), "{}", render(&script));
@@ -219,6 +228,10 @@ fn result_types_dispatch_and_join() {
         ("k", "Str"),
         ("b", "Bool"),
         ("c", "Bool"),
+        // Inside a restriction or a definition a bare name is a coefficient, even beside a binding
+        // of that name (`educ`) and even one the fit may not have (`nope`, checked when it runs).
+        ("t2", "TestResult"),
+        ("d", "Table"),
     ];
     for (name, expected) in expected {
         assert_eq!(ty(name), expected, "the type of `{name}`");
@@ -245,9 +258,19 @@ fn every_message() {
             "term_as_frame",
             format!("{SETUP}m.std_errors(wages.head())\n"),
         ),
+        ("restriction_not_a_bool", format!("{SETUP}m.test(hours)\n")),
+        (
+            "restriction_of_two_types",
+            format!("{SETUP}m.test(hours == \"a\")\n"),
+        ),
+        (
+            "definition_not_a_number",
+            format!("{SETUP}m.derive(r = hours == 1)\n"),
+        ),
     ];
     let expected_codes = [
-        "Z0401", "Z0401", "Z0401", "Z0401", "Z0208", "Z0214", "Z0401", "Z0401",
+        "Z0401", "Z0401", "Z0401", "Z0401", "Z0208", "Z0214", "Z0401", "Z0401", "Z0401", "Z0221",
+        "Z0401",
     ];
     for ((name, text), code) in cases.iter().zip(expected_codes) {
         assert_eq!(codes(text), vec![code.to_string()], "{name}");

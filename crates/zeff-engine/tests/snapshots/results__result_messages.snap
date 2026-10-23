@@ -73,3 +73,37 @@ error[Z0401]: `r_squared` cannot be called on a Frame
   | ^^^^^ this is a Frame
   |
   = help: `r_squared` is a method of RegFit
+
+error[Z0401]: this must be a Bool over the terms of the fit, but it is a Float
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(hours)
+  |        ^^^^^ a Float
+  |
+  = help: a restriction is an equality over the terms, such as `educ == exper` or `educ + exper == 1`
+
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+error[Z0414]: `wage` is not a term of this fit
+ --> scripts/main.zeff:3:8
+  |
+3 | m.test(wage == 0)
+  |        ^^^^^^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `hours`, `educ`
+
+error[Z0401]: this must be a Float over the terms of the fit, but it is a Bool
+ --> scripts/main.zeff:3:14
+  |
+3 | m.derive(r = hours == 0)
+  |              ^^^^^^^^^^ a Bool
+  |
+  = help: a definition is an expression over the terms, such as `educ / exper` or `exp(educ * 10)`
+
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+error[Z0401]: `test` needs a regression fit, but this is a TestResult
+ --> scripts/main.zeff:3:1
+  |
+3 | m.test(hours == 0).test(hours == 0)
+  | ^^^^^^^^^^^^^^^^^^ not a regression fit

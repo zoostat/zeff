@@ -1,0 +1,69 @@
+---
+source: crates/zeff-engine/tests/results.rs
+expression: "format!(\"{stdout}--- messages ---\\n{stderr}\")"
+---
+0.011226
+0.243835
+(intercept) => 0.243835
+hours => 0.011226
+educ => 0.022452
+0.022452
+0.011226
+r_squared: 0.999688
+adjusted: 0.999619
+test · m · hours == 0
+F(1, 9) = 1698.28   p < 0.001
+TestResult
+true
+true
+false
+RegFit · reg · wage ~ hours + educ
+TestResult · test · m · hours == 0
+List<Result>
+NA
+1.45357e-11
+12
+test · m · hours == 0
+F(1, 9) = 1698.28   p < 0.001
+frame · 1 row × 7 variables
+
+      term   estimate   std_error   statistic       p_value   ci_lower   ci_upper
+  1   F            NA          NA     1698.28   1.45357e-11         NA         NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+compare · m against wage ~ hours
+
+  model           N     RSS      R²
+  m              12    0.16   1.000
+  wage ~ hours   12   38.61   0.925
+
+F(1, 9) = 2149.94   p < 0.001
+compare · m against wage ~ hours
+
+  model           N     RSS      R²
+  m              12    0.16   1.000
+  wage ~ hours   12   38.61   0.925
+
+F(1, 9) = 2149.94   p < 0.001
+5.05279e-12
+Float
+NA
+test · m · educ == 0
+F(1, 9) = 2149.94   p < 0.001
+test · m · hours == educ, educ + hours == 1
+F(2, 9) = 912.30   p < 0.001
+derive · m
+
+  term    estimate   std.error   t value   p value   95% CI
+  ratio     2.2503      0.0997     22.58    <0.001   [2.0248, 2.4757]
+test · m · hours == 0
+F(1, 9) = 1698.28   p < 0.001
+--- messages ---
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+note: `h2` is collinear with the columns before it and was dropped (line 35)

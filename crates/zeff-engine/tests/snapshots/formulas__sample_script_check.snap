@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-engine/tests/formulas.rs
+assertion_line: 112
 expression: text
 ---
 error[Z0304]: `use` is not available in this release
@@ -38,8 +39,6 @@ error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:89:37
 error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:90:23
-error[Z0103]: no function is called `test`
- --> zeff_samples.zeff:93:4
 error[Z0103]: no function is called `vif`
  --> zeff_samples.zeff:94:4
 error[Z0103]: no function is called `report`
@@ -90,10 +89,6 @@ error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:168:17
 error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:169:17
-error[Z0103]: no function is called `compare`
- --> zeff_samples.zeff:170:5
-error[Z0103]: no function is called `test`
- --> zeff_samples.zeff:171:4
 error[Z0304]: `[for ...]` is not available in this release
  --> zeff_samples.zeff:177:12
 error[Z0103]: no function is called `len`
@@ -116,8 +111,6 @@ error[Z0404]: `export` has no argument called `size`
  --> zeff_samples.zeff:209:39
 error[Z0103]: no function is called `check`
  --> zeff_samples.zeff:213:4
-error[Z0103]: no function is called `derive`
- --> zeff_samples.zeff:220:4
 error[Z0103]: no function is called `scatter`
  --> zeff_samples.zeff:226:7
 error[Z0103]: no function is called `plot`

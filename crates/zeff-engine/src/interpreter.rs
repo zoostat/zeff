@@ -135,8 +135,12 @@ impl<'a> Interpreter<'a> {
                 match statement {
                     Statement::Let { binding, value, .. } => {
                         self.eval(value, &mut printed, &mut messages).map(|mut v| {
-                            if let Value::Frame(frame) = &mut v {
-                                frame.name = Some(self.program.bindings[*binding].name.clone());
+                            let name = self.program.bindings[*binding].name.clone();
+                            match &mut v {
+                                Value::Frame(frame) => frame.name = Some(name),
+                                // A fit keeps its binding's name for the titles of its tests.
+                                Value::Fit(fit) => std::rc::Rc::make_mut(fit).name = Some(name),
+                                _ => {}
                             }
                             self.env.insert(*binding, v);
                         })
@@ -235,6 +239,16 @@ impl<'a> Interpreter<'a> {
                 Value::Str(name) => Value::Term(name),
                 Value::Na => Value::Na,
                 _ => return Err(self.internal(expr, "a term name that is not text")),
+            },
+            // An expression over the terms is handed to the function as written, its bare names
+            // as term references, for `test` to read as a restriction and `derive` to
+            // differentiate.
+            ExprKind::TermExpr(inner) => Value::TermExpr {
+                expr: crate::formulas::column_expr(inner)
+                    .map_err(|what| self.internal(expr, &what))?,
+                text: self.source.text()[inner.span.start..inner.span.end]
+                    .trim()
+                    .to_string(),
             },
             ExprKind::List(items) => {
                 let mut values = Vec::with_capacity(items.len());

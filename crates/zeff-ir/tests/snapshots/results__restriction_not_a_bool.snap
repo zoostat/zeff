@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/results.rs
+expression: render(text)
+---
+error[Z0401]: this must be a Bool over the terms of the fit, but it is a Float
+ --> scripts/main.zeff:4:8
+  |
+4 | m.test(hours)
+  |        ^^^^^ a Float
+  |
+  = help: a restriction is an equality over the terms, such as `educ == exper` or `educ + exper == 1`
