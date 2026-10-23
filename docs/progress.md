@@ -172,7 +172,7 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **Done.** Step 3 `[engine]`: a category carries its ordered flag and contrast, kept by every operation and written to the Arrow field metadata (`zeff:ordered`, `zeff:contrast`; the shipped `wages.arrow` rebuilt); value labels are one JSON object with one reader and writer in the column kernel; a category compares with text by its levels, an ordered one by level position, a labelled Int as the number it holds; Z0216 with its page for text that is no level or a label given for a number; arithmetic on a category is Z0221. A fault since 0.2.0 fixed on the way: a `where` that kept no rows lost a category's levels. 17 tests added. Details in `docs/decisions.md`.
 
-**Green.** Format, clippy with warnings denied, all 674 workspace tests, the tier check, the message check (72 codes) and the conformance report (unchanged) pass locally; the four-target run to be read after the push.
+**Green.** Format, clippy with warnings denied, all 674 workspace tests, the tier check, the message check (72 codes) and the conformance report (unchanged) pass locally; CI green on 2ce5e95 (run 39888285663) with the four targets identical.
 
 **Next.** Step 4, `to`, `is`, `type_of` `[function]`.
 
