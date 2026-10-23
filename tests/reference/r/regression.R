@@ -203,8 +203,16 @@ cases$poly <- case("log(wage) ~ category(industry, contrast: poly) + educ", "wag
 library(wooldridge)
 data(wage1)
 data(wage2)
-write.csv(wage1, file.path(root, "tests", "reference", "data", "wage1.csv"), row.names = FALSE, na = "")
-write.csv(wage2, file.path(root, "tests", "reference", "data", "wage2.csv"), row.names = FALSE, na = "")
+# Every value with 17 significant digits, which reads back to the same double and is the same
+# text on every platform; R's own CSV writer chooses the digits by a routine that differs between
+# macOS and Linux in the last place.
+write_data <- function(data, file) {
+  text <- data
+  for (col in names(text)) text[[col]] <- ifelse(is.na(data[[col]]), "", sprintf("%.17g", data[[col]]))
+  write.csv(text, file, row.names = FALSE, quote = FALSE, na = "")
+}
+write_data(wage1, file.path(root, "tests", "reference", "data", "wage1.csv"))
+write_data(wage2, file.path(root, "tests", "reference", "data", "wage2.csv"))
 cases$wage1_textbook <- case("lwage ~ educ + exper + tenure", "wage1", lwage ~ educ + exper + tenure, wage1)
 w1 <- lwage ~ married * female + educ + exper + I(exper^2) + tenure + I(tenure^2)
 w1_text <- "lwage ~ married * female + educ + exper + exper^2 + tenure + tenure^2"
