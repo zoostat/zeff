@@ -101,6 +101,13 @@ case <- function(zeff, data_file, r_formula, data, factors = list(), level = 0.9
   q <- qt(1 - (1 - level) / 2, df)
   ci <- cbind(table[, 1] - q * table[, 2], table[, 1] + q * table[, 2])
   rownames(ci) <- rownames(table)
+  # The standardized coefficients of question 3 (d): each estimate times the standard deviation
+  # of its model-matrix column over the outcome's, the rows as lm saw them (replicated under
+  # frequency weights, unweighted otherwise); 0 for the intercept, whose column has no variation.
+  X <- model.matrix(fit)
+  yv <- model.response(model.frame(fit))
+  betas <- coef(fit) * apply(X, 2, sd) / sd(yv)
+  names(betas) <- names(all)
   columns <- list()
   for (term in names(all)[kept]) {
     columns[[term]] <- list(
@@ -109,7 +116,8 @@ case <- function(zeff, data_file, r_formula, data, factors = list(), level = 0.9
       t_value = num17(table[term, 3]),
       p_value = num17(table[term, 4]),
       ci_lower = num17(ci[term, 1]),
-      ci_upper = num17(ci[term, 2])
+      ci_upper = num17(ci[term, 2]),
+      beta = num17(betas[[term]])
     )
   }
   list(
@@ -125,7 +133,9 @@ case <- function(zeff, data_file, r_formula, data, factors = list(), level = 0.9
     adj_r_squared = num17(s$adj.r.squared),
     sigma = num17(s$sigma),
     rss = num17(deviance(fit)),
-    log_likelihood = num17(as.numeric(logLik(fit)))
+    log_likelihood = num17(as.numeric(logLik(fit))),
+    aic = num17(AIC(fit)),
+    bic = num17(BIC(fit))
   )
 }
 

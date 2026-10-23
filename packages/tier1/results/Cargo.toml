@@ -21,6 +21,7 @@ zeff-registry.workspace = true
 [dev-dependencies]
 zeff-data.workspace = true
 zeff-datasets.workspace = true
+zeff-regress.workspace = true
 zeff-testkit.workspace = true
 insta = "=1.49.0"
 proptest = "=1.12.0"

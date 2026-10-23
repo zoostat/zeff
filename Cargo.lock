@@ -1564,6 +1564,7 @@ dependencies = [
  "zeff-kernels",
  "zeff-numeric",
  "zeff-registry",
+ "zeff-regress",
  "zeff-testkit",
 ]
 

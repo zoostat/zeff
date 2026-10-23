@@ -456,17 +456,13 @@ fn zeff_help_prints_a_functions_page() {
     insta::assert_snapshot!("help_import", out(&zeff(dir.path(), &["help", "import"])));
     insta::assert_snapshot!("help_print", out(&zeff(dir.path(), &["help", "print"])));
     // A function returning a result type lists the methods of that type under Value (section
-    // 9.1), as sentences after the written text; none has shipped yet, and the page says so.
+    // 9.1), as sentences after the written text, grouped as the catalogue groups them.
     let reg = out(&zeff(dir.path(), &["help", "reg"]));
     assert!(
-        reg.contains(
-            "
-VALUE
-    A `RegFit`, which prints as its summary. No method applies to it in this release.
-"
-        ),
+        reg.contains("\nVALUE\n    A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors,"),
         "{reg}"
     );
+    assert!(reg.contains("n_obs.\n\nDETAILS\n"), "{reg}");
     insta::assert_snapshot!("help_reg", reg);
 }
 
@@ -496,19 +492,23 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "one line per home: {}",
         out(&two_homes)
     );
-    // A name shipped in one package and planned in another: the page, then where the other arrives.
-    let shipped_and_later = zeff(dir.path(), &["help", "summary"]);
+    // A name with two homes shipped (frames in `data`, results in `results`): both pages, and no
+    // line about a later release.
+    let two_shipped = zeff(dir.path(), &["help", "summary"]);
     assert!(
-        out(&shipped_and_later).starts_with("summary — Table of N, missing, mean, SD, min and max"),
+        out(&two_shipped).starts_with("summary — Table of N, missing, mean, SD, min and max"),
         "{}",
-        out(&shipped_and_later)
+        out(&two_shipped)
     );
     assert!(
-        out(&shipped_and_later).ends_with(
-            "\n`summary` arrives with release 0.4.0, in the `results` package: Full printed summary of a model or test\n"
-        ),
+        out(&two_shipped).contains("\nsummary — The printed summary of a result as a table"),
         "{}",
-        out(&shipped_and_later)
+        out(&two_shipped)
+    );
+    assert!(
+        !out(&two_shipped).contains("arrives with"),
+        "{}",
+        out(&two_shipped)
     );
     let package_later = zeff(dir.path(), &["help", "glm"]);
     assert!(

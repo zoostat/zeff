@@ -260,6 +260,8 @@ fn square(title: &str, names: &[String], cells: &[Vec<String>]) -> Table {
         columns,
         rows,
         more: Vec::new(),
+        before: Vec::new(),
+        after: Vec::new(),
     }
 }
 

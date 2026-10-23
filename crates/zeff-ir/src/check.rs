@@ -9,7 +9,7 @@ use crate::ir::{
     Binding, BindingId, Call, Expr, ExprKind, Formula, Program, Slot, Statement, Term, TermKind,
     TermStep,
 };
-use crate::ty::Ty;
+use crate::ty::{ResultKind, Ty};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
 use zeff_registry::{Registered, Registry, Rest};
 use zeff_syntax::ast;
@@ -2439,6 +2439,28 @@ impl Checker<'_> {
                 (true, Ty::Column(_)) | (false, _) => target,
                 (true, t) => Ty::Column(Box::new(t.clone())),
             }
+        // `ByTerm<A, B>` (a result method of question 4): A when a term is named, or when the
+        // receiver is a test's result, which has one value; B over every term; unknown for a
+        // receiver of the interface type, whose kind is not known.
+        } else if let Some(inner) = spec
+            .returns
+            .strip_prefix("ByTerm<")
+            .and_then(|r| r.strip_suffix('>'))
+        {
+            let (one, all) = split_top_level(inner);
+            let term_given = params
+                .iter()
+                .position(|(n, _, _)| n == "term")
+                .is_some_and(|i| slots[i].is_some());
+            let receiver_ty = slots.first().and_then(|s| s.as_ref()).map(|e| e.ty.clone());
+            match (term_given, receiver_ty) {
+                (true, _) => Ty::parse(one).unwrap_or(Ty::Unknown),
+                (false, Some(Ty::Result(Some(ResultKind::TestResult)))) => {
+                    Ty::parse(one).unwrap_or(Ty::Unknown)
+                }
+                (false, Some(Ty::Result(None))) => Ty::Unknown,
+                _ => Ty::parse(all).unwrap_or(Ty::Unknown),
+            }
         // `Number` (section 3.7): Int when every number given is an Int, Float otherwise.
         } else if spec.returns == "Number" {
             let numbers = slots
@@ -2554,6 +2576,21 @@ impl Checker<'_> {
 
 /// A parameter type that takes a column, so that a bare name in the argument is a column of
 /// the receiver (`where(condition)`, the definitions of `add`).
+/// `A, B` split at the first comma outside angle brackets: `Float, Mapping<Str, Float>` gives
+/// `Float` and `Mapping<Str, Float>`.
+fn split_top_level(text: &str) -> (&str, &str) {
+    let mut depth = 0usize;
+    for (i, c) in text.char_indices() {
+        match c {
+            '<' => depth += 1,
+            '>' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => return (text[..i].trim(), text[i + 1..].trim()),
+            _ => {}
+        }
+    }
+    (text.trim(), "")
+}
+
 fn takes_columns(ty: &Ty) -> bool {
     match ty {
         Ty::Column(_) => true,

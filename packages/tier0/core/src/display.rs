@@ -14,7 +14,7 @@
 //! A table wider than the page (118 characters, the width of a help page) prints its columns in
 //! blocks, as R does, every value shown; a frame repeats the row numbers at the start of each block.
 
-use crate::value::{Align, Distribution, Frame, Statistic, Summary, Table, TestResult, Value};
+use crate::value::{Align, Distribution, Frame, Statistic, Table, TestResult, Value};
 use zeff_columns::{ColumnType, MetadataKey, Value as Cell};
 use zeff_dates::{format_iso_date, format_iso_datetime};
 use zeff_diagnostics::count;
@@ -86,7 +86,7 @@ fn inline(value: &Value) -> String {
         Value::Column(c) => column_header(c),
         Value::Distribution(d) => distribution_text(d),
         Value::Formula(formula) => formula.to_string(),
-        Value::Fit(fit) => format!("{} · {}", fit.kind, fit.summary.table.title),
+        Value::Fit(fit) => format!("{} · {}", fit.kind, fit.summary.title),
         Value::TestResult(result) => format!("TestResult · {}", result.title),
         Value::Term(name) => name.clone(),
         Value::List(items) => format!(
@@ -243,32 +243,6 @@ fn frame_text(frame: &Frame, width: usize) -> String {
     out
 }
 
-/// A table as it prints: its title, a blank line, then its grid.
-/// A result's summary (section 10.2): the title, the lines before the grid, the grid, and the
-/// lines after it.
-pub fn summary_text(summary: &Summary, width: usize) -> String {
-    let mut text = format!("{}\n", summary.table.title);
-    for line in &summary.before {
-        text.push_str(line);
-        text.push('\n');
-    }
-    text.push('\n');
-    text.push_str(&grid(
-        &summary.table.columns,
-        &summary.table.rows,
-        false,
-        width,
-    ));
-    if !summary.after.is_empty() {
-        text.push('\n');
-        for line in &summary.after {
-            text.push_str(line);
-            text.push('\n');
-        }
-    }
-    text
-}
-
 /// A test's result in the shape of section 10.2's tests (question 3 (b) of release 0.4.0): the
 /// title, the header lines, the table when there is one, the statistic line and the lines after
 /// it.
@@ -313,11 +287,17 @@ pub fn statistic_line(statistic: &Statistic, p: f64) -> String {
 /// Degrees of freedom as a test line writes them: a whole number as a count, `18,179`; otherwise
 /// to one decimal, `18,074.2`.
 fn degrees_text(df: f64) -> String {
-    let text = if df.fract() == 0.0 && df.abs() < 1e15 {
-        fixed(df, 0)
+    if df.fract() == 0.0 && df.abs() < 1e15 {
+        fixed_grouped(df, 0)
     } else {
-        fixed(df, 1)
-    };
+        fixed_grouped(df, 1)
+    }
+}
+
+/// A number to `decimals` places with thousands separators in its whole part: `-12,034.2`,
+/// `24,078.4`; `NA`, `Inf` and the exponent form pass through.
+pub fn fixed_grouped(x: f64, decimals: usize) -> String {
+    let text = fixed(x, decimals);
     let (sign, rest) = match text.strip_prefix('-') {
         Some(rest) => ("-", rest),
         None => ("", text.as_str()),
@@ -377,12 +357,26 @@ pub fn p_value_text(p: f64) -> String {
     }
 }
 
+/// A table as it prints (sections 3.8 and 10.2): the title, the lines before the grid, a blank
+/// line, the grid, and the lines after it under a blank line; a result's summary is one.
 fn table_text(table: &Table, width: usize) -> String {
-    let mut text = format!(
-        "{}\n\n{}",
-        table.title,
-        grid(&table.columns, &table.rows, false, width)
-    );
+    let mut text = format!("{}\n", table.title);
+    for line in &table.before {
+        text.push_str(line);
+        text.push('\n');
+    }
+    // A table without columns (a test's summary) is its lines alone, with no grid between.
+    if !table.columns.is_empty() {
+        text.push('\n');
+        text.push_str(&grid(&table.columns, &table.rows, false, width));
+        if !table.after.is_empty() {
+            text.push('\n');
+        }
+    }
+    for line in &table.after {
+        text.push_str(line);
+        text.push('\n');
+    }
     for further in &table.more {
         text.push('\n');
         text.push_str(&table_text(further, width));
@@ -501,7 +495,7 @@ pub fn show_width(value: &Value, width: usize) -> String {
         ),
         Value::Frame(f) => frame_text(f, width),
         Value::Table(t) => table_text(t, width),
-        Value::Fit(fit) => summary_text(&fit.summary, width),
+        Value::Fit(fit) => table_text(&fit.summary, width),
         Value::TestResult(result) => test_result_text(result, width),
         Value::Column(c) => {
             let mut out = format!("{}\n", column_header(c));
@@ -779,6 +773,8 @@ mod tests {
                 vec!["hours".into(), "2".into(), "40".into()],
             ],
             more: Vec::new(),
+            before: Vec::new(),
+            after: Vec::new(),
         };
         assert_eq!(
             show(&Value::Table(table.clone())),

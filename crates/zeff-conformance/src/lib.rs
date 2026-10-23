@@ -786,6 +786,12 @@ fn regress_cases() -> Vec<Line> {
             "weighted",
             "let w = dataset(wages)\nw.reg(log(wage) ~ educ + female, weights: hours)\nw.reg(log(wage) ~ educ + female, weights: exper, weight_type: frequency)\n",
         ),
+        // The result interface (step 15): the summary with its options, the estimates frame, the
+        // mappings and the intervals of one fit.
+        (
+            "interface",
+            "let m = dataset(wages).reg(log(wage) ~ educ + exper + exper^2 + female)\nm.summary(standardized: true, fit_measures: true)\nm.estimates()\nm.std_errors()\nm.p_values(educ)\nm.ci(educ, level: 0.9)\nm.ci()\nm.n_obs()\n",
+        ),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {

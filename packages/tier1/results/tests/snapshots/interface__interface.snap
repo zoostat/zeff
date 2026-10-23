@@ -1,0 +1,313 @@
+---
+source: packages/tier1/results/tests/interface.rs
+expression: all
+---
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.summary()
+m.summary(standardized: true)
+m.summary(fit_measures: true)
+m.summary(standardized: true, fit_measures: true)
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.8998      0.0221     86.05    <0.001   [1.8565, 1.9431]
+  educ            0.0760      0.0014     55.69    <0.001   [0.0733, 0.0787]
+  exper           0.0220      0.0005     48.78    <0.001   [0.0211, 0.0229]
+  female         -0.1329      0.0064    -20.69    <0.001   [-0.1455, -0.1203]
+
+R² 0.203 · adjusted R² 0.203
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate      beta   std.error   t value   p value   95% CI
+  (intercept)     1.8998                0.0221     86.05    <0.001   [1.8565, 1.9431]
+  educ            0.0760    0.3899      0.0014     55.69    <0.001   [0.0733, 0.0787]
+  exper           0.0220    0.3417      0.0005     48.78    <0.001   [0.0211, 0.0229]
+  female         -0.1329   -0.1371      0.0064    -20.69    <0.001   [-0.1455, -0.1203]
+
+R² 0.203 · adjusted R² 0.203
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.8998      0.0221     86.05    <0.001   [1.8565, 1.9431]
+  educ            0.0760      0.0014     55.69    <0.001   [0.0733, 0.0787]
+  exper           0.0220      0.0005     48.78    <0.001   [0.0211, 0.0229]
+  female         -0.1329      0.0064    -20.69    <0.001   [-0.1455, -0.1203]
+
+R² 0.203 · adjusted R² 0.203
+log-likelihood -10,563.8 · AIC 21,137.5 · BIC 21,176.5
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate      beta   std.error   t value   p value   95% CI
+  (intercept)     1.8998                0.0221     86.05    <0.001   [1.8565, 1.9431]
+  educ            0.0760    0.3899      0.0014     55.69    <0.001   [0.0733, 0.0787]
+  exper           0.0220    0.3417      0.0005     48.78    <0.001   [0.0211, 0.0229]
+  female         -0.1329   -0.1371      0.0064    -20.69    <0.001   [-0.1455, -0.1203]
+
+R² 0.203 · adjusted R² 0.203
+log-likelihood -10,563.8 · AIC 21,137.5 · BIC 21,176.5
+--- messages ---
+[exit 0]
+
+> let wages = dataset(wages)
+wages.summary([wage, educ])
+let m = wages.reg(log(wage) ~ educ + female)
+m.summary()
+type_of(m.summary())
+type_of(wages.summary([wage]))
+summary · wages
+
+  variable        N   missing     mean       sd     min       max
+  wage       18,201       211   27.370   14.027   3.530   152.390
+  educ       18,412         0   13.491    2.485   8.000    20.000
+reg · log(wage) ~ educ + female
+N = 18,201 (211 rows dropped for NA in model variables)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     2.5247      0.0191    132.27    <0.001   [2.4873, 2.5621]
+  educ            0.0545      0.0014     39.71    <0.001   [0.0518, 0.0572]
+  female         -0.1402      0.0068    -20.52    <0.001   [-0.1535, -0.1268]
+
+R² 0.098 · adjusted R² 0.098
+Table
+Table
+--- messages ---
+warning: 211 rows with NA in wage were skipped (line 2)
+warning: 211 rows with NA in wage were skipped (line 6)
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.estimates()
+m.estimates().where(p_value < 0.05)
+m.estimates().n_rows()
+frame · 4 rows × 7 variables
+
+      term           estimate     std_error   statistic       p_value    ci_lower    ci_upper
+  1   (intercept)     1.89982     0.0220778     86.0514             0     1.85655      1.9431
+  2   educ          0.0760082    0.00136477     55.6929             0   0.0733332   0.0786833
+  3   exper           0.02202   0.000451384     48.7833             0   0.0211352   0.0229048
+  4   female        -0.132924    0.00642367    -20.6929   4.86824e-94   -0.145515   -0.120333
+frame · 4 rows × 7 variables
+
+      term           estimate     std_error   statistic       p_value    ci_lower    ci_upper
+  1   (intercept)     1.89982     0.0220778     86.0514             0     1.85655      1.9431
+  2   educ          0.0760082    0.00136477     55.6929             0   0.0733332   0.0786833
+  3   exper           0.02202   0.000451384     48.7833             0   0.0211352   0.0229048
+  4   female        -0.132924    0.00642367    -20.6929   4.86824e-94   -0.145515   -0.120333
+4
+--- messages ---
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.std_errors()
+m.std_errors(educ)
+m.std_errors("exper")
+let educ = 5
+m.std_errors(educ)
+m.std_errors()["female"] * 2
+std_errors(m, female)
+(intercept) => 0.0220778
+educ => 0.00136477
+exper => 0.000451384
+female => 0.00642367
+0.00136477
+0.000451384
+0.00136477
+0.0128473
+0.00642367
+--- messages ---
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.p_values()
+m.p_values(female)
+(intercept) => 0
+educ => 0
+exper => 0
+female => 4.86824e-94
+4.86824e-94
+--- messages ---
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.ci()
+m.ci(educ)
+m.ci(educ, level: 0.9)
+m.ci(level: 0.999)
+m.ci().export("output/ci.tex")
+ci · 95%
+
+  term            lower     upper
+  (intercept)    1.8565    1.9431
+  educ           0.0733    0.0787
+  exper          0.0211    0.0229
+  female        -0.1455   -0.1203
+0.0733332
+0.0786833
+0.0737633
+0.0782532
+ci · 99.9%
+
+  term            lower     upper
+  (intercept)    1.8272    1.9725
+  educ           0.0715    0.0805
+  exper          0.0205    0.0235
+  female        -0.1541   -0.1118
+--- messages ---
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.n_obs()
+dataset(wages).reg(log(wage) ~ educ, weights: exper, weight_type: frequency).n_obs()
+18179
+273933
+--- messages ---
+note: 340 rows with a zero weight left out of the estimate and the observation count (line 3)
+[exit 0]
+
+> let m = dataset(wages).add(twice = educ * 2).reg(log(wage) ~ educ + twice + female)
+m.std_errors()
+m.std_errors(twice)
+m.p_values(twice)
+m.ci(twice)
+m.summary(standardized: true)
+(intercept) => 0.0190879
+educ => 0.00137283
+female => 0.00682868
+NA
+NA
+NA
+reg · log(wage) ~ educ + twice + female
+N = 18,201 (211 rows dropped for NA in model variables)
+standard errors: classical
+
+  term           estimate      beta   std.error   t value   p value   95% CI
+  (intercept)      2.5247                0.0191    132.27    <0.001   [2.4873, 2.5621]
+  educ             0.0545    0.2795      0.0014     39.71    <0.001   [0.0518, 0.0572]
+  twice         (omitted)
+  female          -0.1402   -0.1445      0.0068    -20.52    <0.001   [-0.1535, -0.1268]
+
+R² 0.098 · adjusted R² 0.098
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 1)
+[exit 0]
+
+> let w = dataset(wages)
+let c = w.reg(log(wage) ~ educ + female, cluster: worker)
+c.std_errors()
+c.ci(educ)
+let f = w.reg(log(wage) ~ educ + female, weights: hours)
+f.std_errors(educ)
+f.summary(standardized: true, fit_measures: true)
+(intercept) => 0.0374617
+educ => 0.00270304
+female => 0.013248
+0.049214
+0.059813
+0.00140885
+reg · log(wage) ~ educ + female
+N = 18,167 (245 rows dropped for NA in model variables)
+weights: hours (sampling)
+standard errors: robust (HC1)
+
+  term          estimate      beta   std.error   t value   p value   95% CI
+  (intercept)     2.5239                0.0196    129.09    <0.001   [2.4856, 2.5623]
+  educ            0.0545    0.2797      0.0014     38.70    <0.001   [0.0518, 0.0573]
+  female         -0.1390   -0.1433      0.0070    -19.91    <0.001   [-0.1527, -0.1253]
+
+R² 0.098 · adjusted R² 0.098
+log-likelihood -44,703.3 · AIC 89,414.6 · BIC 89,445.9
+--- messages ---
+note: 30 of the 3,911 clusters hold one observation (line 2)
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + female)
+m.ci(level: 1.5)
+--- messages ---
+error[Z0401]: `level:` is a probability strictly between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:2:13
+  |
+2 | m.ci(level: 1.5)
+  |             ^^^ outside (0, 1)
+  |
+  = help: write a level such as 0.95 or 0.99
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + female)
+m.ci(educ, level: 0)
+--- messages ---
+error[Z0401]: `level:` is a probability strictly between 0 and 1, but this is 0
+ --> scripts/main.zeff:2:19
+  |
+2 | m.ci(educ, level: 0)
+  |                   ^ outside (0, 1)
+  |
+  = help: write a level such as 0.95 or 0.99
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + female)
+m.std_errors(nope)
+--- messages ---
+error[Z0414]: `nope` is not a term of this fit
+ --> scripts/main.zeff:2:14
+  |
+2 | m.std_errors(nope)
+  |              ^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `educ`, `female`
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + female)
+m.p_values("educ:female")
+--- messages ---
+error[Z0414]: `educ:female` is not a term of this fit
+ --> scripts/main.zeff:2:12
+  |
+2 | m.p_values("educ:female")
+  |            ^^^^^^^^^^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `educ`, `female`
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + female)
+m.summary(standardized: 1)
+--- messages ---
+error[Z0401]: `standardized` of `summary` must be a Bool, but this is an Int
+ --> scripts/main.zeff:2:25
+  |
+2 | m.summary(standardized: 1)
+  |                         ^ an Int
+  |
+  = help: usage: `fit.summary(standardized: Bool = false, fit_measures: Bool = false)`
+[exit 1]
+
+> dataset(wages).std_errors()
+--- messages ---
+error[Z0401]: `std_errors` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).std_errors()
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `std_errors` is a method of Result
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + female)
+m.std_errors(educ) + m.ci()
+--- messages ---
+error[Z0221]: `+` needs numbers, but one side is a Table
+ --> scripts/main.zeff:2:1
+  |
+2 | m.std_errors(educ) + m.ci()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ a Table
+  |
+  = help: arithmetic takes Ints and Floats
+[exit 1]

@@ -2,7 +2,7 @@
 //! `type_of` and `is` on a fit, lists of results and the refusal of a frame method on a fit, with
 //! the engine's own functions; then, with fixture result methods registered beside them, dispatch
 //! by the receiver's type, `Term` arguments checked against the fit's terms (Z0414) and the
-//! printed `TestResult`.
+//! printed `TestResult` and its accessors.
 
 use std::path::Path;
 use std::rc::Rc;
@@ -120,19 +120,6 @@ fn fixture(
     }
 }
 
-/// `std_errors(term?)` as a fixture: the term's name back as text, or the count of terms.
-fn fixture_std_errors(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let terms = match args.get(0) {
-        Some(Value::Fit(fit)) => fit.terms.len(),
-        _ => 0,
-    };
-    Ok(match args.get(1) {
-        Some(Value::Term(name)) => Value::Str(name.clone()),
-        Some(Value::Na) => Value::Str("NA".to_string()),
-        _ => Value::Int(terms as i64),
-    })
-}
-
 fn fixture_r_squared(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     Ok(match args.get(0) {
         Some(Value::Fit(fit)) => Value::Float(fit.r_squared.unwrap_or(f64::NAN)),
@@ -154,6 +141,7 @@ fn test_result(title: &str, table: Option<Table>, df: Vec<f64>, p: f64) -> Value
         p_value: p,
         after: Vec::new(),
         notes: Vec::new(),
+        n: 12,
     }))
 }
 
@@ -192,6 +180,8 @@ fn fixture_compare(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail
         ],
         rows: vec![row("(1)", args.get(1)), row("(2)", args.get(0))],
         more: Vec::new(),
+        before: Vec::new(),
+        after: Vec::new(),
     };
     let df = match args.get(0) {
         Some(Value::Fit(fit)) => fit.df_residual as f64,
@@ -210,13 +200,6 @@ fn run_with_fixtures(script: &str) -> Outcome {
     use ParamSpec as P;
     let mut all = specs();
     all.extend([
-        fixture(
-            "std_errors",
-            "results",
-            vec![P::required("fit", "Result"), P::option("term", "Term")],
-            None,
-            "Str",
-        ),
         fixture(
             "r_squared",
             "regress",
@@ -242,8 +225,7 @@ fn run_with_fixtures(script: &str) -> Outcome {
     let registry = Registry::build_with(all, Catalogue::compiled().unwrap())
         .unwrap_or_else(|e| panic!("{e:?}"));
     let mut bodies = bodies().clone();
-    let fixtures: [(&str, &str, Body); 4] = [
-        ("results", "std_errors", fixture_std_errors),
+    let fixtures: [(&str, &str, Body); 3] = [
         ("regress", "r_squared", fixture_r_squared),
         ("results", "test", fixture_test),
         ("results", "compare", fixture_compare),
@@ -269,7 +251,8 @@ fn result_methods_dispatch_and_terms_resolve_against_the_fit() {
         "{SETUP}m.std_errors(hours)\nm.std_errors(\"(intercept)\")\nm.std_errors()\n\
          let educ = 5\nm.std_errors(educ)\nstd_errors(m, hours)\nm.r_squared()\n\
          let t = m.test(true)\nt\ntype_of(t)\nt.is(Result)\nt.is(TestResult)\nt.is(RegFit)\n\
-         [m, t]\ntype_of([m, t])\nt.std_errors()\nm.compare(wages.reg(wage ~ hours))\n\
+         [m, t]\ntype_of([m, t])\nt.std_errors()\nt.p_values()\nt.n_obs()\nt.summary()\nt.estimates()\nt.ci()\n\
+         let c = m.compare(wages.reg(wage ~ hours))\nc\nc.summary()\nc.p_values()\ntype_of(c.p_values())\n\
          let twice = wages.add(h2 = hours * 2).reg(wage ~ hours + h2)\ntwice.std_errors(h2)\n"
     );
     let (code, stdout, stderr) = go(run_with_fixtures(&script));

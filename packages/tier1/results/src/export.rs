@@ -9,7 +9,7 @@
 //! printed grid as table notes, and special characters escaped.
 
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Align, Summary, Table, Value};
+use zeff_core::value::{Align, Table, Value};
 use zeff_diagnostics::Diagnostic;
 
 /// The formats a table is written in, chosen by the path's extension.
@@ -101,14 +101,9 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
         };
         return Err(fail(d.in_file(ctx.script)));
     };
-    let summary = Summary {
-        before: Vec::new(),
-        table,
-        after: Vec::new(),
-    };
     let bytes = match format {
-        Format::Docx => docx(&summary),
-        Format::Tex => tex(&summary).into_bytes(),
+        Format::Docx => docx(&table),
+        Format::Tex => tex(&table).into_bytes(),
     };
     // `output/` by default (section 2, "Writes"): a bare name is written there; a path with a
     // folder, or one of the form `root:file`, goes to the project's rules as written.
@@ -124,68 +119,66 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
 /// The sample every check exports: the summary of the shipped `wages` regression as `reg` prints
 /// it (`help/reg.md`), fixed here so that the reference files under `tests/reference/exports/`,
 /// the conformance report and the tests all write one table.
-pub fn sample() -> Summary {
+pub fn sample() -> Table {
     let row = |cells: [&str; 6]| -> Vec<String> { cells.iter().map(|c| c.to_string()).collect() };
-    Summary {
+    Table {
+        title: "reg · log(wage) ~ educ + exper + exper^2 + female".to_string(),
         before: vec![
             "N = 18,179 (233 rows dropped for NA in model variables)".to_string(),
             "standard errors: classical".to_string(),
         ],
-        table: Table {
-            title: "reg · log(wage) ~ educ + exper + exper^2 + female".to_string(),
-            columns: vec![
-                ("term".to_string(), Align::Left),
-                ("estimate".to_string(), Align::Right),
-                ("std.error".to_string(), Align::Right),
-                ("t value".to_string(), Align::Right),
-                ("p value".to_string(), Align::Right),
-                ("95% CI".to_string(), Align::Left),
-            ],
-            rows: vec![
-                row([
-                    "(intercept)",
-                    "1.7873",
-                    "0.0236",
-                    "75.74",
-                    "<0.001",
-                    "[1.7410, 1.8335]",
-                ]),
-                row([
-                    "educ",
-                    "0.0758",
-                    "0.0014",
-                    "55.80",
-                    "<0.001",
-                    "[0.0731, 0.0785]",
-                ]),
-                row([
-                    "exper",
-                    "0.0421",
-                    "0.0016",
-                    "26.36",
-                    "<0.001",
-                    "[0.0389, 0.0452]",
-                ]),
-                row([
-                    "exper^2",
-                    "-0.0007",
-                    "0.0001",
-                    "-13.09",
-                    "<0.001",
-                    "[-0.0008, -0.0006]",
-                ]),
-                row([
-                    "female",
-                    "-0.1319",
-                    "0.0064",
-                    "-20.63",
-                    "<0.001",
-                    "[-0.1445, -0.1194]",
-                ]),
-            ],
-            more: Vec::new(),
-        },
+        columns: vec![
+            ("term".to_string(), Align::Left),
+            ("estimate".to_string(), Align::Right),
+            ("std.error".to_string(), Align::Right),
+            ("t value".to_string(), Align::Right),
+            ("p value".to_string(), Align::Right),
+            ("95% CI".to_string(), Align::Left),
+        ],
+        rows: vec![
+            row([
+                "(intercept)",
+                "1.7873",
+                "0.0236",
+                "75.74",
+                "<0.001",
+                "[1.7410, 1.8335]",
+            ]),
+            row([
+                "educ",
+                "0.0758",
+                "0.0014",
+                "55.80",
+                "<0.001",
+                "[0.0731, 0.0785]",
+            ]),
+            row([
+                "exper",
+                "0.0421",
+                "0.0016",
+                "26.36",
+                "<0.001",
+                "[0.0389, 0.0452]",
+            ]),
+            row([
+                "exper^2",
+                "-0.0007",
+                "0.0001",
+                "-13.09",
+                "<0.001",
+                "[-0.0008, -0.0006]",
+            ]),
+            row([
+                "female",
+                "-0.1319",
+                "0.0064",
+                "-20.63",
+                "<0.001",
+                "[-0.1445, -0.1194]",
+            ]),
+        ],
         after: vec!["R² 0.210 · adjusted R² 0.210".to_string()],
+        more: Vec::new(),
     }
 }
 
@@ -196,13 +189,13 @@ pub fn sample() -> Summary {
 /// it, and the lines above and below the printed grid as notes under the rules; a further table
 /// follows after a blank line. The file is meant for `\input` inside a `table` environment of a
 /// document that loads `booktabs`.
-pub fn tex(summary: &Summary) -> String {
+pub fn tex(table: &Table) -> String {
     let mut out = String::from("% requires \\usepackage{booktabs}\n");
-    table_tex(&mut out, &summary.table, &summary.before, &summary.after);
+    table_tex(&mut out, table);
     out
 }
 
-fn table_tex(out: &mut String, table: &Table, before: &[String], after: &[String]) {
+fn table_tex(out: &mut String, table: &Table) {
     let k = table.columns.len().max(1);
     out.push_str(&format!("% {}\n", table.title.replace('\n', " ")));
     let spec: String = table
@@ -227,7 +220,7 @@ fn table_tex(out: &mut String, table: &Table, before: &[String], after: &[String
         out.push_str(&row(escaped));
     }
     out.push_str("\\bottomrule\n");
-    for line in before.iter().chain(after) {
+    for line in table.before.iter().chain(&table.after) {
         out.push_str(&format!(
             "\\multicolumn{{{k}}}{{@{{}}l@{{}}}}{{\\footnotesize {}}} \\\\\n",
             escape_tex(line)
@@ -236,7 +229,7 @@ fn table_tex(out: &mut String, table: &Table, before: &[String], after: &[String
     out.push_str("\\end{tabular}\n");
     for further in &table.more {
         out.push('\n');
-        table_tex(out, further, &[], &[]);
+        table_tex(out, further);
     }
 }
 
@@ -291,8 +284,8 @@ const RELATIONSHIPS: &str = concat!(
 /// The Word form: a zip container with the three parts a document needs, `[Content_Types].xml`,
 /// `_rels/.rels` and `word/document.xml`, stored uncompressed with the timestamp of 1 January
 /// 1980, so that the bytes depend on the table alone.
-pub fn docx(summary: &Summary) -> Vec<u8> {
-    let document = document_xml(summary);
+pub fn docx(table: &Table) -> Vec<u8> {
+    let document = document_xml(table);
     zip(&[
         ("[Content_Types].xml", CONTENT_TYPES.as_bytes()),
         ("_rels/.rels", RELATIONSHIPS.as_bytes()),
@@ -304,12 +297,12 @@ pub fn docx(summary: &Summary) -> Vec<u8> {
 /// with a rule above and below it and under its headings, numbers to the right as the printed
 /// table has them, and the lines below the grid in small type; a further table follows its own
 /// title.
-pub fn document_xml(summary: &Summary) -> String {
+pub fn document_xml(table: &Table) -> String {
     let mut x = String::from(concat!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n",
         "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>"
     ));
-    table_xml(&mut x, &summary.table, &summary.before, &summary.after);
+    table_xml(&mut x, table);
     x.push_str("</w:body></w:document>");
     x
 }
@@ -321,9 +314,9 @@ enum Style {
     Note,
 }
 
-fn table_xml(x: &mut String, table: &Table, before: &[String], after: &[String]) {
+fn table_xml(x: &mut String, table: &Table) {
     paragraph(x, &table.title, Style::Title);
-    for line in before {
+    for line in &table.before {
         paragraph(x, line, Style::Plain);
     }
     // Column widths in twentieths of a point: five and a half points per character and a margin.
@@ -375,12 +368,12 @@ fn table_xml(x: &mut String, table: &Table, before: &[String], after: &[String])
         x.push_str("</w:tr>");
     }
     x.push_str("</w:tbl>");
-    for line in after {
+    for line in &table.after {
         paragraph(x, line, Style::Note);
     }
     for further in &table.more {
         paragraph(x, "", Style::Plain);
-        table_xml(x, further, &[], &[]);
+        table_xml(x, further);
     }
 }
 

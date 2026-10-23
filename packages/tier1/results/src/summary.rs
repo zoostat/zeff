@@ -5,10 +5,11 @@
 use crate::design::Design;
 use crate::estimator::Fitted;
 use zeff_core::display::{fixed, p_value_text};
-use zeff_core::value::{Align, Distribution, Fit, Summary, Table};
+use zeff_core::value::{Align, Distribution, Fit, Table};
 use zeff_diagnostics::count;
 use zeff_dist::families;
 use zeff_kernels::Matrix;
+use zeff_numeric::order::WeightKind;
 
 /// What the summary says about the fit besides the table: the method, the formula, how the
 /// standard errors were computed (as the summary's line writes it), the degrees of freedom of
@@ -98,6 +99,7 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
             + 1.0
             + zeff_numeric::maths::log(rss / n_obs));
     let sigma = (rss / residual_df).sqrt();
+    let (term_sd, outcome_sd) = deviations(design, fitted);
     let summary = summary_of(
         design,
         &terms,
@@ -143,6 +145,8 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         sigma,
         condition_number: fitted.condition_number,
         notes: design.notes.clone(),
+        term_sd,
+        outcome_sd,
         summary,
     }
 }
@@ -173,7 +177,7 @@ fn summary_of(
     setting: &Setting<'_>,
     r_squared: Option<f64>,
     adjusted: Option<f64>,
-) -> Summary {
+) -> Table {
     let mut before = Vec::new();
     let n_line = match &setting.n_note {
         Some(note) => format!("N = {} ({note})", count(setting.n as u64)),
@@ -213,8 +217,10 @@ fn summary_of(
             ),
         ]);
     }
-    let table = Table {
+    let measure = |x: Option<f64>| x.map_or("NA".to_string(), |v| fixed(v, 3));
+    Table {
         title: format!("{} · {}", setting.method, setting.formula),
+        before,
         columns: vec![
             ("term".to_string(), Align::Left),
             ("estimate".to_string(), Align::Right),
@@ -224,19 +230,74 @@ fn summary_of(
             (level_heading(setting.level), Align::Left),
         ],
         rows: rows_out,
+        after: vec![format!(
+            "R² {} · adjusted R² {}",
+            measure(r_squared),
+            measure(adjusted)
+        )],
         more: Vec::new(),
-    };
-    let measure = |x: Option<f64>| x.map_or("NA".to_string(), |v| fixed(v, 3));
-    let after = vec![format!(
-        "R² {} · adjusted R² {}",
-        measure(r_squared),
-        measure(adjusted)
-    )];
-    Summary {
-        before,
-        table,
-        after,
     }
+}
+
+/// The standard deviation of each kept column and of the outcome over the rows used, for the
+/// standardized coefficients of question 3 (d): under frequency weights each row counts as its
+/// weight, the divisor N − 1 with N their sum, as R computes them on the replicated rows; under
+/// analytic and sampling weights, and without weights, each row counts once, as R's `sd` of the
+/// model matrix does. Two passes over the blocks, the rows unscaled by their weights.
+fn deviations(design: &Design, fitted: &Fitted) -> (Vec<f64>, f64) {
+    let kept = &fitted.kept;
+    let n = design.n();
+    let weights = design.weights.as_ref();
+    let frequency = design.weight_kind == Some(WeightKind::Frequency);
+    let count_of = |row: usize| -> f64 {
+        if frequency {
+            weights.map_or(1.0, |w| w[row])
+        } else {
+            1.0
+        }
+    };
+    let root_of = |row: usize| -> f64 { weights.map_or(1.0, |w| w[row].sqrt()) };
+    let total: f64 = (0..n).map(count_of).sum();
+    let mut sums = vec![0.0; kept.len()];
+    for block in design.blocks() {
+        for r in 0..block.x.rows() {
+            let row = block.start + r;
+            let (count, root) = (count_of(row), root_of(row));
+            for (p, &c) in kept.iter().enumerate() {
+                sums[p] += count * block.x.get(r, c) / root;
+            }
+        }
+    }
+    let means: Vec<f64> = sums.iter().map(|s| s / total).collect();
+    let mut squares = vec![0.0; kept.len()];
+    for block in design.blocks() {
+        for r in 0..block.x.rows() {
+            let row = block.start + r;
+            let (count, root) = (count_of(row), root_of(row));
+            for (p, &c) in kept.iter().enumerate() {
+                let d = block.x.get(r, c) / root - means[p];
+                squares[p] += count * d * d;
+            }
+        }
+    }
+    let sd = |square: f64| -> f64 {
+        if total > 1.0 {
+            (square / (total - 1.0)).sqrt()
+        } else {
+            0.0
+        }
+    };
+    let term_sd: Vec<f64> = squares.iter().map(|&s| sd(s)).collect();
+    let outcome_sd = match design.outcome() {
+        Some(y) => {
+            let mean: f64 = (0..n).map(|r| count_of(r) * y[r]).sum::<f64>() / total;
+            sd((0..n)
+                .map(|r| count_of(r) * (y[r] - mean) * (y[r] - mean))
+                .sum())
+        }
+        None => 0.0,
+    };
+    (term_sd, outcome_sd)
 }
 
 /// `228 rows dropped for NA in model variables; 12 rows with zero weight left out`, or `None`

@@ -113,6 +113,8 @@ regress/clustered/stdout c468af3ee1c58d49
 regress/clustered/stderr 87dd24d632bfd4d4
 regress/weighted/stdout aeb6bde8c819a0fc
 regress/weighted/stderr 0379ea182b39c370
+regress/interface/stdout 08c3aafc8156baa5
+regress/interface/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
 export/sample.tex 79622a8e73235482
 kernels/reductions 7a3f4eedc240791f

@@ -32,6 +32,7 @@ fn result(
         p_value: p,
         after: after.iter().map(|s| s.to_string()).collect(),
         notes: Vec::new(),
+        n: 18_179,
     }))
 }
 
@@ -68,6 +69,8 @@ fn a_test_result_prints_in_the_shape_of_section_10_2() {
             ],
         ],
         more: Vec::new(),
+        before: Vec::new(),
+        after: Vec::new(),
     };
     let compare = result(
         "compare · m2 against m1",

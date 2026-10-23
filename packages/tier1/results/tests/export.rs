@@ -3,7 +3,7 @@
 //! check value, the escapes, the formats by extension, a further table, and the committed
 //! reference files that continuous integration checks with Python's `zipfile`.
 
-use zeff_core::value::{Align, Summary, Table};
+use zeff_core::value::{Align, Table};
 use zeff_results::export::{
     Format, crc32, document_xml, docx, escape_tex, escape_xml, sample, tex, zip,
 };
@@ -95,20 +95,20 @@ fn a_further_table_and_a_short_row_write() {
         columns: vec![("a".to_string(), Align::Left)],
         rows: vec![vec!["x".to_string()]],
         more: Vec::new(),
-    };
-    let outer = Summary {
         before: Vec::new(),
-        table: Table {
-            title: "correlation".to_string(),
-            columns: vec![
-                ("a".to_string(), Align::Left),
-                ("b".to_string(), Align::Right),
-            ],
-            // A row with fewer cells than columns is padded, never truncated.
-            rows: vec![vec!["only".to_string()]],
-            more: vec![inner],
-        },
         after: Vec::new(),
+    };
+    let outer = Table {
+        title: "correlation".to_string(),
+        before: Vec::new(),
+        columns: vec![
+            ("a".to_string(), Align::Left),
+            ("b".to_string(), Align::Right),
+        ],
+        // A row with fewer cells than columns is padded, never truncated.
+        rows: vec![vec!["only".to_string()]],
+        after: Vec::new(),
+        more: vec![inner],
     };
     let text = tex(&outer);
     assert_eq!(text.matches("\\begin{tabular}").count(), 2);

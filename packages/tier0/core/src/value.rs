@@ -47,8 +47,13 @@ pub enum Align {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Table {
     pub title: String,
+    /// Lines printed between the title and the grid (a result's `N = …` and standard-error
+    /// lines); empty for a plain table.
+    pub before: Vec<String>,
     pub columns: Vec<(String, Align)>,
     pub rows: Vec<Vec<String>>,
+    /// Lines printed after the grid (a result's fit measures); empty for a plain table.
+    pub after: Vec<String>,
     /// Further tables printed after this one, each with its own title (the p-values and the N
     /// per pair of `correlation`), separated by a blank line.
     pub more: Vec<Table>,
@@ -166,15 +171,6 @@ impl fmt::Display for Formula {
     }
 }
 
-/// The printed summary of a result (Language Reference, section 10.2): the lines between the
-/// title and the grid, the grid, and the lines after it.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Summary {
-    pub before: Vec<String>,
-    pub table: Table,
-    pub after: Vec<String>,
-}
-
 /// A fitted model as a value (Language Reference, section 4: `RegFit` and the result types to
 /// come, every one of them a `Result`): what every estimator fills and `results` reads (Engine
 /// and Project Specification, section 8.1, rule 5). The columns with an estimate are `terms`;
@@ -218,7 +214,14 @@ pub struct Fit {
     pub sigma: f64,
     pub condition_number: f64,
     pub notes: Vec<String>,
-    pub summary: Summary,
+    /// The standard deviation of each term's column over the rows used, and the outcome's, for
+    /// the standardized coefficients (question 3 (d) of release 0.4.0); zero for a column without
+    /// variation, such as the intercept.
+    pub term_sd: Vec<f64>,
+    pub outcome_sd: f64,
+    /// The printed summary (section 10.2): the title, the lines before the grid, the table and
+    /// the lines after it.
+    pub summary: Table,
 }
 
 /// A test statistic with its degrees of freedom: `F(1, 18179)`, `t(23.4)`, `z`.
@@ -254,6 +257,8 @@ pub struct TestResult {
     /// Lines under the statistic line.
     pub after: Vec<String>,
     pub notes: Vec<String>,
+    /// The observations the test rests on (`n_obs`).
+    pub n: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
