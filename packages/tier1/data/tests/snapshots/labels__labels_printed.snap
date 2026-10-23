@@ -1,0 +1,32 @@
+---
+source: packages/tier1/data/tests/labels.rs
+expression: "format!(\"{stdout}--- messages ---\\n{}\", without_format_notes(&stderr))"
+---
+l · 6 rows × 4 variables · panel worker × year
+
+      worker   year   educ        union
+  1        1   2015   seventeen   non-member
+  2        1   2016   seventeen   non-member
+  3        1   2017   seventeen   non-member
+  4        1   2018   seventeen   non-member
+  5        1   2019   seventeen   non-member
+  6        1   2020   seventeen   non-member
+l · 6 rows × 4 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int                   6         0   1
+  year       Int                   6         0   2015
+  educ       Int (lab)             6         0   seventeen
+  union      Int (lab)             6         0   non-member
+summary · by union
+
+  union        variable   N   missing     mean      sd      min      max
+  non-member   educ       6         0   17.000   0.000   17.000   17.000
+seventeen
+frame · 2 rows × 4 variables · panel worker × year
+
+      worker   year   educ        union
+  1        1   2015   seventeen   non-member
+  2        1   2016   seventeen   non-member
+--- messages ---
+note: `educ` recoded: 6 rows changed; the value labels follow their codes (line 7)

@@ -27,6 +27,15 @@ const PHRASES: &[(&str, &[&str])] = &[
     ),
     ("W0602", &["levels, more than"]),
     (
+        "W0206",
+        &[
+            "is not a level of `",
+            "is not a value of `",
+            "keys are none of the levels of `",
+            "keys are none of the values of `",
+        ],
+    ),
+    (
         "W0204",
         &[
             "division by zero gave",

@@ -523,8 +523,12 @@ pub fn update(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                         ),
                     )
                     .in_file(ctx.script)
-                    .primary(span, "arrives with the package that computes on it")
-                    .help("dates and categories gain their functions with release 0.3.0"),
+                    .primary(span, "a variable `update` does not change")
+                    .help(if other == ColumnType::Category {
+                        "`recode` merges or renames a category's levels; `add` replaces the variable"
+                    } else {
+                        "dates and times gain their functions at 0.6.0 with the `time` package"
+                    }),
                 ));
             }
         };

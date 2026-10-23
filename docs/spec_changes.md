@@ -66,3 +66,11 @@ The owner's decisions after step 1 of release 0.4.0 recorded in the register: #3
 ## 23 October 2026 — zeff_functions.csv, rows 36 (`to`) and 37 (`is`), usage
 
 The usages were written `x.to(Type)` and `x.is(Type)`, the parameter's type where every other row writes the parameter's name (`name(required, optional: Type = default)`, section 9), so the registry, which checks each registered parameter against the usage, had no name for the type argument; the same slip as `dist.mixture`'s at 0.3.0. Corrected to `x.to(type)` and `x.is(type)`. Found at release 0.4.0, step 4.
+
+## 23 October 2026 — zeff_functions.csv, rows 122 (`label`) and 123 (`recode`), usage
+
+The usages were written `data.label(var, [code => ""text"", ...])` and `data.recode(var, [old => new, ...])`, an example literal where every other row writes the parameter's name (section 9), so the registry had no name for the second argument of either; the same slip as `dist.mixture`'s at 0.3.0 and `to`'s at step 4. Corrected to `data.label(var, labels)` and `data.recode(var, mapping)`, as the owner's decision on question 6 of release 0.4.0 says. Found at release 0.4.0, step 6.
+
+## 23 October 2026 — zeff_language_reference.md, section 5.6, a row for W0206
+
+The owner's decision on question 6 of release 0.4.0 makes a key of `recode` that is no value or level of the variable a warning naming it, as forcats warns; the table of section 5.6 had no row and no code for it. A row is added with the code W0206, the next of the W02xx family (types and values), the warning carrying on with the other keys applied. The specification freeze ended at 0.3.0; the row implements a decision the register records and settles nothing else.

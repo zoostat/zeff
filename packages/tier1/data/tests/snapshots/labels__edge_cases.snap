@@ -1,0 +1,98 @@
+---
+source: packages/tier1/data/tests/labels.rs
+expression: "format!(\"{stdout}--- messages ---\\n{}\", without_format_notes(&stderr))"
+---
+0
+Column<Int> · 3 values
+0
+0
+0
+frame · 1 row × 3 variables
+
+       x   y   flag
+  1   42   4   true
+Zurich
+café
+café
+東京
+Column<Bool> · 5 values
+false
+false
+false
+false
+false
+Column<Float> · 3 values
+9
+9
+1.5
+Agriculture
+Other
+Utilities
+Construction
+Manufacturing
+Retail
+Transport
+Finance
+Services
+Education
+Health
+Public administration
+Retail
+Other
+frame · 12 rows × 11 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int                  12         0   1
+  year       Int                  12         0   2015
+  wage       Float                12         0   18.08
+  educ       Int                  12         0   17
+  exper      Int                  12         0   9
+  age        Int                  12         0   32
+  hours      Float                12         0   45.1
+  union      Int (lab)            12         0   no
+  female     Int (lab)            12         0   male
+  industry   Category             12         0   Retail (12 levels)
+  i          Category              0        12   NA
+frame · 12 rows × 10 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int                  12         0   1
+  year       Int                  12         0   2015
+  wage       Float                12         0   18.08
+  educ       Int                  12         0   17
+  exper      Int                  12         0   9
+  age        Int                  12         0   32
+  hours      Float                12         0   45.1
+  union      Int (lab)            12         0   no
+  female     Int (lab)            12         0   male
+  industry   Category             12         0   Retail (12 levels)
+Column<Int> · 8 values
+1
+1
+1
+1
+1
+1
+1
+0
+--- messages ---
+warning: `recode`: "a" is not a value of `x` (line 2)
+  = help: check the spelling or the type of the key; the other keys were applied
+note: `x` recoded: no row changed (line 2)
+note: `x` recoded: 3 rows changed (line 4)
+note: `y` recoded: 1 row changed (line 6)
+warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 7)
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
+note: `city` replaced the variable of that name (line 7)
+warning: `recode`: NA is not a level of `city` (line 8)
+  = help: `levels(city)` lists the levels; the other keys were applied
+note: `city` recoded: 1 row changed; 4 levels (line 8)
+note: `female` recoded: 2 rows changed (line 10)
+note: `x` recoded: 2 rows changed (line 11)
+note: `industry` recoded: no row changed; 12 levels (line 13)
+warning: 5 values are none of the levels given and became NA: "Manufacturing", "Public administration" (line 14)
+  = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards
+note: `i` recoded: 5 rows changed; 2 levels, from 1 (line 15)
+note: `i` recoded: 7 rows changed; 0 levels, from 1 (line 16)
+note: `union` recoded: 4 rows changed; the value labels follow their codes (line 17)
+note: `union` recoded: 12 rows changed; the value labels follow their codes (line 18)

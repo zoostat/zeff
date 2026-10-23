@@ -1,0 +1,239 @@
+---
+source: packages/tier1/data/tests/labels.rs
+expression: all
+---
+> let w = dataset(wages).head(3)
+w.label(nope, "x")
+error[Z0101]: no variable `nope` in `w`
+ --> scripts/main.zeff:2:9
+  |
+2 | w.label(nope, "x")
+  |         ^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+[exit 1]
+
+> let w = dataset(wages).head(3)
+w.label(wage, [1 => "one"])
+error[Z0401]: value labels name the codes of an Int variable, but `wage` is a Float variable
+ --> scripts/main.zeff:2:9
+  |
+2 | w.label(wage, [1 => "one"])
+  |         ^^^^ not an Int variable
+  |
+  = help: `to(wage, Int)` gives whole numbers to label when the values are whole
+[exit 1]
+
+> let w = dataset(wages).head(3)
+w.label(industry, [1 => "one"])
+error[Z0401]: value labels name the codes of an Int variable, but `industry` is a Category variable
+ --> scripts/main.zeff:2:9
+  |
+2 | w.label(industry, [1 => "one"])
+  |         ^^^^^^^^ not an Int variable
+  |
+  = help: a category's levels are its labels; `recode(industry, ["old" => "new"])` renames them
+[exit 1]
+
+> let u = import("data/unicode_labels.csv")
+u.label(city, [1 => "one"])
+warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
+error[Z0401]: value labels name the codes of an Int variable, but `city` is a Str variable
+ --> scripts/main.zeff:2:9
+  |
+2 | u.label(city, [1 => "one"])
+  |         ^^^^ not an Int variable
+  |
+  = help: `category(city)` makes a category whose levels are the texts; `to(city, Int)` gives codes to label
+[exit 1]
+
+> let w = import("data/wages_large.csv").head(3)
+w.label(female, [1 => "one"])
+error[Z0401]: value labels name the codes of an Int variable, but `female` is a Bool variable
+ --> scripts/main.zeff:2:9
+  |
+2 | w.label(female, [1 => "one"])
+  |         ^^^^^^ not an Int variable
+  |
+  = help: `to(female, Int)` gives whole numbers to label when the values are whole
+[exit 1]
+
+> let w = dataset(wages).head(3)
+w.label(educ, [NA => "none"])
+error[Z0401]: a code is a whole number, but the mapping holds NA
+ --> scripts/main.zeff:2:15
+  |
+2 | w.label(educ, [NA => "none"])
+  |               ^^^^^^^^^^^^^^ the labels
+  |
+  = help: write `[0 => "male", 1 => "female"]`: each code once, its label in quotes
+[exit 1]
+
+> let w = dataset(wages).head(3)
+w.label(educ, [1 => NA])
+error[Z0401]: a value label is text, but the mapping holds NA
+ --> scripts/main.zeff:2:15
+  |
+2 | w.label(educ, [1 => NA])
+  |               ^^^^^^^^^ the labels
+  |
+  = help: write `[0 => "male", 1 => "female"]`: each code once, its label in quotes
+[exit 1]
+
+> let w = dataset(wages).head(3)
+w.label(educ, [1.5 => "x"])
+error[Z0401]: `labels` of `label` must be a Str or Mapping<Int, Str>, but this is a Mapping<Float, Str>
+ --> scripts/main.zeff:2:15
+  |
+2 | w.label(educ, [1.5 => "x"])
+  |               ^^^^^^^^^^^^ a Mapping<Float, Str>
+  |
+  = help: usage: `data.label(var, labels)`
+[exit 1]
+
+> let w = dataset(wages).head(3)
+w.label(educ, 3)
+error[Z0401]: `labels` of `label` must be a Str or Mapping<Int, Str>, but this is an Int
+ --> scripts/main.zeff:2:15
+  |
+2 | w.label(educ, 3)
+  |               ^ an Int
+  |
+  = help: usage: `data.label(var, labels)`
+[exit 1]
+
+> let w = dataset(wages).head(12)
+w.recode(industry, ["Retail" => "Shop", "Farming" => "Shop"]).n_rows()
+12
+warning: `recode`: "Farming" is not a level of `industry` (line 2)
+  = help: `levels(industry)` lists the levels; the other keys were applied
+note: `industry` recoded: 7 rows changed; 12 levels (line 2)
+[exit 0]
+
+> let w = dataset(wages).head(12)
+w.recode(industry, ["Farming" => "Shop", "Fishing" => "Shop"]).n_rows()
+12
+warning: `recode`: 2 keys are none of the levels of `industry`: "Farming", "Fishing" (line 2)
+  = help: `levels(industry)` lists the levels; the other keys were applied
+note: `industry` recoded: no row changed; 12 levels (line 2)
+[exit 0]
+
+> let w = dataset(wages).head(12)
+w.recode(educ, [99 => 1]).n_rows()
+12
+warning: `recode`: 99 is not a value of `educ` (line 2)
+  = help: check the spelling or the type of the key; the other keys were applied
+note: `educ` recoded: no row changed (line 2)
+[exit 0]
+
+> let w = dataset(wages).head(12)
+w.recode(educ, [99 => 1, NA => 1]).n_rows()
+12
+warning: `recode`: 2 keys are none of the values of `educ`: 99, NA (line 2)
+  = help: check the spelling or the type of the key; the other keys were applied
+note: `educ` recoded: no row changed (line 2)
+[exit 0]
+
+> let w = dataset(wages).head(12)
+w.recode(educ, ["17" => 1])
+error[Z0401]: `educ` is an Int variable, but a key of the mapping is a Str
+ --> scripts/main.zeff:2:16
+  |
+2 | w.recode(educ, ["17" => 1])
+  |                ^^^^^^^^^^^ a key or value of another kind
+  |
+  = help: `recode` keeps a variable's type, so the keys and values are whole numbers or `NA`; `add(educ = ...)` makes a variable of another type
+[exit 1]
+
+> let w = dataset(wages).head(12)
+w.recode(female, ["male" => 2])
+error[Z0401]: `female` is an Int variable, but a key of the mapping is a Str
+ --> scripts/main.zeff:2:18
+  |
+2 | w.recode(female, ["male" => 2])
+  |                  ^^^^^^^^^^^^^ a key or value of another kind
+  |
+  = help: write the code a label stands for, `[0 => 2]`; `category(female)` makes a category whose levels are the labels, which `recode` merges by name
+[exit 1]
+
+> let w = dataset(wages).head(12)
+w.recode(educ, [17 => 1.5])
+error[Z0401]: `educ` is an Int variable, but a value of the mapping is a Float
+ --> scripts/main.zeff:2:16
+  |
+2 | w.recode(educ, [17 => 1.5])
+  |                ^^^^^^^^^^^ a key or value of another kind
+  |
+  = help: `recode` keeps a variable's type, so the keys and values are whole numbers or `NA`; `add(educ = ...)` makes a variable of another type
+[exit 1]
+
+> let w = dataset(wages).head(12)
+w.recode(industry, [1 => "x"])
+error[Z0401]: `industry` is a Category variable, but a key of the mapping is an Int
+ --> scripts/main.zeff:2:20
+  |
+2 | w.recode(industry, [1 => "x"])
+  |                    ^^^^^^^^^^ a key or value of another kind
+  |
+  = help: the keys are levels and the values new names, both in quotes, or `NA`; `levels(industry)` lists the levels
+[exit 1]
+
+> let w = dataset(wages).head(12)
+w.recode(wage, [true => 1])
+error[Z0401]: `wage` is a Float variable, but a key of the mapping is a Bool
+ --> scripts/main.zeff:2:16
+  |
+2 | w.recode(wage, [true => 1])
+  |                ^^^^^^^^^^^ a key or value of another kind
+  |
+  = help: `recode` keeps a variable's type, so the keys and values are numbers or `NA`; `add(wage = ...)` makes a variable of another type
+[exit 1]
+
+> let w = import("data/wages_large.csv").head(3)
+w.recode(female, ["yes" => true])
+error[Z0401]: `female` is a Bool variable, but a key of the mapping is a Str
+ --> scripts/main.zeff:2:18
+  |
+2 | w.recode(female, ["yes" => true])
+  |                  ^^^^^^^^^^^^^^^ a key or value of another kind
+  |
+  = help: `recode` keeps a variable's type, so the keys and values are `true` or `false` or `NA`; `add(female = ...)` makes a variable of another type
+[exit 1]
+
+> let w = dataset(wages).head(3)
+w.recode(nope, [1 => 2])
+error[Z0101]: no variable `nope` in `w`
+ --> scripts/main.zeff:2:10
+  |
+2 | w.recode(nope, [1 => 2])
+  |          ^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+[exit 1]
+
+> let w = dataset(wages).head(3)
+w.recode(educ, 3)
+error[Z0401]: `mapping` of `recode` must be a Mapping, but this is an Int
+ --> scripts/main.zeff:2:16
+  |
+2 | w.recode(educ, 3)
+  |                ^ an Int
+  |
+  = help: usage: `data.recode(var, mapping)`
+[exit 1]
+
+> a date column
+d · 2 rows × 2 variables
+
+  variable   type   non-missing   missing   example
+  day        Date             2         0   2024-01-05
+  n          Int              2         0   1
+error[Z0304]: `recode` on a Date variable arrives at 0.6.0 with the `time` package
+ --> scripts/main.zeff:3:10
+  |
+3 | d.recode(day, ["2024-01-05" => "x"])
+  |          ^^^ a date or time variable
+  |
+  = help: `to(x, Str)` gives text to recode until then
+[exit 1]

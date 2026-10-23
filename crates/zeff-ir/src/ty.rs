@@ -108,6 +108,7 @@ impl Ty {
             "Vars" => Ty::Vars,
             "Type" => Ty::Type,
             "List" => Ty::List(Box::new(Ty::Any)),
+            "Mapping" => Ty::Mapping(Box::new(Ty::Any), Box::new(Ty::Any)),
             "Column" => Ty::Column(Box::new(Ty::Unknown)),
             "Record" => Ty::AnyRecord,
             _ => return None,
@@ -198,6 +199,7 @@ impl fmt::Display for Ty {
             Ty::Column(t) => write!(f, "Column<{t}>"),
             Ty::List(t) if **t == Ty::Any => write!(f, "List"),
             Ty::List(t) => write!(f, "List<{t}>"),
+            Ty::Mapping(k, v) if **k == Ty::Any && **v == Ty::Any => write!(f, "Mapping"),
             Ty::Mapping(k, v) => write!(f, "Mapping<{k}, {v}>"),
             Ty::Record(fields) => {
                 write!(f, "{{")?;
@@ -229,6 +231,7 @@ mod tests {
     fn signatures_parse_and_print() {
         for text in [
             "Frame",
+            "Mapping",
             "Var",
             "Vars",
             "Str",

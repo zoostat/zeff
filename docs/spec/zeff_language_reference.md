@@ -737,6 +737,7 @@ Every problem that can arise while a correct-looking script runs is one of the f
 | `xs[i]` outside `1..len(xs)`, `xs[NA]`, `first([])`, `last([])` | Error giving the index and the length | Z0207 |
 | `m[k]` with an absent mapping key | Error naming the key | Z0204 |
 | `to(x, T)` or `date(s)` that cannot convert | `NA`, with a warning giving the count and three failing values; a Float with a fraction converted to Int likewise | W0203, W0202 |
+| A key of `recode` that no row holds, or that is no level of the category | The other keys are applied, with a warning naming the key | W0206 |
 | `slice(s, start, len)` past the end of the text | The characters that exist; no warning | |
 | A numeric range `5..2` | An empty list; a variable range out of order is a check-time error (section 3.7) | |
 | `if` or `assert` on `NA` or on a column | Error | Z0203 |

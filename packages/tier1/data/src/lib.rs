@@ -3,6 +3,7 @@
 pub mod csv;
 pub mod frame;
 pub mod import;
+pub mod labels;
 pub mod look;
 pub mod names;
 pub mod reducers;
@@ -346,6 +347,59 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: verbs::update,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "label",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::required("labels", "Str | Mapping<Int, Str>"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0101", "the variable is not in the frame"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "value labels on a variable that is not an Int, or a code or a label of another kind",
+                    ),
+                ],
+                help: include_str!("../help/label.md"),
+                accuracy: None,
+            },
+            body: labels::label,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "recode",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::required("mapping", "Mapping"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows changed, the levels that remain, and whether value labels moved",
+                    ),
+                    DiagnosticDecl::new("W0206", "a key that is no value or level of the variable"),
+                    DiagnosticDecl::new("Z0101", "the variable is not in the frame"),
+                    DiagnosticDecl::new("Z0304", "the variable is a Date or DateTime"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a key or a value of another kind than the variable's",
+                    ),
+                ],
+                help: include_str!("../help/recode.md"),
+                accuracy: None,
+            },
+            body: labels::recode,
         },
         Function {
             spec: FunctionSpec {

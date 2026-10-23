@@ -1192,8 +1192,11 @@ impl Checker<'_> {
         span: Span,
         expected: Option<&Ty>,
     ) -> Expr {
+        // `Mapping<Any, Any>` expects a mapping of any kinds: `Any` is no expectation for the
+        // entries, whose own types are then joined.
+        let not_any = |t: &Ty| (!matches!(t, Ty::Any)).then(|| t.clone());
         let (want_key, want_value) = match expected {
-            Some(Ty::Mapping(k, v)) => (Some((**k).clone()), Some((**v).clone())),
+            Some(Ty::Mapping(k, v)) => (not_any(k), not_any(v)),
             _ => (None, None),
         };
         let mut lowered = Vec::with_capacity(entries.len());

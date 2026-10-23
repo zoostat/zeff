@@ -54,6 +54,53 @@ large_ref$where <- list(
   )
 )
 
+# recode (release 0.4.0, step 6). R's `levels<-` merges levels in place, the merged level standing
+# where the first of its old levels stood, which is the rule of question 6 of the release; values
+# are mapped by match; a labelled Int's labels follow their codes by the rule written out in
+# follow_labels (a code merged into another keeps the label of the first of its old codes). The C
+# locale sorts the levels by bytes, as Zeff sorts by code point.
+Sys.setlocale("LC_COLLATE", "C")
+region <- factor(large$region)
+merge_levels <- function(f, from, to) {
+  l <- levels(f)
+  l[l %in% from] <- to
+  levels(f) <- l
+  f
+}
+codes_and_counts <- function(f) {
+  list(levels = as.list(levels(f)), first_20 = as.list(as.integer(f)[1:20]),
+       counts = as.list(as.integer(table(f))))
+}
+educ <- large$educ
+keys <- c(20L, 12L)
+values <- c(19L, 10L)
+educ2 <- ifelse(educ %in% keys, values[match(educ, keys)], educ)
+hours2 <- large$hours
+hours2[is.na(hours2)] <- 0
+follow_labels <- function(labels, from, to) {
+  codes <- as.integer(names(labels))
+  out <- character(0)
+  for (i in order(codes)) {
+    code <- codes[i]
+    new <- if (code %in% from) to[match(code, from)] else code
+    if (!is.na(new) && !(as.character(new) %in% names(out))) out[as.character(new)] <- labels[[i]]
+  }
+  as.list(out[order(as.integer(names(out)))])
+}
+female_labels <- c("0" = "male", "1" = "female")
+large_ref$recode <- list(
+  region_europe = codes_and_counts(merge_levels(region, c("Zürich", "Łódź"), "Europe")),
+  region_tokyo = codes_and_counts(merge_levels(region, "東京", "Tokyo")),
+  region_into_quebec = codes_and_counts(merge_levels(region, "Łódź", "Québec")),
+  educ_20_to_19_12_to_10 = list(first_20 = as.list(as.integer(educ2[1:20])), changed = sum(educ2 != educ)),
+  hours_na_to_0 = list(changed = sum(is.na(large$hours)), first_20 = as.list(num(hours2[1:20]))),
+  labels = list(
+    move_0_to_2 = follow_labels(female_labels, 0L, 2L),
+    merge_1_into_0 = follow_labels(female_labels, 1L, 0L),
+    swap = follow_labels(female_labels, c(0L, 1L), c(1L, 0L))
+  )
+)
+
 out <- list(
   reference = reference_block(),
   datasets = list(
