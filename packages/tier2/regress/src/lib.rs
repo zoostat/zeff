@@ -35,10 +35,13 @@ pub fn functions() -> Vec<Function> {
                 params: vec![
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::required("formula", "Formula"),
+                    ParamSpec::option("se", "classical | robust | hc2 | hc3"),
+                    ParamSpec::option("cluster", "Var"),
+                    ParamSpec::option("weights", "Var"),
                     ParamSpec::option_with_default(
-                        "se",
-                        "classical | robust | hc2 | hc3",
-                        "classical",
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
                     ),
                     ParamSpec::option_with_default("level", "Float", "0.95"),
                 ],
@@ -46,21 +49,35 @@ pub fn functions() -> Vec<Function> {
                 returns: "RegFit",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "a term written twice kept once; a collinear column dropped; a category of one level",
+                        "a term written twice kept once; a collinear column dropped; a category of one level; rows with a zero weight left out; clusters of one observation",
                     ),
                     DiagnosticDecl::new(
                         "W1001",
                         "near-singular regressors, with the condition number",
                     ),
-                    DiagnosticDecl::new("Z0101", "a variable of the formula is not in the frame"),
+                    DiagnosticDecl::new("W1002", "fewer than 30 clusters"),
+                    DiagnosticDecl::new("W1003", "extreme weights, with the effective sample size"),
+                    DiagnosticDecl::new(
+                        "W1006",
+                        "an observation whose removal moves an estimate by more than its standard error",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "a variable of the formula, `cluster:` or `weights:` is not in the frame",
+                    ),
                     DiagnosticDecl::new("Z0223", "an infinite value in a model variable"),
+                    DiagnosticDecl::new("Z0224", "a negative weight"),
                     DiagnosticDecl::new(
                         "Z0304",
-                        "a kind of standard error not yet available, or a date in the model before release 0.6.0",
+                        "`se: bootstrap` before release 1.1, or a date in the model before 0.6.0",
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "text in the model, a category as the outcome, or a level outside 0 to 1",
+                        "text in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a number, or a frequency weight with a fraction",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0410",
+                        "`se: classical` with sampling weights, or `se: hc2` or `hc3` with `cluster:`",
                     ),
                     DiagnosticDecl::new(
                         "Z0801",
@@ -68,7 +85,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0802",
-                        "no regressor remains, or no residual degrees of freedom",
+                        "no regressor remains, no residual degrees of freedom, or one cluster",
                     ),
                 ],
                 help: include_str!("../help/reg.md"),

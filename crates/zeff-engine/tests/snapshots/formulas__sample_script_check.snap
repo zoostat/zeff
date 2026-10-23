@@ -36,18 +36,10 @@ error[Z0103]: no function is called `winsorize`
  --> zeff_samples.zeff:79:33
 error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:88:23
-error[Z0404]: `reg` has no argument called `cluster`
- --> zeff_samples.zeff:88:44
 error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:89:37
-error[Z0404]: `reg` has no argument called `cluster`
- --> zeff_samples.zeff:89:56
 error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:90:23
-error[Z0404]: `reg` has no argument called `cluster`
- --> zeff_samples.zeff:90:42
-error[Z0404]: `reg` has no argument called `weights`
- --> zeff_samples.zeff:90:57
 error[Z0103]: no function is called `test`
  --> zeff_samples.zeff:93:4
 error[Z0103]: no function is called `vif`
@@ -84,8 +76,6 @@ error[Z0103]: no function is called `panel`
  --> zeff_samples.zeff:142:44
 error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:143:45
-error[Z0404]: `reg` has no argument called `cluster`
- --> zeff_samples.zeff:143:64
 error[Z0103]: no function is called `t_test`
  --> zeff_samples.zeff:149:7
 error[Z0103]: no function is called `t_test`
@@ -138,8 +128,6 @@ error[Z0103]: no function is called `plot`
  --> zeff_samples.zeff:209:3
 error[Z0103]: no function is called `export`
  --> zeff_samples.zeff:209:10
-error[Z0404]: `reg` has no argument called `cluster`
- --> zeff_samples.zeff:212:69
 error[Z0103]: no function is called `check`
  --> zeff_samples.zeff:213:4
 error[Z0103]: no function is called `derive`

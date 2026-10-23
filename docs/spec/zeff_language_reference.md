@@ -517,7 +517,7 @@ Zeff has one missing value, `NA`. Invalid results such as `0/0` become `NA` with
 | Comparison | `income > 100` is `NA` where income is `NA`; `NA == NA` is `NA` | Stata treats missing as larger than any number |
 | Filtering | `where(cond)` drops rows where `cond` is `NA` and says how many; `where(age > 30)` and `where(!(age > 30))` therefore both drop rows with `NA` age, and the note of each says so, so the two never silently partition a frame | Stata's `keep if x > 5` keeps missing x |
 | Statistics | `NA` skipped with a warning giving the count; any `Inf` gives `Inf`; `Inf` and `-Inf` together give `NA` with a warning; a sum of all-NA input is `NA` | R needs `na.rm = TRUE`; R and Stata give 0 for an all-missing sum |
-| Weights | A row with `NA` weight is dropped and counted; a negative weight is an error listing the rows; a zero weight leaves the row out of the estimate and the observation count, with a note giving how many (as R's `lm` leaves such rows out of the degrees of freedom) |
+| Weights | A row with `NA` weight is dropped and counted; a negative weight is an error listing the rows (Z0224); a zero weight leaves the row out of the estimate and the observation count, with a note giving how many (as R's `lm` leaves such rows out of the degrees of freedom) |
 | Models | Rows with `NA` in model variables dropped and counted; `Inf` in a model variable is an error listing the rows (Z0223); `missing: fiml` in SEM | Stata drops silently |
 | Groups | `NA` forms its own group, shown as `NA` | pandas drops it |
 | Merge keys | `NA` never matches; such rows are reported as unmatched | dplyr matches NA keys |

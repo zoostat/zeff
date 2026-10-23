@@ -109,6 +109,10 @@ regress/categories/stdout 060df2ee936d339a
 regress/categories/stderr cbf29ce484222325
 regress/collinear/stdout 2079ebeab5646e2c
 regress/collinear/stderr 93834b8fbef08c4f
+regress/clustered/stdout c468af3ee1c58d49
+regress/clustered/stderr 87dd24d632bfd4d4
+regress/weighted/stdout aeb6bde8c819a0fc
+regress/weighted/stderr 0379ea182b39c370
 kernels/reductions 7a3f4eedc240791f
 kernels/least_squares 40ea244b286771b1
 kernels/r_factor eac858aa0c7c3fb3

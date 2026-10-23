@@ -86,3 +86,7 @@ The usage was written `data.reg(y ~ x1 + x2, fe: fe1 + fe2)`, an example where e
 ## 23 October 2026 — zeff_language_reference.md, section 11: the codes Z0801 and Z0802
 
 Section 5.6 makes a model that cannot be estimated a Z08xx error with the diagnosis, and section 11 names only Z0803 (separation) and Z0804 (under-identification). The first regression of release 0.4.0 (step 10) assigns Z0801 to a model with no row left after the rows with `NA` are dropped and Z0802 to a model with no residual degrees of freedom or no regressor at all, and section 11's table gains a row naming them. The freeze ended at 0.3.0; the codes settle nothing else.
+
+## 23 October 2026 — zeff_language_reference.md, section 4.1 ("Weights"): the code of a negative weight
+
+Section 4.1 makes a negative weight an error listing the rows but gives it no code. The variance layer of release 0.4.0 (step 11) raises it as Z0224, the next code of the Z02xx family after Z0223 of step 8; the row of section 4.1 now names it. The freeze ended at 0.3.0; the code settles nothing else.

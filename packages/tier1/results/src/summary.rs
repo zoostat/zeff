@@ -9,27 +9,29 @@ use zeff_core::value::{Align, Distribution, Fit, Summary, Table};
 use zeff_diagnostics::count;
 use zeff_dist::families;
 use zeff_kernels::Matrix;
-use zeff_kernels::reduce::sum_of_squares;
 
-/// What the summary names its standard errors.
-pub struct ErrorKind<'a> {
-    pub word: &'a str,
+/// What the summary says about the fit besides the table: the method, the formula, how the
+/// standard errors were computed (as the summary's line writes it), the degrees of freedom of
+/// the t table, the confidence level, the observation count printed, what its line says in
+/// brackets, and further lines before the grid (the weights).
+pub struct Setting<'a> {
+    pub method: &'a str,
+    pub formula: &'a str,
+    pub se_line: &'a str,
+    pub df: usize,
+    pub level: f64,
+    /// The observation count: the rows used, or the sum of the frequency weights.
+    pub n: usize,
+    pub n_note: Option<String>,
+    pub more_lines: Vec<String>,
 }
 
 /// The fit value of a linear model: the table of estimates under the variance `vcov`, the fit
 /// measures of least squares, and the summary of question 3 (a).
-pub fn linear_fit(
-    design: &Design,
-    fitted: &Fitted,
-    vcov: &Matrix,
-    method: &str,
-    formula: &str,
-    se_kind: &str,
-    level: f64,
-) -> Fit {
+pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Setting<'_>) -> Fit {
     let n = design.n();
     let k = fitted.kept.len();
-    let df_residual = n - k;
+    let df_residual = setting.df;
     let terms: Vec<String> = fitted
         .kept
         .iter()
@@ -55,40 +57,47 @@ pub fn linear_fit(
         .iter()
         .map(|t| 2.0 * families::cdf(&student, t.abs()).upper)
         .collect();
-    let quantile = families::quantile(&student, 1.0 - (1.0 - level) / 2.0);
+    let quantile = families::quantile(&student, 1.0 - (1.0 - setting.level) / 2.0);
     let intervals: Vec<(f64, f64)> = fitted
         .estimates
         .iter()
         .zip(&std_errors)
         .map(|(b, se)| (b - quantile * se, b + quantile * se))
         .collect();
-    // The fit measures: R² against the total sum of squares about the mean with an intercept,
-    // about zero without, as R computes them; undefined when the outcome has no variation.
+    // The fit measures: R² against the total sum of squares about the (weighted) mean with an
+    // intercept, about zero without, as R computes them; undefined when the outcome has no
+    // variation. N is the rows used, or the sum of the frequency weights.
     let y = design.outcome().unwrap_or_default();
+    let weights: Vec<f64> = design.weights.clone().unwrap_or_else(|| vec![1.0; n]);
+    let n_obs = setting.n as f64;
     let total = if design.intercept {
-        let mean = zeff_kernels::sum(&y) / n as f64;
-        let centred: Vec<f64> = y.iter().map(|v| v - mean).collect();
-        sum_of_squares(&centred)
+        let weighted: Vec<f64> = y.iter().zip(&weights).map(|(v, w)| v * w).collect();
+        let mean = zeff_kernels::sum(&weighted) / zeff_kernels::sum(&weights);
+        let centred: Vec<f64> = y
+            .iter()
+            .zip(&weights)
+            .map(|(v, w)| (v - mean) * (v - mean) * w)
+            .collect();
+        zeff_kernels::sum(&centred)
     } else {
-        sum_of_squares(&y)
+        let squares: Vec<f64> = y.iter().zip(&weights).map(|(v, w)| v * v * w).collect();
+        zeff_kernels::sum(&squares)
     };
     let rss = fitted.residual_sum_of_squares;
+    let residual_df = (n_obs - k as f64).max(1.0);
     let (r_squared, adjusted) = if total > 0.0 {
         let r2 = 1.0 - rss / total;
-        let numerator = if design.intercept { n - 1 } else { n } as f64;
-        (
-            Some(r2),
-            Some(1.0 - (1.0 - r2) * numerator / df_residual as f64),
-        )
+        let numerator = if design.intercept { n_obs - 1.0 } else { n_obs };
+        (Some(r2), Some(1.0 - (1.0 - r2) * numerator / residual_df))
     } else {
         (None, None)
     };
     let log_likelihood = -0.5
-        * n as f64
+        * n_obs
         * (zeff_numeric::maths::log(2.0 * std::f64::consts::PI)
             + 1.0
-            + zeff_numeric::maths::log(rss / n as f64));
-    let sigma = (rss / df_residual as f64).sqrt();
+            + zeff_numeric::maths::log(rss / n_obs));
+    let sigma = (rss / residual_df).sqrt();
     let summary = summary_of(
         design,
         &terms,
@@ -98,17 +107,14 @@ pub fn linear_fit(
         &statistics,
         &p_values,
         &intervals,
-        method,
-        formula,
-        se_kind,
-        level,
+        setting,
         r_squared,
         adjusted,
     );
     Fit {
         kind: "RegFit",
-        method: method.to_string(),
-        formula: formula.to_string(),
+        method: setting.method.to_string(),
+        formula: setting.formula.to_string(),
         terms,
         omitted,
         estimates: fitted.estimates.clone(),
@@ -120,9 +126,9 @@ pub fn linear_fit(
             .flat_map(|i| (0..k).map(move |j| (i, j)))
             .map(|(i, j)| vcov.get(i, j))
             .collect(),
-        se_kind: se_kind.to_string(),
-        level,
-        n,
+        se_kind: setting.se_line.to_string(),
+        level: setting.level,
+        n: setting.n,
         dropped: design.dropped,
         dropped_in: design.dropped_in.clone(),
         df_residual,
@@ -152,8 +158,8 @@ fn level_heading(level: f64) -> String {
     format!("{text}% CI")
 }
 
-/// The summary of question 3 (a): `reg · formula`, the N line, the standard-error line, the
-/// table of section 10.2, and the fit measures.
+/// The summary of question 3 (a): `reg · formula`, the N line, the weights line when weighted,
+/// the standard-error line, the table of section 10.2, and the fit measures.
 #[allow(clippy::too_many_arguments)]
 fn summary_of(
     design: &Design,
@@ -164,25 +170,18 @@ fn summary_of(
     statistics: &[f64],
     p_values: &[f64],
     intervals: &[(f64, f64)],
-    method: &str,
-    formula: &str,
-    se_kind: &str,
-    level: f64,
+    setting: &Setting<'_>,
     r_squared: Option<f64>,
     adjusted: Option<f64>,
 ) -> Summary {
     let mut before = Vec::new();
-    let n_line = if design.dropped > 0 {
-        format!(
-            "N = {} ({} dropped for NA in model variables)",
-            count(design.n() as u64),
-            rows(design.dropped)
-        )
-    } else {
-        format!("N = {}", count(design.n() as u64))
+    let n_line = match &setting.n_note {
+        Some(note) => format!("N = {} ({note})", count(setting.n as u64)),
+        None => format!("N = {}", count(setting.n as u64)),
     };
     before.push(n_line);
-    before.push(format!("standard errors: {se_kind}"));
+    before.extend(setting.more_lines.iter().cloned());
+    before.push(format!("standard errors: {}", setting.se_line));
     // The rows in the design's order: an omitted column keeps its place.
     let mut rows_out = Vec::new();
     let mut kept_at = 0;
@@ -215,14 +214,14 @@ fn summary_of(
         ]);
     }
     let table = Table {
-        title: format!("{method} · {formula}"),
+        title: format!("{} · {}", setting.method, setting.formula),
         columns: vec![
             ("term".to_string(), Align::Left),
             ("estimate".to_string(), Align::Right),
             ("std.error".to_string(), Align::Right),
             ("t value".to_string(), Align::Right),
             ("p value".to_string(), Align::Right),
-            (level_heading(level), Align::Left),
+            (level_heading(setting.level), Align::Left),
         ],
         rows: rows_out,
         more: Vec::new(),
@@ -240,7 +239,31 @@ fn summary_of(
     }
 }
 
-fn rows(n: usize) -> String {
+/// `228 rows dropped for NA in model variables; 12 rows with zero weight left out`, or `None`
+/// with nothing to say.
+pub fn n_note(design: &Design) -> Option<String> {
+    let mut parts = Vec::new();
+    if design.dropped > 0 {
+        parts.push(format!(
+            "{} dropped for NA in model variables",
+            rows(design.dropped)
+        ));
+    }
+    if design.zero_weights > 0 {
+        parts.push(format!(
+            "{} with zero weight left out",
+            rows(design.zero_weights)
+        ));
+    }
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join("; "))
+    }
+}
+
+/// `3 rows`, `1 row`.
+pub fn rows(n: usize) -> String {
     format!(
         "{} {}",
         count(n as u64),

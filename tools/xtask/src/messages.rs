@@ -27,6 +27,9 @@ const PHRASES: &[(&str, &[&str])] = &[
     ),
     ("W0602", &["levels, more than"]),
     ("W1001", &["near-singular regressors"]),
+    ("W1002", &["few clusters"]),
+    ("W1003", &["extreme weights"]),
+    ("W1006", &["a coefficient: removing it moves an estimate"]),
     (
         "W0206",
         &[

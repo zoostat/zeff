@@ -21,6 +21,7 @@ use zeff_core::value::{ColumnExpr, Formula, Frame, Term, TermKind, TypeValue, Va
 use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_kernels::Matrix;
+use zeff_numeric::order::WeightKind;
 
 /// The rows of one block of the design, at most: the kernels' shape (open decision #48).
 pub const BLOCK_ROWS: usize = zeff_kernels::qr::BLOCK_ROWS;
@@ -85,6 +86,14 @@ pub struct Design {
     pub notes: Vec<String>,
     /// Whether `(intercept)` is the first column.
     pub intercept: bool,
+    /// The weight of each row used, positive, when the model is weighted (section 6): the blocks
+    /// carry each row scaled by the square root of its weight; analytic weights are scaled to
+    /// sum to the rows used.
+    pub weights: Option<Vec<f64>>,
+    /// The kind of the weights, when weighted.
+    pub weight_kind: Option<WeightKind>,
+    /// Rows left out for a zero weight (section 4.1, "Weights").
+    pub zero_weights: usize,
     columns: Vec<DesignColumn>,
     sources: Vec<Source>,
     outcome: Option<usize>,
@@ -145,11 +154,126 @@ impl Design {
             dropped_in,
             notes: builder.notes,
             intercept: formula.intercept,
+            weights: None,
+            weight_kind: None,
+            zero_weights: 0,
             columns,
             sources: builder.sources,
             outcome,
             block_rows: BLOCK_ROWS,
         })
+    }
+
+    /// The design weighted by the variable `name` of `frame` under `kind` (section 6; section
+    /// 4.1, "Weights"): the variable was given among `extra` when the design was built, so its
+    /// `NA` rows are already dropped; a row with zero weight is left out and counted; a negative
+    /// weight is an error listing the rows; a frequency weight must be a whole number; analytic
+    /// weights are scaled to sum to the rows kept.
+    pub fn weighted(
+        mut self,
+        ctx: &mut CallContext<'_>,
+        frame: &Frame,
+        name: &str,
+        kind: WeightKind,
+    ) -> Result<Design, Fail> {
+        let Some(column) = frame.table.column(name) else {
+            let columns: Vec<&str> = frame.table.names().iter().map(String::as_str).collect();
+            return Err(fail(no_variable(
+                ctx.script,
+                ctx.callee_span,
+                &frame.shown_name(),
+                name,
+                &columns,
+            )));
+        };
+        let values: Vec<Option<f64>> = match column.ty() {
+            ColumnType::Float => column.as_floats().expect("a Float column").collect(),
+            ColumnType::Int => column
+                .as_ints()
+                .expect("an Int column")
+                .map(|v| v.map(|i| i as f64))
+                .collect(),
+            other => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!("`weights:` needs a numeric variable, but `{name}` is {} variable", article(other.name())),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "not a weight")
+                    .help("a weight is a number for each row: a count, a precision or a sampling weight"),
+                ));
+            }
+        };
+        let mut negative: Vec<usize> = Vec::new();
+        let mut fractional: Vec<usize> = Vec::new();
+        for &row in &self.rows {
+            let w = values[row].unwrap_or(0.0);
+            if w < 0.0 {
+                negative.push(row + 1);
+            } else if kind == WeightKind::Frequency && w.fract() != 0.0 {
+                fractional.push(row + 1);
+            }
+        }
+        if !negative.is_empty() {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0224",
+                    format!(
+                        "`{name}` holds a negative weight in {} {}",
+                        if negative.len() == 1 { "row" } else { "rows" },
+                        list_rows(&negative)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "a weight below zero")
+                .help(
+                    "weights are zero or positive; `where(w >= 0)` drops the rows, or recode them",
+                ),
+            ));
+        }
+        if !fractional.is_empty() {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("frequency weights are whole numbers, but `{name}` holds a fraction in {} {}", if fractional.len() == 1 { "row" } else { "rows" }, list_rows(&fractional)),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "a frequency weight with a fraction")
+                .help("a frequency weight counts how many times a row stands; `weight_type: analytic` or `sampling` takes any positive weight"),
+            ));
+        }
+        let before = self.rows.len();
+        self.rows.retain(|&row| values[row].unwrap_or(0.0) > 0.0);
+        self.zero_weights = before - self.rows.len();
+        let mut weights: Vec<f64> = self
+            .rows
+            .iter()
+            .map(|&row| values[row].unwrap_or(0.0))
+            .collect();
+        if kind == WeightKind::Analytic && !weights.is_empty() {
+            let total = zeff_kernels::sum(&weights);
+            let n = weights.len() as f64;
+            for w in &mut weights {
+                *w = *w * n / total;
+            }
+        }
+        self.weights = Some(weights);
+        self.weight_kind = Some(kind);
+        Ok(self)
+    }
+
+    /// The square root of the weight of the row used at `index`, or 1 without weights.
+    fn root_weight(&self, index: usize) -> f64 {
+        self.weights.as_ref().map_or(1.0, |w| w[index].sqrt())
+    }
+
+    /// The sum of the weights of the rows used (the observation count under frequency weights),
+    /// or the number of rows without weights.
+    pub fn weight_total(&self) -> f64 {
+        self.weights
+            .as_ref()
+            .map_or(self.rows.len() as f64, |w| zeff_kernels::sum(w))
     }
 
     /// The same design in blocks of `rows` rows (a test runs every kernel at several sizes).
@@ -215,23 +339,43 @@ impl Design {
             .map(move |start| {
                 let end = (start + self.block_rows).min(self.rows.len());
                 let rows = &self.rows[start..end];
-                let x = Matrix::from_fn(rows.len(), k, |r, c| self.value(c, rows[r]));
-                let y = rows.iter().map(|&row| self.outcome_at(row)).collect();
+                let x = Matrix::from_fn(rows.len(), k, |r, c| {
+                    self.value(c, rows[r]) * self.root_weight(start + r)
+                });
+                let y = rows
+                    .iter()
+                    .enumerate()
+                    .map(|(r, &row)| self.outcome_at(row) * self.root_weight(start + r))
+                    .collect();
                 Block { start, x, y }
             })
     }
 
-    /// The whole design as one matrix: for tests and for small designs only, since it holds
-    /// n × k values.
+    /// The whole design as one matrix, the rows scaled by the square roots of their weights:
+    /// for tests and for small designs only, since it holds n × k values.
     pub fn matrix(&self) -> Matrix {
         let k = self.k();
-        Matrix::from_fn(self.rows.len(), k, |r, c| self.value(c, self.rows[r]))
+        Matrix::from_fn(self.rows.len(), k, |r, c| {
+            self.value(c, self.rows[r]) * self.root_weight(r)
+        })
     }
 
-    /// The outcome of every row used, or `None` for a formula without one.
+    /// The outcome of every row used, unweighted, or `None` for a formula without one.
     pub fn outcome(&self) -> Option<Vec<f64>> {
         self.outcome
             .map(|_| self.rows.iter().map(|&row| self.outcome_at(row)).collect())
+    }
+
+    /// The outcome of every row used, scaled by the square root of its weight, as the blocks
+    /// carry it.
+    pub fn weighted_outcome(&self) -> Option<Vec<f64>> {
+        self.outcome.map(|_| {
+            self.rows
+                .iter()
+                .enumerate()
+                .map(|(r, &row)| self.outcome_at(row) * self.root_weight(r))
+                .collect()
+        })
     }
 }
 
@@ -921,6 +1065,30 @@ impl Builder<'_, '_> {
             }
         }
         (kept, dropped, counts)
+    }
+}
+
+/// `an Int`, `a Float`.
+fn article(type_name: &str) -> String {
+    if type_name.starts_with(['A', 'E', 'I', 'O', 'U']) {
+        format!("an {type_name}")
+    } else {
+        format!("a {type_name}")
+    }
+}
+
+/// Up to ten row numbers, then the count of the rest.
+fn list_rows(rows: &[usize]) -> String {
+    let listed = rows
+        .iter()
+        .take(10)
+        .map(|r| count(*r as u64))
+        .collect::<Vec<_>>()
+        .join(", ");
+    if rows.len() > 10 {
+        format!("{listed} and {} more", count((rows.len() - 10) as u64))
+    } else {
+        listed
     }
 }
 

@@ -19,7 +19,12 @@ R's `lm` and Stata's `regress`.
 ## Arguments
 - data: The frame.
 - formula: `y ~ terms`, written in the call or bound with `let`.
-- se: The kind of standard error; `classical` at this release.
+- se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless
+  sampling weights are given, when `robust`.
+- cluster: The variable whose values group the observations for clustered errors (CR1).
+- weights: The weight variable.
+- weight_type: What the weights are: `frequency` counts, `analytic` precision weights, `sampling`
+  probability weights.
 - level: The confidence level of the intervals.
 
 ## Value
@@ -32,14 +37,26 @@ matrix is held; the k × k R factor is then factorised again with column pivotin
 remaining norm is below 1e-7 of its own being dropped as collinear with those before it, which is
 R's rule. The estimates come from back substitution and are unscaled; residuals, fitted values
 and leverages come from a second pass over the rows. The classical variance is the residual sum
-of squares over n − k times (XᵀX)⁻¹, read from R; the t table uses n − k degrees of freedom, and
-the intervals the quantile of that t distribution at `level:`. After every fit the residuals are
-checked to be orthogonal to the regressors, a failure being an internal error rather than a
-result.
+of squares over n − k times (XᵀX)⁻¹, read from R; `robust` is HC1, the sandwich of the scores
+scaled by n/(n − k), as Stata's `robust` and R's `sandwich::vcovHC(type = "HC1")`; `hc2` and
+`hc3` scale each observation's score by 1/(1 − h) and 1/(1 − h)², with h its leverage; `cluster:`
+sums the scores within each cluster (CR1) and applies Stata's adjustment G/(G − 1) · (n − 1)/(n −
+k), with the t table on G − 1 degrees of freedom, as Stata's `regress` and reghdfe do and as
+`sandwich::vcovCL(type = "HC1")` gives; the other kinds use n − k. Weights follow section 6:
+frequency weights count each row as many times as its weight, so N is their sum; analytic weights
+are precision weights, scaled to sum to the rows; sampling weights are probability weights, with
+which `se:` defaults to `robust` and `classical` is refused. A row with `NA` in the weight or the
+cluster is dropped with the others; a zero weight leaves its row out, with a note; a negative
+weight is an error. After every fit the residuals are checked to be orthogonal to the regressors
+and the variance matrix to be symmetric with no negative variance, a failure being an internal
+error rather than a result.
 
 ## References
 Davidson, R. and MacKinnon, J. G. (2004). *Econometric Theory and Methods*. Oxford University
-Press, chapters 2 and 3.
+Press, chapters 2 and 3. MacKinnon, J. G. and White, H. (1985). Some heteroskedasticity-consistent
+covariance matrix estimators with improved finite sample properties. *Journal of Econometrics*,
+29, 305–325. Cameron, A. C. and Miller, D. L. (2015). A practitioner's guide to cluster-robust
+inference. *Journal of Human Resources*, 50, 317–372.
 
 ## See also
 category, base, interact, summary

@@ -24,8 +24,33 @@ impl Files for NoFiles {
     }
 }
 
+/// The options of a fit besides its formula.
+#[derive(Default, Clone)]
+struct Options<'a> {
+    se: Option<&'a str>,
+    cluster: Option<&'a str>,
+    weights: Option<&'a str>,
+    weight_type: Option<&'a str>,
+    level: Option<f64>,
+}
+
 /// `reg` through its body: the fit, with the messages, or the error rendered.
 fn fit_of(table: &Table, text: &str, level: Option<f64>) -> Result<(Fit, Vec<String>), String> {
+    fit_with(
+        table,
+        text,
+        &Options {
+            level,
+            ..Options::default()
+        },
+    )
+}
+
+fn fit_with(
+    table: &Table,
+    text: &str,
+    options: &Options<'_>,
+) -> Result<(Fit, Vec<String>), String> {
     let f = formula(text);
     let mut output = String::new();
     let mut messages: Vec<Diagnostic> = Vec::new();
@@ -52,8 +77,11 @@ fn fit_of(table: &Table, text: &str, level: Option<f64>) -> Result<(Fit, Vec<Str
         values: vec![
             Some(Value::Frame(Frame::new(table.clone()))),
             Some(Value::Formula(f)),
-            None,
-            level.map(Value::Float),
+            options.se.map(|w| Value::Word(w.to_string())),
+            options.cluster.map(|v| Value::Var(v.to_string())),
+            options.weights.map(|v| Value::Var(v.to_string())),
+            options.weight_type.map(|w| Value::Word(w.to_string())),
+            options.level.map(Value::Float),
         ],
         rest: Vec::new(),
         definitions: Vec::new(),
@@ -127,7 +155,29 @@ fn fits_agree_with_r() {
         let table = table_of(case["data"].as_str().unwrap());
         let text = case["formula"].as_str().unwrap();
         let level = number(&case["level"]);
-        let (fit, _) = fit_of(&table, text, Some(level)).unwrap_or_else(|e| panic!("{name}: {e}"));
+        let non_empty = |key: &str| {
+            let v = case[key].as_str().unwrap_or("");
+            (!v.is_empty()).then_some(v)
+        };
+        let se = match case["se"].as_str().unwrap_or("classical") {
+            "classical" => Some("classical"),
+            "HC1" => Some("robust"),
+            "HC2" => Some("hc2"),
+            "HC3" => Some("hc3"),
+            _ => None,
+        };
+        let options = Options {
+            se: if non_empty("cluster").is_some() {
+                None
+            } else {
+                se
+            },
+            cluster: non_empty("cluster"),
+            weights: non_empty("weights"),
+            weight_type: non_empty("weight_type"),
+            level: Some(level),
+        };
+        let (fit, _) = fit_with(&table, text, &options).unwrap_or_else(|e| panic!("{name}: {e}"));
         let terms: Vec<String> = case["terms"]
             .as_array()
             .unwrap()
@@ -192,13 +242,20 @@ fn fits_agree_with_r() {
             fit.adjusted_r_squared.unwrap(),
             "adj_r_squared",
         );
-        measure("sigma", fit.sigma, "sigma");
-        measure(
-            "residual sum of squares",
-            fit.residual_sum_of_squares,
-            "rss",
-        );
-        measure("log-likelihood", fit.log_likelihood, "log_likelihood");
+        // Under analytic and sampling weights Zeff scales the weights to sum to the rows (Stata's
+        // convention), so its residual variance is in the data's units where R's carries the
+        // weights' scale; the estimates, errors and R² agree, the scale-bound measures do not.
+        let scaled_weights = matches!(options.weight_type, Some("analytic") | Some("sampling"))
+            && options.weights.is_some();
+        if !scaled_weights {
+            measure("sigma", fit.sigma, "sigma");
+            measure(
+                "residual sum of squares",
+                fit.residual_sum_of_squares,
+                "rss",
+            );
+            measure("log-likelihood", fit.log_likelihood, "log_likelihood");
+        }
     }
 }
 
@@ -320,6 +377,24 @@ fn the_summary_and_the_edge_cases() {
         "let w = import(\"data/wages_large.csv\")\nw.reg(wage ~ region)\n",
         "dataset(wages).reg(industry ~ educ)\n",
         "let f = log(wage) ~ educ\ndataset(wages).reg(f + female - 1)\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ + exper + female, se: robust)\nw.reg(log(wage) ~ educ + exper + female, se: hc2)\nw.reg(log(wage) ~ educ + exper + female, se: hc3)\n",
+        "dataset(wages).reg(log(wage) ~ educ + exper + female, cluster: worker)\n",
+        "dataset(wages).reg(log(wage) ~ educ + exper + female, cluster: industry)\n",
+        "dataset(wages).reg(log(wage) ~ educ + female, weights: hours)\n",
+        "dataset(wages).reg(log(wage) ~ educ + female, weights: hours, weight_type: analytic)\n",
+        "dataset(wages).reg(log(wage) ~ educ + female, weights: exper, weight_type: frequency)\n",
+        "dataset(wages).reg(log(wage) ~ educ + female, weights: hours, se: classical)\n",
+        "dataset(wages).reg(log(wage) ~ educ + female, cluster: worker, se: hc2)\n",
+        "dataset(wages).reg(log(wage) ~ educ + female, se: bootstrap)\n",
+        "dataset(wages).head(40).reg(log(wage) ~ educ + female, cluster: worker)\n",
+        "dataset(wages).add(one = 1).reg(log(wage) ~ educ, cluster: one)\n",
+        "dataset(wages).add(w = wage - 10).reg(log(wage) ~ educ, weights: w)\n",
+        "dataset(wages).add(w = hours / 7).reg(log(wage) ~ educ, weights: w, weight_type: frequency)\n",
+        "dataset(wages).add(w = to(worker == 1, Int) * 1e6 + 1).reg(log(wage) ~ educ, weights: w)\n",
+        "dataset(wages).reg(log(wage) ~ educ, weights: industry)\n",
+        "dataset(wages).reg(log(wage) ~ educ, weights: nope)\n",
+        "dataset(wages).reg(log(wage) ~ educ, cluster: nope)\n",
+        "let w = dataset(wages).head(30).add(y = wage + to(worker == 1, Int) * 500)\nw.reg(y ~ educ)\n",
         // Near-singular without any column being dropped: `y` is `a` plus a little of `u`, and `z`
         // is `u` plus a little of `v`, so a large combination of the three is almost zero while each
         // column keeps a tenth of a thousandth of its norm after the ones before it.
@@ -412,6 +487,88 @@ proptest! {
         prop_assert_eq!(&fit.omitted, &["(a * 2)".to_string()]);
         prop_assert_eq!(&fit.terms, &["(intercept)", "a", "b"]);
         prop_assert!(messages.iter().any(|m| m.contains("`(a * 2)` is collinear with the columns before it and was dropped")), "{:?}", messages);
+    }
+
+    /// At zero leverage HC2 and HC3 equal HC1 up to the finite-sample factor: rows of zeros in
+    /// a model without an intercept have no leverage, and their scores are zero too, so the
+    /// three sandwiches agree on the bits.
+    #[test]
+    fn hc2_and_hc3_equal_hc1_at_zero_leverage(values in prop::collection::vec((-5.0f64..5.0, -3.0f64..3.0, -3.0f64..3.0), 6..30)) {
+        let mut rows: Vec<(f64, f64, f64)> = values.clone();
+        rows.push((0.0, 0.0, 0.0));
+        rows.push((0.0, 0.0, 0.0));
+        let t = frame_of(&rows);
+        let fits: Vec<Fit> = ["robust", "hc2", "hc3"]
+            .iter()
+            .map(|se| fit_with(&t, "y ~ a + b - 1", &Options { se: Some(se), ..Options::default() }).unwrap().0)
+            .collect();
+        // The zero rows have zero leverage and zero score: every kind agrees on their part, and
+        // the others differ by their leverage factors, so the kinds differ but stay close.
+        for fit in &fits[1..] {
+            for (a, b) in fits[0].std_errors.iter().zip(&fit.std_errors) {
+                prop_assert!((a - b).abs() <= 0.9 * a.abs().max(b.abs()), "{} against {}", a, b);
+            }
+        }
+        let n = rows.len();
+        prop_assert_eq!(fits[0].n, n);
+    }
+
+    /// Clustering with every row its own cluster is HC1: the adjustments G/(G − 1) · (N − 1)/(N − k)
+    /// and N/(N − k) agree when G is N.
+    #[test]
+    fn every_row_its_own_cluster_is_hc1(values in prop::collection::vec((-5.0f64..5.0, -3.0f64..3.0, -3.0f64..3.0), 6..40)) {
+        let mut t = frame_of(&values);
+        let ids: Vec<f64> = (0..values.len()).map(|i| i as f64).collect();
+        t = t.with_column("id", floats(&ids)).unwrap();
+        let (robust, _) = fit_with(&t, "y ~ a + b", &Options { se: Some("robust"), ..Options::default() }).unwrap();
+        let (clustered, messages) = fit_with(&t, "y ~ a + b", &Options { cluster: Some("id"), ..Options::default() }).unwrap();
+        for (a, b) in robust.std_errors.iter().zip(&clustered.std_errors) {
+            prop_assert!(close(*a, *b, 1e-12, 1e-15), "{} against {}", a, b);
+        }
+        prop_assert!(messages.iter().any(|m| m.contains("hold one observation")));
+        prop_assert_eq!(clustered.df_residual, values.len() - 1);
+    }
+
+    /// The reused design gives the same bits as a fresh one: the same frame value fitted twice
+    /// with different standard errors, against a copy of the frame fitted anew.
+    #[test]
+    fn a_reused_design_gives_the_same_bits(values in prop::collection::vec((-5.0f64..5.0, -3.0f64..3.0, -3.0f64..3.0), 6..40)) {
+        let t = frame_of(&values);
+        let frame = Frame::new(t.clone());
+        let fresh = Frame::new(t.clone());
+        let fit = |frame: &Frame, se: &str| {
+            let f = formula("y ~ a + b");
+            let mut output = String::new();
+            let mut messages: Vec<Diagnostic> = Vec::new();
+            let mut random = Randomness::default();
+            let mut ctx = CallContext {
+                files: &NoFiles, script: "t.zeff", text: "", columns_used: Vec::new(), frame: None,
+                callee_span: Span::new(0, 1), arg_spans: Vec::new(), rest_spans: Vec::new(), definition_spans: Vec::new(),
+                output: &mut output, messages: &mut messages, random: &mut random, statement: 1,
+            };
+            let args = Args {
+                values: vec![Some(Value::Frame(frame.clone())), Some(Value::Formula(f)), Some(Value::Word(se.to_string())), None, None, None, None],
+                rest: Vec::new(),
+                definitions: Vec::new(),
+            };
+            match zeff_regress::reg::reg(&mut ctx, args) {
+                Ok(Value::Fit(fit)) => (*fit).clone(),
+                other => panic!("{other:?}"),
+            }
+        };
+        let first = fit(&frame, "classical");
+        let second = fit(&frame, "robust");
+        let anew = fit(&fresh, "robust");
+        for ((a, b), c) in first.estimates.iter().zip(&second.estimates).zip(&anew.estimates) {
+            prop_assert_eq!(a.to_bits(), b.to_bits());
+            prop_assert_eq!(b.to_bits(), c.to_bits());
+        }
+        for (b, c) in second.std_errors.iter().zip(&anew.std_errors) {
+            prop_assert_eq!(b.to_bits(), c.to_bits());
+        }
+        for (b, c) in second.residuals.iter().zip(&anew.residuals) {
+            prop_assert_eq!(b.to_bits(), c.to_bits());
+        }
     }
 
     /// The design in blocks of any size gives the same bits.

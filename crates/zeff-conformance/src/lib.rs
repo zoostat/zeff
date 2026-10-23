@@ -773,6 +773,14 @@ fn regress_cases() -> Vec<Line> {
             "collinear",
             "let w = dataset(wages).add(twice = educ * 2, big = hours * 1e9)\nw.reg(wage ~ educ + twice + big + exper - 1)\n",
         ),
+        (
+            "clustered",
+            "let w = dataset(wages)\nw.reg(log(wage) ~ educ + exper + female, cluster: worker)\nw.reg(log(wage) ~ educ + exper + female, se: hc3)\n",
+        ),
+        (
+            "weighted",
+            "let w = dataset(wages)\nw.reg(log(wage) ~ educ + female, weights: hours)\nw.reg(log(wage) ~ educ + female, weights: exper, weight_type: frequency)\n",
+        ),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {

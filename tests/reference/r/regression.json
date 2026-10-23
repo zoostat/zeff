@@ -8,6 +8,10 @@
    "formula": "log(wage) ~ educ + exper + exper^2 + female",
    "data": "wages",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "educ",
@@ -70,6 +74,10 @@
    "formula": "log(wage) ~ educ + industry + female",
    "data": "wages",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "educ",
@@ -213,6 +221,10 @@
    "formula": "log(wage) ~ category(industry, contrast: sum) + educ",
    "data": "wages",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "industry=Mining",
@@ -347,6 +359,10 @@
    "formula": "log(wage) ~ educ * female + exper",
    "data": "wages",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "educ",
@@ -409,6 +425,10 @@
    "formula": "wage ~ educ + exper - 1",
    "data": "wages",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "educ",
     "exper"
@@ -444,6 +464,10 @@
    "formula": "wage ~ educ + hours + (educ * 2)",
    "data": "wages_large",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "educ",
@@ -490,6 +514,10 @@
    "formula": "wage ~ (educ * 1e7) + (hours * 1e12) + female",
    "data": "wages_large",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "(educ * 1e7)",
@@ -543,6 +571,10 @@
    "formula": "wage ~ hours + educ",
    "data": "wages_large",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "hours",
@@ -564,7 +596,7 @@
      "t_value": "-2.1536858281005036",
      "p_value": "0.031474700050625928",
      "ci_lower": "-0.121967169240141",
-     "ci_upper": "-0.005678866103388247"
+     "ci_upper": "-0.0056788661033882401"
     },
     "educ": {
      "estimate": "-0.039290571158674466",
@@ -587,6 +619,10 @@
    "formula": "wage ~ educ + exper",
    "data": "wages",
    "level": "0.9",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "educ",
@@ -599,7 +635,7 @@
      "std_error": "0.64787332399618625",
      "t_value": "-14.96038524061797",
      "p_value": "2.6553238665874062e-50",
-     "ci_lower": "-10.758145617564601",
+     "ci_lower": "-10.758145617564599",
      "ci_upper": "-8.6267234106406985"
     },
     "educ": {
@@ -631,6 +667,10 @@
    "formula": "wage ~ category(region) + hours",
    "data": "wages_large",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "region=São Paulo",
@@ -646,8 +686,8 @@
      "std_error": "1.4647587986127439",
      "t_value": "16.733158371930184",
      "p_value": "2.4583422356478134e-56",
-     "ci_lower": "21.636096332764716",
-     "ci_upper": "27.383985574965749"
+     "ci_lower": "21.636096332764719",
+     "ci_upper": "27.383985574965745"
     },
     "region=São Paulo": {
      "estimate": "0.92275891993758208",
@@ -662,7 +702,7 @@
      "std_error": "1.1469078384602607",
      "t_value": "1.4401835647315018",
      "p_value": "0.15009172788530531",
-     "ci_lower": "-0.59854415293681895",
+     "ci_lower": "-0.59854415293681851",
      "ci_upper": "3.9020597913612178"
     },
     "region=Łódź": {
@@ -687,7 +727,7 @@
      "t_value": "-2.1573162744595589",
      "p_value": "0.031190762116468526",
      "ci_lower": "-0.12225223674909252",
-     "ci_upper": "-0.0057946924700683911"
+     "ci_upper": "-0.005794692470068398"
     }
    },
    "nobs": 1139,
@@ -702,6 +742,10 @@
    "formula": "log(wage) ~ exper + exper^2 + exper^3 + exper^4 + exper^5",
    "data": "wages",
    "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
    "terms": [
     "(intercept)",
     "exper",
@@ -725,8 +769,8 @@
      "std_error": "0.012101724635248121",
      "t_value": "-1.2897277421461339",
      "p_value": "0.1971616165107441",
-     "ci_lower": "-0.039328454266929117",
-     "ci_upper": "0.0081125942871435007"
+     "ci_lower": "-0.03932845426692911",
+     "ci_upper": "0.0081125942871434972"
     },
     "exper^2": {
      "estimate": "0.0059150957001412145",
@@ -741,8 +785,8 @@
      "std_error": "0.00017550200153654806",
      "t_value": "-2.0402572954946199",
      "p_value": "0.041339130815195295",
-     "ci_lower": "-0.00070206975245556827",
-     "ci_upper": "-1.406872556213197e-05"
+     "ci_lower": "-0.00070206975245556817",
+     "ci_upper": "-1.4068725562132024e-05"
     },
     "exper^4": {
      "estimate": "8.9483235095138568e-06",
@@ -757,8 +801,8 @@
      "std_error": "7.2501654795623591e-08",
      "t_value": "-1.217766226863215",
      "p_value": "0.22332863294192068",
-     "ci_lower": "-2.3040016367803426e-07",
-     "ci_upper": "5.3820030474422563e-08"
+     "ci_lower": "-2.3040016367803424e-07",
+     "ci_upper": "5.3820030474422536e-08"
     }
    },
    "nobs": 18179,
@@ -768,6 +812,723 @@
    "sigma": "0.47014034966695495",
    "rss": "4016.8135979999988",
    "log_likelihood": "-12071.755275934862"
+  },
+  "hc1": {
+   "formula": "log(wage) ~ educ + exper + exper^2 + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "HC1",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "exper",
+    "exper^2",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "1.7872904591966026",
+     "std_error": "0.023267494092111055",
+     "t_value": "76.814909767295958",
+     "p_value": "0",
+     "ci_lower": "1.7416839714363843",
+     "ci_upper": "1.8328969469568208"
+    },
+    "educ": {
+     "estimate": "0.075811196023382155",
+     "std_error": "0.0013521410759219947",
+     "t_value": "56.067519413008142",
+     "p_value": "0",
+     "ci_lower": "0.073160871704613634",
+     "ci_upper": "0.078461520342150676"
+    },
+    "exper": {
+     "estimate": "0.042058500533077296",
+     "std_error": "0.0015448933501467064",
+     "t_value": "27.224209702943785",
+     "p_value": "5.3683464372402797e-160",
+     "ci_lower": "0.03903036353708695",
+     "ci_upper": "0.045086637529067643"
+    },
+    "exper^2": {
+     "estimate": "-0.0006602520196422639",
+     "std_error": "4.9378712302544443e-05",
+     "t_value": "-13.371187478460058",
+     "p_value": "1.3859665917882758e-40",
+     "ci_lower": "-0.00075703896323516581",
+     "ci_upper": "-0.00056346507604936198"
+    },
+    "female": {
+     "estimate": "-0.13193582720535141",
+     "std_error": "0.0063938520781971087",
+     "t_value": "-20.634795048707744",
+     "p_value": "1.5764459932996389e-93",
+     "ci_lower": "-0.14446838165193493",
+     "ci_upper": "-0.11940327275876789"
+    }
+   },
+   "nobs": 18179,
+   "df_residual": 18174,
+   "r_squared": "0.21023835854517331",
+   "adj_r_squared": "0.21006453624046229",
+   "sigma": "0.43067693765849957",
+   "rss": "3370.9612200420338",
+   "log_likelihood": "-10478.447560361663"
+  },
+  "hc2": {
+   "formula": "log(wage) ~ educ + exper + exper^2 + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "HC2",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "exper",
+    "exper^2",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "1.7872904591966026",
+     "std_error": "0.023268596093489715",
+     "t_value": "76.811271810965252",
+     "p_value": "0",
+     "ci_lower": "1.7416818114095165",
+     "ci_upper": "1.8328991069836886"
+    },
+    "educ": {
+     "estimate": "0.075811196023382155",
+     "std_error": "0.0013521909157031928",
+     "t_value": "56.065452846173969",
+     "p_value": "0",
+     "ci_lower": "0.073160774013931423",
+     "ci_upper": "0.078461618032832886"
+    },
+    "exper": {
+     "estimate": "0.042058500533077296",
+     "std_error": "0.0015450934326547761",
+     "t_value": "27.220684292737218",
+     "p_value": "5.8876347651221267e-160",
+     "ci_lower": "0.039029971356458505",
+     "ci_upper": "0.045087029709696087"
+    },
+    "exper^2": {
+     "estimate": "-0.0006602520196422639",
+     "std_error": "4.9386107689744266e-05",
+     "t_value": "-13.369185192526819",
+     "p_value": "1.4234089211176072e-40",
+     "ci_lower": "-0.00075705345889312005",
+     "ci_upper": "-0.00056345058039140774"
+    },
+    "female": {
+     "estimate": "-0.13193582720535141",
+     "std_error": "0.0063938430743379496",
+     "t_value": "-20.63482410678537",
+     "p_value": "1.575520495871807e-93",
+     "ci_lower": "-0.14446836400351989",
+     "ci_upper": "-0.11940329040718292"
+    }
+   },
+   "nobs": 18179,
+   "df_residual": 18174,
+   "r_squared": "0.21023835854517331",
+   "adj_r_squared": "0.21006453624046229",
+   "sigma": "0.43067693765849957",
+   "rss": "3370.9612200420338",
+   "log_likelihood": "-10478.447560361663"
+  },
+  "hc3": {
+   "formula": "log(wage) ~ educ + exper + exper^2 + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "HC3",
+   "cluster": "",
+   "weights": "",
+   "weight_type": "sampling",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "exper",
+    "exper^2",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "1.7872904591966026",
+     "std_error": "0.023272899435692374",
+     "t_value": "76.797068802503091",
+     "p_value": "0",
+     "ci_lower": "1.7416733764520296",
+     "ci_upper": "1.8329075419411756"
+    },
+    "educ": {
+     "estimate": "0.075811196023382155",
+     "std_error": "0.0013524267770185132",
+     "t_value": "56.05567511056784",
+     "p_value": "0",
+     "ci_lower": "0.073160311703458811",
+     "ci_upper": "0.078462080343305499"
+    },
+    "exper": {
+     "estimate": "0.042058500533077296",
+     "std_error": "0.0015455061959120686",
+     "t_value": "27.213414377971354",
+     "p_value": "7.1222722206990846e-160",
+     "ci_lower": "0.039029162301458128",
+     "ci_upper": "0.045087838764696464"
+    },
+    "exper^2": {
+     "estimate": "-0.0006602520196422639",
+     "std_error": "4.9400302037096019e-05",
+     "t_value": "-13.365343781632404",
+     "p_value": "1.4980815224903573e-40",
+     "ci_lower": "-0.00075708128115563778",
+     "ci_upper": "-0.00056342275812889002"
+    },
+    "female": {
+     "estimate": "-0.13193582720535141",
+     "std_error": "0.0063947136314555959",
+     "t_value": "-20.632014943774664",
+     "p_value": "1.6675475169928994e-93",
+     "ci_lower": "-0.14447007037775914",
+     "ci_upper": "-0.11940158403294367"
+    }
+   },
+   "nobs": 18179,
+   "df_residual": 18174,
+   "r_squared": "0.21023835854517331",
+   "adj_r_squared": "0.21006453624046229",
+   "sigma": "0.43067693765849957",
+   "rss": "3370.9612200420338",
+   "log_likelihood": "-10478.447560361663"
+  },
+  "cluster_worker": {
+   "formula": "log(wage) ~ educ + exper + exper^2 + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "cluster",
+   "cluster": "worker",
+   "weights": "",
+   "weight_type": "sampling",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "exper",
+    "exper^2",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "1.7872904591966026",
+     "std_error": "0.042867390687039812",
+     "t_value": "41.693474469789869",
+     "p_value": "1.150613011439178e-314",
+     "ci_lower": "1.7032459009630034",
+     "ci_upper": "1.8713350174302017"
+    },
+    "educ": {
+     "estimate": "0.075811196023382155",
+     "std_error": "0.0025534422360896287",
+     "t_value": "29.689802632653365",
+     "p_value": "7.2363785174362822e-175",
+     "ci_lower": "0.070804991510634713",
+     "ci_upper": "0.080817400536129597"
+    },
+    "exper": {
+     "estimate": "0.042058500533077296",
+     "std_error": "0.0026076142871527285",
+     "t_value": "16.129111096028414",
+     "p_value": "1.0376010560777835e-56",
+     "ci_lower": "0.036946087874062096",
+     "ci_upper": "0.047170913192092497"
+    },
+    "exper^2": {
+     "estimate": "-0.0006602520196422639",
+     "std_error": "8.3892834141098793e-05",
+     "t_value": "-7.8701837457510431",
+     "p_value": "4.5494779593476715e-15",
+     "ci_lower": "-0.00082472986798690128",
+     "ci_upper": "-0.00049577417129762652"
+    },
+    "female": {
+     "estimate": "-0.13193582720535141",
+     "std_error": "0.012191469346836382",
+     "t_value": "-10.82197916033706",
+     "p_value": "6.4947648506619566e-27",
+     "ci_lower": "-0.15583806709099735",
+     "ci_upper": "-0.10803358731970548"
+    }
+   },
+   "nobs": 18179,
+   "df_residual": 3910,
+   "r_squared": "0.21023835854517331",
+   "adj_r_squared": "0.21006453624046229",
+   "sigma": "0.43067693765849957",
+   "rss": "3370.9612200420338",
+   "log_likelihood": "-10478.447560361663"
+  },
+  "cluster_industry": {
+   "formula": "log(wage) ~ educ + exper + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "cluster",
+   "cluster": "industry",
+   "weights": "",
+   "weight_type": "sampling",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "exper",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "1.899821672927233",
+     "std_error": "0.036827943464474787",
+     "t_value": "51.586417654840041",
+     "p_value": "1.7867434162510772e-14",
+     "ci_lower": "1.8187639158852302",
+     "ci_upper": "1.9808794299692358"
+    },
+    "educ": {
+     "estimate": "0.076008247551101124",
+     "std_error": "0.0020880611090893573",
+     "t_value": "36.401352058249742",
+     "p_value": "8.1007435976471313e-13",
+     "ci_lower": "0.071412456036630961",
+     "ci_upper": "0.080604039065571287"
+    },
+    "exper": {
+     "estimate": "0.022020005893182423",
+     "std_error": "0.00047805262554819356",
+     "t_value": "46.061886738790719",
+     "p_value": "6.1785367650727349e-14",
+     "ci_lower": "0.020967819158608004",
+     "ci_upper": "0.023072192627756841"
+    },
+    "female": {
+     "estimate": "-0.13292397630629949",
+     "std_error": "0.0094692152587211066",
+     "t_value": "-14.037485966313531",
+     "p_value": "2.2859134442120973e-08",
+     "ci_lower": "-0.15376557856845796",
+     "ci_upper": "-0.11208237404414102"
+    }
+   },
+   "nobs": 18179,
+   "df_residual": 11,
+   "r_squared": "0.20279156433819262",
+   "adj_r_squared": "0.20265997560053173",
+   "sigma": "0.43269073207955433",
+   "rss": "3402.7465754805521",
+   "log_likelihood": "-10563.752423680435"
+  },
+  "cluster_category": {
+   "formula": "log(wage) ~ educ + industry",
+   "data": "wages",
+   "level": "0.95",
+   "se": "cluster",
+   "cluster": "worker",
+   "weights": "",
+   "weight_type": "sampling",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "industry=Mining",
+    "industry=Utilities",
+    "industry=Construction",
+    "industry=Manufacturing",
+    "industry=Retail",
+    "industry=Transport",
+    "industry=Finance",
+    "industry=Services",
+    "industry=Education",
+    "industry=Health",
+    "industry=Public administration"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "2.2706860718825879",
+     "std_error": "0.051741759929856988",
+     "t_value": "43.884979462639315",
+     "p_value": "0",
+     "ci_lower": "2.1692426836604888",
+     "ci_upper": "2.3721294601046869"
+    },
+    "educ": {
+     "estimate": "0.054299976507429924",
+     "std_error": "0.0027236093809289196",
+     "t_value": "19.936770995005997",
+     "p_value": "2.6441204589119849e-84",
+     "ci_lower": "0.048960147244384467",
+     "ci_upper": "0.059639805770475382"
+    },
+    "industry=Mining": {
+     "estimate": "0.21791547362367533",
+     "std_error": "0.060146545585699901",
+     "t_value": "3.6230754651267234",
+     "p_value": "0.00029482085058980345",
+     "ci_lower": "0.099993907323269071",
+     "ci_upper": "0.33583703992408159"
+    },
+    "industry=Utilities": {
+     "estimate": "0.24578368504920234",
+     "std_error": "0.057612805361934874",
+     "t_value": "4.2661294395428468",
+     "p_value": "2.0360059323428102e-05",
+     "ci_lower": "0.13282969606974118",
+     "ci_upper": "0.35873767402866352"
+    },
+    "industry=Construction": {
+     "estimate": "0.245585278159659",
+     "std_error": "0.04240897089785655",
+     "t_value": "5.7908803953569041",
+     "p_value": "7.5525513140828036e-09",
+     "ci_lower": "0.16243948441930189",
+     "ci_upper": "0.3287310719000161"
+    },
+    "industry=Manufacturing": {
+     "estimate": "0.22059876075642343",
+     "std_error": "0.040148736448036397",
+     "t_value": "5.4945380670183583",
+     "p_value": "4.166960246230253e-08",
+     "ci_lower": "0.14188431687886371",
+     "ci_upper": "0.29931320463398314"
+    },
+    "industry=Retail": {
+     "estimate": "0.13947603470829414",
+     "std_error": "0.040114057732637036",
+     "t_value": "3.476986437969241",
+     "p_value": "0.00051260587321502683",
+     "ci_lower": "0.060829580910586184",
+     "ci_upper": "0.2181224885060021"
+    },
+    "industry=Transport": {
+     "estimate": "0.16933575697712816",
+     "std_error": "0.044446403229104932",
+     "t_value": "3.8098866201673136",
+     "p_value": "0.00014116703322113232",
+     "ci_lower": "0.082195432721472103",
+     "ci_upper": "0.2564760812327842"
+    },
+    "industry=Finance": {
+     "estimate": "0.28243987523984049",
+     "std_error": "0.043907959832023037",
+     "t_value": "6.4325438102876937",
+     "p_value": "1.406263611365068e-10",
+     "ci_lower": "0.19635520743344032",
+     "ci_upper": "0.36852454304624066"
+    },
+    "industry=Services": {
+     "estimate": "0.099830046115212748",
+     "std_error": "0.040788760599831095",
+     "t_value": "2.4474890790289456",
+     "p_value": "0.014429239921311326",
+     "ci_lower": "0.019860789517907027",
+     "ci_upper": "0.17979930271251848"
+    },
+    "industry=Education": {
+     "estimate": "0.20446399302831322",
+     "std_error": "0.042940281974857011",
+     "t_value": "4.7615894359527919",
+     "p_value": "1.990322158562548e-06",
+     "ci_lower": "0.1202765262578171",
+     "ci_upper": "0.28865145979880935"
+    },
+    "industry=Health": {
+     "estimate": "0.19869288150357442",
+     "std_error": "0.041639953353902338",
+     "t_value": "4.77168837858349",
+     "p_value": "1.8936101908768026e-06",
+     "ci_lower": "0.1170548011723999",
+     "ci_upper": "0.28033096183474893"
+    },
+    "industry=Public administration": {
+     "estimate": "0.26795619201938586",
+     "std_error": "0.042395614144619023",
+     "t_value": "6.3203752894188385",
+     "p_value": "2.9021407728828715e-10",
+     "ci_lower": "0.18483658514058696",
+     "ci_upper": "0.35107579889818474"
+    }
+   },
+   "nobs": 18201,
+   "df_residual": 3910,
+   "r_squared": "0.095726340720590677",
+   "adj_r_squared": "0.095129722955506479",
+   "sigma": "0.46118278398515472",
+   "rss": "3868.39772172329",
+   "log_likelihood": "-11732.737035196742"
+  },
+  "weights_analytic": {
+   "formula": "log(wage) ~ educ + exper + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "hours",
+   "weight_type": "analytic",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "exper",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "1.9037706606799318",
+     "std_error": "0.022092982232371178",
+     "t_value": "86.170832016081576",
+     "p_value": "0",
+     "ci_lower": "1.8604663219379196",
+     "ci_upper": "1.9470749994219441"
+    },
+    "educ": {
+     "estimate": "0.075897912206470436",
+     "std_error": "0.0013669447236633713",
+     "t_value": "55.523761050897711",
+     "p_value": "0",
+     "ci_lower": "0.07321857101420752",
+     "ci_upper": "0.078577253398733352"
+    },
+    "exper": {
+     "estimate": "0.021806142713534999",
+     "std_error": "0.00045099764859294413",
+     "t_value": "48.350901122361542",
+     "p_value": "0",
+     "ci_lower": "0.02092214458502957",
+     "ci_upper": "0.022690140842040428"
+    },
+    "female": {
+     "estimate": "-0.13163066290629097",
+     "std_error": "0.0064432966931252935",
+     "t_value": "-20.429086099160223",
+     "p_value": "9.9188226052603045e-92",
+     "ci_lower": "-0.14426013500198448",
+     "ci_upper": "-0.11900119081059744"
+    }
+   },
+   "nobs": 18145,
+   "df_residual": 18141,
+   "r_squared": "0.20116343169184162",
+   "adj_r_squared": "0.20103132708322435",
+   "sigma": "2.6661801006956347",
+   "rss": "128955.59473065467",
+   "log_likelihood": "-10777.256126565357"
+  },
+  "weights_sampling": {
+   "formula": "log(wage) ~ educ + exper + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "HC1",
+   "cluster": "",
+   "weights": "hours",
+   "weight_type": "sampling",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "exper",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "1.9037706606799318",
+     "std_error": "0.022452884312952299",
+     "t_value": "84.789581335958331",
+     "p_value": "0",
+     "ci_lower": "1.85976087975508",
+     "ci_upper": "1.9477804416047837"
+    },
+    "educ": {
+     "estimate": "0.075897912206470436",
+     "std_error": "0.0013834862960642616",
+     "t_value": "54.859894472669971",
+     "p_value": "0",
+     "ci_lower": "0.073186147964795736",
+     "ci_upper": "0.078609676448145135"
+    },
+    "exper": {
+     "estimate": "0.021806142713534999",
+     "std_error": "0.00046391253402139571",
+     "t_value": "47.004857843589321",
+     "p_value": "0",
+     "ci_lower": "0.020896830185754469",
+     "ci_upper": "0.022715455241315529"
+    },
+    "female": {
+     "estimate": "-0.13163066290629097",
+     "std_error": "0.0065724267716023212",
+     "t_value": "-20.027710841151013",
+     "p_value": "2.8390477939498933e-88",
+     "ci_lower": "-0.1445132421923736",
+     "ci_upper": "-0.11874808362020835"
+    }
+   },
+   "nobs": 18145,
+   "df_residual": 18141,
+   "r_squared": "0.20116343169184162",
+   "adj_r_squared": "0.20103132708322435",
+   "sigma": "2.6661801006956347",
+   "rss": "128955.59473065467",
+   "log_likelihood": "-10777.256126565357"
+  },
+  "weights_frequency": {
+   "formula": "log(wage) ~ educ + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "classical",
+   "cluster": "",
+   "weights": "exper",
+   "weight_type": "frequency",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "2.4778417430190443",
+     "std_error": "0.0047153124667742427",
+     "t_value": "525.48834472344993",
+     "p_value": "0",
+     "ci_lower": "2.4685998595728864",
+     "ci_upper": "2.4870836264652021"
+    },
+    "educ": {
+     "estimate": "0.063416479086571262",
+     "std_error": "0.00034876054928304303",
+     "t_value": "181.83386629290015",
+     "p_value": "0",
+     "ci_lower": "0.062732917950420963",
+     "ci_upper": "0.06410004022272156"
+    },
+    "female": {
+     "estimate": "-0.13048617029388754",
+     "std_error": "0.0017124889794634121",
+     "t_value": "-76.196794174274814",
+     "p_value": "0",
+     "ci_lower": "-0.13384260184801056",
+     "ci_upper": "-0.12712973873976452"
+    }
+   },
+   "nobs": 273933,
+   "df_residual": 273930,
+   "r_squared": "0.1243181492373404",
+   "adj_r_squared": "0.12431175576564502",
+   "sigma": "0.44771864983601323",
+   "rss": "54909.813459350473",
+   "log_likelihood": "-168562.69917045513"
+  },
+  "weights_frequency_robust": {
+   "formula": "log(wage) ~ educ + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "HC1",
+   "cluster": "",
+   "weights": "exper",
+   "weight_type": "frequency",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "2.4778417430190443",
+     "std_error": "0.0047272104582415445",
+     "t_value": "524.16573471974561",
+     "p_value": "0",
+     "ci_lower": "2.4685765398350834",
+     "ci_upper": "2.4871069462030051"
+    },
+    "educ": {
+     "estimate": "0.063416479086571262",
+     "std_error": "0.00034919137583674546",
+     "t_value": "181.60952267108635",
+     "p_value": "0",
+     "ci_lower": "0.062732073542161093",
+     "ci_upper": "0.064100884630981431"
+    },
+    "female": {
+     "estimate": "-0.13048617029388754",
+     "std_error": "0.00171332192893822",
+     "t_value": "-76.159750301423173",
+     "p_value": "0",
+     "ci_lower": "-0.13384423440619561",
+     "ci_upper": "-0.12712810618157946"
+    }
+   },
+   "nobs": 273933,
+   "df_residual": 273930,
+   "r_squared": "0.1243181492373404",
+   "adj_r_squared": "0.12431175576564502",
+   "sigma": "0.44771864983601323",
+   "rss": "54909.813459350473",
+   "log_likelihood": "-168562.69917045513"
+  },
+  "weights_cluster": {
+   "formula": "log(wage) ~ educ + female",
+   "data": "wages",
+   "level": "0.95",
+   "se": "cluster",
+   "cluster": "worker",
+   "weights": "hours",
+   "weight_type": "sampling",
+   "terms": [
+    "(intercept)",
+    "educ",
+    "female"
+   ],
+   "omitted": [],
+   "columns": {
+    "(intercept)": {
+     "estimate": "2.5239347644146157",
+     "std_error": "0.037533837217973327",
+     "t_value": "67.244250827784072",
+     "p_value": "0",
+     "ci_lower": "2.4503470158430631",
+     "ci_upper": "2.5975225129861683"
+    },
+    "educ": {
+     "estimate": "0.054523622116071445",
+     "std_error": "0.0027080298594767968",
+     "t_value": "20.134054993989484",
+     "p_value": "7.2716534201816827e-86",
+     "ci_lower": "0.049214337609236922",
+     "ci_upper": "0.059832906622905968"
+    },
+    "female": {
+     "estimate": "-0.1390012304189201",
+     "std_error": "0.013306661366841622",
+     "t_value": "-10.445988410383098",
+     "p_value": "3.2721797705335978e-25",
+     "ci_lower": "-0.16508988331372806",
+     "ci_upper": "-0.11291257752411213"
+    }
+   },
+   "nobs": 18167,
+   "df_residual": 3910,
+   "r_squared": "0.098095030714265632",
+   "adj_r_squared": "0.097995723846914129",
+   "sigma": "2.8344048237994923",
+   "rss": "145926.86420885011",
+   "log_likelihood": "-11903.043803899098"
   }
  }
 }

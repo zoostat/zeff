@@ -1540,6 +1540,7 @@ dependencies = [
  "zeff-datasets",
  "zeff-diagnostics",
  "zeff-kernels",
+ "zeff-numeric",
  "zeff-registry",
  "zeff-results",
  "zeff-testkit",

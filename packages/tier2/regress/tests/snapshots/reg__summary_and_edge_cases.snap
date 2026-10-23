@@ -208,15 +208,17 @@ error[Z0401]: `level:` is a probability strictly between 0 and 1, but this is 1.
 [exit 1]
 
 > dataset(wages).reg(wage ~ educ, se: robust)
+reg · wage ~ educ
+N = 18,201 (211 rows dropped for NA in model variables)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     7.1866      0.5442     13.20    <0.001   [6.1198, 8.2533]
+  educ            1.4964      0.0417     35.92    <0.001   [1.4148, 1.5781]
+
+R² 0.070 · adjusted R² 0.070
 --- messages ---
-error[Z0304]: `se: robust` is not available in this release
- --> scripts/main.zeff:1:37
-  |
-1 | dataset(wages).reg(wage ~ educ, se: robust)
-  |                                     ^^^^^^ arrives with the variance layer of Zeff 0.4.0
-  |
-  = help: classical standard errors are available now; robust and clustered errors follow at step 11 of this release
-[exit 1]
+[exit 0]
 
 > dataset(wages).reg(wage ~ region)
 --- messages ---
@@ -267,6 +269,270 @@ R² 0.960 · adjusted R² 0.960
 --- messages ---
 [exit 0]
 
+> let w = dataset(wages)
+w.reg(log(wage) ~ educ + exper + female, se: robust)
+w.reg(log(wage) ~ educ + exper + female, se: hc2)
+w.reg(log(wage) ~ educ + exper + female, se: hc3)
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.8998      0.0220     86.32    <0.001   [1.8567, 1.9430]
+  educ            0.0760      0.0014     56.07    <0.001   [0.0734, 0.0787]
+  exper           0.0220      0.0005     48.76    <0.001   [0.0211, 0.0229]
+  female         -0.1329      0.0064    -20.70    <0.001   [-0.1455, -0.1203]
+
+R² 0.203 · adjusted R² 0.203
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: hc2
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.8998      0.0220     86.32    <0.001   [1.8567, 1.9430]
+  educ            0.0760      0.0014     56.07    <0.001   [0.0734, 0.0787]
+  exper           0.0220      0.0005     48.76    <0.001   [0.0211, 0.0229]
+  female         -0.1329      0.0064    -20.70    <0.001   [-0.1455, -0.1203]
+
+R² 0.203 · adjusted R² 0.203
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: hc3
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.8998      0.0220     86.30    <0.001   [1.8567, 1.9430]
+  educ            0.0760      0.0014     56.06    <0.001   [0.0734, 0.0787]
+  exper           0.0220      0.0005     48.75    <0.001   [0.0211, 0.0229]
+  female         -0.1329      0.0064    -20.70    <0.001   [-0.1455, -0.1203]
+
+R² 0.203 · adjusted R² 0.203
+--- messages ---
+[exit 0]
+
+> dataset(wages).reg(log(wage) ~ educ + exper + female, cluster: worker)
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.8998      0.0410     46.39    <0.001   [1.8195, 1.9801]
+  educ            0.0760      0.0026     29.73    <0.001   [0.0710, 0.0810]
+  exper           0.0220      0.0008     26.63    <0.001   [0.0204, 0.0236]
+  female         -0.1329      0.0122    -10.86    <0.001   [-0.1569, -0.1089]
+
+R² 0.203 · adjusted R² 0.203
+--- messages ---
+note: 33 of the 3,911 clusters hold one observation (line 1)
+[exit 0]
+
+> dataset(wages).reg(log(wage) ~ educ + exper + female, cluster: industry)
+reg · log(wage) ~ educ + exper + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: clustered by industry (12 clusters, CR1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.8998      0.0368     51.59    <0.001   [1.8188, 1.9809]
+  educ            0.0760      0.0021     36.40    <0.001   [0.0714, 0.0806]
+  exper           0.0220      0.0005     46.06    <0.001   [0.0210, 0.0231]
+  female         -0.1329      0.0095    -14.04    <0.001   [-0.1538, -0.1121]
+
+R² 0.203 · adjusted R² 0.203
+--- messages ---
+warning: few clusters: 12 clusters give clustered errors little to rest on (line 1)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
+[exit 0]
+
+> dataset(wages).reg(log(wage) ~ educ + female, weights: hours)
+reg · log(wage) ~ educ + female
+N = 18,167 (245 rows dropped for NA in model variables)
+weights: hours (sampling)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     2.5239      0.0196    129.09    <0.001   [2.4856, 2.5623]
+  educ            0.0545      0.0014     38.70    <0.001   [0.0518, 0.0573]
+  female         -0.1390      0.0070    -19.91    <0.001   [-0.1527, -0.1253]
+
+R² 0.098 · adjusted R² 0.098
+--- messages ---
+[exit 0]
+
+> dataset(wages).reg(log(wage) ~ educ + female, weights: hours, weight_type: analytic)
+reg · log(wage) ~ educ + female
+N = 18,167 (245 rows dropped for NA in model variables)
+weights: hours (analytic)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     2.5239      0.0191    132.29    <0.001   [2.4865, 2.5613]
+  educ            0.0545      0.0014     39.70    <0.001   [0.0518, 0.0572]
+  female         -0.1390      0.0068    -20.31    <0.001   [-0.1524, -0.1256]
+
+R² 0.098 · adjusted R² 0.098
+--- messages ---
+[exit 0]
+
+> dataset(wages).reg(log(wage) ~ educ + female, weights: exper, weight_type: frequency)
+reg · log(wage) ~ educ + female
+N = 273,933 (the sum of the frequency weights over 17,839 rows; 233 rows dropped for NA in model variables; 340 rows with zero weight left out)
+weights: exper (frequency)
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     2.4778      0.0047    525.49    <0.001   [2.4686, 2.4871]
+  educ            0.0634      0.0003    181.83    <0.001   [0.0627, 0.0641]
+  female         -0.1305      0.0017    -76.20    <0.001   [-0.1338, -0.1271]
+
+R² 0.124 · adjusted R² 0.124
+--- messages ---
+note: 340 rows with a zero weight left out of the estimate and the observation count (line 1)
+[exit 0]
+
+> dataset(wages).reg(log(wage) ~ educ + female, weights: hours, se: classical)
+--- messages ---
+error[Z0410]: `se: classical` with sampling weights: classical errors treat the weights as precision weights
+ --> scripts/main.zeff:1:67
+  |
+1 | dataset(wages).reg(log(wage) ~ educ + female, weights: hours, se: classical)
+  |                                                                   ^^^^^^^^^ not valid for probability weights
+  |
+  = help: leave `se:` out, which gives `robust`, or write `weight_type: analytic` for precision weights
+[exit 1]
+
+> dataset(wages).reg(log(wage) ~ educ + female, cluster: worker, se: hc2)
+--- messages ---
+error[Z0410]: `se: hc2` and `cluster:` exclude each other
+ --> scripts/main.zeff:1:68
+  |
+1 | dataset(wages).reg(log(wage) ~ educ + female, cluster: worker, se: hc2)
+  |                                                                    ^^^ two kinds of standard error
+  |
+  = help: clustered errors are CR1; leave `se:` out with `cluster:`
+[exit 1]
+
+> dataset(wages).reg(log(wage) ~ educ + female, se: bootstrap)
+--- messages ---
+error[Z0402]: `bootstrap` is not one of the allowed words
+ --> scripts/main.zeff:1:51
+  |
+1 | dataset(wages).reg(log(wage) ~ educ + female, se: bootstrap)
+  |                                                   ^^^^^^^^^ expected one of classical, robust, hc2, hc3
+[exit 1]
+
+> dataset(wages).head(40).reg(log(wage) ~ educ + female, cluster: worker)
+reg · log(wage) ~ educ + female
+N = 40
+standard errors: clustered by worker (10 clusters, CR1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     2.8231      0.3806      7.42    <0.001   [1.9621, 3.6841]
+  educ            0.0272      0.0233      1.17     0.273   [-0.0255, 0.0799]
+  female          0.2366      0.1767      1.34     0.213   [-0.1631, 0.6363]
+
+R² 0.106 · adjusted R² 0.057
+--- messages ---
+warning: few clusters: 10 clusters give clustered errors little to rest on (line 1)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
+[exit 0]
+
+> dataset(wages).add(one = 1).reg(log(wage) ~ educ, cluster: one)
+--- messages ---
+error[Z0802]: clustered errors need at least two clusters, and `one` has one
+ --> scripts/main.zeff:1:60
+  |
+1 | dataset(wages).add(one = 1).reg(log(wage) ~ educ, cluster: one)
+  |                                                            ^^^ one cluster
+  |
+  = help: cluster by a variable with several values, or leave `cluster:` out
+[exit 1]
+
+> dataset(wages).add(w = wage - 10).reg(log(wage) ~ educ, weights: w)
+--- messages ---
+error[Z0224]: `w` holds a negative weight in rows 73, 75, 154, 168, 231, 233, 234, 246, 253, 254 and 635 more
+ --> scripts/main.zeff:1:35
+  |
+1 | dataset(wages).add(w = wage - 10).reg(log(wage) ~ educ, weights: w)
+  |                                   ^^^ a weight below zero
+  |
+  = help: weights are zero or positive; `where(w >= 0)` drops the rows, or recode them
+[exit 1]
+
+> dataset(wages).add(w = hours / 7).reg(log(wage) ~ educ, weights: w, weight_type: frequency)
+--- messages ---
+error[Z0401]: frequency weights are whole numbers, but `w` holds a fraction in rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 and 17,885 more
+ --> scripts/main.zeff:1:35
+  |
+1 | dataset(wages).add(w = hours / 7).reg(log(wage) ~ educ, weights: w, weight_type: frequency)
+  |                                   ^^^ a frequency weight with a fraction
+  |
+  = help: a frequency weight counts how many times a row stands; `weight_type: analytic` or `sampling` takes any positive weight
+[exit 1]
+
+> dataset(wages).add(w = to(worker == 1, Int) * 1e6 + 1).reg(log(wage) ~ educ, weights: w)
+reg · log(wage) ~ educ
+N = 18,201 (211 rows dropped for NA in model variables)
+weights: w (sampling)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     3.1224      0.2134     14.63    <0.001   [2.7041, 3.5407]
+  educ           -0.0022      0.0182     -0.12     0.903   [-0.0378, 0.0334]
+
+R² 0.000 · adjusted R² 0.000
+--- messages ---
+warning: extreme weights: the effective sample size is 7 of 18,201 rows (line 1)
+  = help: a few rows carry most of the weight; check them, or trim the weights
+warning: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 4, 6) (line 1)
+  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+[exit 0]
+
+> dataset(wages).reg(log(wage) ~ educ, weights: industry)
+--- messages ---
+error[Z0401]: `weights:` needs a numeric variable, but `industry` is a Category variable
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).reg(log(wage) ~ educ, weights: industry)
+  |                ^^^ not a weight
+  |
+  = help: a weight is a number for each row: a count, a precision or a sampling weight
+[exit 1]
+
+> dataset(wages).reg(log(wage) ~ educ, weights: nope)
+--- messages ---
+error[Z0101]: no variable `nope` in `wages`
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).reg(log(wage) ~ educ, weights: nope)
+  |                ^^^ not a variable of wages
+  |
+  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+[exit 1]
+
+> dataset(wages).reg(log(wage) ~ educ, cluster: nope)
+--- messages ---
+error[Z0101]: no variable `nope` in `wages`
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).reg(log(wage) ~ educ, cluster: nope)
+  |                ^^^ not a variable of wages
+  |
+  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+[exit 1]
+
+> let w = dataset(wages).head(30).add(y = wage + to(worker == 1, Int) * 500)
+w.reg(y ~ educ)
+reg · y ~ educ
+N = 30
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)   -193.6808    213.5434     -0.91     0.372   [-631.1047, 243.7431]
+  educ            21.8728     13.5328      1.62     0.117   [-5.8478, 49.5934]
+
+R² 0.085 · adjusted R² 0.053
+--- messages ---
+[exit 0]
+
 > let d = frame(a = [1.1, -0.7, 2.3, 0.4, -1.9, 0.8, 1.5, -2.2, 0.3, 1.7, -0.5, 2.9], u = [0.3, 1.4, -0.8, 2.1, 0.6, -1.3, 0.9, 0.2, -1.7, 1.1, 2.4, -0.4], v = [-1.2, 0.5, 0.7, -0.3, 1.8, 0.1, -0.9, 1.3, 0.6, -2.1, 0.8, 1.0], w = [2.0, 1.0, 3.0, 0.5, 1.5, 2.5, 3.5, 0.0, 1.2, 2.2, 0.7, 1.9])
 let e = d.add(y = a + 1e-5 * u, z = u + 1e-5 * v)
 e.reg(w ~ a + y + z)
@@ -284,4 +550,6 @@ R² 0.547 · adjusted R² 0.377
 --- messages ---
 warning: near-singular regressors: the condition number of the scaled design is 3.847e10 (line 3)
   = help: two regressors are almost the same column; drop one, or combine them
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 3)
+  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
 [exit 0]

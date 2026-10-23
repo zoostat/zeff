@@ -286,6 +286,7 @@ jobs:
       - name: Rebuild the R references
         run: |
           Rscript --version
+          Rscript tests/reference/r/install.R
           Rscript tests/reference/r/maths.R
           Rscript tests/reference/r/special.R
           Rscript tests/reference/r/distributions.R
