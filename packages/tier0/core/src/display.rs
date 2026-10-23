@@ -163,16 +163,17 @@ pub fn cell(value: Cell<'_>) -> String {
 /// value labels, `female` with 0 male and 1 female, prints the labels).
 pub fn labelled_cell(column: &zeff_columns::Column, row: usize) -> String {
     let value = column.get(row).unwrap_or(Cell::Na);
-    if let Some(labels) = column.metadata().get(MetadataKey::ValueLabels)
-        && let Some(label) = value_label(labels, &value)
+    if let Some(labels) = column.metadata().value_labels()
+        && let Some(label) = value_label(&labels, &value)
     {
         return label;
     }
     cell(value)
 }
 
-/// The label of `value` in `labels`, a JSON object such as `{"0": "male", "1": "female"}`.
-fn value_label(labels: &str, value: &Cell<'_>) -> Option<String> {
+/// The label of `value` among the value labels of the store (the code as text, read by the one
+/// reader of the column kernel), or `None` when the value has no label.
+fn value_label(labels: &[(String, String)], value: &Cell<'_>) -> Option<String> {
     let key = match value {
         Cell::Int(i) => i.to_string(),
         Cell::Float(x) => format_float(*x),
@@ -181,11 +182,9 @@ fn value_label(labels: &str, value: &Cell<'_>) -> Option<String> {
         _ => return None,
     };
     labels
-        .trim_matches(['{', '}'])
-        .split(',')
-        .filter_map(|pair| pair.split_once(':'))
-        .find(|(k, _)| k.trim().trim_matches('"') == key)
-        .map(|(_, v)| v.trim().trim_matches('"').to_string())
+        .iter()
+        .find(|(k, _)| *k == key)
+        .map(|(_, v)| v.clone())
 }
 
 /// How a column's cells line up: numbers to the right, everything else to the left.

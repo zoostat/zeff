@@ -3,7 +3,7 @@
 //! version and the column's metadata). The cache of 0.11.0 and the Arrow files of `save` use this
 //! path; at this release it is the round trip the tests prove.
 
-use crate::column::{Column, ColumnError, ColumnType};
+use crate::column::{CategoryInfo, Column, ColumnError, ColumnType, Contrast};
 use crate::declaration::Opaque;
 use crate::metadata::{FrameMetadata, Metadata, MetadataKey};
 use crate::table::Table;
@@ -56,6 +56,8 @@ impl std::error::Error for IpcError {}
 const EXTENSION_NAME: &str = "ARROW:extension:name";
 const EXTENSION_METADATA: &str = "ARROW:extension:metadata";
 const FREQUENCY: &str = "zeff:frequency";
+const ORDERED: &str = "zeff:ordered";
+const CONTRAST: &str = "zeff:contrast";
 const SOURCE: &str = "zeff:source";
 const PANEL_UNIT: &str = "zeff:panel_unit";
 const PANEL_TIME: &str = "zeff:panel_time";
@@ -74,6 +76,10 @@ fn field_metadata(column: &Column) -> HashMap<String, String> {
     );
     if let ColumnType::Opaque(Opaque::Period(frequency)) = column.ty() {
         metadata.insert(FREQUENCY.to_string(), frequency.as_str());
+    }
+    if let Some(info) = column.category_info() {
+        metadata.insert(ORDERED.to_string(), info.ordered.to_string());
+        metadata.insert(CONTRAST.to_string(), info.contrast.as_str().to_string());
     }
     for (key, value) in column.metadata().iter() {
         metadata.insert(format!("zeff:{}", key.as_str()), value.to_string());
@@ -157,6 +163,28 @@ pub fn read(bytes: &[u8]) -> Result<Table, IpcError> {
             field: field.name().clone(),
             error,
         })?;
+        if ty == ColumnType::Category {
+            let ordered = match metadata.get(ORDERED).map(String::as_str) {
+                None | Some("false") => false,
+                Some("true") => true,
+                Some(other) => {
+                    return Err(IpcError::Malformed(format!(
+                        "the field `{}` has `{ORDERED}` = {other:?}; it is true or false",
+                        field.name()
+                    )));
+                }
+            };
+            let contrast = match metadata.get(CONTRAST) {
+                None => Contrast::default(),
+                Some(text) => Contrast::parse(text).ok_or_else(|| {
+                    IpcError::Malformed(format!(
+                        "the field `{}` has `{CONTRAST}` = {text:?}; it is treatment, sum, helmert or poly",
+                        field.name()
+                    ))
+                })?,
+            };
+            column = column.with_category_info(CategoryInfo { ordered, contrast });
+        }
         let mut store = Metadata::new();
         for (key, value) in metadata {
             if let Some(key) = key.strip_prefix("zeff:").and_then(MetadataKey::parse) {

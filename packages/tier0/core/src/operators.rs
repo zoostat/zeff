@@ -52,6 +52,17 @@ impl Op {
         matches!(self, Op::Eq | Op::Ne | Op::Lt | Op::Le | Op::Gt | Op::Ge)
     }
 
+    /// The comparison with its sides swapped: `a < b` is `b > a`.
+    pub fn flipped(self) -> Op {
+        match self {
+            Op::Lt => Op::Gt,
+            Op::Le => Op::Ge,
+            Op::Gt => Op::Lt,
+            Op::Ge => Op::Le,
+            other => other,
+        }
+    }
+
     pub fn is_logical(self) -> bool {
         matches!(self, Op::And | Op::Or)
     }
@@ -396,6 +407,25 @@ pub enum ColumnTrouble {
     Overflow { row: usize, operation: String },
     /// Operators on this column type wait for the package that computes on it.
     Unsupported(ColumnType),
+    /// Z0216: text that is no level of the category, given as a value (`row` is `None`) or found
+    /// in a row of a text column compared by order (`row` 1-based).
+    NotALevel {
+        text: String,
+        levels: Vec<String>,
+        row: Option<usize>,
+    },
+    /// Z0216: text compared with an Int column that carries value labels, which compares as a
+    /// number: the code whose label the text is, when there is one, and the labels.
+    LabelledInt {
+        symbol: &'static str,
+        text: String,
+        code: Option<String>,
+        labels: Vec<(String, String)>,
+    },
+    /// Z0221: an order comparison on a category whose levels are not ordered.
+    Unordered { symbol: &'static str },
+    /// Z0221: an order comparison between two categories with different levels.
+    DifferentLevels { symbol: &'static str },
     /// The operands' kinds do not take the operator (Z0215 or Z0221), found before the first row.
     Types {
         code: &'static str,
@@ -465,6 +495,9 @@ pub fn column_binary(
     b: Operand<'_>,
 ) -> Result<(Column, Notes), ColumnTrouble> {
     let len = common_length(a, b)?;
+    if let Some(result) = category_binary(op, a, b, len)? {
+        return Ok(result);
+    }
     // The kinds are checked once, from the column types, so that an all-NA text column is
     // refused like any other and no row is visited in vain.
     if let Err(Trouble::Types {
@@ -521,6 +554,16 @@ pub fn column_binary(
 
 /// `-` or `!` row by row.
 pub fn column_unary(negation: bool, c: &Column) -> Result<Column, ColumnTrouble> {
+    if c.ty() == ColumnType::Category {
+        return Err(ColumnTrouble::Types {
+            code: "Z0221",
+            message: format!(
+                "`{}` does not apply to a category",
+                if negation { "-" } else { "!" }
+            ),
+            help: "a category holds levels, not numbers or Bools",
+        });
+    }
     let kind = Kind::of_column(c.ty());
     if negation && !matches!(kind, Kind::Number) || !negation && !matches!(kind, Kind::Bool) {
         if kind == Kind::Other {
@@ -574,6 +617,213 @@ pub fn column_unary(negation: bool, c: &Column) -> Result<Column, ColumnTrouble>
     }
     let fallback = if negation { c.ty() } else { ColumnType::Bool };
     Ok(column_from(out, fallback))
+}
+
+fn types(code: &'static str, message: String, help: &'static str) -> ColumnTrouble {
+    ColumnTrouble::Types {
+        code,
+        message,
+        help,
+    }
+}
+
+/// Whether two level positions stand in the relation `op`.
+fn positions_compare(op: Op, p: i32, q: i32) -> bool {
+    match op {
+        Op::Eq => p == q,
+        Op::Ne => p != q,
+        Op::Lt => p < q,
+        Op::Le => p <= q,
+        Op::Gt => p > q,
+        Op::Ge => p >= q,
+        _ => unreachable!("a comparison"),
+    }
+}
+
+/// The comparisons that involve a category column or an Int column with value labels (Language
+/// Reference, section 3.7, "Comparison"): a category compares with text by its levels, with
+/// another category by label, and, when its levels are ordered, by level position under `<` and
+/// the rest; an Int with value labels compares as the number it holds, so text against it is
+/// Z0216 with the code suggested. `None` when neither operand is such a column, so the ordinary
+/// rules apply.
+fn category_binary(
+    op: Op,
+    a: Operand<'_>,
+    b: Operand<'_>,
+    len: usize,
+) -> Result<Option<(Column, Notes)>, ColumnTrouble> {
+    let symbol = op.symbol();
+    if op.is_comparison() {
+        for (column, other) in [(a, b), (b, a)] {
+            if let (Operand::Column(c), Operand::Scalar(Value::Str(text))) = (column, other)
+                && c.ty() == ColumnType::Int
+                && let Some(labels) = c.metadata().value_labels()
+            {
+                let code = labels
+                    .iter()
+                    .find(|(_, label)| label == text)
+                    .map(|(code, _)| code.clone());
+                return Err(ColumnTrouble::LabelledInt {
+                    symbol,
+                    text: text.clone(),
+                    code,
+                    labels,
+                });
+            }
+        }
+    }
+    fn as_category<'a>(o: Operand<'a>) -> Option<&'a Column> {
+        match o {
+            Operand::Column(c) if c.ty() == ColumnType::Category => Some(c),
+            _ => None,
+        }
+    }
+    let (ca, cb) = (as_category(a), as_category(b));
+    if ca.is_none() && cb.is_none() {
+        return Ok(None);
+    }
+    if op.is_logical() {
+        return Err(types(
+            "Z0221",
+            format!("`{symbol}` needs two Bools, but one side is a category"),
+            "`&&` and `||` combine comparisons, as in `industry == \"Retail\" && female == 1`",
+        ));
+    }
+    if !op.is_comparison() {
+        return Err(types(
+            "Z0221",
+            format!("`{symbol}` does not apply to a category"),
+            "a category holds levels, not numbers: compare it with `==` or `!=`, or convert it with `to(x, Int)` to its level positions",
+        ));
+    }
+    let equality = matches!(op, Op::Eq | Op::Ne);
+    let done = |values: Vec<Option<bool>>| Ok(Some((Column::bools(values), Notes::default())));
+    if let (Some(x), Some(y)) = (ca, cb) {
+        if equality {
+            let negate = op == Op::Ne;
+            let labels_y: Vec<Option<&str>> = y.as_labels().expect("a category").collect();
+            let values = x
+                .as_labels()
+                .expect("a category")
+                .zip(labels_y)
+                .map(|(p, q)| match (p, q) {
+                    (Some(p), Some(q)) => Some((p == q) != negate),
+                    _ => None,
+                })
+                .collect();
+            return done(values);
+        }
+        if !x.is_ordered() || !y.is_ordered() {
+            return Err(ColumnTrouble::Unordered { symbol });
+        }
+        if x.levels() != y.levels() {
+            return Err(ColumnTrouble::DifferentLevels { symbol });
+        }
+        let codes_y: Vec<Option<i32>> = y.as_codes().expect("a category").collect();
+        let values = x
+            .as_codes()
+            .expect("a category")
+            .zip(codes_y)
+            .map(|(p, q)| match (p, q) {
+                (Some(p), Some(q)) => Some(positions_compare(op, p, q)),
+                _ => None,
+            })
+            .collect();
+        return done(values);
+    }
+    // One category, against a scalar or a column of another type; the category is put on the
+    // left, the comparison flipped when it stood on the right.
+    let (category, other, op) = match (ca, cb) {
+        (Some(c), None) => (c, b, op),
+        (None, Some(c)) => (c, a, op.flipped()),
+        _ => unreachable!("one of the two is a category"),
+    };
+    let levels: Vec<String> = category
+        .levels()
+        .expect("a category")
+        .iter()
+        .map(|l| (*l).to_string())
+        .collect();
+    match other {
+        Operand::Scalar(Value::Na) => done(vec![None; len]),
+        Operand::Scalar(Value::Str(text)) => {
+            let position =
+                levels
+                    .iter()
+                    .position(|l| l == text)
+                    .ok_or_else(|| ColumnTrouble::NotALevel {
+                        text: text.clone(),
+                        levels: levels.clone(),
+                        row: None,
+                    })? as i32;
+            if !equality && !category.is_ordered() {
+                return Err(ColumnTrouble::Unordered { symbol });
+            }
+            let values = category
+                .as_codes()
+                .expect("a category")
+                .map(|code| code.map(|c| positions_compare(op, c, position)))
+                .collect();
+            done(values)
+        }
+        Operand::Scalar(value) => Err(types(
+            "Z0221",
+            format!(
+                "`{symbol}` compares values of one type, but these are a category and {}",
+                Kind::of(value).with_article()
+            ),
+            "a category compares with text, as in `industry == \"Retail\"`",
+        )),
+        Operand::Column(c) if c.ty() == ColumnType::Str => {
+            let texts: Vec<Option<&str>> = c.as_strs().expect("text").collect();
+            if equality {
+                let negate = op == Op::Ne;
+                let values = category
+                    .as_labels()
+                    .expect("a category")
+                    .zip(texts)
+                    .map(|(label, text)| match (label, text) {
+                        (Some(l), Some(t)) => Some((l == t) != negate),
+                        _ => None,
+                    })
+                    .collect();
+                return done(values);
+            }
+            if !category.is_ordered() {
+                return Err(ColumnTrouble::Unordered { symbol });
+            }
+            let mut values = Vec::with_capacity(len);
+            for (row, (code, text)) in category
+                .as_codes()
+                .expect("a category")
+                .zip(texts)
+                .enumerate()
+            {
+                values.push(match (code, text) {
+                    (Some(code), Some(text)) => {
+                        let position = levels.iter().position(|l| l == text).ok_or_else(|| {
+                            ColumnTrouble::NotALevel {
+                                text: text.to_string(),
+                                levels: levels.clone(),
+                                row: Some(row + 1),
+                            }
+                        })? as i32;
+                        Some(positions_compare(op, code, position))
+                    }
+                    _ => None,
+                });
+            }
+            done(values)
+        }
+        Operand::Column(c) => Err(types(
+            "Z0221",
+            format!(
+                "`{symbol}` compares values of one type, but these are a category and a {} column",
+                c.ty().name()
+            ),
+            "a category compares with text, as in `industry == \"Retail\"`",
+        )),
+    }
 }
 
 /// A column from row values of one type (Int and Float joined as Float); all `NA` takes the
@@ -748,6 +998,153 @@ mod tests {
         ));
         assert_eq!(decided_by_left(Op::And, &f), Some(f.clone()));
         assert_eq!(decided_by_left(Op::Or, &f), None);
+    }
+
+    fn category(ordered: bool, codes: [Option<i32>; 4]) -> Column {
+        Column::categories(vec!["low".into(), "mid".into(), "high".into()], codes)
+            .unwrap()
+            .with_ordered(ordered)
+    }
+
+    fn bools(column: &Column) -> Vec<Option<bool>> {
+        column.as_bools().unwrap().collect()
+    }
+
+    #[test]
+    fn categories_compare_by_level_and_by_order() {
+        let c = category(false, [Some(0), Some(2), None, Some(1)]);
+        let text = |s: &str| Value::Str(s.to_string());
+        // Equality with text, by label, with the text on either side; `NA` stays `NA`.
+        let (eq, _) =
+            column_binary(Op::Eq, Operand::Column(&c), Operand::Scalar(&text("high"))).unwrap();
+        assert_eq!(bools(&eq), vec![Some(false), Some(true), None, Some(false)]);
+        let (ne, _) =
+            column_binary(Op::Ne, Operand::Scalar(&text("high")), Operand::Column(&c)).unwrap();
+        assert_eq!(bools(&ne), vec![Some(true), Some(false), None, Some(true)]);
+        let (na, _) =
+            column_binary(Op::Eq, Operand::Column(&c), Operand::Scalar(&Value::Na)).unwrap();
+        assert_eq!(bools(&na), vec![None; 4]);
+        // Text that is no level, and an order comparison on a category without one.
+        assert!(matches!(
+            column_binary(Op::Eq, Operand::Column(&c), Operand::Scalar(&text("High"))),
+            Err(ColumnTrouble::NotALevel { row: None, .. })
+        ));
+        assert!(matches!(
+            column_binary(Op::Lt, Operand::Column(&c), Operand::Scalar(&text("mid"))),
+            Err(ColumnTrouble::Unordered { symbol: "<" })
+        ));
+        // Ordered: by level position, flipped when the category stands on the right.
+        let o = category(true, [Some(0), Some(2), None, Some(1)]);
+        let (lt, _) =
+            column_binary(Op::Lt, Operand::Column(&o), Operand::Scalar(&text("mid"))).unwrap();
+        assert_eq!(bools(&lt), vec![Some(true), Some(false), None, Some(false)]);
+        let (gt, _) =
+            column_binary(Op::Lt, Operand::Scalar(&text("mid")), Operand::Column(&o)).unwrap();
+        assert_eq!(bools(&gt), vec![Some(false), Some(true), None, Some(false)]);
+        let (ge, _) =
+            column_binary(Op::Ge, Operand::Column(&o), Operand::Scalar(&text("mid"))).unwrap();
+        assert_eq!(bools(&ge), vec![Some(false), Some(true), None, Some(true)]);
+        // Two categories: equality by label whatever the levels; order with the same levels only.
+        let other = category(true, [Some(0), Some(0), Some(1), Some(1)]);
+        let (eq, _) = column_binary(Op::Eq, Operand::Column(&o), Operand::Column(&other)).unwrap();
+        assert_eq!(bools(&eq), vec![Some(true), Some(false), None, Some(true)]);
+        let (le, _) = column_binary(Op::Le, Operand::Column(&o), Operand::Column(&other)).unwrap();
+        assert_eq!(bools(&le), vec![Some(true), Some(false), None, Some(true)]);
+        assert!(matches!(
+            column_binary(Op::Le, Operand::Column(&c), Operand::Column(&other)),
+            Err(ColumnTrouble::Unordered { symbol: "<=" })
+        ));
+        let different = Column::categories(
+            vec!["low".into(), "high".into()],
+            [Some(0), Some(1), None, Some(1)],
+        )
+        .unwrap()
+        .with_ordered(true);
+        let (eq, _) =
+            column_binary(Op::Eq, Operand::Column(&o), Operand::Column(&different)).unwrap();
+        assert_eq!(bools(&eq), vec![Some(true), Some(true), None, Some(false)]);
+        assert!(matches!(
+            column_binary(Op::Gt, Operand::Column(&o), Operand::Column(&different)),
+            Err(ColumnTrouble::DifferentLevels { symbol: ">" })
+        ));
+        // A text column: equality by label; order needs every text to be a level.
+        let texts = Column::strs([Some("low"), Some("nothing"), Some("high"), None]);
+        let (eq, _) = column_binary(Op::Eq, Operand::Column(&o), Operand::Column(&texts)).unwrap();
+        assert_eq!(bools(&eq), vec![Some(true), Some(false), None, None]);
+        assert!(matches!(
+            column_binary(Op::Lt, Operand::Column(&o), Operand::Column(&texts)),
+            Err(ColumnTrouble::NotALevel { row: Some(2), .. })
+        ));
+        let levels = Column::strs([Some("low"), Some("mid"), Some("high"), Some("low")]);
+        let (lt, _) = column_binary(Op::Lt, Operand::Column(&o), Operand::Column(&levels)).unwrap();
+        assert_eq!(
+            bools(&lt),
+            vec![Some(false), Some(false), None, Some(false)]
+        );
+        // What a category does not take.
+        for (op, other) in [
+            (Op::Add, Operand::Scalar(&Value::Int(1))),
+            (Op::And, Operand::Scalar(&Value::Bool(true))),
+            (Op::Eq, Operand::Scalar(&Value::Int(1))),
+        ] {
+            assert!(matches!(
+                column_binary(op, Operand::Column(&c), other),
+                Err(ColumnTrouble::Types { code: "Z0221", .. })
+            ));
+        }
+        let floats = Column::floats([Some(1.0), Some(2.0), Some(3.0), Some(4.0)]).0;
+        assert!(matches!(
+            column_binary(Op::Eq, Operand::Column(&c), Operand::Column(&floats)),
+            Err(ColumnTrouble::Types { code: "Z0221", .. })
+        ));
+        assert!(matches!(
+            column_unary(true, &c),
+            Err(ColumnTrouble::Types { code: "Z0221", .. })
+        ));
+        assert!(matches!(
+            column_unary(false, &c),
+            Err(ColumnTrouble::Types { code: "Z0221", .. })
+        ));
+        // A labelled Int compares as a number: text against it names the code.
+        let mut store = zeff_columns::Metadata::new();
+        store.set(
+            zeff_columns::MetadataKey::ValueLabels,
+            zeff_columns::format_value_labels(&[("0", "male"), ("1", "female")]),
+        );
+        let labelled = Column::ints([Some(0), Some(1), None, Some(1)]).with_metadata(store);
+        match column_binary(
+            Op::Eq,
+            Operand::Column(&labelled),
+            Operand::Scalar(&text("female")),
+        ) {
+            Err(ColumnTrouble::LabelledInt {
+                symbol,
+                text,
+                code,
+                labels,
+            }) => {
+                assert_eq!(
+                    (symbol, text.as_str(), code.as_deref(), labels.len()),
+                    ("==", "female", Some("1"), 2)
+                );
+            }
+            other => panic!("{other:?}"),
+        }
+        assert!(matches!(
+            column_binary(
+                Op::Ne,
+                Operand::Scalar(&text("other")),
+                Operand::Column(&labelled)
+            ),
+            Err(ColumnTrouble::LabelledInt { code: None, .. })
+        ));
+        let (eq, _) = column_binary(
+            Op::Eq,
+            Operand::Column(&labelled),
+            Operand::Scalar(&Value::Int(1)),
+        )
+        .unwrap();
+        assert_eq!(bools(&eq), vec![Some(false), Some(true), None, Some(true)]);
     }
 
     #[test]

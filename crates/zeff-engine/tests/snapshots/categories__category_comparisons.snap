@@ -1,0 +1,21 @@
+---
+source: crates/zeff-engine/tests/categories.rs
+expression: "format!(\"{}--- messages ---\\n{}\", outcome.output.stdout,\noutcome.output.stderr)"
+---
+2871
+15541
+2871
+0
+0
+frame · 4 rows × 3 variables · panel worker × year
+
+      worker   industry   retail
+  1        1   Retail     true
+  2        1   Retail     true
+  3        1   Retail     true
+  4        1   Retail     true
+754
+--- messages ---
+note: no row kept: the result is empty (line 5)
+note: 18,412 rows dropped where `industry == NA` was NA (line 6)
+note: no row kept: the result is empty (line 6)

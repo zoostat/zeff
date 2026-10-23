@@ -91,6 +91,51 @@ pub enum Value<'a> {
     Opaque(String),
 }
 
+/// How a category's indicator columns are coded in a model matrix (Language Reference, section
+/// 4.2): `treatment` against the base level, `sum` as deviations from the mean, `helmert` as
+/// each level against the mean of those before it, `poly` as orthogonal polynomial trends over
+/// ordered levels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Contrast {
+    #[default]
+    Treatment,
+    Sum,
+    Helmert,
+    Poly,
+}
+
+impl Contrast {
+    pub const ALL: [Contrast; 4] = [
+        Contrast::Treatment,
+        Contrast::Sum,
+        Contrast::Helmert,
+        Contrast::Poly,
+    ];
+
+    /// The contrast as the language writes it.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Contrast::Treatment => "treatment",
+            Contrast::Sum => "sum",
+            Contrast::Helmert => "helmert",
+            Contrast::Poly => "poly",
+        }
+    }
+
+    pub fn parse(text: &str) -> Option<Contrast> {
+        Contrast::ALL.into_iter().find(|c| c.as_str() == text)
+    }
+}
+
+/// What a category carries beside its levels (section 3.8's table: "the ordered flag and the
+/// contrast in field metadata"): whether its levels are ordered, so that `<` compares them by
+/// position, and how its indicators are coded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct CategoryInfo {
+    pub ordered: bool,
+    pub contrast: Contrast,
+}
+
 /// Why a column could not be made.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ColumnError {
@@ -133,7 +178,7 @@ enum Data {
     Str(LargeStringArray),
     Date(Date32Array),
     DateTime(TimestampMicrosecondArray),
-    Category(DictionaryArray<Int32Type>),
+    Category(DictionaryArray<Int32Type>, CategoryInfo),
     /// An opaque kind, held as the Arrow array its storage declares.
     Opaque(Opaque, ArrayRef),
 }
@@ -222,9 +267,10 @@ impl Column {
         let values = Arc::new(StringArray::from_iter_values(levels));
         let keys: Int32Array = codes.into_iter().collect();
         // Every code was checked against the levels above, so the keys are valid.
-        Ok(column(Data::Category(DictionaryArray::<Int32Type>::new(
-            keys, values,
-        ))))
+        Ok(column(Data::Category(
+            DictionaryArray::<Int32Type>::new(keys, values),
+            CategoryInfo::default(),
+        )))
     }
 
     /// A column of `len` missing values of the given type (a category has no levels).
@@ -239,9 +285,10 @@ impl Column {
             ColumnType::Category => {
                 let keys: Int32Array = std::iter::repeat_n(None, len).collect();
                 let values = Arc::new(StringArray::from_iter_values(Vec::<String>::new()));
-                column(Data::Category(DictionaryArray::<Int32Type>::new(
-                    keys, values,
-                )))
+                column(Data::Category(
+                    DictionaryArray::<Int32Type>::new(keys, values),
+                    CategoryInfo::default(),
+                ))
             }
             ColumnType::Opaque(kind) => column(Data::Opaque(
                 kind,
@@ -260,7 +307,7 @@ impl Column {
             Data::Str(_) => ColumnType::Str,
             Data::Date(_) => ColumnType::Date,
             Data::DateTime(_) => ColumnType::DateTime,
-            Data::Category(_) => ColumnType::Category,
+            Data::Category(_, _) => ColumnType::Category,
             Data::Opaque(kind, _) => ColumnType::Opaque(*kind),
         }
     }
@@ -273,7 +320,7 @@ impl Column {
             Data::Str(a) => a.len(),
             Data::Date(a) => a.len(),
             Data::DateTime(a) => a.len(),
-            Data::Category(a) => a.len(),
+            Data::Category(a, _) => a.len(),
             Data::Opaque(_, a) => a.len(),
         }
     }
@@ -291,7 +338,7 @@ impl Column {
             Data::Str(a) => a.null_count(),
             Data::Date(a) => a.null_count(),
             Data::DateTime(a) => a.null_count(),
-            Data::Category(a) => a.null_count(),
+            Data::Category(a, _) => a.null_count(),
             Data::Opaque(_, a) => a.null_count(),
         }
     }
@@ -311,7 +358,7 @@ impl Column {
                 Data::Str(a) => a.is_null(row),
                 Data::Date(a) => a.is_null(row),
                 Data::DateTime(a) => a.is_null(row),
-                Data::Category(a) => a.is_null(row),
+                Data::Category(a, _) => a.is_null(row),
                 Data::Opaque(_, a) => a.is_null(row),
             }
     }
@@ -331,7 +378,7 @@ impl Column {
             Data::Str(a) => Value::Str(a.value(row)),
             Data::Date(a) => Value::Date(a.value(row)),
             Data::DateTime(a) => Value::DateTime(a.value(row)),
-            Data::Category(a) => Value::Category(category_label(a, row)),
+            Data::Category(a, _) => Value::Category(category_label(a, row)),
             Data::Opaque(kind, a) => Value::Opaque(opaque_summary(*kind, a, row)),
         })
     }
@@ -348,7 +395,7 @@ impl Column {
             Data::Str(a) => Data::Str(a.slice(offset, len)),
             Data::Date(a) => Data::Date(a.slice(offset, len)),
             Data::DateTime(a) => Data::DateTime(a.slice(offset, len)),
-            Data::Category(a) => Data::Category(a.slice(offset, len)),
+            Data::Category(a, info) => Data::Category(a.slice(offset, len), *info),
             Data::Opaque(kind, a) => Data::Opaque(*kind, a.slice(offset, len)),
         };
         Column {
@@ -365,6 +412,19 @@ impl Column {
             .expect("row positions within the column");
         let data = match &self.data {
             Data::Opaque(kind, _) => Data::Opaque(*kind, taken),
+            // The codes are gathered by hand: Arrow's `take` of no rows gives an empty
+            // dictionary, and a category keeps its levels when no row is left (section 4.2:
+            // a level with no rows is still a level).
+            Data::Category(a, info) => {
+                let keys: Int32Array = rows
+                    .iter()
+                    .map(|&r| (!a.is_null(r)).then(|| a.keys().value(r)))
+                    .collect();
+                Data::Category(
+                    DictionaryArray::<Int32Type>::new(keys, a.values().clone()),
+                    *info,
+                )
+            }
             _ => {
                 Column::from_arrow(taken, self.ty())
                     .expect("the taken array has the column's type")
@@ -424,7 +484,7 @@ impl Column {
     /// The labels of a category column's levels, in order.
     pub fn levels(&self) -> Option<Vec<&str>> {
         match &self.data {
-            Data::Category(a) => {
+            Data::Category(a, _) => {
                 let values = a.values().as_string::<i32>();
                 Some((0..values.len()).map(|i| values.value(i)).collect())
             }
@@ -435,7 +495,7 @@ impl Column {
     /// The 0-based level position of each row of a category column.
     pub fn as_codes(&self) -> Option<impl Iterator<Item = Option<i32>> + '_> {
         match &self.data {
-            Data::Category(a) => Some(a.keys().iter()),
+            Data::Category(a, _) => Some(a.keys().iter()),
             _ => None,
         }
     }
@@ -443,7 +503,7 @@ impl Column {
     /// The label of each row of a category column.
     pub fn as_labels(&self) -> Option<impl Iterator<Item = Option<&str>> + '_> {
         match &self.data {
-            Data::Category(a) => {
+            Data::Category(a, _) => {
                 Some((0..a.len()).map(move |row| (!a.is_null(row)).then(|| category_label(a, row))))
             }
             _ => None,
@@ -483,12 +543,61 @@ impl Column {
             Data::Str(a) => a.data_type().clone(),
             Data::Date(a) => a.data_type().clone(),
             Data::DateTime(a) => a.data_type().clone(),
-            Data::Category(a) => a.data_type().clone(),
+            Data::Category(a, _) => a.data_type().clone(),
             Data::Opaque(_, a) => a.data_type().clone(),
         }
     }
 
     // ----- metadata (section 4.3, rule 3) -----
+
+    /// A category's ordered flag and contrast; `None` for any other type.
+    pub fn category_info(&self) -> Option<CategoryInfo> {
+        match &self.data {
+            Data::Category(_, info) => Some(*info),
+            _ => None,
+        }
+    }
+
+    /// Whether this is a category whose levels are ordered.
+    pub fn is_ordered(&self) -> bool {
+        self.category_info().is_some_and(|info| info.ordered)
+    }
+
+    /// A category's contrast; `None` for any other type.
+    pub fn contrast(&self) -> Option<Contrast> {
+        self.category_info().map(|info| info.contrast)
+    }
+
+    /// The category with these fields; any other column is returned unchanged.
+    pub fn with_category_info(mut self, info: CategoryInfo) -> Column {
+        if let Data::Category(_, current) = &mut self.data {
+            *current = info;
+        }
+        self
+    }
+
+    /// The category with its levels ordered or not. Ordering a category sets its `measure` to
+    /// `ordinal` (section 4.3's table: `category(ordered: true)` sets it), and removing the order
+    /// removes that entry when it says `ordinal`.
+    pub fn with_ordered(mut self, ordered: bool) -> Column {
+        if let Data::Category(_, info) = &mut self.data {
+            info.ordered = ordered;
+            if ordered {
+                self.metadata.set(MetadataKey::Measure, "ordinal");
+            } else if self.metadata.get(MetadataKey::Measure) == Some("ordinal") {
+                self.metadata.remove(MetadataKey::Measure);
+            }
+        }
+        self
+    }
+
+    /// The category with this contrast; any other column is returned unchanged.
+    pub fn with_contrast(mut self, contrast: Contrast) -> Column {
+        if let Data::Category(_, info) = &mut self.data {
+            info.contrast = contrast;
+        }
+        self
+    }
 
     pub fn metadata(&self) -> &Metadata {
         &self.metadata
@@ -516,7 +625,7 @@ impl Column {
             Data::Str(a) => Arc::new(a.clone()),
             Data::Date(a) => Arc::new(a.clone()),
             Data::DateTime(a) => Arc::new(a.clone()),
-            Data::Category(a) => Arc::new(a.clone()),
+            Data::Category(a, _) => Arc::new(a.clone()),
             Data::Opaque(_, a) => a.clone(),
         }
     }
@@ -574,7 +683,7 @@ impl Column {
                 if a.values().as_string_opt::<i32>().is_none() {
                     return Err(wrong());
                 }
-                column(Data::Category(a.clone()))
+                column(Data::Category(a.clone(), CategoryInfo::default()))
             }
             ColumnType::Opaque(kind) => Column::opaque(kind, array)?,
         })

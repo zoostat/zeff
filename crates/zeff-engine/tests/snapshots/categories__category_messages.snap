@@ -1,0 +1,111 @@
+---
+source: crates/zeff-engine/tests/categories.rs
+expression: all
+---
+> dataset(wages).where(industry == "Retial")
+error[Z0216]: "Retial" is not a level of the category
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where(industry == "Retial")
+  |                      ^^^^^^^^^^^^^^^^^^^^ the levels are "Agriculture", "Mining", "Utilities", "Construction", "Manufacturing", "Retail", "Transport", "Finance", "Services", "Education", "Health", "Public administration"
+  |
+  = help: write one of the levels, in quotes; a category compares with text by its levels
+
+> dataset(wages).where(female == "female")
+error[Z0216]: "female" is a value label, and the variable compares as a number
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where(female == "female")
+  |                      ^^^^^^^^^^^^^^^^^^ an Int variable with value labels
+  |
+  = help: write `== 1`: 1 is the code labelled "female"
+
+> dataset(wages).where(union == "maybe")
+error[Z0216]: "maybe" is a value label, and the variable compares as a number
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where(union == "maybe")
+  |                      ^^^^^^^^^^^^^^^^ an Int variable with value labels
+  |
+  = help: the labels are 0 no, 1 yes; compare with a code
+
+> dataset(sleep).where(group != "laevo-hyoscyamine")
+error[Z0216]: "laevo-hyoscyamine" is a value label, and the variable compares as a number
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(sleep).where(group != "laevo-hyoscyamine")
+  |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ an Int variable with value labels
+  |
+  = help: write `!= 2`: 2 is the code labelled "laevo-hyoscyamine"
+
+> dataset(wages).where(industry < "Retail")
+error[Z0221]: `<` needs an ordered category, and this one has no order
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where(industry < "Retail")
+  |                      ^^^^^^^^^^^^^^^^^^^ a category without an order
+  |
+  = help: `==` and `!=` work on any category; `category(x, levels: [...], ordered: true)` gives it an order
+
+> dataset(wages).where("Retail" >= industry)
+error[Z0221]: `>=` needs an ordered category, and this one has no order
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where("Retail" >= industry)
+  |                      ^^^^^^^^^^^^^^^^^^^^ a category without an order
+  |
+  = help: `==` and `!=` work on any category; `category(x, levels: [...], ordered: true)` gives it an order
+
+> dataset(wages).add(x = industry + 1)
+error[Z0221]: `+` does not apply to a category
+ --> scripts/main.zeff:1:24
+  |
+1 | dataset(wages).add(x = industry + 1)
+  |                        ^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: a category holds levels, not numbers: compare it with `==` or `!=`, or convert it with `to(x, Int)` to its level positions
+
+> dataset(wages).where(industry && true)
+error[Z0221]: `&&` needs two Bools, but one side is a category
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where(industry && true)
+  |                      ^^^^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: `&&` and `||` combine comparisons, as in `industry == "Retail" && female == 1`
+
+> dataset(wages).where(industry == 1)
+error[Z0221]: `==` compares values of one type, but these are a category and a number
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where(industry == 1)
+  |                      ^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: a category compares with text, as in `industry == "Retail"`
+
+> dataset(wages).where(industry == wage)
+error[Z0221]: `==` compares values of one type, but these are a category and a Float column
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where(industry == wage)
+  |                      ^^^^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: a category compares with text, as in `industry == "Retail"`
+
+> dataset(wages).add(x = -industry)
+error[Z0221]: `-` does not apply to a category
+ --> scripts/main.zeff:1:24
+  |
+1 | dataset(wages).add(x = -industry)
+  |                        ^^^^^^^^^ the operation, row by row
+  |
+  = help: a category holds levels, not numbers or Bools
+
+> dataset(wages).add(x = !industry)
+error[Z0221]: `!` does not apply to a category
+ --> scripts/main.zeff:1:24
+  |
+1 | dataset(wages).add(x = !industry)
+  |                        ^^^^^^^^^ the operation, row by row
+  |
+  = help: a category holds levels, not numbers or Bools

@@ -115,20 +115,17 @@ pub fn dataset_specs() -> Vec<DatasetSpec> {
         .collect()
 }
 
-/// `{"0": "male", "1": "female"}` as `0 male, 1 female`.
+/// `{"0": "male", "1": "female"}` as `0 male, 1 female`, through the column kernel's reader.
 fn value_labels_text(json: &str) -> String {
-    json.trim_matches(['{', '}'])
-        .split(',')
-        .map(|pair| {
-            let (k, v) = pair.split_once(':').unwrap_or((pair, ""));
-            format!(
-                "{} {}",
-                k.trim().trim_matches('"'),
-                v.trim().trim_matches('"')
-            )
+    zeff_columns::parse_value_labels(json)
+        .map(|pairs| {
+            pairs
+                .iter()
+                .map(|(k, v)| format!("{k} {v}"))
+                .collect::<Vec<_>>()
+                .join(", ")
         })
-        .collect::<Vec<_>>()
-        .join(", ")
+        .unwrap_or_default()
 }
 
 /// `dataset(name)`: the dataset as a frame with its labels, categories and panel declaration.

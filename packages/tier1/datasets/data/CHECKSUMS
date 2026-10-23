@@ -1,5 +1,5 @@
 # BLAKE3 checksums of the shipped dataset files (cargo run -p xtask -- build-datasets)
 blake3:15402621c9f42f8eb5051465751864891fdcf4a1be64d63b87ac7a74c35b5f01  wages.csv
 blake3:311de185c75d06c5a035a63b3e29470da0858323b3f1c3394634659781211703  sleep.csv
-blake3:d155d8a1eb325fdf3f2704be0b8d65ec27dfbacf4c14f2763a6d62702bdc87f4  wages.arrow
+blake3:3440e985c39e6ddb12ba1eea83c5892be0e300b176e1773ef817f3b983ca62c5  wages.arrow
 blake3:ebaa4990e06852987cdb24246ad766803d15012e178f3aca3321413d4350ce3e  sleep.arrow

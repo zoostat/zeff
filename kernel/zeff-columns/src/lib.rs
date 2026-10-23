@@ -20,11 +20,11 @@ mod metadata;
 mod table;
 mod weights;
 
-pub use column::{Column, ColumnError, ColumnType, NumericValues, Value};
+pub use column::{CategoryInfo, Column, ColumnError, ColumnType, Contrast, NumericValues, Value};
 pub use declaration::{Frequency, Opaque, Relations, TypeDeclaration};
 pub use grouping::{GroupError, Groups, Key, sort_rows};
 pub use ipc::{IpcError, read as read_ipc, write as write_ipc};
 pub use logic::{and, not, or};
-pub use metadata::{FrameMetadata, Metadata, MetadataKey};
+pub use metadata::{FrameMetadata, Metadata, MetadataKey, format_value_labels, parse_value_labels};
 pub use table::{Table, TableError};
 pub use weights::{WeightError, WeightType, Weights};

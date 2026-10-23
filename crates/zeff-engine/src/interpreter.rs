@@ -818,7 +818,54 @@ impl<'a> Interpreter<'a> {
                 )
                 .in_file(self.script)
                 .primary(expr.span, "arrives with the package that computes on it")
-                .help("dates and categories gain their operators with the `time` package and `category` (releases 0.3.0 and 0.5.0)"),
+                .help("dates and times gain their operators with the `time` package (release 0.6.0)"),
+            ),
+            ColumnTrouble::NotALevel { text, levels, row } => {
+                let listed = list_levels(&levels);
+                match row {
+                    None => fail(
+                        Diagnostic::error("Z0216", format!("\"{text}\" is not a level of the category"))
+                            .in_file(self.script)
+                            .primary(expr.span, format!("the levels are {listed}"))
+                            .help("write one of the levels, in quotes; a category compares with text by its levels"),
+                    ),
+                    Some(row) => fail(
+                        Diagnostic::error(
+                            "Z0216",
+                            format!("row {} holds \"{text}\", which is not a level of the category", zeff_diagnostics::count(row as u64)),
+                        )
+                        .in_file(self.script)
+                        .primary(expr.span, "compared by order, so every value must be a level")
+                        .help(format!("the levels are {listed}")),
+                    ),
+                }
+            }
+            ColumnTrouble::LabelledInt { symbol, text, code, labels } => {
+                let help = match code {
+                    Some(code) => format!("write `{symbol} {code}`: {code} is the code labelled \"{text}\""),
+                    None => format!(
+                        "the labels are {}; compare with a code",
+                        labels.iter().map(|(code, label)| format!("{code} {label}")).collect::<Vec<_>>().join(", ")
+                    ),
+                };
+                fail(
+                    Diagnostic::error("Z0216", format!("\"{text}\" is a value label, and the variable compares as a number"))
+                        .in_file(self.script)
+                        .primary(expr.span, "an Int variable with value labels")
+                        .help(help),
+                )
+            }
+            ColumnTrouble::Unordered { symbol } => fail(
+                Diagnostic::error("Z0221", format!("`{symbol}` needs an ordered category, and this one has no order"))
+                    .in_file(self.script)
+                    .primary(expr.span, "a category without an order")
+                    .help("`==` and `!=` work on any category; `category(x, levels: [...], ordered: true)` gives it an order"),
+            ),
+            ColumnTrouble::DifferentLevels { symbol } => fail(
+                Diagnostic::error("Z0221", format!("`{symbol}` compares two categories with different levels"))
+                    .in_file(self.script)
+                    .primary(expr.span, "the levels differ")
+                    .help("two categories compare by order only with the same levels in the same order; `levels(x)` shows them"),
             ),
         }
     }
@@ -974,4 +1021,14 @@ fn plural_rows(n: usize) -> String {
 
 fn shown(value: &Value) -> String {
     show(value).trim_end().to_string()
+}
+
+/// Up to twelve levels in quotes, then the count of the rest.
+fn list_levels(levels: &[String]) -> String {
+    let shown: Vec<String> = levels.iter().take(12).map(|l| format!("\"{l}\"")).collect();
+    if levels.len() > 12 {
+        format!("{} … and {} more", shown.join(", "), levels.len() - 12)
+    } else {
+        shown.join(", ")
+    }
 }

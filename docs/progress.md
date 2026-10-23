@@ -167,3 +167,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 3, the metadata store completed: ordered categories, contrasts and comparisons on categories `[engine]`.
 
 **For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10.
+
+## 23 October 2026, step 3 of release 0.4.0
+
+**Done.** Step 3 `[engine]`: a category carries its ordered flag and contrast, kept by every operation and written to the Arrow field metadata (`zeff:ordered`, `zeff:contrast`; the shipped `wages.arrow` rebuilt); value labels are one JSON object with one reader and writer in the column kernel; a category compares with text by its levels, an ordered one by level position, a labelled Int as the number it holds; Z0216 with its page for text that is no level or a label given for a number; arithmetic on a category is Z0221. A fault since 0.2.0 fixed on the way: a `where` that kept no rows lost a category's levels. 17 tests added. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all 674 workspace tests, the tier check, the message check (72 codes) and the conformance report (unchanged) pass locally; the four-target run to be read after the push.
+
+**Next.** Step 4, `to`, `is`, `type_of` `[function]`.
+
+**For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10.
