@@ -221,6 +221,41 @@ pub struct Fit {
     pub summary: Summary,
 }
 
+/// A test statistic with its degrees of freedom: `F(1, 18179)`, `t(23.4)`, `z`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Statistic {
+    /// `F`, `t`, `chi2`, `z`.
+    pub name: String,
+    pub value: f64,
+    /// None, one or two degrees of freedom, in the order they are written.
+    pub df: Vec<f64>,
+}
+
+/// The value of a test (Language Reference, section 4: `TestResult`), which `test` and `compare`
+/// give at this release and the tests of `stats` from 0.7.0, declared here so that every package
+/// reads the same value (Engine and Project Specification, section 8.1, rule 4): the title line
+/// and the lines under it, a table where the test has one (the models `compare` sets side by
+/// side), the statistic with its degrees of freedom and p-value, and lines after them. It prints
+/// in the shape of section 10.2's tests (question 3 (b) of release 0.4.0, provisionally as
+/// recommended): the title, the header lines, the table, then
+/// `F(1, 18,179) = 4.21   p = 0.040`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TestResult {
+    /// The method that made it: `test`, `compare`.
+    pub method: String,
+    /// The title line, `test · m3 · educ == exper`.
+    pub title: String,
+    /// Lines under the title, before the table.
+    pub header: Vec<String>,
+    /// A table between the title and the statistic line.
+    pub table: Option<Table>,
+    pub statistic: Statistic,
+    pub p_value: f64,
+    /// Lines under the statistic line.
+    pub after: Vec<String>,
+    pub notes: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     /// The value of a call that returns none; it prints nothing.
@@ -250,6 +285,11 @@ pub enum Value {
     Formula(Formula),
     /// A fitted model, shared rather than copied.
     Fit(Rc<Fit>),
+    /// A test's result, shared rather than copied.
+    TestResult(Rc<TestResult>),
+    /// A term name given to a parameter of type `Term`, checked against the result it is used
+    /// with (section 3.7, "Resolution by parameter type").
+    Term(String),
 }
 
 impl Value {
@@ -286,6 +326,8 @@ impl Value {
             Value::Distribution(_) => "Distribution",
             Value::Formula(_) => "Formula",
             Value::Fit(fit) => fit.kind,
+            Value::TestResult(_) => "TestResult",
+            Value::Term(_) => "Term",
         }
     }
 }

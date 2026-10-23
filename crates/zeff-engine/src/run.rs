@@ -5,10 +5,11 @@
 use crate::fs::FileSystem;
 use crate::interpreter::{Interpreter, Output};
 use crate::project::Project;
-use crate::registry;
+use crate::registry::{self, Bodies};
 use std::path::Path;
 use zeff_core::runtime::{Fail, Files, fail};
 use zeff_diagnostics::{Diagnostic, Severity, Source, Sources, Span};
+use zeff_registry::Registry;
 
 /// The files of a project, as a running script may read them: by the path rules of section 2.
 pub struct ProjectFiles<'a> {
@@ -113,10 +114,10 @@ pub fn run_script_with(
     text: &str,
     options: &RunOptions,
 ) -> Outcome {
-    let mut output = Output::default();
     let registry = match registry::registry() {
         Ok(registry) => registry,
         Err(errors) => {
+            let mut output = Output::default();
             output.stderr.push_str(
                 "error[Z9001]: internal error: this is a bug in Zeff, not in your script\n",
             );
@@ -129,6 +130,29 @@ pub fn run_script_with(
             };
         }
     };
+    run_script_in(
+        fs,
+        project,
+        script,
+        text,
+        options,
+        registry,
+        registry::bodies(),
+    )
+}
+
+/// [`run_script_with`] against a given registry and the bodies that run its functions: what the
+/// tests use to run a script with a fixture function beside the engine's own.
+pub fn run_script_in(
+    fs: &dyn FileSystem,
+    project: &Project,
+    script: &str,
+    text: &str,
+    options: &RunOptions,
+    registry: &Registry,
+    bodies: &Bodies,
+) -> Outcome {
+    let mut output = Output::default();
     let checked = zeff_ir::check_source(script, text, registry);
     let source = Source::new(script, text);
     // `zeff run` stops at the first error (section 11); warnings from the check are shown.
@@ -163,15 +187,9 @@ pub fn run_script_with(
         output.stderr.push_str(&warning.render(&sources));
     }
     let files = ProjectFiles { fs, project };
-    let interpreter = Interpreter::new(
-        &checked.program,
-        registry::bodies(),
-        &files,
-        script,
-        &source,
-    )
-    .with_panic_at(options.panic_at_line)
-    .with_width(options.width);
+    let interpreter = Interpreter::new(&checked.program, bodies, &files, script, &source)
+        .with_panic_at(options.panic_at_line)
+        .with_width(options.width);
     match interpreter.run(&mut output) {
         Ok(()) => Outcome {
             output,

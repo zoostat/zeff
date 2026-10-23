@@ -477,8 +477,10 @@ pub fn has_type(value: &Value, ty: &TypeValue) -> bool {
         "Table" => matches!(value, Value::Table(_)),
         "Distribution" => matches!(value, Value::Distribution(_)),
         "Formula" => matches!(value, Value::Formula(_)),
-        "Result" => matches!(value, Value::Fit(_)),
+        "Result" => matches!(value, Value::Fit(_) | Value::TestResult(_)),
         "RegFit" => matches!(value, Value::Fit(fit) if fit.kind == "RegFit"),
+        "TestResult" => matches!(value, Value::TestResult(_)),
+        "Term" => matches!(value, Value::Term(_)),
         "List" => matches!(value, Value::List(_)),
         "Record" => matches!(value, Value::Record(_)),
         "Mapping" => matches!(value, Value::Mapping(_)),
@@ -524,6 +526,14 @@ pub fn type_name(value: &Value) -> String {
                 Some(_) if names.iter().all(|n| n == "Int" || n == "Float") => {
                     "List<Float>".to_string()
                 }
+                // Results of several kinds join to `Result` (section 3.7, "Joining types").
+                Some(_)
+                    if names
+                        .iter()
+                        .all(|n| zeff_registry::RESULT_KINDS.contains(&n.as_str())) =>
+                {
+                    "List<Result>".to_string()
+                }
                 Some(_) => "List".to_string(),
             }
         }
@@ -539,6 +549,8 @@ pub fn type_name(value: &Value) -> String {
         Value::Distribution(_) => "Distribution".to_string(),
         Value::Formula(_) => "Formula".to_string(),
         Value::Fit(fit) => fit.kind.to_string(),
+        Value::TestResult(_) => "TestResult".to_string(),
+        Value::Term(_) => "Term".to_string(),
     }
 }
 

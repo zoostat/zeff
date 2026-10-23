@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/results.rs
+expression: render(text)
+---
+error[Z0214]: a list holds one type: this one has a RegFit and an Int
+ --> scripts/main.zeff:4:5
+  |
+4 | [m, 1]
+  |     ^ an Int
+  |
+  = help: put values of one type in a list; Int and Float join as Float

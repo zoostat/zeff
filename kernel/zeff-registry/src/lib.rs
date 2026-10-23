@@ -20,9 +20,12 @@ pub use dataset::{
     render_dataset_page,
 };
 pub use help::{Block, Example, HelpDoc, HelpError, check_help, parse_help};
-pub use render::{PAGE_WIDTH, TEXT_WIDTH, render_page};
+pub use render::{PAGE_WIDTH, TEXT_WIDTH, render_page, render_page_with};
 pub use shared::{SHARED, SharedArgument, shared_argument};
-pub use spec::{AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec, Rest};
+pub use spec::{
+    AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec, RESULT_KINDS, Rest, is_result_type,
+    receivers_overlap,
+};
 
 /// A function that passed every check, with its parsed page and its catalogue row.
 #[derive(Debug, Clone)]
@@ -59,6 +62,13 @@ pub enum RegistryError {
         name: String,
         parameter: String,
     },
+    /// Two homes of one name whose receiver types overlap (section 8.1, rule 6): the same type,
+    /// or `Result` and one of its kinds, so that the checker could not choose between them.
+    OverlappingHomes {
+        name: String,
+        first: (String, String),
+        second: (String, String),
+    },
     /// Problems with the help page.
     Help {
         package: String,
@@ -90,6 +100,17 @@ impl std::fmt::Display for RegistryError {
                 write!(
                     f,
                     "{package}::{name} has a parameter `{parameter}` that the catalogue's usage does not list"
+                )
+            }
+            RegistryError::OverlappingHomes {
+                name,
+                first,
+                second,
+            } => {
+                write!(
+                    f,
+                    "`{name}` has two homes whose receiver types overlap: {}::{name} on {} and {}::{name} on {} (one home per name per type, section 8.1, rule 6)",
+                    first.0, first.1, second.0, second.1
                 )
             }
             RegistryError::Help {
@@ -194,6 +215,25 @@ impl Registry {
             }
             functions.push(Registered { spec, doc, row });
         }
+        // One home per name per type (section 8.1, rule 6): two methods of one name whose
+        // receiver types overlap would leave the checker no way to choose between them.
+        for (i, f) in functions.iter().enumerate() {
+            let Some(a) = f.spec.receiver() else {
+                continue;
+            };
+            for g in &functions[i + 1..] {
+                let Some(b) = g.spec.receiver() else {
+                    continue;
+                };
+                if g.spec.name == f.spec.name && receivers_overlap(a.ty, b.ty) {
+                    errors.push(RegistryError::OverlappingHomes {
+                        name: f.spec.name.to_string(),
+                        first: (f.spec.package.to_string(), a.ty.to_string()),
+                        second: (g.spec.package.to_string(), b.ty.to_string()),
+                    });
+                }
+            }
+        }
         if errors.is_empty() {
             Ok(Registry {
                 functions,
@@ -277,6 +317,41 @@ impl Registry {
         self.functions
             .iter()
             .find(|f| f.spec.package == package && f.spec.name == name)
+    }
+
+    /// The methods that apply to a value of the result type `ty` (section 9.1, "Value"): every
+    /// registered method whose receiver is that type or `Result`, grouped as the catalogue groups
+    /// them, the groups and the names within each in catalogue order; `None` when `ty` is not a
+    /// result type.
+    pub fn result_methods(&self, ty: &str) -> Option<Vec<(String, Vec<String>)>> {
+        if !is_result_type(ty) {
+            return None;
+        }
+        let mut methods: Vec<&Registered> = self
+            .functions
+            .iter()
+            .filter(|f| {
+                f.spec
+                    .receiver()
+                    .is_some_and(|r| r.ty == "Result" || r.ty == ty)
+            })
+            .collect();
+        methods.sort_by_key(|f| f.row.id);
+        let mut groups: Vec<(String, Vec<String>)> = Vec::new();
+        for f in methods {
+            match groups.iter_mut().find(|(g, _)| *g == f.row.group) {
+                Some((_, names)) => names.push(f.spec.name.to_string()),
+                None => groups.push((f.row.group.clone(), vec![f.spec.name.to_string()])),
+            }
+        }
+        Some(groups)
+    }
+
+    /// The page `zeff help` prints for `f`: its written parts and, for a function that returns a
+    /// result type, the methods of that type under Value (section 9.1).
+    pub fn page(&self, f: &Registered) -> String {
+        let methods = self.result_methods(f.spec.returns);
+        render_page_with(&f.spec, &f.doc, &f.row, methods.as_deref())
     }
 
     /// The packages with at least one registered function, in tier order then the order of

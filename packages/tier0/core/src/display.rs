@@ -14,7 +14,7 @@
 //! A table wider than the page (118 characters, the width of a help page) prints its columns in
 //! blocks, as R does, every value shown; a frame repeats the row numbers at the start of each block.
 
-use crate::value::{Align, Distribution, Frame, Summary, Table, Value};
+use crate::value::{Align, Distribution, Frame, Statistic, Summary, Table, TestResult, Value};
 use zeff_columns::{ColumnType, MetadataKey, Value as Cell};
 use zeff_dates::{format_iso_date, format_iso_datetime};
 use zeff_diagnostics::count;
@@ -87,6 +87,8 @@ fn inline(value: &Value) -> String {
         Value::Distribution(d) => distribution_text(d),
         Value::Formula(formula) => formula.to_string(),
         Value::Fit(fit) => format!("{} · {}", fit.kind, fit.summary.table.title),
+        Value::TestResult(result) => format!("TestResult · {}", result.title),
+        Value::Term(name) => name.clone(),
         Value::List(items) => format!(
             "[{}]",
             items.iter().map(inline).collect::<Vec<_>>().join(", ")
@@ -267,6 +269,79 @@ pub fn summary_text(summary: &Summary, width: usize) -> String {
     text
 }
 
+/// A test's result in the shape of section 10.2's tests (question 3 (b) of release 0.4.0): the
+/// title, the header lines, the table when there is one, the statistic line and the lines after
+/// it.
+pub fn test_result_text(result: &TestResult, width: usize) -> String {
+    let mut text = format!("{}\n", result.title);
+    for line in &result.header {
+        text.push_str(line);
+        text.push('\n');
+    }
+    if let Some(table) = &result.table {
+        text.push('\n');
+        text.push_str(&grid(&table.columns, &table.rows, false, width));
+        text.push('\n');
+    }
+    text.push_str(&statistic_line(&result.statistic, result.p_value));
+    text.push('\n');
+    for line in &result.after {
+        text.push_str(line);
+        text.push('\n');
+    }
+    text
+}
+
+/// The statistic line of a test: `F(1, 18,179) = 4.21   p = 0.040`, with the statistic to two
+/// decimals (section 3.8), whole degrees of freedom as counts and fractional ones to one decimal,
+/// and p to three decimals, `p < 0.001` below.
+pub fn statistic_line(statistic: &Statistic, p: f64) -> String {
+    let df: Vec<String> = statistic.df.iter().map(|&d| degrees_text(d)).collect();
+    let head = if df.is_empty() {
+        statistic.name.clone()
+    } else {
+        format!("{}({})", statistic.name, df.join(", "))
+    };
+    let p_text = p_value_text(p);
+    let p_part = match p_text.strip_prefix('<') {
+        Some(below) => format!("p < {below}"),
+        None => format!("p = {p_text}"),
+    };
+    format!("{head} = {}   {p_part}", fixed(statistic.value, 2))
+}
+
+/// Degrees of freedom as a test line writes them: a whole number as a count, `18,179`; otherwise
+/// to one decimal, `18,074.2`.
+fn degrees_text(df: f64) -> String {
+    let text = if df.fract() == 0.0 && df.abs() < 1e15 {
+        fixed(df, 0)
+    } else {
+        fixed(df, 1)
+    };
+    let (sign, rest) = match text.strip_prefix('-') {
+        Some(rest) => ("-", rest),
+        None => ("", text.as_str()),
+    };
+    let (whole, fraction) = match rest.split_once('.') {
+        Some((w, f)) => (w, Some(f)),
+        None => (rest, None),
+    };
+    if !whole.chars().all(|c| c.is_ascii_digit()) {
+        return text.clone();
+    }
+    let mut grouped = String::new();
+    for (i, c) in whole.chars().enumerate() {
+        if i > 0 && (whole.len() - i).is_multiple_of(3) {
+            grouped.push(',');
+        }
+        grouped.push(c);
+    }
+    match fraction {
+        Some(f) => format!("{sign}{grouped}.{f}"),
+        None => format!("{sign}{grouped}"),
+    }
+}
+
 /// A number to `decimals` places, half to even on an exact tie, as the tables of section 3.8
 /// round; a negative zero prints without its sign.
 pub fn fixed(x: f64, decimals: usize) -> String {
@@ -427,6 +502,7 @@ pub fn show_width(value: &Value, width: usize) -> String {
         Value::Frame(f) => frame_text(f, width),
         Value::Table(t) => table_text(t, width),
         Value::Fit(fit) => summary_text(&fit.summary, width),
+        Value::TestResult(result) => test_result_text(result, width),
         Value::Column(c) => {
             let mut out = format!("{}\n", column_header(c));
             out.push_str(&lines(

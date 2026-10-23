@@ -161,8 +161,20 @@ pub fn usage_lines(spec: &FunctionSpec) -> Vec<String> {
     lines
 }
 
-/// The whole page.
+/// The whole page, without the generated method list of a result type.
 pub fn render_page(spec: &FunctionSpec, doc: &HelpDoc, row: &CatalogueRow) -> String {
+    render_page_with(spec, doc, row, None)
+}
+
+/// The whole page; `methods` is the list of the methods that apply to the result type the
+/// function returns, grouped as the catalogue groups them (section 9.1, "Value"), which the
+/// registry generates, or `None` for a function that returns no result type.
+pub fn render_page_with(
+    spec: &FunctionSpec,
+    doc: &HelpDoc,
+    row: &CatalogueRow,
+    methods: Option<&[(String, Vec<String>)]>,
+) -> String {
     let mut out = header(spec, doc, row);
     out.push('\n');
 
@@ -242,6 +254,19 @@ pub fn render_page(spec: &FunctionSpec, doc: &HelpDoc, row: &CatalogueRow) -> St
 
     heading(&mut out, "VALUE");
     blocks(&mut out, &doc.value);
+    if let Some(groups) = methods {
+        out.push('\n');
+        if groups.is_empty() {
+            out.push_str(&format!("{INDENT}Methods: none in this release\n"));
+        } else {
+            out.push_str(&format!("{INDENT}Methods\n"));
+            let items: Vec<String> = groups
+                .iter()
+                .map(|(group, names)| format!("{group}: {}", names.join(", ")))
+                .collect();
+            blocks(&mut out, &[Block::Bullets(items)]);
+        }
+    }
 
     if !doc.details.is_empty() {
         heading(&mut out, "DETAILS");

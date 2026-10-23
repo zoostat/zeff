@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/results.rs
+expression: render(text)
+---
+error[Z0401]: `term` of `std_errors` must be a Term, but this is an Int
+ --> scripts/main.zeff:4:14
+  |
+4 | m.std_errors(1)
+  |              ^ an Int
+  |
+  = help: usage: `fit.std_errors(term: Term)`

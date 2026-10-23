@@ -102,6 +102,7 @@ const TYPE_NAMES: &[&str] = &[
     "Term",
     "Result",
     "RegFit",
+    "TestResult",
     "Failed",
     "Any",
     "Type",
@@ -430,6 +431,16 @@ impl Checker<'_> {
         if columns {
             self.frame_scope -= 1;
         }
+        // Text where a term is expected names the term (section 4: a `Term` is a bare name or
+        // text), resolved against the result when the statement runs.
+        if *ty == Ty::Term && lowered.ty == Ty::Str {
+            let span = lowered.span;
+            return Expr {
+                ty: Ty::Term,
+                span,
+                kind: ExprKind::Term(Box::new(lowered)),
+            };
+        }
         lowered
     }
 
@@ -481,6 +492,20 @@ impl Checker<'_> {
                     );
                     return Expr::error(span);
                 }
+            }
+            // Where a term is expected, a bare name is that term, whatever else bears the name
+            // (section 3.7, "Resolution by parameter type"); it is checked against the result's
+            // model matrix when the statement runs.
+            Some(Ty::Term) => {
+                return Expr {
+                    ty: Ty::Term,
+                    span,
+                    kind: ExprKind::Term(Box::new(Expr {
+                        ty: Ty::Str,
+                        span,
+                        kind: ExprKind::Str(text),
+                    })),
+                };
             }
             // Where a type is expected, a type name is one before it could be a column or a
             // binding (`to(hours, Float)` inside `add`).
@@ -1980,7 +2005,19 @@ impl Checker<'_> {
                             .map(|p| p.ty.to_string())
                             .collect::<Vec<_>>()
                             .join(" or ");
-                        let takes_text = if homes.iter().any(|f| f.spec.method) {
+                        let on_a_kind = homes.iter().any(|f| {
+                            f.spec.receiver().is_some_and(|p| {
+                                matches!(Ty::parse(p.ty), Some(Ty::Result(Some(_))))
+                            })
+                        });
+                        let takes_text = if r.ty == Ty::Result(None) && on_a_kind {
+                            // A list of results of several kinds has the type `Result`, which
+                            // offers only the methods every result has (section 3.7, "Joining
+                            // types").
+                            format!(
+                                "`{name}` is a method of {takes}; this value may be any kind of result, so bind the fit under its own name and call `{name}` on that"
+                            )
+                        } else if homes.iter().any(|f| f.spec.method) {
                             format!("`{name}` is a method of {takes}")
                         } else {
                             format!("`{name}` is not a method; call it as `{name}(...)`")
@@ -2587,6 +2624,7 @@ fn is_compound(ty: &Ty) -> bool {
             | Ty::Table
             | Ty::Formula
             | Ty::Terms
+            | Ty::Result(_)
     )
 }
 

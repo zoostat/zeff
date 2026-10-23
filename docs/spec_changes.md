@@ -90,3 +90,7 @@ Section 5.6 makes a model that cannot be estimated a Z08xx error with the diagno
 ## 23 October 2026 — zeff_language_reference.md, section 4.1 ("Weights"): the code of a negative weight
 
 Section 4.1 makes a negative weight an error listing the rows but gives it no code. The variance layer of release 0.4.0 (step 11) raises it as Z0224, the next code of the Z02xx family after Z0223 of step 8; the row of section 4.1 now names it. The freeze ended at 0.3.0; the code settles nothing else.
+
+## 23 October 2026 — zeff_language_reference.md, section 11: the code Z0414
+
+Section 3.7 ("Resolution by parameter type") says a term name is looked up in the result's model matrix, and section 4 that a `Term` is checked against the result, but neither gives the error a code. Step 12 of release 0.4.0 assigns Z0414, the next free code of the Z04xx family (arguments), to a term name the result does not have, listing the fit's terms; a test's result has no terms, so a term asked of one is the same code. The row is added to the table of codes numbered while the engine was built. The checklist calls the code provisional; the change settles nothing else.

@@ -71,6 +71,10 @@ pub enum ExprKind {
     },
     /// A word from a parameter's fixed list.
     Word(String),
+    /// A term name given to a parameter of type `Term` (section 3.7, "Resolution by parameter
+    /// type"): a bare name, lowered to its text, or text; checked against the result's term
+    /// names when the statement runs.
+    Term(Box<Expr>),
     List(Vec<Expr>),
     Record(Vec<(String, Expr)>),
     /// `[k => v, ...]`, keys unique.

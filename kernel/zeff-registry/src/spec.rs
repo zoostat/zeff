@@ -160,3 +160,22 @@ impl FunctionSpec {
         format!("{head}({})", args.join(", "))
     }
 }
+
+/// The result types of this release (Language Reference, section 4): the kinds a `Result` may be.
+/// A method registered on `Result` applies to every one of them and one registered on a kind to
+/// that kind alone (Engine and Project Specification, section 8.1, rules 5 and 6).
+pub const RESULT_KINDS: &[&str] = &["RegFit", "TestResult"];
+
+/// Whether a type written in a signature is a result type: the interface `Result` or one of its
+/// kinds.
+pub fn is_result_type(ty: &str) -> bool {
+    ty == "Result" || RESULT_KINDS.contains(&ty)
+}
+
+/// Whether two receiver types overlap, so that one name may not have a home on both (section 8.1,
+/// rule 6): the same type, or `Result` and one of its kinds.
+pub fn receivers_overlap(a: &str, b: &str) -> bool {
+    a == b
+        || (a == "Result" && RESULT_KINDS.contains(&b))
+        || (b == "Result" && RESULT_KINDS.contains(&a))
+}

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/results.rs
+expression: render(text)
+---
+error[Z0401]: `r_squared` cannot be called on a Result
+ --> scripts/main.zeff:4:1
+  |
+4 | [m, t][1].r_squared()
+  | ^^^^^^^^^ this is a Result
+  |
+  = help: `r_squared` is a method of RegFit; this value may be any kind of result, so bind the fit under its own name and call `r_squared` on that

@@ -1,0 +1,22 @@
+---
+source: packages/tier0/core/tests/results.rs
+expression: text
+---
+test · m3 · educ == exper
+F(1, 18,179) = 4.21   p = 0.040
+
+compare · m2 against m1
+
+  model        N        RSS      R²
+  m1      18,179   4,121.33   0.210
+  m2      18,179   4,030.18   0.227
+
+F(11, 18,167) = 30.71   p < 0.001
+
+t_test · Welch two-sample · lwage by female
+difference (male − female) = 0.153   95% CI [0.138, 0.168]
+t(18,074.2) = 20.42   p < 0.001
+Hedges' g = 0.30   95% CI [0.27, 0.33]
+
+test · z
+z = 1.96   p = 0.050

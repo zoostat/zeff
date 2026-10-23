@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/results.rs
+expression: render(text)
+---
+error[Z0208]: `==` is not defined for a RegFit
+ --> scripts/main.zeff:4:1
+  |
+4 | m == m
+  | ^^^^^^ compared here
+  |
+  = help: comparison is for single values: numbers, text, Bool, dates and NA; compare the items of a list one by one

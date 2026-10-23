@@ -9,7 +9,7 @@ use zeff_core::display::{PAGE_WIDTH, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
 use zeff_core::value::{Formula as FormulaValue, Frame, Term as TermValue, TypeValue, Value};
-use zeff_diagnostics::{Diagnostic, Source, Span};
+use zeff_diagnostics::{Diagnostic, Source, Span, did_you_mean};
 use zeff_ir::ir::{BinaryOp, Term, TermStep, UnaryOp};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
 
@@ -231,6 +231,11 @@ impl<'a> Interpreter<'a> {
                 self.frame_name(expr, name, *binding, messages)?
             }
             ExprKind::Word(word) => Value::Word(word.clone()),
+            ExprKind::Term(inner) => match self.eval(inner, printed, messages)? {
+                Value::Str(name) => Value::Term(name),
+                Value::Na => Value::Na,
+                _ => return Err(self.internal(expr, "a term name that is not text")),
+            },
             ExprKind::List(items) => {
                 let mut values = Vec::with_capacity(items.len());
                 for item in items {
@@ -746,6 +751,15 @@ impl<'a> Interpreter<'a> {
             .iter()
             .map(|a| a.as_ref().map(|e| e.span))
             .collect();
+        // A `Term` argument names a column of the receiver's model matrix (section 3.7,
+        // "Resolution by parameter type"), checked here against the result it is used with.
+        if let Some(Some(receiver)) = values.first() {
+            for (i, value) in values.iter().enumerate().skip(1) {
+                if let Some(Value::Term(name)) = value {
+                    self.check_term(receiver, name, arg_spans[i].unwrap_or(call.callee_span))?;
+                }
+            }
+        }
         let enclosing = self.receivers.last().map(|r| r.current().clone());
         let mut ctx = CallContext {
             files: self.files,
@@ -772,6 +786,53 @@ impl<'a> Interpreter<'a> {
             return zeff_core::lift::call_rowwise(*body, &mut ctx, args, &call.returns);
         }
         body(&mut ctx, args)
+    }
+
+    /// Z0414 (provisional): a term name that the result does not have. The terms of a fit are
+    /// the columns of its model matrix, those with an estimate and those omitted as collinear; a
+    /// test's result has none.
+    fn check_term(
+        &self,
+        receiver: &Value,
+        name: &str,
+        span: zeff_diagnostics::Span,
+    ) -> Result<(), Fail> {
+        let terms: Vec<&str> = match receiver {
+            Value::Fit(fit) => fit
+                .terms
+                .iter()
+                .chain(fit.omitted.iter())
+                .map(String::as_str)
+                .collect(),
+            Value::TestResult(_) => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0414",
+                        format!("`{name}` names a term, but a test's result has no terms"),
+                    )
+                    .in_file(self.script)
+                    .primary(span, "a TestResult has no terms")
+                    .help("a test's result holds one statistic and one p-value; ask for them without naming a term"),
+                ));
+            }
+            _ => return Ok(()),
+        };
+        if terms.contains(&name) {
+            return Ok(());
+        }
+        let listed = terms
+            .iter()
+            .map(|t| format!("`{t}`"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let d = Diagnostic::error("Z0414", format!("`{name}` is not a term of this fit"))
+            .in_file(self.script)
+            .primary(span, "unknown term");
+        let d = match did_you_mean(name, terms.iter().copied()) {
+            Some(near) => d.help(format!("did you mean `{near}`? the terms are {listed}")),
+            None => d.help(format!("the terms are {listed}")),
+        };
+        Err(fail(d))
     }
 
     /// Z0207: an index outside the list, or NA.

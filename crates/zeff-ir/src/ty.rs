@@ -2,6 +2,32 @@
 
 use std::fmt;
 
+/// The kinds of result of this release (section 4): what a value of type `Result` may be.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResultKind {
+    /// A regression fit, `wages.reg(f)`.
+    RegFit,
+    /// The result of a test, `m.test(...)`.
+    TestResult,
+}
+
+impl ResultKind {
+    pub fn name(self) -> &'static str {
+        match self {
+            ResultKind::RegFit => "RegFit",
+            ResultKind::TestResult => "TestResult",
+        }
+    }
+
+    pub fn parse(text: &str) -> Option<ResultKind> {
+        match text {
+            "RegFit" => Some(ResultKind::RegFit),
+            "TestResult" => Some(ResultKind::TestResult),
+            _ => None,
+        }
+    }
+}
+
 /// A type. The variants are the types of section 4 that this release's functions take and
 /// return, plus three the checker needs: `Na` for a bare `NA` whose type is not yet known,
 /// `Union` for a parameter that takes several types (`Var | Vars`), and `Unknown` for an
@@ -22,6 +48,14 @@ pub enum Ty {
     Formula,
     /// The right side of a formula without `~`, as `fe:` takes it at 0.6.0; nothing takes it yet.
     Terms,
+    /// A result (section 4): the interface `Result`, which every fitted model and test
+    /// implements, or one of its kinds. A method registered on `Result` applies to every kind and
+    /// one registered on a kind to that kind alone (Engine and Project Specification, section
+    /// 8.1, rules 5 and 6); two kinds join to `Result` (section 3.7, "Joining types").
+    Result(Option<ResultKind>),
+    /// A term name of a result's model matrix (section 7.2): a bare name or text in a call,
+    /// checked against the result when the statement runs.
+    Term,
     /// The type of a call that returns no value; it cannot be bound or passed.
     Nothing,
     /// Any value at all (`print`).
@@ -108,6 +142,8 @@ impl Ty {
             "Distribution" => Ty::Distribution,
             "Formula" => Ty::Formula,
             "Terms" => Ty::Terms,
+            "Result" => Ty::Result(None),
+            "Term" => Ty::Term,
             "Nothing" => Ty::Nothing,
             "Any" => Ty::Any,
             "Var" => Ty::Var,
@@ -117,13 +153,14 @@ impl Ty {
             "Mapping" => Ty::Mapping(Box::new(Ty::Any), Box::new(Ty::Any)),
             "Column" => Ty::Column(Box::new(Ty::Unknown)),
             "Record" => Ty::AnyRecord,
-            _ => return None,
+            _ => return ResultKind::parse(text).map(|kind| Ty::Result(Some(kind))),
         })
     }
 
     /// Whether a value of type `actual` may be given where `self` is expected: an Int where a Float
     /// is expected (exact up to 2^53), a `Column<Int>` for a `Column<Float>`, `NA` anywhere, one
-    /// name for `Vars`, and any record for `Record`.
+    /// name for `Vars`, any record for `Record`, any kind of result for `Result`, and text for a
+    /// `Term`.
     pub fn accepts(&self, actual: &Ty) -> bool {
         match (self, actual) {
             (_, Ty::Unknown) | (Ty::Unknown, _) => true,
@@ -132,6 +169,8 @@ impl Ty {
             (_, Ty::Na) => true,
             (Ty::Float, Ty::Int) => true,
             (Ty::Vars, Ty::Var) => true,
+            (Ty::Result(None), Ty::Result(_)) => true,
+            (Ty::Term, Ty::Str) => true,
             (Ty::AnyRecord, Ty::Record(_) | Ty::AnyRecord) => true,
             (Ty::Column(a), Ty::Column(b)) | (Ty::List(a), Ty::List(b)) => a.accepts(b),
             (Ty::Mapping(k1, v1), Ty::Mapping(k2, v2)) => k1.accepts(k2) && v1.accepts(v2),
@@ -147,12 +186,14 @@ impl Ty {
     }
 
     /// The one type of two expressions that must agree (section 3.7, "Joining types"): a type with
-    /// itself, Int with Float as Float, anything with NA; `None` when they do not join.
+    /// itself, Int with Float as Float, anything with NA, two kinds of result as `Result`; `None`
+    /// when they do not join.
     pub fn join(a: &Ty, b: &Ty) -> Option<Ty> {
         match (a, b) {
             (Ty::Unknown, _) | (_, Ty::Unknown) => Some(Ty::Unknown),
             (Ty::Na, other) | (other, Ty::Na) => Some(other.clone()),
             (Ty::Int, Ty::Float) | (Ty::Float, Ty::Int) => Some(Ty::Float),
+            (Ty::Result(x), Ty::Result(y)) => Some(Ty::Result(if x == y { *x } else { None })),
             (Ty::List(x), Ty::List(y)) => Ty::join(x, y).map(|t| Ty::List(Box::new(t))),
             (Ty::Column(x), Ty::Column(y)) => Ty::join(x, y).map(|t| Ty::Column(Box::new(t))),
             (Ty::Mapping(k1, v1), Ty::Mapping(k2, v2)) => Some(Ty::Mapping(
@@ -198,6 +239,9 @@ impl fmt::Display for Ty {
             Ty::Distribution => write!(f, "Distribution"),
             Ty::Formula => write!(f, "Formula"),
             Ty::Terms => write!(f, "Terms"),
+            Ty::Result(None) => write!(f, "Result"),
+            Ty::Result(Some(kind)) => write!(f, "{}", kind.name()),
+            Ty::Term => write!(f, "Term"),
             Ty::Nothing => write!(f, "Nothing"),
             Ty::Any => write!(f, "Any"),
             Ty::Var => write!(f, "Var"),
@@ -241,6 +285,10 @@ mod tests {
             "Frame",
             "Formula",
             "Terms",
+            "Result",
+            "RegFit",
+            "TestResult",
+            "Term",
             "Mapping",
             "Var",
             "Vars",
@@ -307,6 +355,31 @@ mod tests {
             Ty::Str.accepts(&Ty::Unknown),
             "an expression that already failed is not reported twice"
         );
+        let (any, reg, test) = (
+            Ty::Result(None),
+            Ty::Result(Some(ResultKind::RegFit)),
+            Ty::Result(Some(ResultKind::TestResult)),
+        );
+        assert!(any.accepts(&reg) && any.accepts(&test) && any.accepts(&any));
+        assert!(reg.accepts(&reg) && !reg.accepts(&test) && !reg.accepts(&any));
+        assert!(!Ty::Frame.accepts(&reg) && !reg.accepts(&Ty::Frame));
+        assert!(Ty::Term.accepts(&Ty::Str) && Ty::Term.accepts(&Ty::Term));
+        assert!(!Ty::Term.accepts(&Ty::Int) && !Ty::Str.accepts(&Ty::Term));
+    }
+
+    #[test]
+    fn the_result_kinds_of_the_registry_are_the_checkers() {
+        for kind in zeff_registry::RESULT_KINDS {
+            assert!(
+                matches!(Ty::parse(kind), Some(Ty::Result(Some(_)))),
+                "{kind}"
+            );
+        }
+        assert!(zeff_registry::is_result_type("Result"));
+        assert_eq!(
+            zeff_registry::RESULT_KINDS.len(),
+            [ResultKind::RegFit, ResultKind::TestResult].len()
+        );
     }
 
     #[test]
@@ -318,6 +391,18 @@ mod tests {
         assert_eq!(
             Ty::join(&Ty::List(Box::new(Ty::Int)), &Ty::List(Box::new(Ty::Float))),
             Some(Ty::List(Box::new(Ty::Float)))
+        );
+        let (reg, test) = (
+            Ty::Result(Some(ResultKind::RegFit)),
+            Ty::Result(Some(ResultKind::TestResult)),
+        );
+        assert_eq!(Ty::join(&reg, &reg), Some(reg.clone()));
+        assert_eq!(Ty::join(&reg, &test), Some(Ty::Result(None)));
+        assert_eq!(Ty::join(&Ty::Result(None), &reg), Some(Ty::Result(None)));
+        assert_eq!(Ty::join(&reg, &Ty::Frame), None);
+        assert_eq!(
+            Ty::join(&Ty::List(Box::new(reg)), &Ty::List(Box::new(test))),
+            Some(Ty::List(Box::new(Ty::Result(None))))
         );
     }
 

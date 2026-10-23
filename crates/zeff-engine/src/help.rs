@@ -14,7 +14,7 @@ pub fn help_text(registry: &Registry, name: &str) -> Result<String, String> {
     if !registered.is_empty() {
         let mut text: String = registered
             .iter()
-            .map(|f| f.page())
+            .map(|f| registry.page(f))
             .collect::<Vec<_>>()
             .join("\n");
         let shipped: Vec<&str> = registered.iter().map(|f| f.spec.package).collect();

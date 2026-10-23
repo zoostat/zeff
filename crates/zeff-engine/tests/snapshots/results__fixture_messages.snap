@@ -1,0 +1,75 @@
+---
+source: crates/zeff-engine/tests/results.rs
+expression: text
+---
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+error[Z0414]: `nope` is not a term of this fit
+ --> scripts/main.zeff:3:14
+  |
+3 | m.std_errors(nope)
+  |              ^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `hours`, `educ`
+
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+error[Z0414]: `hour` is not a term of this fit
+ --> scripts/main.zeff:3:14
+  |
+3 | m.std_errors(hour)
+  |              ^^^^ unknown term
+  |
+  = help: did you mean `hours`? the terms are `(intercept)`, `hours`, `educ`
+
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+error[Z0414]: `educ:hours` is not a term of this fit
+ --> scripts/main.zeff:3:14
+  |
+3 | m.std_errors("educ:hours")
+  |              ^^^^^^^^^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `hours`, `educ`
+
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+  = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
+error[Z0414]: `hours` names a term, but a test's result has no terms
+ --> scripts/main.zeff:4:14
+  |
+4 | t.std_errors(hours)
+  |              ^^^^^ a TestResult has no terms
+  |
+  = help: a test's result holds one statistic and one p-value; ask for them without naming a term
+
+error[Z0401]: `r_squared` cannot be called on a TestResult
+ --> scripts/main.zeff:4:1
+  |
+4 | t.r_squared()
+  | ^ this is a TestResult
+  |
+  = help: `r_squared` is a method of RegFit
+
+error[Z0401]: `r_squared` cannot be called on a Result
+ --> scripts/main.zeff:4:1
+  |
+4 | [m, t][1].r_squared()
+  | ^^^^^^^^^ this is a Result
+  |
+  = help: `r_squared` is a method of RegFit; this value may be any kind of result, so bind the fit under its own name and call `r_squared` on that
+
+error[Z0401]: `term` of `std_errors` must be a Term, but this is an Int
+ --> scripts/main.zeff:3:14
+  |
+3 | m.std_errors(1)
+  |              ^ an Int
+  |
+  = help: usage: `fit.std_errors(term: Term)`
+
+error[Z0401]: `r_squared` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | wages.r_squared()
+  | ^^^^^ this is a Frame
+  |
+  = help: `r_squared` is a method of RegFit

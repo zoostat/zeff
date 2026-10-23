@@ -6,4 +6,4 @@ pub mod ty;
 
 pub use check::{Checked, check, check_source};
 pub use ir::{Binding, BindingId, Call, Expr, ExprKind, Program, Slot, Statement};
-pub use ty::Ty;
+pub use ty::{ResultKind, Ty};

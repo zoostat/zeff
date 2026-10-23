@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/results.rs
+expression: render(text)
+---
+error[Z0401]: `r_squared` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | wages.r_squared()
+  | ^^^^^ this is a Frame
+  |
+  = help: `r_squared` is a method of RegFit
