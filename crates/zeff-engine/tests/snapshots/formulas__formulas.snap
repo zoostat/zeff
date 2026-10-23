@@ -1,0 +1,28 @@
+---
+source: crates/zeff-engine/tests/formulas.rs
+expression: "format!(\"{stdout}--- messages ---\\n{stderr}\")"
+---
+lwage ~ educ + exper + exper^2 + female
+lwage ~ educ + exper + exper^2 + female + educ:female
+lwage ~ educ + exper + exper^2
+lwage ~ educ + exper + exper^2 + female - 1
+lwage ~ educ + exper + log(wage)
+lwage ~ 1
+lwage ~ x - 1
+lwage ~ -1
+lwage ~ x
+Formula
+true
+false
+lwage ~ educ + exper + exper^2 + female
+lwage ~ educ + exper + exper^2 + female + educ:female
+lwage ~ educ + exper + exper^2 + female
+lwage ~ educ + exper + exper^2 + female + educ:female
+log(wage) ~ category(industry, contrast: sum) + base(industry, "Retail") + x1..x9 + a * b * c + a:b:c + (wage / hours) + to(x, Float) + a * b:c + -x + x^2^3 + log(wage)^2 + z1..z3
+lwage ~ exper + exper^2 + female + x1..x9
+k ~ k + k^2
+wage ~ educ + exper
+`hourly wage` ~ `years of education`
+lwage ~ educ + exper + exper^2 + female
+--- messages ---
+note: `- nope` removed nothing: the formula has no term `nope` (line 24)

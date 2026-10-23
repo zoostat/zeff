@@ -5,11 +5,15 @@
 //! script shows with the rest. A statement that fails still leaves an expression in the IR, typed
 //! `Unknown`, which no later check reports again.
 
-use crate::ir::{Binding, BindingId, Call, Expr, ExprKind, Program, Slot, Statement};
+use crate::ir::{
+    Binding, BindingId, Call, Expr, ExprKind, Formula, Program, Slot, Statement, Term, TermKind,
+    TermStep,
+};
 use crate::ty::Ty;
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
 use zeff_registry::{Registered, Registry, Rest};
 use zeff_syntax::ast;
+use zeff_syntax::written::written;
 
 /// The checked program and everything found on the way.
 #[derive(Debug, Clone)]
@@ -42,6 +46,7 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
         bindings: Vec::new(),
         scope: Vec::new(),
         frame_scope: 0,
+        formula_depth: 0,
     };
     let mut statements = Vec::new();
     for item in &script.items {
@@ -92,6 +97,9 @@ const TYPE_NAMES: &[&str] = &[
     "Record",
     "Mapping",
     "Distribution",
+    "Formula",
+    "Terms",
+    "Term",
     "Result",
     "Failed",
     "Any",
@@ -108,6 +116,9 @@ struct Checker<'a> {
     /// How many frame-method arguments that take columns enclose the expression being checked:
     /// inside one, a bare name is a column of the receiver before it is a binding.
     frame_scope: usize,
+    /// How many formulas are being lowered: inside one, a bare name is a variable of the frame the
+    /// formula will be used with (section 3.7, "Resolution by parameter type").
+    formula_depth: usize,
 }
 
 impl Checker<'_> {
@@ -342,15 +353,7 @@ impl Checker<'_> {
             } => self.call(name, Some(receiver), args, span, expected),
             ast::ExprKind::List(items) => self.list(items, span, expected),
             ast::ExprKind::Record(fields) => self.record(fields, span),
-            ast::ExprKind::Formula { .. } => {
-                self.not_yet(
-                    span,
-                    "a formula",
-                    "0.4.0",
-                    "formulas and regression arrive with release 0.4.0",
-                );
-                Expr::error(span)
-            }
+            ast::ExprKind::Formula { op, lhs, rhs } => self.formula(*op, lhs.as_deref(), rhs, span),
             ast::ExprKind::Field { receiver, name } => self.field(receiver, name, span),
             ast::ExprKind::Index { receiver, index } => self.index(receiver, index, span),
             ast::ExprKind::Mapping(entries) => self.mapping(entries, span, expected),
@@ -409,12 +412,7 @@ impl Checker<'_> {
                 Expr::error(span)
             }
             ast::ExprKind::Dot => {
-                self.not_yet(
-                    span,
-                    "`.` alone",
-                    "1.5",
-                    "the formulas of `learn` arrive with release 1.5",
-                );
+                self.dot_alone(span);
                 Expr::error(span)
             }
         }
@@ -514,6 +512,28 @@ impl Checker<'_> {
                 return Expr::error(span);
             }
             _ => {}
+        }
+        if self.formula_depth > 0 {
+            // Inside a formula a bare name is a variable of the frame the formula is used with,
+            // resolved when the model is fitted (section 3.7, "Resolution by parameter type");
+            // a binding that holds a formula is the one name that cannot be meant as a variable.
+            if self
+                .var_term(
+                    &ast::Expr {
+                        kind: ast::ExprKind::Name(path.clone()),
+                        span,
+                    },
+                    text.clone(),
+                )
+                .is_none()
+            {
+                return Expr::error(span);
+            }
+            return Expr {
+                ty: Ty::Column(Box::new(Ty::Unknown)),
+                span,
+                kind: ExprKind::Var(text),
+            };
         }
         if self.frame_scope > 0 {
             // Inside a frame method's column argument: the receiver's column first, then a
@@ -689,6 +709,491 @@ impl Checker<'_> {
         Expr::error(span)
     }
 
+    // ----- formulas (sections 3.3, 7.1 and 7.2) -----
+
+    /// `lhs ~ rhs`: a formula value, lowered to its outcome and the steps of its right side. The
+    /// operators `=~` and `~~` are the parser's Z0308 outside a model block, and model blocks are
+    /// not yet available, so nothing is added here.
+    fn formula(
+        &mut self,
+        op: ast::FormulaOp,
+        lhs: Option<&ast::Expr>,
+        rhs: &ast::Expr,
+        span: Span,
+    ) -> Expr {
+        if op != ast::FormulaOp::Tilde {
+            return Expr::error(span);
+        }
+        let Some(lhs) = lhs else {
+            self.report(
+                Diagnostic::error(
+                    "Z0322",
+                    "a one-sided formula `~ x` is allowed only where a parameter takes one",
+                )
+                .primary(span, "no outcome on the left of `~`")
+                .help("write the outcome on the left: `y ~ x`; no function of this release takes a one-sided formula"),
+            );
+            return Expr::error(span);
+        };
+        self.formula_depth += 1;
+        let outcome = self.outcome(lhs);
+        let mut steps = Vec::new();
+        self.terms_into(rhs, true, &mut steps);
+        self.formula_depth -= 1;
+        match outcome {
+            Some(outcome) => Expr {
+                ty: Ty::Formula,
+                span,
+                kind: ExprKind::Formula(Formula {
+                    outcome: Some(outcome),
+                    steps,
+                }),
+            },
+            None => Expr::error(span),
+        }
+    }
+
+    /// `f + terms` and `f - term` on a formula value (section 7.1): a new formula with the steps
+    /// applied; any other operator on a formula is refused.
+    fn formula_operator(
+        &mut self,
+        op: ast::BinaryOp,
+        left: Expr,
+        rhs: &ast::Expr,
+        span: Span,
+    ) -> Expr {
+        use ast::BinaryOp as B;
+        if !matches!(op, B::Add | B::Sub) {
+            self.report(
+                Diagnostic::error(
+                    "Z0221",
+                    format!("`{}` is not defined for a formula", op.symbol()),
+                )
+                .primary(span, "an operator a formula does not take")
+                .help("`f + x` adds a term to the formula `f` and `f - x` removes one; `f - 1` removes the intercept"),
+            );
+            return Expr::error(span);
+        }
+        self.formula_depth += 1;
+        let mut steps = Vec::new();
+        self.terms_into(rhs, op == B::Add, &mut steps);
+        self.formula_depth -= 1;
+        // `f + a + b` is `(f + a) + b`: the steps of the inner formula come first.
+        let (formula, steps) = match left.kind {
+            ExprKind::FormulaSteps {
+                formula,
+                steps: mut earlier,
+            } => {
+                earlier.extend(steps);
+                (formula, earlier)
+            }
+            _ => (Box::new(left), steps),
+        };
+        Expr {
+            ty: Ty::Formula,
+            span,
+            kind: ExprKind::FormulaSteps { formula, steps },
+        }
+    }
+
+    /// The outcome: one variable, or an expression over variables, arithmetic throughout.
+    fn outcome(&mut self, expr: &ast::Expr) -> Option<Term> {
+        if let Some(name) = plain_name(expr) {
+            return self.var_term(expr, name);
+        }
+        if let ast::ExprKind::Binary {
+            op: ast::BinaryOp::Interact,
+            ..
+        } = &expr.kind
+        {
+            self.report(
+                Diagnostic::error(
+                    "Z0401",
+                    "the outcome of a formula is a variable or an expression over variables, not an interaction",
+                )
+                .primary(expr.span, "an interaction on the left of `~`")
+                .help("interactions are terms of the right side: `y ~ a:b`"),
+            );
+            return None;
+        }
+        self.arith_term(expr)
+    }
+
+    /// The `+`, `-` and `..` spine of a formula's right side, into steps: each `+` operand a
+    /// term added, each `-` operand a term removed, a literal `1` the intercept, and a range of
+    /// variables the term it names.
+    fn terms_into(&mut self, expr: &ast::Expr, adding: bool, steps: &mut Vec<TermStep>) {
+        let mut operands = Vec::new();
+        spine(expr, adding, &mut operands);
+        for operand in operands {
+            self.step_of(operand, steps);
+        }
+    }
+
+    /// One operand of the spine as a step.
+    fn step_of(&mut self, operand: Operand<'_>, steps: &mut Vec<TermStep>) {
+        let (adding, term) = match operand {
+            Operand::Range {
+                adding,
+                first,
+                last,
+                span,
+            } => match (plain_name(first), plain_name(last)) {
+                (Some(a), Some(b)) => (
+                    adding,
+                    Some(Term {
+                        text: format!("{a}..{b}"),
+                        span,
+                        kind: TermKind::Range(a, b),
+                    }),
+                ),
+                _ => {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0401",
+                            "a range of variables runs from one name to another: `x1..x9`",
+                        )
+                        .primary(span, "not a range of variables")
+                        .help("name the first and the last variable of the range; `..` binds more loosely than `+`, `*` and `:`, so a range stands on its own as a term"),
+                    );
+                    return;
+                }
+            },
+            Operand::Single(adding, expr) => match &expr.kind {
+                ast::ExprKind::Int(1) => {
+                    steps.push(TermStep::Intercept(adding));
+                    return;
+                }
+                ast::ExprKind::Unary {
+                    op: ast::UnaryOp::Neg,
+                    operand,
+                } if matches!(operand.kind, ast::ExprKind::Int(1)) => {
+                    steps.push(TermStep::Intercept(!adding));
+                    return;
+                }
+                _ => (adding, self.term(expr)),
+            },
+        };
+        if let Some(term) = term {
+            steps.push(if adding {
+                TermStep::Add(term)
+            } else {
+                TermStep::Remove(term)
+            });
+        }
+    }
+
+    /// One term of a formula's right side (section 7.1): a variable, a range, an interaction, a
+    /// product, or an expression over variables.
+    fn term(&mut self, expr: &ast::Expr) -> Option<Term> {
+        use ast::BinaryOp as B;
+        use ast::ExprKind as E;
+        if let Some(name) = plain_name(expr) {
+            return self.var_term(expr, name);
+        }
+        // `..` does not chain and binds more loosely than `+`, so a second range in one formula
+        // is written in brackets, `(z1..z3)`, which is the range itself.
+        if let Some(inner) = unbracketed(expr)
+            && let E::Binary {
+                op: B::Range,
+                lhs,
+                rhs,
+            } = &inner.kind
+            && let (Some(a), Some(b)) = (plain_name(lhs), plain_name(rhs))
+        {
+            return Some(Term {
+                text: format!("{a}..{b}"),
+                span: expr.span,
+                kind: TermKind::Range(a, b),
+            });
+        }
+        match &expr.kind {
+            E::Binary { op: B::Range, .. } => {
+                let mut operands = Vec::new();
+                spine(expr, true, &mut operands);
+                let mut steps = Vec::new();
+                for operand in operands {
+                    self.step_of(operand, &mut steps);
+                }
+                match steps.pop() {
+                    Some(TermStep::Add(term)) if steps.is_empty() => Some(term),
+                    _ => None,
+                }
+            }
+            E::Binary {
+                op: B::Interact, ..
+            } => self.interaction(expr),
+            E::Binary { op: B::Mul, .. } => self.product(expr),
+            _ => self.term_part(expr, "a term"),
+        }
+    }
+
+    /// `a:b:c`: the interaction of its parts, each a variable or an expression over variables.
+    fn interaction(&mut self, expr: &ast::Expr) -> Option<Term> {
+        let mut parts = Vec::new();
+        let mut complete = true;
+        for part in chain(expr, ast::BinaryOp::Interact) {
+            match self.part_of(part, "an interaction") {
+                Some(term) => parts.push(term),
+                None => complete = false,
+            }
+        }
+        complete.then(|| Term {
+            text: written(expr),
+            span: expr.span,
+            kind: TermKind::Interaction(parts),
+        })
+    }
+
+    /// `a * b * c`: the product of its parts, each a variable, an interaction or an expression.
+    fn product(&mut self, expr: &ast::Expr) -> Option<Term> {
+        let mut parts = Vec::new();
+        let mut complete = true;
+        for part in chain(expr, ast::BinaryOp::Mul) {
+            let term = if matches!(
+                part.kind,
+                ast::ExprKind::Binary {
+                    op: ast::BinaryOp::Interact,
+                    ..
+                }
+            ) {
+                self.interaction(part)
+            } else {
+                self.part_of(part, "a product")
+            };
+            match term {
+                Some(term) => parts.push(term),
+                None => complete = false,
+            }
+        }
+        complete.then(|| Term {
+            text: written(expr),
+            span: expr.span,
+            kind: TermKind::Product(parts),
+        })
+    }
+
+    /// A part of an interaction or a product: a variable, or an expression over variables; a
+    /// range is refused, since its variables are several terms.
+    fn part_of(&mut self, expr: &ast::Expr, of: &str) -> Option<Term> {
+        if let Some(name) = plain_name(expr) {
+            return self.var_term(expr, name);
+        }
+        if let ast::ExprKind::Binary {
+            op: ast::BinaryOp::Range,
+            ..
+        } = &expr.kind
+        {
+            self.report(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("a range of variables cannot be part of {of}"),
+                )
+                .primary(expr.span, "a range")
+                .help("name the variables one by one: `x1:female + x2:female`"),
+            );
+            return None;
+        }
+        self.term_part(expr, &format!("a part of {of}"))
+    }
+
+    /// An expression as a term or a part of one: refused when it is a literal, a collection or
+    /// any other value that is no column (`what` names the place), else lowered as arithmetic.
+    fn term_part(&mut self, expr: &ast::Expr, what: &str) -> Option<Term> {
+        use ast::ExprKind as E;
+        match &expr.kind {
+            E::Int(_) | E::Float(_) => {
+                self.report(
+                    Diagnostic::error("Z0401", format!("`{}` is not {what}", written(expr)))
+                        .primary(expr.span, "a number")
+                        .help("`- 1` removes the intercept and `y ~ 1` is the intercept-only model; inside brackets and calls a number is arithmetic, as in `(x * 2)`"),
+                );
+                None
+            }
+            E::Str(_)
+            | E::Bool(_)
+            | E::Na
+            | E::Inf
+            | E::List(_)
+            | E::Mapping(_)
+            | E::Record(_)
+            | E::ListFor(_)
+            | E::If { .. }
+            | E::Case { .. }
+            | E::Model(_)
+            | E::Dag(_)
+            | E::Formula { .. } => {
+                let kind = match &expr.kind {
+                    E::Str(_) => "text",
+                    E::Bool(_) => "a Bool",
+                    E::Na => "NA",
+                    E::Inf => "Inf",
+                    E::List(_) => "a list",
+                    E::Mapping(_) => "a mapping",
+                    E::Record(_) => "a record",
+                    E::Formula { .. } => "a formula",
+                    _ => "a block",
+                };
+                self.report(
+                    Diagnostic::error("Z0401", format!("{kind} is not {what}"))
+                        .primary(expr.span, "not a term")
+                        .help("a term is a variable, a range `x1..x9`, an interaction `a:b`, a product `a * b`, or an expression over variables such as `log(x)` or `x^2`"),
+                );
+                None
+            }
+            E::Dot => {
+                self.dot_alone(expr.span);
+                None
+            }
+            // `as` outside a model block is the parser's Z0308; nothing to add.
+            E::As { .. } => None,
+            _ => self.arith_term(expr),
+        }
+    }
+
+    /// A bare name as a term: a variable of the frame the formula is used with; a binding that
+    /// holds a formula is the one name that cannot be meant as a variable (Z0221).
+    fn var_term(&mut self, expr: &ast::Expr, name: String) -> Option<Term> {
+        if let Some(id) = self.lookup(&name)
+            && self.bindings[id].ty == Ty::Formula
+        {
+            self.report(
+                Diagnostic::error(
+                    "Z0221",
+                    format!("`{name}` is a formula, and a formula is not a term of another"),
+                )
+                .primary(expr.span, "a formula inside a formula")
+                .help("`f + x` adds the term `x` to the formula `f`; to join two formulas, write the terms of one after the other"),
+            );
+            return None;
+        }
+        Some(Term {
+            text: written(expr),
+            span: expr.span,
+            kind: TermKind::Var(name),
+        })
+    }
+
+    /// An expression over variables as a term: lowered with every bare name a variable, it must
+    /// give a column or a number; a bracketed sum is W0503.
+    fn arith_term(&mut self, expr: &ast::Expr) -> Option<Term> {
+        let lowered = self.expr(expr, None);
+        if matches!(lowered.kind, ExprKind::Error) {
+            return None;
+        }
+        let (_, element) = unwrap_column(&lowered.ty);
+        let gives_a_column = matches!(
+            element,
+            Ty::Int
+                | Ty::Float
+                | Ty::Bool
+                | Ty::Str
+                | Ty::Date
+                | Ty::DateTime
+                | Ty::Na
+                | Ty::Unknown
+        );
+        if !gives_a_column {
+            let found = lowered.ty.clone();
+            self.report(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{}` gives {}, not a column, so it cannot be a term",
+                        written(expr),
+                        found.with_article()
+                    ),
+                )
+                .primary(expr.span, found.with_article())
+                .help("a term computes a column of the frame: a variable, `log(x)`, `x^2`, `category(x)`"),
+            );
+            return None;
+        }
+        self.warn_bracketed_sum(expr);
+        Some(Term {
+            text: written(expr),
+            span: expr.span,
+            kind: TermKind::Expr(Box::new(lowered)),
+        })
+    }
+
+    /// W0503 (section 7.2, "Arithmetic"): a bracketed sum is one column in Zeff where R reads
+    /// terms, and `(a + b)^2` squares the sum where R gives every two-way interaction.
+    fn warn_bracketed_sum(&mut self, expr: &ast::Expr) {
+        let (powered, inner) = match &expr.kind {
+            ast::ExprKind::Binary {
+                op: ast::BinaryOp::Pow,
+                lhs,
+                ..
+            } => match bracketed_sum(lhs) {
+                Some(inner) => (true, inner),
+                None => return,
+            },
+            _ => match bracketed_sum(expr) {
+                Some(inner) => (false, inner),
+                None => return,
+            },
+        };
+        let names: Vec<String> = chain(inner, ast::BinaryOp::Add)
+            .into_iter()
+            .filter_map(plain_name)
+            .collect();
+        let all_names = names.len() == chain(inner, ast::BinaryOp::Add).len();
+        let (message, help) = if powered {
+            (
+                format!(
+                    "`{}` is a power of the sum `{}`; R reads it as the interactions of its terms",
+                    written(expr),
+                    written(inner)
+                ),
+                if all_names && names.len() >= 2 {
+                    format!(
+                        "`interact([{}], order: 2)` gives every two-way interaction; `{}` writes them out",
+                        names.join(", "),
+                        {
+                            let mut terms = names.clone();
+                            for i in 0..names.len() {
+                                for j in i + 1..names.len() {
+                                    terms.push(format!("{}:{}", names[i], names[j]));
+                                }
+                            }
+                            terms.join(" + ")
+                        }
+                    )
+                } else {
+                    "`interact([a, b], order: 2)` gives every two-way interaction; `a + b + a:b` writes them out".to_string()
+                },
+            )
+        } else {
+            (
+                format!(
+                    "`{}` is one column, the sum `{}`; R reads brackets as grouping terms",
+                    written(expr),
+                    written(inner)
+                ),
+                format!("write the terms without brackets: `{}`", written(inner)),
+            )
+        };
+        self.report(
+            Diagnostic::warning("W0503", message)
+                .primary(expr.span, "arithmetic inside brackets")
+                .help(help),
+        );
+    }
+
+    /// Z0321: `.` alone stands for every other column only in the formulas of `learn` and
+    /// `tune` (section 7.5, release 1.5).
+    fn dot_alone(&mut self, span: Span) {
+        self.report(
+            Diagnostic::error(
+                "Z0321",
+                "`.` alone stands for every other column only in the formulas of `learn` and `tune`",
+            )
+            .primary(span, "`.` outside those formulas")
+            .help("name the terms: `y ~ x1..x9`; the formulas of `learn` arrive with release 1.5"),
+        );
+    }
+
     fn unary(&mut self, op: ast::UnaryOp, operand: &ast::Expr, span: Span) -> Expr {
         let inner = self.expr(operand, None);
         let inner = self.no_nothing(inner, "negated");
@@ -755,12 +1260,21 @@ impl Checker<'_> {
         }
         use ast::BinaryOp as B;
         if op == B::Interact {
+            let (label, help) = if self.formula_depth > 0 {
+                (
+                    "inside brackets or a call, where operators are arithmetic",
+                    "inside brackets and function calls a formula's operators compute columns; write the interaction as a term of its own: `y ~ a:b`",
+                )
+            } else {
+                (
+                    "not in a formula",
+                    "write `a:b` inside a formula or a `fe:` argument; multiplication is `*`",
+                )
+            };
             self.report(
                 Diagnostic::error("Z0306", "`:` is an interaction and belongs in a formula")
-                    .primary(span, "not in a formula")
-                    .help(
-                        "write `a:b` inside a formula or a `fe:` argument; multiplication is `*`",
-                    ),
+                    .primary(span, label)
+                    .help(help),
             );
             return Expr::error(span);
         }
@@ -775,9 +1289,61 @@ impl Checker<'_> {
         if chained(lhs) || chained(rhs) {
             return Expr::error(span);
         }
+        if op == B::Range
+            && let Some(name) = leftmost_name(lhs)
+            && let Some(id) = self.lookup(&name)
+            && self.bindings[id].ty == Ty::Formula
+        {
+            // `f + x1..x9` parses as `(f + x1)..x9`: the formula at the far left takes the
+            // operands after it as its steps.
+            let whole = ast::Expr {
+                kind: ast::ExprKind::Binary {
+                    op,
+                    lhs: Box::new(lhs.clone()),
+                    rhs: Box::new(rhs.clone()),
+                },
+                span,
+            };
+            let mut operands = Vec::new();
+            spine(&whole, true, &mut operands);
+            operands.remove(0);
+            let formula = Expr {
+                ty: Ty::Formula,
+                span: lhs.span,
+                kind: ExprKind::Binding(id),
+            };
+            self.formula_depth += 1;
+            let mut steps = Vec::new();
+            for operand in operands {
+                self.step_of(operand, &mut steps);
+            }
+            self.formula_depth -= 1;
+            return Expr {
+                ty: Ty::Formula,
+                span,
+                kind: ExprKind::FormulaSteps {
+                    formula: Box::new(formula),
+                    steps,
+                },
+            };
+        }
         let left = self.expr(lhs, None);
+        if left.ty == Ty::Formula && !comparison(op) {
+            return self.formula_operator(op, left, rhs, span);
+        }
         let left = self.no_nothing(left, "used in an expression");
         let right = self.expr(rhs, None);
+        if right.ty == Ty::Formula && !comparison(op) {
+            self.report(
+                Diagnostic::error(
+                    "Z0221",
+                    format!("`{}` with a formula puts the formula first: `f + terms`", op.symbol()),
+                )
+                .primary(right.span, "a formula on the right")
+                .help("`f + x` adds a term to the formula `f` and `f - x` removes one; nothing else combines with a formula"),
+            );
+            return Expr::error(span);
+        }
         let right = self.no_nothing(right, "used in an expression");
         // Columns take the operator row by row; the rules below apply to their element types,
         // and the result is a column when either side is one.
@@ -2012,8 +2578,151 @@ fn is_bool_like(ty: &Ty) -> bool {
 fn is_compound(ty: &Ty) -> bool {
     matches!(
         ty,
-        Ty::List(_) | Ty::Record(_) | Ty::AnyRecord | Ty::Mapping(_, _) | Ty::Frame | Ty::Table
+        Ty::List(_)
+            | Ty::Record(_)
+            | Ty::AnyRecord
+            | Ty::Mapping(_, _)
+            | Ty::Frame
+            | Ty::Table
+            | Ty::Formula
+            | Ty::Terms
     )
+}
+
+/// An operand of a formula's `+`, `-` and `..` spine: one expression with its sign, or a range of
+/// variables, `x1..x9`, with the sign of its first name.
+enum Operand<'a> {
+    Single(bool, &'a ast::Expr),
+    Range {
+        adding: bool,
+        first: &'a ast::Expr,
+        last: &'a ast::Expr,
+        span: Span,
+    },
+}
+
+/// The spine flattened into operands. `..` binds more loosely than `+` and `-` (section 3.3), so
+/// `d + x1..x9 + z` parses as `(d + x1)..(x9 + z)`; the range joins the nearest operand on each
+/// side, which gives `d`, `x1..x9` and `z`.
+fn spine<'a>(expr: &'a ast::Expr, adding: bool, out: &mut Vec<Operand<'a>>) {
+    use ast::BinaryOp as B;
+    match &expr.kind {
+        ast::ExprKind::Binary {
+            op: B::Add,
+            lhs,
+            rhs,
+        } => {
+            spine(lhs, adding, out);
+            spine(rhs, adding, out);
+        }
+        ast::ExprKind::Binary {
+            op: B::Sub,
+            lhs,
+            rhs,
+        } => {
+            spine(lhs, adding, out);
+            spine(rhs, !adding, out);
+        }
+        ast::ExprKind::Binary {
+            op: B::Range,
+            lhs,
+            rhs,
+        } => {
+            let mut left = Vec::new();
+            spine(lhs, adding, &mut left);
+            let mut right = Vec::new();
+            spine(rhs, true, &mut right);
+            let first = left.pop();
+            let last = if right.is_empty() {
+                None
+            } else {
+                Some(right.remove(0))
+            };
+            out.extend(left);
+            match (first, last) {
+                (Some(Operand::Single(sign, first)), Some(Operand::Single(_, last))) => {
+                    out.push(Operand::Range {
+                        adding: sign,
+                        first,
+                        last,
+                        span: Span::new(first.span.start, last.span.end),
+                    });
+                }
+                // A chained range is the parser's Z0314; nothing to add.
+                (first, last) => {
+                    out.extend(first);
+                    out.extend(last);
+                }
+            }
+            out.extend(right);
+        }
+        _ => out.push(Operand::Single(adding, expr)),
+    }
+}
+
+/// The expression inside one or more pairs of brackets, or `None` without brackets.
+fn unbracketed(expr: &ast::Expr) -> Option<&ast::Expr> {
+    match &expr.kind {
+        ast::ExprKind::Paren(inner) => Some(unbracketed(inner).unwrap_or(inner)),
+        _ => None,
+    }
+}
+
+/// The name at the far left of a `+`, `-` and `..` spine, when it is a plain name.
+fn leftmost_name(expr: &ast::Expr) -> Option<String> {
+    match &expr.kind {
+        ast::ExprKind::Binary {
+            op: ast::BinaryOp::Add | ast::BinaryOp::Sub | ast::BinaryOp::Range,
+            lhs,
+            ..
+        } => leftmost_name(lhs),
+        _ => plain_name(expr),
+    }
+}
+
+/// The one segment of a plain name, or `None` for a qualified path.
+fn plain_name(expr: &ast::Expr) -> Option<String> {
+    match &expr.kind {
+        ast::ExprKind::Name(path) if path.segments.len() == 1 => {
+            Some(path.segments[0].text.clone())
+        }
+        _ => None,
+    }
+}
+
+/// The left-leaning chain of one operator (`a:b:c`, `a * b * c`), its operands in order.
+fn chain(expr: &ast::Expr, op: ast::BinaryOp) -> Vec<&ast::Expr> {
+    let mut rights = Vec::new();
+    let mut node = expr;
+    while let ast::ExprKind::Binary {
+        op: inner,
+        lhs,
+        rhs,
+    } = &node.kind
+        && *inner == op
+    {
+        rights.push(&**rhs);
+        node = lhs;
+    }
+    let mut parts = vec![node];
+    parts.extend(rights.into_iter().rev());
+    parts
+}
+
+/// A bracketed sum or difference, which a formula computes as one column where R reads terms
+/// (section 7.2, "Arithmetic"): the expression inside the brackets.
+fn bracketed_sum(expr: &ast::Expr) -> Option<&ast::Expr> {
+    match &expr.kind {
+        ast::ExprKind::Paren(inner) => match &inner.kind {
+            ast::ExprKind::Binary {
+                op: ast::BinaryOp::Add | ast::BinaryOp::Sub,
+                ..
+            } => Some(inner),
+            ast::ExprKind::Paren(_) => bracketed_sum(inner),
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 /// Whether two lowered expressions are the same literal (for the keys of a mapping literal).

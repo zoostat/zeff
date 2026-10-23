@@ -20,6 +20,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (23 October 2026, release 0.4.0, after step 1).** The owner took #30, #47, #48, #49, #50 and #52, each as recommended; #51 and #53 wait for their own deadlines (0.6.0 and 1.1). Each entry records its decision.
 
+**Status (23 October 2026, release 0.4.0, step 7).** #54 raised while formulas were built: `..` binds more loosely than `+` and does not chain, so one formula holds one bare range and a second is written in brackets; the engine reads `(z1..z3)` as the range, and the question is whether the grammar should change. Due at 0.6.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -77,6 +79,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 51 | Reading files in parallel by chunk | B: chunked parsing with boundaries fixed by the bytes alone, in the reader rewrite of 0.11.0 at the latest | 0.6.0 |
 | 52 | A benchmark suite run at every release | B: a small suite from 0.4.0 as a new section of the testing handbook, reporting rather than failing | decided 23 October 2026 |
 | 53 | Options rather than functions: HAC standard errors and weights on the descriptives | The `se:` variants with the panel models of 1.4; `weights:` on the descriptives at 1.1 as frequency weights | 1.1 |
+| 54 | A second range of variables in one formula | A: the grammar stands; a second range is written in brackets, `(z1..z3)`, which the checker reads as the range | 0.6.0 |
 
 ---
 
@@ -635,3 +638,15 @@ Raised on 21 October 2026 with the catalogue additions of that date (rows 506 to
 An option with a default that keeps earlier behaviour is an addition a minor release may make after 1.0 (section 14, Version numbers), so neither needs the freeze lifted; the question is only which release and whether the two kinds of weight (frequency now, design at 1.9) share the one option name.
 
 *Recommendation.* The `se:` variants with the panel models of 1.4; `weights:` on the descriptives at 1.1, as frequency weights, with `survey()` of 1.9 overriding them by design weights where a design is declared. Deadline: 1.1.
+
+### 54. A second range of variables in one formula
+
+Raised on 23 October 2026 at step 7 of release 0.4.0, when formulas became values. Section 3.3 puts `..` at level 6, more loosely bound than `+` and `-` at level 5, and section 3.4 lets no range chain (Z0314). A formula's right side is one expression tree, so `y ~ d + x1..x9 + z` parses as `(d + x1)..(x9 + z)`; the checker reads the range as joining the nearest names on each side, which gives `d`, `x1..x9` and `z`, as section 7.1 intends. But `y ~ x1..x9 + z1..z5` parses as `x1..(x9 + z1)..z5`, a chained range, and is refused by the parser before any formula rule applies. The engine therefore reads a bracketed range, `(z1..z3)`, as the range itself, so that a second range can be written; a bare second range stays Z0314.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The grammar stands: one bare range per formula, further ranges in brackets `(z1..z3)`, documented in section 7.1's table | No change to section 3.3 or the grammar; `2..n + 1` keeps reading `2..(n + 1)` everywhere | A formula with several ranges needs brackets, and the error for two bare ranges speaks of chaining |
+| B. `..` binds more tightly than `+` and `-` (between levels 4 and 5), inside formulas and out | `y ~ x1..x9 + z1..z5` reads as two ranges with no brackets | A grammar change before 1.0: `2..n + 1` becomes `(2..n) + 1`, an error, and every script with a range in arithmetic changes meaning |
+| C. `..` binds more tightly only inside a formula | Formulas read as R users expect; arithmetic is untouched | The one operator whose precedence depends on context, which section 3.3 avoids on purpose |
+
+*Recommendation.* A: the grammar is the one thing a user learns once, and brackets for a second range are a small price. Deadline: 0.6.0, when `fe:` takes `Terms` and the grammar of terms is used in two places.

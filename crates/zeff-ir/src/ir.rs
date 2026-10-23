@@ -109,8 +109,57 @@ pub enum ExprKind {
         name: String,
     },
     Call(Call),
+    /// `y ~ terms`: a formula value (sections 3.3 and 7.1), its outcome and the steps that build
+    /// its terms in the order written.
+    Formula(Formula),
+    /// `f + terms` or `f - term` on a formula value: a new formula with the steps applied.
+    FormulaSteps {
+        formula: Box<Expr>,
+        steps: Vec<TermStep>,
+    },
     /// An expression that could not be lowered; its error has been reported.
     Error,
+}
+
+/// A formula as the checker lowers it: the outcome (none in the one-sided form, which no
+/// parameter takes yet) and the steps of its right side.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Formula {
+    pub outcome: Option<Term>,
+    pub steps: Vec<TermStep>,
+}
+
+/// One step of a formula's right side, in the order written: a term added, a term removed
+/// (`- x`), or the intercept switched (`+ 1`, `- 1`).
+#[derive(Debug, Clone, PartialEq)]
+pub enum TermStep {
+    Add(Term),
+    Remove(Term),
+    Intercept(bool),
+}
+
+/// A term: its written form, which is the name it keeps in results (section 7.2), and its
+/// structure.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Term {
+    pub text: String,
+    pub span: Span,
+    pub kind: TermKind,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TermKind {
+    /// A variable of the frame the formula is used with.
+    Var(String),
+    /// `x1..x9`, expanded against the frame.
+    Range(String, String),
+    /// `a:b:c`.
+    Interaction(Vec<Term>),
+    /// `a * b * c`: every interaction up to the order, expanded by the model matrix.
+    Product(Vec<Term>),
+    /// An expression over the frame's variables, computed before fitting: `exper^2`, `log(wage)`,
+    /// `category(industry)`, `base(industry, "Retail")`.
+    Expr(Box<Expr>),
 }
 
 /// One argument of a call, by where it is kept.

@@ -5,6 +5,7 @@ mod lexer;
 mod parser;
 pub mod sexp;
 mod token;
+pub mod written;
 
 pub use lexer::{Lexed, Pragma, lex};
 pub use parser::{Parsed, parse};

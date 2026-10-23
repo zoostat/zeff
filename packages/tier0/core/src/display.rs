@@ -85,6 +85,7 @@ fn inline(value: &Value) -> String {
         Value::Table(t) => t.title.clone(),
         Value::Column(c) => column_header(c),
         Value::Distribution(d) => distribution_text(d),
+        Value::Formula(formula) => formula.to_string(),
         Value::List(items) => format!(
             "[{}]",
             items.iter().map(inline).collect::<Vec<_>>().join(", ")

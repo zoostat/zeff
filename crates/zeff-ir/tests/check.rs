@@ -498,7 +498,6 @@ fn constructs_of_later_releases_are_z0304_with_their_release() {
         ("let x = if true { 1 } else { 2 }\n", "0.5.0"),
         ("let x = case {\n    true => 1,\n    _ => 2,\n}\n", "0.5.0"),
         ("let x = [for i in [1] { i }]\n", "0.5.0"),
-        ("let f = y ~ x\n", "0.4.0"),
         ("let m = model {\n    y ~ x\n}\n", "1.3"),
         ("let g = dag {\n    a -> b\n}\n", "0.10.0"),
     ];

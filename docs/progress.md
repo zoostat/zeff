@@ -153,3 +153,13 @@ Step 15 `[engine]`, the pre-release routine, with everything it turned up: the w
 **Next.** Step 7, formula values and the checker's formula context `[engine]`.
 
 **For the owner to decide.** Questions 2 to 5 and 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10 and question 5 at step 8.
+
+## 23 October 2026, step 7 of release 0.4.0
+
+**Done.** Step 7 `[engine]`: formulas are values. `let f = lwage ~ educ + exper^2` binds a `Formula` that prints as written (with canonical spacing, which is the name each term keeps in results), `f + educ:female` and `f - female` give new formulas, `- 1` and `y ~ 1` set the intercept, and every form of section 7.1's table but `fe:`, `instruments:` and `re:` lowers to a term: variables, ranges, interactions, products, calls to `category` and `base` and the scalar functions, arithmetic in brackets. Inside a formula a bare name is a variable, never a binding. The refusals: a one-sided formula (Z0322), `.` alone (Z0321), `(a + b)^2` and `(a + b)` warned as R reads them otherwise (W0503), text, numbers or collections as terms, any operator but `+` and `-` on a formula; three new explained pages. A `..` binds more loosely than `+`, so one formula holds one bare range and a second is written in brackets; open decision #54 records the question (due 0.6.0). `type_of` gives `Formula` and `is(Formula)` holds. 10 tests: the lowering and a print-and-lower-back property in `zeff-ir`, printing, combining and every message through the engine, and the specification's sample script checked with no formula refused. The milestone script gained four statements. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check (79 codes) and the conformance report (the milestone line changed, deliberately) pass locally; CI runs on the push.
+
+**Next.** Step 8, the model matrix `[engine]`, which needs question 5 (term names under the `sum`, `helmert` and `poly` contrasts).
+
+**For the owner to decide.** Question 5 before step 8; questions 2 to 5 and 7 at the top of `docs/releases/0.4.0.md`; open decision #54 by 0.6.0.

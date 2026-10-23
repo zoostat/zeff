@@ -475,6 +475,7 @@ pub fn has_type(value: &Value, ty: &TypeValue) -> bool {
         "Frame" => matches!(value, Value::Frame(_)),
         "Table" => matches!(value, Value::Table(_)),
         "Distribution" => matches!(value, Value::Distribution(_)),
+        "Formula" => matches!(value, Value::Formula(_)),
         "List" => matches!(value, Value::List(_)),
         "Record" => matches!(value, Value::Record(_)),
         "Mapping" => matches!(value, Value::Mapping(_)),
@@ -533,6 +534,7 @@ pub fn type_name(value: &Value) -> String {
         Value::Word(_) => "Word".to_string(),
         Value::Type(_) => "Type".to_string(),
         Value::Distribution(_) => "Distribution".to_string(),
+        Value::Formula(_) => "Formula".to_string(),
     }
 }
 

@@ -18,6 +18,10 @@ pub enum Ty {
     Table,
     /// A probability distribution (section 4; `dist.normal()`).
     Distribution,
+    /// A formula value, `y ~ x` (sections 4 and 7.1).
+    Formula,
+    /// The right side of a formula without `~`, as `fe:` takes it at 0.6.0; nothing takes it yet.
+    Terms,
     /// The type of a call that returns no value; it cannot be bound or passed.
     Nothing,
     /// Any value at all (`print`).
@@ -102,6 +106,8 @@ impl Ty {
             "Frame" => Ty::Frame,
             "Table" => Ty::Table,
             "Distribution" => Ty::Distribution,
+            "Formula" => Ty::Formula,
+            "Terms" => Ty::Terms,
             "Nothing" => Ty::Nothing,
             "Any" => Ty::Any,
             "Var" => Ty::Var,
@@ -190,6 +196,8 @@ impl fmt::Display for Ty {
             Ty::Frame => write!(f, "Frame"),
             Ty::Table => write!(f, "Table"),
             Ty::Distribution => write!(f, "Distribution"),
+            Ty::Formula => write!(f, "Formula"),
+            Ty::Terms => write!(f, "Terms"),
             Ty::Nothing => write!(f, "Nothing"),
             Ty::Any => write!(f, "Any"),
             Ty::Var => write!(f, "Var"),
@@ -231,6 +239,8 @@ mod tests {
     fn signatures_parse_and_print() {
         for text in [
             "Frame",
+            "Formula",
+            "Terms",
             "Mapping",
             "Var",
             "Vars",

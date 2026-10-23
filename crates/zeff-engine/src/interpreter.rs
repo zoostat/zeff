@@ -8,9 +8,12 @@ use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, format_float, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Note, Notes, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
-use zeff_core::value::{Frame, TypeValue, Value};
+use zeff_core::value::{
+    ColumnExpr, Formula as FormulaValue, Frame, Term as TermValue, TermKind as TermKindValue,
+    TypeValue, Value,
+};
 use zeff_diagnostics::{Diagnostic, Source, Span};
-use zeff_ir::ir::{BinaryOp, UnaryOp};
+use zeff_ir::ir::{BinaryOp, Term, TermKind, TermStep, UnaryOp};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
 
 /// What one statement wrote.
@@ -207,6 +210,26 @@ impl<'a> Interpreter<'a> {
             },
             ExprKind::Var(name) => Value::Var(name.clone()),
             ExprKind::Vars(names) => Value::Vars(names.clone()),
+            ExprKind::Formula(formula) => {
+                let outcome = match &formula.outcome {
+                    Some(term) => Some(self.term_value(term, expr)?),
+                    None => None,
+                };
+                let mut value = FormulaValue {
+                    outcome,
+                    terms: Vec::new(),
+                    intercept: true,
+                };
+                self.apply_steps(&mut value, &formula.steps, expr, messages)?;
+                Value::Formula(value)
+            }
+            ExprKind::FormulaSteps { formula, steps } => {
+                let Value::Formula(mut value) = self.eval(formula, printed, messages)? else {
+                    return Err(self.internal(expr, "`+` or `-` on a value that is not a formula"));
+                };
+                self.apply_steps(&mut value, steps, expr, messages)?;
+                Value::Formula(value)
+            }
             ExprKind::FrameName { name, binding } => {
                 self.frame_name(expr, name, *binding, messages)?
             }
@@ -755,6 +778,104 @@ impl<'a> Interpreter<'a> {
     }
 
     /// Z0211: an Int result that does not fit.
+    /// The steps of a formula's right side applied to a formula value: a term added, a term
+    /// removed (by its written form; nothing removed is a note), the intercept switched.
+    fn apply_steps(
+        &self,
+        value: &mut FormulaValue,
+        steps: &[TermStep],
+        at: &Expr,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<(), Fail> {
+        for step in steps {
+            match step {
+                TermStep::Add(term) => value.terms.push(self.term_value(term, at)?),
+                TermStep::Remove(term) => {
+                    let before = value.terms.len();
+                    value.terms.retain(|t| t.text != term.text);
+                    if value.terms.len() == before {
+                        messages.push(Diagnostic::plain_note(format!(
+                            "`- {}` removed nothing: the formula has no term `{}`",
+                            term.text, term.text
+                        )));
+                    }
+                }
+                TermStep::Intercept(on) => value.intercept = *on,
+            }
+        }
+        Ok(())
+    }
+
+    /// A lowered term as the formula value keeps it.
+    fn term_value(&self, term: &Term, at: &Expr) -> Result<TermValue, Fail> {
+        let parts = |parts: &[Term]| -> Result<Vec<TermValue>, Fail> {
+            parts.iter().map(|p| self.term_value(p, at)).collect()
+        };
+        let kind = match &term.kind {
+            TermKind::Var(name) => TermKindValue::Var(name.clone()),
+            TermKind::Range(first, last) => TermKindValue::Range(first.clone(), last.clone()),
+            TermKind::Interaction(inner) => TermKindValue::Interaction(parts(inner)?),
+            TermKind::Product(inner) => TermKindValue::Product(parts(inner)?),
+            TermKind::Expr(expr) => TermKindValue::Expr(self.column_expr(expr, at)?),
+        };
+        Ok(TermValue {
+            text: term.text.clone(),
+            kind,
+        })
+    }
+
+    /// An expression over variables as the formula value keeps it, for the model matrix to
+    /// compute: the checker admits nothing but these shapes inside a term.
+    fn column_expr(&self, expr: &Expr, at: &Expr) -> Result<ColumnExpr, Fail> {
+        Ok(match &expr.kind {
+            ExprKind::Int(i) => ColumnExpr::Int(*i),
+            ExprKind::Float(x) => ColumnExpr::Float(*x),
+            ExprKind::Str(s) => ColumnExpr::Str(s.clone()),
+            ExprKind::Bool(b) => ColumnExpr::Bool(*b),
+            ExprKind::Na => ColumnExpr::Na,
+            ExprKind::Word(word) => ColumnExpr::Word(word.clone()),
+            ExprKind::TypeName { name, .. } => ColumnExpr::Type(name.clone()),
+            ExprKind::Var(name) | ExprKind::FrameName { name, .. } => ColumnExpr::Var(name.clone()),
+            ExprKind::List(items) => ColumnExpr::List(
+                items
+                    .iter()
+                    .map(|item| self.column_expr(item, at))
+                    .collect::<Result<_, _>>()?,
+            ),
+            ExprKind::Unary { op, operand } => ColumnExpr::Unary {
+                negate: *op == UnaryOp::Neg,
+                operand: Box::new(self.column_expr(operand, at)?),
+            },
+            ExprKind::Binary { op, lhs, rhs } => {
+                if matches!(op, BinaryOp::Range | BinaryOp::Interact) {
+                    return Err(
+                        self.internal(at, "a range or an interaction inside a term's arithmetic")
+                    );
+                }
+                ColumnExpr::Binary {
+                    op: operator(*op),
+                    lhs: Box::new(self.column_expr(lhs, at)?),
+                    rhs: Box::new(self.column_expr(rhs, at)?),
+                }
+            }
+            ExprKind::Call(call) => ColumnExpr::Call {
+                package: call.package.clone(),
+                name: call.name.clone(),
+                args: call
+                    .args
+                    .iter()
+                    .map(|arg| arg.as_ref().map(|a| self.column_expr(a, at)).transpose())
+                    .collect::<Result<_, _>>()?,
+                rest: call
+                    .rest
+                    .iter()
+                    .map(|a| self.column_expr(a, at))
+                    .collect::<Result<_, _>>()?,
+            },
+            _ => return Err(self.internal(at, "a term the checker does not admit")),
+        })
+    }
+
     fn trouble(&self, trouble: Trouble, expr: &Expr) -> Fail {
         match trouble {
             Trouble::Types {

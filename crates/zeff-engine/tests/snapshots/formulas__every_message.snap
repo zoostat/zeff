@@ -1,0 +1,289 @@
+---
+source: crates/zeff-engine/tests/formulas.rs
+expression: all
+---
+> let f = ~ educ + exper
+error[Z0322]: a one-sided formula `~ x` is allowed only where a parameter takes one
+ --> scripts/main.zeff:1:9
+  |
+1 | let f = ~ educ + exper
+  |         ^^^^^^^^^^^^^^ no outcome on the left of `~`
+  |
+  = help: write the outcome on the left: `y ~ x`; no function of this release takes a one-sided formula
+[exit 1]
+
+> let f = y ~ . - id
+error[Z0321]: `.` alone stands for every other column only in the formulas of `learn` and `tune`
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ . - id
+  |             ^ `.` outside those formulas
+  |
+  = help: name the terms: `y ~ x1..x9`; the formulas of `learn` arrive with release 1.5
+[exit 1]
+
+> let f = y ~ x as a
+error[Z0308]: `as` is only allowed inside a `model { }` block
+ --> scripts/main.zeff:1:15
+  |
+1 | let f = y ~ x as a
+  |               ^^ outside a model block
+  |
+  = help: a label names a parameter in a model block, as in `dem60 ~ ind60 as a`
+[exit 1]
+
+> let f = y ~ x ~ z
+error[Z0314]: a formula has one `~`; formula operators do not chain
+ --> scripts/main.zeff:1:15
+  |
+1 | let f = y ~ x ~ z
+  |               ^ a second formula operator
+  |
+  = help: put each relation on its own line of a `model { }` block
+[exit 1]
+
+> let f = y ~ log((a:b))
+error[Z0306]: `:` is an interaction and belongs in a formula
+ --> scripts/main.zeff:1:18
+  |
+1 | let f = y ~ log((a:b))
+  |                  ^^^ inside brackets or a call, where operators are arithmetic
+  |
+  = help: inside brackets and function calls a formula's operators compute columns; write the interaction as a term of its own: `y ~ a:b`
+[exit 1]
+
+> let f = y ~ "x"
+error[Z0401]: text is not a term
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ "x"
+  |             ^^^ not a term
+  |
+  = help: a term is a variable, a range `x1..x9`, an interaction `a:b`, a product `a * b`, or an expression over variables such as `log(x)` or `x^2`
+[exit 1]
+
+> let f = y ~ 2
+error[Z0401]: `2` is not a term
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ 2
+  |             ^ a number
+  |
+  = help: `- 1` removes the intercept and `y ~ 1` is the intercept-only model; inside brackets and calls a number is arithmetic, as in `(x * 2)`
+[exit 1]
+
+> let f = y ~ [a, b]
+error[Z0401]: a list is not a term
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ [a, b]
+  |             ^^^^^^ not a term
+  |
+  = help: a term is a variable, a range `x1..x9`, an interaction `a:b`, a product `a * b`, or an expression over variables such as `log(x)` or `x^2`
+[exit 1]
+
+> let f = y ~ x1..x9:z
+error[Z0401]: a range of variables runs from one name to another: `x1..x9`
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ x1..x9:z
+  |             ^^^^^^^^ not a range of variables
+  |
+  = help: name the first and the last variable of the range; `..` binds more loosely than `+`, `*` and `:`, so a range stands on its own as a term
+[exit 1]
+
+> let f = y ~ x:2
+error[Z0401]: `2` is not a part of an interaction
+ --> scripts/main.zeff:1:15
+  |
+1 | let f = y ~ x:2
+  |               ^ a number
+  |
+  = help: `- 1` removes the intercept and `y ~ 1` is the intercept-only model; inside brackets and calls a number is arithmetic, as in `(x * 2)`
+[exit 1]
+
+> let f = y ~ x * "a"
+error[Z0401]: text is not a part of a product
+ --> scripts/main.zeff:1:17
+  |
+1 | let f = y ~ x * "a"
+  |                 ^^^ not a term
+  |
+  = help: a term is a variable, a range `x1..x9`, an interaction `a:b`, a product `a * b`, or an expression over variables such as `log(x)` or `x^2`
+[exit 1]
+
+> let f = y ~ x1..x9 * z
+error[Z0401]: a range of variables runs from one name to another: `x1..x9`
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ x1..x9 * z
+  |             ^^^^^^^^^^ not a range of variables
+  |
+  = help: name the first and the last variable of the range; `..` binds more loosely than `+`, `*` and `:`, so a range stands on its own as a term
+[exit 1]
+
+> let f = y ~ (a + b)^2
+warning[W0503]: `(a + b)^2` is a power of the sum `a + b`; R reads it as the interactions of its terms
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ (a + b)^2
+  |             ^^^^^^^^^ arithmetic inside brackets
+  |
+  = help: `interact([a, b], order: 2)` gives every two-way interaction; `a + b + a:b` writes them out
+[exit 0]
+
+> let f = y ~ (a + b)
+warning[W0503]: `(a + b)` is one column, the sum `a + b`; R reads brackets as grouping terms
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ (a + b)
+  |             ^^^^^^^ arithmetic inside brackets
+  |
+  = help: write the terms without brackets: `a + b`
+[exit 0]
+
+> let f = y ~ (a + b + c)^3 + (a - b)^2
+warning[W0503]: `(a + b + c)^3` is a power of the sum `a + b + c`; R reads it as the interactions of its terms
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ (a + b + c)^3 + (a - b)^2
+  |             ^^^^^^^^^^^^^ arithmetic inside brackets
+  |
+  = help: `interact([a, b, c], order: 2)` gives every two-way interaction; `a + b + c + a:b + a:c + b:c` writes them out
+warning[W0503]: `(a - b)^2` is a power of the sum `a - b`; R reads it as the interactions of its terms
+ --> scripts/main.zeff:1:29
+  |
+1 | let f = y ~ (a + b + c)^3 + (a - b)^2
+  |                             ^^^^^^^^^ arithmetic inside brackets
+  |
+  = help: `interact([a, b], order: 2)` gives every two-way interaction; `a + b + a:b` writes them out
+[exit 0]
+
+> let f = y ~ frame(x = [1])
+error[Z0401]: `frame(x = [1])` gives a Frame, not a column, so it cannot be a term
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ frame(x = [1])
+  |             ^^^^^^^^^^^^^^ a Frame
+  |
+  = help: a term computes a column of the frame: a variable, `log(x)`, `x^2`, `category(x)`
+[exit 1]
+
+> let f = y ~ dataset(wages)
+error[Z0401]: `dataset(wages)` gives a Frame, not a column, so it cannot be a term
+ --> scripts/main.zeff:1:13
+  |
+1 | let f = y ~ dataset(wages)
+  |             ^^^^^^^^^^^^^^ a Frame
+  |
+  = help: a term computes a column of the frame: a variable, `log(x)`, `x^2`, `category(x)`
+[exit 1]
+
+> let f = a:b ~ x
+error[Z0401]: the outcome of a formula is a variable or an expression over variables, not an interaction
+ --> scripts/main.zeff:1:9
+  |
+1 | let f = a:b ~ x
+  |         ^^^ an interaction on the left of `~`
+  |
+  = help: interactions are terms of the right side: `y ~ a:b`
+[exit 1]
+
+> let f = y ~ x
+f * 2
+error[Z0221]: `*` is not defined for a formula
+ --> scripts/main.zeff:2:1
+  |
+2 | f * 2
+  | ^^^^^ an operator a formula does not take
+  |
+  = help: `f + x` adds a term to the formula `f` and `f - x` removes one; `f - 1` removes the intercept
+[exit 1]
+
+> let f = y ~ x
+2 + f
+error[Z0221]: `+` with a formula puts the formula first: `f + terms`
+ --> scripts/main.zeff:2:5
+  |
+2 | 2 + f
+  |     ^ a formula on the right
+  |
+  = help: `f + x` adds a term to the formula `f` and `f - x` removes one; nothing else combines with a formula
+[exit 1]
+
+> let f = y ~ x
+f == f
+error[Z0208]: `==` is not defined for a Formula
+ --> scripts/main.zeff:2:1
+  |
+2 | f == f
+  | ^^^^^^ compared here
+  |
+  = help: comparison is for single values: numbers, text, Bool, dates and NA; compare the items of a list one by one
+[exit 1]
+
+> let f = y ~ x
+let g = -f
+error[Z0221]: `-` needs a number, but this is a Formula
+ --> scripts/main.zeff:2:9
+  |
+2 | let g = -f
+  |         ^^ a Formula
+  |
+  = help: only an Int or a Float can be negated
+[exit 1]
+
+> let f = y ~ x
+let g = z ~ w
+f + g
+error[Z0221]: `g` is a formula, and a formula is not a term of another
+ --> scripts/main.zeff:3:5
+  |
+3 | f + g
+  |     ^ a formula inside a formula
+  |
+  = help: `f + x` adds the term `x` to the formula `f`; to join two formulas, write the terms of one after the other
+[exit 1]
+
+> let f = y ~ x
+f + 2
+error[Z0401]: `2` is not a term
+ --> scripts/main.zeff:2:5
+  |
+2 | f + 2
+  |     ^ a number
+  |
+  = help: `- 1` removes the intercept and `y ~ 1` is the intercept-only model; inside brackets and calls a number is arithmetic, as in `(x * 2)`
+[exit 1]
+
+> dataset(wages).where(wage ~ educ)
+error[Z0401]: `condition` of `where` must be a Column<Bool>, but this is a Formula
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).where(wage ~ educ)
+  |                      ^^^^^^^^^^^ a Formula
+  |
+  = help: usage: `data.where(condition)`
+[exit 1]
+
+> let f = y ~ x
+f[1]
+error[Z0221]: `[ ]` indexes a list or a mapping, not a Formula
+ --> scripts/main.zeff:2:1
+  |
+2 | f[1]
+  | ^^^^ a Formula
+  |
+  = help: `xs[2]` takes the second item of a list; `m[k]` looks a key up in a mapping
+[exit 1]
+
+> let f = y ~ x
+f.n_rows()
+error[Z0401]: `n_rows` cannot be called on a Formula
+ --> scripts/main.zeff:2:1
+  |
+2 | f.n_rows()
+  | ^ this is a Formula
+  |
+  = help: `n_rows` is a method of Frame
+[exit 1]

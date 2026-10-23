@@ -1,6 +1,8 @@
 //! The values a running script holds (Language Reference, section 4). `core` declares them so that
 //! every package handles the same values (Engine and Project Specification, section 8.1, rule 4).
 
+use crate::operators::Op;
+use std::fmt;
 use std::rc::Rc;
 use zeff_columns::{Column, Table as Columns};
 
@@ -73,6 +75,92 @@ pub enum Distribution {
     Mixture { parts: Vec<(Distribution, f64)> },
 }
 
+/// A formula value (Language Reference, section 4; sections 7.1 and 7.2): the outcome, the terms
+/// in the order written and whether the intercept is included. `let f = lwage ~ educ` binds one;
+/// `f + educ:female` and `f - female` give new ones. It prints as written, from each term's
+/// written form, which is the name the term keeps in results.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Formula {
+    /// `None` in the one-sided form `~ x`, which no parameter takes yet.
+    pub outcome: Option<Term>,
+    pub terms: Vec<Term>,
+    pub intercept: bool,
+}
+
+/// A term of a formula: its written form, with canonical spacing, and its structure.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Term {
+    pub text: String,
+    pub kind: TermKind,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TermKind {
+    /// A variable of the frame the formula is used with.
+    Var(String),
+    /// `x1..x9`, expanded against the frame.
+    Range(String, String),
+    /// `a:b:c`.
+    Interaction(Vec<Term>),
+    /// `a * b * c`: every interaction up to the order, expanded by the model matrix.
+    Product(Vec<Term>),
+    /// An expression over the frame's variables, computed before fitting.
+    Expr(ColumnExpr),
+}
+
+/// An expression over the variables of a frame, as a formula keeps it: `exper^2`, `log(wage)`,
+/// `category(industry, contrast: sum)`, `base(industry, "Retail")`. A call holds its arguments in
+/// the order of the function's parameters, as the checker matched them.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ColumnExpr {
+    Var(String),
+    Int(i64),
+    Float(f64),
+    Str(String),
+    Bool(bool),
+    Na,
+    /// A word from a parameter's fixed list (`contrast: sum`).
+    Word(String),
+    /// A type name given as a value (`to(x, Float)`).
+    Type(String),
+    List(Vec<ColumnExpr>),
+    Unary {
+        negate: bool,
+        operand: Box<ColumnExpr>,
+    },
+    Binary {
+        op: Op,
+        lhs: Box<ColumnExpr>,
+        rhs: Box<ColumnExpr>,
+    },
+    Call {
+        package: String,
+        name: String,
+        args: Vec<Option<ColumnExpr>>,
+        rest: Vec<ColumnExpr>,
+    },
+}
+
+impl fmt::Display for Formula {
+    /// `lwage ~ educ + exper^2`, `y ~ x - 1`, `y ~ 1`; with no term and no intercept, `y ~ -1`.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(outcome) = &self.outcome {
+            write!(f, "{} ", outcome.text)?;
+        }
+        write!(f, "~")?;
+        for (i, term) in self.terms.iter().enumerate() {
+            write!(f, "{}{}", if i == 0 { " " } else { " + " }, term.text)?;
+        }
+        if self.terms.is_empty() {
+            write!(f, " {}", if self.intercept { "1" } else { "-1" })
+        } else if !self.intercept {
+            write!(f, " - 1")
+        } else {
+            Ok(())
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     /// The value of a call that returns none; it prints nothing.
@@ -99,6 +187,7 @@ pub enum Value {
     Word(String),
     Type(TypeValue),
     Distribution(Distribution),
+    Formula(Formula),
 }
 
 impl Value {
@@ -133,6 +222,7 @@ impl Value {
             Value::Word(_) => "a word",
             Value::Type(_) => "Type",
             Value::Distribution(_) => "Distribution",
+            Value::Formula(_) => "Formula",
         }
     }
 }
