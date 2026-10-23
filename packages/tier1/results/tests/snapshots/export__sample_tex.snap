@@ -1,0 +1,20 @@
+---
+source: packages/tier1/results/tests/export.rs
+expression: tex(&sample)
+---
+% requires \usepackage{booktabs}
+% reg · log(wage) ~ educ + exper + exper^2 + female
+\begin{tabular}{lrrrrl}
+\toprule
+term & estimate & std.error & t value & p value & 95\% CI \\
+\midrule
+(intercept) & 1.7873 & 0.0236 & 75.74 & $<$0.001 & [1.7410, 1.8335] \\
+educ & 0.0758 & 0.0014 & 55.80 & $<$0.001 & [0.0731, 0.0785] \\
+exper & 0.0421 & 0.0016 & 26.36 & $<$0.001 & [0.0389, 0.0452] \\
+exper\textasciicircum{}2 & -0.0007 & 0.0001 & -13.09 & $<$0.001 & [-0.0008, -0.0006] \\
+female & -0.1319 & 0.0064 & -20.63 & $<$0.001 & [-0.1445, -0.1194] \\
+\bottomrule
+\multicolumn{6}{@{}l@{}}{\footnotesize N = 18,179 (233 rows dropped for NA in model variables)} \\
+\multicolumn{6}{@{}l@{}}{\footnotesize standard errors: classical} \\
+\multicolumn{6}{@{}l@{}}{\footnotesize R\textsuperscript{2} 0.210 $\cdot$ adjusted R\textsuperscript{2} 0.210} \\
+\end{tabular}

@@ -163,8 +163,13 @@ fn canary_cases() -> Vec<Line> {
 
 /// A text as a line: the digest of its bytes.
 fn text(name: &str, value: &str) -> Line {
+    bytes(name, value.as_bytes())
+}
+
+/// A file's bytes as a line: their digest, eight at a time.
+fn bytes(name: &str, value: &[u8]) -> Line {
     let mut digest = Digest::new();
-    for chunk in value.as_bytes().chunks(8) {
+    for chunk in value.chunks(8) {
         let mut word = [0u8; 8];
         word[..chunk.len()].copy_from_slice(chunk);
         digest.write(u64::from_le_bytes(word));
@@ -797,6 +802,16 @@ fn regress_cases() -> Vec<Line> {
     lines
 }
 
+/// The exported files of release 0.4.0 (step 13): the sample table as Word and LaTeX, so that the
+/// four targets prove the bytes identical.
+fn export_cases() -> Vec<Line> {
+    let sample = zeff_results::export::sample();
+    vec![
+        bytes("export/sample.docx", &zeff_results::export::docx(&sample)),
+        text("export/sample.tex", &zeff_results::export::tex(&sample)),
+    ]
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
@@ -805,6 +820,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(random_cases());
     lines.extend(distribution_cases());
     lines.extend(regress_cases());
+    lines.extend(export_cases());
     lines.extend(kernels_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());

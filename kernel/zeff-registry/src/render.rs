@@ -168,7 +168,8 @@ pub fn render_page(spec: &FunctionSpec, doc: &HelpDoc, row: &CatalogueRow) -> St
 
 /// The whole page; `methods` is the list of the methods that apply to the result type the
 /// function returns, grouped as the catalogue groups them (section 9.1, "Value"), which the
-/// registry generates, or `None` for a function that returns no result type.
+/// registry generates and the Value text ends with, or `None` for a function that returns no
+/// result type.
 pub fn render_page_with(
     spec: &FunctionSpec,
     doc: &HelpDoc,
@@ -253,19 +254,30 @@ pub fn render_page_with(
     }
 
     heading(&mut out, "VALUE");
-    blocks(&mut out, &doc.value);
-    if let Some(groups) = methods {
-        out.push('\n');
-        if groups.is_empty() {
-            out.push_str(&format!("{INDENT}Methods: none in this release\n"));
-        } else {
-            out.push_str(&format!("{INDENT}Methods\n"));
-            let items: Vec<String> = groups
-                .iter()
-                .map(|(group, names)| format!("{group}: {}", names.join(", ")))
-                .collect();
-            blocks(&mut out, &[Block::Bullets(items)]);
+    match methods {
+        // The methods of the result type returned, as sentences after the written text, in the
+        // shape of the `reg` page of the help examples: `Result interface: summary, coef.`
+        Some(groups) => {
+            let sentences = if groups.is_empty() {
+                "No method applies to it in this release.".to_string()
+            } else {
+                groups
+                    .iter()
+                    .map(|(group, names)| format!("{group}: {}.", names.join(", ")))
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            };
+            let mut value = doc.value.clone();
+            match value.last_mut() {
+                Some(Block::Paragraph(text)) => {
+                    text.push(' ');
+                    text.push_str(&sentences);
+                }
+                _ => value.push(Block::Paragraph(sentences)),
+            }
+            blocks(&mut out, &value);
         }
+        None => blocks(&mut out, &doc.value),
     }
 
     if !doc.details.is_empty() {

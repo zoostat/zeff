@@ -194,6 +194,21 @@ mod tests {
     }
 
     #[test]
+    fn every_page_file_is_listed() {
+        // A page written but left out of the list would explain nothing at the command line.
+        let folder = concat!(env!("CARGO_MANIFEST_DIR"), "/codes");
+        let mut files: Vec<String> = std::fs::read_dir(folder)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .filter_map(|name| name.strip_suffix(".md").map(str::to_string))
+            .collect();
+        files.sort();
+        let mut listed: Vec<String> = PAGES.iter().map(|(code, _)| (*code).to_string()).collect();
+        listed.sort();
+        assert_eq!(files, listed);
+    }
+
+    #[test]
     fn a_malformed_page_says_what_is_wrong() {
         assert!(matches!(
             parse("Z0101", ""),

@@ -14,12 +14,10 @@ error[Z0103]: no function is called `tabulate`
  --> zeff_samples.zeff:53:7
 error[Z0103]: no function is called `histogram`
  --> zeff_samples.zeff:56:7
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:56:46
+error[Z0404]: `export` has no argument called `size`
+ --> zeff_samples.zeff:56:77
 error[Z0103]: no function is called `scatter`
  --> zeff_samples.zeff:57:7
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:57:56
 error[Z0103]: no function is called `to_long`
  --> zeff_samples.zeff:64:6
 error[Z0103]: no function is called `merge`
@@ -48,30 +46,22 @@ error[Z0103]: no function is called `influence`
  --> zeff_samples.zeff:95:4
 error[Z0103]: no function is called `report`
  --> zeff_samples.zeff:97:1
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:100:6
 error[Z0103]: no function is called `coef_plot`
  --> zeff_samples.zeff:102:4
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:102:16
+error[Z0404]: `export` has no argument called `size`
+ --> zeff_samples.zeff:102:46
 error[Z0304]: `[for ...]` is not available in this release
  --> zeff_samples.zeff:108:12
 error[Z0103]: no function is called `report`
  --> zeff_samples.zeff:111:1
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:111:14
 error[Z0103]: no function is called `report`
  --> zeff_samples.zeff:124:1
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:124:46
 error[Z0103]: no function is called `ivreg`
  --> zeff_samples.zeff:130:15
 error[Z0103]: no function is called `first_stage`
  --> zeff_samples.zeff:135:4
 error[Z0103]: no function is called `report`
  --> zeff_samples.zeff:136:1
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:137:6
 error[Z0103]: no function is called `panel`
  --> zeff_samples.zeff:142:44
 error[Z0404]: `reg` has no argument called `fe`
@@ -98,8 +88,6 @@ error[Z0103]: no function is called `probit`
  --> zeff_samples.zeff:166:16
 error[Z0103]: no function is called `report`
  --> zeff_samples.zeff:167:1
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:167:18
 error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:168:17
 error[Z0103]: no function is called `logistic`
@@ -126,8 +114,8 @@ error[Z0103]: no function is called `implied_independencies`
  --> zeff_samples.zeff:208:3
 error[Z0103]: no function is called `plot`
  --> zeff_samples.zeff:209:3
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:209:10
+error[Z0404]: `export` has no argument called `size`
+ --> zeff_samples.zeff:209:39
 error[Z0103]: no function is called `check`
  --> zeff_samples.zeff:213:4
 error[Z0103]: no function is called `derive`
@@ -146,8 +134,8 @@ error[Z0103]: no function is called `labels`
  --> zeff_samples.zeff:231:6
 error[Z0103]: no function is called `theme`
  --> zeff_samples.zeff:232:6
-error[Z0103]: no function is called `export`
- --> zeff_samples.zeff:233:6
+error[Z0404]: `export` has no argument called `size`
+ --> zeff_samples.zeff:233:37
 error[Z0103]: no function is called `aggregate`
  --> zeff_samples.zeff:235:19
 error[Z0103]: no function is called `plot`

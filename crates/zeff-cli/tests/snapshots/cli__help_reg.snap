@@ -40,9 +40,7 @@ ARGUMENTS
     level:        Float = 0.95. Confidence level. The confidence level of the intervals.                      (shared)
 
 VALUE
-    A `RegFit`, which prints as its summary.
-
-    Methods: none in this release
+    A `RegFit`, which prints as its summary. No method applies to it in this release.
 
 DETAILS
     Each regressor is scaled to unit norm before a blocked Householder QR of the design and the outcome

@@ -1,0 +1,84 @@
+---
+source: crates/zeff-engine/tests/export.rs
+expression: text
+---
+--- outside_the_project
+error[Z0707]: cannot write `../wages.docx`: it is outside the project
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export("../wages.docx")
+  |                         ^^^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/wages.docx`
+--- absolute_path
+error[Z0707]: cannot write `/tmp/wages.docx`: it is outside the project
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export("/tmp/wages.docx")
+  |                         ^^^^^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/wages.docx`
+--- data_root
+error[Z0707]: cannot write `zeff:wages.docx`: it is outside the project
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export("zeff:wages.docx")
+  |                         ^^^^^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/wages.docx`
+--- missing_folder
+error[Z0707]: cannot write `results/wages.docx`: the folder `results/` does not exist; `output/` is created as needed, another folder you create first
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export("results/wages.docx")
+  |                         ^^^^^^^^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/wages.docx`
+--- missing_folder_under_output
+error[Z0707]: cannot write `output/tables/wages.docx`: the folder `output/tables/` does not exist; `output/` is created as needed, another folder you create first
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export("output/tables/wages.docx")
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/wages.docx`
+--- unknown_extension
+error[Z0716]: `wages.xlsx` has an extension Zeff does not write
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export("wages.xlsx")
+  |                         ^^^^^^^^^^^^ `.xlsx` is not a format of `export`
+  |
+  = help: a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/wages.docx`
+--- no_extension
+error[Z0716]: `output/wages` has no extension, so no format is chosen
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export("output/wages")
+  |                         ^^^^^^^^^^^^^^ which format?
+  |
+  = help: write `.docx` for Word or `.tex` for LaTeX: `output/wages.docx`
+--- dot_only
+error[Z0716]: `.docx` has no name before its extension
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export(".docx")
+  |                         ^^^^^^^ a name is needed
+  |
+  = help: write a name before the extension: `output/table.docx`
+--- frame_receiver
+error[Z0401]: `export` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | wages.export("wages.docx")
+  | ^^^^^ this is a Frame
+  |
+  = help: `export` is a method of Table
+--- path_not_text
+error[Z0401]: `path` of `export` must be a Str, but this is an Int
+ --> scripts/main.zeff:2:25
+  |
+2 | wages.describe().export(5)
+  |                         ^ an Int
+  |
+  = help: usage: `x.export(path)`

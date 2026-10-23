@@ -186,23 +186,28 @@ fn the_value_section_lists_the_methods_of_the_type_returned() {
     let test = registry.function("results", "test").unwrap();
     let value = section(&registry.page(test));
     assert!(
-        value.contains("- Result interface: summary, std_errors\n"),
+        value.contains("A value. Result interface: summary, std_errors. Estimator interface: coef, compare, test."),
         "{value}"
     );
     assert!(!value.contains("r_squared"), "{value}");
     // A function that returns no result type has no method list.
     let head = registry.function("data", "head").unwrap();
-    assert!(!registry.page(head).contains("Methods"));
+    assert!(!registry.page(head).contains("Result interface"));
+    assert!(!registry.page(head).contains("No method applies"));
     // With no result method shipped, the section says so.
     let only_reg = build(fixtures().into_iter().filter(|s| s.name == "reg").collect());
     let reg = only_reg.function("regress", "reg").unwrap();
     assert!(
-        section(&only_reg.page(reg)).ends_with("\n    Methods: none in this release\n"),
+        section(&only_reg.page(reg)).ends_with(
+            "
+    A value. No method applies to it in this release.
+"
+        ),
         "{}",
         section(&only_reg.page(reg))
     );
     // The page without the registry's list is the page as before.
-    assert!(!reg.page().contains("Methods"));
+    assert!(!reg.page().contains("No method applies"));
 }
 
 #[test]

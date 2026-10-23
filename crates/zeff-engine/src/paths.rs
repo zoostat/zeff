@@ -32,8 +32,9 @@ pub enum PathProblem {
 impl PathProblem {
     /// The message for the string `written` at `span` in the file `file`.
     pub fn diagnostic(&self, written: &str, span: Span, file: &str) -> Diagnostic {
+        // The file's own name, for the suggestion: after any folder or data-root prefix.
         let last = written
-            .rsplit(['/', '\\'])
+            .rsplit(['/', '\\', ':'])
             .next()
             .filter(|s| !s.is_empty())
             .unwrap_or("file");

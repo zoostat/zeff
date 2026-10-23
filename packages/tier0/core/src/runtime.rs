@@ -22,6 +22,20 @@ pub fn fail(diagnostic: Diagnostic) -> Fail {
 /// of the project; a refusal comes back as the diagnostic to show, positioned at the path.
 pub trait Files {
     fn read(&self, written: &str, span: Span, script: &str) -> Result<Vec<u8>, Fail>;
+
+    /// Write the bytes of a file a script exports or saves: `written` is the path in the script,
+    /// resolved under the project folder (Engine and Project Specification, section 2, "Writes";
+    /// Z0707 outside it). The default refuses, for a run that has no project to write into.
+    fn write(&self, written: &str, _bytes: &[u8], span: Span, script: &str) -> Result<(), Fail> {
+        Err(fail(
+            Diagnostic::error(
+                "Z0707",
+                format!("cannot write `{written}`: this run has no project folder"),
+            )
+            .in_file(script)
+            .primary(span, "nowhere to write"),
+        ))
+    }
 }
 
 /// The run's randomness (Engine and Project Specification, section 8.3, point 3): the seed the

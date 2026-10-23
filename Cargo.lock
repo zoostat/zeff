@@ -1345,6 +1345,7 @@ dependencies = [
  "zeff-columns",
  "zeff-data",
  "zeff-hash",
+ "zeff-results",
 ]
 
 [[package]]
@@ -1384,6 +1385,7 @@ dependencies = [
  "zeff-engine",
  "zeff-kernels",
  "zeff-numeric",
+ "zeff-results",
 ]
 
 [[package]]

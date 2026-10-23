@@ -3,9 +3,5 @@ source: kernel/zeff-registry/tests/results.rs
 expression: value
 ---
 VALUE
-    A value.
-
-    Methods
-    - Result interface: summary, std_errors
-    - Estimator interface: coef, compare, test
-    - Result methods: r_squared, influence
+    A value. Result interface: summary, std_errors. Estimator interface: coef, compare, test. Result
+    methods: r_squared, influence.

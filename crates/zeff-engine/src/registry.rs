@@ -69,7 +69,9 @@ mod tests {
         assert!(registry.function("data", "mean").is_some());
         assert_eq!(
             registry.packages_shipped(),
-            ["core", "data", "dist", "stats", "datasets", "regress"]
+            [
+                "core", "data", "dist", "results", "stats", "datasets", "regress"
+            ]
         );
         assert_eq!(registry.datasets().len(), 2);
         for f in registry.functions() {

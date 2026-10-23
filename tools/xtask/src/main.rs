@@ -13,16 +13,47 @@ fn main() -> ExitCode {
         Some("compare-identity") => compare_identity(),
         Some("check-messages") => check_messages(),
         Some("build-datasets") => datasets::build(),
+        Some("export-samples") => export_samples(),
         _ => {
             eprintln!(
                 "usage: cargo run -p xtask -- check-tiers\n       \
                  cargo run -p xtask -- check-messages\n       \
                  cargo run -p xtask -- build-datasets\n       \
+                 cargo run -p xtask -- export-samples\n       \
                  cargo run -p xtask -- compare-identity <folder> <number of reports>"
             );
             ExitCode::from(2)
         }
     }
+}
+
+/// `cargo run -p xtask -- export-samples`: the sample table written as Word and LaTeX into
+/// `tests/reference/exports/` (release 0.4.0, step 13). Continuous integration rebuilds the two
+/// files, checks the Word file with Python's `zipfile` and the XML parser of the standard library
+/// (`tests/reference/exports.py`), and compares both with the committed copies.
+fn export_samples() -> ExitCode {
+    let folder = std::path::Path::new("tests/reference/exports");
+    let sample = zeff_results::export::sample();
+    let files = [
+        ("sample.docx", zeff_results::export::docx(&sample)),
+        (
+            "sample.tex",
+            zeff_results::export::tex(&sample).into_bytes(),
+        ),
+    ];
+    if let Err(error) = std::fs::create_dir_all(folder) {
+        eprintln!("cannot create {}: {error}", folder.display());
+        return ExitCode::from(1);
+    }
+    for (name, bytes) in files {
+        let path = folder.join(name);
+        if let Err(error) = std::fs::write(&path, bytes) {
+            eprintln!("cannot write {}: {error}", path.display());
+            return ExitCode::from(1);
+        }
+        println!("wrote {}", path.display());
+    }
+    ExitCode::SUCCESS
 }
 
 /// Every diagnostic code written in the sources has a snapshot of its wording (section 11) and an

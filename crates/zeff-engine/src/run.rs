@@ -4,6 +4,7 @@
 
 use crate::fs::FileSystem;
 use crate::interpreter::{Interpreter, Output};
+use crate::paths::PathProblem;
 use crate::project::Project;
 use crate::registry::{self, Bodies};
 use std::path::Path;
@@ -72,6 +73,35 @@ impl Files for ProjectFiles<'_> {
                     .primary(span, "the file could not be read"),
             )
         })
+    }
+
+    /// Only under the project folder (section 2, "Writes"): `output/` is created as needed, any
+    /// other folder must exist, and a path outside the project, in a data root or through a link
+    /// is Z0707.
+    fn write(&self, written: &str, bytes: &[u8], span: Span, script: &str) -> Result<(), Fail> {
+        let path = self
+            .project
+            .resolve_write(self.fs, written)
+            .map_err(|p| fail(p.diagnostic(written, span, script)))?;
+        let unwritable =
+            |why: String| fail(PathProblem::Unwritable(why).diagnostic(written, span, script));
+        if let Some(folder) = path.parent()
+            && !self.fs.is_dir(folder)
+        {
+            if folder == self.project.root.join("output") {
+                self.fs
+                    .create_dir(folder)
+                    .map_err(|e| unwritable(format!("`output/` could not be created ({e})")))?;
+            } else {
+                let name = written.rsplit_once('/').map_or("", |(f, _)| f);
+                return Err(unwritable(format!(
+                    "the folder `{name}/` does not exist; `output/` is created as needed, another folder you create first"
+                )));
+            }
+        }
+        self.fs
+            .write(&path, bytes)
+            .map_err(|e| unwritable(e.to_string()))
     }
 }
 

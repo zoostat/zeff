@@ -283,6 +283,11 @@ jobs:
           python3 -I packages/tier1/datasets/generate/sleep.py
           cargo run -q -p xtask -- build-datasets
 
+      - name: Rebuild the exported sample files and check them with the standard library's zipfile
+        run: |
+          cargo run -q -p xtask -- export-samples
+          python3 -I tests/reference/exports.py
+
       - name: Rebuild the R references
         run: |
           Rscript --version

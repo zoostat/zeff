@@ -1,7 +1,7 @@
 //! Formula values through the engine (Language Reference, sections 3.3, 4 and 7.1; release 0.4.0,
 //! step 7): binding, printing as written and combining with `+` and `-`; `type_of` and `is`; every
 //! message a formula can give; and the specification's sample script, whose formulas now check
-//! and whose only diagnostics are the functions of later releases.
+//! and whose only diagnostics are the functions and options of later releases.
 
 use std::path::Path;
 use zeff_diagnostics::{Source, Sources};

@@ -456,10 +456,15 @@ fn zeff_help_prints_a_functions_page() {
     insta::assert_snapshot!("help_import", out(&zeff(dir.path(), &["help", "import"])));
     insta::assert_snapshot!("help_print", out(&zeff(dir.path(), &["help", "print"])));
     // A function returning a result type lists the methods of that type under Value (section
-    // 9.1); none has shipped yet, and the page says so.
+    // 9.1), as sentences after the written text; none has shipped yet, and the page says so.
     let reg = out(&zeff(dir.path(), &["help", "reg"]));
     assert!(
-        reg.contains("\nVALUE\n    A `RegFit`, which prints as its summary.\n\n    Methods: none in this release\n"),
+        reg.contains(
+            "
+VALUE
+    A `RegFit`, which prints as its summary. No method applies to it in this release.
+"
+        ),
         "{reg}"
     );
     insta::assert_snapshot!("help_reg", reg);
