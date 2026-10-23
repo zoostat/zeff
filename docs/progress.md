@@ -138,7 +138,7 @@ Step 10 `[engine]`: the first regression. `wages.reg(log(wage) ~ educ + exper + 
 
 **Done.** Step 11 `[engine]`: the variance layer. `reg` takes `se: classical | robust | hc2 | hc3`, `cluster:`, `weights:` and `weight_type:`: HC1 to HC3 and CR1 from the estimator's scores and bread, with the degrees of freedom of the rulings (N − k, or G − 1 when clustered); frequency, analytic and sampling weights in the design and the variance; W1002 below 30 clusters, W1003 for extreme weights with the effective sample size, W1006 for an observation that drives a coefficient; a fitted design kept for the run so that another `se:` reuses the factorisation. The R harness gained `sandwich` as question 2 decided, installed by `tests/reference/r/install.R` into an ignored folder; twenty-two fits agree with R's `lm` and `sandwich` within 1e-10. A new code, Z0224 (a negative weight), logged. Details in `docs/decisions.md`.
 
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (two new fits) pass locally; CI runs on the push.
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (two new fits) pass locally; CI green on d6ed327 (run 39958012995) with the four targets identical, `sandwich` installed on the runner and R's clustered and weighted fits within tolerance.
 
 **Next.** Step 12, results in the checker and the registry `[engine]`.
 
