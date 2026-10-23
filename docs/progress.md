@@ -159,3 +159,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 18, the estimator interface, part 2 `[function]`: `test`, `compare` and `derive`, which needs questions 3 (b) and (c).
 
 **For the owner to decide.** Questions 3 (b) and (c) (the printed layouts of a test's result and of `derive`) before step 18; open decision #54 by 0.6.0.
+
+## 24 October 2026, step 18 of release 0.4.0
+
+**Done.** Step 18 `[function]`: the estimator interface, part 2, with questions 3 (b) and (c) as decided (24 October 2026). `test(cond, ...)` reads each restriction as an equality linear in the coefficients, bare names being the fit's terms (backticks for `` `exper^2` `` or `` `(intercept)` ``), and gives the Wald F under the fit's own variance matrix on the fit's degrees of freedom, printed as `test · m · educ == exper` over `F(1, 18,175) = 1748.67   p < 0.001`; `compare(other)` tests the terms one regression adds to another on the same rows, the F from the residual sums of squares under classical errors and the Wald F under robust or clustered ones, with a two-row table of the models; `derive(name = expr, ...)` gives nonlinear combinations of the coefficients with delta-method standard errors by dual numbers over the arithmetic and the smooth functions of `core`, as a table in the coefficient table's columns. The checker types these arguments as expressions over the terms, so a bare name inside is never a column or a binding, and a fit keeps the name it was bound to for the titles. Codes Z0415 to Z0417 (provisional, logged). The R reference gains an inference block (ten fits, fourteen Wald tests written out in base R, five comparisons by `anova` or the Wald F, forty-two quantities through `deriv`); Zeff agrees within 1e-10 on every one. Three pages with running examples; catalogue rows 249, 250 and 428 implemented; the sample script now checks clean of these three functions.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (116 suites), the tier check, the message check (93 codes), the conformance report (unchanged) and the export check pass locally; CI green on 3db40a6 (run 40024666720) with the four targets identical.
+
+**Next.** Step 19, `report` and `export` on results `[function]`: the publication table of several fits and the export of a result, both on machinery that exists; no question is open before it.
+
+**For the owner to decide.** Nothing before step 19; open decision #54 by 0.6.0.
