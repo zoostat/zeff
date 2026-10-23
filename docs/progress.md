@@ -185,3 +185,13 @@ Step 10 `[engine]`: the first regression. `wages.reg(log(wage) ~ educ + exper + 
 **Next.** Step 16, the estimator interface, part 1 `[function]`: `coef`, `vcov`, `fit_measures`, `predict`, `residuals` and `fitted`.
 
 **For the owner to decide.** Questions 3 (b), 3 (c) and 7 at the top of `docs/releases/0.4.0.md` (7 before step 17, 3 (b) and (c) before step 18); open decision #54 by 0.6.0.
+
+## 24 October 2026, step 16 of release 0.4.0
+
+**Done.** Step 16 `[function]`: the estimator interface, part 1, with question 4 as decided. Every result answers `coef` (a `Mapping` by term, or one value for a named term, `NA` for an omitted term), `vcov` (a `Table` titled with the kind of standard error), `fit_measures` (a record of the log-likelihood, AIC, BIC, R² and adjusted R²), `residuals` and `fitted` (columns of the frame's full length with `NA` in the dropped rows, so they add to the frame) and `predict(newdata:)` (a column of the new frame's length). The fit keeps its formula, its category levels and its frame's row count; the design is rebuilt on new data with the fit's levels in the fit's order, a text column coded by the fit's labels, a level the fit never saw predicting `NA` with W0207 (provisional, logged), a missing variable Z0101, and `newdata:` required. The R reference adds the variance matrix, predictions on the first ten rows and the first residuals and fitted values; every method agrees with R within 1e-10 on all thirty-six fits. Six pages with running examples; catalogue rows 240, 241 and 243 to 246 implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (114 suites), the tier check, the message check (90 codes), the conformance report (unchanged) and the export check pass locally; CI green on c3608e6 (run 40013998967) with the four targets identical.
+
+**Next.** Step 17, `r_squared` and `influence` `[function]`, which needs question 7.
+
+**For the owner to decide.** Question 7 (the definitions behind `influence`) before step 17; questions 3 (b) and (c) before step 18; open decision #54 by 0.6.0.
