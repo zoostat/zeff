@@ -360,3 +360,230 @@ fn the_printed_forms_both_homes_of_summary_and_every_message() {
     }
     insta::assert_snapshot!("interface", all);
 }
+
+// ----- the estimator interface, part 1 (step 16) -----
+
+fn same(a: f64, b: f64, relative: f64, absolute: f64) -> bool {
+    (a.is_nan() && b.is_nan()) || close(a, b, relative, absolute)
+}
+
+fn column_values(value: &Value) -> Vec<f64> {
+    match value {
+        Value::Column(c) => c
+            .as_floats()
+            .expect("a Float column")
+            .map(|v| v.unwrap_or(f64::NAN))
+            .collect(),
+        other => panic!("not a column: {other:?}"),
+    }
+}
+
+#[test]
+fn the_estimator_interface_agrees_with_r_on_every_reference_fit() {
+    use zeff_results::interface::{coef, fit_measures, fitted, predict, residuals, vcov};
+    let reference = json("r/regression.json");
+    for (name, case) in reference["cases"].as_object().unwrap() {
+        let table = table_of(case["data"].as_str().unwrap());
+        let text = case["formula"].as_str().unwrap();
+        let level = number(&case["level"]);
+        let non_empty = |key: &str| {
+            let v = case[key].as_str().unwrap_or("");
+            (!v.is_empty()).then_some(v)
+        };
+        let se = match case["se"].as_str().unwrap_or("classical") {
+            "classical" => Some("classical"),
+            "HC1" => Some("robust"),
+            "HC2" => Some("hc2"),
+            "HC3" => Some("hc3"),
+            _ => None,
+        };
+        let options = Options {
+            se: if non_empty("cluster").is_some() {
+                None
+            } else {
+                se
+            },
+            cluster: non_empty("cluster"),
+            weights: non_empty("weights"),
+            weight_type: non_empty("weight_type"),
+            level: Some(level),
+        };
+        let fit = fit_with(&table, text, &options);
+        let columns = case["columns"].as_object().unwrap();
+        // The coefficients, by term and one by one.
+        let estimates = match call(coef, &fit, vec![None]) {
+            Value::Mapping(entries) => entries,
+            other => panic!("{name}: coef() gave {other:?}"),
+        };
+        for (i, t) in fit.terms.iter().enumerate() {
+            let r = number(&columns[t]["estimate"]);
+            assert_eq!(estimates[i].0, Value::Str(t.clone()), "{name}");
+            assert!(
+                close(float(&estimates[i].1), r, 1e-10, 1e-14),
+                "{name}: coef {t}"
+            );
+            assert!(close(
+                float(&call(coef, &fit, vec![term(t)])),
+                r,
+                1e-10,
+                1e-14
+            ));
+        }
+        // The variance matrix: the fit's values against R's by name, and the table's cells the
+        // printed form of those values.
+        let r_terms: Vec<String> = case["vcov_terms"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t.as_str().unwrap().to_string())
+            .collect();
+        let r_vcov = case["vcov"].as_array().unwrap();
+        let k = fit.terms.len();
+        assert_eq!(r_terms.len(), k, "{name}: the terms of vcov");
+        // R writes each row of the matrix as an object keyed by the column's term.
+        let position = |t: &str| r_terms.iter().position(|x| x == t).unwrap();
+        for (i, ti) in fit.terms.iter().enumerate() {
+            for (j, tj) in fit.terms.iter().enumerate() {
+                let r = number(&r_vcov[position(ti)][tj.as_str()]);
+                let z = fit.vcov[i * k + j];
+                assert!(
+                    close(z, r, 1e-10, 1e-16),
+                    "{name}: vcov[{ti}, {tj}] {z:e} against {r:e}"
+                );
+            }
+        }
+        match call(vcov, &fit, vec![]) {
+            Value::Table(table) => {
+                assert_eq!(table.rows.len(), k, "{name}");
+                assert_eq!(table.columns.len(), k + 1, "{name}");
+                assert!(
+                    table.title.starts_with("vcov · "),
+                    "{name}: {}",
+                    table.title
+                );
+                for (i, row) in table.rows.iter().enumerate() {
+                    assert_eq!(row[0], fit.terms[i]);
+                    for j in 0..k {
+                        assert_eq!(
+                            row[j + 1],
+                            zeff_core::display::format_float(fit.vcov[i * k + j]),
+                            "{name}"
+                        );
+                    }
+                }
+            }
+            other => panic!("{name}: vcov() gave {other:?}"),
+        }
+        // The fit measures.
+        let scaled_weights = matches!(options.weight_type, Some("analytic") | Some("sampling"))
+            && options.weights.is_some();
+        match call(fit_measures, &fit, vec![]) {
+            Value::Record(fields) => {
+                let field = |n: &str| {
+                    float(
+                        &fields
+                            .iter()
+                            .find(|(f, _)| f == n)
+                            .unwrap_or_else(|| panic!("{name}: no field {n}"))
+                            .1,
+                    )
+                };
+                assert!(close(
+                    field("r_squared"),
+                    number(&case["r_squared"]),
+                    1e-10,
+                    1e-14
+                ));
+                assert!(close(
+                    field("adjusted"),
+                    number(&case["adj_r_squared"]),
+                    1e-10,
+                    1e-14
+                ));
+                if !scaled_weights {
+                    assert!(close(
+                        field("log_likelihood"),
+                        number(&case["log_likelihood"]),
+                        1e-10,
+                        1e-12
+                    ));
+                    assert!(close(field("aic"), number(&case["aic"]), 1e-10, 1e-12));
+                    assert!(close(field("bic"), number(&case["bic"]), 1e-10, 1e-12));
+                }
+            }
+            other => panic!("{name}: fit_measures() gave {other:?}"),
+        }
+        // Residuals and fitted values: full length, NA in the dropped rows, the first twenty of
+        // the rows used as R gives them (R replicates the rows under frequency weights, so those
+        // cases are compared in length alone).
+        let frequency = options.weight_type == Some("frequency") && options.weights.is_some();
+        for (body, key, own) in [
+            (residuals as Body, "residuals_20", &fit.residuals),
+            (fitted as Body, "fitted_20", &fit.fitted),
+        ] {
+            let values = column_values(&call(body, &fit, vec![]));
+            assert_eq!(values.len(), table.rows(), "{name}: the length");
+            for (i, &row) in fit.rows.iter().enumerate() {
+                assert!(
+                    values[row].to_bits() == own[i].to_bits(),
+                    "{name}: row {row}"
+                );
+            }
+            let dropped = (0..table.rows()).filter(|r| values[*r].is_nan()).count();
+            assert_eq!(dropped, table.rows() - fit.rows.len(), "{name}: NA rows");
+            if !frequency {
+                let r_values: Vec<f64> = case[key].as_array().unwrap().iter().map(number).collect();
+                for (i, r) in r_values.iter().enumerate() {
+                    let z = values[fit.rows[i]];
+                    assert!(
+                        same(z, *r, 1e-9, 1e-12),
+                        "{name}: {key} [{i}] {z:e} against {r:e}"
+                    );
+                }
+            }
+        }
+        // Predictions for the first ten rows, as R's `predict` on the same rows.
+        let ten: Vec<usize> = (0..10).collect();
+        let newdata = Value::Frame(Frame::new(table.take_rows(&ten)));
+        let predicted = column_values(&call(predict, &fit, vec![Some(newdata)]));
+        let r_predicted: Vec<f64> = case["predict_10"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(number)
+            .collect();
+        assert_eq!(predicted.len(), 10, "{name}");
+        for (i, r) in r_predicted.iter().enumerate() {
+            assert!(
+                same(predicted[i], *r, 1e-9, 1e-12),
+                "{name}: predict [{i}] {:e} against {r:e}",
+                predicted[i]
+            );
+        }
+    }
+}
+
+#[test]
+fn the_estimator_methods_print_and_every_message() {
+    let scripts = [
+        "let m = dataset(wages).reg(log(wage) ~ educ + exper + female)\nm.coef()\nm.coef(educ)\nm.coef(\"female\")\nm.vcov()\nm.fit_measures()\nm.fit_measures().aic\nm.fit_measures().r_squared\n",
+        "let wages = dataset(wages)\nlet m = wages.reg(log(wage) ~ educ + exper + female)\nlet r = m.residuals()\ntype_of(r)\nwages.add(res = m.residuals(), yhat = m.fitted()).summary([res, yhat])\nwages.add(res = m.residuals()).where(is_missing(res)).n_rows()\n",
+        "let wages = dataset(wages)\nlet m = wages.reg(log(wage) ~ educ + exper + female + industry)\nm.predict(newdata: wages.head(5))\nm.predict(newdata: frame(educ = [12, 16], exper = [5, 10], female = [0, 1], industry = [\"Retail\", \"Finance\"]))\nm.predict(newdata: frame(educ = [12, 16, NA], exper = [5, 10, 2], female = [0, 1, 1], industry = [\"Retail\", \"Space\", \"Health\"]))\n",
+        // A sum contrast and a base: the new design uses the fit's levels in the fit's order, and
+        // the two parameterisations predict the same values.
+        "let wages = dataset(wages)\nlet m = wages.reg(log(wage) ~ educ + category(industry, contrast: sum))\nm.predict(newdata: wages.head(3))\nlet b = wages.reg(log(wage) ~ educ + base(industry, \"Retail\"))\nb.predict(newdata: wages.head(3))\n",
+        // An omitted term: no coefficient, and no part in a prediction.
+        "let wages = dataset(wages)\nlet m = wages.add(twice = educ * 2).reg(log(wage) ~ educ + twice)\nm.coef()\nm.coef(twice)\nm.vcov()\nm.predict(newdata: frame(educ = [12], twice = [99]))\n",
+        "let m = dataset(wages).reg(log(wage) ~ educ + exper + female)\nm.predict()\n",
+        "let m = dataset(wages).reg(log(wage) ~ educ + exper + female)\nm.predict(newdata: frame(educ = [12], exper = [5]))\n",
+        "let m = dataset(wages).reg(log(wage) ~ educ + exper + female)\nm.predict(newdata: 5)\n",
+        "let m = dataset(wages).reg(log(wage) ~ educ + exper + female)\nm.predict(newdata: frame(educ = [\"twelve\"], exper = [5], female = [0]))\n",
+        "let m = dataset(wages).reg(log(wage) ~ educ + exper + female)\nm.coef(nope)\n",
+        "dataset(wages).vcov()\n",
+    ];
+    let mut all = String::new();
+    for script in scripts {
+        all.push_str(&format!("> {script}{}\n", printed(script)));
+    }
+    insta::assert_snapshot!("estimator", all);
+}

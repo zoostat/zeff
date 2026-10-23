@@ -98,3 +98,7 @@ Section 3.7 ("Resolution by parameter type") says a term name is looked up in th
 ## 23 October 2026 — zeff_language_reference.md, section 11: the code Z0716
 
 Section 3.8 says `.export()` writes a table and the catalogue (row 165) that the format comes from the extension, but neither gives a code to a path whose extension names no format. Step 13 of release 0.4.0 assigns Z0716, the next free code of the Z07xx family (projects and paths), to an export path with no extension or with one Zeff does not write, the formats listed in the message; the row is added to the table of codes numbered while the engine was built. The checklist calls the code provisional; the change settles nothing else.
+
+## 24 October 2026 — zeff_language_reference.md, section 11: the code W0207
+
+The checklist of release 0.4.0 (step 16) has `predict` give `NA` with a warning for a row of new data whose level the fit never saw, a condition the specification describes without a number (one of those listed for open decision #54's successors). Step 16 assigns W0207, the next code of the W02xx family (types and values), and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.

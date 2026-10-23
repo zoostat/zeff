@@ -3,11 +3,15 @@
 //! owner decided them): the six methods every result answers, on a fitted model or a test's
 //! result. `summary` gives the printed summary as a `Table`, `estimates` a `Frame`, `std_errors`
 //! and `p_values` a `Mapping` by term or one `Float` for a named term, `ci` a `Table` of
-//! intervals or `[lower, upper]` for one term, and `n_obs` an `Int`.
+//! intervals or `[lower, upper]` for one term, and `n_obs` an `Int`. The estimator interface's
+//! first part (step 16) follows: `coef`, `vcov`, `fit_measures`, `predict`, `residuals` and
+//! `fitted`.
 
+use crate::design::Design;
+use crate::summary::rows;
 use std::rc::Rc;
 use zeff_columns::{Column, Table as Columns};
-use zeff_core::display::{fixed, fixed_grouped, statistic_line};
+use zeff_core::display::{fixed, fixed_grouped, format_float, list_levels, statistic_line};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Align, Distribution, Fit, Frame, Table, TestResult, Value};
 use zeff_diagnostics::Diagnostic;
@@ -337,4 +341,198 @@ pub fn summary(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
         Receiver::Test(test) => Ok(Value::Table(test_table(&test))),
     }
+}
+
+// ----- the estimator interface, part 1 (step 16) -----
+
+/// `fit.coef(term?)`: the estimates by term, or one; a test's result has none.
+pub fn coef(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    match receiver(ctx, &args, "coef")? {
+        Receiver::Fit(fit) => Ok(by_term(&fit, &args, &fit.estimates)),
+        Receiver::Test(_) => Ok(Value::Na),
+    }
+}
+
+/// `fit.vcov()`: the variance matrix of the estimates as a table over the terms with an
+/// estimate, titled with the kind of standard error it was computed under; a test's result has
+/// none.
+pub fn vcov(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    match receiver(ctx, &args, "vcov")? {
+        Receiver::Fit(fit) => {
+            let k = fit.terms.len();
+            let mut columns = vec![("term".to_string(), Align::Left)];
+            columns.extend(fit.terms.iter().map(|t| (t.clone(), Align::Right)));
+            let rows = (0..k)
+                .map(|i| {
+                    let mut row = vec![fit.terms[i].clone()];
+                    row.extend((0..k).map(|j| format_float(fit.vcov[i * k + j])));
+                    row
+                })
+                .collect();
+            Ok(Value::Table(Table {
+                title: format!("vcov · {}", fit.se_kind),
+                before: Vec::new(),
+                columns,
+                rows,
+                after: Vec::new(),
+                more: Vec::new(),
+            }))
+        }
+        Receiver::Test(_) => Ok(Value::Na),
+    }
+}
+
+/// `fit.fit_measures()`: the log-likelihood, AIC, BIC, R² and adjusted R² as a record (question
+/// 4); R² is `NA` when the outcome has no variation. A test's result has none.
+pub fn fit_measures(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    match receiver(ctx, &args, "fit_measures")? {
+        Receiver::Fit(fit) => {
+            let (aic, bic) = information_criteria(&fit);
+            let measure = |x: Option<f64>| x.map_or(Value::Na, Value::Float);
+            Ok(Value::Record(vec![
+                (
+                    "log_likelihood".to_string(),
+                    Value::Float(fit.log_likelihood),
+                ),
+                ("aic".to_string(), Value::Float(aic)),
+                ("bic".to_string(), Value::Float(bic)),
+                ("r_squared".to_string(), measure(fit.r_squared)),
+                ("adjusted".to_string(), measure(fit.adjusted_r_squared)),
+            ]))
+        }
+        Receiver::Test(_) => Ok(Value::Na),
+    }
+}
+
+/// A column of the fitted frame's full length: `values` in the rows the fit used, `NA` in the
+/// rows it dropped (question 4, as R's `na.exclude` and Stata's `predict` fill them).
+fn full_length(fit: &Fit, values: &[f64]) -> Value {
+    let mut all: Vec<Option<f64>> = vec![None; fit.frame_rows];
+    for (i, &row) in fit.rows.iter().enumerate() {
+        all[row] = Some(values[i]);
+    }
+    Value::Column(Column::floats(all).0)
+}
+
+/// `fit.residuals()`: the residuals, one per row of the fitted frame.
+pub fn residuals(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    match receiver(ctx, &args, "residuals")? {
+        Receiver::Fit(fit) => Ok(full_length(&fit, &fit.residuals)),
+        Receiver::Test(_) => Ok(Value::Na),
+    }
+}
+
+/// `fit.fitted()`: the fitted values, one per row of the fitted frame.
+pub fn fitted(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    match receiver(ctx, &args, "fitted")? {
+        Receiver::Fit(fit) => Ok(full_length(&fit, &fit.fitted)),
+        Receiver::Test(_) => Ok(Value::Na),
+    }
+}
+
+/// `fit.predict(newdata:)`: the model's prediction for each row of `newdata`, as a column of its
+/// length. The design is rebuilt on the new frame from the fit's formula without its outcome,
+/// with the fit's category levels, so that the columns are the fit's: a variable the frame
+/// lacks is Z0101, a row with `NA` in a model variable predicts `NA`, and a row whose level the
+/// fit never saw predicts `NA` with a warning (W0207). A term omitted as collinear contributes
+/// nothing, as R's `predict` on a rank-deficient fit does.
+pub fn predict(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let newdata = match args.get(1) {
+        Some(Value::Frame(frame)) => frame.clone(),
+        Some(other) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`newdata:` of `predict` must be a Frame, but this is {}",
+                        other.type_word()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(1), other.type_word()),
+            ));
+        }
+        None => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0406",
+                    "`predict` needs `newdata:`, the frame to predict for",
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "`newdata:` is missing")
+                .help("`fitted()` gives the predictions for the rows the fit used"),
+            ));
+        }
+    };
+    let fit = match receiver(ctx, &args, "predict")? {
+        Receiver::Fit(fit) => fit,
+        Receiver::Test(_) => return Ok(Value::Na),
+    };
+    let mut model = fit.model.clone();
+    model.outcome = None;
+    let design = Design::build_with(ctx, &newdata, &model, &[], &fit.levels)?;
+    for (var, n) in &design.unseen {
+        let levels = fit
+            .levels
+            .iter()
+            .find(|(v, _)| v == var)
+            .map(|(_, l)| l.as_slice())
+            .unwrap_or(&[]);
+        let (hold, its, is) = if *n == 1 {
+            ("holds", "its prediction is", "")
+        } else {
+            ("hold", "their predictions are", "")
+        };
+        let _ = is;
+        ctx.message(
+            Diagnostic::warning(
+                "W0207",
+                format!(
+                    "{} of newdata {hold} a level of `{var}` the fit never saw, so {its} NA",
+                    rows(*n)
+                ),
+            )
+            .help(format!(
+                "the fit's levels of `{var}` are {}",
+                list_levels(levels)
+            )),
+        );
+    }
+    let estimate_of: Vec<Option<f64>> = design
+        .names
+        .iter()
+        .map(|name| {
+            fit.terms
+                .iter()
+                .position(|t| t == name)
+                .map(|i| fit.estimates[i])
+        })
+        .collect();
+    if let Some(name) = design
+        .names
+        .iter()
+        .find(|n| !fit.terms.contains(n) && !fit.omitted.contains(n))
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z9001",
+                format!("internal error: this is a bug in Zeff, not in your script (the new design has a column `{name}` the fit does not)"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "the call that failed"),
+        ));
+    }
+    let mut values: Vec<Option<f64>> = vec![None; newdata.table.rows()];
+    for block in design.blocks() {
+        for r in 0..block.x.rows() {
+            let mut yhat = 0.0;
+            for (c, estimate) in estimate_of.iter().enumerate() {
+                if let Some(b) = estimate {
+                    yhat += b * block.x.get(r, c);
+                }
+            }
+            values[design.rows[block.start + r]] = Some(yhat);
+        }
+    }
+    Ok(Value::Column(Column::floats(values).0))
 }

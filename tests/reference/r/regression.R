@@ -60,6 +60,8 @@ zeff_name <- function(name, factors) {
 # when clustered (the rulings of release 0.4.0).
 case <- function(zeff, data_file, r_formula, data, factors = list(), level = 0.95, rename = c(),
                  se = "classical", cluster = NULL, weights = NULL, weight_type = "sampling") {
+  # The first ten rows as `predict` sees them: before any replication under frequency weights.
+  new <- head(data, 10)
   if (!is.null(weights) && weight_type == "frequency") {
     keep <- !is.na(weights) & weights > 0
     data <- data[rep(seq_len(nrow(data)), ifelse(is.na(weights), 0L, as.integer(weights))), , drop = FALSE]
@@ -81,6 +83,8 @@ case <- function(zeff, data_file, r_formula, data, factors = list(), level = 0.9
   table <- coef(s)
   rownames(table) <- vapply(rownames(table), to_zeff, "")
   df <- fit$df.residual
+  V <- vcov(fit)
+  rownames(V) <- colnames(V) <- vapply(rownames(V), to_zeff, "")
   if (se != "classical") {
     # The rows lm kept (an NA cluster drops its row with the others); sandwich's HC1 to HC3 and
     # vcovCL with the HC1 small-sample adjustment and the cluster adjustment, Stata's CR1.
@@ -98,6 +102,11 @@ case <- function(zeff, data_file, r_formula, data, factors = list(), level = 0.9
     table[, 3] <- table[, 1] / ses
     table[, 4] <- 2 * pt(abs(table[, 3]), df, lower.tail = FALSE)
   }
+  # The variance matrix in Zeff's names over the terms with an estimate (step 16), the
+  # predictions for the first ten rows, and the first twenty residuals and fitted values of the
+  # rows lm used.
+  V_out <- V[rownames(table), rownames(table), drop = FALSE]
+  predicted <- as.numeric(predict(fit, newdata = new))
   q <- qt(1 - (1 - level) / 2, df)
   ci <- cbind(table[, 1] - q * table[, 2], table[, 1] + q * table[, 2])
   rownames(ci) <- rownames(table)
@@ -135,7 +144,12 @@ case <- function(zeff, data_file, r_formula, data, factors = list(), level = 0.9
     rss = num17(deviance(fit)),
     log_likelihood = num17(as.numeric(logLik(fit))),
     aic = num17(AIC(fit)),
-    bic = num17(BIC(fit))
+    bic = num17(BIC(fit)),
+    vcov_terms = as.list(rownames(V_out)),
+    vcov = lapply(seq_len(nrow(V_out)), function(i) lapply(V_out[i, ], num17)),
+    predict_10 = lapply(predicted, num17),
+    residuals_20 = lapply(head(as.numeric(residuals(fit)), 20), num17),
+    fitted_20 = lapply(head(as.numeric(fitted(fit)), 20), num17)
   )
 }
 

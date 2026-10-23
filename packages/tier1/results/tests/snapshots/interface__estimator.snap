@@ -1,0 +1,181 @@
+---
+source: packages/tier1/results/tests/interface.rs
+expression: all
+---
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.coef()
+m.coef(educ)
+m.coef("female")
+m.vcov()
+m.fit_measures()
+m.fit_measures().aic
+m.fit_measures().r_squared
+(intercept) => 1.89982
+educ => 0.0760082
+exper => 0.02202
+female => -0.132924
+0.0760082
+-0.132924
+vcov · classical
+
+  term           (intercept)           educ          exper         female
+  (intercept)    0.000487427   -2.81326e-05   -5.80141e-06   -2.11689e-05
+  educ          -2.81326e-05    1.86261e-06    1.99764e-07    6.01044e-10
+  exper         -5.80141e-06    1.99764e-07    2.03748e-07    7.60086e-08
+  female        -2.11689e-05    6.01044e-10    7.60086e-08    4.12635e-05
+log_likelihood: -10563.8
+aic: 21137.5
+bic: 21176.5
+r_squared: 0.202792
+adjusted: 0.20266
+21137.5
+0.202792
+--- messages ---
+[exit 0]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female)
+let r = m.residuals()
+type_of(r)
+wages.add(res = m.residuals(), yhat = m.fitted()).summary([res, yhat])
+wages.add(res = m.residuals()).where(is_missing(res)).n_rows()
+Column<Float>
+summary · frame
+
+  variable        N   missing    mean      sd      min     max
+  res        18,179       233   0.000   0.433   -2.006   1.530
+  yhat       18,179       233   3.192   0.218    2.529   3.926
+233
+--- messages ---
+warning: 233 rows with NA in res and 233 with NA in yhat were skipped (line 5)
+[exit 0]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + exper + female + industry)
+m.predict(newdata: wages.head(5))
+m.predict(newdata: frame(educ = [12, 16], exper = [5, 10], female = [0, 1], industry = ["Retail", "Finance"]))
+m.predict(newdata: frame(educ = [12, 16, NA], exper = [5, 10, 2], female = [0, 1, 1], industry = ["Retail", "Space", "Health"]))
+Column<Float> · 5 values
+3.3513
+3.37324
+3.39518
+3.41713
+3.43907
+Column<Float> · 2 values
+2.88428
+3.286
+Column<Float> · 3 values
+2.88428
+NA
+NA
+--- messages ---
+warning: 1 row of newdata holds a level of `industry` the fit never saw, so its prediction is NA (line 5)
+  = help: the fit's levels of `industry` are "Agriculture", "Mining", "Utilities", "Construction", "Manufacturing", "Retail", "Transport", "Finance", "Services", "Education", "Health", "Public administration"
+[exit 0]
+
+> let wages = dataset(wages)
+let m = wages.reg(log(wage) ~ educ + category(industry, contrast: sum))
+m.predict(newdata: wages.head(3))
+let b = wages.reg(log(wage) ~ educ + base(industry, "Retail"))
+b.predict(newdata: wages.head(3))
+Column<Float> · 3 values
+3.33326
+3.33326
+3.33326
+Column<Float> · 3 values
+3.33326
+3.33326
+3.33326
+--- messages ---
+[exit 0]
+
+> let wages = dataset(wages)
+let m = wages.add(twice = educ * 2).reg(log(wage) ~ educ + twice)
+m.coef()
+m.coef(twice)
+m.vcov()
+m.predict(newdata: frame(educ = [12], twice = [99]))
+(intercept) => 2.46017
+educ => 0.0542589
+NA
+vcov · classical
+
+  term           (intercept)           educ
+  (intercept)    0.000362647   -2.60042e-05
+  educ          -2.60042e-05    1.92802e-06
+Column<Float> · 1 value
+3.11127
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 2)
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.predict()
+--- messages ---
+error[Z0406]: `predict` needs `newdata:`, the frame to predict for
+ --> scripts/main.zeff:2:3
+  |
+2 | m.predict()
+  |   ^^^^^^^ `newdata:` is missing
+  |
+  = help: `fitted()` gives the predictions for the rows the fit used
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.predict(newdata: frame(educ = [12], exper = [5]))
+--- messages ---
+error[Z0101]: no variable `female` in `the frame`
+ --> scripts/main.zeff:2:3
+  |
+2 | m.predict(newdata: frame(educ = [12], exper = [5]))
+  |   ^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: educ, exper
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.predict(newdata: 5)
+--- messages ---
+error[Z0401]: `newdata` of `predict` must be a Frame, but this is an Int
+ --> scripts/main.zeff:2:20
+  |
+2 | m.predict(newdata: 5)
+  |                    ^ an Int
+  |
+  = help: usage: `fit.predict(newdata: Frame)`
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.predict(newdata: frame(educ = ["twelve"], exper = [5], female = [0]))
+--- messages ---
+error[Z0401]: `educ` is text, and a model needs numbers or a category
+ --> scripts/main.zeff:2:3
+  |
+2 | m.predict(newdata: frame(educ = ["twelve"], exper = [5], female = [0]))
+  |   ^^^^^^^ a text variable in the model
+  |
+  = help: `category(educ)` makes it a category, in the formula or with `add`
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+m.coef(nope)
+--- messages ---
+error[Z0414]: `nope` is not a term of this fit
+ --> scripts/main.zeff:2:8
+  |
+2 | m.coef(nope)
+  |        ^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `educ`, `exper`, `female`
+[exit 1]
+
+> dataset(wages).vcov()
+--- messages ---
+error[Z0401]: `vcov` cannot be called on a Frame
+ --> scripts/main.zeff:1:1
+  |
+1 | dataset(wages).vcov()
+  | ^^^^^^^^^^^^^^ this is a Frame
+  |
+  = help: `vcov` is a method of Result
+[exit 1]

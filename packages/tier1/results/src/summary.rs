@@ -5,7 +5,7 @@
 use crate::design::Design;
 use crate::estimator::Fitted;
 use zeff_core::display::{fixed, p_value_text};
-use zeff_core::value::{Align, Distribution, Fit, Table};
+use zeff_core::value::{Align, Distribution, Fit, Formula, Table};
 use zeff_diagnostics::count;
 use zeff_dist::families;
 use zeff_kernels::Matrix;
@@ -25,6 +25,11 @@ pub struct Setting<'a> {
     pub n: usize,
     pub n_note: Option<String>,
     pub more_lines: Vec<String>,
+    /// The formula as a value, the category levels of the design and the rows of the frame,
+    /// kept in the fit for `predict`, `residuals` and `fitted`.
+    pub model: Formula,
+    pub levels: Vec<(String, Vec<String>)>,
+    pub frame_rows: usize,
 }
 
 /// The fit value of a linear model: the table of estimates under the variance `vcov`, the fit
@@ -148,6 +153,9 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         term_sd,
         outcome_sd,
         summary,
+        model: setting.model.clone(),
+        levels: setting.levels.clone(),
+        frame_rows: setting.frame_rows,
     }
 }
 

@@ -435,6 +435,9 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         n: n_obs,
         n_note: note,
         more_lines,
+        model: formula.clone(),
+        levels: design.category_levels(),
+        frame_rows: frame.table.rows(),
     };
     let mut fit = summary::linear_fit(&design, &fitted, &vcov, &setting);
     // The residuals and fitted values of the rows, unweighted.

@@ -459,10 +459,9 @@ fn zeff_help_prints_a_functions_page() {
     // 9.1), as sentences after the written text, grouped as the catalogue groups them.
     let reg = out(&zeff(dir.path(), &["help", "reg"]));
     assert!(
-        reg.contains("\nVALUE\n    A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors,"),
+        reg.contains("\nVALUE\n    A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci,\n    n_obs. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted.\n\nDETAILS\n"),
         "{reg}"
     );
-    assert!(reg.contains("n_obs.\n\nDETAILS\n"), "{reg}");
     insta::assert_snapshot!("help_reg", reg);
 }
 
@@ -478,10 +477,10 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&core)
     );
-    let later = zeff(dir.path(), &["help", "coef"]);
+    let later = zeff(dir.path(), &["help", "compare"]);
     assert_eq!(code(&later), 0);
     assert!(
-        out(&later).starts_with("`coef` arrives with release 0.4.0, in the `results` package: "),
+        out(&later).starts_with("`compare` arrives with release 0.4.0, in the `results` package: "),
         "{}",
         out(&later)
     );

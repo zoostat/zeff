@@ -1,7 +1,8 @@
 //! Package results (tier 1): the model matrix of section 7.2 of the Language Reference, the
 //! estimator trait and the variance layer (Engine and Project Specification, section 8.3, point
 //! 2), and the shared result value assembled with its printed summary (section 8.1, rule 5). It
-//! registers `export` on tables (step 13) and the result interface (step 15).
+//! registers `export` on tables (step 13), the result interface (step 15) and the first part of
+//! the estimator interface (step 16).
 
 pub mod design;
 pub mod estimator;
@@ -102,6 +103,65 @@ pub fn functions() -> Vec<Function> {
             vec![],
             include_str!("../help/n_obs.md"),
             interface::n_obs,
+        ),
+        result_method(
+            "coef",
+            vec![term()],
+            "ByTerm<Float, Mapping<Str, Float>>",
+            vec![unknown_term()],
+            include_str!("../help/coef.md"),
+            interface::coef,
+        ),
+        result_method(
+            "vcov",
+            vec![],
+            "Table",
+            vec![],
+            include_str!("../help/vcov.md"),
+            interface::vcov,
+        ),
+        result_method(
+            "fit_measures",
+            vec![],
+            "Record",
+            vec![],
+            include_str!("../help/fit_measures.md"),
+            interface::fit_measures,
+        ),
+        result_method(
+            "predict",
+            vec![ParamSpec::option("newdata", "Frame")],
+            "Column<Float>",
+            vec![
+                DiagnosticDecl::new(
+                    "W0207",
+                    "rows of `newdata` with a level the fit never saw, whose predictions are NA",
+                ),
+                DiagnosticDecl::new("Z0101", "a variable of the model that `newdata` lacks"),
+                DiagnosticDecl::new(
+                    "Z0401",
+                    "a variable of `newdata` of a type the model cannot take, or `newdata:` not a frame",
+                ),
+                DiagnosticDecl::new("Z0406", "`newdata:` not given"),
+            ],
+            include_str!("../help/predict.md"),
+            interface::predict,
+        ),
+        result_method(
+            "residuals",
+            vec![],
+            "Column<Float>",
+            vec![],
+            include_str!("../help/residuals.md"),
+            interface::residuals,
+        ),
+        result_method(
+            "fitted",
+            vec![],
+            "Column<Float>",
+            vec![],
+            include_str!("../help/fitted.md"),
+            interface::fitted,
         ),
         Function {
             spec: FunctionSpec {

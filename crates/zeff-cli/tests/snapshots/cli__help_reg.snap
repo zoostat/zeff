@@ -43,7 +43,7 @@ ARGUMENTS
 
 VALUE
     A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci,
-    n_obs.
+    n_obs. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted.
 
 DETAILS
     Each regressor is scaled to unit norm before a blocked Householder QR of the design and the outcome

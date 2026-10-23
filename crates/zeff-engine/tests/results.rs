@@ -252,6 +252,7 @@ fn result_methods_dispatch_and_terms_resolve_against_the_fit() {
          let educ = 5\nm.std_errors(educ)\nstd_errors(m, hours)\nm.r_squared()\n\
          let t = m.test(true)\nt\ntype_of(t)\nt.is(Result)\nt.is(TestResult)\nt.is(RegFit)\n\
          [m, t]\ntype_of([m, t])\nt.std_errors()\nt.p_values()\nt.n_obs()\nt.summary()\nt.estimates()\nt.ci()\n\
+         t.coef()\nt.vcov()\nt.fit_measures()\nt.residuals()\nt.fitted()\nt.predict(newdata: wages)\n\
          let c = m.compare(wages.reg(wage ~ hours))\nc\nc.summary()\nc.p_values()\ntype_of(c.p_values())\n\
          let twice = wages.add(h2 = hours * 2).reg(wage ~ hours + h2)\ntwice.std_errors(h2)\n"
     );

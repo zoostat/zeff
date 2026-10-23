@@ -94,6 +94,9 @@ pub struct Design {
     pub weight_kind: Option<WeightKind>,
     /// Rows left out for a zero weight (section 4.1, "Weights").
     pub zero_weights: usize,
+    /// When built on new data with a fit's levels (`predict`): by category variable, the rows
+    /// whose label the fit never saw, which count as `NA`.
+    pub unseen: Vec<(String, usize)>,
     columns: Vec<DesignColumn>,
     sources: Vec<Source>,
     outcome: Option<usize>,
@@ -117,6 +120,20 @@ impl Design {
         formula: &Formula,
         extra: &[&str],
     ) -> Result<Design, Fail> {
+        Design::build_with(ctx, frame, formula, extra, &[])
+    }
+
+    /// The design of `formula` on `frame` with the levels of `plan` for its category variables,
+    /// each in the plan's order: how `predict` rebuilds a fit's design on new data, so that the
+    /// columns are the fit's whatever the new data hold. A label outside the plan is `NA` and
+    /// counted in `unseen`; a text variable named in the plan is coded by its labels.
+    pub fn build_with(
+        ctx: &mut CallContext<'_>,
+        frame: &Frame,
+        formula: &Formula,
+        extra: &[&str],
+        plan: &[(String, Vec<String>)],
+    ) -> Result<Design, Fail> {
         let mut builder = Builder {
             ctx,
             frame: &frame.table,
@@ -125,6 +142,8 @@ impl Design {
             keys: Vec::new(),
             notes: Vec::new(),
             used: Vec::new(),
+            plan,
+            unseen: Vec::new(),
         };
         let outcome = match &formula.outcome {
             Some(term) => Some(builder.outcome(term)?),
@@ -157,6 +176,7 @@ impl Design {
             weights: None,
             weight_kind: None,
             zero_weights: 0,
+            unseen: builder.unseen,
             columns,
             sources: builder.sources,
             outcome,
@@ -292,6 +312,20 @@ impl Design {
         self.rows.len()
     }
 
+    /// The levels of each category variable of the design, in the order the columns use them,
+    /// by variable: what a fit keeps so that `predict` codes new data the same way.
+    pub fn category_levels(&self) -> Vec<(String, Vec<String>)> {
+        let mut out: Vec<(String, Vec<String>)> = Vec::new();
+        for source in &self.sources {
+            if let Source::Coded { levels, var, .. } = source
+                && !out.iter().any(|(v, _)| v == var)
+            {
+                out.push((var.clone(), levels.clone()));
+            }
+        }
+        out
+    }
+
     /// Whether the formula has an outcome.
     pub fn has_outcome(&self) -> bool {
         self.outcome.is_some()
@@ -391,10 +425,48 @@ struct Builder<'a, 'b> {
     notes: Vec<String>,
     /// The names of the variables used, in order, for the `NA` counts.
     used: Vec<String>,
+    /// The levels to code each category variable against, when predicting on new data.
+    plan: &'a [(String, Vec<String>)],
+    /// By variable, the rows whose label the plan does not hold.
+    unseen: Vec<(String, usize)>,
 }
 
 impl Builder<'_, '_> {
     // ----- sources -----
+
+    /// The planned levels of `var`, when predicting.
+    fn planned(&self, var: &str) -> Option<Vec<String>> {
+        self.plan
+            .iter()
+            .find(|(v, _)| v == var)
+            .map(|(_, levels)| levels.clone())
+    }
+
+    /// Labels coded against the planned levels: a label the plan does not hold is `NA`, counted
+    /// as unseen.
+    fn recode(
+        &mut self,
+        var: &str,
+        labels: impl Iterator<Item = Option<String>>,
+        planned: Vec<String>,
+    ) -> (Vec<Option<i32>>, Vec<String>) {
+        let mut unseen = 0usize;
+        let codes: Vec<Option<i32>> = labels
+            .map(|label| {
+                label.and_then(|l| match planned.iter().position(|p| *p == l) {
+                    Some(i) => Some(i as i32),
+                    None => {
+                        unseen += 1;
+                        None
+                    }
+                })
+            })
+            .collect();
+        if unseen > 0 {
+            self.unseen.push((var.to_string(), unseen));
+        }
+        (codes, planned)
+    }
 
     /// The source of a variable of the frame (Z0101 when there is none).
     fn variable(&mut self, name: &str) -> Result<usize, Fail> {
@@ -443,20 +515,54 @@ impl Builder<'_, '_> {
                     .collect();
                 numeric(values)
             }
-            ColumnType::Category => Source::Coded {
-                codes: column.as_codes().expect("a category").collect(),
-                levels: column
+            ColumnType::Category => {
+                let own: Vec<String> = column
                     .levels()
                     .expect("a category")
                     .iter()
                     .map(|l| (*l).to_string())
-                    .collect(),
-                contrast: column
+                    .collect();
+                let contrast = column
                     .category_info()
                     .map(|i| i.contrast)
-                    .unwrap_or_default(),
-                var: var.to_string(),
-            },
+                    .unwrap_or_default();
+                let codes: Vec<Option<i32>> = column.as_codes().expect("a category").collect();
+                match self.planned(var) {
+                    // Predicting: the fit's levels in the fit's order, whatever the new column's.
+                    Some(planned) => {
+                        let labels = codes.iter().map(|c| c.map(|c| own[c as usize].clone()));
+                        let (codes, levels) = self.recode(var, labels, planned);
+                        Source::Coded {
+                            codes,
+                            levels,
+                            contrast,
+                            var: var.to_string(),
+                        }
+                    }
+                    None => Source::Coded {
+                        codes,
+                        levels: own,
+                        contrast,
+                        var: var.to_string(),
+                    },
+                }
+            }
+            // Predicting: text coded by the fit's labels, as the fit's category.
+            ColumnType::Str if self.planned(var).is_some() => {
+                let planned = self.planned(var).expect("planned");
+                let labels: Vec<Option<String>> = column
+                    .as_strs()
+                    .expect("text")
+                    .map(|s| s.map(|s| s.to_string()))
+                    .collect();
+                let (codes, levels) = self.recode(var, labels.into_iter(), planned);
+                Source::Coded {
+                    codes,
+                    levels,
+                    contrast: Contrast::default(),
+                    var: var.to_string(),
+                }
+            }
             ColumnType::Str => {
                 return Err(fail(
                     Diagnostic::error(

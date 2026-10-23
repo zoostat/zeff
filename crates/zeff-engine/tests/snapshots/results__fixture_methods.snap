@@ -29,6 +29,12 @@ frame · 1 row × 7 variables
       term   estimate   std_error   statistic   p_value   ci_lower   ci_upper
   1   F            NA          NA       4.213    0.0402         NA         NA
 NA
+NA
+NA
+NA
+NA
+NA
+NA
 compare · m against m
 
   model    N     RSS      R²
@@ -49,4 +55,4 @@ NA
 --- messages ---
 warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
   = help: check the row's values; `influence()` lists leverage and Cook's distance by row (step 17)
-note: `h2` is collinear with the columns before it and was dropped (line 29)
+note: `h2` is collinear with the columns before it and was dropped (line 35)

@@ -222,6 +222,12 @@ pub struct Fit {
     /// The printed summary (section 10.2): the title, the lines before the grid, the table and
     /// the lines after it.
     pub summary: Table,
+    /// The formula as a value, the levels of each category variable in the fit's order, and
+    /// the rows of the fitted frame: what `predict` rebuilds the design from on new data, and
+    /// what `residuals` and `fitted` fill out to.
+    pub model: Formula,
+    pub levels: Vec<(String, Vec<String>)>,
+    pub frame_rows: usize,
 }
 
 /// A test statistic with its degrees of freedom: `F(1, 18179)`, `t(23.4)`, `z`.
