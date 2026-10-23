@@ -439,6 +439,16 @@ pub fn distribution_text(d: &Distribution) -> String {
     }
 }
 
+/// Up to twelve levels in quotes, then the count of the rest, for a message.
+pub fn list_levels(levels: &[String]) -> String {
+    let shown: Vec<String> = levels.iter().take(12).map(|l| format!("\"{l}\"")).collect();
+    if levels.len() > 12 {
+        format!("{} … and {} more", shown.join(", "), levels.len() - 12)
+    } else {
+        shown.join(", ")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

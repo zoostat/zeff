@@ -1,0 +1,14 @@
+---
+source: packages/tier2/regress/tests/interact.rs
+expression: "format!(\"{}--- messages ---\\n{}[exit {}]\\n\", outcome.output.stdout,\noutcome.output.stderr, outcome.exit_code)"
+---
+y ~ interact([a, b, c], order: 2) + d
+--- messages ---
+error[Z0401]: `interact` is a term of a formula and has no value outside one
+ --> scripts/main.zeff:5:1
+  |
+5 | interact([a, b], order: 2)
+  | ^^^^^^^^ called outside a formula
+  |
+  = help: write it on the right of `~`: `y ~ interact([a, b, c], order: 2)`
+[exit 1]

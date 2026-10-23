@@ -1475,6 +1475,8 @@ dependencies = [
  "zeff-ir",
  "zeff-numeric",
  "zeff-registry",
+ "zeff-regress",
+ "zeff-results",
  "zeff-stats",
  "zeff-syntax",
 ]
@@ -1526,6 +1528,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeff-regress"
+version = "0.4.0-dev"
+dependencies = [
+ "insta",
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-registry",
+ "zeff-results",
+ "zeff-testkit",
+]
+
+[[package]]
+name = "zeff-results"
+version = "0.4.0-dev"
+dependencies = [
+ "insta",
+ "proptest",
+ "serde_json",
+ "zeff-columns",
+ "zeff-core",
+ "zeff-data",
+ "zeff-datasets",
+ "zeff-diagnostics",
+ "zeff-kernels",
+ "zeff-registry",
+ "zeff-testkit",
+]
+
+[[package]]
 name = "zeff-stats"
 version = "0.4.0-dev"
 dependencies = [
@@ -1556,6 +1587,7 @@ dependencies = [
  "serde_json",
  "zeff-core",
  "zeff-engine",
+ "zeff-ir",
 ]
 
 [[package]]

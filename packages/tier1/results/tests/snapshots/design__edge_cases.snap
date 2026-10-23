@@ -1,0 +1,49 @@
+---
+source: packages/tier1/results/tests/design.rs
+expression: out
+---
+> one level: y ~ g
+columns: (intercept)
+rows used: 3; dropped: 0
+note: `g` has one level, "only", and adds no column
+  1
+  1
+  1
+
+> one level, no intercept: y ~ g - 1
+columns: 
+rows used: 3; dropped: 0
+note: `g` has one level, "only", and adds no column
+  
+  
+  
+
+> a level with no rows: y ~ g
+columns: (intercept) | g=b | g=c
+rows used: 3; dropped: 0
+  1  0  0
+  1  0  1
+  1  0  0
+
+> a level with no rows, sum: y ~ category(g, contrast: sum)
+columns: (intercept) | g=b | g=c
+rows used: 3; dropped: 0
+  1  -1  -1
+  1  0  1
+  1  -1  -1
+
+> every row NA: y ~ x
+columns: (intercept) | x
+rows used: 0; dropped: 2 (y 2)
+
+> no rows: y ~ x
+columns: (intercept) | x
+rows used: 0; dropped: 0
+
+> level symbols: y ~ category(grp) + n
+columns: (intercept) | grp="c:d" | grp="e+f" | grp=q "x" | n
+rows used: 5; dropped: 0
+
+> awkward names
+columns: (intercept) | x y | 日本語 | 1st
+rows used: 3; dropped: 0

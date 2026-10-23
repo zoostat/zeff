@@ -138,6 +138,11 @@ pub enum ColumnExpr {
         name: String,
         args: Vec<Option<ColumnExpr>>,
         rest: Vec<ColumnExpr>,
+        /// A scalar function of `core` given a column: it applies row by row (section 3.7).
+        lifted: bool,
+        /// The declared return type of one row's call, which types the column when no row gives a
+        /// value.
+        returns: String,
     },
 }
 

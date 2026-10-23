@@ -227,3 +227,25 @@ pub fn assert_prints(what: &str, printed: &str, expected: &Expected, _class: Acc
         "{what}: printed `{printed}`, the reference gives `{wanted}` ({expected:?})"
     );
 }
+
+/// A formula value from its text, `lwage ~ educ + exper^2`, as the checker lowers it against
+/// this engine's registry and the engine evaluates it; a text that does not check is a panic
+/// naming the codes.
+pub fn formula(text: &str) -> zeff_core::value::Formula {
+    let registry = zeff_engine::registry::registry().expect("the registry builds");
+    let script = format!("let f = {text}\n");
+    let checked = zeff_ir::check_source("formula.zeff", &script, registry);
+    let codes: Vec<String> = checked
+        .diagnostics
+        .iter()
+        .map(|d| format!("{}: {}", d.code, d.message))
+        .collect();
+    assert!(codes.is_empty(), "`{text}` does not check: {codes:?}");
+    let zeff_ir::Statement::Let { value, .. } = &checked.program.statements[0] else {
+        panic!("not a let");
+    };
+    let zeff_ir::ExprKind::Formula(formula) = &value.kind else {
+        panic!("`{text}` is not a formula literal");
+    };
+    zeff_engine::formulas::formula_value(formula).unwrap_or_else(|what| panic!("{what}"))
+}

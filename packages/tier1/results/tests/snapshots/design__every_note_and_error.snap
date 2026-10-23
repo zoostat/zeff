@@ -1,0 +1,138 @@
+---
+source: packages/tier1/results/tests/design.rs
+expression: out
+---
+> Inf rows: finite ~ plus
+error[Z0223]: `plus` holds an infinite value in row 2
+ --> t.zeff:1:9
+  |
+1 | let d = finite ~ plus
+  |         ^^^^^^^^^^^^^ a model variable with Inf
+  |
+  = help: a model cannot use an infinite value; `where(plus != Inf && plus != -Inf)` drops the rows, or recode them
+
+> Inf in both: finite ~ both + minus
+error[Z0223]: `both` holds an infinite value in rows 2, 3
+ --> t.zeff:1:9
+  |
+1 | let d = finite ~ both + minus
+  |         ^^^^^^^^^^^^^^^^^^^^^ a model variable with Inf
+  |
+  = help: a model cannot use an infinite value; `where(both != Inf && both != -Inf)` drops the rows, or recode them
+
+> a text variable: wage ~ region
+error[Z0401]: `region` is text, and a model needs numbers or a category
+ --> t.zeff:1:9
+  |
+1 | let d = wage ~ region
+  |         ^^^^^^^^^^^^^ a text variable in the model
+  |
+  = help: `category(region)` makes it a category, in the formula or with `add`
+
+> a text outcome: region ~ wage
+error[Z0401]: `region` is text, and a model needs numbers or a category
+ --> t.zeff:1:9
+  |
+1 | let d = region ~ wage
+  |         ^^^^^^^^^^^^^ a text variable in the model
+  |
+  = help: `category(region)` makes it a category, in the formula or with `add`
+
+> a category outcome: industry ~ educ
+error[Z0401]: the outcome `industry` is a category, and this model needs a number
+ --> t.zeff:1:9
+  |
+1 | let d = industry ~ educ
+  |         ^^^^^^^^^^^^^^^ a category on the left of `~`
+  |
+  = help: `to(y, Int)` gives a category's codes; a model for a categorical outcome arrives with `logistic` (release 0.5.0)
+
+> a date: n ~ day
+error[Z0304]: `day` is a Date variable, which models take from release 0.6.0
+ --> t.zeff:1:9
+  |
+1 | let d = n ~ day
+  |         ^^^^^^^ a date or time in the model
+  |
+  = help: the `time` package of 0.6.0 brings dates and times to models
+
+> a missing variable: wage ~ eduction
+error[Z0101]: no variable `eduction` in `the frame`
+ --> t.zeff:1:9
+  |
+1 | let d = wage ~ eduction
+  |         ^^^^^^^^^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+
+> a missing extra variable: wage ~ educ
+error[Z0101]: no variable `weight` in `the frame`
+ --> t.zeff:1:9
+  |
+1 | let d = wage ~ educ
+  |         ^^^^^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+
+> a duplicate term: wage ~ educ + exper + educ
+columns: (intercept) | educ | exper
+rows used: 18179; dropped: 233 (wage 211, exper 22)
+note: `educ` is written twice and is kept once
+
+> a duplicate interaction: wage ~ educ:exper + exper:educ
+columns: (intercept) | educ:exper
+rows used: 18179; dropped: 233 (wage 211, exper 22)
+note: `educ:exper` is written twice, once as `exper:educ`, and is kept once
+
+> a range backwards: wage ~ educ..id
+error[Z0401]: the range `educ..id` runs backwards: `id` comes before `educ` in the frame
+ --> t.zeff:1:9
+  |
+1 | let d = wage ~ educ..id
+  |         ^^^^^^^^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables, in order: id, wage, hours, female, region, educ
+
+> interact of one: wage ~ interact([educ], order: 2)
+error[Z0401]: `interact` takes two or more variables and an order from 2 to their number; this has 1 and order 2
+ --> t.zeff:1:9
+  |
+1 | let d = wage ~ interact([educ], order: 2)
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the variables and the order
+  |
+  = help: `interact([a, b, c], order: 2)` is `a + b + c + a:b + a:c + b:c`
+
+> interact beyond its variables: wage ~ interact([educ, hours], order: 3)
+error[Z0401]: `interact` takes two or more variables and an order from 2 to their number; this has 2 and order 3
+ --> t.zeff:1:9
+  |
+1 | let d = wage ~ interact([educ, hours], order: 3)
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the variables and the order
+  |
+  = help: `interact([a, b, c], order: 2)` is `a + b + c + a:b + a:c + b:c`
+
+> division by zero in a term: wage ~ educ / (exper - 9)
+error[Z0223]: `educ / (exper - 9)` holds an infinite value in rows 1, 52, 76, 86, 92, 141, 163, 212, 228, 233 and 739 more
+ --> t.zeff:1:9
+  |
+1 | let d = wage ~ educ / (exper - 9)
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^ a model variable with Inf
+  |
+  = help: a model cannot use an infinite value; `where(educ / (exper - 9) != Inf && educ / (exper - 9) != -Inf)` drops the rows, or recode them
+
+> log of a negative: wage ~ log(educ - 12)
+error[Z0223]: `log(educ - 12)` holds an infinite value in rows 12, 13, 84, 85, 119, 120, 132, 133, 152, 153 and 2,545 more
+ --> t.zeff:1:9
+  |
+1 | let d = wage ~ log(educ - 12)
+  |         ^^^^^^^^^^^^^^^^^^^^^ a model variable with Inf
+  |
+  = help: a model cannot use an infinite value; `where(log(educ - 12) != Inf && log(educ - 12) != -Inf)` drops the rows, or recode them
+
+> NA rows counted by variable: wage ~ hours + educ
+columns: (intercept) | hours | educ
+rows used: 1139; dropped: 61 (hours 61)
+
+> a one-sided range of one: wage ~ hours..hours
+columns: (intercept) | hours
+rows used: 1139; dropped: 61 (hours 61)

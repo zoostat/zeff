@@ -4,6 +4,7 @@
 //! W0202 for a number with a fraction given to Int); `is` tests a value's type; `type_of` names
 //! it as section 4 writes it.
 
+use crate::display::list_levels;
 use crate::runtime::{Args, CallContext, Fail, Function, fail};
 use crate::value::{TypeValue, Value};
 use std::collections::HashMap;
@@ -535,16 +536,6 @@ pub fn type_name(value: &Value) -> String {
         Value::Type(_) => "Type".to_string(),
         Value::Distribution(_) => "Distribution".to_string(),
         Value::Formula(_) => "Formula".to_string(),
-    }
-}
-
-/// Up to twelve levels in quotes, then the count of the rest, for a message.
-fn list_levels(levels: &[String]) -> String {
-    let shown: Vec<String> = levels.iter().take(12).map(|l| format!("\"{l}\"")).collect();
-    if levels.len() > 12 {
-        format!("{} … and {} more", shown.join(", "), levels.len() - 12)
-    } else {
-        shown.join(", ")
     }
 }
 

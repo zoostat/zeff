@@ -13,9 +13,14 @@ values (W0203). `ordered: true` gives the levels an order, so that `<` compares 
 variable's `measure` is `ordinal`; `contrast:` sets how a model codes the indicators (section 4.2
 of the Language Reference): `treatment` against the first level, `sum` as deviations from the
 mean, `helmert` as each level against the mean of those before it, `poly` as polynomial trends over
-ordered levels. A category of more than 10,000 levels is warned about (W0602), since an identifier
-was probably categorised. R's `factor` sorts levels by the locale's collation; Zeff by code point,
-the same on every machine. Stata's `encode` orders labels alphabetically as well.
+ordered levels. In a model the indicator columns are named by the variable and the level each
+codes, `industry=Retail`: under `treatment` and `sum` every level but the base (R names them
+`industryRetail` and `industry1`), under `helmert` the level compared with the mean of those before
+it (R: `industry1`), and under `poly` the trend, `industry=linear`, `industry=quadratic`,
+`industry=cubic`, `industry=degree4` and on (R: `.L`, `.Q`, `.C`, `^4`). A category of more than
+10,000 levels is warned about (W0602), since an identifier was probably categorised. R's `factor`
+sorts levels by the locale's collation; Zeff by code point, the same on every machine. Stata's
+`encode` orders labels alphabetically as well.
 
 ## Arguments
 - var: A text, Int, Float or category column; inside `add`, the variable's name.

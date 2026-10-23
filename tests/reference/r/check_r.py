@@ -13,7 +13,7 @@ relative 1e-12, the class tolerance of the distribution functions, since R's `pg
 carry errors of that order in their far tails on some platforms. `frames.json` holds only row
 numbers and is compared byte for byte by the workflow itself.
 
-Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types <committed.json> <regenerated.json>
+Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design <committed.json> <regenerated.json>
 """
 
 import json
@@ -182,13 +182,36 @@ def check_kernels(committed, regenerated, problems):
     check_special(rest_committed, rest_regenerated, problems, "kernels")
 
 
+def check_design(committed, regenerated, problems):
+    """design.json: every column of every case, its first rows, sum and sum of squares, within
+    the tolerance (the polynomial contrasts come from R's QR, which differs between platforms in
+    its last bits)."""
+    tolerance = TOLERANCE["design"]
+    for name, case in committed["cases"].items():
+        other = regenerated["cases"].get(name)
+        if other is None:
+            problems.append(f"cases.{name}: missing")
+            continue
+        if case["rows_used"] != other["rows_used"] or sorted(case["columns"]) != sorted(other["columns"]):
+            problems.append(f"cases.{name}: the rows or the columns differ")
+            continue
+        for column, values in case["columns"].items():
+            theirs = other["columns"][column]
+            for i, (a, b) in enumerate(zip(values["first_20"], theirs["first_20"])):
+                if not close(a, b, tolerance, tolerance):
+                    problems.append(f"cases.{name}.{column}[{i}]: committed {a}, regenerated {b}")
+            for key in ("sum", "sum_squares"):
+                if not close(values[key], theirs[key], tolerance, tolerance):
+                    problems.append(f"cases.{name}.{column}.{key}: committed {values[key]}, regenerated {theirs[key]}")
+
+
 def main(which, committed_path, regenerated_path):
     with open(committed_path, encoding="utf-8") as f:
         committed = json.load(f)
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels}
+    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design}
     if which in checks:
         checks[which](committed, regenerated, problems)
     else:

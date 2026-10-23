@@ -5,15 +5,12 @@
 
 use crate::registry::Bodies;
 use std::collections::HashMap;
-use zeff_core::display::{PAGE_WIDTH, format_float, show, show_width};
-use zeff_core::operators::{self, ColumnTrouble, Note, Notes, Op, Operand, Trouble};
+use zeff_core::display::{PAGE_WIDTH, show, show_width};
+use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
-use zeff_core::value::{
-    ColumnExpr, Formula as FormulaValue, Frame, Term as TermValue, TermKind as TermKindValue,
-    TypeValue, Value,
-};
+use zeff_core::value::{Formula as FormulaValue, Frame, Term as TermValue, TypeValue, Value};
 use zeff_diagnostics::{Diagnostic, Source, Span};
-use zeff_ir::ir::{BinaryOp, Term, TermKind, TermStep, UnaryOp};
+use zeff_ir::ir::{BinaryOp, Term, TermStep, UnaryOp};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
 
 /// What one statement wrote.
@@ -294,13 +291,13 @@ impl<'a> Interpreter<'a> {
                     let (result, notes) =
                         operators::column_binary(op, operand(&left), operand(&right))
                             .map_err(|trouble| self.column_trouble(trouble, expr))?;
-                    warnings_of(notes, messages);
+                    operators::warnings_of(notes, messages);
                     return Ok(Value::Column(result));
                 }
                 let (value, note) = operators::binary(op, &left, &right)
                     .map_err(|trouble| self.trouble(trouble, expr))?;
                 if let Some(note) = note {
-                    messages.push(warning_of(note, &value));
+                    messages.push(operators::warning_of(note, &value));
                 }
                 value
             }
@@ -777,7 +774,45 @@ impl<'a> Interpreter<'a> {
         body(&mut ctx, args)
     }
 
-    /// Z0211: an Int result that does not fit.
+    /// Z0207: an index outside the list, or NA.
+    fn outside(&self, index: &Value, len: usize, span: zeff_diagnostics::Span) -> Fail {
+        let message = match index {
+            Value::Na => "the index is NA".to_string(),
+            other => format!("index {} is outside 1..{}", shown(other), len),
+        };
+        fail(
+            Diagnostic::error("Z0207", message)
+                .in_file(self.script)
+                .primary(
+                    span,
+                    format!(
+                        "the list has {} {}",
+                        len,
+                        if len == 1 { "item" } else { "items" }
+                    ),
+                )
+                .help("positions count from 1 to the list's length"),
+        )
+    }
+
+    /// The error of an operator on two values (section 4.1), at the expression.
+    fn trouble(&self, trouble: Trouble, expr: &Expr) -> Fail {
+        fail(operators::trouble_diagnostic(
+            trouble,
+            self.script,
+            expr.span,
+        ))
+    }
+
+    /// The error of an operator applied row by row, at the expression.
+    fn column_trouble(&self, trouble: ColumnTrouble, expr: &Expr) -> Fail {
+        fail(operators::column_trouble_diagnostic(
+            trouble,
+            self.script,
+            expr.span,
+        ))
+    }
+
     /// The steps of a formula's right side applied to a formula value: a term added, a term
     /// removed (by its written form; nothing removed is a note), the intercept switched.
     fn apply_steps(
@@ -808,208 +843,7 @@ impl<'a> Interpreter<'a> {
 
     /// A lowered term as the formula value keeps it.
     fn term_value(&self, term: &Term, at: &Expr) -> Result<TermValue, Fail> {
-        let parts = |parts: &[Term]| -> Result<Vec<TermValue>, Fail> {
-            parts.iter().map(|p| self.term_value(p, at)).collect()
-        };
-        let kind = match &term.kind {
-            TermKind::Var(name) => TermKindValue::Var(name.clone()),
-            TermKind::Range(first, last) => TermKindValue::Range(first.clone(), last.clone()),
-            TermKind::Interaction(inner) => TermKindValue::Interaction(parts(inner)?),
-            TermKind::Product(inner) => TermKindValue::Product(parts(inner)?),
-            TermKind::Expr(expr) => TermKindValue::Expr(self.column_expr(expr, at)?),
-        };
-        Ok(TermValue {
-            text: term.text.clone(),
-            kind,
-        })
-    }
-
-    /// An expression over variables as the formula value keeps it, for the model matrix to
-    /// compute: the checker admits nothing but these shapes inside a term.
-    fn column_expr(&self, expr: &Expr, at: &Expr) -> Result<ColumnExpr, Fail> {
-        Ok(match &expr.kind {
-            ExprKind::Int(i) => ColumnExpr::Int(*i),
-            ExprKind::Float(x) => ColumnExpr::Float(*x),
-            ExprKind::Str(s) => ColumnExpr::Str(s.clone()),
-            ExprKind::Bool(b) => ColumnExpr::Bool(*b),
-            ExprKind::Na => ColumnExpr::Na,
-            ExprKind::Word(word) => ColumnExpr::Word(word.clone()),
-            ExprKind::TypeName { name, .. } => ColumnExpr::Type(name.clone()),
-            ExprKind::Var(name) | ExprKind::FrameName { name, .. } => ColumnExpr::Var(name.clone()),
-            ExprKind::List(items) => ColumnExpr::List(
-                items
-                    .iter()
-                    .map(|item| self.column_expr(item, at))
-                    .collect::<Result<_, _>>()?,
-            ),
-            ExprKind::Unary { op, operand } => ColumnExpr::Unary {
-                negate: *op == UnaryOp::Neg,
-                operand: Box::new(self.column_expr(operand, at)?),
-            },
-            ExprKind::Binary { op, lhs, rhs } => {
-                if matches!(op, BinaryOp::Range | BinaryOp::Interact) {
-                    return Err(
-                        self.internal(at, "a range or an interaction inside a term's arithmetic")
-                    );
-                }
-                ColumnExpr::Binary {
-                    op: operator(*op),
-                    lhs: Box::new(self.column_expr(lhs, at)?),
-                    rhs: Box::new(self.column_expr(rhs, at)?),
-                }
-            }
-            ExprKind::Call(call) => ColumnExpr::Call {
-                package: call.package.clone(),
-                name: call.name.clone(),
-                args: call
-                    .args
-                    .iter()
-                    .map(|arg| arg.as_ref().map(|a| self.column_expr(a, at)).transpose())
-                    .collect::<Result<_, _>>()?,
-                rest: call
-                    .rest
-                    .iter()
-                    .map(|a| self.column_expr(a, at))
-                    .collect::<Result<_, _>>()?,
-            },
-            _ => return Err(self.internal(at, "a term the checker does not admit")),
-        })
-    }
-
-    fn trouble(&self, trouble: Trouble, expr: &Expr) -> Fail {
-        match trouble {
-            Trouble::Types {
-                code,
-                message,
-                help,
-            } => fail(
-                Diagnostic::error(code, message)
-                    .in_file(self.script)
-                    .primary(expr.span, "the operation")
-                    .help(help),
-            ),
-            Trouble::Overflow(operation) => fail(
-                Diagnostic::error(
-                    "Z0211",
-                    format!("Int overflow: {operation} does not fit in 64 bits"),
-                )
-                .in_file(self.script)
-                .primary(expr.span, "the operation")
-                .help("Ints are 64-bit; a Float (`1.0 * x`) holds larger magnitudes with 53 bits of precision"),
-            ),
-        }
-    }
-
-    /// The errors of a row-wise operation: Z0217 for lengths, Z0211 with the row, Z0304 for a
-    /// column type no operator computes on yet.
-    fn column_trouble(&self, trouble: ColumnTrouble, expr: &Expr) -> Fail {
-        match trouble {
-            ColumnTrouble::Lengths(a, b) => fail(
-                Diagnostic::error(
-                    "Z0217",
-                    format!("columns of {a} and {b} rows cannot be combined"),
-                )
-                .in_file(self.script)
-                .primary(expr.span, "two lengths")
-                .help("combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)"),
-            ),
-            ColumnTrouble::Overflow { row, operation } => fail(
-                Diagnostic::error(
-                    "Z0211",
-                    format!("Int overflow in row {}: {operation} does not fit in 64 bits", zeff_diagnostics::count(row as u64)),
-                )
-                .in_file(self.script)
-                .primary(expr.span, "the operation")
-                .help("Ints are 64-bit; a Float column (`1.0 * x`) holds larger magnitudes with 53 bits of precision"),
-            ),
-            ColumnTrouble::Types {
-                code,
-                message,
-                help,
-            } => fail(
-                Diagnostic::error(code, message)
-                    .in_file(self.script)
-                    .primary(expr.span, "the operation, row by row")
-                    .help(help),
-            ),
-            ColumnTrouble::Unsupported(ty) => fail(
-                Diagnostic::error(
-                    "Z0304",
-                    format!("operators on a {} column are not available in this release", ty.name()),
-                )
-                .in_file(self.script)
-                .primary(expr.span, "arrives with the package that computes on it")
-                .help("dates and times gain their operators with the `time` package (release 0.6.0)"),
-            ),
-            ColumnTrouble::NotALevel { text, levels, row } => {
-                let listed = list_levels(&levels);
-                match row {
-                    None => fail(
-                        Diagnostic::error("Z0216", format!("\"{text}\" is not a level of the category"))
-                            .in_file(self.script)
-                            .primary(expr.span, format!("the levels are {listed}"))
-                            .help("write one of the levels, in quotes; a category compares with text by its levels"),
-                    ),
-                    Some(row) => fail(
-                        Diagnostic::error(
-                            "Z0216",
-                            format!("row {} holds \"{text}\", which is not a level of the category", zeff_diagnostics::count(row as u64)),
-                        )
-                        .in_file(self.script)
-                        .primary(expr.span, "compared by order, so every value must be a level")
-                        .help(format!("the levels are {listed}")),
-                    ),
-                }
-            }
-            ColumnTrouble::LabelledInt { symbol, text, code, labels } => {
-                let help = match code {
-                    Some(code) => format!("write `{symbol} {code}`: {code} is the code labelled \"{text}\""),
-                    None => format!(
-                        "the labels are {}; compare with a code",
-                        labels.iter().map(|(code, label)| format!("{code} {label}")).collect::<Vec<_>>().join(", ")
-                    ),
-                };
-                fail(
-                    Diagnostic::error("Z0216", format!("\"{text}\" is a value label, and the variable compares as a number"))
-                        .in_file(self.script)
-                        .primary(expr.span, "an Int variable with value labels")
-                        .help(help),
-                )
-            }
-            ColumnTrouble::Unordered { symbol } => fail(
-                Diagnostic::error("Z0221", format!("`{symbol}` needs an ordered category, and this one has no order"))
-                    .in_file(self.script)
-                    .primary(expr.span, "a category without an order")
-                    .help("`==` and `!=` work on any category; `category(x, levels: [...], ordered: true)` gives it an order"),
-            ),
-            ColumnTrouble::DifferentLevels { symbol } => fail(
-                Diagnostic::error("Z0221", format!("`{symbol}` compares two categories with different levels"))
-                    .in_file(self.script)
-                    .primary(expr.span, "the levels differ")
-                    .help("two categories compare by order only with the same levels in the same order; `levels(x)` shows them"),
-            ),
-        }
-    }
-
-    /// Z0207: an index outside the list, or NA.
-    fn outside(&self, index: &Value, len: usize, span: zeff_diagnostics::Span) -> Fail {
-        let message = match index {
-            Value::Na => "the index is NA".to_string(),
-            other => format!("index {} is outside 1..{}", shown(other), len),
-        };
-        fail(
-            Diagnostic::error("Z0207", message)
-                .in_file(self.script)
-                .primary(
-                    span,
-                    format!(
-                        "the list has {} {}",
-                        len,
-                        if len == 1 { "item" } else { "items" }
-                    ),
-                )
-                .help("positions count from 1 to the list's length"),
-        )
+        crate::formulas::term_value(term).map_err(|what| self.internal(at, &what))
     }
 
     fn internal(&self, expr: &Expr, what: &str) -> Fail {
@@ -1025,7 +859,8 @@ impl<'a> Interpreter<'a> {
 }
 
 /// The IR's operator as the value rules know it.
-fn operator(op: BinaryOp) -> Op {
+/// The operator of `core` for a syntax operator; `..` and `:` never reach the interpreter.
+pub(crate) fn operator(op: BinaryOp) -> Op {
     match op {
         BinaryOp::Pow => Op::Pow,
         BinaryOp::Mul => Op::Mul,
@@ -1045,58 +880,11 @@ fn operator(op: BinaryOp) -> Op {
     }
 }
 
-/// The warning of section 4.1 for a note on a single value.
-fn warning_of(note: Note, value: &Value) -> Diagnostic {
-    match note {
-        Note::DivisionByZero => Diagnostic::warning(
-            "W0204",
-            format!(
-                "division by zero gave {}",
-                match value {
-                    Value::Float(x) => format_float(*x),
-                    _ => "Inf".to_string(),
-                }
-            ),
-        )
-        .help("test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`"),
-        Note::Invalid(cause) => Diagnostic::warning("W0205", format!("{cause} gave NA")),
-    }
-}
-
 /// A value as one side of a row-wise operation.
 fn operand(value: &Value) -> Operand<'_> {
     match value {
         Value::Column(c) => Operand::Column(c),
         other => Operand::Scalar(other),
-    }
-}
-
-/// The warnings of section 4.1 for a column, with their row counts.
-fn warnings_of(notes: Notes, messages: &mut Vec<Diagnostic>) {
-    let rows = |n: usize| {
-        format!(
-            "{} {}",
-            zeff_diagnostics::count(n as u64),
-            if n == 1 { "row" } else { "rows" }
-        )
-    };
-    if notes.division_by_zero > 0 {
-        messages.push(
-            Diagnostic::warning(
-                "W0204",
-                format!(
-                    "division by zero gave Inf or -Inf in {}",
-                    rows(notes.division_by_zero)
-                ),
-            )
-            .help("`where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise"),
-        );
-    }
-    for (cause, n) in notes.invalid {
-        messages.push(Diagnostic::warning(
-            "W0205",
-            format!("{cause} gave NA in {}", rows(n)),
-        ));
     }
 }
 
@@ -1142,14 +930,4 @@ fn plural_rows(n: usize) -> String {
 
 fn shown(value: &Value) -> String {
     show(value).trim_end().to_string()
-}
-
-/// Up to twelve levels in quotes, then the count of the rest.
-fn list_levels(levels: &[String]) -> String {
-    let shown: Vec<String> = levels.iter().take(12).map(|l| format!("\"{l}\"")).collect();
-    if levels.len() > 12 {
-        format!("{} … and {} more", shown.join(", "), levels.len() - 12)
-    } else {
-        shown.join(", ")
-    }
 }

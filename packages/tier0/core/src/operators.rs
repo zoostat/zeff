@@ -7,8 +7,10 @@
 //! (W0204), or an invalid operation gave `NA` (W0205). Int overflow is an error (Z0211). The
 //! caller words the message, since a column names its rows and a value names its operation.
 
+use crate::display::{format_float, list_levels};
 use crate::value::Value;
 use zeff_columns::{Column, ColumnType, Value as Cell};
+use zeff_diagnostics::{Diagnostic, Span, count};
 use zeff_numeric::pow;
 
 /// A binary operator on values; the formula operators and `..` are not operations on values.
@@ -881,6 +883,172 @@ fn shown(v: &Value) -> String {
 
 fn float_text(x: f64) -> String {
     crate::display::format_float(x)
+}
+
+// ----- the messages of a trouble, shared by the interpreter and the model matrix -----
+
+/// The error of an operator on two single values (section 4.1), at `span`.
+pub fn trouble_diagnostic(trouble: Trouble, script: &str, span: Span) -> Diagnostic {
+    match trouble {
+        Trouble::Types {
+            code,
+            message,
+            help,
+        } =>
+            Diagnostic::error(code, message)
+                .in_file(script)
+                .primary(span, "the operation")
+                .help(help)
+        ,
+        Trouble::Overflow(operation) =>
+            Diagnostic::error(
+                "Z0211",
+                format!("Int overflow: {operation} does not fit in 64 bits")
+            )
+            .in_file(script)
+            .primary(span, "the operation")
+            .help("Ints are 64-bit; a Float (`1.0 * x`) holds larger magnitudes with 53 bits of precision")
+        ,
+    }
+}
+
+/// The error of an operator applied row by row, at `span`.
+/// The errors of a row-wise operation: Z0217 for lengths, Z0211 with the row, Z0304 for a
+/// column type no operator computes on yet.
+pub fn column_trouble_diagnostic(trouble: ColumnTrouble, script: &str, span: Span) -> Diagnostic {
+    match trouble {
+        ColumnTrouble::Lengths(a, b) =>
+            Diagnostic::error(
+                "Z0217",
+                format!("columns of {a} and {b} rows cannot be combined")
+            )
+            .in_file(script)
+            .primary(span, "two lengths")
+            .help("combine columns of one frame, or of frames with the same rows; `merge` joins frames (release 0.6.0)")
+        ,
+        ColumnTrouble::Overflow { row, operation } =>
+            Diagnostic::error(
+                "Z0211",
+                format!("Int overflow in row {}: {operation} does not fit in 64 bits", count(row as u64))
+            )
+            .in_file(script)
+            .primary(span, "the operation")
+            .help("Ints are 64-bit; a Float column (`1.0 * x`) holds larger magnitudes with 53 bits of precision")
+        ,
+        ColumnTrouble::Types {
+            code,
+            message,
+            help,
+        } =>
+            Diagnostic::error(code, message)
+                .in_file(script)
+                .primary(span, "the operation, row by row")
+                .help(help)
+        ,
+        ColumnTrouble::Unsupported(ty) =>
+            Diagnostic::error(
+                "Z0304",
+                format!("operators on a {} column are not available in this release", ty.name())
+            )
+            .in_file(script)
+            .primary(span, "arrives with the package that computes on it")
+            .help("dates and times gain their operators with the `time` package (release 0.6.0)")
+        ,
+        ColumnTrouble::NotALevel { text, levels, row } => {
+            let listed = list_levels(&levels);
+            match row {
+                None =>
+                    Diagnostic::error("Z0216", format!("\"{text}\" is not a level of the category"))
+                        .in_file(script)
+                        .primary(span, format!("the levels are {listed}"))
+                        .help("write one of the levels, in quotes; a category compares with text by its levels")
+                ,
+                Some(row) =>
+                    Diagnostic::error(
+                        "Z0216",
+                        format!("row {} holds \"{text}\", which is not a level of the category", count(row as u64))
+                    )
+                    .in_file(script)
+                    .primary(span, "compared by order, so every value must be a level")
+                    .help(format!("the levels are {listed}"))
+                ,
+            }
+        }
+        ColumnTrouble::LabelledInt { symbol, text, code, labels } => {
+            let help = match code {
+                Some(code) => format!("write `{symbol} {code}`: {code} is the code labelled \"{text}\""),
+                None => format!(
+                    "the labels are {}; compare with a code",
+                    labels.iter().map(|(code, label)| format!("{code} {label}")).collect::<Vec<_>>().join(", ")
+                ),
+            };
+                Diagnostic::error("Z0216", format!("\"{text}\" is a value label, and the variable compares as a number"))
+                    .in_file(script)
+                    .primary(span, "an Int variable with value labels")
+                    .help(help)
+        }
+        ColumnTrouble::Unordered { symbol } =>
+            Diagnostic::error("Z0221", format!("`{symbol}` needs an ordered category, and this one has no order"))
+                .in_file(script)
+                .primary(span, "a category without an order")
+                .help("`==` and `!=` work on any category; `category(x, levels: [...], ordered: true)` gives it an order")
+        ,
+        ColumnTrouble::DifferentLevels { symbol } =>
+            Diagnostic::error("Z0221", format!("`{symbol}` compares two categories with different levels"))
+                .in_file(script)
+                .primary(span, "the levels differ")
+                .help("two categories compare by order only with the same levels in the same order; `levels(x)` shows them")
+        ,
+    }
+}
+
+/// The warning of section 4.1 for a note on a single value.
+/// The warning of section 4.1 for a note on a single value.
+pub fn warning_of(note: Note, value: &Value) -> Diagnostic {
+    match note {
+        Note::DivisionByZero => Diagnostic::warning(
+            "W0204",
+            format!(
+                "division by zero gave {}",
+                match value {
+                    Value::Float(x) => format_float(*x),
+                    _ => "Inf".to_string(),
+                }
+            ),
+        )
+        .help("test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`"),
+        Note::Invalid(cause) => Diagnostic::warning("W0205", format!("{cause} gave NA")),
+    }
+}
+
+/// The warnings of section 4.1 for the notes of a row-wise operation, counted.
+/// The warnings of section 4.1 for a column, with their row counts.
+pub fn warnings_of(notes: Notes, messages: &mut Vec<Diagnostic>) {
+    let rows = |n: usize| {
+        format!(
+            "{} {}",
+            count(n as u64),
+            if n == 1 { "row" } else { "rows" }
+        )
+    };
+    if notes.division_by_zero > 0 {
+        messages.push(
+            Diagnostic::warning(
+                "W0204",
+                format!(
+                    "division by zero gave Inf or -Inf in {}",
+                    rows(notes.division_by_zero)
+                ),
+            )
+            .help("`where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise"),
+        );
+    }
+    for (cause, n) in notes.invalid {
+        messages.push(Diagnostic::warning(
+            "W0205",
+            format!("{cause} gave NA in {}", rows(n)),
+        ));
+    }
 }
 
 #[cfg(test)]

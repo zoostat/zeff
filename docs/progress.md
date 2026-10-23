@@ -163,3 +163,13 @@ Step 15 `[engine]`, the pre-release routine, with everything it turned up: the w
 **Next.** Step 8, the model matrix `[engine]`, which needs question 5 (term names under the `sum`, `helmert` and `poly` contrasts).
 
 **For the owner to decide.** Question 5 before step 8; questions 2 to 5 and 7 at the top of `docs/releases/0.4.0.md`; open decision #54 by 0.6.0.
+
+## 23 October 2026, step 8 of release 0.4.0
+
+**Done.** Step 8 `[engine]`: the model matrix, in the new `results` package. A formula and a frame give the named columns of the design in row blocks, with the rows used, the rows dropped for `NA` counted by variable, and the notes: `a * b` and `interact` expanded, duplicates kept once, the intercept and the first category fully coded without it, a category's indicator columns by its contrast with the base the first level or `base()`'s and full coding where R's marginality rule gives it, arithmetic computed by the column kernels, `Inf` refused (Z0223, a new code logged), and the term names of section 7.2 with question 5's names under `sum`, `helmert` and `poly`, taken as recommended. `interact` is registered in a new `regress` package with its draft page. Seventeen formulas agree with R's `model.matrix` exactly (the polynomial contrasts within 1e-12), on the shipped `wages`, `wages_large` and the edge-case files. 8 tests. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (the milestone line changed, deliberately) pass locally; CI runs on the push.
+
+**Next.** Step 9, `interact` complete `[function]`.
+
+**For the owner to decide.** Questions 2, 3, 4 and 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10 and question 3 (a) too; open decision #54 by 0.6.0.

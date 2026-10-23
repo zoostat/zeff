@@ -497,10 +497,10 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&shipped_and_later)
     );
-    let package_later = zeff(dir.path(), &["help", "regress"]);
+    let package_later = zeff(dir.path(), &["help", "glm"]);
     assert!(
         out(&package_later)
-            .contains("has no function in this release; its first arrives with release 0.4.0"),
+            .contains("has no function in this release; its first arrives with release 0.9.0"),
         "{}",
         out(&package_later)
     );
