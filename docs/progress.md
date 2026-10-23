@@ -168,7 +168,7 @@ Step 15 `[engine]`, the pre-release routine, with everything it turned up: the w
 
 **Done.** Step 8 `[engine]`: the model matrix, in the new `results` package. A formula and a frame give the named columns of the design in row blocks, with the rows used, the rows dropped for `NA` counted by variable, and the notes: `a * b` and `interact` expanded, duplicates kept once, the intercept and the first category fully coded without it, a category's indicator columns by its contrast with the base the first level or `base()`'s and full coding where R's marginality rule gives it, arithmetic computed by the column kernels, `Inf` refused (Z0223, a new code logged), and the term names of section 7.2 with question 5's names under `sum`, `helmert` and `poly`, taken as recommended. `interact` is registered in a new `regress` package with its draft page. Seventeen formulas agree with R's `model.matrix` exactly (the polynomial contrasts within 1e-12), on the shipped `wages`, `wages_large` and the edge-case files. 8 tests. Details in `docs/decisions.md`.
 
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (the milestone line changed, deliberately) pass locally; CI runs on the push.
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (the milestone line changed, deliberately) pass locally; CI green on e632699 (run 39934524141, after 451ee2e and a one-line fix to the R checker's tolerance table) with the four targets identical and R's designs on Linux within tolerance.
 
 **Next.** Step 9, `interact` complete `[function]`.
 
