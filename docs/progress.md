@@ -155,3 +155,13 @@ Step 10 `[engine]`: the first regression. `wages.reg(log(wage) ~ educ + exper + 
 **For the owner to decide.** Questions 3 (b) to (d), 4 and 7 at the top of `docs/releases/0.4.0.md` (3 (b) is in place provisionally as recommended); open decision #54 by 0.6.0.
 
 **Noticed, not changed.** The explained pages of Z0111 and Z0413, written at 0.3.0, are not in the list `zeff help <code>` reads (`explain_pages.rs`), so those two codes have no page at the command line; a two-line fix for a later step.
+
+## 23 October 2026, step 13 of release 0.4.0
+
+**Done.** Step 13 `[engine]`: Word and LaTeX tables. `results` gains `export(path)` on a table with a draft page: the `.docx` is a minimal Word document in a zip container written by hand (stored, a fixed timestamp, the CRC computed in the engine, no crate added), the `.tex` a booktabs `tabular` with its text escaped, both pure functions of the table. The file interface gains `write`: only under the project folder, `output/` created as needed and a bare name written there, any other missing folder or a path outside the project Z0707, an extension that is not a format Z0716 (provisional, logged). A fixed sample is hashed in the conformance report in both forms, written by `xtask export-samples` into `tests/reference/exports/`, checked in the reference job by Python's `zipfile` and the XML parser, and held by a test to the committed bytes. The Value section of a result type's page now lists its methods as sentences, as the help examples show; the two explained pages left out at 0.3.0 (Z0111, Z0413) are listed, and a test holds the list to the folder.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (113 suites), the tier check, the message check (89 codes) and the conformance report (two new lines) pass locally; CI green on a20f357 (run 39986355738): the four targets identical, the exports included, and the reference job's zipfile check passed.
+
+**Next.** Step 14, `reg` complete `[function]`.
+
+**For the owner to decide.** Questions 3 (b) to (d), 4 and 7 at the top of `docs/releases/0.4.0.md`; open decision #54 by 0.6.0. Question 2's Stata file, if there is one, is needed at step 14.
