@@ -1,0 +1,167 @@
+---
+source: packages/tier0/core/tests/category.rs
+expression: all
+---
+> category("a")
+error[Z0401]: `var` of `category` must be a Column, but this is a Str
+ --> scripts/main.zeff:1:10
+  |
+1 | category("a")
+  |          ^^^ a Str
+  |
+  = help: usage: `category(var, levels: List, ordered: Bool = false, contrast: treatment | sum | helmert | poly = treatment)`
+[exit 1]
+
+> let w = dataset(wages).head(3)
+category(w["wage"] > 20)
+error[Z0401]: `category` needs text, numbers or a category, but this is a Bool column
+ --> scripts/main.zeff:2:10
+  |
+2 | category(w["wage"] > 20)
+  |          ^^^^^^^^^^^^^^ a column no category is made from
+  |
+  = help: convert it first: `to(x, Str)` gives text to categorise
+[exit 1]
+
+> let w = dataset(wages).head(3)
+category(w["industry"], levels: ["Retail", "Retail"])
+error[Z0401]: `levels:` names "Retail" twice
+ --> scripts/main.zeff:2:33
+  |
+2 | category(w["industry"], levels: ["Retail", "Retail"])
+  |                                 ^^^^^^^^^^^^^^^^^^^^ a level repeated
+  |
+  = help: each level once, in the order the levels should have
+[exit 1]
+
+> let w = dataset(wages).head(3)
+category(w["industry"], levels: ["Retail", NA])
+error[Z0401]: a level is text or a number, but `levels:` holds an NA
+ --> scripts/main.zeff:2:33
+  |
+2 | category(w["industry"], levels: ["Retail", NA])
+  |                                 ^^^^^^^^^^^^^^ the levels
+  |
+  = help: write the levels as text, `levels: ["low", "high"]`, or as the numbers a numeric variable holds
+[exit 1]
+
+> let w = dataset(wages).head(3)
+category(w["industry"], levels: [true])
+error[Z0401]: a level is text or a number, but `levels:` holds a Bool
+ --> scripts/main.zeff:2:33
+  |
+2 | category(w["industry"], levels: [true])
+  |                                 ^^^^^^ the levels
+  |
+  = help: write the levels as text, `levels: ["low", "high"]`, or as the numbers a numeric variable holds
+[exit 1]
+
+> let w = dataset(wages).head(3)
+category(w["industry"], levels: "Retail")
+error[Z0401]: `levels` of `category` must be a List, but this is a Str
+ --> scripts/main.zeff:2:33
+  |
+2 | category(w["industry"], levels: "Retail")
+  |                                 ^^^^^^^^ a Str
+  |
+  = help: usage: `category(var, levels: List, ordered: Bool = false, contrast: treatment | sum | helmert | poly = treatment)`
+[exit 1]
+
+> let w = dataset(wages).head(3)
+category(w["industry"], contrast: polynomial)
+error[Z0402]: `polynomial` is not one of the allowed words
+ --> scripts/main.zeff:2:35
+  |
+2 | category(w["industry"], contrast: polynomial)
+  |                                   ^^^^^^^^^^ expected one of treatment, sum, helmert, poly
+[exit 1]
+
+> let w = dataset(wages).head(3)
+levels(w["wage"])
+error[Z0401]: `levels` needs a category, but this is a Float column
+ --> scripts/main.zeff:2:8
+  |
+2 | levels(w["wage"])
+  |        ^^^^^^^^^ not a category
+  |
+  = help: `category(x)` makes one; `describe` shows each variable's type
+[exit 1]
+
+> levels(3)
+error[Z0401]: `var` of `levels` must be a Column, but this is an Int
+ --> scripts/main.zeff:1:8
+  |
+1 | levels(3)
+  |        ^ an Int
+  |
+  = help: usage: `levels(var)`
+[exit 1]
+
+> let w = dataset(wages).head(3)
+base(w["wage"], "Retail")
+error[Z0401]: `base` needs a category, but this is a Float column
+ --> scripts/main.zeff:2:6
+  |
+2 | base(w["wage"], "Retail")
+  |      ^^^^^^^^^ not a category
+  |
+  = help: `category(x)` makes one; `base` then chooses its first level
+[exit 1]
+
+> let w = dataset(wages).head(3)
+base(w["industry"], "Retial")
+error[Z0216]: "Retial" is not a level of the category
+ --> scripts/main.zeff:2:21
+  |
+2 | base(w["industry"], "Retial")
+  |                     ^^^^^^^^ the levels are "Agriculture", "Mining", "Utilities", "Construction", "Manufacturing", "Retail", "Transport", "Finance", "Services", "Education", "Health", "Public administration"
+  |
+  = help: did you mean "Retail"? `levels(x)` lists the levels
+[exit 1]
+
+> let w = dataset(wages).head(3)
+base(w["industry"], "Farming")
+error[Z0216]: "Farming" is not a level of the category
+ --> scripts/main.zeff:2:21
+  |
+2 | base(w["industry"], "Farming")
+  |                     ^^^^^^^^^ the levels are "Agriculture", "Mining", "Utilities", "Construction", "Manufacturing", "Retail", "Transport", "Finance", "Services", "Education", "Health", "Public administration"
+  |
+  = help: write one of the levels, in quotes; `levels(x)` lists them
+[exit 1]
+
+> let w = dataset(wages).head(3)
+base(w["industry"], 2)
+error[Z0401]: `level` of `base` must be a Str, but this is an Int
+ --> scripts/main.zeff:2:21
+  |
+2 | base(w["industry"], 2)
+  |                     ^ an Int
+  |
+  = help: usage: `base(var, level)`
+[exit 1]
+
+> let w = dataset(wages).head(12)
+levels(category(w["industry"], levels: ["Retail", "Mining"]))
+Retail
+Mining
+warning: 5 values are none of the levels given and became NA: "Manufacturing", "Public administration" (line 2)
+  = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards
+[exit 0]
+
+> let w = dataset(wages).head(12)
+to(w["industry"], Int)
+Column<Int> · 12 values
+6
+6
+6
+6
+6
+6
+6
+5
+5
+5
+5
+12
+[exit 0]

@@ -6,9 +6,14 @@
 
 use crate::runtime::{Args, CallContext, Fail, Function, fail};
 use crate::value::{TypeValue, Value};
-use zeff_columns::{Column, ColumnType, Value as Cell};
-use zeff_diagnostics::{Diagnostic, count};
+use std::collections::HashMap;
+use zeff_columns::{Column, ColumnType, Contrast, Value as Cell};
+use zeff_diagnostics::{Diagnostic, count, did_you_mean};
 use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec};
+
+/// More levels than this is W0602: an identifier column was probably categorised by mistake
+/// (Language Reference, section 3.8, "Limits").
+const MANY_LEVELS: usize = 10_000;
 
 /// What `to` converts to at this release; dates arrive with 0.6.0.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -335,7 +340,8 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
     }
 }
 
-/// A column converted row by row, the warnings counted and up to three failing values shown.
+/// A column converted row by row, the warnings counted and up to three distinct failing values
+/// shown.
 fn convert_column(
     ctx: &mut CallContext<'_>,
     column: &Column,
@@ -387,11 +393,12 @@ fn convert_column(
             }
             Ok(Converted::Unreadable) => {
                 unreadable += 1;
-                if failing.len() < 3 {
-                    failing.push(match cell {
-                        Cell::Str(s) => format!("\"{s}\""),
-                        other => crate::display::cell(other),
-                    });
+                let shown = match cell {
+                    Cell::Str(s) => format!("\"{s}\""),
+                    other => crate::display::cell(other),
+                };
+                if failing.len() < 3 && !failing.contains(&shown) {
+                    failing.push(shown);
                 }
                 values.push(Value::Na);
             }
@@ -529,6 +536,322 @@ pub fn type_name(value: &Value) -> String {
     }
 }
 
+/// Up to twelve levels in quotes, then the count of the rest, for a message.
+fn list_levels(levels: &[String]) -> String {
+    let shown: Vec<String> = levels.iter().take(12).map(|l| format!("\"{l}\"")).collect();
+    if levels.len() > 12 {
+        format!("{} … and {} more", shown.join(", "), levels.len() - 12)
+    } else {
+        shown.join(", ")
+    }
+}
+
+/// Z0401: `category`, `levels` or `base` was given something other than the column it needs.
+fn needs_a_column(ctx: &CallContext<'_>, function: &str, what: &str, given: &Value) -> Fail {
+    fail(
+        Diagnostic::error("Z0401", format!("`{function}` needs {what}, but this is {}", given.type_word()))
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), format!("not {what}"))
+            .help("inside `add`, write the variable's name; outside, index the frame: `wages[\"industry\"]`"),
+    )
+}
+
+/// The text of each row of a column for `category`: text as it is, numbers as they print, a
+/// labelled Int as its labels, a category as its labels. `None` is `NA`. Also the levels the
+/// column implies when none are given: text by code point, numbers in numeric order, a labelled
+/// Int's labels in code order, a category's own levels.
+fn texts_and_levels(column: &Column) -> Option<(Vec<Option<String>>, Vec<String>)> {
+    match column.ty() {
+        ColumnType::Str => {
+            let texts: Vec<Option<String>> =
+                column.as_strs()?.map(|s| s.map(str::to_string)).collect();
+            let mut levels: Vec<String> = texts.iter().flatten().cloned().collect();
+            levels.sort_unstable();
+            levels.dedup();
+            Some((texts, levels))
+        }
+        ColumnType::Int => {
+            let ints: Vec<Option<i64>> = column.as_ints()?.collect();
+            if let Some(labels) = column.metadata().value_labels() {
+                let mut by_code: Vec<(i64, String)> = labels
+                    .iter()
+                    .filter_map(|(code, label)| {
+                        code.parse::<i64>().ok().map(|c| (c, label.clone()))
+                    })
+                    .collect();
+                by_code.sort_by_key(|(code, _)| *code);
+                let lookup: HashMap<i64, String> = by_code.iter().cloned().collect();
+                // A code without a label keeps its number, which the levels given may name.
+                let texts = ints
+                    .iter()
+                    .map(|i| i.map(|i| lookup.get(&i).cloned().unwrap_or_else(|| i.to_string())))
+                    .collect();
+                let levels = by_code.into_iter().map(|(_, label)| label).collect();
+                return Some((texts, levels));
+            }
+            let mut distinct: Vec<i64> = ints.iter().flatten().copied().collect();
+            distinct.sort_unstable();
+            distinct.dedup();
+            Some((
+                ints.iter().map(|i| i.map(|i| i.to_string())).collect(),
+                distinct.iter().map(|i| i.to_string()).collect(),
+            ))
+        }
+        ColumnType::Float => {
+            let floats: Vec<Option<f64>> = column.as_floats()?.collect();
+            let mut distinct: Vec<f64> = floats.iter().flatten().copied().collect();
+            distinct.sort_by(f64::total_cmp);
+            distinct.dedup();
+            Some((
+                floats.iter().map(|x| x.map(float_text)).collect(),
+                distinct.iter().map(|x| float_text(*x)).collect(),
+            ))
+        }
+        ColumnType::Category => {
+            let texts = column.as_labels()?.map(|l| l.map(str::to_string)).collect();
+            let levels = column.levels()?.iter().map(|l| (*l).to_string()).collect();
+            Some((texts, levels))
+        }
+        _ => None,
+    }
+}
+
+/// The text of a level given in `levels:`: text as it is, a number as it prints.
+fn level_text(ctx: &CallContext<'_>, value: &Value) -> Result<String, Fail> {
+    match value {
+        Value::Str(s) => Ok(s.clone()),
+        Value::Int(i) => Ok(i.to_string()),
+        Value::Float(x) => Ok(float_text(*x)),
+        other => Err(fail(
+            Diagnostic::error("Z0401", format!("a level is text or a number, but `levels:` holds {}", other.type_word()))
+                .in_file(ctx.script)
+                .primary(ctx.span_of(1), "the levels")
+                .help("write the levels as text, `levels: [\"low\", \"high\"]`, or as the numbers a numeric variable holds"),
+        )),
+    }
+}
+
+/// `category(var, levels:, ordered:, contrast:)`.
+fn category(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let column = match args.get(0) {
+        Some(Value::Column(c)) => c.clone(),
+        other => {
+            return Err(needs_a_column(
+                ctx,
+                "category",
+                "a column",
+                other.unwrap_or(&Value::Na),
+            ));
+        }
+    };
+    let given: Option<Vec<String>> = match args.get(1) {
+        None | Some(Value::Na) => None,
+        Some(Value::List(items)) => {
+            let mut levels = Vec::with_capacity(items.len());
+            for item in items {
+                let text = level_text(ctx, item)?;
+                if levels.contains(&text) {
+                    return Err(fail(
+                        Diagnostic::error("Z0401", format!("`levels:` names \"{text}\" twice"))
+                            .in_file(ctx.script)
+                            .primary(ctx.span_of(1), "a level repeated")
+                            .help("each level once, in the order the levels should have"),
+                    ));
+                }
+                levels.push(text);
+            }
+            Some(levels)
+        }
+        Some(other) => {
+            return Err(level_text(ctx, other)
+                .map(|_| unreachable!("a list is checked before"))
+                .unwrap_err());
+        }
+    };
+    let ordered = matches!(args.get(2), Some(Value::Bool(true)));
+    let contrast = match args.get(3) {
+        Some(Value::Word(word)) => Contrast::parse(word).unwrap_or_default(),
+        _ => Contrast::default(),
+    };
+    let Some((texts, implied)) = texts_and_levels(&column) else {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`category` needs text, numbers or a category, but this is a {} column",
+                    column.ty().name()
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "a column no category is made from")
+            .help("convert it first: `to(x, Str)` gives text to categorise"),
+        ));
+    };
+    let levels = given.unwrap_or(implied);
+    let positions: HashMap<&str, i32> = levels
+        .iter()
+        .enumerate()
+        .map(|(i, l)| (l.as_str(), i as i32))
+        .collect();
+    let (mut outside, mut failing) = (0usize, Vec::new());
+    let codes: Vec<Option<i32>> = texts
+        .iter()
+        .map(|text| match text {
+            None => None,
+            Some(text) => match positions.get(text.as_str()) {
+                Some(&p) => Some(p),
+                None => {
+                    outside += 1;
+                    let shown = format!("\"{text}\"");
+                    if failing.len() < 3 && !failing.contains(&shown) {
+                        failing.push(shown);
+                    }
+                    None
+                }
+            },
+        })
+        .collect();
+    if outside > 0 {
+        ctx.message(
+            Diagnostic::warning(
+                "W0203",
+                format!(
+                    "{} none of the levels given and became NA: {}",
+                    if outside == 1 { "1 value is".to_string() } else { format!("{} values are", count(outside as u64)) },
+                    failing.join(", ")
+                ),
+            )
+            .help("add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards"),
+        );
+    }
+    if levels.len() > MANY_LEVELS {
+        ctx.message(
+            Diagnostic::warning(
+                "W0602",
+                format!(
+                    "the category has {} levels, more than {}: an identifier may have been categorised",
+                    count(levels.len() as u64),
+                    count(MANY_LEVELS as u64)
+                ),
+            )
+            .help("a category stands for a few groups; keep an identifier as a number or text"),
+        );
+    }
+    let result = Column::categories(levels, codes)
+        .expect("distinct levels and codes within them")
+        .with_contrast(contrast)
+        .with_ordered(ordered);
+    Ok(Value::Column(result))
+}
+
+/// `levels(var)`.
+fn levels_of(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    match args.get(0) {
+        Some(Value::Column(c)) => match c.levels() {
+            Some(levels) => Ok(Value::List(
+                levels
+                    .iter()
+                    .map(|l| Value::Str((*l).to_string()))
+                    .collect(),
+            )),
+            None => Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`levels` needs a category, but this is a {} column",
+                        c.ty().name()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(0), "not a category")
+                .help("`category(x)` makes one; `describe` shows each variable's type"),
+            )),
+        },
+        other => Err(needs_a_column(
+            ctx,
+            "levels",
+            "a category column",
+            other.unwrap_or(&Value::Na),
+        )),
+    }
+}
+
+/// `base(var, level)`: the category with that level first (R's `relevel`), its other levels in
+/// their order; inside a formula it names the base level of the indicators (section 7.1).
+fn base(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let column = match args.get(0) {
+        Some(Value::Column(c)) if c.ty() == ColumnType::Category => c.clone(),
+        Some(Value::Column(c)) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`base` needs a category, but this is a {} column",
+                        c.ty().name()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(0), "not a category")
+                .help("`category(x)` makes one; `base` then chooses its first level"),
+            ));
+        }
+        other => {
+            return Err(needs_a_column(
+                ctx,
+                "base",
+                "a category column",
+                other.unwrap_or(&Value::Na),
+            ));
+        }
+    };
+    let level = match args.get(1) {
+        Some(Value::Str(s)) => s.clone(),
+        _ => String::new(),
+    };
+    let levels: Vec<String> = column
+        .levels()
+        .expect("a category")
+        .iter()
+        .map(|l| (*l).to_string())
+        .collect();
+    let Some(position) = levels.iter().position(|l| *l == level) else {
+        let d = Diagnostic::error(
+            "Z0216",
+            format!("\"{level}\" is not a level of the category"),
+        )
+        .in_file(ctx.script)
+        .primary(
+            ctx.span_of(1),
+            format!("the levels are {}", list_levels(&levels)),
+        );
+        let d = match did_you_mean(&level, levels.iter().map(String::as_str)) {
+            Some(near) => d.help(format!(
+                "did you mean \"{near}\"? `levels(x)` lists the levels"
+            )),
+            None => d.help("write one of the levels, in quotes; `levels(x)` lists them"),
+        };
+        return Err(fail(d));
+    };
+    let mut order: Vec<usize> = (0..levels.len()).collect();
+    order.remove(position);
+    order.insert(0, position);
+    // new position of the old level p: where p stands in `order`.
+    let new_position: HashMap<i32, i32> = order
+        .iter()
+        .enumerate()
+        .map(|(new, &old)| (old as i32, new as i32))
+        .collect();
+    let codes = column
+        .as_codes()
+        .expect("a category")
+        .map(|c| c.map(|c| new_position[&c]));
+    let relevelled = Column::categories(order.iter().map(|&i| levels[i].clone()).collect(), codes)
+        .expect("the same levels in another order")
+        .with_category_info(column.category_info().expect("a category"))
+        .with_metadata(column.metadata().clone());
+    Ok(Value::Column(relevelled))
+}
+
 fn is(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let value = args.get(0).cloned().unwrap_or(Value::Na);
     let ty = match args.get(1) {
@@ -608,6 +931,82 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: type_of,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "category",
+                package: "core",
+                method: false,
+                params: vec![
+                    ParamSpec::required("var", "Column"),
+                    ParamSpec::option("levels", "List"),
+                    ParamSpec::option_with_default("ordered", "Bool", "false"),
+                    ParamSpec::option_with_default(
+                        "contrast",
+                        "treatment | sum | helmert | poly",
+                        "treatment",
+                    ),
+                ],
+                rest: None,
+                returns: "Column",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "W0203",
+                        "values that are none of the levels given became NA, with the count and up to three of them",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0602",
+                        "more than 10,000 levels, which an identifier column would give",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a column that is not text, numbers or a category; a level repeated or of another kind in `levels:`",
+                    ),
+                ],
+                help: include_str!("../help/category.md"),
+                accuracy: None,
+            },
+            body: category,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "levels",
+                package: "core",
+                method: false,
+                params: vec![ParamSpec::required("var", "Column")],
+                rest: None,
+                returns: "List<Str>",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "a column that is not a category",
+                )],
+                help: include_str!("../help/levels.md"),
+                accuracy: None,
+            },
+            body: levels_of,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "base",
+                package: "core",
+                method: false,
+                params: vec![
+                    ParamSpec::required("var", "Column"),
+                    ParamSpec::required("level", "Str"),
+                ],
+                rest: None,
+                returns: "Column",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0216",
+                        "a level the category does not have, with the nearest level when there is one",
+                    ),
+                    DiagnosticDecl::new("Z0401", "a column that is not a category"),
+                ],
+                help: include_str!("../help/base.md"),
+                accuracy: None,
+            },
+            body: base,
         },
     ]
 }

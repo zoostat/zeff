@@ -14,8 +14,34 @@ numbers <- c(2.5, 2, -0, 1e300, 0.1, 1 / 3, 1e15, 1e16, 123456789012, -7.25, 1e-
 dec <- function(x) sprintf("%.17g", x)
 logical_text <- function(x) ifelse(is.na(x), "NA", ifelse(x, "true", "false"))
 
+# Categories (release 0.4.0, step 5): factor levels in the C locale, where R sorts by bytes, the
+# same order as Zeff's code points; the codes; relevel; and the four contrast matrices of
+# section 4.2 for four levels, which the model matrix of step 8 is held to.
+Sys.setlocale("LC_COLLATE", "C")
+rows_of <- function(m) lapply(seq_len(nrow(m)), function(i) as.list(unname(num(m[i, ]))))
+city <- read_dataset(file.path(here(), "..", "..", "datasets", "unicode_labels.csv"))$city
+region <- read_dataset(file.path(here(), "..", "..", "datasets", "wages_large.csv"))$region
+fc <- factor(city)
+fr <- factor(region)
+grades <- factor(c(3, 1, 2, 1, 3))
+
 out <- list(
   reference = reference_block(),
+  categories = list(
+    city_levels = as.list(levels(fc)),
+    city_codes = as.list(as.integer(as.integer(fc))),
+    region_levels = as.list(levels(fr)),
+    region_first_codes = as.list(as.integer(fr)[1:20]),
+    region_relevel = as.list(levels(relevel(fr, "Zürich"))),
+    numeric_levels = as.list(levels(grades)),
+    numeric_codes = as.list(as.integer(grades))
+  ),
+  contrasts = list(
+    treatment = rows_of(contr.treatment(4)),
+    sum = rows_of(contr.sum(4)),
+    helmert = rows_of(contr.helmert(4)),
+    poly = rows_of(contr.poly(4))
+  ),
   texts = as.list(texts),
   text_to_int = as.list(num(suppressWarnings(as.integer(texts)))),
   text_to_float = as.list(num(suppressWarnings(as.numeric(texts)))),

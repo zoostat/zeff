@@ -18,10 +18,14 @@ use zeff_registry::Registry;
 /// The files every example may read, as `data/<name>` in the fixture project: the small wages
 /// file, and the same kind of file as a German spreadsheet writes it (`;` between fields, a
 /// decimal comma, `.` between groups of digits, Windows-1252 for the accented letters).
-pub const FIXTURE_FILES: [(&str, &[u8]); 2] = [
+pub const FIXTURE_FILES: [(&str, &[u8]); 3] = [
     (
         "wages.csv",
         b"id,wage,hours\n1,23.4,40\n2,19.0,35\n3,31.2,\n",
+    ),
+    (
+        "staff.csv",
+        b"name,dept,grade\nAnn,Sales,2\nBob,IT,1\nCy,Sales,3\nDee,HR,2\n",
     ),
     (
         "wages_de.csv",

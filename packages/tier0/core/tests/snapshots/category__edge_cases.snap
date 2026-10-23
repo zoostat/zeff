@@ -1,0 +1,106 @@
+---
+source: packages/tier0/core/tests/category.rs
+expression: "format!(\"{stdout}--- messages ---\\n{}\", without_format_notes(&stderr))"
+---
+[]
+0
+[]
+a
+3.5
+5e-324
+1.5232102332637387e-303
+2.778209831344136e-303
+4.8976903474891035e-303
+5.532880825259934e-303
+5.884894679120012e-303
+1.4289984775990862e-302
+1.569168604352833e-302
+1.6627080219069114e-302
+1.7025225253182285e-302
+1.7476818999347167e-302
+2.3765545127285906e-302
+3.04826178113321e-302
+3.1135586761602775e-302
+3.3417404450179044e-302
+3.4927758482869444e-302
+3.7586265493684604e-302
+3.9002046561498193e-302
+4.1937662126817045e-302
+4.323376730472084e-302
+… and 480 more items
+male
+female
+Column<Int> · 12 values
+1
+1
+1
+1
+1
+1
+1
+2
+2
+2
+2
+2
+no
+yes
+i · 12 rows × 11 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int                  12         0   1
+  year       Int                  12         0   2015
+  wage       Float                12         0   18.08
+  educ       Int                  12         0   17
+  exper      Int                  12         0   9
+  age        Int                  12         0   32
+  hours      Float                12         0   45.1
+  union      Int (lab)            12         0   no
+  female     Int (lab)            12         0   male
+  industry   Category             12         0   Retail (12 levels)
+  i          Category              7         5   Retail (2 levels)
+Retail
+Mining
+Mining
+Agriculture
+Utilities
+Construction
+Manufacturing
+Retail
+Transport
+Finance
+Services
+Education
+Health
+Public administration
+Column<Bool> · 12 values
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+Column<Category> · 12 values
+17
+17
+17
+17
+17
+17
+17
+NA
+NA
+NA
+NA
+12
+--- messages ---
+warning: 5 values are none of the levels given and became NA: "Manufacturing", "Public administration" (line 15)
+  = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards
+warning: 4 values are none of the levels given and became NA: "15" (line 21)
+  = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards

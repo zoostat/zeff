@@ -58,85 +58,31 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 ## 19 October 2026, release 0.3.0 started
 
-**Done.** The previous release is tagged (`v0.2.0`) and the tree was clean. The 0.3.0 row of section 14, every section it names in both volumes, the 26 catalogue rows, the testing handbook, the risk register and the open decision due (#46) were read, and the checklist written in `docs/releases/0.3.0.md`: 15 steps, the five engine pieces first, each tagged. The owner said "go". Step 1: the version is `0.3.0-dev`, both sample projects pin it, the four version snapshots follow.
-
-**Next.** Step 2, the special-function kernel `[engine]`.
-
-**For the owner to decide.** Four questions at the top of the checklist: how a distribution prints (step 3), the correlation table layout (step 11), whether discrete draws are Int columns (step 7), open decision #46 (step 15).
+The previous release was tagged (`v0.2.0`) and the tree clean; the 0.3.0 row of section 14, every section it names, the 26 catalogue rows, the testing handbook, the risk register and open decision #46 were read, and the checklist written in `docs/releases/0.3.0.md` (15 steps, the five engine pieces first, each tagged); the owner said "go"; step 1 set the version to `0.3.0-dev` with the sample pins and the version snapshots; four questions were put to the owner (how a distribution prints, the correlation table layout, Int columns for discrete draws, open decision #46).
 
 ## 19 to 20 October 2026, steps 2 to 12 of release 0.3.0
 
-**Done, folded.** Step 2, the special-function kernel (gamma, beta, error functions, incomplete gamma and beta with inverses; exact reference in Python's `decimal`, R comparison). Step 3, the `Distribution` value and the `dist.` namespace (question 1 decided: it prints as its call with defaults filled in; Z0413). Step 4, Philox4x32-10 streams and the run's seed. Step 5, `zeff selftest`. Step 6, `factorial` to `beta`. Steps 7 to 10, the twelve families, `dist.truncated` and `dist.mixture` with `pdf`, `cdf`, `quantile` and `draw` (question 3 decided: Int columns for discrete draws). Step 11, `correlation` and `covariance` in the `stats` package (question 2 decided; p-values reproduce R's `cor.test`). Step 12, `seed` with Z0111. All green locally at each step.
+Step 2, the special-function kernel (gamma, beta, error functions, incomplete gamma and beta with inverses; exact reference in Python's `decimal`, R comparison). Step 3, the `Distribution` value and the `dist.` namespace (question 1 decided: it prints as its call with defaults filled in; Z0413). Step 4, Philox4x32-10 streams and the run's seed. Step 5, `zeff selftest`. Step 6, `factorial` to `beta`. Steps 7 to 10, the twelve families, `dist.truncated` and `dist.mixture` with `pdf`, `cdf`, `quantile` and `draw` (question 3 decided: Int columns for discrete draws). Step 11, `correlation` and `covariance` in the `stats` package (question 2 decided; p-values reproduce R's `cor.test`). Step 12, `seed` with Z0111. All green locally at each step.
 
 ## 21 October 2026, performance review
 
-**Done.** The owner's performance review was discussed and three open decisions recorded: #47 (a fixed shape for every sum), #48 (blocked kernels now, threads when proven) and #49 (when fused passes arrive). The other points (grouping by hashing or sorting, a different fixed-effects solver, a bytecode interpreter, build settings) are left for the releases that need them. No code or specification text changed.
-
-**Green.** Nothing built; documents only.
-
-**Next.** Step 13 of release 0.3.0 `[engine]`.
-
-**For the owner to decide.** Open decisions #47 to #49, by 0.4.0.
-
-## 21 October 2026, performance review (continued)
-
-**Done.** Three more open decisions recorded from the review: #50 (compact column storage), #51 (reading files in parallel by chunk) and #52 (a benchmark suite from 0.4.0). The owner's method list was checked against the catalogue and found to match it name for name; additions beyond it were discussed, none recorded.
-
-**Green.** Nothing built; documents only.
-
-**Next.** Step 13 of release 0.3.0 `[engine]`.
-
-**For the owner to decide.** Open decisions #47 to #52, by 0.4.0; whether any of the discussed additions go into the catalogue as roadmap rows.
+The owner's performance review was discussed and six open decisions recorded: #47 (a fixed shape for every sum), #48 (blocked kernels now, threads when proven), #49 (when fused passes arrive), #50 (compact column storage), #51 (reading files in parallel by chunk) and #52 (a benchmark suite from 0.4.0); the other points (grouping by hashing or sorting, a different fixed-effects solver, a bytecode interpreter, build settings) were left for the releases that need them; the owner's method list was checked against the catalogue and matched it name for name. Documents only; nothing built.
 
 ## 21 October 2026, catalogue additions
 
-**Done.** Nineteen roadmap rows (506 to 524, release after 1.0) added to the function catalogue from the method review: seven classical tests, two residual diagnostics, `roc` and `confusion`, five inequality and concentration measures, `rolling` and `bland_altman`; logged in docs/spec_changes.md. Open decision #53 records the two suggestions that are options rather than functions (HAC standard errors; `weights:` on the descriptives). The catalogue test's row count updated.
-
-**Green.** Format, clippy with warnings denied and all workspace tests pass locally.
-
-**Next.** Step 13 of release 0.3.0 `[engine]`.
-
-**For the owner to decide.** Open decisions #47 to #53.
-
-## 21 October 2026, multivariate tests
-
-**Done.** Four multivariate tests added to the catalogue as roadmap rows (525 to 528, after 1.0): `manova` in the spelling of open decision #2, `hotelling_test`, `box_m_test`, `mardia_test`; logged in docs/spec_changes.md; the catalogue test's row count updated.
-
-**Green.** Format, clippy with warnings denied and all workspace tests pass locally.
-
-**Next.** Step 13 of release 0.3.0 `[engine]`.
-
-**For the owner to decide.** Open decisions #47 to #53; #2 settles the MANOVA spelling when it is taken.
+Nineteen roadmap rows (506 to 524, after 1.0) added to the function catalogue from the method review (seven classical tests, two residual diagnostics, `roc` and `confusion`, five inequality and concentration measures, `rolling` and `bland_altman`), then four multivariate tests (525 to 528: `manova` in the spelling of open decision #2, `hotelling_test`, `box_m_test`, `mardia_test`); open decision #53 records the two suggestions that are options rather than functions (HAC standard errors; `weights:` on the descriptives); all logged in `docs/spec_changes.md`, the catalogue test's row count updated; format, clippy and every test green locally.
 
 ## 22 October 2026, step 13 of release 0.3.0
 
-**Done.** Step 13 `[engine]`: the third sample project `samples/simulation` (a seeded simulation with p-values end to end), its stored output, a place in the conformance report and in the command-line script test. Writing it exposed a defect: two draws in one statement used the same uniforms and were perfectly correlated. Each drawing call of a statement now has a stream of its own; the first call keeps its old stream, so no earlier result changed. 2 tests added; details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (three new lines, none changed) pass locally. GitHub run to be read after the push.
-
-**Next.** Step 14, the stochastic and truth-recovery runs in the nightly job `[engine]`.
-
-**For the owner to decide.** Open decision #46 at the close; #47 to #53 by 0.4.0.
+Step 13 `[engine]`: the third sample project `samples/simulation` (a seeded simulation with p-values end to end), its stored output, a place in the conformance report and in the command-line script test. Writing it exposed a defect, two draws in one statement using the same uniforms and perfectly correlated; each drawing call of a statement now has a stream of its own, the first call keeping its old stream so that no earlier result changed; 2 tests added; details in `docs/decisions.md`; green locally and on CI.
 
 ## 22 October 2026, step 14 of release 0.3.0
 
-**Done.** Step 14 `[engine]`: the stochastic class as a nightly test (14 distributions, 50 seeds of 100,000 draws, exact moments and distribution functions, identical figures on the Mac and on Linux), its note in the nightly summary, and a fifth fuzz target for distribution parameters and probabilities. The first scheduled runs found three real faults, all repaired with regression tests: a discrete quantile search that never returned when the mean lay beyond the Floats (a draw beyond the Ints is now `NA`), a search that spent eight seconds a draw where the distribution function is `NA` (it now ends with `NA` at the first `NA`), and a CSV header check that compared every pair of names (19 seconds for 34 KB; now a map). The job also could not fail on a fuzz crash (the status of `tail` was read); it now can. The third fuzz run (39727701712) was green: five targets, ten minutes each, no crash input. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (unchanged) pass; CI green on c21a082.
-
-**Next.** Step 15, the pre-release routine `[engine]`; then the owner's "Release 0.3.0".
-
-**For the owner to decide.** Open decision #46 at the close; #47 to #53 by 0.4.0.
+Step 14 `[engine]`: the stochastic class as a nightly test (14 distributions, 50 seeds of 100,000 draws, exact moments and distribution functions, identical figures on the Mac and on Linux), its note in the nightly summary, and a fifth fuzz target for distribution parameters and probabilities. The first scheduled runs found three real faults, all repaired with regression tests (a discrete quantile search that never returned when the mean lay beyond the Floats, so a draw beyond the Ints is now `NA`; a search spending eight seconds a draw where the distribution function is `NA`; a CSV header check comparing every pair of names), and the job could not fail on a fuzz crash, which it now can; the third fuzz run (39727701712) was green; CI green on c21a082; details in `docs/decisions.md`.
 
 ## 22 and 23 October 2026, step 15 of release 0.3.0 and the close
 
-**Done.** Step 15 `[engine]`, the pre-release routine, with everything it turned up: the weekly mutation job outgrew one runner and now runs twelve shards; a review of the engine changes of steps 13 and 14 found and fixed two wrong results at large parameters (the discrete distributions' point floored with a relative fuzz; a series returning a partial sum past its limit); the owner held the release until every surviving mutant had a test or a reason and every timeout a verdict, which took three runs, 16 tests for real gaps, 82 equivalents recorded, a flaky property repaired and the job's skips for two million-call tests; the figures are in the release notes. The owner took open decision #46 and ended the freeze (#40). The release notes are `docs/releases/0.3.0-notes.md`; the risk register and the open-decisions register have their reviews; the version is 0.3.0; the tag `v0.3.0` carries the notes as a GitHub release.
-
-**Green.** Everything of the routine: 626 tests, the four-target identity check, the nightly, fuzz and weekly jobs, the conformance report, `zeff selftest` 81 of 81 on the release build.
-
-**Next.** The owner's "Start release 0.4.0" (Regression). Open decisions #47 to #53 are due by 0.4.0.
-
-**For the owner to decide.** Open decisions #47 to #53.
+Step 15 `[engine]`, the pre-release routine, with everything it turned up: the weekly mutation job outgrew one runner and now runs twelve shards; a review of the engine changes of steps 13 and 14 found and fixed two wrong results at large parameters (the discrete distributions' point floored with a relative fuzz; a series returning a partial sum past its limit); the owner held the release until every surviving mutant had a test or a reason and every timeout a verdict, which took three runs, 16 tests for real gaps, 82 equivalents recorded, a flaky property repaired and the job's skips for two million-call tests, the figures in the release notes. The owner took open decision #46 and ended the freeze (#40). The release notes are `docs/releases/0.3.0-notes.md`; the risk register and the open-decisions register have their reviews; the version is 0.3.0; the tag `v0.3.0` carries the notes as a GitHub release. Everything of the routine green: 626 tests, the four-target identity check, the nightly, fuzz and weekly jobs, the conformance report, `zeff selftest` 81 of 81 on the release build.
 
 ## 23 October 2026, release 0.4.0 started
 
@@ -187,3 +133,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 5, `category`, `levels`, `base` `[function]`.
 
 **For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10.
+
+## 23 October 2026, step 5 of release 0.4.0
+
+**Done.** Step 5 `[function]`: `category`, `levels` and `base` with their pages. `category` makes a category from text (levels in code-point order), from numbers (as they print, in numeric order), from a labelled Int (its labels in code order) and from a category, or with `levels:` in the order given, a value outside them becoming `NA` under W0203 with the count and up to three distinct values; `ordered:` and `contrast:` write the fields of step 3; more than 10,000 levels warns under W0602 (new page) that an identifier may have been categorised. `levels` lists the levels; `base` moves a level first as R's `relevel` does, keeping the order, the contrast and the labels, and names the nearest level when the one asked for does not exist. The W0203 warning of `to` now lists distinct values too. 5 tests of the definition of done (R's `factor`, `levels` and `relevel` in the C locale, whose byte order is Zeff's code-point order, and the four `contr.*` matrices kept for step 8; the edge-case datasets and the shipped labelled variables; a property that levels sort and labels read back through `base`; a panel's row identifier categorised; every message). The milestone script gained two statements; the catalogue rows 40 to 42 are implemented. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check (75 codes) and the conformance report (one milestone line changed, deliberately) pass locally; CI runs on the push.
+
+**Next.** Step 6, `label` and `recode` `[function]`, which needs question 6 (the signature of `label` and the rules of `recode`).
+
+**For the owner to decide.** Question 6 before step 6; questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10.

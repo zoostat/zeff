@@ -1,0 +1,6 @@
+---
+source: packages/tier0/core/tests/category.rs
+expression: without_format_notes(&stderr)
+---
+warning: the category has 18,412 levels, more than 10,000: an identifier may have been categorised (line 1)
+  = help: a category stands for a few groups; keep an identifier as a number or text

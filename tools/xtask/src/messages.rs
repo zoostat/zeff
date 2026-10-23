@@ -21,7 +21,11 @@ const PHRASES: &[(&str, &[&str])] = &[
             "with a fraction became NA under to(Int)",
         ],
     ),
-    ("W0203", &["could not be converted to"]),
+    (
+        "W0203",
+        &["could not be converted to", "none of the levels given"],
+    ),
+    ("W0602", &["levels, more than"]),
     (
         "W0204",
         &[
