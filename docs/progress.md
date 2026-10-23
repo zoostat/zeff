@@ -175,3 +175,13 @@ Step 10 `[engine]`: the first regression. `wages.reg(log(wage) ~ educ + exper + 
 **Next.** Step 15, the result interface `[function]`: `summary`, `estimates`, `std_errors`, `p_values`, `ci` and `n_obs`, which needs questions 3 (d) and 4.
 
 **For the owner to decide.** Questions 3 (b) to (d), 4 and 7 at the top of `docs/releases/0.4.0.md`; 3 (d) and 4 before step 15; open decision #54 by 0.6.0.
+
+## 24 October 2026, step 15 of release 0.4.0
+
+**Done.** Step 15 `[function]`: the result interface, with questions 3 (d) and 4 as the owner decided them. Every result answers `summary` (the printed summary as a `Table`, with `standardized: true` adding the column `beta` and `fit_measures: true` the log-likelihood, AIC and BIC line), `estimates` (a `Frame` of the terms with their estimate, standard error, statistic, p-value and interval), `std_errors` and `p_values` (a `Mapping` by term, or one value for a named term; `NA` for an omitted term), `ci` (a `Table` of intervals at any level, or the two limits of one term) and `n_obs`; a test's result gives its single p-value. The `Table` value gained the lines a summary prints around its grid, and the separate summary type went; the checker types a method's return by use. The R reference adds the standardized coefficients and the information criteria, and every method agrees with R within 1e-10 on all thirty-six fits. The six pages are complete with running examples, `zeff help reg` lists the six under its Value, and the catalogue rows are marked implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (114 suites), the tier check, the message check (89 codes), the conformance report (two new lines) and the export check pass locally; CI green on d18689c (run 40009461153) with the four targets identical.
+
+**Next.** Step 16, the estimator interface, part 1 `[function]`: `coef`, `vcov`, `fit_measures`, `predict`, `residuals` and `fitted`.
+
+**For the owner to decide.** Questions 3 (b), 3 (c) and 7 at the top of `docs/releases/0.4.0.md` (7 before step 17, 3 (b) and (c) before step 18); open decision #54 by 0.6.0.
