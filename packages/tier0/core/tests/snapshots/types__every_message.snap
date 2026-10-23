@@ -1,0 +1,202 @@
+---
+source: packages/tier0/core/tests/types.rs
+expression: all
+---
+> to(2.5, Int)
+NA
+warning: 2.5 has a fraction, so to(Int) gave NA (line 1)
+  = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
+[exit 0]
+
+> to(Inf, Int)
+NA
+warning: Inf has a fraction, so to(Int) gave NA (line 1)
+  = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
+[exit 0]
+
+> to("1,000", Float)
+NA
+warning: "1,000" could not be converted to Float and became NA (line 1)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+[exit 0]
+
+> to(7, Bool)
+NA
+warning: 7 could not be converted to Bool and became NA (line 1)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+[exit 0]
+
+> to("yes", Bool)
+NA
+warning: "yes" could not be converted to Bool and became NA (line 1)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+[exit 0]
+
+> to("99999999999999999999", Int)
+NA
+warning: "99999999999999999999" could not be converted to Int and became NA (line 1)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+[exit 0]
+
+> to(NA, Int)
+NA
+[exit 0]
+
+> let w = import("data/wages_large.csv")
+to(w["region"], Int)
+Column<Int> · 1,200 values
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+… and 1,180 more values
+warning: 1,200 values could not be converted to Int and became NA: "Québec", "Zürich", "São Paulo" (line 2)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+[exit 0]
+
+> let w = import("data/wages_large.csv")
+to(w["wage"], Int)
+Column<Int> · 1,200 values
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+… and 1,180 more values
+warning: 1,194 values with a fraction became NA under to(Int) (line 2)
+  = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
+[exit 0]
+
+> let w = import("data/wages_large.csv")
+to(w["wage"], Bool)
+error[Z0401]: to(Bool) is not defined for a Float
+ --> scripts/main.zeff:2:15
+  |
+2 | to(w["wage"], Bool)
+  |               ^^^^ no conversion from Float
+  |
+  = help: a Float converts to Int or Str; the table of conversions is in section 3.7 of the Language Reference
+[exit 1]
+
+> let w = import("data/wages.csv")
+to(w, Int)
+error[Z0401]: to(Int) is not defined for a Frame
+ --> scripts/main.zeff:2:4
+  |
+2 | to(w, Int)
+  |    ^ not a value `to` converts
+  |
+  = help: `to` converts a Bool, Int, Float or Str, or a column
+[exit 1]
+
+> to(3, Date)
+error[Z0304]: to(Date) is not available in this release
+ --> scripts/main.zeff:1:7
+  |
+1 | to(3, Date)
+  |       ^^^^ arrives with release 0.6.0
+  |
+  = help: conversion to dates and times arrives with the date functions of release 0.6.0
+[exit 1]
+
+> to("2026-10-23", DateTime)
+error[Z0304]: to(DateTime) is not available in this release
+ --> scripts/main.zeff:1:18
+  |
+1 | to("2026-10-23", DateTime)
+  |                  ^^^^^^^^ arrives with release 0.6.0
+  |
+  = help: conversion to dates and times arrives with the date functions of release 0.6.0
+[exit 1]
+
+> to("a", Category)
+error[Z0401]: to(Category) needs a column, not a single value
+ --> scripts/main.zeff:1:4
+  |
+1 | to("a", Category)
+  |    ^^^ a single value
+  |
+  = help: a category is a column type: convert a variable, as in `add(group = to(name, Category))`
+[exit 1]
+
+> to([1, 2], Int)
+error[Z0401]: to(Int) is not defined for a List<Int>
+ --> scripts/main.zeff:1:4
+  |
+1 | to([1, 2], Int)
+  |    ^^^^^^ not a value `to` converts
+  |
+  = help: `to` converts a Bool, Int, Float or Str, or a column
+[exit 1]
+
+> to(3, 4)
+error[Z0401]: `type` of `to` must be a Type, but this is an Int
+ --> scripts/main.zeff:1:7
+  |
+1 | to(3, 4)
+  |       ^ an Int
+  |
+  = help: usage: `x.to(type)`
+[exit 1]
+
+> let x = 3
+x.is(4)
+error[Z0401]: `type` of `is` must be a Type, but this is an Int
+ --> scripts/main.zeff:2:6
+  |
+2 | x.is(4)
+  |      ^ an Int
+  |
+  = help: usage: `x.is(type)`
+[exit 1]
+
+> type_of(print(1))
+error[Z0206]: this gives no value, so it cannot be passed
+ --> scripts/main.zeff:1:9
+  |
+1 | type_of(print(1))
+  |         ^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing
+[exit 1]
+
+> to(3)
+error[Z0406]: `to` needs `type`
+ --> scripts/main.zeff:1:1
+  |
+1 | to(3)
+  | ^^ `type` is missing
+  |
+  = help: usage: `x.to(type)`
+[exit 1]

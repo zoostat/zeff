@@ -179,7 +179,9 @@ fn text(name: &str, value: &str) -> Line {
 /// The first milestone of release 0.1.0: a script that reads a CSV and prints the mean of a
 /// column, run through the lexer, parser, checker and interpreter on an in-memory project. Its
 /// printed output must be the same bytes on every target.
-fn milestone_cases() -> Vec<Line> {
+/// The milestone script run on its in-memory project: the whole engine from the lexer to the
+/// printed output, on every construct the releases so far run.
+fn milestone_run() -> Result<zeff_engine::run::Outcome, &'static str> {
     use std::path::Path;
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
@@ -197,10 +199,17 @@ fn milestone_cases() -> Vec<Line> {
         "/p/data/wages.csv",
         "id,wage,hours\n1,23.4,40\n2,19.0,35\n3,31.2,\n4,27.75,38\n5,1000000.125,41\n6,0.000031,39\n",
     );
-    let script = "let wages = import(\"data/wages.csv\")\nwages.mean(wage)\nwages.mean(hours)\nprint(wages, [1, 2.5], 1e-7)\nwages.mean(id)\nlet built = frame(x = [1, 2.5, NA], flag = [true, false, true], name = [\"a\", \"b\", \"c\"])\nbuilt\nbuilt.mean(x)\nbuilt.mean(flag)\nwages.n_rows()\nwages.n_cols()\nwages.variables()\nbuilt.variables()\nwages.describe()\nbuilt.describe()\nwages.sd(wage)\nwages.sd(hours)\nwages.sd(id)\nbuilt.sd(x)\nbuilt.sd(flag)\nwages.summary()\nbuilt.summary([x, flag], stats: [n, mean, max])\nprint(wages.summary([wage]), NA, -0.0, 1e15, [true, NA])\nlet a = 7\nlet b = 2.5\na / 3\na ^ 0.5\nb ^ a\n(a + b) * (a - b)\n1e300 * 1e10\n0.1 + 0.2 == 0.3\n2..6\n[1 => \"one\", 2 => \"two\"][2]\n{x: 1.5, y: [1, 2]}.y[2]\n-a\n!(a > b)\nwages[\"wage\"] * 2\nwages[\"hours\"] / wages[\"id\"]\nwages[\"wage\"] > 25 && wages[\"id\"] != 3\nframe(ratio = wages[\"wage\"] / 10, big = wages[\"wage\"] >= 27.75).describe()\n";
-    let outcome = match Project::open(&fs, Path::new("/p")) {
-        Ok(project) => run_script(&fs, &project, "scripts/main.zeff", script),
-        Err(_) => return vec![text("milestone/project", "could not open")],
+    let script = "let wages = import(\"data/wages.csv\")\nwages.mean(wage)\nwages.mean(hours)\nprint(wages, [1, 2.5], 1e-7)\nwages.mean(id)\nlet built = frame(x = [1, 2.5, NA], flag = [true, false, true], name = [\"a\", \"b\", \"c\"])\nbuilt\nbuilt.mean(x)\nbuilt.mean(flag)\nwages.n_rows()\nwages.n_cols()\nwages.variables()\nbuilt.variables()\nwages.describe()\nbuilt.describe()\nwages.sd(wage)\nwages.sd(hours)\nwages.sd(id)\nbuilt.sd(x)\nbuilt.sd(flag)\nwages.summary()\nbuilt.summary([x, flag], stats: [n, mean, max])\nprint(wages.summary([wage]), NA, -0.0, 1e15, [true, NA])\nlet a = 7\nlet b = 2.5\na / 3\na ^ 0.5\nb ^ a\n(a + b) * (a - b)\n1e300 * 1e10\n0.1 + 0.2 == 0.3\n2..6\n[1 => \"one\", 2 => \"two\"][2]\n{x: 1.5, y: [1, 2]}.y[2]\nprint(-a)\n!(a > b)\nwages[\"wage\"] * 2\nwages[\"hours\"] / wages[\"id\"]\nwages[\"wage\"] > 25 && wages[\"id\"] != 3\nframe(ratio = wages[\"wage\"] / 10, big = wages[\"wage\"] >= 27.75).describe()\nto(wages[\"wage\"], Int)\nto(wages[\"id\"], Str)\nto(\"42\", Int)\ntype_of(wages)\nwages[\"hours\"].is(Int)\nto(built[\"name\"], Category)\n";
+    match Project::open(&fs, Path::new("/p")) {
+        Ok(project) => Ok(run_script(&fs, &project, "scripts/main.zeff", script)),
+        Err(_) => Err("could not open"),
+    }
+}
+
+fn milestone_cases() -> Vec<Line> {
+    let outcome = match milestone_run() {
+        Ok(outcome) => outcome,
+        Err(reason) => return vec![text("milestone/project", reason)],
     };
     vec![
         text("milestone/stdout", &outcome.output.stdout),
@@ -831,6 +840,21 @@ mod tests {
     #[test]
     fn the_report_is_the_same_twice() {
         assert_eq!(report(), report());
+    }
+
+    /// The milestone script ran into a check error from 18 October 2026 (a line `-a`, which the
+    /// grammar refuses) to 23 October 2026, its digests being those of the failure on every
+    /// target alike; this test keeps the case honest.
+    #[test]
+    fn the_milestone_script_runs_to_the_end() {
+        let outcome = milestone_run().expect("the milestone project opens");
+        assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+        assert!(!outcome.output.stdout.is_empty());
+        assert!(
+            !outcome.output.stderr.contains("error["),
+            "{}",
+            outcome.output.stderr
+        );
     }
 
     #[test]

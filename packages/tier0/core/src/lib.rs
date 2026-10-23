@@ -8,6 +8,7 @@ pub mod operators;
 pub mod program;
 pub mod runtime;
 pub mod special;
+pub mod types;
 pub mod value;
 
 use runtime::{Args, CallContext, Fail, Function};
@@ -46,5 +47,6 @@ pub fn functions() -> Vec<Function> {
     all.extend(special::functions());
     all.extend(missing::functions());
     all.extend(program::functions());
+    all.extend(types::functions());
     all
 }

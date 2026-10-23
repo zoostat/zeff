@@ -177,3 +177,13 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 **Next.** Step 4, `to`, `is`, `type_of` `[function]`.
 
 **For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10.
+
+## 23 October 2026, step 4 of release 0.4.0
+
+**Done.** Step 4 `[function]`: `to`, `is` and `type_of` with their pages, by the conversion table of section 3.7 (text in quotes in the warnings, the count and three failing values under W0203, a fraction given to Int under W0202, both with new explained pages; conversion to dates waits for 0.6.0 as the catalogue says); `is` tests a column's element type; the checker gained a result rule that reads the `Type` argument and recognises every type name of section 4 as a value. The catalogue's usages of `to` and `is` corrected (a type written where a name belongs; logged). Found on the way: the milestone case of the conformance report had failed at a check error since 18 October 2026 (a line `-a`), its digests being those of the failure on every target; the line is fixed, the milestone's digests regenerated, and a test now keeps it running to the end. 8 tests of the definition of done (R `as.*` where the rules agree, with the departures named; the edge-case datasets; round-trip properties; every message). Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check (74 codes) and the conformance report (three milestone lines changed, deliberately) pass locally; the four-target run to be read after the push.
+
+**Next.** Step 5, `category`, `levels`, `base` `[function]`.
+
+**For the owner to decide.** Questions 2 to 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10.

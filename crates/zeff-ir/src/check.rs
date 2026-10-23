@@ -75,7 +75,28 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
 }
 
 /// The type names that are values for `types:` (section 3.7, "Words and types").
-const TYPE_NAMES: [&str; 6] = ["Bool", "Int", "Float", "Str", "Date", "DateTime"];
+/// The type names a script may write as values (section 3.7, "Words and types": for `to`, `is`,
+/// `type_of` comparisons and `types:`); the result types join them at step 12 of release 0.4.0.
+const TYPE_NAMES: &[&str] = &[
+    "Bool",
+    "Int",
+    "Float",
+    "Str",
+    "Date",
+    "DateTime",
+    "Category",
+    "Frame",
+    "Table",
+    "Column",
+    "List",
+    "Record",
+    "Mapping",
+    "Distribution",
+    "Result",
+    "Failed",
+    "Any",
+    "Type",
+];
 
 struct Checker<'a> {
     file: &'a str,
@@ -461,6 +482,18 @@ impl Checker<'_> {
                     );
                     return Expr::error(span);
                 }
+            }
+            // Where a type is expected, a type name is one before it could be a column or a
+            // binding (`to(hours, Float)` inside `add`).
+            Some(Ty::Type) if TYPE_NAMES.contains(&text.as_str()) => {
+                return Expr {
+                    ty: Ty::Type,
+                    span,
+                    kind: ExprKind::TypeName {
+                        name: text,
+                        format: None,
+                    },
+                };
             }
             Some(Ty::Words(words)) => {
                 if words.contains(&text) {
@@ -1778,6 +1811,26 @@ impl Checker<'_> {
                     Some(Ty::Na) | None => Ty::Unknown,
                     Some(t) => t,
                 }
+            }
+        // `Typed` (`to`): the type named by the argument of type `Type`, as a column when the
+        // receiver is one; unknown when the type is not written as a name.
+        } else if spec.returns == "Typed" {
+            let named = slots.iter().flatten().find_map(|e| match &e.kind {
+                ExprKind::TypeName { name, .. } => Some(name.as_str()),
+                _ => None,
+            });
+            let target = match named {
+                Some("Category") => Ty::Column(Box::new(Ty::Unknown)),
+                Some(name) => Ty::parse(name).unwrap_or(Ty::Unknown),
+                None => Ty::Unknown,
+            };
+            let receiver_is_column = slots
+                .first()
+                .and_then(|s| s.as_ref())
+                .is_some_and(|e| matches!(e.ty, Ty::Column(_)));
+            match (receiver_is_column, &target) {
+                (true, Ty::Column(_)) | (false, _) => target,
+                (true, t) => Ty::Column(Box::new(t.clone())),
             }
         // `Number` (section 3.7): Int when every number given is an Int, Float otherwise.
         } else if spec.returns == "Number" {

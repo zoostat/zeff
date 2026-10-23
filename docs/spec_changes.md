@@ -62,3 +62,7 @@ At the start of release 0.4.0 the summary table gains the rows of #47 to #53, wh
 ## 23 October 2026 — zeff_open_decisions.md, status, summary table and entries #30, #47 to #50 and #52
 
 The owner's decisions after step 1 of release 0.4.0 recorded in the register: #30, #47, #48, #49, #50 and #52, each as recommended; #51 and #53 wait for their own deadlines. The register is the place the decisions belong; no normative text changed. What each decision asks of the engine is in `docs/releases/0.4.0.md` (steps 2, 8 and 21) and `docs/decisions.md`.
+
+## 23 October 2026 — zeff_functions.csv, rows 36 (`to`) and 37 (`is`), usage
+
+The usages were written `x.to(Type)` and `x.is(Type)`, the parameter's type where every other row writes the parameter's name (`name(required, optional: Type = default)`, section 9), so the registry, which checks each registered parameter against the usage, had no name for the type argument; the same slip as `dist.mixture`'s at 0.3.0. Corrected to `x.to(type)` and `x.is(type)`. Found at release 0.4.0, step 4.

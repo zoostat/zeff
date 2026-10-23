@@ -15,6 +15,14 @@ const PHRASES: &[(&str, &[&str])] = &[
     ("W0102", &["and a binding; the variable was used"]),
     ("W0201", &["with NA in", "has no values", "have NA in"]),
     (
+        "W0202",
+        &[
+            "has a fraction, so to(Int) gave NA",
+            "with a fraction became NA under to(Int)",
+        ],
+    ),
+    ("W0203", &["could not be converted to"]),
+    (
         "W0204",
         &[
             "division by zero gave",

@@ -102,6 +102,17 @@ pub enum Value {
 }
 
 impl Value {
+    /// The value's type with an article, for a message: `an Int`, `a Frame`.
+    pub fn type_word(&self) -> String {
+        let name = crate::types::type_name(self);
+        let article = if name.starts_with(['A', 'E', 'I', 'O', 'U', 'N']) {
+            "an"
+        } else {
+            "a"
+        };
+        format!("{article} {name}")
+    }
+
     /// The type's name, as messages write it.
     pub fn type_name(&self) -> &'static str {
         match self {

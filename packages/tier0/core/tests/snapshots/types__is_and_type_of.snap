@@ -1,0 +1,42 @@
+---
+source: packages/tier0/core/tests/types.rs
+expression: stdout
+---
+Int
+Float
+Str
+Bool
+NA
+Frame
+Column<Float>
+Column<Category>
+Table
+Distribution
+List<Int>
+List<Float>
+Record
+Mapping<Int, Str>
+Type
+true
+false
+true
+true
+true
+true
+false
+true
+true
+false
+true
+false
+true
+true
+true
+true
+true
+true
+true
+true
+true
+false
+false

@@ -1,0 +1,101 @@
+---
+source: packages/tier0/core/tests/types.rs
+expression: "format!(\"{stdout}--- messages ---\\n{}\", without_format_notes(&stderr))"
+---
+Column<Int> · 3 values
+NA
+NA
+NA
+Column<Float> · 0 values
+[]
+Column<Str> · 1 value
+42
+Column<Int> · 4 values
+1
+0
+1
+1
+Column<Str> · 4 values
+true
+NA
+NA
+false
+Column<Int> · 3 values
+1
+NA
+NA
+Column<Str> · 3 values
+1
+Inf
+-Inf
+Column<Bool> · 500 values
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+true
+… and 480 more values
+Column<Str> · 500 values
+1000000000.38292
+1000000000.955541
+1000000000.450972
+1000000000.054732
+1000000000.986727
+1000000000.726507
+1000000000.158473
+1000000000.459832
+1000000000.096139
+1000000000.209359
+1000000000.36468
+1000000000.910847
+1000000000.92196
+1000000000.364215
+1000000000.197281
+1000000000.741963
+1000000000.908234
+1000000000.637338
+1000000000.19524
+1000000000.296238
+… and 480 more values
+Column<Category> · 4 values
+café
+café
+東京
+Zürich
+Column<Int> · 4 values
+3
+2
+4
+1
+Column<Category>
+NA
+8
+NA
+NA
+--- messages ---
+note: 2 values of nan_mixed read as NA from NaN (line 10)
+warning: 2 values with a fraction became NA under to(Int) (line 11)
+  = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
+warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 16)
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
+warning: "99999999999999999999" could not be converted to Int and became NA (line 21)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+warning: "  " could not be converted to Float and became NA (line 23)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+warning: "NaN" could not be converted to Float and became NA (line 24)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
