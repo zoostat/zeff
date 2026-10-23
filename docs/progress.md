@@ -143,3 +143,15 @@ Step 10 `[engine]`: the first regression. `wages.reg(log(wage) ~ educ + exper + 
 **Next.** Step 12, results in the checker and the registry `[engine]`.
 
 **For the owner to decide.** Questions 3 (b) to (d), 4 and 7 at the top of `docs/releases/0.4.0.md`; open decision #54 by 0.6.0.
+
+## 23 October 2026, step 12 of release 0.4.0
+
+**Done.** Step 12 `[engine]`: results in the checker and the registry. The checker knows `Result`, `RegFit`, `TestResult` and `Term`: a method registered on `Result` dispatches on every result and one registered on `RegFit` on it alone, a frame method on a fit is refused (Z0401), two kinds of result join to `Result` in a list, and a `Term` argument, a bare name or text, is checked against the fit's terms when the statement runs (Z0414, provisional, listing them; logged). `core` declares the `TestResult` value, printed as question 3 (b) recommends until the owner decides it. The registry refuses two homes whose receiver types overlap and generates the method list of a result type's Value section, grouped as the catalogue groups them; `zeff help reg` prints `Methods: none in this release` until step 15. The engine's tests run fixture result methods beside the real functions through a new `run_script_in`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check (88 codes) and the conformance report (unchanged) pass locally; CI green on 0cdb460 (run 39980813205) with the four targets identical.
+
+**Next.** Step 13, Word and LaTeX tables `[engine]`.
+
+**For the owner to decide.** Questions 3 (b) to (d), 4 and 7 at the top of `docs/releases/0.4.0.md` (3 (b) is in place provisionally as recommended); open decision #54 by 0.6.0.
+
+**Noticed, not changed.** The explained pages of Z0111 and Z0413, written at 0.3.0, are not in the list `zeff help <code>` reads (`explain_pages.rs`), so those two codes have no page at the command line; a two-line fix for a later step.
