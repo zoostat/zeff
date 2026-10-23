@@ -162,7 +162,7 @@ Steps 13 to 25 were built and tagged on 18 October 2026: the first green milesto
 
 **Done.** Step 2b `[engine]`: every sum over values in `zeff-numeric` (`sum`, `mean`, `variance`, `sd`, the weighted statistics, `covariance`, `pearson`, and through them the weight totals and the `sum` statistic) now uses the reduction shape of `zeff-kernels`; the old accumulator is gone; the kernel's whole-slice sums keep the fallback to the plain IEEE sum for a result that is not finite. Not one published digit changed: the conformance report, the samples' output, the references and the snapshots are identical, as a compensated sum of these lengths is correctly rounded whatever its order (checked independently in exact arithmetic). Details in `docs/decisions.md`.
 
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report (unchanged) pass locally; the four-target run to be read after the push.
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report (unchanged) pass locally; CI green on 77e5b78 (run 39874919345) with the four targets identical.
 
 **Next.** Step 3, the metadata store completed: ordered categories, contrasts and comparisons on categories `[engine]`.
 
