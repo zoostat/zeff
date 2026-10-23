@@ -49,7 +49,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "RegFit",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "a term written twice kept once; a collinear column dropped; a category of one level; rows with a zero weight left out; clusters of one observation",
+                        "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small to scale dropped; a category of one level; rows with a zero weight left out; clusters of one observation; an outcome without variation; an essentially perfect fit",
                     ),
                     DiagnosticDecl::new(
                         "W1001",

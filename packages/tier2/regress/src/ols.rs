@@ -50,9 +50,14 @@ impl Estimator for Ols {
         // The first pass: each column's norm, which scales it to unit norm; the lane sums run
         // on across the blocks, so the design's block size changes no bit.
         let mut accumulators: Vec<LaneSum> = (0..k).map(|_| LaneSum::new()).collect();
+        // The largest size in each column, which tells a zero column from one whose squares
+        // underflow.
+        let mut largest: Vec<f64> = vec![0.0; k];
         for block in design.blocks() {
             for (c, accumulator) in accumulators.iter_mut().enumerate() {
-                accumulator.push_squares(block.x.column(c));
+                let column = block.x.column(c);
+                accumulator.push_squares(column);
+                largest[c] = column.iter().fold(largest[c], |m, x| m.max(x.abs()));
             }
         }
         let sums: Vec<f64> = accumulators.iter().map(LaneSum::value).collect();
@@ -112,6 +117,16 @@ impl Estimator for Ols {
         // a candidate, stays last.
         let mut omitted: Vec<usize> = pivoted.order[rank..k].to_vec();
         omitted.sort_unstable();
+        let zero: Vec<usize> = omitted
+            .iter()
+            .copied()
+            .filter(|&c| sums[c] == 0.0 && largest[c] == 0.0)
+            .collect();
+        let vanishing: Vec<usize> = omitted
+            .iter()
+            .copied()
+            .filter(|&c| sums[c] == 0.0 && largest[c] > 0.0)
+            .collect();
         let kept_scales: Vec<f64> = kept.iter().map(|&c| scales[c]).collect();
         let estimates: Vec<f64> = scaled
             .iter()
@@ -165,6 +180,8 @@ impl Estimator for Ols {
         Ok(Fitted {
             kept,
             omitted,
+            zero,
+            vanishing,
             estimates,
             condition_number: condition,
             r: r11,

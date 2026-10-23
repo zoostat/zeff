@@ -66,6 +66,31 @@ impl Clusters {
 pub enum VarianceError {
     /// Clustered errors need two clusters at least.
     OneCluster,
+    /// The computed matrix differs from its transpose by more than rounding can explain: a wrong
+    /// product, reported as an internal error.
+    Asymmetric,
+}
+
+/// The matrix made symmetric from its lower triangle, after a check that the two triangles agree
+/// to within rounding. A sandwich B M B is symmetric in exact arithmetic, but its two triangles
+/// are summed in different orders, and the cancellation in an ill-conditioned bread (a regressor
+/// such as a calendar year, far from zero and barely varying) magnifies the difference, so the
+/// check is relative to each entry's scale, √(Vᵢᵢ Vⱼⱼ), and to the condition number.
+fn symmetrised(v: &Matrix, condition_number: f64) -> Result<Matrix, VarianceError> {
+    let k = v.rows();
+    let tolerance = (1e-6_f64).max(100.0 * f64::EPSILON * condition_number);
+    for i in 0..k {
+        for j in 0..i {
+            let (a, b) = (v.get(i, j), v.get(j, i));
+            let scale = (v.get(i, i) * v.get(j, j)).sqrt().max(a.abs().max(b.abs()));
+            if !(a - b).abs().is_finite() || (a - b).abs() > tolerance * scale + f64::MIN_POSITIVE {
+                return Err(VarianceError::Asymmetric);
+            }
+        }
+    }
+    Ok(Matrix::from_fn(k, k, |i, j| {
+        if i >= j { v.get(i, j) } else { v.get(j, i) }
+    }))
 }
 
 /// The variance of the estimates under `kind`, and the degrees of freedom of the t table.
@@ -88,7 +113,7 @@ pub fn variance(
         Kind::Classical => {
             let sigma2 = fitted.residual_sum_of_squares / (n - k as f64);
             let vcov = Matrix::from_fn(k, k, |i, j| sigma2 * bread.get(i, j));
-            Ok((vcov, df))
+            Ok((symmetrised(&vcov, fitted.condition_number)?, df))
         }
         Kind::Hc1 | Kind::Hc2 | Kind::Hc3 => {
             let mut meat = Matrix::zeros(k, k);
@@ -110,7 +135,7 @@ pub fn variance(
                 1.0
             };
             let vcov = Matrix::from_fn(k, k, |i, j| adjustment * sandwich.get(i, j));
-            Ok((vcov, df))
+            Ok((symmetrised(&vcov, fitted.condition_number)?, df))
         }
         Kind::Cluster => {
             let clusters = clusters.expect("clusters for clustered errors");
@@ -135,7 +160,10 @@ pub fn variance(
             let g = clusters.count as f64;
             let adjustment = g / (g - 1.0) * (n - 1.0) / (n - k as f64);
             let vcov = Matrix::from_fn(k, k, |i, j| adjustment * sandwich.get(i, j));
-            Ok((vcov, clusters.count - 1))
+            Ok((
+                symmetrised(&vcov, fitted.condition_number)?,
+                clusters.count - 1,
+            ))
         }
     }
 }

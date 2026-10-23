@@ -12,7 +12,7 @@ use zeff_core::display::cell;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::Value;
 use zeff_diagnostics::{Diagnostic, count};
-use zeff_kernels::Matrix;
+use zeff_kernels::{Matrix, sum};
 use zeff_numeric::order::WeightKind;
 use zeff_results::design::Design;
 use zeff_results::estimator::{Estimator, Fitted};
@@ -187,24 +187,59 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             rows(design.zero_weights)
         )));
     }
-    if !fitted.omitted.is_empty() {
-        let names: Vec<String> = fitted
-            .omitted
+    // The columns dropped, each kind with its own note: a category level with no observations
+    // among the rows used, a column that is zero in every row, a column whose values are too
+    // small to be scaled, and the rest collinear with the columns before them.
+    let names = |columns: &[usize]| -> Vec<String> {
+        columns
             .iter()
             .map(|&c| format!("`{}`", design.names[c]))
-            .collect();
-        ctx.message(Diagnostic::plain_note(if names.len() == 1 {
-            format!(
-                "{} is collinear with the columns before it and was dropped",
-                names[0]
-            )
-        } else {
-            format!(
-                "{} are collinear with the columns before them and were dropped",
-                names.join(", ")
-            )
-        }));
-    }
+            .collect()
+    };
+    let note = |ctx: &mut CallContext<'_>, listed: Vec<String>, one: &str, several: &str| {
+        if listed.len() == 1 {
+            ctx.message(Diagnostic::plain_note(format!("{} {one}", listed[0])));
+        } else if !listed.is_empty() {
+            ctx.message(Diagnostic::plain_note(format!(
+                "{} {several}",
+                listed.join(", ")
+            )));
+        }
+    };
+    let (levels, zeros): (Vec<usize>, Vec<usize>) = fitted
+        .zero
+        .iter()
+        .partition(|&&c| design.names[c].contains('='));
+    note(
+        ctx,
+        names(&levels),
+        "has no observations among the rows used and was dropped",
+        "have no observations among the rows used and were dropped",
+    );
+    note(
+        ctx,
+        names(&zeros),
+        "is zero in every row used and was dropped",
+        "are zero in every row used and were dropped",
+    );
+    note(
+        ctx,
+        names(&fitted.vanishing),
+        "has values too small to be scaled (below 1e-150 in size) and was dropped",
+        "have values too small to be scaled (below 1e-150 in size) and were dropped",
+    );
+    let collinear: Vec<usize> = fitted
+        .omitted
+        .iter()
+        .copied()
+        .filter(|c| !fitted.zero.contains(c) && !fitted.vanishing.contains(c))
+        .collect();
+    note(
+        ctx,
+        names(&collinear),
+        "is collinear with the columns before it and was dropped",
+        "are collinear with the columns before them and were dropped",
+    );
     if fitted.condition_number > CONDITION_WARNING {
         ctx.message(
             Diagnostic::warning(
@@ -237,6 +272,9 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let (vcov, df) =
         match variance::variance(kind, &Ols, &design, &fitted, &bread, clusters.as_ref()) {
             Ok(pair) => pair,
+            Err(VarianceError::Asymmetric) => {
+                return Err(internal(ctx, "an asymmetric variance matrix"));
+            }
             Err(VarianceError::OneCluster) => {
                 return Err(fail(
                     Diagnostic::error(
@@ -414,6 +452,23 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ctx.message(Diagnostic::plain_note(format!(
             "`{outcome}` has no variation, so R² is undefined"
         )));
+    }
+    // R's rule for an essentially perfect fit (`summary.lm`): a residual variance below 1e-30
+    // of the fitted values' scale, when the standard errors are rounding and nothing more.
+    if df > 0 && !fit.fitted.is_empty() {
+        let n = fit.fitted.len() as f64;
+        let mean = sum(&fit.fitted) / n;
+        let squares: Vec<f64> = fit.fitted.iter().map(|f| (f - mean) * (f - mean)).collect();
+        let variance = if n > 1.0 {
+            sum(&squares) / (n - 1.0)
+        } else {
+            0.0
+        };
+        if fit.sigma * fit.sigma < (mean * mean + variance) * 1e-30 {
+            ctx.message(Diagnostic::plain_note(
+                "the fit is essentially perfect, so the standard errors and t values say nothing",
+            ));
+        }
     }
     Ok(Value::Fit(Rc::new(fit)))
 }

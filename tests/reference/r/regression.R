@@ -35,6 +35,10 @@ zeff_name <- function(name, factors) {
         for (l in f$levels) if (part == paste0(var, l)) return(paste0(var, "=", level_name(l)))
       } else if (f$contrast %in% c("sum", "helmert")) {
         for (i in seq_len(k - 1)) if (part == paste0(var, i)) return(paste0(var, "=", level_name(f$levels[i + 1])))
+      } else if (f$contrast == "poly") {
+        poly_names <- c(".L", ".Q", ".C", if (k > 4) paste0("^", 4:(k - 1)))
+        trends <- c("linear", "quadratic", "cubic", if (k > 4) paste0("degree", 4:(k - 1)))
+        for (i in seq_len(k - 1)) if (part == paste0(var, poly_names[i])) return(paste0(var, "=", trends[i]))
       }
     }
     if (part == "femaleTRUE") return("female")
@@ -181,6 +185,47 @@ cases$weights_frequency_robust <- case("log(wage) ~ educ + female", "wages", log
   se = "HC1", weights = named(wages$exper, "exper"), weight_type = "frequency")
 cases$weights_cluster <- case("log(wage) ~ educ + female", "wages", log(wage) ~ educ + female, wages,
   se = "cluster", cluster = named(wages$worker, "worker"), weights = named(wages$hours, "hours"), weight_type = "sampling")
+
+# The other contrasts of section 7.2 under a regression: R's contr.helmert and contr.poly, the
+# term names as question 5 decided them.
+helm <- wages
+contrasts(helm$industry) <- contr.helmert(12)
+cases$helmert <- case("log(wage) ~ category(industry, contrast: helmert) + educ", "wages",
+  log(wage) ~ industry + educ, helm, list(industry = list(levels = industry_levels, contrast = "helmert")))
+polyed <- wages
+contrasts(polyed$industry) <- contr.poly(12)
+cases$poly <- case("log(wage) ~ category(industry, contrast: poly) + educ", "wages",
+  log(wage) ~ industry + educ, polyed, list(industry = list(levels = industry_levels, contrast = "poly")))
+
+# The Wooldridge textbook data (question 2 of release 0.4.0; the testing handbook, section 1.2):
+# wage1 and wage2 from the wooldridge package, written beside the references as CSV with NA as
+# empty cells, so that the Rust tests fit the same rows; the package is part of the harness alone.
+library(wooldridge)
+data(wage1)
+data(wage2)
+write.csv(wage1, file.path(root, "tests", "reference", "data", "wage1.csv"), row.names = FALSE, na = "")
+write.csv(wage2, file.path(root, "tests", "reference", "data", "wage2.csv"), row.names = FALSE, na = "")
+cases$wage1_textbook <- case("lwage ~ educ + exper + tenure", "wage1", lwage ~ educ + exper + tenure, wage1)
+w1 <- lwage ~ married * female + educ + exper + I(exper^2) + tenure + I(tenure^2)
+w1_text <- "lwage ~ married * female + educ + exper + exper^2 + tenure + tenure^2"
+cases$wage1_hc1 <- case(w1_text, "wage1", w1, wage1, se = "HC1")
+cases$wage1_hc2 <- case(w1_text, "wage1", w1, wage1, se = "HC2")
+cases$wage1_hc3 <- case(w1_text, "wage1", w1, wage1, se = "HC3")
+cases$wage1_cluster <- case("lwage ~ educ + exper + tenure", "wage1", lwage ~ educ + exper + tenure, wage1,
+  se = "cluster", cluster = named(wage1$numdep, "numdep"))
+cases$wage1_level_99 <- case("lwage ~ educ + female * married", "wage1", lwage ~ educ + female * married, wage1,
+  level = 0.99)
+cases$wage2_textbook <- case("lwage ~ educ + exper + tenure + married + black + south + urban", "wage2",
+  lwage ~ educ + exper + tenure + married + black + south + urban, wage2)
+cases$wage2_analytic <- case("lwage ~ educ + exper + tenure", "wage2", lwage ~ educ + exper + tenure, wage2,
+  weights = named(wage2$hours, "hours"), weight_type = "analytic")
+cases$wage2_sampling <- case("lwage ~ educ + exper + tenure", "wage2", lwage ~ educ + exper + tenure, wage2,
+  se = "HC1", weights = named(wage2$hours, "hours"), weight_type = "sampling")
+cases$wage2_frequency <- case("lwage ~ educ + exper", "wage2", lwage ~ educ + exper, wage2,
+  weights = named(wage2$sibs, "sibs"), weight_type = "frequency")
+cases$wage2_na_rows <- case("lwage ~ educ + meduc + feduc", "wage2", lwage ~ educ + meduc + feduc, wage2)
+cases$wage2_cluster_hc <- case("lwage ~ educ + exper + IQ", "wage2", lwage ~ educ + exper + IQ, wage2,
+  se = "cluster", cluster = named(wage2$age, "age"))
 
 out <- list(reference = reference_block(), cases = cases)
 write_json(out, file.path(here(), "regression.json"))

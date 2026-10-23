@@ -15,6 +15,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git); used by regression.R alone"
+    },
+    "wooldridge": {
+      "Package": "wooldridge",
+      "Version": "1.4-7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git); the textbook data wage1 and wage2 for regression.R alone, written to tests/reference/data/ as reference inputs"
     }
   }
 }

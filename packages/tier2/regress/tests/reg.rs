@@ -1,8 +1,10 @@
 //! `reg` (Language Reference, sections 7.2 and 10.2; Engine and Project Specification, section
-//! 13; release 0.4.0, step 10): against R's `lm`, `summary` and `confint` on the shipped `wages`,
-//! `wages_large` and the edge-case files (`tests/reference/r/regression.json`); the exact small
-//! cases of `tests/reference/kernels.json`; the edge cases; the properties of scaling, row
-//! order, duplicates and block size; and the summary with every note and error.
+//! 13; release 0.4.0, steps 10, 11 and 14): against R's `lm`, `summary`, `confint` and `sandwich`
+//! on the shipped `wages`, `wages_large`, Wooldridge's `wage1` and `wage2` and the edge-case
+//! files (`tests/reference/r/regression.json`); the exact small cases of
+//! `tests/reference/kernels.json`; the generating model of `wages` recovered; every edge-case
+//! dataset of the handbook; the properties of scaling, row order, duplicates, leverage, clusters
+//! and block size; and the summary with every note and error.
 
 use proptest::prelude::*;
 use serde_json::Value as Json;
@@ -106,8 +108,21 @@ fn dataset(file: &str) -> Table {
 fn table_of(name: &str) -> Table {
     match name {
         "wages" => zeff_datasets::table("wages").expect("the shipped wages"),
+        "wage1" | "wage2" => reference_data(name),
         other => dataset(other),
     }
+}
+
+/// Wooldridge's textbook data, as `regression.R` writes it beside the references (question 2 of
+/// the release): the same rows R fitted.
+fn reference_data(file: &str) -> Table {
+    let path = root()
+        .join("tests/reference/data")
+        .join(format!("{file}.csv"));
+    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    read_csv(&bytes, &CsvOptions::default())
+        .unwrap_or_else(|e| panic!("{file}: {e:?}"))
+        .table
 }
 
 fn json(file: &str) -> Json {
@@ -259,6 +274,132 @@ fn fits_agree_with_r() {
     }
 }
 
+/// The generating model of the shipped `wages` (its generating script; the testing handbook,
+/// section 1.2): the return to schooling of 0.074 inside the 95 per cent interval of the pooled
+/// regression with errors clustered by worker, and the other coefficients inside their 99 per
+/// cent intervals. The formula's base industry is Agriculture, 0.15 below the generator's base
+/// Retail, so each industry effect is 0.15 above the script's figure.
+#[test]
+fn the_generating_model_of_wages_is_recovered() {
+    let wages = table_of("wages");
+    let text = "log(wage) ~ educ + exper + exper^2 + female + union + industry + year";
+    let fit_at = |level: f64| {
+        fit_with(
+            &wages,
+            text,
+            &Options {
+                cluster: Some("worker"),
+                level: Some(level),
+                ..Options::default()
+            },
+        )
+        .unwrap()
+        .0
+    };
+    let interval = |fit: &Fit, term: &str| -> (f64, f64) {
+        let i = fit
+            .terms
+            .iter()
+            .position(|t| t == term)
+            .unwrap_or_else(|| panic!("no term `{term}`"));
+        fit.intervals[i]
+    };
+    let fit = fit_at(0.95);
+    let (lo, hi) = interval(&fit, "educ");
+    assert!(
+        lo <= 0.074 && 0.074 <= hi,
+        "the return to schooling: 0.074 outside [{lo}, {hi}]"
+    );
+    assert_eq!(fit.n, 18_179);
+    let wide = fit_at(0.99);
+    for (term, truth) in [
+        ("exper", 0.041),
+        ("exper^2", -0.0007),
+        ("female", -0.112),
+        ("union", 0.08),
+        ("year", 0.015),
+    ] {
+        let (lo, hi) = interval(&wide, term);
+        assert!(
+            lo <= truth && truth <= hi,
+            "{term}: {truth} outside the 99 per cent interval [{lo}, {hi}]"
+        );
+    }
+    // The eleven industry effects share the base industry's sampling error (Agriculture has 3
+    // per cent of the workers), so they are judged together: the Wald statistic of the eleven
+    // deviations under the clustered covariance against the 99 per cent point of χ² on eleven
+    // degrees of freedom.
+    let industries = [
+        ("industry=Mining", 0.30),
+        ("industry=Utilities", 0.27),
+        ("industry=Construction", 0.20),
+        ("industry=Manufacturing", 0.19),
+        ("industry=Retail", 0.15),
+        ("industry=Transport", 0.17),
+        ("industry=Finance", 0.29),
+        ("industry=Services", 0.12),
+        ("industry=Education", 0.16),
+        ("industry=Health", 0.21),
+        ("industry=Public administration", 0.23),
+    ];
+    let statistic = wald(&fit, &industries);
+    assert!(
+        statistic < 24.725,
+        "the industry effects: Wald statistic {statistic:.2} on 11 degrees of freedom"
+    );
+}
+
+/// The Wald statistic (b − β)ᵀ V⁻¹ (b − β) of the named terms against their true values, with V
+/// the fit's variance sub-matrix inverted by Gauss–Jordan elimination with partial pivoting.
+fn wald(fit: &Fit, truths: &[(&str, f64)]) -> f64 {
+    let k = fit.terms.len();
+    let positions: Vec<usize> = truths
+        .iter()
+        .map(|(term, _)| fit.terms.iter().position(|t| t == term).unwrap())
+        .collect();
+    let m = positions.len();
+    let deviations: Vec<f64> = positions
+        .iter()
+        .zip(truths)
+        .map(|(&i, (_, truth))| fit.estimates[i] - truth)
+        .collect();
+    let mut a: Vec<Vec<f64>> = positions
+        .iter()
+        .map(|&i| positions.iter().map(|&j| fit.vcov[i * k + j]).collect())
+        .collect();
+    let mut inverse: Vec<Vec<f64>> = (0..m)
+        .map(|i| (0..m).map(|j| f64::from(u8::from(i == j))).collect())
+        .collect();
+    for col in 0..m {
+        let pivot = (col..m)
+            .max_by(|&x, &y| a[x][col].abs().partial_cmp(&a[y][col].abs()).unwrap())
+            .unwrap();
+        a.swap(col, pivot);
+        inverse.swap(col, pivot);
+        let p = a[col][col];
+        for j in 0..m {
+            a[col][j] /= p;
+            inverse[col][j] /= p;
+        }
+        for row in 0..m {
+            if row != col {
+                let f = a[row][col];
+                for j in 0..m {
+                    a[row][j] -= f * a[col][j];
+                    inverse[row][j] -= f * inverse[col][j];
+                }
+            }
+        }
+    }
+    let mut statistic = 0.0;
+    for i in 0..m {
+        for j in 0..m {
+            statistic += deviations[i] * inverse[i][j] * deviations[j];
+        }
+    }
+    statistic
+}
+
 /// The exact least-squares cases of `kernels.py`, each a small matrix with its rational
 /// solution: fitted without an intercept on the matrix's own columns.
 #[test]
@@ -399,6 +540,23 @@ fn the_summary_and_the_edge_cases() {
         // is `u` plus a little of `v`, so a large combination of the three is almost zero while each
         // column keeps a tenth of a thousandth of its norm after the ones before it.
         "let d = frame(a = [1.1, -0.7, 2.3, 0.4, -1.9, 0.8, 1.5, -2.2, 0.3, 1.7, -0.5, 2.9], u = [0.3, 1.4, -0.8, 2.1, 0.6, -1.3, 0.9, 0.2, -1.7, 1.1, 2.4, -0.4], v = [-1.2, 0.5, 0.7, -0.3, 1.8, 0.1, -0.9, 1.3, 0.6, -2.1, 0.8, 1.0], w = [2.0, 1.0, 3.0, 0.5, 1.5, 2.5, 3.5, 0.0, 1.2, 2.2, 0.7, 1.9])\nlet e = d.add(y = a + 1e-5 * u, z = u + 1e-5 * v)\ne.reg(w ~ a + y + z)\n",
+        // Every edge-case dataset of the handbook (step 14): all NA, no rows, one row, Bool
+        // variables, Unicode labels, awkward names, no variation, levels holding symbols, the
+        // magnitudes file with its subnormal column, a level with no observations, a calendar
+        // year under clustered errors, and an exact fit.
+        "import(\"data/all_na.csv\", types: {x: Float, y: Float}).reg(y ~ x)\n",
+        "import(\"data/empty.csv\", types: {x: Float, y: Float}).reg(y ~ x)\n",
+        "import(\"data/one_row.csv\").reg(y ~ x)\n",
+        "let b = import(\"data/bools.csv\")\nb.reg(with_na ~ treated)\nb.reg(treated ~ mixed_case)\n",
+        "import(\"data/unicode_labels.csv\").reg(n ~ to(city == \"東京\", Int))\n",
+        "let a = import(\"data/awkward_names.csv\")\na.reg(`Gross Sales (total)` ~ `日本語`)\na.reg(Wage ~ `x y`)\n",
+        "let z = import(\"data/zero_variance.csv\")\nz.reg(constant ~ big_constant)\nz.reg(constant_with_na ~ constant)\n",
+        "import(\"data/level_symbols.csv\").reg(y ~ category(grp))\n",
+        "import(\"data/magnitudes.csv\").reg(offset ~ wide + tiny)\n",
+        "dataset(wages).where(industry != \"Mining\").reg(log(wage) ~ educ + industry)\n",
+        "dataset(wages).reg(log(wage) ~ educ + industry + year, cluster: worker)\n",
+        "dataset(wages).add(y2 = 3 * educ + 1).reg(y2 ~ educ)\n",
+        "dataset(wages).add(zero = 0).reg(wage ~ educ + zero)\n",
     ];
     let mut all = String::new();
     for script in scripts {

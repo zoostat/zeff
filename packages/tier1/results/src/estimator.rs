@@ -14,8 +14,15 @@ use zeff_kernels::Matrix;
 pub struct Fitted {
     /// The design's columns with an estimate, in the design's order.
     pub kept: Vec<usize>,
-    /// The design's columns dropped as collinear with the columns before them.
+    /// The design's columns dropped as collinear with the columns before them, the zero and
+    /// vanishing columns among them.
     pub omitted: Vec<usize>,
+    /// The omitted columns that are zero in every row used: a category level with no
+    /// observations, or a constant zero.
+    pub zero: Vec<usize>,
+    /// The omitted columns whose values are not zero but too small for their squares to be
+    /// represented (below 1e-150 in size), so that no norm can scale them.
+    pub vanishing: Vec<usize>,
     /// One estimate per kept column, in the units of the data.
     pub estimates: Vec<f64>,
     /// The R factor of the kept columns scaled to unit norm, `kept.len()` square.

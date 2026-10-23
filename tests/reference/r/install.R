@@ -8,7 +8,7 @@ lib <- file.path(here, "library")
 dir.create(lib, showWarnings = FALSE)
 .libPaths(c(lib, .libPaths()))
 snapshot <- "https://packagemanager.posit.co/cran/2026-10-01"
-wanted <- c(sandwich = "3.1.1")
+wanted <- c(sandwich = "3.1.1", wooldridge = "1.4-7")
 for (name in names(wanted)) {
   present <- requireNamespace(name, quietly = TRUE) && as.character(packageVersion(name)) == wanted[[name]]
   if (!present) {

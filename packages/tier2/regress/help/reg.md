@@ -11,10 +11,12 @@ estimate, standard error, t value, p-value and confidence interval, and R² with
 value. The formula's terms follow section 7.2: `a * b` expands, a category gets its indicator
 columns by its contrast with the first level as the base unless `base()` names another, `exper^2`
 and `log(wage)` are computed before the fit, and a term written twice is kept once with a note. A
-regressor collinear with the columns before it is dropped and named in a note; a design whose
-scaled condition number passes 1e8 is warned about (W1001). Standard errors are classical at this
-release; robust and clustered errors, weights and fixed effects follow in 0.4.0 and 0.6.0. Like
-R's `lm` and Stata's `regress`.
+regressor collinear with the columns before it is dropped and named in a note, as is a level
+with no observations among the rows used; a design whose scaled condition number passes 1e8 is
+warned about (W1001). `se:` chooses classical, robust (HC1), HC2 or HC3 standard errors,
+`cluster:` errors clustered by a variable (CR1), and `weights:` with `weight_type:` frequency,
+analytic or sampling weights; fixed effects (`fe:`) arrive with release 0.6.0. Like R's `lm`
+with `sandwich`, and Stata's `regress`.
 
 ## Arguments
 - data: The frame.
@@ -47,9 +49,15 @@ frequency weights count each row as many times as its weight, so N is their sum;
 are precision weights, scaled to sum to the rows; sampling weights are probability weights, with
 which `se:` defaults to `robust` and `classical` is refused. A row with `NA` in the weight or the
 cluster is dropped with the others; a zero weight leaves its row out, with a note; a negative
-weight is an error. After every fit the residuals are checked to be orthogonal to the regressors
-and the variance matrix to be symmetric with no negative variance, a failure being an internal
-error rather than a result.
+weight is an error. A column that is zero in every row used, or whose values are too small to be scaled, is dropped
+with a note of its own; a fit whose residual variance is below 1e-30 of the fitted values' scale
+is noted as essentially perfect, which is R's rule, since its standard errors are then rounding
+alone. After every fit the residuals are checked to be orthogonal to the regressors and the
+variance matrix to be symmetric with no negative variance, a failure being an internal error
+rather than a result. The shipped `wages` recovers its generating model: the return to schooling
+of 0.074 lies inside the interval of the pooled regression with errors clustered by worker, which
+the test suite checks, and the textbook regressions on Wooldridge's `wage1` and `wage2` agree
+with R to ten decimal places.
 
 ## References
 Davidson, R. and MacKinnon, J. G. (2004). *Econometric Theory and Methods*. Oxford University
@@ -76,3 +84,28 @@ standard errors: classical
   female         -0.1319      0.0064    -20.63    <0.001   [-0.1445, -0.1194]
 
 R² 0.210 · adjusted R² 0.210
+> wages.reg(log(wage) ~ educ + exper + exper^2 + female, se: robust)
+reg · log(wage) ~ educ + exper + exper^2 + female
+N = 18,179 (233 rows dropped for NA in model variables)
+standard errors: robust (HC1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     1.7873      0.0233     76.81    <0.001   [1.7417, 1.8329]
+  educ            0.0758      0.0014     56.07    <0.001   [0.0732, 0.0785]
+  exper           0.0421      0.0015     27.22    <0.001   [0.0390, 0.0451]
+  exper^2        -0.0007      0.0000    -13.37    <0.001   [-0.0008, -0.0006]
+  female         -0.1319      0.0064    -20.63    <0.001   [-0.1445, -0.1194]
+
+R² 0.210 · adjusted R² 0.210
+> wages.reg(log(wage) ~ educ + female, cluster: worker)
+reg · log(wage) ~ educ + female
+N = 18,201 (211 rows dropped for NA in model variables)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     2.5247      0.0375     67.39    <0.001   [2.4513, 2.5981]
+  educ            0.0545      0.0027     20.17    <0.001   [0.0492, 0.0598]
+  female         -0.1402      0.0132    -10.58    <0.001   [-0.1661, -0.1142]
+
+R² 0.098 · adjusted R² 0.098
+note: 30 of the 3,911 clusters hold one observation (line 4)
