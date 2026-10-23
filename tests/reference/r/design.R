@@ -76,8 +76,11 @@ case <- function(zeff, data_file, r_formula, data, factors = list()) {
 wages <- read_dataset(file.path(root, "packages", "tier1", "datasets", "data", "wages.csv"))
 wages$industry <- factor(wages$industry, levels = industry_levels)
 large <- read_dataset(file.path(root, "tests", "datasets", "wages_large.csv"))
-large$region_f <- factor(large$region)
 large$female <- large$female %in% c("true", TRUE)
+# The same frame with region a factor, as `category(region)` makes it, under its own name.
+large_f <- large
+large_f$region <- factor(large$region)
+region <- list(levels = levels(large_f$region), contrast = "treatment")
 awkward <- read_dataset(file.path(root, "tests", "datasets", "awkward_names.csv"))
 one <- read_dataset(file.path(root, "tests", "datasets", "one_row.csv"))
 symbols <- read_dataset(file.path(root, "tests", "datasets", "level_symbols.csv"))
@@ -116,9 +119,15 @@ cases$interaction_without_main <- case("wage ~ educ + industry:female", "wages",
 cases$three_way <- case("log(wage) ~ educ * exper * female", "wages",
   log(wage) ~ educ * exper * female, wages)
 cases$region_by_female <- case("wage ~ category(region) * female", "wages_large",
-  wage ~ region_f * female, large, list(region_f = list(levels = levels(large$region_f), contrast = "treatment")))
+  wage ~ region * female, large_f, list(region = region))
 cases$interact <- case("wage ~ interact([educ, hours, female], order: 2)", "wages_large",
   wage ~ (educ + hours + female)^2, large)
+cases$interact_three_way <- case("log(wage) ~ interact([educ, exper, female], order: 3)", "wages",
+  log(wage) ~ (educ + exper + female)^3, wages)
+cases$interact_with_category <- case("wage ~ interact([category(region), female, hours], order: 2)", "wages_large",
+  wage ~ (region + female + hours)^2, large_f, list(region = region))
+cases$interact_and_more <- case("wage ~ educ + interact([category(region), hours], order: 2) + female", "wages_large",
+  wage ~ educ + (region + hours)^2 + female, large_f, list(region = region))
 cases$range <- case("hours ~ id..wage + educ", "wages_large",
   hours ~ id + wage + educ, large)
 cases$na_rows <- case("wage ~ hours + educ", "wages_large", wage ~ hours + educ, large)
@@ -127,13 +136,6 @@ cases$awkward <- case("`Gross Sales (total)` ~ `x y` + `日本語` + `1st` + Wag
 cases$one_row <- case("y ~ x", "one_row", y ~ x, one)
 cases$level_symbols <- case("y ~ category(grp) + n", "level_symbols", y ~ grp + n, symbols,
   list(grp = list(levels = levels(symbols$grp), contrast = "treatment")))
-
-# The column names of region_f carry the R name of the factor; Zeff names them by `region`.
-for (name in names(cases$region_by_female$columns)) {
-  new <- sub("^region_f=", "region=", name)
-  new <- sub(":region_f=", ":region=", new, fixed = FALSE)
-  names(cases$region_by_female$columns)[names(cases$region_by_female$columns) == name] <- new
-}
 
 out <- list(reference = reference_block(), cases = cases)
 write_json(out, file.path(here(), "design.json"))

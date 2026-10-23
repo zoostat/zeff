@@ -1,14 +1,45 @@
 ---
 source: packages/tier2/regress/tests/interact.rs
-expression: "format!(\"{}--- messages ---\\n{}[exit {}]\\n\", outcome.output.stdout,\noutcome.output.stderr, outcome.exit_code)"
+expression: all
 ---
+> let f = y ~ interact([a, b, c], order: 2) + d
+f
+f + interact([category(e), g], order: 2)
+let a = 1
+let b = 2
+interact([a, b], order: 2)
 y ~ interact([a, b, c], order: 2) + d
---- messages ---
+y ~ interact([a, b, c], order: 2) + d + interact([category(e), g], order: 2)
 error[Z0401]: `interact` is a term of a formula and has no value outside one
- --> scripts/main.zeff:5:1
+ --> scripts/main.zeff:6:1
   |
-5 | interact([a, b], order: 2)
+6 | interact([a, b], order: 2)
   | ^^^^^^^^ called outside a formula
   |
   = help: write it on the right of `~`: `y ~ interact([a, b, c], order: 2)`
 [exit 1]
+
+> let f = y ~ interact(a, order: 2)
+error[Z0401]: `vars` of `interact` must be a List, but this is a Column
+ --> scripts/main.zeff:1:22
+  |
+1 | let f = y ~ interact(a, order: 2)
+  |                      ^ a Column
+  |
+  = help: usage: `interact(vars, order: Int = 2)`
+[exit 1]
+
+> let f = y ~ interact([a, b], order: "two")
+error[Z0401]: `order` of `interact` must be an Int, but this is a Str
+ --> scripts/main.zeff:1:37
+  |
+1 | let f = y ~ interact([a, b], order: "two")
+  |                                     ^^^^^ a Str
+  |
+  = help: usage: `interact(vars, order: Int = 2)`
+[exit 1]
+
+> let f = y ~ interact([a, b], order: 1)
+f
+y ~ interact([a, b], order: 1)
+[exit 0]

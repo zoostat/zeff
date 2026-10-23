@@ -173,3 +173,13 @@ Step 15 `[engine]`, the pre-release routine, with everything it turned up: the w
 **Next.** Step 9, `interact` complete `[function]`.
 
 **For the owner to decide.** Questions 2, 3, 4 and 7 at the top of `docs/releases/0.4.0.md`; question 2 is needed at step 10 and question 3 (a) too; open decision #54 by 0.6.0.
+
+## 23 October 2026, step 9 of release 0.4.0
+
+**Done.** Step 9 `[function]`: `interact` complete, with its page, the rules of its order and its variables, categories among them coded as a product codes them, duplicates kept once with a note, and the refusal outside a formula. Three more designs agree with R's `model.matrix` exactly (`^3`, a category among the variables, `interact` beside other terms); a property holds `interact` at the full order to the product's columns bit for bit. The catalogue row 427 is implemented. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (unchanged) pass locally; CI runs on the push.
+
+**Next.** Step 10, the estimator trait, the OLS fit and the printed result `[engine]`, which needs questions 2 and 3 (a).
+
+**For the owner to decide.** Questions 2 and 3 (a) before step 10; questions 3 (b) to (d), 4 and 7 later; open decision #54 by 0.6.0.

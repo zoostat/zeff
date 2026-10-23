@@ -367,6 +367,18 @@ fn every_note_and_error() {
             vec![],
         ),
         (
+            "interact of a variable twice",
+            &large,
+            "wage ~ interact([educ, educ, hours], order: 2)",
+            vec![],
+        ),
+        (
+            "interact beside its own terms",
+            &large,
+            "wage ~ educ + hours + interact([educ, hours], order: 2)",
+            vec![],
+        ),
+        (
             "division by zero in a term",
             &wages,
             "wage ~ educ / (exper - 9)",
@@ -490,6 +502,31 @@ proptest! {
                 prop_assert_eq!(m1.get(j, c).to_bits(), m2.get(i, c).to_bits());
             }
         }
+    }
+
+    /// `interact` of every variable at the full order gives the columns of their product, in
+    /// the same order; at order 2 the pairs and nothing above; a category among them is coded
+    /// as the product codes it.
+    #[test]
+    fn interact_gives_the_product_up_to_its_order(values in prop::collection::vec((-3.0f64..3.0, 0i32..3, -1.0f64..1.0), 3..20), order in 2usize..4) {
+        let t = table(vec![
+            ("y", floats(&values.iter().map(|v| Some(v.2)).collect::<Vec<_>>())),
+            ("a", floats(&values.iter().map(|v| Some(v.0)).collect::<Vec<_>>())),
+            ("g", categories(&["p", "q", "r"], &values.iter().map(|v| Some(v.1)).collect::<Vec<_>>())),
+            ("c", floats(&values.iter().map(|v| Some(v.2 * 2.0)).collect::<Vec<_>>())),
+        ]);
+        let (by_interact, _) = build(&t, &format!("y ~ interact([a, g, c], order: {order})"), &[]).unwrap();
+        let written = if order == 3 { "y ~ a * g * c" } else { "y ~ a + g + c + a:g + a:c + g:c" };
+        let (by_product, _) = build(&t, written, &[]).unwrap();
+        prop_assert_eq!(&by_interact.names, &by_product.names);
+        let (m1, m2) = (by_interact.matrix(), by_product.matrix());
+        prop_assert_eq!(m1.rows(), m2.rows());
+        for r in 0..m1.rows() {
+            for c in 0..m1.cols() {
+                prop_assert_eq!(m1.get(r, c).to_bits(), m2.get(r, c).to_bits());
+            }
+        }
+        prop_assert!(by_interact.names.iter().all(|n| n.matches(':').count() < order));
     }
 
     /// A term written twice is kept once, with a note, whatever its place.

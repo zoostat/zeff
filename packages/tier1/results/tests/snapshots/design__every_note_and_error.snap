@@ -111,6 +111,19 @@ error[Z0401]: `interact` takes two or more variables and an order from 2 to thei
   |
   = help: `interact([a, b, c], order: 2)` is `a + b + c + a:b + a:c + b:c`
 
+> interact of a variable twice: wage ~ interact([educ, educ, hours], order: 2)
+columns: (intercept) | educ | hours | educ:hours
+rows used: 1139; dropped: 61 (hours 61)
+note: `educ` is written twice and is kept once
+note: `educ` is written twice, once as `educ:educ`, and is kept once
+note: `educ:hours` is written twice and is kept once
+
+> interact beside its own terms: wage ~ educ + hours + interact([educ, hours], order: 2)
+columns: (intercept) | educ | hours | educ:hours
+rows used: 1139; dropped: 61 (hours 61)
+note: `educ` is written twice and is kept once
+note: `hours` is written twice and is kept once
+
 > division by zero in a term: wage ~ educ / (exper - 9)
 error[Z0223]: `educ / (exper - 9)` holds an infinite value in rows 1, 52, 76, 86, 92, 141, 163, 212, 228, 233 and 739 more
  --> t.zeff:1:9
