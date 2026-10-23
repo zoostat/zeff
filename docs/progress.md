@@ -178,7 +178,7 @@ Step 15 `[engine]`, the pre-release routine, with everything it turned up: the w
 
 **Done.** Step 9 `[function]`: `interact` complete, with its page, the rules of its order and its variables, categories among them coded as a product codes them, duplicates kept once with a note, and the refusal outside a formula. Three more designs agree with R's `model.matrix` exactly (`^3`, a category among the variables, `interact` beside other terms); a property holds `interact` at the full order to the product's columns bit for bit. The catalogue row 427 is implemented. Details in `docs/decisions.md`.
 
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (unchanged) pass locally; CI runs on the push.
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier check, the message check and the conformance report (unchanged) pass locally; CI green on 6da1ce8 (run 39936343763) with the four targets identical.
 
 **Next.** Step 10, the estimator trait, the OLS fit and the printed result `[engine]`, which needs questions 2 and 3 (a).
 
