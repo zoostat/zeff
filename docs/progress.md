@@ -149,3 +149,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 17, `r_squared` and `influence` `[function]`, which needs question 7.
 
 **For the owner to decide.** Question 7 (the definitions behind `influence`) before step 17; questions 3 (b) and (c) before step 18; open decision #54 by 0.6.0.
+
+## 24 October 2026, step 17 of release 0.4.0
+
+**Done.** Step 17 `[function]`: `r_squared` and `influence` on regression fits, with questions 4 and 7 as decided (question 7 on 24 October 2026). `r_squared()` gives the record of R² and its adjusted form; `influence()` a frame of leverage, Cook's distance and the externally studentized residual for every row of the fitted frame, `NA` where the fit dropped a row, computed in one pass from what the fit holds, with weighted residuals under analytic and sampling weights and per-observation leverage under frequency weights, as R computes them. The R reference adds the first hat values, Cook's distances and studentized residuals of every case, and the measures agree with R on all thirty-six fits, replicate by replicate under frequency weights. The W1006 help points to `influence`; two pages with running examples; catalogue rows 242 and 247 implemented; the older step entries of this file folded.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (115 suites), the tier check, the message check (90 codes), the conformance report (unchanged) and the export check pass locally; CI green on ae08251 (run 40019508934) with the four targets identical.
+
+**Next.** Step 18, the estimator interface, part 2 `[function]`: `test`, `compare` and `derive`, which needs questions 3 (b) and (c).
+
+**For the owner to decide.** Questions 3 (b) and (c) (the printed layouts of a test's result and of `derive`) before step 18; open decision #54 by 0.6.0.
