@@ -170,6 +170,7 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                         .collect(),
                     after: Vec::new(),
                     more: Vec::new(),
+                    rules: Vec::new(),
                 }),
             })
         }
@@ -319,6 +320,7 @@ fn test_table(test: &TestResult) -> Table {
         rows,
         after,
         more: Vec::new(),
+        rules: Vec::new(),
     }
 }
 
@@ -376,6 +378,7 @@ pub fn vcov(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 rows,
                 after: Vec::new(),
                 more: Vec::new(),
+                rules: Vec::new(),
             }))
         }
         Receiver::Test(_) => Ok(Value::Na),

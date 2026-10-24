@@ -1,0 +1,15 @@
+---
+source: packages/tier1/results/tests/export.rs
+expression: tex(&of_compared)
+---
+% requires \usepackage{booktabs}
+% compare · m2 against m1
+\begin{tabular}{lr}
+\toprule
+model & N \\
+\midrule
+m2 & 18,179 \\
+m1 & 18,179 \\
+\bottomrule
+\multicolumn{2}{@{}l@{}}{\footnotesize F(1, 18,175) = 428.19   p $<$ 0.001} \\
+\end{tabular}

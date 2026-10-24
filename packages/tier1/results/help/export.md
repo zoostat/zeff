@@ -1,17 +1,20 @@
 # export
 
 ## Summary
-Write a table to a Word or LaTeX file
+Write a table or a result to a Word or LaTeX file
 
 ## Description
-Writes a table, as `describe`, `summary` and the other table functions return it, to a file under
-the project folder, in the format the extension names: `.docx` for Word and `.tex` for LaTeX. The
-file carries the same layout as the printed table: its title, its columns with numbers to the
-right, and its rows. A path with no folder goes to `output/`, which is created as needed; any
-other folder must exist, and a path outside the project is refused. Like Stata's `esttab using`.
+Writes a table, as `describe`, `summary`, `report` and the other table functions return it, or a
+result, to a file under the project folder, in the format the extension names: `.docx` for Word
+and `.tex` for LaTeX. A regression exports its summary table, with the lines above and below
+the grid as notes, and a test's result its title, its statistic and, for `compare`, the models
+it sets side by side. The file carries the same layout as the printed table: its title, its
+columns with numbers to the right, and its rows. A path with no folder goes to `output/`, which
+is created as needed; any other folder must exist, and a path outside the project is refused.
+Like Stata's `esttab using`.
 
 ## Arguments
-- x: The table to write.
+- x: The table or result to write.
 - path: Where to write it, from the project folder: `output/table1.docx`. The extension chooses
   the format.
 
@@ -24,9 +27,10 @@ below it and under its headings, and any notes beneath in small type; it opens i
 LibreOffice and Pages and takes the document's own fonts. The LaTeX file is a `tabular` with the
 rules of the `booktabs` package, the title in a comment above it and the notes as full-width rows
 under the bottom rule, with `&`, `%`, `_`, `^` and the other special characters escaped; put it
-inside a `table` environment with `\input` in a document that loads `booktabs`. Both files depend
-on the table alone, so they are the same bytes on every machine, and the conformance suite checks
-them.
+inside a `table` environment with `\input` in a document that loads `booktabs`. A rule inside
+the table, as `report` draws one above its statistics, is a `\midrule` in LaTeX and a border in
+Word. Both files depend on the table alone, so they are the same bytes on every machine, and the
+conformance suite checks them.
 
 ## See also
 report, describe, summary
@@ -36,3 +40,6 @@ report, describe, summary
 note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
 > wages.describe().export("output/wages.docx")
 > wages.describe().export("wages.tex")
+> let m = dataset(wages).reg(log(wage) ~ educ + exper + female)
+> m.export("output/model.docx")
+> m.test(educ == exper).export("output/test.tex")

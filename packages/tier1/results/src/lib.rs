@@ -1,14 +1,15 @@
 //! Package results (tier 1): the model matrix of section 7.2 of the Language Reference, the
 //! estimator trait and the variance layer (Engine and Project Specification, section 8.3, point
 //! 2), and the shared result value assembled with its printed summary (section 8.1, rule 5). It
-//! registers `export` on tables (step 13), the result interface (step 15) and the estimator
-//! interface (steps 16 and 18).
+//! registers `export` on tables and results (steps 13 and 19), the result interface (step 15),
+//! the estimator interface (steps 16 and 18) and `report` (step 19).
 
 pub mod design;
 pub mod estimator;
 pub mod export;
 pub mod inference;
 pub mod interface;
+pub mod report;
 pub mod summary;
 pub mod variance;
 
@@ -249,7 +250,7 @@ pub fn functions() -> Vec<Function> {
                 package: "results",
                 method: true,
                 params: vec![
-                    ParamSpec::required("x", "Table"),
+                    ParamSpec::required("x", "Table | Result"),
                     ParamSpec::required("path", "Str"),
                 ],
                 rest: None,
@@ -268,6 +269,34 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: export::export,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "report",
+                package: "results",
+                method: false,
+                params: vec![
+                    ParamSpec::required("fits", "List<Result>"),
+                    ParamSpec::option("stats", "List<n_obs | r_squared | aic | bic>"),
+                    ParamSpec::option_with_default("digits", "Int", "3"),
+                    ParamSpec::option_with_default("stars", "Bool", "true"),
+                    ParamSpec::option("labels", "Record"),
+                    ParamSpec::option("title", "Str"),
+                ],
+                rest: None,
+                returns: "Table",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a fit that is not a regression (a test's result), `digits:` outside 0 to 10, or a label that is not text",
+                    ),
+                    DiagnosticDecl::new("Z0406", "an empty list of fits"),
+                    DiagnosticDecl::new("Z0414", "a label for a term none of the fits has"),
+                ],
+                help: include_str!("../help/report.md"),
+                accuracy: None,
+            },
+            body: report::report,
         },
     ]
 }

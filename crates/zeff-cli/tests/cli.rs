@@ -466,7 +466,7 @@ fn zeff_help_prints_a_functions_page() {
         .replace("\n    ", " ");
     assert_eq!(
         value.trim(),
-        "A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci, n_obs. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted, compare, test, derive. Result methods: r_squared, influence.",
+        "A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci, n_obs, export. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted, compare, test, derive. Result methods: r_squared, influence.",
         "{reg}"
     );
     insta::assert_snapshot!("help_reg", reg);
@@ -484,10 +484,10 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&core)
     );
-    let later = zeff(dir.path(), &["help", "report"]);
+    let later = zeff(dir.path(), &["help", "clamp"]);
     assert_eq!(code(&later), 0);
     assert!(
-        out(&later).starts_with("`report` arrives with release 0.4.0, in the `results` package: "),
+        out(&later).starts_with("`clamp` arrives with release 0.5.0, in the `core` package: "),
         "{}",
         out(&later)
     );

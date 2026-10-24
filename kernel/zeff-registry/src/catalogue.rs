@@ -103,7 +103,8 @@ fn form_parameters(function: &str, usage: &str) -> Vec<String> {
             parts.push(current);
         }
         for part in parts {
-            let part = part.trim();
+            // A list parameter is written in brackets, `report([fits], ...)`.
+            let part = part.trim().trim_start_matches('[');
             if part.is_empty() || part == "..." {
                 continue;
             }

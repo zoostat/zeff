@@ -172,10 +172,21 @@ pub fn is_result_type(ty: &str) -> bool {
     ty == "Result" || RESULT_KINDS.contains(&ty)
 }
 
+/// The types a receiver is written with, one or several joined by `|` (`Table | Result` for
+/// `export`).
+pub fn receiver_types(ty: &str) -> impl Iterator<Item = &str> {
+    ty.split('|').map(str::trim)
+}
+
 /// Whether two receiver types overlap, so that one name may not have a home on both (section 8.1,
-/// rule 6): the same type, or `Result` and one of its kinds.
+/// rule 6): the same type, or `Result` and one of its kinds, in any of the types each is written
+/// with.
 pub fn receivers_overlap(a: &str, b: &str) -> bool {
-    a == b
-        || (a == "Result" && RESULT_KINDS.contains(&b))
-        || (b == "Result" && RESULT_KINDS.contains(&a))
+    receiver_types(a).any(|a| {
+        receiver_types(b).any(|b| {
+            a == b
+                || (a == "Result" && RESULT_KINDS.contains(&b))
+                || (b == "Result" && RESULT_KINDS.contains(&a))
+        })
+    })
 }

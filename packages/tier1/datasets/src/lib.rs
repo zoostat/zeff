@@ -190,6 +190,7 @@ pub fn datasets(_ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> 
         ],
         rows,
         more: Vec::new(),
+        rules: Vec::new(),
         before: Vec::new(),
         after: Vec::new(),
     }))

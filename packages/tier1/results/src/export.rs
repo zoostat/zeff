@@ -1,6 +1,7 @@
 //! Word and LaTeX tables (Language Reference, section 3.8, "Table, Plot: `.export()` writes
 //! them", and section 10.2, "the exported .docx and .tex carry the same layout"; Engine and
-//! Project Specification, section 2, "Writes"; release 0.4.0, step 13).
+//! Project Specification, section 2, "Writes"; release 0.4.0, steps 13 and 19): a table, or a
+//! result through its summary table.
 //!
 //! Both writers are pure functions of the table, so the bytes are the same on every target and
 //! the conformance report hashes them. The `.docx` is a minimal WordprocessingML document in a
@@ -8,8 +9,9 @@
 //! crate is added; the `.tex` is a `tabular` with booktabs rules, the lines above and below the
 //! printed grid as table notes, and special characters escaped.
 
+use zeff_core::display::{degrees_text, fixed, p_value_text, statistic_line};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Align, Table, Value};
+use zeff_core::value::{Align, Table, TestResult, Value};
 use zeff_diagnostics::Diagnostic;
 
 /// The formats a table is written in, chosen by the path's extension.
@@ -38,24 +40,25 @@ impl Format {
     }
 }
 
-/// `x.export(path)` on a table (catalogue row 165): the table with its title as a Word or LaTeX
-/// file under the project folder. A bare file name goes to `output/`, which the project's file
-/// interface creates as needed; `size:` arrives with plots (0.7.0), and a result's summary at
-/// step 19.
+/// `x.export(path)` on a table or a result (catalogue row 165): the table with its title, or the
+/// result's summary table, as a Word or LaTeX file under the project folder. A bare file name
+/// goes to `output/`, which the project's file interface creates as needed; `size:` arrives with
+/// plots (0.7.0).
 pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
-    let table = match args.take(0) {
-        Some(Value::Table(table)) => table,
-        other => {
+    let receiver = args.take(0);
+    let table = match receiver.as_ref().and_then(result_table) {
+        Some(table) => table,
+        None => {
             return Err(fail(
                 Diagnostic::error(
                     "Z0401",
                     format!(
-                        "`export` writes a Table, but this is {}",
-                        other.map_or("nothing".to_string(), |v| v.type_word())
+                        "`export` writes a table or a result, but this is {}",
+                        receiver.map_or("nothing".to_string(), |v| v.type_word())
                     ),
                 )
                 .in_file(ctx.script)
-                .primary(ctx.span_of(0), "not a table"),
+                .primary(ctx.span_of(0), "not a table or a result"),
             ));
         }
     };
@@ -114,6 +117,63 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
     };
     ctx.files.write(&written, &bytes, span, ctx.script)?;
     Ok(Value::Nothing)
+}
+
+/// The table a value exports: a table itself, a regression's summary table (section 10.2), or a
+/// test's result as a table (its title and header lines, the models it compares when it has
+/// them, and its statistic); `None` for anything else.
+pub fn result_table(value: &Value) -> Option<Table> {
+    match value {
+        Value::Table(table) => Some(table.clone()),
+        Value::Fit(fit) => Some(fit.summary.clone()),
+        Value::TestResult(result) => Some(test_table(result)),
+        _ => None,
+    }
+}
+
+/// A test's result as a table: the models' table with the statistic line under it when the
+/// test has one (`compare`); otherwise one row of the statistic, its degrees of freedom and its
+/// p-value.
+pub fn test_table(result: &TestResult) -> Table {
+    let statistic = statistic_line(&result.statistic, result.p_value);
+    match &result.table {
+        Some(table) => Table {
+            title: result.title.clone(),
+            before: result.header.clone(),
+            columns: table.columns.clone(),
+            rows: table.rows.clone(),
+            after: std::iter::once(statistic)
+                .chain(result.after.iter().cloned())
+                .collect(),
+            more: Vec::new(),
+            rules: table.rules.clone(),
+        },
+        None => Table {
+            title: result.title.clone(),
+            before: result.header.clone(),
+            columns: vec![
+                ("statistic".to_string(), Align::Left),
+                ("value".to_string(), Align::Right),
+                ("df".to_string(), Align::Right),
+                ("p value".to_string(), Align::Right),
+            ],
+            rows: vec![vec![
+                result.statistic.name.clone(),
+                fixed(result.statistic.value, 2),
+                result
+                    .statistic
+                    .df
+                    .iter()
+                    .map(|&d| degrees_text(d))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                p_value_text(result.p_value),
+            ]],
+            after: result.after.clone(),
+            more: Vec::new(),
+            rules: Vec::new(),
+        },
+    }
 }
 
 /// The sample every check exports: the summary of the shipped `wages` regression as `reg` prints
@@ -179,15 +239,16 @@ pub fn sample() -> Table {
         ],
         after: vec!["R² 0.210 · adjusted R² 0.210".to_string()],
         more: Vec::new(),
+        rules: Vec::new(),
     }
 }
 
 // ----- LaTeX -----
 
 /// The LaTeX form: a comment with the title, then a `tabular` with booktabs rules (`\toprule`,
-/// `\midrule` under the headings, `\bottomrule`), each column aligned as the printed table aligns
-/// it, and the lines above and below the printed grid as notes under the rules; a further table
-/// follows after a blank line. The file is meant for `\input` inside a `table` environment of a
+/// `\midrule` under the headings and above each row the table rules, `\bottomrule`), each column
+/// aligned as the printed table aligns it, and the lines above and below the printed grid as
+/// notes under the rules; a further table follows after a blank line. The file is meant for `\input` inside a `table` environment of a
 /// document that loads `booktabs`.
 pub fn tex(table: &Table) -> String {
     let mut out = String::from("% requires \\usepackage{booktabs}\n");
@@ -214,7 +275,10 @@ fn table_tex(out: &mut String, table: &Table) {
         .map(|(heading, _)| escape_tex(heading))
         .collect()));
     out.push_str("\\midrule\n");
-    for cells in &table.rows {
+    for (r, cells) in table.rows.iter().enumerate() {
+        if table.rules.contains(&r) {
+            out.push_str("\\midrule\n");
+        }
         let mut escaped: Vec<String> = cells.iter().map(|c| escape_tex(c)).collect();
         escaped.resize(k, String::new());
         out.push_str(&row(escaped));
@@ -294,9 +358,9 @@ pub fn docx(table: &Table) -> Vec<u8> {
 }
 
 /// The main part of the Word document: the title in bold, the lines above the grid, the table
-/// with a rule above and below it and under its headings, numbers to the right as the printed
-/// table has them, and the lines below the grid in small type; a further table follows its own
-/// title.
+/// with a rule above and below it, under its headings and above each row the table rules,
+/// numbers to the right as the printed table has them, and the lines below the grid in small
+/// type; a further table follows its own title.
 pub fn document_xml(table: &Table) -> String {
     let mut x = String::from(concat!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n",
@@ -351,10 +415,11 @@ fn table_xml(x: &mut String, table: &Table) {
     }
     x.push_str("</w:tblGrid><w:tr><w:trPr><w:tblHeader/></w:trPr>");
     for (i, (heading, align)) in table.columns.iter().enumerate() {
-        cell(x, heading, *align, widths[i], true);
+        cell(x, heading, *align, widths[i], true, false);
     }
     x.push_str("</w:tr>");
-    for row in &table.rows {
+    for (r, row) in table.rows.iter().enumerate() {
+        let rule_above = table.rules.contains(&r);
         x.push_str("<w:tr>");
         for (i, (_, align)) in table.columns.iter().enumerate() {
             cell(
@@ -363,6 +428,7 @@ fn table_xml(x: &mut String, table: &Table) {
                 *align,
                 widths[i],
                 false,
+                rule_above,
             );
         }
         x.push_str("</w:tr>");
@@ -377,12 +443,14 @@ fn table_xml(x: &mut String, table: &Table) {
     }
 }
 
-fn cell(x: &mut String, text: &str, align: Align, width: usize, heading: bool) {
+fn cell(x: &mut String, text: &str, align: Align, width: usize, heading: bool, rule_above: bool) {
     x.push_str(&format!(
         "<w:tc><w:tcPr><w:tcW w:w=\"{width}\" w:type=\"dxa\"/>"
     ));
     if heading {
         x.push_str("<w:tcBorders><w:bottom w:val=\"single\" w:sz=\"6\" w:space=\"0\" w:color=\"000000\"/></w:tcBorders>");
+    } else if rule_above {
+        x.push_str("<w:tcBorders><w:top w:val=\"single\" w:sz=\"6\" w:space=\"0\" w:color=\"000000\"/></w:tcBorders>");
     }
     x.push_str("</w:tcPr><w:p><w:pPr><w:spacing w:before=\"0\" w:after=\"0\"/>");
     if align == Align::Right {

@@ -69,6 +69,7 @@ fn a_test_result_prints_in_the_shape_of_section_10_2() {
             ],
         ],
         more: Vec::new(),
+        rules: Vec::new(),
         before: Vec::new(),
         after: Vec::new(),
     };

@@ -24,7 +24,7 @@ pub use render::{PAGE_WIDTH, TEXT_WIDTH, render_page, render_page_with};
 pub use shared::{SHARED, SharedArgument, shared_argument};
 pub use spec::{
     AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec, RESULT_KINDS, Rest, is_result_type,
-    receivers_overlap,
+    receiver_types, receivers_overlap,
 };
 
 /// A function that passed every check, with its parsed page and its catalogue row.
@@ -320,9 +320,9 @@ impl Registry {
     }
 
     /// The methods that apply to a value of the result type `ty` (section 9.1, "Value"): every
-    /// registered method whose receiver is that type or `Result`, grouped as the catalogue groups
-    /// them, the groups and the names within each in catalogue order; `None` when `ty` is not a
-    /// result type.
+    /// registered method whose receiver is that type or `Result`, or is written with several
+    /// types one of which is (`Table | Result`), grouped as the catalogue groups them, the groups
+    /// and the names within each in catalogue order; `None` when `ty` is not a result type.
     pub fn result_methods(&self, ty: &str) -> Option<Vec<(String, Vec<String>)>> {
         if !is_result_type(ty) {
             return None;
@@ -333,7 +333,7 @@ impl Registry {
             .filter(|f| {
                 f.spec
                     .receiver()
-                    .is_some_and(|r| r.ty == "Result" || r.ty == ty)
+                    .is_some_and(|r| receiver_types(r.ty).any(|t| t == "Result" || t == ty))
             })
             .collect();
         methods.sort_by_key(|f| f.row.id);

@@ -3,9 +3,11 @@
 //! check value, the escapes, the formats by extension, a further table, and the committed
 //! reference files that continuous integration checks with Python's `zipfile`.
 
-use zeff_core::value::{Align, Table};
+use std::rc::Rc;
+use zeff_core::value::{Align, Statistic, Table, TestResult, Value};
 use zeff_results::export::{
-    Format, crc32, document_xml, docx, escape_tex, escape_xml, sample, tex, zip,
+    Format, crc32, document_xml, docx, escape_tex, escape_xml, result_table, sample, test_table,
+    tex, zip,
 };
 
 #[test]
@@ -95,6 +97,7 @@ fn a_further_table_and_a_short_row_write() {
         columns: vec![("a".to_string(), Align::Left)],
         rows: vec![vec!["x".to_string()]],
         more: Vec::new(),
+        rules: Vec::new(),
         before: Vec::new(),
         after: Vec::new(),
     };
@@ -109,6 +112,7 @@ fn a_further_table_and_a_short_row_write() {
         rows: vec![vec!["only".to_string()]],
         after: Vec::new(),
         more: vec![inner],
+        rules: Vec::new(),
     };
     let text = tex(&outer);
     assert_eq!(text.matches("\\begin{tabular}").count(), 2);
@@ -118,4 +122,94 @@ fn a_further_table_and_a_short_row_write() {
     assert_eq!(document.matches("<w:tbl>").count(), 2);
     assert!(document.contains("p-values"));
     assert_eq!(document.matches("<w:tc>").count(), 2 + 2 + 1 + 1);
+}
+
+#[test]
+fn a_rule_inside_the_table_is_a_midrule_and_a_border() {
+    let mut table = sample();
+    table.rules = vec![3];
+    let latex = tex(&table);
+    assert_eq!(latex.matches("\\midrule\n").count(), 2, "{latex}");
+    assert!(
+        latex.contains("\\midrule\nexper\\textasciicircum{}2 &"),
+        "{latex}"
+    );
+    // The table's own top border is in `tblPr`; the rule is a border on each cell of the row.
+    let xml = document_xml(&table);
+    assert_eq!(
+        xml.matches("<w:tcBorders><w:top w:val=\"single\"").count(),
+        table.columns.len(),
+        "a top border on every cell of the row"
+    );
+    assert_eq!(
+        document_xml(&sample())
+            .matches("<w:tcBorders><w:top w:val=\"single\"")
+            .count(),
+        0
+    );
+}
+
+#[test]
+fn a_test_result_exports_as_a_table() {
+    let statistic = Statistic {
+        name: "F".to_string(),
+        value: 428.194_164,
+        df: vec![1.0, 18_175.0],
+    };
+    let plain = TestResult {
+        method: "test".to_string(),
+        title: "test · m · educ == exper".to_string(),
+        header: Vec::new(),
+        table: None,
+        statistic: statistic.clone(),
+        p_value: 4.868e-94,
+        after: Vec::new(),
+        notes: Vec::new(),
+        n: 18_179,
+    };
+    let of_plain = test_table(&plain);
+    assert_eq!(of_plain.title, plain.title);
+    assert_eq!(
+        of_plain.rows,
+        vec![vec![
+            "F".to_string(),
+            "428.19".to_string(),
+            "1, 18,175".to_string(),
+            "<0.001".to_string()
+        ]]
+    );
+    assert!(of_plain.after.is_empty());
+    let models = Table {
+        title: String::new(),
+        before: Vec::new(),
+        columns: vec![
+            ("model".to_string(), Align::Left),
+            ("N".to_string(), Align::Right),
+        ],
+        rows: vec![
+            vec!["m2".to_string(), "18,179".to_string()],
+            vec!["m1".to_string(), "18,179".to_string()],
+        ],
+        after: Vec::new(),
+        more: Vec::new(),
+        rules: Vec::new(),
+    };
+    let compared = TestResult {
+        method: "compare".to_string(),
+        title: "compare · m2 against m1".to_string(),
+        table: Some(models),
+        ..plain.clone()
+    };
+    let of_compared = test_table(&compared);
+    assert_eq!(of_compared.rows.len(), 2);
+    assert_eq!(
+        of_compared.after,
+        vec!["F(1, 18,175) = 428.19   p < 0.001".to_string()]
+    );
+    insta::assert_snapshot!("test_result_tex", tex(&of_compared));
+    assert_eq!(
+        result_table(&Value::TestResult(Rc::new(compared))).map(|t| t.title),
+        Some("compare · m2 against m1".to_string())
+    );
+    assert_eq!(result_table(&Value::Int(1)), None);
 }

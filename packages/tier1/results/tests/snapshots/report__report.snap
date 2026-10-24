@@ -1,0 +1,284 @@
+---
+source: packages/tier1/results/tests/report.rs
+expression: all
+---
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+let m2 = wages.reg(log(wage) ~ educ + exper + exper^2 + female, se: robust)
+let m3 = wages.reg(log(wage) ~ educ + exper + female, cluster: worker)
+report([m1, m2, m3])
+report([m1, m2], stats: [n_obs, r_squared, aic, bic], digits: 4, title: "Wage regressions")
+report([m1, m2], stars: false, labels: {educ: "Years of schooling", exper: "Experience"})
+report([m1], stats: [], digits: 0)
+type_of(report([m1]))
+report([m1, m2]).export("output/table1.docx")
+report([m1, m2]).export("output/table1.tex")
+m1.export("output/m1.docx")
+m1.test(educ == exper).export("output/test.tex")
+m2.compare(m1).export("output/compare.tex")
+                    (1)         (2)              (3)
+  (intercept)    1.900***    1.787***         1.900***
+                (0.022)     (0.023)          (0.041)
+  educ           0.076***    0.076***         0.076***
+                (0.001)     (0.001)          (0.003)
+  exper          0.022***    0.042***         0.022***
+                (0.000)     (0.002)          (0.001)
+  female        -0.133***   -0.132***        -0.133***
+                (0.006)     (0.006)          (0.012)
+  exper^2                   -0.001***
+                            (0.000)
+  ────────────────────────────────────────────────────
+  SEs           classical      robust   cluster worker
+  N                18,179      18,179           18,179
+  R²                0.203       0.210            0.203
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(3) note: 33 of the 3,911 clusters hold one observation
+Wage regressions
+
+                     (1)          (2)
+  (intercept)    1.8998***    1.7873***
+                (0.0221)     (0.0233)
+  educ           0.0760***    0.0758***
+                (0.0014)     (0.0014)
+  exper          0.0220***    0.0421***
+                (0.0005)     (0.0015)
+  female        -0.1329***   -0.1319***
+                (0.0064)     (0.0064)
+  exper^2                    -0.0007***
+                             (0.0000)
+  ─────────────────────────────────────
+  SEs            classical       robust
+  N                 18,179       18,179
+  R²                 0.203        0.210
+  AIC              21137.5      20968.9
+  BIC              21176.5      21015.7
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+                             (1)       (2)
+  (intercept)             1.900     1.787
+                         (0.022)   (0.023)
+  Years of schooling      0.076     0.076
+                         (0.001)   (0.001)
+  Experience              0.022     0.042
+                         (0.000)   (0.002)
+  female                 -0.133    -0.132
+                         (0.006)   (0.006)
+  exper^2                          -0.001
+                                   (0.000)
+  ────────────────────────────────────────
+  SEs                  classical    robust
+  N                       18,179    18,179
+  R²                       0.203     0.210
+                    (1)
+  (intercept)        2***
+                    (0)
+  educ               0***
+                    (0)
+  exper              0***
+                    (0)
+  female             0***
+                    (0)
+  ───────────────────────
+  SEs           classical
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+Table
+--- messages ---
+note: 33 of the 3,911 clusters hold one observation (line 4)
+[exit 0]
+
+> let w = dataset(wages).add(twice = educ * 2)
+let a = w.reg(log(wage) ~ educ + twice + female)
+let b = w.reg(log(wage) ~ educ, weights: hours)
+let c = w.reg(log(wage) ~ educ + exper, weights: age, weight_type: frequency)
+report([a, b, c], stats: [n_obs])
+                      (1)         (2)         (3)
+  (intercept)      2.525***    2.462***    1.839***
+                  (0.019)     (0.019)     (0.004)
+  educ             0.055***    0.054***    0.077***
+                  (0.001)     (0.001)     (0.000)
+  female          -0.140***
+                  (0.007)
+  twice         (omitted)
+  exper                                    0.021***
+                                          (0.000)
+  ─────────────────────────────────────────────────
+  SEs             classical      robust   classical
+  N                  18,201      18,167     627,799
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1) note: `twice` is collinear with the columns before it and was dropped
+--- messages ---
+note: `twice` is collinear with the columns before it and was dropped (line 2)
+[exit 0]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report([])
+--- messages ---
+error[Z0406]: `report` needs at least one fit
+ --> scripts/main.zeff:3:8
+  |
+3 | report([])
+  |        ^^ an empty list
+  |
+  = help: give the fits in a list: `report([m1, m2])`
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report([m1, m1.test(educ == 0)])
+--- messages ---
+error[Z0401]: `report` sets regressions side by side, but the second fit is a TestResult
+ --> scripts/main.zeff:3:8
+  |
+3 | report([m1, m1.test(educ == 0)])
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^ not a regression fit
+  |
+  = help: a test's result has no coefficients; report the fits it was made from
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report([m1], digits: 11)
+--- messages ---
+error[Z0401]: `digits:` is a whole number from 0 to 10, but this is 11
+ --> scripts/main.zeff:3:22
+  |
+3 | report([m1], digits: 11)
+  |                      ^^ outside 0 to 10
+  |
+  = help: three decimals is the usual precision of a publication table
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report([m1], labels: {nope: "x"})
+--- messages ---
+error[Z0414]: `nope` is not a term of any of these fits
+ --> scripts/main.zeff:3:22
+  |
+3 | report([m1], labels: {nope: "x"})
+  |                      ^^^^^^^^^^^ unknown term
+  |
+  = help: the terms are `(intercept)`, `educ`, `exper`, `female`
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report([m1], labels: {educ: 3})
+--- messages ---
+error[Z0401]: `labels:` takes text for each term, but `educ` is an Int
+ --> scripts/main.zeff:3:22
+  |
+3 | report([m1], labels: {educ: 3})
+  |                      ^^^^^^^^^ not text
+  |
+  = help: write `labels: {educ: "Years of schooling"}`
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report(m1)
+--- messages ---
+error[Z0401]: `fits` of `report` must be a List<Result>, but this is a RegFit
+ --> scripts/main.zeff:3:8
+  |
+3 | report(m1)
+  |        ^^ a RegFit
+  |
+  = help: usage: `report(fits, stats: List<n_obs | r_squared | aic | bic>, digits: Int = 3, stars: Bool = true, labels: Record, title: Str)`
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report([m1], stats: [n])
+--- messages ---
+error[Z0402]: `n` is not one of the allowed words
+ --> scripts/main.zeff:3:22
+  |
+3 | report([m1], stats: [n])
+  |                      ^ expected one of n_obs, r_squared, aic, bic
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report([m1], stats: n_obs)
+--- messages ---
+error[Z0401]: `n_obs` must be written in a list here
+ --> scripts/main.zeff:3:21
+  |
+3 | report([m1], stats: n_obs)
+  |                     ^^^^^ a word where a list of words is expected
+  |
+  = help: write `[n_obs]`; several words go in one list
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+report([m1], stars: 1)
+--- messages ---
+error[Z0401]: `stars` of `report` must be a Bool, but this is an Int
+ --> scripts/main.zeff:3:21
+  |
+3 | report([m1], stars: 1)
+  |                     ^ an Int
+  |
+  = help: usage: `report(fits, stats: List<n_obs | r_squared | aic | bic>, digits: Int = 3, stars: Bool = true, labels: Record, title: Str)`
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+wages.export("output/x.docx")
+--- messages ---
+error[Z0401]: `export` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | wages.export("output/x.docx")
+  | ^^^^^ this is a Frame
+  |
+  = help: `export` is a method of Table | Result
+[exit 1]
+
+> let wages = dataset(wages)
+let m1 = wages.reg(log(wage) ~ educ + exper + female)
+m1.export("output/m1.csv")
+--- messages ---
+error[Z0716]: `output/m1.csv` has an extension Zeff does not write
+ --> scripts/main.zeff:3:11
+  |
+3 | m1.export("output/m1.csv")
+  |           ^^^^^^^^^^^^^^^ `.csv` is not a format of `export`
+  |
+  = help: a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/m1.docx`
+[exit 1]
+
+> let s = import("data/small.csv")
+let m = s.reg(wage ~ hours + educ)
+let d = s.add(h2 = hours * 2).reg(wage ~ hours + h2)
+report([m, d], title: "Small")
+Small
+
+                    (1)           (2)
+  (intercept)    4.737***      1.327
+                (0.244)       (3.416)
+  hours          0.463***      0.914***
+                (0.011)       (0.082)
+  educ           1.041***
+                (0.022)
+  h2                        (omitted)
+  ─────────────────────────────────────
+  SEs           classical     classical
+  N                    12            12
+  R²                1.000         0.925
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1) warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12)
+(2) note: `h2` is collinear with the columns before it and was dropped
+--- messages ---
+note: data/small.csv read as CSV: 12 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+note: `h2` is collinear with the columns before it and was dropped (line 3)
+[exit 0]

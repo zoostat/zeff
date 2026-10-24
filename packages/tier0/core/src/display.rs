@@ -82,7 +82,13 @@ fn inline(value: &Value) -> String {
         Value::Float(x) => format_float(*x),
         Value::Str(s) => s.clone(),
         Value::Frame(f) => frame_header(f),
-        Value::Table(t) => t.title.clone(),
+        Value::Table(t) => {
+            if t.title.is_empty() {
+                "table".to_string()
+            } else {
+                t.title.clone()
+            }
+        }
         Value::Column(c) => column_header(c),
         Value::Distribution(d) => distribution_text(d),
         Value::Formula(formula) => formula.to_string(),
@@ -232,7 +238,7 @@ fn frame_text(frame: &Frame, width: usize) -> String {
         })
         .collect();
     let mut out = format!("{}\n\n", frame_header(frame));
-    out.push_str(&grid(&columns, &rows, true, width));
+    out.push_str(&grid(&columns, &rows, &[], true, width));
     if table.rows() > shown {
         let rest = table.rows() - shown;
         out.push_str(&format!(
@@ -255,7 +261,13 @@ pub fn test_result_text(result: &TestResult, width: usize) -> String {
     }
     if let Some(table) = &result.table {
         text.push('\n');
-        text.push_str(&grid(&table.columns, &table.rows, false, width));
+        text.push_str(&grid(
+            &table.columns,
+            &table.rows,
+            &table.rules,
+            false,
+            width,
+        ));
         text.push('\n');
     }
     text.push_str(&statistic_line(&result.statistic, result.p_value));
@@ -287,7 +299,7 @@ pub fn statistic_line(statistic: &Statistic, p: f64) -> String {
 
 /// Degrees of freedom as a test line writes them: a whole number as a count, `18,179`; otherwise
 /// to one decimal, `18,074.2`.
-fn degrees_text(df: f64) -> String {
+pub fn degrees_text(df: f64) -> String {
     if df.fract() == 0.0 && df.abs() < 1e15 {
         fixed_grouped(df, 0)
     } else {
@@ -361,15 +373,28 @@ pub fn p_value_text(p: f64) -> String {
 /// A table as it prints (sections 3.8 and 10.2): the title, the lines before the grid, a blank
 /// line, the grid, and the lines after it under a blank line; a result's summary is one.
 fn table_text(table: &Table, width: usize) -> String {
-    let mut text = format!("{}\n", table.title);
+    // A table without a title (a `report` table, section 10.2) starts at its grid.
+    let mut text = String::new();
+    if !table.title.is_empty() {
+        text.push_str(&table.title);
+        text.push('\n');
+    }
     for line in &table.before {
         text.push_str(line);
         text.push('\n');
     }
     // A table without columns (a test's summary) is its lines alone, with no grid between.
     if !table.columns.is_empty() {
-        text.push('\n');
-        text.push_str(&grid(&table.columns, &table.rows, false, width));
+        if !text.is_empty() {
+            text.push('\n');
+        }
+        text.push_str(&grid(
+            &table.columns,
+            &table.rows,
+            &table.rules,
+            false,
+            width,
+        ));
         if !table.after.is_empty() {
             text.push('\n');
         }
@@ -391,12 +416,14 @@ fn width(text: &str) -> usize {
 }
 
 /// Rows of cells under their headings: two spaces in, three between columns, each column as wide
-/// as its widest cell or heading, aligned as the column says. Columns that do not fit the page
-/// (`page_width` characters) go into further blocks separated by a blank line; with
-/// `repeat_first`, the first column (a frame's row numbers) starts every block.
+/// as its widest cell or heading, aligned as the column says, and a rule across the block above
+/// each row listed in `rules`. Columns that do not fit the page (`page_width` characters) go into
+/// further blocks separated by a blank line; with `repeat_first`, the first column (a frame's
+/// row numbers) starts every block.
 fn grid(
     columns: &[(String, Align)],
     rows: &[Vec<String>],
+    rules: &[usize],
     repeat_first: bool,
     page_width: usize,
 ) -> String {
@@ -463,7 +490,11 @@ fn grid(
             format!("{}\n", text.trim_end())
         };
         out.push_str(&line(&|i| columns[i].0.clone()));
-        for row in rows {
+        let rule = format!("  {}\n", "─".repeat(line_width(block).saturating_sub(2)));
+        for (r, row) in rows.iter().enumerate() {
+            if rules.contains(&r) {
+                out.push_str(&rule);
+            }
             out.push_str(&line(&|i| row.get(i).cloned().unwrap_or_default()));
         }
     }
@@ -774,6 +805,7 @@ mod tests {
                 vec!["hours".into(), "2".into(), "40".into()],
             ],
             more: Vec::new(),
+            rules: Vec::new(),
             before: Vec::new(),
             after: Vec::new(),
         };

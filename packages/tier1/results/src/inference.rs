@@ -437,6 +437,7 @@ pub fn compare(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         rows: vec![row(&a), row(&b)],
         after: Vec::new(),
         more: Vec::new(),
+        rules: Vec::new(),
     };
     Ok(Value::TestResult(Rc::new(TestResult {
         method: "compare".to_string(),
@@ -725,5 +726,6 @@ pub fn derive(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         rows,
         after: Vec::new(),
         more: Vec::new(),
+        rules: Vec::new(),
     }))
 }

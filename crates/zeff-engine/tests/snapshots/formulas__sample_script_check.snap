@@ -1,6 +1,5 @@
 ---
 source: crates/zeff-engine/tests/formulas.rs
-assertion_line: 112
 expression: text
 ---
 error[Z0304]: `use` is not available in this release
@@ -41,24 +40,20 @@ error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:90:23
 error[Z0103]: no function is called `vif`
  --> zeff_samples.zeff:94:4
-error[Z0103]: no function is called `report`
- --> zeff_samples.zeff:97:1
 error[Z0103]: no function is called `coef_plot`
  --> zeff_samples.zeff:102:4
 error[Z0404]: `export` has no argument called `size`
  --> zeff_samples.zeff:102:46
 error[Z0304]: `[for ...]` is not available in this release
  --> zeff_samples.zeff:108:12
-error[Z0103]: no function is called `report`
- --> zeff_samples.zeff:111:1
-error[Z0103]: no function is called `report`
- --> zeff_samples.zeff:124:1
+error[Z0103]: no function is called `robustness`
+ --> zeff_samples.zeff:124:14
 error[Z0103]: no function is called `ivreg`
  --> zeff_samples.zeff:130:15
 error[Z0103]: no function is called `first_stage`
  --> zeff_samples.zeff:135:4
-error[Z0103]: no function is called `report`
- --> zeff_samples.zeff:136:1
+error[Z0404]: `reg` has no argument called `fe`
+ --> zeff_samples.zeff:136:58
 error[Z0103]: no function is called `panel`
  --> zeff_samples.zeff:142:44
 error[Z0404]: `reg` has no argument called `fe`
@@ -83,8 +78,6 @@ error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:165:16
 error[Z0103]: no function is called `probit`
  --> zeff_samples.zeff:166:16
-error[Z0103]: no function is called `report`
- --> zeff_samples.zeff:167:1
 error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:168:17
 error[Z0103]: no function is called `logistic`

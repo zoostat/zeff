@@ -6,76 +6,19 @@
 //! shapes a restriction and a definition may take, the printed forms and every message through
 //! the engine.
 
+mod common;
+
+use common::{NoFiles, Options, close, fit_with, json, number, table_of, text};
 use serde_json::Value as Json;
 use std::collections::BTreeMap;
 use std::rc::Rc;
-use zeff_columns::Table;
 use zeff_core::display::{fixed, p_value_text};
 use zeff_core::operators::Op;
-use zeff_core::runtime::{Args, Body, CallContext, Fail, Files, Randomness};
-use zeff_core::value::{ColumnExpr, Fit, Frame, Value};
-use zeff_data::csv::{CsvOptions, read_csv};
+use zeff_core::runtime::{Args, Body, CallContext, Randomness};
+use zeff_core::value::{ColumnExpr, Fit, Value};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
 use zeff_results::inference::{compare, delta, derive, test};
-use zeff_testkit::{formula, root, run};
-
-struct NoFiles;
-
-impl Files for NoFiles {
-    fn read(&self, _: &str, _: Span, _: &str) -> Result<Vec<u8>, Fail> {
-        unreachable!("no file is read")
-    }
-}
-
-#[derive(Default, Clone)]
-struct Options<'a> {
-    se: Option<&'a str>,
-    cluster: Option<&'a str>,
-}
-
-/// A fit through `reg`'s body, as the regression tests make it.
-fn fit_with(table: &Table, text: &str, options: &Options<'_>) -> Rc<Fit> {
-    let f = formula(text);
-    let mut output = String::new();
-    let mut messages: Vec<Diagnostic> = Vec::new();
-    let mut random = Randomness::default();
-    let script = format!("let m = d.reg({text})\n");
-    let mut sources = Sources::new();
-    sources.add(Source::new("t.zeff", &script));
-    let mut ctx = CallContext {
-        files: &NoFiles,
-        script: "t.zeff",
-        text: &script,
-        columns_used: Vec::new(),
-        frame: None,
-        callee_span: Span::new(10, 13),
-        arg_spans: vec![Some(Span::new(8, 9)), Some(Span::new(14, 14 + text.len()))],
-        rest_spans: Vec::new(),
-        definition_spans: Vec::new(),
-        output: &mut output,
-        messages: &mut messages,
-        random: &mut random,
-        statement: 1,
-    };
-    let args = Args {
-        values: vec![
-            Some(Value::Frame(Frame::new(table.clone()))),
-            Some(Value::Formula(f)),
-            options.se.map(|w| Value::Word(w.to_string())),
-            options.cluster.map(|v| Value::Var(v.to_string())),
-            None,
-            None,
-            Some(Value::Float(0.95)),
-        ],
-        rest: Vec::new(),
-        definitions: Vec::new(),
-    };
-    match zeff_regress::reg::reg(&mut ctx, args) {
-        Ok(Value::Fit(fit)) => fit,
-        Ok(other) => panic!("not a fit: {other:?}"),
-        Err(e) => panic!("{}", e.render(&sources)),
-    }
-}
+use zeff_testkit::run;
 
 /// A result method called with the receiver, the other arguments, the rest values and the
 /// definitions given.
@@ -122,51 +65,6 @@ fn call_with(
     }
 }
 
-fn reference_data(file: &str) -> Table {
-    let path = root()
-        .join("tests/reference/data")
-        .join(format!("{file}.csv"));
-    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    read_csv(&bytes, &CsvOptions::default())
-        .unwrap_or_else(|e| panic!("{file}: {e:?}"))
-        .table
-}
-
-fn table_of(name: &str) -> Table {
-    match name {
-        "wages" => zeff_datasets::table("wages").expect("the shipped wages"),
-        other => reference_data(other),
-    }
-}
-
-fn json(file: &str) -> Json {
-    let text = std::fs::read_to_string(root().join("tests/reference").join(file)).unwrap();
-    serde_json::from_str(&text).unwrap()
-}
-
-fn number(value: &Json) -> f64 {
-    match value {
-        Json::Number(n) => n.as_f64().unwrap(),
-        Json::String(s) => match s.as_str() {
-            "NA" => f64::NAN,
-            "Inf" => f64::INFINITY,
-            "-Inf" => f64::NEG_INFINITY,
-            t => t.parse().unwrap(),
-        },
-        other => panic!("not a number: {other}"),
-    }
-}
-
-fn close(a: f64, b: f64, relative: f64, absolute: f64) -> bool {
-    (a - b).abs() <= relative * a.abs().max(b.abs()) + absolute
-}
-
-fn text(value: &Json) -> &str {
-    value
-        .as_str()
-        .unwrap_or_else(|| panic!("not text: {value}"))
-}
-
 /// The reference fit `key`, bound to its key as a script's `let` would bind it.
 fn fit_named(reference: &Json, key: &str) -> Rc<Fit> {
     let info = &reference["inference"]["fits"][key];
@@ -181,6 +79,8 @@ fn fit_named(reference: &Json, key: &str) -> Rc<Fit> {
             _ => None,
         },
         cluster: (!cluster.is_empty()).then_some(cluster),
+        level: Some(0.95),
+        ..Default::default()
     };
     let mut fit = fit_with(&table, text(&info["formula"]), &options);
     let terms: Vec<&str> = info["terms"].as_array().unwrap().iter().map(text).collect();

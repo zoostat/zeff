@@ -151,6 +151,7 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         sigma,
         condition_number: fitted.condition_number,
         notes: design.notes.clone(),
+        warnings: Vec::new(),
         term_sd,
         outcome_sd,
         summary,
@@ -247,6 +248,7 @@ fn summary_of(
             measure(adjusted)
         )],
         more: Vec::new(),
+        rules: Vec::new(),
     }
 }
 

@@ -101,6 +101,7 @@ pub fn describe(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         columns,
         rows,
         more: Vec::new(),
+        rules: Vec::new(),
         before: Vec::new(),
         after: Vec::new(),
     }))

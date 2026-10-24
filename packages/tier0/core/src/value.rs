@@ -58,6 +58,10 @@ pub struct Table {
     /// Further tables printed after this one, each with its own title (the p-values and the N
     /// per pair of `correlation`), separated by a blank line.
     pub more: Vec<Table>,
+    /// The rows above which a rule is drawn (the model statistics of a `report` table under the
+    /// coefficients, section 10.2): a line across the grid when printed, `\midrule` in LaTeX, a
+    /// border in Word.
+    pub rules: Vec<usize>,
 }
 
 /// A probability distribution as a value (Language Reference, section 4: `dist.t(df: 24)` is a
@@ -217,6 +221,9 @@ pub struct Fit {
     pub sigma: f64,
     pub condition_number: f64,
     pub notes: Vec<String>,
+    /// The statistical warnings the fit raised (W1xxx, section 11.1), as printed, which the
+    /// footer of a `report` table lists.
+    pub warnings: Vec<String>,
     /// The standard deviation of each term's column over the rows used, and the outcome's, for
     /// the standardized coefficients (question 3 (d) of release 0.4.0); zero for a column without
     /// variation, such as the intercept.

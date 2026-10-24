@@ -181,11 +181,16 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     for note in &design.notes {
         ctx.message(Diagnostic::plain_note(note.clone()));
     }
+    // The notes printed under the fit are kept on it for the footer of a `report` table
+    // (section 7.2); the design's own notes are there already.
+    let mut notes: Vec<String> = Vec::new();
     if design.zero_weights > 0 {
-        ctx.message(Diagnostic::plain_note(format!(
+        let text = format!(
             "{} with a zero weight left out of the estimate and the observation count",
             rows(design.zero_weights)
-        )));
+        );
+        notes.push(text.clone());
+        ctx.message(Diagnostic::plain_note(text));
     }
     // The columns dropped, each kind with its own note: a category level with no observations
     // among the rows used, a column that is zero in every row, a column whose values are too
@@ -196,15 +201,18 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .map(|&c| format!("`{}`", design.names[c]))
             .collect()
     };
-    let note = |ctx: &mut CallContext<'_>, listed: Vec<String>, one: &str, several: &str| {
-        if listed.len() == 1 {
-            ctx.message(Diagnostic::plain_note(format!("{} {one}", listed[0])));
-        } else if !listed.is_empty() {
-            ctx.message(Diagnostic::plain_note(format!(
-                "{} {several}",
-                listed.join(", ")
-            )));
-        }
+    let note = |ctx: &mut CallContext<'_>,
+                notes: &mut Vec<String>,
+                listed: Vec<String>,
+                one: &str,
+                several: &str| {
+        let text = match listed.len() {
+            0 => return,
+            1 => format!("{} {one}", listed[0]),
+            _ => format!("{} {several}", listed.join(", ")),
+        };
+        notes.push(text.clone());
+        ctx.message(Diagnostic::plain_note(text));
     };
     let (levels, zeros): (Vec<usize>, Vec<usize>) = fitted
         .zero
@@ -212,18 +220,21 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         .partition(|&&c| design.names[c].contains('='));
     note(
         ctx,
+        &mut notes,
         names(&levels),
         "has no observations among the rows used and was dropped",
         "have no observations among the rows used and were dropped",
     );
     note(
         ctx,
+        &mut notes,
         names(&zeros),
         "is zero in every row used and was dropped",
         "are zero in every row used and were dropped",
     );
     note(
         ctx,
+        &mut notes,
         names(&fitted.vanishing),
         "has values too small to be scaled (below 1e-150 in size) and was dropped",
         "have values too small to be scaled (below 1e-150 in size) and were dropped",
@@ -236,20 +247,23 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         .collect();
     note(
         ctx,
+        &mut notes,
         names(&collinear),
         "is collinear with the columns before it and was dropped",
         "are collinear with the columns before them and were dropped",
     );
+    // The statistical warnings, printed here and kept on the fit for the footer of a `report`
+    // table (section 11.1).
+    let mut warnings: Vec<String> = Vec::new();
     if fitted.condition_number > CONDITION_WARNING {
+        let text = format!(
+            "near-singular regressors: the condition number of the scaled design is {:.3e}",
+            fitted.condition_number
+        );
+        warnings.push(format!("warning[W1001]: {text}"));
         ctx.message(
-            Diagnostic::warning(
-                "W1001",
-                format!(
-                    "near-singular regressors: the condition number of the scaled design is {:.3e}",
-                    fitted.condition_number
-                ),
-            )
-            .help("two regressors are almost the same column; drop one, or combine them"),
+            Diagnostic::warning("W1001", text)
+                .help("two regressors are almost the same column; drop one, or combine them"),
         );
     }
     // The clusters of the rows used, from the cluster variable, by identity of its values.
@@ -318,22 +332,23 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     // that drives a coefficient (W1006).
     if let Some(clusters) = &clusters {
         if clusters.singletons > 0 {
-            ctx.message(Diagnostic::plain_note(format!(
+            let text = format!(
                 "{} of the {} clusters hold one observation",
                 count(clusters.singletons as u64),
                 count(clusters.count as u64)
-            )));
+            );
+            notes.push(text.clone());
+            ctx.message(Diagnostic::plain_note(text));
         }
         if clusters.count < FEW_CLUSTERS {
+            let text = format!(
+                "few clusters: {} clusters give clustered errors little to rest on",
+                count(clusters.count as u64)
+            );
+            warnings.push(format!("warning[W1002]: {text}"));
             ctx.message(
-                Diagnostic::warning(
-                    "W1002",
-                    format!(
-                        "few clusters: {} clusters give clustered errors little to rest on",
-                        count(clusters.count as u64)
-                    ),
-                )
-                .help("the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters"),
+                Diagnostic::warning("W1002", text)
+                    .help("the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters"),
             );
         }
     }
@@ -341,16 +356,15 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         let effective = effective_sample_size(w);
         let n = design.n() as f64;
         if n > 0.0 && effective < EXTREME_WEIGHTS_SHARE * n {
+            let text = format!(
+                "extreme weights: the effective sample size is {} of {} rows",
+                count(effective.round() as u64),
+                count(design.n() as u64)
+            );
+            warnings.push(format!("warning[W1003]: {text}"));
             ctx.message(
-                Diagnostic::warning(
-                    "W1003",
-                    format!(
-                        "extreme weights: the effective sample size is {} of {} rows",
-                        count(effective.round() as u64),
-                        count(design.n() as u64)
-                    ),
-                )
-                .help("a few rows carry most of the weight; check them, or trim the weights"),
+                Diagnostic::warning("W1003", text)
+                    .help("a few rows carry most of the weight; check them, or trim the weights"),
             );
         }
     }
@@ -377,14 +391,13 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 "s",
             )
         };
+        let text = format!(
+            "{observations} {verb} a coefficient: removing {which} moves an estimate by more than its standard error (row{plural} {listed}{more})"
+        );
+        warnings.push(format!("warning[W1006]: {text}"));
         ctx.message(
-            Diagnostic::warning(
-                "W1006",
-                format!(
-                    "{observations} {verb} a coefficient: removing {which} moves an estimate by more than its standard error (row{plural} {listed}{more})"
-                ),
-            )
-            .help("check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row"),
+            Diagnostic::warning("W1006", text)
+                .help("check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row"),
         );
     }
     // The summary.
@@ -440,6 +453,8 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         frame_rows: frame.table.rows(),
     };
     let mut fit = summary::linear_fit(&design, &fitted, &vcov, &setting);
+    fit.warnings = warnings;
+    fit.notes.extend(notes);
     // The residuals and fitted values of the rows, unweighted.
     if let Some(w) = &design.weights {
         for (i, root) in w.iter().map(|w| w.sqrt()).enumerate() {
@@ -452,9 +467,9 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .outcome
             .as_ref()
             .map_or(String::new(), |o| o.text.clone());
-        ctx.message(Diagnostic::plain_note(format!(
-            "`{outcome}` has no variation, so R² is undefined"
-        )));
+        let text = format!("`{outcome}` has no variation, so R² is undefined");
+        fit.notes.push(text.clone());
+        ctx.message(Diagnostic::plain_note(text));
     }
     // R's rule for an essentially perfect fit (`summary.lm`): a residual variance below 1e-30
     // of the fitted values' scale, when the standard errors are rounding and nothing more.
@@ -468,9 +483,10 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             0.0
         };
         if fit.sigma * fit.sigma < (mean * mean + variance) * 1e-30 {
-            ctx.message(Diagnostic::plain_note(
-                "the fit is essentially perfect, so the standard errors and t values say nothing",
-            ));
+            let text =
+                "the fit is essentially perfect, so the standard errors and t values say nothing";
+            fit.notes.push(text.to_string());
+            ctx.message(Diagnostic::plain_note(text));
         }
     }
     Ok(Value::Fit(Rc::new(fit)))
