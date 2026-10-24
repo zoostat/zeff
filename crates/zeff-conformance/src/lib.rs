@@ -278,13 +278,33 @@ pub const SIMULATION: Sample = Sample {
     stderr: include_str!("../../../samples/simulation/expected/stderr.txt"),
 };
 
-/// Every sample project, oldest first; each adds three cases to the report.
-pub const SAMPLES: [&Sample; 3] = [&FIRST_ENGINE, &DATA_CLEANING, &SIMULATION];
+/// The sample of release 0.4.0: a regression analysis end to end on the shipped wages, read
+/// from the `zeff:` data root, to a publication table exported as Word and LaTeX.
+pub const REGRESSION: Sample = Sample {
+    name: "regression",
+    manifest: include_str!("../../../samples/regression/zeff.toml"),
+    data: &[],
+    script: include_str!("../../../samples/regression/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/regression/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/regression/expected/stderr.txt"),
+};
+
+/// Every sample project, oldest first; each adds three cases to the report, and one more for
+/// every file it writes under `output/`.
+pub const SAMPLES: [&Sample; 4] = [&FIRST_ENGINE, &DATA_CLEANING, &SIMULATION, &REGRESSION];
 
 /// Run a sample project on an in-memory copy of its files.
 pub fn sample_run(sample: &Sample) -> zeff_engine::run::Outcome {
+    sample_run_with_outputs(sample).0
+}
+
+/// Run a sample project on an in-memory copy of its files: what it printed, and the files it
+/// wrote under `output/`, by name in order, with their bytes.
+pub fn sample_run_with_outputs(
+    sample: &Sample,
+) -> (zeff_engine::run::Outcome, Vec<(String, Vec<u8>)>) {
     use std::path::Path;
-    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::fs::{FileSystem, MemoryFileSystem};
     use zeff_engine::interpreter::Output;
     use zeff_engine::project::Project;
     use zeff_engine::run::{Outcome, run_script};
@@ -295,34 +315,51 @@ pub fn sample_run(sample: &Sample) -> zeff_engine::run::Outcome {
         fs.add_file(format!("/s/data/{file}"), *bytes);
     }
     fs.add_file("/s/scripts/main.zeff", sample.script);
-    match Project::open(&fs, Path::new("/s")) {
+    let outcome = match Project::open(&fs, Path::new("/s")) {
         Ok(project) => run_script(&fs, &project, "scripts/main.zeff", sample.script),
         Err(_) => Outcome {
             output: Output::default(),
             exit_code: 4,
         },
-    }
+    };
+    let outputs = fs
+        .list(Path::new("/s/output"))
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|name| {
+            fs.read(Path::new(&format!("/s/output/{name}")))
+                .ok()
+                .map(|bytes| (name, bytes))
+        })
+        .collect();
+    (outcome, outputs)
 }
 
 fn sample_cases() -> Vec<Line> {
     SAMPLES
         .iter()
         .flat_map(|sample| {
-            let outcome = sample_run(sample);
+            let (outcome, outputs) = sample_run_with_outputs(sample);
             // The first sample keeps the case names of release 0.1.0.
             let prefix = if sample.name == "first_engine" {
                 "sample".to_string()
             } else {
                 sample.name.to_string()
             };
-            vec![
+            let mut lines = vec![
                 text(&format!("{prefix}/stdout"), &outcome.output.stdout),
                 text(&format!("{prefix}/stderr"), &outcome.output.stderr),
                 scalar(
                     format!("{prefix}/exit_code"),
                     Some(f64::from(outcome.exit_code)),
                 ),
-            ]
+            ];
+            // The files the sample exported (step 19's Word and LaTeX tables), so that the four
+            // targets prove they write the same bytes.
+            for (name, data) in &outputs {
+                lines.push(bytes(&format!("{prefix}/output/{name}"), data));
+            }
+            lines
         })
         .collect()
 }

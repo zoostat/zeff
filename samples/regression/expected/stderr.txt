@@ -1,0 +1,6 @@
+note: zeff:wages.csv read as CSV: 18,412 rows × 10 variables, types guessed; CSV carries no labels, value labels or categories (line 11)
+note: `industry` replaced the variable of that name (line 11)
+note: `industry` recoded: 570 rows changed; 11 levels, from 12 (line 11)
+warning: 211 rows with NA in lwage, 22 with NA in exper and 35 with NA in hours were skipped (line 18)
+note: 33 of the 3,911 clusters hold one observation (line 25)
+note: 33 of the 3,911 clusters hold one observation (line 43)

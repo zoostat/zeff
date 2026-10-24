@@ -1,0 +1,60 @@
+// The sample project of release 0.4.0: a regression analysis end to end on the shipped wages,
+// from the data root to a publication table. `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the script tests compare
+// both byte for byte on every target, and the conformance report carries the digests of the
+// files the last section exports.
+
+// 1. Load and clean. The CSV form of the shipped dataset carries no labels or categories, so the
+//    script adds them: the log wage and squared experience the model needs, industry as a
+//    category coded by deviations from the mean (a sum contrast), the two smallest industries
+//    merged, and the codes of `female` labelled.
+let wages = import("zeff:wages.csv")
+    .add(lwage = log(wage), exper2 = exper^2, industry = category(industry, contrast: sum))
+    .recode(industry, ["Mining" => "Other", "Utilities" => "Other"])
+    .label(female, [0 => "male", 1 => "female"])
+
+// 2. Describe.
+wages.describe()
+wages.summary([lwage, educ, exper, hours], by: female)
+
+// 3. Four regressions of one model: classical, robust and clustered standard errors, and hours
+//    as sampling weights.
+let f = lwage ~ educ + exper + exper2 + female
+let m1 = wages.reg(f)
+let m2 = wages.reg(f, se: robust)
+let m3 = wages.reg(f, cluster: worker)
+let m4 = wages.reg(f, weights: hours)
+m3
+m3.summary(standardized: true, fit_measures: true)
+
+// 4. The result interface on the clustered fit: the estimates as a frame, one coefficient, its
+//    interval at another level, and the fit measures.
+m3.estimates().where(p_value < 0.05)
+print("return to schooling:", m3.coef(educ))
+m3.ci(educ, level: 0.9)
+m3.r_squared()
+m3.fit_measures()
+
+// 5. Tests, a nested comparison and a derived quantity. The restriction is written in
+//    coefficient space; the comparison adds union membership and the industry deviations; the
+//    turning point of the experience profile comes with its delta-method standard error.
+m3.test(educ == exper)
+m3.test(exper == 0, exper2 == 0)
+let m5 = wages.reg(lwage ~ educ + exper + exper2 + female + union + industry, cluster: worker)
+m5.compare(m3)
+m5.derive(peak_exper = -exper / (2 * exper2), return_decade = exp(educ * 10) - 1)
+
+// 6. Influence and prediction: the three most influential rows, and predictions for new
+//    workers.
+m3.influence().sort(cooks_distance, desc: true).head(3)
+m3.predict(newdata: frame(educ = [12, 16, 16], exper = [5, 5, 20], exper2 = [25, 25, 400], female = [0, 1, 1]))
+
+// 7. The publication table, printed and exported to Word and LaTeX, and one model's summary
+//    exported on its own.
+let table = report([m1, m2, m3, m4], stats: [n_obs, r_squared],
+                   labels: {educ: "Years of schooling", exper: "Experience", exper2: "Experience squared"},
+                   title: "Table 1. Log hourly wage")
+table
+table.export("output/table1.docx")
+table.export("output/table1.tex")
+m5.export("output/model5.tex")

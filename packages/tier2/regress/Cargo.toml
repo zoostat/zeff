@@ -20,6 +20,7 @@ zeff-kernels.workspace = true
 
 [dev-dependencies]
 zeff-data.workspace = true
+zeff-dist.workspace = true
 zeff-datasets.workspace = true
 zeff-testkit.workspace = true
 insta = "=1.49.0"

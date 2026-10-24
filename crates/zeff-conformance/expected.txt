@@ -139,3 +139,10 @@ simulation/stdout 178da8a8350c10df
 simulation/stderr cbf29ce484222325
 simulation/exit_code a8c7f832281a39c5
 # simulation/exit_code bits 0000000000000000
+regression/stdout 7a25dd62c4c231cb
+regression/stderr 53ebea06d2afe9f3
+regression/exit_code a8c7f832281a39c5
+# regression/exit_code bits 0000000000000000
+regression/output/model5.tex 50a2cb894ae38f0c
+regression/output/table1.docx 38433d13dd4d1591
+regression/output/table1.tex 6cf45d170a0e5e55

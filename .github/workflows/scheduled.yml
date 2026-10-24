@@ -1,7 +1,8 @@
 name: Scheduled
 
 # The nightly and weekly jobs of the testing handbook, sections 2.2 and 2.3: the long property
-# runs and the fuzzing every night, coverage and mutation testing every week. All can also be
+# runs, the stochastic class, the truth-recovery Monte Carlo and the fuzzing every night, coverage
+# and mutation testing every week. All can also be
 # started by hand from the Actions page. Results go to each run's summary page and its artifacts.
 on:
   schedule:
@@ -41,6 +42,9 @@ jobs:
       - name: Run the stochastic class, 50 seeds of 100,000 draws for each distribution
         run: cargo test -p zeff-dist --locked --release --test nightly_stochastic -- --ignored --nocapture 2>&1 | tee stochastic.log
 
+      - name: Run the truth-recovery Monte Carlo, 50 seeds under three designs
+        run: cargo test -p zeff-regress --locked --release --test nightly_truth -- --ignored --nocapture 2>&1 | tee truth.log
+
       - name: Write the note
         if: always()
         run: |
@@ -60,6 +64,14 @@ jobs:
             echo '```'
             cat stochastic.log || true
             echo '```'
+            echo
+            echo "## Nightly: truth recovery"
+            echo
+            echo "Fifty seeds of 400 rows were drawn with the engine's generator under three designs with known coefficients (homoskedastic, heteroskedastic and clustered errors) and fitted by \`reg\` with classical, HC1 to HC3 and CR1 errors. Each coefficient's bias is within four standard errors of its Monte Carlo mean, and the 95 per cent intervals of the standard errors that suit each design cover between 89 and 99.5 per cent of the time (testing handbook, section 1)."
+            echo
+            echo '```'
+            grep -vE "^(running|test |$)" truth.log || true
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the log
@@ -70,6 +82,7 @@ jobs:
           path: |
             nightly.log
             stochastic.log
+            truth.log
           if-no-files-found: ignore
 
   bench:

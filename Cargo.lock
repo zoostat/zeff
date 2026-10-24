@@ -1541,6 +1541,7 @@ dependencies = [
  "zeff-data",
  "zeff-datasets",
  "zeff-diagnostics",
+ "zeff-dist",
  "zeff-kernels",
  "zeff-numeric",
  "zeff-registry",
