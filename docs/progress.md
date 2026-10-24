@@ -169,3 +169,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 19, `report` and `export` on results `[function]`: the publication table of several fits and the export of a result, both on machinery that exists; no question is open before it.
 
 **For the owner to decide.** Nothing before step 19; open decision #54 by 0.6.0.
+
+## 24 October 2026, step 19 of release 0.4.0
+
+**Done.** Step 19 `[function]`: `report` and `export` on results. `report([m1, m2])` sets regressions side by side in the layout of section 10.2: one column per fit headed `(1)`, `(2)`, each term's estimate with its stars and the standard error in parentheses beneath, the stars hanging to the right so that the numbers align, a rule, then the kind of standard errors, N, R² and any of AIC and BIC asked for with `stats:`, the legend, and every note and statistical warning of the fits as the footer; `digits:` (three unless given), `stars:`, `labels:` and `title:` as the catalogue and section 6 say; `(omitted)` for a term dropped as collinear and empty cells for a term a model lacks. Tables gained a rule row, drawn as a line when printed, `\midrule` in LaTeX and a border in Word, and a table without a title prints from its grid. `export` now takes a result too: a regression writes its summary table, a test's result its statistic with the models it compares. The registry reads a receiver written with several types and a list parameter written in brackets; a fit keeps the warnings and notes it raised. Every cell of a two-model table agrees with R's numbers rounded and starred the same way; two pages with running examples; catalogue rows 165 and 166 implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (117 suites), the tier check, the message check (93 codes), the conformance report (unchanged) and the export check pass locally; CI green on cd57426 (run 40054312534) with the four targets identical.
+
+**Next.** Step 20, script tests, the 0.4.0 sample project and the truth-recovery runs in the nightly job `[engine]`.
+
+**For the owner to decide.** Nothing before step 20; open decision #54 by 0.6.0.
