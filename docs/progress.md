@@ -179,3 +179,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 20, script tests, the 0.4.0 sample project and the truth-recovery runs in the nightly job `[engine]`.
 
 **For the owner to decide.** Nothing before step 20; open decision #54 by 0.6.0.
+
+## 24 October 2026, step 20 of release 0.4.0
+
+**Done.** Step 20 `[engine]`: the fourth sample project, `samples/regression`, a regression analysis end to end on the shipped wages read from the `zeff:` data root (clean with `add`, `category` with a sum contrast, `recode` and `label`; describe; four fits with classical, robust and clustered errors and sampling weights; the result interface; `test`, `compare` and `derive`; `influence` and `predict`; `report` printed and exported to Word and LaTeX), with its stored output compared byte for byte by the command-line script test and by the conformance report, which now also hashes the files a sample writes to `output/`. The nightly job gains the truth-recovery Monte Carlo: fifty seeds of 400 rows drawn with the engine's generator under homoskedastic, heteroskedastic and clustered designs with known coefficients, fitted by `reg` with classical, HC1 to HC3 and CR1 errors; the bias of every coefficient is within 2.3 standard errors of its Monte Carlo mean and the intervals that suit each design cover 94 to 96.5 per cent of the time, while the unsuitable ones under-cover as theory says (classical 0.91 under heteroskedasticity, 0.86 under clustering). The nightly job ran green once by hand (run 40055938738) and its note is recorded in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (118 suites), the tier check, the message check (93 codes), the conformance report (seven new cases for the sample) and the export check pass locally; CI green on a81fbdd (run 40055910712) with the four targets identical, the new sample included.
+
+**Next.** Step 21, The benchmark suite, a fuzz target for formulas, and the weekly job's new crates `[engine]`.
+
+**For the owner to decide.** Nothing before step 21; open decision #54 by 0.6.0.
