@@ -647,28 +647,34 @@ proptest! {
         prop_assert!(messages.iter().any(|m| m.contains("`(a * 2)` is collinear with the columns before it and was dropped")), "{:?}", messages);
     }
 
-    /// At zero leverage HC2 and HC3 equal HC1 up to the finite-sample factor: rows of zeros in
-    /// a model without an intercept have no leverage, and their scores are zero too, so the
-    /// three sandwiches agree on the bits.
+    /// Rows of zeros in a model without an intercept have no leverage and zero scores, so they
+    /// add nothing to the HC2 and HC3 sandwiches: their standard errors are the same with and
+    /// without those rows, while HC1's change by its finite-sample factor N / (N − k) alone.
+    /// (The earlier form of this property, that the three kinds stay within a factor of two of
+    /// one another, is false for a row of high leverage, and a random draw found one.)
     #[test]
-    fn hc2_and_hc3_equal_hc1_at_zero_leverage(values in prop::collection::vec((-5.0f64..5.0, -3.0f64..3.0, -3.0f64..3.0), 6..30)) {
+    fn rows_of_zeros_add_nothing_to_hc2_and_hc3(values in prop::collection::vec((-5.0f64..5.0, -3.0f64..3.0, -3.0f64..3.0), 6..30)) {
+        let plain = frame_of(&values);
         let mut rows: Vec<(f64, f64, f64)> = values.clone();
         rows.push((0.0, 0.0, 0.0));
         rows.push((0.0, 0.0, 0.0));
-        let t = frame_of(&rows);
-        let fits: Vec<Fit> = ["robust", "hc2", "hc3"]
-            .iter()
-            .map(|se| fit_with(&t, "y ~ a + b - 1", &Options { se: Some(se), ..Options::default() }).unwrap().0)
-            .collect();
-        // The zero rows have zero leverage and zero score: every kind agrees on their part, and
-        // the others differ by their leverage factors, so the kinds differ but stay close.
-        for fit in &fits[1..] {
-            for (a, b) in fits[0].std_errors.iter().zip(&fit.std_errors) {
-                prop_assert!((a - b).abs() <= 0.9 * a.abs().max(b.abs()), "{} against {}", a, b);
+        let with_zeros = frame_of(&rows);
+        let fit = |t: &Table, se: &str| {
+            fit_with(t, "y ~ a + b - 1", &Options { se: Some(se), ..Options::default() }).unwrap().0
+        };
+        for se in ["hc2", "hc3"] {
+            let (a, b) = (fit(&plain, se), fit(&with_zeros, se));
+            for (x, y) in a.std_errors.iter().zip(&b.std_errors) {
+                prop_assert!(close(*x, *y, 1e-12, 1e-15), "{se}: {} against {}", x, y);
             }
+            prop_assert_eq!(b.n, values.len() + 2);
         }
-        let n = rows.len();
-        prop_assert_eq!(fits[0].n, n);
+        let (a, b) = (fit(&plain, "robust"), fit(&with_zeros, "robust"));
+        let (n, k) = (values.len() as f64, 2.0);
+        let factor = ((n + 2.0) / (n + 2.0 - k) * (n - k) / n).sqrt();
+        for (x, y) in a.std_errors.iter().zip(&b.std_errors) {
+            prop_assert!(close(x * factor, *y, 1e-12, 1e-15), "robust: {} against {}", x * factor, y);
+        }
     }
 
     /// Clustering with every row its own cluster is HC1: the adjustments G/(G − 1) · (N − 1)/(N − k)

@@ -1313,6 +1313,16 @@ After these eleven the target ran 442,306 random frames and formulas in five min
 | 10⁶ | 484 ms | 94.7 ms | 65.9 ms | 390 ms |
 | 10⁷ | 4.87 s | 970 ms | 677 ms | 3.91 s |
 
-Every case scales linearly from a million to ten million rows; `import` parses about two million rows a second and `reg` fits three regressors on ten million rows in under four seconds, both within the engine's single thread. The x86-64 runner's times are in the nightly job's summary once it has run, and the release notes of 0.4.0 will carry both.
+Every case scales linearly from a million to ten million rows; `import` parses about two million rows a second and `reg` fits three regressors on ten million rows in under four seconds, both within the engine's single thread. The first nightly run (run 40762764342, started by hand on 29 October 2026, the nightly job green in thirty minutes) gives the x86-64 runner's times, GitHub's `ubuntu-latest`, between 20 and 50 per cent slower than this machine, with every digest matching:
+
+| Rows | `import` | `summary` by group | `mean` by group | `reg` |
+| ---: | ---: | ---: | ---: | ---: |
+| 10⁴ | 5.44 ms | 1.36 ms | 0.82 ms | 5.99 ms |
+| 10⁶ | 596 ms | 128 ms | 82.3 ms | 579 ms |
+| 10⁷ | 6.34 s | 1.69 s | 982 ms | 5.77 s |
+
+The same run's truth-recovery note reads exactly as the first (the generator is deterministic), and the release notes of 0.4.0 will carry both tables.
+
+**The weekly job's first run.** The coverage job of the same run failed in its instrumented test run on an old property of the regression tests, that HC2 and HC3 standard errors stay within a factor of two of HC1's at zero leverage: a random draw with a row of high leverage, where HC3's factor 1 / (1 − h)² is large, showed the claim false (it had passed by luck on every push so far). The property is now the exact one: rows of zeros in a model without an intercept have no leverage and zero scores, so HC2 and HC3 give the same standard errors with and without them, and HC1's change by its factor N / (N − k) alone, each to a part in 1e12; the coverage job was run again by hand after the fix.
 
 **Reason.** Testing handbook, sections 1 (benchmarks; fuzzing; mutation testing on estimator and variance code; coverage of the kernel and the estimators), 2.2, 2.3 and 6; open decisions #30 and #52; Engine and Project Specification, section 8.3, point 10; the checklist's step 21.
