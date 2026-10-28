@@ -22,6 +22,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (23 October 2026, release 0.4.0, step 7).** #54 raised while formulas were built: `..` binds more loosely than `+` and does not chain, so one formula holds one bare range and a second is written in brackets; the engine reads `(z1..z3)` as the range, and the question is whether the grammar should change. Due at 0.6.0.
 
+**Status (28 October 2026, a review of requested capabilities).** The owner asked for three families of capability for later releases: psychometric and other latent-variable models, Bayesian models written in the manner of Stan and BUGS, and machine learning from stacking to deep and reinforcement learning. Each was checked against both volumes and the catalogue, and what remains to decide is recorded as #55 to #66. The owner took #55 the same day: results stay bit-identical on every machine, and large or pretrained models reach a result only by routes that keep that promise. The rest are open with their deadlines: #59 and #64 by 1.0.0; #61, #65 and #66 by 1.1; #56, #57 and #58 (in part) by 1.3; #62 by 1.5; #60 by 1.8; #63 and the rest of #58 by 1.11. Section 14.1 of the Engine and Project Specification lists the new goals.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -80,6 +82,18 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 52 | A benchmark suite run at every release | B: a small suite from 0.4.0 as a new section of the testing handbook, reporting rather than failing | decided 23 October 2026 |
 | 53 | Options rather than functions: HAC standard errors and weights on the descriptives | The `se:` variants with the panel models of 1.4; `weights:` on the descriptives at 1.1 as frequency weights | 1.1 |
 | 54 | A second range of variables in one formula | A: the grammar stands; a second range is written in brackets, `(z1..z3)`, which the checker reads as the range | 0.6.0 |
+| 55 | Large and pretrained models under the determinism contract | B: results stay bit-identical; such models reach a result only through a package under the contract, a frozen file whose hash the run records, or `external`; no second accuracy class | decided 28 October 2026 (the wording by 1.0.0, the build by 1.11) |
+| 56 | Constraints and groups in model blocks | A: a repeated label means equal; `@` fixes (#3); `==` lines between labelled parameters; `group:` with one label per group written as a list | 1.3 |
+| 57 | Latent functions brought into 1.3, 1.6 and 1.7 | A: 1.3 gains `invariance`, `latent_growth`, `factor_scores` and four validity measures; 1.6 the EFA family; 1.7 `lpa`, covariates and distal outcomes, mixture regression | 1.3 |
+| 58 | Latent-variable releases after 1.11 | Multilevel latent models, latent interactions, item response, mixtures over time, composite models, in that order; the 1.3 and 1.4 likelihoods written so that groups and levels can follow | 1.3 (what stays open); 1.11 (the order) |
+| 59 | Bayesian models of the user's own, in the manner of Stan and BUGS | No new reserved word: `model { }` lines with a distribution on the right of `~`, or a log-density written as a function | 1.0.0 (the reserved word); 1.10 (the design) |
+| 60 | Reverse-mode differentiation | Reverse mode beside forward mode at 1.8, every sum in a fixed order, so gradients of many parameters cost one pass | 1.8 |
+| 61 | Results that carry draws | A result may hold bootstrap replicates or posterior draws, and every derived quantity follows the result's own kind of uncertainty | 1.1 |
+| 62 | Prediction after 1.5: stacking and conformal prediction | `spec.stack` and `conformal` as roadmap rows once named; `tune` and `folds` keep out-of-fold predictions from 1.5 | 1.5 |
+| 63 | Neural networks, pretrained models and sequential decisions | Feed-forward networks built in; larger networks and pretrained weights through packages under #55; Markov decision processes and off-policy evaluation in `decide` | 1.11 |
+| 64 | A new value of an option counts as an addition | Say so in section 14, Version numbers, beside new functions and options | 1.0.0 |
+| 65 | Calling Zeff from R and Python | Thin R and Python packages over the command line and the versioned result formats, after 1.0 on request | 1.1 |
+| 66 | A published speed comparison with Stata MP and R | At 1.1, when threads arrive, on the owner's machine; reported in the release notes, never a gate | 1.1 |
 
 ---
 
@@ -116,6 +130,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | C. `fix: {x1: 1}` on `cfa` and `sem` | No token | Separates the constraint from the equation it belongs to |
 
 *Recommendation.* A, added to the grammar at 1.3 with the model block; add `@` to the reserved punctuation now.
+
+*Note (28 October 2026).* #56 builds the rest of the model block's constraints, equalities and groups, on this token.
 
 ### 4. Variadic parameters
 
@@ -252,6 +268,8 @@ The plan requires these to be adopted or dropped by 0.7.0; deciding now removes 
 | C. A `bayes { }` block | Separates the two | A third block form |
 
 *Recommendation.* B; `reg`, `logistic` and `mixed` first, `sem` after. Decide at 1.9.
+
+*Note (28 October 2026).* #59 asks how a model that is not built in is written, and #60 what differentiation such models need.
 
 ### 21. Licence
 
@@ -650,3 +668,156 @@ Raised on 23 October 2026 at step 7 of release 0.4.0, when formulas became value
 | C. `..` binds more tightly only inside a formula | Formulas read as R users expect; arithmetic is untouched | The one operator whose precedence depends on context, which section 3.3 avoids on purpose |
 
 *Recommendation.* A: the grammar is the one thing a user learns once, and brackets for a second range are a small price. Deadline: 0.6.0, when `fe:` takes `Terms` and the grammar of terms is used in two places.
+
+## Capabilities for later releases
+
+Added 28 October 2026. The owner asked for three families of capability: psychometric and other latent-variable models; Bayesian models written in the manner of Stan, BUGS and JAGS; and machine learning from stacking to deep and reinforcement learning, with an architecture that lets packages grow towards them. Each request was checked against both volumes and the catalogue. Much is already planned: the `model { }` grammar (section 7.4 of the Language Reference), `weights:` with `weight_type:` on every model, `Matrix` and `Vector` with `*` as the matrix product, the result and estimator interfaces shared by built-in and third-party packages (section 8.3, point 6), the leakage-safe learning of section 7.5 with `spec.*`, `learn` and `tune`, the bandits and Q-learning of the `decide` package, and the catalogued latent, measurement and learning functions. What remains to decide is below.
+
+### 55. Large and pretrained models under the determinism contract
+
+Large neural networks are trained on graphics processors, whose results differ between machines, and pretrained ("foundation") models arrive as files of weights trained elsewhere. The question was whether Zeff should admit results that are not bit-identical, in a second accuracy class, or keep the contract of section 8.3, point 3 for every result and give such models routes that respect it.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. A second accuracy class for device-dependent results (graphics processors, native libraries), labelled in the run record | The quickest path to large models inside Zeff | Breaks the promise every other result keeps; a replication package could no longer be checked bit for bit |
+| B. The contract holds for every result; large and pretrained models reach a result by three routes that respect it | Nothing Zeff reports changes from machine to machine; packages can still grow towards these models | Large networks train slowly on the processor alone; training on graphics processors happens outside Zeff |
+
+The three routes of option B:
+
+| Route | What runs where | Bit-identical |
+| --- | --- | --- |
+| 1. A package | Zeff-source and WebAssembly component packages (section 8.4) fit and run models on the processor under the contract: tree ensembles, feed-forward, convolutional, sequence and graph networks of moderate size, Gaussian processes | Yes, and the validated badge is open to them |
+| 2. A frozen file | A model trained anywhere (on graphics processors, in Python, by a third party) is saved as a file of weights, read from the project or a data root like any data file, its hash recorded in the run record (section 2) and carried into replication packages; Zeff runs the model through route 1 | The training is outside Zeff and outside the promise; everything Zeff computes from the file is bit-identical |
+| 3. Outside Zeff | The training itself, and anything that cannot be frozen, runs in R or Python through `external` (from 1.1; section 8.3, point 8), whose results the run record already marks as outside Zeff's validation and bit-identical guarantees; a call to a hosted model goes through `fetch` (section 8.6), whose responses are cached, hashed and replayed, so a re-run reproduces them | No for the outside step itself, and the run record says so |
+
+*Decided 28 October 2026 by the owner.* Option B: results stay bit-identical on every machine, and extensions keep that promise. The manifest's `effects = "none"` stays its only value (section 8.4); no package reaches a graphics processor, the network, the clock or the file system; and the optional GPU kernels of section 14.1 stay admitted only if they meet the contract on every target.
+
+The engineering the decision needs, to be written into sections 8.3 and 8.4 (the wording by 1.0.0, when the extension interfaces are published; the build by 1.11, when components ship):
+
+* Section 8.4 says components are bit-identical "by construction". WebAssembly makes that true only under three rules the host enforces, which the text should state: every NaN a component returns is made canonical by the host, since WebAssembly leaves a NaN's bit pattern open; the relaxed-SIMD instructions, whose results may differ between processors, are refused when a component is loaded; and shared-memory threads inside a component are refused, parallelism coming from the host instead.
+* The component interface gives a component the kernel's random streams, so that its draws follow the rule of section 8.3, point 3, and a fixed-block parallel map: the host runs the component's function on fixed row blocks over the thread pool of 1.1 and combines the partial results in a fixed order, so a component is as parallel as a built-in package without threads of its own.
+* A file of weights is read whole as a `Bytes` value (section 4.3 of the Language Reference) and passed to the component as an argument; a component never reads a file itself. The name of the function that reads a file whole is for the owner when components are built.
+* A row that is a tensor (an image, a sequence) is a fixed-size list column carrying Arrow's canonical fixed-shape tensor extension in its metadata, as embeddings are already fixed-size lists; no tensor type enters the language.
+
+### 56. Constraints and groups in model blocks
+
+Most of the latent-variable models on the owner's list that Zeff lacks need no estimator of their own, only a way to say that parameters are fixed, equal, or free by group: bifactor and higher-order CFA; the unmeasured latent method factor, marker-variable and CFA-marker tests of common method variance; multitrait–multimethod and CT-C(M−1) models; longitudinal invariance; random-intercept cross-lagged panel models; STARTS and ALT models; latent state–trait models; latent change-score models; piecewise and latent-basis growth; and multi-group SEM. Section 7.4 of the Language Reference has labels (`x as a`) and defined parameters (`:=`), and #3 recommends `@` for fixing; nothing yet says how parameters are made equal or how a model differs between groups. Each form below is rejected as an error by the 1.0 grammar or checker, so adding it at 1.3 breaks no script.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. In the block, as lavaan does: a label repeated means equal (`y1 ~ x as a` and `y2 ~ x as a`); `@` fixes (`g ~~ s1 @ 0` for an orthogonal bifactor); lines such as `a == b` and `a > 0` constrain labelled or defined parameters; `group:` on `cfa` and `sem`, a label written as a list giving one label per group (`x as [a1, a2]`), and `group_equal: [loadings, intercepts, residuals]` for the usual invariance steps | Every model of the list is a few readable lines; lavaan users recognise it; the model stays in one place | A repeated label carries meaning without a mark, so the editor and the printed summary must show the equalities it implies |
+| B. Arguments on the fitting functions: `fix: {...}`, `equal: [[a, b]]`, `group:` | No new form inside the block | Constraints sit far from the paths they constrain; bifactor and RI-CLPM models need long argument lists |
+| C. Group sections inside the block, as Mplus writes them | Familiar to Mplus users | A second structure inside the block, and a larger grammar |
+
+*Recommendation.* A, with hover and the printed summary listing every equality a repeated label implies. Each model of the list above gets a checked help example (section 9.1) fitting it with these lines, so that the common-method-variance tests and RI-CLPM are templates rather than functions. Deadline: 1.3, with #3.
+
+### 57. Latent functions brought into 1.3, 1.6 and 1.7
+
+The catalogue holds several latent-variable functions as "after 1.0", with no release. Some cost little once their release's machinery exists, and management and survey research reports them in almost every paper.
+
+| Release | Brought in | Why there |
+| --- | --- | --- |
+| 1.3 | `invariance` (configural to strict, and partial invariance by freeing parameters), `latent_growth`, `factor_scores`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt` | `invariance` and `latent_growth` are model blocks with #56's constraints and groups; the other five are closed forms on a fitted CFA |
+| 1.6 | `efa`, `kmo`, `sphericity_test`, `parallel_analysis`; invariance for ordered items; bifactor-ESEM and set-ESEM | Rotation (geomin, target) and polychoric correlations are 1.6's engine work; set-ESEM is `efa()` blocks with #56's constraints |
+| 1.7 | `lpa`; covariates and distal outcomes by the three-step and BCH methods, as options of `lca` and `lpa`; latent class and mixture regression | Each reuses 1.7's EM with many random starts and class-label alignment |
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As the table says | Each family arrives complete enough for a published paper | 1.3 becomes the largest method release, and its checklist has more steps |
+| B. The releases stay as they are; these functions wait for later rows | Smaller releases | Users of 1.3 compute composite reliability, AVE and HTMT by hand, and test invariance without `invariance` |
+
+*Recommendation.* A. If #18 puts latent variables before difference-in-differences, the widened release moves with it. Deadline: 1.3.
+
+### 58. Latent-variable releases after 1.11
+
+With #56 and #57, the remaining models of the owner's list need engine work of their own. They fall into five families, which section 14.1 lists.
+
+| Family | Models | Engine work |
+| --- | --- | --- |
+| Multilevel latent models | Multilevel CFA; two-level SEM; multilevel mediation (1-1-1, 2-1-1, 2-2-1) and cross-level moderated mediation with random slopes; the multilevel latent covariate model; multilevel latent classes | A two-level likelihood on the machinery of 1.3 and 1.4 |
+| Latent interactions | LMS and QML; latent moderated mediation; latent quadratic effects; product indicators with double-mean-centring as a helper | Numerical integration inside the likelihood |
+| Item response | `irt` (Rasch, 2PL, 3PL, graded response), partial credit and generalised partial credit, nominal, multidimensional and bifactor models, explanatory IRT; `dif`; `alignment` | Marginal maximum likelihood with quadrature; the EM of 1.7 |
+| Mixtures over time | `lta`; `growth_mixture` and LCGA; factor mixture models; hidden Markov and Markov-switching models; latent class logit | The EM of 1.7, with forward–backward recursions |
+| Composite models | PLS-SEM, PLSc, GSCA, confirmatory composite analysis | Closed-form iterations; possibly a package rather than the engine (section 8.4's own example is a `pls_sem` package) |
+
+After the Bayesian release (1.10; #59): Bayesian CFA with small-variance priors, Bayesian approximate invariance, Bayesian SEM and dynamic SEM. Not scheduled, and left to packages or a later review: moderated nonlinear factor analysis, MIIV-2SLS, continuous-time SEM, cognitive diagnosis models, unfolding models (GGUM), Thurstonian IRT, ideal-point models, hybrid choice (ICLV) models, interactive fixed effects and IPCA, and FAVAR.
+
+*Recommendation.* The order of the table, which puts first what management and organisational research asks for most. Two things are needed earlier, so that no door closes: the 1.3 likelihood is written so that a group, and later a level, is an index over which parameters may differ; and the mixed models of 1.4 expose their random-effect structures to the `latent` package. Deadline: 1.3 for those two; 1.11 for the order.
+
+### 59. Bayesian models of the user's own, in the manner of Stan and BUGS
+
+Release 1.10 fits the built-in models and `mle` objectives by NUTS, with priors given as arguments (#20). Stan, BUGS and JAGS go further: the user writes any model, its parameters, priors and likelihood, and the sampler fits it. How such a model is written decides whether a word must be reserved before 1.0, since a reserved word added after 1.0 needs a new edition (section 3.1 of the Language Reference).
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Extend `model { }`: a line with a distribution on the right of `~` is a sampling statement, as in BUGS (`y ~ dist.normal(mu, sigma)`, `mu ~ dist.normal(0, 10)`), beside the paths and factors the block already holds | No new word or block; structural and Bayesian models read alike; priors in model blocks are already the plan of section 14.1 | `~` is read by the type of its right side, terms or a distribution, which the checker must explain plainly |
+| B. A log-density written as a Zeff function and passed to a fitting function, as Stan's `target +=` accumulates one | No grammar at all; any model the language can compute | Less readable for the common hierarchical models |
+| C. A new block word, such as `bayes { }` | A clean separation from structural models | Must be reserved before 1.0, or wait for a new edition; a third block form |
+
+Whatever the form, the release that brings it adds: parameters with constraints (positive, bounded, simplex, correlation matrix) mapped to an unconstrained space with the Jacobian; discrete parameters by marginalisation, as Stan does; split R-hat, effective sample sizes, divergences, and trace and rank plots; posterior predictive checks; LOO and WAIC; and results that carry their draws (#61). Chains run in parallel on the random streams of section 8.3, so a fit is bit-identical whatever the number of threads.
+
+*Recommendation.* A for models that read as statistical models, B for anything else; no new reserved word. Deadline: 1.0.0 for the reserved word; the design at 1.10, with #20.
+
+### 60. Reverse-mode differentiation
+
+Section 8.3, point 9 gives user objectives forward-mode automatic differentiation at 1.8. Forward mode costs one pass per parameter for a gradient: fine for a likelihood with ten parameters, impractical for NUTS on a user's model with thousands of parameters (1.10 samples `mle` objectives; #59 goes further) and for neural networks (#63). Reverse mode gives the whole gradient in one backward pass. Built-in estimators keep their analytic derivatives either way.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Forward mode only, as written | Simplest; no record of the computation to keep | Gradients of many parameters are too slow for 1.10 and for the families after it |
+| B. Reverse mode beside forward mode, both on the typed IR, the backward pass summing in a fixed order; Hessians as forward-over-reverse | One pass for a gradient whatever the number of parameters; bit-identical, since the order of every sum is fixed | More engine work at 1.8 |
+
+*Recommendation.* B. An engineering choice, written into section 8.3, point 9 and the 1.8 row when 1.8 starts, unless the owner objects. Deadline: 1.8.
+
+### 61. Results that carry draws
+
+From 1.1 a fit may have bootstrap replicates (`se: bootstrap`), from 1.10 posterior draws, and multiple imputation (section 14.1) pools several fits. In 1.0 a result's uncertainty is its variance matrix, and `derive` uses the delta method (section 15). If the result interface keeps only that, every later kind of result needs an interface of its own.
+
+*Recommendation.* An engineering choice: from 1.1 a result may carry draws (bootstrap replicates, posterior draws, or the fits of several imputations), and `ci`, `derive`, `test`, `report` and `plot` ask the result for its kind of uncertainty, the variance matrix and the delta method for an asymptotic fit, the draws themselves for a bootstrap or posterior fit. Which interval the draws give (percentile or another) is a statistical definition, settled with `se: bootstrap` at 1.1. Nothing printed by 1.0 changes. The interface is fixed before third-party packages implement it (1.6 if #8 is taken, otherwise 1.11). Deadline: 1.1.
+
+### 62. Prediction after 1.5: stacking and conformal prediction
+
+The catalogue already holds most of the prediction methods the owner listed: `lasso`, `tree`, `random_forest`, `boosting` (gradient-boosted trees as XGBoost and LightGBM fit them), `svm`, `knn`, `naive_bayes`, `neural_net`, `calibration`, `shap`, `partial_dependence`, `causal_forest`, `meta_learner` (S-, T-, X-, R- and DR-learners), `blp` and `gates`, with double machine learning in 1.5. Two common methods are missing, and both depend on what 1.5 keeps from its folds.
+
+| Method | What it is | Name proposed |
+| --- | --- | --- |
+| Stacking | A meta-model fitted to the out-of-fold predictions of several model specifications, under the leakage rules of section 7.5 | `spec.stack(models: [...], meta: spec.reg())`, a specification like the others |
+| Conformal prediction | Distribution-free prediction intervals and sets around any `LearnFit`, split and cross-conformal | `fit.conformal(level: 0.9)`, calibrated on held-out rows |
+| Ordered boosting | CatBoost's handling of categories and row order | An option of `spec.boosting` |
+
+*Recommendation.* Add `spec.stack` and `conformal` to the catalogue as rows after 1.0 once the owner approves the names, and have `tune` and `folds` keep every row's out-of-fold predictions from 1.5, so that stacking needs nothing new from them. Tabular foundation models (TabPFN and its kind) are pretrained weights and take route 2 of #55. Deadline: 1.5.
+
+### 63. Neural networks, pretrained models and sequential decisions
+
+#55 decides the routes; this entry proposes which models Zeff builds itself and which it leaves to packages.
+
+| Kind | Built in | Through packages (#55, routes 1 and 2) | Outside Zeff (#55, route 3) |
+| --- | --- | --- | --- |
+| Neural networks | `neural_net` (feed-forward), with deep ensembles (several seeds) as an option, after #60 | Convolutional, recurrent and state-space sequence models; graph neural networks; transformers of moderate size; variational autoencoders and normalising flows | Training of large language, vision and diffusion models; fine-tuning, including LoRA |
+| Pretrained models | None | Inference from frozen weights: tabular and time-series foundation models, embedding models | Calls to a hosted model through `fetch`, replayed from its cache |
+| Sequential decisions | `bandit`, `q_learning`, `a_learning`, `policy_tree` and `ewm` of the `decide` package (catalogued); proposed: Markov decision processes by value and policy iteration, and off-policy evaluation | Deep reinforcement learning on the processor | Environments and agents in other software, through `external` |
+
+*Recommendation.* As the table says. Deadline: 1.11, when component packages ship and the line between built in and packaged must be drawn.
+
+### 64. A new value of an option counts as an addition
+
+Section 14, Version numbers lists what a minor release may add after 1.0: "new functions, packages, options with defaults that keep earlier behaviour, formats and diagnostics". Many later rows add a value to an option that already exists (`se: newey_west` in #53, `estimator: wlsmv` at 1.6), which the list does not name; and the sentence after it, that an addition never changes "whether it runs", could be read as forbidding a script that failed before from running after.
+
+*Recommendation.* An engineering correction of the wording: add new values of an option to the list, and say that an addition never stops a script that runs. Deadline: 1.0.0.
+
+### 65. Calling Zeff from R and Python
+
+Section 8.3, point 8 keeps interoperability at the data boundary: no shared memory and no embedded interpreter. Many users would still like to run a Zeff project from R or Python and read its results there.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Thin R and Python packages that run `zeff run` on a project and read the frames and results it writes, in the versioned formats of section 8.3, point 5 | No engine change; the same results as the command line; a way into Zeff for R and Python users | Two more packages to maintain, outside the engine's own releases |
+| B. Nothing: users run `zeff` and read the files themselves | No work | A barrier for the users most likely to try Zeff |
+
+*Recommendation.* A, after 1.0 and on request, as the PyPI and conda packages of the command line are (section 2.1). Deadline: 1.1.
+
+### 66. A published speed comparison with Stata MP and R
+
+The owner asked whether Zeff will be faster than Stata MP on eight cores. The benchmark suite (#52) times Zeff alone; section 8.3, point 10 compares the stress cases with the fastest R and Python tools; nothing compares Zeff with Stata. Until 1.1 Zeff runs each statement on one thread (section 1.4), so a comparison before then would measure the wrong thing.
+
+*Recommendation.* At 1.1, when threads arrive, run the suite's cases in Zeff, in Stata MP on eight cores and in R (fixest and data.table) on the owner's machine, and publish the times in the 1.1 release notes whichever way they fall, adding the two stress cases of #30 as their methods arrive (1.2 and 1.5); the comparison reports and never gates a release. It needs the owner's Stata MP licence. Deadline: 1.1.
