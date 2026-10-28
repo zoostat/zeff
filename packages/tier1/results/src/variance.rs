@@ -66,6 +66,9 @@ impl Clusters {
 pub enum VarianceError {
     /// Clustered errors need two clusters at least.
     OneCluster,
+    /// HC2 and HC3 divide by one minus each observation's leverage, and this many observations
+    /// have leverage one (each alone in a cell of the design), so the factor is infinite.
+    LeverageOne(usize),
     /// The computed matrix differs from its transpose by more than rounding can explain: a wrong
     /// product, reported as an internal error.
     Asymmetric,
@@ -76,20 +79,54 @@ pub enum VarianceError {
 /// are summed in different orders, and the cancellation in an ill-conditioned bread (a regressor
 /// such as a calendar year, far from zero and barely varying) magnifies the difference, so the
 /// check is relative to each entry's scale, √(Vᵢᵢ Vⱼⱼ), and to the condition number.
-fn symmetrised(v: &Matrix, condition_number: f64) -> Result<Matrix, VarianceError> {
+fn symmetrised(
+    v: &Matrix,
+    condition_number: f64,
+    magnitudes: Option<&Matrix>,
+) -> Result<Matrix, VarianceError> {
     let k = v.rows();
     let tolerance = (1e-6_f64).max(100.0 * f64::EPSILON * condition_number);
+    // An entry that is rounding residue of an exact zero (a rank-one meat, where a column's
+    // scores cancel) has no scale of its own: the matrix's largest variance lends it one, and so
+    // does the sum of the sizes of the terms that made the entry (`magnitudes`, the product of
+    // the absolute bread and meat), which bounds the rounding of a sum however much it cancels;
+    // a perfect fit's sandwich is nothing but such cancellation (the formula fuzz target found
+    // both cases).
+    let largest = (0..k).fold(0.0_f64, |m, i| m.max(v.get(i, i)));
     for i in 0..k {
         for j in 0..i {
             let (a, b) = (v.get(i, j), v.get(j, i));
-            let scale = (v.get(i, i) * v.get(j, j)).sqrt().max(a.abs().max(b.abs()));
+            let scale = (v.get(i, i) * v.get(j, j))
+                .sqrt()
+                .max(a.abs().max(b.abs()))
+                .max(1e-8 * largest)
+                .max(magnitudes.map_or(0.0, |m| m.get(i, j).max(m.get(j, i))));
             if !(a - b).abs().is_finite() || (a - b).abs() > tolerance * scale + f64::MIN_POSITIVE {
                 return Err(VarianceError::Asymmetric);
             }
         }
     }
+    // A variance that is an exact zero in arithmetic (a coefficient whose scores cancel) may be
+    // a negative residue in floating point: within the same bound it is zero, so that a true
+    // negative variance, an error of the order of the terms, stays an internal error.
+    let diagonal = |i: usize| {
+        let value = v.get(i, i);
+        let bound = tolerance * (1e-8 * largest).max(magnitudes.map_or(0.0, |m| m.get(i, i)))
+            + f64::MIN_POSITIVE;
+        if value < 0.0 && -value <= bound {
+            0.0
+        } else {
+            value
+        }
+    };
     Ok(Matrix::from_fn(k, k, |i, j| {
-        if i >= j { v.get(i, j) } else { v.get(j, i) }
+        if i == j {
+            diagonal(i)
+        } else if i > j {
+            v.get(i, j)
+        } else {
+            v.get(j, i)
+        }
     }))
 }
 
@@ -113,10 +150,21 @@ pub fn variance(
         Kind::Classical => {
             let sigma2 = fitted.residual_sum_of_squares / (n - k as f64);
             let vcov = Matrix::from_fn(k, k, |i, j| sigma2 * bread.get(i, j));
-            Ok((symmetrised(&vcov, fitted.condition_number)?, df))
+            Ok((symmetrised(&vcov, fitted.condition_number, None)?, df))
         }
         Kind::Hc1 | Kind::Hc2 | Kind::Hc3 => {
+            if matches!(kind, Kind::Hc2 | Kind::Hc3) {
+                let at_one = (0..fitted.leverage.len())
+                    .filter(|&row| 1.0 - observation_leverage(design, fitted, row) <= LEVERAGE_ONE)
+                    .count();
+                if at_one > 0 {
+                    return Err(VarianceError::LeverageOne(at_one));
+                }
+            }
+            // The meat, and beside it the sum of the sizes of its terms, which bounds the
+            // rounding of each entry however much the terms cancel.
             let mut meat = Matrix::zeros(k, k);
+            let mut meat_bound = Matrix::zeros(k, k);
             for block in design.blocks() {
                 let scores = estimator.scores(fitted, &block, block.start);
                 let scaled = Matrix::from_fn(scores.rows(), k, |r, c| {
@@ -125,6 +173,8 @@ pub fn variance(
                 });
                 let part = transpose_matmul(&scaled, &scores);
                 meat = Matrix::from_fn(k, k, |i, j| meat.get(i, j) + part.get(i, j));
+                let sizes = transpose_matmul(&absolute(&scaled), &absolute(&scores));
+                meat_bound = Matrix::from_fn(k, k, |i, j| meat_bound.get(i, j) + sizes.get(i, j));
             }
             let sandwich = matmul(&matmul(bread, &meat), bread);
             // HC1 is HC0 scaled by N/(N − k); HC2 and HC3 correct by the leverage alone, as R's
@@ -135,20 +185,27 @@ pub fn variance(
                 1.0
             };
             let vcov = Matrix::from_fn(k, k, |i, j| adjustment * sandwich.get(i, j));
-            Ok((symmetrised(&vcov, fitted.condition_number)?, df))
+            let magnitudes = term_magnitudes(bread, &meat_bound, adjustment);
+            Ok((
+                symmetrised(&vcov, fitted.condition_number, Some(&magnitudes))?,
+                df,
+            ))
         }
         Kind::Cluster => {
             let clusters = clusters.expect("clusters for clustered errors");
             if clusters.count < 2 {
                 return Err(VarianceError::OneCluster);
             }
+            // Each cluster's summed scores, and the sums of their sizes for the rounding bound.
             let mut sums: Vec<Vec<f64>> = vec![vec![0.0; k]; clusters.count];
+            let mut sizes: Vec<Vec<f64>> = vec![vec![0.0; k]; clusters.count];
             for block in design.blocks() {
                 let scores = estimator.scores(fitted, &block, block.start);
                 for r in 0..scores.rows() {
                     let cluster = clusters.of_row[block.start + r];
-                    for (c, total) in sums[cluster].iter_mut().enumerate() {
-                        *total += scores.get(r, c);
+                    for c in 0..k {
+                        sums[cluster][c] += scores.get(r, c);
+                        sizes[cluster][c] += scores.get(r, c).abs();
                     }
                 }
             }
@@ -156,26 +213,60 @@ pub fn variance(
                 let products: Vec<f64> = sums.iter().map(|s| s[i] * s[j]).collect();
                 sum(&products)
             });
+            let meat_bound = Matrix::from_fn(k, k, |i, j| {
+                let products: Vec<f64> = sizes.iter().map(|s| s[i] * s[j]).collect();
+                sum(&products)
+            });
             let sandwich = matmul(&matmul(bread, &meat), bread);
             let g = clusters.count as f64;
             let adjustment = g / (g - 1.0) * (n - 1.0) / (n - k as f64);
             let vcov = Matrix::from_fn(k, k, |i, j| adjustment * sandwich.get(i, j));
+            let magnitudes = term_magnitudes(bread, &meat_bound, adjustment);
             Ok((
-                symmetrised(&vcov, fitted.condition_number)?,
+                symmetrised(&vcov, fitted.condition_number, Some(&magnitudes))?,
                 clusters.count - 1,
             ))
         }
     }
 }
 
+/// A matrix's entries in size.
+fn absolute(m: &Matrix) -> Matrix {
+    Matrix::from_fn(m.rows(), m.cols(), |i, j| m.get(i, j).abs())
+}
+
+/// The sum of the sizes of the terms of each entry of a sandwich, |B| times the sizes of the
+/// meat's terms times |B|, times the adjustment: what the rounding of the entry is bounded by,
+/// however much its terms cancel.
+fn term_magnitudes(bread: &Matrix, meat_bound: &Matrix, adjustment: f64) -> Matrix {
+    let product = matmul(&matmul(&absolute(bread), meat_bound), &absolute(bread));
+    Matrix::from_fn(product.rows(), product.cols(), |i, j| {
+        adjustment * product.get(i, j)
+    })
+}
+
 /// The factor a row's score product takes in the meat: 1 under HC1; 1/(1 − h) and 1/(1 − h)²
 /// under HC2 and HC3, with h the leverage of one observation; under frequency weights a row
 /// stands for w observations each of leverage h/w, whose products sum to the row's divided by w.
+/// How close to one an observation's leverage may come before HC2 and HC3 are refused: nearer
+/// than this, the factor 1 / (1 − h) is beyond a hundred million and the variance is noise.
+const LEVERAGE_ONE: f64 = 1e-8;
+
+/// The leverage of one observation of `row`: the row's leverage, or under frequency weights the
+/// row's leverage shared among the observations it stands for.
+fn observation_leverage(design: &Design, fitted: &Fitted, row: usize) -> f64 {
+    match (design.weight_kind, &design.weights) {
+        (Some(WeightKind::Frequency), Some(w)) => fitted.leverage[row] / w[row],
+        _ => fitted.leverage[row],
+    }
+}
+
 fn row_factor(kind: Kind, design: &Design, fitted: &Fitted, row: usize) -> f64 {
-    let (copies, leverage) = match (design.weight_kind, &design.weights) {
-        (Some(WeightKind::Frequency), Some(w)) => (w[row], fitted.leverage[row] / w[row]),
-        _ => (1.0, fitted.leverage[row]),
+    let copies = match (design.weight_kind, &design.weights) {
+        (Some(WeightKind::Frequency), Some(w)) => w[row],
+        _ => 1.0,
     };
+    let leverage = observation_leverage(design, fitted, row);
     let base = 1.0 / copies;
     match kind {
         Kind::Hc2 => base / (1.0 - leverage),

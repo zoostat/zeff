@@ -98,11 +98,23 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
     } else {
         (None, None)
     };
-    let log_likelihood = -0.5
-        * n_obs
-        * (zeff_numeric::maths::log(2.0 * std::f64::consts::PI)
-            + 1.0
-            + zeff_numeric::maths::log(rss / n_obs));
+    // The log-likelihood as R's `logLik` gives it: under analytic and sampling weights, which R
+    // takes as precision weights, with half the sum of the logarithms of the weights (as scaled
+    // to average one, which leaves R's value unchanged); under frequency weights the rows stand
+    // repeated and the sum of squares is already theirs.
+    let weight_term = match (design.weight_kind, &design.weights) {
+        (Some(WeightKind::Analytic | WeightKind::Sampling), Some(w)) => {
+            let logs: Vec<f64> = w.iter().map(|&x| zeff_numeric::maths::log(x)).collect();
+            0.5 * zeff_kernels::sum(&logs)
+        }
+        _ => 0.0,
+    };
+    let log_likelihood = weight_term
+        - 0.5
+            * n_obs
+            * (zeff_numeric::maths::log(2.0 * std::f64::consts::PI)
+                + 1.0
+                + zeff_numeric::maths::log(rss / n_obs));
     let sigma = (rss / residual_df).sqrt();
     let (term_sd, outcome_sd) = deviations(design, fitted);
     let summary = summary_of(

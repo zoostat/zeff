@@ -830,7 +830,7 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "zeff-columns"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "arrow-array",
  "arrow-buffer",
@@ -843,7 +843,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-core"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "zeff-columns",
  "zeff-dates",
@@ -854,7 +854,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-data"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "encoding_rs",
  "unicode-normalization",
@@ -869,7 +869,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-datasets"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "zeff-columns",
  "zeff-core",
@@ -879,15 +879,15 @@ dependencies = [
 
 [[package]]
 name = "zeff-dates"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 
 [[package]]
 name = "zeff-diagnostics"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 
 [[package]]
 name = "zeff-dist"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "zeff-columns",
  "zeff-core",
@@ -898,7 +898,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-engine"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "toml",
  "zeff-columns",
@@ -910,6 +910,8 @@ dependencies = [
  "zeff-ir",
  "zeff-numeric",
  "zeff-registry",
+ "zeff-regress",
+ "zeff-results",
  "zeff-stats",
  "zeff-syntax",
 ]
@@ -928,14 +930,14 @@ dependencies = [
 
 [[package]]
 name = "zeff-hash"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "blake3",
 ]
 
 [[package]]
 name = "zeff-ir"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "zeff-dates",
  "zeff-diagnostics",
@@ -944,19 +946,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeff-kernels"
+version = "0.4.0-dev"
+
+[[package]]
 name = "zeff-numeric"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "libm",
+ "zeff-kernels",
 ]
 
 [[package]]
 name = "zeff-registry"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
+
+[[package]]
+name = "zeff-regress"
+version = "0.4.0-dev"
+dependencies = [
+ "zeff-columns",
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-kernels",
+ "zeff-numeric",
+ "zeff-registry",
+ "zeff-results",
+]
+
+[[package]]
+name = "zeff-results"
+version = "0.4.0-dev"
+dependencies = [
+ "zeff-columns",
+ "zeff-core",
+ "zeff-diagnostics",
+ "zeff-dist",
+ "zeff-kernels",
+ "zeff-numeric",
+ "zeff-registry",
+]
 
 [[package]]
 name = "zeff-stats"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "zeff-columns",
  "zeff-core",
@@ -968,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "zeff-syntax"
-version = "0.3.0-dev"
+version = "0.4.0-dev"
 dependencies = [
  "zeff-diagnostics",
 ]

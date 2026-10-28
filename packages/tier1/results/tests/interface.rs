@@ -307,9 +307,7 @@ fn the_interface_agrees_with_r_on_every_reference_fit() {
                 ),
             }
         }
-        let scaled_weights = matches!(options.weight_type, Some("analytic") | Some("sampling"))
-            && options.weights.is_some();
-        if !scaled_weights {
+        {
             let (aic, bic) = information_criteria(&fit);
             let (aic_r, bic_r) = (number(&case["aic"]), number(&case["bic"]));
             assert!(
@@ -475,8 +473,6 @@ fn the_estimator_interface_agrees_with_r_on_every_reference_fit() {
             other => panic!("{name}: vcov() gave {other:?}"),
         }
         // The fit measures.
-        let scaled_weights = matches!(options.weight_type, Some("analytic") | Some("sampling"))
-            && options.weights.is_some();
         match call(fit_measures, &fit, vec![]) {
             Value::Record(fields) => {
                 let field = |n: &str| {
@@ -500,16 +496,19 @@ fn the_estimator_interface_agrees_with_r_on_every_reference_fit() {
                     1e-10,
                     1e-14
                 ));
-                if !scaled_weights {
-                    assert!(close(
+                assert!(
+                    close(
                         field("log_likelihood"),
                         number(&case["log_likelihood"]),
                         1e-10,
                         1e-12
-                    ));
-                    assert!(close(field("aic"), number(&case["aic"]), 1e-10, 1e-12));
-                    assert!(close(field("bic"), number(&case["bic"]), 1e-10, 1e-12));
-                }
+                    ),
+                    "{name}: log-likelihood {} against {}",
+                    field("log_likelihood"),
+                    number(&case["log_likelihood"])
+                );
+                assert!(close(field("aic"), number(&case["aic"]), 1e-10, 1e-12));
+                assert!(close(field("bic"), number(&case["bic"]), 1e-10, 1e-12));
             }
             other => panic!("{name}: fit_measures() gave {other:?}"),
         }

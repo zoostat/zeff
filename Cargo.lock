@@ -1349,6 +1349,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeff-bench"
+version = "0.4.0-dev"
+dependencies = [
+ "criterion",
+ "zeff-columns",
+ "zeff-core",
+ "zeff-data",
+ "zeff-diagnostics",
+ "zeff-hash",
+ "zeff-numeric",
+ "zeff-regress",
+ "zeff-testkit",
+]
+
+[[package]]
 name = "zeff-cli"
 version = "0.4.0-dev"
 dependencies = [

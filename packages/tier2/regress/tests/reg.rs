@@ -16,7 +16,7 @@ use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
 use zeff_regress::ols::Ols;
 use zeff_results::design::Design;
 use zeff_results::estimator::Estimator;
-use zeff_testkit::{formula, root, run};
+use zeff_testkit::{formula, root, run, run_with};
 
 struct NoFiles;
 
@@ -756,4 +756,242 @@ proptest! {
         }
         prop_assert_eq!(fits[0].residual_sum_of_squares.to_bits(), fits[1].residual_sum_of_squares.to_bits());
     }
+}
+
+/// An outcome far below the scale of one (a finding of the formula fuzz target): the sums of
+/// squares of the residuals and of the outcome underflow to zero, and the self-check must not
+/// take the vanished norms for a failure of orthogonality; the slope is still recovered, and a
+/// constant regressor of that size is dropped with a note rather than an internal error.
+#[test]
+fn a_tiny_outcome_passes_the_self_check() {
+    let table = Table::new(vec![
+        (
+            "y".to_string(),
+            Column::floats([Some(1e-300), Some(2e-300), Some(3e-300)]).0,
+        ),
+        (
+            "a".to_string(),
+            Column::floats([Some(1.0), Some(2.0), Some(4.0)]).0,
+        ),
+    ])
+    .unwrap();
+    let (fit, _) = fit_of(&table, "y ~ a", None).unwrap();
+    let i = fit.terms.iter().position(|t| t == "a").unwrap();
+    let slope = 9.0 / 14.0 * 1e-300;
+    assert!(
+        (fit.estimates[i] - slope).abs() <= 1e-6 * slope,
+        "slope {} against {slope}",
+        fit.estimates[i]
+    );
+    let constant = Table::new(vec![
+        (
+            "y".to_string(),
+            Column::floats([Some(1e-300), Some(1e-300)]).0,
+        ),
+        (
+            "a".to_string(),
+            Column::floats([Some(1e-300), Some(1e-300)]).0,
+        ),
+    ])
+    .unwrap();
+    let (fit, messages) = fit_of(&constant, "y ~ a", None).unwrap();
+    assert_eq!(fit.omitted, vec!["a".to_string()]);
+    assert!(
+        messages
+            .iter()
+            .any(|m| m.contains("too small to be scaled")),
+        "{messages:?}"
+    );
+}
+
+/// Values beyond the size whose square can be represented (a finding of the formula fuzz
+/// target): an outcome above 1e150 is refused with Z0803 before anything is squared, and a
+/// regressor of that size is dropped with a note, as one below 1e-150 is.
+#[test]
+fn values_too_large_to_square() {
+    let huge_outcome: &[u8] = b"y,a\n0.5,1\n1e300,2\n-1,4\n2,3\n";
+    let huge_regressor: &[u8] = b"y,a,b\n0.5,1e300,1\n3,2,2\n-1,4,4\n2,3,5\n";
+    // Factors that are finite but whose product overflows (the fuzz target's case).
+    let overflowing_product: &[u8] =
+        b"y,a,b\n3.25,1e300,1\n1,3.25,-1e300\n1e-300,-1e300,-1e300\n2,1,2\n";
+    let mut all = String::new();
+    for (file, script) in [
+        (
+            huge_outcome,
+            "let d = import(\"data/huge.csv\")\nd.reg(y ~ a)\n",
+        ),
+        (
+            huge_regressor,
+            "let d = import(\"data/huge.csv\")\nd.reg(y ~ a + b)\n",
+        ),
+        (
+            huge_outcome,
+            "let d = import(\"data/huge.csv\")\nd.reg(y ~ a, se: robust)\n",
+        ),
+        (
+            overflowing_product,
+            "let d = import(\"data/huge.csv\")\nd.reg(y ~ a * b, se: robust)\n",
+        ),
+    ] {
+        let outcome = run_with(&[("data/huge.csv", file)], script);
+        all.push_str(&format!(
+            "> {script}{}--- messages ---\n{}[exit {}]\n\n",
+            outcome.output.stdout, outcome.output.stderr, outcome.exit_code
+        ));
+    }
+    insta::assert_snapshot!("magnitudes", all);
+}
+
+/// An observation alone in a cell of the design (a finding of the formula fuzz target): its
+/// leverage is one, so HC2 and HC3, which divide by one minus the leverage, are refused with
+/// Z0802, while HC1 and classical errors fit.
+#[test]
+fn an_observation_with_leverage_one_refuses_hc2_and_hc3() {
+    let file: &[u8] = b"y,a,d\n1e8,-1,0\n-2,1e8,1\n1e8,1e8,1\n3,2,1\n";
+    let mut all = String::new();
+    for se in ["hc2", "hc3", "robust", "classical"] {
+        let script =
+            format!("let d = import(\"data/one.csv\")\nd.reg(y ~ category(d) - 1, se: {se})\n");
+        let outcome = run_with(&[("data/one.csv", file)], &script);
+        all.push_str(&format!(
+            "> {script}{}--- messages ---\n{}[exit {}]\n\n",
+            outcome.output.stdout, outcome.output.stderr, outcome.exit_code
+        ));
+    }
+    insta::assert_snapshot!("leverage_one", all);
+}
+
+/// A robust variance whose meat has rank one (a finding of the formula fuzz target): two rows
+/// share the one design pattern with a nonzero residual and the third fits itself exactly, so
+/// one variance and its covariances are exact zeros that rounding leaves as residue; the
+/// symmetry check must lend them the matrix's scale rather than call them a fault.
+#[test]
+fn a_rank_one_meat_passes_the_symmetry_check() {
+    let file: &[u8] = b"y,c,d\n-81,x,1\n3.25,x,1\n3.25,x,0\n";
+    let script = "let d = import(\"data/rank.csv\")\nd.reg(y ~ d:category(c), se: robust)\n";
+    let outcome = run_with(&[("data/rank.csv", file)], script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome
+            .output
+            .stdout
+            .contains("standard errors: robust (HC1)")
+    );
+}
+
+/// A perfect fit under sampling weights (a finding of the formula fuzz target): two identical
+/// rows and a third, so every residual is rounding residue, and the sandwich is nothing but
+/// cancellation; the symmetry check must bound its rounding by the sizes of the terms, not by
+/// the vanishing result.
+#[test]
+fn a_perfect_fit_with_sampling_weights_passes_the_symmetry_check() {
+    let file: &[u8] = b"y,a\n2,1e8\n125,125\n125,125\n";
+    let script = "let d = import(\"data/perfect.csv\")\nd.reg(y ~ a, weights: a)\n";
+    let outcome = run_with(&[("data/perfect.csv", file)], script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome
+            .output
+            .stdout
+            .contains("standard errors: robust (HC1)"),
+        "{}",
+        outcome.output.stdout
+    );
+}
+
+/// Sampling weights of any size (a finding of the formula fuzz target): a weight of 1e300 beside
+/// ordinary ones is scaled with the others to average one, so the weighted design stays inside
+/// the range the arithmetic can square; the regressor of that size is dropped with its note, and
+/// the fit prints.
+#[test]
+fn sampling_weights_of_any_size_are_scaled_before_use() {
+    let file: &[u8] = b"y,a\n0.5,1e200\n1,3e200\n1e-300,1e299\n2,4e200\n";
+    let script = "let d = import(\"data/w.csv\")\nd.reg(y ~ (a * 2), weights: a)\n";
+    let outcome = run_with(&[("data/w.csv", file)], script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome.output.stderr.contains("too large to be scaled"),
+        "{}",
+        outcome.output.stderr
+    );
+    // Weights more than 1e150 apart are refused: a row with such a weight is a share of nothing.
+    let apart: &[u8] = b"y,a\n0.5,1e8\n1,3.25\n1e-300,1e300\n2,4\n";
+    let refused = run_with(&[("data/w.csv", apart)], script);
+    assert_eq!(refused.exit_code, 1);
+    assert!(
+        refused
+            .output
+            .stderr
+            .contains("error[Z0224]: `a` holds weights too far apart"),
+        "{}",
+        refused.output.stderr
+    );
+    // The scale of sampling weights changes nothing: the same fit under the weights times a
+    // thousand prints the same table.
+    let scaled: &[u8] = b"y,w\n0.5,2000\n1,3250\n2,4000\n3,1000\n";
+    let plain: &[u8] = b"y,w\n0.5,2\n1,3.25\n2,4\n3,1\n";
+    let fit = |file: &[u8]| {
+        run_with(
+            &[("data/w.csv", file)],
+            "let d = import(\"data/w.csv\")\nd.add(x = [1, 2, 3, 5]).reg(y ~ x, weights: w)\n",
+        )
+        .output
+        .stdout
+    };
+    assert_eq!(fit(scaled), fit(plain));
+}
+
+/// A robust variance with an exact zero on its diagonal (a finding of the formula fuzz target):
+/// the rows with a nonzero residual share one design pattern, so a coefficient's scores cancel
+/// and its variance is zero in arithmetic and a negative residue in floating point, which the
+/// check must take for zero rather than for a fault.
+#[test]
+fn a_zero_variance_left_as_negative_residue_is_zero() {
+    let file: &[u8] = b"y,a,b,d\n0.5,0,0,1\n0,0,0,1\n0,0,0,0\n0,0,2,0\n";
+    let script = "let d = import(\"data/zero.csv\")\nd.reg(y ~ d + a * b, se: robust)\n";
+    let outcome = run_with(&[("data/zero.csv", file)], script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    insta::assert_snapshot!("zero_variance", outcome.output.stdout);
+}
+
+/// One category variable coded twice with different contrasts (a finding of the formula fuzz
+/// target): the two codings span the same columns under the same names, so the second is a
+/// duplicate kept once, with the note, rather than a second set of columns of the same names.
+#[test]
+fn a_category_coded_twice_is_one_term() {
+    let file: &[u8] = b"y,c,b\n31,x,31\n30,x,31\n31,y,30\n29,x,31\n31,z,31\n0.5,z,0\n0.5,x,0\n";
+    let script = "let d = import(\"data/twice.csv\")\nd.reg(y ~ category(c, contrast: helmert) + b + category(c, contrast: sum))\n";
+    let outcome = run_with(&[("data/twice.csv", file)], script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome
+            .output
+            .stderr
+            .contains("`category(c, contrast: helmert)` is written twice, once as `category(c, contrast: sum)`, and is kept once"),
+        "{}",
+        outcome.output.stderr
+    );
+    assert_eq!(
+        outcome.output.stdout.matches("c=y").count(),
+        1,
+        "{}",
+        outcome.output.stdout
+    );
+}
+
+/// A weighted design column that overflows where its factors are finite (a finding of the
+/// formula fuzz target): the product `a:b` is 1e308, and the row's weight scales it beyond the
+/// largest double; the column is dropped as oversized without a not-a-number reaching the
+/// factorisation, and the fit prints.
+#[test]
+fn an_oversized_column_never_enters_the_factorisation() {
+    let file: &[u8] = b"y,a,b\n1e8,1e160,1e8\n1e8,1e160,1e8\n1e8,1e160,-65\n127,1e300,1e8\n1e8,1e160,1e-300\n76,1e200,110\n1e8,1e160,1e8\n1e8,1e160,1e8\n";
+    let script = "let d = import(\"data/over.csv\")\nd.reg(y ~ b + a * b, weights: a)\n";
+    let outcome = run_with(&[("data/over.csv", file)], script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome.output.stderr.contains("too large to be scaled"),
+        "{}",
+        outcome.output.stderr
+    );
 }

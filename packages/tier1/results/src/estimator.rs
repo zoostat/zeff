@@ -23,6 +23,9 @@ pub struct Fitted {
     /// The omitted columns whose values are not zero but too small for their squares to be
     /// represented (below 1e-150 in size), so that no norm can scale them.
     pub vanishing: Vec<usize>,
+    /// The omitted columns whose values are too large for their squares to be represented
+    /// (above 1e150 in size), so that no norm can scale them either.
+    pub oversized: Vec<usize>,
     /// One estimate per kept column, in the units of the data.
     pub estimates: Vec<f64>,
     /// The R factor of the kept columns scaled to unit norm, `kept.len()` square.

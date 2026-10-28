@@ -22,6 +22,7 @@ members = [
     "crates/zeff-conformance",
     "tools/xtask",
     "tools/zeff-testkit",
+    "tools/zeff-bench",
 ]
 # The fuzz targets are a package of their own, built by `cargo +nightly fuzz` in the nightly job.
 exclude = ["fuzz"]
@@ -57,6 +58,7 @@ zeff-ir = { path = "crates/zeff-ir" }
 zeff-engine = { path = "crates/zeff-engine" }
 zeff-conformance = { path = "crates/zeff-conformance" }
 zeff-testkit = { path = "tools/zeff-testkit" }
+zeff-bench = { path = "tools/zeff-bench" }
 
 # Determinism (Engine Specification, section 8.3, point 3): Rust never fuses multiply-add or
 # reorders floating-point operations unless asked, and nothing here asks. Integer overflow is

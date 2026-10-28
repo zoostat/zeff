@@ -87,7 +87,9 @@ WARNINGS AND NOTES
             number, or a frequency weight with a fraction
     Z0410   `se: classical` with sampling weights, or `se: hc2` or `hc3` with `cluster:`
     Z0801   no row remains after the rows with NA are dropped
-    Z0802   no regressor remains, no residual degrees of freedom, or one cluster
+    Z0802   no regressor remains, no residual degrees of freedom, one cluster, or an observation with
+            leverage one under `se: hc2` or `hc3`
+    Z0803   an outcome with values too large to compute with (above 1e150 in size)
 
 ACCURACY
     Closed form.

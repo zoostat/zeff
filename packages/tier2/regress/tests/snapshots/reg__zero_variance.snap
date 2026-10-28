@@ -1,0 +1,16 @@
+---
+source: packages/tier2/regress/tests/reg.rs
+expression: outcome.output.stdout
+---
+reg · y ~ d + a * b
+N = 4
+standard errors: robust (HC1)
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)      0.0000      0.0000       Inf    <0.001   [0.0000, 0.0000]
+  d                0.2500      0.3536      0.71     0.608   [-4.2423, 4.7423]
+  a             (omitted)
+  b                0.0000      0.0000     -0.42     0.749   [0.0000, 0.0000]
+  a:b           (omitted)
+
+R² 0.333 · adjusted R² -1.000

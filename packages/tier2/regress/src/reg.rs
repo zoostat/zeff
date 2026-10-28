@@ -239,11 +239,22 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         "has values too small to be scaled (below 1e-150 in size) and was dropped",
         "have values too small to be scaled (below 1e-150 in size) and were dropped",
     );
+    note(
+        ctx,
+        &mut notes,
+        names(&fitted.oversized),
+        "has values too large to be scaled (above 1e150 in size) and was dropped",
+        "have values too large to be scaled (above 1e150 in size) and were dropped",
+    );
     let collinear: Vec<usize> = fitted
         .omitted
         .iter()
         .copied()
-        .filter(|c| !fitted.zero.contains(c) && !fitted.vanishing.contains(c))
+        .filter(|c| {
+            !fitted.zero.contains(c)
+                && !fitted.vanishing.contains(c)
+                && !fitted.oversized.contains(c)
+        })
         .collect();
     note(
         ctx,
@@ -283,27 +294,55 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         None => None,
     };
     let bread = Ols.bread(&fitted);
-    let (vcov, df) =
-        match variance::variance(kind, &Ols, &design, &fitted, &bread, clusters.as_ref()) {
-            Ok(pair) => pair,
-            Err(VarianceError::Asymmetric) => {
-                return Err(internal(ctx, "an asymmetric variance matrix"));
-            }
-            Err(VarianceError::OneCluster) => {
-                return Err(fail(
+    let (vcov, df) = match variance::variance(
+        kind,
+        &Ols,
+        &design,
+        &fitted,
+        &bread,
+        clusters.as_ref(),
+    ) {
+        Ok(pair) => pair,
+        Err(VarianceError::Asymmetric) => {
+            return Err(internal(ctx, "an asymmetric variance matrix"));
+        }
+        Err(VarianceError::LeverageOne(rows_at_one)) => {
+            let word = match kind {
+                Kind::Hc3 => "hc3",
+                _ => "hc2",
+            };
+            return Err(fail(
                     Diagnostic::error(
                         "Z0802",
                         format!(
-                            "clustered errors need at least two clusters, and `{}` has one",
-                            cluster.as_deref().unwrap_or("")
+                            "`se: {word}` needs every observation's leverage below one, but {} leverage one: each is alone in a cell of the design",
+                            if rows_at_one == 1 {
+                                "1 row has".to_string()
+                            } else {
+                                format!("{} rows have", count(rows_at_one as u64))
+                            }
                         ),
                     )
                     .in_file(ctx.script)
-                    .primary(ctx.span_of(3), "one cluster")
-                    .help("cluster by a variable with several values, or leave `cluster:` out"),
+                    .primary(ctx.callee_span, "an observation that fits itself exactly")
+                    .help("`se: robust` (HC1) keeps these rows; or drop the regressor that singles each out, such as a category level with one observation"),
                 ));
-            }
-        };
+        }
+        Err(VarianceError::OneCluster) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0802",
+                    format!(
+                        "clustered errors need at least two clusters, and `{}` has one",
+                        cluster.as_deref().unwrap_or("")
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(3), "one cluster")
+                .help("cluster by a variable with several values, or leave `cluster:` out"),
+            ));
+        }
+    };
     if df == 0 {
         return Err(fail(
             Diagnostic::error(

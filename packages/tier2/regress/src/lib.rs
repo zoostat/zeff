@@ -87,7 +87,11 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0802",
-                        "no regressor remains, no residual degrees of freedom, or one cluster",
+                        "no regressor remains, no residual degrees of freedom, one cluster, or an observation with leverage one under `se: hc2` or `hc3`",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0803",
+                        "an outcome with values too large to compute with (above 1e150 in size)",
                     ),
                 ],
                 help: include_str!("../help/reg.md"),

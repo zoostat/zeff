@@ -1,0 +1,63 @@
+---
+source: packages/tier2/regress/tests/reg.rs
+expression: all
+---
+> let d = import("data/one.csv")
+d.reg(y ~ category(d) - 1, se: hc2)
+--- messages ---
+note: data/one.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0802]: `se: hc2` needs every observation's leverage below one, but 1 row has leverage one: each is alone in a cell of the design
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ category(d) - 1, se: hc2)
+  |   ^^^ an observation that fits itself exactly
+  |
+  = help: `se: robust` (HC1) keeps these rows; or drop the regressor that singles each out, such as a category level with one observation
+[exit 1]
+
+> let d = import("data/one.csv")
+d.reg(y ~ category(d) - 1, se: hc3)
+--- messages ---
+note: data/one.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0802]: `se: hc3` needs every observation's leverage below one, but 1 row has leverage one: each is alone in a cell of the design
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ category(d) - 1, se: hc3)
+  |   ^^^ an observation that fits itself exactly
+  |
+  = help: `se: robust` (HC1) keeps these rows; or drop the regressor that singles each out, such as a category level with one observation
+[exit 1]
+
+> let d = import("data/one.csv")
+d.reg(y ~ category(d) - 1, se: robust)
+reg · y ~ category(d) - 1
+N = 4
+standard errors: robust (HC1)
+
+  term         estimate       std.error   t value   p value   95% CI
+  d=0    100000000.0000          0.0000       Inf    <0.001   [100000000.0000, 100000000.0000]
+  d=1     33333333.6667   38490017.7535      0.87     0.478   [-132275846.2886, 198942513.6220]
+
+R² 0.667 · adjusted R² 0.333
+--- messages ---
+note: data/one.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+[exit 0]
+
+> let d = import("data/one.csv")
+d.reg(y ~ category(d) - 1, se: classical)
+reg · y ~ category(d) - 1
+N = 4
+standard errors: classical
+
+  term         estimate       std.error   t value   p value   95% CI
+  d=0    100000000.0000   57735026.6303      1.73     0.225   [-148413769.9330, 348413769.9330]
+  d=1     33333333.6667   33333333.1667      1.00     0.423   [-110088423.2745, 176755090.6079]
+
+R² 0.667 · adjusted R² 0.333
+--- messages ---
+note: data/one.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+[exit 0]

@@ -1,8 +1,8 @@
 name: Scheduled
 
-# The nightly and weekly jobs of the testing handbook, sections 2.2 and 2.3: the long property
-# runs, the stochastic class, the truth-recovery Monte Carlo and the fuzzing every night, coverage
-# and mutation testing every week. All can also be
+# The nightly and weekly jobs of the testing handbook, sections 2.2, 2.3 and 6: the long property
+# runs, the stochastic class, the truth-recovery Monte Carlo, the benchmark suite and the fuzzing
+# every night, coverage and mutation testing every week. All can also be
 # started by hand from the Actions page. Results go to each run's summary page and its artifacts.
 on:
   schedule:
@@ -45,6 +45,9 @@ jobs:
       - name: Run the truth-recovery Monte Carlo, 50 seeds under three designs
         run: cargo test -p zeff-regress --locked --release --test nightly_truth -- --ignored --nocapture 2>&1 | tee truth.log
 
+      - name: Run the benchmark suite (import, summary and mean by group, reg; 10⁴, 10⁶ and 10⁷ rows)
+        run: cargo bench -p zeff-bench --locked --bench suite 2>&1 | tee bench-suite.log
+
       - name: Write the note
         if: always()
         run: |
@@ -72,6 +75,16 @@ jobs:
             echo '```'
             grep -vE "^(running|test |$)" truth.log || true
             echo '```'
+            echo
+            echo "## Nightly: the benchmark suite"
+            echo
+            echo "Processor: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^ //')"
+            echo
+            echo "The suite of the testing handbook, section 6: \`import\` of a CSV, \`summary\` and \`mean\` by a group, and \`reg\` without fixed effects, at ten thousand, a million and ten million rows of generated data, each result checked against its stored digest before it is timed. The times are recorded in the release notes; a slow-down is a note to act on, not a failure of the job (open decision #52)."
+            echo
+            echo '```'
+            grep -B1 "time:" bench-suite.log | grep -v "^--$" || true
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the log
@@ -83,6 +96,7 @@ jobs:
             nightly.log
             stochastic.log
             truth.log
+            bench-suite.log
           if-no-files-found: ignore
 
   bench:
@@ -147,7 +161,7 @@ jobs:
 
       - name: Seed each corpus with the scripts and data files of the repository
         run: |
-          mkdir -p fuzz/corpus/lexer fuzz/corpus/parser fuzz/corpus/checker fuzz/corpus/csv fuzz/corpus/distribution
+          mkdir -p fuzz/corpus/lexer fuzz/corpus/parser fuzz/corpus/checker fuzz/corpus/csv fuzz/corpus/distribution fuzz/corpus/formula
           for target in lexer parser checker; do
             cp docs/spec/zeff_samples.zeff "fuzz/corpus/$target/"
             for script in samples/*/scripts/main.zeff; do
@@ -164,13 +178,13 @@ jobs:
         # The runner's own target, named so that cargo-fuzz never picks a statically linked one.
         run: cargo +nightly fuzz build --target x86_64-unknown-linux-gnu
 
-      - name: Fuzz the lexer, the parser, the checker, the CSV reader and the distributions for ten minutes each
+      - name: Fuzz the lexer, the parser, the checker, the CSV reader, the distributions and the formulas for ten minutes each
         working-directory: fuzz
         run: |
           # The status of the fuzzer, not of `tail`: a crash or a timeout fails the job.
           set -o pipefail
           status=0
-          for target in lexer parser checker csv distribution; do
+          for target in lexer parser checker csv distribution formula; do
             echo "::group::$target"
             if ! cargo +nightly fuzz run --target x86_64-unknown-linux-gnu "$target" -- -max_total_time=600 -timeout=20 2>&1 | tee "fuzz-$target.log" | tail -5; then
               status=1
@@ -190,7 +204,7 @@ jobs:
             echo "A crash leaves its input under \`artifacts/<target>/\`; it becomes a regression test (testing handbook, section 1)."
             echo
             echo '```'
-            for target in lexer parser checker csv distribution; do
+            for target in lexer parser checker csv distribution formula; do
               echo "$target: $(grep -E '^Done|^#[0-9]+ +DONE' "fuzz-$target.log" | tail -1)"
             done
             echo "crash inputs: $(find artifacts -type f 2>/dev/null | wc -l | tr -d ' ')"
@@ -233,7 +247,7 @@ jobs:
           cargo llvm-cov --workspace --locked --json --output-path coverage.json
           cargo llvm-cov report --summary-only | tee coverage-summary.txt
 
-      - name: The kernel is covered to 80% or more (testing handbook, section 1)
+      - name: The kernel and the estimators are covered to 80% or more (testing handbook, section 1)
         run: python3 -I tools/coverage/kernel_coverage.py coverage.json 80 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the reports
@@ -246,9 +260,11 @@ jobs:
             coverage-summary.txt
 
   mutation:
-    # The numeric kernel has grown past what one runner tests in three hours (1,879 mutants at
-    # 0.3.0, each running the workspace's tests), so the mutants are shared among twelve runners.
-    name: weekly (mutation testing, shard ${{ matrix.shard }} of 12)
+    # The estimator and variance code and the numeric kernel have far more mutants than one
+    # runner tests in three hours (at 0.4.0: zeff-numeric 1,838, zeff-results 1,043, zeff-kernels
+    # 368, zeff-regress 288, each running the workspace's tests), so each crate's mutants are
+    # shared among runners in proportion, about 150 a shard.
+    name: weekly (mutation testing, ${{ matrix.package }} ${{ matrix.shard }} of ${{ matrix.of }})
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
       || github.event.schedule == '41 3 * * 1'
@@ -257,7 +273,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        include:
+          - { package: zeff-numeric, shard: 0, of: 12 }
+          - { package: zeff-numeric, shard: 1, of: 12 }
+          - { package: zeff-numeric, shard: 2, of: 12 }
+          - { package: zeff-numeric, shard: 3, of: 12 }
+          - { package: zeff-numeric, shard: 4, of: 12 }
+          - { package: zeff-numeric, shard: 5, of: 12 }
+          - { package: zeff-numeric, shard: 6, of: 12 }
+          - { package: zeff-numeric, shard: 7, of: 12 }
+          - { package: zeff-numeric, shard: 8, of: 12 }
+          - { package: zeff-numeric, shard: 9, of: 12 }
+          - { package: zeff-numeric, shard: 10, of: 12 }
+          - { package: zeff-numeric, shard: 11, of: 12 }
+          - { package: zeff-kernels, shard: 0, of: 3 }
+          - { package: zeff-kernels, shard: 1, of: 3 }
+          - { package: zeff-kernels, shard: 2, of: 3 }
+          - { package: zeff-results, shard: 0, of: 7 }
+          - { package: zeff-results, shard: 1, of: 7 }
+          - { package: zeff-results, shard: 2, of: 7 }
+          - { package: zeff-results, shard: 3, of: 7 }
+          - { package: zeff-results, shard: 4, of: 7 }
+          - { package: zeff-results, shard: 5, of: 7 }
+          - { package: zeff-results, shard: 6, of: 7 }
+          - { package: zeff-regress, shard: 0, of: 2 }
+          - { package: zeff-regress, shard: 1, of: 2 }
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -270,7 +310,7 @@ jobs:
         with:
           tool: cargo-mutants
 
-      - name: Mutation testing of the numeric kernel, one twelfth of the mutants
+      - name: Mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}
         run: |
           # Surviving mutants and timeouts are a note to act on, not a failure of the job. Two
           # tests of the dist package make over a million calls into the kernel (the moments of
@@ -278,9 +318,9 @@ jobs:
           # stops a series converging they run for hours before failing, where the kernel's own
           # exact reference rejects the mutant in seconds; they are skipped here and run in CI
           # on every push.
-          (cargo mutants --package zeff-numeric --shard ${{ matrix.shard }}/12 --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
+          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
           {
-            echo "## Weekly: mutation testing of zeff-numeric, shard ${{ matrix.shard }} of 12"
+            echo "## Weekly: mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}"
             echo
             echo "Caught: $(wc -l < mutants/mutants.out/caught.txt | tr -d ' ')"
             echo "Missed (surviving mutants, each a test to write): $(wc -l < mutants/mutants.out/missed.txt | tr -d ' ')"
@@ -296,5 +336,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mutation-reports-${{ matrix.shard }}
+          name: mutation-reports-${{ matrix.package }}-${{ matrix.shard }}
           path: mutants/mutants.out

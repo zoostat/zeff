@@ -107,6 +107,22 @@ The checklist of release 0.4.0 (step 16) has `predict` give `NA` with a warning 
 
 The checklist of release 0.4.0 (step 18) refuses a nonlinear restriction given to `test`, a `compare` of models on different rows or not nested, and an expression `derive` cannot differentiate, three conditions the specification describes without a number (listed among those for open decision #54's successors). Step 18 assigns Z0415, Z0416 and Z0417, the next codes of the Z04xx family (arguments), and adds their rows to the table of codes numbered while the engine was built. The change settles nothing else.
 
+## 24 October 2026 — zeff_testing.md, new section 6: the benchmark suite
+
+Open decision #52, decided on 23 October 2026 (option B), asked for the benchmark suite to be written into a new section of the testing handbook once the freeze allowed it, and step 21 of release 0.4.0 builds the suite. Section 6 describes it: the four cases (`import`, `summary` and `mean` by a group, `reg`), the three sizes, the generated data, the digest checked before each timing, where the suite runs and that it reports rather than fails, with the targets of open decision #30 set from the first measurements. The row "Benchmarks" of section 1 keeps its 5 per cent rule as the aim once the public suite exists; until then section 6 governs. No other text changes.
+
+## 24 October 2026 — zeff_language_reference.md, section 11: the code Z0803
+
+The formula fuzz target of step 21 (release 0.4.0) found that an outcome above about 1e154 in size, whose square cannot be represented, left `reg` with an infinite residual sum of squares and an internal error. The engine now refuses such an outcome with Z0803, the next code of the Z08xx family (estimation), and drops a regressor of that size with a note, as it drops one below 1e-150; the row is added to the table of codes numbered while the engine was built. Provisional, as every code of that table.
+
+## 24 October 2026 — zeff_language_reference.md, section 11: Z0802 names one more condition
+
+The formula fuzz target of step 21 found that an observation with leverage one (a category level with one observation, under a model without an intercept) made HC2 and HC3 divide by zero and end in an internal error. `reg` now refuses `se: hc2` and `hc3` in that case with Z0802, whose row gains the condition; no new code.
+
+## 24 October 2026 — zeff_language_reference.md, section 4.1 (Weights): Z0224 names one more condition
+
+The formula fuzz target of step 21 found that weights more than about 1e150 apart (a sampling weight of 1e300 beside ordinary ones) underflow the rows with the small weights into noise, which the variance layer's self-checks reported as an internal error. `reg` now refuses such weights with Z0224, the code of a negative weight, naming the two extremes; the Weights row of section 4.1 gains the condition (the code has no row of its own in section 11's table, which lists Z0221 and Z0222 of its family). A correction found while coding, under the freeze.
+
 ## 28 October 2026 — zeff_open_decisions.md, status, summary, notes on #3 and #20, entries #55 to #66; zeff_engine_specification.md, section 14.1
 
 The owner's requests of 28 October 2026 for later capabilities (psychometric and other latent-variable models; Bayesian models in the manner of Stan and BUGS; machine learning from stacking to deep and reinforcement learning) were checked against both volumes and the catalogue. The register records the owner's decision #55 (results stay bit-identical; large and pretrained models reach a result only through packages under the determinism contract, frozen files whose hashes the run records, or `external`) and eleven open questions, #56 to #66, each with its options, a recommendation and a deadline; #3 and #20 gain a note pointing to the entries that build on them. Section 14.1, which is not normative, extends its Measurement and Bayesian rows, adds a row for prediction and decisions, and adds a sentence on the routes of #55 to its Engine paragraph. No rule of either volume changes: the wording that #55 and #64 call for waits for their deadlines.

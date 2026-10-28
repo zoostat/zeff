@@ -224,7 +224,7 @@ standard errors: robust (HC1)
   female         -0.1390   -0.1433      0.0070    -19.91    <0.001   [-0.1527, -0.1253]
 
 R² 0.098 · adjusted R² 0.098
-log-likelihood -44,703.3 · AIC 89,414.6 · BIC 89,445.9
+log-likelihood -11,903.0 · AIC 23,814.1 · BIC 23,845.3
 --- messages ---
 note: 30 of the 3,911 clusters hold one observation (line 2)
 [exit 0]

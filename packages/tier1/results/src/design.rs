@@ -69,6 +69,10 @@ struct ExpandedTerm {
     sources: Vec<usize>,
 }
 
+/// The largest ratio of a positive weight to the smallest the design accepts: beyond it the rows
+/// with the small weights underflow the arithmetic into noise.
+const WEIGHT_SPREAD: f64 = 1e150;
+
 /// The model matrix of a formula on a frame.
 pub struct Design {
     /// The columns' names, in order (section 7.2, "Term names"; question 5).
@@ -100,6 +104,8 @@ pub struct Design {
     columns: Vec<DesignColumn>,
     sources: Vec<Source>,
     outcome: Option<usize>,
+    /// The outcome's term as written, for messages that name it.
+    outcome_text: Option<String>,
     block_rows: usize,
 }
 
@@ -166,6 +172,7 @@ impl Design {
         names.extend(columns.iter().map(|c| c.name.clone()));
         builder.refuse_infinities()?;
         let (rows, dropped, dropped_in) = builder.rows_without_na(&extra_sources, outcome);
+        builder.refuse_infinite_products(&columns, &rows)?;
         Ok(Design {
             names,
             rows,
@@ -180,6 +187,7 @@ impl Design {
             columns,
             sources: builder.sources,
             outcome,
+            outcome_text: formula.outcome.as_ref().map(|t| t.text.clone()),
             block_rows: BLOCK_ROWS,
         })
     }
@@ -188,7 +196,9 @@ impl Design {
     /// 4.1, "Weights"): the variable was given among `extra` when the design was built, so its
     /// `NA` rows are already dropped; a row with zero weight is left out and counted; a negative
     /// weight is an error listing the rows; a frequency weight must be a whole number; analytic
-    /// weights are scaled to sum to the rows kept.
+    /// and sampling weights are scaled to sum to the rows kept, which changes no estimate and no
+    /// standard error (both are invariant to the scale of such weights) and keeps a weight of any
+    /// size inside the range the arithmetic can square.
     pub fn weighted(
         mut self,
         ctx: &mut CallContext<'_>,
@@ -271,7 +281,26 @@ impl Design {
             .iter()
             .map(|&row| values[row].unwrap_or(0.0))
             .collect();
-        if kind == WeightKind::Analytic && !weights.is_empty() {
+        // Weights too far apart (the formula fuzz target's finding): below one part in 1e150 of
+        // the largest, a row's share of the fit underflows into noise, so the spread is refused.
+        let smallest = weights.iter().copied().fold(f64::INFINITY, f64::min);
+        let largest = weights.iter().copied().fold(0.0_f64, f64::max);
+        if !weights.is_empty() && largest > WEIGHT_SPREAD * smallest {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0224",
+                    format!(
+                        "`{name}` holds weights too far apart: the largest, {}, is more than 1e150 times the smallest, {}",
+                        zeff_core::display::format_float(largest),
+                        zeff_core::display::format_float(smallest)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "weights no fit can use together")
+                .help("a weight that small is a share of nothing; `where` the rows with such weights out, or trim the weights"),
+            ));
+        }
+        if matches!(kind, WeightKind::Analytic | WeightKind::Sampling) && !weights.is_empty() {
             let total = zeff_kernels::sum(&weights);
             let n = weights.len() as f64;
             for w in &mut weights {
@@ -329,6 +358,11 @@ impl Design {
     /// Whether the formula has an outcome.
     pub fn has_outcome(&self) -> bool {
         self.outcome.is_some()
+    }
+
+    /// The outcome's term as written (`log(wage)`), for messages that name it.
+    pub fn outcome_name(&self) -> Option<String> {
+        self.outcome_text.clone()
     }
 
     /// The value of column `column` (the intercept counted) at the frame row `row`.
@@ -952,10 +986,20 @@ impl Builder<'_, '_> {
     /// A term written twice is kept once, with a note (section 7.2, "Duplicates"); `a:b` and
     /// `b:a` are one term.
     fn drop_duplicates(&mut self, terms: &mut Vec<ExpandedTerm>) {
-        let mut seen: Vec<BTreeSet<usize>> = Vec::new();
+        let mut seen: Vec<BTreeSet<String>> = Vec::new();
         let mut kept: Vec<ExpandedTerm> = Vec::new();
         for term in terms.drain(..) {
-            let set: BTreeSet<usize> = term.sources.iter().copied().collect();
+            // Two codings of one category variable (`category(c, contrast: helmert)` and
+            // `category(c, contrast: sum)`) span the same columns under the same names, so they
+            // are one term too (the formula fuzz target found the pair).
+            let set: BTreeSet<String> = term
+                .sources
+                .iter()
+                .map(|&s| match &self.sources[s] {
+                    Source::Coded { var, .. } => format!("category:{var}"),
+                    Source::Numeric { .. } => self.keys[s].clone(),
+                })
+                .collect();
             if let Some(first) = seen.iter().position(|s| *s == set) {
                 let (kept_text, again) = (self.term_text(&kept[first]), self.term_text(&term));
                 self.notes.push(if kept_text == again {
@@ -1128,6 +1172,69 @@ impl Builder<'_, '_> {
             }
         }
         Ok(())
+    }
+
+    /// Products of parts (an interaction, `a:b`) can overflow where their factors are finite: a
+    /// row where a column's product is infinite is refused as an infinite value in a model
+    /// variable is (Z0223), naming the column (the formula fuzz target found the case).
+    fn refuse_infinite_products(
+        &self,
+        columns: &[DesignColumn],
+        rows: &[usize],
+    ) -> Result<(), Fail> {
+        for column in columns.iter().filter(|c| c.parts.len() > 1) {
+            let overflowing: Vec<usize> = rows
+                .iter()
+                .filter(|&&row| !self.product(column, row).is_finite())
+                .map(|&row| row + 1)
+                .collect();
+            if overflowing.is_empty() {
+                continue;
+            }
+            let listed = overflowing
+                .iter()
+                .take(10)
+                .map(|r| count(*r as u64))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let more = if overflowing.len() > 10 {
+                format!(" and {} more", count((overflowing.len() - 10) as u64))
+            } else {
+                String::new()
+            };
+            let name = &column.name;
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0223",
+                    format!(
+                        "`{name}` holds an infinite value in {} {listed}{more}: the product of its factors overflows",
+                        if overflowing.len() == 1 { "row" } else { "rows" }
+                    ),
+                )
+                .in_file(self.ctx.script)
+                .primary(self.ctx.callee_span, "a model column with Inf")
+                .help("a model cannot use an infinite value; rescale a factor first, `add(a_m = a / 1e6)`, or drop the rows with `where`"),
+            ));
+        }
+        Ok(())
+    }
+
+    /// The product of a column's parts at the frame row `row`, as the design computes it.
+    fn product(&self, column: &DesignColumn, row: usize) -> f64 {
+        let mut product = 1.0;
+        for part in &column.parts {
+            product *= match part {
+                Part::Numeric(source) => match &self.sources[*source] {
+                    Source::Numeric { values, .. } => values[row],
+                    Source::Coded { .. } => 0.0,
+                },
+                Part::Weighted { source, weights } => match &self.sources[*source] {
+                    Source::Coded { codes, .. } => codes[row].map_or(0.0, |c| weights[c as usize]),
+                    Source::Numeric { .. } => 0.0,
+                },
+            };
+        }
+        product
     }
 
     /// The rows without `NA` in any source used, with the count dropped and the counts by

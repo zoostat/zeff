@@ -1,0 +1,59 @@
+---
+source: packages/tier2/regress/tests/reg.rs
+expression: all
+---
+> let d = import("data/huge.csv")
+d.reg(y ~ a)
+--- messages ---
+note: data/huge.csv read as CSV: 4 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0803]: `y` has values too large to compute with (above 1e150 in size)
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ a)
+  |   ^^^ an outcome too large to square
+  |
+  = help: divide the outcome by a power of ten first, `add(y_m = y / 1e6)`, and read the estimates in those units
+[exit 1]
+
+> let d = import("data/huge.csv")
+d.reg(y ~ a + b)
+reg · y ~ a + b
+N = 4
+standard errors: classical
+
+  term           estimate   std.error   t value   p value   95% CI
+  (intercept)      1.4250      2.2859      0.62     0.597   [-8.4104, 11.2604]
+  a             (omitted)
+  b               -0.1000      0.6741     -0.15     0.896   [-3.0003, 2.8003]
+
+R² 0.011 · adjusted R² -0.484
+--- messages ---
+note: data/huge.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: `a` has values too large to be scaled (above 1e150 in size) and was dropped (line 2)
+[exit 0]
+
+> let d = import("data/huge.csv")
+d.reg(y ~ a, se: robust)
+--- messages ---
+note: data/huge.csv read as CSV: 4 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0803]: `y` has values too large to compute with (above 1e150 in size)
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ a, se: robust)
+  |   ^^^ an outcome too large to square
+  |
+  = help: divide the outcome by a power of ten first, `add(y_m = y / 1e6)`, and read the estimates in those units
+[exit 1]
+
+> let d = import("data/huge.csv")
+d.reg(y ~ a * b, se: robust)
+--- messages ---
+note: data/huge.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0223]: `a:b` holds an infinite value in row 3: the product of its factors overflows
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ a * b, se: robust)
+  |   ^^^ a model column with Inf
+  |
+  = help: a model cannot use an infinite value; rescale a factor first, `add(a_m = a / 1e6)`, or drop the rows with `where`
+[exit 1]

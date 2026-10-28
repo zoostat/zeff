@@ -517,7 +517,7 @@ Zeff has one missing value, `NA`. Invalid results such as `0/0` become `NA` with
 | Comparison | `income > 100` is `NA` where income is `NA`; `NA == NA` is `NA` | Stata treats missing as larger than any number |
 | Filtering | `where(cond)` drops rows where `cond` is `NA` and says how many; `where(age > 30)` and `where(!(age > 30))` therefore both drop rows with `NA` age, and the note of each says so, so the two never silently partition a frame | Stata's `keep if x > 5` keeps missing x |
 | Statistics | `NA` skipped with a warning giving the count; any `Inf` gives `Inf`; `Inf` and `-Inf` together give `NA` with a warning; a sum of all-NA input is `NA` | R needs `na.rm = TRUE`; R and Stata give 0 for an all-missing sum |
-| Weights | A row with `NA` weight is dropped and counted; a negative weight is an error listing the rows (Z0224); a zero weight leaves the row out of the estimate and the observation count, with a note giving how many (as R's `lm` leaves such rows out of the degrees of freedom) |
+| Weights | A row with `NA` weight is dropped and counted; a negative weight is an error listing the rows (Z0224), and so are weights more than 1e150 apart, the smallest positive one being a share of nothing; a zero weight leaves the row out of the estimate and the observation count, with a note giving how many (as R's `lm` leaves such rows out of the degrees of freedom) |
 | Models | Rows with `NA` in model variables dropped and counted; `Inf` in a model variable is an error listing the rows (Z0223); `missing: fiml` in SEM | Stata drops silently |
 | Groups | `NA` forms its own group, shown as `NA` | pandas drops it |
 | Merge keys | `NA` never matches; such rows are reported as unmatched | dplyr matches NA keys |
@@ -1289,7 +1289,8 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0103, Z0105, W0101 | A call names no function; a `let` reuses a name of `core`; a `let` hides a function of another package (warning) |
 | Z0401, Z0404 to Z0409 | An argument of the wrong type; an unknown argument name; an argument given twice; a required argument missing; too many positional arguments; a positional argument after a named one; a date format that is not one |
 | Z0221 | An operator applied to types it does not take (a Bool in arithmetic, `!` on a number, `&&` on numbers, a comparison across types, an index of the wrong kind) |
-| Z0801, Z0802 | No row remains to fit a model once the rows with `NA` are dropped; no residual degrees of freedom (as many regressors as rows, or more), or no regressor at all |
+| Z0801, Z0802 | No row remains to fit a model once the rows with `NA` are dropped; no residual degrees of freedom (as many regressors as rows, or more), no regressor at all, or an observation with leverage one (alone in a cell of the design) under `se: hc2` or `hc3`, which divide by one minus the leverage |
+| Z0803 | An outcome with values too large to compute with (above 1e150 in size, where a square cannot be represented); a regressor of that size is dropped with a note instead |
 | Z0222 | A mapping key written or computed twice |
 | Z0410 | Two options of one call that exclude each other, given together (`round` with `digits:` and `sig:`; `se: classical` with sampling weights) |
 | Z0413 | A parameter of a distribution outside its domain, or `NA` |

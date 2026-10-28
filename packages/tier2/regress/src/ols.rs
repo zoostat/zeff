@@ -51,19 +51,49 @@ impl Estimator for Ols {
         // on across the blocks, so the design's block size changes no bit.
         let mut accumulators: Vec<LaneSum> = (0..k).map(|_| LaneSum::new()).collect();
         // The largest size in each column, which tells a zero column from one whose squares
-        // underflow.
+        // underflow or overflow; and the outcome's, which must be squared too.
         let mut largest: Vec<f64> = vec![0.0; k];
+        let mut largest_outcome = 0.0_f64;
         for block in design.blocks() {
             for (c, accumulator) in accumulators.iter_mut().enumerate() {
                 let column = block.x.column(c);
                 accumulator.push_squares(column);
                 largest[c] = column.iter().fold(largest[c], |m, x| m.max(x.abs()));
             }
+            largest_outcome = block.y.iter().fold(largest_outcome, |m, y| m.max(y.abs()));
+        }
+        // An outcome beyond the size whose square can be represented has no residual sum of
+        // squares, no standard error and no fit measure (the formula fuzz target found it).
+        if largest_outcome > OVERSIZED {
+            let outcome = design.outcome_name().unwrap_or_default();
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0803",
+                    format!(
+                        "`{outcome}` has values too large to compute with (above 1e150 in size)"
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "an outcome too large to square")
+                .help(format!(
+                    "divide the outcome by a power of ten first, `add({outcome}_m = {outcome} / 1e6)`, and read the estimates in those units"
+                )),
+            ));
         }
         let sums: Vec<f64> = accumulators.iter().map(LaneSum::value).collect();
+        // A column whose sum of squares overflowed is scaled to zero, so that the pivoting drops
+        // it and it is reported as oversized.
         let scales: Vec<f64> = sums
             .iter()
-            .map(|s| if *s > 0.0 { 1.0 / s.sqrt() } else { 1.0 })
+            .map(|s| {
+                if *s > 0.0 && s.is_finite() {
+                    1.0 / s.sqrt()
+                } else if s.is_infinite() {
+                    0.0
+                } else {
+                    1.0
+                }
+            })
             .collect();
         // The blocked QR of [X y], X scaled.
         let mut qr = TallSkinnyQr::new(k + 1);
@@ -71,7 +101,14 @@ impl Estimator for Ols {
             let rows = block.x.rows();
             let augmented = Matrix::from_fn(rows, k + 1, |r, c| {
                 if c < k {
-                    block.x.get(r, c) * scales[c]
+                    // An oversized column (scale zero) may hold an infinity, which the weighted
+                    // design can produce from finite factors; zero times it would be not a
+                    // number, so the column is zero outright.
+                    if scales[c] == 0.0 {
+                        0.0
+                    } else {
+                        block.x.get(r, c) * scales[c]
+                    }
                 } else {
                     block.y[r]
                 }
@@ -127,6 +164,11 @@ impl Estimator for Ols {
             .copied()
             .filter(|&c| sums[c] == 0.0 && largest[c] > 0.0)
             .collect();
+        let oversized: Vec<usize> = omitted
+            .iter()
+            .copied()
+            .filter(|&c| !sums[c].is_finite())
+            .collect();
         let kept_scales: Vec<f64> = kept.iter().map(|&c| scales[c]).collect();
         let estimates: Vec<f64> = scaled
             .iter()
@@ -163,9 +205,11 @@ impl Estimator for Ols {
         let condition = condition_number(&r11);
         // Self-check (section 11.1): the residuals are orthogonal to the regressors, to within the
         // rounding of computing them, which grows with the outcome's size and the condition
-        // number of the scaled design.
-        let residual_norm = rss.sqrt();
-        let outcome_norm = sum_of_squares(&design.outcome().unwrap_or_default()).sqrt();
+        // number of the scaled design. The norms are computed at the scale of the values, so
+        // that an outcome far below one (whose squares underflow to zero) does not make the
+        // bound vanish; the formula fuzz target found that case.
+        let residual_norm = scaled_norm(&residuals);
+        let outcome_norm = scaled_norm(&design.outcome().unwrap_or_default());
         let slack = (1e-8_f64).max(10.0 * f64::EPSILON * condition);
         for (p, &c) in kept.iter().enumerate() {
             let column_norm = sums[c].sqrt();
@@ -182,6 +226,7 @@ impl Estimator for Ols {
             omitted,
             zero,
             vanishing,
+            oversized,
             estimates,
             condition_number: condition,
             r: r11,
@@ -230,4 +275,21 @@ fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
         .in_file(ctx.script)
         .primary(ctx.callee_span, "the fit that failed its self-check"),
     )
+}
+
+/// The size above which a value's square cannot be represented with room for a sum of them, the
+/// mirror of the 1e-150 below which a column vanishes: a regressor beyond it is dropped with a
+/// note, an outcome beyond it is refused (Z0803).
+const OVERSIZED: f64 = 1e150;
+
+/// The Euclidean norm computed at the scale of the largest value, so that it neither underflows
+/// nor overflows for values far from one; zero for no values, and the largest value itself when
+/// that is not finite.
+fn scaled_norm(values: &[f64]) -> f64 {
+    let scale = values.iter().fold(0.0_f64, |m, v| m.max(v.abs()));
+    if scale == 0.0 || !scale.is_finite() {
+        return scale;
+    }
+    let scaled: Vec<f64> = values.iter().map(|v| v / scale).collect();
+    scale * sum_of_squares(&scaled).sqrt()
 }

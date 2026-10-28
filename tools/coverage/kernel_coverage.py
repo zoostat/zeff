@@ -1,10 +1,12 @@
-"""Line coverage of the kernel crates from a cargo-llvm-cov JSON report.
+"""Line coverage of the kernel crates and the estimators from a cargo-llvm-cov JSON report.
 
 Usage: python3 -I tools/coverage/kernel_coverage.py coverage.json 80
 
-Prints a table of line coverage per crate (the kernel crates first), then the kernel's total, and
-exits 1 when that total is below the threshold given (the testing handbook asks for 80% or more
-in the kernel). The table is Markdown, so it reads well in a job summary.
+Prints a table of line coverage per crate (the kernel crates first, then the estimators), then
+the kernel's total and the estimators' total (the `results` and `regress` packages: the design,
+the estimator and variance layers and the regressions), and exits 1 when either total is below
+the threshold given (the testing handbook asks for 80% or more in the kernel and the estimators).
+The table is Markdown, so it reads well in a job summary.
 """
 
 import json
@@ -21,6 +23,16 @@ def crate_of(path):
         if part == "packages" and i + 2 < len(parts):
             return f"{part}/{parts[i + 1]}/{parts[i + 2]}"
     return "other"
+
+
+ESTIMATORS = ("packages/tier1/results", "packages/tier2/regress")
+
+
+def total(lines, chosen):
+    """The lines covered and counted over the crates `chosen` accepts, and the percentage."""
+    covered = sum(v[0] for c, v in lines.items() if chosen(c))
+    count = sum(v[1] for c, v in lines.items() if chosen(c))
+    return covered, count, (100.0 * covered / count if count else 100.0)
 
 
 def main(argv):
@@ -41,18 +53,28 @@ def main(argv):
     print()
     print("| Crate | Lines covered | Lines | Coverage |")
     print("| --- | ---: | ---: | ---: |")
-    for crate in sorted(lines, key=lambda c: (not c.startswith("kernel/"), c)):
-        covered, total = lines[crate]
-        pct = 100.0 * covered / total if total else 100.0
-        print(f"| {crate} | {covered:,} | {total:,} | {pct:.1f}% |")
-    kernel_covered = sum(v[0] for c, v in lines.items() if c.startswith("kernel/"))
-    kernel_total = sum(v[1] for c, v in lines.items() if c.startswith("kernel/"))
-    kernel_pct = 100.0 * kernel_covered / kernel_total if kernel_total else 100.0
+    order = lambda c: (not c.startswith("kernel/"), c not in ESTIMATORS, c)
+    for crate in sorted(lines, key=order):
+        covered, count = lines[crate]
+        pct = 100.0 * covered / count if count else 100.0
+        print(f"| {crate} | {covered:,} | {count:,} | {pct:.1f}% |")
+    kernel_covered, kernel_count, kernel_pct = total(lines, lambda c: c.startswith("kernel/"))
+    estimators_covered, estimators_count, estimators_pct = total(lines, lambda c: c in ESTIMATORS)
     print()
-    print(f"Kernel total: {kernel_pct:.1f}% of {kernel_total:,} lines (threshold {threshold:g}%).")
+    print(f"Kernel total: {kernel_pct:.1f}% of {kernel_count:,} lines (threshold {threshold:g}%).")
+    print()
+    print(
+        f"Estimators total (results and regress): {estimators_pct:.1f}% of {estimators_count:,} lines"
+        f" (threshold {threshold:g}%)."
+    )
+    short = []
     if kernel_pct < threshold:
+        short.append("the kernel")
+    if estimators_pct < threshold:
+        short.append("the estimators")
+    if short:
         print()
-        print(f"The kernel is below {threshold:g}%: write the missing tests.")
+        print(f"{' and '.join(short).capitalize()} below {threshold:g}%: write the missing tests.")
         return 1
     return 0
 
