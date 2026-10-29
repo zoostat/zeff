@@ -91,7 +91,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0803",
-                        "an outcome with values too large to compute with (above 1e150 in size)",
+                        "an outcome with values too large to compute with (above 1e150 in size) or too small against its regressors (an estimate below 2.2e-308)",
                     ),
                 ],
                 help: include_str!("../help/reg.md"),

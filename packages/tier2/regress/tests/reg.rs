@@ -1343,6 +1343,42 @@ fn an_outcome_at_the_size_limit_is_accepted() {
     );
 }
 
+/// An outcome too small against its regressors (a finding of the formula fuzz target): an
+/// estimate below the smallest normal number, 2.2e-308, keeps a few digits only, so the fitted
+/// values computed from it are wrong in their leading digits and the self-check fails; the fit
+/// is refused with Z0803, as an outcome too large is. The same outcome against regressors of
+/// ordinary size has estimates of normal size and fits (`a_tiny_outcome_passes_the_self_check`).
+#[test]
+fn an_outcome_too_small_against_its_regressors_is_refused() {
+    let fuzzed: &[u8] =
+        b"y,a,b,c,d\n-0.0,1e8,0.5,z,0\n1e-300,1e-300,3.25,z,0\n1e-300,1e-300,-1e300,x,1\n";
+    let script = "let f = import(\"data/f.csv\")\nf.reg(y ~ a^2 + b, se: robust)\n";
+    let outcome = run_with(&[("data/f.csv", fuzzed)], script);
+    assert!(
+        !outcome.output.stderr.contains("Z9001"),
+        "{}",
+        outcome.output.stderr
+    );
+    assert!(
+        outcome.output.stderr.contains(
+            "error[Z0803]: `y` has values too small to compute with against its regressors (an estimate below 2.2e-308 in size)"
+        ),
+        "{}",
+        outcome.output.stderr
+    );
+    // The slope of 1e-300 on 1e16 is 1e-316, subnormal; on 1e6 it is 1e-306, a normal number.
+    let fit_against = |scale: f64| {
+        let t = table(vec![
+            ("y", floats(&[1e-300, 2e-300, 3e-300, 5e-300])),
+            ("x", floats(&[scale, 2.0 * scale, 3.0 * scale, 4.0 * scale])),
+        ]);
+        fit_with(&t, "y ~ x", &Options::default())
+    };
+    assert!(fit_against(1e6).is_ok());
+    let refused = fit_against(1e16).expect_err("refused");
+    assert!(refused.contains("Z0803"), "{refused}");
+}
+
 /// An outcome of zeros fits with estimates of exactly zero and residuals of zero, whose
 /// orthogonality the self-check accepts although its bound is zero too.
 #[test]

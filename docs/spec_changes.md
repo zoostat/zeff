@@ -111,6 +111,10 @@ The checklist of release 0.4.0 (step 18) refuses a nonlinear restriction given t
 
 Open decision #52, decided on 23 October 2026 (option B), asked for the benchmark suite to be written into a new section of the testing handbook once the freeze allowed it, and step 21 of release 0.4.0 builds the suite. Section 6 describes it: the four cases (`import`, `summary` and `mean` by a group, `reg`), the three sizes, the generated data, the digest checked before each timing, where the suite runs and that it reports rather than fails, with the targets of open decision #30 set from the first measurements. The row "Benchmarks" of section 1 keeps its 5 per cent rule as the aim once the public suite exists; until then section 6 governs. No other text changes.
 
+## 30 October 2026 — zeff_language_reference.md, section 11: Z0803 names the outcome too small as well
+
+The formula fuzz target of step 22e (release 0.4.0) found that an outcome of 1e-300 against a regressor of 1e16 has an estimate below the smallest normal number (2.2e-308), which keeps a few digits only, and that the fit's self-check then reported an internal error. The engine now refuses a fit with such an estimate with the same code Z0803, whose row names the second condition (the outcome too small against its regressors); a regressor below 1e-150 in size was already dropped with a note. Provisional, as every code of that table.
+
 ## 24 October 2026 — zeff_language_reference.md, section 11: the code Z0803
 
 The formula fuzz target of step 21 (release 0.4.0) found that an outcome above about 1e154 in size, whose square cannot be represented, left `reg` with an infinite residual sum of squares and an internal error. The engine now refuses such an outcome with Z0803, the next code of the Z08xx family (estimation), and drops a regressor of that size with a note, as it drops one below 1e-150; the row is added to the table of codes numbered while the engine was built. Provisional, as every code of that table.

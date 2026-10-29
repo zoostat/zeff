@@ -175,6 +175,30 @@ impl Estimator for Ols {
             .zip(&kept_scales)
             .map(|(b, s)| b * s)
             .collect();
+        // An estimate below the smallest normal number keeps a few digits only, so the fitted
+        // values and residuals computed from it are wrong in their leading digits (the formula
+        // fuzz target found an outcome of 1e-300 against a regressor of 1e16, whose slope of
+        // 1e-316 failed the self-check): the outcome is too small against its regressors to
+        // compute with, and is refused with the code of the outcome too large.
+        if estimates
+            .iter()
+            .any(|b| *b != 0.0 && b.abs() < f64::MIN_POSITIVE)
+        {
+            let outcome = design.outcome_name().unwrap_or_default();
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0803",
+                    format!(
+                        "`{outcome}` has values too small to compute with against its regressors (an estimate below 2.2e-308 in size)"
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "an outcome too small for its estimates")
+                .help(format!(
+                    "multiply the outcome by a power of ten first, `add({outcome}_k = {outcome} * 1e6)`, and read the estimates in those units"
+                )),
+            ));
+        }
         // The second pass: y − Xβ row by row, the leverage from R, and the products Xᵀe for the
         // self-check.
         let mut residuals = Vec::with_capacity(n);
