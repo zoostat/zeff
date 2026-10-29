@@ -5,7 +5,7 @@
 
 use serde_json::Value as Json;
 use std::rc::Rc;
-use zeff_columns::Table;
+use zeff_columns::{Column, Table};
 use zeff_core::runtime::{Args, Body, CallContext, Fail, Files, Randomness};
 use zeff_core::value::{Fit, Frame, Value};
 use zeff_data::csv::{CsvOptions, read_csv};
@@ -309,4 +309,56 @@ fn the_printed_forms_and_every_message() {
         all.push_str(&format!("> {script}{}\n", printed(script)));
     }
     insta::assert_snapshot!("diagnostics", all);
+}
+
+/// A small table of float columns.
+fn small(columns: &[(&str, &[f64])]) -> Table {
+    Table::new(
+        columns
+            .iter()
+            .map(|(name, values)| {
+                (
+                    name.to_string(),
+                    Column::floats(values.iter().map(|v| Some(*v))).0,
+                )
+            })
+            .collect(),
+    )
+    .unwrap()
+}
+
+/// With a single residual degree of freedom there is no error variance without a row, so no
+/// Cook's distance and no studentized residual, whatever the leverage.
+#[test]
+fn one_residual_degree_of_freedom_leaves_no_influence_measures() {
+    let t = small(&[("y", &[1.0, 2.0, 4.0]), ("x", &[1.0, 2.0, 3.0])]);
+    let fit = fit_with(&t, "y ~ x", &Options::default());
+    assert_eq!(fit.n - fit.terms.len(), 1);
+    for (h, cooks, studentized) in measures(&fit) {
+        assert!(h.is_finite() && h < 1.0, "{h}");
+        assert!(
+            cooks.is_nan() && studentized.is_nan(),
+            "{cooks} {studentized}"
+        );
+    }
+}
+
+/// Three zeros and a four on an intercept alone: the fourth row's removal leaves a perfect fit,
+/// so its error variance without the row is exactly zero and it has no studentized residual,
+/// while its Cook's distance is one and the other rows' measures are finite.
+#[test]
+fn a_row_whose_removal_leaves_a_perfect_fit_has_no_studentized_residual() {
+    let t = small(&[("y", &[0.0, 0.0, 0.0, 4.0])]);
+    let fit = fit_with(&t, "y ~ 1", &Options::default());
+    let measured = measures(&fit);
+    assert_eq!(measured.len(), 4);
+    for (h, cooks, studentized) in &measured[..3] {
+        assert!(same(*h, 0.25, 1e-12, 0.0) && cooks.is_finite() && studentized.is_finite());
+    }
+    let (h, cooks, studentized) = measured[3];
+    assert!(
+        same(h, 0.25, 1e-12, 0.0) && same(cooks, 1.0, 1e-12, 0.0),
+        "{h} {cooks}"
+    );
+    assert!(studentized.is_nan(), "{studentized}");
 }

@@ -1104,3 +1104,183 @@ fn r_squared_without_an_intercept_weights_the_squared_outcomes() {
         fit.r_squared.unwrap()
     );
 }
+
+/// `level:` is open at both ends, whatever the number's form: an integer 0 or 1 is refused as a
+/// float is.
+#[test]
+fn every_form_of_a_level_at_the_ends_is_refused() {
+    for level in ["1", "0", "1.0", "0.0"] {
+        let text = printed(&format!(
+            "dataset(wages).reg(wage ~ educ, level: {level})\n"
+        ));
+        assert!(
+            text.contains("Z0401") && text.contains("strictly between 0 and 1"),
+            "level {level}: {text}"
+        );
+    }
+}
+
+/// Sixty rows in thirty clusters: the few-clusters warning starts below thirty, not at it.
+#[test]
+fn the_few_clusters_warning_starts_below_thirty() {
+    let values: Vec<(f64, f64, f64)> = (0..60)
+        .map(|i| {
+            let x = f64::from(i);
+            (x * 0.5 + (x * 1.3).sin(), x, (x * 0.7).cos())
+        })
+        .collect();
+    let warned = |clusters: i32| {
+        let ids: Vec<f64> = (0..60).map(|i| f64::from(i % clusters)).collect();
+        let t = frame_of(&values).with_column("id", floats(&ids)).unwrap();
+        let (_, messages) = fit_with(
+            &t,
+            "y ~ a + b",
+            &Options {
+                cluster: Some("id"),
+                ..Options::default()
+            },
+        )
+        .unwrap();
+        messages.iter().any(|m| m.contains("W1002"))
+    };
+    assert!(!warned(30), "thirty clusters are not few");
+    assert!(warned(29), "twenty-nine clusters are few");
+}
+
+/// Thirteen rows with one weight of 14 among ones have an effective sample size of exactly
+/// 3.25, a quarter of the rows: the extreme-weights warning starts below a quarter, not at it.
+#[test]
+fn the_extreme_weights_warning_starts_below_a_quarter() {
+    let values: Vec<(f64, f64, f64)> = (0..13)
+        .map(|i| {
+            let x = f64::from(i);
+            (x * 0.5 + (x * 1.3).sin(), x, (x * 0.7).cos())
+        })
+        .collect();
+    let warned = |first: f64| {
+        let mut w = vec![1.0; 13];
+        w[0] = first;
+        let t = frame_of(&values).with_column("w", floats(&w)).unwrap();
+        let (_, messages) = fit_with(
+            &t,
+            "y ~ a + b",
+            &Options {
+                weights: Some("w"),
+                weight_type: Some("analytic"),
+                ..Options::default()
+            },
+        )
+        .unwrap();
+        messages.iter().any(|m| m.contains("W1003"))
+    };
+    assert!(
+        !warned(14.0),
+        "an effective size of a quarter is not extreme"
+    );
+    assert!(warned(15.0), "an effective size below a quarter is extreme");
+}
+
+/// Forty rows on a line and five, then six, rows far out on alternate sides and lifted by
+/// fifty: each far row moves an estimate by more than its standard error, so the warning lists
+/// five rows and counts the rest from the sixth.
+#[test]
+fn the_driving_rows_are_listed_five_at_a_time() {
+    let rows_listed = |far: usize| {
+        let mut xs: Vec<f64> = (1..=40).map(f64::from).collect();
+        let mut ys = xs.clone();
+        for i in 0..far {
+            let x = if i % 2 == 0 { -199.0 } else { 240.0 };
+            xs.push(x);
+            ys.push(x + 50.0);
+        }
+        let t = table(vec![("y", floats(&ys)), ("x", floats(&xs))]);
+        let (_, messages) = fit_with(&t, "y ~ x", &Options::default()).unwrap();
+        messages
+            .iter()
+            .find(|m| m.contains("W1006"))
+            .cloned()
+            .unwrap_or_default()
+    };
+    let five = rows_listed(5);
+    assert!(five.contains("(rows 41, 42, 43, 44, 45)"), "{five}");
+    let six = rows_listed(6);
+    assert!(
+        six.contains("(rows 41, 42, 43, 44, 45 and 1 more)"),
+        "{six}"
+    );
+}
+
+/// R's rule for an essentially perfect fit compares the residual variance with 1e-30 of the
+/// fitted values' scale, their squared mean plus their variance. Three fits sit on either side
+/// of that line by construction: an intercept alone on 1.25 with residuals of five units in the
+/// last place (a variance of 25 units squared, between 1e-30 times the squared mean and 1e-30
+/// times the mutated scales); a line through 10 ± 40x with residuals of 4e-14 (between 1e-30 of
+/// the scale and of the scale with its variance divided by the mean); and the same line with
+/// residuals ten times larger, which is not perfect.
+#[test]
+fn the_perfect_fit_rule_measures_the_fitted_values_by_their_mean_and_spread() {
+    let perfect = |t: &Table, text: &str| {
+        let (fit, _) = fit_with(t, text, &Options::default()).unwrap();
+        fit.notes.iter().any(|n| n.contains("essentially perfect"))
+    };
+    let unit = f64::EPSILON;
+    let around = table(vec![(
+        "y",
+        floats(&[1.25 - 5.0 * unit, 1.25, 1.25 + 5.0 * unit]),
+    )]);
+    assert!(perfect(&around, "y ~ 1"));
+    let line = |noise: f64| {
+        let xs = [-3.0, -1.0, 1.0, 3.0];
+        let signs = [1.0, -1.0, -1.0, 1.0];
+        let ys: Vec<f64> = xs
+            .iter()
+            .zip(&signs)
+            .map(|(x, s)| 10.0 + 40.0 * x + s * noise)
+            .collect();
+        table(vec![("y", floats(&ys)), ("x", floats(&xs))])
+    };
+    assert!(perfect(&line(4e-14), "y ~ x"));
+    assert!(!perfect(&line(4e-13), "y ~ x"));
+}
+
+/// An outcome of exactly 1e150 in size is the largest the fit computes with; beyond it the
+/// outcome is refused (`values_too_large_to_square` above).
+#[test]
+fn an_outcome_at_the_size_limit_is_accepted() {
+    let t = table(vec![
+        ("y", floats(&[1e150, 2.0, 3.0, 5.0])),
+        ("x", floats(&[1.0, 2.0, 3.0, 4.0])),
+    ]);
+    let (fit, _) = fit_with(&t, "y ~ x", &Options::default()).unwrap();
+    assert!(
+        fit.estimates.iter().all(|b| b.is_finite()),
+        "{:?}",
+        fit.estimates
+    );
+    assert!(
+        fit.std_errors.iter().all(|s| s.is_finite()),
+        "{:?}",
+        fit.std_errors
+    );
+}
+
+/// An outcome of zeros fits with estimates of exactly zero and residuals of zero, whose
+/// orthogonality the self-check accepts although its bound is zero too.
+#[test]
+fn an_outcome_of_zeros_fits_with_zero_estimates() {
+    let t = table(vec![
+        ("y", floats(&[0.0, 0.0, 0.0, 0.0])),
+        ("x", floats(&[1.0, 2.0, 3.0, 5.0])),
+    ]);
+    let (fit, _) = fit_with(&t, "y ~ x", &Options::default()).unwrap();
+    assert!(
+        fit.estimates.iter().all(|b| *b == 0.0),
+        "{:?}",
+        fit.estimates
+    );
+    assert!(
+        fit.notes.iter().any(|n| n.contains("no variation")),
+        "{:?}",
+        fit.notes
+    );
+}

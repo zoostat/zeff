@@ -293,3 +293,24 @@ fn scaled_norm(values: &[f64]) -> f64 {
     let scaled: Vec<f64> = values.iter().map(|v| v / scale).collect();
     scale * sum_of_squares(&scaled).sqrt()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::scaled_norm;
+
+    #[test]
+    fn the_norm_of_nothing_is_zero_and_of_an_infinite_value_the_value_itself() {
+        assert_eq!(scaled_norm(&[]), 0.0);
+        assert_eq!(scaled_norm(&[0.0, 0.0]), 0.0);
+        assert_eq!(scaled_norm(&[1.0, f64::INFINITY]), f64::INFINITY);
+        assert!(scaled_norm(&[f64::NAN, 1.0]).is_nan());
+    }
+
+    #[test]
+    fn the_norm_is_pythagorean_at_any_scale() {
+        let close = |a: f64, b: f64| (a - b).abs() <= 1e-15 * b;
+        assert_eq!(scaled_norm(&[3.0, 4.0]), 5.0);
+        assert!(close(scaled_norm(&[3e-200, 4e-200]), 5e-200));
+        assert!(close(scaled_norm(&[3e200, -4e200]), 5e200));
+    }
+}

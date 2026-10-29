@@ -133,3 +133,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 22b `[engine]`: the 41 survivors of `zeff-regress` (`reg` 24, `Ols::fit` 10, `scaled_norm` 5, `measures` 2), the same way.
 
 **For the owner to decide.** Nothing new.
+
+## 29 October 2026, step 22b of release 0.4.0
+
+**Done.** Step 22b `[engine]`: the 41 surviving mutants of `zeff-regress` from the weekly runs of step 21, each given a test (11 new tests catching 23 survivors: the level's bounds, the few-clusters and extreme-weights thresholds, the driving-rows listing, the perfect-fit rule's scale, the outcome's size limit, an outcome of zeros, the scaled norm's first unit tests, the influence measures' guards) or recorded as equivalent with its reason (18: the variance self-checks, the orthogonality self-check's bound, guards already held, identities of exact arithmetic); the batch confirmed by rerunning its mutants locally; the record in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks, the conformance report and the export check locally; CI to be read after the push.
+
+**Next.** Step 22c `[engine]`: the 13 of `zeff-kernels` (11 survivors and 2 timeouts), the same way, the timeouts read first for the limit artefact found at step 22a.
+
+**For the owner to decide.** Nothing new.
