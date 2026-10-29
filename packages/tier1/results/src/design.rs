@@ -72,6 +72,10 @@ struct ExpandedTerm {
 /// The largest ratio of a positive weight to the smallest the design accepts: beyond it the rows
 /// with the small weights underflow the arithmetic into noise.
 const WEIGHT_SPREAD: f64 = 1e150;
+/// The largest observation count held exactly by the arithmetic (2^53): frequency weights whose
+/// total exceeds it are refused, since N, the degrees of freedom and every quantity divided by
+/// them would be approximate, and the printed count would saturate.
+const LARGEST_COUNT: f64 = 9_007_199_254_740_992.0;
 
 /// The model matrix of a formula on a frame.
 pub struct Design {
@@ -297,6 +301,23 @@ impl Design {
                 .in_file(ctx.script)
                 .primary(ctx.callee_span, "weights no fit can use together")
                 .help("a weight that small is a share of nothing; `where` the rows with such weights out, or trim the weights"),
+            ));
+        }
+        // A total of frequency weights beyond the largest exact count (a sibling of the formula
+        // fuzz target's finding of frequency weights of 1e300): N would be approximate and its
+        // printed value would saturate, so the weights are refused.
+        if matches!(kind, WeightKind::Frequency) && zeff_kernels::sum(&weights) > LARGEST_COUNT {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0224",
+                    format!(
+                        "`{name}` holds frequency weights that sum to {}, more observations than can be counted exactly (above 9,007,199,254,740,992)",
+                        zeff_core::display::format_float(zeff_kernels::sum(&weights))
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "more observations than a count can hold")
+                .help("frequency weights count the observations each row stands for; check that `weights:` names the count and not a measurement"),
             ));
         }
         if matches!(kind, WeightKind::Analytic | WeightKind::Sampling) && !weights.is_empty() {

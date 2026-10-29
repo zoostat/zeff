@@ -181,6 +181,8 @@ impl Estimator for Ols {
         let mut fitted = Vec::with_capacity(n);
         let mut leverage = Vec::with_capacity(n);
         let mut xte = vec![0.0; rank];
+        // The outcome's squared norm at its own scale, from the weighted outcome the fit uses.
+        let mut outcome_squares = 0.0;
         let mut row_values = vec![0.0; rank];
         let mut scaled_row = vec![0.0; rank];
         for block in design.blocks() {
@@ -191,6 +193,10 @@ impl Estimator for Ols {
                 }
                 let yhat = dot(&row_values, &estimates);
                 let e = block.y[r] - yhat;
+                if largest_outcome > 0.0 {
+                    let scaled = block.y[r] / largest_outcome;
+                    outcome_squares += scaled * scaled;
+                }
                 residuals.push(e);
                 fitted.push(yhat);
                 let z = solve_upper_transposed(&r11, &scaled_row)
@@ -207,9 +213,12 @@ impl Estimator for Ols {
         // rounding of computing them, which grows with the outcome's size and the condition
         // number of the scaled design. The norms are computed at the scale of the values, so
         // that an outcome far below one (whose squares underflow to zero) does not make the
-        // bound vanish; the formula fuzz target found that case.
+        // bound vanish; the formula fuzz target found that case. The outcome is measured as the
+        // fit sees it, scaled by the square roots of the weights like the residuals and the
+        // columns: measured unweighted, frequency weights of 1e16 and more (which are not
+        // rescaled) made the bound far too small, the formula fuzz target's second finding here.
         let residual_norm = scaled_norm(&residuals);
-        let outcome_norm = scaled_norm(&design.outcome().unwrap_or_default());
+        let outcome_norm = largest_outcome * outcome_squares.sqrt();
         let slack = (1e-8_f64).max(10.0 * f64::EPSILON * condition);
         for (p, &c) in kept.iter().enumerate() {
             let column_norm = sums[c].sqrt();

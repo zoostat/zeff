@@ -947,6 +947,85 @@ fn sampling_weights_of_any_size_are_scaled_before_use() {
     assert_eq!(fit(scaled), fit(plain));
 }
 
+/// Frequency weights of any size (a finding of the formula fuzz target): frequency weights are
+/// counts and are not rescaled, so the weighted outcome and design are the plain ones times the
+/// square root of the weight; the self-check on the residuals must measure the outcome at that
+/// scale, or weights near 1e15 and more fail it falsely. The estimates under equal frequency
+/// weights are those of the unweighted fit. A total of frequency weights beyond 2^53, the
+/// largest count the arithmetic holds exactly, is refused rather than printed saturated.
+#[test]
+fn frequency_weights_of_any_size_fit_or_are_refused() {
+    let fuzzed: &[u8] = b"y,a,b,c,d\n1e-300,1e300,1e300,,0\n1e-300,1e-300,1e300,,0\n";
+    let script =
+        "let f = import(\"data/f.csv\")\nf.reg(y ~ a, weights: b, weight_type: frequency)\n";
+    let outcome = run_with(&[("data/f.csv", fuzzed)], script);
+    assert!(
+        !outcome.output.stderr.contains("Z9001"),
+        "{}",
+        outcome.output.stderr
+    );
+    assert!(
+        outcome
+            .output
+            .stderr
+            .contains("error[Z0224]: `b` holds frequency weights that sum to 2e+300, more observations than can be counted exactly"),
+        "{}",
+        outcome.output.stderr
+    );
+    for weight in ["1", "1e8", "1e12", "3e15"] {
+        let file = format!("y,a,b,c,d\n1,2,{weight},,0\n2,3,{weight},,0\n4,5,{weight},,1\n");
+        let outcome = run_with(&[("data/f.csv", file.as_bytes())], script);
+        assert_eq!(
+            outcome.exit_code, 0,
+            "weight {weight}: {}",
+            outcome.output.stderr
+        );
+        let estimates: Vec<String> = outcome
+            .output
+            .stdout
+            .lines()
+            .filter(|line| {
+                line.trim_start().starts_with("(intercept)") || line.trim_start().starts_with("a ")
+            })
+            .map(|line| {
+                line.split_whitespace()
+                    .take(2)
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .collect();
+        assert_eq!(
+            estimates,
+            ["(intercept) -1.0000", "a 1.0000"],
+            "weight {weight}"
+        );
+    }
+    // The N line prints the exact total at the limit.
+    let at_limit: &[u8] =
+        b"y,a,b,c,d\n1,2,3002399751580330,,0\n2,3,3002399751580331,,0\n4,5,3002399751580331,,1\n";
+    let outcome = run_with(&[("data/f.csv", at_limit)], script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome
+            .output
+            .stdout
+            .contains("N = 9,007,199,254,740,992 (the sum of the frequency weights over 3 rows)"),
+        "{}",
+        outcome.output.stdout
+    );
+    let beyond: &[u8] = b"y,a,b,c,d\n1,2,1e16,,0\n2,3,1,,0\n4,5,1,,1\n";
+    let outcome = run_with(&[("data/f.csv", beyond)], script);
+    assert_eq!(outcome.exit_code, 1);
+    assert!(
+        outcome
+            .output
+            .stderr
+            .contains("error[Z0224]: `b` holds frequency weights that sum to 1e+16, more observations than can be counted exactly"),
+        "{}",
+        outcome.output.stderr
+    );
+}
+
 /// A robust variance with an exact zero on its diagonal (a finding of the formula fuzz target):
 /// the rows with a nonzero residual share one design pattern, so a coefficient's scores cancel
 /// and its variance is zero in arithmetic and a negative residue in floating point, which the
