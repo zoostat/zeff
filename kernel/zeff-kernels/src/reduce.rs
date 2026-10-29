@@ -296,6 +296,26 @@ mod tests {
     }
 
     #[test]
+    fn the_lanes_rotate_in_index_order_through_pushes_slices_and_products() {
+        // Element i goes to lane i mod 4, whether pushed alone, in a slice or as a product, each
+        // call continuing where the last left off: the lanes' private sums say so directly, as
+        // the compensated value cannot, being the same bits in any lane order for small integers.
+        let mut lanes = Lanes::<4>::new();
+        for x in [1.0, 2.0, 3.0, 4.0, 5.0] {
+            lanes.push(x);
+        }
+        assert_eq!((lanes.sums, lanes.next), ([6.0, 2.0, 3.0, 4.0], 1));
+        // 6, 7 and 8 fill lanes 1 to 3 one by one, 9 to 12 are a whole chunk, 13 and 14 the rest.
+        lanes.push_slice(&[6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0]);
+        assert_eq!((lanes.sums, lanes.next), ([28.0, 32.0, 21.0, 24.0], 2));
+        // 15 and 16 fill lanes 2 and 3, 17 to 20 are a whole chunk.
+        lanes.push_products(&[1.0; 6], &[15.0, 16.0, 17.0, 18.0, 19.0, 20.0]);
+        assert_eq!((lanes.sums, lanes.next), ([45.0, 50.0, 55.0, 60.0], 0));
+        assert_eq!(lanes.errors, [0.0; 4]);
+        assert_eq!(lanes.value(), 210.0);
+    }
+
+    #[test]
     fn an_overflow_gives_infinity_not_a_number() {
         assert_eq!(sum(&[1e308, 1e308]), f64::INFINITY);
         assert_eq!(sum(&[f64::INFINITY, 1.0]), f64::INFINITY);

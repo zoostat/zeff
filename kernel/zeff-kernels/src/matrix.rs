@@ -233,6 +233,15 @@ mod tests {
     }
 
     #[test]
+    fn the_debug_form_names_the_shape_and_lists_the_rows() {
+        let m = Matrix::from_rows(&[vec![1.0, 2.5], vec![-3.0, 4.0]]);
+        assert_eq!(
+            format!("{m:?}"),
+            "Matrix 2 × 2\n  [1.0, 2.5]\n  [-3.0, 4.0]\n"
+        );
+    }
+
+    #[test]
     fn an_empty_matrix_is_allowed() {
         let empty = Matrix::from_columns(&[]);
         assert_eq!((empty.rows(), empty.cols()), (0, 0));

@@ -143,3 +143,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 22c `[engine]`: the 13 of `zeff-kernels` (11 survivors and 2 timeouts), the same way, the timeouts read first for the limit artefact found at step 22a.
 
 **For the owner to decide.** Nothing new.
+
+## 29 October 2026, step 22c of release 0.4.0
+
+**Done.** Step 22c `[engine]`: the 11 surviving mutants and 2 timeouts of `zeff-kernels` from the weekly runs of step 21, each given a test (3 new unit tests and an extended one catching 7: the matrix's debug form, the pivoted QR's column order beyond the row count and its relative tolerance, the lane shape of the reductions read from the private sums), removed with the code it sat in (3: an unused getter and a buffer test simplified), recorded as equivalent (1: a boundary at exact equality) or given a verdict (2: endless loops, caught by the time limit, confirmed against the kernel's own tests); the record in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks, the conformance report and the export check locally; CI to be read after the push.
+
+**Next.** Step 22d `[engine]`: the numeric kernel's 82 survivors and 8 timeouts matched against the 0.3.0 record, the timeouts read first for the limit artefact of step 22a.
+
+**For the owner to decide.** Nothing new.

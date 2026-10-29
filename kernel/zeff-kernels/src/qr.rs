@@ -128,10 +128,6 @@ impl TallSkinnyQr {
         }
     }
 
-    pub fn cols(&self) -> usize {
-        self.cols
-    }
-
     pub fn rows_seen(&self) -> usize {
         self.rows_seen
     }
@@ -157,8 +153,7 @@ impl TallSkinnyQr {
             "the rows must have one entry per column"
         );
         for i in 0..rows.rows() {
-            let room = self.block_rows - self.filled;
-            if room == self.block_rows && rows.rows() - i >= self.block_rows {
+            if self.filled == 0 && rows.rows() - i >= self.block_rows {
                 // A whole block at once, column by column.
                 for j in 0..self.cols {
                     self.buffer
@@ -463,9 +458,22 @@ mod tests {
         let p = pivoted_qr(&with_zero, 0, 1e-7);
         assert_eq!((p.rank, p.order), (0, vec![0, 1]));
         assert_eq!(p.r, with_zero);
-        // More columns than rows: the rank is the row count.
-        let wide = Matrix::from_rows(&[vec![1.0, 2.0, 3.0], vec![4.0, 5.0, 7.0]]);
-        assert_eq!(pivoted_qr(&wide, 3, 1e-7).rank, 2);
+        // More columns than rows: the rank is the row count, and the columns beyond it, never
+        // examined, keep their order.
+        let wide = Matrix::from_rows(&[vec![1.0, 2.0, 3.0, 4.0], vec![4.0, 5.0, 7.0, 8.0]]);
+        let p = pivoted_qr(&wide, 4, 1e-7);
+        assert_eq!((p.rank, p.order), (2, vec![0, 1, 2, 3]));
+    }
+
+    #[test]
+    fn the_pivot_tolerance_is_relative_to_the_column_s_own_norm() {
+        // Two columns at scale s that differ by a perpendicular part of relative size delta: the
+        // second is left out exactly when delta is below the tolerance, whatever the scale.
+        let pair = |s: f64, delta: f64| Matrix::from_columns(&[vec![s, 0.0], vec![s, s * delta]]);
+        assert_eq!(pivoted_qr(&pair(1e3, 1e-8), 2, 1e-7).rank, 1);
+        assert_eq!(pivoted_qr(&pair(1e3, 1e-6), 2, 1e-7).rank, 2);
+        assert_eq!(pivoted_qr(&pair(1e-3, 1e-8), 2, 1e-7).rank, 1);
+        assert_eq!(pivoted_qr(&pair(1e-3, 1e-6), 2, 1e-7).rank, 2);
     }
 
     #[test]
