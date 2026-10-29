@@ -8,4 +8,4 @@ error[Z0713]: zeff.toml needs a [project] table
 1 | [data]
   | ^^^^^^ no [project]
   |
-  = help: start the file with `[project]`, `name = "..."`, `zeff = "0.4.0-dev"` and `edition = "preview"`
+  = help: start the file with `[project]`, `name = "..."`, `zeff = "0.4.0"` and `edition = "preview"`

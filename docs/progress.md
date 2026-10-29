@@ -185,3 +185,13 @@ The fuzz job run again on the recorded commit found a second fault, an outcome o
 **Next.** The owner's "Release 0.4.0": the notes, the catalogue's status column, the risk register's review and the open decisions, the version and pins, the tag and the GitHub release.
 
 **For the owner to decide.** Nothing new. At the release, the register's review will raise one watch item: the browser cold start rose from 140 ms to 639 ms (the target is 1,000 ms).
+
+## 30 October 2026, release 0.4.0 closed
+
+**Done.** "Release 0.4.0": the notes (`docs/releases/0.4.0-notes.md`), the register's review (R1, R2, R12 lowered to Low, R3 to Medium, R4 with a watch item on the browser cold start), the open-decisions status (none due; four due by 0.5.0), the version and pins set to 0.4.0, the tag `v0.4.0` and the GitHub release.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass; CI green on every target.
+
+**Next.** The owner's "Start release 0.5.0" (Language complete: `if`, `case`, `for`, `fn`, `use`, calling any function as a method, the `Failed` type, 32 functions), beginning with the four open decisions due by then.
+
+**For the owner to decide.** When release 0.5.0 opens: #4 (variadic parameters), #5 (structural equality), #13 (`iterate`), #17 (panels before tests and plots).
