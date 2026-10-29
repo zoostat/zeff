@@ -170,8 +170,18 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 
 The fuzz job run again on the recorded commit found a second fault, an outcome of 1e-300 against a regressor of 1e16 whose subnormal slope failed the self-check; a fit with an estimate below the smallest normal number is now refused with Z0803 (the outcome too small against its regressors), with its test and its row in the Language Reference (logged).
 
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass locally; CI green on every target; the fuzz job green on the first fix commit (17989e4) and run again by hand on the final commit, its result to be read next session; nightly, coverage, weekly and benchmark green on 50c75ab.
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass locally; CI green on every target; the fuzz job green on the first fix commit (17989e4) and on the final one (2cacc63, run 40951848831); nightly, coverage, weekly and benchmark green on 50c75ab.
 
 **Next.** Step 22f `[engine]`: the documents and the report (features frozen, reference versions, the known-issues list, the risk register's figures, the open decisions due, the sample pins), then the owner's "Release 0.4.0".
 
 **For the owner to decide.** Nothing new.
+
+## 30 October 2026, step 22f of release 0.4.0
+
+**Done.** Step 22f `[engine]`: features frozen (the 29 catalogue rows implemented, every step ticked); the reference versions collected (R 4.6.0 with sandwich 3.1.1 and wooldridge 1.4-7, Python 3.14.8, Node v22.23.4, Rust 1.99.1); the known-issues list rewritten for 0.4.0; the risk register's figures for R1, R2, R3, R4, R6, R7 and R9 recorded in `docs/decisions.md`; the open decisions due (none remaining); the pins listed for the release commit.
+
+**Green.** The tree is clean after this commit; CI green on every target.
+
+**Next.** The owner's "Release 0.4.0": the notes, the catalogue's status column, the risk register's review and the open decisions, the version and pins, the tag and the GitHub release.
+
+**For the owner to decide.** Nothing new. At the release, the register's review will raise one watch item: the browser cold start rose from 140 ms to 639 ms (the target is 1,000 ms).

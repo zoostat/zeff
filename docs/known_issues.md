@@ -5,6 +5,51 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
+## As of 0.4.0
+
+- **A regression refuses an outcome it cannot compute with.** An outcome above 1e150 in size has
+  a square the arithmetic cannot represent, and an outcome so small against its regressors that
+  an estimate falls below 2.2e-308 (the smallest normal number) keeps a few digits of that
+  estimate only; both are refused with Z0803 and the advice to rescale the outcome by a power of
+  ten. A regressor above 1e150 or below 1e-150 in size is dropped with a note instead. Weights
+  more than 1e150 apart are refused (Z0224), as are frequency weights whose total exceeds 2^53,
+  the largest count held exactly. (Since 0.4.0; limits of the arithmetic, found by the formula
+  fuzz target.)
+- **`predict` gives no standard error of prediction**, only the fitted values on new data; the
+  interval of a prediction arrives with the panel models. (Since 0.4.0.)
+- **A test's result has no interval**: `std_errors()` and `ci()` on it give `NA`, and
+  `estimates()` one row; the tests of `stats` bring their intervals at 0.7.0. (Since 0.4.0.)
+- **`test` reads linear restrictions only.** Constants, coefficients, their sums and
+  differences, and products and quotients by a constant, on both sides of one `==`; a product or
+  quotient of two coefficients, a power or a function is refused (Z0415), and `derive` is the way
+  to such a quantity. `derive` differentiates `+`, `-`, `*`, `/`, `^` and eight functions of one
+  argument (`log`, `exp`, `sqrt`, `log1p`, `expm1`, `log10`, `log2`, `abs`); `log` with a base
+  and any other function are refused (Z0417). (Since 0.4.0; by design, section 7.2.)
+- **`compare` needs two fits on the same rows, one nested in the other** by its term names;
+  fits on frames with different rows dropped for `NA` are refused (Z0416) with the advice to drop
+  those rows first. (Since 0.4.0; by design.)
+- **`report` labels terms by identifier.** `labels: {educ: "Years of schooling"}` renames a term
+  whose name is an identifier; a term such as `industry=Retail` or `(intercept)` keeps its name,
+  since a text key in a record is a syntax question for a later release. (Since 0.4.0.)
+- **`influence` gives no Cook's distance or studentized residual with one residual degree of
+  freedom**, nor for a row of leverage one; under frequency weights the leverage printed is the
+  per-observation one, h/w, as R computes on the replicated rows. (Since 0.4.0; by design.)
+- **Mutation testing of a slow package against the whole workspace's tests times out.** The
+  weekly job's five-fold limit on a baseline measured on the mutated package alone falls short
+  when another package's tests run under load; its shards therefore run 69 to 224 minutes, and a
+  local rerun passes `--timeout 600` or tests only the packages holding the tests. The eight
+  recorded hangs of the numeric kernel are caught by the limit alone. (Since 0.3.0; understood at
+  0.4.0, step 22a.)
+- **An exactly perfect fit prints `Inf` t values.** When every residual is exactly zero (a
+  constant outcome on an intercept, or data on an exact line in dyadic numbers) the standard
+  errors are zero and the t values print as `Inf` with p < 0.001, under the note that the fit is
+  essentially perfect; an outcome whose squared mean underflows (values below about 1e-154) gets
+  the `Inf` without the note, since the rule's threshold is then zero. R prints the same
+  quantities. (Since 0.4.0.)
+- **The Edgeworth series of Spearman's exact tail is pinned only by the stats package's
+  comparison with R**, not by the kernel's own tests, so a mutation run against the kernel alone
+  reports its lines as missed. (Since 0.4.0, step 22d; a gap in the kernel's tests to close.)
+
 ## As of 0.3.0
 
 - **Distribution functions with a parameter above 100,000 are accurate to about 1e-10, not the
@@ -54,10 +99,6 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   line, not a table. (Since 0.1.0.)
 - **Dates are read from CSV only in ISO form or with a declared format.** A column that looks like
   dates in another form is read as text, with a note proposing the `types:` entry. (Since 0.1.0.)
-- **Labels, value labels and categories come only from the shipped datasets.** A CSV carries none
-  (the import note says so), and `label`, `category` and `recode` arrive at later releases, so a
-  script cannot yet attach them. A labelled variable prints its labels; its stored number is what
-  computes and what `print` of the bare column shows. (Since 0.2.0.)
 - **A line beginning with `-` is refused (Z0305).** The grammar of section 3.4 ends a statement
   at the line break, so `-7` on its own line has nothing on its left; write `print(-7)` or
   `let x = -7`, and continue a long expression with the operator at the end of the line. (Since
@@ -71,16 +112,24 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The console's `:undo` re-runs the whole session** without its last statement, so a long
   session with large imports takes a moment to undo; the result cache that makes it immediate is
   0.11.0. (Since 0.2.0.)
-- **The browser engine bundle is 1.15 MB compressed** (brotli; 1.10 MB at 0.2.0, 355 kB at
-  0.1.0), because the two datasets are embedded and the special functions and distributions were
-  added; it stays well under the 5 MB warning level of risk R4, and the cold start is 140 ms
-  against 1,000 ms. (Since 0.2.0; the figures are those of 0.3.0.)
+- **The browser engine bundle is 1.34 MB compressed** (brotli; 1.15 MB at 0.3.0, 1.10 MB at
+  0.2.0, 355 kB at 0.1.0), because the two datasets are embedded and the regression and results
+  packages were added; it stays under the 5 MB warning level of risk R4. The cold start is 639 ms
+  against 1,000 ms (140 ms at 0.3.0): the module loads in 17 ms and the first call takes 620 ms,
+  a rise to be understood before the next release adds to it. (Since 0.2.0; the figures are those
+  of 0.4.0.)
 - **Each project pins the exact engine version** (`zeff = "0.2.0"`). An engine of another
   version refuses the project with exit code 4; there is no launcher yet to pick the pinned engine
   (0.9.0). (Since 0.1.0.)
 - **The function catalogue's status column** is updated at each release close, not per function,
   so between releases it lags the registry; `zeff help <package>` shows what is shipped. (Since
   0.1.0.)
+
+## Resolved at 0.4.0
+
+- `label`, `category` and `recode` attach labels, value labels and categories from a script
+  (listed at 0.2.0 as missing). A CSV still carries none, as its import note says; a labelled
+  variable prints its labels, and its stored number is what computes.
 
 ## Resolved at 0.2.0
 
