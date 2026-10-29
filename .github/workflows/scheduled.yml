@@ -15,6 +15,10 @@ on:
         type: choice
         options: [both, nightly, fuzz, weekly, coverage, bench]
         default: both
+      shard:
+        description: "Run only this mutation shard of the weekly job, written as `package k/n`"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -270,6 +274,9 @@ jobs:
       || github.event.schedule == '41 3 * * 1'
     runs-on: ubuntu-latest
     timeout-minutes: 340
+    env:
+      # One shard by hand: `shard` names it as `package k/n`, and the other shards skip their steps.
+      SELECTED: ${{ !inputs.shard || inputs.shard == format('{0} {1}/{2}', matrix.package, matrix.shard, matrix.of) }}
     strategy:
       fail-fast: false
       matrix:
@@ -300,17 +307,28 @@ jobs:
           - { package: zeff-regress, shard: 1, of: 2 }
     steps:
       - name: Check out the repository
+        if: env.SELECTED == 'true'
         uses: actions/checkout@v4
 
       - name: Install the pinned Rust toolchain
+        if: env.SELECTED == 'true'
         run: rustup toolchain install
 
       - name: Install cargo-mutants
+        if: env.SELECTED == 'true'
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-mutants
 
       - name: Mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}
+        if: env.SELECTED == 'true'
+        env:
+          # A mutant that allocates without bound (one that stops the walk over the combinations
+          # of a formula's terms advancing) exhausted the runner's memory twice in the first run
+          # of 0.4.0, and the service shut the runner down before any timeout. Every test process
+          # therefore runs under an address-space limit of 8 GB (`prlimit`, which Cargo applies
+          # through its runner setting), so that such a mutant aborts in its test and is caught.
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: prlimit --as=8589934592
         run: |
           # Surviving mutants and timeouts are a note to act on, not a failure of the job. Two
           # tests of the dist package make over a million calls into the kernel (the moments of
@@ -333,7 +351,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the reports
-        if: always()
+        if: always() && env.SELECTED == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: mutation-reports-${{ matrix.package }}-${{ matrix.shard }}
