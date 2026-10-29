@@ -17,7 +17,7 @@ use zeff_core::operators::Op;
 use zeff_core::runtime::{Args, Body, CallContext, Randomness};
 use zeff_core::value::{ColumnExpr, Fit, Value};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
-use zeff_results::inference::{compare, delta, derive, test};
+use zeff_results::inference::{NotSmooth, compare, delta, derive, test};
 use zeff_testkit::run;
 
 /// A result method called with the receiver, the other arguments, the rest values and the
@@ -124,6 +124,18 @@ fn call(name: &str, arg: ColumnExpr) -> ColumnExpr {
         name: name.to_string(),
         args: vec![Some(arg)],
         rest: Vec::new(),
+        lifted: false,
+        returns: "Float".to_string(),
+    }
+}
+
+/// A call of `name` with several arguments, the ones beyond `fixed` in its rest.
+fn call_many(name: &str, fixed: Vec<ColumnExpr>, rest: Vec<ColumnExpr>) -> ColumnExpr {
+    ColumnExpr::Call {
+        package: "core".to_string(),
+        name: name.to_string(),
+        args: fixed.into_iter().map(Some).collect(),
+        rest,
         lifted: false,
         returns: "Float".to_string(),
     }
@@ -457,6 +469,45 @@ fn the_gradient_of_every_function_derive_knows() {
         "{se} against {}",
         variance.sqrt()
     );
+    // A negative coefficient raised to a constant power: the slope is c b^(c − 1) and nothing
+    // else, since the logarithm of a negative base, which the general formula would multiply
+    // by the power's zero gradient, is not a number.
+    let m = fit
+        .estimates
+        .iter()
+        .position(|&e| e < 0.0)
+        .expect("a negative estimate");
+    let b = fit.estimates[m];
+    let v = fit.vcov[m * k + m];
+    let (got, se) = delta(&fit, &bin(Op::Pow, var(&fit.terms[m]), num(2.0)))
+        .unwrap_or_else(|_| panic!("a negative base"));
+    assert!(close(got, b * b, 1e-12, 0.0), "{got}");
+    assert!(
+        close(se, 2.0 * b.abs() * v.sqrt(), 1e-12, 0.0),
+        "{se} against {}",
+        2.0 * b.abs() * v.sqrt()
+    );
+}
+
+/// A function of one argument is differentiated; the same function with a second argument
+/// (`log` with a base) is refused, not differentiated as if the base were not there; and a
+/// function `derive` does not know is refused with one argument or several.
+#[test]
+fn only_a_function_of_one_argument_is_differentiated() {
+    let reference = json("r/regression.json");
+    let fit = fit_named(&reference, "A");
+    assert!(delta(&fit, &call("log", var("educ"))).is_ok());
+    let with_base = call_many("log", vec![var("educ"), num(10.0)], Vec::new());
+    assert!(matches!(delta(&fit, &with_base), Err(NotSmooth::Shape(_))));
+    let max_of_three = call_many("max", vec![var("educ"), var("exper")], vec![var("female")]);
+    assert!(matches!(
+        delta(&fit, &max_of_three),
+        Err(NotSmooth::Shape(_))
+    ));
+    assert!(matches!(
+        delta(&fit, &call("round", var("educ"))),
+        Err(NotSmooth::Shape(_))
+    ));
 }
 
 // ----- the printed forms and every message, through the engine -----

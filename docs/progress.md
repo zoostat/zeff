@@ -163,3 +163,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 22e `[engine]`: the full suite on the four targets; the nightly, fuzz, coverage and weekly jobs by hand on this commit, their figures recorded; the four sample projects and `zeff selftest` read by eye.
 
 **For the owner to decide.** Nothing new.
+
+## 29 and 30 October 2026, step 22e of release 0.4.0
+
+**Done.** Step 22e `[engine]`: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on the commit of 22a to 22d and their figures recorded in `docs/decisions.md` (30 October); the four sample projects and `zeff selftest` read by eye. The fuzz job found one fault: the regression's self-check measured the weighted residuals against the unweighted outcome, so large frequency weights (about 1e15 and more) failed it with Z9001; fixed with a test, and a total of frequency weights beyond 2^53 is now refused rather than printed saturated (a sibling found reading the output). The weekly run also showed 14 surviving mutants not in the records of 22a and 22b (four from a shard that never finished at step 21, ten the record of 22b had miscounted as caught): five got tests (the perfect-fit rule, now a function with unit tests; a negative coefficient squared; a logarithm with a base refused), nine a reason; the numeric kernel's figures are identical to step 21 and its survivors the recorded ones line for line.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass locally; CI of the fix commit green on every target; the fuzz job green on it; nightly, coverage, weekly and benchmark green on 50c75ab.
+
+**Next.** Step 22f `[engine]`: the documents and the report (features frozen, reference versions, the known-issues list, the risk register's figures, the open decisions due, the sample pins), then the owner's "Release 0.4.0".
+
+**For the owner to decide.** Nothing new.

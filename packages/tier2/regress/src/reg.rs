@@ -510,23 +510,11 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         fit.notes.push(text.clone());
         ctx.message(Diagnostic::plain_note(text));
     }
-    // R's rule for an essentially perfect fit (`summary.lm`): a residual variance below 1e-30
-    // of the fitted values' scale, when the standard errors are rounding and nothing more.
-    if df > 0 && !fit.fitted.is_empty() {
-        let n = fit.fitted.len() as f64;
-        let mean = sum(&fit.fitted) / n;
-        let squares: Vec<f64> = fit.fitted.iter().map(|f| (f - mean) * (f - mean)).collect();
-        let variance = if n > 1.0 {
-            sum(&squares) / (n - 1.0)
-        } else {
-            0.0
-        };
-        if fit.sigma * fit.sigma < (mean * mean + variance) * 1e-30 {
-            let text =
-                "the fit is essentially perfect, so the standard errors and t values say nothing";
-            fit.notes.push(text.to_string());
-            ctx.message(Diagnostic::plain_note(text));
-        }
+    if df > 0 && essentially_perfect(fit.sigma, &fit.fitted) {
+        let text =
+            "the fit is essentially perfect, so the standard errors and t values say nothing";
+        fit.notes.push(text.to_string());
+        ctx.message(Diagnostic::plain_note(text));
     }
     Ok(Value::Fit(Rc::new(fit)))
 }
@@ -578,6 +566,24 @@ fn driving_observations(design: &Design, fitted: &Fitted, bread: &Matrix) -> Vec
     driving
 }
 
+/// R's rule for an essentially perfect fit (`summary.lm`): the residual variance below 1e-30 of
+/// the fitted values' scale, their squared mean plus their variance, when the standard errors
+/// are rounding and nothing more. No fitted value is no fit.
+fn essentially_perfect(sigma: f64, fitted: &[f64]) -> bool {
+    if fitted.is_empty() {
+        return false;
+    }
+    let n = fitted.len() as f64;
+    let mean = sum(fitted) / n;
+    let squares: Vec<f64> = fitted.iter().map(|f| (f - mean) * (f - mean)).collect();
+    let variance = if n > 1.0 {
+        sum(&squares) / (n - 1.0)
+    } else {
+        0.0
+    };
+    sigma * sigma < (mean * mean + variance) * 1e-30
+}
+
 fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
     fail(
         Diagnostic::error(
@@ -587,4 +593,33 @@ fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
         .in_file(ctx.script)
         .primary(ctx.callee_span, "the call that failed"),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::essentially_perfect;
+
+    /// Fitted values −1, 0, 1 have mean zero and variance one, so the threshold is 1e-30 of the
+    /// residual variance: a divisor of the variance other than n − 1 (n + 1, n, or a product)
+    /// moves it to 0.5, 0.667 or 4 times that.
+    #[test]
+    fn the_threshold_is_the_squared_mean_plus_the_variance_over_n_minus_one() {
+        let fitted = [-1.0, 0.0, 1.0];
+        assert!(essentially_perfect((0.9e-30_f64).sqrt(), &fitted));
+        assert!(!essentially_perfect((1.1e-30_f64).sqrt(), &fitted));
+        // The mean's share: constant fitted values of 10 have no variance and a squared mean of
+        // a hundred.
+        let constant = [10.0, 10.0, 10.0];
+        assert!(essentially_perfect((99e-30_f64).sqrt(), &constant));
+        assert!(!essentially_perfect((101e-30_f64).sqrt(), &constant));
+    }
+
+    /// One fitted value has no variance, not a division of zero by zero, and no fitted value
+    /// is no fit.
+    #[test]
+    fn one_fitted_value_has_a_variance_of_zero() {
+        assert!(essentially_perfect((3e-30_f64).sqrt(), &[2.0]));
+        assert!(!essentially_perfect((5e-30_f64).sqrt(), &[2.0]));
+        assert!(!essentially_perfect(0.0, &[]));
+    }
 }
