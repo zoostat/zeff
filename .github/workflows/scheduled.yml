@@ -16,7 +16,7 @@ on:
         options: [both, nightly, fuzz, weekly, coverage, bench]
         default: both
       shard:
-        description: "Run only this mutation shard of the weekly job, written as `package k/n`"
+        description: "Run only these mutation shards of the weekly job, each written as `package k/n`, separated by commas without spaces"
         type: string
         default: ""
 
@@ -275,8 +275,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 340
     env:
-      # One shard by hand: `shard` names it as `package k/n`, and the other shards skip their steps.
-      SELECTED: ${{ !inputs.shard || inputs.shard == format('{0} {1}/{2}', matrix.package, matrix.shard, matrix.of) }}
+      # Shards by hand: `shard` names them as `package k/n`, separated by commas, and the other
+      # shards skip their steps.
+      SELECTED: ${{ !inputs.shard || contains(format(',{0},', inputs.shard), format(',{0} {1}/{2},', matrix.package, matrix.shard, matrix.of)) }}
     strategy:
       fail-fast: false
       matrix:
@@ -323,12 +324,14 @@ jobs:
       - name: Mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}
         if: env.SELECTED == 'true'
         env:
-          # A mutant that allocates without bound (one that stops the walk over the combinations
-          # of a formula's terms advancing) exhausted the runner's memory twice in the first run
-          # of 0.4.0, and the service shut the runner down before any timeout. Every test process
-          # therefore runs under an address-space limit of 8 GB (`prlimit`, which Cargo applies
-          # through its runner setting), so that such a mutant aborts in its test and is caught.
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: prlimit --as=8589934592
+          # A mutant that allocates without bound exhausted the runner's memory three times in
+          # the first run of 0.4.0, and the service shut the runner down before any timeout.
+          # Every test process therefore runs under a limit of 2 GB on the memory it may
+          # allocate (`prlimit`, which Cargo applies through its runner setting and the processes
+          # a test spawns inherit), so that such a mutant aborts in its test and is caught while
+          # the handful of test processes that run at once stay within the runner's memory. The
+          # whole suite's largest process needs a sixth of a gigabyte.
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: prlimit --data=2147483648
         run: |
           # Surviving mutants and timeouts are a note to act on, not a failure of the job. Two
           # tests of the dist package make over a million calls into the kernel (the moments of

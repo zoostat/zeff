@@ -1314,26 +1314,34 @@ fn numeric(values: Vec<Option<f64>>) -> Source {
 }
 
 /// Every interaction of the units up to `order`: the units themselves, then the pairs, then the
-/// triples, in order, as R expands `a * b * c`.
+/// triples, in order, as R expands `a * b * c`. The walk through the combinations of each size
+/// runs exactly as many times as there are combinations, so that no fault in the stepping can
+/// make it run on without end.
 fn interactions_up_to(units: &[Vec<usize>], order: usize, out: &mut Vec<ExpandedTerm>) {
     let m = units.len();
     for size in 1..=order.min(m) {
         let mut chosen: Vec<usize> = (0..size).collect();
-        loop {
+        for _ in 0..combinations(m, size) {
             let sources: Vec<usize> = chosen
                 .iter()
                 .flat_map(|&u| units[u].iter().copied())
                 .collect();
             out.push(ExpandedTerm { sources });
-            if !next_combination(&mut chosen, m) {
-                break;
-            }
+            next_combination(&mut chosen, m);
         }
     }
 }
 
-/// The next combination of `chosen.len()` of `m` in lexicographic order; `false` after the last.
-fn next_combination(chosen: &mut [usize], m: usize) -> bool {
+/// The number of combinations of `size` of `m`, for `size` at most `m`: each step multiplies the
+/// count so far by `(m - i) / (i + 1)`, which leaves a whole number, and a count too large for
+/// the machine saturates rather than wrapping round.
+fn combinations(m: usize, size: usize) -> usize {
+    (0..size).fold(1, |count, i| count.saturating_mul(m - i) / (i + 1))
+}
+
+/// Advances `chosen` to the next combination of `chosen.len()` of `m` in lexicographic order, and
+/// leaves it as it is after the last.
+fn next_combination(chosen: &mut [usize], m: usize) {
     let size = chosen.len();
     let mut i = size;
     while i > 0 {
@@ -1343,10 +1351,9 @@ fn next_combination(chosen: &mut [usize], m: usize) -> bool {
             for j in i + 1..size {
                 chosen[j] = chosen[j - 1] + 1;
             }
-            return true;
+            return;
         }
     }
-    false
 }
 
 /// A level inside a term name: quoted when it holds `=`, `:` or `+`, so that it cannot read as
