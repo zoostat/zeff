@@ -153,3 +153,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 22d `[engine]`: the numeric kernel's 82 survivors and 8 timeouts matched against the 0.3.0 record, the timeouts read first for the limit artefact of step 22a.
 
 **For the owner to decide.** Nothing new.
+
+## 29 October 2026, step 22d of release 0.4.0
+
+**Done.** Step 22d `[engine]`: the numeric kernel's 82 surviving mutants and 8 timeouts from the weekly run of step 21 matched site by site against the 0.3.0 record: 79 are the recorded equivalents, four recorded sites are caught now by the tests added since, and three mutants new to the list (a fifth Lentz guard of the beta fraction, and the start of the next-permutation search of Spearman's exact tail) are equivalent for the recorded reasons; the eight timeouts are the recorded hangs. A rerun against the kernel's own tests showed that the Edgeworth series of Spearman's exact tail is pinned only by the stats package's comparison with R, a gap in the kernel's own coverage noted for its tests to close. No code changed.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 22e `[engine]`: the full suite on the four targets; the nightly, fuzz, coverage and weekly jobs by hand on this commit, their figures recorded; the four sample projects and `zeff selftest` read by eye.
+
+**For the owner to decide.** Nothing new.
