@@ -287,3 +287,102 @@ pub fn effective_sample_size(weights: &[f64]) -> f64 {
         0.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A matrix from its rows.
+    fn of(rows: &[&[f64]]) -> Matrix {
+        Matrix::from_rows(&rows.iter().map(|r| r.to_vec()).collect::<Vec<_>>())
+    }
+
+    /// The two triangles must agree to within rounding at the entry's scale: a difference of a
+    /// thousandth is a fault, one at rounding size is not, and the lower triangle is the one
+    /// kept.
+    #[test]
+    fn a_difference_beyond_rounding_is_a_fault() {
+        let far = of(&[&[1.0, 1.0], &[1.001, 1.0]]);
+        assert!(matches!(
+            symmetrised(&far, 1.0, None),
+            Err(VarianceError::Asymmetric)
+        ));
+        let near = of(&[&[1.0, 1.0], &[1.0 + 1e-12, 1.0]]);
+        let s = symmetrised(&near, 1.0, None).unwrap();
+        assert_eq!((s.get(0, 1), s.get(1, 0)), (1.0 + 1e-12, 1.0 + 1e-12));
+    }
+
+    /// An ill-conditioned bread widens the tolerance in proportion to its condition number: the
+    /// same thousandth is rounding at a condition number of 10¹² and a fault at 10³.
+    #[test]
+    fn the_condition_number_widens_the_tolerance() {
+        let v = of(&[&[1.0, 1.0], &[1.001, 1.0]]);
+        assert!(symmetrised(&v, 1e12, None).is_ok());
+        assert!(matches!(
+            symmetrised(&v, 1e3, None),
+            Err(VarianceError::Asymmetric)
+        ));
+    }
+
+    /// The scale of an entry is the geometric mean of its two variances: at variances of 10⁻⁶ a
+    /// difference of 2 × 10⁻¹¹ is a fault, far beyond a millionth of that scale.
+    #[test]
+    fn a_difference_is_judged_at_the_entry_scale() {
+        let v = of(&[&[1e-6, 1e-6], &[1e-6 + 2e-11, 1e-6]]);
+        assert!(matches!(
+            symmetrised(&v, 1.0, None),
+            Err(VarianceError::Asymmetric)
+        ));
+    }
+
+    /// An entry with no scale of its own (the residue of an exact zero) borrows a
+    /// hundred-millionth of the largest variance: with a largest of 100 that lends 10⁻⁶, so a
+    /// difference of 3 × 10⁻¹³ is rounding and one of 10⁻⁸ is a fault.
+    #[test]
+    fn an_entry_without_scale_borrows_from_the_largest_variance() {
+        let residue = of(&[&[100.0, 0.0], &[3e-13, 0.0]]);
+        assert!(symmetrised(&residue, 1.0, None).is_ok());
+        let fault = of(&[&[100.0, 0.0], &[1e-8, 0.0]]);
+        assert!(matches!(
+            symmetrised(&fault, 1.0, None),
+            Err(VarianceError::Asymmetric)
+        ));
+    }
+
+    /// Only the difference of the two triangles is judged: entries at the edge of the floating
+    /// range, whose sum would overflow, are accepted when they agree.
+    #[test]
+    fn entries_at_the_edge_of_the_range_are_accepted() {
+        let v = of(&[&[1e308, 1e308], &[1e308, 1e308]]);
+        let s = symmetrised(&v, 1.0, None).unwrap();
+        assert_eq!(s.get(0, 1), 1e308);
+    }
+
+    /// The bound is inclusive: a difference of exactly a millionth of the scale is accepted.
+    #[test]
+    fn a_difference_at_the_bound_is_accepted() {
+        let v = of(&[&[1.0, 1e-6], &[0.0, 1.0]]);
+        let s = symmetrised(&v, 1.0, None).unwrap();
+        assert_eq!((s.get(0, 1), s.get(1, 0)), (0.0, 0.0));
+    }
+
+    /// A negative variance within the rounding bound of an exact zero is zero, a larger one
+    /// stays what it is for the caller to refuse: with a largest variance of 100 the bound is
+    /// 10⁻¹², so −10⁻¹⁴ is zero and −10⁻⁹ is kept.
+    #[test]
+    fn a_negative_residue_within_the_bound_is_zero() {
+        let residue = of(&[&[-1e-14, 0.0], &[0.0, 100.0]]);
+        assert_eq!(symmetrised(&residue, 1.0, None).unwrap().get(0, 0), 0.0);
+        let negative = of(&[&[-1e-9, 0.0], &[0.0, 100.0]]);
+        assert_eq!(symmetrised(&negative, 1.0, None).unwrap().get(0, 0), -1e-9);
+    }
+
+    /// With no scale at all (a zero matrix with a residue of the smallest normal size), the
+    /// smallest normal number is the bound, so that the residue is zero rather than a negative
+    /// variance.
+    #[test]
+    fn a_residue_without_scale_is_zero() {
+        let v = of(&[&[-f64::MIN_POSITIVE]]);
+        assert_eq!(symmetrised(&v, 1.0, None).unwrap().get(0, 0), 0.0);
+    }
+}

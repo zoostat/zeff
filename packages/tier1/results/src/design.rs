@@ -147,7 +147,6 @@ impl Design {
             sources: Vec::new(),
             keys: Vec::new(),
             notes: Vec::new(),
-            used: Vec::new(),
             plan,
             unseen: Vec::new(),
         };
@@ -355,11 +354,6 @@ impl Design {
         out
     }
 
-    /// Whether the formula has an outcome.
-    pub fn has_outcome(&self) -> bool {
-        self.outcome.is_some()
-    }
-
     /// The outcome's term as written (`log(wage)`), for messages that name it.
     pub fn outcome_name(&self) -> Option<String> {
         self.outcome_text.clone()
@@ -433,18 +427,6 @@ impl Design {
         self.outcome
             .map(|_| self.rows.iter().map(|&row| self.outcome_at(row)).collect())
     }
-
-    /// The outcome of every row used, scaled by the square root of its weight, as the blocks
-    /// carry it.
-    pub fn weighted_outcome(&self) -> Option<Vec<f64>> {
-        self.outcome.map(|_| {
-            self.rows
-                .iter()
-                .enumerate()
-                .map(|(r, &row)| self.outcome_at(row) * self.root_weight(r))
-                .collect()
-        })
-    }
 }
 
 /// The work of building a design.
@@ -457,8 +439,6 @@ struct Builder<'a, 'b> {
     /// The written form each source stands for, by source index.
     keys: Vec<String>,
     notes: Vec<String>,
-    /// The names of the variables used, in order, for the `NA` counts.
-    used: Vec<String>,
     /// The levels to code each category variable against, when predicting on new data.
     plan: &'a [(String, Vec<String>)],
     /// By variable, the rows whose label the plan does not hold.
@@ -626,9 +606,6 @@ impl Builder<'_, '_> {
             }
         };
         debug_assert_eq!(rows, self.frame.rows());
-        if !self.used.iter().any(|u| u == text) {
-            self.used.push(text.to_string());
-        }
         Ok(source)
     }
 

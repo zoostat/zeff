@@ -7,7 +7,7 @@
 
 use serde_json::Value as Json;
 use std::rc::Rc;
-use zeff_columns::Table;
+use zeff_columns::{Column, Table};
 use zeff_core::runtime::{Args, Body, CallContext, Fail, Files, Randomness};
 use zeff_core::value::{Fit, Frame, Value};
 use zeff_data::csv::{CsvOptions, read_csv};
@@ -585,4 +585,49 @@ fn the_estimator_methods_print_and_every_message() {
         all.push_str(&format!("> {script}{}\n", printed(script)));
     }
     insta::assert_snapshot!("estimator", all);
+}
+
+// ----- the survivors of the weekly mutation run (release 0.4.0, step 22a) -----
+
+/// A regressor without variation (a constant column in a model without an intercept) has no
+/// standardized coefficient, as the intercept has none.
+#[test]
+fn a_constant_regressor_has_no_standardized_coefficient() {
+    let column = |values: &[f64]| Column::floats(values.iter().map(|v| Some(*v))).0;
+    let table = Table::new(vec![
+        ("y".to_string(), column(&[3.5, 1.0, 2.5, 4.0])),
+        ("one".to_string(), column(&[1.0, 1.0, 1.0, 1.0])),
+        ("a".to_string(), column(&[2.0, 1.0, 3.0, 5.0])),
+    ])
+    .unwrap();
+    let fit = fit_with(&table, "y ~ one + a - 1", &Options::default());
+    assert_eq!(fit.terms, ["one", "a"]);
+    let betas = standardized(&fit);
+    assert!(betas[0].is_none() && betas[1].is_some(), "{betas:?}");
+}
+
+#[test]
+fn a_constant_outcome_has_no_standardized_coefficient() {
+    let column = |values: &[f64]| Column::floats(values.iter().map(|v| Some(*v))).0;
+    let table = Table::new(vec![
+        ("y".to_string(), column(&[2.0, 2.0, 2.0, 2.0])),
+        ("a".to_string(), column(&[2.0, 1.0, 3.0, 5.0])),
+    ])
+    .unwrap();
+    let fit = fit_with(&table, "y ~ a", &Options::default());
+    assert_eq!(fit.outcome_sd, 0.0);
+    let betas = standardized(&fit);
+    assert!(betas.iter().all(Option::is_none), "{betas:?}");
+}
+
+/// A level of exactly one is outside (0, 1) and refused, as zero is.
+#[test]
+fn a_level_of_one_is_refused() {
+    let outcome = run("let m = dataset(wages).reg(log(wage) ~ educ)\nm.ci(educ, level: 1)\n");
+    assert_ne!(outcome.exit_code, 0);
+    let err = &outcome.output.stderr;
+    assert!(
+        err.contains("Z0401") && err.contains("strictly between 0 and 1"),
+        "{err}"
+    );
 }

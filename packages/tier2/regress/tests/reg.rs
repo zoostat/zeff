@@ -1001,3 +1001,106 @@ fn an_oversized_column_never_enters_the_factorisation() {
         outcome.output.stderr
     );
 }
+
+// ----- the variance layer's survivors of the weekly mutation run (release 0.4.0, step 22a) -----
+
+/// Two clusters are enough for clustered errors (one is refused): the t table then has one
+/// degree of freedom.
+#[test]
+fn two_clusters_are_enough() {
+    let values: Vec<(f64, f64, f64)> = (0..8)
+        .map(|i| {
+            let x = f64::from(i);
+            (x * 0.5 + (x * 1.3).sin(), x, (x * 0.7).cos())
+        })
+        .collect();
+    let ids: Vec<f64> = (0..8).map(|i| f64::from(i % 2)).collect();
+    let t = frame_of(&values).with_column("id", floats(&ids)).unwrap();
+    let (fit, _) = fit_with(
+        &t,
+        "y ~ a + b",
+        &Options {
+            cluster: Some("id"),
+            ..Options::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(fit.df_residual, 1);
+    assert!(fit.std_errors.iter().all(|s| s.is_finite() && *s > 0.0));
+}
+
+/// A perfect fit under clustered errors with an ill-conditioned bread (the clustered counterpart
+/// of the sandwich under sampling weights above): every residual is rounding residue, the
+/// cluster sums of the scores are residue too, and the sandwich is nothing but cancellation, so
+/// the symmetry check must bound its rounding by the sizes of the terms, which the sums of the
+/// absolute scores carry.
+#[test]
+fn a_perfect_fit_with_clustered_errors_passes_the_symmetry_check() {
+    let file: &[u8] = b"y,a,g\n2,1e8,1\n125,125,2\n125,125,2\n";
+    let script = "let d = import(\"data/perfect.csv\")\nd.reg(y ~ a, cluster: g)\n";
+    let outcome = run_with(&[("data/perfect.csv", file)], script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome
+            .output
+            .stdout
+            .contains("clustered by g (2 clusters, CR1)"),
+        "{}",
+        outcome.output.stdout
+    );
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(25)))]
+
+    /// Under frequency weights a row stands for as many observations as its weight, each with its
+    /// share of the row's leverage: HC2 and HC3, and HC1 by its count alone, are the same as on
+    /// the data written out row by row.
+    #[test]
+    fn frequency_weights_give_the_standard_errors_of_the_expanded_data(values in prop::collection::vec((-5.0f64..5.0, -3.0f64..3.0, -3.0f64..3.0, 1u8..4), 5..20)) {
+        let rows: Vec<(f64, f64, f64)> = values.iter().map(|v| (v.0, v.1, v.2)).collect();
+        let w: Vec<f64> = values.iter().map(|v| f64::from(v.3)).collect();
+        let weighted = frame_of(&rows).with_column("w", floats(&w)).unwrap();
+        let expanded_rows: Vec<(f64, f64, f64)> = values
+            .iter()
+            .flat_map(|v| std::iter::repeat_n((v.0, v.1, v.2), usize::from(v.3)))
+            .collect();
+        let expanded = frame_of(&expanded_rows);
+        for se in ["hc2", "hc3", "robust"] {
+            let (a, _) = fit_with(&weighted, "y ~ a + b", &Options { se: Some(se), weights: Some("w"), weight_type: Some("frequency"), ..Options::default() }).unwrap();
+            let (b, _) = fit_with(&expanded, "y ~ a + b", &Options { se: Some(se), ..Options::default() }).unwrap();
+            prop_assert_eq!(a.n, b.n);
+            for (x, y) in a.std_errors.iter().zip(&b.std_errors) {
+                prop_assert!(close(*x, *y, 1e-9, 1e-14), "{se}: {} against {}", x, y);
+            }
+        }
+    }
+}
+
+/// Without an intercept the total sum of squares is the weighted sum of the squared outcomes,
+/// so R² under frequency weights is one less the residual sum over it.
+#[test]
+fn r_squared_without_an_intercept_weights_the_squared_outcomes() {
+    let t = table(vec![
+        ("y", floats(&[1.0, 2.0, 3.0, 4.0])),
+        ("a", floats(&[1.0, 2.0, 2.0, 5.0])),
+        ("w", floats(&[1.0, 2.0, 3.0, 1.0])),
+    ]);
+    let (fit, _) = fit_with(
+        &t,
+        "y ~ a - 1",
+        &Options {
+            weights: Some("w"),
+            weight_type: Some("frequency"),
+            ..Options::default()
+        },
+    )
+    .unwrap();
+    let total = 1.0 + 2.0 * 4.0 + 3.0 * 9.0 + 16.0;
+    let expected = 1.0 - fit.residual_sum_of_squares / total;
+    assert!(
+        close(fit.r_squared.unwrap(), expected, 1e-12, 0.0),
+        "{} against {expected}",
+        fit.r_squared.unwrap()
+    );
+}

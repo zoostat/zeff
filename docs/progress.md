@@ -123,3 +123,13 @@ Step 2 `[engine]`, the `zeff-kernels` crate (compensated reductions in the fixed
 **Next.** Step 22, the pre-release routine `[engine]`: the full suite on the four targets, every surviving mutant given a test or a recorded reason and every timeout a verdict, the four sample projects read by eye, the reference versions, the known-issues list, the risk register and the open decisions due.
 
 **For the owner to decide.** Nothing new at this step; the open decisions listed on 28 October stand.
+
+## 29 October 2026, step 22a of release 0.4.0
+
+**Done.** Step 22 was split into six sub-steps (22a to 22f) in the checklist, the routine being too large for one session, as at 0.3.0. Step 22a `[engine]`: the 89 surviving mutants of `zeff-results` from the weekly runs of step 21, each given a test (27 new tests catching 50 survivors: the symmetry check's unit tests, the clustered and frequency-weighted variances, the design's weights, names and messages, the Wald F of every linear restriction, R² without an intercept, the standardized coefficients, the confidence level, the export path), removed with the dead code it sat in (11, in two unused design methods and an unused list), or recorded as equivalent with its reason (28); every batch confirmed by rerunning its mutants locally; the record in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks, the conformance report and the export check locally; CI to be read after the push.
+
+**Next.** Step 22b `[engine]`: the 41 survivors of `zeff-regress` (`reg` 24, `Ols::fit` 10, `scaled_norm` 5, `measures` 2), the same way.
+
+**For the owner to decide.** Nothing new.

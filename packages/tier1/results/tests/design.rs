@@ -10,6 +10,7 @@ use zeff_core::runtime::{CallContext, Fail, Files, Randomness};
 use zeff_core::value::Frame;
 use zeff_data::csv::{CsvOptions, read_csv};
 use zeff_diagnostics::{Diagnostic, Source, Sources, Span};
+use zeff_numeric::order::WeightKind;
 use zeff_results::design::{Design, orthonormal_polynomials};
 use zeff_testkit::{formula, root};
 
@@ -51,6 +52,42 @@ fn build(table: &Table, text: &str, extra: &[&str]) -> Result<(Design, Vec<Strin
         Ok(design) => Ok((design, rendered)),
         Err(e) => Err(e.render(&sources)),
     }
+}
+
+/// The design of a formula on a table with the weights of `name`, of `kind`, as `reg` builds
+/// it, or the error rendered.
+fn build_weighted(
+    table: &Table,
+    text: &str,
+    name: &str,
+    kind: WeightKind,
+) -> Result<Design, String> {
+    let f = formula(text);
+    let mut output = String::new();
+    let mut messages: Vec<Diagnostic> = Vec::new();
+    let mut random = Randomness::default();
+    let script = format!("let d = {text}\n");
+    let mut sources = Sources::new();
+    sources.add(Source::new("t.zeff", &script));
+    let mut ctx = CallContext {
+        files: &NoFiles,
+        script: "t.zeff",
+        text: &script,
+        columns_used: Vec::new(),
+        frame: None,
+        callee_span: Span::new(8, 8 + text.len()),
+        arg_spans: Vec::new(),
+        rest_spans: Vec::new(),
+        definition_spans: Vec::new(),
+        output: &mut output,
+        messages: &mut messages,
+        random: &mut random,
+        statement: 1,
+    };
+    let frame = Frame::new(table.clone());
+    Design::build(&mut ctx, &frame, &f, &[name])
+        .and_then(|d| d.weighted(&mut ctx, &frame, name, kind))
+        .map_err(|e| e.render(&sources))
 }
 
 /// A test dataset read as `import` reads it.
@@ -544,5 +581,258 @@ proptest! {
         prop_assert_eq!(&design.names, &["(intercept)", "a", "b"]);
         prop_assert_eq!(design.notes.len(), 1);
         prop_assert!(design.notes[0].contains("`a` is written twice"));
+    }
+}
+
+// ----- the design's survivors of the weekly mutation run (release 0.4.0, step 22a) -----
+
+/// Analytic and sampling weights are scaled to sum to the rows kept before they enter the
+/// design, so the matrix carries the square roots of the scaled weights; frequency weights enter
+/// as they are.
+#[test]
+fn analytic_weights_are_scaled_to_mean_one_in_the_matrix() {
+    let t = table(vec![
+        ("y", floats(&[Some(1.0), Some(2.0), Some(3.0), Some(5.0)])),
+        ("a", floats(&[Some(2.0), Some(4.0), Some(8.0), Some(16.0)])),
+        ("w", floats(&[Some(1.0), Some(3.0), Some(1.0), Some(3.0)])),
+    ]);
+    let analytic = build_weighted(&t, "y ~ a", "w", WeightKind::Analytic).unwrap();
+    let m = analytic.matrix();
+    for (r, (a, w)) in [(2.0_f64, 0.5_f64), (4.0, 1.5), (8.0, 0.5), (16.0, 1.5)]
+        .into_iter()
+        .enumerate()
+    {
+        assert_eq!(m.get(r, 0), w.sqrt());
+        assert_eq!(m.get(r, 1), a * w.sqrt());
+    }
+    let frequency = build_weighted(&t, "y ~ a", "w", WeightKind::Frequency).unwrap();
+    assert_eq!(frequency.matrix().get(1, 1), 4.0 * 3.0_f64.sqrt());
+}
+
+/// Weights exactly 1e150 apart are accepted; beyond that the spread is refused (Z0224), since a
+/// weight that small is a share of nothing.
+#[test]
+fn weights_exactly_1e150_apart_are_accepted() {
+    let rows = |largest: f64| {
+        table(vec![
+            ("y", floats(&[Some(1.0), Some(2.0), Some(3.0)])),
+            ("a", floats(&[Some(2.0), Some(4.0), Some(8.0)])),
+            ("w", floats(&[Some(largest), Some(largest), Some(1.0)])),
+        ])
+    };
+    assert!(build_weighted(&rows(1e150), "y ~ a", "w", WeightKind::Sampling).is_ok());
+    let refused = build_weighted(&rows(2e150), "y ~ a", "w", WeightKind::Sampling)
+        .err()
+        .expect("refused");
+    assert!(
+        refused.contains("Z0224") && refused.contains("too far apart"),
+        "{refused}"
+    );
+}
+
+/// The levels kept for `predict` list every category variable of the design, each once.
+#[test]
+fn the_category_levels_list_every_category_variable() {
+    let t = table(vec![
+        (
+            "y",
+            floats(&[
+                Some(1.0),
+                Some(2.0),
+                Some(3.0),
+                Some(4.0),
+                Some(5.0),
+                Some(6.0),
+            ]),
+        ),
+        (
+            "g",
+            categories(
+                &["p", "q"],
+                &[Some(0), Some(1), Some(0), Some(1), Some(0), Some(1)],
+            ),
+        ),
+        (
+            "h",
+            categories(
+                &["u", "v", "w"],
+                &[Some(0), Some(1), Some(2), Some(0), Some(1), Some(2)],
+            ),
+        ),
+    ]);
+    let (design, _) = build(&t, "y ~ g + h", &[]).unwrap();
+    let levels = |names: &[&str]| names.iter().map(|l| (*l).to_string()).collect::<Vec<_>>();
+    assert_eq!(
+        design.category_levels(),
+        vec![
+            ("g".to_string(), levels(&["p", "q"])),
+            ("h".to_string(), levels(&["u", "v", "w"]))
+        ]
+    );
+}
+
+/// A term may negate a column: `(-a)` is the column of `a` with its sign changed.
+#[test]
+fn a_term_may_negate_a_column() {
+    let t = table(vec![
+        ("y", floats(&[Some(1.0), Some(2.0), Some(3.0)])),
+        ("a", floats(&[Some(2.0), Some(-4.0), Some(8.0)])),
+    ]);
+    let (design, _) = build(&t, "y ~ (-a)", &[]).unwrap();
+    assert_eq!(&design.names, &["(intercept)", "(-a)"]);
+    let m = design.matrix();
+    assert_eq!((m.get(0, 1), m.get(1, 1), m.get(2, 1)), (-2.0, 4.0, -8.0));
+}
+
+/// A product whose part is an interaction expands as R does: `a * b:c` is `a`, `b:c` and
+/// `a:b:c`.
+#[test]
+fn a_product_with_an_interaction_part_expands_as_r_does() {
+    let t = table(vec![
+        (
+            "y",
+            floats(&[Some(1.0), Some(2.0), Some(3.0), Some(5.0), Some(8.0)]),
+        ),
+        (
+            "a",
+            floats(&[Some(2.0), Some(4.0), Some(8.0), Some(1.0), Some(3.0)]),
+        ),
+        (
+            "b",
+            floats(&[Some(1.0), Some(3.0), Some(2.0), Some(5.0), Some(4.0)]),
+        ),
+        (
+            "c",
+            floats(&[Some(0.5), Some(1.5), Some(2.5), Some(0.25), Some(1.25)]),
+        ),
+    ]);
+    let (design, _) = build(&t, "y ~ a * b:c", &[]).unwrap();
+    assert_eq!(&design.names, &["(intercept)", "a", "b:c", "a:b:c"]);
+}
+
+/// `interact` at an order below two is refused when the design is built, with Z0401, as the
+/// formula itself lets it through.
+#[test]
+fn interact_refuses_an_order_below_two_at_the_design() {
+    let t = table(vec![
+        ("y", floats(&[Some(1.0), Some(2.0), Some(3.0)])),
+        ("a", floats(&[Some(2.0), Some(4.0), Some(8.0)])),
+        ("b", floats(&[Some(1.0), Some(3.0), Some(2.0)])),
+        ("c", floats(&[Some(0.5), Some(1.5), Some(2.5)])),
+    ]);
+    let refused = build(&t, "y ~ interact([a, b, c], order: 1)", &[])
+        .err()
+        .expect("refused");
+    assert!(
+        refused.contains("Z0401") && refused.contains("order from 2"),
+        "{refused}"
+    );
+}
+
+/// `interact` of five variables at order 2 gives the five and their ten pairs, in R's order.
+#[test]
+fn interact_of_five_at_order_two_gives_the_ten_pairs() {
+    let column = |seed: f64| {
+        floats(
+            &(0..30)
+                .map(|i| Some((f64::from(i) * seed).sin() + f64::from(i) * 0.01))
+                .collect::<Vec<_>>(),
+        )
+    };
+    let t = table(vec![
+        ("y", column(0.3)),
+        ("a", column(1.1)),
+        ("b", column(1.7)),
+        ("c", column(2.3)),
+        ("d", column(3.1)),
+        ("e", column(4.3)),
+    ]);
+    let (design, _) = build(&t, "y ~ interact([a, b, c, d, e], order: 2)", &[]).unwrap();
+    assert_eq!(
+        &design.names,
+        &[
+            "(intercept)",
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "a:b",
+            "a:c",
+            "a:d",
+            "a:e",
+            "b:c",
+            "b:d",
+            "b:e",
+            "c:d",
+            "c:e",
+            "d:e"
+        ]
+    );
+}
+
+/// An item of `interact` written as an expression is named by its text, a power without
+/// spaces.
+#[test]
+fn interact_names_an_item_written_as_an_expression() {
+    let t = table(vec![
+        ("y", floats(&[Some(1.0), Some(2.0), Some(3.0), Some(5.0)])),
+        ("a", floats(&[Some(2.0), Some(4.0), Some(8.0), Some(1.0)])),
+        ("b", floats(&[Some(1.0), Some(3.0), Some(2.0), Some(5.0)])),
+    ]);
+    let (design, _) = build(&t, "y ~ interact([a, b^2], order: 2)", &[]).unwrap();
+    assert_eq!(&design.names, &["(intercept)", "a", "b^2", "a:b^2"]);
+}
+
+/// The rows listed in a message stop at ten: exactly ten are listed in full, eleven as ten and
+/// one more, for an infinite value, an overflowing product (both Z0223) and a negative weight
+/// (Z0224).
+#[test]
+fn messages_list_ten_rows_and_count_the_rest() {
+    let column = |bad: usize, badness: f64| {
+        floats(
+            &(0..14)
+                .map(|i| Some(if i < bad { badness } else { 1.0 + i as f64 }))
+                .collect::<Vec<_>>(),
+        )
+    };
+    let ten = "rows 1, 2, 3, 4, 5, 6, 7, 8, 9, 10";
+    let check = |refused: String, more: bool, code: &str| {
+        assert!(refused.contains(code), "{refused}");
+        assert!(refused.contains(ten), "{refused}");
+        assert_eq!(refused.contains(" more"), more, "{refused}");
+    };
+    for (bad, more) in [(10, false), (11, true)] {
+        let infinite = table(vec![
+            ("y", column(0, 0.0)),
+            ("a", column(bad, f64::INFINITY)),
+        ]);
+        check(
+            build(&infinite, "y ~ a", &[]).err().expect("refused"),
+            more,
+            "Z0223",
+        );
+        let overflowing = table(vec![
+            ("y", column(0, 0.0)),
+            ("a", column(bad, 1e200)),
+            ("b", column(bad, 1e200)),
+        ]);
+        check(
+            build(&overflowing, "y ~ a:b", &[]).err().expect("refused"),
+            more,
+            "Z0223",
+        );
+        let negative = table(vec![
+            ("y", column(0, 0.0)),
+            ("a", column(0, 0.0)),
+            ("w", column(bad, -1.0)),
+        ]);
+        check(
+            build_weighted(&negative, "y ~ a", "w", WeightKind::Frequency)
+                .err()
+                .expect("refused"),
+            more,
+            "Z0224",
+        );
     }
 }

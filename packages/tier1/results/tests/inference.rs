@@ -519,3 +519,102 @@ fn the_printed_forms_and_every_message() {
     }
     insta::assert_snapshot!("inference", all);
 }
+
+// ----- the survivors of the weekly mutation run (release 0.4.0, step 22a) -----
+
+/// Every linear form of a restriction gives the Wald F of its row and constant: a coefficient
+/// scaled by a constant on one side, negated, shifted by a constant on one side, or divided by
+/// a constant, each checked against the F computed by hand from the estimates and the variance.
+#[test]
+fn restrictions_in_every_linear_form_give_the_wald_f_of_their_row() {
+    let fit = fit_with(
+        &table_of("wages"),
+        "log(wage) ~ educ + exper",
+        &Options {
+            level: Some(0.95),
+            ..Default::default()
+        },
+    );
+    let k = fit.terms.len();
+    let by_hand = |r: &[f64], c: f64| {
+        let rb = r
+            .iter()
+            .zip(&fit.estimates)
+            .map(|(x, b)| x * b)
+            .sum::<f64>()
+            - c;
+        let rvr: f64 = (0..k)
+            .flat_map(|i| (0..k).map(move |j| (i, j)))
+            .map(|(i, j)| r[i] * fit.vcov[i * k + j] * r[j])
+            .sum();
+        rb * rb / rvr
+    };
+    let cases: Vec<(ColumnExpr, &str, Vec<f64>, f64)> = vec![
+        (
+            bin(Op::Eq, bin(Op::Mul, int(2), var("educ")), var("exper")),
+            "2 * educ == exper",
+            vec![0.0, 2.0, -1.0],
+            0.0,
+        ),
+        (
+            bin(Op::Eq, neg(var("educ")), var("exper")),
+            "-educ == exper",
+            vec![0.0, -1.0, -1.0],
+            0.0,
+        ),
+        (
+            bin(Op::Eq, bin(Op::Add, var("educ"), num(0.1)), var("exper")),
+            "educ + 0.1 == exper",
+            vec![0.0, 1.0, -1.0],
+            -0.1,
+        ),
+        (
+            bin(Op::Eq, bin(Op::Sub, var("educ"), num(0.1)), var("exper")),
+            "educ - 0.1 == exper",
+            vec![0.0, 1.0, -1.0],
+            0.1,
+        ),
+        (
+            bin(Op::Eq, bin(Op::Div, var("educ"), int(2)), var("exper")),
+            "educ / 2 == exper",
+            vec![0.0, 0.5, -1.0],
+            0.0,
+        ),
+        (
+            bin(
+                Op::Eq,
+                bin(Op::Mul, int(2), bin(Op::Add, var("educ"), num(0.1))),
+                var("exper"),
+            ),
+            "2 * (educ + 0.1) == exper",
+            vec![0.0, 2.0, -1.0],
+            -0.2,
+        ),
+        (
+            bin(
+                Op::Eq,
+                bin(Op::Div, bin(Op::Sub, var("educ"), num(0.1)), int(2)),
+                var("exper"),
+            ),
+            "(educ - 0.1) / 2 == exper",
+            vec![0.0, 0.5, -1.0],
+            0.05,
+        ),
+    ];
+    for (expr, text, r, c) in cases {
+        let result = test_result(call_with(
+            test,
+            &fit,
+            vec![],
+            vec![term_expr(expr, text)],
+            vec![],
+        ));
+        let expected = by_hand(&r, c);
+        assert!(
+            close(result.statistic.value, expected, 1e-10, 0.0),
+            "{text}: F {} against {expected}",
+            result.statistic.value
+        );
+        assert_eq!(result.statistic.df[0], 1.0, "{text}");
+    }
+}

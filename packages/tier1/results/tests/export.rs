@@ -9,6 +9,7 @@ use zeff_results::export::{
     Format, crc32, document_xml, docx, escape_tex, escape_xml, result_table, sample, test_table,
     tex, zip,
 };
+use zeff_testkit::run;
 
 #[test]
 fn the_latex_and_word_forms_of_the_sample() {
@@ -212,4 +213,22 @@ fn a_test_result_exports_as_a_table() {
         Some("compare · m2 against m1".to_string())
     );
     assert_eq!(result_table(&Value::Int(1)), None);
+}
+
+// ----- the survivor of the weekly mutation run (release 0.4.0, step 22a) -----
+
+/// A path that ends in a dot has no extension, so no format is chosen (Z0716); it is not an
+/// extension Zeff does not write.
+#[test]
+fn a_path_ending_in_a_dot_has_no_extension() {
+    let outcome =
+        run("let m = dataset(wages).reg(log(wage) ~ educ)\nm.export(\"output/table.\")\n");
+    assert_ne!(outcome.exit_code, 0);
+    let err = &outcome.output.stderr;
+    assert!(
+        err.contains("Z0716")
+            && err.contains("has no extension")
+            && err.contains("`output/table.docx`"),
+        "{err}"
+    );
 }
