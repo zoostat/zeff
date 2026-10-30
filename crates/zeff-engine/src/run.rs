@@ -6,7 +6,7 @@ use crate::fs::FileSystem;
 use crate::interpreter::{Interpreter, Output};
 use crate::paths::PathProblem;
 use crate::project::Project;
-use crate::registry::{self, Bodies};
+use crate::registry::{self, Bodies, ZeffBodies};
 use std::path::Path;
 use zeff_core::runtime::{Fail, Files, fail};
 use zeff_diagnostics::{Diagnostic, Severity, Source, Sources, Span};
@@ -222,11 +222,13 @@ pub fn run_script_with(
         options,
         registry,
         registry::bodies(),
+        registry::zeff_bodies(),
     )
 }
 
-/// [`run_script_with`] against a given registry and the bodies that run its functions: what the
-/// tests use to run a script with a fixture function beside the engine's own.
+/// [`run_script_with`] against a given registry and the bodies that run its functions, Rust and
+/// Zeff: what the tests use to run a script with a fixture function beside the engine's own.
+#[allow(clippy::too_many_arguments)]
 pub fn run_script_in(
     fs: &dyn FileSystem,
     project: &Project,
@@ -235,6 +237,7 @@ pub fn run_script_in(
     options: &RunOptions,
     registry: &Registry,
     bodies: &Bodies,
+    zeff: &ZeffBodies,
 ) -> Outcome {
     let mut output = Output::default();
     let checked = check_in_project(fs, project, script, text, registry);
@@ -281,6 +284,7 @@ pub fn run_script_in(
     }
     let files = ProjectFiles { fs, project };
     let interpreter = Interpreter::new(&checked.program, bodies, &files, script, &source)
+        .with_zeff(zeff)
         .with_sources(&module_sources)
         .with_panic_at(options.panic_at_line)
         .with_width(options.width);

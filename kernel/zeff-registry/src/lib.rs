@@ -12,6 +12,7 @@ pub mod dataset;
 pub mod help;
 pub mod render;
 pub mod shared;
+pub mod source;
 pub mod spec;
 
 pub use catalogue::{Catalogue, CatalogueError, CatalogueRow};
@@ -22,6 +23,7 @@ pub use dataset::{
 pub use help::{Block, Example, HelpDoc, HelpError, check_help, parse_help};
 pub use render::{PAGE_WIDTH, TEXT_WIDTH, render_page, render_page_with};
 pub use shared::{SHARED, SharedArgument, shared_argument};
+pub use source::{ZeffSource, page_markdown};
 pub use spec::{
     AccuracyRecord, DiagnosticDecl, FunctionSpec, ParamSpec, RESULT_KINDS, Rest, is_result_type,
     receiver_types, receivers_overlap,
@@ -80,6 +82,13 @@ pub enum RegistryError {
         name: String,
         errors: Vec<HelpError>,
     },
+    /// Problems with the file of a built-in written in Zeff: its layout, its body under one of
+    /// its forms, or a call upwards in tier; each rendered as the message it would show.
+    ZeffBody {
+        package: String,
+        name: String,
+        problems: Vec<String>,
+    },
 }
 
 impl std::fmt::Display for RegistryError {
@@ -128,6 +137,17 @@ impl std::fmt::Display for RegistryError {
                 write!(f, "the page of the dataset `{name}` is incomplete:")?;
                 for e in errors {
                     write!(f, "\n  {e}")?;
+                }
+                Ok(())
+            }
+            RegistryError::ZeffBody {
+                package,
+                name,
+                problems,
+            } => {
+                write!(f, "the Zeff source of {package}::{name} does not build:")?;
+                for p in problems {
+                    write!(f, "\n  {}", p.trim_end().replace('\n', "\n  "))?;
                 }
                 Ok(())
             }
@@ -285,6 +305,24 @@ impl Registry {
             Ok(self)
         } else {
             Err(errors)
+        }
+    }
+
+    /// Replace the diagnostics a function declares: a function written in Zeff declares none of
+    /// its own, and the engine generates them from the functions its body calls once the body is
+    /// checked (section 9.1, "Warnings and notes").
+    pub fn declare_diagnostics(
+        &mut self,
+        package: &str,
+        name: &str,
+        diagnostics: Vec<DiagnosticDecl>,
+    ) {
+        if let Some(f) = self
+            .functions
+            .iter_mut()
+            .find(|f| f.spec.package == package && f.spec.name == name)
+        {
+            f.spec.diagnostics = diagnostics;
         }
     }
 

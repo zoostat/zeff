@@ -14,7 +14,7 @@ pub mod value;
 
 use runtime::{Args, CallContext, Fail, Function};
 use value::Value;
-use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec, Rest};
+use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec, Rest, ZeffSource};
 
 /// `print(x, ...)`: each value through the display interface.
 fn print(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
@@ -23,6 +23,14 @@ fn print(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ctx.print(&text);
     }
     Ok(Value::Nothing)
+}
+
+/// The functions of `core` written in Zeff, one `functions/*.zeff` file each (Engine and Project
+/// Specification, section 9.1, "Files"), compiled in; the engine parses, checks and lowers them
+/// when it starts. None yet: `clamp`, `logit`, `inv_logit`, `assert`, `n_missing` and
+/// `fill_missing` arrive at steps 14 and 15 of release 0.5.0.
+pub fn zeff_sources() -> Vec<ZeffSource> {
+    Vec::new()
 }
 
 /// The functions of `core` in this release, with their help pages.

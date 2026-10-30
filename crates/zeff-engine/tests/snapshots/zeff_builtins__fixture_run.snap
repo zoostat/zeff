@@ -1,0 +1,19 @@
+---
+source: crates/zeff-engine/tests/zeff_builtins.rs
+expression: out.output.stdout
+---
+6
+4.5
+5
+Column<Float> · 3 values
+2
+4
+6
+Column<Float> · 3 values
+-1
+4
+-9
+Column<Float> · 3 values
+10
+20
+30

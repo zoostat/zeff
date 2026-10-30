@@ -3,7 +3,7 @@
 //! not a `let` prints its value; warnings and notes print under the output they belong to; the
 //! first error stops the run (Language Reference, sections 3.1, 3.7 and 10.2).
 
-use crate::registry::Bodies;
+use crate::registry::{Bodies, ZeffBodies, ZeffBuiltin};
 use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
@@ -63,6 +63,8 @@ pub struct Interpreter<'a> {
     /// The sources of the project's modules, by file, so that a module function's body runs
     /// under its own file and lines.
     sources: Option<&'a HashMap<String, Source>>,
+    /// The built-ins written in Zeff, lowered once at engine start.
+    zeff: Option<&'a ZeffBodies>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -119,7 +121,14 @@ impl<'a> Interpreter<'a> {
             statement: 0,
             jump: None,
             sources: None,
+            zeff: None,
         }
+    }
+
+    /// The built-ins written in Zeff.
+    pub fn with_zeff(mut self, zeff: &'a ZeffBodies) -> Self {
+        self.zeff = Some(zeff);
+        self
     }
 
     /// The modules' sources, by project-relative file.
@@ -770,7 +779,7 @@ impl<'a> Interpreter<'a> {
             self.script = source.name();
             self.source = source;
         }
-        let result = self.run_user(f, callee_span, args, values, printed, messages);
+        let result = self.run_user(f, callee_span, args, values, false, printed, messages);
         self.script = saved_script;
         self.source = saved_source;
         self.receivers = saved;
@@ -779,12 +788,14 @@ impl<'a> Interpreter<'a> {
 
     /// The second half of a call: the parameters bound in order, each default evaluated after
     /// the parameters before it, then the body.
+    #[allow(clippy::too_many_arguments)]
     fn run_user(
         &mut self,
         f: &zeff_ir::Function,
         callee_span: Span,
         args: &[Option<Expr>],
         mut values: Vec<Option<Value>>,
+        allow_columns: bool,
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
@@ -796,7 +807,8 @@ impl<'a> Interpreter<'a> {
                     None => Value::Na,
                 },
             };
-            if let Value::Column(column) = &value
+            if !allow_columns
+                && let Value::Column(column) = &value
                 && scalar_parameter(&param.ty)
             {
                 let span = args[i].as_ref().map_or(callee_span, |e| e.span);
@@ -835,6 +847,68 @@ impl<'a> Interpreter<'a> {
             )),
             None => Ok(result),
         }
+    }
+
+    /// A built-in written in Zeff (Engine and Project Specification, section 9.1): its lowered
+    /// body run under its own program, file and lines, with the parameters bound to the arguments
+    /// as evaluated (a column whole, since the body's operators lift; section 3.7, "Columns and
+    /// scalars") and nothing else in scope. Every message it raises is placed at the call in the
+    /// script, since the body is the engine's, not the user's.
+    fn run_zeff(
+        &mut self,
+        builtin: &'a ZeffBuiltin,
+        call: &Call,
+        values: Vec<Option<Value>>,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        // The form whose columns are the arguments' (the written form when none matches, which
+        // the checker's lifting rule makes impossible).
+        let columns: Vec<bool> = values
+            .iter()
+            .map(|v| matches!(v, Some(Value::Column(_))))
+            .collect();
+        let form = builtin
+            .forms
+            .iter()
+            .find(|f| f.columns == columns)
+            .unwrap_or(&builtin.forms[0]);
+        let f = &form.program.functions[form.function];
+        let saved_program = std::mem::replace(&mut self.program, &form.program);
+        let saved_env = std::mem::take(&mut self.env);
+        let saved_receivers = std::mem::take(&mut self.receivers);
+        let (saved_script, saved_source) = (self.script, self.source);
+        self.script = builtin.source.name();
+        self.source = &builtin.source;
+        let before = messages.len();
+        let result = self.run_user(
+            f,
+            call.callee_span,
+            &call.args,
+            values,
+            true,
+            printed,
+            messages,
+        );
+        self.program = saved_program;
+        self.env = saved_env;
+        self.receivers = saved_receivers;
+        self.script = saved_script;
+        self.source = saved_source;
+        let inside = |d: &Diagnostic| d.file.as_deref() == Some(builtin.source.name());
+        for message in messages[before..].iter_mut() {
+            if inside(message) {
+                let moved = std::mem::replace(message, Diagnostic::error("", ""));
+                *message = place_at_call(moved, self.script, call.callee_span);
+            }
+        }
+        result.map_err(|e| {
+            if inside(&e) && !e.code.starts_with("Z9") {
+                Box::new(place_at_call(*e, self.script, call.callee_span))
+            } else {
+                e
+            }
+        })
     }
 
     /// A built-in's body run with evaluated arguments, in parameter order, for a call through a
@@ -1614,13 +1688,12 @@ impl<'a> Interpreter<'a> {
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
-        let Some(body) = self.bodies.get(&(call.package.clone(), call.name.clone())) else {
-            return Err(fail(
-                Diagnostic::error("Z9001", format!("internal error: this is a bug in Zeff, not in your script (`{}::{}` has no body)", call.package, call.name))
-                    .in_file(self.script)
-                    .primary(call.callee_span, "the call that failed"),
-            ));
-        };
+        let key = (call.package.clone(), call.name.clone());
+        let zeff = self.zeff.and_then(|z| z.get(&key));
+        let body = self.bodies.get(&key);
+        if zeff.is_none() && body.is_none() {
+            return Err(self.no_body(call));
+        }
         let mut values: Vec<Option<Value>> = vec![None; call.args.len()];
         let mut rest: Vec<Value> = vec![Value::Nothing; call.rest.len()];
         let mut definitions: Vec<(String, Value)> = call
@@ -1846,6 +1919,13 @@ impl<'a> Interpreter<'a> {
                 }
             }
         }
+        // A built-in written in Zeff: its lowered body, with the arguments as evaluated.
+        if let Some(builtin) = zeff {
+            return self.run_zeff(builtin, call, values, printed, messages);
+        }
+        let Some(body) = body else {
+            return Err(self.no_body(call));
+        };
         let enclosing = self.receivers.last().map(|r| r.current().clone());
         let mut ctx = CallContext {
             files: self.files,
@@ -1872,6 +1952,16 @@ impl<'a> Interpreter<'a> {
             return zeff_core::lift::call_rowwise(*body, &mut ctx, args, &call.returns);
         }
         body(&mut ctx, args)
+    }
+
+    /// Z9001: a registered function with neither a Rust body nor a Zeff one, which the build
+    /// check of the registry makes impossible.
+    fn no_body(&self, call: &Call) -> Fail {
+        fail(
+            Diagnostic::error("Z9001", format!("internal error: this is a bug in Zeff, not in your script (`{}::{}` has no body)", call.package, call.name))
+                .in_file(self.script)
+                .primary(call.callee_span, "the call that failed"),
+        )
     }
 
     /// Z0414 (provisional): a term name that the result does not have. The terms of a fit are
@@ -2070,6 +2160,13 @@ fn cell_value(column: &zeff_columns::Column, row: usize) -> Value {
 
 /// A parameter type that names one row's value, which a column may not stand in for in a
 /// project function (section 3.7, "Columns and scalars").
+/// A message raised inside the body of a built-in written in Zeff, placed at the call in the
+/// script: the script's file, one label at the call, the text kept.
+fn place_at_call(mut d: Diagnostic, script: &str, span: Span) -> Diagnostic {
+    d.labels.clear();
+    d.in_file(script).primary(span, "in this call")
+}
+
 fn scalar_parameter(ty: &zeff_ir::Ty) -> bool {
     use zeff_ir::Ty;
     matches!(

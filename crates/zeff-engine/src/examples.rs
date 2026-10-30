@@ -10,7 +10,7 @@
 
 use crate::fs::MemoryFileSystem;
 use crate::project::Project;
-use crate::run::run_script;
+use crate::run::{RunOptions, run_script_in};
 use std::fmt;
 use std::path::Path;
 use zeff_registry::Registry;
@@ -86,6 +86,20 @@ impl fmt::Display for ExampleFailure {
 
 /// Run every example of every function in `registry`; the failures, if any.
 pub fn run_examples(registry: &Registry) -> Vec<ExampleFailure> {
+    run_examples_with(
+        registry,
+        crate::registry::bodies(),
+        crate::registry::zeff_bodies(),
+    )
+}
+
+/// [`run_examples`] with the bodies given, Rust and Zeff: what a test with a fixture function
+/// beside the engine's own uses.
+pub fn run_examples_with(
+    registry: &Registry,
+    bodies: &crate::registry::Bodies,
+    zeff: &crate::registry::ZeffBodies,
+) -> Vec<ExampleFailure> {
     let (fs, project) = fixture_project();
     let mut failures = Vec::new();
     // Every page: the functions', then the datasets'.
@@ -114,7 +128,16 @@ pub fn run_examples(registry: &Registry) -> Vec<ExampleFailure> {
             }
             ranges.push((start, line - 1));
         }
-        let outcome = run_script(&fs, &project, "examples.zeff", &script);
+        let outcome = run_script_in(
+            &fs,
+            &project,
+            "examples.zeff",
+            &script,
+            &RunOptions::default(),
+            registry,
+            bodies,
+            zeff,
+        );
         // An error found before anything ran (a check error) belongs to no statement; it is shown
         // as the output of the first example that produced nothing.
         let no_statement_failed = outcome

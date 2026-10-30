@@ -921,6 +921,39 @@ fn control_cases() -> Vec<Line> {
     lines
 }
 
+/// A built-in written in Zeff (release 0.5.0, step 9): the engine's fixture `builtin_fixture`,
+/// registered beside the shipped functions, run as a call, a method, with its default and on a
+/// column, so that the four targets prove the loader and the lifted body identical.
+fn builtin_fixture_cases() -> Vec<Line> {
+    use std::path::Path;
+    use zeff_engine::fixture::run_fixture_script;
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/b/zeff.toml",
+        format!(
+            "[project]\nname = \"b\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let project = match Project::open(&fs, Path::new("/b")) {
+        Ok(project) => project,
+        Err(_) => {
+            return vec![text(
+                "functions/builtin_fixture",
+                "the project did not open",
+            )];
+        }
+    };
+    let script = "print(builtin_fixture(-3))\nprint(builtin_fixture(1.5, scale: 3))\nprint((-2.5).builtin_fixture())\nlet w = dataset(wages).head(5)\nw.add(y = builtin_fixture(wage - 20), z = builtin_fixture(wage, scale: hours))[\"y\"]\nw.add(y = builtin_fixture(wage - 20), z = builtin_fixture(wage, scale: hours))[\"z\"]\n";
+    let outcome = run_fixture_script(&fs, &project, "scripts/main.zeff", script);
+    vec![
+        text("functions/builtin_fixture/stdout", &outcome.output.stdout),
+        text("functions/builtin_fixture/stderr", &outcome.output.stderr),
+    ]
+}
+
 /// The exported files of release 0.4.0 (step 13): the sample table as Word and LaTeX, so that the
 /// four targets prove the bytes identical.
 fn export_cases() -> Vec<Line> {
@@ -940,6 +973,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(distribution_cases());
     lines.extend(regress_cases());
     lines.extend(control_cases());
+    lines.extend(builtin_fixture_cases());
     lines.extend(export_cases());
     lines.extend(kernels_cases());
     lines.extend(milestone_cases());

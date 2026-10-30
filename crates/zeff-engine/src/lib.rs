@@ -4,6 +4,8 @@ pub mod create;
 pub mod examples;
 pub mod explain;
 mod explain_pages;
+#[doc(hidden)]
+pub mod fixture;
 pub mod formulas;
 pub mod fs;
 pub mod help;

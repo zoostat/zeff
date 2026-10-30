@@ -1,0 +1,8 @@
+---
+source: crates/zeff-engine/tests/zeff_builtins.rs
+expression: out.output.stderr
+---
+warning: log of zero gave -Inf (line 2)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+warning: log of a negative number gave NA (line 3)
+  = help: a negative number has no real logarithm; `where(x > 0)` keeps the rows that have one

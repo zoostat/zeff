@@ -837,3 +837,10 @@ pub fn functions() -> Vec<Function> {
         },
     ]
 }
+
+/// The functions of `data` written in Zeff, one `functions/*.zeff` file each (Engine and Project
+/// Specification, section 9.1, "Files"), compiled in; the engine parses, checks and lowers them
+/// when it starts. None yet: they arrive with the function steps of release 0.5.0.
+pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
+    Vec::new()
+}

@@ -263,6 +263,11 @@ impl Catalogue {
         Catalogue::parse(CATALOGUE_CSV)
     }
 
+    /// The text of the compiled catalogue, for a test that adds a fixture row to it.
+    pub fn compiled_text() -> &'static str {
+        CATALOGUE_CSV
+    }
+
     pub fn rows(&self) -> &[CatalogueRow] {
         &self.rows
     }

@@ -1,0 +1,34 @@
+---
+source: crates/zeff-engine/tests/zeff_builtins.rs
+expression: page
+---
+builtin_fixture — Scale the absolute value of a number                       core · tier 0 · since 0.5.0 · 1.0 · exact
+
+USAGE
+    builtin_fixture(x, scale: Float = _two())
+
+DESCRIPTION
+    The absolute value of `x`, as `abs` gives it, times `scale`. Given a column, it applies to every row in
+    one pass, through the lifted operators of its body.
+
+ARGUMENTS
+    x           Float. The number, or a column of numbers.
+    scale:      Float = _two(). The factor; 2 unless given.
+
+VALUE
+    `abs(x) * scale`, a Float; a column of Floats when `x` is a column.
+
+WARNINGS AND NOTES
+    Z0211   an Int result does not fit in 64 bits
+
+ACCURACY
+    Exact.
+
+SEE ALSO
+    abs, sign
+
+EXAMPLES
+    > builtin_fixture(-3)
+    6
+    > builtin_fixture(1.5, scale: 3)
+    4.5

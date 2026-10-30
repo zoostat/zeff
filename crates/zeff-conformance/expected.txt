@@ -127,6 +127,8 @@ control/attempt/stdout 515eb37b724d8bfa
 control/attempt/stderr 472a84d99b1b579d
 control/for_draws/stdout fdb841f515d6951d
 control/for_draws/stderr cbf29ce484222325
+functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
+functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
 export/sample.tex 79622a8e73235482
 kernels/reductions 7a3f4eedc240791f

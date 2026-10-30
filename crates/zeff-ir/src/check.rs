@@ -73,36 +73,7 @@ pub fn check_project(
     text: Option<&str>,
     modules: &[ModuleSource],
 ) -> Checked {
-    let mut checker = Checker {
-        file: file.to_string(),
-        registry,
-        found: Diagnostics::new(),
-        bindings: Vec::new(),
-        scope: Vec::new(),
-        frame_scope: 0,
-        formula_depth: 0,
-        term_depth: 0,
-        loops: Vec::new(),
-        record_depth: 0,
-        maybe_failed: std::collections::HashSet::new(),
-        safe: Vec::new(),
-        text,
-        signatures: Vec::new(),
-        functions: Vec::new(),
-        current_function: None,
-        calls: Vec::new(),
-        hidden_scope: Vec::new(),
-        modules: Vec::new(),
-        current_module: None,
-        imported: Vec::new(),
-        words: registry
-            .functions()
-            .iter()
-            .flat_map(|f| f.spec.params.iter())
-            .filter_map(|p| Ty::parse(p.ty))
-            .flat_map(|ty| ty.words())
-            .collect(),
-    };
+    let mut checker = Checker::new(file, registry, text);
     // The modules: each a name that is one, holding only `///` text, `fn` definitions and `use`
     // lines (Z0323); their signatures are collected before anything else (section 5.3, "Order").
     checker.modules = modules.iter().map(|m| m.name.clone()).collect();
@@ -185,30 +156,7 @@ pub fn check_project(
             }
         }
     }
-    let functions = checker
-        .functions
-        .into_iter()
-        .zip(checker.signatures.iter())
-        .map(|(f, sig)| {
-            f.unwrap_or_else(|| Function {
-                name: sig.name.clone(),
-                name_span: sig.name_span,
-                module: sig.module.clone(),
-                public: sig.public,
-                file: sig.file.clone(),
-                params: Vec::new(),
-                returns: Ty::Unknown,
-                body: Block {
-                    statements: Vec::new(),
-                    tail: None,
-                    span: sig.name_span,
-                },
-                span: sig.name_span,
-                doc: Vec::new(),
-                hash: 0,
-            })
-        })
-        .collect();
+    let functions = lowered_functions(checker.functions, &checker.signatures);
     Checked {
         program: Program {
             statements,
@@ -296,6 +244,290 @@ struct Checker<'a> {
     current_module: Option<String>,
     /// The functions the script's `use` lines brought in, by name (section 5.3, "Modules").
     imported: Vec<(String, FnId)>,
+    /// Every built-in a lowered call or function value names, in order, for the loader of the
+    /// built-ins written in Zeff (the tier rule and the generated "Warnings and notes").
+    called: Vec<(String, String)>,
+    /// While a built-in written in Zeff is checked: the function whose scalar parameters are read
+    /// as columns in this form, one flag per parameter (section 3.7, "Columns and scalars").
+    lift_mask: Option<(String, Vec<bool>)>,
+}
+
+impl<'a> Checker<'a> {
+    fn new(file: &str, registry: &'a Registry, text: Option<&'a str>) -> Self {
+        Checker {
+            file: file.to_string(),
+            registry,
+            found: Diagnostics::new(),
+            bindings: Vec::new(),
+            scope: Vec::new(),
+            frame_scope: 0,
+            formula_depth: 0,
+            term_depth: 0,
+            loops: Vec::new(),
+            record_depth: 0,
+            maybe_failed: std::collections::HashSet::new(),
+            safe: Vec::new(),
+            text,
+            signatures: Vec::new(),
+            functions: Vec::new(),
+            current_function: None,
+            calls: Vec::new(),
+            hidden_scope: Vec::new(),
+            modules: Vec::new(),
+            current_module: None,
+            imported: Vec::new(),
+            called: Vec::new(),
+            lift_mask: None,
+            words: registry
+                .functions()
+                .iter()
+                .flat_map(|f| f.spec.params.iter())
+                .filter_map(|p| Ty::parse(p.ty))
+                .flat_map(|ty| ty.words())
+                .collect(),
+        }
+    }
+}
+
+/// The lowered functions by signature position; one whose body could not be checked stands as
+/// an empty function of its name, so that later indices still hold.
+fn lowered_functions(functions: Vec<Option<Function>>, signatures: &[Signature]) -> Vec<Function> {
+    functions
+        .into_iter()
+        .zip(signatures.iter())
+        .map(|(f, sig)| {
+            f.unwrap_or_else(|| Function {
+                name: sig.name.clone(),
+                name_span: sig.name_span,
+                module: sig.module.clone(),
+                public: sig.public,
+                file: sig.file.clone(),
+                params: Vec::new(),
+                returns: Ty::Unknown,
+                body: Block {
+                    statements: Vec::new(),
+                    tail: None,
+                    span: sig.name_span,
+                },
+                span: sig.name_span,
+                doc: Vec::new(),
+                hash: 0,
+            })
+        })
+        .collect()
+}
+
+/// The text of a type as written, `Column<Float>`, `keep | snake`, `Fn(Float) -> Float`.
+pub fn type_text(ty: &ast::Type) -> String {
+    written_type(ty)
+}
+
+/// A built-in function written in Zeff, checked and lowered (Engine and Project Specification,
+/// section 9.1): the program holding it and its private helpers, its index, every built-in its
+/// bodies call, and how many forms were checked.
+#[derive(Debug, Clone)]
+pub struct BuiltinChecked {
+    /// One lowering per form, the written form first; the interpreter runs the form whose
+    /// columns match the arguments given.
+    pub forms: Vec<BuiltinForm>,
+    pub calls: Vec<(String, String)>,
+}
+
+/// One form of a built-in written in Zeff: which parameters are given as columns, and the body
+/// lowered under those types (a call inside it lifts exactly where this form needs it).
+#[derive(Debug, Clone)]
+pub struct BuiltinForm {
+    pub columns: Vec<bool>,
+    pub program: Program,
+    pub function: FnId,
+}
+
+/// A problem found in a built-in's file: the form it was found under (empty for the written
+/// one, else which parameters were read as columns) and the diagnostic.
+#[derive(Debug, Clone)]
+pub struct BuiltinProblem {
+    pub form: String,
+    pub diagnostic: Diagnostic,
+}
+
+/// Check and lower the file of a built-in written in Zeff: it holds `///` text and `fn`
+/// definitions only, one public function called `name` and the private helpers (`_x`) only it
+/// uses. When `lift` is set (a scalar function of `core`, or a method that applies row by row,
+/// section 3.7, "Columns and scalars"), the body is checked once for every way its scalar
+/// parameters may be given as columns, since a column reaches the body whole and its operators
+/// lift; the program kept is the written form's. Any diagnostic, a warning included, is a build
+/// failure, since a built-in ships clean.
+pub fn check_builtin(
+    name: &str,
+    file: &str,
+    text: &str,
+    registry: &Registry,
+    lift: bool,
+) -> Result<BuiltinChecked, Vec<BuiltinProblem>> {
+    let parsed = zeff_syntax::parse(file, text);
+    let plain = |d: Diagnostic| BuiltinProblem {
+        form: String::new(),
+        diagnostic: d,
+    };
+    let mut problems: Vec<BuiltinProblem> = parsed
+        .diagnostics
+        .into_vec()
+        .into_iter()
+        .map(plain)
+        .collect();
+    let mut definitions: Vec<&ast::FnDef> = Vec::new();
+    for item in &parsed.script.items {
+        match item {
+            ast::Item::Fn(f) => definitions.push(f),
+            ast::Item::Use(u) => problems.push(plain(
+                Diagnostic::error(
+                    "Z0323",
+                    "a built-in's file holds `///` text and `fn` definitions only",
+                )
+                .in_file(file)
+                .primary(u.span, "a `use` line in a built-in's file")
+                .help("a built-in calls the functions of its own package and of the packages below it by their names; nothing is brought in"),
+            )),
+            ast::Item::Statement(s) => problems.push(plain(
+                Diagnostic::error(
+                    "Z0323",
+                    "a built-in's file holds `///` text and `fn` definitions only",
+                )
+                .in_file(file)
+                .primary(s.span, "a statement in a built-in's file")
+                .help("a built-in is one function and the private helpers only it uses"),
+            )),
+        }
+    }
+    let Some(main) = definitions.iter().position(|f| f.name.text == name) else {
+        problems.push(plain(
+            Diagnostic::error(
+                "Z0323",
+                format!("`{file}` defines no function called `{name}`"),
+            )
+            .in_file(file)
+            .primary(Span::new(0, 0), "the file")
+            .help("a built-in's file is named after the one public function it defines"),
+        ));
+        return Err(problems);
+    };
+    for f in &definitions {
+        if f.name.text != name && !f.name.text.starts_with('_') {
+            problems.push(plain(
+                Diagnostic::error(
+                    "Z0323",
+                    format!("`{}` is a second public function in `{file}`", f.name.text),
+                )
+                .in_file(file)
+                .primary(f.name.span, "a second public function")
+                .help(format!("a file holds one built-in, `{name}`, and the private helpers only it uses, named with a leading `_`")),
+            ));
+        }
+    }
+    if !problems.is_empty() {
+        return Err(problems);
+    }
+    // The scalar parameters of the built-in, each of which a column may stand for when the
+    // function lifts.
+    let scalar_positions: Vec<usize> = if lift {
+        definitions[main]
+            .params
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| Ty::parse(&written_type(&p.ty)).is_some_and(|t| scalar_type(&t)))
+            .map(|(i, _)| i)
+            .collect()
+    } else {
+        Vec::new()
+    };
+    if scalar_positions.len() > 8 {
+        problems.push(plain(
+            Diagnostic::error(
+                "Z0323",
+                format!(
+                    "`{name}` has {} scalar parameters; a lifted built-in may have at most 8",
+                    scalar_positions.len()
+                ),
+            )
+            .in_file(file)
+            .primary(definitions[main].name.span, "too many forms to check")
+            .help("take a list where the function needs many values"),
+        ));
+        return Err(problems);
+    }
+    let forms = 1usize << scalar_positions.len();
+    let mut lowered: Vec<BuiltinForm> = Vec::new();
+    let mut calls: Vec<(String, String)> = Vec::new();
+    let mut seen: Vec<(String, String, usize)> = Vec::new();
+    for form in 0..forms {
+        let mask: Vec<bool> = definitions[main]
+            .params
+            .iter()
+            .enumerate()
+            .map(|(i, _)| {
+                scalar_positions
+                    .iter()
+                    .position(|p| *p == i)
+                    .is_some_and(|bit| form & (1 << bit) != 0)
+            })
+            .collect();
+        let columns: Vec<String> = definitions[main]
+            .params
+            .iter()
+            .zip(&mask)
+            .filter(|(_, m)| **m)
+            .map(|(p, _)| format!("`{}`", p.name.text))
+            .collect();
+        let form_text = if columns.is_empty() {
+            String::new()
+        } else {
+            format!("with {} given as a column", columns.join(" and "))
+        };
+        let mut checker = Checker::new(file, registry, Some(text));
+        checker.lift_mask = Some((name.to_string(), mask.clone()));
+        for f in &definitions {
+            checker.declare(f);
+        }
+        for (i, f) in definitions.iter().enumerate() {
+            checker.function_body(f, i);
+        }
+        checker.check_recursion();
+        let found = checker.found.into_vec();
+        let functions = lowered_functions(checker.functions, &checker.signatures);
+        lowered.push(BuiltinForm {
+            columns: mask,
+            program: Program {
+                statements: Vec::new(),
+                bindings: checker.bindings,
+                functions,
+            },
+            function: main,
+        });
+        calls.extend(checker.called);
+        for d in found {
+            let key = (
+                d.code.clone(),
+                d.message.clone(),
+                d.labels.first().map_or(0, |l| l.span.start),
+            );
+            if !seen.contains(&key) {
+                seen.push(key);
+                problems.push(BuiltinProblem {
+                    form: form_text.clone(),
+                    diagnostic: d,
+                });
+            }
+        }
+    }
+    if !problems.is_empty() {
+        return Err(problems);
+    }
+    calls.sort();
+    calls.dedup();
+    Ok(BuiltinChecked {
+        forms: lowered,
+        calls,
+    })
 }
 
 /// A function's signature as the pre-pass collects it.
@@ -918,6 +1150,15 @@ impl Checker<'_> {
         let mut params: Vec<(String, Ty, bool, Span)> = Vec::new();
         for p in &f.params {
             let (ty, nullable) = self.lower_type(&p.ty);
+            // A form of a lifted built-in: this scalar parameter is given as a column.
+            let ty = match &self.lift_mask {
+                Some((target, mask))
+                    if *target == name && mask.get(params.len()).copied().unwrap_or(false) =>
+                {
+                    Ty::Column(Box::new(ty))
+                }
+                _ => ty,
+            };
             if params.iter().any(|(n, _, _, _)| *n == p.name.text) {
                 self.report(
                     Diagnostic::error(
@@ -936,6 +1177,16 @@ impl Checker<'_> {
             ));
         }
         let (returns, _) = self.lower_type(&f.ret);
+        // A form of a lifted built-in with a column among its arguments gives a column (section
+        // 3.7, "Columns and scalars").
+        let returns = match &self.lift_mask {
+            Some((target, mask))
+                if *target == name && mask.iter().any(|m| *m) && scalar_type(&returns) =>
+            {
+                Ty::Column(Box::new(returns))
+            }
+            _ => returns,
+        };
         let public = !name.starts_with('_');
         self.signatures.push(Signature {
             name,
@@ -964,7 +1215,18 @@ impl Checker<'_> {
         self.current_function = Some(index);
         let sig = self.signatures[index].clone();
         let mut params = Vec::with_capacity(f.params.len());
-        for (p, (pname, ty, optional, pspan)) in f.params.iter().zip(&sig.params) {
+        for (i, (p, (pname, ty, optional, pspan))) in f.params.iter().zip(&sig.params).enumerate() {
+            // Under a form of a lifted built-in that reads this parameter as a column, its default
+            // is still one row's value, which stands for every row (section 3.7).
+            let default_ty: Ty = match (&self.lift_mask, ty) {
+                (Some((target, mask)), Ty::Column(inner))
+                    if *target == sig.name && mask.get(i) == Some(&true) =>
+                {
+                    (**inner).clone()
+                }
+                _ => ty.clone(),
+            };
+            let ty = &default_ty;
             let default = p.default.as_ref().map(|d| {
                 let lowered = self.argument(d, ty, false);
                 let lowered = self.no_nothing(lowered, "a default");
@@ -984,6 +1246,7 @@ impl Checker<'_> {
                 }
                 lowered
             });
+            let ty = &sig.params[i].1;
             let binding = self.bind(&p.name, ty.clone(), BindingKind::Parameter);
             params.push(Param {
                 binding,
@@ -3681,6 +3944,8 @@ impl Checker<'_> {
                     other => Ty::parse(other).unwrap_or(Ty::Unknown),
                 };
                 let params = if fits { want.clone() } else { declared };
+                self.called
+                    .push((f.spec.package.to_string(), f.spec.name.to_string()));
                 (
                     FunctionValue {
                         package: Some(f.spec.package.to_string()),
@@ -4712,6 +4977,7 @@ impl Checker<'_> {
             ty = Ty::Column(Box::new(ty));
         }
         let _ = expected;
+        self.called.push((package.clone(), fname.clone()));
         Expr {
             ty,
             span,

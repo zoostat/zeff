@@ -117,3 +117,13 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 **CI, read after the pushes of steps 7 and 8.** Red on the WebAssembly job both times, every test and every identity target green: the cold-start measurement of risk R4 gave 1,050.6 and 1,039.3 ms against its limit of 1,000 ms, so the four-target comparison was skipped. The cause is the measurement, not the engine: its "first call" ran the whole conformance report, which grows with every identity case (the rise to 620 ms recorded at the close of 0.4.0 was this). The first call timed is now the engine's start on a one-line script, with the report's time printed beside it for information; the ruling is in `docs/decisions.md`. The first green run (every job, the four-target comparison included) gives a cold start of 66.9 ms under Node v22.23.4 (load 24.1 ms, first call 42.6 ms) against 1,000 ms, and 969.5 ms for the whole report; the figures go to the review of R4 at the close.
 
 **Next.** Step 9 `[engine]`: built-in functions written in Zeff.
+
+## 30 October 2026, step 9 of release 0.5.0
+
+**Done.** Step 9 `[engine]`: built-in functions written in Zeff. A package lists its `functions/*.zeff` files, and the engine parses, checks and lowers each at start: the page from the `///` lines through the same parser and checks a Rust page gets; the body checked once for every way its scalar parameters may be given as columns, one lowering kept per form and the matching form run; any diagnostic a build failure; the file held to `///` text and `fn` definitions, one public function and its private helpers; the tier rule enforced on the body's calls; "Warnings and notes" generated from what the called functions declare; the body run under its own file with its messages placed at the call in the script. A fixture function proves it in the engine's tests (the page, the run as a call, a method and on a column, a private helper and a default, a warning at the script's line, the four refusals, and the property that the body inlined in a script gives the same bits), the example runner takes the bodies so a fixture's examples run, and the identity case `functions/builtin_fixture` joins the conformance report. The start-up cost is unchanged (27.7 ms against 27.4 ms). The ten rulings are in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (112 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 10 `[function]`: `iterate`.
+
+**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
