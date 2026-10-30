@@ -26,6 +26,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (30 October 2026, at the close of release 0.4.0).** The six decisions due at 0.4.0 (#30, #47 to #50 and #52) were taken on 23 October and are built; none remains due. Due by 0.5.0: #4 (variadic parameters), #5 (structural equality), #13 (`iterate`) and #17 (panels at 0.6.0 before tests and plots at 0.7.0), to be put to the owner when release 0.5.0 opens.
 
+**Status (30 October 2026, at the opening of release 0.5.0).** The four decisions due by 0.5.0 (#4, #5, #13 and #17) were taken on 30 October 2026, each as recommended: no variadic parameters in `fn`; `equal(a, b)` added to `core` (catalogue row 529); `iterate` adopted with the catalogue's default `max: Int = 1000`, "required" read as required to be finite; panels at 0.6.0 before tests and plots at 0.7.0. None is due before 0.6.0, where #14, #51 and #54 fall due.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -33,8 +35,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 1 | User-defined types | A `type` declaration (named record + interfaces) at 1.11; interfaces fixed now | 1.3 |
 | 2 | Multivariate outcomes | A list of formulas, `sur([f1, f2])`, no grammar change | after 1.0 |
 | 3 | Fixing a parameter in a model block | `@`, as Mplus; reserve the token now | 1.3 |
-| 4 | Variadic parameters | No: lists instead; variadics stay built-in only | 0.5.0 |
-| 5 | Structural equality | Add `equal(a, b)` to `core` at 0.5.0 | 0.5.0 |
+| 4 | Variadic parameters | No: lists instead; variadics stay built-in only | decided 30 October 2026 |
+| 5 | Structural equality | Add `equal(a, b)` to `core` at 0.5.0 | decided 30 October 2026 |
 | 6 | Locale collation, time zones | Opt-in `collation:` with a pinned CLDR version; `to_timezone` with a pinned tz database; after 1.0 | 1.x |
 | 7 | Grapheme-aware text | `unit: graphemes` argument; default stays code points | 1.x |
 | 8 | Zeff-source packages before 1.11 | Yes, in 1.6 with the manifest and lockfile; components at 1.11 | 1.3 |
@@ -42,11 +44,11 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 10 | `synthesize` | A package through the registry, not the engine | after 1.11 |
 | 11 | Split the specification | Yes, now, before coding starts | now |
 | 12 | `posthoc` and factorial `anova(type:)` | Adopt, 0.7.0 | 0.7.0 |
-| 13 | `iterate` | Adopt, 0.5.0 | 0.5.0 |
+| 13 | `iterate` | Adopt, 0.5.0 | decided 30 October 2026 |
 | 14 | `event()` | Adopt, 0.6.0 | 0.6.0 |
 | 15 | Power functions | Defer to 1.9 as one Design release | 0.7.0 |
 | 16 | `survey()` in 1.0 | Defer to 1.9 | 0.7.0 |
-| 17 | Panels (0.6.0) before tests and plots (0.7.0) | Keep the order | 0.5.0 |
+| 17 | Panels (0.6.0) before tests and plots (0.7.0) | Keep the order | decided 30 October 2026 |
 | 18 | Swap 1.2 DiD and 1.3 SEM | Decide at the 0.8.0 alpha from what its users ask for; DiD first otherwise | 0.8.0 |
 | 19 | Design methods for 1.9 | Add designed experiments, repeated-measures ANOVA and TOST to the catalogue now | now |
 | 20 | Bayesian estimation | `prior:` arguments taking `Distribution` values; `reg`, `logistic`, `mixed` first | 1.9 |
@@ -144,6 +146,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 *Recommendation.* B; close the item at 0.5.0.
 
+*Decided 30 October 2026, as recommended (option B).* A user function that takes several values takes a list; `coalesce`, `min`, `max`, `print` and `vars` stay the only variadic functions, built in.
+
 ### 5. Structural equality
 
 | Option | For | Against |
@@ -153,6 +157,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | C. None | — | Tests of user-written functions cannot compare results |
 
 *Recommendation.* A, at 0.5.0 with `fn` and `assert`.
+
+*Decided 30 October 2026, as recommended (option A).* `equal(a, b)` in `core`, by the identity relation of section 3.7 of the Language Reference (`NA` equal to `NA`, `-0.0` to `0.0`, lists item by item, records field by field, mappings entry by entry, `false` across types), returning `Bool`; catalogue row 529, release 0.5.0, exact, written in Rust.
 
 ### 6. Locale-aware collation and time zones
 
@@ -230,6 +236,8 @@ The plan requires these to be adopted or dropped by 0.7.0; deciding now removes 
 
 *Recommendation.* Adopt, 0.5.0: without it no EM-style or fixed-point algorithm can be written, and it is a bounded loop with a convergence test. Keep `max:` required.
 
+*Decided 30 October 2026, as recommended.* Adopted at 0.5.0 with the catalogue's usage, `max: Int = 1000`: "required" means required to be finite, which a default is; W0805 when the loop stops at `max:` without converging, and the number of passes printed as a note.
+
 ### 14. `event()`
 
 *Recommendation.* Adopt, 0.6.0: event-study leads and lags are the standard two-way fixed-effects check, cost little (indicator columns from a time and a treatment date), and Zemp's DiD recipe needs them.
@@ -252,6 +260,8 @@ The plan requires these to be adopted or dropped by 0.7.0; deciding now removes 
 ### 17. Panels before tests and plots
 
 *Recommendation.* Keep: `fe:` demeaning and the panel machinery are Zeff's differentiator and the hardest engine piece after the formula engine; facets in the plot grammar need the grouped computation of 0.6.0.
+
+*Decided 30 October 2026, as recommended.* The order stands: 0.6.0 Panels, 0.7.0 Tests, plots and the language server.
 
 ### 18. Swap 1.2 (DiD) and 1.3 (latent variables)
 

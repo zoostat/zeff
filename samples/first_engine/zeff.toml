@@ -1,4 +1,4 @@
 [project]
 name = "first_engine"
-zeff = "0.4.0"
+zeff = "0.5.0-dev"
 edition = "preview"

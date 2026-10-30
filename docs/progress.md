@@ -125,3 +125,13 @@ Step 22e: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on 
 **Next.** Step 1, opening the release `[engine]`, then step 2, `if` and `case` `[engine]`.
 
 **For the owner to decide.** The five questions in `docs/releases/0.5.0.md`, each with a recommendation.
+
+## 30 October 2026, step 1 of release 0.5.0
+
+**Done.** The owner said "go" and took the five questions as recommended (recorded on the checklist, in the register and in `docs/decisions.md`). Step 1 `[engine]`: the version is `0.5.0-dev`, the four sample projects pin it and the three manifest snapshots follow; the register's status line, summary rows and entries #4, #5, #13 and #17 record the decisions; `equal` has its catalogue row (529) and the counts of both volumes follow it (258 functions in 1.0, 69 in `core`, 33 at 0.5.0); both logged in `docs/spec_changes.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass locally; CI to be read after the push.
+
+**Next.** Step 2 `[engine]`: `if` and `case` in the checker and the interpreter.
+
+**For the owner to decide.** Nothing new: every question of the release is answered.

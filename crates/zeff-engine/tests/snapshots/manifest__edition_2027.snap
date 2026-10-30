@@ -6,6 +6,6 @@ error[Z0706]: edition 2027 needs a newer Zeff
  --> zeff.toml:4:11
   |
 4 | edition = "2027"
-  |           ^^^^^^ this is Zeff 0.4.0
+  |           ^^^^^^ this is Zeff 0.5.0-dev
   |
   = help: edition 2027 is declared by Zeff 1.0.0; until then the only edition is `"preview"`

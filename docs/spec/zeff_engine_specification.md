@@ -281,7 +281,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- |
-| `core` | The language and the types every package shares | Values, types, collections, missing values, maths, program control; matrices from 1.8 | 68 / 0 / 3 |
+| `core` | The language and the types every package shares | Values, types, collections, missing values, maths, program control; matrices from 1.8 | 69 / 0 / 3 |
 
 **Tier 1: toolkit**, general machinery every method uses
 
@@ -330,7 +330,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, after 1.0, third-party packages under rule 9.
 
-Totals: 257 functions in 1.0 (68 in tier 0, 172 in tier 1, 11 in tier 2, 6 in tier 3), of which 227 are written in Rust and 30 in Zeff; none remain proposed, and 248 are on the roadmap, 505 in all. Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 258 functions in 1.0 (69 in tier 0, 172 in tier 1, 11 in tier 2, 6 in tier 3), of which 228 are written in Rust and 30 in Zeff; none remain proposed, and 248 are on the roadmap, 505 in all. Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -610,7 +610,7 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 ### 9.2 The functions by package
 
-#### `core` (tier 0) · 68 in 1.0, 0 proposed, 3 on the roadmap
+#### `core` (tier 0) · 69 in 1.0, 0 proposed, 3 on the roadmap
 
 - **Maths:** `abs`, `sign`, `sqrt`, `exp`, `log`, `log2`, `log10`, `log1p`, `expm1`, `round`, `floor`, `ceil`, `truncate`, `min`, `max`, `clamp`, `div`, `mod`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `logit`, `inv_logit`, `factorial`, `choose`, `gamma`, `log_gamma`, `beta`, `is_finite`, `PI`, `E`
 - **Types and categories:** `to`, `is`, `type_of`, `vars`, `category`, `levels`, `base`
@@ -862,7 +862,7 @@ Zeff ships a language server (`zeff lsp`, the Language Server Protocol), a forma
 
 Before 1.0 every release is a minor release and is written in full (0.7.0). After 1.0 a minor release is written as 1.2 and a patch as 1.2.1 in prose; pins, tags and `zeff engine` always carry three numbers (`zeff = "1.2.0"`). A version number never goes back to 0.0.x: the first release is 0.1.0. No version has been released: an earlier prototype engine (built as 0.0.1) was set aside on 17 October 2026, and the code starts afresh at 0.1.0, built on the architecture of section 8 from its first commit.
 
-The 257 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, then 1.0.0 freezes the names. Each release is named for what it is for. A function waits for everything it uses; functions written in Zeff wait for `fn` in 0.5.0 (frame `summary` runs in Rust until then). By 0.7.0, 243 of the 257 functions have shipped and every release up to it lets someone run one more real analysis; the four releases after it are engine milestones, each with a hard engine piece of its own.
+The 258 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, then 1.0.0 freezes the names. Each release is named for what it is for. A function waits for everything it uses; functions written in Zeff wait for `fn` in 0.5.0 (frame `summary` runs in Rust until then). By 0.7.0, 244 of the 258 functions have shipped and every release up to it lets someone run one more real analysis; the four releases after it are engine milestones, each with a hard engine piece of its own.
 
 **Why this scope.** The schedule is set by hard engine pieces, not by the number of functions. 1.0 has seven: the formula engine and model matrix with QR and robust and clustered SEs; fixed-effects demeaning; two-stage least squares with weak-instrument statistics; logistic and probit fitting; accurate special functions and distributions; the plot renderer; and the language server with the schema pass. Callaway–Sant'Anna DiD, PPML, the thread pool and bootstrap, SEM, mixed models, lasso and forests, WLSMV and ESEM, latent classes, streaming and lazy chains are each a project of their own, and come after 1.0, one per release. Causal graphs join 1.0 because their algorithms (cycle detection, d-separation, back-door adjustment sets) are small, exact and well documented, and checking a fitted model against a causal graph is something mainstream statistics packages do not do.
 
@@ -872,7 +872,7 @@ The 257 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, the
 | 0.2.0 | Data cleaning | 50: frame verbs `head` to `sort`; 27 maths functions and constants; `is_missing`, `coalesce`; reducers; `warn`, `error`; `dataset`, `datasets` and the `zeff:` data root | Expressions over columns; NA, NaN and Inf rules; list, record and mapping literals; the column-type interface with Arrow extension metadata, the opaque rule and the reserved type names (section 4.3 of the Language Reference); reducers with `by:` and `weights:`; `zeff repl` and `zeff eval` with the scratch project; `--project`, `--color`, `--ascii`, `--width`, `--quiet` and `--format json` (section 2.1) | Everyday data cleaning |
 | 0.3.0 | Distributions | 26: special functions; `correlation`, `covariance`; 12 distributions with `pdf`, `cdf`, `quantile`, `draw`, plus `dist.truncated` and `dist.mixture`; `seed` | Incomplete beta and gamma, inverse CDFs, accurate tails; Philox counter-based random streams; the determinism contract in full, proved by the four-target CI that has run since 0.1.0; `zeff selftest` | Simulation and p-values |
 | 0.4.0 | Regression | 29: `reg` without fixed effects; the result and estimator interfaces of `results` (17 functions, `derive` and `report` among them); `r_squared` and `influence`; `interact`; types and categories with contrasts; `label`, `recode` | The `zeff-kernels` crate (tall-skinny QR, Cholesky, fixed SIMD width); formula parser and the model-matrix rules of section 7.2 of the Language Reference, with collinearity reporting; the column metadata store and its keys (section 4.3 of the Language Reference); the estimator trait and the variance layer (classical, HC, clustered); Word and LaTeX tables | Cross-sectional regression |
-| 0.5.0 | Language complete | 32: 13 collection functions; `attempt`, `iterate`; 17 functions written in Zeff (and `summary` rewritten in Zeff) | `if`, `case`, `for`, `fn`, `use`, calling any function as a method; the `Failed` type | User-written functions |
+| 0.5.0 | Language complete | 33: 14 collection functions (`equal` among them, open decision #5); `attempt`, `iterate`; 17 functions written in Zeff (and `summary` rewritten in Zeff) | `if`, `case`, `for`, `fn`, `use`, calling any function as a method; the `Failed` type | User-written functions |
 | 0.6.0 | Panels | 36: joins, reshaping, `aggregate`, `panel`, `save`; panel column functions; `event`; dates and `format` | Grouped computation; `fe:` demeaning in `reg`; date types; shared Arrow columns and selection vectors; the schema pass behind `zeff check`; data roots in `zeff.toml` | Panel research |
 | 0.7.0 | Tests, plots and the language server | 60: `tabulate`; nine tests, `anova` with factorial tables, `posthoc` and `dist.tukey`; `p_adjust`; the plot grammar and its shorthands (35 functions, section 7.6 of the Language Reference); 12 text functions | Language server (completion, signature help, hover, live diagnostics), tree-sitter grammar, `zeff fmt` and `zeff test`, ready for Zemp's prototype (Zemp 0.1; its alpha follows at 0.8.0); layered-grammar plot renderer with the Okabe–Ito and viridis scales, redraw to fit and journal sizes; exact Wilcoxon distribution; engine worker with progress, cancellation and memory budget; `zeff completions` | Exploratory analysis; Zemp's interface starts |
 | 0.8.0 | Instrumental variables | 2: `ivreg`, `first_stage` | Two-stage least squares with `instruments:`; Kleibergen–Paap, Cragg–Donald and effective F; `zeff report-bug` with shrinking; `zeff explain` | IV studies |
