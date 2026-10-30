@@ -157,3 +157,13 @@ Step 22e: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on 
 **Next.** Step 4 `[engine]`: spreads in calls and records.
 
 **For the owner to decide.** Nothing new.
+
+## 30 October 2026, step 4 of release 0.5.0
+
+**Done.** Step 4 `[engine]`: `..opts` in a call spreads a record's fields as named arguments, evaluated once where the spread stands, an argument written out overriding the spread's field on either side; `..r` in a record copies its fields in place with the same overriding rule; the words of option records (`{se: robust}`) typed as the word some parameter accepts; Z0404, Z0405, Z0401 and Z0408 for the spread's mistakes, Z0222 for a record field written twice or supplied by two spreads (its row widened, logged); the five rulings in `docs/decisions.md`. Tests: the checker's types and codes with seven message snapshots; the engine's `spreads.rs`, with a spread call equal to the call written out, the overrides from both sides, the record forms, every refusal and a snapshot of every message.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 5 `[engine]`: the `Failed` type and `attempt`.
+
+**For the owner to decide.** Nothing new.

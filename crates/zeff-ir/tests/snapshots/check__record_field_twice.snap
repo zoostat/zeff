@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0222]: a record's field names are unique, but `a` is written twice
+ --> scripts/main.zeff:1:16
+  |
+1 | let r = {a: 1, a: 2}
+  |                ^ the second time
+  |
+  = help: keep one of them

@@ -142,3 +142,7 @@ Open decision #5, taken on 30 October 2026, adds `equal(a, b)` to `core` at 0.5.
 ## 30 October 2026 — zeff_language_reference.md, section 11: the code W0208
 
 Section 5.1 says that a `case` without `_` gives `NA` in the rows no arm matched, "and a warning gives the count", without a number. Step 2 of release 0.5.0 assigns W0208, the next code of the W02xx family (types and values), and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.
+
+## 30 October 2026 — zeff_language_reference.md, section 11: Z0222 names a record's fields as well
+
+Step 4 of release 0.5.0 brings the spreads of section 3.4 (`..opts` in a call, `..r` in a record). A record field written twice, or supplied by two spreads, is a condition the text describes nowhere; it takes Z0222, the code of a mapping key written twice, whose row gains the condition. A field written out beside a spread overrides the spread's, as section 3.7 says of arguments. No new code.

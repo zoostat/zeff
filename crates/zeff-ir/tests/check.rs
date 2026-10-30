@@ -674,6 +674,28 @@ fn messages() {
             "loop_variable_after_the_loop",
             "for i in 1..2 {\n    print(i)\n}\ni\n",
         ),
+        ("spread_of_a_number", "import(\"d.csv\", ..5)\n"),
+        (
+            "spread_unknown_field",
+            "import(\"d.csv\", ..{heade: false})\n",
+        ),
+        (
+            "two_spreads_one_field",
+            "import(\"d.csv\", ..{header: false}, ..{header: true})\n",
+        ),
+        (
+            "spread_field_wrong_type",
+            "import(\"d.csv\", ..{header: 1})\n",
+        ),
+        ("record_field_twice", "let r = {a: 1, a: 2}\n"),
+        (
+            "positional_after_a_spread",
+            "import(..{header: false}, \"d.csv\")\n",
+        ),
+        (
+            "record_two_spreads_one_field",
+            "let r = {..{a: 1}, ..{a: 2}}\n",
+        ),
         (
             "if_on_a_column",
             "let wages = import(\"d.csv\")\nif wages[\"wage\"] > 20 {\n    print(1)\n}\n",
@@ -763,6 +785,12 @@ fn expressions_have_the_types_of_section_3_7() {
             "Column<Float>",
         ),
         ("let xs = [for i in 1..3 { i * 2 }]", "List<Int>"),
+        ("let r = {..{a: 1}, b: \"x\"}", "{a: Int, b: Str}"),
+        ("let r = {b: \"x\", ..{a: 1, b: 2}}", "{b: Str, a: Int}"),
+        (
+            "let o = {header: false}\nlet w = import(\"d.csv\", ..o)",
+            "Frame",
+        ),
         ("let xs = [for x in [1.5, 2] { x }]", "List<Float>"),
         ("let xs = [for s in [\"a\"] { let t = s\n t }]", "List<Str>"),
         (
@@ -833,6 +861,16 @@ fn the_codes_of_expressions() {
         ("for i in 1..3 { let i = 2\n print(i) }\n", "W0302"),
         ("for i in 1..2 { print(i) }\ni\n", "Z0101"),
         ("for print in 1..2 { 1 }\n", "Z0105"),
+        ("import(\"d.csv\", ..5)\n", "Z0401"),
+        ("import(\"d.csv\", ..{heade: false})\n", "Z0404"),
+        (
+            "import(\"d.csv\", ..{header: false}, ..{header: true})\n",
+            "Z0405",
+        ),
+        ("import(\"d.csv\", ..{header: 1})\n", "Z0401"),
+        ("let r = {..5}\n", "Z0401"),
+        ("let r = {a: 1, a: 2}\n", "Z0222"),
+        ("let r = {..{a: 1}, ..{a: 2}}\n", "Z0222"),
     ];
     for (text, code) in cases {
         let found = codes(text);

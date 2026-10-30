@@ -6,8 +6,8 @@
 //! `Unknown`, which no later check reports again.
 
 use crate::ir::{
-    Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, Formula, Program, Slot,
-    Statement, Term, TermKind, TermStep,
+    Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, Formula, Program,
+    RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
 };
 use crate::ty::{ResultKind, Ty};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
@@ -49,6 +49,14 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
         formula_depth: 0,
         term_depth: 0,
         loops: Vec::new(),
+        record_depth: 0,
+        words: registry
+            .functions()
+            .iter()
+            .flat_map(|f| f.spec.params.iter())
+            .filter_map(|p| Ty::parse(p.ty))
+            .flat_map(|ty| ty.words())
+            .collect(),
     };
     let mut statements = Vec::new();
     for item in &script.items {
@@ -128,6 +136,12 @@ struct Checker<'a> {
     term_depth: usize,
     /// The loop variables in scope, innermost last, for W0302 (a `let` that shadows one).
     loops: Vec<String>,
+    /// How many record literals enclose the expression being checked: inside one, a bare name
+    /// that some parameter of the registry accepts as a word is that word, `{se: robust}`
+    /// (section 3.1, "Definitions": option records), kept for the call the record is spread into.
+    record_depth: usize,
+    /// Every word some registered parameter accepts.
+    words: std::collections::BTreeSet<String>,
 }
 
 impl Checker<'_> {
@@ -1026,6 +1040,7 @@ impl Checker<'_> {
                     args: Vec::new(),
                     rest: Vec::new(),
                     definitions: Vec::new(),
+                    spreads: Vec::new(),
                     order: Vec::new(),
                     lifted: false,
                     implicit_receiver: false,
@@ -1034,11 +1049,24 @@ impl Checker<'_> {
                 }),
             };
         }
+        if self.record_depth > 0 && self.words.contains(&text) {
+            return Expr {
+                ty: Ty::Words(vec![text.clone()]),
+                span,
+                kind: ExprKind::Word(text),
+            };
+        }
         let mut d = Diagnostic::error("Z0101", format!("nothing is called `{text}` here"))
             .primary(span, "not a binding");
         let candidates: Vec<&str> = self.scope.iter().map(|(n, _)| n.as_str()).collect();
         if let Some(near) = did_you_mean(&text, candidates) {
             d = d.help(format!("did you mean `{near}`?"));
+        } else if self.record_depth > 0
+            && let Some(near) = did_you_mean(&text, self.words.iter().map(String::as_str))
+        {
+            d = d.help(format!(
+                "did you mean `{near}`? Inside a record a bare name is a word some argument accepts, kept for the call the record is spread into"
+            ));
         } else if !self.registry.named(&text).is_empty() {
             d = d.help(format!(
                 "`{text}` is a function; call it with parentheses: `{text}(...)`"
@@ -2280,32 +2308,92 @@ impl Checker<'_> {
         }
     }
 
+    /// A record literal (section 3.4, `field`): named fields and spreads, `..r`, which copy the
+    /// fields of a record. The type keeps the order written; a field written out overrides one a
+    /// spread supplies, wherever it stands (section 3.7, "Arguments"); a field written twice, or
+    /// supplied by two spreads, is Z0222.
     fn record(&mut self, fields: &[ast::RecordField], span: Span) -> Expr {
+        self.record_depth += 1;
         let mut lowered = Vec::new();
-        let mut types = Vec::new();
+        // The fields in order: name, type, whether written out (not from a spread), its span.
+        let mut types: Vec<(String, Ty, bool, Span)> = Vec::new();
         for field in fields {
             match field {
                 ast::RecordField::Named { name, value } => {
                     let e = self.expr(value, None);
                     let e = self.no_nothing(e, "put in a record");
-                    types.push((name.text.clone(), e.ty.clone()));
-                    lowered.push((name.text.clone(), e));
+                    match types.iter_mut().find(|(n, _, _, _)| *n == name.text) {
+                        Some((_, _, written, _)) if *written => {
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0222",
+                                    format!("a record's field names are unique, but `{}` is written twice", name.text),
+                                )
+                                .primary(name.span, "the second time")
+                                .help("keep one of them"),
+                            );
+                        }
+                        // Written out, it overrides the spread's field in that field's place.
+                        Some(slot) => {
+                            slot.1 = e.ty.clone();
+                            slot.2 = true;
+                            slot.3 = name.span;
+                        }
+                        None => types.push((name.text.clone(), e.ty.clone(), true, name.span)),
+                    }
+                    lowered.push(RecordField::Named(name.text.clone(), e));
                 }
                 ast::RecordField::Spread(e) => {
-                    self.not_yet(
-                        e.span,
-                        "a spread",
-                        "0.2.0",
-                        "records arrive with release 0.2.0",
-                    );
+                    let spread = self.expr(e, None);
+                    let spread = self.no_nothing(spread, "spread");
+                    let Ty::Record(spread_fields) = &spread.ty else {
+                        if spread.ty != Ty::Unknown {
+                            self.spread_not_a_record(&spread);
+                        }
+                        continue;
+                    };
+                    for (n, ty) in spread_fields {
+                        match types.iter().find(|(name, _, _, _)| name == n) {
+                            // A field written out before the spread keeps its value.
+                            Some((_, _, true, _)) => {}
+                            Some(_) => self.report(
+                                Diagnostic::error(
+                                    "Z0222",
+                                    format!("a record's field names are unique, but `{n}` comes from two spreads"),
+                                )
+                                .primary(spread.span, format!("supplies `{n}` again"))
+                                .help(format!("write `{n}:` out to say which value is meant, or spread one record only")),
+                            ),
+                            None => types.push((n.clone(), ty.clone(), false, spread.span)),
+                        }
+                    }
+                    lowered.push(RecordField::Spread(spread));
                 }
             }
         }
+        self.record_depth -= 1;
         Expr {
-            ty: Ty::Record(types),
+            ty: Ty::Record(types.into_iter().map(|(n, ty, _, _)| (n, ty)).collect()),
             span,
             kind: ExprKind::Record(lowered),
         }
+    }
+
+    /// Z0401: a spread needs a record whose fields are known.
+    fn spread_not_a_record(&mut self, spread: &Expr) {
+        let what = if spread.ty == Ty::AnyRecord {
+            "a record whose fields are not known here".to_string()
+        } else {
+            spread.ty.with_article()
+        };
+        self.report(
+            Diagnostic::error(
+                "Z0401",
+                format!("`..` spreads a record's fields, but this is {what}"),
+            )
+            .primary(spread.span, "not a record")
+            .help("a spread takes a record literal, `{se: robust}`, or a binding that holds one"),
+        );
     }
 
     // ----- calls -----
@@ -2493,6 +2581,10 @@ impl Checker<'_> {
             })
             .collect();
         let mut slots: Vec<Option<Expr>> = vec![None; params.len()];
+        // The spread that filled each slot, so that an argument written out after it overrides
+        // it in silence and a second spread of the same field is Z0405.
+        let mut from_spread: Vec<Option<usize>> = vec![None; params.len()];
+        let mut spreads: Vec<Spread> = Vec::new();
         let mut rest: Vec<Expr> = Vec::new();
         let mut definitions: Vec<(String, Expr)> = Vec::new();
         let mut order: Vec<Slot> = Vec::new();
@@ -2604,7 +2696,7 @@ impl Checker<'_> {
                         );
                         continue;
                     }
-                    if slots[position].is_some() {
+                    if slots[position].is_some() && from_spread[position].is_none() {
                         self.report(
                             Diagnostic::error(
                                 "Z0405",
@@ -2614,6 +2706,10 @@ impl Checker<'_> {
                             .help("remove one of them"),
                         );
                         continue;
+                    }
+                    // An argument written out overrides the spread's field (section 3.7).
+                    if let Some(s) = from_spread[position].take() {
+                        spreads[s].targets.retain(|(_, idx)| *idx != position);
                     }
                     let (_, ty, _) = &params[position];
                     let lowered = self.argument(value, ty, frame_method);
@@ -2670,12 +2766,103 @@ impl Checker<'_> {
                         }
                     }
                 }
-                ast::Arg::Spread(e) => self.not_yet(
-                    e.span,
-                    "a spread",
-                    "0.2.0",
-                    "records and spreads arrive with release 0.2.0",
-                ),
+                // `..opts`: the record's fields as named arguments, evaluated where the spread
+                // stands (section 3.7, "Arguments").
+                ast::Arg::Spread(e) => {
+                    named_seen = true;
+                    let spread = self.expr(e, None);
+                    let spread = self.no_nothing(spread, "spread");
+                    let Ty::Record(fields) = spread.ty.clone() else {
+                        argument_error = true;
+                        if spread.ty != Ty::Unknown {
+                            self.spread_not_a_record(&spread);
+                        }
+                        continue;
+                    };
+                    let index = spreads.len();
+                    let mut targets = Vec::new();
+                    for (field, field_ty) in &fields {
+                        let Some(position) = params.iter().position(|(n, _, _)| n == field) else {
+                            argument_error = true;
+                            let mut d = Diagnostic::error(
+                                "Z0404",
+                                format!("`{fname}` has no argument called `{field}`, which the spread supplies"),
+                            )
+                            .primary(spread.span, format!("supplies `{field}`"));
+                            let names: Vec<&str> = params
+                                .iter()
+                                .skip(usize::from(spec.method))
+                                .map(|(n, _, _)| n.as_str())
+                                .collect();
+                            d = match did_you_mean(field, names.iter().copied()) {
+                                Some(near) => d.help(format!("did you mean `{near}`? Only the fields that name arguments can be spread; usage: `{}`", spec.usage())),
+                                None => d.help(format!("usage: `{}`", spec.usage())),
+                            };
+                            self.report(d);
+                            continue;
+                        };
+                        if spec.method && position == 0 {
+                            argument_error = true;
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0404",
+                                    format!("`{field}` is the receiver of `{fname}`, written before the dot, and cannot come from a spread"),
+                                )
+                                .primary(spread.span, format!("supplies `{field}`"))
+                                .help(format!("write `{field}.{fname}(...)` and leave `{field}` out of the record")),
+                            );
+                            continue;
+                        }
+                        match (&slots[position], from_spread[position]) {
+                            // Written out before the spread: the written argument stands.
+                            (Some(_), None) => continue,
+                            (Some(_), Some(_)) => {
+                                self.report(
+                                    Diagnostic::error(
+                                        "Z0405",
+                                        format!("`{field}` is given twice, by two spreads"),
+                                    )
+                                    .primary(spread.span, format!("supplies `{field}` again"))
+                                    .help(format!("write `{field}:` out to say which value is meant, or spread one record only")),
+                                );
+                                continue;
+                            }
+                            (None, _) => {}
+                        }
+                        let (_, ty, _) = &params[position];
+                        if !ty.accepts(field_ty) {
+                            argument_error = true;
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0401",
+                                    format!(
+                                        "`{field}` of `{fname}` must be {}, but the spread gives {}",
+                                        ty.with_article(),
+                                        field_ty.with_article()
+                                    ),
+                                )
+                                .primary(spread.span, format!("`{field}` is {}", field_ty.with_article()))
+                                .help(format!("usage: `{}`", spec.usage())),
+                            );
+                            continue;
+                        }
+                        slots[position] = Some(Expr {
+                            ty: field_ty.clone(),
+                            span: spread.span,
+                            kind: ExprKind::FromSpread {
+                                spread: index,
+                                field: field.clone(),
+                            },
+                        });
+                        from_spread[position] = Some(index);
+                        targets.push((field.clone(), position));
+                    }
+                    order.push(Slot::Spread(index));
+                    spreads.push(Spread {
+                        value: spread,
+                        targets,
+                    });
+                }
             }
         }
 
@@ -2925,6 +3112,7 @@ impl Checker<'_> {
                 args: slots,
                 rest,
                 definitions,
+                spreads,
                 order,
                 lifted,
                 implicit_receiver,

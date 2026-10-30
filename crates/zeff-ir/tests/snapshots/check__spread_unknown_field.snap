@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0404]: `import` has no argument called `heade`, which the spread supplies
+ --> scripts/main.zeff:1:19
+  |
+1 | import("d.csv", ..{heade: false})
+  |                   ^^^^^^^^^^^^^^ supplies `heade`
+  |
+  = help: did you mean `header`? Only the fields that name arguments can be spread; usage: `import(path, delim: Str, header: Bool = true, skip: Int = 0, na_values: List, types: Record, names: keep | snake = keep)`

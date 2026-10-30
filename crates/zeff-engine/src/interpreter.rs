@@ -12,7 +12,7 @@ use zeff_core::value::{Formula as FormulaValue, Frame, Term as TermValue, TypeVa
 use zeff_diagnostics::{Diagnostic, Source, Span, did_you_mean};
 use zeff_ir::BindingKind;
 use zeff_ir::ir::{Arm, BinaryOp, Block, Term, TermKind, TermStep, UnaryOp};
-use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
+use zeff_ir::{Call, Expr, ExprKind, Program, RecordField, Slot, Statement};
 
 /// What one statement wrote.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -793,12 +793,44 @@ impl<'a> Interpreter<'a> {
                 }
                 Value::List(values)
             }
+            // A record literal: a spread copies a record's fields in their place, and a field
+            // written out overrides one a spread supplies wherever it stands (the checker has
+            // refused a field written twice or supplied by two spreads).
             ExprKind::Record(fields) => {
-                let mut values = Vec::with_capacity(fields.len());
-                for (name, value) in fields {
-                    values.push((name.clone(), self.eval(value, printed, messages)?));
+                let mut values: Vec<(String, Value)> = Vec::with_capacity(fields.len());
+                let mut written: Vec<String> = Vec::new();
+                for field in fields {
+                    match field {
+                        RecordField::Named(name, value) => {
+                            let v = self.eval(value, printed, messages)?;
+                            match values.iter_mut().find(|(n, _)| n == name) {
+                                Some(slot) => slot.1 = v,
+                                None => values.push((name.clone(), v)),
+                            }
+                            written.push(name.clone());
+                        }
+                        RecordField::Spread(spread) => {
+                            let Value::Record(copied) = self.eval(spread, printed, messages)?
+                            else {
+                                return Err(self
+                                    .internal(spread, "a spread of a value that is not a record"));
+                            };
+                            for (name, v) in copied {
+                                if written.contains(&name) {
+                                    continue;
+                                }
+                                match values.iter_mut().find(|(n, _)| *n == name) {
+                                    Some(slot) => slot.1 = v,
+                                    None => values.push((name, v)),
+                                }
+                            }
+                        }
+                    }
                 }
                 Value::Record(values)
+            }
+            ExprKind::FromSpread { .. } => {
+                return Err(self.internal(expr, "a spread's field was evaluated as an expression"));
             }
             ExprKind::Mapping(entries) => {
                 let mut values = Vec::with_capacity(entries.len());
@@ -1326,6 +1358,34 @@ impl<'a> Interpreter<'a> {
                         return Err(e);
                     }
                 },
+                // A spread, evaluated where it stands: its fields fill the parameters they
+                // target (an argument written out has no target here, so it keeps its value).
+                Slot::Spread(i) => {
+                    let spread = &call.spreads[*i];
+                    let record = match self.eval(&spread.value, printed, messages) {
+                        Ok(Value::Record(fields)) => fields,
+                        Ok(_) => {
+                            if pushed {
+                                self.receivers.pop();
+                            }
+                            return Err(self.internal(
+                                &spread.value,
+                                "a spread of a value that is not a record",
+                            ));
+                        }
+                        Err(e) => {
+                            if pushed {
+                                self.receivers.pop();
+                            }
+                            return Err(e);
+                        }
+                    };
+                    for (field, position) in &spread.targets {
+                        if let Some((_, v)) = record.iter().find(|(n, _)| n == field) {
+                            values[*position] = Some(v.clone());
+                        }
+                    }
+                }
                 Slot::Definition(i) => {
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
                         receiver.in_definition = true;

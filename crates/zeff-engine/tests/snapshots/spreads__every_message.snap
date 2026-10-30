@@ -1,0 +1,93 @@
+---
+source: crates/zeff-engine/tests/spreads.rs
+expression: all
+---
+## spread_of_a_number (exit 1)
+error[Z0401]: `..` spreads a record's fields, but this is an Int
+ --> scripts/main.zeff:2:27
+  |
+2 | w.reg(log(wage) ~ educ, ..5)
+  |                           ^ not a record
+  |
+  = help: a spread takes a record literal, `{se: robust}`, or a binding that holds one
+
+## record_spread_of_a_number (exit 1)
+error[Z0401]: `..` spreads a record's fields, but this is an Int
+ --> scripts/main.zeff:1:12
+  |
+1 | let r = {..5, a: 1}
+  |            ^ not a record
+  |
+  = help: a spread takes a record literal, `{se: robust}`, or a binding that holds one
+
+## spread_with_an_unknown_field (exit 1)
+error[Z0404]: `reg` has no argument called `leval`, which the spread supplies
+ --> scripts/main.zeff:3:27
+  |
+3 | w.reg(log(wage) ~ educ, ..o)
+  |                           ^ supplies `leval`
+  |
+  = help: did you mean `level`? Only the fields that name arguments can be spread; usage: `data.reg(formula, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
+
+## spread_supplies_the_receiver (exit 1)
+error[Z0404]: `data` is the receiver of `reg`, written before the dot, and cannot come from a spread
+ --> scripts/main.zeff:2:27
+  |
+2 | w.reg(log(wage) ~ educ, ..{data: w})
+  |                           ^^^^^^^^^ supplies `data`
+  |
+  = help: write `data.reg(...)` and leave `data` out of the record
+
+## spread_field_of_the_wrong_type (exit 1)
+error[Z0401]: `level` of `reg` must be a Float, but the spread gives a Str
+ --> scripts/main.zeff:2:27
+  |
+2 | w.reg(log(wage) ~ educ, ..{level: "high"})
+  |                           ^^^^^^^^^^^^^^^ `level` is a Str
+  |
+  = help: usage: `data.reg(formula, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
+
+## two_spreads_one_field (exit 1)
+error[Z0405]: `level` is given twice, by two spreads
+ --> scripts/main.zeff:2:43
+  |
+2 | w.reg(log(wage) ~ educ, ..{level: 0.9}, ..{level: 0.8})
+  |                                           ^^^^^^^^^^^^ supplies `level` again
+  |
+  = help: write `level:` out to say which value is meant, or spread one record only
+
+## positional_after_a_spread (exit 1)
+error[Z0406]: `reg` needs `formula`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.reg(..{level: 0.9}, log(wage) ~ educ)
+  |   ^^^ `formula` is missing
+  |
+  = help: usage: `data.reg(formula, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
+
+## record_field_twice (exit 1)
+error[Z0222]: a record's field names are unique, but `a` is written twice
+ --> scripts/main.zeff:1:8
+  |
+1 | {a: 1, a: 2}
+  |        ^ the second time
+  |
+  = help: keep one of them
+
+## record_two_spreads_one_field (exit 1)
+error[Z0222]: a record's field names are unique, but `a` comes from two spreads
+ --> scripts/main.zeff:1:14
+  |
+1 | {..{a: 1}, ..{a: 2}}
+  |              ^^^^^^ supplies `a` again
+  |
+  = help: write `a:` out to say which value is meant, or spread one record only
+
+## word_no_parameter_accepts (exit 1)
+error[Z0101]: nothing is called `robst` here
+ --> scripts/main.zeff:1:14
+  |
+1 | let o = {se: robst}
+  |              ^^^^^ not a binding
+  |
+  = help: did you mean `robust`? Inside a record a bare name is a word some argument accepts, kept for the call the record is spread into

@@ -165,6 +165,17 @@ impl Ty {
         })
     }
 
+    /// The words a parameter of this type accepts: those of a word list, inside a union or a
+    /// list of words (`List<n | missing | mean>`); none for any other type.
+    pub fn words(&self) -> Vec<String> {
+        match self {
+            Ty::Words(words) => words.clone(),
+            Ty::Union(options) => options.iter().flat_map(Ty::words).collect(),
+            Ty::List(inner) => inner.words(),
+            _ => Vec::new(),
+        }
+    }
+
     /// Whether a value of type `actual` may be given where `self` is expected: an Int where a Float
     /// is expected (exact up to 2^53), a `Column<Int>` for a `Column<Float>`, `NA` anywhere, one
     /// name for `Vars`, any record for `Record`, any kind of result for `Result`, and text for a
@@ -180,6 +191,8 @@ impl Ty {
             (Ty::Result(None), Ty::Result(_)) => true,
             (Ty::Term, Ty::Str) => true,
             (Ty::AnyRecord, Ty::Record(_) | Ty::AnyRecord) => true,
+            // A word kept in a record, `{se: robust}`, has the type of that one word.
+            (Ty::Words(allowed), Ty::Words(given)) => given.iter().all(|w| allowed.contains(w)),
             (Ty::Column(a), Ty::Column(b))
             | (Ty::List(a), Ty::List(b))
             | (Ty::TermExpr(a), Ty::TermExpr(b)) => a.accepts(b),
@@ -226,6 +239,11 @@ impl Ty {
             let head = options[0].with_article();
             let article = head.split(' ').next().unwrap_or("a");
             return format!("{article} {} or {last}", first.join(", "));
+        }
+        if let Ty::Words(words) = self
+            && words.len() == 1
+        {
+            return format!("the word `{}`", words[0]);
         }
         let name = self.to_string();
         // `NA` is said letter by letter, so it takes `an`.

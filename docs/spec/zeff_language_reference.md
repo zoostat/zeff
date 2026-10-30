@@ -1291,7 +1291,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0221 | An operator applied to types it does not take (a Bool in arithmetic, `!` on a number, `&&` on numbers, a comparison across types, an index of the wrong kind) |
 | Z0801, Z0802 | No row remains to fit a model once the rows with `NA` are dropped; no residual degrees of freedom (as many regressors as rows, or more), no regressor at all, or an observation with leverage one (alone in a cell of the design) under `se: hc2` or `hc3`, which divide by one minus the leverage |
 | Z0803 | An outcome with values too large to compute with (above 1e150 in size, where a square cannot be represented) or too small against its regressors (an estimate below 2.2e-308, the smallest normal number, which keeps a few digits only); a regressor above 1e150 or below 1e-150 in size is dropped with a note instead |
-| Z0222 | A mapping key written or computed twice |
+| Z0222 | A mapping key written or computed twice; a record field written twice, or supplied by two spreads |
 | Z0410 | Two options of one call that exclude each other, given together (`round` with `digits:` and `sig:`; `se: classical` with sampling weights) |
 | Z0413 | A parameter of a distribution outside its domain, or `NA` |
 | Z0414 | A term name given to a result method that the result does not have; the message lists the fit's terms, and a test's result has none |

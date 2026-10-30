@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0401]: `..` spreads a record's fields, but this is an Int
+ --> scripts/main.zeff:1:19
+  |
+1 | import("d.csv", ..5)
+  |                   ^ not a record
+  |
+  = help: a spread takes a record literal, `{se: robust}`, or a binding that holds one

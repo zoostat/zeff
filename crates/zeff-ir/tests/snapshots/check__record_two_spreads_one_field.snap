@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0222]: a record's field names are unique, but `a` comes from two spreads
+ --> scripts/main.zeff:1:22
+  |
+1 | let r = {..{a: 1}, ..{a: 2}}
+  |                      ^^^^^^ supplies `a` again
+  |
+  = help: write `a:` out to say which value is meant, or spread one record only

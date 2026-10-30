@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0405]: `header` is given twice, by two spreads
+ --> scripts/main.zeff:1:38
+  |
+1 | import("d.csv", ..{header: false}, ..{header: true})
+  |                                      ^^^^^^^^^^^^^^ supplies `header` again
+  |
+  = help: write `header:` out to say which value is meant, or spread one record only

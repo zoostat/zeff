@@ -133,7 +133,17 @@ pub enum ExprKind {
     /// its bare names as term references, instead of evaluating it.
     TermExpr(Box<Expr>),
     List(Vec<Expr>),
-    Record(Vec<(String, Expr)>),
+    /// `{a: 1, ..r, b: 2}`: named fields and spreads in the order written; a spread copies the
+    /// fields of a record, and a field written out overrides one a spread supplies (section 3.4,
+    /// `field`; section 3.7, "Arguments").
+    Record(Vec<RecordField>),
+    /// A parameter supplied by a spread, `f(..opts)`: a placeholder in the call's arguments, typed
+    /// as the field; the interpreter fills the value from the spread's record where the spread
+    /// stands in the order of evaluation and never evaluates this expression.
+    FromSpread {
+        spread: usize,
+        field: String,
+    },
     /// `[k => v, ...]`, keys unique.
     Mapping(Vec<(Expr, Expr)>),
     /// `-x` or `!x`.
@@ -246,12 +256,30 @@ pub enum TermKind {
     Expr(Box<Expr>),
 }
 
+/// One field of a record literal.
+#[derive(Debug, Clone, PartialEq)]
+pub enum RecordField {
+    Named(String, Expr),
+    Spread(Expr),
+}
+
 /// One argument of a call, by where it is kept.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Slot {
     Param(usize),
     Rest(usize),
     Definition(usize),
+    /// A spread, `..opts`, evaluated where it stands; its fields fill the parameters it targets.
+    Spread(usize),
+}
+
+/// A spread in a call: the record expression and, by field name, the parameter each field fills
+/// (section 3.7, "Arguments": evaluated where it stands; an argument written out overrides it,
+/// so such a field has no target).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Spread {
+    pub value: Expr,
+    pub targets: Vec<(String, usize)>,
 }
 
 /// A call of a built-in function, with its arguments in parameter order.
@@ -268,6 +296,8 @@ pub struct Call {
     pub rest: Vec<Expr>,
     /// `name = expr` definitions, for a function that takes them (`frame`).
     pub definitions: Vec<(String, Expr)>,
+    /// The spreads, `..opts`, in the order written.
+    pub spreads: Vec<Spread>,
     /// The arguments in the order written, receiver first: the order they are evaluated in
     /// (section 3.7, "Arguments").
     pub order: Vec<Slot>,

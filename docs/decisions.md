@@ -1521,3 +1521,15 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 6. *`vars` moved from step 13 to this step*, because a loop over variables cannot be tested without it; its page and row are done here, and step 13 keeps `any`, `all` and `seq`.
 
 **Reason.** Language Reference, sections 3.7, 5.2 and 6; Engine and Project Specification, section 8.3, point 3; the checklist's step 3.
+
+## 30 October 2026: spreads in calls and records (release 0.5.0, step 4)
+
+**Choice.** `..opts` in a call and `..r` in a record run from this step. Five rulings:
+
+1. *A spread is evaluated once, where it stands.* In a call the IR keeps the spread as its own slot in the order of evaluation (`Slot::Spread`), with the parameters its fields fill decided by the checker from the record's type; the parameters it fills carry a placeholder (`FromSpread`) that is never evaluated. An argument written out overrides the spread's field wherever it stands, before or after it, in silence; the same field from two spreads is Z0405, a field that names no parameter Z0404 (with the nearest name), the receiver Z0404, a field of the wrong type Z0401, and a spread of anything but a record whose fields are known Z0401. A spread counts as a named argument, so a positional argument after it is Z0408.
+2. *In a record, the fields keep the order written*, a spread's fields in its place; a field written out overrides a spread's field and keeps the spread's position; a field written twice, or supplied by two spreads, is Z0222, whose row in section 11 gains the condition (logged).
+3. *Option records hold words.* Section 3.1 writes `{se: robust}` as an option record, and a bare word has no meaning outside an argument (section 3.7); inside a record literal, a bare name that is no binding and that some registered parameter accepts as a word is that word, typed as the one-word list, which the parameter's word list accepts when the record is spread. A name no parameter accepts stays Z0101, with the nearest word in its help. So a typo such as `{se: robst}` is caught where it is written.
+4. *A one-word type reads as the word in messages* (`the word \`robust\``), and a list of words accepts any of its members, which the type checker did not say before because no value of a one-word type existed.
+5. *No identity case*: a spread adds no numeric path; the checker's and the engine's tests compare a spread call with the call written out, bit for bit through the printed fit.
+
+**Reason.** Language Reference, sections 3.1 ("Definitions"), 3.4 (`arg`, `field`) and 3.7 ("Arguments"); the checklist's step 4 and its ruling that the spreads arrive at "Language complete".

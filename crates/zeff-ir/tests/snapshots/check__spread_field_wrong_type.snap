@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0401]: `header` of `import` must be a Bool, but the spread gives an Int
+ --> scripts/main.zeff:1:19
+  |
+1 | import("d.csv", ..{header: 1})
+  |                   ^^^^^^^^^^^ `header` is an Int
+  |
+  = help: usage: `import(path, delim: Str, header: Bool = true, skip: Int = 0, na_values: List, types: Record, names: keep | snake = keep)`
