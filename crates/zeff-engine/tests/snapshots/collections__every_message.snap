@@ -1,0 +1,71 @@
+---
+source: crates/zeff-engine/tests/collections.rs
+expression: text
+---
+## first_empty (exit 1)
+error[Z0207]: `first` of an empty list
+ --> scripts/main.zeff:1:7
+  |
+1 | first([])
+  |       ^^ the list has 0 items
+  |
+  = help: a list must have an item for `first` to give one; test `len(xs) > 0` first, or build the list so that it is never empty
+
+## last_empty (exit 1)
+error[Z0207]: `last` of an empty list
+ --> scripts/main.zeff:1:6
+  |
+1 | last([])
+  |      ^^ the list has 0 items
+  |
+  = help: a list must have an item for `last` to give one; test `len(xs) > 0` first, or build the list so that it is never empty
+
+## append_no_join (exit 1)
+error[Z0214]: `append` adds a Str to a list of an Int, which have no one type
+ --> scripts/main.zeff:1:16
+  |
+1 | append([1, 2], "a")
+  |                ^^^ a Str
+  |
+  = help: a list holds values of one type; Int and Float join as Float, and NA fits any list; convert with `to` where a mixture is meant
+
+## len_wrong_type (exit 1)
+error[Z0401]: `x` of `len` must be a List, Str, Column or Mapping, but this is an Int
+ --> scripts/main.zeff:1:5
+  |
+1 | len(3)
+  |     ^ an Int
+  |
+  = help: usage: `len(x)`
+
+## first_not_a_list (exit 1)
+error[Z0401]: `list` of `first` must be a List, but this is a Str
+ --> scripts/main.zeff:1:7
+  |
+1 | first("abc")
+  |       ^^^^^ a Str
+  |
+  = help: usage: `first(list)`
+
+## len_failed_items (exit 0)
+2
+note: no row kept: the result is empty (line 2)
+warning: 1 of 3 items failed (Z0801 at line 2) and was skipped (line 3)
+  = help: the count is of the items that succeeded; `x.is(Failed)` tells which failed
+
+## len_all_failed (exit 0)
+0
+note: no row kept: the result is empty (line 2)
+note: no row kept: the result is empty (line 2)
+warning: 2 of 2 items failed (Z0801 at line 2) and were skipped (line 3)
+  = help: the count is of the items that succeeded; `x.is(Failed)` tells which failed
+
+## first_of_failed (exit 1)
+note: no row kept: the result is empty (line 2)
+error[Z0220]: a failed value cannot be used in a list given as an argument: it failed with Z0801 at line 2: no row remains to fit the model: the frame has no rows
+ --> scripts/main.zeff:3:7
+  |
+3 | first(fits)
+  |       ^^^^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)

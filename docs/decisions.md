@@ -1636,3 +1636,15 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 8. *The catalogue's usage parser* read the arrow of `Fn(Record, ..) -> Record` as a closing bracket and lost the parameters after it; it now reads `->` as part of a type. The first function type in a usage found the fault.
 
 **Reason.** Language Reference, sections 3.7 ("Records", "Functions as values"), 3.4 and 5.5; catalogue row 435; open decision #13 and the checklist's question 2; the step 7 ruling that `iterate` is the interpreter's.
+
+## 30 October 2026: `len`, `first`, `last`, `append` and `reversed` (release 0.5.0, step 11)
+
+**Choice.** The five are Rust bodies in `core/src/collections.rs`, each on a list value that is never changed. Five rulings:
+
+1. *`len`* takes a list, a string, a column or a mapping (one parameter of the union type) and gives an Int: the items of a list with the failed ones skipped and counted in W0801 (`1 of 3 items failed (Z0801 at line 2) and was skipped`, the wording of `report`, up to three distinct causes), the Unicode scalar values of a string (section 3.8, "Unit": `len("e\u{301}")` is 2), the rows of a column, the entries of a mapping; `len(NA)` is `NA`. `len` joins `is`, `type_of`, `print` and `report` as a function a failed value may reach; `first`, `last`, `append` and `reversed` refuse a list that holds one (Z0220), since they would hand the failure on.
+2. *`first` and `last`* give the item in the list's current order and refuse an empty list with Z0207 (`first` of an empty list; the list has 0 items), never `NA`.
+3. *`append(list, x)`* gives a new list one item longer; the checker types it as a list of the join of the items' type and `x`'s (Int and Float as Float, `NA` anywhere), Z0214 naming both types when they do not join, and an empty list `[]` takes the type of the item added. A frame's `append` is `data`'s at 0.6.0 (section 8.1, rule 6).
+4. *The checker gains three return words* for signatures whose result depends on an argument: `Element` (the items' type of the first argument, `first` and `last`), `Same` (the first argument's type, `reversed`) and `Appended`; they sit beside `Join`, `Typed` and `Number`.
+5. *The R reference* is `tests/reference/r/collections.R`, base R's `length`, `nchar(type = "chars")`, `x[[1]]`, `tail(x, 1)`, `c` and `rev` on five lists (1e-8 to 1e12 among the values) and eight strings (accents, a combining mark, emoji, a flag of two regional indicators, CJK), compared exactly.
+
+**Reason.** Language Reference, sections 3.7 ("Indexing", "Columns and scalars", "Failed values", "Joining types"), 3.8 ("Unit"), 5.6 and 6 ("Row order"); Engine and Project Specification, section 8.1, rule 6; catalogue rows 43, 44, 45, 48 and 51; the checklist's step 11.

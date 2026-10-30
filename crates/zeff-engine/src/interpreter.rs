@@ -2095,10 +2095,14 @@ impl<'a> Interpreter<'a> {
         };
         // A failed value is an argument only of the functions that look at it or skip it
         // (section 3.7, "Failed values"): `is`, `type_of` and `print`, and in a list `report`
-        // (and `len`, from step 11).
+        // and `len`.
         let takes_failed = matches!(
             (call.package.as_str(), call.name.as_str()),
-            ("core", "is") | ("core", "type_of") | ("core", "print") | ("results", "report")
+            ("core", "is")
+                | ("core", "type_of")
+                | ("core", "print")
+                | ("core", "len")
+                | ("results", "report")
         );
         if !takes_failed {
             let in_list = |v: &Value| match v {

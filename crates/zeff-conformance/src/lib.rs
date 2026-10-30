@@ -899,6 +899,12 @@ fn control_cases() -> Vec<Line> {
             "attempt",
             "let w = dataset(wages)\nlet fits = [for cut in [10, 20, 30, 1000] {\n    attempt(w.where(wage > cut).reg(log(wage) ~ educ + female))\n}]\nfits[4]\nreport(fits)\n[for m in fits {\n    if m.is(Failed) { continue }\n    m.coef(educ)\n}]\n",
         ),
+        // The collection functions of step 11 on lists, strings and a column: lengths in code
+        // points, the ends, a new list by `append`, a reversed copy, and failed items counted.
+        (
+            "collections_basics",
+            "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
+        ),
         // `iterate` of step 10: Newton's square root to convergence, the path under `keep: true`
         // and the stop at `max:` with its warning.
         (

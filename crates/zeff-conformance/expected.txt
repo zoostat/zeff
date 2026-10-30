@@ -125,6 +125,8 @@ control/share_missing/stdout f35b6738956a6623
 control/share_missing/stderr 513c7a42967c934b
 control/attempt/stdout 515eb37b724d8bfa
 control/attempt/stderr 472a84d99b1b579d
+control/collections_basics/stdout 0b15b0ef80f5deb9
+control/collections_basics/stderr a780d105e9c2daac
 control/iterate/stdout 1e578ed47248b4af
 control/iterate/stderr 17460efdc7e1f045
 control/for_draws/stdout fdb841f515d6951d

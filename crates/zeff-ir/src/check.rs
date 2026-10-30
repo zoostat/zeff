@@ -4962,6 +4962,49 @@ impl Checker<'_> {
                 _ => Ty::parse(all).unwrap_or(Ty::Unknown),
             }
         // `Number` (section 3.7): Int when every number given is an Int, Float otherwise.
+        // `Element` (`first`, `last`): the type of the first argument's items; `Same`
+        // (`reversed`): the first argument's type; `Appended` (`append`): a list of the join of the
+        // items' type and the item added (section 3.7, "Joining types"; Z0214 when they do not).
+        } else if spec.returns == "Element" {
+            match slots.first().and_then(|s| s.as_ref()).map(|e| &e.ty) {
+                Some(Ty::List(inner)) => (**inner).clone(),
+                _ => Ty::Unknown,
+            }
+        } else if spec.returns == "Same" {
+            slots
+                .first()
+                .and_then(|s| s.as_ref())
+                .map_or(Ty::Unknown, |e| e.ty.clone())
+        } else if spec.returns == "Appended" {
+            let items = match slots.first().and_then(|s| s.as_ref()).map(|e| &e.ty) {
+                Some(Ty::List(inner)) => (**inner).clone(),
+                _ => Ty::Unknown,
+            };
+            match slots.get(1).and_then(|s| s.as_ref()) {
+                // An empty list, `[]`, takes the type of the item added.
+                Some(added) if matches!(items, Ty::Any | Ty::Unknown) => {
+                    Ty::List(Box::new(added.ty.clone()))
+                }
+                Some(added) => match Ty::join(&items, &added.ty) {
+                    Some(joined) => Ty::List(Box::new(joined)),
+                    None => {
+                        self.report(
+                            Diagnostic::error(
+                                "Z0214",
+                                format!(
+                                    "`append` adds {} to a list of {}, which have no one type",
+                                    added.ty.with_article(),
+                                    items.with_article()
+                                ),
+                            )
+                            .primary(added.span, added.ty.with_article())
+                            .help("a list holds values of one type; Int and Float join as Float, and NA fits any list; convert with `to` where a mixture is meant"),
+                        );
+                        Ty::Unknown
+                    }
+                },
+                None => Ty::List(Box::new(items)),
+            }
         } else if spec.returns == "Number" {
             let numbers = slots
                 .iter()

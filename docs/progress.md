@@ -137,3 +137,13 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 **Next.** Step 11 `[function]`: `len`, `first`, `last`, `append`, `reversed`.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
+
+## 30 October 2026, step 11 of release 0.5.0
+
+**Done.** Step 11 `[function]`: `len`, `first`, `last`, `append` and `reversed` (catalogue rows 43, 44, 45, 51, 48 implemented), each with its page: `len` on a list (failed items skipped with W0801), a string (code points), a column and a mapping; `first` and `last` in the current order, Z0207 on an empty list; `append` a new list of the joined type, Z0214 when the types do not join, an empty list taking the item's type; `reversed` a new list; the checker's return words `Element`, `Same` and `Appended`; the five rulings in `docs/decisions.md`. Tests: the R reference `collections.R` (five lists and eight strings, exact); the engine's `collections.rs` (an empty list, a list of failed items only, strings with combining marks, emoji and a flag, a failed item reaching only `len`, every message, and the properties that `len(append(xs, x))` is `len(xs) + 1`, that reversing twice gives the list back and that `first(reversed(xs))` is `last(xs)`); the identity case `control/collections_basics`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (113 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 12 `[function]`: `unique`, `sorted`, `is_in`, `keys` and `equal`.
+
+**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).

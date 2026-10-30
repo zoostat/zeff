@@ -480,7 +480,7 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
     insta::assert_snapshot!("help_data", out(&o));
     let core = zeff(dir.path(), &["help", "core"]);
     assert!(
-        out(&core).starts_with("core · tier 0 · 47 of 69 functions in this release"),
+        out(&core).starts_with("core · tier 0 · 52 of 69 functions in this release"),
         "{}",
         out(&core)
     );
@@ -491,12 +491,19 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&later)
     );
+    // A name with two homes, one shipped (`core`'s `append`, release 0.5.0) and one to come
+    // (`data`'s, 0.6.0): the page, then the line that says when the other arrives.
     let two_homes = zeff(dir.path(), &["help", "append"]);
-    assert_eq!(
-        out(&two_homes).lines().count(),
-        2,
-        "one line per home: {}",
-        out(&two_homes)
+    let text = out(&two_homes);
+    assert!(
+        text.starts_with("append — A new list with an item added"),
+        "{text}"
+    );
+    assert!(
+        text.trim_end().lines().last().is_some_and(
+            |l| l.starts_with("`append` arrives with release 0.6.0, in the `data` package: ")
+        ),
+        "{text}"
     );
     // A name with two homes shipped (frames in `data`, results in `results`): both pages, and no
     // line about a later release.
