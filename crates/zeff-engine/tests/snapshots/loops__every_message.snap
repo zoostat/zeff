@@ -59,7 +59,7 @@ error[Z0101]: nothing is called `i` here
   = help: a bare name is a binding made with `let`; text is written in quotes, and a variable is named inside a frame's method, as in `wages.mean(wage)`
 
 ## loop_variable_is_a_column (exit 1)
-error[Z0106]: `x` is both the loop variable and a variable of d
+error[Z0106]: `x` is both a loop variable or parameter and a variable of d
  --> scripts/main.zeff:3:18
   |
 3 |     print(d.mean(x))
@@ -68,7 +68,7 @@ error[Z0106]: `x` is both the loop variable and a variable of d
   = help: rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently
 
 ## loop_variable_is_a_column_in_add (exit 1)
-error[Z0106]: `y` is both the loop variable and a variable of d
+error[Z0106]: `y` is both a loop variable or parameter and a variable of d
  --> scripts/main.zeff:3:21
   |
 3 |     print(d.add(z = y * 2).n_rows())

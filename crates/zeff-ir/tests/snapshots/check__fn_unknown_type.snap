@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0101]: no type is called `Flaot`
+ --> scripts/main.zeff:2:9
+  |
+2 | fn f(x: Flaot) -> Float { 1 }
+  |         ^^^^^ not a type
+  |
+  = help: did you mean `Float`?

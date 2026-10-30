@@ -150,3 +150,7 @@ Step 4 of release 0.5.0 brings the spreads of section 3.4 (`..opts` in a call, `
 ## 30 October 2026 — zeff_language_reference.md, section 11: the code W0209
 
 Section 3.7 ("Failed values") says that a method called on a binding that may hold a `Failed` value is a check-time warning unless the call is guarded by `x.is(Failed)`, without a number. Step 5 of release 0.5.0 assigns W0209, the next code of the W02xx family (types and values), and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.
+
+## 30 October 2026 — zeff_language_reference.md, section 11: the code Z0225
+
+Sections 3.7 ("Inference") and 5.3 say that a function's result must match its declared return type, without a number. Step 6 of release 0.5.0 assigns Z0225, the next code of the Z02xx family (types and values), for a body or a `return` whose type is not the declared one, or that gives nothing where a value is declared, and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.

@@ -1,0 +1,14 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0107]: `twice` is defined twice in this file
+ --> scripts/main.zeff:4:4
+  |
+2 | fn twice(x: Float) -> Float { x }
+  |    ----- the first
+...
+4 | fn twice(x: Float) -> Float { x }
+  |    ^^^^^ the second definition
+  |
+  = help: give each function its own name; a script's functions share one namespace

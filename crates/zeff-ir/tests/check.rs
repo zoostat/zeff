@@ -510,7 +510,6 @@ fn date_formats_in_types() {
 #[test]
 fn constructs_of_later_releases_are_z0304_with_their_release() {
     let cases: &[(&str, &str)] = &[
-        ("fn f(x: Float) -> Float {\n    x\n}\n", "0.5.0"),
         ("use clean\n", "0.5.0"),
         ("let m = model {\n    y ~ x\n}\n", "1.3"),
         ("let g = dag {\n    a -> b\n}\n", "0.10.0"),
@@ -678,7 +677,7 @@ fn messages() {
             "date_format_with_time",
             "import(\"d.csv\", types: {sold: Date(\"%d/%m/%Y %H:%M\")})\n",
         ),
-        ("not_yet_fn", "fn f() -> Int {\n    1\n}\n"),
+        ("not_yet_use", "use functions::clean\n"),
         ("for_over_a_number", "for i in 5 {\n    print(i)\n}\n"),
         (
             "list_for_without_a_value",
@@ -715,6 +714,43 @@ fn messages() {
             "let r = {..{a: 1}, ..{a: 2}}\n",
         ),
         ("attempt_without_expression", "attempt()\n"),
+        (
+            "fn_result_type",
+            "/// Text.\nfn label(n: Int) -> Str { n }\n",
+        ),
+        (
+            "fn_body_without_value",
+            "/// Let.\nfn f(n: Int) -> Int {\n    let k = n\n}\n",
+        ),
+        (
+            "fn_recursion",
+            "/// Ping.\nfn ping(n: Int) -> Int { pong(n) }\n/// Pong.\nfn pong(n: Int) -> Int { ping(n) }\n",
+        ),
+        (
+            "fn_import_inside",
+            "/// Loads.\nfn load() -> Frame { import(\"d.csv\") }\n",
+        ),
+        (
+            "fn_column_for_scalar",
+            "/// Doubles.\nfn double(x: Float) -> Float { x * 2 }\nlet w = import(\"d.csv\")\ndouble(w[\"wage\"])\n",
+        ),
+        (
+            "fn_built_in_name",
+            "/// Mine.\nfn mean(data: Frame) -> Float { 1 }\nlet w = import(\"d.csv\")\nw.mean(wage)\n",
+        ),
+        (
+            "fn_defined_twice",
+            "/// Twice.\nfn twice(x: Float) -> Float { x }\n/// Again.\nfn twice(x: Float) -> Float { x }\n",
+        ),
+        (
+            "fn_unknown_type",
+            "/// Typo.\nfn f(x: Flaot) -> Float { 1 }\n",
+        ),
+        ("fn_no_summary", "fn f(x: Int) -> Int { x }\n"),
+        (
+            "fn_help_names_no_parameter",
+            "/// Triples.\n/// value: The value.\nfn triple(x: Float) -> Float { x * 3 }\n",
+        ),
         ("attempt_with_two", "attempt(1, 2)\n"),
         (
             "unguarded_method_on_attempt",
@@ -816,6 +852,26 @@ fn expressions_have_the_types_of_section_3_7() {
             "Float",
         ),
         ("let a = attempt(1)\nlet b = a.is(Failed)", "Bool"),
+        (
+            "/// Doubles.\nfn double(x: Float) -> Float { x * 2 }\nlet v = double(2)",
+            "Float",
+        ),
+        (
+            "/// Adds.\nfn add(a: Int, b: Int = a) -> Int { a + b }\nlet v = add(1)",
+            "Int",
+        ),
+        (
+            "/// Opt.\nfn f(tag: Str?) -> Str { \"a\" }\nlet v = f()",
+            "Str",
+        ),
+        (
+            "/// Later.\nfn later() -> Int { earlier() }\n/// Earlier.\nfn earlier() -> Int { 1 }\nlet v = later()",
+            "Int",
+        ),
+        (
+            "/// Means.\nfn m(data: Frame, var: Var) -> Float { data.mean(var) }\nlet w = import(\"d.csv\")\nlet v = w.m(wage)",
+            "Float",
+        ),
         ("let r = {..{a: 1}, b: \"x\"}", "{a: Int, b: Str}"),
         ("let r = {b: \"x\", ..{a: 1, b: 2}}", "{b: Str, a: Int}"),
         (
@@ -910,6 +966,52 @@ fn the_codes_of_expressions() {
             "let w = import(\"d.csv\")\nlet m = attempt(w)\nm.mean(wage)\n",
             "W0209",
         ),
+        ("/// Text.\nfn label(n: Int) -> Str { n }\n", "Z0225"),
+        ("/// Let.\nfn f(n: Int) -> Int { let k = n }\n", "Z0225"),
+        (
+            "/// Early.\nfn f(n: Int) -> Int {\n    if n > 1 { return \"no\" }\n    n\n}\n",
+            "Z0225",
+        ),
+        ("/// Nothing.\nfn f() -> Nothing { return 1 }\n", "Z0225"),
+        (
+            "/// Ping.\nfn ping(n: Int) -> Int { pong(n) }\n/// Pong.\nfn pong(n: Int) -> Int { ping(n) }\n",
+            "Z0108",
+        ),
+        ("/// Self.\nfn f(n: Int) -> Int { f(n) }\n", "Z0108"),
+        (
+            "/// Loads.\nfn load() -> Frame { import(\"d.csv\") }\n",
+            "Z0110",
+        ),
+        (
+            "/// Doubles.\nfn double(x: Float) -> Float { x * 2 }\nlet w = import(\"d.csv\")\ndouble(w[\"wage\"])\n",
+            "Z0218",
+        ),
+        (
+            "/// Mine.\nfn mean(data: Frame) -> Float { 1 }\nlet w = import(\"d.csv\")\nw.mean(wage)\n",
+            "Z0109",
+        ),
+        (
+            "/// Twice.\nfn twice(x: Float) -> Float { x }\n/// Again.\nfn twice(x: Float) -> Float { x }\n",
+            "Z0107",
+        ),
+        ("/// Reserved.\nfn Float(x: Int) -> Int { x }\n", "Z0105"),
+        ("/// Typo.\nfn f(x: Flaot) -> Float { 1 }\n", "Z0101"),
+        (
+            "let k = 2\n/// Script.\nfn f(x: Int) -> Int { x * k }\n",
+            "Z0101",
+        ),
+        ("fn f(x: Int) -> Int { x }\n", "W0303"),
+        (
+            "/// Triples.\n/// value: The value.\nfn triple(x: Float) -> Float { x * 3 }\n",
+            "Z0320",
+        ),
+        ("/// Twice.\nfn f(x: Int, x: Int) -> Int { x }\n", "Z0405"),
+        ("/// Default.\nfn f(x: Int = \"a\") -> Int { x }\n", "Z0401"),
+        (
+            "/// Fn.\nfn apply(f: Fn(Int) -> Int) -> Int { 1 }\n",
+            "Z0304",
+        ),
+        ("functions::nope(1)\n", "Z0103"),
     ];
     for (text, code) in cases {
         let found = codes(text);

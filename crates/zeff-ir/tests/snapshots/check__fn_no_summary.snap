@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+warning[W0303]: `f` has no summary line
+ --> scripts/main.zeff:1:4
+  |
+1 | fn f(x: Int) -> Int { x }
+  |    ^ a function without `///` text
+  |
+  = help: write one line above it, `/// What the function gives.`; the line is its help, its hover text and the title of its dialog

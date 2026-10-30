@@ -1,0 +1,23 @@
+---
+source: crates/zeff-engine/tests/functions.rs
+expression: "format!(\"{}{}\", outcome.output.stdout, outcome.output.stderr)"
+---
+0
+0.0114599
+0.00190093
+                    (1)              (2)         (3)
+  (intercept)    1.832***         1.832***    1.980***
+                (0.022)          (0.041)     (0.029)
+  educ           0.076***         0.076***    0.072***
+                (0.001)          (0.003)     (0.002)
+  exper          0.022***         0.022***    0.018***
+                (0.000)          (0.001)     (0.001)
+  ────────────────────────────────────────────────────
+  SEs              robust   cluster worker      robust
+  N                18,179           18,179      11,176
+  R²                0.184            0.184       0.147
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(2) note: 33 of the 3,911 clusters hold one observation
+note: no row kept: the result is empty (line 14)
+note: 33 of the 3,911 clusters hold one observation (line 17)

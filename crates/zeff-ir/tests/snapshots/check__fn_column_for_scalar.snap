@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0218]: `x` of `double` takes one value, a Float, but this is a Column
+ --> scripts/main.zeff:4:8
+  |
+4 | double(w["wage"])
+  |        ^^^^^^^^^ a column
+  |
+  = help: declare `x: Column<Float>`, or write the expression inside `add`; a project function is not applied row by row

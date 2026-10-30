@@ -177,3 +177,15 @@ Step 22e: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on 
 **Next.** Step 6 `[engine]`: `fn` in a script, definitions, signatures and calls.
 
 **For the owner to decide.** #67, the default level of `ci()`, by 0.6.0 (recommendation: the fit's level).
+
+## 30 October 2026, step 6 of release 0.5.0
+
+**Done.** Step 6 `[engine]`: `fn` in a script: typed parameters with defaults evaluated at each call, optional `T?` parameters, word-list parameters, a declared return type checked against the body and every `return` (Z0225, provisional, logged), definitions in any order with their signatures collected first, bodies that see their parameters and other functions only (a script binding named inside one gets the help that says so), no recursion (Z0108 with the cycle), no script-only function inside a body (Z0110), a bare call that a built-in also defines refused in favour of the full forms (Z0109), a column refused for a scalar parameter at check time and at run time (Z0218), the arguments' rules of section 3.1 with spreads, a script's function callable as a method on its first argument, the frames enclosing a call hidden from the body, W0303 for a missing summary line and Z0320 for help naming no parameter, Z0107 for a function defined twice; the pages of Z0107, Z0108, Z0109, Z0110, Z0218, Z0225, W0303 and Z0320; the nine rulings in `docs/decisions.md`. Tests: the checker's types, codes and eleven message snapshots; the engine's `functions.rs` (the examples of section 5.3 with `cluster:` and no `fe:`, order independence, defaults and optional parameters, `return`, every refusal, every message, and the property that a generated function equals its body inlined bit for bit); the identity case `functions/share_missing`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`), the tier and message checks (109 codes) and the conformance report pass locally; CI to be read after the push.
+
+**CI, read after the pushes of step 5.** Red on one test again: the command line's listing of `core` counts the functions shipped, which `attempt` took from 45 to 46; the local run of step 5 had passed with 45 because the test binary had not been rebuilt against the changed catalogue, and a forced rebuild shows 46. The count is corrected in this step's commit; the routine now touches the catalogue before the final run so that the registry is rebuilt.
+
+**Next.** Step 7 `[engine]`: any function as a method; function values and `Fn` types.
+
+**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).

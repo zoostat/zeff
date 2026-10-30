@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0320]: the help of `triple` describes `value`, which is not one of its parameters
+ --> scripts/main.zeff:2:1
+  |
+2 | /// value: The value.
+  | ^^^^^^^^^^^^^^^^^^^^^ no such parameter
+  |
+  = help: a `name: text` line documents a parameter; prose that needs a colon can start with a capital or a backtick

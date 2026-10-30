@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0110]: `import` is allowed only in a script, not inside the function `load`
+ --> scripts/main.zeff:2:22
+  |
+2 | fn load() -> Frame { import("d.csv") }
+  |                      ^^^^^^ reads or writes outside the arguments
+  |
+  = help: a function's result depends on its arguments alone, so it may be cached; import the data in the script and pass the frame in

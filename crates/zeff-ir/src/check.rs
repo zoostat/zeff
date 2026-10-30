@@ -6,8 +6,8 @@
 //! `Unknown`, which no later check reports again.
 
 use crate::ir::{
-    Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, Formula, Program,
-    RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
+    Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, FnId, Formula, Function,
+    Param, Program, RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
 };
 use crate::ty::{ResultKind, Ty};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
@@ -26,7 +26,7 @@ pub struct Checked {
 /// Parse and check the text of a script.
 pub fn check_source(file: &str, text: &str, registry: &Registry) -> Checked {
     let parsed = zeff_syntax::parse(file, text);
-    let mut checked = check(file, &parsed.script, registry);
+    let mut checked = check_with_text(file, &parsed.script, registry, Some(text));
     let mut all: Vec<Diagnostic> = parsed.diagnostics.into_vec();
     all.extend(checked.diagnostics.into_vec());
     all.sort_by_key(|d| d.labels.first().map_or(usize::MAX, |l| l.span.start));
@@ -40,6 +40,16 @@ pub fn check_source(file: &str, text: &str, registry: &Registry) -> Checked {
 
 /// Lower a parsed script.
 pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
+    check_with_text(file, script, registry, None)
+}
+
+/// Lower a parsed script, with its text when known, which gives each function its hash.
+pub fn check_with_text(
+    file: &str,
+    script: &ast::Script,
+    registry: &Registry,
+    text: Option<&str>,
+) -> Checked {
     let mut checker = Checker {
         file,
         registry,
@@ -53,6 +63,12 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
         record_depth: 0,
         maybe_failed: std::collections::HashSet::new(),
         safe: Vec::new(),
+        text,
+        signatures: Vec::new(),
+        functions: Vec::new(),
+        current_function: None,
+        calls: Vec::new(),
+        hidden_scope: Vec::new(),
         words: registry
             .functions()
             .iter()
@@ -61,6 +77,36 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
             .flat_map(|ty| ty.words())
             .collect(),
     };
+    // The signatures first, so that a body or a statement may call a function defined later
+    // (section 5.3, "Order"); then the bodies; then the statements.
+    let definitions: Vec<&ast::FnDef> = script
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            ast::Item::Fn(f) => Some(f),
+            _ => None,
+        })
+        .collect();
+    // The script's own bindings, by name, for the help of Z0101 inside a body: the bodies are
+    // checked before the statements, so they are collected from the text.
+    checker.hidden_scope = script
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            ast::Item::Statement(ast::Stmt {
+                kind: ast::StmtKind::Let { name, .. },
+                ..
+            }) => Some(name.text.clone()),
+            _ => None,
+        })
+        .collect();
+    for f in &definitions {
+        checker.declare(f);
+    }
+    for (index, f) in definitions.iter().enumerate() {
+        checker.function_body(f, index);
+    }
+    checker.check_recursion();
     let mut statements = Vec::new();
     for item in &script.items {
         match item {
@@ -70,12 +116,7 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
                 "0.5.0",
                 "project functions in `functions/` arrive with release 0.5.0",
             ),
-            ast::Item::Fn(f) => checker.not_yet(
-                f.span,
-                "`fn`",
-                "0.5.0",
-                "user-written functions arrive with release 0.5.0",
-            ),
+            ast::Item::Fn(_) => {}
             ast::Item::Statement(s) => {
                 if let Some(statement) = checker.statement(s) {
                     statements.push(statement);
@@ -83,10 +124,32 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
             }
         }
     }
+    let functions = checker
+        .functions
+        .into_iter()
+        .zip(checker.signatures.iter())
+        .map(|(f, sig)| {
+            f.unwrap_or_else(|| Function {
+                name: sig.name.clone(),
+                name_span: sig.name_span,
+                params: Vec::new(),
+                returns: Ty::Unknown,
+                body: Block {
+                    statements: Vec::new(),
+                    tail: None,
+                    span: sig.name_span,
+                },
+                span: sig.name_span,
+                doc: Vec::new(),
+                hash: 0,
+            })
+        })
+        .collect();
     Checked {
         program: Program {
             statements,
             bindings: checker.bindings,
+            functions,
         },
         diagnostics: checker.found,
     }
@@ -150,7 +213,44 @@ struct Checker<'a> {
     /// ("Narrowing"); a method on an unguarded one is W0209.
     maybe_failed: std::collections::HashSet<BindingId>,
     safe: Vec<BindingId>,
+    /// The script's text, for the functions' hashes.
+    text: Option<&'a str>,
+    /// The signatures of the script's functions, collected before any body or statement is
+    /// checked, so that definitions are order-independent (section 5.3, "Order").
+    signatures: Vec<Signature>,
+    /// The lowered functions, by the same index.
+    functions: Vec<Option<Function>>,
+    /// The function whose body is being checked, and the functions each body calls, for the
+    /// recursion check (Z0108).
+    current_function: Option<FnId>,
+    calls: Vec<Vec<(FnId, Span)>>,
+    /// The script's bindings while a function body is checked, for the help of Z0101.
+    hidden_scope: Vec<String>,
 }
+
+/// A function's signature as the pre-pass collects it.
+#[derive(Debug, Clone)]
+struct Signature {
+    name: String,
+    name_span: Span,
+    params: Vec<(String, Ty, bool, Span)>,
+    returns: Ty,
+}
+
+/// The functions a function may not call (section 3.7, "Effects"; Z0110): those whose result
+/// depends on something outside the arguments, or that write.
+const SCRIPT_ONLY: &[&str] = &["import", "save", "export", "seed", "today", "now", "timer"];
+
+/// The keys of a `///` page besides the parameters (section 9.1 of the Engine and Project
+/// Specification), which Z0320 never names.
+const DOC_KEYS: &[&str] = &[
+    "returns",
+    "details",
+    "reference",
+    "references",
+    "example",
+    "examples",
+];
 
 impl Checker<'_> {
     fn report(&mut self, diagnostic: Diagnostic) {
@@ -234,14 +334,63 @@ impl Checker<'_> {
                     span: statement.span,
                 })
             }
-            ast::StmtKind::Return(_) => {
-                self.not_yet(
-                    statement.span,
-                    "`return`",
-                    "0.5.0",
-                    "functions arrive with release 0.5.0",
-                );
-                None
+            // Outside a function the parser's Z0313.
+            ast::StmtKind::Return(value) => {
+                let returns = self
+                    .current_function
+                    .map(|id| self.signatures[id].returns.clone())
+                    .unwrap_or(Ty::Unknown);
+                let name = self
+                    .current_function
+                    .map(|id| self.signatures[id].name.clone())
+                    .unwrap_or_default();
+                let value = match value {
+                    Some(e) => {
+                        let lowered = self.expr(e, Some(&returns));
+                        let lowered = self.no_nothing(lowered, "returned");
+                        if returns == Ty::Nothing {
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0225",
+                                    format!("`{name}` is declared to return Nothing, but this `return` gives {}", lowered.ty.with_article()),
+                                )
+                                .primary(lowered.span, "a value")
+                                .help("write `return` alone, or declare the type the function gives: `-> Float`"),
+                            );
+                        } else if !returns.accepts(&lowered.ty) {
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0225",
+                                    format!(
+                                        "`{name}` is declared to return {}, but this `return` gives {}",
+                                        returns.with_article(),
+                                        lowered.ty.with_article()
+                                    ),
+                                )
+                                .primary(lowered.span, lowered.ty.with_article())
+                                .help("every `return` and the body's last expression give the declared type; Int is accepted for Float"),
+                            );
+                        }
+                        Some(lowered)
+                    }
+                    None => {
+                        if returns != Ty::Nothing && returns != Ty::Unknown {
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0225",
+                                    format!("`{name}` is declared to return {}, but this `return` gives nothing", returns.with_article()),
+                                )
+                                .primary(statement.span, "no value")
+                                .help("write the value after `return`"),
+                            );
+                        }
+                        None
+                    }
+                };
+                Some(Statement::Return {
+                    value,
+                    span: statement.span,
+                })
             }
             // Outside a loop both are the parser's Z0313.
             ast::StmtKind::Break => Some(Statement::Break {
@@ -602,8 +751,603 @@ impl Checker<'_> {
         }
         matches!(
             block.statements.last(),
-            Some(Statement::Break { .. } | Statement::Continue { .. })
+            Some(Statement::Break { .. } | Statement::Continue { .. } | Statement::Return { .. })
         )
+    }
+
+    // ----- functions (section 5.3) -----
+
+    /// A type as a signature writes it (section 3.4, `type`): a named type with its arguments, a
+    /// nullable `T?` (optional, `NA` when absent), a list of words, a record type; function types
+    /// arrive with step 7.
+    fn lower_type(&mut self, ty: &ast::Type) -> (Ty, bool) {
+        match &ty.kind {
+            ast::TypeKind::Nullable(inner) => (self.lower_type(inner).0, true),
+            ast::TypeKind::Words(words) => (
+                Ty::Words(words.iter().map(|w| w.text.clone()).collect()),
+                false,
+            ),
+            ast::TypeKind::Record(fields) => (
+                Ty::Record(
+                    fields
+                        .iter()
+                        .map(|(n, t)| (n.text.clone(), self.lower_type(t).0))
+                        .collect(),
+                ),
+                false,
+            ),
+            ast::TypeKind::Fn { .. } => {
+                self.not_yet(
+                    ty.span,
+                    "a function type",
+                    "0.5.0",
+                    "function values arrive with step 7 of release 0.5.0",
+                );
+                (Ty::Unknown, false)
+            }
+            ast::TypeKind::Named { path, args } => {
+                let name = path.segments.last().map(|s| s.text.as_str()).unwrap_or("");
+                let lowered: Vec<Ty> = args.iter().map(|a| self.lower_type(a).0).collect();
+                let named = match (name, lowered.len()) {
+                    ("Column", 1) => Some(Ty::Column(Box::new(lowered[0].clone()))),
+                    ("List", 1) => Some(Ty::List(Box::new(lowered[0].clone()))),
+                    ("Mapping", 2) => Some(Ty::Mapping(
+                        Box::new(lowered[0].clone()),
+                        Box::new(lowered[1].clone()),
+                    )),
+                    (_, 0) => Ty::parse(name),
+                    _ => None,
+                };
+                match named {
+                    Some(named) => (named, false),
+                    None => {
+                        let mut d = Diagnostic::error(
+                            "Z0101",
+                            format!("no type is called `{}`", written_type(ty)),
+                        )
+                        .primary(ty.span, "not a type");
+                        if let Some(near) = did_you_mean(name, TYPE_NAMES.iter().copied()) {
+                            d = d.help(format!("did you mean `{near}`?"));
+                        } else {
+                            d = d.help("the types of section 4: Bool, Int, Float, Str, Frame, Column<Float>, List<RegFit>, Var, Formula, Record, and the result types");
+                        }
+                        self.report(d);
+                        (Ty::Unknown, false)
+                    }
+                }
+            }
+        }
+    }
+
+    /// The pre-pass over a definition: its name and signature, before any body is checked.
+    fn declare(&mut self, f: &ast::FnDef) {
+        let name = f.name.text.clone();
+        if RESERVED_CORE_NAMES.contains(&name.as_str()) {
+            self.report(
+                Diagnostic::error(
+                    "Z0105",
+                    format!("`{name}` is a name of `core` and cannot be rebound"),
+                )
+                .primary(f.name.span, "a reserved name")
+                .help("type names and the names reserved for later values belong to `core` (sections 3.7 and 4.3); choose another name"),
+            );
+        }
+        if let Some(earlier) = self.signatures.iter().find(|s| s.name == name) {
+            self.report(
+                Diagnostic::error("Z0107", format!("`{name}` is defined twice in this file"))
+                    .primary(f.name.span, "the second definition")
+                    .secondary(earlier.name_span, "the first")
+                    .help(
+                        "give each function its own name; a script's functions share one namespace",
+                    ),
+            );
+        }
+        let mut params: Vec<(String, Ty, bool, Span)> = Vec::new();
+        for p in &f.params {
+            let (ty, nullable) = self.lower_type(&p.ty);
+            if params.iter().any(|(n, _, _, _)| *n == p.name.text) {
+                self.report(
+                    Diagnostic::error(
+                        "Z0405",
+                        format!("`{}` is declared twice in `{name}`", p.name.text),
+                    )
+                    .primary(p.name.span, "the second time")
+                    .help("give each parameter its own name"),
+                );
+            }
+            params.push((
+                p.name.text.clone(),
+                ty,
+                nullable || p.default.is_some(),
+                p.name.span,
+            ));
+        }
+        let (returns, _) = self.lower_type(&f.ret);
+        self.signatures.push(Signature {
+            name,
+            name_span: f.name.span,
+            params,
+            returns,
+        });
+        self.functions.push(None);
+        self.calls.push(Vec::new());
+    }
+
+    /// A function's body, checked in a scope of its own that holds its parameters and nothing
+    /// of the script (section 5.3, "Scope"); its defaults, each in the scope of the parameters
+    /// before it; its result against the declared type; its `///` page.
+    fn function_body(&mut self, f: &ast::FnDef, index: FnId) {
+        let saved_scope = std::mem::take(&mut self.scope);
+        let saved_loops = std::mem::take(&mut self.loops);
+        let saved_safe = std::mem::take(&mut self.safe);
+        let saved = (self.frame_scope, self.formula_depth, self.term_depth);
+        self.frame_scope = 0;
+        self.formula_depth = 0;
+        self.term_depth = 0;
+        self.current_function = Some(index);
+        let sig = self.signatures[index].clone();
+        let mut params = Vec::with_capacity(f.params.len());
+        for (p, (pname, ty, optional, pspan)) in f.params.iter().zip(&sig.params) {
+            let default = p.default.as_ref().map(|d| {
+                let lowered = self.argument(d, ty, false);
+                let lowered = self.no_nothing(lowered, "a default");
+                if !ty.accepts(&lowered.ty) {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "the default of `{pname}` must be {}, but this is {}",
+                                ty.with_article(),
+                                lowered.ty.with_article()
+                            ),
+                        )
+                        .primary(lowered.span, lowered.ty.with_article())
+                        .help("a default has the parameter's type; a `Var` default names a column of the frame passed"),
+                    );
+                }
+                lowered
+            });
+            let binding = self.bind(&p.name, ty.clone(), BindingKind::Parameter);
+            params.push(Param {
+                binding,
+                name: pname.clone(),
+                ty: ty.clone(),
+                default,
+                optional: *optional,
+                span: *pspan,
+            });
+        }
+        let (body, body_ty) = self.block(&f.body, Some(&sig.returns));
+        let name = &sig.name;
+        if sig.returns != Ty::Nothing && sig.returns != Ty::Unknown {
+            if body_ty == Ty::Nothing {
+                if !matches!(
+                    body.statements.last(),
+                    Some(Statement::Return { value: Some(_), .. })
+                ) {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0225",
+                            format!(
+                                "`{name}` is declared to return {}, but its body ends without a value",
+                                sig.returns.with_article()
+                            ),
+                        )
+                        .primary(f.ret.span, "the declared type")
+                        .help("end the body with the expression that is the result, or `return` it; a body ending in a `let`, a `for` or an `if` without `else` gives nothing"),
+                    );
+                }
+            } else if !sig.returns.accepts(&body_ty) {
+                self.report(
+                    Diagnostic::error(
+                        "Z0225",
+                        format!(
+                            "`{name}` is declared to return {}, but its body gives {}",
+                            sig.returns.with_article(),
+                            body_ty.with_article()
+                        ),
+                    )
+                    .primary(body.tail.as_ref().map_or(f.body.span, |t| t.span), body_ty.with_article())
+                    .secondary(f.ret.span, "the declared type")
+                    .help("the body's last expression gives the declared type; Int is accepted for Float"),
+                );
+            }
+        }
+        self.check_doc(f, &sig);
+        let doc: Vec<String> = f.doc.iter().map(|d| d.text.clone()).collect();
+        let hash = self
+            .text
+            .and_then(|t| t.get(f.span.start..f.span.end))
+            .map_or(0, fnv1a);
+        self.functions[index] = Some(Function {
+            name: sig.name.clone(),
+            name_span: sig.name_span,
+            params,
+            returns: sig.returns.clone(),
+            body,
+            span: f.span,
+            doc,
+            hash,
+        });
+        self.current_function = None;
+        self.scope = saved_scope;
+        self.loops = saved_loops;
+        self.safe = saved_safe;
+        (self.frame_scope, self.formula_depth, self.term_depth) = saved;
+    }
+
+    /// The `///` lines of a script function (section 5.3, "Help"): W0303 without a summary line;
+    /// Z0320 for a `name: text` line whose name is no parameter of the function.
+    fn check_doc(&mut self, f: &ast::FnDef, sig: &Signature) {
+        if f.doc.is_empty() {
+            self.report(
+                Diagnostic::warning(
+                    "W0303",
+                    format!("`{}` has no summary line", sig.name),
+                )
+                .primary(f.name.span, "a function without `///` text")
+                .help("write one line above it, `/// What the function gives.`; the line is its help, its hover text and the title of its dialog"),
+            );
+            return;
+        }
+        for line in &f.doc {
+            let Some((key, _)) = line.text.split_once(':') else {
+                continue;
+            };
+            let key = key.trim();
+            let is_name = !key.is_empty()
+                && key
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+                && !key.starts_with(|c: char| c.is_ascii_digit());
+            if !is_name || DOC_KEYS.contains(&key) || sig.params.iter().any(|(n, _, _, _)| n == key)
+            {
+                continue;
+            }
+            let mut d = Diagnostic::error(
+                "Z0320",
+                format!(
+                    "the help of `{}` describes `{key}`, which is not one of its parameters",
+                    sig.name
+                ),
+            )
+            .primary(line.span, "no such parameter");
+            let names: Vec<&str> = sig.params.iter().map(|(n, _, _, _)| n.as_str()).collect();
+            d = match did_you_mean(key, names.iter().copied()) {
+                Some(near) => d.help(format!("did you mean `{near}:`?")),
+                None => d.help("a `name: text` line documents a parameter; prose that needs a colon can start with a capital or a backtick"),
+            };
+            self.report(d);
+        }
+    }
+
+    /// Z0108: a function may not call itself directly or through other functions (section 3.7,
+    /// "Recursion"); each cycle is reported once, at the first function of it, with the chain.
+    fn check_recursion(&mut self) {
+        let n = self.signatures.len();
+        let mut reported: Vec<bool> = vec![false; n];
+        for start in 0..n {
+            // A depth-first walk from `start` looking for a path back to it.
+            let mut stack: Vec<(FnId, Vec<FnId>)> = vec![(start, vec![start])];
+            let mut seen = vec![false; n];
+            let mut cycle: Option<Vec<FnId>> = None;
+            while let Some((at, path)) = stack.pop() {
+                for (next, _) in &self.calls[at] {
+                    if *next == start {
+                        cycle = Some(path.clone());
+                        break;
+                    }
+                    if !seen[*next] {
+                        seen[*next] = true;
+                        let mut longer = path.clone();
+                        longer.push(*next);
+                        stack.push((*next, longer));
+                    }
+                }
+                if cycle.is_some() {
+                    break;
+                }
+            }
+            let Some(path) = cycle else { continue };
+            if path.iter().any(|f| reported[*f]) {
+                continue;
+            }
+            for f in &path {
+                reported[*f] = true;
+            }
+            let names: Vec<String> = path
+                .iter()
+                .map(|f| format!("`{}`", self.signatures[*f].name))
+                .collect();
+            let chain = if names.len() == 1 {
+                format!("{} calls itself", names[0])
+            } else {
+                format!(
+                    "{} calls {}, which calls {}",
+                    names[0],
+                    names[1..].join(", which calls "),
+                    names[0]
+                )
+            };
+            let span = self.signatures[start].name_span;
+            self.report(
+                Diagnostic::error("Z0108", format!("a function may not call itself: {chain}"))
+                    .primary(span, "the cycle starts here")
+                    .help("iteration is `for` and `iterate` (section 5.5), so that every script finishes"),
+            );
+        }
+    }
+
+    /// A call of a function the script defines (section 5.3, "Matching"): positional arguments
+    /// in order, then named ones, with the spreads of section 3.7; a column given to a scalar
+    /// parameter is Z0218, since a project function is not lifted.
+    fn call_user(
+        &mut self,
+        index: FnId,
+        receiver: Option<Expr>,
+        args: &[ast::Arg],
+        callee_span: Span,
+        span: Span,
+    ) -> Expr {
+        let sig = self.signatures[index].clone();
+        let fname = sig.name.clone();
+        if let Some(current) = self.current_function {
+            self.calls[current].push((index, callee_span));
+        }
+        let usage = format!(
+            "{fname}({})",
+            sig.params
+                .iter()
+                .map(|(n, ty, optional, _)| if *optional {
+                    format!("{n}: {ty} = …")
+                } else {
+                    format!("{n}: {ty}")
+                })
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        let mut slots: Vec<Option<Expr>> = vec![None; sig.params.len()];
+        let mut from_spread: Vec<Option<usize>> = vec![None; sig.params.len()];
+        let mut spreads: Vec<Spread> = Vec::new();
+        let mut order: Vec<Slot> = Vec::new();
+        let mut next_positional = 0usize;
+        if let Some(r) = receiver {
+            if sig.params.is_empty() {
+                self.report(
+                    Diagnostic::error(
+                        "Z0407",
+                        format!("`{fname}` takes no argument, but it was called on a value"),
+                    )
+                    .primary(r.span, "one too many")
+                    .help(format!("usage: `{usage}`")),
+                );
+                return Expr::error(span);
+            }
+            slots[0] = Some(r);
+            order.push(Slot::Param(0));
+            next_positional = 1;
+        }
+        let mut named_seen = false;
+        for arg in args {
+            match arg {
+                ast::Arg::Positional(e) => {
+                    if named_seen {
+                        self.report(
+                            Diagnostic::error("Z0408", "a positional argument after a named one")
+                                .primary(e.span, "once one argument is named, the rest must be")
+                                .help("write it as `name: value`, or move it before the named arguments"),
+                        );
+                        continue;
+                    }
+                    if next_positional < sig.params.len() {
+                        let ty = sig.params[next_positional].1.clone();
+                        slots[next_positional] = Some(self.argument(e, &ty, false));
+                        order.push(Slot::Param(next_positional));
+                        next_positional += 1;
+                    } else {
+                        self.report(
+                            Diagnostic::error(
+                                "Z0407",
+                                format!(
+                                    "`{fname}` takes {} {}, but more were given",
+                                    sig.params.len(),
+                                    if sig.params.len() == 1 {
+                                        "argument"
+                                    } else {
+                                        "arguments"
+                                    }
+                                ),
+                            )
+                            .primary(e.span, "one too many")
+                            .help(format!("usage: `{usage}`")),
+                        );
+                    }
+                }
+                ast::Arg::Named {
+                    name: arg_name,
+                    value,
+                } => {
+                    named_seen = true;
+                    let Some(position) = sig
+                        .params
+                        .iter()
+                        .position(|(n, _, _, _)| *n == arg_name.text)
+                    else {
+                        let mut d = Diagnostic::error(
+                            "Z0404",
+                            format!("`{fname}` has no argument called `{}`", arg_name.text),
+                        )
+                        .primary(arg_name.span, "unknown argument");
+                        let names: Vec<&str> =
+                            sig.params.iter().map(|(n, _, _, _)| n.as_str()).collect();
+                        d = match did_you_mean(&arg_name.text, names.iter().copied()) {
+                            Some(near) => d.help(format!("did you mean `{near}:`?")),
+                            None => d.help(format!("usage: `{usage}`")),
+                        };
+                        self.report(d);
+                        continue;
+                    };
+                    if slots[position].is_some() && from_spread[position].is_none() {
+                        self.report(
+                            Diagnostic::error(
+                                "Z0405",
+                                format!("`{}` is given twice", arg_name.text),
+                            )
+                            .primary(arg_name.span, "the second time")
+                            .help("remove one of them"),
+                        );
+                        continue;
+                    }
+                    if let Some(s) = from_spread[position].take() {
+                        spreads[s].targets.retain(|(_, idx)| *idx != position);
+                    }
+                    let ty = sig.params[position].1.clone();
+                    slots[position] = Some(self.argument(value, &ty, false));
+                    order.push(Slot::Param(position));
+                }
+                ast::Arg::Define { name: def_name, .. } => {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0404",
+                            format!(
+                                "`{fname}` takes no definitions; `{} = ...` defines a column",
+                                def_name.text
+                            ),
+                        )
+                        .primary(def_name.span, "`=` defines, `:` sets an option")
+                        .help(format!("write `{}: ...`; usage: `{usage}`", def_name.text)),
+                    );
+                }
+                ast::Arg::Spread(e) => {
+                    named_seen = true;
+                    let spread = self.expr(e, None);
+                    let spread = self.no_nothing(spread, "spread");
+                    let Ty::Record(fields) = spread.ty.clone() else {
+                        if spread.ty != Ty::Unknown {
+                            self.spread_not_a_record(&spread);
+                        }
+                        continue;
+                    };
+                    let sindex = spreads.len();
+                    let mut targets = Vec::new();
+                    for (field, field_ty) in &fields {
+                        let Some(position) = sig.params.iter().position(|(n, _, _, _)| n == field)
+                        else {
+                            self.report(
+                                Diagnostic::error("Z0404", format!("`{fname}` has no argument called `{field}`, which the spread supplies"))
+                                    .primary(spread.span, format!("supplies `{field}`"))
+                                    .help(format!("usage: `{usage}`")),
+                            );
+                            continue;
+                        };
+                        match (&slots[position], from_spread[position]) {
+                            (Some(_), None) => continue,
+                            (Some(_), Some(_)) => {
+                                self.report(
+                                    Diagnostic::error("Z0405", format!("`{field}` is given twice, by two spreads"))
+                                        .primary(spread.span, format!("supplies `{field}` again"))
+                                        .help(format!("write `{field}:` out to say which value is meant, or spread one record only")),
+                                );
+                                continue;
+                            }
+                            (None, _) => {}
+                        }
+                        let ty = &sig.params[position].1;
+                        if !ty.accepts(field_ty) {
+                            self.report(
+                                Diagnostic::error("Z0401", format!("`{field}` of `{fname}` must be {}, but the spread gives {}", ty.with_article(), field_ty.with_article()))
+                                    .primary(spread.span, format!("`{field}` is {}", field_ty.with_article()))
+                                    .help(format!("usage: `{usage}`")),
+                            );
+                            continue;
+                        }
+                        slots[position] = Some(Expr {
+                            ty: field_ty.clone(),
+                            span: spread.span,
+                            kind: ExprKind::FromSpread {
+                                spread: sindex,
+                                field: field.clone(),
+                            },
+                        });
+                        from_spread[position] = Some(sindex);
+                        targets.push((field.clone(), position));
+                    }
+                    order.push(Slot::Spread(sindex));
+                    spreads.push(Spread {
+                        value: spread,
+                        targets,
+                    });
+                }
+            }
+        }
+        for given in slots.iter_mut().flatten() {
+            if given.ty == Ty::Nothing {
+                let span = given.span;
+                self.report(
+                    Diagnostic::error("Z0206", "this gives no value, so it cannot be passed")
+                        .primary(span, "its type is Nothing")
+                        .help("`print` and the other statements that print or warn return nothing"),
+                );
+                given.ty = Ty::Unknown;
+            }
+        }
+        for (i, (pname, ty, optional, _)) in sig.params.iter().enumerate() {
+            match &slots[i] {
+                None if !optional => {
+                    self.report(
+                        Diagnostic::error("Z0406", format!("`{fname}` needs `{pname}`"))
+                            .primary(callee_span, format!("`{pname}` is missing"))
+                            .help(format!("usage: `{usage}`")),
+                    );
+                }
+                // A project function is not lifted: its parameter types are taken literally
+                // (section 3.7, "Columns and scalars").
+                Some(given) if scalar_type(ty) && matches!(given.ty, Ty::Column(_)) => {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0218",
+                            format!("`{pname}` of `{fname}` takes one value, {}, but this is {}", ty.with_article(), given.ty.with_article()),
+                        )
+                        .primary(given.span, "a column")
+                        .help(format!("declare `{pname}: Column<{ty}>`, or write the expression inside `add`; a project function is not applied row by row")),
+                    );
+                }
+                Some(given) if !ty.accepts(&given.ty) => {
+                    let help = match ty {
+                        Ty::Var => "name a variable of the frame, without quotes".to_string(),
+                        Ty::Vars => {
+                            "name the variables with `vars(a, b)`, or a list inside a frame method"
+                                .to_string()
+                        }
+                        _ => format!("usage: `{usage}`"),
+                    };
+                    self.report(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`{pname}` of `{fname}` must be {}, but this is {}",
+                                ty.with_article(),
+                                given.ty.with_article()
+                            ),
+                        )
+                        .primary(given.span, given.ty.with_article())
+                        .help(help),
+                    );
+                }
+                _ => {}
+            }
+        }
+        Expr {
+            ty: sig.returns.clone(),
+            span,
+            kind: ExprKind::CallFn {
+                function: index,
+                callee_span,
+                args: slots,
+                spreads,
+                order,
+            },
+        }
     }
 
     /// The condition of an `if` (section 5.1): one Bool. A column is refused here with Z0203, as
@@ -1065,11 +1809,12 @@ impl Checker<'_> {
             // binding; which one is known only when the statement runs (section 3.7).
             let binding = self.lookup(&text);
             // With a binding of the name in scope the value may be either, so its type is not
-            // known; without one it is a column.
-            let ty = if binding.is_some() {
-                Ty::Unknown
-            } else {
-                Ty::Column(Box::new(Ty::Unknown))
+            // known; without one it is a column; a binding that holds a `Var` (a parameter or a
+            // loop variable) stands for the column it names (section 6).
+            let ty = match binding {
+                Some(id) if self.bindings[id].ty == Ty::Var => Ty::Column(Box::new(Ty::Unknown)),
+                Some(_) => Ty::Unknown,
+                None => Ty::Column(Box::new(Ty::Unknown)),
             };
             return Expr {
                 ty,
@@ -1129,6 +1874,17 @@ impl Checker<'_> {
         }
         let mut d = Diagnostic::error("Z0101", format!("nothing is called `{text}` here"))
             .primary(span, "not a binding");
+        // Inside a function the script's bindings are out of sight (section 5.3, "Scope").
+        if self.current_function.is_some() && self.hidden_scope.contains(&text) {
+            self.report(
+                Diagnostic::error("Z0101", format!("nothing is called `{text}` here"))
+                    .primary(span, "a binding of the script, hidden from the function")
+                    .help(format!(
+                        "a function sees only its parameters and other functions (section 5.3); pass `{text}` in as an argument"
+                    )),
+            );
+            return Expr::error(span);
+        }
         let candidates: Vec<&str> = self.scope.iter().map(|(n, _)| n.as_str()).collect();
         if let Some(near) = did_you_mean(&text, candidates) {
             d = d.help(format!("did you mean `{near}`?"));
@@ -2006,6 +2762,11 @@ impl Checker<'_> {
                     (a, b) if is_number(a) && is_number(b) => true,
                     (Ty::Str, Ty::Str) | (Ty::Bool, Ty::Bool) => true,
                     (Ty::Date, Ty::Date) | (Ty::DateTime, Ty::DateTime) => true,
+                    // A word (a parameter `effect: d | g` inside a function) compares with text
+                    // by its spelling, as a category compares with text by its label.
+                    (Ty::Words(_), Ty::Str)
+                    | (Ty::Str, Ty::Words(_))
+                    | (Ty::Words(_), Ty::Words(_)) => true,
                     _ => false,
                 };
                 if !same {
@@ -2570,6 +3331,42 @@ impl Checker<'_> {
             _ => self.expr(r, None),
         });
 
+        // A function of the script (section 5.3): by its bare name, when no built-in has it, or
+        // written in full as `functions::name` (section 3.6, "Built-in names").
+        let qualified_project =
+            callee.segments.len() == 2 && callee.segments[0].text == "functions";
+        if let Some(index) = self.signatures.iter().position(|s| s.name == name)
+            && (callee.segments.len() == 1 || qualified_project)
+        {
+            if !qualified_project && !self.registry.named(&name).is_empty() {
+                let package = self.registry.named(&name)[0].spec.package;
+                self.report(
+                    Diagnostic::error(
+                        "Z0109",
+                        format!("`{name}` is both a built-in function and a function of this script"),
+                    )
+                    .primary(callee_span, "which one is meant?")
+                    .help(format!("write it in full: `functions::{name}(...)` for the script's, `{package}::{name}(...)` for the built-in")),
+                );
+                return Expr::error(span);
+            }
+            return self.call_user(index, receiver, args, callee_span, span);
+        }
+        if qualified_project {
+            let mut d = Diagnostic::error(
+                "Z0103",
+                format!("no function of this script is called `{name}`"),
+            )
+            .primary(callee_span, "not a function of the script");
+            let names: Vec<&str> = self.signatures.iter().map(|s| s.name.as_str()).collect();
+            if let Some(near) = did_you_mean(&name, names.iter().copied()) {
+                d = d.help(format!("did you mean `functions::{near}`?"));
+            } else {
+                d = d.help("`functions::` names a function defined with `fn` in this script or, from step 8, in the project's `functions/` folder");
+            }
+            self.report(d);
+            return Expr::error(span);
+        }
         // Find the function: by package when qualified, by the receiver's type for a method, by
         // the name otherwise (one home per name per type, section 8.1, rule 6).
         let homes: Vec<&Registered> = if callee.segments.len() == 2 {
@@ -2681,6 +3478,22 @@ impl Checker<'_> {
         };
         let spec = chosen.spec.clone();
         let (package, fname) = (spec.package.to_string(), spec.name.to_string());
+        // A function's result depends on its arguments alone (section 3.7, "Effects").
+        if self.current_function.is_some() && SCRIPT_ONLY.contains(&fname.as_str()) {
+            let function = self
+                .current_function
+                .map(|id| self.signatures[id].name.clone())
+                .unwrap_or_default();
+            self.report(
+                Diagnostic::error(
+                    "Z0110",
+                    format!("`{fname}` is allowed only in a script, not inside the function `{function}`"),
+                )
+                .primary(callee_span, "reads or writes outside the arguments")
+                .help("a function's result depends on its arguments alone, so it may be cached; import the data in the script and pass the frame in"),
+            );
+            return Expr::error(span);
+        }
 
         // Match the arguments to the parameters (section 3.1, "Calls").
         let params: Vec<(String, Ty, bool)> = spec
@@ -3633,3 +4446,38 @@ const RESERVED_CORE_NAMES: &[&str] = &[
     "power",
     "spec",
 ];
+
+/// A type as written in a signature, for a message.
+fn written_type(ty: &ast::Type) -> String {
+    match &ty.kind {
+        ast::TypeKind::Named { path, args } => {
+            let name = path_text(path);
+            if args.is_empty() {
+                name
+            } else {
+                format!(
+                    "{name}<{}>",
+                    args.iter().map(written_type).collect::<Vec<_>>().join(", ")
+                )
+            }
+        }
+        ast::TypeKind::Nullable(inner) => format!("{}?", written_type(inner)),
+        ast::TypeKind::Words(words) => words
+            .iter()
+            .map(|w| w.text.clone())
+            .collect::<Vec<_>>()
+            .join(" | "),
+        ast::TypeKind::Fn { .. } => "Fn(...)".to_string(),
+        ast::TypeKind::Record(_) => "{...}".to_string(),
+    }
+}
+
+/// FNV-1a over a text's bytes: the same on every target.
+fn fnv1a(text: &str) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in text.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}

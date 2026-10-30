@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0108]: a function may not call itself: `ping` calls `pong`, which calls `ping`
+ --> scripts/main.zeff:2:4
+  |
+2 | fn ping(n: Int) -> Int { pong(n) }
+  |    ^^^^ the cycle starts here
+  |
+  = help: iteration is `for` and `iterate` (section 5.5), so that every script finishes

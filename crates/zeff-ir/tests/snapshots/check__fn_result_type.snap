@@ -1,0 +1,12 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0225]: `label` is declared to return a Str, but its body gives an Int
+ --> scripts/main.zeff:2:27
+  |
+2 | fn label(n: Int) -> Str { n }
+  |                     --- the declared type
+  |                           ^ an Int
+  |
+  = help: the body's last expression gives the declared type; Int is accepted for Float

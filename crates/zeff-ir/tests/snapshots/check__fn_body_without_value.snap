@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0225]: `f` is declared to return an Int, but its body ends without a value
+ --> scripts/main.zeff:2:17
+  |
+2 | fn f(n: Int) -> Int {
+  |                 ^^^ the declared type
+  |
+  = help: end the body with the expression that is the result, or `return` it; a body ending in a `let`, a `for` or an `if` without `else` gives nothing

@@ -870,6 +870,12 @@ fn control_cases() -> Vec<Line> {
             "case",
             "let w = dataset(wages)\nlet reps = if w.n_rows() < 500 { 5000 } else { 1000 }\nreps\nlet b = w.add(band = case { wage < 15 => \"low\", wage < 25 => \"mid\", _ => \"high\" }, k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })\nb.summary([k])\nb.where(case { hours > 40 => true, _ => false }).mean(wage)\ncase { w.n_rows() > 5 => \"big\", _ => \"small\" }\n",
         ),
+        // The functions of step 6: the specification's `share_missing` and `robustness` (with
+        // `cluster:` and no `fe:`), a default evaluated per call and an early `return`.
+        (
+            "share_missing",
+            "let w = dataset(wages)\n/// Share of rows where a variable is missing.\nfn share_missing(data: Frame, var: Var) -> Float {\n    data.where(is_missing(var)).n_rows() / data.n_rows()\n}\n/// Three standard robustness checks for one specification.\nfn robustness(data: Frame, f: Formula, cluster: Var = worker) -> List<RegFit> {\n    [data.reg(f, se: robust), data.reg(f, cluster: cluster), data.where(year >= 2015).reg(f, se: robust)]\n}\n/// Winsorised share.\nfn band(x: Float, top: Float = x * 2) -> Str {\n    if x > top { return \"above\" }\n    \"within\"\n}\nw.share_missing(wage)\nreport(w.robustness(log(wage) ~ educ + exper))\n[band(1), band(3, top: 2)]\n",
+        ),
         // The failed values of step 5: fits that fail inside `attempt`, their printed form,
         // `report` skipping them and a loop that guards on `is(Failed)`.
         (

@@ -62,10 +62,12 @@ pub struct Interpreter<'a> {
     jump: Option<Jump>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 enum Jump {
     Break,
     Continue,
+    /// `return`, carrying the value to the function call it leaves (section 5.3).
+    Return(Value),
 }
 
 /// A frame whose method is being called: the frame as given, which its options see; the frame
@@ -144,7 +146,8 @@ impl<'a> Interpreter<'a> {
                 | Statement::Expr { span, .. }
                 | Statement::For { span, .. }
                 | Statement::Break { span }
-                | Statement::Continue { span } => *span,
+                | Statement::Continue { span }
+                | Statement::Return { span, .. } => *span,
             };
             let line = self.source.line_of(span.start);
             // A failure inside the engine never crashes the run: it is Z9001 at the statement,
@@ -171,8 +174,10 @@ impl<'a> Interpreter<'a> {
                     } => self
                         .run_for(*binding, iter, body, None, &mut printed, &mut messages)
                         .map(|_| ()),
-                    // Outside a loop the parser refuses both (Z0313).
-                    Statement::Break { .. } | Statement::Continue { .. } => Ok(()),
+                    // Outside a loop or a function the parser refuses these (Z0313).
+                    Statement::Break { .. }
+                    | Statement::Continue { .. }
+                    | Statement::Return { .. } => Ok(()),
                 }
             }));
             let result = match evaluation {
@@ -254,6 +259,13 @@ impl<'a> Interpreter<'a> {
                 }
                 Statement::Break { .. } => self.jump = Some(Jump::Break),
                 Statement::Continue { .. } => self.jump = Some(Jump::Continue),
+                Statement::Return { value, .. } => {
+                    let v = match value {
+                        Some(e) => self.eval(e, printed, messages)?,
+                        None => Value::Nothing,
+                    };
+                    self.jump = Some(Jump::Return(v));
+                }
             }
             // A jump leaves the block at once; the loop it belongs to takes it.
             if self.jump.is_some() {
@@ -316,6 +328,11 @@ impl<'a> Interpreter<'a> {
             match self.jump.take() {
                 Some(Jump::Break) => break,
                 Some(Jump::Continue) => continue,
+                // A `return` inside the loop leaves the loop too, on its way to the call.
+                Some(Jump::Return(v)) => {
+                    self.jump = Some(Jump::Return(v));
+                    break;
+                }
                 None => {
                     if let Some(out) = collected.as_deref_mut() {
                         out.push(value);
@@ -684,6 +701,115 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    /// A call of a function the script defines (section 5.3): the arguments evaluated in the
+    /// order written, then bound in parameter order with each default evaluated after the
+    /// parameters before it and `NA` for an optional parameter left out; a column given to a
+    /// scalar parameter is Z0218; the body runs, a `return` leaving it with its value.
+    #[allow(clippy::too_many_arguments)]
+    fn call_user(
+        &mut self,
+        function: zeff_ir::FnId,
+        callee_span: Span,
+        args: &[Option<Expr>],
+        spreads: &[zeff_ir::Spread],
+        order: &[Slot],
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let program = self.program;
+        let f = &program.functions[function];
+        let mut values: Vec<Option<Value>> = vec![None; f.params.len()];
+        for slot in order {
+            match slot {
+                Slot::Param(i) => {
+                    if let Some(expr) = &args[*i] {
+                        values[*i] = Some(self.eval(expr, printed, messages)?);
+                    }
+                }
+                Slot::Spread(i) => {
+                    let spread = &spreads[*i];
+                    let Value::Record(record) = self.eval(&spread.value, printed, messages)? else {
+                        return Err(self
+                            .internal(&spread.value, "a spread of a value that is not a record"));
+                    };
+                    for (field, position) in &spread.targets {
+                        if let Some((_, v)) = record.iter().find(|(n, _)| n == field) {
+                            values[*position] = Some(v.clone());
+                        }
+                    }
+                }
+                Slot::Rest(_) | Slot::Definition(_) => {}
+            }
+        }
+        // The arguments were evaluated where the call stands; from here the function sees its
+        // parameters and other functions only (section 5.3): the frames whose methods enclose
+        // the call are hidden from its defaults and its body, and given back after.
+        let saved = std::mem::take(&mut self.receivers);
+        let result = self.run_user(f, callee_span, args, values, printed, messages);
+        self.receivers = saved;
+        result
+    }
+
+    /// The second half of a call: the parameters bound in order, each default evaluated after
+    /// the parameters before it, then the body.
+    fn run_user(
+        &mut self,
+        f: &zeff_ir::Function,
+        callee_span: Span,
+        args: &[Option<Expr>],
+        mut values: Vec<Option<Value>>,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        for (i, param) in f.params.iter().enumerate() {
+            let value = match values[i].take() {
+                Some(v) => v,
+                None => match &param.default {
+                    Some(default) => self.eval(default, printed, messages)?,
+                    None => Value::Na,
+                },
+            };
+            if let Value::Column(column) = &value
+                && scalar_parameter(&param.ty)
+            {
+                let span = args[i].as_ref().map_or(callee_span, |e| e.span);
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0218",
+                        format!(
+                            "`{}` of `{}` takes one value, {}, but this is a {} column",
+                            param.name,
+                            f.name,
+                            param.ty.with_article(),
+                            column.ty().name()
+                        ),
+                    )
+                    .in_file(self.script)
+                    .primary(span, "a column")
+                    .help(format!(
+                        "declare `{}: Column<{}>`, or write the expression inside `add`; a project function is not applied row by row",
+                        param.name, param.ty
+                    )),
+                ));
+            }
+            if let Value::Failed(failure) = &value {
+                let span = args[i].as_ref().map_or(callee_span, |e| e.span);
+                return Err(self.failed_used(failure, span, "as an argument"));
+            }
+            self.bind(param.binding, value);
+        }
+        let result = self.eval_block(&f.body, printed, messages)?;
+        match self.jump.take() {
+            Some(Jump::Return(value)) => Ok(value),
+            Some(_) => Err(fail(
+                Diagnostic::error("Z9001", "internal error: this is a bug in Zeff, not in your script (a jump left a function)")
+                    .in_file(self.script)
+                    .primary(callee_span, "the call that failed"),
+            )),
+            None => Ok(result),
+        }
+    }
+
     /// Z0220 (section 5.6): a failed value used anywhere but in a list, reporting the failure
     /// it holds.
     fn failed_used(&self, failure: &Failure, span: Span, how: &str) -> Fail {
@@ -737,7 +863,7 @@ impl<'a> Interpreter<'a> {
             ExprKind::Binding(id) => {
                 // A loop variable read inside a frame method, as a variable argument or a
                 // value, clashes with a column of its name (section 3.7, "Name lookup", rule 2).
-                if self.program.bindings[*id].kind == BindingKind::LoopVariable
+                if self.program.bindings[*id].kind != BindingKind::Let
                     && let Some(receiver) = self.receivers.last()
                     && receiver
                         .current()
@@ -750,7 +876,7 @@ impl<'a> Interpreter<'a> {
                     return Err(fail(
                         Diagnostic::error(
                             "Z0106",
-                            format!("`{name}` is both the loop variable and a variable of {frame_name}"),
+                            format!("`{name}` is both a loop variable or parameter and a variable of {frame_name}"),
                         )
                         .in_file(self.script)
                         .primary(expr.span, "which one is meant?")
@@ -918,6 +1044,12 @@ impl<'a> Interpreter<'a> {
                     operators::warnings_of(notes, messages);
                     return Ok(Value::Column(result));
                 }
+                // A word compares with text by its spelling (a parameter `effect: d | g`).
+                let as_text = |v: Value| match v {
+                    Value::Word(w) if op.is_comparison() => Value::Str(w),
+                    other => other,
+                };
+                let (left, right) = (as_text(left), as_text(right));
                 let (value, note) = operators::binary(op, &left, &right)
                     .map_err(|trouble| self.trouble(trouble, expr))?;
                 if let Some(note) = note {
@@ -1062,6 +1194,21 @@ impl<'a> Interpreter<'a> {
             // `attempt(expr)` (section 5.4): a script error becomes a `Failed` value holding the
             // error's code, message and line; an internal error (Z9xxx) stays an error, since it
             // is a bug and not the script's failure. Warnings raised before the failure stay.
+            ExprKind::CallFn {
+                function,
+                callee_span,
+                args,
+                spreads,
+                order,
+            } => self.call_user(
+                *function,
+                *callee_span,
+                args,
+                spreads,
+                order,
+                printed,
+                messages,
+            )?,
             ExprKind::Attempt(inner) => match self.eval(inner, printed, messages) {
                 Ok(value) => value,
                 Err(error) if error.code.starts_with("Z9") => return Err(error),
@@ -1114,14 +1261,14 @@ impl<'a> Interpreter<'a> {
         // (section 3.7, "Name lookup", rule 2): `for y in vars(...)` must never regress a column
         // named `y`.
         if let Some(id) = binding
-            && self.program.bindings[id].kind == BindingKind::LoopVariable
+            && self.program.bindings[id].kind != BindingKind::Let
         {
             if frame.table.column(name).is_some() {
                 let frame_name = frame.shown_name();
                 return Err(fail(
                     Diagnostic::error(
                         "Z0106",
-                        format!("`{name}` is both the loop variable and a variable of {frame_name}"),
+                        format!("`{name}` is both a loop variable or parameter and a variable of {frame_name}"),
                     )
                     .in_file(self.script)
                     .primary(expr.span, "which one is meant?")
@@ -1778,6 +1925,16 @@ fn cell_value(column: &zeff_columns::Column, row: usize) -> Value {
         zeff_columns::Value::Str(s) | zeff_columns::Value::Category(s) => Value::Str(s.to_string()),
         _ => Value::Na,
     }
+}
+
+/// A parameter type that names one row's value, which a column may not stand in for in a
+/// project function (section 3.7, "Columns and scalars").
+fn scalar_parameter(ty: &zeff_ir::Ty) -> bool {
+    use zeff_ir::Ty;
+    matches!(
+        ty,
+        Ty::Bool | Ty::Int | Ty::Float | Ty::Str | Ty::Date | Ty::DateTime
+    )
 }
 
 /// A type's name with its article: `an Int`, `a Float`.

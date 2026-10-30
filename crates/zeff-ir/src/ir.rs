@@ -25,12 +25,52 @@ pub struct Binding {
 pub enum BindingKind {
     Let,
     LoopVariable,
+    /// A parameter of a function, which inside a frame method wins over a column as a loop
+    /// variable does.
+    Parameter,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     pub statements: Vec<Statement>,
     pub bindings: Vec<Binding>,
+    /// The functions the script defines (section 5.3), in the order written.
+    pub functions: Vec<Function>,
+}
+
+/// A function by position in [`Program::functions`].
+pub type FnId = usize;
+
+/// A function defined in a script (Language Reference, section 5.3): typed parameters with
+/// their defaults, a return type, a body that sees its parameters and other functions only, and
+/// the `///` lines above it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Function {
+    pub name: String,
+    pub name_span: Span,
+    pub params: Vec<Param>,
+    pub returns: Ty,
+    pub body: Block,
+    pub span: Span,
+    /// The `///` lines, without their marker, the summary first.
+    pub doc: Vec<String>,
+    /// FNV-1a over the definition's text, identical on every target, for the result cache of
+    /// section 8.3, point 4 (which keys a statement by the functions it reaches); 0 when the
+    /// checker was given no text.
+    pub hash: u64,
+}
+
+/// A parameter of a function: its binding in the body, its type, its default (evaluated at
+/// each call, after the parameters before it), and whether it may be left out (`T?`, `NA` when
+/// absent, or a default).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Param {
+    pub binding: BindingId,
+    pub name: String,
+    pub ty: Ty,
+    pub default: Option<Expr>,
+    pub optional: bool,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -66,6 +106,11 @@ pub enum Statement {
         span: Span,
     },
     Continue {
+        span: Span,
+    },
+    /// `return [expr]`, inside a function (section 5.3; outside one the parser's Z0313).
+    Return {
+        value: Option<Expr>,
         span: Span,
     },
 }
@@ -183,6 +228,16 @@ pub enum ExprKind {
     /// `attempt(expr)` (section 5.4): the expression evaluated under a catch, a script error
     /// becoming a `Failed` value; the type is the expression's.
     Attempt(Box<Expr>),
+    /// A call of a function the script defines (section 5.3): its arguments in parameter order
+    /// (`None` where the default, or `NA` for an optional parameter, applies), the spreads, and
+    /// the order of evaluation as written.
+    CallFn {
+        function: FnId,
+        callee_span: Span,
+        args: Vec<Option<Expr>>,
+        spreads: Vec<Spread>,
+        order: Vec<Slot>,
+    },
     /// A block as a value: the body of a `case` arm written in braces.
     Block(Block),
     /// `if cond { then } else { otherwise }` (section 5.1): without `else` the type is `Nothing`;
