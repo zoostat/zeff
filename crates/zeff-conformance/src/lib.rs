@@ -999,6 +999,29 @@ pub fn selftest() -> Vec<SelftestCase> {
 
 /// The report of this build: a `name digest` line per case in a fixed order, each single-result
 /// case followed by a comment line holding the result's bits.
+/// The engine's start, as a user first meets it: the registry built, a one-line script parsed,
+/// checked and run on an in-memory project. The cold-start measurement (`tools/bundle/measure.cjs`,
+/// risk R4) times this call, not the whole report, whose length grows with every case.
+pub fn start() -> String {
+    use std::path::Path;
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/s/zeff.toml",
+        format!(
+            "[project]\nname = \"s\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let Ok(project) = Project::open(&fs, Path::new("/s")) else {
+        return "the project did not open".to_string();
+    };
+    let outcome = run_script(&fs, &project, "scripts/start.zeff", "print(1 + 1)\n");
+    format!("{}{}", outcome.output.stdout, outcome.output.stderr)
+}
+
 pub fn report() -> String {
     let mut text = String::new();
     for line in all_cases() {
@@ -1035,6 +1058,11 @@ mod tests {
     #[test]
     fn the_report_is_the_same_twice() {
         assert_eq!(report(), report());
+    }
+
+    #[test]
+    fn the_start_prints_two() {
+        assert_eq!(start(), "2\n");
     }
 
     /// The milestone script ran into a check error from 18 October 2026 (a line `-a`, which the

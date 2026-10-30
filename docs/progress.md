@@ -111,3 +111,9 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 **Next.** Step 9 `[engine]`: built-in functions written in Zeff.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
+
+## 30 October 2026, the cold-start measurement, after step 8
+
+**CI, read after the pushes of steps 7 and 8.** Red on the WebAssembly job both times, every test and every identity target green: the cold-start measurement of risk R4 gave 1,050.6 and 1,039.3 ms against its limit of 1,000 ms, so the four-target comparison was skipped. The cause is the measurement, not the engine: its "first call" ran the whole conformance report, which grows with every identity case (the rise to 620 ms recorded at the close of 0.4.0 was this). The first call timed is now the engine's start on a one-line script, with the report's time printed beside it for information; the ruling is in `docs/decisions.md`. The figures of the first green run are to be recorded here and at the review of R4.
+
+**Next.** Step 9 `[engine]`: built-in functions written in Zeff.

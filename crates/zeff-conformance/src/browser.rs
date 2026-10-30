@@ -11,3 +11,10 @@ use wasm_bindgen::prelude::wasm_bindgen;
 pub fn report() -> String {
     crate::report()
 }
+
+/// The engine's start: one small script run on an in-memory project, what the cold-start
+/// measurement of risk R4 times as the first call.
+#[wasm_bindgen]
+pub fn start() -> String {
+    crate::start()
+}

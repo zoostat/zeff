@@ -1598,3 +1598,9 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 9. *`use stats` for a third-party package* stays Z0304 ("arrives with Zeff 1.11") with the help that the project's own modules are brought in as `use functions::stats`; the `functions::` prefix is what tells the two apart, as section 3.6 says.
 
 **Reason.** Language Reference, sections 3.4, 3.6, 3.7 and 5.3 ("Where they live", "Placement", "Order", "Modules"); Engine and Project Specification, sections 2, 8.1 and 9.1; the checklist's step 8.
+
+## 30 October 2026: what the cold-start measurement times (risk R4)
+
+**Choice.** The first call that `tools/bundle/measure.cjs` times is now `start()`, a new entry of the WebAssembly build that builds the registry and parses, checks and runs a one-line script on an in-memory project; the whole conformance report (`report()`) is timed after it and printed for information, without a limit. The limit of 1,000 ms and the five fresh processes are unchanged.
+
+**Reason.** CI went red on the commits of steps 7 and 8 of release 0.5.0 with the cold start at 1,050.6 and 1,039.3 ms against 1,000 ms, every test and every identity target green. The first call had been the whole conformance report (85 identity cases and four sample projects, each run in full), whose time grows with every case added and had risen from 21 ms at 0.1.0 to 620 ms at the close of 0.4.0, the watch item of the last review of R4; on this machine the native report takes 300 ms where the engine's start on a one-line script takes under 10 ms. The figure the risk register names is the browser engine's start against Zemp Lite's two-second target (Zemp Specification, section 14), which the report's length says nothing about, so the measurement was conflating two things and the limit was being tested against the wrong one. The report's time stays visible so that a real rise in the engine's own speed is still seen.

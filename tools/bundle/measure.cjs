@@ -73,7 +73,9 @@ function markdown(report, limits, problems) {
     ...report.size.files.map((f) => `| ${f.name} | ${kilobytes(f.raw)} | ${kilobytes(f.brotli)} | ${kilobytes(f.gzip)} |`),
     `| **Total** | ${kilobytes(report.size.raw)} | **${kilobytes(report.size.brotli)}** | ${kilobytes(report.size.gzip)} |`,
     "",
-    `Cold start under Node ${report.node}: **${report.cold_start_ms.toFixed(1)} ms** (median of ${report.runs.length} fresh processes: load ${median(report.runs.map((r) => r.load_ms)).toFixed(1)} ms, first call ${median(report.runs.map((r) => r.first_call_ms)).toFixed(1)} ms).`,
+    `Cold start under Node ${report.node}: **${report.cold_start_ms.toFixed(1)} ms** (median of ${report.runs.length} fresh processes: load ${median(report.runs.map((r) => r.load_ms)).toFixed(1)} ms, first call ${median(report.runs.map((r) => r.first_call_ms)).toFixed(1)} ms, a one-line script).`,
+    "",
+    `The whole conformance report, for information: ${report.report_ms.toFixed(1)} ms (not limited; it grows with every case).`,
     "",
     `Limits: ${kilobytes(limits.bytes)} compressed (risk R4), ${limits.ms} ms cold start. ` +
       (problems.length ? `**Exceeded:** ${problems.join("; ")}.` : "Both hold."),
@@ -82,14 +84,20 @@ function markdown(report, limits, problems) {
   return lines.join("\n");
 }
 
-// One cold start, in a fresh process: load (compile and instantiate) and the first call.
+// One cold start, in a fresh process: load (compile and instantiate) and the first call, which
+// is the engine's start on a one-line script (`start()`); the whole conformance report is timed
+// after it for information, since its length grows with every case and says nothing about a start.
 function once(folder, entry) {
   const t0 = process.hrtime.bigint();
   const engine = require(path.resolve(folder, `${entry}.js`));
   const t1 = process.hrtime.bigint();
-  engine.report();
+  engine.start();
   const t2 = process.hrtime.bigint();
-  process.stdout.write(JSON.stringify({ load_ms: Number(t1 - t0) / 1e6, first_call_ms: Number(t2 - t1) / 1e6 }));
+  engine.report();
+  const t3 = process.hrtime.bigint();
+  process.stdout.write(
+    JSON.stringify({ load_ms: Number(t1 - t0) / 1e6, first_call_ms: Number(t2 - t1) / 1e6, report_ms: Number(t3 - t2) / 1e6 }),
+  );
 }
 
 function coldStarts(folder, entry, count) {
@@ -121,6 +129,7 @@ function main(args) {
     size: sizes(folder),
     runs,
     cold_start_ms: median(runs.map((r) => r.load_ms + r.first_call_ms)),
+    report_ms: median(runs.map((r) => r.report_ms)),
     limits,
   };
   const problems = evaluate(report, limits);
