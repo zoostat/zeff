@@ -7,7 +7,7 @@ pub mod ty;
 pub use check::check_with_text;
 pub use check::{Checked, check, check_source};
 pub use ir::{
-    Binding, BindingId, BindingKind, Call, Expr, ExprKind, FnId, Function, Param, Program,
-    RecordField, Slot, Spread, Statement,
+    Binding, BindingId, BindingKind, Call, Expr, ExprKind, FnId, Function, FunctionValue, Param,
+    Program, RecordField, Slot, Spread, Statement,
 };
 pub use ty::{ResultKind, Ty};

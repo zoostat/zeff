@@ -238,7 +238,7 @@ error[Z0401]: `export` cannot be called on a Frame
 3 | wages.export("output/x.docx")
   | ^^^^^ this is a Frame
   |
-  = help: `export` is a method of Table | Result
+  = help: `export` takes a Table or Result first; `x.export(...)` is `export(x, ...)`
 [exit 1]
 
 > let wages = dataset(wages)

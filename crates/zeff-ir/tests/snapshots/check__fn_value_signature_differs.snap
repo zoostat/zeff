@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0205]: `half` has the signature `Fn(Float) -> Float`, but `Fn(Int) -> Int` is needed here
+ --> scripts/main.zeff:5:7
+  |
+5 | apply(half, 5)
+  |       ^^^^ `Fn(Float) -> Float`
+  |
+  = help: a function passed as a value matches the parameter types and the return type exactly, defaults ignored; write a function with that signature

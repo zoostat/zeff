@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0404]: `f` is a function value and takes positional arguments only, not named
+ --> scripts/main.zeff:2:43
+  |
+2 | fn named(f: Fn(Int) -> Int) -> Int { f(1, x: 2) }
+  |                                           ^ not positional
+  |
+  = help: a function type names its parameters' types, not their names, so arguments are given in order

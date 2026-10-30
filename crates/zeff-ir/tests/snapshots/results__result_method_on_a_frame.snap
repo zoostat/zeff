@@ -8,4 +8,4 @@ error[Z0401]: `r_squared` cannot be called on a Frame
 2 | wages.r_squared()
   | ^^^^^ this is a Frame
   |
-  = help: `r_squared` is a method of RegFit
+  = help: `r_squared` takes a RegFit first; `x.r_squared(...)` is `r_squared(x, ...)`

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0401]: `import` cannot be called on an Int
+ --> scripts/main.zeff:2:1
+  |
+2 | n.import()
+  | ^ this is an Int
+  |
+  = help: `import` takes a Str first; `x.import(...)` is `import(x, ...)`

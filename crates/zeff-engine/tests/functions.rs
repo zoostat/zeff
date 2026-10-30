@@ -418,10 +418,6 @@ fn every_message_of_functions() {
             "script_binding_in_body",
             "let k = 2\n/// Uses the script.\nfn f(x: Int) -> Int { x * k }\n",
         ),
-        (
-            "fn_type_not_yet",
-            "/// Applies.\nfn apply(f: Fn(Int) -> Int, x: Int) -> Int { x }\n",
-        ),
     ];
     let mut all = String::new();
     for (name, script) in cases {

@@ -64,6 +64,10 @@ pub enum Ty {
     /// A failure kept as a value by `attempt` (section 4, "Failure"): the static type of nothing
     /// the checker sees, since `attempt(e)` has `e`'s type, but a name in `x.is(Failed)`.
     Failed,
+    /// A function value, `Fn(T1, T2) -> R` (section 3.7, "Functions as values"): the parameter
+    /// types, whether a trailing `..` accepts further parameters (checked at each call against
+    /// the record that supplies them, as `iterate`'s `args:`), and the return type.
+    Fn(Vec<Ty>, bool, Box<Ty>),
     /// The type of a call that returns no value; it cannot be bound or passed.
     Nothing,
     /// Any value at all (`print`).
@@ -107,6 +111,23 @@ impl Ty {
         }
         if let Some(inner) = text.strip_prefix("Term<").and_then(|t| t.strip_suffix('>')) {
             return Ty::parse(inner).map(|t| Ty::TermExpr(Box::new(t)));
+        }
+        // `Fn(T1, T2, ..) -> R`
+        if let Some(rest) = text.strip_prefix("Fn(") {
+            let close = rest.find(')')?;
+            let inside = &rest[..close];
+            let after = rest[close + 1..].trim();
+            let ret = after.strip_prefix("->")?.trim();
+            let mut params = Vec::new();
+            let mut dots = false;
+            for part in inside.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+                if part == ".." {
+                    dots = true;
+                } else {
+                    params.push(Ty::parse(part)?);
+                }
+            }
+            return Some(Ty::Fn(params, dots, Box::new(Ty::parse(ret)?)));
         }
         if let Some(inner) = text
             .strip_prefix("Mapping<")
@@ -195,6 +216,18 @@ impl Ty {
             (Ty::Result(None), Ty::Result(_)) => true,
             (Ty::Term, Ty::Str) => true,
             (Ty::AnyRecord, Ty::Record(_) | Ty::AnyRecord) => true,
+            // A function value matches a function type exactly, parameter by parameter and in
+            // its return type, defaults ignored (section 3.7); a trailing `..` takes any further
+            // parameters, which the call that supplies them checks.
+            (Ty::Fn(want, dots, ret), Ty::Fn(have, _, gives)) => {
+                ret == gives
+                    && (if *dots {
+                        have.len() >= want.len()
+                    } else {
+                        have.len() == want.len()
+                    })
+                    && want.iter().zip(have).all(|(w, h)| w == h)
+            }
             // A word kept in a record, `{se: robust}`, has the type of that one word.
             (Ty::Words(allowed), Ty::Words(given)) => given.iter().all(|w| allowed.contains(w)),
             (Ty::Column(a), Ty::Column(b))
@@ -276,6 +309,13 @@ impl fmt::Display for Ty {
             Ty::Term => write!(f, "Term"),
             Ty::TermExpr(inner) => write!(f, "Term<{inner}>"),
             Ty::Failed => write!(f, "Failed"),
+            Ty::Fn(params, dots, ret) => {
+                let mut parts: Vec<String> = params.iter().map(ToString::to_string).collect();
+                if *dots {
+                    parts.push("..".to_string());
+                }
+                write!(f, "Fn({}) -> {ret}", parts.join(", "))
+            }
             Ty::Nothing => write!(f, "Nothing"),
             Ty::Any => write!(f, "Any"),
             Ty::Var => write!(f, "Var"),

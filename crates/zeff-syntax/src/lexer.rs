@@ -330,6 +330,16 @@ impl<'a> Lexer<'a> {
                     scan_digits(bytes, &mut p, &mut digits, &mut problem);
                 }
                 Some(b'.') => {} // `2..5`: the dots belong to the range
+                // `5.abs()`: the dot is a method call's (section 3.1, "Methods"), unless it
+                // starts an exponent without digits before it, `5.e3`, which is a broken number.
+                Some(b)
+                    if b.is_ascii_alphabetic() && {
+                        let mut q = p + 2;
+                        if matches!(bytes.get(q), Some(b'+' | b'-')) {
+                            q += 1;
+                        }
+                        !(matches!(b, b'e' | b'E') && bytes.get(q).is_some_and(u8::is_ascii_digit))
+                    } => {}
                 _ => {
                     problem.get_or_insert(Problem::TrailingDot);
                     p += 1;

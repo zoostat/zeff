@@ -7,7 +7,7 @@
 
 use crate::ir::{
     Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, FnId, Formula, Function,
-    Param, Program, RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
+    FunctionValue, Param, Program, RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
 };
 use crate::ty::{ResultKind, Ty};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
@@ -776,14 +776,10 @@ impl Checker<'_> {
                 ),
                 false,
             ),
-            ast::TypeKind::Fn { .. } => {
-                self.not_yet(
-                    ty.span,
-                    "a function type",
-                    "0.5.0",
-                    "function values arrive with step 7 of release 0.5.0",
-                );
-                (Ty::Unknown, false)
+            ast::TypeKind::Fn { params, rest, ret } => {
+                let params: Vec<Ty> = params.iter().map(|p| self.lower_type(p).0).collect();
+                let ret = self.lower_type(ret).0;
+                (Ty::Fn(params, *rest, Box::new(ret)), false)
             }
             ast::TypeKind::Named { path, args } => {
                 let name = path.segments.last().map(|s| s.text.as_str()).unwrap_or("");
@@ -1668,6 +1664,13 @@ impl Checker<'_> {
             return Expr::error(span);
         }
         let text = path.segments[0].text.clone();
+        // Where a parameter takes a function, a bare name is a function of the script or a
+        // built-in one (section 3.7, "Functions as values").
+        if let Some(Ty::Fn(..)) = expected
+            && self.lookup(&text).is_none()
+        {
+            return self.function_value(&text, span, expected.unwrap());
+        }
         // A binding holding a `Var` or `Vars` stands for the variables it names (section 6,
         // "Names inside a frame's methods"): a loop variable over `vars(...)`.
         if accepts_var_value(expected)
@@ -3250,6 +3253,237 @@ impl Checker<'_> {
         }
     }
 
+    /// A named function where a parameter of type `Fn(...) -> R` takes one (section 3.7,
+    /// "Functions as values"; section 5.3, "Values"): the script's function of that name, else
+    /// the built-in; its signature must match the parameter's type exactly, defaults ignored
+    /// (Z0205 listing both).
+    fn function_value(&mut self, name: &str, span: Span, expected: &Ty) -> Expr {
+        let script = self.signatures.iter().position(|s| s.name == name);
+        let built_in: Vec<&Registered> = self.registry.named(name);
+        let (value, actual) = match (script, built_in.first()) {
+            (Some(index), Some(_)) => {
+                self.report(
+                    Diagnostic::error(
+                        "Z0109",
+                        format!("`{name}` is both a built-in function and a function of this script"),
+                    )
+                    .primary(span, "which one is meant?")
+                    .help("rename the script's function; a function passed as a value is written by its bare name"),
+                );
+                let _ = index;
+                return Expr::error(span);
+            }
+            (Some(index), None) => {
+                let sig = &self.signatures[index];
+                let params: Vec<Ty> = sig.params.iter().map(|(_, ty, _, _)| ty.clone()).collect();
+                let signature = format!(
+                    "fn {}({}) -> {}",
+                    sig.name,
+                    sig.params
+                        .iter()
+                        .map(|(n, ty, optional, _)| if *optional {
+                            format!("{n}: {ty} = …")
+                        } else {
+                            format!("{n}: {ty}")
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    sig.returns
+                );
+                (
+                    FunctionValue {
+                        package: None,
+                        name: sig.name.clone(),
+                        script: Some(index),
+                        arity: sig.params.len(),
+                        rest: false,
+                        signature,
+                    },
+                    Ty::Fn(params, false, Box::new(sig.returns.clone())),
+                )
+            }
+            // A built-in is read at the argument types the parameter names: `abs` takes an Int
+            // or a Float and gives a `Number`, so it is `Fn(Float) -> Float` where that is
+            // wanted and `Fn(Int) -> Int` where that is.
+            (None, Some(f)) => {
+                let Ty::Fn(want, dots, _) = expected else {
+                    return Expr::error(span);
+                };
+                let declared: Vec<Ty> = f
+                    .spec
+                    .params
+                    .iter()
+                    .map(|p| Ty::parse(p.ty).unwrap_or(Ty::Unknown))
+                    .collect();
+                let rest = matches!(f.spec.rest, Some(Rest::Values(_)));
+                let count_fits = want.len() == declared.len()
+                    || (rest && want.len() >= declared.len())
+                    || (*dots && declared.len() >= want.len());
+                let fits = count_fits && want.iter().zip(&declared).all(|(w, d)| d.accepts(w));
+                let returns = match f.spec.returns {
+                    "Number" => {
+                        if want.contains(&Ty::Float) {
+                            Ty::Float
+                        } else {
+                            Ty::Int
+                        }
+                    }
+                    other => Ty::parse(other).unwrap_or(Ty::Unknown),
+                };
+                let params = if fits { want.clone() } else { declared };
+                (
+                    FunctionValue {
+                        package: Some(f.spec.package.to_string()),
+                        name: f.spec.name.to_string(),
+                        script: None,
+                        arity: f.spec.params.len(),
+                        rest,
+                        signature: f.spec.usage(),
+                    },
+                    Ty::Fn(params, rest, Box::new(returns)),
+                )
+            }
+            (None, None) => {
+                self.report(
+                    Diagnostic::error("Z0103", format!("no function is called `{name}`"))
+                        .primary(span, "not a function")
+                        .help(format!("a parameter of type `{expected}` takes the bare name of a function with that signature")),
+                );
+                return Expr::error(span);
+            }
+        };
+        if !expected.accepts(&actual) {
+            self.report(
+                Diagnostic::error(
+                    "Z0205",
+                    format!("`{name}` has the signature `{actual}`, but `{expected}` is needed here"),
+                )
+                .primary(span, format!("`{actual}`"))
+                .help("a function passed as a value matches the parameter types and the return type exactly, defaults ignored; write a function with that signature"),
+            );
+            return Expr::error(span);
+        }
+        Expr {
+            ty: actual,
+            span,
+            kind: ExprKind::FunctionValue(value),
+        }
+    }
+
+    /// A call through a binding of function type: positional arguments, as many as the type's
+    /// parameters (more when it ends in `..`), each of the parameter's type.
+    fn call_value(
+        &mut self,
+        id: BindingId,
+        args: &[ast::Arg],
+        callee_span: Span,
+        span: Span,
+    ) -> Expr {
+        let Ty::Fn(params, rest, returns) = self.bindings[id].ty.clone() else {
+            return Expr::error(span);
+        };
+        let name = self.bindings[id].name.clone();
+        let mut lowered = Vec::new();
+        for (i, arg) in args.iter().enumerate() {
+            match arg {
+                ast::Arg::Positional(e) => {
+                    let ty = params.get(i).cloned().unwrap_or(Ty::Any);
+                    if i >= params.len() && !rest {
+                        self.report(
+                            Diagnostic::error(
+                                "Z0407",
+                                format!(
+                                    "`{name}` takes {} {}, but more were given",
+                                    params.len(),
+                                    if params.len() == 1 {
+                                        "argument"
+                                    } else {
+                                        "arguments"
+                                    }
+                                ),
+                            )
+                            .primary(e.span, "one too many")
+                            .help(format!("`{name}` is a `{}`", self.bindings[id].ty)),
+                        );
+                        continue;
+                    }
+                    let given = self.argument(e, &ty, false);
+                    let given = self.no_nothing(given, "passed");
+                    if !ty.accepts(&given.ty) {
+                        self.report(
+                            Diagnostic::error(
+                                "Z0401",
+                                format!(
+                                    "argument {} of `{name}` must be {}, but this is {}",
+                                    i + 1,
+                                    ty.with_article(),
+                                    given.ty.with_article()
+                                ),
+                            )
+                            .primary(given.span, given.ty.with_article())
+                            .help(format!("`{name}` is a `{}`", self.bindings[id].ty)),
+                        );
+                    }
+                    lowered.push(given);
+                }
+                other => {
+                    let (what, sp) = match other {
+                        ast::Arg::Named { name: n, .. } => ("named", n.span),
+                        ast::Arg::Define { name: n, .. } => ("a definition", n.span),
+                        ast::Arg::Spread(e) => ("a spread", e.span),
+                        ast::Arg::Positional(e) => ("positional", e.span),
+                    };
+                    self.report(
+                        Diagnostic::error(
+                            "Z0404",
+                            format!("`{name}` is a function value and takes positional arguments only, not {what}"),
+                        )
+                        .primary(sp, "not positional")
+                        .help("a function type names its parameters' types, not their names, so arguments are given in order"),
+                    );
+                }
+            }
+        }
+        if lowered.len() < params.len() {
+            self.report(
+                Diagnostic::error(
+                    "Z0406",
+                    format!(
+                        "`{name}` needs {} {}, but {} given",
+                        params.len(),
+                        if params.len() == 1 {
+                            "argument"
+                        } else {
+                            "arguments"
+                        },
+                        if lowered.len() == 1 {
+                            "1 was".to_string()
+                        } else {
+                            format!("{} were", lowered.len())
+                        }
+                    ),
+                )
+                .primary(
+                    callee_span,
+                    format!("`{name}` is a `{}`", self.bindings[id].ty),
+                )
+                .help("give every argument the function type names"),
+            );
+        }
+        Expr {
+            ty: (*returns).clone(),
+            span,
+            kind: ExprKind::CallValue {
+                callee: Box::new(Expr {
+                    ty: self.bindings[id].ty.clone(),
+                    span: callee_span,
+                    kind: ExprKind::Binding(id),
+                }),
+                args: lowered,
+            },
+        }
+    }
+
     /// Z0401: a spread needs a record whose fields are known.
     fn spread_not_a_record(&mut self, spread: &Expr) {
         let what = if spread.ty == Ty::AnyRecord {
@@ -3331,6 +3565,15 @@ impl Checker<'_> {
             _ => self.expr(r, None),
         });
 
+        // A binding that holds a function value (a parameter typed `Fn`) is called with
+        // positional arguments, in the order of its type's parameters.
+        if callee.segments.len() == 1
+            && receiver.is_none()
+            && let Some(id) = self.lookup(&name)
+            && matches!(self.bindings[id].ty, Ty::Fn(..))
+        {
+            return self.call_value(id, args, callee_span, span);
+        }
         // A function of the script (section 5.3): by its bare name, when no built-in has it, or
         // written in full as `functions::name` (section 3.6, "Built-in names").
         let qualified_project =
@@ -3407,15 +3650,23 @@ impl Checker<'_> {
         }
         let chosen: &Registered = match &receiver {
             Some(r) => {
+                // `x.f(a)` is `f(x, a)` for every function (section 3.1, "Methods"): the one whose
+                // first parameter takes the receiver, or takes each row of it when the function
+                // is a scalar one of `core` (section 3.7, "Columns and scalars").
                 let fits: Vec<&&Registered> = homes
                     .iter()
                     .filter(|f| {
-                        f.spec.method
-                            && f.spec
-                                .params
-                                .first()
-                                .and_then(|p| Ty::parse(p.ty))
-                                .is_some_and(|t| t.accepts(&r.ty))
+                        f.spec
+                            .params
+                            .first()
+                            .and_then(|p| Ty::parse(p.ty))
+                            .is_some_and(|t| {
+                                t.accepts(&r.ty)
+                                    || (f.spec.package == "core"
+                                        && !f.spec.method
+                                        && scalar_type(&t)
+                                        && matches!(&r.ty, Ty::Column(inner) if t.accepts(inner)))
+                            })
                     })
                     .collect();
                 match fits.first() {
@@ -3425,7 +3676,7 @@ impl Checker<'_> {
                         let takes = homes
                             .iter()
                             .filter_map(|f| f.spec.params.first())
-                            .map(|p| p.ty.to_string())
+                            .map(|p| Ty::parse(p.ty).map_or(p.ty.to_string(), |t| t.with_article()))
                             .collect::<Vec<_>>()
                             .join(" or ");
                         let on_a_kind = homes.iter().any(|f| {
@@ -3440,10 +3691,10 @@ impl Checker<'_> {
                             format!(
                                 "`{name}` is a method of {takes}; this value may be any kind of result, so bind the fit under its own name and call `{name}` on that"
                             )
-                        } else if homes.iter().any(|f| f.spec.method) {
-                            format!("`{name}` is a method of {takes}")
                         } else {
-                            format!("`{name}` is not a method; call it as `{name}(...)`")
+                            format!(
+                                "`{name}` takes {takes} first; `x.{name}(...)` is `{name}(x, ...)`"
+                            )
                         };
                         self.report(
                             Diagnostic::error(

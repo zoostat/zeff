@@ -8,7 +8,7 @@ error[Z0401]: `head` cannot be called on a RegFit
 3 | m.head(3)
   | ^ this is a RegFit
   |
-  = help: `head` is a method of Frame
+  = help: `head` takes a Frame first; `x.head(...)` is `head(x, ...)`
 
 error[Z0208]: `==` is not defined for a RegFit
  --> scripts/main.zeff:3:1
@@ -32,4 +32,4 @@ error[Z0401]: `mean` cannot be called on a RegFit
 3 | m.mean(wage)
   | ^ this is a RegFit
   |
-  = help: `mean` is a method of Frame
+  = help: `mean` takes a Frame first; `x.mean(...)` is `mean(x, ...)`

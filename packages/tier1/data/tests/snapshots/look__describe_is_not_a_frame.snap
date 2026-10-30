@@ -8,4 +8,4 @@ error[Z0401]: `mean` cannot be called on a Table
 2 | d.describe().mean(x)
   | ^^^^^^^^^^^^ this is a Table
   |
-  = help: `mean` is a method of Frame
+  = help: `mean` takes a Frame first; `x.mean(...)` is `mean(x, ...)`

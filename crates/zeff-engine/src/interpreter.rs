@@ -9,7 +9,7 @@ use zeff_core::display::{PAGE_WIDTH, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
 use zeff_core::value::{
-    Failure, Formula as FormulaValue, Frame, Term as TermValue, TypeValue, Value,
+    Failure, Formula as FormulaValue, Frame, FunctionValue, Term as TermValue, TypeValue, Value,
 };
 use zeff_diagnostics::{Diagnostic, Source, Span, did_you_mean};
 use zeff_ir::BindingKind;
@@ -810,6 +810,54 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    /// A built-in's body run with evaluated arguments, in parameter order, for a call through a
+    /// function value; the context is the one a written call gets, without lifting.
+    #[allow(clippy::too_many_arguments)]
+    fn invoke_builtin(
+        &mut self,
+        package: &str,
+        name: &str,
+        values: Vec<Option<Value>>,
+        rest: Vec<Value>,
+        callee_span: Span,
+        arg_spans: Vec<Option<Span>>,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let Some(body) = self.bodies.get(&(package.to_string(), name.to_string())) else {
+            return Err(fail(
+                Diagnostic::error("Z9001", format!("internal error: this is a bug in Zeff, not in your script (`{package}::{name}` has no body)"))
+                    .in_file(self.script)
+                    .primary(callee_span, "the call that failed"),
+            ));
+        };
+        let enclosing = self.receivers.last().map(|r| r.current().clone());
+        let rest_spans = vec![callee_span; rest.len()];
+        let mut ctx = CallContext {
+            files: self.files,
+            script: self.script,
+            text: self.source.text(),
+            columns_used: Vec::new(),
+            frame: enclosing,
+            callee_span,
+            arg_spans,
+            rest_spans,
+            definition_spans: Vec::new(),
+            output: printed,
+            messages,
+            random: &mut self.random,
+            statement: self.statement,
+        };
+        body(
+            &mut ctx,
+            Args {
+                values,
+                rest,
+                definitions: Vec::new(),
+            },
+        )
+    }
+
     /// Z0220 (section 5.6): a failed value used anywhere but in a list, reporting the failure
     /// it holds.
     fn failed_used(&self, failure: &Failure, span: Span, how: &str) -> Fail {
@@ -1209,6 +1257,61 @@ impl<'a> Interpreter<'a> {
                 printed,
                 messages,
             )?,
+            ExprKind::FunctionValue(f) => Value::Function(FunctionValue {
+                package: f.package.clone(),
+                name: f.name.clone(),
+                script: f.script,
+                arity: f.arity,
+                rest: f.rest,
+                signature: f.signature.clone(),
+            }),
+            // A call through a function value (section 3.7, "Functions as values"): a function
+            // of the script runs as a call of it; a built-in runs its body with the arguments in
+            // parameter order.
+            ExprKind::CallValue { callee, args } => {
+                let Value::Function(function) = self.eval(callee, printed, messages)? else {
+                    return Err(
+                        self.internal(callee, "a call through a value that is not a function")
+                    );
+                };
+                match function.script {
+                    Some(index) => {
+                        let count = self.program.functions[index].params.len();
+                        let mut slots: Vec<Option<Expr>> = args.iter().cloned().map(Some).collect();
+                        slots.resize(count, None);
+                        let order: Vec<Slot> =
+                            (0..args.len().min(count)).map(Slot::Param).collect();
+                        self.call_user(index, callee.span, &slots, &[], &order, printed, messages)?
+                    }
+                    None => {
+                        let package = function.package.clone().unwrap_or_default();
+                        let mut values: Vec<Option<Value>> = Vec::with_capacity(function.arity);
+                        let mut rest: Vec<Value> = Vec::new();
+                        let mut spans: Vec<Option<Span>> = Vec::new();
+                        for (i, arg) in args.iter().enumerate() {
+                            let v = self.eval(arg, printed, messages)?;
+                            if i < function.arity {
+                                values.push(Some(v));
+                                spans.push(Some(arg.span));
+                            } else {
+                                rest.push(v);
+                            }
+                        }
+                        values.resize(function.arity, None);
+                        spans.resize(function.arity, None);
+                        self.invoke_builtin(
+                            &package,
+                            &function.name,
+                            values,
+                            rest,
+                            callee.span,
+                            spans,
+                            printed,
+                            messages,
+                        )?
+                    }
+                }
+            }
             ExprKind::Attempt(inner) => match self.eval(inner, printed, messages) {
                 Ok(value) => value,
                 Err(error) if error.code.starts_with("Z9") => return Err(error),

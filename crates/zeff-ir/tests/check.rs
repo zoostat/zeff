@@ -718,6 +718,19 @@ fn messages() {
             "fn_result_type",
             "/// Text.\nfn label(n: Int) -> Str { n }\n",
         ),
+        ("method_on_wrong_first_type", "let n = 5\nn.import()\n"),
+        (
+            "fn_value_signature_differs",
+            "/// Applies.\nfn apply(f: Fn(Int) -> Int, x: Int) -> Int { f(x) }\n/// Halves.\nfn half(x: Float) -> Float { x / 2 }\napply(half, 5)\n",
+        ),
+        (
+            "fn_value_not_a_function",
+            "/// Applies.\nfn apply(f: Fn(Int) -> Int, x: Int) -> Int { f(x) }\napply(5, 1)\n",
+        ),
+        (
+            "fn_value_named_argument",
+            "/// Named.\nfn named(f: Fn(Int) -> Int) -> Int { f(1, x: 2) }\n",
+        ),
         (
             "fn_body_without_value",
             "/// Let.\nfn f(n: Int) -> Int {\n    let k = n\n}\n",
@@ -855,6 +868,16 @@ fn expressions_have_the_types_of_section_3_7() {
         (
             "/// Doubles.\nfn double(x: Float) -> Float { x * 2 }\nlet v = double(2)",
             "Float",
+        ),
+        ("let w = import(\"d.csv\")\nlet v = n_rows(w)", "Int"),
+        ("let v = import(\"d.csv\").n_rows()", "Int"),
+        (
+            "/// Applies.\nfn apply(f: Fn(Int) -> Int, x: Int) -> Int { f(x) }\n/// Doubles.\nfn double(x: Int) -> Int { x * 2 }\nlet v = apply(double, 5)",
+            "Int",
+        ),
+        (
+            "/// Rest.\nfn rest(f: Fn(Any, ..) -> Nothing) -> Int {\n    f(1, 2, 3)\n    3\n}\nlet v = rest(print)",
+            "Int",
         ),
         (
             "/// Adds.\nfn add(a: Int, b: Int = a) -> Int { a + b }\nlet v = add(1)",
@@ -1007,11 +1030,28 @@ fn the_codes_of_expressions() {
         ),
         ("/// Twice.\nfn f(x: Int, x: Int) -> Int { x }\n", "Z0405"),
         ("/// Default.\nfn f(x: Int = \"a\") -> Int { x }\n", "Z0401"),
-        (
-            "/// Fn.\nfn apply(f: Fn(Int) -> Int) -> Int { 1 }\n",
-            "Z0304",
-        ),
         ("functions::nope(1)\n", "Z0103"),
+        (
+            "/// Applies.\nfn apply(f: Fn(Int) -> Int, x: Int) -> Int { f(x) }\n/// Halves.\nfn half(x: Float) -> Float { x / 2 }\napply(half, 5)\n",
+            "Z0205",
+        ),
+        (
+            "/// Applies.\nfn apply(f: Fn(Int) -> Int, x: Int) -> Int { f(x) }\napply(5, 1)\n",
+            "Z0401",
+        ),
+        (
+            "/// Applies.\nfn apply(f: Fn(Int) -> Int, x: Int) -> Int { f(x) }\napply(nope, 1)\n",
+            "Z0103",
+        ),
+        (
+            "/// Two.\nfn two(f: Fn(Int) -> Int) -> Int { f(1, 2) }\n",
+            "Z0407",
+        ),
+        (
+            "/// Named.\nfn named(f: Fn(Int) -> Int) -> Int { f(1, x: 2) }\n",
+            "Z0404",
+        ),
+        ("let n = 5\nn.import()\n", "Z0401"),
     ];
     for (text, code) in cases {
         let found = codes(text);

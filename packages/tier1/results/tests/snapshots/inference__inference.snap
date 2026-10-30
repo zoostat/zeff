@@ -556,7 +556,7 @@ error[Z0401]: `test` cannot be called on a Frame
 1 | dataset(wages).test(educ == 0)
   | ^^^^^^^^^^^^^^ this is a Frame
   |
-  = help: `test` is a method of Result
+  = help: `test` takes a Result first; `x.test(...)` is `test(x, ...)`
 [exit 1]
 
 > dataset(wages).derive(r = educ)
@@ -567,5 +567,5 @@ error[Z0401]: `derive` cannot be called on a Frame
 1 | dataset(wages).derive(r = educ)
   | ^^^^^^^^^^^^^^ this is a Frame
   |
-  = help: `derive` is a method of Result
+  = help: `derive` takes a Result first; `x.derive(...)` is `derive(x, ...)`
 [exit 1]

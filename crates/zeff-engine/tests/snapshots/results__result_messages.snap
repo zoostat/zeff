@@ -48,7 +48,7 @@ error[Z0401]: `r_squared` cannot be called on a TestResult
 4 | t.r_squared()
   | ^ this is a TestResult
   |
-  = help: `r_squared` is a method of RegFit
+  = help: `r_squared` takes a RegFit first; `x.r_squared(...)` is `r_squared(x, ...)`
 
 error[Z0401]: `r_squared` cannot be called on a Result
  --> scripts/main.zeff:4:1
@@ -56,7 +56,7 @@ error[Z0401]: `r_squared` cannot be called on a Result
 4 | [m, t][1].r_squared()
   | ^^^^^^^^^ this is a Result
   |
-  = help: `r_squared` is a method of RegFit; this value may be any kind of result, so bind the fit under its own name and call `r_squared` on that
+  = help: `r_squared` is a method of a RegFit; this value may be any kind of result, so bind the fit under its own name and call `r_squared` on that
 
 error[Z0401]: `term` of `std_errors` must be a Term, but this is an Int
  --> scripts/main.zeff:3:14
@@ -72,7 +72,7 @@ error[Z0401]: `r_squared` cannot be called on a Frame
 3 | wages.r_squared()
   | ^^^^^ this is a Frame
   |
-  = help: `r_squared` is a method of RegFit
+  = help: `r_squared` takes a RegFit first; `x.r_squared(...)` is `r_squared(x, ...)`
 
 error[Z0401]: this must be a Bool over the terms of the fit, but it is a Float
  --> scripts/main.zeff:3:8

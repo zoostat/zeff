@@ -50,7 +50,7 @@ error[Z0401]: `mean` cannot be called on a Distribution
 1 | dist.normal().mean(x)
   | ^^^^^^^^^^^^^ this is a Distribution
   |
-  = help: `mean` is a method of Frame
+  = help: `mean` takes a Frame first; `x.mean(...)` is `mean(x, ...)`
 
 error[Z0401]: `sd` of `dist.normal` must be a Float, but this is a Str
  --> scripts/main.zeff:1:17

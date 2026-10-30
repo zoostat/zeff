@@ -189,3 +189,13 @@ Step 22e: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on 
 **Next.** Step 7 `[engine]`: any function as a method; function values and `Fn` types.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
+
+## 30 October 2026, step 7 of release 0.5.0
+
+**Done.** Step 7 `[engine]`: every function callable as a method on its first argument, built-in or the script's, a scalar function of `core` applying row by row to a column receiver, `5.abs()` read as a method call by the lexer; `Fn(T1, T2) -> R` types in signatures and in the registry's parser; a named function passed where a parameter of type `Fn` takes it, a built-in read at the argument types the parameter names, a script function matched exactly (Z0205 with both signatures); a call through a binding of function type, positional and counted; a function value printing as its signature and typed `Fn`; the page of Z0205; the six rulings in `docs/decisions.md` (among them that `iterate` will run in the interpreter rather than through a callback). Tests: the checker's types, codes and four message snapshots; the engine's `methods.rs` (every form, every refusal, every message, and the property that both call forms and the value form give the same bits); the identity case `control/methods`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`), the tier and message checks (110 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 8 `[engine]`: `use` and modules.
+
+**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).

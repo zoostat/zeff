@@ -297,7 +297,7 @@ error[Z0401]: `std_errors` cannot be called on a Frame
 1 | dataset(wages).std_errors()
   | ^^^^^^^^^^^^^^ this is a Frame
   |
-  = help: `std_errors` is a method of Result
+  = help: `std_errors` takes a Result first; `x.std_errors(...)` is `std_errors(x, ...)`
 [exit 1]
 
 > let m = dataset(wages).reg(log(wage) ~ educ + female)

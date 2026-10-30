@@ -486,6 +486,7 @@ pub fn has_type(value: &Value, ty: &TypeValue) -> bool {
         "Mapping" => matches!(value, Value::Mapping(_)),
         "Type" => matches!(value, Value::Type(_)),
         "Failed" => matches!(value, Value::Failed(_)),
+        "Fn" => matches!(value, Value::Function(_)),
         "Bool" | "Int" | "Float" | "Str" | "Date" | "DateTime" | "Category" => match value {
             Value::Column(c) => c.ty().name() == name,
             scalar => scalar_type_name(scalar) == Some(name),
@@ -553,6 +554,7 @@ pub fn type_name(value: &Value) -> String {
         Value::TestResult(_) => "TestResult".to_string(),
         Value::Term(_) | Value::TermExpr { .. } => "Term".to_string(),
         Value::Failed(_) => "Failed".to_string(),
+        Value::Function(_) => "Fn".to_string(),
     }
 }
 

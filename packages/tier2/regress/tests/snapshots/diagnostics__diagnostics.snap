@@ -94,7 +94,7 @@ error[Z0401]: `r_squared` cannot be called on a Frame
 1 | dataset(wages).r_squared()
   | ^^^^^^^^^^^^^^ this is a Frame
   |
-  = help: `r_squared` is a method of RegFit
+  = help: `r_squared` takes a RegFit first; `x.r_squared(...)` is `r_squared(x, ...)`
 [exit 1]
 
 > dataset(wages).describe().influence()
@@ -105,5 +105,5 @@ error[Z0401]: `influence` cannot be called on a Table
 1 | dataset(wages).describe().influence()
   | ^^^^^^^^^^^^^^^^^^^^^^^^^ this is a Table
   |
-  = help: `influence` is a method of RegFit
+  = help: `influence` takes a RegFit first; `x.influence(...)` is `influence(x, ...)`
 [exit 1]

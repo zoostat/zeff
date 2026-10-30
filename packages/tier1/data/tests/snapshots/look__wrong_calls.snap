@@ -52,4 +52,4 @@ error[Z0401]: `n_rows` cannot be called on an Int
 2 | n.n_rows()
   | ^ this is an Int
   |
-  = help: `n_rows` is a method of Frame
+  = help: `n_rows` takes a Frame first; `x.n_rows(...)` is `n_rows(x, ...)`

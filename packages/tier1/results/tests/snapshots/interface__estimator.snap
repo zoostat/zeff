@@ -177,5 +177,5 @@ error[Z0401]: `vcov` cannot be called on a Frame
 1 | dataset(wages).vcov()
   | ^^^^^^^^^^^^^^ this is a Frame
   |
-  = help: `vcov` is a method of Result
+  = help: `vcov` takes a Result first; `x.vcov(...)` is `vcov(x, ...)`
 [exit 1]

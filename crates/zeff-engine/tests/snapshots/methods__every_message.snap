@@ -1,0 +1,102 @@
+---
+source: crates/zeff-engine/tests/methods.rs
+expression: all
+---
+## method_on_the_wrong_type (exit 1)
+error[Z0401]: `n_rows` cannot be called on an Int
+ --> scripts/main.zeff:1:1
+  |
+1 | 5.n_rows()
+  | ^ this is an Int
+  |
+  = help: `n_rows` takes a Frame first; `x.n_rows(...)` is `n_rows(x, ...)`
+
+## method_of_core_on_text (exit 1)
+error[Z0401]: `abs` cannot be called on a Str
+ --> scripts/main.zeff:1:1
+  |
+1 | "a".abs()
+  | ^^^ this is a Str
+  |
+  = help: `abs` takes a Float first; `x.abs(...)` is `abs(x, ...)`
+
+## signature_differs (exit 1)
+error[Z0205]: `sqrt` has the signature `Fn(Int) -> Float`, but `Fn(Int) -> Int` is needed here
+ --> scripts/main.zeff:7:7
+  |
+7 | apply(sqrt, 4)
+  |       ^^^^ `Fn(Int) -> Float`
+  |
+  = help: a function passed as a value matches the parameter types and the return type exactly, defaults ignored; write a function with that signature
+
+## signature_differs_script_function (exit 1)
+error[Z0205]: `double` has the signature `Fn(Int) -> Int`, but `Fn(Float) -> Float` is needed here
+ --> scripts/main.zeff:7:8
+  |
+7 | applyf(double, 3)
+  |        ^^^^^^ `Fn(Int) -> Int`
+  |
+  = help: a function passed as a value matches the parameter types and the return type exactly, defaults ignored; write a function with that signature
+
+## not_a_function (exit 1)
+error[Z0401]: `f` of `apply` must be a Fn(Int) -> Int, but this is an Int
+ --> scripts/main.zeff:7:7
+  |
+7 | apply(5, 1)
+  |       ^ an Int
+  |
+  = help: usage: `apply(f: Fn(Int) -> Int, x: Int)`
+
+## no_such_function (exit 1)
+error[Z0103]: no function is called `nope`
+ --> scripts/main.zeff:7:7
+  |
+7 | apply(nope, 1)
+  |       ^^^^ not a function
+  |
+  = help: a parameter of type `Fn(Int) -> Int` takes the bare name of a function with that signature
+
+## too_many_through_value (exit 1)
+error[Z0407]: `f` takes 1 argument, but more were given
+ --> scripts/main.zeff:2:41
+  |
+2 | fn two(f: Fn(Int) -> Int) -> Int { f(1, 2) }
+  |                                         ^ one too many
+  |
+  = help: `f` is a `Fn(Int) -> Int`
+
+## too_few_through_value (exit 1)
+error[Z0406]: `f` needs 1 argument, but 0 were given
+ --> scripts/main.zeff:2:37
+  |
+2 | fn none(f: Fn(Int) -> Int) -> Int { f() }
+  |                                     ^ `f` is a `Fn(Int) -> Int`
+  |
+  = help: give every argument the function type names
+
+## named_through_value (exit 1)
+error[Z0404]: `f` is a function value and takes positional arguments only, not named
+ --> scripts/main.zeff:2:43
+  |
+2 | fn named(f: Fn(Int) -> Int) -> Int { f(1, x: 2) }
+  |                                           ^ not positional
+  |
+  = help: a function type names its parameters' types, not their names, so arguments are given in order
+
+## wrong_type_through_value (exit 1)
+error[Z0401]: argument 1 of `f` must be an Int, but this is a Str
+ --> scripts/main.zeff:2:39
+  |
+2 | fn text(f: Fn(Int) -> Int) -> Int { f("a") }
+  |                                       ^^^ a Str
+  |
+  = help: `f` is a `Fn(Int) -> Int`
+
+## function_name_alone (exit 1)
+error[Z0101]: nothing is called `abs` here
+ --> scripts/main.zeff:1:9
+  |
+1 | let f = abs
+  |         ^^^ not a binding
+  |
+  = help: `abs` is a function; call it with parentheses: `abs(...)`

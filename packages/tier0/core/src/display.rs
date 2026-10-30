@@ -95,6 +95,7 @@ fn inline(value: &Value) -> String {
         Value::Fit(fit) => format!("{} · {}", fit.kind, fit.summary.title),
         Value::TestResult(result) => format!("TestResult · {}", result.title),
         Value::Failed(failure) => failure.text(),
+        Value::Function(function) => function.signature.clone(),
         Value::Term(name) => name.clone(),
         Value::TermExpr { text, .. } => text.clone(),
         Value::List(items) => format!(
@@ -531,6 +532,7 @@ pub fn show_width(value: &Value, width: usize) -> String {
         Value::Fit(fit) => table_text(&fit.summary, width),
         Value::TestResult(result) => test_result_text(result, width),
         Value::Failed(failure) => format!("{}\n", failure.text()),
+        Value::Function(function) => format!("{}\n", function.signature),
         Value::Column(c) => {
             let mut out = format!("{}\n", column_header(c));
             out.push_str(&lines(

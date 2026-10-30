@@ -73,7 +73,7 @@ error[Z0401]: `export` cannot be called on a Frame
 2 | wages.export("wages.docx")
   | ^^^^^ this is a Frame
   |
-  = help: `export` is a method of Table | Result
+  = help: `export` takes a Table or Result first; `x.export(...)` is `export(x, ...)`
 --- path_not_text
 error[Z0401]: `path` of `export` must be a Str, but this is an Int
  --> scripts/main.zeff:2:25

@@ -117,6 +117,8 @@ regress/interface/stdout 08c3aafc8156baa5
 regress/interface/stderr cbf29ce484222325
 control/case/stdout 31d5603dedb0df16
 control/case/stderr bb0e7314f2b5bfed
+control/methods/stdout d600f0bf0e94e53f
+control/methods/stderr cbf29ce484222325
 control/share_missing/stdout f35b6738956a6623
 control/share_missing/stderr 513c7a42967c934b
 control/attempt/stdout 515eb37b724d8bfa

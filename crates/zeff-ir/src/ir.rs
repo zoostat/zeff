@@ -41,6 +41,19 @@ pub struct Program {
 /// A function by position in [`Program::functions`].
 pub type FnId = usize;
 
+/// A function named as a value: a built-in by package and name, or a function of the script by
+/// index; its arity and whether it takes further positional values; and its signature as it
+/// prints (section 3.8: an `Fn` prints as its signature).
+#[derive(Debug, Clone, PartialEq)]
+pub struct FunctionValue {
+    pub package: Option<String>,
+    pub name: String,
+    pub script: Option<FnId>,
+    pub arity: usize,
+    pub rest: bool,
+    pub signature: String,
+}
+
 /// A function defined in a script (Language Reference, section 5.3): typed parameters with
 /// their defaults, a return type, a body that sees its parameters and other functions only, and
 /// the `///` lines above it.
@@ -228,6 +241,15 @@ pub enum ExprKind {
     /// `attempt(expr)` (section 5.4): the expression evaluated under a catch, a script error
     /// becoming a `Failed` value; the type is the expression's.
     Attempt(Box<Expr>),
+    /// A named function as a value (section 3.7, "Functions as values"), where a parameter of
+    /// type `Fn(...) -> R` takes it.
+    FunctionValue(FunctionValue),
+    /// A call through a binding that holds a function value (a parameter typed `Fn`): the
+    /// arguments positional, in the order of the function type's parameters.
+    CallValue {
+        callee: Box<Expr>,
+        args: Vec<Expr>,
+    },
     /// A call of a function the script defines (section 5.3): its arguments in parameter order
     /// (`None` where the default, or `NA` for an optional parameter, applies), the spreads, and
     /// the order of evaluation as written.

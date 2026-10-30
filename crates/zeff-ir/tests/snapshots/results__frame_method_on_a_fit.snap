@@ -8,4 +8,4 @@ error[Z0401]: `head` cannot be called on a RegFit
 4 | m.head(3)
   | ^ this is a RegFit
   |
-  = help: `head` is a method of Frame
+  = help: `head` takes a Frame first; `x.head(...)` is `head(x, ...)`

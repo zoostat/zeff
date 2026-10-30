@@ -222,12 +222,3 @@ error[Z0101]: nothing is called `k` here
   |                           ^ a binding of the script, hidden from the function
   |
   = help: a function sees only its parameters and other functions (section 5.3); pass `k` in as an argument
-
-## fn_type_not_yet (exit 1)
-error[Z0304]: a function type is not available in this release
- --> scripts/main.zeff:2:13
-  |
-2 | fn apply(f: Fn(Int) -> Int, x: Int) -> Int { x }
-  |             ^^^^^^^^^^^^^^ arrives with Zeff 0.5.0
-  |
-  = help: function values arrive with step 7 of release 0.5.0

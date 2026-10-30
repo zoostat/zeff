@@ -870,6 +870,12 @@ fn control_cases() -> Vec<Line> {
             "case",
             "let w = dataset(wages)\nlet reps = if w.n_rows() < 500 { 5000 } else { 1000 }\nreps\nlet b = w.add(band = case { wage < 15 => \"low\", wage < 25 => \"mid\", _ => \"high\" }, k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })\nb.summary([k])\nb.where(case { hours > 40 => true, _ => false }).mean(wage)\ncase { w.n_rows() > 5 => \"big\", _ => \"small\" }\n",
         ),
+        // The methods and function values of step 7: every function as a method, and a
+        // function passed to a parameter of type `Fn` and called through it.
+        (
+            "methods",
+            "let w = dataset(wages)\nw[\"wage\"].log().is_missing().print()\n(-2.5).abs()\n16.sqrt()\n2.max(7, 3)\n/// Applies a function to a float.\nfn applyf(f: Fn(Float) -> Float, x: Float) -> Float { f(x) }\n/// Halves.\nfn half(x: Float) -> Float { x / 2 }\n[applyf(abs, -3), applyf(sqrt, 16), applyf(half, 9)]\n",
+        ),
         // The functions of step 6: the specification's `share_missing` and `robustness` (with
         // `cluster:` and no `fe:`), a default evaluated per call and an early `return`.
         (

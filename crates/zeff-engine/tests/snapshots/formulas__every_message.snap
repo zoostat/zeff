@@ -285,5 +285,5 @@ error[Z0401]: `n_rows` cannot be called on a Formula
 2 | f.n_rows()
   | ^ this is a Formula
   |
-  = help: `n_rows` is a method of Frame
+  = help: `n_rows` takes a Frame first; `x.n_rows(...)` is `n_rows(x, ...)`
 [exit 1]

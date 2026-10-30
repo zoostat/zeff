@@ -36,7 +36,7 @@ error[Z0401]: `n_rows` cannot be called on a Nothing
 1 | print(1).n_rows()
   | ^^^^^^^^ this is a Nothing
   |
-  = help: `n_rows` is a method of Frame
+  = help: `n_rows` takes a Frame first; `x.n_rows(...)` is `n_rows(x, ...)`
 
 ## a_bare_name (exit 1)
 error[Z0101]: nothing is called `wage` here

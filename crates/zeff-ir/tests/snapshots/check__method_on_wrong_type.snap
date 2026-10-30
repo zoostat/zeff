@@ -8,4 +8,4 @@ error[Z0401]: `mean` cannot be called on an Int
 2 | n.mean(wage)
   | ^ this is an Int
   |
-  = help: `mean` is a method of Frame
+  = help: `mean` takes a Frame first; `x.mean(...)` is `mean(x, ...)`

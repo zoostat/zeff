@@ -318,6 +318,9 @@ pub enum Value {
     /// A failure kept as a value by `attempt` (Language Reference, sections 4 and 5.4): the
     /// error's code, message and line. It may stand in a list; used anywhere else it is Z0220.
     Failed(Failure),
+    /// A named function passed where a parameter of type `Fn` takes it (section 3.7,
+    /// "Functions as values"); it prints as its signature.
+    Function(FunctionValue),
     /// An expression over term names, as `test` and `derive` take it (section 7.2): the
     /// expression with its bare names as `Var`s, and its text as written.
     TermExpr {
@@ -363,8 +366,22 @@ impl Value {
             Value::TestResult(_) => "TestResult",
             Value::Term(_) | Value::TermExpr { .. } => "Term",
             Value::Failed(_) => "Failed",
+            Value::Function(_) => "Fn",
         }
     }
+}
+
+/// A function as a value: a built-in by package and name, or a function of the script by its
+/// index; how many parameters it has and whether it takes further positional values; and its
+/// signature, which is its printed form.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FunctionValue {
+    pub package: Option<String>,
+    pub name: String,
+    pub script: Option<usize>,
+    pub arity: usize,
+    pub rest: bool,
+    pub signature: String,
 }
 
 /// The failure `attempt` caught (section 5.4): the error's code, message and the line of the

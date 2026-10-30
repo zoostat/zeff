@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0401]: `f` of `apply` must be a Fn(Int) -> Int, but this is an Int
+ --> scripts/main.zeff:3:7
+  |
+3 | apply(5, 1)
+  |       ^ an Int
+  |
+  = help: usage: `apply(f: Fn(Int) -> Int, x: Int)`
