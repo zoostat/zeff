@@ -452,3 +452,21 @@ proptest! {
         prop_assert_eq!(&through.output.stderr, &inlined.output.stderr);
     }
 }
+
+/// The lines after the first `> statement` of a page are the examples' printed output, which may
+/// hold a colon (a warning's text) without describing a parameter (Z0320 is for the lines before).
+#[test]
+fn a_colon_in_an_examples_output_is_not_a_parameter() {
+    let out = run(
+        "/// Doubles a number.\n/// x: The number.\n/// returns: Twice x.\n/// > double(2)\n/// note: this line is output, not a parameter\nfn double(x: Float) -> Float { x * 2 }\ndouble(2)\n",
+    );
+    assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
+    assert_eq!(out.output.stdout, "4\n");
+    // Before the first example the same line is still checked.
+    assert_eq!(
+        error_code(
+            "/// Doubles a number.\n/// note: this line names no parameter\n/// > double(2)\nfn double(x: Float) -> Float { x * 2 }\ndouble(2)\n"
+        ),
+        "Z0320"
+    );
+}

@@ -1,0 +1,48 @@
+---
+source: crates/zeff-engine/tests/maths_in_zeff.rs
+expression: "zeff_engine::help::help_text(registry, \"clamp\").unwrap()"
+---
+clamp — Limit x to a range                                             core · tier 0 · since 0.5.0 · 1.0 · closed form
+
+USAGE
+    clamp(x, low, high)
+
+DESCRIPTION
+    The value of `x` brought into the range from `low` to `high`: `low` where `x` is below it, `high` where
+    `x` is above it, and `x` itself in between. It is `min(max(x, low), high)`, so an Int stays an Int when
+    all three are Ints, `NA` in any argument gives `NA`, and when `low` is above `high` the result is
+    `high`, as R's `pmin(pmax(x, low), high)` gives. Given a column, it applies to every row in one pass.
+
+ARGUMENTS
+    x           Float. The value, or a column of values.
+    low         Float. The smallest value the result may have.
+    high        Float. The largest value the result may have.
+
+VALUE
+    `x` within the range, a Float, or an Int when all three are Ints; a column when `x` is one.
+
+DETAILS
+    Exact: the result is one of its three arguments, and nothing is rounded.
+
+ACCURACY
+    Closed form.
+
+REFERENCES
+    Equivalent to R's `pmin(pmax(x, low), high)`; Stata has no single function (`min(max(x, low), high)`).
+
+SEE ALSO
+    min, max, between
+
+EXAMPLES
+    > clamp(5, 0, 3)
+    3
+    > clamp(-1.5, 0, 3)
+    0
+    > clamp(1.5, 0, 3)
+    1.5
+    > let d = frame(x = [-2, 0.5, 7])
+    > clamp(d["x"], 0, 3)
+    Column<Float> · 3 values
+    0
+    0.5
+    3

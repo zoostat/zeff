@@ -91,3 +91,12 @@ error[Z0406]: `vars` needs `name`
   | ^^^^ `name` is missing
   |
   = help: usage: `vars(name, ...)`
+
+## field_of_an_untyped_column (exit 1)
+error[Z0213]: `.summary` reads a record field, but this is a Column
+ --> scripts/main.zeff:2:1
+  |
+2 | min(max(w["educ"], 10), 14).summary
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a Column
+  |
+  = help: a method call has parentheses: `.summary()`

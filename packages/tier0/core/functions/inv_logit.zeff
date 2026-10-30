@@ -1,0 +1,22 @@
+/// Probability from log odds.
+///
+/// The logistic function `1 / (1 + exp(-x))`, the inverse of `logit`: it maps any number to a
+/// probability between 0 and 1, 0.5 at 0. For a large positive `x` the result is 1 and for a large
+/// negative one it is 0, exactly, once `exp` overflows or underflows, with no warning, since the
+/// limit is the right answer. Given a column, it applies to every row in one pass.
+///
+/// x: The log odds, or a column of them.
+/// returns: The probability, a Float; a column when `x` is one.
+/// details: Computed as `1 / (1 + exp(-x))`, as R's `plogis` does, so it agrees with R to the last digit or so; Stata's `invlogit` is the same function.
+/// reference: Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995) Continuous Univariate Distributions, volume 2, 2nd edition, chapter 23 (the logistic distribution).
+/// reference: R Core Team, the `plogis` function of the stats package.
+/// see also: logit, exp, log
+/// > inv_logit(0)
+/// 0.5
+/// > inv_logit(2.19722)
+/// 0.9
+/// > inv_logit(-800)
+/// 0
+fn inv_logit(x: Float) -> Float {
+    1 / (1 + exp(-x))
+}

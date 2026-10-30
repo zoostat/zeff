@@ -169,3 +169,13 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 **Next.** Step 14 `[function]`: `clamp`, `logit`, `inv_logit`, the first functions written in Zeff.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
+
+## 31 October 2026, step 14 of release 0.5.0
+
+**Done.** Step 14 `[function]`: `clamp`, `logit` and `inv_logit` (catalogue rows 16, 26 and 27), the first functions of `core` written in Zeff, one `.zeff` file each in `core/functions/` with the complete page in its `///` lines (details, two references each, examples with the warnings printed), applying to a column in one pass; `logit(0)` and `logit(1)` giving `-Inf` and `Inf` with the warnings of their operations placed at the call; the six rulings in `docs/decisions.md`, among them two defects fixed (the check of `///` lines read a colon in an example's output as a parameter; a lifted call of unknown row type was not typed a column, so an enclosing scalar function got the column whole and gave `NA`; and a field read from an untyped column is Z0213, not an internal error). Tests: the R reference `zeff_functions.R` (23 probabilities and 28 log odds, `clamp` on 60 value and range pairs; `clamp` exactly `pmin(pmax())`, `logit` and `inv_logit` exactly R's but for one case each, all within 1e-15); the engine's `maths_in_zeff.rs` (0, 1, `NA`, `Inf`, a column with `NA`, the warnings on a column, the generated page, and the properties that `inv_logit(logit(p))` is within 1e-12 of `p`, that `clamp` lies within its bounds and is the identity inside them, and that the column form equals the scalar form row by row); the identity case `control/logit`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 15 `[function]`: `assert`, `n_missing`, `fill_missing`.
+
+**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).

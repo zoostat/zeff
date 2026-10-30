@@ -1,0 +1,12 @@
+---
+source: crates/zeff-engine/tests/maths_in_zeff.rs
+expression: "format!(\"{}{}\", out.output.stdout, out.output.stderr)"
+---
+Column<Float> · 3 values
+-Inf
+0
+Inf
+warning: division by zero gave Inf or -Inf in 1 row (line 2)
+  = help: `where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise
+warning: log of zero gave -Inf in 1 row (line 2)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`

@@ -480,14 +480,14 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
     insta::assert_snapshot!("help_data", out(&o));
     let core = zeff(dir.path(), &["help", "core"]);
     assert!(
-        out(&core).starts_with("core · tier 0 · 60 of 69 functions in this release"),
+        out(&core).starts_with("core · tier 0 · 63 of 69 functions in this release"),
         "{}",
         out(&core)
     );
-    let later = zeff(dir.path(), &["help", "clamp"]);
+    let later = zeff(dir.path(), &["help", "winsorize"]);
     assert_eq!(code(&later), 0);
     assert!(
-        out(&later).starts_with("`clamp` arrives with release 0.5.0, in the `core` package: "),
+        out(&later).starts_with("`winsorize` arrives with release 0.6.0, in the `data` package: "),
         "{}",
         out(&later)
     );

@@ -141,6 +141,10 @@ fn every_message_of_seq() {
         ("wrong_type", "seq(1, 5, step: \"a\")\n"),
         ("any_of_numbers", "any([1, 0])\n"),
         ("empty_vars", "vars()\n"),
+        (
+            "field_of_an_untyped_column",
+            "let w = dataset(wages)\nmin(max(w[\"educ\"], 10), 14).summary\n",
+        ),
     ];
     let mut text = String::new();
     for (name, script) in &cases {

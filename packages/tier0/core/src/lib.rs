@@ -27,10 +27,29 @@ fn print(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 /// The functions of `core` written in Zeff, one `functions/*.zeff` file each (Engine and Project
 /// Specification, section 9.1, "Files"), compiled in; the engine parses, checks and lowers them
-/// when it starts. None yet: `clamp`, `logit`, `inv_logit`, `assert`, `n_missing` and
-/// `fill_missing` arrive at steps 14 and 15 of release 0.5.0.
+/// when it starts. `clamp`, `logit` and `inv_logit` are the first (release 0.5.0, step 14);
+/// `assert`, `n_missing` and `fill_missing` follow at step 15.
 pub fn zeff_sources() -> Vec<ZeffSource> {
-    Vec::new()
+    vec![
+        ZeffSource {
+            package: "core",
+            name: "clamp",
+            file: "core/functions/clamp.zeff",
+            text: include_str!("../functions/clamp.zeff"),
+        },
+        ZeffSource {
+            package: "core",
+            name: "logit",
+            file: "core/functions/logit.zeff",
+            text: include_str!("../functions/logit.zeff"),
+        },
+        ZeffSource {
+            package: "core",
+            name: "inv_logit",
+            file: "core/functions/inv_logit.zeff",
+            text: include_str!("../functions/inv_logit.zeff"),
+        },
+    ]
 }
 
 /// The functions of `core` in this release, with their help pages.

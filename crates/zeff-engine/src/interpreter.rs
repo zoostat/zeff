@@ -1554,7 +1554,25 @@ impl<'a> Interpreter<'a> {
                             );
                         }
                     },
-                    _ => return Err(self.internal(expr, "a field of a value that is not a record")),
+                    // The checker could not type the receiver (a column of an unchecked frame, before
+                    // the schema pass of 0.6.0): the mistake is the script's, Z0213 as at check time.
+                    other => {
+                        let found = zeff_core::types::type_name(&other);
+                        let a = if found.starts_with(['A', 'E', 'I', 'O', 'U']) {
+                            "an"
+                        } else {
+                            "a"
+                        };
+                        return Err(fail(
+                            Diagnostic::error(
+                                "Z0213",
+                                format!("`.{name}` reads a record field, but this is {a} {found}"),
+                            )
+                            .in_file(self.script)
+                            .primary(expr.span, format!("{a} {found}"))
+                            .help(format!("a method call has parentheses: `.{name}()`")),
+                        ));
+                    }
                 }
             }
             ExprKind::Call(call) => self.call(call, printed, messages)?,

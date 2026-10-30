@@ -1340,7 +1340,14 @@ impl Checker<'_> {
             );
             return;
         }
-        for line in &f.doc {
+        // From the first `> statement` line on, the lines are the examples' printed output, which
+        // may hold a colon (a warning's text) without naming a parameter.
+        let examples_from = f
+            .doc
+            .iter()
+            .position(|d| d.text.trim_start().starts_with('>'))
+            .unwrap_or(f.doc.len());
+        for line in &f.doc[..examples_from] {
             let Some((key, _)) = line.text.split_once(':') else {
                 continue;
             };
@@ -5043,7 +5050,11 @@ impl Checker<'_> {
         } else {
             Ty::parse(spec.returns).unwrap_or(Ty::Unknown)
         };
-        if lifted && ty != Ty::Unknown {
+        // A lifted call gives a column, whatever its row type: with a row type not yet known (a
+        // column of a frame whose schema the checker does not see before 0.6.0) the result is
+        // `Column<Unknown>`, so that an enclosing scalar function lifts over it in turn
+        // (`min(max(w["educ"], 10), 14)`) and does not receive the column whole.
+        if lifted {
             ty = Ty::Column(Box::new(ty));
         }
         let _ = expected;
