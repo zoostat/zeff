@@ -152,6 +152,8 @@ Step 22e: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on 
 
 **Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks (98 codes) and the conformance report pass locally; CI to be read after the push.
 
+**CI, read after the pushes.** The three commits since the release opened were red on one test: the registry's test of the compiled catalogue still counted 528 rows after `equal`'s row made 529. The local runs had not shown it because `cargo test --workspace` stops at the first failing test binary and the earlier failures (a snapshot, a count in the command-line tests) hid the later one; fixed in d89a70e, and the routine now runs the suite with `--no-fail-fast` so that every failure shows at once.
+
 **Next.** Step 4 `[engine]`: spreads in calls and records.
 
 **For the owner to decide.** Nothing new.
