@@ -1,0 +1,66 @@
+---
+source: crates/zeff-engine/tests/collections_order.rs
+expression: text
+---
+## sorted_records (exit 1)
+error[Z0401]: `list` of `sorted` must be a List<Bool | Int | Float | Str>, but this is a List<{a: Int}>
+ --> scripts/main.zeff:1:8
+  |
+1 | sorted([{a: 1}, {a: 2}])
+  |        ^^^^^^^^^^^^^^^^ a List<{a: Int}>
+  |
+  = help: usage: `sorted(list, desc: Bool = false)`
+
+## sorted_desc_not_bool (exit 1)
+error[Z0401]: `desc` of `sorted` must be a Bool, but this is an Int
+ --> scripts/main.zeff:1:22
+  |
+1 | sorted([1, 2], desc: 1)
+  |                      ^ an Int
+  |
+  = help: usage: `sorted(list, desc: Bool = false)`
+
+## is_in_not_a_list (exit 1)
+error[Z0401]: `list` of `is_in` must be a List, but this is an Int
+ --> scripts/main.zeff:1:10
+  |
+1 | is_in(1, 2)
+  |          ^ an Int
+  |
+  = help: usage: `is_in(x, list)`
+
+## is_in_record (exit 1)
+error[Z0401]: `x` of `is_in` must be a Bool, Int, Float or Str, but this is a {a: Int}
+ --> scripts/main.zeff:1:7
+  |
+1 | is_in({a: 1}, [1])
+  |       ^^^^^^ a {a: Int}
+  |
+  = help: usage: `is_in(x, list)`
+
+## keys_of_a_list (exit 1)
+error[Z0401]: `record` of `keys` must be a Record or Mapping, but this is a List<Int>
+ --> scripts/main.zeff:1:6
+  |
+1 | keys([1, 2])
+  |      ^^^^^^ a List<Int>
+  |
+  = help: usage: `keys(record)`
+
+## equal_column (exit 1)
+error[Z0401]: `a` of `equal` must be a Bool, Int, Float, Str, List, Record or Mapping, but this is a Column
+ --> scripts/main.zeff:2:7
+  |
+2 | equal(d["x"], d["x"])
+  |       ^^^^^^ a Column
+  |
+  = help: usage: `equal(a, b)`
+
+## unique_not_a_list (exit 1)
+error[Z0401]: `list` of `unique` must be a List, but this is a Str
+ --> scripts/main.zeff:1:8
+  |
+1 | unique("abc")
+  |        ^^^^^ a Str
+  |
+  = help: usage: `unique(list)`

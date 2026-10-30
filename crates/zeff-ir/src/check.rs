@@ -4970,6 +4970,14 @@ impl Checker<'_> {
                 Some(Ty::List(inner)) => (**inner).clone(),
                 _ => Ty::Unknown,
             }
+        // `Keys` (`keys`): the field names of a record as `List<Str>`, the keys of a mapping as a
+        // list of its key type.
+        } else if spec.returns == "Keys" {
+            match slots.first().and_then(|s| s.as_ref()).map(|e| &e.ty) {
+                Some(Ty::Record(_) | Ty::AnyRecord) => Ty::List(Box::new(Ty::Str)),
+                Some(Ty::Mapping(k, _)) => Ty::List(k.clone()),
+                _ => Ty::Unknown,
+            }
         } else if spec.returns == "Same" {
             slots
                 .first()

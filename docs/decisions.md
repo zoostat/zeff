@@ -1648,3 +1648,16 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 5. *The R reference* is `tests/reference/r/collections.R`, base R's `length`, `nchar(type = "chars")`, `x[[1]]`, `tail(x, 1)`, `c` and `rev` on five lists (1e-8 to 1e12 among the values) and eight strings (accents, a combining mark, emoji, a flag of two regional indicators, CJK), compared exactly.
 
 **Reason.** Language Reference, sections 3.7 ("Indexing", "Columns and scalars", "Failed values", "Joining types"), 3.8 ("Unit"), 5.6 and 6 ("Row order"); Engine and Project Specification, section 8.1, rule 6; catalogue rows 43, 44, 45, 48 and 51; the checklist's step 11.
+
+## 30 October 2026: `unique`, `sorted`, `is_in`, `keys` and `equal` (release 0.5.0, step 12)
+
+**Choice.** Five Rust bodies in `core/src/collections.rs` on the identity relation of section 3.7 (`operators::identical`: `NA` identical to `NA`, `-0.0` to `0.0`, an Int to the Float of its number) and the order rules of the same row. Six rulings:
+
+1. *`unique`* keeps the first occurrence of each item in its place (section 6, "Row order"), by identity, so `unique([NA, NA])` is `[NA]` and one of `-0.0` and `0.0` is kept.
+2. *`sorted(list, desc:)`* takes a list of Bools, Ints, Floats or Strs (a list of records or lists is refused at check time, Z0401) and sorts stably: `false < true`, numbers as numbers with Int and Float mixed, text by code point, `NA` last in both directions; `desc: true` reverses the order of the values and leaves `NA` last.
+3. *`is_in(x, list)`* takes a scalar `x` and lifts over a column by the checker's rule, so `where(is_in(x, [1, 3]))` picks rows and a category's rows match the list by their labels, as a lifted call reads a category row as its label.
+4. *`keys`* gives the field names of a record as `List<Str>` in the order written, or a mapping's keys in insertion order as a list of the key type; the checker's return word `Keys` types it.
+5. *`equal(a, b)`* is identity over Bools, Ints, Floats, Strs, lists (item by item), records (field by field, whatever order the fields are written in, since a record's fields are named) and mappings (entry by entry in insertion order, since a mapping keeps its order); `false` across kinds, never `NA`; a column is not among its values (Z0401), until frames compare at a later release.
+6. *A union given where a union is expected* is now accepted when each of its options is: a list of only `NA` takes the type expected of it, which the old rule refused against `List<Bool | Int | Float | Str>`.
+
+**Reason.** Language Reference, sections 3.7 ("Identity", "Mappings", "Comparison"), 3.8 ("Comparison and order"), 4.1 ("Sorting") and 6 ("Row order"); catalogue rows 46, 47, 52, 53 and 529; open decision #5; the checklist's step 12.

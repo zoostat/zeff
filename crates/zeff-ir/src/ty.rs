@@ -234,6 +234,11 @@ impl Ty {
             | (Ty::List(a), Ty::List(b))
             | (Ty::TermExpr(a), Ty::TermExpr(b)) => a.accepts(b),
             (Ty::Mapping(k1, v1), Ty::Mapping(k2, v2)) => k1.accepts(k2) && v1.accepts(v2),
+            // A union given where a union is expected: every option given must be accepted (a
+            // list of only `NA` is typed by what is expected of it).
+            (Ty::Union(want), Ty::Union(have)) => {
+                have.iter().all(|h| want.iter().any(|w| w.accepts(h)))
+            }
             (Ty::Union(options), other) => options.iter().any(|o| o.accepts(other)),
             (Ty::Record(a), Ty::Record(b)) => {
                 a.len() == b.len()

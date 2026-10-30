@@ -149,3 +149,13 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 **Next.** Step 12 `[function]`: `unique`, `sorted`, `is_in`, `keys` and `equal`.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
+
+## 30 October 2026, step 12 of release 0.5.0
+
+**Done.** Step 12 `[function]`: `unique`, `sorted`, `is_in`, `keys` and `equal` (catalogue rows 46, 47, 53, 52 and 529 implemented), each with its page: identity and order as section 3.7 gives them, `NA` last either way, `is_in` lifted over a column with a category's rows matched by label, `keys` of a record or a mapping, `equal` over scalars and collections; the checker's return word `Keys` and the acceptance of a union where a union is expected; the six rulings in `docs/decisions.md`. Tests: the R reference `collections_order.R` (`unique`, `sort(na.last = TRUE)` both ways, `%in%`, `names`, `identical` on eight numeric lists with `NA`, `-0` and values to 1e12, two string lists in code-point order, and four identical pairs, exact); the engine's `collections_order.rs` (all `NA`, `-0.0` beside `0.0`, an empty list, a category column, every message, and the properties that `sorted(xs)` is an ordered permutation with `NA` last, that `desc: true` is the reverse apart from `NA`, that `unique` is idempotent, that `is_in(x, xs)` agrees with `unique(xs)` and that `equal(xs, xs)` is true); the identity case `control/collections_order`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (113 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 13 `[function]`: `any`, `all` and `seq`.
+
+**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).

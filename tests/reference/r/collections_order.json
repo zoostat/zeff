@@ -1,0 +1,371 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R; numbers written with 15 significant digits"
+ },
+ "probes": [
+  "3",
+  "5",
+  "NA",
+  "0",
+  "1000000000000"
+ ],
+ "lists": [
+  {
+   "items": [
+    "3",
+    "1",
+    "3",
+    "2",
+    "1"
+   ],
+   "unique": [
+    "3",
+    "1",
+    "2"
+   ],
+   "sorted": [
+    "1",
+    "1",
+    "2",
+    "3",
+    "3"
+   ],
+   "sorted_desc": [
+    "3",
+    "3",
+    "2",
+    "1",
+    "1"
+   ],
+   "is_in": [
+    "true",
+    "false",
+    "false",
+    "false",
+    "false"
+   ],
+   "identical_self": true
+  },
+  {
+   "items": [
+    "3",
+    "NA",
+    "1",
+    "3",
+    "2",
+    "NA"
+   ],
+   "unique": [
+    "3",
+    "NA",
+    "1",
+    "2"
+   ],
+   "sorted": [
+    "1",
+    "2",
+    "3",
+    "3",
+    "NA",
+    "NA"
+   ],
+   "sorted_desc": [
+    "3",
+    "3",
+    "2",
+    "1",
+    "NA",
+    "NA"
+   ],
+   "is_in": [
+    "true",
+    "false",
+    "true",
+    "false",
+    "false"
+   ],
+   "identical_self": true
+  },
+  {
+   "items": [
+    "NA",
+    "NA"
+   ],
+   "unique": [
+    "NA"
+   ],
+   "sorted": [
+    "NA",
+    "NA"
+   ],
+   "sorted_desc": [
+    "NA",
+    "NA"
+   ],
+   "is_in": [
+    "false",
+    "false",
+    "true",
+    "false",
+    "false"
+   ],
+   "identical_self": true
+  },
+  {
+   "items": [
+    "1.5",
+    "-2.25",
+    "1000000000000",
+    "0.5",
+    "1000000000000"
+   ],
+   "unique": [
+    "1.5",
+    "-2.25",
+    "1000000000000",
+    "0.5"
+   ],
+   "sorted": [
+    "-2.25",
+    "0.5",
+    "1.5",
+    "1000000000000",
+    "1000000000000"
+   ],
+   "sorted_desc": [
+    "1000000000000",
+    "1000000000000",
+    "1.5",
+    "0.5",
+    "-2.25"
+   ],
+   "is_in": [
+    "false",
+    "false",
+    "false",
+    "false",
+    "true"
+   ],
+   "identical_self": true
+  },
+  {
+   "items": [
+    "-0",
+    "0",
+    "1",
+    "-0"
+   ],
+   "unique": [
+    "-0",
+    "1"
+   ],
+   "sorted": [
+    "-0",
+    "0",
+    "-0",
+    "1"
+   ],
+   "sorted_desc": [
+    "1",
+    "-0",
+    "0",
+    "-0"
+   ],
+   "is_in": [
+    "false",
+    "false",
+    "false",
+    "true",
+    "false"
+   ],
+   "identical_self": true
+  },
+  {
+   "items": [
+    "7"
+   ],
+   "unique": [
+    "7"
+   ],
+   "sorted": [
+    "7"
+   ],
+   "sorted_desc": [
+    "7"
+   ],
+   "is_in": [
+    "false",
+    "false",
+    "false",
+    "false",
+    "false"
+   ],
+   "identical_self": true
+  },
+  {
+   "items": [],
+   "unique": [],
+   "sorted": [],
+   "sorted_desc": [],
+   "is_in": [
+    "false",
+    "false",
+    "false",
+    "false",
+    "false"
+   ],
+   "identical_self": true
+  },
+  {
+   "items": [
+    "1e-08",
+    "10000000",
+    "-1000000000000",
+    "0",
+    "2.5",
+    "10000000"
+   ],
+   "unique": [
+    "1e-08",
+    "10000000",
+    "-1000000000000",
+    "0",
+    "2.5"
+   ],
+   "sorted": [
+    "-1000000000000",
+    "0",
+    "1e-08",
+    "2.5",
+    "10000000",
+    "10000000"
+   ],
+   "sorted_desc": [
+    "10000000",
+    "10000000",
+    "2.5",
+    "1e-08",
+    "0",
+    "-1000000000000"
+   ],
+   "is_in": [
+    "false",
+    "false",
+    "false",
+    "true",
+    "false"
+   ],
+   "identical_self": true
+  }
+ ],
+ "strings": [
+  {
+   "items": [
+    "b",
+    "a",
+    "b",
+    "B",
+    "é",
+    "a"
+   ],
+   "unique": [
+    "b",
+    "a",
+    "B",
+    "é"
+   ],
+   "sorted": [
+    "B",
+    "a",
+    "a",
+    "b",
+    "b",
+    "é"
+   ],
+   "sorted_desc": [
+    "é",
+    "b",
+    "b",
+    "a",
+    "a",
+    "B"
+   ]
+  },
+  {
+   "items": [
+    "pear",
+    "apple",
+    "fig",
+    "apple"
+   ],
+   "unique": [
+    "pear",
+    "apple",
+    "fig"
+   ],
+   "sorted": [
+    "apple",
+    "apple",
+    "fig",
+    "pear"
+   ],
+   "sorted_desc": [
+    "pear",
+    "fig",
+    "apple",
+    "apple"
+   ]
+  }
+ ],
+ "record_keys": [
+  "mu",
+  "sd",
+  "share"
+ ],
+ "identical_pairs": [
+  {
+   "a": [
+    "1",
+    "2",
+    "NA"
+   ],
+   "b": [
+    "1",
+    "2",
+    "NA"
+   ],
+   "identical": true
+  },
+  {
+   "a": [
+    "1",
+    "2"
+   ],
+   "b": [
+    "2",
+    "1"
+   ],
+   "identical": false
+  },
+  {
+   "a": [
+    "-0"
+   ],
+   "b": [
+    "0"
+   ],
+   "identical": true
+  },
+  {
+   "a": [
+    "1"
+   ],
+   "b": [
+    "1",
+    "1"
+   ],
+   "identical": false
+  }
+ ]
+}

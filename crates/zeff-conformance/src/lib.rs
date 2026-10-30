@@ -905,6 +905,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // The order functions of step 12: `unique` keeping first occurrences, `sorted` both ways
+        // with `NA` last, `is_in` on values and on a column, `keys` and `equal`.
+        (
+            "collections_order",
+            "let xs = [3, NA, 1, 3, -0.0, 0.0, 2, NA]\nunique(xs)\nsorted(xs)\nsorted(xs, desc: true)\nsorted([\"b\", \"a\", \"\\u{e9}\", \"B\"])\nsorted([true, false, true])\nis_in(NA, [NA])\nis_in(2, xs)\nis_in(5, xs)\nkeys({mu: 1, sd: 2})\nkeys([2 => \"b\", 1 => \"a\"])\nequal([1, 2], [1, 2])\nequal({a: 1, b: 2}, {b: 2, a: 1})\nequal([1 => \"a\"], [1 => \"b\"])\nequal(1, \"1\")\nlet w = dataset(wages)\nw.add(f = is_in(educ, [12, 16])).summary([f])\n",
+        ),
         // `iterate` of step 10: Newton's square root to convergence, the path under `keep: true`
         // and the stop at `max:` with its warning.
         (
