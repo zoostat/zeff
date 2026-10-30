@@ -870,6 +870,12 @@ fn control_cases() -> Vec<Line> {
             "case",
             "let w = dataset(wages)\nlet reps = if w.n_rows() < 500 { 5000 } else { 1000 }\nreps\nlet b = w.add(band = case { wage < 15 => \"low\", wage < 25 => \"mid\", _ => \"high\" }, k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })\nb.summary([k])\nb.where(case { hours > 40 => true, _ => false }).mean(wage)\ncase { w.n_rows() > 5 => \"big\", _ => \"small\" }\n",
         ),
+        // The failed values of step 5: fits that fail inside `attempt`, their printed form,
+        // `report` skipping them and a loop that guards on `is(Failed)`.
+        (
+            "attempt",
+            "let w = dataset(wages)\nlet fits = [for cut in [10, 20, 30, 1000] {\n    attempt(w.where(wage > cut).reg(log(wage) ~ educ + female))\n}]\nfits[4]\nreport(fits)\n[for m in fits {\n    if m.is(Failed) { continue }\n    m.coef(educ)\n}]\n",
+        ),
         // The loops of step 3: the draws of three passes under a seed, a `[for]` with its jumps,
         // and a loop over variables fitting a formula with the variable in two places.
         (

@@ -290,7 +290,11 @@ pub fn functions() -> Vec<Function> {
                         "Z0401",
                         "a fit that is not a regression (a test's result), `digits:` outside 0 to 10, or a label that is not text",
                     ),
-                    DiagnosticDecl::new("Z0406", "an empty list of fits"),
+                    DiagnosticDecl::new(
+                        "Z0406",
+                        "an empty list of fits, or a list whose fits all failed",
+                    ),
+                    DiagnosticDecl::new("W0801", "failed values in the list, skipped and counted"),
                     DiagnosticDecl::new("Z0414", "a label for a term none of the fits has"),
                 ],
                 help: include_str!("../help/report.md"),

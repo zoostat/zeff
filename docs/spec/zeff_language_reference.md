@@ -1303,6 +1303,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0201, W0204 | Missing values skipped by a reducer, with the count; `Inf` and `-Inf` both present, so the result is `NA` |
 | W0207 | Rows of `predict`'s new data holding a level the fit never saw, whose predictions are `NA` |
 | W0208 | Rows of a `case` without `_` that no arm matched, whose values are `NA` (section 5.1); over one value, the value itself |
+| W0209 | A method called on a binding that may hold a `Failed` value, unguarded by `x.is(Failed)` (section 3.7, "Failed values") |
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |
 | Z0716 | An export path with no extension, or with one that names no format Zeff writes; the formats are listed |
 

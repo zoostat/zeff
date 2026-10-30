@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, show, show_width};
 use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
-use zeff_core::value::{Formula as FormulaValue, Frame, Term as TermValue, TypeValue, Value};
+use zeff_core::value::{
+    Failure, Formula as FormulaValue, Frame, Term as TermValue, TypeValue, Value,
+};
 use zeff_diagnostics::{Diagnostic, Source, Span, did_you_mean};
 use zeff_ir::BindingKind;
 use zeff_ir::ir::{Arm, BinaryOp, Block, Term, TermKind, TermStep, UnaryOp};
@@ -682,6 +684,23 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    /// Z0220 (section 5.6): a failed value used anywhere but in a list, reporting the failure
+    /// it holds.
+    fn failed_used(&self, failure: &Failure, span: Span, how: &str) -> Fail {
+        fail(
+            Diagnostic::error(
+                "Z0220",
+                format!(
+                    "a failed value cannot be used {how}: it failed with {} at line {}: {}",
+                    failure.code, failure.line, failure.message
+                ),
+            )
+            .in_file(self.script)
+            .primary(span, "a failed value")
+            .help("test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)"),
+        )
+    }
+
     /// Z0217: a column of another length than the rows a `case` runs over.
     fn rows_differ(&self, found: usize, rows: usize, at: &Expr) -> Fail {
         fail(
@@ -803,6 +822,9 @@ impl<'a> Interpreter<'a> {
                     match field {
                         RecordField::Named(name, value) => {
                             let v = self.eval(value, printed, messages)?;
+                            if let Value::Failed(failure) = &v {
+                                return Err(self.failed_used(failure, value.span, "in a record"));
+                            }
                             match values.iter_mut().find(|(n, _)| n == name) {
                                 Some(slot) => slot.1 = v,
                                 None => values.push((name.clone(), v)),
@@ -837,6 +859,12 @@ impl<'a> Interpreter<'a> {
                 for (key, value) in entries {
                     let k = self.eval(key, printed, messages)?;
                     let v = self.eval(value, printed, messages)?;
+                    if let Value::Failed(failure) = &v {
+                        return Err(self.failed_used(failure, value.span, "in a mapping"));
+                    }
+                    if let Value::Failed(failure) = &k {
+                        return Err(self.failed_used(failure, key.span, "as a mapping key"));
+                    }
                     if values.iter().any(|(e, _)| operators::identical(e, &k)) {
                         return Err(fail(
                             Diagnostic::error(
@@ -854,6 +882,9 @@ impl<'a> Interpreter<'a> {
             }
             ExprKind::Unary { op, operand } => {
                 let value = self.eval(operand, printed, messages)?;
+                if let Value::Failed(failure) = &value {
+                    return Err(self.failed_used(failure, operand.span, "in arithmetic"));
+                }
                 if let Value::Column(column) = &value {
                     let result = operators::column_unary(*op == UnaryOp::Neg, column)
                         .map_err(|trouble| self.column_trouble(trouble, expr))?;
@@ -868,12 +899,18 @@ impl<'a> Interpreter<'a> {
             ExprKind::Binary { op, lhs, rhs } => {
                 let op = operator(*op);
                 let left = self.eval(lhs, printed, messages)?;
+                if let Value::Failed(failure) = &left {
+                    return Err(self.failed_used(failure, lhs.span, "in an expression"));
+                }
                 if !matches!(left, Value::Column(_))
                     && let Some(decided) = operators::decided_by_left(op, &left)
                 {
                     return Ok(decided);
                 }
                 let right = self.eval(rhs, printed, messages)?;
+                if let Value::Failed(failure) = &right {
+                    return Err(self.failed_used(failure, rhs.span, "in an expression"));
+                }
                 if matches!(left, Value::Column(_)) || matches!(right, Value::Column(_)) {
                     let (result, notes) =
                         operators::column_binary(op, operand(&left), operand(&right))
@@ -1022,6 +1059,29 @@ impl<'a> Interpreter<'a> {
                 other => return Err(self.not_one_bool("`if`", &other, condition)),
             },
             ExprKind::Case(arms) => self.eval_case(arms, printed, messages)?,
+            // `attempt(expr)` (section 5.4): a script error becomes a `Failed` value holding the
+            // error's code, message and line; an internal error (Z9xxx) stays an error, since it
+            // is a bug and not the script's failure. Warnings raised before the failure stay.
+            ExprKind::Attempt(inner) => match self.eval(inner, printed, messages) {
+                Ok(value) => value,
+                Err(error) if error.code.starts_with("Z9") => return Err(error),
+                Err(error) => {
+                    let line = error
+                        .labels
+                        .iter()
+                        .find(|l| l.primary)
+                        .or(error.labels.first())
+                        .map_or_else(
+                            || self.source.line_of(inner.span.start),
+                            |l| self.source.line_of(l.span.start),
+                        );
+                    Value::Failed(Failure {
+                        code: error.code.clone(),
+                        message: error.message.clone(),
+                        line,
+                    })
+                }
+            },
             ExprKind::ListFor {
                 binding,
                 iter,
@@ -1434,6 +1494,56 @@ impl<'a> Interpreter<'a> {
         } else {
             Vec::new()
         };
+        // A failed value is an argument only of the functions that look at it or skip it
+        // (section 3.7, "Failed values"): `is`, `type_of` and `print`, and in a list `report`
+        // (and `len`, from step 11).
+        let takes_failed = matches!(
+            (call.package.as_str(), call.name.as_str()),
+            ("core", "is") | ("core", "type_of") | ("core", "print") | ("results", "report")
+        );
+        if !takes_failed {
+            let in_list = |v: &Value| match v {
+                Value::List(items) => items.iter().find_map(|i| match i {
+                    Value::Failed(f) => Some(f.clone()),
+                    _ => None,
+                }),
+                _ => None,
+            };
+            let given = values
+                .iter()
+                .enumerate()
+                .filter_map(|(i, v)| {
+                    v.as_ref().map(|v| {
+                        (
+                            call.args[i].as_ref().map_or(call.callee_span, |e| e.span),
+                            v,
+                        )
+                    })
+                })
+                .chain(rest.iter().enumerate().map(|(i, v)| (call.rest[i].span, v)))
+                .chain(
+                    definitions
+                        .iter()
+                        .enumerate()
+                        .map(|(i, (_, v))| (call.definitions[i].1.span, v)),
+                );
+            for (span, value) in given {
+                match value {
+                    Value::Failed(failure) => {
+                        return Err(self.failed_used(failure, span, "as an argument"));
+                    }
+                    other => {
+                        if let Some(failure) = in_list(other) {
+                            return Err(self.failed_used(
+                                &failure,
+                                span,
+                                "in a list given as an argument",
+                            ));
+                        }
+                    }
+                }
+            }
+        }
         let arg_spans: Vec<Option<zeff_diagnostics::Span>> = call
             .args
             .iter()

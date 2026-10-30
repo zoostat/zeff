@@ -98,6 +98,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 64 | A new value of an option counts as an addition | Say so in section 14, Version numbers, beside new functions and options | 1.0.0 |
 | 65 | Calling Zeff from R and Python | Thin R and Python packages over the command line and the versioned result formats, after 1.0 on request | 1.1 |
 | 66 | A published speed comparison with Stata MP and R | At 1.1, when threads arrive, on the owner's machine; reported in the release notes, never a gate | 1.1 |
+| 67 | The default `level:` of `ci()` on a fit made at another level | The fit's level, so that `ci()` agrees with the summary; `level:` written overrides it | 0.6.0 |
 
 ---
 
@@ -833,3 +834,14 @@ Section 8.3, point 8 keeps interoperability at the data boundary: no shared memo
 The owner asked whether Zeff will be faster than Stata MP on eight cores. The benchmark suite (#52) times Zeff alone; section 8.3, point 10 compares the stress cases with the fastest R and Python tools; nothing compares Zeff with Stata. Until 1.1 Zeff runs each statement on one thread (section 1.4), so a comparison before then would measure the wrong thing.
 
 *Recommendation.* At 1.1, when threads arrive, run the suite's cases in Zeff, in Stata MP on eight cores and in R (fixest and data.table) on the owner's machine, and publish the times in the 1.1 release notes whichever way they fall, adding the two stress cases of #30 as their methods arrive (1.2 and 1.5); the comparison reports and never gates a release. It needs the owner's Stata MP licence. Deadline: 1.1.
+
+### 67. The default `level:` of `ci()` on a fit made at another level
+
+Raised on 30 October 2026 at step 4 of release 0.5.0, when the owner compared `a.ci(educ)` with the summary of `a`, a fit made with `level: 0.9`: the summary prints 90% intervals and `ci()` returns 95% ones, since the catalogue's usage is `fit.ci(term: Term?, level: Float = 0.95)` and the default does not read the fit. `report` and `summary` use the fit's level; `ci()` alone does not.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The default is the fit's level: `ci()` on a fit made at 90% gives 90% intervals, and `level:` written out overrides it | Agrees with the summary and with R's `confint`, whose default follows nothing but 0.95 either, yet never contradicts the printed table; one rule for every interval of a fit | The usage line reads `level: Float = the fit's level`, a default that is not a literal; `ci()` on two fits at different levels gives intervals at different levels |
+| B. Keep 0.95 as the catalogue says | Nothing changes; the number is on the page | A fit printed at 90% returns 95% intervals unless the level is repeated |
+
+*Recommendation.* A, at 0.6.0, with the catalogue's usage corrected to `level: Float = the fit's level` and the page saying so; the same rule for `predict`'s intervals when they arrive. Deadline: 0.6.0.

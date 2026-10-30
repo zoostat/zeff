@@ -485,6 +485,7 @@ pub fn has_type(value: &Value, ty: &TypeValue) -> bool {
         "Record" => matches!(value, Value::Record(_)),
         "Mapping" => matches!(value, Value::Mapping(_)),
         "Type" => matches!(value, Value::Type(_)),
+        "Failed" => matches!(value, Value::Failed(_)),
         "Bool" | "Int" | "Float" | "Str" | "Date" | "DateTime" | "Category" => match value {
             Value::Column(c) => c.ty().name() == name,
             scalar => scalar_type_name(scalar) == Some(name),
@@ -517,7 +518,7 @@ pub fn type_name(value: &Value) -> String {
         Value::List(items) => {
             let names: Vec<String> = items
                 .iter()
-                .filter(|v| !matches!(v, Value::Na))
+                .filter(|v| !matches!(v, Value::Na | Value::Failed(_)))
                 .map(type_name)
                 .collect();
             match names.first() {
@@ -551,6 +552,7 @@ pub fn type_name(value: &Value) -> String {
         Value::Fit(fit) => fit.kind.to_string(),
         Value::TestResult(_) => "TestResult".to_string(),
         Value::Term(_) | Value::TermExpr { .. } => "Term".to_string(),
+        Value::Failed(_) => "Failed".to_string(),
     }
 }
 

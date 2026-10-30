@@ -201,7 +201,7 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 /// The regression fits of the list, in order; a test's result or anything else among them is
 /// refused, and so is an empty list.
-fn fits(ctx: &CallContext<'_>, args: &Args) -> Result<Vec<Rc<Fit>>, Fail> {
+fn fits(ctx: &mut CallContext<'_>, args: &Args) -> Result<Vec<Rc<Fit>>, Fail> {
     let items = match args.get(FITS) {
         Some(Value::List(items)) => items,
         other => {
@@ -227,8 +227,58 @@ fn fits(ctx: &CallContext<'_>, args: &Args) -> Result<Vec<Rc<Fit>>, Fail> {
                 .help("give the fits in a list: `report([m1, m2])`"),
         ));
     }
+    // Failed values are skipped and counted (Language Reference, section 5.4): W0801 names how
+    // many, with the first failures' codes and lines.
+    let failed: Vec<&zeff_core::value::Failure> = items
+        .iter()
+        .filter_map(|v| match v {
+            Value::Failed(f) => Some(f),
+            _ => None,
+        })
+        .collect();
+    if !failed.is_empty() {
+        let mut causes: Vec<String> = Vec::new();
+        for f in &failed {
+            let cause = format!("{} at line {}", f.code, f.line);
+            if !causes.contains(&cause) {
+                causes.push(cause);
+            }
+        }
+        let shown = causes.len().min(3);
+        let more = if causes.len() > 3 { ", …" } else { "" };
+        let causes = causes[..shown].join(", ");
+        if failed.len() == items.len() {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0406",
+                    format!(
+                        "`report` needs at least one fit, but all {} failed ({causes}{more})",
+                        count(items.len() as u64)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(FITS), "every fit failed")
+                .help(
+                    "`attempt` kept the failures; look at the first of them and fix what it names",
+                ),
+            ));
+        }
+        ctx.message(
+            Diagnostic::warning(
+                "W0801",
+                format!(
+                    "{} of {} fits failed ({causes}{more}) and {} skipped",
+                    count(failed.len() as u64),
+                    count(items.len() as u64),
+                    if failed.len() == 1 { "was" } else { "were" }
+                ),
+            )
+            .help("the table uses the fits that succeeded; `x.is(Failed)` tells which failed"),
+        );
+    }
     items
         .iter()
+        .filter(|item| !matches!(item, Value::Failed(_)))
         .enumerate()
         .map(|(i, item)| match item {
             Value::Fit(fit) => Ok(Rc::clone(fit)),

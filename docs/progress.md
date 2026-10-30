@@ -167,3 +167,13 @@ Step 22e: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on 
 **Next.** Step 5 `[engine]`: the `Failed` type and `attempt`.
 
 **For the owner to decide.** Nothing new.
+
+## 30 October 2026, step 5 of release 0.5.0
+
+**Done.** Step 5 `[engine]`: the `Failed` value and type in `core`; `attempt(expr)` lowered to its own node and run under a catch (script errors become failed values, internal errors still stop the run, earlier warnings stay); a failed value allowed in a list and in `is`, `type_of`, `print` and `report`, refused everywhere else with Z0220 naming the failure it holds; `x.is(Failed)` and `type_of`; the guard warning W0209 (provisional, logged) with the two narrowing forms of section 3.7; `report` skipping failed fits with W0801 and refusing a list whose fits all failed; the printed form `failed · Z0801 at line 3: ...`; the pages of Z0220, W0209 and W0801 and the complete page of `attempt` (catalogue row 424 implemented); open decision #67 recorded for the default level of `ci()`; the seven rulings in `docs/decisions.md`. Tests: the checker's types, codes, the guard forms that must and must not warn, and three message snapshots; the engine's `failed.rs` (transparency when the expression succeeds, the failed value and its line inside a loop, every misuse, the guard and narrowing, `report`'s count, the loop of section 5.4 with `reg`, every message, and the property that `attempt(e)` prints what `e` prints and `report` counts exactly the failures); the identity case `control/attempt`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`), the tier and message checks (101 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 6 `[engine]`: `fn` in a script, definitions, signatures and calls.
+
+**For the owner to decide.** #67, the default level of `ci()`, by 0.6.0 (recommendation: the fit's level).

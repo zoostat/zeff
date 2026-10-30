@@ -315,6 +315,9 @@ pub enum Value {
     /// A term name given to a parameter of type `Term`, checked against the result it is used
     /// with (section 3.7, "Resolution by parameter type").
     Term(String),
+    /// A failure kept as a value by `attempt` (Language Reference, sections 4 and 5.4): the
+    /// error's code, message and line. It may stand in a list; used anywhere else it is Z0220.
+    Failed(Failure),
     /// An expression over term names, as `test` and `derive` take it (section 7.2): the
     /// expression with its bare names as `Var`s, and its text as written.
     TermExpr {
@@ -359,6 +362,26 @@ impl Value {
             Value::Fit(fit) => fit.kind,
             Value::TestResult(_) => "TestResult",
             Value::Term(_) | Value::TermExpr { .. } => "Term",
+            Value::Failed(_) => "Failed",
         }
+    }
+}
+
+/// The failure `attempt` caught (section 5.4): the error's code, message and the line of the
+/// statement it stopped at.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Failure {
+    pub code: String,
+    pub message: String,
+    pub line: u32,
+}
+
+impl Failure {
+    /// The one-line form a failed value prints as: `failed · Z0801 at line 12: message`.
+    pub fn text(&self) -> String {
+        format!(
+            "failed · {} at line {}: {}",
+            self.code, self.line, self.message
+        )
     }
 }

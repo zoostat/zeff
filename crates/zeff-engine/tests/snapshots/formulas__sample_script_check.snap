@@ -82,8 +82,8 @@ error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:169:17
 error[Z0103]: no function is called `inv_logit`
  --> zeff_samples.zeff:180:25
-error[Z0103]: no function is called `attempt`
- --> zeff_samples.zeff:181:5
+error[Z0103]: no function is called `logistic`
+ --> zeff_samples.zeff:181:15
 error[Z0103]: no function is called `len`
  --> zeff_samples.zeff:183:1
 error[Z0103]: no function is called `reliability`

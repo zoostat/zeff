@@ -1,0 +1,27 @@
+---
+source: crates/zeff-engine/tests/failed.rs
+expression: "format!(\"{}{}\", outcome.output.stdout, outcome.output.stderr)"
+---
+                    (1)         (2)         (3)
+  (intercept)    2.647***    3.107***    3.479***
+                (0.018)     (0.017)     (0.020)
+  educ           0.047***    0.028***    0.018***
+                (0.001)     (0.001)     (0.001)
+  female        -0.117***   -0.069***   -0.042***
+                (0.006)     (0.006)     (0.007)
+  ───────────────────────────────────────────────
+  SEs           classical   classical   classical
+  N                17,552      11,961       6,036
+  R²                0.085       0.052       0.036
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+0.0472758
+0.0278787
+0.0183941
+note: 211 rows dropped where `wage > cut` was NA; `w.where(is_missing(wage))` lists them (line 2)
+note: 211 rows dropped where `wage > cut` was NA; `w.where(is_missing(wage))` lists them (line 2)
+note: 211 rows dropped where `wage > cut` was NA; `w.where(is_missing(wage))` lists them (line 2)
+note: 211 rows dropped where `wage > cut` was NA; `w.where(is_missing(wage))` lists them (line 2)
+note: no row kept: the result is empty (line 2)
+warning: 1 of 4 fits failed (Z0801 at line 3) and was skipped (line 5)
+  = help: the table uses the fits that succeeded; `x.is(Failed)` tells which failed

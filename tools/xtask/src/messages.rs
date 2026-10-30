@@ -34,6 +34,10 @@ const PHRASES: &[(&str, &[&str])] = &[
         ],
     ),
     ("W0602", &["levels, more than"]),
+    (
+        "W0801",
+        &["fits failed (", "and were skipped", "and was skipped"],
+    ),
     ("W1001", &["near-singular regressors"]),
     ("W1002", &["few clusters"]),
     ("W1003", &["extreme weights"]),

@@ -1533,3 +1533,23 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 5. *No identity case*: a spread adds no numeric path; the checker's and the engine's tests compare a spread call with the call written out, bit for bit through the printed fit.
 
 **Reason.** Language Reference, sections 3.1 ("Definitions"), 3.4 (`arg`, `field`) and 3.7 ("Arguments"); the checklist's step 4 and its ruling that the spreads arrive at "Language complete".
+
+## 30 October 2026: the `Failed` type and `attempt` (release 0.5.0, step 5)
+
+**Choice.** `core` declares the `Failed` value (the error's code, message and line) and the type; `attempt(expr)` is lowered by the checker to a node of its own, typed as `expr`, and the interpreter evaluates the expression under a catch. Seven rulings:
+
+1. *What is caught.* A script error (Z01xx to Z08xx) becomes a `Failed` value; an internal error (Z9xxx) is a bug, not the script's failure, and stops the run as before. The warnings and notes raised before the failure stay, since they happened. The failure's line is the line of the error's primary label, so a failure inside a loop names the statement in the loop body.
+2. *Where a failed value may stand.* In a list, and as the argument of the functions that look at it (`is`, `type_of`, `print`) or skip it (`report`; `len` from step 11). Anywhere else, as an argument, inside a list given to any other function, in arithmetic or a comparison, in a record or a mapping, it is Z0220, found when the statement runs and reporting the failure it holds. A failed value in a definition of `add` or `frame` is the argument case.
+3. *The guard warning is W0209*, the next free code of the W02xx family (logged): a method called on a binding whose value came straight from `attempt`, unless the call is guarded. The checker narrows by the two forms of section 3.7: inside `if !x.is(Failed) { }`, and after `if x.is(Failed) { }` whose block ends in `continue`, `break` or a call to `error` (and `return`, at step 6), for the rest of the enclosing block; a `[for]` body that starts with `if m.is(Failed) { continue }` is the common case. `is`, `type_of` and `print` never warn.
+4. *The static type of `attempt(e)` is `e`'s*: a failed fit is still a `RegFit` to the checker, so arithmetic on it is the checker's Z0221, and only a failure whose type admits the use reaches Z0220 at run time. A list's run-time type ignores its failed items, as section 3.7 says.
+5. *`report` skips failed fits with W0801*, naming how many of how many failed and up to three distinct causes (`Z0801 at line 3`); a list whose fits all failed is Z0406 with the causes, since the table would have no column.
+6. *The printed form* is the owner's: `failed · Z0801 at line 3: message`, on one line, in a list and alone.
+7. *The registry entry of `attempt`* carries the page and the signature; its Rust body is never reached and reports Z9001 if it is, so the help contract's build check holds for it as for every function.
+
+**Reason.** Language Reference, sections 3.7 ("Failed values", "Narrowing"), 4, 5.4 and 5.6; the checklist's step 5 and question 3 (a).
+
+## 30 October 2026: open decision #67, the default level of `ci()`
+
+**Choice.** The owner's question of 30 October 2026, why `a.ci(educ)` returns 95% intervals for a fit made with `level: 0.9` whose summary prints 90% ones, is recorded as open decision #67 with deadline 0.6.0, recommending the fit's level as the default; nothing changes at 0.5.0, since the catalogue's usage fixes 0.95 and the question is one of statistical presentation for the owner.
+
+**Reason.** The standing instructions: a design question the text does not settle is an open decision, never settled by editing the specification mid-release.

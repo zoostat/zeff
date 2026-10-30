@@ -28,6 +28,19 @@ fn error(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     ))
 }
 
+/// `attempt(expr)` never reaches a body: the checker lowers it to its own node and the
+/// interpreter evaluates the expression under a catch. A call that arrives here is a bug.
+fn attempt(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
+    Err(fail(
+        Diagnostic::error(
+            "Z9001",
+            "internal error: this is a bug in Zeff, not in your script (`attempt` reached a body)",
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "the call that failed"),
+    ))
+}
+
 /// `seed(n)`: the run's seed, set once per script before any draw (Engine and Project
 /// Specification, section 8.3, point 3; the catalogue's row 63). A second `seed`, or one after a
 /// statement has drawn, is Z0111: the draws before it would not be reproduced by the seed printed.
@@ -72,6 +85,31 @@ fn seed(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 /// The program functions of `core` in this release, `print` apart.
 pub fn functions() -> Vec<Function> {
     vec![
+        // `attempt(expr)` is run by the interpreter, which evaluates the expression under a
+        // catch (Language Reference, section 5.4); the entry here carries its page and signature.
+        Function {
+            spec: FunctionSpec {
+                name: "attempt",
+                package: "core",
+                method: false,
+                params: vec![ParamSpec::required("expr", "Any")],
+                rest: None,
+                returns: "Any",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0220",
+                        "the failed value is used outside a list: as an argument, in arithmetic, in a frame or as a model input",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0209",
+                        "a method is called on a binding that may hold a failed value, without a guard",
+                    ),
+                ],
+                help: include_str!("../help/attempt.md"),
+                accuracy: None,
+            },
+            body: attempt,
+        },
         Function {
             spec: FunctionSpec {
                 name: "seed",

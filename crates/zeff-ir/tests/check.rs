@@ -66,6 +66,24 @@ fn registry() -> Registry {
             false,
         ),
         spec(
+            "is",
+            "core",
+            true,
+            vec![P::required("x", "Any"), P::required("type", "Type")],
+            None,
+            "Bool",
+            false,
+        ),
+        spec(
+            "error",
+            "core",
+            false,
+            vec![P::required("message", "Str")],
+            None,
+            "Nothing",
+            false,
+        ),
+        spec(
             "frame",
             "data",
             false,
@@ -696,6 +714,12 @@ fn messages() {
             "record_two_spreads_one_field",
             "let r = {..{a: 1}, ..{a: 2}}\n",
         ),
+        ("attempt_without_expression", "attempt()\n"),
+        ("attempt_with_two", "attempt(1, 2)\n"),
+        (
+            "unguarded_method_on_attempt",
+            "let w = import(\"d.csv\")\nlet m = attempt(w)\nm.mean(wage)\n",
+        ),
         (
             "if_on_a_column",
             "let wages = import(\"d.csv\")\nif wages[\"wage\"] > 20 {\n    print(1)\n}\n",
@@ -785,6 +809,13 @@ fn expressions_have_the_types_of_section_3_7() {
             "Column<Float>",
         ),
         ("let xs = [for i in 1..3 { i * 2 }]", "List<Int>"),
+        ("let a = attempt(1 + 1)", "Int"),
+        ("let a = attempt(\"x\")", "Str"),
+        (
+            "let w = import(\"d.csv\")\nlet a = attempt(w.mean(wage))",
+            "Float",
+        ),
+        ("let a = attempt(1)\nlet b = a.is(Failed)", "Bool"),
         ("let r = {..{a: 1}, b: \"x\"}", "{a: Int, b: Str}"),
         ("let r = {b: \"x\", ..{a: 1, b: 2}}", "{b: Str, a: Int}"),
         (
@@ -871,6 +902,14 @@ fn the_codes_of_expressions() {
         ("let r = {..5}\n", "Z0401"),
         ("let r = {a: 1, a: 2}\n", "Z0222"),
         ("let r = {..{a: 1}, ..{a: 2}}\n", "Z0222"),
+        ("attempt()\n", "Z0406"),
+        ("attempt(1, 2)\n", "Z0407"),
+        ("attempt(expr: 1)\n", "Z0407"),
+        ("attempt(print(1))\n", "Z0206"),
+        (
+            "let w = import(\"d.csv\")\nlet m = attempt(w)\nm.mean(wage)\n",
+            "W0209",
+        ),
     ];
     for (text, code) in cases {
         let found = codes(text);
@@ -915,4 +954,42 @@ fn type_names_and_reserved_values_cannot_be_rebound() {
     assert!(
         render("let Matrix = 1\n").contains("`Matrix` is a name of `core` and cannot be rebound")
     );
+}
+
+// ----- attempt and the narrowing of section 3.7 -----
+
+#[test]
+fn a_guarded_method_on_a_value_from_attempt_does_not_warn() {
+    let fit = "let w = import(\"d.csv\")\nlet m = attempt(w)\n";
+    for guarded in [
+        format!("{fit}if !m.is(Failed) {{ print(m.mean(wage)) }}\n"),
+        format!("{fit}if m.is(Failed) {{ error(\"failed\") }}\nm.mean(wage)\n"),
+        format!(
+            "{fit}for i in 1..2 {{\n    if m.is(Failed) {{ continue }}\n    print(m.mean(wage))\n}}\n"
+        ),
+        format!(
+            "{fit}for i in 1..2 {{\n    if m.is(Failed) {{ break }}\n    print(m.mean(wage))\n}}\n"
+        ),
+        format!("{fit}m.is(Failed)\nprint(m)\ntype_of(m)\n"),
+    ] {
+        assert!(
+            !codes(&guarded).iter().any(|c| c == "W0209"),
+            "{guarded}\n{}",
+            render(&guarded)
+        );
+    }
+    // The narrowing ends with its block, and a guard that does not leave the block narrows
+    // nothing.
+    for unguarded in [
+        format!("{fit}for i in 1..2 {{\n    if m.is(Failed) {{ break }}\n}}\nm.mean(wage)\n"),
+        format!("{fit}if m.is(Failed) {{ print(1) }}\nm.mean(wage)\n"),
+        format!("{fit}if !m.is(Failed) {{ print(1) }}\nm.mean(wage)\n"),
+    ] {
+        assert_eq!(
+            codes(&unguarded),
+            vec!["W0209".to_string()],
+            "{unguarded}\n{}",
+            render(&unguarded)
+        );
+    }
 }

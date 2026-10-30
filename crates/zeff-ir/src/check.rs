@@ -13,6 +13,7 @@ use crate::ty::{ResultKind, Ty};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
 use zeff_registry::{Registered, Registry, Rest};
 use zeff_syntax::ast;
+use zeff_syntax::ast::UnaryOp;
 use zeff_syntax::written::written;
 
 /// The checked program and everything found on the way.
@@ -50,6 +51,8 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
         term_depth: 0,
         loops: Vec::new(),
         record_depth: 0,
+        maybe_failed: std::collections::HashSet::new(),
+        safe: Vec::new(),
         words: registry
             .functions()
             .iter()
@@ -142,6 +145,11 @@ struct Checker<'a> {
     record_depth: usize,
     /// Every word some registered parameter accepts.
     words: std::collections::BTreeSet<String>,
+    /// The bindings whose value comes from `attempt` and may be a `Failed` value (section 3.7,
+    /// "Failed values"), and those among them a guard has narrowed for the current block
+    /// ("Narrowing"); a method on an unguarded one is W0209.
+    maybe_failed: std::collections::HashSet<BindingId>,
+    safe: Vec<BindingId>,
 }
 
 impl Checker<'_> {
@@ -201,6 +209,9 @@ impl Checker<'_> {
                     );
                 }
                 let id = self.bind(name, value.ty.clone(), BindingKind::Let);
+                if matches!(value.kind, ExprKind::Attempt(_)) {
+                    self.maybe_failed.insert(id);
+                }
                 Some(Statement::Let {
                     binding: id,
                     value,
@@ -520,6 +531,7 @@ impl Checker<'_> {
     /// only the script's own statements print.
     fn block(&mut self, block: &ast::Block, expected: Option<&Ty>) -> (Block, Ty) {
         let depth = self.scope.len();
+        let safe_depth = self.safe.len();
         let mut statements = Vec::new();
         let mut tail = None;
         let last = block.statements.len().saturating_sub(1);
@@ -539,6 +551,7 @@ impl Checker<'_> {
             }
         }
         self.scope.truncate(depth);
+        self.safe.truncate(safe_depth);
         let ty = tail.as_ref().map_or(Ty::Nothing, |e| e.ty.clone());
         (
             Block {
@@ -547,6 +560,49 @@ impl Checker<'_> {
                 span: block.span,
             },
             ty,
+        )
+    }
+
+    /// `x.is(Failed)` or `!x.is(Failed)` as a condition: the binding and whether negated
+    /// (section 3.7, "Narrowing").
+    fn failed_guard(condition: &Expr) -> Option<(BindingId, bool)> {
+        let (inner, negated) = match &condition.kind {
+            ExprKind::Unary {
+                op: UnaryOp::Not,
+                operand,
+            } => (operand.as_ref(), true),
+            _ => (condition, false),
+        };
+        let ExprKind::Call(call) = &inner.kind else {
+            return None;
+        };
+        if call.package != "core" || call.name != "is" {
+            return None;
+        }
+        match (call.args.first(), call.args.get(1)) {
+            (
+                Some(Some(Expr {
+                    kind: ExprKind::Binding(id),
+                    ..
+                })),
+                Some(Some(Expr {
+                    kind: ExprKind::TypeName { name, .. },
+                    ..
+                })),
+            ) if name == "Failed" => Some((*id, negated)),
+            _ => None,
+        }
+    }
+
+    /// Whether a block ends in `continue`, `break`, `return` or a call to `error`, so that what
+    /// follows it runs only when the block did not (section 3.7, "Narrowing").
+    fn block_leaves(block: &Block) -> bool {
+        if let Some(tail) = &block.tail {
+            return matches!(&tail.kind, ExprKind::Call(call) if call.package == "core" && call.name == "error");
+        }
+        matches!(
+            block.statements.last(),
+            Some(Statement::Break { .. } | Statement::Continue { .. })
         )
     }
 
@@ -601,7 +657,22 @@ impl Checker<'_> {
         expected: Option<&Ty>,
     ) -> Expr {
         let condition = self.condition(cond);
+        let guard = Self::failed_guard(&condition);
+        // Inside `if !x.is(Failed) { ... }` the binding is known to have succeeded.
+        if let Some((id, true)) = guard {
+            self.safe.push(id);
+        }
         let (then_block, then_ty) = self.block(then, expected);
+        if let Some((_, true)) = guard {
+            self.safe.pop();
+        }
+        // After `if x.is(Failed) { ... }` whose block leaves, the rest of the enclosing block
+        // runs only for a value that succeeded.
+        if let Some((id, false)) = guard
+            && Self::block_leaves(&then_block)
+        {
+            self.safe.push(id);
+        }
         let Some(otherwise) = otherwise else {
             return Expr {
                 ty: Ty::Nothing,
@@ -2379,6 +2450,45 @@ impl Checker<'_> {
         }
     }
 
+    /// `attempt(expr)` (section 5.4; catalogue row 424): one expression, whose type is the
+    /// result's; a failure becomes a `Failed` value when the statement runs.
+    fn attempt(
+        &mut self,
+        args: &[ast::Arg],
+        callee_span: Span,
+        span: Span,
+        expected: Option<&Ty>,
+    ) -> Expr {
+        let positional: Vec<&ast::Expr> = args
+            .iter()
+            .filter_map(|a| match a {
+                ast::Arg::Positional(e) => Some(e),
+                _ => None,
+            })
+            .collect();
+        if positional.len() != 1 || positional.len() != args.len() {
+            let code = if args.is_empty() { "Z0406" } else { "Z0407" };
+            let message = if args.is_empty() {
+                "`attempt` needs `expr`".to_string()
+            } else {
+                "`attempt` takes one expression and no options".to_string()
+            };
+            self.report(
+                Diagnostic::error(code, message)
+                    .primary(callee_span, "usage: `attempt(expr)`")
+                    .help("write the expression that may fail inside the parentheses: `attempt(d.reg(y ~ x))`"),
+            );
+            return Expr::error(span);
+        }
+        let inner = self.expr(positional[0], expected);
+        let inner = self.no_nothing(inner, "run by `attempt`");
+        Expr {
+            ty: inner.ty.clone(),
+            span,
+            kind: ExprKind::Attempt(Box::new(inner)),
+        }
+    }
+
     /// Z0401: a spread needs a record whose fields are known.
     fn spread_not_a_record(&mut self, spread: &Expr) {
         let what = if spread.ty == Ty::AnyRecord {
@@ -2420,6 +2530,10 @@ impl Checker<'_> {
             && (name == "Date" || name == "DateTime")
         {
             return self.type_constructor(&name, args, span);
+        }
+        // `attempt(expr)` is the interpreter's: the expression under a catch (section 5.4).
+        if receiver.is_none() && callee.segments.len() == 1 && name == "attempt" {
+            return self.attempt(args, callee_span, span, expected);
         }
 
         // `dist.normal(...)`: `dist`, `power` and `spec` are namespaces, not values (section 3.7,
@@ -2596,6 +2710,21 @@ impl Checker<'_> {
             && self.frame_scope > 0
             && spec.params.first().is_some_and(|p| p.ty == "Frame");
         if let Some(r) = receiver {
+            if let ExprKind::Binding(id) = &r.kind
+                && self.maybe_failed.contains(id)
+                && !self.safe.contains(id)
+                && !matches!(fname.as_str(), "is" | "type_of" | "print")
+            {
+                let bound = self.bindings[*id].name.clone();
+                self.report(
+                    Diagnostic::warning(
+                        "W0209",
+                        format!("`{bound}` may hold a failed value, so `{fname}` may stop the script"),
+                    )
+                    .primary(r.span, "a value from `attempt`")
+                    .help(format!("guard the call: `if {bound}.is(Failed) {{ ... }}` with a `continue`, `break` or `error` inside, or `if !{bound}.is(Failed) {{ {bound}.{fname}(...) }}`")),
+                );
+            }
             slots[0] = Some(r);
             order.push(Slot::Param(0));
             next_positional = 1;

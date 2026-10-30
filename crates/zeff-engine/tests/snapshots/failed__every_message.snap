@@ -1,0 +1,129 @@
+---
+source: crates/zeff-engine/tests/failed.rs
+expression: all
+---
+## failed_as_argument (exit 1)
+warning[W0209]: `m` may hold a failed value, so `coef` may stop the script
+ --> scripts/main.zeff:3:1
+  |
+3 | m.coef(x)
+  | ^ a value from `attempt`
+  |
+  = help: guard the call: `if m.is(Failed) { ... }` with a `continue`, `break` or `error` inside, or `if !m.is(Failed) { m.coef(...) }`
+note: no row kept: the result is empty (line 2)
+error[Z0220]: a failed value cannot be used as an argument: it failed with Z0801 at line 2: no row remains to fit the model: the frame has no rows
+ --> scripts/main.zeff:3:1
+  |
+3 | m.coef(x)
+  | ^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+## failed_in_arithmetic (exit 1)
+error[Z0220]: a failed value cannot be used in an expression: it failed with Z0207 at line 1: index 5 is outside 1..2
+ --> scripts/main.zeff:2:1
+  |
+2 | k + 1
+  | ^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+## failed_in_a_record (exit 1)
+error[Z0220]: a failed value cannot be used in a record: it failed with Z0207 at line 1: index 5 is outside 1..2
+ --> scripts/main.zeff:2:13
+  |
+2 | let r = {a: k}
+  |             ^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+## failed_in_a_mapping (exit 1)
+error[Z0220]: a failed value cannot be used in a mapping: it failed with Z0207 at line 1: index 5 is outside 1..2
+ --> scripts/main.zeff:2:15
+  |
+2 | let g = [1 => k]
+  |               ^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+## failed_in_a_list_argument (exit 1)
+error[Z0220]: a failed value cannot be used in a list given as an argument: it failed with Z0207 at line 1: index 5 is outside 1..2
+ --> scripts/main.zeff:2:11
+  |
+2 | frame(a = [k])
+  |           ^^^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+## failed_as_condition (exit 1)
+error[Z0203]: `if` needs one Bool, but `b` is a Failed
+ --> scripts/main.zeff:2:4
+  |
+2 | if b { 1 }
+  |    ^ not a Bool
+  |
+  = help: write a comparison, `wages.n_rows() < 30`, or a binding that holds a Bool
+
+## attempt_without_expression (exit 1)
+error[Z0406]: `attempt` needs `expr`
+ --> scripts/main.zeff:1:1
+  |
+1 | attempt()
+  | ^^^^^^^ usage: `attempt(expr)`
+  |
+  = help: write the expression that may fail inside the parentheses: `attempt(d.reg(y ~ x))`
+
+## attempt_with_two (exit 1)
+error[Z0407]: `attempt` takes one expression and no options
+ --> scripts/main.zeff:1:1
+  |
+1 | attempt(1, 2)
+  | ^^^^^^^ usage: `attempt(expr)`
+  |
+  = help: write the expression that may fail inside the parentheses: `attempt(d.reg(y ~ x))`
+
+## attempt_of_nothing (exit 1)
+error[Z0206]: this gives no value, so it cannot be run by `attempt`
+ --> scripts/main.zeff:1:9
+  |
+1 | attempt(print(1))
+  |         ^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+## unguarded_method (exit 0)
+2.2
+warning[W0209]: `m` may hold a failed value, so `coef` may stop the script
+ --> scripts/main.zeff:3:1
+  |
+3 | m.coef(x)
+  | ^ a value from `attempt`
+  |
+  = help: guard the call: `if m.is(Failed) { ... }` with a `continue`, `break` or `error` inside, or `if !m.is(Failed) { m.coef(...) }`
+
+## report_all_failed (exit 1)
+note: no row kept: the result is empty (line 2)
+note: no row kept: the result is empty (line 2)
+error[Z0406]: `report` needs at least one fit, but all 2 failed (Z0801 at line 2)
+ --> scripts/main.zeff:2:8
+  |
+2 | report([for cut in [10, 20] { attempt(d.where(x > cut).reg(y ~ x)) }])
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ every fit failed
+  |
+  = help: `attempt` kept the failures; look at the first of them and fix what it names
+
+## report_some_failed (exit 0)
+                    (1)
+  (intercept)   -0.200
+                (0.542)
+  x              2.200***
+                (0.163)
+  ───────────────────────
+  SEs           classical
+  N                     5
+  R²                0.984
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+note: no row kept: the result is empty (line 2)
+warning: 1 of 2 fits failed (Z0801 at line 2) and was skipped (line 2)
+  = help: the table uses the fits that succeeded; `x.is(Failed)` tells which failed

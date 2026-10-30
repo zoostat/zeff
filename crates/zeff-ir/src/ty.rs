@@ -61,6 +61,9 @@ pub enum Ty {
     /// coefficient, never a column or a binding (section 7.2), and the expression is kept as
     /// written for the function to read.
     TermExpr(Box<Ty>),
+    /// A failure kept as a value by `attempt` (section 4, "Failure"): the static type of nothing
+    /// the checker sees, since `attempt(e)` has `e`'s type, but a name in `x.is(Failed)`.
+    Failed,
     /// The type of a call that returns no value; it cannot be bound or passed.
     Nothing,
     /// Any value at all (`print`).
@@ -153,6 +156,7 @@ impl Ty {
             "Result" => Ty::Result(None),
             "Term" => Ty::Term,
             "Nothing" => Ty::Nothing,
+            "Failed" => Ty::Failed,
             "Any" => Ty::Any,
             "Var" => Ty::Var,
             "Vars" => Ty::Vars,
@@ -271,6 +275,7 @@ impl fmt::Display for Ty {
             Ty::Result(Some(kind)) => write!(f, "{}", kind.name()),
             Ty::Term => write!(f, "Term"),
             Ty::TermExpr(inner) => write!(f, "Term<{inner}>"),
+            Ty::Failed => write!(f, "Failed"),
             Ty::Nothing => write!(f, "Nothing"),
             Ty::Any => write!(f, "Any"),
             Ty::Var => write!(f, "Var"),

@@ -180,6 +180,9 @@ pub enum ExprKind {
         name: String,
     },
     Call(Call),
+    /// `attempt(expr)` (section 5.4): the expression evaluated under a catch, a script error
+    /// becoming a `Failed` value; the type is the expression's.
+    Attempt(Box<Expr>),
     /// A block as a value: the body of a `case` arm written in braces.
     Block(Block),
     /// `if cond { then } else { otherwise }` (section 5.1): without `else` the type is `Nothing`;

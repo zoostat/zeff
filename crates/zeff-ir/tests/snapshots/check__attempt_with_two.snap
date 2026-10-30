@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0407]: `attempt` takes one expression and no options
+ --> scripts/main.zeff:1:1
+  |
+1 | attempt(1, 2)
+  | ^^^^^^^ usage: `attempt(expr)`
+  |
+  = help: write the expression that may fail inside the parentheses: `attempt(d.reg(y ~ x))`

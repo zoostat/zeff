@@ -117,6 +117,8 @@ regress/interface/stdout 08c3aafc8156baa5
 regress/interface/stderr cbf29ce484222325
 control/case/stdout 31d5603dedb0df16
 control/case/stderr bb0e7314f2b5bfed
+control/attempt/stdout 515eb37b724d8bfa
+control/attempt/stderr 472a84d99b1b579d
 control/for_draws/stdout fdb841f515d6951d
 control/for_draws/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
