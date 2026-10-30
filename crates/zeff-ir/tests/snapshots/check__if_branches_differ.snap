@@ -1,0 +1,14 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0214]: the branches of an `if` must give one type: this one has an Int and a Str
+ --> scripts/main.zeff:3:8
+  |
+1 | let x = if true {
+  |                 - an Int
+...
+3 | } else {
+  |        ^ a Str
+  |
+  = help: Int and Float join as Float and NA fits any type; other types need a conversion, `to(x, Str)`

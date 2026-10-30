@@ -1519,6 +1519,13 @@ impl<'a> Parser<'a> {
             self.expect(&K::RBrace, "`,` or `}`")?;
             break;
         }
+        if arms.is_empty() {
+            self.report(
+                Diagnostic::error("Z0301", "a `case` needs at least one arm")
+                    .primary(self.span_from(start), "no arm between the braces")
+                    .help("write `case { condition => value, _ => other }`"),
+            );
+        }
         // `_` may appear once, and only as the last arm (Z0316).
         let last = arms.len().saturating_sub(1);
         let misplaced: Vec<Span> = arms

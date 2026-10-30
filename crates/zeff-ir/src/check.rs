@@ -6,8 +6,8 @@
 //! `Unknown`, which no later check reports again.
 
 use crate::ir::{
-    Binding, BindingId, Call, Expr, ExprKind, Formula, Program, Slot, Statement, Term, TermKind,
-    TermStep,
+    Arm, Binding, BindingId, Block, Call, Expr, ExprKind, Formula, Program, Slot, Statement, Term,
+    TermKind, TermStep,
 };
 use crate::ty::{ResultKind, Ty};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
@@ -258,10 +258,26 @@ impl Checker<'_> {
     /// Z0206: `Nothing` cannot be bound or passed.
     fn no_nothing(&mut self, expr: Expr, what: &str) -> Expr {
         if expr.ty == Ty::Nothing {
+            let help = if matches!(
+                expr.kind,
+                ExprKind::If {
+                    otherwise: None,
+                    ..
+                }
+            ) {
+                "an `if` without `else` is a statement and gives nothing; add an `else` branch to use it as a value (section 3.7)"
+            } else if matches!(expr.kind, ExprKind::If { .. }) {
+                "an `if` is a value only when every branch ends in a value, the last `else` included; one of these gives nothing (section 3.1, \"Value of a block\")"
+            } else {
+                "`print` and the other statements that print or warn return nothing; use the value they were given"
+            };
             self.report(
-                Diagnostic::error("Z0206", format!("this gives no value, so it cannot be {what}"))
-                    .primary(expr.span, "its type is Nothing")
-                    .help("`print` and the other statements that print or warn return nothing; use the value they were given"),
+                Diagnostic::error(
+                    "Z0206",
+                    format!("this gives no value, so it cannot be {what}"),
+                )
+                .primary(expr.span, "its type is Nothing")
+                .help(help),
             );
             return Expr {
                 ty: Ty::Unknown,
@@ -372,24 +388,12 @@ impl Checker<'_> {
                 );
                 Expr::error(span)
             }
-            ast::ExprKind::If { .. } => {
-                self.not_yet(
-                    span,
-                    "`if`",
-                    "0.5.0",
-                    "`if` and `case` arrive with release 0.5.0",
-                );
-                Expr::error(span)
-            }
-            ast::ExprKind::Case { .. } => {
-                self.not_yet(
-                    span,
-                    "`case`",
-                    "0.5.0",
-                    "`if` and `case` arrive with release 0.5.0",
-                );
-                Expr::error(span)
-            }
+            ast::ExprKind::If {
+                cond,
+                then,
+                otherwise,
+            } => self.if_expr(cond, then, otherwise.as_deref(), span, expected),
+            ast::ExprKind::Case { arms } => self.case_expr(arms, span, expected),
             ast::ExprKind::Model(_) => {
                 self.not_yet(
                     span,
@@ -421,6 +425,277 @@ impl Checker<'_> {
                 self.dot_alone(span);
                 Expr::error(span)
             }
+        }
+    }
+
+    // ----- blocks, `if` and `case` (sections 3.1, 3.7 and 5.1) -----
+
+    /// A block: its statements in a scope of their own, and its value, the last statement when
+    /// that is an expression (section 3.1, "Value of a block"; section 3.7, "Block scope"). An
+    /// expression statement before the last is kept for its effects and its value discarded:
+    /// only the script's own statements print.
+    fn block(&mut self, block: &ast::Block, expected: Option<&Ty>) -> (Block, Ty) {
+        let depth = self.scope.len();
+        let mut statements = Vec::new();
+        let mut tail = None;
+        let last = block.statements.len().saturating_sub(1);
+        for (i, statement) in block.statements.iter().enumerate() {
+            if i == last
+                && let ast::StmtKind::Expr(e) = &statement.kind
+            {
+                tail = Some(Box::new(self.expr(e, expected)));
+                break;
+            }
+            match self.statement(statement) {
+                Some(Statement::Print { value, span }) => {
+                    statements.push(Statement::Expr { value, span });
+                }
+                Some(other) => statements.push(other),
+                None => {}
+            }
+        }
+        self.scope.truncate(depth);
+        let ty = tail.as_ref().map_or(Ty::Nothing, |e| e.ty.clone());
+        (
+            Block {
+                statements,
+                tail,
+                span: block.span,
+            },
+            ty,
+        )
+    }
+
+    /// The condition of an `if` (section 5.1): one Bool. A column is refused here with Z0203, as
+    /// section 11's example shows, and a bare `NA` when the statement runs (section 5.6).
+    fn condition(&mut self, expr: &ast::Expr) -> Expr {
+        let lowered = self.expr(expr, Some(&Ty::Bool));
+        let lowered = self.no_nothing(lowered, "used as a condition");
+        match &lowered.ty {
+            Ty::Bool | Ty::Na | Ty::Unknown => lowered,
+            Ty::Column(inner) => {
+                let what = if matches!(**inner, Ty::Bool | Ty::Unknown) {
+                    "a Bool column".to_string()
+                } else {
+                    lowered.ty.with_article()
+                };
+                self.report(
+                    Diagnostic::error(
+                        "Z0203",
+                        format!("`if` needs one Bool, but `{}` is {what}", written(expr)),
+                    )
+                    .primary(lowered.span, "a column, not one value")
+                    .help("`if` decides what the script does and takes one Bool; a value chosen row by row is a `case`: `case { condition => a, _ => b }` (section 5.1)"),
+                );
+                Expr::error(lowered.span)
+            }
+            other => {
+                let what = other.with_article();
+                self.report(
+                    Diagnostic::error(
+                        "Z0203",
+                        format!("`if` needs one Bool, but `{}` is {what}", written(expr)),
+                    )
+                    .primary(lowered.span, "not a Bool")
+                    .help(
+                        "write a comparison, `wages.n_rows() < 30`, or a binding that holds a Bool",
+                    ),
+                );
+                Expr::error(lowered.span)
+            }
+        }
+    }
+
+    /// `if cond { } [else { } | else if ...]`: without `else` the type is `Nothing` (section 3.7),
+    /// with one the branches are joined (section 3.7, "Joining types").
+    fn if_expr(
+        &mut self,
+        cond: &ast::Expr,
+        then: &ast::Block,
+        otherwise: Option<&ast::Else>,
+        span: Span,
+        expected: Option<&Ty>,
+    ) -> Expr {
+        let condition = self.condition(cond);
+        let (then_block, then_ty) = self.block(then, expected);
+        let Some(otherwise) = otherwise else {
+            return Expr {
+                ty: Ty::Nothing,
+                span,
+                kind: ExprKind::If {
+                    condition: Box::new(condition),
+                    then: then_block,
+                    otherwise: None,
+                },
+            };
+        };
+        let (else_block, else_ty) = match otherwise {
+            ast::Else::Block(b) => self.block(b, expected),
+            // `else if`: an else block whose value is the next `if`.
+            ast::Else::If(e) => {
+                let inner = self.expr(e, expected);
+                let ty = inner.ty.clone();
+                (
+                    Block {
+                        statements: Vec::new(),
+                        tail: Some(Box::new(inner)),
+                        span: e.span,
+                    },
+                    ty,
+                )
+            }
+        };
+        let ty = self.join_branches(&then_ty, &else_ty, then_block.span, else_block.span);
+        Expr {
+            ty,
+            span,
+            kind: ExprKind::If {
+                condition: Box::new(condition),
+                then: then_block,
+                otherwise: Some(else_block),
+            },
+        }
+    }
+
+    /// The one type of an `if` with `else` (section 3.7, "Joining types"): a branch that gives
+    /// no value (one ending in a `let`, or an `else if` with no final `else`) makes the whole `if`
+    /// a statement of type `Nothing`, so that binding it is Z0206; two types that do not join
+    /// are Z0214.
+    fn join_branches(&mut self, a: &Ty, b: &Ty, a_span: Span, b_span: Span) -> Ty {
+        if *a == Ty::Nothing || *b == Ty::Nothing {
+            return Ty::Nothing;
+        }
+        match Ty::join(a, b) {
+            Some(ty) => ty,
+            None => {
+                self.report(
+                    Diagnostic::error(
+                        "Z0214",
+                        format!(
+                            "the branches of an `if` must give one type: this one has {} and {}",
+                            a.with_article(),
+                            b.with_article()
+                        ),
+                    )
+                    .primary(b_span, b.with_article())
+                    .secondary(a_span, a.with_article())
+                    .help("Int and Float join as Float and NA fits any type; other types need a conversion, `to(x, Str)`"),
+                );
+                Ty::Unknown
+            }
+        }
+    }
+
+    /// `case { cond => value, ..., _ => value }` (section 5.1): every condition a Bool or a Bool
+    /// column, every value joined to one type, a column when any condition or value is one
+    /// (section 3.7, "Columns and scalars"); W0301 for an arm no row can reach.
+    fn case_expr(&mut self, arms: &[ast::Arm], span: Span, expected: Option<&Ty>) -> Expr {
+        if arms.is_empty() {
+            // The parser has reported the missing arm (Z0301).
+            return Expr::error(span);
+        }
+        // The arms' values are checked against the element type where a column is expected.
+        let element_expected: Option<Ty> = match expected {
+            Some(Ty::Column(inner)) => Some((**inner).clone()),
+            other => other.cloned(),
+        };
+        let mut lowered = Vec::with_capacity(arms.len());
+        let mut column = false;
+        let mut element: Option<Ty> = None;
+        let last = arms.len() - 1;
+        for (i, arm) in arms.iter().enumerate() {
+            let condition = match &arm.pattern {
+                None => None,
+                Some(c) => {
+                    let e = self.expr(c, Some(&Ty::Bool));
+                    let e = self.no_nothing(e, "used as a condition");
+                    match &e.ty {
+                        Ty::Bool | Ty::Na | Ty::Unknown => {}
+                        Ty::Column(inner) if matches!(**inner, Ty::Bool | Ty::Na | Ty::Unknown) => {
+                            column = true;
+                        }
+                        other => {
+                            let what = other.with_article();
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0203",
+                                    format!(
+                                        "a `case` arm's condition must be a Bool or a Bool column, but `{}` is {what}",
+                                        written(c)
+                                    ),
+                                )
+                                .primary(e.span, "not a condition")
+                                .help("write a comparison, `age < 25`, or a Bool variable; the catch-all is `_`"),
+                            );
+                        }
+                    }
+                    if i != last && matches!(e.kind, ExprKind::Bool(true)) {
+                        self.report(
+                            Diagnostic::warning(
+                                "W0301",
+                                "this condition is always true, so the arms after it can never be reached",
+                            )
+                            .primary(e.span, "`true` matches every row")
+                            .help("write the catch-all as the last arm, `_ => value`, or remove the arms after this one"),
+                        );
+                    }
+                    Some(e)
+                }
+            };
+            let value = match &arm.body {
+                ast::ArmBody::Expr(e) => self.expr(e, element_expected.as_ref()),
+                ast::ArmBody::Block(b) => {
+                    let (block, ty) = self.block(b, element_expected.as_ref());
+                    Expr {
+                        ty,
+                        span: b.span,
+                        kind: ExprKind::Block(block),
+                    }
+                }
+            };
+            let value = self.no_nothing(value, "the value of a `case` arm");
+            let (is_column, inner) = unwrap_column(&value.ty);
+            column |= is_column;
+            element = Some(match element {
+                None => inner,
+                Some(so_far) => match Ty::join(&so_far, &inner) {
+                    Some(joined) => joined,
+                    None => {
+                        self.report(
+                            Diagnostic::error(
+                                "Z0214",
+                                format!(
+                                    "the arms of a `case` must give one type: this one has {} after {}",
+                                    inner.with_article(),
+                                    so_far.with_article()
+                                ),
+                            )
+                            .primary(value.span, inner.with_article())
+                            .help("Int and Float join as Float and NA fits any type; other types need a conversion, `to(x, Str)`"),
+                        );
+                        Ty::Unknown
+                    }
+                },
+            });
+            lowered.push(Arm {
+                condition,
+                value,
+                span: arm.span,
+            });
+        }
+        let element = match element {
+            Some(Ty::Na) | None => element_expected.unwrap_or(Ty::Na),
+            Some(t) => t,
+        };
+        let ty = if column {
+            Ty::Column(Box::new(element))
+        } else {
+            element
+        };
+        Expr {
+            ty,
+            span,
+            kind: ExprKind::Case(lowered),
         }
     }
 

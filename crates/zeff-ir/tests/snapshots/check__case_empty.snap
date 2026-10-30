@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0301]: a `case` needs at least one arm
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = case { }
+  |         ^^^^^^^^ no arm between the braces
+  |
+  = help: write `case { condition => value, _ => other }`

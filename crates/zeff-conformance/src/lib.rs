@@ -845,6 +845,45 @@ fn regress_cases() -> Vec<Line> {
     lines
 }
 
+/// The control flow of release 0.5.0 (step 2): `if` and `case` through the whole engine, a
+/// `case` over one value and row by row over the shipped `wages`, inside `add` and `where`, with
+/// the rows no arm matched, their printed output and messages digested.
+fn control_cases() -> Vec<Line> {
+    use std::path::Path;
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/c/zeff.toml",
+        format!(
+            "[project]\nname = \"c\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let project = match Project::open(&fs, Path::new("/c")) {
+        Ok(project) => project,
+        Err(_) => return vec![text("control/project", "the project did not open")],
+    };
+    let scripts = [(
+        "case",
+        "let w = dataset(wages)\nlet reps = if w.n_rows() < 500 { 5000 } else { 1000 }\nreps\nlet b = w.add(band = case { wage < 15 => \"low\", wage < 25 => \"mid\", _ => \"high\" }, k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })\nb.summary([k])\nb.where(case { hours > 40 => true, _ => false }).mean(wage)\ncase { w.n_rows() > 5 => \"big\", _ => \"small\" }\n",
+    )];
+    let mut lines = Vec::new();
+    for (name, script) in scripts {
+        let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+        lines.push(text(
+            &format!("control/{name}/stdout"),
+            &outcome.output.stdout,
+        ));
+        lines.push(text(
+            &format!("control/{name}/stderr"),
+            &outcome.output.stderr,
+        ));
+    }
+    lines
+}
+
 /// The exported files of release 0.4.0 (step 13): the sample table as Word and LaTeX, so that the
 /// four targets prove the bytes identical.
 fn export_cases() -> Vec<Line> {
@@ -863,6 +902,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(random_cases());
     lines.extend(distribution_cases());
     lines.extend(regress_cases());
+    lines.extend(control_cases());
     lines.extend(export_cases());
     lines.extend(kernels_cases());
     lines.extend(milestone_cases());

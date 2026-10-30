@@ -115,6 +115,8 @@ regress/weighted/stdout aeb6bde8c819a0fc
 regress/weighted/stderr 0379ea182b39c370
 regress/interface/stdout 08c3aafc8156baa5
 regress/interface/stderr cbf29ce484222325
+control/case/stdout 31d5603dedb0df16
+control/case/stderr bb0e7314f2b5bfed
 export/sample.docx c1fd0481a8a88c3f
 export/sample.tex 79622a8e73235482
 kernels/reductions 7a3f4eedc240791f

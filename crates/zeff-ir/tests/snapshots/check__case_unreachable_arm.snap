@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+warning[W0301]: this condition is always true, so the arms after it can never be reached
+ --> scripts/main.zeff:1:16
+  |
+1 | let x = case { true => 1, false => 2 }
+  |                ^^^^ `true` matches every row
+  |
+  = help: write the catch-all as the last arm, `_ => value`, or remove the arms after this one

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0203]: a `case` arm's condition must be a Bool or a Bool column, but `1` is an Int
+ --> scripts/main.zeff:1:16
+  |
+1 | let x = case { 1 => 2, _ => 3 }
+  |                ^ not a condition
+  |
+  = help: write a comparison, `age < 25`, or a Bool variable; the catch-all is `_`

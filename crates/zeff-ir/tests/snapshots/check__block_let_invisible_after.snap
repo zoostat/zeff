@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0101]: nothing is called `inner` here
+ --> scripts/main.zeff:4:1
+  |
+4 | inner
+  | ^^^^^ not a binding
+  |
+  = help: a bare name is a binding made with `let`; text is written in quotes, and a variable is named inside a frame's method, as in `wages.mean(wage)`

@@ -1,0 +1,14 @@
+---
+source: crates/zeff-engine/tests/control.rs
+expression: "format!(\"{}{}\", outcome.output.stdout, outcome.output.stderr)"
+---
+1000
+frame · 5 rows × 11 variables · panel worker × year
+
+      worker   year    wage   educ   exper   age   hours   union   female   industry   age_group
+  1        1   2015   18.08     17       9    32    45.1   no      male     Retail     prime
+  2        1   2016   17.28     17      10    33    41.4   no      male     Retail     prime
+  3        1   2017   20.93     17      11    34    54.3   no      male     Retail     prime
+  4        1   2018   15.68     17      12    35    26.2   no      male     Retail     prime
+  5        1   2019   26.39     17      13    36    32.3   no      male     Retail     prime
+1621

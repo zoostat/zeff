@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0203]: `if` needs one Bool, but `1` is an Int
+ --> scripts/main.zeff:1:4
+  |
+1 | if 1 {
+  |    ^ not a Bool
+  |
+  = help: write a comparison, `wages.n_rows() < 30`, or a binding that holds a Bool

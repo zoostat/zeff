@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0203]: `if` needs one Bool, but `wages["wage"] > 20` is a Bool column
+ --> scripts/main.zeff:2:4
+  |
+2 | if wages["wage"] > 20 {
+  |    ^^^^^^^^^^^^^^^^^^ a column, not one value
+  |
+  = help: `if` decides what the script does and takes one Bool; a value chosen row by row is a `case`: `case { condition => a, _ => b }` (section 5.1)

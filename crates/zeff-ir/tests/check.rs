@@ -495,8 +495,6 @@ fn constructs_of_later_releases_are_z0304_with_their_release() {
         ("fn f(x: Float) -> Float {\n    x\n}\n", "0.5.0"),
         ("use clean\n", "0.5.0"),
         ("for i in [1, 2] {\n    print(i)\n}\n", "0.5.0"),
-        ("let x = if true { 1 } else { 2 }\n", "0.5.0"),
-        ("let x = case {\n    true => 1,\n    _ => 2,\n}\n", "0.5.0"),
         ("let x = [for i in [1] { i }]\n", "0.5.0"),
         ("let m = model {\n    y ~ x\n}\n", "1.3"),
         ("let g = dag {\n    a -> b\n}\n", "0.10.0"),
@@ -665,6 +663,37 @@ fn messages() {
             "import(\"d.csv\", types: {sold: Date(\"%d/%m/%Y %H:%M\")})\n",
         ),
         ("not_yet_for", "for i in [1, 2] {\n    print(i)\n}\n"),
+        (
+            "if_on_a_column",
+            "let wages = import(\"d.csv\")\nif wages[\"wage\"] > 20 {\n    print(1)\n}\n",
+        ),
+        ("if_on_an_int", "if 1 {\n    print(1)\n}\n"),
+        ("if_without_else_bound", "let x = if true { 1 }\n"),
+        (
+            "if_branches_differ",
+            "let x = if true {\n    1\n} else {\n    \"a\"\n}\n",
+        ),
+        (
+            "if_branch_without_a_value",
+            "let x = if true {\n    let y = 1\n} else {\n    2\n}\n",
+        ),
+        (
+            "case_arm_not_a_condition",
+            "let x = case { 1 => 2, _ => 3 }\n",
+        ),
+        (
+            "case_arms_differ",
+            "let x = case { 1 < 2 => 1, _ => \"a\" }\n",
+        ),
+        (
+            "case_unreachable_arm",
+            "let x = case { true => 1, false => 2 }\n",
+        ),
+        ("case_empty", "let x = case { }\n"),
+        (
+            "block_let_invisible_after",
+            "if true {\n    let inner = 1\n}\ninner\n",
+        ),
         ("not_yet_formula", "let f = y ~ x\n"),
     ];
     for (name, text) in cases {
@@ -696,10 +725,40 @@ fn expressions_have_the_types_of_section_3_7() {
         ("let x = [1 => \"a\"][1]", "Str"),
         ("let x = {a: 1, b: \"x\"}.b", "Str"),
         ("let x = {a: [1.5]}.a[1]", "Float"),
+        ("let x = if true { 1 } else { 2 }", "Int"),
+        ("let x = if true { 1 } else { 2.5 }", "Float"),
+        ("let x = if true { NA } else { \"a\" }", "Str"),
+        (
+            "let x = if true { 1 } else if false { 2 } else { NA }",
+            "Int",
+        ),
+        ("let x = if true { let y = 2\n y * 3 } else { 1 }", "Int"),
+        ("let x = case { 1 < 2 => 1, _ => 2.5 }", "Float"),
+        ("let x = case { 1 < 2 => \"a\", 2 < 3 => NA }", "Str"),
+        (
+            "let x = case { 1 < 2 => { let y = 1\n y + 1 }, _ => 0 }",
+            "Int",
+        ),
+        (
+            "let w = import(\"d.csv\")\nlet x = case { w[\"a\"] > 1 => 1, _ => 2 }",
+            "Column<Int>",
+        ),
+        (
+            "let w = import(\"d.csv\")\nlet x = case { 1 < 2 => w[\"a\"], _ => NA }",
+            "Column",
+        ),
+        (
+            "let w = import(\"d.csv\")\nlet x = case { w[\"a\"] > 1 => 1.5, 2 < 3 => NA }",
+            "Column<Float>",
+        ),
     ];
     for (text, ty) in cases {
         let program = clean(&format!("{text}\n"));
-        assert_eq!(program.bindings[0].ty.to_string(), ty, "{text}");
+        assert_eq!(
+            program.bindings.last().unwrap().ty.to_string(),
+            ty,
+            "{text}"
+        );
     }
 }
 
@@ -727,6 +786,26 @@ fn the_codes_of_expressions() {
         ("{a: 1}.b\n", "Z0209"),
         ("let n = 1\nn.a\n", "Z0213"),
         ("print(1) + 1\n", "Z0206"),
+        ("let x = if true { 1 }\n", "Z0206"),
+        ("print(if true { 1 })\n", "Z0206"),
+        ("if 1 { 2 }\n", "Z0203"),
+        ("if \"yes\" { 2 }\n", "Z0203"),
+        (
+            "let w = import(\"d.csv\")\nif w[\"a\"] > 1 { 2 }\n",
+            "Z0203",
+        ),
+        ("if print(1) { 2 }\n", "Z0206"),
+        ("let x = if true { 1 } else { \"a\" }\n", "Z0214"),
+        ("let x = if true { let y = 1 } else { 2 }\n", "Z0206"),
+        ("let x = if true { 1 } else if false { 2 }\n", "Z0206"),
+        ("let x = case { 1 => 2, _ => 3 }\n", "Z0203"),
+        ("let x = case { 1 < 2 => 1, _ => \"a\" }\n", "Z0214"),
+        ("let x = case { 1 < 2 => print(1), _ => 2 }\n", "Z0206"),
+        (
+            "let x = case { true => 1, false => 2 }\nlet y = x\n",
+            "W0301",
+        ),
+        ("if true { let inner = 1 }\ninner\n", "Z0101"),
     ];
     for (text, code) in cases {
         let found = codes(text);

@@ -83,7 +83,9 @@ fn clean(text: &str) -> zeff_ir::Program {
 /// The value of the statement at `index`.
 fn value_of(program: &zeff_ir::Program, index: usize) -> &zeff_ir::ir::Expr {
     match &program.statements[index] {
-        Statement::Let { value, .. } | Statement::Print { value, .. } => value,
+        Statement::Let { value, .. }
+        | Statement::Print { value, .. }
+        | Statement::Expr { value, .. } => value,
     }
 }
 

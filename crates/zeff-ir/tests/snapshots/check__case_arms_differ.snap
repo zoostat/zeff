@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0214]: the arms of a `case` must give one type: this one has a Str after an Int
+ --> scripts/main.zeff:1:33
+  |
+1 | let x = case { 1 < 2 => 1, _ => "a" }
+  |                                 ^^^ a Str
+  |
+  = help: Int and Float join as Float and NA fits any type; other types need a conversion, `to(x, Str)`

@@ -33,6 +33,29 @@ pub enum Statement {
     },
     /// A statement that is not a `let` prints its value (section 3.1).
     Print { value: Expr, span: Span },
+    /// An expression statement inside a block that is not the block's last: evaluated for its
+    /// effects (a `warn`, a `print`), its value discarded. Only the script's own statements print
+    /// (section 3.1, "Printing"); a block's value is its last expression (section 3.1, "Value of
+    /// a block").
+    Expr { value: Expr, span: Span },
+}
+
+/// A block, `{ ... }` (section 3.1, "Value of a block"): its statements, and the last statement
+/// when that is an expression, which is the block's value; without one the value is `Nothing`.
+/// A `let` inside is visible to the block's end (section 3.7, "Block scope").
+#[derive(Debug, Clone, PartialEq)]
+pub struct Block {
+    pub statements: Vec<Statement>,
+    pub tail: Option<Box<Expr>>,
+    pub span: Span,
+}
+
+/// One arm of a `case` (section 5.1): its condition, `None` for the catch-all `_`, and its value.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Arm {
+    pub condition: Option<Expr>,
+    pub value: Expr,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -117,6 +140,19 @@ pub enum ExprKind {
         name: String,
     },
     Call(Call),
+    /// A block as a value: the body of a `case` arm written in braces.
+    Block(Block),
+    /// `if cond { then } else { otherwise }` (section 5.1): without `else` the type is `Nothing`;
+    /// an `else if` is an `else` block whose value is the next `if`.
+    If {
+        condition: Box<Expr>,
+        then: Block,
+        otherwise: Option<Block>,
+    },
+    /// `case { cond => value, ..., _ => value }` (section 5.1): a chain of conditions, the first
+    /// true arm winning; row by row over the frame's rows when any condition or value is a
+    /// column (section 3.7, "Columns and scalars"), which the interpreter decides from the values.
+    Case(Vec<Arm>),
     /// `y ~ terms`: a formula value (sections 3.3 and 7.1), its outcome and the steps that build
     /// its terms in the order written.
     Formula(Formula),

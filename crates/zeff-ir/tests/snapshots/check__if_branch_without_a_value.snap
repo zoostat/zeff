@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0206]: this gives no value, so it cannot be bound
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = if true {
+  |         ^^^^^^^^^ its type is Nothing
+  |
+  = help: an `if` is a value only when every branch ends in a value, the last `else` included; one of these gives nothing (section 3.1, "Value of a block")

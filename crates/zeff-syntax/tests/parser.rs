@@ -419,6 +419,7 @@ fn syntax_errors_have_their_codes() {
         ("if x = 1 {\n    2\n}\n", &["Z0315"]),
         ("case { _ => 1, a => 2 }\n", &["Z0316"]),
         ("case { _ => 1, _ => 2 }\n", &["Z0316"]),
+        ("case { }\n", &["Z0301"]),
         ("/// note\nlet a = 1\n", &["Z0318"]),
         ("/// note\n\nfn f() -> Float {\n    1\n}\n", &["Z0318"]),
         (

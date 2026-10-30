@@ -138,3 +138,7 @@ The owner took the four decisions due by 0.5.0 on 30 October 2026, each as recom
 ## 30 October 2026 — zeff_functions.csv, row 529; zeff_engine_specification.md, sections 8.2, 9.2 and 14; zemp_specification.md, section 11
 
 Open decision #5, taken on 30 October 2026, adds `equal(a, b)` to `core` at 0.5.0: catalogue row 529 (Collections, exact, Rust, `R identical()`). The counts follow: `core` has 69 functions in 1.0 (68 before), 1.0 has 258 (257), of which 228 in Rust (227); 244 of the 258 ship by 0.7.0 (243 of 257); the 0.5.0 row of section 14 lists 33 functions with 14 collection functions (32 and 13); the Zemp Specification's scale line reads 258 functions, 170 tagged only `general`, 506 in all (257, 169, 505). A decision recorded in the register, not a correction.
+
+## 30 October 2026 — zeff_language_reference.md, section 11: the code W0208
+
+Section 5.1 says that a `case` without `_` gives `NA` in the rows no arm matched, "and a warning gives the count", without a number. Step 2 of release 0.5.0 assigns W0208, the next code of the W02xx family (types and values), and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.

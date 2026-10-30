@@ -10,7 +10,7 @@ use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
 use zeff_core::value::{Formula as FormulaValue, Frame, Term as TermValue, TypeValue, Value};
 use zeff_diagnostics::{Diagnostic, Source, Span, did_you_mean};
-use zeff_ir::ir::{BinaryOp, Term, TermStep, UnaryOp};
+use zeff_ir::ir::{Arm, BinaryOp, Block, Term, TermStep, UnaryOp};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
 
 /// What one statement wrote.
@@ -123,7 +123,9 @@ impl<'a> Interpreter<'a> {
             let mut printed = String::new();
             let mut messages: Vec<Diagnostic> = Vec::new();
             let span = match statement {
-                Statement::Let { span, .. } | Statement::Print { span, .. } => *span,
+                Statement::Let { span, .. }
+                | Statement::Print { span, .. }
+                | Statement::Expr { span, .. } => *span,
             };
             let line = self.source.line_of(span.start);
             // A failure inside the engine never crashes the run: it is Z9001 at the statement,
@@ -133,21 +135,15 @@ impl<'a> Interpreter<'a> {
                     panic!("a test panic injected at line {line}");
                 }
                 match statement {
-                    Statement::Let { binding, value, .. } => {
-                        self.eval(value, &mut printed, &mut messages).map(|mut v| {
-                            let name = self.program.bindings[*binding].name.clone();
-                            match &mut v {
-                                Value::Frame(frame) => frame.name = Some(name),
-                                // A fit keeps its binding's name for the titles of its tests.
-                                Value::Fit(fit) => std::rc::Rc::make_mut(fit).name = Some(name),
-                                _ => {}
-                            }
-                            self.env.insert(*binding, v);
-                        })
-                    }
+                    Statement::Let { binding, value, .. } => self
+                        .eval(value, &mut printed, &mut messages)
+                        .map(|v| self.bind(*binding, v)),
                     Statement::Print { value, .. } => self
                         .eval(value, &mut printed, &mut messages)
                         .map(|v| printed.push_str(&show_width(&v, self.width))),
+                    Statement::Expr { value, .. } => {
+                        self.eval(value, &mut printed, &mut messages).map(|_| ())
+                    }
                 }
             }));
             let result = match evaluation {
@@ -187,6 +183,269 @@ impl<'a> Interpreter<'a> {
             }
         }
         Ok(())
+    }
+
+    /// Bind a value to a `let`: a frame or a fit takes the binding's name (for its printed
+    /// header and the titles of its tests).
+    fn bind(&mut self, binding: zeff_ir::BindingId, mut value: Value) {
+        let name = self.program.bindings[binding].name.clone();
+        match &mut value {
+            Value::Frame(frame) => frame.name = Some(name),
+            Value::Fit(fit) => std::rc::Rc::make_mut(fit).name = Some(name),
+            _ => {}
+        }
+        self.env.insert(binding, value);
+    }
+
+    /// A block: its statements in order, then its value (section 3.1, "Value of a block"). An
+    /// expression statement that is not the last is evaluated for its effects; a `let` inside a
+    /// block is fresh each time the block runs (section 3.7, "Block scope").
+    fn eval_block(
+        &mut self,
+        block: &Block,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        for statement in &block.statements {
+            match statement {
+                Statement::Let { binding, value, .. } => {
+                    let v = self.eval(value, printed, messages)?;
+                    self.bind(*binding, v);
+                }
+                Statement::Expr { value, .. } | Statement::Print { value, .. } => {
+                    self.eval(value, printed, messages)?;
+                }
+            }
+        }
+        match &block.tail {
+            Some(tail) => self.eval(tail, printed, messages),
+            None => Ok(Value::Nothing),
+        }
+    }
+
+    /// Z0203 when a condition is not one Bool at run time: `NA`, or a column the checker could
+    /// not see (a name that is both a variable and a binding).
+    fn not_one_bool(&self, of: &str, value: &Value, condition: &Expr) -> Fail {
+        let text = self.source.text()[condition.span.start..condition.span.end].trim();
+        let (message, label, help) = match value {
+            Value::Na => (
+                format!("{of} needs one Bool, but the condition is NA"),
+                "NA decides nothing".to_string(),
+                "an `NA` condition is neither true nor false; test it first with `is_missing`, or give the comparison a value with `coalesce`",
+            ),
+            Value::Column(column) if of == "`if`" => (
+                format!(
+                    "{of} needs one Bool, but `{text}` is {} column",
+                    with_article(column.ty().name())
+                ),
+                "a column, not one value".to_string(),
+                "`if` decides what the script does and takes one Bool; a value chosen row by row is a `case`: `case { condition => a, _ => b }` (section 5.1)",
+            ),
+            Value::Column(column) => (
+                format!(
+                    "{of}'s condition must be a Bool or a Bool column, but `{text}` is {} column",
+                    with_article(column.ty().name())
+                ),
+                "not a condition".to_string(),
+                "write a comparison, `x > 0`, or a Bool variable; the catch-all is `_`",
+            ),
+            other => (
+                format!("{of} needs one Bool, but `{text}` is {}", other.type_word()),
+                "not a Bool".to_string(),
+                "write a comparison, `wages.n_rows() < 30`, or a binding that holds a Bool",
+            ),
+        };
+        fail(
+            Diagnostic::error("Z0203", message)
+                .in_file(self.script)
+                .primary(condition.span, label)
+                .help(help),
+        )
+    }
+
+    /// `case` (section 5.1): the arms in order, the first true one winning and its value alone
+    /// evaluated; the first condition that is a column turns the rest row-wise.
+    fn eval_case(
+        &mut self,
+        arms: &[Arm],
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        for (k, arm) in arms.iter().enumerate() {
+            let Some(condition) = &arm.condition else {
+                return self.eval(&arm.value, printed, messages);
+            };
+            match self.eval(condition, printed, messages)? {
+                Value::Bool(true) => return self.eval(&arm.value, printed, messages),
+                Value::Bool(false) | Value::Na => {}
+                Value::Column(column) => {
+                    return self.eval_case_rows(arms, k, column, printed, messages);
+                }
+                other => return Err(self.not_one_bool("a `case` arm", &other, condition)),
+            }
+        }
+        messages.push(
+            Diagnostic::warning("W0208", "no arm of the `case` matched, so its value is NA")
+                .help("add a last arm for the rest, `_ => value`"),
+        );
+        Ok(Value::Na)
+    }
+
+    /// `case` row by row (section 3.7, "Columns and scalars"), from the arm whose condition is a
+    /// column: each later arm's condition is evaluated over every row and its value over every
+    /// row it supplies, the first true arm winning in each row; rows no arm matches are `NA`
+    /// with W0208.
+    fn eval_case_rows(
+        &mut self,
+        arms: &[Arm],
+        start: usize,
+        first: zeff_columns::Column,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let rows = first.len();
+        let mut chosen: Vec<Option<usize>> = vec![None; rows];
+        let mut remaining = rows;
+        let mut values: Vec<Option<Value>> = vec![None; arms.len()];
+        let mut first = Some(first);
+        for (k, arm) in arms.iter().enumerate().skip(start) {
+            if remaining == 0 {
+                break;
+            }
+            let covers: Vec<usize> = match &arm.condition {
+                None => (0..rows).filter(|r| chosen[*r].is_none()).collect(),
+                Some(condition) => {
+                    let value = match first.take() {
+                        Some(column) => Value::Column(column),
+                        None => self.eval(condition, printed, messages)?,
+                    };
+                    match value {
+                        Value::Bool(true) => (0..rows).filter(|r| chosen[*r].is_none()).collect(),
+                        Value::Bool(false) | Value::Na => Vec::new(),
+                        Value::Column(column) => {
+                            let Some(bools) = column.as_bools() else {
+                                return Err(self.not_one_bool(
+                                    "a `case` arm",
+                                    &Value::Column(column),
+                                    condition,
+                                ));
+                            };
+                            if column.len() != rows {
+                                return Err(self.rows_differ(column.len(), rows, condition));
+                            }
+                            bools
+                                .enumerate()
+                                .filter(|(r, b)| *b == Some(true) && chosen[*r].is_none())
+                                .map(|(r, _)| r)
+                                .collect()
+                        }
+                        other => return Err(self.not_one_bool("a `case` arm", &other, condition)),
+                    }
+                }
+            };
+            if covers.is_empty() {
+                continue;
+            }
+            let value = self.eval(&arm.value, printed, messages)?;
+            if let Value::Column(column) = &value
+                && column.len() != rows
+            {
+                return Err(self.rows_differ(column.len(), rows, &arm.value));
+            }
+            remaining -= covers.len();
+            for r in covers {
+                chosen[r] = Some(k);
+            }
+            values[k] = Some(value);
+        }
+        if remaining > 0 {
+            messages.push(
+                Diagnostic::warning(
+                    "W0208",
+                    format!(
+                        "{} matched no arm of the `case` and {} NA",
+                        plural_rows(remaining),
+                        if remaining == 1 { "is" } else { "are" }
+                    ),
+                )
+                .help("add a last arm for the rest, `_ => value`"),
+            );
+        }
+        // The values of a `case` are the computable scalar types of this release; a Category is
+        // refused rather than turned into its labels unasked (section 3.7, "No implicit
+        // conversion"), and the types that arrive at 0.6.0 wait for it.
+        let mut fallback: Option<zeff_columns::ColumnType> = None;
+        for (k, value) in values.iter().enumerate() {
+            if let Some(Value::Column(column)) = value {
+                let ty = column.ty();
+                match ty {
+                    zeff_columns::ColumnType::Bool
+                    | zeff_columns::ColumnType::Int
+                    | zeff_columns::ColumnType::Float
+                    | zeff_columns::ColumnType::Str => {}
+                    zeff_columns::ColumnType::Category => {
+                        return Err(fail(
+                            Diagnostic::error("Z0214", "a `case` arm gives a Category column, which does not combine row by row with the other arms")
+                                .in_file(self.script)
+                                .primary(arms[k].value.span, "a Category")
+                                .help("write `to(x, Str)` to use its labels, or `to(x, Int)` for its level positions (section 3.7, \"Conversions\")"),
+                        ));
+                    }
+                    other => {
+                        return Err(fail(
+                            Diagnostic::error("Z0304", format!("a `case` giving a {} column is not available in this release", other.name()))
+                                .in_file(self.script)
+                                .primary(arms[k].value.span, "arrives with Zeff 0.6.0")
+                                .help("dates and the other column types become computable with release 0.6.0"),
+                        ));
+                    }
+                }
+                fallback.get_or_insert(ty);
+            }
+        }
+        let per_row: Vec<Value> = (0..rows)
+            .map(|r| match chosen[r] {
+                None => Value::Na,
+                Some(k) => match &values[k] {
+                    Some(Value::Column(column)) => cell_value(column, r),
+                    Some(scalar) => scalar.clone(),
+                    None => Value::Na,
+                },
+            })
+            .collect();
+        match zeff_core::lift::collect_column(&per_row) {
+            Some(column) => Ok(Value::Column(column)),
+            None if per_row.iter().all(|v| matches!(v, Value::Na)) => Ok(match fallback {
+                Some(ty) => Value::Column(zeff_columns::Column::missing(ty, rows)),
+                None => Value::Na,
+            }),
+            None => Err(fail(
+                Diagnostic::error(
+                    "Z0214",
+                    "the arms of a `case` give values of more than one type across the rows",
+                )
+                .in_file(self.script)
+                .primary(arms[start].span, "the first arm evaluated row by row")
+                .help("every arm must give one type: Int and Float join as Float, NA fits any type, and text needs `to(x, Str)`"),
+            )),
+        }
+    }
+
+    /// Z0217: a column of another length than the rows a `case` runs over.
+    fn rows_differ(&self, found: usize, rows: usize, at: &Expr) -> Fail {
+        fail(
+            Diagnostic::error(
+                "Z0217",
+                format!(
+                    "this `case` runs over {}, but this arm gives {}",
+                    plural_rows(rows),
+                    plural_rows(found)
+                ),
+            )
+            .in_file(self.script)
+            .primary(at.span, "a column of another length")
+            .help("two columns combine only when they belong to the same frame or have the same length; `merge` joins frames first"),
+        )
     }
 
     fn eval(
@@ -432,6 +691,28 @@ impl<'a> Interpreter<'a> {
                 }
             }
             ExprKind::Call(call) => self.call(call, printed, messages)?,
+            ExprKind::Block(block) => self.eval_block(block, printed, messages)?,
+            ExprKind::If {
+                condition,
+                then,
+                otherwise,
+            } => match self.eval(condition, printed, messages)? {
+                Value::Bool(true) => {
+                    let value = self.eval_block(then, printed, messages)?;
+                    // Without `else` an `if` is a statement and gives nothing (section 3.7).
+                    if otherwise.is_some() {
+                        value
+                    } else {
+                        Value::Nothing
+                    }
+                }
+                Value::Bool(false) => match otherwise {
+                    Some(block) => self.eval_block(block, printed, messages)?,
+                    None => Value::Nothing,
+                },
+                other => return Err(self.not_one_bool("`if`", &other, condition)),
+            },
+            ExprKind::Case(arms) => self.eval_case(arms, printed, messages)?,
             ExprKind::Error => {
                 return Err(self.internal(expr, "an expression that failed to check was run"));
             }
@@ -993,6 +1274,16 @@ fn cell_value(column: &zeff_columns::Column, row: usize) -> Value {
         zeff_columns::Value::Str(s) | zeff_columns::Value::Category(s) => Value::Str(s.to_string()),
         _ => Value::Na,
     }
+}
+
+/// A type's name with its article: `an Int`, `a Float`.
+fn with_article(name: &str) -> String {
+    let article = if name.starts_with(['A', 'E', 'I', 'O', 'U']) {
+        "an"
+    } else {
+        "a"
+    };
+    format!("{article} {name}")
 }
 
 fn plural_rows(n: usize) -> String {

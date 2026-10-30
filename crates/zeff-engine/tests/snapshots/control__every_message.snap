@@ -1,0 +1,206 @@
+---
+source: crates/zeff-engine/tests/control.rs
+expression: all
+---
+## if_on_an_int (exit 1)
+error[Z0203]: `if` needs one Bool, but `1` is an Int
+ --> scripts/main.zeff:1:4
+  |
+1 | if 1 { 2 }
+  |    ^ not a Bool
+  |
+  = help: write a comparison, `wages.n_rows() < 30`, or a binding that holds a Bool
+
+## if_on_text (exit 1)
+error[Z0203]: `if` needs one Bool, but `"yes"` is a Str
+ --> scripts/main.zeff:1:4
+  |
+1 | if "yes" { 2 }
+  |    ^^^^^ not a Bool
+  |
+  = help: write a comparison, `wages.n_rows() < 30`, or a binding that holds a Bool
+
+## if_on_a_column (exit 1)
+error[Z0203]: `if` needs one Bool, but `d["x"] > 1` is a Bool column
+ --> scripts/main.zeff:2:4
+  |
+2 | if d["x"] > 1 { 2 }
+  |    ^^^^^^^^^^ a column, not one value
+  |
+  = help: `if` decides what the script does and takes one Bool; a value chosen row by row is a `case`: `case { condition => a, _ => b }` (section 5.1)
+
+## if_on_na (exit 1)
+error[Z0203]: `if` needs one Bool, but the condition is NA
+ --> scripts/main.zeff:1:4
+  |
+1 | if [NA, true][1] { 2 }
+  |    ^^^^^^^^^^^^^ NA decides nothing
+  |
+  = help: an `NA` condition is neither true nor false; test it first with `is_missing`, or give the comparison a value with `coalesce`
+
+## if_on_a_column_found_at_run_time (exit 1)
+warning: `x` is both a variable of d and a binding; the variable was used (line 3)
+  = help: rename the binding, or write `d["x"]` and the binding apart; inside a frame method a bare name is the frame's variable first
+error[Z0203]: `if` needs one Bool, but `x` is an Int column
+ --> scripts/main.zeff:3:14
+  |
+3 | d.add(y = if x { 1 } else { 0 })
+  |              ^ a column, not one value
+  |
+  = help: `if` decides what the script does and takes one Bool; a value chosen row by row is a `case`: `case { condition => a, _ => b }` (section 5.1)
+
+## if_without_else_bound (exit 1)
+error[Z0206]: this gives no value, so it cannot be bound
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = if true { 1 }
+  |         ^^^^^^^^^^^^^ its type is Nothing
+  |
+  = help: an `if` without `else` is a statement and gives nothing; add an `else` branch to use it as a value (section 3.7)
+
+## if_on_nothing (exit 1)
+error[Z0206]: this gives no value, so it cannot be used as a condition
+ --> scripts/main.zeff:1:4
+  |
+1 | if print(1) { 2 }
+  |    ^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+## if_branches_differ (exit 1)
+error[Z0214]: the branches of an `if` must give one type: this one has an Int and a Str
+ --> scripts/main.zeff:1:28
+  |
+1 | let x = if true { 1 } else { "a" }
+  |                 ----- an Int
+  |                            ^^^^^^^ a Str
+  |
+  = help: Int and Float join as Float and NA fits any type; other types need a conversion, `to(x, Str)`
+
+## if_branch_without_a_value (exit 1)
+error[Z0206]: this gives no value, so it cannot be bound
+ --> scripts/main.zeff:1:9
+  |
+1 | let x = if true { let y = 1 } else { 2 }
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ its type is Nothing
+  |
+  = help: an `if` is a value only when every branch ends in a value, the last `else` included; one of these gives nothing (section 3.1, "Value of a block")
+
+## case_arm_not_a_condition (exit 1)
+error[Z0203]: a `case` arm's condition must be a Bool or a Bool column, but `1` is an Int
+ --> scripts/main.zeff:1:8
+  |
+1 | case { 1 => 2, _ => 3 }
+  |        ^ not a condition
+  |
+  = help: write a comparison, `age < 25`, or a Bool variable; the catch-all is `_`
+
+## case_arms_differ (exit 1)
+error[Z0214]: the arms of a `case` must give one type: this one has a Str after an Int
+ --> scripts/main.zeff:1:25
+  |
+1 | case { 1 < 2 => 1, _ => "a" }
+  |                         ^^^ a Str
+  |
+  = help: Int and Float join as Float and NA fits any type; other types need a conversion, `to(x, Str)`
+
+## case_arm_gives_nothing (exit 1)
+error[Z0206]: this gives no value, so it cannot be the value of a `case` arm
+ --> scripts/main.zeff:1:17
+  |
+1 | case { 1 < 2 => print(1), _ => 2 }
+  |                 ^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+## case_catch_all_first (exit 1)
+error[Z0316]: `_` may appear once in a `case`, and only as the last arm
+ --> scripts/main.zeff:1:8
+  |
+1 | case { _ => 1, true => 2 }
+  |        ^^^^^^ arms after this one can never be reached
+  |
+  = help: put the `_` arm last
+
+## case_empty (exit 1)
+error[Z0301]: a `case` needs at least one arm
+ --> scripts/main.zeff:1:1
+  |
+1 | case { }
+  | ^^^^^^^^ no arm between the braces
+  |
+  = help: write `case { condition => value, _ => other }`
+
+## case_unreachable_arm (exit 0)
+1
+warning[W0301]: this condition is always true, so the arms after it can never be reached
+ --> scripts/main.zeff:1:8
+  |
+1 | case { true => 1, false => 2 }
+  |        ^^^^ `true` matches every row
+  |
+  = help: write the catch-all as the last arm, `_ => value`, or remove the arms after this one
+
+## case_no_match (exit 0)
+NA
+warning: no arm of the `case` matched, so its value is NA (line 2)
+  = help: add a last arm for the rest, `_ => value`
+
+## case_rows_no_match (exit 0)
+frame · 4 rows × 2 variables
+
+       x    y
+  1    1    0
+  2    5   NA
+  3    9   NA
+  4   NA   NA
+warning: 3 rows matched no arm of the `case` and are NA (line 2)
+  = help: add a last arm for the rest, `_ => value`
+
+## case_rows_of_two_lengths (exit 1)
+error[Z0217]: this `case` runs over 2 rows, but this arm gives 3 rows
+ --> scripts/main.zeff:3:22
+  |
+3 | case { d["x"] > 1 => e["y"], _ => 0 }
+  |                      ^^^^^^ a column of another length
+  |
+  = help: two columns combine only when they belong to the same frame or have the same length; `merge` joins frames first
+
+## case_condition_column_not_bool (exit 1)
+warning: `x` is both a variable of d and a binding; the variable was used (line 3)
+  = help: rename the binding, or write `d["x"]` and the binding apart; inside a frame method a bare name is the frame's variable first
+error[Z0203]: a `case` arm's condition must be a Bool or a Bool column, but `x` is an Int column
+ --> scripts/main.zeff:3:18
+  |
+3 | d.add(y = case { x => 1, _ => 0 })
+  |                  ^ not a condition
+  |
+  = help: write a comparison, `x > 0`, or a Bool variable; the catch-all is `_`
+
+## case_rows_of_two_types (exit 1)
+error[Z0214]: the arms of a `case` give values of more than one type across the rows
+ --> scripts/main.zeff:2:18
+  |
+2 | d.add(y = case { x > 1 => s, _ => x })
+  |                  ^^^^^^^^^^ the first arm evaluated row by row
+  |
+  = help: every arm must give one type: Int and Float join as Float, NA fits any type, and text needs `to(x, Str)`
+
+## case_category (exit 1)
+error[Z0214]: a `case` arm gives a Category column, which does not combine row by row with the other arms
+ --> scripts/main.zeff:1:44
+  |
+1 | dataset(wages).add(g = case { wage < 15 => industry, _ => "other" })
+  |                                            ^^^^^^^^ a Category
+  |
+  = help: write `to(x, Str)` to use its labels, or `to(x, Int)` for its level positions (section 3.7, "Conversions")
+
+## case_date (exit 1)
+note: data/sales.csv read as CSV: 2 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0304]: a `case` giving a Date column is not available in this release
+ --> scripts/main.zeff:2:33
+  |
+2 | s.add(d = case { amount > 15 => sold, _ => NA })
+  |                                 ^^^^ arrives with Zeff 0.6.0
+  |
+  = help: dates and the other column types become computable with release 0.6.0

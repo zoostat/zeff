@@ -135,3 +135,13 @@ Step 22e: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on 
 **Next.** Step 2 `[engine]`: `if` and `case` in the checker and the interpreter.
 
 **For the owner to decide.** Nothing new: every question of the release is answered.
+
+## 30 October 2026, step 2 of release 0.5.0
+
+**Done.** Step 2 `[engine]`: `if` and `case` in the checker and the interpreter, with blocks and their scope (a `let` inside a block invisible after it; only the script's own statements print; the last expression the block's value), `if` as a statement and as a value (`else if` chains; Z0203 for a column, a value of another type or an `NA` condition; Z0206 for an `if` without a value where one is needed; Z0214 for branches that do not join), `case` over one value and row by row inside `add` and `where` (the first true arm winning, `NA` matching nothing, scalars and columns mixed, W0208 for the rows no arm matched, W0301 for an arm after a literal `true`, Z0217 for columns of two lengths, a Category refused rather than converted, dates refused until 0.6.0), the parser refusing an empty `case` (Z0301); the explained pages of W0208 and W0301, Z0316's page corrected to its meaning, the row of W0208 in section 11 (logged); the six rulings in `docs/decisions.md`. Tests: the checker's types and codes with ten message snapshots; the engine's `control.rs` with the examples of section 5.1, every message, and two properties (a `case` over a column equals the `case` on each row's value; `if` and a two-arm `case` agree); the identity case `control/case`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks (96 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 3 `[engine]`: `for`, `[for ...]`, `break` and `continue`.
+
+**For the owner to decide.** Nothing new.

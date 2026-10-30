@@ -4,8 +4,6 @@ expression: text
 ---
 error[Z0304]: `use` is not available in this release
  --> zeff_samples.zeff:17:1
-error[Z0304]: `case` is not available in this release
- --> zeff_samples.zeff:34:22
 error[Z0103]: no function is called `panel`
  --> zeff_samples.zeff:41:6
 error[Z0103]: no function is called `assert`
