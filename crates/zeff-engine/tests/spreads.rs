@@ -98,14 +98,14 @@ fn an_argument_written_out_overrides_the_spread_wherever_it_stands() {
 #[test]
 fn a_spread_in_a_record_copies_its_fields_in_place() {
     assert_eq!(
-        prints("let first = {a: 1, b: 2}\nlet r = {..first, c: 3}\nr\nr.a + r.c\n"),
+        prints("let base = {a: 1, b: 2}\nlet r = {..base, c: 3}\nr\nr.a + r.c\n"),
         "a: 1\nb: 2\nc: 3\n4\n"
     );
     // A field written out overrides the spread's, before or after it, and keeps the spread's
     // place.
     assert_eq!(
         prints(
-            "let first = {a: 1, b: 2}\n{..first, a: 10}\n{a: 10, ..first}\n{b: 0, ..first, c: 5}\n"
+            "let base = {a: 1, b: 2}\n{..base, a: 10}\n{a: 10, ..base}\n{b: 0, ..base, c: 5}\n"
         ),
         "a: 10\nb: 2\na: 10\nb: 2\nb: 0\na: 1\nc: 5\n"
     );

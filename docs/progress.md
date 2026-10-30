@@ -144,6 +144,8 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 
 **Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (113 codes) and the conformance report pass locally; CI to be read after the push.
 
+**CI, read after the push of step 11.** Red on one test: a test of the record spreads bound a value under the name `first`, which became a built-in in this step and may not be rebound (Z0105). The local run had found it too, but the routine's summary showed only the first failing targets; the test now binds `base`, and the routine lists every failing target before anything is committed.
+
 **Next.** Step 12 `[function]`: `unique`, `sorted`, `is_in`, `keys` and `equal`.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
