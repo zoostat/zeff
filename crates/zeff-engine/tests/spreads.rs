@@ -104,9 +104,7 @@ fn a_spread_in_a_record_copies_its_fields_in_place() {
     // A field written out overrides the spread's, before or after it, and keeps the spread's
     // place.
     assert_eq!(
-        prints(
-            "let rec = {a: 1, b: 2}\n{..rec, a: 10}\n{a: 10, ..rec}\n{b: 0, ..rec, c: 5}\n"
-        ),
+        prints("let rec = {a: 1, b: 2}\n{..rec, a: 10}\n{a: 10, ..rec}\n{b: 0, ..rec, c: 5}\n"),
         "a: 10\nb: 2\na: 10\nb: 2\nb: 0\na: 1\nc: 5\n"
     );
     // Two spreads with different fields.
