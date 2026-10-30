@@ -1621,3 +1621,18 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 10. *The packages' lists are empty until the function steps*: `core`, `data` and `regress` each return no source today; steps 14 to 22 add one file per function.
 
 **Reason.** Engine and Project Specification, sections 8.1 (rules 1 to 3), 8.2 and 9.1 ("Sources", "Files"); Language Reference, section 3.7 ("Columns and scalars"); the checklist's step 9 and its rulings on signatures, lifting and the generated "Warnings and notes".
+
+## 30 October 2026: `iterate` (release 0.5.0, step 10)
+
+**Choice.** `iterate` is registered in `core` with its page and signature and run by the interpreter, as `attempt` is and as the step 7 ruling foresaw; its signature is the catalogue's (`start:`, `step:`, `done:`, `args:`, `max: Int = 1000`, `keep: Bool = false`, every one named). Eight rulings:
+
+1. *The loop.* `step(state, ..args)` is called until `done(old, new)` is true or `max:` passes have been made; the final state is returned, or under `keep: true` the list of every state the passes produced, the start not among them, so that the list has as many entries as passes. `done` is first asked after the first step, so `step` runs at least once.
+2. *The note and the warning.* The number of passes is a note under the result, `note: 6 passes until done`, until the run record of 0.11.0 keeps it; stopping at `max:` is W0805, `iterate stopped at max: 1,000 passes without done becoming true`, with the state after the last pass returned. Both are raised as a Rust body raises its messages, without a label, so the statement's line is theirs.
+3. *The fields of the state are fixed by `start:`.* A `step` that returns a record with a field the state lacks, or without one it has, is Z0401 at the call naming the pass and the field, since the schema of the state is what `done` and the next `step` read; `done` giving NA is Z0203, the code of a condition that is NA.
+4. *`args:` is matched against `step` at the call* (section 3.7, "Records"): when `step` is a function of the script, each of its parameters after the state must be a field of `args:` unless it has a default (Z0406), each field must name one of those parameters (Z0404, with the nearest name), and each field's type must be accepted (Z0401); when `args:` is a binding of record type its fields are read from the type; a spread inside `args:` or a built-in `step` leaves the check to the run. The interpreter passes the fields to `step` by the names of its parameters, and in the order written to a built-in.
+5. *The fields read from the state are checked against `start:`.* The checker now records every field a function body reads from a parameter typed `Record` alone, and at an `iterate` call whose `start:` has a known record type it reports Z0209 for a field `step` or `done` reads that `start:` lacks, pointing at both places. The same record serves any later call that supplies a `Record` parameter.
+6. *`max:` below 1* is Z0401, the code `head` uses for `n:`, at check time when written as a number and when the statement runs otherwise; `max:` has the default 1,000 of the catalogue, by open decision #13's reading.
+7. *The result's type* is the type of `start:`, a list of it under `keep: true`, and unknown when `keep:` is not written as `true` or `false`.
+8. *The catalogue's usage parser* read the arrow of `Fn(Record, ..) -> Record` as a closing bracket and lost the parameters after it; it now reads `->` as part of a type. The first function type in a usage found the fault.
+
+**Reason.** Language Reference, sections 3.7 ("Records", "Functions as values"), 3.4 and 5.5; catalogue row 435; open decision #13 and the checklist's question 2; the step 7 ruling that `iterate` is the interpreter's.

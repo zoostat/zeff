@@ -899,6 +899,12 @@ fn control_cases() -> Vec<Line> {
             "attempt",
             "let w = dataset(wages)\nlet fits = [for cut in [10, 20, 30, 1000] {\n    attempt(w.where(wage > cut).reg(log(wage) ~ educ + female))\n}]\nfits[4]\nreport(fits)\n[for m in fits {\n    if m.is(Failed) { continue }\n    m.coef(educ)\n}]\n",
         ),
+        // `iterate` of step 10: Newton's square root to convergence, the path under `keep: true`
+        // and the stop at `max:` with its warning.
+        (
+            "iterate",
+            "/// One Newton step.\nfn newton(s: Record, a: Float) -> Record { {x: (s.x + a / s.x) / 2} }\n/// Close enough.\nfn close(old: Record, new: Record) -> Bool { abs(new.x - old.x) < 1e-12 }\niterate(start: {x: 1.0}, step: newton, args: {a: 2.0}, done: close)\niterate(start: {x: 1.0}, step: newton, args: {a: 1e12}, done: close, keep: true)\niterate(start: {x: 1.0}, step: newton, args: {a: 2.0}, done: close, max: 2)\n",
+        ),
         // The loops of step 3: the draws of three passes under a seed, a `[for]` with its jumps,
         // and a loop over variables fitting a formula with the variable in two places.
         (

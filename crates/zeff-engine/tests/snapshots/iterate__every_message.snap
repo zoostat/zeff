@@ -1,0 +1,105 @@
+---
+source: crates/zeff-engine/tests/iterate.rs
+expression: text
+---
+## note_passes (exit 0)
+x: 1.41421
+note: 6 passes until done (line 5)
+
+## w0805_at_max (exit 0)
+x: 1.41667
+warning: iterate stopped at max: 2 passes without done becoming true (line 5)
+  = help: the state returned is the last one; raise `max:` or loosen `done:`, and `keep: true` shows the path
+
+## args_missing (exit 1)
+error[Z0406]: `newton` needs `a`, which `args:` does not supply
+ --> scripts/main.zeff:5:1
+  |
+5 | iterate(start: {x: 1.0}, step: newton, done: close)
+  | ^^^^^^^ no `a` here
+  |
+  = help: write `args: {a: ...}`; `iterate` passes the fields of `args:` to `newton` by name after the state
+
+## args_unknown (exit 1)
+error[Z0404]: `newton` has no parameter `b`
+ --> scripts/main.zeff:5:58
+  |
+5 | iterate(start: {x: 1.0}, step: newton, args: {a: 2.0, b: 1}, done: close)
+  |                                                          ^ not a parameter of `step`
+  |
+  = help: did you mean `a`?
+
+## args_wrong_type (exit 1)
+error[Z0401]: `a` of `newton` takes a Float, but `args:` gives a Str
+ --> scripts/main.zeff:5:50
+  |
+5 | iterate(start: {x: 1.0}, step: newton, args: {a: "two"}, done: close)
+  |                                                  ^^^^^ a Str
+  |
+  = help: `args:` holds the arguments of `newton` after the state, each of its parameter's type
+
+## start_lacks_field (exit 1)
+error[Z0209]: `newton` reads `s.x`, which `start:` does not have
+ --> scripts/main.zeff:5:16
+  |
+2 | fn newton(s: Record, a: Float) -> Record { {x: (s.x + a / s.x) / 2} }
+  |                                                   - read here
+...
+5 | iterate(start: {y: 1.0}, step: newton, args: {a: 2.0}, done: close)
+  |                ^^^^^^^^ its fields are y
+  |
+  = help: did you mean `y`?
+
+## max_below_one (exit 1)
+error[Z0401]: `max:` of `iterate` cannot be 0
+ --> scripts/main.zeff:5:74
+  |
+5 | iterate(start: {x: 1.0}, step: newton, args: {a: 2.0}, done: close, max: 0)
+  |                                                                          ^ fewer than one pass
+  |
+  = help: `max:` is the most passes to make, at least 1; 1,000 unless given
+
+## options_missing (exit 1)
+error[Z0406]: `iterate` needs `step:`
+ --> scripts/main.zeff:1:1
+  |
+1 | iterate(start: {x: 1.0})
+  | ^^^^^^^ `step:` not given
+  |
+  = help: usage: `iterate(start: Record, step: Fn(Record, ..) -> Record, done: Fn(Record, Record) -> Bool, args: Record, max: Int = 1000, keep: Bool = false)`
+
+## step_adds_field (exit 1)
+error[Z0401]: `step` of `iterate` returned a record with a field `extra` the state lacks
+ --> scripts/main.zeff:5:32
+  |
+5 | iterate(start: {x: 1.0}, step: grow, done: never, max: 3)
+  |                                ^^^^ pass 1 added `extra`
+  |
+  = help: every pass keeps the fields of `start:` (x); add `extra` to `start:` or leave it out of the record `step` returns
+
+## step_drops_field (exit 1)
+error[Z0401]: `step` of `iterate` returned a record without the field `k` of the state
+ --> scripts/main.zeff:5:38
+  |
+5 | iterate(start: {x: 1.0, k: 2}, step: shrink, done: never, max: 3)
+  |                                      ^^^^^^ pass 1 dropped `k`
+  |
+  = help: every pass keeps the fields of `start:` (x, k); return `k` as well, unchanged if need be
+
+## done_na (exit 1)
+error[Z0203]: `done` of `iterate` gave NA where true or false was needed
+ --> scripts/main.zeff:5:44
+  |
+5 | iterate(start: {x: 1.0}, step: step, done: cmp)
+  |                                            ^^^ NA at pass 1
+  |
+  = help: a comparison with NA is NA; test the fields with `is_missing` first, or stop on a quantity that is never missing
+
+## max_from_a_binding (exit 1)
+error[Z0401]: `max:` of `iterate` cannot be 0
+ --> scripts/main.zeff:6:74
+  |
+6 | iterate(start: {x: 1.0}, step: newton, args: {a: 2.0}, done: close, max: m)
+  |                                                                          ^ fewer than one pass
+  |
+  = help: `max:` is the most passes to make, at least 1; 1,000 unless given

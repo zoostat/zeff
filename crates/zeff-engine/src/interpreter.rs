@@ -767,10 +767,23 @@ impl<'a> Interpreter<'a> {
                 Slot::Rest(_) | Slot::Definition(_) => {}
             }
         }
-        // The arguments were evaluated where the call stands; from here the function sees its
-        // parameters and other functions only (section 5.3): the frames whose methods enclose
-        // the call are hidden from its defaults and its body, and given back after. A module
-        // function runs under its own file, so that its messages name its lines.
+        self.enter_user(function, callee_span, args, values, printed, messages)
+    }
+
+    /// A function of the script entered with its arguments evaluated: from here the function sees
+    /// its parameters and other functions only (section 5.3), so the frames whose methods enclose
+    /// the call are hidden from its defaults and its body, and given back after. A module
+    /// function runs under its own file, so that its messages name its lines.
+    fn enter_user(
+        &mut self,
+        function: zeff_ir::FnId,
+        callee_span: Span,
+        args: &[Option<Expr>],
+        values: Vec<Option<Value>>,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let f = &self.program.functions[function];
         let saved = std::mem::take(&mut self.receivers);
         let (saved_script, saved_source) = (self.script, self.source);
         if f.file != self.script
@@ -784,6 +797,231 @@ impl<'a> Interpreter<'a> {
         self.source = saved_source;
         self.receivers = saved;
         result
+    }
+
+    /// A function value applied to values in parameter order (what `iterate` does with its
+    /// `step:` and `done:`): a function of the script through its parameters, a built-in through
+    /// its body.
+    fn apply(
+        &mut self,
+        function: &FunctionValue,
+        values: Vec<Option<Value>>,
+        span: Span,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        match function.script {
+            Some(index) => {
+                let count = self.program.functions[index].params.len();
+                let mut values = values;
+                values.resize(count, None);
+                let args: Vec<Option<Expr>> = vec![None; count];
+                self.enter_user(index, span, &args, values, printed, messages)
+            }
+            None => {
+                let package = function.package.clone().unwrap_or_default();
+                let spans = vec![None; values.len()];
+                self.invoke_builtin(
+                    &package,
+                    &function.name,
+                    values,
+                    Vec::new(),
+                    span,
+                    spans,
+                    printed,
+                    messages,
+                )
+            }
+        }
+    }
+
+    /// `iterate` (Language Reference, section 5.5): `step(state, ..args)` until `done(old, new)`
+    /// is true or `max:` passes, the final state returned, or every state under `keep: true`;
+    /// the number of passes is a note under the result, and stopping at `max:` is W0805. Every
+    /// pass keeps the fields of `start:` (Z0401 otherwise), and `done` must answer true or false
+    /// (Z0203 on NA).
+    fn run_iterate(
+        &mut self,
+        call: &Call,
+        mut values: Vec<Option<Value>>,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let span_of = |i: usize| {
+            call.args
+                .get(i)
+                .and_then(|a| a.as_ref())
+                .map_or(call.callee_span, |e| e.span)
+        };
+        let script = self.script;
+        let at = move |d: Diagnostic, span: Span| d.in_file(script).primary(span, "in this call");
+        let mut take = |i: usize| values.get_mut(i).and_then(Option::take);
+        let Some(Value::Record(start)) = take(0) else {
+            return Err(fail(at(
+                Diagnostic::error(
+                    "Z9001",
+                    "internal error: this is a bug in Zeff, not in your script (`iterate` without a record to start from)",
+                ),
+                call.callee_span,
+            )));
+        };
+        let Some(Value::Function(step)) = take(1) else {
+            return Err(fail(at(
+                Diagnostic::error(
+                    "Z9001",
+                    "internal error: this is a bug in Zeff, not in your script (`iterate` without a step function)",
+                ),
+                call.callee_span,
+            )));
+        };
+        let Some(Value::Function(done)) = take(2) else {
+            return Err(fail(at(
+                Diagnostic::error(
+                    "Z9001",
+                    "internal error: this is a bug in Zeff, not in your script (`iterate` without a stopping function)",
+                ),
+                call.callee_span,
+            )));
+        };
+        let args: Vec<(String, Value)> = match take(3) {
+            Some(Value::Record(fields)) => fields,
+            _ => Vec::new(),
+        };
+        let max = match take(4) {
+            Some(Value::Int(n)) => n,
+            _ => 1000,
+        };
+        if max < 1 {
+            return Err(fail(
+                Diagnostic::error("Z0401", format!("`max:` of `iterate` cannot be {max}"))
+                    .in_file(self.script)
+                    .primary(span_of(4), "fewer than one pass")
+                    .help("`max:` is the most passes to make, at least 1; 1,000 unless given"),
+            ));
+        }
+        let keep = matches!(take(5), Some(Value::Bool(true)));
+        // The further arguments of `step`, by the names of its parameters after the state; a
+        // built-in step takes them in the order written.
+        let further: Vec<Option<Value>> = match step.script {
+            Some(index) => self.program.functions[index]
+                .params
+                .iter()
+                .skip(1)
+                .map(|p| {
+                    args.iter()
+                        .find(|(n, _)| *n == p.name)
+                        .map(|(_, v)| v.clone())
+                })
+                .collect(),
+            None => args.iter().map(|(_, v)| Some(v.clone())).collect(),
+        };
+        let names: Vec<String> = start.iter().map(|(n, _)| n.clone()).collect();
+        let step_span = span_of(1);
+        let done_span = span_of(2);
+        let mut state = start;
+        let mut states: Vec<Value> = Vec::new();
+        let mut passes: i64 = 0;
+        let mut converged = false;
+        for pass in 1..=max {
+            let mut given: Vec<Option<Value>> = Vec::with_capacity(1 + further.len());
+            given.push(Some(Value::Record(state.clone())));
+            given.extend(further.iter().cloned());
+            let new = match self.apply(&step, given, step_span, printed, messages)? {
+                Value::Record(fields) => fields,
+                other => {
+                    return Err(fail(at(
+                        Diagnostic::error(
+                            "Z9001",
+                            format!(
+                                "internal error: this is a bug in Zeff, not in your script (`step` of `iterate` gave {} where the checker promised a record)",
+                                zeff_core::types::type_name(&other)
+                            ),
+                        ),
+                        step_span,
+                    )));
+                }
+            };
+            for (n, _) in &new {
+                if !names.contains(n) {
+                    return Err(fail(
+                        Diagnostic::error("Z0401", format!("`step` of `iterate` returned a record with a field `{n}` the state lacks"))
+                            .in_file(self.script)
+                            .primary(step_span, format!("pass {pass} added `{n}`"))
+                            .help(format!("every pass keeps the fields of `start:` ({}); add `{n}` to `start:` or leave it out of the record `step` returns", names.join(", "))),
+                    ));
+                }
+            }
+            for n in &names {
+                if !new.iter().any(|(m, _)| m == n) {
+                    return Err(fail(
+                        Diagnostic::error("Z0401", format!("`step` of `iterate` returned a record without the field `{n}` of the state"))
+                            .in_file(self.script)
+                            .primary(step_span, format!("pass {pass} dropped `{n}`"))
+                            .help(format!("every pass keeps the fields of `start:` ({}); return `{n}` as well, unchanged if need be", names.join(", "))),
+                    ));
+                }
+            }
+            let stop = match self.apply(
+                &done,
+                vec![
+                    Some(Value::Record(state.clone())),
+                    Some(Value::Record(new.clone())),
+                ],
+                done_span,
+                printed,
+                messages,
+            )? {
+                Value::Bool(b) => b,
+                Value::Na => {
+                    return Err(fail(
+                        Diagnostic::error("Z0203", "`done` of `iterate` gave NA where true or false was needed")
+                            .in_file(self.script)
+                            .primary(done_span, format!("NA at pass {pass}"))
+                            .help("a comparison with NA is NA; test the fields with `is_missing` first, or stop on a quantity that is never missing"),
+                    ));
+                }
+                other => {
+                    return Err(fail(at(
+                        Diagnostic::error(
+                            "Z9001",
+                            format!(
+                                "internal error: this is a bug in Zeff, not in your script (`done` of `iterate` gave {} where the checker promised a Bool)",
+                                zeff_core::types::type_name(&other)
+                            ),
+                        ),
+                        done_span,
+                    )));
+                }
+            };
+            passes = pass;
+            if keep {
+                states.push(Value::Record(new.clone()));
+            }
+            state = new;
+            if stop {
+                converged = true;
+                break;
+            }
+        }
+        if converged {
+            messages.push(Diagnostic::plain_note(format!(
+                "{} until done",
+                passes_text(passes)
+            )));
+        } else {
+            messages.push(
+                Diagnostic::warning(
+                    "W0805",
+                    format!("iterate stopped at max: {} without done becoming true", passes_text(max)),
+                )
+                .help("the state returned is the last one; raise `max:` or loosen `done:`, and `keep: true` shows the path"),
+            );
+        }
+        Ok(if keep {
+            Value::List(states)
+        } else {
+            Value::Record(state)
+        })
     }
 
     /// The second half of a call: the parameters bound in order, each default evaluated after
@@ -1919,6 +2157,10 @@ impl<'a> Interpreter<'a> {
                 }
             }
         }
+        // `iterate` is the interpreter's: it calls the functions it is given (section 5.5).
+        if call.package == "core" && call.name == "iterate" {
+            return self.run_iterate(call, values, printed, messages);
+        }
         // A built-in written in Zeff: its lowered body, with the arguments as evaluated.
         if let Some(builtin) = zeff {
             return self.run_zeff(builtin, call, values, printed, messages);
@@ -2160,6 +2402,16 @@ fn cell_value(column: &zeff_columns::Column, row: usize) -> Value {
 
 /// A parameter type that names one row's value, which a column may not stand in for in a
 /// project function (section 3.7, "Columns and scalars").
+/// `1 pass`, `12 passes`, with the thousands separator of section 3.8.
+fn passes_text(n: i64) -> String {
+    let count = zeff_diagnostics::count(n.max(0) as u64);
+    if n == 1 {
+        format!("{count} pass")
+    } else {
+        format!("{count} passes")
+    }
+}
+
 /// A message raised inside the body of a built-in written in Zeff, placed at the call in the
 /// script: the script's file, one label at the call, the text kept.
 fn place_at_call(mut d: Diagnostic, script: &str, span: Span) -> Diagnostic {

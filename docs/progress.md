@@ -127,3 +127,13 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 **Next.** Step 10 `[function]`: `iterate`.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
+
+## 30 October 2026, step 10 of release 0.5.0
+
+**Done.** Step 10 `[function]`: `iterate`, run by the interpreter: `step(state, ..args)` until `done(old, new)` is true or `max:` passes, the final state or every state under `keep: true`, the number of passes as a note, W0805 at `max:`; `args:` matched against `step`'s parameters by name and type at the call, the fields `step` and `done` read from the state checked against `start:` (the checker now records the fields a body reads from a `Record` parameter), a step that changes the state's fields refused at the call, `done` giving NA refused, `max:` below 1 refused; the page of `iterate` (catalogue row 435 implemented) with its examples, the explained page of W0805; the catalogue's usage parser corrected for function types. Tests: `iterate.rs` (convergence, one pass, the stop at `max:`, the path, a step without further arguments, every check at the call, every message, the EM example of section 5.5 on a two-component mixture of the wages with `dist.normal().pdf` and the reducers, which converges in 103 passes, and the properties that Newton's step reaches √a within 1e-9 relative for a from 1e-8 to 1e12 with as many kept states as passes, and that the stop at `max:` returns the state after exactly `max:` passes with the warning); the identity case `control/iterate`. The eight rulings are in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (113 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 11 `[function]`: `len`, `first`, `last`, `append`, `reversed`.
+
+**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).

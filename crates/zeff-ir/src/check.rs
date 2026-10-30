@@ -250,6 +250,10 @@ struct Checker<'a> {
     /// While a built-in written in Zeff is checked: the function whose scalar parameters are read
     /// as columns in this form, one flag per parameter (section 3.7, "Columns and scalars").
     lift_mask: Option<(String, Vec<bool>)>,
+    /// Every field a function body reads from a parameter typed `Record` alone: the function, the
+    /// parameter's binding, the field and where it is read, so that the call that supplies the
+    /// record can check it has the field (section 3.7, "Records"; `iterate`'s state).
+    record_reads: Vec<(FnId, BindingId, String, Span)>,
 }
 
 impl<'a> Checker<'a> {
@@ -278,6 +282,7 @@ impl<'a> Checker<'a> {
             imported: Vec::new(),
             called: Vec::new(),
             lift_mask: None,
+            record_reads: Vec::new(),
             words: registry
                 .functions()
                 .iter()
@@ -3627,14 +3632,23 @@ impl Checker<'_> {
         let target = self.expr(receiver, None);
         let target = self.no_nothing(target, "read as a record");
         match &target.ty {
-            Ty::Unknown | Ty::AnyRecord => Expr {
-                ty: Ty::Unknown,
-                span,
-                kind: ExprKind::Field {
-                    receiver: Box::new(target),
-                    name: name.text.clone(),
-                },
-            },
+            Ty::Unknown | Ty::AnyRecord => {
+                if let (Ty::AnyRecord, ExprKind::Binding(id), Some(function)) =
+                    (&target.ty, &target.kind, self.current_function)
+                    && self.bindings[*id].kind == BindingKind::Parameter
+                {
+                    self.record_reads
+                        .push((function, *id, name.text.clone(), name.span));
+                }
+                Expr {
+                    ty: Ty::Unknown,
+                    span,
+                    kind: ExprKind::Field {
+                        receiver: Box::new(target),
+                        name: name.text.clone(),
+                    },
+                }
+            }
             Ty::Record(fields) => match fields.iter().find(|(n, _)| *n == name.text) {
                 Some((_, ty)) => Expr {
                     ty: ty.clone(),
@@ -4978,7 +4992,8 @@ impl Checker<'_> {
         }
         let _ = expected;
         self.called.push((package.clone(), fname.clone()));
-        Expr {
+        let is_iterate = package == "core" && fname == "iterate";
+        let lowered = Expr {
             ty,
             span,
             kind: ExprKind::Call(Call {
@@ -4995,7 +5010,215 @@ impl Checker<'_> {
                 by_slot: params.iter().position(|(n, _, _)| n == "by"),
                 returns: spec.returns.to_string(),
             }),
+        };
+        if is_iterate {
+            return self.finish_iterate(lowered);
         }
+        lowered
+    }
+
+    /// The checks of `iterate` that its signature cannot say (Language Reference, section 5.5;
+    /// section 3.7, "Records"): `start:`, `step:` and `done:` are needed; the fields of `args:`
+    /// are the parameters of `step` after the state, by name and type; the fields `step` and
+    /// `done` read from the state are fields of `start:`; `max:` written below 1 is refused; and
+    /// the result has the type of `start:`, in a list under `keep: true`.
+    fn finish_iterate(&mut self, mut expr: Expr) -> Expr {
+        let ExprKind::Call(call) = &expr.kind else {
+            return expr;
+        };
+        let callee_span = call.callee_span;
+        let arg = |i: usize| call.args.get(i).and_then(|a| a.as_ref());
+        for (i, name) in [(0, "start"), (1, "step"), (2, "done")] {
+            if arg(i).is_none() {
+                self.report(
+                    Diagnostic::error("Z0406", format!("`iterate` needs `{name}:`"))
+                        .primary(callee_span, format!("`{name}:` not given"))
+                        .help("usage: `iterate(start: Record, step: Fn(Record, ..) -> Record, done: Fn(Record, Record) -> Bool, args: Record, max: Int = 1000, keep: Bool = false)`"),
+                );
+            }
+        }
+        let start_ty = arg(0).map(|e| e.ty.clone());
+        let start_fields: Option<Vec<(String, Ty)>> = match &start_ty {
+            Some(Ty::Record(fields)) => Some(fields.clone()),
+            _ => None,
+        };
+        // The fields `args:` supplies, with their types, when they can be known.
+        let supplied: Option<Vec<(String, Ty, Span)>> = match arg(3) {
+            None => Some(Vec::new()),
+            Some(a) => match (&a.kind, &a.ty) {
+                (ExprKind::Record(fields), _)
+                    if fields.iter().all(|f| matches!(f, RecordField::Named(..))) =>
+                {
+                    Some(
+                        fields
+                            .iter()
+                            .filter_map(|f| match f {
+                                RecordField::Named(n, e) => Some((n.clone(), e.ty.clone(), e.span)),
+                                RecordField::Spread(_) => None,
+                            })
+                            .collect(),
+                    )
+                }
+                (_, Ty::Record(fields)) => Some(
+                    fields
+                        .iter()
+                        .map(|(n, t)| (n.clone(), t.clone(), a.span))
+                        .collect(),
+                ),
+                _ => None,
+            },
+        };
+        let args_span = arg(3).map_or(callee_span, |a| a.span);
+        // The functions given as values: a function of the script has a signature to check
+        // `args:` against and reads to check `start:` against; a built-in has neither.
+        let script_fn = |e: Option<&Expr>| match e.map(|e| &e.kind) {
+            Some(ExprKind::FunctionValue(v)) => v.script,
+            _ => None,
+        };
+        if let Some(step) = script_fn(arg(1)) {
+            let sig = self.signatures[step].clone();
+            if let Some(supplied) = &supplied {
+                for (pname, pty, optional, _) in sig.params.iter().skip(1) {
+                    match supplied.iter().find(|(n, _, _)| n == pname) {
+                        Some((_, given, span)) => {
+                            if !pty.accepts(given) {
+                                self.report(
+                                    Diagnostic::error(
+                                        "Z0401",
+                                        format!(
+                                            "`{pname}` of `{}` takes {}, but `args:` gives {}",
+                                            sig.name,
+                                            pty.with_article(),
+                                            given.with_article()
+                                        ),
+                                    )
+                                    .primary(*span, given.with_article())
+                                    .help(format!("`args:` holds the arguments of `{}` after the state, each of its parameter's type", sig.name)),
+                                );
+                            }
+                        }
+                        None if !*optional => {
+                            self.report(
+                                Diagnostic::error(
+                                    "Z0406",
+                                    format!(
+                                        "`{}` needs `{pname}`, which `args:` does not supply",
+                                        sig.name
+                                    ),
+                                )
+                                .primary(args_span, format!("no `{pname}` here"))
+                                .help(format!("write `args: {{{pname}: ...}}`; `iterate` passes the fields of `args:` to `{}` by name after the state", sig.name)),
+                            );
+                        }
+                        None => {}
+                    }
+                }
+                let further: Vec<&str> = sig
+                    .params
+                    .iter()
+                    .skip(1)
+                    .map(|(n, _, _, _)| n.as_str())
+                    .collect();
+                for (n, _, span) in supplied {
+                    if !further.contains(&n.as_str()) {
+                        let mut d = Diagnostic::error(
+                            "Z0404",
+                            format!("`{}` has no parameter `{n}`", sig.name),
+                        )
+                        .primary(*span, "not a parameter of `step`");
+                        d = match did_you_mean(n, further.iter().copied()) {
+                            Some(near) => d.help(format!("did you mean `{near}`?")),
+                            None if further.is_empty() => d.help(format!(
+                                "`{}` takes the state alone; leave `args:` out",
+                                sig.name
+                            )),
+                            None => d.help(format!(
+                                "after the state, `{}` takes {}",
+                                sig.name,
+                                further
+                                    .iter()
+                                    .map(|p| format!("`{p}`"))
+                                    .collect::<Vec<_>>()
+                                    .join(", ")
+                            )),
+                        };
+                        self.report(d);
+                    }
+                }
+            }
+        }
+        // The fields read from the state, against `start:`'s.
+        if let Some(fields) = &start_fields {
+            let names: Vec<&str> = fields.iter().map(|(n, _)| n.as_str()).collect();
+            let start_span = arg(0).map_or(callee_span, |e| e.span);
+            let mut reported: Vec<String> = Vec::new();
+            for (which, positions) in [
+                (script_fn(arg(1)), vec![0usize]),
+                (script_fn(arg(2)), vec![0, 1]),
+            ] {
+                let Some(id) = which else { continue };
+                let Some(Some(function)) = self.functions.get(id) else {
+                    continue;
+                };
+                let reads: Vec<(String, String, Span)> = positions
+                    .iter()
+                    .filter_map(|p| function.params.get(*p))
+                    .flat_map(|param| {
+                        self.record_reads
+                            .iter()
+                            .filter(|(f, b, _, _)| *f == id && *b == param.binding)
+                            .map(|(_, _, field, span)| (param.name.clone(), field.clone(), *span))
+                            .collect::<Vec<_>>()
+                    })
+                    .collect();
+                let fname = function.name.clone();
+                for (param, field, span) in reads {
+                    if !names.contains(&field.as_str()) && !reported.contains(&field) {
+                        reported.push(field.clone());
+                        let mut d = Diagnostic::error(
+                            "Z0209",
+                            format!(
+                                "`{fname}` reads `{param}.{field}`, which `start:` does not have"
+                            ),
+                        )
+                        .primary(start_span, format!("its fields are {}", names.join(", ")))
+                        .secondary(span, "read here");
+                        if let Some(near) = did_you_mean(&field, names.iter().copied()) {
+                            d = d.help(format!("did you mean `{near}`?"));
+                        } else {
+                            d = d.help(format!(
+                                "every pass keeps the fields of `start:`; add `{field}` to it"
+                            ));
+                        }
+                        self.report(d);
+                    }
+                }
+            }
+        }
+        // `max:` written as a number below 1.
+        if let Some(m) = arg(4)
+            && let ExprKind::Int(n) = m.kind
+            && n < 1
+        {
+            self.report(
+                Diagnostic::error("Z0401", format!("`max:` of `iterate` cannot be {n}"))
+                    .primary(m.span, "fewer than one pass")
+                    .help("`max:` is the most passes to make, at least 1; 1,000 unless given"),
+            );
+        }
+        // The result: the state's type, a list of it under `keep: true`; unknown when `keep:` is
+        // not written as `true` or `false`.
+        let keep = match arg(5).map(|e| &e.kind) {
+            None => Some(false),
+            Some(ExprKind::Bool(b)) => Some(*b),
+            Some(_) => None,
+        };
+        expr.ty = match (start_ty, keep) {
+            (Some(t), Some(false)) => t,
+            (Some(t), Some(true)) => Ty::List(Box::new(t)),
+            _ => Ty::Unknown,
+        };
+        expr
     }
 
     /// `Date("%d/%m/%Y")` or `DateTime("%Y-%m-%d %H:%M")`: a type with a format.

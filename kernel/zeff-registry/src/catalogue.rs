@@ -82,7 +82,8 @@ fn form_parameters(function: &str, usage: &str) -> Vec<String> {
             names.push(receiver.to_string());
         }
         let close = usage.rfind(')').unwrap_or(usage.len());
-        let inside = &usage[open + 1..close];
+        // The arrow of a function type, `Fn(Record, ..) -> Record`, is not a bracket.
+        let inside = usage[open + 1..close].replace("->", "\u{2192}");
         // Split on commas outside brackets.
         let mut depth = 0i32;
         let mut current = String::new();

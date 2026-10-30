@@ -30,6 +30,17 @@ fn error(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 /// `attempt(expr)` never reaches a body: the checker lowers it to its own node and the
 /// interpreter evaluates the expression under a catch. A call that arrives here is a bug.
+fn iterate(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
+    Err(fail(
+        Diagnostic::error(
+            "Z9001",
+            "internal error: this is a bug in Zeff, not in your script (`iterate` reached a body)",
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "the call that failed"),
+    ))
+}
+
 fn attempt(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
     Err(fail(
         Diagnostic::error(
@@ -109,6 +120,41 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: attempt,
+        },
+        // `iterate(start:, step:, done:, ...)` is run by the interpreter, which calls the step
+        // and the stopping function it is given (Language Reference, section 5.5); the entry here
+        // carries its page and signature.
+        Function {
+            spec: FunctionSpec {
+                name: "iterate",
+                package: "core",
+                method: false,
+                params: vec![
+                    ParamSpec::option("start", "Record"),
+                    ParamSpec::option("step", "Fn(Record, ..) -> Record"),
+                    ParamSpec::option("done", "Fn(Record, Record) -> Bool"),
+                    ParamSpec::option("args", "Record"),
+                    ParamSpec::option_with_default("max", "Int", "1000"),
+                    ParamSpec::option_with_default("keep", "Bool", "false"),
+                ],
+                rest: None,
+                returns: "Record",
+                diagnostics: vec![
+                    DiagnosticDecl::note("the number of passes made"),
+                    DiagnosticDecl::new(
+                        "W0805",
+                        "the passes stopped at max: without done becoming true",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "max: below 1, or a step whose record gains or loses a field of the state",
+                    ),
+                    DiagnosticDecl::new("Z0203", "done gave NA where true or false was needed"),
+                ],
+                help: include_str!("../help/iterate.md"),
+                accuracy: None,
+            },
+            body: iterate,
         },
         Function {
             spec: FunctionSpec {

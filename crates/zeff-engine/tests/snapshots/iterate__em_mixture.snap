@@ -1,0 +1,10 @@
+---
+source: crates/zeff-engine/tests/iterate.rs
+expression: "format!(\"{}{}\", out.output.stdout, out.output.stderr)"
+---
+mu1: 26.9676
+mu2: 27.6344
+sd: 14.0228
+share: 0.602802
+loglik: -73894.1
+note: 103 passes until done (line 20)
