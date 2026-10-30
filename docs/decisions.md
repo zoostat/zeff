@@ -1661,3 +1661,17 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 6. *A union given where a union is expected* is now accepted when each of its options is: a list of only `NA` takes the type expected of it, which the old rule refused against `List<Bool | Int | Float | Str>`.
 
 **Reason.** Language Reference, sections 3.7 ("Identity", "Mappings", "Comparison"), 3.8 ("Comparison and order"), 4.1 ("Sorting") and 6 ("Row order"); catalogue rows 46, 47, 52, 53 and 529; open decision #5; the checklist's step 12.
+
+## 30 October 2026: `any`, `all` and `seq` (release 0.5.0, step 13)
+
+**Choice.** Three Rust bodies in `core/src/collections.rs`. Seven rulings:
+
+1. *`any` and `all` follow the truth table*, the owner's answer to question 4: `any` is the `||` of the items, `all` the `&&`, so `any([false, NA])` is `NA`, `any([true, NA])` is `true`, `all([true, NA])` is `NA` and `all([false, NA])` is `false`; an empty list gives `false` for `any` and `true` for `all`, as in R. They take a `List<Bool>` or a `Column<Bool>` (so `any(d["x"] > 3)` works, a column's `NA` rows counting as `NA`); a list of numbers is Z0401, and a failed item is Z0220 as for every function but `len`.
+2. *`seq(from, to, step: 1)` follows R's `seq.default`*: with `n = (to - from) / step`, the count is `trunc(n + 1e-10) + 1`, each value is `from + i × step` computed afresh (never accumulated), a value the fuzz lets past `to` is brought back to `to`, and a span under 100 machine epsilons of its larger end is the single value `from`. This matches R to the bit on 46 cases of the reference (fractional steps, ends from 1e7 to 1e12), compared as the exact doubles R wrote with 17 significant digits.
+3. *Int when all three are Ints*: the checker types the result as `List<Int>` when `from`, `to` and `step` (default 1) are all Ints and `List<Float>` otherwise (the `NumberList` return word, `Number`'s rule wrapped in a list); the Int path is exact in 128-bit arithmetic. R gives doubles for `seq(1, 5, by = 2)`; the departure is deliberate and printed the same.
+4. *Two departures from R*, named in the page and the test: `seq(5, 1)` is an error (the catalogue's default step is 1; R counts down by itself with `from:to`), and a zero step is always an error (R returns `from` for `seq(1, 1, by = 0)`).
+5. *Z0418* (the next code of the Z04xx family, logged with its row in section 11) is every refusal: a zero step, a step pointing away from `to`, an argument that is `NA` or infinite, and a count above ten million values (`SEQ_LIMIT`; R's limit is the largest Int, but a list of values costs more here). The message names the argument and the repair.
+6. *`2..5` is the whole-number case*, already a range of Ints since release 0.1.0; `seq` is for other steps.
+7. *The type parser* splits a union of generics, `List<Bool> | Column<Bool>`, at its bars outside brackets; a bar inside brackets, `List<n | missing>`, still belongs to the generic (a list of words). The arrow of a function type is not a bracket.
+
+**Reason.** Language Reference, sections 3.4 (`range_expr`), 3.7 ("Missing values: full truth table", "Variable ranges") and 6; catalogue rows 49, 50 and 54; the checklist's step 13 and question 4.

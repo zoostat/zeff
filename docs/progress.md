@@ -159,3 +159,13 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 **Next.** Step 13 `[function]`: `any`, `all` and `seq`.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
+
+## 30 October 2026, step 13 of release 0.5.0
+
+**Done.** Step 13 `[function]`: `any`, `all` and `seq` (catalogue rows 49, 50 and 54 implemented), each with its page: `any` and `all` under the truth table of section 3.7 over lists and Bool columns; `seq` as R's `seq.default` fixes it (the count by the 1e-10 tolerance, each value `from + i × step`, overshoot brought back to `to`), Ints when all three arguments are Ints, Floats otherwise; Z0418 for a zero step, a step pointing away from `to`, an `NA` or infinite argument and more than ten million values (provisional, logged, with its explained page); the checker's return word `NumberList` and a type parser that splits a union of generics; the seven rulings in `docs/decisions.md`. Tests: the R reference `collections_seq.R` (46 sequences compared bit for bit, ends from 1e7 to 1e12, and the truth table of `any` and `all` over seven lists with `NA`); the engine's `collections_seq.rs` (the table, a Bool column, Int and Float sequences, the count at the tolerance, the single value of a degenerate span, every refusal, every message, the empty `vars()`, a loop over `vars` against the fits written out, and the properties that the values follow `from + i × step` with the rule's count and that `any(xs)` is `!all(!xs)`); the identity case `control/collections_seq`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 14 `[function]`: `clamp`, `logit`, `inv_logit`, the first functions written in Zeff.
+
+**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).

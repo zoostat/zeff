@@ -5013,7 +5013,7 @@ impl Checker<'_> {
                 },
                 None => Ty::List(Box::new(items)),
             }
-        } else if spec.returns == "Number" {
+        } else if spec.returns == "Number" || spec.returns == "NumberList" {
             let numbers = slots
                 .iter()
                 .flatten()
@@ -5034,7 +5034,12 @@ impl Checker<'_> {
                     _ => {}
                 }
             }
-            result
+            // `NumberList` (`seq`): a list of that number type.
+            if spec.returns == "NumberList" && result != Ty::Unknown {
+                Ty::List(Box::new(result))
+            } else {
+                result
+            }
         } else {
             Ty::parse(spec.returns).unwrap_or(Ty::Unknown)
         };

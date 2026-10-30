@@ -158,3 +158,7 @@ Sections 3.7 ("Inference") and 5.3 say that a function's result must match its d
 ## 30 October 2026 — zeff_language_reference.md, section 11: the code Z0323
 
 Section 5.3 says that a module file holds only `///` text, `fn` definitions and `use` lines, and section 3.6 that `use functions::clean` names the file `functions/clean.zeff`, without numbering a file that breaks either rule. Step 8 of release 0.5.0 assigns Z0323, the next code of the Z03xx family (syntax and layout), for a statement in a module file and for a file whose name is not a name of the language or is a package's, and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.
+
+## 30 October 2026 — zeff_language_reference.md, section 11: the code Z0418
+
+The catalogue's row for `seq` (row 54) says that a zero step or a step of the wrong sign is refused, without a number. Step 13 of release 0.5.0 assigns Z0418, the next code of the Z04xx family (arguments), for a `seq` that cannot be built: a zero step, a step pointing away from `to`, an argument that is `NA` or infinite, or a count above ten million values, and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.

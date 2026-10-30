@@ -905,6 +905,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // `any`, `all` and `seq` of step 13: the truth table over lists and a Bool column, and
+        // sequences with fractional steps, counting down, and the count fixed by the tolerance.
+        (
+            "collections_seq",
+            "any([false, NA])\nany([true, NA])\nall([true, NA])\nall([false, NA])\nany([])\nall([])\nlet w = dataset(wages)\nany(w[\"wage\"] > 100)\nall(w[\"educ\"] >= 0)\nseq(1, 5)\nseq(0, 1, step: 0.25)\nseq(10, 0, step: -5)\nseq(0, 1, step: 0.1)\nseq(1e7, 1e7 + 1, step: 0.2)\nseq(1, 1)\nlen(seq(0, 1e12, step: 1e11))\nseq(2, 11, step: 3)\n",
+        ),
         // The order functions of step 12: `unique` keeping first occurrences, `sorted` both ways
         // with `NA` last, `is_in` on values and on a column, `keys` and `equal`.
         (

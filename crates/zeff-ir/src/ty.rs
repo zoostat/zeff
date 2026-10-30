@@ -93,12 +93,50 @@ pub enum Ty {
     Unknown,
 }
 
+/// The parts of a type text split at the `|` outside brackets and parentheses; the whole text
+/// when there is none. The arrow of a function type is not a bracket.
+fn top_level_bars(text: &str) -> Vec<&str> {
+    let mut depth = 0i32;
+    let mut parts = Vec::new();
+    let mut start = 0;
+    let mut previous = ' ';
+    for (i, c) in text.char_indices() {
+        match c {
+            '<' | '(' => depth += 1,
+            '>' if previous != '-' => depth -= 1,
+            ')' => depth -= 1,
+            '|' if depth == 0 => {
+                parts.push(text[start..i].trim());
+                start = i + 1;
+            }
+            _ => {}
+        }
+        previous = c;
+    }
+    parts.push(text[start..].trim());
+    parts
+}
+
 impl Ty {
     /// A type as a signature writes it: `Frame`, `Column<Bool>`, `List<Str>`, `List`, `Record`,
     /// `keep | snake`, `Var | Vars`. Alternatives that all begin with a capital are types; those
     /// in lower case are words.
     pub fn parse(text: &str) -> Option<Ty> {
         let text = text.trim();
+        // A union of generics, `List<Bool> | Column<Bool>`, splits at its bars outside brackets;
+        // a bar inside brackets, `List<n | missing>`, belongs to the generic (a list of words).
+        let parts = top_level_bars(text);
+        if parts.len() > 1
+            && parts
+                .iter()
+                .all(|p| p.starts_with(|c: char| c.is_ascii_uppercase()))
+        {
+            return parts
+                .iter()
+                .map(|p| Ty::parse(p))
+                .collect::<Option<Vec<Ty>>>()
+                .map(Ty::Union);
+        }
         // A generic first, so that `List<n | missing>` is a list of words, not a union.
         if let Some(inner) = text
             .strip_prefix("Column<")
