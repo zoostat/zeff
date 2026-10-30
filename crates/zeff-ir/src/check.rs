@@ -3940,7 +3940,7 @@ impl Checker<'_> {
                             format!("no public function `{name}` in `functions/{module}.zeff`"),
                         )
                         .primary(callee_span, "not a function of the module")
-                        .help("a name starting with `_` is private to its file; `zeff help` on the module's functions lists them"),
+                        .help(format!("a name starting with `_` is private to its file; a public function of the module has a page at `zeff help {module}::name`")),
                     );
                     Expr::error(span)
                 }

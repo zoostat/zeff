@@ -253,6 +253,11 @@ fn every_message_of_modules() {
             vec![("clean", CLEAN)],
             "use functions::clean::_twice\n",
         ),
+        (
+            "private_function_qualified",
+            vec![("clean", CLEAN)],
+            "clean::_twice(2)\n",
+        ),
         ("third_party_package", vec![("clean", CLEAN)], "use stats\n"),
         ("not_brought_in", vec![("clean", CLEAN)], "quadruple(2)\n"),
         (
