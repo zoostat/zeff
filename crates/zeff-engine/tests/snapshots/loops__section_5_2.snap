@@ -1,0 +1,23 @@
+---
+source: crates/zeff-engine/tests/loops.rs
+expression: "format!(\"{}{}\", outcome.output.stdout, outcome.output.stderr)"
+---
+                         (1)              (2)              (3)
+  (intercept)        -9.692***        37.928***         0.226***
+                     (1.196)          (0.447)          (0.056)
+  educ                2.081***        -0.008            0.000
+                     (0.079)          (0.028)          (0.004)
+  exper               0.597***         0.009            0.006***
+                     (0.024)          (0.009)          (0.001)
+  ──────────────────────────────────────────────────────────────
+  SEs           cluster worker   cluster worker   cluster worker
+  N                     18,179           18,355           18,390
+  R²                     0.162            0.000            0.009
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(1) note: 33 of the 3,911 clusters hold one observation
+(2) note: 8 of the 3,911 clusters hold one observation
+(3) note: 3 of the 3,911 clusters hold one observation
+note: 33 of the 3,911 clusters hold one observation (line 2)
+note: 8 of the 3,911 clusters hold one observation (line 2)
+note: 3 of the 3,911 clusters hold one observation (line 2)

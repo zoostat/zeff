@@ -865,10 +865,18 @@ fn control_cases() -> Vec<Line> {
         Ok(project) => project,
         Err(_) => return vec![text("control/project", "the project did not open")],
     };
-    let scripts = [(
-        "case",
-        "let w = dataset(wages)\nlet reps = if w.n_rows() < 500 { 5000 } else { 1000 }\nreps\nlet b = w.add(band = case { wage < 15 => \"low\", wage < 25 => \"mid\", _ => \"high\" }, k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })\nb.summary([k])\nb.where(case { hours > 40 => true, _ => false }).mean(wage)\ncase { w.n_rows() > 5 => \"big\", _ => \"small\" }\n",
-    )];
+    let scripts = [
+        (
+            "case",
+            "let w = dataset(wages)\nlet reps = if w.n_rows() < 500 { 5000 } else { 1000 }\nreps\nlet b = w.add(band = case { wage < 15 => \"low\", wage < 25 => \"mid\", _ => \"high\" }, k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })\nb.summary([k])\nb.where(case { hours > 40 => true, _ => false }).mean(wage)\ncase { w.n_rows() > 5 => \"big\", _ => \"small\" }\n",
+        ),
+        // The loops of step 3: the draws of three passes under a seed, a `[for]` with its jumps,
+        // and a loop over variables fitting a formula with the variable in two places.
+        (
+            "for_draws",
+            "seed(20261030)\nlet draws = [for s in 1..3 { dist.normal().draw(4) }]\ndraws[1]\ndraws[2]\ndraws[3]\nlet picked = [for i in 1..20 {\n    if i > 12 { break }\n    if mod(i, 3) == 0 { continue }\n    i * i\n}]\npicked\nlet w = dataset(wages)\n[for y in vars(wage, hours) { w.reg(log(y) ~ educ + y:female).coef(educ) }]\n",
+        ),
+    ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
         let outcome = run_script(&fs, &project, "scripts/main.zeff", script);

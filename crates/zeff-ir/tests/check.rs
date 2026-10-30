@@ -494,8 +494,6 @@ fn constructs_of_later_releases_are_z0304_with_their_release() {
     let cases: &[(&str, &str)] = &[
         ("fn f(x: Float) -> Float {\n    x\n}\n", "0.5.0"),
         ("use clean\n", "0.5.0"),
-        ("for i in [1, 2] {\n    print(i)\n}\n", "0.5.0"),
-        ("let x = [for i in [1] { i }]\n", "0.5.0"),
         ("let m = model {\n    y ~ x\n}\n", "1.3"),
         ("let g = dag {\n    a -> b\n}\n", "0.10.0"),
     ];
@@ -662,7 +660,20 @@ fn messages() {
             "date_format_with_time",
             "import(\"d.csv\", types: {sold: Date(\"%d/%m/%Y %H:%M\")})\n",
         ),
-        ("not_yet_for", "for i in [1, 2] {\n    print(i)\n}\n"),
+        ("not_yet_fn", "fn f() -> Int {\n    1\n}\n"),
+        ("for_over_a_number", "for i in 5 {\n    print(i)\n}\n"),
+        (
+            "list_for_without_a_value",
+            "let xs = [for i in 1..3 {\n    print(i)\n}]\n",
+        ),
+        (
+            "let_shadows_loop_variable",
+            "for i in 1..3 {\n    let i = 2\n    print(i)\n}\n",
+        ),
+        (
+            "loop_variable_after_the_loop",
+            "for i in 1..2 {\n    print(i)\n}\ni\n",
+        ),
         (
             "if_on_a_column",
             "let wages = import(\"d.csv\")\nif wages[\"wage\"] > 20 {\n    print(1)\n}\n",
@@ -751,6 +762,13 @@ fn expressions_have_the_types_of_section_3_7() {
             "let w = import(\"d.csv\")\nlet x = case { w[\"a\"] > 1 => 1.5, 2 < 3 => NA }",
             "Column<Float>",
         ),
+        ("let xs = [for i in 1..3 { i * 2 }]", "List<Int>"),
+        ("let xs = [for x in [1.5, 2] { x }]", "List<Float>"),
+        ("let xs = [for s in [\"a\"] { let t = s\n t }]", "List<Str>"),
+        (
+            "let w = import(\"d.csv\")\nlet xs = [for i in 1..2 { w.mean(wage) }]",
+            "List<Float>",
+        ),
     ];
     for (text, ty) in cases {
         let program = clean(&format!("{text}\n"));
@@ -806,6 +824,15 @@ fn the_codes_of_expressions() {
             "W0301",
         ),
         ("if true { let inner = 1 }\ninner\n", "Z0101"),
+        ("for i in 5 { print(i) }\n", "Z0221"),
+        (
+            "let w = import(\"d.csv\")\nfor r in w { print(r) }\n",
+            "Z0221",
+        ),
+        ("let xs = [for i in 1..3 { print(i) }]\n", "Z0206"),
+        ("for i in 1..3 { let i = 2\n print(i) }\n", "W0302"),
+        ("for i in 1..2 { print(i) }\ni\n", "Z0101"),
+        ("for print in 1..2 { 1 }\n", "Z0105"),
     ];
     for (text, code) in cases {
         let found = codes(text);

@@ -6,8 +6,8 @@
 //! `Unknown`, which no later check reports again.
 
 use crate::ir::{
-    Arm, Binding, BindingId, Block, Call, Expr, ExprKind, Formula, Program, Slot, Statement, Term,
-    TermKind, TermStep,
+    Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, Formula, Program, Slot,
+    Statement, Term, TermKind, TermStep,
 };
 use crate::ty::{ResultKind, Ty};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
@@ -48,6 +48,7 @@ pub fn check(file: &str, script: &ast::Script, registry: &Registry) -> Checked {
         frame_scope: 0,
         formula_depth: 0,
         term_depth: 0,
+        loops: Vec::new(),
     };
     let mut statements = Vec::new();
     for item in &script.items {
@@ -125,6 +126,8 @@ struct Checker<'a> {
     /// How many expressions over terms are being lowered (`test`, `derive`): inside one, a bare
     /// name is a coefficient of the fit, never a column or a binding (section 7.2).
     term_depth: usize,
+    /// The loop variables in scope, innermost last, for W0302 (a `let` that shadows one).
+    loops: Vec<String>,
 }
 
 impl Checker<'_> {
@@ -173,13 +176,17 @@ impl Checker<'_> {
                     );
                 }
                 self.check_binding_name(name);
-                let id = self.bindings.len();
-                self.bindings.push(Binding {
-                    name: name.text.clone(),
-                    ty: value.ty.clone(),
-                    span: name.span,
-                });
-                self.scope.push((name.text.clone(), id));
+                if self.loops.contains(&name.text) {
+                    self.report(
+                        Diagnostic::warning(
+                            "W0302",
+                            format!("`{}` shadows the loop variable of the same name", name.text),
+                        )
+                        .primary(name.span, "a `let` with a loop variable's name")
+                        .help("the loop variable is hidden until the block ends; a different name keeps both readable"),
+                    );
+                }
+                let id = self.bind(name, value.ty.clone(), BindingKind::Let);
                 Some(Statement::Let {
                     binding: id,
                     value,
@@ -194,8 +201,13 @@ impl Checker<'_> {
                 })
             }
             ast::StmtKind::For(f) => {
-                self.not_yet(f.span, "`for`", "0.5.0", "loops arrive with release 0.5.0");
-                None
+                let (binding, iter, body, _) = self.for_loop(f);
+                Some(Statement::For {
+                    binding,
+                    iter,
+                    body,
+                    span: statement.span,
+                })
             }
             ast::StmtKind::Return(_) => {
                 self.not_yet(
@@ -206,16 +218,61 @@ impl Checker<'_> {
                 );
                 None
             }
-            ast::StmtKind::Break | ast::StmtKind::Continue => {
-                self.not_yet(
-                    statement.span,
-                    "`break` and `continue`",
-                    "0.5.0",
-                    "loops arrive with release 0.5.0",
-                );
-                None
-            }
+            // Outside a loop both are the parser's Z0313.
+            ast::StmtKind::Break => Some(Statement::Break {
+                span: statement.span,
+            }),
+            ast::StmtKind::Continue => Some(Statement::Continue {
+                span: statement.span,
+            }),
         }
+    }
+
+    /// A new binding, in scope from here to the end of the enclosing block.
+    fn bind(&mut self, name: &ast::Ident, ty: Ty, kind: BindingKind) -> BindingId {
+        let id = self.bindings.len();
+        self.bindings.push(Binding {
+            name: name.text.clone(),
+            ty,
+            span: name.span,
+            kind,
+        });
+        self.scope.push((name.text.clone(), id));
+        id
+    }
+
+    /// `for x in xs { body }` (section 5.2): the loop runs over a `List`, a `Range` (a
+    /// `List<Int>`) or `Vars`, and binds its variable, typed by the element, for the body alone.
+    fn for_loop(&mut self, f: &ast::ForLoop) -> (BindingId, Expr, Block, Ty) {
+        let iter = self.expr(&f.iter, None);
+        let iter = self.no_nothing(iter, "run over by `for`");
+        let element = match &iter.ty {
+            Ty::List(inner) => (**inner).clone(),
+            Ty::Vars => Ty::Var,
+            Ty::Unknown => Ty::Unknown,
+            other => {
+                self.report(
+                    Diagnostic::error(
+                        "Z0221",
+                        format!(
+                            "`for` runs over a List, a Range or a list of variables, but this is {}",
+                            other.with_article()
+                        ),
+                    )
+                    .primary(iter.span, "not something to loop over")
+                    .help("write a list, `[1, 2, 3]`, a range, `1..200`, or `vars(lwage, hours)` for variables; a frame's rows are not looped over, its verbs work on them at once"),
+                );
+                Ty::Unknown
+            }
+        };
+        self.check_binding_name(&f.var);
+        let depth = self.scope.len();
+        let binding = self.bind(&f.var, element, BindingKind::LoopVariable);
+        self.loops.push(f.var.text.clone());
+        let (body, ty) = self.block(&f.body, None);
+        self.loops.pop();
+        self.scope.truncate(depth);
+        (binding, iter, body, ty)
     }
 
     /// A `let` may not reuse a `core` name, and shadowing another package's name is a warning
@@ -379,14 +436,27 @@ impl Checker<'_> {
             ast::ExprKind::Field { receiver, name } => self.field(receiver, name, span),
             ast::ExprKind::Index { receiver, index } => self.index(receiver, index, span),
             ast::ExprKind::Mapping(entries) => self.mapping(entries, span, expected),
-            ast::ExprKind::ListFor(_) => {
-                self.not_yet(
+            ast::ExprKind::ListFor(f) => {
+                let (binding, iter, body, ty) = self.for_loop(f);
+                if ty == Ty::Nothing {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0206",
+                            "this gives no value, so it cannot be put in a list",
+                        )
+                        .primary(body.span, "the body ends without a value")
+                        .help("`[for ...]` collects the value of its body's last expression in every pass; end the body with the value to collect, or drop the brackets"),
+                    );
+                }
+                Expr {
+                    ty: Ty::List(Box::new(ty)),
                     span,
-                    "`[for ...]`",
-                    "0.5.0",
-                    "loops arrive with release 0.5.0",
-                );
-                Expr::error(span)
+                    kind: ExprKind::ListFor {
+                        binding,
+                        iter: Box::new(iter),
+                        body,
+                    },
+                }
             }
             ast::ExprKind::If {
                 cond,
@@ -769,6 +839,18 @@ impl Checker<'_> {
             return Expr::error(span);
         }
         let text = path.segments[0].text.clone();
+        // A binding holding a `Var` or `Vars` stands for the variables it names (section 6,
+        // "Names inside a frame's methods"): a loop variable over `vars(...)`.
+        if accepts_var_value(expected)
+            && let Some(id) = self.lookup(&text)
+            && matches!(self.bindings[id].ty, Ty::Var | Ty::Vars)
+        {
+            return Expr {
+                ty: self.bindings[id].ty.clone(),
+                span,
+                kind: ExprKind::Binding(id),
+            };
+        }
         match expected {
             Some(Ty::Var) => {
                 return Expr {
@@ -864,7 +946,17 @@ impl Checker<'_> {
         if self.formula_depth > 0 {
             // Inside a formula a bare name is a variable of the frame the formula is used with,
             // resolved when the model is fitted (section 3.7, "Resolution by parameter type");
-            // a binding that holds a formula is the one name that cannot be meant as a variable.
+            // a binding that holds a formula is the one name that cannot be meant as a variable,
+            // and a loop variable holding a `Var` is the variable it holds (section 5.2).
+            if let Some(id) = self.lookup(&text)
+                && self.bindings[id].ty == Ty::Var
+            {
+                return Expr {
+                    ty: Ty::Column(Box::new(Ty::Unknown)),
+                    span,
+                    kind: ExprKind::Binding(id),
+                };
+            }
             if self
                 .var_term(
                     &ast::Expr {
@@ -1402,6 +1494,16 @@ impl Checker<'_> {
     /// A bare name as a term: a variable of the frame the formula is used with; a binding that
     /// holds a formula is the one name that cannot be meant as a variable (Z0221).
     fn var_term(&mut self, expr: &ast::Expr, name: String) -> Option<Term> {
+        // A loop variable holding a `Var` stands for the variable it holds (section 5.2).
+        if let Some(id) = self.lookup(&name)
+            && self.bindings[id].ty == Ty::Var
+        {
+            return Some(Term {
+                text: written(expr),
+                span: expr.span,
+                kind: TermKind::Bound(id),
+            });
+        }
         if let Some(id) = self.lookup(&name)
             && self.bindings[id].ty == Ty::Formula
         {
@@ -2939,6 +3041,15 @@ fn scalar_type(ty: &Ty) -> bool {
     match ty {
         Ty::Bool | Ty::Int | Ty::Float | Ty::Str | Ty::Date | Ty::DateTime => true,
         Ty::Union(options) => options.iter().all(scalar_type),
+        _ => false,
+    }
+}
+
+/// A place that takes a variable or variables, where a binding holding one stands for it.
+fn accepts_var_value(expected: Option<&Ty>) -> bool {
+    match expected {
+        Some(Ty::Var) | Some(Ty::Vars) => true,
+        Some(Ty::Union(options)) => options.iter().any(|o| matches!(o, Ty::Var | Ty::Vars)),
         _ => false,
     }
 }

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0206]: this gives no value, so it cannot be put in a list
+ --> scripts/main.zeff:1:25
+  |
+1 | let xs = [for i in 1..3 {
+  |                         ^ the body ends without a value
+  |
+  = help: `[for ...]` collects the value of its body's last expression in every pass; end the body with the value to collect, or drop the brackets

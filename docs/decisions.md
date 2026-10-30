@@ -1508,3 +1508,16 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 6. *W0208 is the provisional code of the rows no arm matched* (W02xx, the next free number after W0207; logged in `docs/spec_changes.md`), with the count over the rows and, over one value, "no arm matched".
 
 **Reason.** Language Reference, sections 3.1, 3.7 and 5.1, and the checklist's step 2; the printing rule follows from section 3.1's "Value of a block" read with section 3.7's `Nothing`; the evaluation over whole columns keeps every reducer inside an arm computed over the frame it names.
+
+## 30 October 2026: `for`, `[for ...]`, `break` and `continue` (release 0.5.0, step 3)
+
+**Choice.** Loops are lowered to `Statement::For`, `ExprKind::ListFor`, `Statement::Break` and `Statement::Continue`; a binding now carries its kind (`let` or loop variable), and a term may be `Bound` to a loop variable. Six rulings:
+
+1. *A jump travels as a flag.* `break` and `continue` set a pending jump on the interpreter; every block returns at once after a statement that set it, and the loop the jump belongs to takes it. The checker lets a block that jumps stand only where a statement may (its value is `Nothing`), so no expression is left half-evaluated by a jump.
+2. *The loop pass in the random key.* The run's randomness keeps a pass counter that the interpreter resets at each statement and raises at every pass of every loop within it, nested loops included, so that `(seed, statement, pass, call)` is unique and a draw inside a loop differs by pass and repeats on a re-run; the draws of a statement outside a loop keep pass 0 and the published digests of 0.3.0 and 0.4.0.
+3. *A loop variable holding a variable stands for it everywhere.* In a formula (`y ~ educ`, `log(y)`, `y:female`) the term is resolved when the statement runs and takes the variable's name, so the printed header and the result's term names read `log(hours)`; as a `Var` or `Vars` argument the binding is passed and the function resolves it; inside `add` and the other column arguments the column of the variable it holds is read. A loop over `vars(x1..x9)` is refused (Z0221), since a range is expanded only against a frame.
+4. *A loop variable named like a column is Z0106*, whether the name is read as a column argument or as a variable argument of a frame method, checked when the statement runs against the receiver's columns (section 3.7, rule 2); outside a frame method there is no clash.
+5. *What a loop runs over*: a List (a Range is one), or Vars; anything else is Z0221, with the help that a frame's rows are not looped over. The body of `[for ...]` must end in a value (Z0206 otherwise); a `let` that reuses a loop variable's name is W0302.
+6. *`vars` moved from step 13 to this step*, because a loop over variables cannot be tested without it; its page and row are done here, and step 13 keeps `any`, `all` and `seq`.
+
+**Reason.** Language Reference, sections 3.7, 5.2 and 6; Engine and Project Specification, section 8.3, point 3; the checklist's step 3.

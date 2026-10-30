@@ -5,5 +5,5 @@ pub mod ir;
 pub mod ty;
 
 pub use check::{Checked, check, check_source};
-pub use ir::{Binding, BindingId, Call, Expr, ExprKind, Program, Slot, Statement};
+pub use ir::{Binding, BindingId, BindingKind, Call, Expr, ExprKind, Program, Slot, Statement};
 pub use ty::{ResultKind, Ty};

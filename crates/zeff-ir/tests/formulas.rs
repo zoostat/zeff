@@ -86,6 +86,7 @@ fn value_of(program: &zeff_ir::Program, index: usize) -> &zeff_ir::ir::Expr {
         Statement::Let { value, .. }
         | Statement::Print { value, .. }
         | Statement::Expr { value, .. } => value,
+        other => panic!("not a value statement: {other:?}"),
     }
 }
 
@@ -107,6 +108,7 @@ fn shape(term: &Term) -> String {
             )
         }
         TermKind::Expr(_) => format!("{{{}}}", term.text),
+        TermKind::Bound(id) => format!("<{id}>"),
     }
 }
 

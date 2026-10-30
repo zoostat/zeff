@@ -42,8 +42,8 @@ error[Z0103]: no function is called `coef_plot`
  --> zeff_samples.zeff:102:4
 error[Z0404]: `export` has no argument called `size`
  --> zeff_samples.zeff:102:46
-error[Z0304]: `[for ...]` is not available in this release
- --> zeff_samples.zeff:108:12
+error[Z0404]: `reg` has no argument called `fe`
+ --> zeff_samples.zeff:109:42
 error[Z0103]: no function is called `robustness`
  --> zeff_samples.zeff:124:14
 error[Z0103]: no function is called `ivreg`
@@ -68,8 +68,8 @@ error[Z0103]: no function is called `chi2_test`
  --> zeff_samples.zeff:153:7
 error[Z0103]: no function is called `proportion_test`
  --> zeff_samples.zeff:154:7
-error[Z0304]: `[for ...]` is not available in this release
- --> zeff_samples.zeff:157:9
+error[Z0103]: no function is called `t_test`
+ --> zeff_samples.zeff:158:11
 error[Z0103]: no function is called `p_adjust`
  --> zeff_samples.zeff:160:1
 error[Z0103]: no function is called `logistic`
@@ -80,12 +80,12 @@ error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:168:17
 error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:169:17
-error[Z0304]: `[for ...]` is not available in this release
- --> zeff_samples.zeff:177:12
+error[Z0103]: no function is called `inv_logit`
+ --> zeff_samples.zeff:180:25
+error[Z0103]: no function is called `attempt`
+ --> zeff_samples.zeff:181:5
 error[Z0103]: no function is called `len`
  --> zeff_samples.zeff:183:1
-error[Z0304]: `[for ...]` is not available in this release
- --> zeff_samples.zeff:184:14
 error[Z0103]: no function is called `reliability`
  --> zeff_samples.zeff:194:8
 error[Z0103]: no function is called `row_mean`

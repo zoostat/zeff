@@ -10,7 +10,8 @@ use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
 use zeff_core::value::{Formula as FormulaValue, Frame, Term as TermValue, TypeValue, Value};
 use zeff_diagnostics::{Diagnostic, Source, Span, did_you_mean};
-use zeff_ir::ir::{Arm, BinaryOp, Block, Term, TermStep, UnaryOp};
+use zeff_ir::BindingKind;
+use zeff_ir::ir::{Arm, BinaryOp, Block, Term, TermKind, TermStep, UnaryOp};
 use zeff_ir::{Call, Expr, ExprKind, Program, Slot, Statement};
 
 /// What one statement wrote.
@@ -53,6 +54,16 @@ pub struct Interpreter<'a> {
     random: Randomness,
     /// The ordinal of the statement being run, 1 for the first; every draw's stream is keyed by it.
     statement: u32,
+    /// A `break` or `continue` on its way to the loop it belongs to (section 5.2): set where the
+    /// statement runs, read after every statement of every block on the way up, taken by the
+    /// loop. The checker lets a block that jumps stand only where a statement may.
+    jump: Option<Jump>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Jump {
+    Break,
+    Continue,
 }
 
 /// A frame whose method is being called: the frame as given, which its options see; the frame
@@ -99,6 +110,7 @@ impl<'a> Interpreter<'a> {
             receivers: Vec::new(),
             random: Randomness::default(),
             statement: 0,
+            jump: None,
         }
     }
 
@@ -120,12 +132,17 @@ impl<'a> Interpreter<'a> {
     pub fn run(mut self, output: &mut Output) -> Result<(), Fail> {
         for statement in &self.program.statements {
             self.statement += 1;
+            self.random.pass = 0;
+            self.jump = None;
             let mut printed = String::new();
             let mut messages: Vec<Diagnostic> = Vec::new();
             let span = match statement {
                 Statement::Let { span, .. }
                 | Statement::Print { span, .. }
-                | Statement::Expr { span, .. } => *span,
+                | Statement::Expr { span, .. }
+                | Statement::For { span, .. }
+                | Statement::Break { span }
+                | Statement::Continue { span } => *span,
             };
             let line = self.source.line_of(span.start);
             // A failure inside the engine never crashes the run: it is Z9001 at the statement,
@@ -144,6 +161,16 @@ impl<'a> Interpreter<'a> {
                     Statement::Expr { value, .. } => {
                         self.eval(value, &mut printed, &mut messages).map(|_| ())
                     }
+                    Statement::For {
+                        binding,
+                        iter,
+                        body,
+                        ..
+                    } => self
+                        .run_for(*binding, iter, body, None, &mut printed, &mut messages)
+                        .map(|_| ()),
+                    // Outside a loop the parser refuses both (Z0313).
+                    Statement::Break { .. } | Statement::Continue { .. } => Ok(()),
                 }
             }));
             let result = match evaluation {
@@ -215,12 +242,236 @@ impl<'a> Interpreter<'a> {
                 Statement::Expr { value, .. } | Statement::Print { value, .. } => {
                     self.eval(value, printed, messages)?;
                 }
+                Statement::For {
+                    binding,
+                    iter,
+                    body,
+                    ..
+                } => {
+                    self.run_for(*binding, iter, body, None, printed, messages)?;
+                }
+                Statement::Break { .. } => self.jump = Some(Jump::Break),
+                Statement::Continue { .. } => self.jump = Some(Jump::Continue),
+            }
+            // A jump leaves the block at once; the loop it belongs to takes it.
+            if self.jump.is_some() {
+                return Ok(Value::Nothing);
             }
         }
         match &block.tail {
             Some(tail) => self.eval(tail, printed, messages),
             None => Ok(Value::Nothing),
         }
+    }
+
+    /// What a `for` runs over (section 5.2): the items of a list, or each variable of a `Vars`
+    /// as a `Var`; a range of variables cannot be expanded without a frame.
+    fn loop_items(
+        &mut self,
+        iter: &Expr,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Vec<Value>, Fail> {
+        match self.eval(iter, printed, messages)? {
+            Value::List(items) => Ok(items),
+            Value::Vars(names) => {
+                if let Some(range) = names.iter().find(|n| n.contains("..")) {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0221",
+                            format!("`for` cannot run over the range `{range}` outside a frame"),
+                        )
+                        .in_file(self.script)
+                        .primary(iter.span, "a range of variables")
+                        .help("a range is expanded against the frame it meets; name the variables one by one, `vars(x1, x2, x3)`"),
+                    ));
+                }
+                Ok(names.into_iter().map(Value::Var).collect())
+            }
+            Value::Var(name) => Ok(vec![Value::Var(name)]),
+            _ => Err(self.internal(iter, "a `for` over something the checker did not refuse")),
+        }
+    }
+
+    /// A `for` loop (section 5.2): each pass binds the loop variable, counts as a pass of the
+    /// random stream and runs the body; `continue` ends the pass and `break` the loop. With
+    /// `collected` the body's value of every pass that does not `continue` is gathered, for
+    /// `[for ...]`.
+    fn run_for(
+        &mut self,
+        binding: zeff_ir::BindingId,
+        iter: &Expr,
+        body: &Block,
+        mut collected: Option<&mut Vec<Value>>,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<(), Fail> {
+        let items = self.loop_items(iter, printed, messages)?;
+        for item in items {
+            self.random.pass += 1;
+            self.bind(binding, item);
+            let value = self.eval_block(body, printed, messages)?;
+            match self.jump.take() {
+                Some(Jump::Break) => break,
+                Some(Jump::Continue) => continue,
+                None => {
+                    if let Some(out) = collected.as_deref_mut() {
+                        out.push(value);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// A term with its loop variables replaced by the variables they hold (section 5.2, "Loop
+    /// variable in a formula"), so that `y ~ educ` is `lwage ~ educ` in this pass and keeps that
+    /// name in the result.
+    fn resolve_term(&self, term: &Term, at: &Expr) -> Result<Term, Fail> {
+        let parts = |parts: &[Term]| -> Result<Vec<Term>, Fail> {
+            parts.iter().map(|p| self.resolve_term(p, at)).collect()
+        };
+        Ok(match &term.kind {
+            TermKind::Bound(id) => {
+                let name = match self.env.get(id) {
+                    Some(Value::Var(name)) => name.clone(),
+                    _ => {
+                        return Err(
+                            self.internal(at, "a loop variable in a formula holds no variable")
+                        );
+                    }
+                };
+                Term {
+                    text: name.clone(),
+                    span: term.span,
+                    kind: TermKind::Var(name),
+                }
+            }
+            TermKind::Interaction(inner) => {
+                let inner = parts(inner)?;
+                Term {
+                    text: inner
+                        .iter()
+                        .map(|t| t.text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(":"),
+                    span: term.span,
+                    kind: TermKind::Interaction(inner),
+                }
+            }
+            TermKind::Product(inner) => {
+                let inner = parts(inner)?;
+                Term {
+                    text: inner
+                        .iter()
+                        .map(|t| t.text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" * "),
+                    span: term.span,
+                    kind: TermKind::Product(inner),
+                }
+            }
+            TermKind::Expr(expr) => {
+                let (expr, changed) = self.substitute_vars(expr);
+                if changed {
+                    let text = self.source.text()[term.span.start..term.span.end].to_string();
+                    let text = self.substitute_text(&text);
+                    Term {
+                        text,
+                        span: term.span,
+                        kind: TermKind::Expr(Box::new(expr)),
+                    }
+                } else {
+                    term.clone()
+                }
+            }
+            TermKind::Var(_) | TermKind::Range(_, _) => term.clone(),
+        })
+    }
+
+    /// An expression term with every loop variable that holds a `Var` written as that variable;
+    /// whether anything changed.
+    fn substitute_vars(&self, expr: &Expr) -> (Expr, bool) {
+        let mut changed = false;
+        let out = self.substitute_in(expr, &mut changed);
+        (out, changed)
+    }
+
+    fn substitute_in(&self, expr: &Expr, changed: &mut bool) -> Expr {
+        let mut sub = |e: &Expr| Box::new(self.substitute_in(e, changed));
+        let kind = match &expr.kind {
+            ExprKind::Binding(id) => match self.env.get(id) {
+                Some(Value::Var(name)) => {
+                    *changed = true;
+                    ExprKind::Var(name.clone())
+                }
+                _ => expr.kind.clone(),
+            },
+            ExprKind::Unary { op, operand } => ExprKind::Unary {
+                op: *op,
+                operand: sub(operand),
+            },
+            ExprKind::Binary { op, lhs, rhs } => ExprKind::Binary {
+                op: *op,
+                lhs: sub(lhs),
+                rhs: sub(rhs),
+            },
+            ExprKind::List(items) => ExprKind::List(items.iter().map(|e| *sub(e)).collect()),
+            ExprKind::Call(call) => {
+                let mut call = call.clone();
+                for arg in call.args.iter_mut().flatten() {
+                    *arg = *sub(arg);
+                }
+                for arg in call.rest.iter_mut() {
+                    *arg = *sub(arg);
+                }
+                for (_, arg) in call.definitions.iter_mut() {
+                    *arg = *sub(arg);
+                }
+                ExprKind::Call(call)
+            }
+            _ => expr.kind.clone(),
+        };
+        Expr {
+            ty: expr.ty.clone(),
+            span: expr.span,
+            kind,
+        }
+    }
+
+    /// The written text of a term with its loop variables replaced by the variables they hold,
+    /// name by name, so that the term's name in a result reads `log(lwage)` and not `log(y)`.
+    fn substitute_text(&self, text: &str) -> String {
+        let mut out = String::new();
+        let mut word = String::new();
+        let flush = |word: &mut String, out: &mut String, me: &Self| {
+            if word.is_empty() {
+                return;
+            }
+            let replaced = me
+                .program
+                .bindings
+                .iter()
+                .enumerate()
+                .rev()
+                .find(|(_, b)| b.name == *word && b.kind == BindingKind::LoopVariable)
+                .and_then(|(id, _)| match me.env.get(&id) {
+                    Some(Value::Var(name)) => Some(name.clone()),
+                    _ => None,
+                });
+            out.push_str(&replaced.unwrap_or_else(|| word.clone()));
+            word.clear();
+        };
+        for c in text.chars() {
+            if c.is_ascii_alphanumeric() || c == '_' {
+                word.push(c);
+            } else {
+                flush(&mut word, &mut out, self);
+                out.push(c);
+            }
+        }
+        flush(&mut word, &mut out, self);
+        out
     }
 
     /// Z0203 when a condition is not one Bool at run time: `NA`, or a column the checker could
@@ -464,10 +715,36 @@ impl<'a> Interpreter<'a> {
                 name: name.clone(),
                 format: format.clone(),
             }),
-            ExprKind::Binding(id) => match self.env.get(id) {
-                Some(value) => value.clone(),
-                None => return Err(self.internal(expr, "a binding was read before it was made")),
-            },
+            ExprKind::Binding(id) => {
+                // A loop variable read inside a frame method, as a variable argument or a
+                // value, clashes with a column of its name (section 3.7, "Name lookup", rule 2).
+                if self.program.bindings[*id].kind == BindingKind::LoopVariable
+                    && let Some(receiver) = self.receivers.last()
+                    && receiver
+                        .current()
+                        .table
+                        .column(&self.program.bindings[*id].name)
+                        .is_some()
+                {
+                    let name = &self.program.bindings[*id].name;
+                    let frame_name = receiver.current().shown_name();
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0106",
+                            format!("`{name}` is both the loop variable and a variable of {frame_name}"),
+                        )
+                        .in_file(self.script)
+                        .primary(expr.span, "which one is meant?")
+                        .help("rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently"),
+                    ));
+                }
+                match self.env.get(id) {
+                    Some(value) => value.clone(),
+                    None => {
+                        return Err(self.internal(expr, "a binding was read before it was made"));
+                    }
+                }
+            }
             ExprKind::Var(name) => Value::Var(name.clone()),
             ExprKind::Vars(names) => Value::Vars(names.clone()),
             ExprKind::Formula(formula) => {
@@ -713,6 +990,15 @@ impl<'a> Interpreter<'a> {
                 other => return Err(self.not_one_bool("`if`", &other, condition)),
             },
             ExprKind::Case(arms) => self.eval_case(arms, printed, messages)?,
+            ExprKind::ListFor {
+                binding,
+                iter,
+                body,
+            } => {
+                let mut items = Vec::new();
+                self.run_for(*binding, iter, body, Some(&mut items), printed, messages)?;
+                Value::List(items)
+            }
             ExprKind::Error => {
                 return Err(self.internal(expr, "an expression that failed to check was run"));
             }
@@ -732,6 +1018,26 @@ impl<'a> Interpreter<'a> {
             return Err(self.internal(expr, "a frame name was read outside a frame method"));
         };
         let frame = receiver.current().clone();
+        // A loop variable (or a parameter) in scope wins over a column, and a clash is an error
+        // (section 3.7, "Name lookup", rule 2): `for y in vars(...)` must never regress a column
+        // named `y`.
+        if let Some(id) = binding
+            && self.program.bindings[id].kind == BindingKind::LoopVariable
+        {
+            if frame.table.column(name).is_some() {
+                let frame_name = frame.shown_name();
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0106",
+                        format!("`{name}` is both the loop variable and a variable of {frame_name}"),
+                    )
+                    .in_file(self.script)
+                    .primary(expr.span, "which one is meant?")
+                    .help("rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently"),
+                ));
+            }
+            return self.bound_in_frame(id, &frame, expr);
+        }
         if let Some(column) = frame.table.column(name) {
             if !receiver.used.iter().any(|u| u == name) {
                 receiver.used.push(name.to_string());
@@ -751,10 +1057,7 @@ impl<'a> Interpreter<'a> {
             return Ok(Value::Column(column));
         }
         match binding {
-            Some(id) => match self.env.get(&id) {
-                Some(value) => Ok(value.clone()),
-                None => Err(self.internal(expr, "a binding was read before it was made")),
-            },
+            Some(id) => self.bound_in_frame(id, &frame, expr),
             None => {
                 let frame_name = frame.shown_name();
                 let columns: Vec<&str> = frame.table.names().iter().map(String::as_str).collect();
@@ -766,6 +1069,36 @@ impl<'a> Interpreter<'a> {
                     &columns,
                 )))
             }
+        }
+    }
+
+    /// A binding read inside a frame method: a binding holding a `Var` stands for the variable
+    /// it names (section 6, "Names inside a frame's methods"), so its column is the value; any
+    /// other binding is its value.
+    fn bound_in_frame(
+        &self,
+        id: zeff_ir::BindingId,
+        frame: &Frame,
+        expr: &Expr,
+    ) -> Result<Value, Fail> {
+        match self.env.get(&id) {
+            Some(Value::Var(variable)) => match frame.table.column(variable) {
+                Some(column) => Ok(Value::Column(column.clone())),
+                None => {
+                    let frame_name = frame.shown_name();
+                    let columns: Vec<&str> =
+                        frame.table.names().iter().map(String::as_str).collect();
+                    Err(fail(zeff_diagnostics::messages::no_variable(
+                        self.script,
+                        expr.span,
+                        &frame_name,
+                        variable,
+                        &columns,
+                    )))
+                }
+            },
+            Some(value) => Ok(value.clone()),
+            None => Err(self.internal(expr, "a binding was read before it was made")),
         }
     }
 
@@ -1199,7 +1532,8 @@ impl<'a> Interpreter<'a> {
 
     /// A lowered term as the formula value keeps it.
     fn term_value(&self, term: &Term, at: &Expr) -> Result<TermValue, Fail> {
-        crate::formulas::term_value(term).map_err(|what| self.internal(at, &what))
+        let term = self.resolve_term(term, at)?;
+        crate::formulas::term_value(&term).map_err(|what| self.internal(at, &what))
     }
 
     fn internal(&self, expr: &Expr, what: &str) -> Fail {

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+warning[W0302]: `i` shadows the loop variable of the same name
+ --> scripts/main.zeff:2:9
+  |
+2 |     let i = 2
+  |         ^ a `let` with a loop variable's name
+  |
+  = help: the loop variable is hidden until the block ends; a different name keeps both readable

@@ -1,5 +1,6 @@
 //! Package core (tier 0): the language and the types every package shares.
 
+pub mod collections;
 pub mod display;
 pub mod lift;
 pub mod maths;
@@ -48,5 +49,6 @@ pub fn functions() -> Vec<Function> {
     all.extend(missing::functions());
     all.extend(program::functions());
     all.extend(types::functions());
+    all.extend(collections::functions());
     all
 }

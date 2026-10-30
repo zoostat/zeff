@@ -1,0 +1,11 @@
+---
+source: crates/zeff-ir/tests/check.rs
+expression: render(text)
+---
+error[Z0221]: `for` runs over a List, a Range or a list of variables, but this is an Int
+ --> scripts/main.zeff:1:10
+  |
+1 | for i in 5 {
+  |          ^ not something to loop over
+  |
+  = help: write a list, `[1, 2, 3]`, a range, `1..200`, or `vars(lwage, hours)` for variables; a frame's rows are not looped over, its verbs work on them at once

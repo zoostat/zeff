@@ -220,7 +220,7 @@ fn zeff_check_reports_every_problem_and_exits_1() {
     let (_dir, project) = demo();
     std::fs::write(
         project.join("scripts/main.zeff"),
-        "let wages = import(\"data/wages.csv\", heade: false)\nwges.maen(wage)\nlet mean = 3\nwages.mean(\"wage\")\nfor i in [1] {\n    print(i)\n}\n",
+        "let wages = import(\"data/wages.csv\", heade: false)\nwges.maen(wage)\nlet mean = 3\nwages.mean(\"wage\")\nfn f() -> Int {\n    1\n}\n",
     )
     .unwrap();
     let o = zeff(&project, &["check"]);
@@ -480,7 +480,7 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
     insta::assert_snapshot!("help_data", out(&o));
     let core = zeff(dir.path(), &["help", "core"]);
     assert!(
-        out(&core).starts_with("core · tier 0 · 44 of 69 functions in this release"),
+        out(&core).starts_with("core · tier 0 · 45 of 69 functions in this release"),
         "{}",
         out(&core)
     );

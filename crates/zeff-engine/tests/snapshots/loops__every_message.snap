@@ -1,0 +1,115 @@
+---
+source: crates/zeff-engine/tests/loops.rs
+expression: all
+---
+## for_over_a_number (exit 1)
+error[Z0221]: `for` runs over a List, a Range or a list of variables, but this is an Int
+ --> scripts/main.zeff:1:10
+  |
+1 | for i in 5 {
+  |          ^ not something to loop over
+  |
+  = help: write a list, `[1, 2, 3]`, a range, `1..200`, or `vars(lwage, hours)` for variables; a frame's rows are not looped over, its verbs work on them at once
+
+## for_over_a_frame (exit 1)
+error[Z0221]: `for` runs over a List, a Range or a list of variables, but this is a Frame
+ --> scripts/main.zeff:2:10
+  |
+2 | for r in d {
+  |          ^ not something to loop over
+  |
+  = help: write a list, `[1, 2, 3]`, a range, `1..200`, or `vars(lwage, hours)` for variables; a frame's rows are not looped over, its verbs work on them at once
+
+## for_over_a_range_of_variables (exit 1)
+error[Z0221]: `for` cannot run over the range `x1..x3` outside a frame
+ --> scripts/main.zeff:1:10
+  |
+1 | for v in vars(x1..x3) {
+  |          ^^^^^^^^^^^^ a range of variables
+  |
+  = help: a range is expanded against the frame it meets; name the variables one by one, `vars(x1, x2, x3)`
+
+## list_for_without_a_value (exit 1)
+error[Z0206]: this gives no value, so it cannot be put in a list
+ --> scripts/main.zeff:1:25
+  |
+1 | let xs = [for i in 1..3 {
+  |                         ^ the body ends without a value
+  |
+  = help: `[for ...]` collects the value of its body's last expression in every pass; end the body with the value to collect, or drop the brackets
+
+## let_shadows_loop_variable (exit 0)
+10
+20
+warning[W0302]: `i` shadows the loop variable of the same name
+ --> scripts/main.zeff:2:9
+  |
+2 |     let i = i * 10
+  |         ^ a `let` with a loop variable's name
+  |
+  = help: the loop variable is hidden until the block ends; a different name keeps both readable
+
+## loop_variable_after_the_loop (exit 1)
+error[Z0101]: nothing is called `i` here
+ --> scripts/main.zeff:4:1
+  |
+4 | i
+  | ^ not a binding
+  |
+  = help: a bare name is a binding made with `let`; text is written in quotes, and a variable is named inside a frame's method, as in `wages.mean(wage)`
+
+## loop_variable_is_a_column (exit 1)
+error[Z0106]: `x` is both the loop variable and a variable of d
+ --> scripts/main.zeff:3:18
+  |
+3 |     print(d.mean(x))
+  |                  ^ which one is meant?
+  |
+  = help: rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently
+
+## loop_variable_is_a_column_in_add (exit 1)
+error[Z0106]: `y` is both the loop variable and a variable of d
+ --> scripts/main.zeff:3:21
+  |
+3 |     print(d.add(z = y * 2).n_rows())
+  |                     ^ which one is meant?
+  |
+  = help: rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently
+
+## break_outside_a_loop (exit 1)
+error[Z0313]: `break` is only allowed inside a loop
+ --> scripts/main.zeff:1:1
+  |
+1 | break
+  | ^^^^^ outside a loop
+  |
+  = help: use it in the body of a `for` loop
+
+## continue_outside_a_loop (exit 1)
+error[Z0313]: `continue` is only allowed inside a loop
+ --> scripts/main.zeff:1:1
+  |
+1 | continue
+  | ^^^^^^^^ outside a loop
+  |
+  = help: use it in the body of a `for` loop
+
+## loop_variable_is_a_core_name (exit 1)
+error[Z0105]: `print` is a name of `core` and cannot be rebound
+ --> scripts/main.zeff:1:5
+  |
+1 | for print in 1..2 {
+  |     ^^^^^ a built-in name
+  |
+  = help: choose another name; the names of `core` are fixed
+
+## error_in_a_pass (exit 1)
+1
+2
+error[Z0207]: index 3 is outside 1..2
+ --> scripts/main.zeff:2:18
+  |
+2 |     print([1, 2][i])
+  |                  ^ the list has 2 items
+  |
+  = help: positions count from 1 to the list's length

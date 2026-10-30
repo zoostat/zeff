@@ -14,8 +14,17 @@ pub type BindingId = usize;
 pub struct Binding {
     pub name: String,
     pub ty: Ty,
-    /// Where the name is written in the `let`.
+    /// Where the name is written in the `let` or the `for`.
     pub span: Span,
+    pub kind: BindingKind,
+}
+
+/// What made a binding (section 3.7, "Name lookup"): a `let`, or the variable of a `for` loop,
+/// which inside a frame method wins over a column of the same name, a clash being Z0106.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BindingKind {
+    Let,
+    LoopVariable,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -32,12 +41,33 @@ pub enum Statement {
         span: Span,
     },
     /// A statement that is not a `let` prints its value (section 3.1).
-    Print { value: Expr, span: Span },
+    Print {
+        value: Expr,
+        span: Span,
+    },
     /// An expression statement inside a block that is not the block's last: evaluated for its
     /// effects (a `warn`, a `print`), its value discarded. Only the script's own statements print
     /// (section 3.1, "Printing"); a block's value is its last expression (section 3.1, "Value of
     /// a block").
-    Expr { value: Expr, span: Span },
+    Expr {
+        value: Expr,
+        span: Span,
+    },
+    /// `for x in xs { body }` (section 5.2): the loop variable bound for the body alone, each pass
+    /// with its own `let`s; the body's value is discarded.
+    For {
+        binding: BindingId,
+        iter: Expr,
+        body: Block,
+        span: Span,
+    },
+    /// `break` and `continue`, inside a loop (section 5.2; outside one the parser's Z0313).
+    Break {
+        span: Span,
+    },
+    Continue {
+        span: Span,
+    },
 }
 
 /// A block, `{ ... }` (section 3.1, "Value of a block"): its statements, and the last statement
@@ -153,6 +183,13 @@ pub enum ExprKind {
     /// true arm winning; row by row over the frame's rows when any condition or value is a
     /// column (section 3.7, "Columns and scalars"), which the interpreter decides from the values.
     Case(Vec<Arm>),
+    /// `[for x in xs { body }]` (section 5.2): one value per pass collected into a list;
+    /// `continue` adds nothing for its pass and `break` ends the list.
+    ListFor {
+        binding: BindingId,
+        iter: Box<Expr>,
+        body: Block,
+    },
     /// `y ~ terms`: a formula value (sections 3.3 and 7.1), its outcome and the steps that build
     /// its terms in the order written.
     Formula(Formula),
@@ -195,6 +232,9 @@ pub struct Term {
 pub enum TermKind {
     /// A variable of the frame the formula is used with.
     Var(String),
+    /// A loop variable (or, later, a parameter) that holds a `Var`: the term is the variable it
+    /// holds when the statement runs (section 5.2, "Loop variable in a formula").
+    Bound(BindingId),
     /// `x1..x9`, expanded against the frame.
     Range(String, String),
     /// `a:b:c`.

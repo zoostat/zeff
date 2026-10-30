@@ -49,12 +49,17 @@ pub struct Randomness {
     pub chosen: bool,
     /// Whether a statement has drawn from the stream.
     pub used: bool,
-    /// The statement that drew last and how many calls it has made, so that each call of one
-    /// statement has a stream of its own. When loops arrive (`for`, a later release) the count
-    /// must start again at each pass, keyed by (statement, pass), so that the first call of a
-    /// statement in every pass keeps the stream (seed, ordinal, pass, 0).
+    /// The statement and loop pass that drew last and how many calls they have made, so that each
+    /// call of one statement in one pass has a stream of its own: the count starts again at each
+    /// pass, and the first call of a statement in every pass keeps the stream (seed, ordinal,
+    /// pass, 0).
     pub last_statement: u32,
+    pub last_pass: u32,
     pub calls_in_statement: u32,
+    /// The loop pass the interpreter is running, 0 outside a loop (Engine and Project
+    /// Specification, section 8.3, point 3): a running count of the passes of every loop within
+    /// the statement, so that nested loops never share a key.
+    pub pass: u32,
 }
 
 impl Randomness {
@@ -84,13 +89,17 @@ impl Randomness {
             }
         };
         self.used = true;
-        if self.last_statement != statement {
+        if self.last_statement != statement || self.last_pass != self.pass {
             self.last_statement = statement;
+            self.last_pass = self.pass;
             self.calls_in_statement = 0;
         }
         let call = self.calls_in_statement;
         self.calls_in_statement += 1;
-        (Stream::for_call(seed as u64, statement, 0, call), note)
+        (
+            Stream::for_call(seed as u64, statement, self.pass, call),
+            note,
+        )
     }
 }
 

@@ -39,6 +39,8 @@ pub fn term_value(term: &Term) -> Result<TermValue, String> {
     };
     let kind = match &term.kind {
         TermKind::Var(name) => TermKindValue::Var(name.clone()),
+        // The interpreter resolves a loop variable before a term reaches here.
+        TermKind::Bound(_) => return Err("a loop variable left unresolved in a term".to_string()),
         TermKind::Range(first, last) => TermKindValue::Range(first.clone(), last.clone()),
         TermKind::Interaction(inner) => TermKindValue::Interaction(parts(inner)?),
         TermKind::Product(inner) => TermKindValue::Product(parts(inner)?),

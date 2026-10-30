@@ -145,3 +145,13 @@ Step 22e: the nightly, fuzz, coverage, weekly and benchmark jobs run by hand on 
 **Next.** Step 3 `[engine]`: `for`, `[for ...]`, `break` and `continue`.
 
 **For the owner to decide.** Nothing new.
+
+## 30 October 2026, step 3 of release 0.5.0
+
+**Done.** Step 3 `[engine]`: `for` over lists, ranges and variables, `[for ...]` collecting one value per pass, `break` and `continue` (a jump carried as a flag up the blocks to its loop), the loop variable fresh each pass and gone after, W0302 for a `let` that shadows it, Z0221 for something a loop cannot run over, Z0206 for a `[for]` body without a value, Z0106 when a loop variable is named like a column of the frame; a loop variable holding a variable stands for it in formulas (the term resolved and named when the statement runs, `log(y)` and `y:female` included), in variable arguments and in column arguments; the loop pass joins the key of the random stream, so each pass draws its own numbers and a re-run repeats them; `vars` shipped with its page (moved here from step 13); the explained pages of Z0106 and W0302; the six rulings in `docs/decisions.md`. Tests: the checker's types and codes with five new message snapshots; the engine's `loops.rs` (every form, every message, the loop of section 5.2 without `fe:`, the formulas of a loop over variables equal to the formulas as written, draws by pass, and the property that `[for i in a..b { i }]` is the range and `break` at pass k leaves k − 1 items); the identity case `control/for_draws`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks (98 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 4 `[engine]`: spreads in calls and records.
+
+**For the owner to decide.** Nothing new.
