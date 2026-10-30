@@ -9,6 +9,7 @@ pub mod fs;
 pub mod help;
 pub mod interpreter;
 pub mod manifest;
+pub mod modules;
 pub mod paths;
 pub mod project;
 pub mod registry;

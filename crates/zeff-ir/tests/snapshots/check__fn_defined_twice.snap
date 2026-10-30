@@ -11,4 +11,4 @@ error[Z0107]: `twice` is defined twice in this file
 4 | fn twice(x: Float) -> Float { x }
   |    ^^^^^ the second definition
   |
-  = help: give each function its own name; a script's functions share one namespace
+  = help: give each function its own name; a file's functions share one namespace

@@ -391,14 +391,26 @@ pub struct Failure {
     pub code: String,
     pub message: String,
     pub line: u32,
+    /// The file the line belongs to when it is not the script's: a module of `functions/`.
+    pub file: Option<String>,
 }
 
 impl Failure {
+    /// Where the failure happened: `line 12`, or `functions/clean.zeff:12` inside a module.
+    pub fn place(&self) -> String {
+        match &self.file {
+            Some(file) => format!("{file}:{}", self.line),
+            None => format!("line {}", self.line),
+        }
+    }
+
     /// The one-line form a failed value prints as: `failed · Z0801 at line 12: message`.
     pub fn text(&self) -> String {
         format!(
-            "failed · {} at line {}: {}",
-            self.code, self.line, self.message
+            "failed · {} at {}: {}",
+            self.code,
+            self.place(),
+            self.message
         )
     }
 }

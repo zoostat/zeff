@@ -1305,6 +1305,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0208 | Rows of a `case` without `_` that no arm matched, whose values are `NA` (section 5.1); over one value, the value itself |
 | W0209 | A method called on a binding that may hold a `Failed` value, unguarded by `x.is(Failed)` (section 3.7, "Failed values") |
 | Z0225 | A function whose body, or a `return` in it, gives a type other than the declared return type, or no value where one is declared (sections 3.7, "Inference", and 5.3) |
+| Z0323 | A module file that is not one: a statement in a file of `functions/`, or a file whose name is not a name of the language or is a package's (section 5.3, "Modules") |
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |
 | Z0716 | An export path with no extension, or with one that names no format Zeff writes; the formats are listed |
 

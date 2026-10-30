@@ -430,7 +430,7 @@ pub fn run(
         }
         ["selftest"] => selftest_command(&command, &mut out),
         ["selftest", ..] => usage_error(&mut err, "`zeff selftest` takes no arguments"),
-        ["help", name] => help_command(name, &mut out, &mut err),
+        ["help", name] => help_command(&command, name, &mut out, &mut err),
         ["help", ..] => usage_error(
             &mut err,
             "`zeff help` takes one name, as in `zeff help mean` or `zeff help data`",
@@ -758,7 +758,7 @@ fn check_command(
     out: &mut dyn Write,
     err: &mut dyn Write,
 ) -> i32 {
-    let (_project, shown, text) = match script_of(command, script, err) {
+    let (project, shown, text) = match script_of(command, script, err) {
         Ok(found) => found,
         Err(code) => return code,
     };
@@ -766,9 +766,14 @@ fn check_command(
         Ok(registry) => registry,
         Err(errors) => return internal_error(err, errors),
     };
-    let checked = zeff_ir::check_source(&shown, &text, registry);
+    let in_project =
+        zeff_engine::run::check_in_project(command.fs, &project, &shown, &text, registry);
     let mut sources = Sources::new();
     sources.add(Source::new(shown.clone(), text));
+    for module in in_project.module_sources {
+        sources.add(module);
+    }
+    let checked = in_project.checked;
     let (mut errors, mut warnings) = (0usize, 0usize);
     for diagnostic in checked.diagnostics.iter() {
         match diagnostic.severity {
@@ -834,7 +839,21 @@ fn internal_error(err: &mut dyn Write, errors: Vec<zeff_registry::RegistryError>
 
 /// `zeff help <name>`: a function's page, a package's functions, or the explained page of a code
 /// such as `Z0101` (Language Reference, section 11.1), on standard output.
-fn help_command(name: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+fn help_command(
+    command: &Command<'_, '_>,
+    name: &str,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    // Inside a project, a function of its `functions/` folder has a page too (section 5.3).
+    if !zeff_engine::explain::is_code(name)
+        && let Ok(project) = zeff_engine::project::Project::open(command.fs, &command.cwd)
+        && let Ok(registry) = zeff_engine::registry::registry()
+        && let Some(page) = zeff_engine::help::project_help(command.fs, &project, registry, name)
+    {
+        let _ = out.write_all(page.as_bytes());
+        return 0;
+    }
     match help_text(name) {
         Ok(text) => {
             let _ = out.write_all(text.as_bytes());

@@ -2,10 +2,10 @@
 source: crates/zeff-ir/tests/check.rs
 expression: render(text)
 ---
-error[Z0109]: `mean` is both a built-in function and a function of this script
+error[Z0109]: `mean` is both a built-in function and a function of this project
  --> scripts/main.zeff:4:3
   |
 4 | w.mean(wage)
   |   ^^^^ which one is meant?
   |
-  = help: write it in full: `functions::mean(...)` for the script's, `data::mean(...)` for the built-in
+  = help: write it in full: `functions::mean(...)` for the project's, `data::mean(...)` for the built-in

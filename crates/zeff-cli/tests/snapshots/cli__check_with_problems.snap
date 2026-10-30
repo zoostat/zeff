@@ -2,13 +2,13 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: text
 ---
-error[Z0304]: `use` is not available in this release
+error[Z0304]: `use stats` is not available in this release
  --> scripts/main.zeff:1:1
   |
-1 | use functions::clean
-  | ^^^^^^^^^^^^^^^^^^^^ arrives with Zeff 0.5.0
+1 | use stats
+  | ^^^^^^^^^ arrives with Zeff 1.11
   |
-  = help: project functions in `functions/` arrive with release 0.5.0
+  = help: third-party packages arrive after 1.0; the project's own modules are brought in as `use functions::stats`
 
 error[Z0404]: `import` has no argument called `heade`
  --> scripts/main.zeff:2:38

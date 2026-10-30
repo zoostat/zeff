@@ -50,8 +50,31 @@ pub fn check_with_text(
     registry: &Registry,
     text: Option<&str>,
 ) -> Checked {
+    check_project(file, script, registry, text, &[])
+}
+
+/// A module of the project's `functions/` folder, parsed (Language Reference, section 5.3,
+/// "Modules"): its name (the file's stem), its project-relative file, its text and its items.
+#[derive(Debug, Clone)]
+pub struct ModuleSource {
+    pub name: String,
+    pub file: String,
+    pub text: String,
+    pub script: ast::Script,
+}
+
+/// Lower a script with the project's modules: the modules' functions and the script's share one
+/// program; a module holds only `///` text, `fn` definitions and `use` lines, sees every other
+/// module's public functions, and a script sees what its `use` lines bring in (section 5.3).
+pub fn check_project(
+    file: &str,
+    script: &ast::Script,
+    registry: &Registry,
+    text: Option<&str>,
+    modules: &[ModuleSource],
+) -> Checked {
     let mut checker = Checker {
-        file,
+        file: file.to_string(),
         registry,
         found: Diagnostics::new(),
         bindings: Vec::new(),
@@ -69,6 +92,9 @@ pub fn check_with_text(
         current_function: None,
         calls: Vec::new(),
         hidden_scope: Vec::new(),
+        modules: Vec::new(),
+        current_module: None,
+        imported: Vec::new(),
         words: registry
             .functions()
             .iter()
@@ -77,8 +103,36 @@ pub fn check_with_text(
             .flat_map(|ty| ty.words())
             .collect(),
     };
-    // The signatures first, so that a body or a statement may call a function defined later
-    // (section 5.3, "Order"); then the bodies; then the statements.
+    // The modules: each a name that is one, holding only `///` text, `fn` definitions and `use`
+    // lines (Z0323); their signatures are collected before anything else (section 5.3, "Order").
+    checker.modules = modules.iter().map(|m| m.name.clone()).collect();
+    let mut module_definitions: Vec<(usize, &ast::FnDef)> = Vec::new();
+    for (i, module) in modules.iter().enumerate() {
+        checker.file = module.file.clone();
+        checker.current_module = Some(module.name.clone());
+        checker.check_module_name(module);
+        for item in &module.script.items {
+            match item {
+                ast::Item::Fn(f) => {
+                    checker.declare(f);
+                    module_definitions.push((i, f));
+                }
+                ast::Item::Use(u) => checker.use_decl(u, false),
+                ast::Item::Statement(s) => checker.report(
+                    Diagnostic::error(
+                        "Z0323",
+                        "a module file holds `///` text, `fn` definitions and `use` lines only",
+                    )
+                    .primary(s.span, "a statement in a module")
+                    .help("move the statement to a script in `scripts/`; a module's functions take what they need as arguments"),
+                ),
+            }
+        }
+    }
+    checker.current_module = None;
+    checker.file = file.to_string();
+    // The script's signatures, so that a body or a statement may call a function defined later;
+    // then the bodies, the modules' first; then the statements.
     let definitions: Vec<&ast::FnDef> = script
         .items
         .iter()
@@ -103,19 +157,26 @@ pub fn check_with_text(
     for f in &definitions {
         checker.declare(f);
     }
-    for (index, f) in definitions.iter().enumerate() {
+    let mut index = 0;
+    for (i, f) in &module_definitions {
+        checker.file = modules[*i].file.clone();
+        checker.current_module = Some(modules[*i].name.clone());
+        checker.text = Some(modules[*i].text.as_str());
         checker.function_body(f, index);
+        index += 1;
+    }
+    checker.current_module = None;
+    checker.file = file.to_string();
+    checker.text = text;
+    for f in &definitions {
+        checker.function_body(f, index);
+        index += 1;
     }
     checker.check_recursion();
     let mut statements = Vec::new();
     for item in &script.items {
         match item {
-            ast::Item::Use(u) => checker.not_yet(
-                u.span,
-                "`use`",
-                "0.5.0",
-                "project functions in `functions/` arrive with release 0.5.0",
-            ),
+            ast::Item::Use(u) => checker.use_decl(u, true),
             ast::Item::Fn(_) => {}
             ast::Item::Statement(s) => {
                 if let Some(statement) = checker.statement(s) {
@@ -132,6 +193,9 @@ pub fn check_with_text(
             f.unwrap_or_else(|| Function {
                 name: sig.name.clone(),
                 name_span: sig.name_span,
+                module: sig.module.clone(),
+                public: sig.public,
+                file: sig.file.clone(),
                 params: Vec::new(),
                 returns: Ty::Unknown,
                 body: Block {
@@ -185,7 +249,7 @@ const TYPE_NAMES: &[&str] = &[
 ];
 
 struct Checker<'a> {
-    file: &'a str,
+    file: String,
     registry: &'a Registry,
     found: Diagnostics,
     bindings: Vec<Binding>,
@@ -226,6 +290,12 @@ struct Checker<'a> {
     calls: Vec<Vec<(FnId, Span)>>,
     /// The script's bindings while a function body is checked, for the help of Z0101.
     hidden_scope: Vec<String>,
+    /// The names of the project's modules, in `functions/`.
+    modules: Vec<String>,
+    /// The module whose items are being checked, or `None` for the script.
+    current_module: Option<String>,
+    /// The functions the script's `use` lines brought in, by name (section 5.3, "Modules").
+    imported: Vec<(String, FnId)>,
 }
 
 /// A function's signature as the pre-pass collects it.
@@ -235,6 +305,9 @@ struct Signature {
     name_span: Span,
     params: Vec<(String, Ty, bool, Span)>,
     returns: Ty,
+    module: Option<String>,
+    public: bool,
+    file: String,
 }
 
 /// The functions a function may not call (section 3.7, "Effects"; Z0110): those whose result
@@ -254,7 +327,7 @@ const DOC_KEYS: &[&str] = &[
 
 impl Checker<'_> {
     fn report(&mut self, diagnostic: Diagnostic) {
-        self.found.push(diagnostic.in_file(self.file));
+        self.found.push(diagnostic.in_file(self.file.clone()));
     }
 
     /// Z0304: a construct the grammar has but this release does not run.
@@ -828,13 +901,17 @@ impl Checker<'_> {
                 .help("type names and the names reserved for later values belong to `core` (sections 3.7 and 4.3); choose another name"),
             );
         }
-        if let Some(earlier) = self.signatures.iter().find(|s| s.name == name) {
+        if let Some(earlier) = self
+            .signatures
+            .iter()
+            .find(|s| s.name == name && s.module == self.current_module)
+        {
             self.report(
                 Diagnostic::error("Z0107", format!("`{name}` is defined twice in this file"))
                     .primary(f.name.span, "the second definition")
                     .secondary(earlier.name_span, "the first")
                     .help(
-                        "give each function its own name; a script's functions share one namespace",
+                        "give each function its own name; a file's functions share one namespace",
                     ),
             );
         }
@@ -859,11 +936,15 @@ impl Checker<'_> {
             ));
         }
         let (returns, _) = self.lower_type(&f.ret);
+        let public = !name.starts_with('_');
         self.signatures.push(Signature {
             name,
             name_span: f.name.span,
             params,
             returns,
+            module: self.current_module.clone(),
+            public,
+            file: self.file.clone(),
         });
         self.functions.push(None);
         self.calls.push(Vec::new());
@@ -958,6 +1039,9 @@ impl Checker<'_> {
         self.functions[index] = Some(Function {
             name: sig.name.clone(),
             name_span: sig.name_span,
+            module: sig.module.clone(),
+            public: sig.public,
+            file: sig.file.clone(),
             params,
             returns: sig.returns.clone(),
             body,
@@ -975,7 +1059,9 @@ impl Checker<'_> {
     /// The `///` lines of a script function (section 5.3, "Help"): W0303 without a summary line;
     /// Z0320 for a `name: text` line whose name is no parameter of the function.
     fn check_doc(&mut self, f: &ast::FnDef, sig: &Signature) {
-        if f.doc.is_empty() {
+        if sig.module.is_some() {
+            self.check_module_page(f, sig);
+        } else if f.doc.is_empty() {
             self.report(
                 Diagnostic::warning(
                     "W0303",
@@ -1014,6 +1100,270 @@ impl Checker<'_> {
                 None => d.help("a `name: text` line documents a parameter; prose that needs a colon can start with a capital or a backtick"),
             };
             self.report(d);
+        }
+    }
+
+    /// A module function needs the complete page of section 9.1 of the Engine and Project
+    /// Specification (Z0319): the summary line, every parameter, `returns:` and one example that
+    /// parses.
+    fn check_module_page(&mut self, f: &ast::FnDef, sig: &Signature) {
+        let mut missing: Vec<String> = Vec::new();
+        let is_key_line = |text: &str| {
+            text.starts_with('>')
+                || text.split_once(':').is_some_and(|(key, _)| {
+                    let key = key.trim();
+                    !key.is_empty()
+                        && key.chars().all(|c| {
+                            c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == ' '
+                        })
+                        && !key.starts_with(|c: char| c.is_ascii_digit())
+                })
+        };
+        let summary = f
+            .doc
+            .first()
+            .filter(|d| !d.text.trim().is_empty() && !is_key_line(&d.text));
+        if summary.is_none() {
+            missing.push("a summary line, first".to_string());
+        }
+        for (pname, _, _, _) in &sig.params {
+            let documented = f.doc.iter().any(|d| {
+                d.text
+                    .split_once(':')
+                    .is_some_and(|(key, _)| key.trim() == pname)
+            });
+            if !documented {
+                missing.push(format!("`{pname}:` and its meaning"));
+            }
+        }
+        if !f
+            .doc
+            .iter()
+            .any(|d| d.text.trim_start().starts_with("returns:"))
+        {
+            missing.push("`returns:` and what the value holds".to_string());
+        }
+        let example: Vec<&str> = f
+            .doc
+            .iter()
+            .filter_map(|d| d.text.strip_prefix('>'))
+            .map(|rest| rest.strip_prefix(' ').unwrap_or(rest))
+            .collect();
+        if example.is_empty() {
+            missing.push("one example, a line `> statement` with its output under it".to_string());
+        } else {
+            let parsed = zeff_syntax::parse(&self.file, &example.join("\n"));
+            if let Some(problem) = parsed.diagnostics.iter().next() {
+                missing.push(format!(
+                    "an example that parses (this one does not: {})",
+                    problem.message
+                ));
+            }
+        }
+        if missing.is_empty() {
+            return;
+        }
+        self.report(
+            Diagnostic::error(
+                "Z0319",
+                format!(
+                    "the page of `{}` in {} is incomplete: it lacks {}",
+                    sig.name,
+                    sig.file,
+                    missing.join(", ")
+                ),
+            )
+            .primary(f.name.span, "a module function without its complete page")
+            .help("a function in `functions/` carries its page in `///` lines: the summary, a description, `name: text` for each parameter, `returns:`, and `> statement` examples with their output (section 9.1 of the Engine and Project Specification)"),
+        );
+    }
+
+    /// A module's name is its file's stem: a name of the language, and not a package's (Z0323).
+    fn check_module_name(&mut self, module: &ModuleSource) {
+        let name = module.name.as_str();
+        let valid = !name.is_empty()
+            && name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+            && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+        if !valid {
+            self.report(
+                Diagnostic::error(
+                    "Z0323",
+                    format!("`{}` is not a name a module can have", module.file),
+                )
+                .primary(Span::new(0, 0), "the file's name")
+                .help("name the file in snake_case, as `clean_wages.zeff`, since `use functions::clean_wages` names it (section 3.6)"),
+            );
+            return;
+        }
+        let packages: Vec<&str> = self
+            .registry
+            .functions()
+            .iter()
+            .map(|f| f.spec.package)
+            .collect();
+        if packages.contains(&name) || NAMESPACES.contains(&name) || name == "functions" {
+            self.report(
+                Diagnostic::error(
+                    "Z0323",
+                    format!("a module may not be named `{name}`, the name of a package"),
+                )
+                .primary(Span::new(0, 0), "the file's name")
+                .help(format!(
+                    "rename the file; `{name}::f` names the package's function"
+                )),
+            );
+        }
+    }
+
+    /// A `use` line (section 5.3, "Modules"): `use functions::clean` brings every public function
+    /// of `functions/clean.zeff` into the script and `use functions::clean::name` one of them;
+    /// inside a module, which sees every other module without it, the line is only checked.
+    fn use_decl(&mut self, u: &ast::UseDecl, into_script: bool) {
+        let segments: Vec<String> = u.path.segments.iter().map(|s| s.text.clone()).collect();
+        let names: Vec<&str> = segments.iter().map(String::as_str).collect();
+        match names.as_slice() {
+            ["functions"] => self.report(
+                Diagnostic::error("Z0103", "`use functions` names no module")
+                    .primary(u.span, "which module?")
+                    .help("write `use functions::clean` for every public function of `functions/clean.zeff`, or `use functions::clean::share_missing` for one"),
+            ),
+            ["functions", module] | ["functions", module, _] => {
+                if !self.modules.iter().any(|m| m == module) {
+                    let mut d = Diagnostic::error(
+                        "Z0103",
+                        format!("no module is called `{module}`: there is no `functions/{module}.zeff`"),
+                    )
+                    .primary(u.span, "not a module of the project");
+                    d = match did_you_mean(module, self.modules.iter().map(String::as_str)) {
+                        Some(near) => d.help(format!("did you mean `functions::{near}`?")),
+                        None if self.modules.is_empty() => d.help("the project has no `functions/` folder yet; a module is one file in it"),
+                        None => d.help(format!("the modules are: {}", self.modules.join(", "))),
+                    };
+                    self.report(d);
+                    return;
+                }
+                let chosen: Vec<(String, FnId)> = match names.as_slice() {
+                    [_, _, function] => {
+                        let found = self.signatures.iter().position(|s| {
+                            s.module.as_deref() == Some(module) && s.name == *function && s.public
+                        });
+                        match found {
+                            Some(id) => vec![((*function).to_string(), id)],
+                            None => {
+                                let public: Vec<&str> = self
+                                    .signatures
+                                    .iter()
+                                    .filter(|s| s.module.as_deref() == Some(module) && s.public)
+                                    .map(|s| s.name.as_str())
+                                    .collect();
+                                let mut d = Diagnostic::error(
+                                    "Z0103",
+                                    format!("no public function `{function}` in `functions/{module}.zeff`"),
+                                )
+                                .primary(u.span, "not a function of the module");
+                                d = match did_you_mean(function, public.iter().copied()) {
+                                    Some(near) => d.help(format!("did you mean `{near}`?")),
+                                    None if public.is_empty() => d.help("the module defines no public function; a name starting with `_` is private to its file"),
+                                    None => d.help(format!("the module's public functions are: {}", public.join(", "))),
+                                };
+                                self.report(d);
+                                return;
+                            }
+                        }
+                    }
+                    _ => self
+                        .signatures
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, s)| s.module.as_deref() == Some(module) && s.public)
+                        .map(|(id, s)| (s.name.clone(), id))
+                        .collect(),
+                };
+                if into_script {
+                    for (name, id) in chosen {
+                        self.import(name, id, module, u.span);
+                    }
+                }
+            }
+            [package, ..] => self.not_yet(
+                u.span,
+                &format!("`use {package}`"),
+                "1.11",
+                &format!("third-party packages arrive after 1.0; the project's own modules are brought in as `use functions::{package}`"),
+            ),
+            [] => {}
+        }
+    }
+
+    /// One name brought into the script by `use`: a second module defining it, or a function of
+    /// the script, is Z0107 until the name is written in full.
+    fn import(&mut self, name: String, id: FnId, module: &str, span: Span) {
+        if let Some(own) = self
+            .signatures
+            .iter()
+            .find(|s| s.name == name && s.module.is_none())
+        {
+            self.report(
+                Diagnostic::error(
+                    "Z0107",
+                    format!("`{name}` is a function of this script and of `functions/{module}.zeff`"),
+                )
+                .primary(span, format!("brings in `{name}` again"))
+                .secondary(own.name_span, "the script's")
+                .help(format!("write the one meant in full: `functions::{name}(...)` for the script's, `{module}::{name}(...)` for the module's")),
+            );
+            return;
+        }
+        if let Some((_, earlier)) = self.imported.iter().find(|(n, _)| *n == name) {
+            if *earlier == id {
+                return;
+            }
+            let first = self.signatures[*earlier].module.clone().unwrap_or_default();
+            self.report(
+                Diagnostic::error(
+                    "Z0107",
+                    format!("`{name}` is defined in both `functions/{first}.zeff` and `functions/{module}.zeff`"),
+                )
+                .primary(span, format!("brings in `{name}` again"))
+                .help(format!("write the one meant in full: `{first}::{name}(...)` or `{module}::{name}(...)`")),
+            );
+            return;
+        }
+        self.imported.push((name, id));
+    }
+
+    /// The project functions a bare name may mean where it is written: in a module, the module's
+    /// own and every other module's public functions; in the script, its own and those `use`
+    /// brought in (section 5.3, "Modules").
+    fn visible_functions(&self, name: &str) -> Vec<FnId> {
+        match &self.current_module {
+            Some(module) => self
+                .signatures
+                .iter()
+                .enumerate()
+                .filter(|(_, s)| {
+                    s.name == name
+                        && s.module.is_some()
+                        && (s.module.as_deref() == Some(module.as_str()) || s.public)
+                })
+                .map(|(id, _)| id)
+                .collect(),
+            None => {
+                let mut ids: Vec<FnId> = self
+                    .signatures
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, s)| s.name == name && s.module.is_none())
+                    .map(|(id, _)| id)
+                    .collect();
+                ids.extend(
+                    self.imported
+                        .iter()
+                        .filter(|(n, _)| n == name)
+                        .map(|(_, id)| *id),
+                );
+                ids
+            }
         }
     }
 
@@ -3258,7 +3608,7 @@ impl Checker<'_> {
     /// the built-in; its signature must match the parameter's type exactly, defaults ignored
     /// (Z0205 listing both).
     fn function_value(&mut self, name: &str, span: Span, expected: &Ty) -> Expr {
-        let script = self.signatures.iter().position(|s| s.name == name);
+        let script = self.visible_functions(name).first().copied();
         let built_in: Vec<&Registered> = self.registry.named(name);
         let (value, actual) = match (script, built_in.first()) {
             (Some(index), Some(_)) => {
@@ -3574,22 +3924,74 @@ impl Checker<'_> {
         {
             return self.call_value(id, args, callee_span, span);
         }
-        // A function of the script (section 5.3): by its bare name, when no built-in has it, or
-        // written in full as `functions::name` (section 3.6, "Built-in names").
+        // A function of a module written in full, `clean::name` (section 5.3, "Modules").
+        if callee.segments.len() == 2 && self.modules.contains(&callee.segments[0].text) {
+            let module = callee.segments[0].text.clone();
+            let own = self.current_module.as_deref() == Some(module.as_str());
+            let found = self.signatures.iter().position(|s| {
+                s.module.as_deref() == Some(module.as_str()) && s.name == name && (s.public || own)
+            });
+            return match found {
+                Some(index) => self.call_user(index, receiver, args, callee_span, span),
+                None => {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0103",
+                            format!("no public function `{name}` in `functions/{module}.zeff`"),
+                        )
+                        .primary(callee_span, "not a function of the module")
+                        .help("a name starting with `_` is private to its file; `zeff help` on the module's functions lists them"),
+                    );
+                    Expr::error(span)
+                }
+            };
+        }
+        // A function of the project (section 5.3): by its bare name, when no built-in has it,
+        // or written in full as `functions::name` (section 3.6, "Built-in names").
         let qualified_project =
             callee.segments.len() == 2 && callee.segments[0].text == "functions";
-        if let Some(index) = self.signatures.iter().position(|s| s.name == name)
-            && (callee.segments.len() == 1 || qualified_project)
-        {
+        let visible = if callee.segments.len() == 1 || qualified_project {
+            self.visible_functions(&name)
+        } else {
+            Vec::new()
+        };
+        if visible.len() > 1 {
+            let homes: Vec<String> = visible
+                .iter()
+                .map(|id| {
+                    format!(
+                        "`{}::{name}`",
+                        self.signatures[*id]
+                            .module
+                            .clone()
+                            .unwrap_or_else(|| "functions".to_string())
+                    )
+                })
+                .collect();
+            self.report(
+                Diagnostic::error(
+                    "Z0107",
+                    format!("`{name}` is defined in more than one module"),
+                )
+                .primary(callee_span, "which one is meant?")
+                .help(format!("write it in full: {}", homes.join(" or "))),
+            );
+            return Expr::error(span);
+        }
+        if let Some(index) = visible.first().copied() {
             if !qualified_project && !self.registry.named(&name).is_empty() {
                 let package = self.registry.named(&name)[0].spec.package;
+                let full = match &self.signatures[index].module {
+                    Some(module) => format!("{module}::{name}"),
+                    None => format!("functions::{name}"),
+                };
                 self.report(
                     Diagnostic::error(
                         "Z0109",
-                        format!("`{name}` is both a built-in function and a function of this script"),
+                        format!("`{name}` is both a built-in function and a function of this project"),
                     )
                     .primary(callee_span, "which one is meant?")
-                    .help(format!("write it in full: `functions::{name}(...)` for the script's, `{package}::{name}(...)` for the built-in")),
+                    .help(format!("write it in full: `{full}(...)` for the project's, `{package}::{name}(...)` for the built-in")),
                 );
                 return Expr::error(span);
             }
@@ -3598,14 +4000,29 @@ impl Checker<'_> {
         if qualified_project {
             let mut d = Diagnostic::error(
                 "Z0103",
-                format!("no function of this script is called `{name}`"),
+                format!("no function of this project is called `{name}` here"),
             )
-            .primary(callee_span, "not a function of the script");
+            .primary(
+                callee_span,
+                "not a function of the script or brought in by `use`",
+            );
             let names: Vec<&str> = self.signatures.iter().map(|s| s.name.as_str()).collect();
-            if let Some(near) = did_you_mean(&name, names.iter().copied()) {
+            let elsewhere: Vec<String> = self
+                .signatures
+                .iter()
+                .filter(|s| s.name == name && s.public)
+                .filter_map(|s| {
+                    s.module.as_ref().map(|m| {
+                        format!("`use functions::{m}` brings it in, or write `{m}::{name}(...)`")
+                    })
+                })
+                .collect();
+            if let Some(first) = elsewhere.first() {
+                d = d.help(first.clone());
+            } else if let Some(near) = did_you_mean(&name, names.iter().copied()) {
                 d = d.help(format!("did you mean `functions::{near}`?"));
             } else {
-                d = d.help("`functions::` names a function defined with `fn` in this script or, from step 8, in the project's `functions/` folder");
+                d = d.help("`functions::` names a function defined with `fn` in this script or brought in from the project's `functions/` folder with `use`");
             }
             self.report(d);
             return Expr::error(span);

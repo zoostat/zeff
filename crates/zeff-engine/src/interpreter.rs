@@ -60,6 +60,9 @@ pub struct Interpreter<'a> {
     /// statement runs, read after every statement of every block on the way up, taken by the
     /// loop. The checker lets a block that jumps stand only where a statement may.
     jump: Option<Jump>,
+    /// The sources of the project's modules, by file, so that a module function's body runs
+    /// under its own file and lines.
+    sources: Option<&'a HashMap<String, Source>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -115,7 +118,14 @@ impl<'a> Interpreter<'a> {
             random: Randomness::default(),
             statement: 0,
             jump: None,
+            sources: None,
         }
+    }
+
+    /// The modules' sources, by project-relative file.
+    pub fn with_sources(mut self, sources: &'a HashMap<String, Source>) -> Self {
+        self.sources = Some(sources);
+        self
     }
 
     /// The page width frames and tables wrap at (`--width`).
@@ -201,8 +211,15 @@ impl<'a> Interpreter<'a> {
             }
             let failed = result.is_err();
             if let Err(error) = &result {
+                // The script's source and the modules', so that an error inside a module
+                // function names its file and line.
                 let mut sources = zeff_diagnostics::Sources::new();
                 sources.add(self.source.clone());
+                if let Some(modules) = self.sources {
+                    for module in modules.values() {
+                        sources.add(module.clone());
+                    }
+                }
                 statement_errors.push_str(&error.render(&sources));
             }
             output.stdout.push_str(&printed);
@@ -743,9 +760,19 @@ impl<'a> Interpreter<'a> {
         }
         // The arguments were evaluated where the call stands; from here the function sees its
         // parameters and other functions only (section 5.3): the frames whose methods enclose
-        // the call are hidden from its defaults and its body, and given back after.
+        // the call are hidden from its defaults and its body, and given back after. A module
+        // function runs under its own file, so that its messages name its lines.
         let saved = std::mem::take(&mut self.receivers);
+        let (saved_script, saved_source) = (self.script, self.source);
+        if f.file != self.script
+            && let Some(source) = self.sources.and_then(|s| s.get(&f.file))
+        {
+            self.script = source.name();
+            self.source = source;
+        }
         let result = self.run_user(f, callee_span, args, values, printed, messages);
+        self.script = saved_script;
+        self.source = saved_source;
         self.receivers = saved;
         result
     }
@@ -865,8 +892,10 @@ impl<'a> Interpreter<'a> {
             Diagnostic::error(
                 "Z0220",
                 format!(
-                    "a failed value cannot be used {how}: it failed with {} at line {}: {}",
-                    failure.code, failure.line, failure.message
+                    "a failed value cannot be used {how}: it failed with {} at {}: {}",
+                    failure.code,
+                    failure.place(),
+                    failure.message
                 ),
             )
             .in_file(self.script)
@@ -1316,6 +1345,14 @@ impl<'a> Interpreter<'a> {
                 Ok(value) => value,
                 Err(error) if error.code.starts_with("Z9") => return Err(error),
                 Err(error) => {
+                    // The line is read in the file the error names: the script's, or a module's
+                    // when the failure happened inside a module function.
+                    let module = error
+                        .file
+                        .as_deref()
+                        .filter(|file| *file != self.script)
+                        .and_then(|file| self.sources.and_then(|s| s.get(file)));
+                    let source = module.unwrap_or(self.source);
                     let line = error
                         .labels
                         .iter()
@@ -1323,12 +1360,13 @@ impl<'a> Interpreter<'a> {
                         .or(error.labels.first())
                         .map_or_else(
                             || self.source.line_of(inner.span.start),
-                            |l| self.source.line_of(l.span.start),
+                            |l| source.line_of(l.span.start),
                         );
                     Value::Failed(Failure {
                         code: error.code.clone(),
                         message: error.message.clone(),
                         line,
+                        file: module.map(|s| s.name().to_string()),
                     })
                 }
             },

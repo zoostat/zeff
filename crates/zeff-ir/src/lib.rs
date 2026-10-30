@@ -4,8 +4,8 @@ pub mod check;
 pub mod ir;
 pub mod ty;
 
-pub use check::check_with_text;
 pub use check::{Checked, check, check_source};
+pub use check::{ModuleSource, check_project, check_with_text};
 pub use ir::{
     Binding, BindingId, BindingKind, Call, Expr, ExprKind, FnId, Function, FunctionValue, Param,
     Program, RecordField, Slot, Spread, Statement,

@@ -510,7 +510,7 @@ fn date_formats_in_types() {
 #[test]
 fn constructs_of_later_releases_are_z0304_with_their_release() {
     let cases: &[(&str, &str)] = &[
-        ("use clean\n", "0.5.0"),
+        ("use clean\n", "1.11"),
         ("let m = model {\n    y ~ x\n}\n", "1.3"),
         ("let g = dag {\n    a -> b\n}\n", "0.10.0"),
     ];

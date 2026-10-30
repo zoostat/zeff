@@ -154,3 +154,7 @@ Section 3.7 ("Failed values") says that a method called on a binding that may ho
 ## 30 October 2026 — zeff_language_reference.md, section 11: the code Z0225
 
 Sections 3.7 ("Inference") and 5.3 say that a function's result must match its declared return type, without a number. Step 6 of release 0.5.0 assigns Z0225, the next code of the Z02xx family (types and values), for a body or a `return` whose type is not the declared one, or that gives nothing where a value is declared, and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.
+
+## 30 October 2026 — zeff_language_reference.md, section 11: the code Z0323
+
+Section 5.3 says that a module file holds only `///` text, `fn` definitions and `use` lines, and section 3.6 that `use functions::clean` names the file `functions/clean.zeff`, without numbering a file that breaks either rule. Step 8 of release 0.5.0 assigns Z0323, the next code of the Z03xx family (syntax and layout), for a statement in a module file and for a file whose name is not a name of the language or is a package's, and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.

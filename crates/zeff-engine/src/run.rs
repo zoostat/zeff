@@ -105,6 +105,60 @@ impl Files for ProjectFiles<'_> {
     }
 }
 
+/// A script checked with its project's modules (section 5.3, "Modules"): the lowered program
+/// and every diagnostic, the modules' sources for rendering them.
+pub struct CheckedInProject {
+    pub checked: zeff_ir::Checked,
+    pub module_sources: Vec<Source>,
+}
+
+/// Parse and check `text` as `script`, with the modules of `functions/`; the diagnostics come
+/// in the order of the files (the modules first, by name, then the script), each file's by
+/// position.
+pub fn check_in_project(
+    fs: &dyn FileSystem,
+    project: &Project,
+    script: &str,
+    text: &str,
+    registry: &Registry,
+) -> CheckedInProject {
+    let loaded = crate::modules::load(fs, project);
+    let parsed = zeff_syntax::parse(script, text);
+    let mut checked = zeff_ir::check_project(
+        script,
+        &parsed.script,
+        registry,
+        Some(text),
+        &loaded.modules,
+    );
+    let module_sources = loaded.sources();
+    let mut all: Vec<Diagnostic> = loaded.diagnostics;
+    all.extend(parsed.diagnostics.into_vec());
+    all.extend(checked.diagnostics.into_vec());
+    let order_of = |d: &Diagnostic| -> (usize, usize) {
+        let file = d.file.clone().unwrap_or_default();
+        let position = loaded
+            .modules
+            .iter()
+            .position(|m| m.file == file)
+            .unwrap_or(loaded.modules.len());
+        (
+            position,
+            d.labels.first().map_or(usize::MAX, |l| l.span.start),
+        )
+    };
+    all.sort_by_key(order_of);
+    let mut diagnostics = zeff_diagnostics::Diagnostics::new();
+    for d in all {
+        diagnostics.push(d);
+    }
+    checked.diagnostics = diagnostics;
+    CheckedInProject {
+        checked,
+        module_sources,
+    }
+}
+
 /// The result of a run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
@@ -183,11 +237,20 @@ pub fn run_script_in(
     bodies: &Bodies,
 ) -> Outcome {
     let mut output = Output::default();
-    let checked = zeff_ir::check_source(script, text, registry);
+    let checked = check_in_project(fs, project, script, text, registry);
     let source = Source::new(script, text);
     // `zeff run` stops at the first error (section 11); warnings from the check are shown.
     let mut sources = Sources::new();
     sources.add(source.clone());
+    let module_sources: std::collections::HashMap<String, Source> = checked
+        .module_sources
+        .iter()
+        .map(|s| (s.name().to_string(), s.clone()))
+        .collect();
+    for module in checked.module_sources.iter() {
+        sources.add(module.clone());
+    }
+    let checked = checked.checked;
     if let Some(first) = checked
         .diagnostics
         .iter()
@@ -218,6 +281,7 @@ pub fn run_script_in(
     }
     let files = ProjectFiles { fs, project };
     let interpreter = Interpreter::new(&checked.program, bodies, &files, script, &source)
+        .with_sources(&module_sources)
         .with_panic_at(options.panic_at_line)
         .with_width(options.width);
     match interpreter.run(&mut output) {

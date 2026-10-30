@@ -61,6 +61,12 @@ pub struct FunctionValue {
 pub struct Function {
     pub name: String,
     pub name_span: Span,
+    /// The module of `functions/` that defines it, or `None` for a function of the script.
+    pub module: Option<String>,
+    /// Whether `use` brings it in: a name starting with `_` is private to its file (section 3.6).
+    pub public: bool,
+    /// The project-relative file that defines it, for its diagnostics and its lines.
+    pub file: String,
     pub params: Vec<Param>,
     pub returns: Ty,
     pub body: Block,

@@ -130,13 +130,13 @@ error[Z0401]: `x` of `double` must be a Float, but this is a Str
   = help: usage: `double(x: Float)`
 
 ## built_in_name (exit 1)
-error[Z0109]: `mean` is both a built-in function and a function of this script
+error[Z0109]: `mean` is both a built-in function and a function of this project
  --> scripts/main.zeff:4:3
   |
 4 | d.mean(x)
   |   ^^^^ which one is meant?
   |
-  = help: write it in full: `functions::mean(...)` for the script's, `data::mean(...)` for the built-in
+  = help: write it in full: `functions::mean(...)` for the project's, `data::mean(...)` for the built-in
 
 ## defined_twice (exit 1)
 error[Z0107]: `twice` is defined twice in this file
@@ -148,7 +148,7 @@ error[Z0107]: `twice` is defined twice in this file
 4 | fn twice(x: Float) -> Float { x }
   |    ^^^^^ the second definition
   |
-  = help: give each function its own name; a script's functions share one namespace
+  = help: give each function its own name; a file's functions share one namespace
 
 ## reserved_name (exit 1)
 error[Z0105]: `Float` is a name of `core` and cannot be rebound
@@ -169,13 +169,13 @@ error[Z0101]: no type is called `Flaot`
   = help: did you mean `Float`?
 
 ## no_such_project_function (exit 1)
-error[Z0103]: no function of this script is called `nope`
+error[Z0103]: no function of this project is called `nope` here
  --> scripts/main.zeff:1:1
   |
 1 | functions::nope(1)
-  | ^^^^^^^^^^^^^^^ not a function of the script
+  | ^^^^^^^^^^^^^^^ not a function of the script or brought in by `use`
   |
-  = help: `functions::` names a function defined with `fn` in this script or, from step 8, in the project's `functions/` folder
+  = help: `functions::` names a function defined with `fn` in this script or brought in from the project's `functions/` folder with `use`
 
 ## no_summary (exit 0)
 4

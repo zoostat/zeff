@@ -220,7 +220,7 @@ fn zeff_check_reports_every_problem_and_exits_1() {
     let (_dir, project) = demo();
     std::fs::write(
         project.join("scripts/main.zeff"),
-        "use functions::clean\nlet wages = import(\"data/wages.csv\", heade: false)\nwges.maen(wage)\nlet mean = 3\nwages.mean(\"wage\")\n",
+        "use stats\nlet wages = import(\"data/wages.csv\", heade: false)\nwges.maen(wage)\nlet mean = 3\nwages.mean(\"wage\")\n",
     )
     .unwrap();
     let o = zeff(&project, &["check"]);
@@ -964,4 +964,64 @@ fn selftest_names_a_case_that_differs_and_fails() {
     );
     assert_eq!(code(&o), 1);
     assert!(out(&o).contains("{\"case\": \"maths/exp\", \"published\": \"30bcae2e6caaaf20\", \"actual\": \"30bcae2e6caaaf21\", \"match\": false}"), "{}", out(&o));
+}
+
+// ----- modules (release 0.5.0, step 8) -----
+
+const CLEAN_MODULE: &str = "/// Share of rows where a variable is missing.\n///\n/// Counts the rows where `var` is `NA` and divides by the row count.\n///\n/// data: The frame to check.\n/// var: The variable whose missing values are counted.\n/// returns: The share, a Float between 0 and 1.\n/// > dataset(wages).share_missing(wage)\n/// 0.0114599\nfn share_missing(data: Frame, var: Var) -> Float {\n    data.where(is_missing(var)).n_rows() / data.n_rows()\n}\n";
+
+#[test]
+fn zeff_check_and_run_read_the_project_s_modules() {
+    let (_dir, project) = demo();
+    std::fs::create_dir_all(project.join("functions")).unwrap();
+    std::fs::write(project.join("functions/clean.zeff"), CLEAN_MODULE).unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "use functions::clean\ndataset(wages).share_missing(wage)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "checked scripts/main.zeff: no problems\n");
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "0.0114599\n");
+    // A module whose function lacks its page fails the check, under the module's file.
+    std::fs::write(
+        project.join("functions/bare.zeff"),
+        "/// Halves.\nfn half(x: Float) -> Float { x / 2 }\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 1);
+    let text = err(&o);
+    assert!(text.contains("error[Z0319]"), "{text}");
+    assert!(text.contains("--> functions/bare.zeff:2:4"), "{text}");
+    insta::assert_snapshot!("check_with_a_module_problem", text);
+}
+
+#[test]
+fn zeff_help_prints_a_module_function_s_page_inside_the_project() {
+    let (_dir, project) = demo();
+    std::fs::create_dir_all(project.join("functions")).unwrap();
+    std::fs::write(project.join("functions/clean.zeff"), CLEAN_MODULE).unwrap();
+    let o = zeff(&project, &["help", "share_missing"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(
+        out(&o).starts_with("share_missing — Share of rows where a variable is missing."),
+        "{}",
+        out(&o)
+    );
+    assert!(
+        out(&o).contains("functions/clean.zeff · a function of this project"),
+        "{}",
+        out(&o)
+    );
+    insta::assert_snapshot!("help_module_function", out(&o));
+    // The full form, and a built-in's page is still the built-in's.
+    let o = zeff(&project, &["help", "clean::share_missing"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let o = zeff(&project, &["help", "mean"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(out(&o).contains("data · tier 1"), "{}", out(&o));
 }

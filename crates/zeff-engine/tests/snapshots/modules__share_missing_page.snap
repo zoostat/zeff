@@ -1,0 +1,25 @@
+---
+source: crates/zeff-engine/tests/modules.rs
+expression: page
+---
+share_missing — Share of rows where a variable is missing.           functions/clean.zeff · a function of this project
+
+USAGE
+    share_missing(data: Frame, var: Var)
+
+DESCRIPTION
+    Counts the rows where `var` is `NA` and divides by the row count.
+
+ARGUMENTS
+    data    The frame to check.
+    var     The variable whose missing values are counted.
+
+VALUE
+    Float: The share, a Float between 0 and 1.
+
+SEE ALSO
+    n_missing, is_missing
+
+EXAMPLES
+    > dataset(wages).share_missing(wage)
+    0.0114599

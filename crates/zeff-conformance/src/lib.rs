@@ -861,6 +861,11 @@ fn control_cases() -> Vec<Line> {
             zeff_engine::VERSION
         ),
     );
+    // A module of the project (step 8), brought in by the `modules` case.
+    fs.add_file(
+        "/c/functions/clean.zeff",
+        "/// Share of rows where a variable is missing.\n/// data: The frame to check.\n/// var: The variable whose missing values are counted.\n/// returns: The share, a Float between 0 and 1.\n/// > dataset(wages).share_missing(wage)\n/// 0.0114599\nfn share_missing(data: Frame, var: Var) -> Float {\n    data.where(is_missing(var)).n_rows() / data.n_rows()\n}\n\n/// Twice a number, private to this file.\n/// x: The number.\n/// returns: Its double.\n/// > _twice(2)\n/// 4\nfn _twice(x: Float) -> Float { x * 2 }\n\n/// Four times a number.\n/// x: The number.\n/// returns: Four times x.\n/// > quadruple(2)\n/// 8\nfn quadruple(x: Float) -> Float { _twice(_twice(x)) }\n",
+    );
     let project = match Project::open(&fs, Path::new("/c")) {
         Ok(project) => project,
         Err(_) => return vec![text("control/project", "the project did not open")],
@@ -869,6 +874,12 @@ fn control_cases() -> Vec<Line> {
         (
             "case",
             "let w = dataset(wages)\nlet reps = if w.n_rows() < 500 { 5000 } else { 1000 }\nreps\nlet b = w.add(band = case { wage < 15 => \"low\", wage < 25 => \"mid\", _ => \"high\" }, k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })\nb.summary([k])\nb.where(case { hours > 40 => true, _ => false }).mean(wage)\ncase { w.n_rows() > 5 => \"big\", _ => \"small\" }\n",
+        ),
+        // The modules of step 8: a module's functions brought in by `use`, the full forms, and a
+        // private helper reached through a public one.
+        (
+            "modules",
+            "use functions::clean\nlet w = dataset(wages)\n[w.share_missing(wage), w.share_missing(hours), quadruple(3), clean::quadruple(1.5), functions::share_missing(w, exper)]\n",
         ),
         // The methods and function values of step 7: every function as a method, and a
         // function passed to a parameter of type `Fn` and called through it.

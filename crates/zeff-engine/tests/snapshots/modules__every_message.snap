@@ -1,0 +1,123 @@
+---
+source: crates/zeff-engine/tests/modules.rs
+expression: all
+---
+## unknown_module (exit 1)
+error[Z0103]: no module is called `nope`: there is no `functions/nope.zeff`
+ --> scripts/main.zeff:1:1
+  |
+1 | use functions::nope
+  | ^^^^^^^^^^^^^^^^^^^ not a module of the project
+  |
+  = help: the modules are: clean
+
+## use_functions_alone (exit 1)
+error[Z0103]: `use functions` names no module
+ --> scripts/main.zeff:1:1
+  |
+1 | use functions
+  | ^^^^^^^^^^^^^ which module?
+  |
+  = help: write `use functions::clean` for every public function of `functions/clean.zeff`, or `use functions::clean::share_missing` for one
+
+## unknown_function_of_module (exit 1)
+error[Z0103]: no public function `nope` in `functions/clean.zeff`
+ --> scripts/main.zeff:1:1
+  |
+1 | use functions::clean::nope
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^ not a function of the module
+  |
+  = help: the module's public functions are: share_missing, quadruple
+
+## private_function (exit 1)
+error[Z0103]: no public function `_twice` in `functions/clean.zeff`
+ --> scripts/main.zeff:1:1
+  |
+1 | use functions::clean::_twice
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a function of the module
+  |
+  = help: the module's public functions are: share_missing, quadruple
+
+## third_party_package (exit 1)
+error[Z0304]: `use stats` is not available in this release
+ --> scripts/main.zeff:1:1
+  |
+1 | use stats
+  | ^^^^^^^^^ arrives with Zeff 1.11
+  |
+  = help: third-party packages arrive after 1.0; the project's own modules are brought in as `use functions::stats`
+
+## not_brought_in (exit 1)
+error[Z0103]: no function is called `quadruple`
+ --> scripts/main.zeff:1:1
+  |
+1 | quadruple(2)
+  | ^^^^^^^^^ not a function of Zeff
+  |
+  = help: `zeff help` lists the functions of this release
+
+## two_modules_one_name (exit 1)
+error[Z0107]: `share_missing` is defined in both `functions/clean.zeff` and `functions/tidy.zeff`
+ --> scripts/main.zeff:2:1
+  |
+2 | use functions::tidy
+  | ^^^^^^^^^^^^^^^^^^^ brings in `share_missing` again
+  |
+  = help: write the one meant in full: `clean::share_missing(...)` or `tidy::share_missing(...)`
+
+## script_and_module (exit 1)
+error[Z0107]: `quadruple` is a function of this script and of `functions/clean.zeff`
+ --> scripts/main.zeff:1:1
+  |
+1 | use functions::clean
+  | ^^^^^^^^^^^^^^^^^^^^ brings in `quadruple` again
+...
+3 | fn quadruple(x: Float) -> Float { x }
+  |    --------- the script's
+  |
+  = help: write the one meant in full: `functions::quadruple(...)` for the script's, `clean::quadruple(...)` for the module's
+
+## statement_in_module (exit 1)
+error[Z0323]: a module file holds `///` text, `fn` definitions and `use` lines only
+ --> functions/odd.zeff:7:1
+  |
+7 | let k = 2
+  | ^^^^^^^^^ a statement in a module
+  |
+  = help: move the statement to a script in `scripts/`; a module's functions take what they need as arguments
+
+## module_named_like_a_package (exit 1)
+error[Z0323]: a module may not be named `data`, the name of a package
+ --> functions/data.zeff:1:1
+  |
+1 | /// Share of rows where a variable is missing.
+  | ^ the file's name
+  |
+  = help: rename the file; `data::f` names the package's function
+
+## module_name_not_a_name (exit 1)
+error[Z0323]: `functions/bad name.zeff` is not a name a module can have
+ --> functions/bad name.zeff:1:1
+  |
+1 | /// Share of rows where a variable is missing.
+  | ^ the file's name
+  |
+  = help: name the file in snake_case, as `clean_wages.zeff`, since `use functions::clean_wages` names it (section 3.6)
+
+## incomplete_page (exit 1)
+error[Z0319]: the page of `half` in functions/bare.zeff is incomplete: it lacks `x:` and its meaning, `returns:` and what the value holds, one example, a line `> statement` with its output under it
+ --> functions/bare.zeff:2:4
+  |
+2 | fn half(x: Float) -> Float { x / 2 }
+  |    ^^^^ a module function without its complete page
+  |
+  = help: a function in `functions/` carries its page in `///` lines: the summary, a description, `name: text` for each parameter, `returns:`, and `> statement` examples with their output (section 9.1 of the Engine and Project Specification)
+
+## example_does_not_parse (exit 1)
+error[Z0319]: the page of `half` in functions/bare.zeff is incomplete: it lacks an example that parses (this one does not: expected an expression, found `)`)
+ --> functions/bare.zeff:6:4
+  |
+6 | fn half(x: Float) -> Float { x / 2 }
+  |    ^^^^ a module function without its complete page
+  |
+  = help: a function in `functions/` carries its page in `///` lines: the summary, a description, `name: text` for each parameter, `returns:`, and `> statement` examples with their output (section 9.1 of the Engine and Project Specification)

@@ -2,7 +2,7 @@
 source: crates/zeff-engine/tests/formulas.rs
 expression: text
 ---
-error[Z0304]: `use` is not available in this release
+error[Z0103]: no module is called `robustness`: there is no `functions/robustness.zeff`
  --> zeff_samples.zeff:17:1
 error[Z0103]: no function is called `panel`
  --> zeff_samples.zeff:41:6

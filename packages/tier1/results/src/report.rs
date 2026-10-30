@@ -239,7 +239,7 @@ fn fits(ctx: &mut CallContext<'_>, args: &Args) -> Result<Vec<Rc<Fit>>, Fail> {
     if !failed.is_empty() {
         let mut causes: Vec<String> = Vec::new();
         for f in &failed {
-            let cause = format!("{} at line {}", f.code, f.line);
+            let cause = format!("{} at {}", f.code, f.place());
             if !causes.contains(&cause) {
                 causes.push(cause);
             }
