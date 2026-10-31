@@ -1753,3 +1753,16 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 5. *Against R*, `IQR(type = 1..9)` and `mad(constant = 1.4826, 1, 2.5)` agree within a relative 1e-12 on seven vectors with `NA`, values to 1e12, one and two values and a run of equal values; the properties of the checklist hold within 1e-9 of the shifted values' rounding.
 
 **Reason.** Language Reference, section 4.1; catalogue rows 144 and 145 and the nine definitions of `quantile`'s row; the checklist's step 19 and question 3 (d).
+
+## 31 October 2026: `skewness` and `kurtosis` (release 0.5.0, step 20)
+
+**Choice.** Two frame methods written in Zeff in `data/functions/`, on `mean`, `where`, `add` and the operators: the moments about the mean over the values present, g1 = m₃ / m₂^(3/2) and G1 = g1 √(n(n − 1)) / (n − 2), g2 = m₄ / m₂² − 3 and G2 = ((n + 1) g2 + 6)(n − 1) / ((n − 2)(n − 3)), the adjusted forms by default and `excess: false` adding 3. Six rulings:
+
+1. *The forms and their names.* G1 and G2 are SPSS's and Excel's (SKEW, KURT) and the defaults, as the catalogue says; `adjusted: false` gives g1 and g2, and `excess: false, adjusted: false` gives g2 + 3, what Stata's `summarize, detail` and R's `moments` report; Joanes and Gill's b1 and b2 are not offered. The page names each.
+2. *One warning for the rows with `NA`.* The body takes the mean first (the reducers' warning, naming the variable, once), then the moments on the frame with those rows dropped by `where`, which raises nothing since its condition is never `NA`; so a column with `NA` warns once, not once per moment.
+3. *Too few values give `NA` with a warning*, the owner's answer to question 5: three for the adjusted skewness, four for the adjusted kurtosis, two for the plain forms. The warning is raised by `warn`, which carries no code, so it prints as W0205 prints under a result (no code is shown there, #45) but carries none in `--format json`; open decision #70 is widened to a `code:` option on `warn` and `note`, and the count cannot be written into the message for want of text from numbers (the same decision).
+4. *No spread is 0 / 0*, `NA` with the division's W0205, which needs no test of its own; an infinite value makes the moments non-finite and the result `NA`, where R gives `NaN`.
+5. *Against R*, the four forms written out in base R agree within a relative 1e-12 on eight samples (skewed draws under a seed, values to 1e12, three- and four-point samples, a symmetric one); the adjusted and plain forms agree within 1e-4 at a million rows (`seq(1, 1000000)` squared), which runs in under a second.
+6. *The generated "Warnings and notes"* of these pages is long, since the bodies call `to`, `warn`, `where`, `add` and the reducers; the step 16 note stands: the list is the mechanical union, to be narrowed when `zeff test` runs a page's examples (0.7.0).
+
+**Reason.** Engine and Project Specification, section 13 (the closed-form class, `data` checked against R and Stata); catalogue rows 151 and 152; the checklist's step 20 and questions 3 (d) and 5.

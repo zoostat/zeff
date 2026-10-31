@@ -133,3 +133,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 20 `[function]`: `skewness`, `kurtosis`.
 
 **For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).
+
+## 31 October 2026, step 20 of release 0.5.0
+
+**Done.** Step 20 `[function]`: `skewness` and `kurtosis` (catalogue rows 151 and 152 implemented), frame methods written in Zeff, one file each with the complete page naming which of SPSS, Excel, Stata and R's `moments` each form matches, Joanes and Gill (1998) the reference: the adjusted G1 and excess G2 by default, the plain g1 and g2 under `adjusted: false`, `excess: false` adding 3; one warning for the rows with `NA`; too few values giving `NA` with a warning (three, four and two values); no spread `NA` with the division's W0205; the six rulings in `docs/decisions.md`, with open decision #70 widened to a coded warning from a Zeff body. Tests: the R reference `moments.R` (the four forms written out on eight samples, within 1e-12); the engine's `moments_in_zeff.rs` (the forms, two to four values, no spread, all `NA`, `Inf`, every message, the generated page, the agreement of the adjusted and plain forms at a million rows within 1e-4, and the properties that a symmetric sample has skewness within 1e-12 of 0 and that a reflection negates `skewness` and keeps `kurtosis`); the identity case `control/moments`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 21 `[function]`: `vif`.
+
+**For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).

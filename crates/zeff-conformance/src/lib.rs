@@ -905,6 +905,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // `skewness` and `kurtosis` of step 20: the four forms on a small sample, a symmetric one,
+        // two values, no spread, and the wages.
+        (
+            "moments",
+            "let d = frame(x = [2, 4, 4, 4, 5, 5, 7, 9])\nd.skewness(x)\nd.skewness(x, adjusted: false)\nd.kurtosis(x)\nd.kurtosis(x, excess: false, adjusted: false)\nd.kurtosis(x, excess: false)\nframe(y = [-5, 0, 5, 0, -5, 5]).skewness(y)\nframe(y = [1, 2]).skewness(y)\nframe(y = [1, 2]).kurtosis(y, adjusted: false)\nframe(y = [3, 3, 3, 3]).skewness(y)\nlet w = dataset(wages)\nw.skewness(wage)\nw.kurtosis(wage)\nw.skewness(educ, adjusted: false)\n",
+        ),
         // `iqr` and `mad` of step 19: the nine quantile types, the constant, one value, two values,
         // an infinity, and the wages.
         (

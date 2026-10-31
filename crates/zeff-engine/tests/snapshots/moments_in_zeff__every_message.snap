@@ -1,0 +1,41 @@
+---
+source: crates/zeff-engine/tests/moments_in_zeff.rs
+expression: text
+---
+## skewness_two_values (exit 0)
+NA
+warning: skewness needs at least three values for the adjusted form: the result is NA (line 1)
+
+## kurtosis_three_values (exit 0)
+NA
+warning: kurtosis needs at least four values for the adjusted form: the result is NA (line 1)
+
+## one_value_plain (exit 0)
+NA
+warning: kurtosis needs at least two values: the result is NA (line 1)
+
+## no_spread (exit 0)
+NA
+warning: 0 / 0 gave NA (line 1)
+
+## with_na (exit 0)
+0.940625
+warning: 1 row with NA in x was skipped (line 2)
+
+## text_variable (exit 1)
+error[Z0401]: `mean` needs a Bool, Int or Float, but `s` is Str
+ --> scripts/main.zeff:1:28
+  |
+1 | frame(s = ["a", "b", "c"]).skewness(s)
+  |                            ^^^^^^^^ in this call
+  |
+  = help: choose a Bool, Int or Float variable; `data.describe()` lists the types
+
+## excess_not_bool (exit 1)
+error[Z0401]: `excess` of `kurtosis` must be a Bool, but this is an Int
+ --> scripts/main.zeff:1:45
+  |
+1 | frame(y = [1, 2, 3, 4]).kurtosis(y, excess: 1)
+  |                                             ^ an Int
+  |
+  = help: usage: `data.kurtosis(var, excess: Bool = true, adjusted: Bool = true)`

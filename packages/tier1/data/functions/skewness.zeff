@@ -1,0 +1,42 @@
+/// Sample skewness.
+///
+/// The third standardised moment of the values present: with m₂ and m₃ the second and third
+/// moments about the mean, the plain estimate is g1 = m₃ / m₂^(3/2), and the adjusted estimate
+/// G1 = g1 √(n(n − 1)) / (n − 2) corrects it for the sample size. The adjusted form is what SPSS
+/// and Excel's SKEW report and is the default; `adjusted: false` gives g1, what Stata's
+/// `summarize, detail` and R's `moments::skewness` report. Positive for a long right tail, zero
+/// for a symmetric sample. The moments are taken over the values present, with the reducers'
+/// warning for the rows with `NA` skipped (section 4.1 of the Language Reference). The adjusted
+/// form needs three values and the plain one two: fewer give `NA` with a warning, and so does a
+/// sample with no spread, where the ratio is 0 / 0, so that a grouped summary over small groups
+/// still prints.
+///
+/// data: The frame.
+/// var: The variable.
+/// adjusted: The sample-size correction G1 (SPSS, Excel); `false` for g1 (Stata, moments).
+/// returns: The skewness, a Float, printed as `mean` prints.
+/// details: Joanes and Gill's g1 and G1 (their b1 is not offered); the moments are the means of the squared and cubed deviations from the mean, each a compensated sum, and n is the count of values present.
+/// reference: Joanes, D. N. and Gill, C. A. (1998) Comparing measures of sample skewness and kurtosis, Journal of the Royal Statistical Society, Series D (The Statistician) 47(1), 183–189.
+/// reference: Stata, `summarize` with the `detail` option; IBM SPSS Statistics, `DESCRIPTIVES` and `FREQUENCIES`; Microsoft Excel, SKEW.
+/// see also: kurtosis, mean, sd, median
+/// > let d = frame(x = [2, 4, 4, 4, 5, 5, 7, 9])
+/// > d.skewness(x)
+/// 0.818488
+/// > d.skewness(x, adjusted: false)
+/// 0.65625
+fn skewness(data: Frame, var: Var, adjusted: Bool = true) -> Float {
+    let centre = data.mean(var)
+    let clean = data.where(!is_missing(var))
+    let count = clean.n_rows()
+    if adjusted && count < 3 {
+        warn("skewness needs at least three values for the adjusted form: the result is NA")
+        return to(NA, Float)
+    }
+    if count < 2 {
+        warn("skewness needs at least two values: the result is NA")
+        return to(NA, Float)
+    }
+    let m = clean.add(dev2 = (var - centre)^2, dev3 = (var - centre)^3)
+    let g1 = m.mean(dev3) / m.mean(dev2)^1.5
+    if adjusted { g1 * sqrt(count * (count - 1)) / (count - 2) } else { g1 }
+}

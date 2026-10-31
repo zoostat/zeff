@@ -1,0 +1,45 @@
+/// Sample kurtosis.
+///
+/// The fourth standardised moment of the values present, as excess over the normal
+/// distribution's 3 unless `excess: false`: with m₂ and m₄ the second and fourth moments about
+/// the mean, the plain estimate is g2 = m₄ / m₂² − 3, and the adjusted estimate
+/// G2 = ((n + 1) g2 + 6)(n − 1) / ((n − 2)(n − 3)) corrects it for the sample size. The
+/// adjusted excess form is what SPSS and Excel's KURT report and is the default;
+/// `excess: false, adjusted: false` gives g2 + 3, what Stata's `summarize, detail` and R's
+/// `moments::kurtosis` report. Positive excess means heavier tails than the normal. The moments
+/// are taken over the values present, with the reducers' warning for the rows with `NA`
+/// skipped (section 4.1 of the Language Reference). The adjusted form needs four values and the
+/// plain one two: fewer give `NA` with a warning, and so does a sample with no spread, where the
+/// ratio is 0 / 0, so that a grouped summary over small groups still prints.
+///
+/// data: The frame.
+/// var: The variable.
+/// excess: Report kurtosis less 3, the normal distribution's value; `false` adds the 3 back.
+/// adjusted: The sample-size correction G2 (SPSS, Excel); `false` for g2 (Stata, moments).
+/// returns: The kurtosis, a Float, printed as `mean` prints.
+/// details: Joanes and Gill's g2 and G2 (their b2 is not offered); `excess: false` adds 3 to either form; the moments are the means of the squared and fourth-power deviations from the mean, each a compensated sum, and n is the count of values present.
+/// reference: Joanes, D. N. and Gill, C. A. (1998) Comparing measures of sample skewness and kurtosis, Journal of the Royal Statistical Society, Series D (The Statistician) 47(1), 183–189.
+/// reference: Stata, `summarize` with the `detail` option; IBM SPSS Statistics, `DESCRIPTIVES` and `FREQUENCIES`; Microsoft Excel, KURT.
+/// see also: skewness, mean, sd, variance
+/// > let d = frame(x = [2, 4, 4, 4, 5, 5, 7, 9])
+/// > d.kurtosis(x)
+/// 0.940625
+/// > d.kurtosis(x, excess: false, adjusted: false)
+/// 2.78125
+fn kurtosis(data: Frame, var: Var, excess: Bool = true, adjusted: Bool = true) -> Float {
+    let centre = data.mean(var)
+    let clean = data.where(!is_missing(var))
+    let count = clean.n_rows()
+    if adjusted && count < 4 {
+        warn("kurtosis needs at least four values for the adjusted form: the result is NA")
+        return to(NA, Float)
+    }
+    if count < 2 {
+        warn("kurtosis needs at least two values: the result is NA")
+        return to(NA, Float)
+    }
+    let m = clean.add(dev2 = (var - centre)^2, dev4 = (var - centre)^4)
+    let g2 = m.mean(dev4) / m.mean(dev2)^2 - 3
+    let value = if adjusted { ((count + 1) * g2 + 6) * (count - 1) / ((count - 2) * (count - 3)) } else { g2 }
+    if excess { value } else { value + 3 }
+}

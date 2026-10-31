@@ -1,0 +1,65 @@
+---
+source: crates/zeff-engine/tests/moments_in_zeff.rs
+expression: "zeff_engine::help::help_text(registry, \"skewness\").unwrap()"
+---
+skewness — Sample skewness                                             data · tier 1 · since 0.5.0 · 1.0 · closed form
+
+USAGE
+    data.skewness(var, adjusted: Bool = true)
+
+DESCRIPTION
+    The third standardised moment of the values present: with m₂ and m₃ the second and third moments about
+    the mean, the plain estimate is g1 = m₃ / m₂^(3/2), and the adjusted estimate G1 = g1 √(n(n − 1)) / (n −
+    2) corrects it for the sample size. The adjusted form is what SPSS and Excel's SKEW report and is the
+    default; `adjusted: false` gives g1, what Stata's `summarize, detail` and R's `moments::skewness`
+    report. Positive for a long right tail, zero for a symmetric sample. The moments are taken over the
+    values present, with the reducers' warning for the rows with `NA` skipped (section 4.1 of the Language
+    Reference). The adjusted form needs three values and the plain one two: fewer give `NA` with a warning,
+    and so does a sample with no spread, where the ratio is 0 / 0, so that a grouped summary over small
+    groups still prints.
+
+ARGUMENTS
+    data        Frame. The frame.
+    var         Var. The variable.
+    adjusted:   Bool = true. The sample-size correction G1 (SPSS, Excel); `false` for g1 (Stata, moments).
+
+VALUE
+    The skewness, a Float, printed as `mean` prints.
+
+DETAILS
+    Joanes and Gill's g1 and G1 (their b1 is not offered); the moments are the means of the squared and
+    cubed deviations from the mean, each a compensated sum, and n is the count of values present.
+
+WARNINGS AND NOTES
+    W0205   a negative number has no real square root: the result is NA
+    W0203   a value could not be converted, so it became NA
+    W0202   a number with a fraction was given to Int, so it became NA
+    Z0401   the type has no conversion to the target, or a single value is given to Category
+    Z0304   conversion to Date or DateTime, which arrives with release 0.6.0
+    Note    the script's own warning, printed with its line
+    Z0206   the result of warn is bound or passed; it has none
+    W0102   a name in a definition is both a variable and a binding
+    Z0101   a definition names a variable the frame does not have
+    Z0217   a definition's column has another number of rows
+    Z0219   a definition is NA alone, whose type is unknown
+    W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
+    W0204   Inf and -Inf both present, so the result is NA
+    Z0102   a variable that differs only in case from the name written
+    Z0203   the condition is a single Bool, NA, or a column of another type
+
+ACCURACY
+    Closed form.
+
+REFERENCES
+    Joanes, D. N. and Gill, C. A. (1998) Comparing measures of sample skewness and kurtosis, Journal of the Royal Statistical Society, Series D (The Statistician) 47(1), 183–189.
+    Stata, `summarize` with the `detail` option; IBM SPSS Statistics, `DESCRIPTIVES` and `FREQUENCIES`; Microsoft Excel, SKEW.
+
+SEE ALSO
+    kurtosis, mean, sd, median
+
+EXAMPLES
+    > let d = frame(x = [2, 4, 4, 4, 5, 5, 7, 9])
+    > d.skewness(x)
+    0.818488
+    > d.skewness(x, adjusted: false)
+    0.65625

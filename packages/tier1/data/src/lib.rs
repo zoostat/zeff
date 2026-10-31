@@ -902,7 +902,7 @@ pub fn functions() -> Vec<Function> {
 /// The functions of `data` written in Zeff, one `functions/*.zeff` file each (Engine and Project
 /// Specification, section 9.1, "Files"), compiled in; the engine parses, checks and lowers them
 /// when it starts: `between`, `center` and `standardize` (release 0.5.0, step 16), `iqr` and
-/// `mad` (step 19); the rest follow at steps 20 to 22.
+/// `mad` (step 19), `skewness` and `kurtosis` (step 20); `summary` follows at step 22.
 pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
     vec![
         zeff_registry::ZeffSource {
@@ -934,6 +934,18 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             name: "mad",
             file: "data/functions/mad.zeff",
             text: include_str!("../functions/mad.zeff"),
+        },
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "skewness",
+            file: "data/functions/skewness.zeff",
+            text: include_str!("../functions/skewness.zeff"),
+        },
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "kurtosis",
+            file: "data/functions/kurtosis.zeff",
+            text: include_str!("../functions/kurtosis.zeff"),
         },
     ]
 }

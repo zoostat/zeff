@@ -101,7 +101,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 67 | The default `level:` of `ci()` on a fit made at another level | The fit's level, so that `ci()` agrees with the summary; `level:` written overrides it | 0.6.0 |
 | 68 | A parameter of several types in a Zeff-written built-in | Allow the registry's `A \| B` in the `fn` line of a built-in's file, checked once per type, so that `fill_missing` and `n_missing` can be rewritten in Zeff | 0.7.0 |
 | 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | 0.7.0 |
-| 70 | A note from a Zeff-written built-in | A `note(message)` function beside `warn`, and the name of a `Var` as text (`name_of(v)`), so that `drop_missing` can be rewritten in Zeff with its note | 0.7.0 |
+| 70 | A note or a coded warning from a Zeff-written built-in | A `note(message)` function beside `warn`, a `code:` option on both, and the name of a `Var` as text (`name_of(v)`), so that `drop_missing` can be rewritten in Zeff with its note and `skewness` can raise W0205 | 0.7.0 |
 
 ---
 
@@ -873,13 +873,13 @@ Raised on 31 October 2026 at step 17 of release 0.5.0. `row_mean([q1, q2, q3])` 
 
 *Recommendation.* A, at 0.7.0 with open decision #68, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for both rows then.
 
-### 70. A note from a Zeff-written built-in
+### 70. A note or a coded warning from a Zeff-written built-in
 
-Raised on 31 October 2026 at step 18 of release 0.5.0. `drop_missing` reports the rows it dropped in a note that names the variables, `note: 228 rows with NA in educ or exper dropped`. A body written in Zeff can print, `warn` and `error`, but `warn` prints a warning where section 4.1 asks for a note, and a `Var` has no text form, so the variables' names cannot be written into the message. The function was planned in Zeff and is written in Rust at 0.5.0, its `layer` corrected (logged).
+Raised on 31 October 2026 at step 18 of release 0.5.0, widened at step 20: `skewness` and `kurtosis`, written in Zeff, give `NA` for too few values with a warning that the owner's answer to question 5 numbers W0205, and `warn(message)` carries no code, so the warning prints the same under a result (a warning under a result shows no code, #45) but carries no code in `--format json`. `drop_missing` reports the rows it dropped in a note that names the variables, `note: 228 rows with NA in educ or exper dropped`. A body written in Zeff can print, `warn` and `error`, but `warn` prints a warning where section 4.1 asks for a note, and a `Var` has no text form, so the variables' names cannot be written into the message. The function was planned in Zeff and is written in Rust at 0.5.0, its `layer` corrected (logged).
 
 | Option | For | Against |
 | --- | --- | --- |
-| A. Add `note(message)` to `core` beside `warn`, and `name_of(v)` giving a `Var`'s name as text, both callable from a function | Two small functions; the note is then ordinary Zeff, and a project's own functions gain the same voice | Two catalogue rows to add and freeze in `core` before 1.0; a note from a project function is a new thing for Zemp to show |
+| A. Add `note(message)` to `core` beside `warn`, a `code:` option on both (`warn("...", code: W0205)`), and `name_of(v)` giving a `Var`'s name as text, all callable from a function | Two small functions; the note is then ordinary Zeff, and a project's own functions gain the same voice | Two catalogue rows to add and freeze in `core` before 1.0; a note from a project function is a new thing for Zemp to show |
 | B. Keep such functions in Rust | Nothing to build | Every Zeff-written verb that reports a count stays Rust |
 
 *Recommendation.* A, at 0.7.0 with #68 and #69; the catalogue's `layer` returns to Zeff for row 121 then.
