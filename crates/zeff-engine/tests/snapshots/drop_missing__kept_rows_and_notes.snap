@@ -1,0 +1,21 @@
+---
+source: crates/zeff-engine/tests/drop_missing.rs
+expression: "format!(\"{out}{err}\")"
+---
+frame · 1 row × 4 variables
+
+      id   x   y   z
+  1    3   3   3   1
+frame · 3 rows × 4 variables
+
+      id   x    y   z
+  1    1   1   NA   1
+  2    3   3    3   1
+  3    4   4   NA   1
+frame · 1 row × 4 variables
+
+      id   x   y   z
+  1    3   3   3   1
+note: 3 rows with NA in x or y dropped (line 2)
+note: 1 row with NA in x dropped (line 3)
+note: 3 rows with NA in id, x, y or z dropped (line 4)

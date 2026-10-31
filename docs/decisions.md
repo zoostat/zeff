@@ -1729,3 +1729,15 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 7. *The row with every value missing* is `NA` for both, and `min_valid:` above the number of variables makes every row `NA` without a warning, since the rule was asked for.
 
 **Reason.** Language Reference, sections 3.7 ("Variable ranges"), 4.1 and 6; catalogue rows 136 and 137; the checklist's step 17 and its ruling on functions the language cannot yet express.
+
+## 31 October 2026: `drop_missing` (release 0.5.0, step 18)
+
+**Choice.** A Rust frame verb in `data/src/verbs.rs` beside `where`, its catalogue `layer` corrected from Zeff to Rust with the reason (logged) and the missing piece recorded as open decision #70. Five rulings:
+
+1. *Why Rust.* The contract is a filter with one note naming the rows dropped and the variables, in the form decided for the release (`228 rows with NA in educ or exper dropped`); a body written in Zeff has `warn`, which prints a warning and not a note, and no way to write a `Var`'s name into text, so the note cannot be made. #70 (a `note` function and the name of a variable as text, deadline 0.7.0) is the door, taken with #68 and #69.
+2. *The note.* `N rows with NA in x or y dropped`, the variables joined as `x, y or z`; `no row had NA in x` when nothing is dropped; and `no row kept: the result is empty` when everything is, as `where` says. One note per call, whatever the number of variables.
+3. *`vars` is a required positional parameter*, as the catalogue's usage `data.drop_missing(vars)` writes it; the checklist's "without `vars`, every variable" is not a form the registry has (a positional parameter is always required), so the whole frame is `drop_missing([first..last])` with its first and last variable, which the page says. The variables are a list or a range, resolved by the frame verbs' resolver (Z0101, Z0401 for a backwards range).
+4. *The rows kept stay in order with their metadata*, through `take_rows` as every frame verb; a labelled variable keeps its label, the wages dataset its declaration.
+5. *Against R*, the rows `complete.cases` keeps on the subset agree exactly, ids in order, on sixteen frame-and-subset pairs, with an all-`NA` variable among them.
+
+**Reason.** Language Reference, sections 4.1 ("Filtering") and 6 ("Rows"); catalogue row 121; the checklist's step 18, question 3 (c) and the ruling on functions the language cannot yet express.

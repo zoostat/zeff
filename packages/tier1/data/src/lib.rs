@@ -838,6 +838,29 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "drop_missing",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("vars", "Vars"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows dropped and the variables, or that no row had NA in them; no row kept",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new("Z0401", "a range of variables that runs backwards"),
+                ],
+                help: include_str!("../help/drop_missing.md"),
+                accuracy: None,
+            },
+            body: verbs::drop_missing,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "row_mean",
                 package: "data",
                 method: false,

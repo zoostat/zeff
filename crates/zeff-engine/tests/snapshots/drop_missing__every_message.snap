@@ -1,0 +1,52 @@
+---
+source: crates/zeff-engine/tests/drop_missing.rs
+expression: text
+---
+## dropped (exit 0)
+1
+note: 3 rows with NA in x or y dropped (line 2)
+
+## nothing_dropped (exit 0)
+4
+note: no row had NA in z (line 2)
+
+## all_dropped (exit 0)
+0
+note: 1 row with NA in x dropped (line 2)
+note: no row kept: the result is empty (line 2)
+
+## unknown_variable (exit 1)
+error[Z0101]: no variable `nope` in `d`
+ --> scripts/main.zeff:2:16
+  |
+2 | d.drop_missing([nope])
+  |                ^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: id, x, y, z
+
+## backwards_range (exit 1)
+error[Z0401]: the range `z..x` runs backwards: `x` comes before `z` in d
+ --> scripts/main.zeff:2:16
+  |
+2 | d.drop_missing([z..x])
+  |                ^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of d, in order: id, x, y, z
+
+## no_vars (exit 1)
+error[Z0406]: `drop_missing` needs `vars`
+ --> scripts/main.zeff:2:3
+  |
+2 | d.drop_missing()
+  |   ^^^^^^^^^^^^ `vars` is missing
+  |
+  = help: usage: `data.drop_missing(vars)`
+
+## not_a_frame (exit 1)
+error[Z0406]: `drop_missing` needs `vars`
+ --> scripts/main.zeff:1:1
+  |
+1 | drop_missing([x])
+  | ^^^^^^^^^^^^ `vars` is missing
+  |
+  = help: usage: `data.drop_missing(vars)`

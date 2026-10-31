@@ -905,6 +905,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // `drop_missing` of step 18: the rows kept in order, the note naming the variables, a
+        // range, nothing dropped, and every row dropped.
+        (
+            "drop_missing",
+            "let d = frame(id = [1, 2, 3, 4], x = [1, NA, 3, 4], y = [NA, 2, 3, NA], z = [1, 1, 1, 1])\nd.drop_missing([x, y])\nd.drop_missing([x])\nd.drop_missing([z])\nd.drop_missing([id..z])\nd.where(is_missing(x)).drop_missing([x])\nlet w = dataset(wages)\nw.drop_missing([wage, hours]).n_rows()\n",
+        ),
         // `row_mean` and `row_sum` of step 17 inside `add`: a list and a range of variables,
         // `min_valid:`, rows with every value missing, and a dataset's scale.
         (

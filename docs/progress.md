@@ -113,3 +113,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 18 `[function]`: `drop_missing`.
 
 **For the owner to decide.** Nothing new (#67 by 0.6.0; #68 and #69 by 0.7.0).
+
+## 31 October 2026, step 18 of release 0.5.0
+
+**Done.** Step 18 `[function]`: `drop_missing` (catalogue row 121 implemented) in Rust, the layer corrected and logged with open decision #70 (a note and variable names as text from a Zeff-written built-in, by 0.7.0): the rows with no `NA` in the variables named, in their order with their metadata, one note in the decided form naming the rows dropped and the variables, or that no row had `NA` in them, and the empty-result note of `where`; the page; the five rulings in `docs/decisions.md`. Tests: the R reference `drop_missing.R` (`complete.cases` on the subset, sixteen cases, exact); the engine's `drop_missing.rs` (the kept rows and notes, nothing dropped, everything dropped, order and metadata through a label and the wages dataset, an unknown variable, a backwards range, every message, and the property that after `drop_missing` each variable named has no `NA`, the rows kept are exactly the complete ones in order and the note counts the rest); the identity case `control/drop_missing`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 19 `[function]`: `iqr`, `mad`.
+
+**For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).

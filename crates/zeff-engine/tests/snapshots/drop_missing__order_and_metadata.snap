@@ -1,0 +1,26 @@
+---
+source: crates/zeff-engine/tests/drop_missing.rs
+expression: out
+---
+k · 1 row × 4 variables
+
+  variable   type   non-missing   missing   example
+  id         Int              1         0   3
+  x          Int              1         0   3
+  y          Int              1         0   3
+  z          Int              1         0   1
+Column<Int> · 1 value
+3
+frame · 18,201 rows × 10 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int              18,201         0   1
+  year       Int              18,201         0   2015
+  wage       Float            18,201         0   18.08
+  educ       Int              18,201         0   17
+  exper      Int              18,179        22   9
+  age        Int              18,201         0   32
+  hours      Float            18,167        34   45.1
+  union      Int (lab)        18,201         0   no
+  female     Int (lab)        18,201         0   male
+  industry   Category         18,201         0   Retail (12 levels)
