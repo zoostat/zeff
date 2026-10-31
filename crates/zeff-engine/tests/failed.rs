@@ -210,6 +210,36 @@ fn report_skips_failed_fits_with_a_count() {
     );
 }
 
+/// The warning names at most three distinct causes (a code at a place) and marks any more with
+/// an ellipsis: three failures at three lines are all named, four are three and the mark.
+#[test]
+fn the_warning_names_three_causes_and_marks_the_rest() {
+    let three = format!(
+        "{D}let fits = [\n    d.reg(y ~ x),\n    attempt(d.where(x > 10).reg(y ~ x)),\n    attempt(d.where(x > 11).reg(y ~ x)),\n    attempt(d.where(x > 12).reg(y ~ x)),\n]\nreport(fits)\n"
+    );
+    let outcome = run(&three);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome.output.stderr.contains(
+            "warning: 3 of 4 fits failed (Z0801 at line 4, Z0801 at line 5, Z0801 at line 6) and were skipped (line 8)"
+        ),
+        "{}",
+        outcome.output.stderr
+    );
+    let four = format!(
+        "{D}let fits = [\n    d.reg(y ~ x),\n    attempt(d.where(x > 10).reg(y ~ x)),\n    attempt(d.where(x > 11).reg(y ~ x)),\n    attempt(d.where(x > 12).reg(y ~ x)),\n    attempt(d.where(x > 13).reg(y ~ x)),\n]\nreport(fits)\n"
+    );
+    let outcome = run(&four);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert!(
+        outcome.output.stderr.contains(
+            "warning: 4 of 5 fits failed (Z0801 at line 4, Z0801 at line 5, Z0801 at line 6, …) and were skipped (line 9)"
+        ),
+        "{}",
+        outcome.output.stderr
+    );
+}
+
 #[test]
 fn every_message_of_attempt_and_failed_values() {
     let failed = format!("{D}let m = attempt(d.where(x > 10).reg(y ~ x))\n");
