@@ -1,0 +1,148 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+assertion_line: 472
+expression: reg
+---
+reg — Linear regression by ordinary least squares                   regress · tier 2 · since 0.4.0 · 1.0 · closed form
+
+USAGE
+    data.reg(formula, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var,
+             weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+
+DESCRIPTION
+    Fits the formula by ordinary least squares on the rows of the frame without `NA` in a model variable,
+    which are dropped and counted, and prints the summary of section 10.2 of the Language Reference: the
+    formula, the rows used, the kind of standard error, a table with each term's estimate, standard error, t
+    value, p-value and confidence interval, and R² with its adjusted value. The formula's terms follow
+    section 7.2: `a * b` expands, a category gets its indicator columns by its contrast with the first level
+    as the base unless `base()` names another, `exper^2` and `log(wage)` are computed before the fit, and a
+    term written twice is kept once with a note. A regressor collinear with the columns before it is dropped
+    and named in a note, as is a level with no observations among the rows used; a design whose scaled
+    condition number passes 1e8 is warned about (W1001). `se:` chooses classical, robust (HC1), HC2 or HC3
+    standard errors, `cluster:` errors clustered by a variable (CR1), and `weights:` with `weight_type:`
+    frequency, analytic or sampling weights; fixed effects (`fe:`) arrive with release 0.6.0. Like R's `lm`
+    with `sandwich`, and Stata's `regress`.
+
+ARGUMENTS
+    data          Frame. The frame.
+    formula       Formula. `y ~ terms`, written in the call or bound with `let`.
+    se:           classical | robust | hc2 | hc3. Standard-error type; `robust` is HC1, as Stata's `robust`;
+                  `bootstrap` from 1.1. With sampling weights the default is `robust`, and `se: classical`
+                  is an error (Z0410). With `weight_type: frequency`, classical errors are valid and the
+                  observation count is the sum of the weights. The kind of standard error: `classical`,
+                  `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when
+                  `robust`.                                                                                   (shared)
+    cluster:      Var. Cluster-robust standard errors (CR1); one-observation clusters are reported; two-way
+                  and multiway clustering arrive after 1.0. The variable whose values group the observations
+                  for clustered errors (CR1).                                                                 (shared)
+    weights:      Var. Weight variable. The weight variable.                                                  (shared)
+    weight_type:  frequency | analytic | sampling = sampling. Stata's fweight, aweight and pweight. In 1.0
+                  the tests refuse `weights:` with `weight_type: sampling` (Z0411) and point to regression
+                  with robust errors. What the weights are: `frequency` counts, `analytic` precision
+                  weights, `sampling` probability weights.                                                    (shared)
+    level:        Float = 0.95. Confidence level. The confidence level of the intervals.                      (shared)
+
+VALUE
+    A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci,
+    n_obs, export. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted, compare, test,
+    derive. Result methods: r_squared, influence, vif.
+
+DETAILS
+    Each regressor is scaled to unit norm before a blocked Householder QR of the design and the outcome
+    together, so that the fit of a column at 1e12 is as accurate as one at 1, and no n × k matrix is held;
+    the k × k R factor is then factorised again with column pivoting, a column whose remaining norm is below
+    1e-7 of its own being dropped as collinear with those before it, which is R's rule. The estimates come
+    from back substitution and are unscaled; residuals, fitted values and leverages come from a second pass
+    over the rows. The classical variance is the residual sum of squares over n − k times (XᵀX)⁻¹, read from
+    R; `robust` is HC1, the sandwich of the scores scaled by n/(n − k), as Stata's `robust` and R's
+    `sandwich::vcovHC(type = "HC1")`; `hc2` and `hc3` scale each observation's score by 1/(1 − h) and 1/(1 −
+    h)², with h its leverage; `cluster:` sums the scores within each cluster (CR1) and applies Stata's
+    adjustment G/(G − 1) · (n − 1)/(n − k), with the t table on G − 1 degrees of freedom, as Stata's
+    `regress` and reghdfe do and as `sandwich::vcovCL(type = "HC1")` gives; the other kinds use n − k.
+    Weights follow section 6: frequency weights count each row as many times as its weight, so N is their
+    sum; analytic weights are precision weights, scaled to sum to the rows; sampling weights are probability
+    weights, with which `se:` defaults to `robust` and `classical` is refused. A row with `NA` in the weight
+    or the cluster is dropped with the others; a zero weight leaves its row out, with a note; a negative
+    weight is an error. A column that is zero in every row used, or whose values are too small to be scaled,
+    is dropped with a note of its own; a fit whose residual variance is below 1e-30 of the fitted values'
+    scale is noted as essentially perfect, which is R's rule, since its standard errors are then rounding
+    alone. After every fit the residuals are checked to be orthogonal to the regressors and the variance
+    matrix to be symmetric with no negative variance, a failure being an internal error rather than a
+    result. The shipped `wages` recovers its generating model: the return to schooling of 0.074 lies inside
+    the interval of the pooled regression with errors clustered by worker, which the test suite checks, and
+    the textbook regressions on Wooldridge's `wage1` and `wage2` agree with R to ten decimal places.
+
+WARNINGS AND NOTES
+    Note    a term written twice kept once; a collinear column, a level with no observations, a zero column
+            or one too small to scale dropped; a category of one level; rows with a zero weight left out;
+            clusters of one observation; an outcome without variation; an essentially perfect fit
+    W1001   near-singular regressors, with the condition number
+    W1002   fewer than 30 clusters
+    W1003   extreme weights, with the effective sample size
+    W1006   an observation whose removal moves an estimate by more than its standard error
+    Z0101   a variable of the formula, `cluster:` or `weights:` is not in the frame
+    Z0223   an infinite value in a model variable
+    Z0224   a negative weight
+    Z0304   `se: bootstrap` before release 1.1, or a date in the model before 0.6.0
+    Z0401   text in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a
+            number, or a frequency weight with a fraction
+    Z0410   `se: classical` with sampling weights, or `se: hc2` or `hc3` with `cluster:`
+    Z0801   no row remains after the rows with NA are dropped
+    Z0802   no regressor remains, no residual degrees of freedom, one cluster, or an observation with
+            leverage one under `se: hc2` or `hc3`
+    Z0803   an outcome with values too large to compute with (above 1e150 in size) or too small against its
+            regressors (an estimate below 2.2e-308)
+
+ACCURACY
+    Closed form.
+
+REFERENCES
+    Davidson, R. and MacKinnon, J. G. (2004). *Econometric Theory and Methods*. Oxford University
+    Press, chapters 2 and 3. MacKinnon, J. G. and White, H. (1985). Some heteroskedasticity-consistent
+    covariance matrix estimators with improved finite sample properties. *Journal of Econometrics*,
+    29, 305–325. Cameron, A. C. and Miller, D. L. (2015). A practitioner's guide to cluster-robust
+    inference. *Journal of Human Resources*, 50, 317–372.
+
+SEE ALSO
+    category, base, interact, summary
+
+EXAMPLES
+    > let wages = dataset(wages)
+    > wages.reg(log(wage) ~ educ + exper + exper^2 + female)
+    reg · log(wage) ~ educ + exper + exper^2 + female
+    N = 18,179 (233 rows dropped for NA in model variables)
+    standard errors: classical
+
+      term          estimate   std.error   t value   p value   95% CI
+      (intercept)     1.7873      0.0236     75.74    <0.001   [1.7410, 1.8335]
+      educ            0.0758      0.0014     55.80    <0.001   [0.0731, 0.0785]
+      exper           0.0421      0.0016     26.36    <0.001   [0.0389, 0.0452]
+      exper^2        -0.0007      0.0001    -13.09    <0.001   [-0.0008, -0.0006]
+      female         -0.1319      0.0064    -20.63    <0.001   [-0.1445, -0.1194]
+
+    R² 0.210 · adjusted R² 0.210
+    > wages.reg(log(wage) ~ educ + exper + exper^2 + female, se: robust)
+    reg · log(wage) ~ educ + exper + exper^2 + female
+    N = 18,179 (233 rows dropped for NA in model variables)
+    standard errors: robust (HC1)
+
+      term          estimate   std.error   t value   p value   95% CI
+      (intercept)     1.7873      0.0233     76.81    <0.001   [1.7417, 1.8329]
+      educ            0.0758      0.0014     56.07    <0.001   [0.0732, 0.0785]
+      exper           0.0421      0.0015     27.22    <0.001   [0.0390, 0.0451]
+      exper^2        -0.0007      0.0000    -13.37    <0.001   [-0.0008, -0.0006]
+      female         -0.1319      0.0064    -20.63    <0.001   [-0.1445, -0.1194]
+
+    R² 0.210 · adjusted R² 0.210
+    > wages.reg(log(wage) ~ educ + female, cluster: worker)
+    reg · log(wage) ~ educ + female
+    N = 18,201 (211 rows dropped for NA in model variables)
+    standard errors: clustered by worker (3,911 clusters, CR1)
+
+      term          estimate   std.error   t value   p value   95% CI
+      (intercept)     2.5247      0.0375     67.39    <0.001   [2.4513, 2.5981]
+      educ            0.0545      0.0027     20.17    <0.001   [0.0492, 0.0598]
+      female         -0.1402      0.0132    -10.58    <0.001   [-0.1661, -0.1142]
+
+    R² 0.098 · adjusted R² 0.098
+    note: 30 of the 3,911 clusters hold one observation (line 4)

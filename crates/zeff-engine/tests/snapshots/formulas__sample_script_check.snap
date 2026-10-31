@@ -34,8 +34,6 @@ error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:89:37
 error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:90:23
-error[Z0103]: no function is called `vif`
- --> zeff_samples.zeff:94:4
 error[Z0103]: no function is called `coef_plot`
  --> zeff_samples.zeff:102:4
 error[Z0404]: `export` has no argument called `size`

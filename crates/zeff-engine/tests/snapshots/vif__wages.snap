@@ -1,0 +1,31 @@
+---
+source: crates/zeff-engine/tests/vif.rs
+expression: out
+---
+vif · m1
+
+  term         vif
+  educ       1.118
+  exper     14.101
+  exper^2   14.008
+  female     1.001
+vif · m2
+
+  term                               vif
+  educ                             1.005
+  industry=Mining                  1.362
+  industry=Utilities               1.660
+  industry=Construction            3.459
+  industry=Manufacturing           5.005
+  industry=Retail                  5.379
+  industry=Transport               2.673
+  industry=Finance                 3.592
+  industry=Services                5.094
+  industry=Education               3.780
+  industry=Health                  4.371
+  industry=Public administration   3.383
+vif · log(wage) ~ educ + exper - 1
+
+  term      vif
+  educ    3.688
+  exper   3.688

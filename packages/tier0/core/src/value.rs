@@ -242,6 +242,12 @@ pub struct Fit {
     /// the influence measures need to weight a residual or to count a row's observations.
     pub weights: Option<Vec<f64>>,
     pub weight_kind: Option<WeightKind>,
+    /// The Gram matrix XᵀX of the kept design (the weighted design under weights), one row of
+    /// `terms.len()` values per term, in the units of the data; what `vif` and the diagnostics
+    /// that need the design read without the design itself.
+    pub gram: Vec<f64>,
+    /// Its inverse, (XᵀX)⁻¹, laid out the same way.
+    pub inverse_gram: Vec<f64>,
 }
 
 /// A test statistic with its degrees of freedom: `F(1, 18179)`, `t(23.4)`, `z`.

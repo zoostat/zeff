@@ -7,7 +7,7 @@
 use std::rc::Rc;
 use zeff_columns::{Column, Table};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Fit, Frame, Value};
+use zeff_core::value::{Align, Fit, Frame, Table as PrintedTable, Value};
 use zeff_diagnostics::Diagnostic;
 use zeff_numeric::order::WeightKind;
 
@@ -38,6 +38,70 @@ pub fn r_squared(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ("r_squared".to_string(), measure(fit.r_squared)),
         ("adjusted".to_string(), measure(fit.adjusted_r_squared)),
     ]))
+}
+
+/// The variance inflation factor of each regressor (catalogue row 248; release 0.5.0, step
+/// 21): 1 / (1 − R²ⱼ), with R²ⱼ from the regression of column j of the fitted design on the
+/// other columns and the intercept, over the rows the fit used. Computed from the Gram matrix the
+/// fit keeps: with G = XᵀX, the factor is (G⁻¹)ⱼⱼ times the centred sum of squares of column j,
+/// Gⱼⱼ − G₀ⱼ² / G₀₀ with column 0 the intercept, or the plain Gⱼⱼ for a fit without one (the
+/// uncentred factor Stata's `estat vif` gives after `noconstant`). Under weights the design is
+/// the weighted one, as the fit's own variances are. The intercept has no factor; a term dropped
+/// as collinear has no estimate and no row.
+pub fn vifs(fit: &Fit) -> Vec<(String, f64)> {
+    let k = fit.terms.len();
+    let g = |i: usize, j: usize| fit.gram[i * k + j];
+    let g_inverse = |i: usize| fit.inverse_gram[i * k + i];
+    let intercept = fit.terms.iter().position(|t| t == "(intercept)");
+    fit.terms
+        .iter()
+        .enumerate()
+        .filter(|(j, _)| Some(*j) != intercept)
+        .map(|(j, term)| {
+            let centred = match intercept {
+                Some(c) => g(j, j) - g(c, j) * g(c, j) / g(c, c),
+                None => g(j, j),
+            };
+            (term.clone(), g_inverse(j) * centred)
+        })
+        .collect()
+}
+
+/// `fit.vif()`: the table of question 3 (b), `vif · m1` with the columns `term` and `vif` to
+/// three decimals, one row per regressor column, the intercept left out as `car::vif` leaves it
+/// out and a categorical regressor's columns each on their own row.
+pub fn vif(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let fit = regression(ctx, &args, "vif")?;
+    let factors = vifs(&fit);
+    let rows: Vec<Vec<String>> = factors
+        .iter()
+        .map(|(term, value)| vec![term.clone(), zeff_core::display::fixed(*value, 3)])
+        .collect();
+    let mut after = Vec::new();
+    if factors.is_empty() {
+        after.push("no regressor beside the intercept".to_string());
+    }
+    if !fit.omitted.is_empty() {
+        after.push(format!(
+            "omitted as collinear, with no factor: {}",
+            fit.omitted.join(", ")
+        ));
+    }
+    Ok(Value::Table(PrintedTable {
+        title: format!(
+            "vif · {}",
+            fit.name.clone().unwrap_or_else(|| fit.formula.clone())
+        ),
+        before: Vec::new(),
+        columns: vec![
+            ("term".to_string(), Align::Left),
+            ("vif".to_string(), Align::Right),
+        ],
+        rows,
+        after,
+        more: Vec::new(),
+        rules: Vec::new(),
+    }))
 }
 
 /// The influence of each row the fit used (question 7): its leverage, the diagonal of the hat

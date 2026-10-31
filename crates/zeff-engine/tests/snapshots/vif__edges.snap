@@ -1,0 +1,18 @@
+---
+source: crates/zeff-engine/tests/vif.rs
+expression: out
+---
+vif · y ~ x
+
+  term     vif
+  x      1.000
+vif · y ~ x + w
+
+  term            vif
+  x      12770992.773
+  w      12770992.773
+vif · y ~ 1
+
+  term   vif
+
+no regressor beside the intercept

@@ -102,6 +102,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 68 | A parameter of several types in a Zeff-written built-in | Allow the registry's `A \| B` in the `fn` line of a built-in's file, checked once per type, so that `fill_missing` and `n_missing` can be rewritten in Zeff | 0.7.0 |
 | 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | 0.7.0 |
 | 70 | A note or a coded warning from a Zeff-written built-in | A `note(message)` function beside `warn`, a `code:` option on both, and the name of a `Var` as text (`name_of(v)`), so that `drop_missing` can be rewritten in Zeff with its note and `skewness` can raise W0205 | 0.7.0 |
+| 71 | The fitted design through the result interface | A `design()` method giving the kept design as a frame of the rows used, so that `vif` and later diagnostics can be written in Zeff | 0.7.0 |
 
 ---
 
@@ -883,3 +884,14 @@ Raised on 31 October 2026 at step 18 of release 0.5.0, widened at step 20: `skew
 | B. Keep such functions in Rust | Nothing to build | Every Zeff-written verb that reports a count stays Rust |
 
 *Recommendation.* A, at 0.7.0 with #68 and #69; the catalogue's `layer` returns to Zeff for row 121 then.
+
+### 71. The fitted design through the result interface
+
+Raised on 31 October 2026 at step 21 of release 0.5.0. `vif` regresses each column of the design a fit used on the other columns; a script has the fit's estimates, variances, residuals, fitted values and leverages through the result interface (section 8.1, rule 5) but not the design, so the function was planned in Zeff and is written in Rust at 0.5.0 on the Gram matrix the fit now keeps, its `layer` corrected (logged). Later diagnostics in Zeff (partial residual plots, added-variable plots, leverage against the regressors) meet the same wall.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. A `design()` method on every fit, giving the kept design as a frame of the rows used, the intercept and the dummy columns among them under the term names of section 7.2 | One method; every diagnostic over the design becomes ordinary Zeff over a frame, `reg` included | The frame can be large (the rows used by every term); it is derived from the fit's data, which the fit does not keep today, so either the data or the design is stored with the fit |
+| B. Keep the Gram matrix and write such diagnostics in Rust | Nothing stored beyond k × k numbers | Every design diagnostic stays Rust |
+
+*Recommendation.* A, at 0.7.0 with the plot grammar, which needs the design for its result plots; the catalogue's `layer` returns to Zeff for row 248 then.

@@ -143,3 +143,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 21 `[function]`: `vif`.
 
 **For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).
+
+## 31 October 2026, step 21 of release 0.5.0
+
+**Done.** Step 21 `[function]`: `vif` (catalogue row 248 implemented) in Rust, the layer corrected and logged with open decision #71 (the fitted design through the result interface, by 0.7.0): the fit value carries the Gram matrix of its kept design and its inverse, computed from the QR's scaled R factor; the factor is the centred form with an intercept and the uncentred one without; the table of question 3 (b) with a categorical regressor's columns on their own rows and the collinear terms named under it; the page; the six rulings in `docs/decisions.md`. Tests: the R reference `vif.R` (five models over the wages and wage1, every model-matrix column within 1e-10); the regress crate's `vif.rs` (the agreement, one regressor and an orthogonal one at factor 1, and the property that rescaling a regressor changes no factor); the engine's `vif.rs` (the tables on the wages, a near-collinear pair, the intercept alone, a term dropped as collinear, every message); the identity case `control/vif`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 22 `[function]`: `summary` rewritten in Zeff.
+
+**For the owner to decide.** Nothing new (#67 by 0.6.0; #68 to #71 by 0.7.0).

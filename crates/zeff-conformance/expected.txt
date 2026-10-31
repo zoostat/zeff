@@ -127,6 +127,8 @@ control/attempt/stdout 515eb37b724d8bfa
 control/attempt/stderr 472a84d99b1b579d
 control/collections_basics/stdout 0b15b0ef80f5deb9
 control/collections_basics/stderr a780d105e9c2daac
+control/vif/stdout cb231bc5bd3963b4
+control/vif/stderr cbf29ce484222325
 control/moments/stdout 556d89db012b5b98
 control/moments/stderr 02002f04da4e90bb
 control/spread/stdout ede5c48e00baab72

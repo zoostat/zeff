@@ -905,6 +905,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // `vif` of step 21: the factors of a textbook model, a categorical regressor's columns, a
+        // fit without an intercept, and one regressor.
+        (
+            "vif",
+            "let w = dataset(wages)\nlet m1 = w.reg(log(wage) ~ educ + exper + exper^2 + female)\nm1.vif()\nlet m2 = w.reg(log(wage) ~ educ + industry)\nm2.vif()\nlet m3 = w.reg(log(wage) ~ educ + exper - 1)\nm3.vif()\nw.reg(log(wage) ~ educ).vif()\n",
+        ),
         // `skewness` and `kurtosis` of step 20: the four forms on a small sample, a symmetric one,
         // two values, no spread, and the wages.
         (

@@ -1,0 +1,30 @@
+---
+source: crates/zeff-engine/tests/vif.rs
+expression: text
+---
+## not_a_fit (exit 1)
+error[Z0401]: `vif` cannot be called on an Int
+ --> scripts/main.zeff:1:5
+  |
+1 | vif(3)
+  |     ^ this is an Int
+  |
+  = help: usage: `fit.vif()`
+
+## a_test_result (exit 1)
+error[Z0401]: `vif` cannot be called on a TestResult
+ --> scripts/main.zeff:2:1
+  |
+2 | w.reg(log(wage) ~ educ).test(educ == 0).vif()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is a TestResult
+  |
+  = help: `vif` takes a RegFit first; `x.vif(...)` is `vif(x, ...)`
+
+## intercept_only (exit 0)
+vif · y ~ 1
+
+  term   vif
+
+no regressor beside the intercept
+warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row

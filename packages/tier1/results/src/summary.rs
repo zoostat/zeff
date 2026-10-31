@@ -117,6 +117,30 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
                 + zeff_numeric::maths::log(rss / n_obs));
     let sigma = (rss / residual_df).sqrt();
     let (term_sd, outcome_sd) = deviations(design, fitted);
+    // The Gram matrix and its inverse from the scaled R factor: XᵀX = D⁻¹ RᵀR D⁻¹ and
+    // (XᵀX)⁻¹ = D R⁻¹ R⁻ᵀ D, with D the kept columns' scales.
+    let gram: Vec<f64> = (0..k)
+        .flat_map(|i| (0..k).map(move |j| (i, j)))
+        .map(|(i, j)| {
+            let mut sum = 0.0;
+            for l in 0..k {
+                sum += fitted.r.get(l, i) * fitted.r.get(l, j);
+            }
+            sum / (fitted.scales[i] * fitted.scales[j])
+        })
+        .collect();
+    let inverse_r = zeff_kernels::triangular::inverse_upper(&fitted.r)
+        .expect("the accepted pivots are not zero");
+    let inverse_gram: Vec<f64> = (0..k)
+        .flat_map(|i| (0..k).map(move |j| (i, j)))
+        .map(|(i, j)| {
+            let mut sum = 0.0;
+            for l in 0..k {
+                sum += inverse_r.get(i, l) * inverse_r.get(j, l);
+            }
+            sum * fitted.scales[i] * fitted.scales[j]
+        })
+        .collect();
     let summary = summary_of(
         design,
         &terms,
@@ -172,6 +196,8 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         frame_rows: setting.frame_rows,
         weights: design.weights.clone(),
         weight_kind: design.weight_kind,
+        gram,
+        inverse_gram,
     }
 }
 

@@ -1,0 +1,147 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R; numbers written with 15 significant digits"
+ },
+ "cases": [
+  {
+   "data": "wages",
+   "formula": "log(wage) ~ educ + exper + exper^2 + female",
+   "intercept": true,
+   "factors": [
+    {
+     "term": "educ",
+     "vif": "1.1177347274799245"
+    },
+    {
+     "term": "exper",
+     "vif": "14.100596686691629"
+    },
+    {
+     "term": "I(exper^2)",
+     "vif": "14.007531802708209"
+    },
+    {
+     "term": "female",
+     "vif": "1.0009067025093117"
+    }
+   ]
+  },
+  {
+   "data": "wages",
+   "formula": "log(wage) ~ educ + industry",
+   "intercept": true,
+   "factors": [
+    {
+     "term": "educ",
+     "vif": "1.0046678562802818"
+    },
+    {
+     "term": "industryConstruction",
+     "vif": "3.4586477331172465"
+    },
+    {
+     "term": "industryEducation",
+     "vif": "3.7799233828835996"
+    },
+    {
+     "term": "industryFinance",
+     "vif": "3.5915543552394342"
+    },
+    {
+     "term": "industryHealth",
+     "vif": "4.370902285120315"
+    },
+    {
+     "term": "industryManufacturing",
+     "vif": "5.0048292242322354"
+    },
+    {
+     "term": "industryMining",
+     "vif": "1.3624358020177776"
+    },
+    {
+     "term": "industryPublic administration",
+     "vif": "3.3831532901654908"
+    },
+    {
+     "term": "industryRetail",
+     "vif": "5.3789370762089046"
+    },
+    {
+     "term": "industryServices",
+     "vif": "5.093872876211158"
+    },
+    {
+     "term": "industryTransport",
+     "vif": "2.6728315480522329"
+    },
+    {
+     "term": "industryUtilities",
+     "vif": "1.6596140938905923"
+    }
+   ]
+  },
+  {
+   "data": "wages",
+   "formula": "log(wage) ~ educ + exper - 1",
+   "intercept": false,
+   "factors": [
+    {
+     "term": "educ",
+     "vif": "3.6880316829572215"
+    },
+    {
+     "term": "exper",
+     "vif": "3.6880316829572544"
+    }
+   ]
+  },
+  {
+   "data": "wage1",
+   "formula": "lwage ~ educ + exper + tenure",
+   "intercept": true,
+   "factors": [
+    {
+     "term": "educ",
+     "vif": "1.1127707502838837"
+    },
+    {
+     "term": "exper",
+     "vif": "1.4776177726317792"
+    },
+    {
+     "term": "tenure",
+     "vif": "1.3492955605611774"
+    }
+   ]
+  },
+  {
+   "data": "wage1",
+   "formula": "lwage ~ educ + exper + exper^2 + tenure + female",
+   "intercept": true,
+   "factors": [
+    {
+     "term": "educ",
+     "vif": "1.1476547774452028"
+    },
+    {
+     "term": "exper",
+     "vif": "13.866476964032387"
+    },
+    {
+     "term": "I(exper^2)",
+     "vif": "13.49553338634739"
+    },
+    {
+     "term": "tenure",
+     "vif": "1.4086795786016366"
+    },
+    {
+     "term": "female",
+     "vif": "1.0527010115010402"
+    }
+   ]
+  }
+ ]
+}

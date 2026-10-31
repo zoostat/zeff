@@ -1766,3 +1766,16 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 6. *The generated "Warnings and notes"* of these pages is long, since the bodies call `to`, `warn`, `where`, `add` and the reducers; the step 16 note stands: the list is the mechanical union, to be narrowed when `zeff test` runs a page's examples (0.7.0).
 
 **Reason.** Engine and Project Specification, section 13 (the closed-form class, `data` checked against R and Stata); catalogue rows 151 and 152; the checklist's step 20 and questions 3 (d) and 5.
+
+## 31 October 2026: `vif` (release 0.5.0, step 21)
+
+**Choice.** A Rust result method in `regress/src/diagnostics.rs` on the Gram matrix of the kept design, which the fit value now carries; its catalogue `layer` corrected from Zeff to Rust with the reason (logged) and the missing piece recorded as open decision #71. Six rulings:
+
+1. *Why Rust.* The factor needs the design a fit used, which no method of the result interface gives a script, as the checklist foresaw; #71 (a `design()` method, deadline 0.7.0 with the plot grammar) is the door, and until then every diagnostic over the design is Rust.
+2. *The fit keeps its Gram matrix.* `Fit` gains `gram` (XᵀX of the kept columns, in the units of the data, the weighted design under weights) and `inverse_gram`, both k × k row-major, computed at the fit from the scaled R factor of the QR (XᵀX = D⁻¹RᵀRD⁻¹, its inverse D R⁻¹R⁻ᵀ D, as the sandwich's bread is), so no second pass over the data is made and the fit's data need not be kept. A shared type of `core` grows by two fields (section 8.1, rule 4).
+3. *The factor.* With an intercept, VIFⱼ = (G⁻¹)ⱼⱼ (Gⱼⱼ − G₀ⱼ² / G₀₀), the centred form that is 1 / (1 − R²ⱼ); without one, (G⁻¹)ⱼⱼ Gⱼⱼ, the uncentred form Stata's `estat vif` gives after `noconstant`; the intercept has no factor; a term dropped as collinear has no estimate and no row, and is named in a line under the table; a fit with only the intercept gives an empty table with that said.
+4. *The table* is question 3 (b)'s: `vif · m1` (the fit's name, or its formula when unbound), the columns `term` and `vif` to three decimals, each column of a categorical regressor on its own row under its section 7.2 name (`industry=Mining`); the generalised factor of a whole categorical term is a later addition, as the question said.
+5. *Against R*, 1 / (1 − R²ⱼ) from `lm` on every model-matrix column agrees within a relative 1e-10 on five models over the shipped wages (a textbook model with `exper^2`, a categorical regressor with eleven dummy columns, a fit without an intercept) and Wooldridge's wage1, matched by name (`industry=Mining` to `industryMining`, `exper^2` to `I(exper^2)`); rescaling a regressor changes no factor and a regressor orthogonal to the rest has factor 1.
+6. *The page's example* runs on the wages, since a six-row frame earns the influence warning a page's example must not print.
+
+**Reason.** Engine and Project Specification, sections 8.1 (rules 4 and 5) and 13; Language Reference, section 7.2; catalogue row 248; the checklist's step 21, question 3 (b) and the layer ruling.
