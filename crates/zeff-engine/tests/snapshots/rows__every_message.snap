@@ -1,0 +1,66 @@
+---
+source: crates/zeff-engine/tests/rows.rs
+expression: text
+---
+## bool_variable (exit 1)
+error[Z0401]: `row_sum` takes Int and Float variables, but `f` is a Bool
+ --> scripts/main.zeff:2:19
+  |
+2 | d.add(s = row_sum([f, x]))
+  |                   ^^^^^^ `f` is not a number
+  |
+  = help: Bool is not a number; `to(x, Int)` turns true and false into 1 and 0
+
+## text_variable (exit 1)
+error[Z0401]: `row_mean` takes Int and Float variables, but `s` is a Str
+ --> scripts/main.zeff:2:20
+  |
+2 | d.add(m = row_mean([s, x]))
+  |                    ^^^^^^ `s` is not a number
+  |
+  = help: `row_mean` adds numbers; convert the variable first, or leave it out
+
+## outside_a_frame_method (exit 1)
+error[Z0401]: `row_sum` reads the variables of a frame and stands inside `add` or `update`
+ --> scripts/main.zeff:1:1
+  |
+1 | row_sum(vars(a, b))
+  | ^^^^^^^ no frame here
+  |
+  = help: write it inside a definition, as in `wages.add(score = row_sum([q1, q2, q3]))`
+
+## min_valid_zero (exit 1)
+error[Z0401]: `min_valid:` of `row_mean` cannot be 0
+ --> scripts/main.zeff:2:41
+  |
+2 | d.add(m = row_mean([q1, q2], min_valid: 0))
+  |                                         ^ fewer than one value
+  |
+  = help: a row needs at least one value for a mean; `min_valid:` is 1 unless given
+
+## min_valid_na (exit 1)
+error[Z0401]: `min_valid:` of `row_mean` cannot be NA
+ --> scripts/main.zeff:2:41
+  |
+2 | d.add(m = row_mean([q1, q2], min_valid: to(NA, Int)))
+  |                                         ^^^^^^^^^^^ NA
+  |
+  = help: `min_valid:` is the number of values a row needs for a mean; 1 unless given
+
+## unknown_variable (exit 1)
+error[Z0101]: no variable `nope` in `d`
+ --> scripts/main.zeff:2:20
+  |
+2 | d.add(m = row_mean([q1, nope]))
+  |                    ^^^^^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: q1, q2, q3
+
+## backwards_range (exit 1)
+error[Z0401]: the range `q3..q1` runs backwards: `q1` comes before `q3` in d
+ --> scripts/main.zeff:2:20
+  |
+2 | d.add(m = row_mean([q3..q1]))
+  |                    ^^^^^^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables of d, in order: q1, q2, q3

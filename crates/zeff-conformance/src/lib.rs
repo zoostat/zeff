@@ -905,6 +905,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // `row_mean` and `row_sum` of step 17 inside `add`: a list and a range of variables,
+        // `min_valid:`, rows with every value missing, and a dataset's scale.
+        (
+            "rows",
+            "let d = frame(q1 = [5, 4, NA, 1.5], q2 = [3, NA, NA, 2.5], q3 = [4, 4, NA, 1e12])\nd.add(m = row_mean([q1, q2, q3]), m2 = row_mean([q1..q3], min_valid: 2), s = row_sum([q1, q2, q3]))\nlet w = dataset(wages)\nw.add(hw = row_sum([hours, wage]), pay = row_mean([wage, educ, exper], min_valid: 3)).summary([hw, pay])\n",
+        ),
         // The column functions of the data package written in Zeff (step 16): `between` on a
         // column with `NA`, `center` and `standardize` on columns, inside `add` and over a dataset.
         (

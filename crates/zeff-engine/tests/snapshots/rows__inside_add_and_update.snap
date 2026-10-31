@@ -1,0 +1,23 @@
+---
+source: crates/zeff-engine/tests/rows.rs
+expression: out
+---
+frame · 4 rows × 5 variables
+
+      q1   q2   q3    m    s
+  1    5    3    4    4   12
+  2    4   NA    4    4    8
+  3   NA   NA   NA   NA   NA
+  4   NA    2    6    4    8
+frame · 4 rows × 4 variables
+
+      q1   q2   q3    m
+  1    5    3    4    4
+  2    4   NA    4    4
+  3   NA   NA   NA   NA
+  4   NA    2    6    4
+Column<Float> · 4 values
+9
+8
+NA
+6

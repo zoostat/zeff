@@ -100,6 +100,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 66 | A published speed comparison with Stata MP and R | At 1.1, when threads arrive, on the owner's machine; reported in the release notes, never a gate | 1.1 |
 | 67 | The default `level:` of `ci()` on a fit made at another level | The fit's level, so that `ci()` agrees with the summary; `level:` written overrides it | 0.6.0 |
 | 68 | A parameter of several types in a Zeff-written built-in | Allow the registry's `A \| B` in the `fn` line of a built-in's file, checked once per type, so that `fill_missing` and `n_missing` can be rewritten in Zeff | 0.7.0 |
+| 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | 0.7.0 |
 
 ---
 
@@ -858,3 +859,15 @@ Raised on 31 October 2026 at step 15 of release 0.5.0. A built-in written in Zef
 | C. Keep them in Rust | Nothing to build | The count of Zeff-written built-ins stays below the plan and the language cannot express two of its own simplest functions |
 
 *Recommendation.* A, at 0.7.0 with `zeff test` and `zeff fmt`, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for both rows then.
+
+### 69. Access to the enclosing frame from a Zeff-written built-in
+
+Raised on 31 October 2026 at step 17 of release 0.5.0. `row_mean([q1, q2, q3])` inside `add` reads three variables of the frame whose method encloses the call; a Rust body reads them from the call's context, but a function written in Zeff sees its parameters and other functions only (section 5.3, "Scope"), and a `Vars` parameter is a list of names with no frame to look them up in. Both row functions were planned in Zeff and are written in Rust at 0.5.0, their `layer` corrected (logged). The same limit will meet every Zeff-written column function that takes variables rather than a column.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. An implicit parameter: a built-in's `fn` line may declare `data: Frame` as its first parameter marked as the enclosing frame (a spelling to choose), which the checker supplies from the frame method the call stands in, Z0401 outside one as `n()` gives | The body is ordinary Zeff over a frame it was given, `data.add(...)` and the reducers included; the registry's usage line stays `row_mean(vars, ...)` | A new piece of signature grammar for built-ins only; the checker must know which frame (the group's rows under `by:`, as the Rust context gets) |
+| B. Change the usage to a frame method, `data.row_mean(vars)`, so that the frame is an ordinary argument | No new grammar; the body is ordinary Zeff | `wages.add(score = wages.row_mean([q1, q2]))` repeats the frame and breaks under `by:`; the catalogue's usage changes |
+| C. Keep them in Rust | Nothing to build | Every column function over variables stays Rust |
+
+*Recommendation.* A, at 0.7.0 with open decision #68, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for both rows then.

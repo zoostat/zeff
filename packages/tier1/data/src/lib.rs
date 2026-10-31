@@ -7,6 +7,7 @@ pub mod labels;
 pub mod look;
 pub mod names;
 pub mod reducers;
+pub mod rows;
 pub mod verbs;
 
 use zeff_core::runtime::Function;
@@ -834,6 +835,43 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: reducers::summary,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "row_mean",
+                package: "data",
+                method: false,
+                params: vec![
+                    ParamSpec::required("vars", "Vars"),
+                    ParamSpec::option_with_default("min_valid", "Int", "1"),
+                ],
+                rest: None,
+                returns: "Column<Float>",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "outside add or update, a variable that is not an Int or a Float, or min_valid: below 1",
+                )],
+                help: include_str!("../help/row_mean.md"),
+                accuracy: None,
+            },
+            body: rows::row_mean,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "row_sum",
+                package: "data",
+                method: false,
+                params: vec![ParamSpec::required("vars", "Vars")],
+                rest: None,
+                returns: "Column<Float>",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "outside add or update, or a variable that is not an Int or a Float",
+                )],
+                help: include_str!("../help/row_sum.md"),
+                accuracy: None,
+            },
+            body: rows::row_sum,
         },
     ]
 }

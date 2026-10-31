@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: out(&o)
 ---
-data · tier 1 · 31 of 59 functions in this release
+data · tier 1 · 33 of 59 functions in this release
 
   frame         Create a frame from named lists of values
   import        Read a data file into a frame
@@ -32,6 +32,8 @@ data · tier 1 · 31 of 59 functions in this release
   n             Row count, as a reducer inside add and aggregate
   n_distinct    Number of distinct values
   summary       Table of N, missing, mean, SD, min and max
+  row_mean      Mean across variables in each row
+  row_sum       Sum across variables in each row
   between       True where low <= x <= high
   center        Subtract the mean
   standardize   z-scores

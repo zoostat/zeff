@@ -82,8 +82,6 @@ error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:181:15
 error[Z0103]: no function is called `reliability`
  --> zeff_samples.zeff:194:8
-error[Z0103]: no function is called `row_mean`
- --> zeff_samples.zeff:195:38
 error[Z0304]: a `dag { }` block is not available in this release
  --> zeff_samples.zeff:200:9
 error[Z0103]: no function is called `adjustment_sets`

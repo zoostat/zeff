@@ -103,3 +103,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 17 `[function]`: `drop_missing`.
 
 **For the owner to decide.** Nothing new (#67 by 0.6.0; #68 by 0.7.0).
+
+## 31 October 2026, step 17 of release 0.5.0
+
+**Done.** Step 17 `[function]`: `row_mean` and `row_sum` (catalogue rows 136 and 137 implemented) in Rust, the layer corrected and logged with open decision #69 (an implicit frame for a Zeff-written built-in, by 0.7.0): a mean and a compensated sum across the variables named in each row inside `add` or `update`, a list or a range of variables, `NA` where no value is present (never 0) and where fewer than `min_valid:` are, Int and Float variables only with a Bool refused by arithmetic's hint, the group's rows under `by:`; the two pages; the seven rulings in `docs/decisions.md`, among them a finding about the kernel's corrected mean on a row whose values cancel (8e-12 relative from the exact mean where the plain quotient is exact), left for the review of R3 at the close and the next kernel step. Tests: the R reference `rows.R` (`rowMeans`, `rowSums` and the `min_valid` rule on four matrices, within 1e-12 of the largest input, R's 0 for an empty row named as Zeff's `NA`); the engine's `rows.rs` (inside `add` and `update`, a range, one variable, an all-`NA` row, `min_valid:` above the count, Ints, `by:`, every refusal, every message, and the properties that `row_sum` over k copies is k × x and that `row_mean` with `min_valid: k` over k variables is `NA` wherever any is); the identity case `control/rows`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 18 `[function]`: `drop_missing`.
+
+**For the owner to decide.** Nothing new (#67 by 0.6.0; #68 and #69 by 0.7.0).
