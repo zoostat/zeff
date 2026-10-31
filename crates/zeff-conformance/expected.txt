@@ -184,3 +184,7 @@ regression/exit_code a8c7f832281a39c5
 regression/output/model5.tex 50a2cb894ae38f0c
 regression/output/table1.docx 38433d13dd4d1591
 regression/output/table1.tex 6cf45d170a0e5e55
+user_functions/stdout ff3b830c5e0d0434
+user_functions/stderr b7a40c77d9a4785f
+user_functions/exit_code a8c7f832281a39c5
+# user_functions/exit_code bits 0000000000000000

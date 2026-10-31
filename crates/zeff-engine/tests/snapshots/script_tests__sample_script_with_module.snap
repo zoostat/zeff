@@ -1,0 +1,116 @@
+---
+source: crates/zeff-engine/tests/script_tests.rs
+expression: all
+---
+error[Z0103]: no function is called `panel`
+ --> zeff_samples.zeff:41:6
+error[Z0103]: no function is called `tabulate`
+ --> zeff_samples.zeff:53:7
+error[Z0103]: no function is called `histogram`
+ --> zeff_samples.zeff:56:7
+error[Z0404]: `export` has no argument called `size`
+ --> zeff_samples.zeff:56:77
+error[Z0103]: no function is called `scatter`
+ --> zeff_samples.zeff:57:7
+error[Z0103]: no function is called `to_long`
+ --> zeff_samples.zeff:64:6
+error[Z0103]: no function is called `merge`
+ --> zeff_samples.zeff:65:6
+error[Z0103]: no function is called `aggregate`
+ --> zeff_samples.zeff:68:30
+error[Z0103]: no function is called `save`
+ --> zeff_samples.zeff:72:36
+error[Z0103]: no function is called `diff`
+ --> zeff_samples.zeff:77:37
+error[Z0103]: no function is called `lag`
+ --> zeff_samples.zeff:78:35
+error[Z0103]: no function is called `winsorize`
+ --> zeff_samples.zeff:79:33
+error[Z0404]: `reg` has no argument called `fe`
+ --> zeff_samples.zeff:88:23
+error[Z0404]: `reg` has no argument called `fe`
+ --> zeff_samples.zeff:89:37
+error[Z0404]: `reg` has no argument called `fe`
+ --> zeff_samples.zeff:90:23
+error[Z0103]: no function is called `coef_plot`
+ --> zeff_samples.zeff:102:4
+error[Z0404]: `export` has no argument called `size`
+ --> zeff_samples.zeff:102:46
+error[Z0404]: `reg` has no argument called `fe`
+ --> zeff_samples.zeff:109:42
+error[Z0103]: no function is called `ivreg`
+ --> zeff_samples.zeff:141:15
+error[Z0103]: no function is called `first_stage`
+ --> zeff_samples.zeff:146:4
+error[Z0404]: `reg` has no argument called `fe`
+ --> zeff_samples.zeff:147:58
+error[Z0103]: no function is called `panel`
+ --> zeff_samples.zeff:153:44
+error[Z0404]: `reg` has no argument called `fe`
+ --> zeff_samples.zeff:154:45
+error[Z0103]: no function is called `t_test`
+ --> zeff_samples.zeff:160:7
+error[Z0103]: no function is called `t_test`
+ --> zeff_samples.zeff:161:7
+error[Z0103]: no function is called `wilcoxon_test`
+ --> zeff_samples.zeff:162:7
+error[Z0103]: no function is called `anova`
+ --> zeff_samples.zeff:163:7
+error[Z0103]: no function is called `chi2_test`
+ --> zeff_samples.zeff:164:7
+error[Z0103]: no function is called `proportion_test`
+ --> zeff_samples.zeff:165:7
+error[Z0103]: no function is called `t_test`
+ --> zeff_samples.zeff:169:11
+error[Z0103]: no function is called `p_adjust`
+ --> zeff_samples.zeff:171:1
+error[Z0103]: no function is called `logistic`
+ --> zeff_samples.zeff:176:16
+error[Z0103]: no function is called `probit`
+ --> zeff_samples.zeff:177:16
+error[Z0103]: no function is called `logistic`
+ --> zeff_samples.zeff:179:17
+error[Z0103]: no function is called `logistic`
+ --> zeff_samples.zeff:180:17
+error[Z0103]: no function is called `logistic`
+ --> zeff_samples.zeff:192:15
+error[Z0103]: no function is called `reliability`
+ --> zeff_samples.zeff:205:8
+error[Z0304]: a `dag { }` block is not available in this release
+ --> zeff_samples.zeff:211:9
+error[Z0103]: no function is called `adjustment_sets`
+ --> zeff_samples.zeff:218:3
+error[Z0103]: no function is called `implied_independencies`
+ --> zeff_samples.zeff:219:3
+error[Z0103]: no function is called `plot`
+ --> zeff_samples.zeff:220:3
+error[Z0404]: `export` has no argument called `size`
+ --> zeff_samples.zeff:220:39
+error[Z0103]: no function is called `check`
+ --> zeff_samples.zeff:224:4
+error[Z0103]: no function is called `scatter`
+ --> zeff_samples.zeff:237:7
+error[Z0103]: no function is called `plot`
+ --> zeff_samples.zeff:238:1
+error[Z0103]: no function is called `points`
+ --> zeff_samples.zeff:239:6
+error[Z0103]: no function is called `facet`
+ --> zeff_samples.zeff:240:6
+error[Z0103]: no function is called `scale_y`
+ --> zeff_samples.zeff:241:6
+error[Z0103]: no function is called `labels`
+ --> zeff_samples.zeff:242:6
+error[Z0103]: no function is called `theme`
+ --> zeff_samples.zeff:243:6
+error[Z0404]: `export` has no argument called `size`
+ --> zeff_samples.zeff:244:37
+error[Z0103]: no function is called `aggregate`
+ --> zeff_samples.zeff:246:19
+error[Z0103]: no function is called `plot`
+ --> zeff_samples.zeff:247:1
+error[Z0103]: no function is called `bars`
+ --> zeff_samples.zeff:248:6
+error[Z0103]: no function is called `errorbars`
+ --> zeff_samples.zeff:249:6
+error[Z0103]: no function is called `legend`
+ --> zeff_samples.zeff:250:6

@@ -165,3 +165,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 23 `[engine]`: the script tests and the sample project of the release.
 
 **For the owner to decide.** Nothing new; #72 joins #67 for 0.6.0 (recommendation A), and #68 to #71 stand for 0.7.0.
+
+## 31 October 2026, step 23 of release 0.5.0
+
+**Done.** Step 23 `[engine]`: the sample project `samples/user_functions` (two modules with complete pages, `use`, `if` and `case`, loops over variables and subsamples, `attempt` with one failing subsample, Huber's location by `iterate`, `assert`), its stored output read by eye and compared byte for byte by the command-line test, the conformance crate and the report (three new cases, 5 samples); the script tests `script_tests.rs` (the statements of sections 5.1 to 5.5 in one script, the help document's runnable examples, the specification's sample script checked with its section 6 module, whose page the sample file now completes, logged); the checker fuzz target on module-and-script inputs with the dictionary `fuzz/zeff.dict` and the job's seeds extended; the language tooling's total in the weekly coverage report; the Z0304 page listing the remaining refusals (`dag`, `model`, `as`, third-party `use`); R5's count recorded (114 codes, each with a snapshot and a page, 20 added at this release); the rulings in `docs/decisions.md`. Local fuzzing before the commit: checker 50 minutes, parser 30, lexer 10, no finding.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`: 1,015 tests over 154 targets, none failing), the tier and message checks and the conformance report pass locally; CI and the nightly job started by hand on the commit to be read after the push, and the step ticked when both are green.
+
+**Next.** Step 24a, the pre-release routine (testing handbook, section 2.4).
+
+**For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).

@@ -168,9 +168,13 @@ jobs:
           mkdir -p fuzz/corpus/lexer fuzz/corpus/parser fuzz/corpus/checker fuzz/corpus/csv fuzz/corpus/distribution fuzz/corpus/formula
           for target in lexer parser checker; do
             cp docs/spec/zeff_samples.zeff "fuzz/corpus/$target/"
-            for script in samples/*/scripts/main.zeff; do
+            for script in samples/*/scripts/main.zeff samples/*/functions/*.zeff packages/*/*/functions/*.zeff; do
               cp "$script" "fuzz/corpus/$target/$(echo "$script" | tr '/' '_')"
             done
+          done
+          # A module and a script in one checker input, split by a NUL byte (the target's rule).
+          for module in samples/user_functions/functions/*.zeff; do
+            { cat "$module"; printf '\000'; cat samples/user_functions/scripts/main.zeff; } > "fuzz/corpus/checker/project_$(basename "$module")"
           done
           for file in tests/datasets/*.csv samples/data_cleaning/data/staff_de.csv; do
             # Four option bytes (delimiter detected, quote `"`, decimal `.`, header) before the file.
@@ -190,7 +194,10 @@ jobs:
           status=0
           for target in lexer parser checker csv distribution formula; do
             echo "::group::$target"
-            if ! cargo +nightly fuzz run --target x86_64-unknown-linux-gnu "$target" -- -max_total_time=600 -timeout=20 2>&1 | tee "fuzz-$target.log" | tail -5; then
+            # The language targets take the dictionary of the language's words.
+            dict=""
+            case "$target" in lexer|parser|checker) dict="-dict=zeff.dict" ;; esac
+            if ! cargo +nightly fuzz run --target x86_64-unknown-linux-gnu "$target" -- -max_total_time=600 -timeout=20 $dict 2>&1 | tee "fuzz-$target.log" | tail -5; then
               status=1
             fi
             echo "::endgroup::"
@@ -204,7 +211,7 @@ jobs:
           {
             echo "## Nightly: fuzzing"
             echo
-            echo "Each target ran for ten minutes under libFuzzer (nightly toolchain, fuzz targets only)."
+            echo "Each target ran for ten minutes under libFuzzer (nightly toolchain, fuzz targets only); the lexer, parser and checker with the dictionary of the language's words, the checker also on module-and-script inputs."
             echo "A crash leaves its input under \`artifacts/<target>/\`; it becomes a regression test (testing handbook, section 1)."
             echo
             echo '```'

@@ -235,6 +235,8 @@ pub struct Sample {
     pub manifest: &'static str,
     /// The data files, as `data/<file>`, in the bytes the project holds (one is Windows-1252).
     pub data: &'static [(&'static str, &'static [u8])],
+    /// The modules of `functions/`, as (name, text).
+    pub modules: &'static [(&'static str, &'static str)],
     pub script: &'static str,
     /// What the sample must print, as stored.
     pub stdout: &'static str,
@@ -249,6 +251,7 @@ pub const FIRST_ENGINE: Sample = Sample {
         "wages.csv",
         include_bytes!("../../../samples/first_engine/data/wages.csv"),
     )],
+    modules: &[],
     script: include_str!("../../../samples/first_engine/scripts/main.zeff"),
     stdout: include_str!("../../../samples/first_engine/expected/stdout.txt"),
     stderr: include_str!("../../../samples/first_engine/expected/stderr.txt"),
@@ -263,6 +266,7 @@ pub const DATA_CLEANING: Sample = Sample {
         "staff_de.csv",
         include_bytes!("../../../samples/data_cleaning/data/staff_de.csv"),
     )],
+    modules: &[],
     script: include_str!("../../../samples/data_cleaning/scripts/main.zeff"),
     stdout: include_str!("../../../samples/data_cleaning/expected/stdout.txt"),
     stderr: include_str!("../../../samples/data_cleaning/expected/stderr.txt"),
@@ -273,6 +277,7 @@ pub const SIMULATION: Sample = Sample {
     name: "simulation",
     manifest: include_str!("../../../samples/simulation/zeff.toml"),
     data: &[],
+    modules: &[],
     script: include_str!("../../../samples/simulation/scripts/main.zeff"),
     stdout: include_str!("../../../samples/simulation/expected/stdout.txt"),
     stderr: include_str!("../../../samples/simulation/expected/stderr.txt"),
@@ -284,14 +289,43 @@ pub const REGRESSION: Sample = Sample {
     name: "regression",
     manifest: include_str!("../../../samples/regression/zeff.toml"),
     data: &[],
+    modules: &[],
     script: include_str!("../../../samples/regression/scripts/main.zeff"),
     stdout: include_str!("../../../samples/regression/expected/stdout.txt"),
     stderr: include_str!("../../../samples/regression/expected/stderr.txt"),
 };
 
+/// The sample of release 0.5.0: the project's own functions in two modules of `functions/`,
+/// brought in with `use`, with loops over variables and subsamples, `attempt`, `iterate`, `if`
+/// and `case`, on the shipped wages.
+pub const USER_FUNCTIONS: Sample = Sample {
+    name: "user_functions",
+    manifest: include_str!("../../../samples/user_functions/zeff.toml"),
+    data: &[],
+    modules: &[
+        (
+            "share_missing",
+            include_str!("../../../samples/user_functions/functions/share_missing.zeff"),
+        ),
+        (
+            "robustness",
+            include_str!("../../../samples/user_functions/functions/robustness.zeff"),
+        ),
+    ],
+    script: include_str!("../../../samples/user_functions/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/user_functions/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/user_functions/expected/stderr.txt"),
+};
+
 /// Every sample project, oldest first; each adds three cases to the report, and one more for
 /// every file it writes under `output/`.
-pub const SAMPLES: [&Sample; 4] = [&FIRST_ENGINE, &DATA_CLEANING, &SIMULATION, &REGRESSION];
+pub const SAMPLES: [&Sample; 5] = [
+    &FIRST_ENGINE,
+    &DATA_CLEANING,
+    &SIMULATION,
+    &REGRESSION,
+    &USER_FUNCTIONS,
+];
 
 /// Run a sample project on an in-memory copy of its files.
 pub fn sample_run(sample: &Sample) -> zeff_engine::run::Outcome {
@@ -313,6 +347,9 @@ pub fn sample_run_with_outputs(
     fs.add_file("/s/zeff.toml", sample.manifest);
     for (file, bytes) in sample.data {
         fs.add_file(format!("/s/data/{file}"), *bytes);
+    }
+    for (name, text) in sample.modules {
+        fs.add_file(format!("/s/functions/{name}.zeff"), *text);
     }
     fs.add_file("/s/scripts/main.zeff", sample.script);
     let outcome = match Project::open(&fs, Path::new("/s")) {

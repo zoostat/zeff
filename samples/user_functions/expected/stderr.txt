@@ -1,0 +1,7 @@
+warning: 211 rows with NA in lwage and 22 with NA in exper were skipped (line 27)
+note: 267 rows with NA in wage, exper or hours dropped (line 32)
+note: 38 of the 3,911 clusters hold one observation (line 42)
+note: no row kept: the result is empty (line 47)
+warning: 1 of 4 fits failed (Z0801 at line 48) and was skipped (line 50)
+  = help: the table uses the fits that succeeded; `x.is(Failed)` tells which failed
+note: 9 passes until done (line 70)

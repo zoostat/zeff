@@ -1,0 +1,75 @@
+// The sample project of release 0.5.0: the language complete, with the project's own functions.
+// `zeff run` in this folder prints what expected/stdout.txt holds, and its messages are
+// expected/stderr.txt; the script tests compare both byte for byte on every target.
+
+// 1. The project's functions. `use` brings a module of `functions/` into the script; the two
+//    modules hold `share_missing` and `robustness`, each with its complete help page, which
+//    `zeff help share_missing` prints.
+use functions::share_missing
+use functions::robustness
+
+// 2. The data, with the columns the analysis derives. The shipped wages are a panel of workers
+//    with missing wages, experience values and hours.
+let wages = dataset(wages).add(lwage = log(wage), exper2 = exper^2)
+wages.describe()
+
+// 3. `if` decides what the script does; `case` decides values row by row.
+if wages.n_rows() < 30 {
+    warn("fewer than 30 rows: treat large-sample tests with care")
+}
+let reps = if wages.n_rows() < 500 { 5000 } else { 1000 }
+print("replications for a later bootstrap:", reps)
+let wages = wages.add(age_group = case {
+    age < 25 => "young",
+    age < 55 => "prime",
+    _        => "older",
+})
+wages.summary([lwage, exper], by: age_group)
+
+// 4. A loop over variables: the share of rows each variable is missing, through the project's
+//    own function, called as a method.
+[for v in vars(wage, exper, hours) { wages.share_missing(v) }]
+let complete = wages.drop_missing([wage, exper, hours])
+
+// 5. One model per outcome, collected into one table.
+let f = lwage ~ educ + exper + exper2 + female
+let fits = [for y in vars(lwage, hours, union) {
+    complete.reg(y ~ educ + exper + exper2 + female)
+}]
+report(fits, title: "Table 1. Three outcomes, one specification")
+
+// 6. The robustness checks of the module, clustered by the worker as its default says.
+report(complete.robustness(f), title: "Table 2. Robustness of the wage equation")
+
+// 7. Subsamples by experience, one of which has no rows: `attempt` keeps the failure as a
+//    value, `report` skips it and says so, and the loop over the fits steps over it.
+let cuts = [0, 10, 20, 40]
+let by_experience = [for cut in cuts {
+    attempt(complete.where(exper > cut).reg(f))
+}]
+report(by_experience, title: "Table 3. Workers with more than 0, 10, 20 and 40 years of experience")
+let slopes = [for m in by_experience {
+    if m.is(Failed) { continue }
+    m.coef(educ)
+}]
+slopes
+
+// 8. A fixed point by `iterate`: Huber's M-estimate of the location of the log wage, by
+//    iteratively reweighted means from the median, with the scale set once from the median
+//    absolute deviation.
+/// One reweighting step: weights of one within k of the current location, k / distance beyond.
+fn huber_step(s: Record, data: Frame, k: Float) -> Record {
+    let d = data.add(w = k / clamp(abs(lwage - s.mu), k, Inf))
+    {mu: d.mean(lwage, weights: w)}
+}
+/// True when a step moves the location by less than 1e-10.
+fn settled(old: Record, new: Record) -> Bool {
+    abs(new.mu - old.mu) < 1e-10
+}
+let k = 1.345 * complete.mad(lwage)
+let huber = iterate(start: {mu: complete.median(lwage)}, step: huber_step,
+                    args: {data: complete, k: k}, done: settled, max: 100)
+print("median:", complete.median(lwage))
+print("mean:", complete.mean(lwage))
+print("Huber location:", huber.mu)
+assert(abs(huber.mu - complete.median(lwage)) < 0.05, "the Huber location lies near the median")

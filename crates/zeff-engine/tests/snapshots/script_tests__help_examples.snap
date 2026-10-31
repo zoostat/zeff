@@ -1,0 +1,39 @@
+---
+source: crates/zeff-engine/tests/script_tests.rs
+expression: text
+---
+0.0758112
+0.00255344
+8921
+12815
+0.975002
+1.95996
+4.90671e-198
+Column<Float> · 5 values
+104.306
+78.2179
+133.723
+100.523
+114.069
+                    (1)         (2)         (3)         (4)
+  (intercept)    1.685***    1.744***    1.954***    2.067***
+                (0.089)     (0.065)     (0.071)     (0.099)
+  educ           0.078***    0.081***    0.074***    0.074***
+                (0.006)     (0.004)     (0.004)     (0.006)
+  exper          0.028***    0.022***    0.017***    0.014***
+                (0.002)     (0.001)     (0.002)     (0.002)
+  ───────────────────────────────────────────────────────────
+  SEs           classical   classical   classical   classical
+  N                 1,102       2,058       1,984       1,090
+  R²                0.199       0.190       0.142       0.139
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+0
+0.0114599
+note: zeff:wages.csv read as CSV: 18,412 rows × 10 variables, types guessed; CSV carries no labels, value labels or categories (line 2)
+note: 33 of the 3,911 clusters hold one observation (line 4)
+note: 22 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them (line 9)
+note: no row kept: the result is empty (line 16)
+warning: 1 of 5 fits failed (Z0801 at line 17) and was skipped (line 19)
+  = help: the table uses the fits that succeeded; `x.is(Failed)` tells which failed
+note: no row kept: the result is empty (line 21)

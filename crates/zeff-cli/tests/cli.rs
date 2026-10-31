@@ -551,7 +551,13 @@ fn zeff_help_refuses_an_unknown_name_with_a_hint() {
 
 #[test]
 fn every_sample_project_runs_to_its_stored_output() {
-    for name in ["first_engine", "data_cleaning", "simulation", "regression"] {
+    for name in [
+        "first_engine",
+        "data_cleaning",
+        "simulation",
+        "regression",
+        "user_functions",
+    ] {
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../samples/{name}"));
         let o = zeff(&sample, &["run"]);
         assert_eq!(code(&o), 0, "{name}: {}", err(&o));

@@ -1,0 +1,15 @@
+/// Share of rows where a variable is missing.
+///
+/// Counts the rows where `var` is `NA` and divides by the row count. An empty frame gives `NA`
+/// with a warning, never a division by zero.
+///
+/// data: The frame to check.
+/// var: The variable whose missing values are counted.
+/// returns: The share, a Float between 0 and 1.
+/// see also: n_missing, is_missing, drop_missing
+///
+/// > dataset(wages).share_missing(wage)
+/// 0.0114599
+fn share_missing(data: Frame, var: Var) -> Float {
+    data.where(is_missing(var)).n_rows() / data.n_rows()
+}

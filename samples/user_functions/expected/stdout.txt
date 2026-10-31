@@ -1,0 +1,94 @@
+wages · 18,412 rows × 12 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int              18,412         0   1
+  year       Int              18,412         0   2015
+  wage       Float            18,201       211   18.08
+  educ       Int              18,412         0   17
+  exper      Int              18,390        22   9
+  age        Int              18,412         0   32
+  hours      Float            18,377        35   45.1
+  union      Int (lab)        18,412         0   no
+  female     Int (lab)        18,412         0   male
+  industry   Category         18,412         0   Retail (12 levels)
+  lwage      Float            18,201       211   2.89481
+  exper2     Float            18,390        22   81
+replications for a later bootstrap:
+1000
+summary · by age_group
+
+  age_group   variable        N   missing     mean      sd     min      max
+  prime       lwage      16,593       198    3.226   0.475   1.261    5.026
+  young       lwage       1,608        13    2.843   0.441   1.522    4.264
+  prime       exper      16,773        18   16.213   6.821   0.000   36.000
+  young       exper       1,617         4    3.227   2.489   0.000   10.000
+0.0114599
+0.00119487
+0.00190093
+Table 1. Three outcomes, one specification
+
+                    (1)         (2)         (3)
+  (intercept)    1.787***   39.894***    0.256***
+                (0.024)     (0.440)     (0.025)
+  educ           0.076***   -0.006       0.000
+                (0.001)     (0.025)     (0.001)
+  exper          0.042***   -0.083**     0.000
+                (0.002)     (0.030)     (0.002)
+  exper2        -0.001***    0.003**     0.000***
+                (0.000)     (0.001)     (0.000)
+  female        -0.132***   -2.907***    0.012
+                (0.006)     (0.119)     (0.007)
+  ───────────────────────────────────────────────
+  SEs           classical   classical   classical
+  N                18,145      18,145      18,145
+  R²                0.210       0.032       0.010
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+Table 2. Robustness of the wage equation
+
+                    (1)              (2)         (3)
+  (intercept)    1.787***         1.787***    1.904***
+                (0.023)          (0.043)     (0.033)
+  educ           0.076***         0.076***    0.072***
+                (0.001)          (0.003)     (0.002)
+  exper          0.042***         0.042***    0.039***
+                (0.002)          (0.003)     (0.002)
+  exper2        -0.001***        -0.001***   -0.001***
+                (0.000)          (0.000)     (0.000)
+  female        -0.132***        -0.132***   -0.131***
+                (0.006)          (0.012)     (0.008)
+  ────────────────────────────────────────────────────
+  SEs              robust   cluster worker      robust
+  N                18,145           18,145      11,154
+  R²                0.210            0.210       0.172
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(2) note: 38 of the 3,911 clusters hold one observation
+Table 3. Workers with more than 0, 10, 20 and 40 years of experience
+
+                    (1)         (2)         (3)
+  (intercept)    1.787***    1.871***    2.256***
+                (0.024)     (0.052)     (0.378)
+  educ           0.076***    0.077***    0.078***
+                (0.001)     (0.002)     (0.003)
+  exper          0.042***    0.032***    0.001
+                (0.002)     (0.005)     (0.029)
+  exper2        -0.001***    0.000***    0.000
+                (0.000)     (0.000)     (0.001)
+  female        -0.133***   -0.131***   -0.115***
+                (0.006)     (0.008)     (0.013)
+  ───────────────────────────────────────────────
+  SEs           classical   classical   classical
+  N                17,805      12,640       4,772
+  R²                0.209       0.176       0.154
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+0.0760323
+0.0768122
+0.0776615
+median:
+3.19253
+mean:
+3.19219
+Huber location:
+3.19208

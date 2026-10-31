@@ -110,9 +110,20 @@ let fits = [for y in vars(lwage, hours, wage_growth) {
 }]
 report(fits).export("output/table2.docx")
 
-// functions/robustness.zeff contains:
+// functions/robustness.zeff contains (a module function carries its complete page, section 5.3):
 //
 //     /// Three standard robustness checks for one specification.
+//     ///
+//     /// Robust standard errors, errors clustered by `cluster`, and robust errors on the years
+//     /// from 2015, as a list of fits for `report`.
+//     ///
+//     /// data: The frame to fit on.
+//     /// f: The formula of the specification.
+//     /// cluster: The variable to cluster by.
+//     /// returns: The three fits.
+//     ///
+//     /// > len(dataset(wages).robustness(log(wage) ~ educ, cluster: worker))
+//     /// 3
 //     fn robustness(data: Frame, f: Formula, cluster: Var = firm) -> List<RegFit> {
 //         [
 //             data.reg(f, se: robust),

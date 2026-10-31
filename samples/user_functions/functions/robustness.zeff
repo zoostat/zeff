@@ -1,0 +1,21 @@
+/// Three standard robustness checks for one specification.
+///
+/// The model with heteroskedasticity-robust standard errors, with errors clustered by
+/// `cluster`, and with robust errors on the years from 2015 only, as a list of fits for
+/// `report`. Fixed effects arrive with release 0.6.0, so the checks absorb none.
+///
+/// data: The frame to fit on; it needs a `year` variable.
+/// f: The formula of the specification.
+/// cluster: The variable to cluster by; the worker by default.
+/// returns: The three fits, a List<RegFit>.
+/// see also: reg, report
+///
+/// > len(dataset(wages).robustness(log(wage) ~ educ))
+/// 3
+fn robustness(data: Frame, f: Formula, cluster: Var = worker) -> List<RegFit> {
+    [
+        data.reg(f, se: robust),
+        data.reg(f, cluster: cluster),
+        data.where(year >= 2015).reg(f, se: robust),
+    ]
+}
