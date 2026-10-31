@@ -1779,3 +1779,13 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 6. *The page's example* runs on the wages, since a six-row frame earns the influence warning a page's example must not print.
 
 **Reason.** Engine and Project Specification, sections 8.1 (rules 4 and 5) and 13; Language Reference, section 7.2; catalogue row 248; the checklist's step 21, question 3 (b) and the layer ruling.
+
+## 31 October 2026: `summary` stays in Rust (release 0.5.0, step 22)
+
+**Choice.** The fallback the checklist wrote for this step: the Rust body of `summary` stays, untouched; the 0.5.0 row of section 14 and the catalogue's row 153 are corrected and logged; the missing constructor is open decision #72 with the deadline 0.6.0. Three rulings:
+
+1. *Why.* A `summary` is a `Table` with a title, counts with thousands separators, statistics to three decimals, a group column under `by:` and one warning naming every variable's missing rows. The language of 0.5.0 has no table constructor, no formatting of a number into text, and no coded warning from a function; each is a door the language does not have, and the ruling at the release's start was never to build one inside a function step.
+2. *The tally of the release's Zeff-written functions*: eleven written in Zeff (`clamp`, `logit`, `inv_logit`, `assert`, `between`, `center`, `standardize`, `iqr`, `mad`, `skewness`, `kurtosis`), six in Rust under open decisions #68 to #71 (`fill_missing`, `n_missing`, `row_mean`, `row_sum`, `drop_missing`, `vif`), and `summary` in Rust under #72; every one ships with the same page and tests whichever language it is written in, and the identity series and the benchmark's `summary` digest are unchanged, as the step required.
+3. *The count of section 8.2* ("30 in Zeff") is reviewed at the close with the other figures of the release notes, not edited here.
+
+**Reason.** Engine and Project Specification, sections 9.1 and 14; catalogue row 153; the checklist's step 22 and the layer ruling.

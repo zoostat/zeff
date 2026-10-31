@@ -103,6 +103,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | 0.7.0 |
 | 70 | A note or a coded warning from a Zeff-written built-in | A `note(message)` function beside `warn`, a `code:` option on both, and the name of a `Var` as text (`name_of(v)`), so that `drop_missing` can be rewritten in Zeff with its note and `skewness` can raise W0205 | 0.7.0 |
 | 71 | The fitted design through the result interface | A `design()` method giving the kept design as a frame of the rows used, so that `vif` and later diagnostics can be written in Zeff | 0.7.0 |
+| 72 | A table constructor for Zeff-written functions | `table(title, columns = [...])` in `core`, with `format` for numbers, so that `summary` can be rewritten in Zeff as section 14 planned | 0.6.0 |
 
 ---
 
@@ -895,3 +896,15 @@ Raised on 31 October 2026 at step 21 of release 0.5.0. `vif` regresses each colu
 | B. Keep the Gram matrix and write such diagnostics in Rust | Nothing stored beyond k × k numbers | Every design diagnostic stays Rust |
 
 *Recommendation.* A, at 0.7.0 with the plot grammar, which needs the design for its result plots; the catalogue's `layer` returns to Zeff for row 248 then.
+
+### 72. A table constructor for Zeff-written functions
+
+Raised on 31 October 2026 at step 22 of release 0.5.0, where `summary` was to be rewritten in Zeff. `summary` returns a `Table` (section 3.8: a title, columns with their alignment, rows of text, lines under the grid), with counts written with thousands separators and statistics to three decimals, a group column under `by:` and one warning naming every variable's missing rows. The language has no value that builds a `Table`: `aggregate` (0.6.0) is the first function to return one from data a script shapes, no function turns a number into text with a chosen number of decimals before the `text` package, and a function raises no coded warning (#70). The Rust body stays and the catalogue's `layer` is corrected (logged).
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. A constructor in `core`, `table(title: Str, columns: Record)` taking lists of text or numbers (numbers printed as the display rules print them, or through `format(x, decimals:)` from `text`), with `by:`-style grouping left to `aggregate` | `summary` and every tabulating function a project writes become ordinary Zeff; the constructor is a few lines over the `Table` the engine already prints | A catalogue row in `core` before 1.0; `format` belongs to `text`, which `core` may not call, so the numbers' formatting is the display rules' until `text` ships |
+| B. `aggregate` at 0.6.0 as the only way to a table, `summary` rewritten over it | No new function | `summary`'s title, its warning and its `stats:` words are not `aggregate`'s shape; the rewrite becomes a different function |
+| C. `summary` stays Rust | Nothing to build | The one function section 14 named for the rewrite never moves |
+
+*Recommendation.* A at 0.6.0 beside `aggregate`, the rewrite of `summary` following in the same release; the catalogue's `layer` returns to Zeff for row 153 then.

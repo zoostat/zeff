@@ -155,3 +155,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 22 `[function]`: `summary` rewritten in Zeff.
 
 **For the owner to decide.** Nothing new (#67 by 0.6.0; #68 to #71 by 0.7.0).
+
+## 31 October 2026, step 22 of release 0.5.0
+
+**Done.** Step 22 `[function]`, by its fallback: `summary` stays in Rust, since the language of 0.5.0 has no table constructor, no formatting of numbers into text and no coded warning from a function; the 0.5.0 row of section 14 and catalogue row 153 corrected and logged, open decision #72 (a table constructor in `core`, by 0.6.0) recorded, the three rulings in `docs/decisions.md`. Nothing in the engine changed; the existing tests of `summary`, its benchmark digest and the identity series stand. The release's tally: eleven functions written in Zeff, six in Rust under #68 to #71, and `summary` under #72.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 23 `[engine]`: the script tests and the sample project of the release.
+
+**For the owner to decide.** Nothing new; #72 joins #67 for 0.6.0 (recommendation A), and #68 to #71 stand for 0.7.0.
