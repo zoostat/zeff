@@ -1,0 +1,18 @@
+---
+source: crates/zeff-engine/tests/scale_in_zeff.rs
+expression: "format!(\"{out}{err}\")"
+---
+Column<Float> · 3 values
+-3
+-1
+4
+Column<Float> · 3 values
+-0.83205
+-0.27735
+1.1094
+frame · 3 rows × 3 variables
+
+      x    c          z
+  1   2   -3   -0.83205
+  2   4   -1   -0.27735
+  3   9    4     1.1094

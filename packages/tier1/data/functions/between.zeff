@@ -1,0 +1,26 @@
+/// True where low <= x <= high.
+///
+/// Whether each value lies in the closed range from `low` to `high`, both ends included:
+/// `low <= x && x <= high` row by row, so the result is a `Column<Bool>` for `where`, `add` and
+/// the counts. The comparison is three-valued (section 3.7 of the Language Reference): a row
+/// whose value is `NA` is `NA`, and `where` drops it with a note. `low` above `high` is true
+/// nowhere. Like dplyr's `between` and Stata's `inrange`, which both include the ends.
+///
+/// x: The column to test.
+/// low: The smallest value that counts as inside.
+/// high: The largest value that counts as inside.
+/// returns: A `Column<Bool>`, `NA` where `x` is.
+/// see also: is_in, clamp, where
+/// > let d = frame(x = [1, 5, NA, 10])
+/// > between(d["x"], 2, 10)
+/// Column<Bool> · 4 values
+/// false
+/// true
+/// NA
+/// true
+/// > d.where(between(x, 2, 10)).n_rows()
+/// 2
+/// note: 1 row dropped where `between(x, 2, 10)` was NA; `d.where(is_missing(x))` lists them (line 3)
+fn between(x: Column<Float>, low: Float, high: Float) -> Column<Bool> {
+    low <= x && x <= high
+}

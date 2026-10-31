@@ -1,0 +1,29 @@
+/// Subtract the mean.
+///
+/// Each value less the mean of the column, so that the result has mean zero and the spread of
+/// the original: `x - mean(x)`. The mean is taken over the values present, with the reducers'
+/// warning for the rows with `NA` skipped (section 4.1 of the Language Reference), and those rows
+/// stay `NA` in the result. Centring a regressor before an interaction makes the main effects
+/// read at the mean rather than at zero. Like R's `scale(x, scale = FALSE)`.
+///
+/// x: The column to centre.
+/// returns: A `Column<Float>` with mean zero.
+/// details: The mean is the compensated sum of the values present over their count; each value is then one subtraction away from it.
+/// reference: R Core Team, the `scale` function of the base package, with `scale = FALSE`.
+/// see also: standardize, mean, sd
+/// > let d = frame(x = [2, 4, 9])
+/// > center(d["x"])
+/// Column<Float> · 3 values
+/// -3
+/// -1
+/// 4
+/// > d.add(xc = center(x))
+/// frame · 3 rows × 2 variables
+///
+///       x   xc
+///   1   2   -3
+///   2   4   -1
+///   3   9    4
+fn center(x: Column<Float>) -> Column<Float> {
+    x - frame(value = x).mean(value)
+}

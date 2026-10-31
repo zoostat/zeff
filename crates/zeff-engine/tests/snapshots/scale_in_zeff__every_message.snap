@@ -1,0 +1,54 @@
+---
+source: crates/zeff-engine/tests/scale_in_zeff.rs
+expression: text
+---
+## between_scalar (exit 1)
+error[Z0401]: `x` of `between` must be a Column<Float>, but this is an Int
+ --> scripts/main.zeff:1:9
+  |
+1 | between(3, 1, 5)
+  |         ^ an Int
+  |
+  = help: usage: `between(x, low, high)`
+
+## between_text (exit 1)
+error[Z0221]: `<=` compares values of one type, but these are a number and text
+ --> scripts/main.zeff:2:1
+  |
+2 | between(d["s"], 1, 5)
+  | ^^^^^^^ in this call
+  |
+  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+
+## center_scalar (exit 1)
+error[Z0401]: `x` of `center` must be a Column<Float>, but this is a Float
+ --> scripts/main.zeff:1:8
+  |
+1 | center(2.5)
+  |        ^^^ a Float
+  |
+  = help: usage: `center(x)`
+
+## standardize_no_spread (exit 0)
+Column<Float> · 3 values
+NA
+NA
+NA
+warning: 0 / 0 gave NA in 3 rows (line 1)
+
+## standardize_one_value (exit 0)
+Column<Float> · 1 value
+NA
+warning: sd needs at least two values, but value has one: the result is NA (line 1)
+
+## standardize_with_na (exit 0)
+Column<Float> · 3 values
+-0.707107
+NA
+0.707107
+warning: 1 row with NA in value was skipped (line 1)
+warning: 1 row with NA in value was skipped (line 1)
+
+## between_drops_na (exit 0)
+1
+note: 1 row dropped where `between(x, 0, 5)` was NA; `d.where(is_missing(x))` lists them (line 2)

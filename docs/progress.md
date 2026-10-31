@@ -93,3 +93,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 16 `[function]`: `between`, `standardize`, `center`.
 
 **For the owner to decide.** Nothing new (#67 by 0.6.0; #68 by 0.7.0, recommendation A).
+
+## 31 October 2026, step 16 of release 0.5.0
+
+**Done.** Step 16 `[function]`: `between`, `center` and `standardize` (catalogue rows 135, 134 and 133 implemented), the first functions of the `data` package written in Zeff, one file each in `data/functions/` with the complete page: column functions on a `Column<Float>`, `between` three-valued, `center` and `standardize` through a one-column frame with the reducers' warnings placed at the call, `NA` rows kept, no spread and one value giving `NA` with the reducers' warnings; the six rulings in `docs/decisions.md`. Tests: the R reference `scale.R` (`scale()` both ways within 1e-12 on seven vectors; `between`'s definition exactly on eight cases); the engine's `scale_in_zeff.rs` (the ends included, `where` dropping `NA` with its note, inside `add`, one value, no spread, all `NA`, `Inf`, every message, the generated page, and the properties that the z-scores have mean 0 and sd 1 within 1e-12, that `center` shifts by one constant to rounding and that `between` agrees with the two comparisons); the identity case `control/scale`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 17 `[function]`: `drop_missing`.
+
+**For the owner to decide.** Nothing new (#67 by 0.6.0; #68 by 0.7.0).

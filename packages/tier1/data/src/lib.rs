@@ -840,7 +840,27 @@ pub fn functions() -> Vec<Function> {
 
 /// The functions of `data` written in Zeff, one `functions/*.zeff` file each (Engine and Project
 /// Specification, section 9.1, "Files"), compiled in; the engine parses, checks and lowers them
-/// when it starts. None yet: they arrive with the function steps of release 0.5.0.
+/// when it starts: `between`, `center` and `standardize` (release 0.5.0, step 16); the rest
+/// follow at steps 17 to 22.
 pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
-    Vec::new()
+    vec![
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "between",
+            file: "data/functions/between.zeff",
+            text: include_str!("../functions/between.zeff"),
+        },
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "center",
+            file: "data/functions/center.zeff",
+            text: include_str!("../functions/center.zeff"),
+        },
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "standardize",
+            file: "data/functions/standardize.zeff",
+            text: include_str!("../functions/standardize.zeff"),
+        },
+    ]
 }
