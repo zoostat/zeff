@@ -1741,3 +1741,15 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 5. *Against R*, the rows `complete.cases` keeps on the subset agree exactly, ids in order, on sixteen frame-and-subset pairs, with an all-`NA` variable among them.
 
 **Reason.** Language Reference, sections 4.1 ("Filtering") and 6 ("Rows"); catalogue row 121; the checklist's step 18, question 3 (c) and the ruling on functions the language cannot yet express.
+
+## 31 October 2026: `iqr` and `mad` (release 0.5.0, step 19)
+
+**Choice.** Two frame methods written in Zeff in `data/functions/`, on the reducers of 0.2.0: `iqr` as `data.quantile(var, 0.75, type:) - data.quantile(var, 0.25, type:)` and `mad` as `constant * data.add(deviation = abs(var - centre)).median(deviation)` with `centre = data.median(var)`. Five rulings:
+
+1. *A reserved word as a parameter.* The catalogue's option is `type:`, and `type` is a reserved word of the language, so the `fn` line writes it in backticks, `` `type`: Int = 7 ``, as a column of that name is written; the registry's usage line and the page show `type:` plain, and a call writes `type: 6` as for `quantile`. The first built-in to need it; the form is the grammar's own.
+2. *The method form comes from the catalogue*: a Zeff-written function whose row is a `frame method` is one (step 9's rule), so `d.iqr(x)` and `iqr(d, x)` are the same call, with `data` as the receiver's page entry.
+3. *The warnings are the reducers' own, placed at the call*: two for `iqr` (one per quartile) and two for `mad` (the median, then the median of the deviations, which names `deviation`, the body's column), as the step 16 ruling has it; a message raised by an inner reducer names that reducer (`median` needs a Bool, Int or Float) and points at the call, which is honest but worth a better wording when the loader can rename a callee's message (noted, not done).
+4. *The edge cases follow from the reducers*: one value gives 0 for both; two values give half their distance under type 7 and the constant times half their distance; all `NA` gives `NA` with the warnings; an infinite value makes a quartile infinite (`iqr` is `Inf`) and the median deviation finite (`mad` is 2.9652 for 1, `Inf`, 3), as R gives.
+5. *Against R*, `IQR(type = 1..9)` and `mad(constant = 1.4826, 1, 2.5)` agree within a relative 1e-12 on seven vectors with `NA`, values to 1e12, one and two values and a run of equal values; the properties of the checklist hold within 1e-9 of the shifted values' rounding.
+
+**Reason.** Language Reference, section 4.1; catalogue rows 144 and 145 and the nine definitions of `quantile`'s row; the checklist's step 19 and question 3 (d).

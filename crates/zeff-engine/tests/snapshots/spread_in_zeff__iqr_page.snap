@@ -1,0 +1,54 @@
+---
+source: crates/zeff-engine/tests/spread_in_zeff.rs
+expression: "zeff_engine::help::help_text(registry, \"iqr\").unwrap()"
+---
+iqr — Interquartile range                                              data · tier 1 · since 0.5.0 · 1.0 · closed form
+
+USAGE
+    data.iqr(var, type: Int = 7)
+
+DESCRIPTION
+    The distance between the third and the first quartile, `quantile(var, 0.75) - quantile(var, 0.25)`,
+    under the quantile definition `type:` names (the nine definitions of Hyndman and Fan, as `quantile`
+    offers them; 7 unless given, R's default). A robust measure of spread: half of the values lie within it,
+    and one outlier cannot move it. The quartiles are taken over the values present, with the reducers'
+    warning for the rows with `NA` skipped (section 4.1 of the Language Reference), once for each quartile;
+    one value gives 0. Like R's `IQR(x, type =)`.
+
+ARGUMENTS
+    data        Frame. The frame.
+    var         Var. The variable.
+    type:       Int = 7. The quantile definition, 1 to 9; 7 unless given.
+
+VALUE
+    The range, a Float, printed as `mean` prints.
+
+DETAILS
+    The two quartiles come from `quantile` under one definition and are subtracted; nothing else is
+    computed, so the result agrees with `quantile` to the bit.
+
+WARNINGS AND NOTES
+    W0201   rows with NA in the variable, or in the weights, were skipped
+    W0205   the quantile falls between Inf and -Inf
+    Note    rows with zero weight were left out
+    Z0101   the variable, a `by:` variable or the weights variable is not in the frame
+    Z0401   p: is not a probability, type: is not 1 to 9, the variable is not numeric, or the weights are
+            unusable
+    Z0406   p: is missing
+
+ACCURACY
+    Closed form.
+
+REFERENCES
+    Hyndman, R. J. and Fan, Y. (1996) Sample quantiles in statistical packages, The American Statistician 50(4), 361–365.
+    R Core Team, the `IQR` function of the stats package.
+
+SEE ALSO
+    quantile, mad, sd, median
+
+EXAMPLES
+    > let d = frame(x = [1, 2, 4, 7, 11])
+    > d.iqr(x)
+    5
+    > d.iqr(x, type: 6)
+    7.5

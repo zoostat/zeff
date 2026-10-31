@@ -901,8 +901,8 @@ pub fn functions() -> Vec<Function> {
 
 /// The functions of `data` written in Zeff, one `functions/*.zeff` file each (Engine and Project
 /// Specification, section 9.1, "Files"), compiled in; the engine parses, checks and lowers them
-/// when it starts: `between`, `center` and `standardize` (release 0.5.0, step 16); the rest
-/// follow at steps 17 to 22.
+/// when it starts: `between`, `center` and `standardize` (release 0.5.0, step 16), `iqr` and
+/// `mad` (step 19); the rest follow at steps 20 to 22.
 pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
     vec![
         zeff_registry::ZeffSource {
@@ -922,6 +922,18 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             name: "standardize",
             file: "data/functions/standardize.zeff",
             text: include_str!("../functions/standardize.zeff"),
+        },
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "iqr",
+            file: "data/functions/iqr.zeff",
+            text: include_str!("../functions/iqr.zeff"),
+        },
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "mad",
+            file: "data/functions/mad.zeff",
+            text: include_str!("../functions/mad.zeff"),
         },
     ]
 }

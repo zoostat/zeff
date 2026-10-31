@@ -123,3 +123,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 19 `[function]`: `iqr`, `mad`.
 
 **For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).
+
+## 31 October 2026, step 19 of release 0.5.0
+
+**Done.** Step 19 `[function]`: `iqr` and `mad` (catalogue rows 144 and 145 implemented), frame methods written in Zeff on `quantile` and `median`, one file each with the complete page: `type:` written in backticks in the `fn` line since it is a reserved word, the reducers' warnings placed at the call, the edge cases of one value, two values, all `NA` and `Inf`; the five rulings in `docs/decisions.md`. Tests: the R reference `spread.R` (`IQR` under the nine types and `mad` under three constants on seven vectors, within 1e-12); the engine's `spread_in_zeff.rs` (the definitions and the constant, the written and method forms, the edge cases, every message, the generated page, and the properties that both are unchanged by a shift and scaled by a positive factor and that `mad(constant: 1)` on a symmetric three-point sample is its half-range); the identity case `control/spread`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 20 `[function]`: `skewness`, `kurtosis`.
+
+**For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).

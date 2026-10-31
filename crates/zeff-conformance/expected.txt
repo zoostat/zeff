@@ -127,6 +127,8 @@ control/attempt/stdout 515eb37b724d8bfa
 control/attempt/stderr 472a84d99b1b579d
 control/collections_basics/stdout 0b15b0ef80f5deb9
 control/collections_basics/stderr a780d105e9c2daac
+control/spread/stdout ede5c48e00baab72
+control/spread/stderr d59f956475fecc48
 control/drop_missing/stdout b040d903ac347919
 control/drop_missing/stderr 78a3b48639a6f067
 control/rows/stdout 52b69cf23ce489b9

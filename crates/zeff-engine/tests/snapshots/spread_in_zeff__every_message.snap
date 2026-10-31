@@ -1,0 +1,56 @@
+---
+source: crates/zeff-engine/tests/spread_in_zeff.rs
+expression: text
+---
+## with_na (exit 0)
+5
+4.4478
+warning: 1 row with NA in x was skipped (line 2)
+warning: 1 row with NA in x was skipped (line 2)
+warning: 1 row with NA in x was skipped (line 3)
+warning: 1 row with NA in deviation was skipped (line 3)
+
+## bad_type (exit 1)
+error[Z0401]: `type:` of `quantile` must be one of the nine definitions, 1 to 9, not 10
+ --> scripts/main.zeff:1:19
+  |
+1 | frame(x = [1, 2]).iqr(x, type: 10)
+  |                   ^^^ in this call
+  |
+  = help: `type: 7` is R's default; Hyndman and Fan (1996) number the nine definitions
+
+## no_variable (exit 1)
+error[Z0406]: `iqr` needs `var`
+ --> scripts/main.zeff:1:19
+  |
+1 | frame(x = [1, 2]).iqr()
+  |                   ^^^ `var` is missing
+  |
+  = help: usage: `data.iqr(var, type: Int = 7)`
+
+## text_variable (exit 1)
+error[Z0401]: `median` needs a Bool, Int or Float, but `s` is Str
+ --> scripts/main.zeff:1:23
+  |
+1 | frame(s = ["a", "b"]).mad(s)
+  |                       ^^^ in this call
+  |
+  = help: choose a Bool, Int or Float variable; `data.describe()` lists the types
+
+## unknown_variable (exit 1)
+error[Z0101]: no variable `y` in `data`
+ --> scripts/main.zeff:1:19
+  |
+1 | frame(x = [1, 2]).mad(y)
+  |                   ^^^ in this call
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+
+## not_a_frame (exit 1)
+error[Z0401]: `iqr` cannot be called on an Int
+ --> scripts/main.zeff:1:5
+  |
+1 | iqr(3, x)
+  |     ^ this is an Int
+  |
+  = help: usage: `data.iqr(var, type: Int = 7)`

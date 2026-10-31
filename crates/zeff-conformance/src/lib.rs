@@ -905,6 +905,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // `iqr` and `mad` of step 19: the nine quantile types, the constant, one value, two values,
+        // an infinity, and the wages.
+        (
+            "spread",
+            "let d = frame(x = [1, 2, 4, 7, 11])\nd.iqr(x)\nd.iqr(x, type: 6)\nd.iqr(x, type: 8)\nd.mad(x)\nd.mad(x, constant: 1)\nframe(y = [5]).mad(y)\nframe(y = [1, 3]).mad(y, constant: 1)\nframe(y = [1, Inf, 3]).iqr(y)\nlet w = dataset(wages)\nw.iqr(wage)\nw.mad(wage)\nw.iqr(educ, type: 2)\n",
+        ),
         // `drop_missing` of step 18: the rows kept in order, the note naming the variables, a
         // range, nothing dropped, and every row dropped.
         (

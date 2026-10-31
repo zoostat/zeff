@@ -1,0 +1,25 @@
+/// Interquartile range.
+///
+/// The distance between the third and the first quartile, `quantile(var, 0.75) - quantile(var,
+/// 0.25)`, under the quantile definition `type:` names (the nine definitions of Hyndman and Fan,
+/// as `quantile` offers them; 7 unless given, R's default). A robust measure of spread: half of
+/// the values lie within it, and one outlier cannot move it. The quartiles are taken over the
+/// values present, with the reducers' warning for the rows with `NA` skipped (section 4.1 of
+/// the Language Reference), once for each quartile; one value gives 0. Like R's `IQR(x, type =)`.
+///
+/// data: The frame.
+/// var: The variable.
+/// type: The quantile definition, 1 to 9; 7 unless given.
+/// returns: The range, a Float, printed as `mean` prints.
+/// details: The two quartiles come from `quantile` under one definition and are subtracted; nothing else is computed, so the result agrees with `quantile` to the bit.
+/// reference: Hyndman, R. J. and Fan, Y. (1996) Sample quantiles in statistical packages, The American Statistician 50(4), 361–365.
+/// reference: R Core Team, the `IQR` function of the stats package.
+/// see also: quantile, mad, sd, median
+/// > let d = frame(x = [1, 2, 4, 7, 11])
+/// > d.iqr(x)
+/// 5
+/// > d.iqr(x, type: 6)
+/// 7.5
+fn iqr(data: Frame, var: Var, `type`: Int = 7) -> Float {
+    data.quantile(var, 0.75, type: `type`) - data.quantile(var, 0.25, type: `type`)
+}
