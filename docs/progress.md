@@ -150,6 +150,8 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 
 **Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
 
+**CI, read after the push of step 21.** Red on one test: the snapshot of the `reg` page, whose Value lists the result methods of a `RegFit` and now names `vif`. The local run had failed too, but the routine's chain tested that a result line was printed rather than that it passed, so the commit went out; the snapshot was accepted in the commit after, and the chain now stops on any `FAILED` in the suite's summary before committing.
+
 **Next.** Step 22 `[function]`: `summary` rewritten in Zeff.
 
 **For the owner to decide.** Nothing new (#67 by 0.6.0; #68 to #71 by 0.7.0).
