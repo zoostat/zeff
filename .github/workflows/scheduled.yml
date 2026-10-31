@@ -350,6 +350,12 @@ jobs:
           # the handful of test processes that run at once stay within the runner's memory. The
           # whole suite's largest process needs a sixth of a gigabyte.
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: prlimit --data=2147483648
+          # Three shard runners of 0.5.0 filled their disks within minutes of starting (every
+          # mutant's build then fails with "No space left on device" and is counted unviable):
+          # the workspace's test build with full debug information is several gigabytes, and
+          # some runner images have little more than that free. The build carries no debug
+          # information here; a mutant's verdict is the test's pass or fail, not a backtrace.
+          CARGO_PROFILE_DEV_DEBUG: 0
         run: |
           # Surviving mutants and timeouts are a note to act on, not a failure of the job. Two
           # tests of the dist package make over a million calls into the kernel (the moments of
