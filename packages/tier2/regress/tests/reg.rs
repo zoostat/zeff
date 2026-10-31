@@ -1379,6 +1379,18 @@ fn an_outcome_too_small_against_its_regressors_is_refused() {
     assert!(refused.contains("Z0803"), "{refused}");
 }
 
+/// The boundary of that rule belongs to the accepted side: an estimate of exactly the smallest
+/// normal number, 2.2250738585072014e-308, is a normal number that computes fully, and the fit
+/// is accepted. Two rows of that outcome on a constant regressor without an intercept give the
+/// estimate exactly (their mean, through a factorisation of two ones).
+#[test]
+fn an_estimate_of_exactly_the_smallest_normal_number_is_accepted() {
+    let m = f64::MIN_POSITIVE;
+    let t = table(vec![("y", floats(&[m, m])), ("x", floats(&[1.0, 1.0]))]);
+    let (fit, _) = fit_with(&t, "y ~ x - 1", &Options::default()).unwrap();
+    assert_eq!(fit.estimates, vec![m]);
+}
+
 /// An outcome of zeros fits with estimates of exactly zero and residuals of zero, whose
 /// orthogonality the self-check accepts although its bound is zero too.
 #[test]

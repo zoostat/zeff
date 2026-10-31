@@ -175,3 +175,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 24a, the pre-release routine (testing handbook, section 2.4).
 
 **For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).
+
+## 31 October 2026, step 24a of release 0.5.0, first part
+
+**Done.** The weekly mutation run on the commit of step 23 read: 689 timeouts where 0.4.0 had ten, two shards cut at the job's limit and one runner's disk lost. The cause is the budget: cargo-mutants' floor of two minutes is the whole budget, and the workspace's tests under a mutant now take 85 seconds on a runner before the kernel's own unit tests, with the new EM test of section 5.5 adding a minute or more under a mutant that spoils convergence. Repairs: the EM test runs on one year of the wages; the floor is four minutes; 34 shards instead of 24. The 45 survivors of the clean shards: 41 are the 0.4.0 equivalents, four are new and each has a test (`ols.rs` 185, the estimate of exactly the smallest normal number; `report.rs` 248, already in 77042cb) or a recorded reason (`lib.rs` 174, `ols.rs` 220). The record is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, 154 targets), the tier and message checks (114 codes) pass locally; the conformance report is untouched. CI to be read after the push; the weekly job then started by hand on this commit (about four hours).
+
+**Next.** Step 24a, second part: read the rerun shard by shard, match the four crates' lists against 0.4.0, resolve anything new, record and tick; the 115 mutants of the code changed since the 0.4.0 run rerun locally as the second confirmation.
+
+**For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).

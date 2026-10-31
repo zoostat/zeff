@@ -272,9 +272,10 @@ jobs:
 
   mutation:
     # The estimator and variance code and the numeric kernel have far more mutants than one
-    # runner tests in three hours (at 0.4.0: zeff-numeric 1,838, zeff-results 1,043, zeff-kernels
-    # 368, zeff-regress 288, each running the workspace's tests), so each crate's mutants are
-    # shared among runners in proportion, about 150 a shard.
+    # runner tests in three hours (at 0.5.0: zeff-numeric 1,838, zeff-results 1,131, zeff-kernels
+    # 364, zeff-regress 353, each running the workspace's tests, which take about seventy
+    # seconds on a runner), so each crate's mutants are shared among runners in proportion,
+    # about 115 a shard: a clean shard of 150 took two and three-quarter hours at 0.5.0.
     name: weekly (mutation testing, ${{ matrix.package }} ${{ matrix.shard }} of ${{ matrix.of }})
     if: >-
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'weekly')
@@ -289,30 +290,40 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { package: zeff-numeric, shard: 0, of: 12 }
-          - { package: zeff-numeric, shard: 1, of: 12 }
-          - { package: zeff-numeric, shard: 2, of: 12 }
-          - { package: zeff-numeric, shard: 3, of: 12 }
-          - { package: zeff-numeric, shard: 4, of: 12 }
-          - { package: zeff-numeric, shard: 5, of: 12 }
-          - { package: zeff-numeric, shard: 6, of: 12 }
-          - { package: zeff-numeric, shard: 7, of: 12 }
-          - { package: zeff-numeric, shard: 8, of: 12 }
-          - { package: zeff-numeric, shard: 9, of: 12 }
-          - { package: zeff-numeric, shard: 10, of: 12 }
-          - { package: zeff-numeric, shard: 11, of: 12 }
-          - { package: zeff-kernels, shard: 0, of: 3 }
-          - { package: zeff-kernels, shard: 1, of: 3 }
-          - { package: zeff-kernels, shard: 2, of: 3 }
-          - { package: zeff-results, shard: 0, of: 7 }
-          - { package: zeff-results, shard: 1, of: 7 }
-          - { package: zeff-results, shard: 2, of: 7 }
-          - { package: zeff-results, shard: 3, of: 7 }
-          - { package: zeff-results, shard: 4, of: 7 }
-          - { package: zeff-results, shard: 5, of: 7 }
-          - { package: zeff-results, shard: 6, of: 7 }
-          - { package: zeff-regress, shard: 0, of: 2 }
-          - { package: zeff-regress, shard: 1, of: 2 }
+          - { package: zeff-numeric, shard: 0, of: 16 }
+          - { package: zeff-numeric, shard: 1, of: 16 }
+          - { package: zeff-numeric, shard: 2, of: 16 }
+          - { package: zeff-numeric, shard: 3, of: 16 }
+          - { package: zeff-numeric, shard: 4, of: 16 }
+          - { package: zeff-numeric, shard: 5, of: 16 }
+          - { package: zeff-numeric, shard: 6, of: 16 }
+          - { package: zeff-numeric, shard: 7, of: 16 }
+          - { package: zeff-numeric, shard: 8, of: 16 }
+          - { package: zeff-numeric, shard: 9, of: 16 }
+          - { package: zeff-numeric, shard: 10, of: 16 }
+          - { package: zeff-numeric, shard: 11, of: 16 }
+          - { package: zeff-numeric, shard: 12, of: 16 }
+          - { package: zeff-numeric, shard: 13, of: 16 }
+          - { package: zeff-numeric, shard: 14, of: 16 }
+          - { package: zeff-numeric, shard: 15, of: 16 }
+          - { package: zeff-kernels, shard: 0, of: 4 }
+          - { package: zeff-kernels, shard: 1, of: 4 }
+          - { package: zeff-kernels, shard: 2, of: 4 }
+          - { package: zeff-kernels, shard: 3, of: 4 }
+          - { package: zeff-results, shard: 0, of: 10 }
+          - { package: zeff-results, shard: 1, of: 10 }
+          - { package: zeff-results, shard: 2, of: 10 }
+          - { package: zeff-results, shard: 3, of: 10 }
+          - { package: zeff-results, shard: 4, of: 10 }
+          - { package: zeff-results, shard: 5, of: 10 }
+          - { package: zeff-results, shard: 6, of: 10 }
+          - { package: zeff-results, shard: 7, of: 10 }
+          - { package: zeff-results, shard: 8, of: 10 }
+          - { package: zeff-results, shard: 9, of: 10 }
+          - { package: zeff-regress, shard: 0, of: 4 }
+          - { package: zeff-regress, shard: 1, of: 4 }
+          - { package: zeff-regress, shard: 2, of: 4 }
+          - { package: zeff-regress, shard: 3, of: 4 }
     steps:
       - name: Check out the repository
         if: env.SELECTED == 'true'
@@ -345,8 +356,14 @@ jobs:
           # 100,000 draws per distribution; R's grid of every family) and under a mutant that
           # stops a series converging they run for hours before failing, where the kernel's own
           # exact reference rejects the mutant in seconds; they are skipped here and run in CI
-          # on every push.
-          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 120 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
+          # on every push. cargo-mutants takes its budget from a baseline of the package's own
+          # tests, which run in seconds, so the floor is the whole budget; the workspace's tests
+          # under a mutant that only the kernel's own unit tests catch (they run last) take about
+          # 85 seconds on a runner at 0.5.0, twice the time at 0.4.0, and a floor of two minutes
+          # left no room for a mutant that fails slowly (a property test shrinking its case, a
+          # solver running to its cap). The floor is four minutes, which is also what a hang by
+          # nature costs.
+          (cargo mutants --package ${{ matrix.package }} --shard ${{ matrix.shard }}/${{ matrix.of }} --test-workspace true --timeout-multiplier 5 --minimum-test-timeout 240 --output mutants -- -- --skip draws_recover_their_distribution --skip every_family_agrees_with_r_at_six_digits || true) 2>&1 | tail -40
           {
             echo "## Weekly: mutation testing of ${{ matrix.package }}, shard ${{ matrix.shard }} of ${{ matrix.of }}"
             echo

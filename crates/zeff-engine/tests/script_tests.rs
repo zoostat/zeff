@@ -9,7 +9,10 @@
 //! The statements are adapted where the shipped data or the release differ from the text:
 //! `fe:` (release 0.6.0) is left out, `logistic` (0.9.0) is `reg`, the subsamples are the
 //! wages' years rather than a simulation's replications, and the default cluster is the
-//! `worker` the wages have rather than `firm`.
+//! `worker` the wages have rather than `firm`. The EM of section 5.5 runs on one year of the
+//! wages (1,091 rows with a wage), so that even the 500 passes of its `max:`, which a mutated
+//! build reaches when nothing converges, take seconds and not the minutes the weekly mutation
+//! run allows a mutant for the whole suite.
 
 use std::path::Path;
 use zeff_diagnostics::{Source, Sources};
@@ -132,7 +135,7 @@ fn converged(old: Record, new: Record) -> Bool {
     abs(new.loglik - old.loglik) < 1e-8 * abs(new.loglik)
 }
 let s0 = {mu1: 10.0, mu2: 30.0, sd: 10.0, share: 0.5, loglik: -1e300}
-let fit = iterate(start: s0, step: em_step, args: {data: wages.where(!is_missing(wage))}, done: converged, max: 500)
+let fit = iterate(start: s0, step: em_step, args: {data: wages.where(year == 2020 && !is_missing(wage))}, done: converged, max: 500)
 fit.loglik
 ";
 
