@@ -6,8 +6,6 @@ error[Z0103]: no module is called `robustness`: there is no `functions/robustnes
  --> zeff_samples.zeff:17:1
 error[Z0103]: no function is called `panel`
  --> zeff_samples.zeff:41:6
-error[Z0103]: no function is called `assert`
- --> zeff_samples.zeff:43:1
 error[Z0103]: no function is called `tabulate`
  --> zeff_samples.zeff:53:7
 error[Z0103]: no function is called `histogram`

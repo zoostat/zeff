@@ -1,0 +1,9 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: err(&o)
+---
+error[Z0001]: the sample is too small
+ --> scripts/main.zeff:4:1
+  |
+4 | assert(wages.n_rows() > 100000, "the sample is too small")
+  | ^^^^^^ in this call

@@ -1,0 +1,41 @@
+---
+source: crates/zeff-engine/tests/missing_in_zeff.rs
+expression: "zeff_engine::help::help_text(registry, \"assert\").unwrap()"
+---
+assert — Stop if a condition is false                                        core · tier 0 · since 0.5.0 · 1.0 · exact
+
+USAGE
+    assert(condition, message)
+
+DESCRIPTION
+    Checks a result and stops the script with `message` when the check fails: the error is Z0001, the code
+    of `error`, and the exit code is 1 (section 3.8 of the Language Reference). When the check holds,
+    nothing is printed and the script carries on, so an `assert` costs nothing to read and guards a re-run:
+    a row count after a filter, a share between 0 and 1, a coefficient with the expected sign.
+    `assert(equal(f(x), [1, 2]), "...")` is how a project tests its own functions.
+
+    The condition is one Bool. `NA` is neither true nor false and is an error (Z0203), as it is for `if`, so
+    a check on a value that may be missing tests `is_missing` first; a column is not one Bool either
+    (Z0203): reduce it with `all` or `any`, as in `assert(all(d["x"] > 0), ...)`. Like R's `stopifnot`, with
+    a message of your own; like Stata's `assert`, which stops with "assertion is false".
+
+ARGUMENTS
+    condition   Bool. The check, a Bool.
+    message     Str. What to say when it fails.
+
+VALUE
+    Nothing.
+
+WARNINGS AND NOTES
+    Z0001   the script stopped itself with the message given
+
+ACCURACY
+    Exact.
+
+SEE ALSO
+    error, warn, equal, all
+
+EXAMPLES
+    > assert(1 + 1 == 2, "arithmetic still holds")
+    > let d = frame(x = [1, 2, 3])
+    > assert(d.n_rows() == 3, "three rows expected")

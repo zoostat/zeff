@@ -18,105 +18,9 @@ Started on 19 October (15 steps, four questions) and closed on 23 October with t
 
 Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recommended) and closed on 30 October with the tag `v0.4.0`: the `zeff-kernels` crate (compensated reductions in the fixed shape of #47, matrix products, Householder and pivoted QR, Cholesky, exact rational references) under every sum of `zeff-numeric` with no published digit changed; categories carrying their order and contrast; `to`, `is`, `type_of`, `category`, `levels`, `base`, `label` and `recode`; formulas as values (#54); the model matrix in the `results` package (seventeen designs equal to R's `model.matrix`); `interact`; `reg` by least squares with the variance layer (`se:`, `cluster:`, `weights:`; thirty-six R fits on four datasets within 1e-10); the result types and interface (`summary` to `ci`), the estimator interface (`coef` to `fitted`), `r_squared` and `influence`, `test`, `compare` and `derive` against base R, `report` in the layout of section 10.2, `export` to `.docx` and `.tex`, the regression sample project and the nightly truth-recovery Monte Carlo; the benchmark suite `tools/zeff-bench` and the formula fuzz target, which found eleven engine faults, each fixed with a regression test; the weekly job extended to `zeff-kernels`, `zeff-results` and `zeff-regress` in twenty-four shards (3,627 mutants), three endless-loop mutants tamed by a 2 GB cap per test process; the pre-release routine in six sub-steps, giving every surviving mutant a test, a removal or a reason and running the nightly, fuzz, coverage and weekly jobs by hand (two more faults fixed: frequency weights beyond 2^53 refused; a subnormal slope refused with Z0803); the reference versions recorded (R 4.6.0 with sandwich 3.1.1 and wooldridge 1.4-7, Python 3.14.8, Node v22.23.4, Rust 1.99.1). On 28 October the owner's review of requested capabilities decided #55 and recorded #56 to #66 with section 14.1 of the Engine Specification. At the close R1, R2 and R12 were lowered to Low and R3 to Medium, R4 keeping a watch item (the browser cold start at 639 ms against 1,000 ms); the notes are `docs/releases/0.4.0-notes.md`; CI green on every target.
 
-## 30 October 2026, release 0.5.0 started
+## 30 October 2026, release 0.5.0 opened and steps 1 to 8 (folded)
 
-**Done.** The previous release is tagged (`v0.4.0`) and the tree was clean. The 0.5.0 row of section 14, every section it names in both volumes (control flow, functions and errors; the grammar and core semantics; the help contract and the engine architecture), the 32 catalogue rows, the testing handbook, the risk register (R1, R4, R5) and the open decisions due (#4, #5, #13, #17) were read, and the checklist written in `docs/releases/0.5.0.md`: 24 steps (the last in three parts), the language pieces before the functions that need them, each tagged, ending with the pre-release routine. No code was written.
-
-**State.** Waiting for the owner's "go" and for the five questions at the top of the checklist (the four open decisions due, `iterate`'s `max:`, four printed forms, `any` and `all` with `NA`, and `skewness` and `kurtosis` with too few values); question 1 is needed at step 1.
-
-**Next.** Step 1, opening the release `[engine]`, then step 2, `if` and `case` `[engine]`.
-
-**For the owner to decide.** The five questions in `docs/releases/0.5.0.md`, each with a recommendation.
-
-## 30 October 2026, step 1 of release 0.5.0
-
-**Done.** The owner said "go" and took the five questions as recommended (recorded on the checklist, in the register and in `docs/decisions.md`). Step 1 `[engine]`: the version is `0.5.0-dev`, the four sample projects pin it and the three manifest snapshots follow; the register's status line, summary rows and entries #4, #5, #13 and #17 record the decisions; `equal` has its catalogue row (529) and the counts of both volumes follow it (258 functions in 1.0, 69 in `core`, 33 at 0.5.0); both logged in `docs/spec_changes.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass locally; CI to be read after the push.
-
-**Next.** Step 2 `[engine]`: `if` and `case` in the checker and the interpreter.
-
-**For the owner to decide.** Nothing new: every question of the release is answered.
-
-## 30 October 2026, step 2 of release 0.5.0
-
-**Done.** Step 2 `[engine]`: `if` and `case` in the checker and the interpreter, with blocks and their scope (a `let` inside a block invisible after it; only the script's own statements print; the last expression the block's value), `if` as a statement and as a value (`else if` chains; Z0203 for a column, a value of another type or an `NA` condition; Z0206 for an `if` without a value where one is needed; Z0214 for branches that do not join), `case` over one value and row by row inside `add` and `where` (the first true arm winning, `NA` matching nothing, scalars and columns mixed, W0208 for the rows no arm matched, W0301 for an arm after a literal `true`, Z0217 for columns of two lengths, a Category refused rather than converted, dates refused until 0.6.0), the parser refusing an empty `case` (Z0301); the explained pages of W0208 and W0301, Z0316's page corrected to its meaning, the row of W0208 in section 11 (logged); the six rulings in `docs/decisions.md`. Tests: the checker's types and codes with ten message snapshots; the engine's `control.rs` with the examples of section 5.1, every message, and two properties (a `case` over a column equals the `case` on each row's value; `if` and a two-arm `case` agree); the identity case `control/case`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks (96 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 3 `[engine]`: `for`, `[for ...]`, `break` and `continue`.
-
-**For the owner to decide.** Nothing new.
-
-## 30 October 2026, step 3 of release 0.5.0
-
-**Done.** Step 3 `[engine]`: `for` over lists, ranges and variables, `[for ...]` collecting one value per pass, `break` and `continue` (a jump carried as a flag up the blocks to its loop), the loop variable fresh each pass and gone after, W0302 for a `let` that shadows it, Z0221 for something a loop cannot run over, Z0206 for a `[for]` body without a value, Z0106 when a loop variable is named like a column of the frame; a loop variable holding a variable stands for it in formulas (the term resolved and named when the statement runs, `log(y)` and `y:female` included), in variable arguments and in column arguments; the loop pass joins the key of the random stream, so each pass draws its own numbers and a re-run repeats them; `vars` shipped with its page (moved here from step 13); the explained pages of Z0106 and W0302; the six rulings in `docs/decisions.md`. Tests: the checker's types and codes with five new message snapshots; the engine's `loops.rs` (every form, every message, the loop of section 5.2 without `fe:`, the formulas of a loop over variables equal to the formulas as written, draws by pass, and the property that `[for i in a..b { i }]` is the range and `break` at pass k leaves k − 1 items); the identity case `control/for_draws`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks (98 codes) and the conformance report pass locally; CI to be read after the push.
-
-**CI, read after the pushes.** The three commits since the release opened were red on one test: the registry's test of the compiled catalogue still counted 528 rows after `equal`'s row made 529. The local runs had not shown it because `cargo test --workspace` stops at the first failing test binary and the earlier failures (a snapshot, a count in the command-line tests) hid the later one; fixed in d89a70e, and the routine now runs the suite with `--no-fail-fast` so that every failure shows at once.
-
-**Next.** Step 4 `[engine]`: spreads in calls and records.
-
-**For the owner to decide.** Nothing new.
-
-## 30 October 2026, step 4 of release 0.5.0
-
-**Done.** Step 4 `[engine]`: `..opts` in a call spreads a record's fields as named arguments, evaluated once where the spread stands, an argument written out overriding the spread's field on either side; `..r` in a record copies its fields in place with the same overriding rule; the words of option records (`{se: robust}`) typed as the word some parameter accepts; Z0404, Z0405, Z0401 and Z0408 for the spread's mistakes, Z0222 for a record field written twice or supplied by two spreads (its row widened, logged); the five rulings in `docs/decisions.md`. Tests: the checker's types and codes with seven message snapshots; the engine's `spreads.rs`, with a spread call equal to the call written out, the overrides from both sides, the record forms, every refusal and a snapshot of every message.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 5 `[engine]`: the `Failed` type and `attempt`.
-
-**For the owner to decide.** Nothing new.
-
-## 30 October 2026, step 5 of release 0.5.0
-
-**Done.** Step 5 `[engine]`: the `Failed` value and type in `core`; `attempt(expr)` lowered to its own node and run under a catch (script errors become failed values, internal errors still stop the run, earlier warnings stay); a failed value allowed in a list and in `is`, `type_of`, `print` and `report`, refused everywhere else with Z0220 naming the failure it holds; `x.is(Failed)` and `type_of`; the guard warning W0209 (provisional, logged) with the two narrowing forms of section 3.7; `report` skipping failed fits with W0801 and refusing a list whose fits all failed; the printed form `failed · Z0801 at line 3: ...`; the pages of Z0220, W0209 and W0801 and the complete page of `attempt` (catalogue row 424 implemented); open decision #67 recorded for the default level of `ci()`; the seven rulings in `docs/decisions.md`. Tests: the checker's types, codes, the guard forms that must and must not warn, and three message snapshots; the engine's `failed.rs` (transparency when the expression succeeds, the failed value and its line inside a loop, every misuse, the guard and narrowing, `report`'s count, the loop of section 5.4 with `reg`, every message, and the property that `attempt(e)` prints what `e` prints and `report` counts exactly the failures); the identity case `control/attempt`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`), the tier and message checks (101 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 6 `[engine]`: `fn` in a script, definitions, signatures and calls.
-
-**For the owner to decide.** #67, the default level of `ci()`, by 0.6.0 (recommendation: the fit's level).
-
-## 30 October 2026, step 6 of release 0.5.0
-
-**Done.** Step 6 `[engine]`: `fn` in a script: typed parameters with defaults evaluated at each call, optional `T?` parameters, word-list parameters, a declared return type checked against the body and every `return` (Z0225, provisional, logged), definitions in any order with their signatures collected first, bodies that see their parameters and other functions only (a script binding named inside one gets the help that says so), no recursion (Z0108 with the cycle), no script-only function inside a body (Z0110), a bare call that a built-in also defines refused in favour of the full forms (Z0109), a column refused for a scalar parameter at check time and at run time (Z0218), the arguments' rules of section 3.1 with spreads, a script's function callable as a method on its first argument, the frames enclosing a call hidden from the body, W0303 for a missing summary line and Z0320 for help naming no parameter, Z0107 for a function defined twice; the pages of Z0107, Z0108, Z0109, Z0110, Z0218, Z0225, W0303 and Z0320; the nine rulings in `docs/decisions.md`. Tests: the checker's types, codes and eleven message snapshots; the engine's `functions.rs` (the examples of section 5.3 with `cluster:` and no `fe:`, order independence, defaults and optional parameters, `return`, every refusal, every message, and the property that a generated function equals its body inlined bit for bit); the identity case `functions/share_missing`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`), the tier and message checks (109 codes) and the conformance report pass locally; CI to be read after the push.
-
-**CI, read after the pushes of step 5.** Red on one test again: the command line's listing of `core` counts the functions shipped, which `attempt` took from 45 to 46; the local run of step 5 had passed with 45 because the test binary had not been rebuilt against the changed catalogue, and a forced rebuild shows 46. The count is corrected in this step's commit; the routine now touches the catalogue before the final run so that the registry is rebuilt.
-
-**Next.** Step 7 `[engine]`: any function as a method; function values and `Fn` types.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 30 October 2026, step 7 of release 0.5.0
-
-**Done.** Step 7 `[engine]`: every function callable as a method on its first argument, built-in or the script's, a scalar function of `core` applying row by row to a column receiver, `5.abs()` read as a method call by the lexer; `Fn(T1, T2) -> R` types in signatures and in the registry's parser; a named function passed where a parameter of type `Fn` takes it, a built-in read at the argument types the parameter names, a script function matched exactly (Z0205 with both signatures); a call through a binding of function type, positional and counted; a function value printing as its signature and typed `Fn`; the page of Z0205; the six rulings in `docs/decisions.md` (among them that `iterate` will run in the interpreter rather than through a callback). Tests: the checker's types, codes and four message snapshots; the engine's `methods.rs` (every form, every refusal, every message, and the property that both call forms and the value form give the same bits); the identity case `control/methods`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`), the tier and message checks (110 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 8 `[engine]`: `use` and modules.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 30 October 2026, step 8 of release 0.5.0
-
-**Done.** Step 8 `[engine]`: the project's modules, every `functions/*.zeff` file read by name, each holding `///` text, `fn` definitions and `use` lines only (a statement in one, or a file whose name no module can have, is Z0323, provisional, logged); `use functions::clean` brings a module's public functions into a script and `use functions::clean::name` one of them, a leading `_` keeps a function private to its file, a module sees every other module's public functions without `use`; Z0103 for a module that does not exist (with the nearest name, or the note that the folder is absent), Z0107 at a second `use` bringing in a name already there, Z0109 for a bare call that a built-in and a project function both define; the qualified forms `functions::name`, `clean::name` and `data::summary`; the complete page required of a module function (Z0319 at `zeff check` and `zeff run`: summary, every parameter, `returns:`, one example that parses) and Z0320 for a help line naming a missing parameter; a module function running under its own file, so that an error inside it shows the module's lines and a failed value caught by `attempt` prints `failed · Z0801 at functions/fit.zeff:7: ...`, as `report`'s causes do; `zeff help clean` and `zeff help clean::name` printing a project function's page inside a project; `use stats` for a third-party package kept at Z0304 until 1.11 with the help that names the project's own form; the pages of Z0319 and Z0323; the nine rulings in `docs/decisions.md`. Tests: the checker's import forms, private names, collisions and every error with their message snapshots; the engine's `modules.rs` (the loader on the memory file system, the examples of section 5.3 split over two modules and a script using both with one name qualified, a failure inside a module, every message, the page printed by `zeff help`); the command line's `zeff check` on a module with a missing part and `zeff help` on a module function; the identity case `control/modules`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (112 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 9 `[engine]`: built-in functions written in Zeff.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 30 October 2026, the cold-start measurement, after step 8
-
-**CI, read after the pushes of steps 7 and 8.** Red on the WebAssembly job both times, every test and every identity target green: the cold-start measurement of risk R4 gave 1,050.6 and 1,039.3 ms against its limit of 1,000 ms, so the four-target comparison was skipped. The cause is the measurement, not the engine: its "first call" ran the whole conformance report, which grows with every identity case (the rise to 620 ms recorded at the close of 0.4.0 was this). The first call timed is now the engine's start on a one-line script, with the report's time printed beside it for information; the ruling is in `docs/decisions.md`. The first green run (every job, the four-target comparison included) gives a cold start of 66.9 ms under Node v22.23.4 (load 24.1 ms, first call 42.6 ms) against 1,000 ms, and 969.5 ms for the whole report; the figures go to the review of R4 at the close.
-
-**Next.** Step 9 `[engine]`: built-in functions written in Zeff.
+The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of section 14, every section it names, the 32 catalogue rows, the testing handbook, the risk register (R1, R4, R5) and the open decisions due were read, and the checklist written in `docs/releases/0.5.0.md` (24 steps, the language pieces before the functions, ending with the pre-release routine in three parts); the owner said "go" and took the five questions as recommended (#4, #5, #13 and #17; `iterate`'s `max:` with the default 1,000; the four printed forms; `any` and `all` under the truth table; `skewness` and `kurtosis` with too few values giving `NA` with W0205). Step 1 `[engine]` set the version to `0.5.0-dev`, the pins and the snapshots, recorded the decisions in the register and gave `equal` its catalogue row (529), the counts of both volumes following. Step 2 `[engine]`: `if` and `case` with blocks and their scope, as statements and as values, `case` row by row inside `add` and `where` (W0208 provisional for unmatched rows, W0301 for an unreachable arm, Z0203, Z0206, Z0214, Z0217). Step 3 `[engine]`: `for` over lists, ranges and variables, `[for ...]`, `break` and `continue` carried as a flag, the loop variable fresh each pass (W0302, Z0221, Z0206, Z0106), a loop variable standing for a variable in formulas, and the loop pass joining the key of the random stream so that each pass draws its own numbers; `vars` shipped here. Step 4 `[engine]`: `..opts` in calls and `..r` in records, evaluated once where they stand, an argument written out overriding (Z0222 widened, logged). Step 5 `[engine]`: the `Failed` value and type, `attempt` under a catch, a failed value allowed in a list and in `is`, `type_of`, `print` and `report` (W0801) and refused elsewhere (Z0220), the guard warning W0209 (provisional) with narrowing, the printed form `failed · Z0801 at line 3: ...`; open decision #67 (the default level of `ci()`, by 0.6.0) recorded for the owner. Step 6 `[engine]`: `fn` in a script with typed parameters, defaults, `T?`, word lists, a checked return type (Z0225 provisional), order-independent definitions, bodies that see their parameters and other functions only, no recursion (Z0108), no script-only function inside (Z0110), Z0109 for a clash with a built-in, Z0218 for a column to a scalar parameter, methods on the first argument, W0303 and Z0320 for the `///` page. Step 7 `[engine]`: every function callable as a method on its first argument, `Fn(T1, T2) -> R` types and function values, a call through a binding of function type (Z0205), and the ruling that `iterate` runs in the interpreter. Step 8 `[engine]`: the project's modules in `functions/*.zeff` (Z0323 provisional for a statement in one), `use functions::m` and `use functions::m::name`, private `_names`, Z0103, Z0107 and Z0109 for the clashes, the qualified forms `functions::name` and `m::name`, the complete page required of a module function (Z0319), a module function running under its own file with failures naming `functions/x.zeff:N`, and `zeff help m::name`. Three CI reds were read and repaired on the way: the registry's row count and the command line's function count had slipped past local runs that stopped at the first failing binary or ran a stale test build, so the routine runs with `--no-fail-fast` and touches the catalogue first; and the cold-start measurement of risk R4 had timed the whole conformance report as its first call, crossing 1,000 ms at steps 7 and 8 with every test green, so it now times the engine's start on a one-line script (66.9 ms under Node on CI, 27.7 ms here) and prints the report's time beside it. Every ruling is in `docs/decisions.md` under its step.
 
 ## 30 October 2026, step 9 of release 0.5.0
 
@@ -179,3 +83,13 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 **Next.** Step 15 `[function]`: `assert`, `n_missing`, `fill_missing`.
 
 **For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
+
+## 31 October 2026, step 15 of release 0.5.0
+
+**Done.** Step 15 `[function]`: `assert` written in Zeff, `n_missing` and `fill_missing` in Rust (catalogue rows 62, 58 and 56 implemented; the layer of the two corrected to Rust, logged, with open decision #68 recording the missing piece, a parameter of several types in a built-in's `fn` line, by 0.7.0); `assert` stopping with Z0001 and exit code 1, printing nothing when the check holds, Z0203 on `NA` or a column with the message naming `assert`; a function returning `Nothing` never lifted; `n_missing` on lists and columns with failed items skipped and counted; `fill_missing` as `coalesce` under its own name; the three pages; the seven rulings in `docs/decisions.md`. The progress log's entries for the release's first eight steps were folded into one paragraph. Tests: the R reference `missing.R` (`sum(is.na())`, `replace()`, `stopifnot()`); the engine's `missing_in_zeff.rs` (a check that holds and one that fails, inside a function, `NA` and a column, all `NA`, none, columns, the joined types, every message, the generated page of `assert`, and the properties that `n_missing(fill_missing(x, v))` is 0 and that `len(x)` is `n_missing(x)` plus the values present); the command line's failed `assert` with its exit code; the identity case `control/missing`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 16 `[function]`: `between`, `standardize`, `center`.
+
+**For the owner to decide.** Nothing new (#67 by 0.6.0; #68 by 0.7.0, recommendation A).

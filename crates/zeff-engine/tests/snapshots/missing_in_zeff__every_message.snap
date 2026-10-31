@@ -1,0 +1,73 @@
+---
+source: crates/zeff-engine/tests/missing_in_zeff.rs
+expression: text
+---
+## assert_fails (exit 1)
+error[Z0001]: two is not above three
+ --> scripts/main.zeff:1:1
+  |
+1 | assert(2 > 3, "two is not above three")
+  | ^^^^^^ in this call
+
+## assert_na (exit 1)
+error[Z0203]: `assert` needs one Bool, but the condition is NA
+ --> scripts/main.zeff:1:1
+  |
+1 | assert(to(NA, Bool), "missing")
+  | ^^^^^^ in this call
+  |
+  = help: `assert` takes one Bool; test a value that may be missing with `is_missing` first, and reduce a column with `all` or `any`
+
+## assert_column (exit 1)
+error[Z0203]: `assert` needs one Bool, but this is a Column<Bool>
+ --> scripts/main.zeff:2:8
+  |
+2 | assert(d["x"] > 0, "positive")
+  |        ^^^^^^^^^^ a column, not one value
+  |
+  = help: reduce the column to one Bool: `assert(all(d["x"] > 0), ...)` checks every row, `any` checks for one
+
+## assert_not_bool (exit 1)
+error[Z0401]: `condition` of `assert` must be a Bool, but this is an Int
+ --> scripts/main.zeff:1:8
+  |
+1 | assert(1, "one")
+  |        ^ an Int
+  |
+  = help: usage: `assert(condition, message)`
+
+## assert_no_message (exit 1)
+error[Z0406]: `assert` needs `message`
+ --> scripts/main.zeff:1:1
+  |
+1 | assert(true)
+  | ^^^^^^ `message` is missing
+  |
+  = help: usage: `assert(condition, message)`
+
+## n_missing_not_a_list (exit 1)
+error[Z0401]: `x` of `n_missing` must be a List or Column, but this is an Int
+ --> scripts/main.zeff:1:11
+  |
+1 | n_missing(3)
+  |           ^ an Int
+  |
+  = help: usage: `n_missing(x)`
+
+## fill_missing_no_join (exit 1)
+error[Z0214]: `fill_missing` needs values of one type, but these are a Float and a Str
+ --> scripts/main.zeff:1:19
+  |
+1 | fill_missing(2.5, "none")
+  |                   ^^^^^^ a Str
+  |
+  = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant
+
+## fill_missing_column_no_join (exit 1)
+error[Z0214]: `fill_missing` needs values of one type, but these are an Int and a Str (row 1)
+ --> scripts/main.zeff:2:1
+  |
+2 | fill_missing(d["x"], "none")
+  | ^^^^^^^^^^^^ values of two types
+  |
+  = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant

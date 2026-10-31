@@ -54,9 +54,9 @@ id,name,package,tier,tier_order,group,kind,usage,description,equivalent,purpose,
 53,is_in,core,0,1,Collections,function,"is_in(x, list)",True where x is one of the listed values,R %in%; Stata inlist(),general,0.5.0,planned,exact,Rust,
 54,seq,core,0,1,Collections,function,"seq(from, to, step: Float = 1)","Numeric sequence with any step, computed as from + i × step with the count fixed by a tolerance, never by accumulation; 2..5 covers whole-number steps",R seq(); Stata numlist,general,0.5.0,planned,exact,Rust,
 55,is_missing,core,0,1,Missing values,function,is_missing(x),True where x is NA,R is.na(); Stata missing(),general,0.2.0,implemented,exact,Rust,
-56,fill_missing,core,0,1,Missing values,function,"fill_missing(x, value)",Replace NA with a value,tidyr::replace_na(),general,0.5.0,planned,exact,Zeff,
+56,fill_missing,core,0,1,Missing values,function,"fill_missing(x, value)",Replace NA with a value,tidyr::replace_na(),general,0.5.0,planned,exact,Rust,layer Rust since 31 October 2026: one parameter of any scalar type is not expressible in a Zeff signature (open decision #68)
 57,coalesce,core,0,1,Missing values,function,"coalesce(a, b, ...)",First non-missing value,dplyr::coalesce(),general,0.2.0,implemented,exact,Rust,
-58,n_missing,core,0,1,Missing values,function,n_missing(x),Number of NA values,R sum(is.na()); Stata misstable,general,0.5.0,planned,exact,Zeff,
+58,n_missing,core,0,1,Missing values,function,n_missing(x),Number of NA values,R sum(is.na()); Stata misstable,general,0.5.0,planned,exact,Rust,layer Rust since 31 October 2026: one parameter taking a list or a column is not expressible in a Zeff signature (open decision #68)
 59,print,core,0,1,Program,function,"print(x, ...)","Print values through the display interface declared in core, which every type implements; a statement that is not a let prints its value",R print(); Stata display,general,0.1.0,implemented,exact,Rust,
 60,warn,core,0,1,Program,function,warn(message),Print a warning and continue,R warning(),general,0.2.0,implemented,exact,Rust,
 61,error,core,0,1,Program,function,error(message),End the script with an error,R stop(); Stata error,general,0.2.0,implemented,exact,Rust,

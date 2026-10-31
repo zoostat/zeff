@@ -99,6 +99,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 65 | Calling Zeff from R and Python | Thin R and Python packages over the command line and the versioned result formats, after 1.0 on request | 1.1 |
 | 66 | A published speed comparison with Stata MP and R | At 1.1, when threads arrive, on the owner's machine; reported in the release notes, never a gate | 1.1 |
 | 67 | The default `level:` of `ci()` on a fit made at another level | The fit's level, so that `ci()` agrees with the summary; `level:` written overrides it | 0.6.0 |
+| 68 | A parameter of several types in a Zeff-written built-in | Allow the registry's `A \| B` in the `fn` line of a built-in's file, checked once per type, so that `fill_missing` and `n_missing` can be rewritten in Zeff | 0.7.0 |
 
 ---
 
@@ -845,3 +846,15 @@ Raised on 30 October 2026 at step 4 of release 0.5.0, when the owner compared `a
 | B. Keep 0.95 as the catalogue says | Nothing changes; the number is on the page | A fit printed at 90% returns 95% intervals unless the level is repeated |
 
 *Recommendation.* A, at 0.6.0, with the catalogue's usage corrected to `level: Float = the fit's level` and the page saying so; the same rule for `predict`'s intervals when they arrive. Deadline: 0.6.0.
+
+### 68. A parameter of several types in a Zeff-written built-in
+
+Raised on 31 October 2026 at step 15 of release 0.5.0. A built-in written in Zeff declares its parameters with the grammar's `type`, one type each; the loader checks a scalar parameter in its column forms, which covers `clamp(x: Float, ...)` on a column but not a parameter that takes a value of any scalar type (`fill_missing(x, value)`: Bool, Int, Float or Str, joined) or a list or a column (`n_missing(x)`). Both were planned in Zeff and are written in Rust at 0.5.0, their `layer` corrected (logged); `summary`, planned for a rewrite in Zeff at 0.5.0, meets the same limit with its `vars` and `stats:` parameters. A Rust built-in writes `x: Bool | Int | Float | Str` in its registry signature and the checker already understands it.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Allow `A \| B` in the `fn` line of a built-in's file only (not in a project's `fn`), the body checked once per type as it is per column form, the result typed by `Join` or `Same` where the signature says so | One signature language for Rust and Zeff built-ins; `fill_missing` and `n_missing` become the one-line Zeff bodies the catalogue planned; the body is still checked before a script runs | The `fn` grammar differs between a built-in's file and a project's; the forms multiply (each union doubles or triples them) |
+| B. Several homes, one `fn` per type in one file (`n_missing` on a list and `n_missing` on a column), the checker choosing by the first argument as section 8.1, rule 6, chooses between packages | The grammar stays one; each body is simple | Two bodies to keep in step for one function; rule 6 chooses between packages, not within one, so the registry and the checker need a new case |
+| C. Keep them in Rust | Nothing to build | The count of Zeff-written built-ins stays below the plan and the language cannot express two of its own simplest functions |
+
+*Recommendation.* A, at 0.7.0 with `zeff test` and `zeff fmt`, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for both rows then.

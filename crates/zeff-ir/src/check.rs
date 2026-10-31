@@ -4788,10 +4788,13 @@ impl Checker<'_> {
         // 3.7, "Columns and scalars"); its parameter types are read as the types of one row.
         // A scalar function of `core`, or a method on a value that is not a frame and returns a
         // scalar (`d.pdf(x)` on a distribution), applies to a column row by row (section 3.7).
-        let liftable = (spec.package == "core" && !spec.method)
-            || (spec.method
-                && params.first().is_some_and(|(_, ty, _)| *ty != Ty::Frame)
-                && Ty::parse(spec.returns).is_some_and(|t| scalar_type(&t)));
+        // A function that returns nothing (`assert`) never lifts: a column of nothing is not a
+        // value, and a column given to it is a mistake (Z0203 for `assert`, section 5.6).
+        let liftable = spec.returns != "Nothing"
+            && ((spec.package == "core" && !spec.method)
+                || (spec.method
+                    && params.first().is_some_and(|(_, ty, _)| *ty != Ty::Frame)
+                    && Ty::parse(spec.returns).is_some_and(|t| scalar_type(&t))));
         let lifts = |ty: &Ty, given: &Ty| -> bool {
             liftable && scalar_type(ty) && matches!(given, Ty::Column(inner) if ty.accepts(inner))
         };
@@ -4830,6 +4833,25 @@ impl Checker<'_> {
                         )
                         .primary(given.span, "not a condition over the rows")
                         .help("a condition is an expression over the frame's variables, such as `hours > 40`; `is_missing(x)` tests for a missing value"),
+                    );
+                }
+                // `assert` on a column (Z0203, section 5.6): one Bool is wanted, and a column of
+                // Bools is reduced to one with `all` or `any`.
+                Some(given)
+                    if fname == "assert"
+                        && pname == "condition"
+                        && matches!(given.ty, Ty::Column(_)) =>
+                {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0203",
+                            format!(
+                                "`assert` needs one Bool, but this is {}",
+                                given.ty.with_article()
+                            ),
+                        )
+                        .primary(given.span, "a column, not one value")
+                        .help("reduce the column to one Bool: `assert(all(d[\"x\"] > 0), ...)` checks every row, `any` checks for one"),
                     );
                 }
                 Some(given) if !ty.accepts(&given.ty) => {

@@ -268,8 +268,11 @@ fn derive_spec(
     let names: Vec<&str> = params.iter().map(|p| p.name).collect();
     let doc: Vec<String> = f.doc.iter().map(|d| d.text.clone()).collect();
     let help = leak(page_markdown(source.name, &names, &doc));
-    let lift = (source.package == "core" && !method)
-        || (method && params.first().is_some_and(|p| p.ty != "Frame") && scalar(returns));
+    // The checker's rule, with one more exclusion: a function that returns nothing (`assert`)
+    // has no column form, since a column of nothing is not a value.
+    let lift = returns != "Nothing"
+        && ((source.package == "core" && !method)
+            || (method && params.first().is_some_and(|p| p.ty != "Frame") && scalar(returns)));
     Ok((
         FunctionSpec {
             name: source.name,

@@ -480,7 +480,7 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
     insta::assert_snapshot!("help_data", out(&o));
     let core = zeff(dir.path(), &["help", "core"]);
     assert!(
-        out(&core).starts_with("core · tier 0 · 63 of 69 functions in this release"),
+        out(&core).starts_with("core · tier 0 · 66 of 69 functions in this release"),
         "{}",
         out(&core)
     );
@@ -1031,4 +1031,18 @@ fn zeff_help_prints_a_module_function_s_page_inside_the_project() {
     let o = zeff(&project, &["help", "mean"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert!(out(&o).contains("data · tier 1"), "{}", out(&o));
+}
+
+#[test]
+fn a_failed_assert_stops_the_run_with_exit_code_1() {
+    let (_dir, project) = demo();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = dataset(wages)\nassert(wages.n_rows() > 0, \"no rows\")\nprint(\"checked\")\nassert(wages.n_rows() > 100000, \"the sample is too small\")\nprint(\"never\")\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 1, "{}", err(&o));
+    assert_eq!(out(&o), "checked\n");
+    insta::assert_snapshot!("failed_assert", err(&o));
 }

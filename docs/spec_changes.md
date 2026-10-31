@@ -162,3 +162,7 @@ Section 5.3 says that a module file holds only `///` text, `fn` definitions and 
 ## 30 October 2026 — zeff_language_reference.md, section 11: the code Z0418
 
 The catalogue's row for `seq` (row 54) says that a zero step or a step of the wrong sign is refused, without a number. Step 13 of release 0.5.0 assigns Z0418, the next code of the Z04xx family (arguments), for a `seq` that cannot be built: a zero step, a step pointing away from `to`, an argument that is `NA` or infinite, or a count above ten million values, and adds its row to the table of codes numbered while the engine was built. The change settles nothing else.
+
+## 31 October 2026 — zeff_functions.csv, rows 56 and 58: the layer of `fill_missing` and `n_missing`
+
+The catalogue planned `fill_missing` and `n_missing` in Zeff. A function written in Zeff names one type per parameter (section 3.4, `type`), and the loader of release 0.5.0, step 9, checks a scalar parameter in its column forms only: `fill_missing(x, value)` takes a value of any scalar type, Bool, Int, Float or Str, and `n_missing(x)` a list or a column, which no single-typed parameter covers. By the ruling of the 0.5.0 checklist, each is written in Rust at step 15, its `layer` corrected to Rust with the reason in the notes column, and the missing piece, a parameter of several types in a Zeff signature, is open decision #68 with the deadline 0.7.0. The change settles nothing else; the count of functions written in Zeff in section 8.2 of the Engine and Project Specification (30) is reviewed at the close of the release.

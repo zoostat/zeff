@@ -905,6 +905,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // `assert`, `n_missing` and `fill_missing` of step 15: a check that holds, the counts of
+        // missing values on lists and a column, and filling with the type joined.
+        (
+            "missing",
+            "assert(1 + 1 == 2, \"arithmetic\")\nn_missing([1, NA, 3, NA])\nn_missing([1, 2])\nlet d = frame(x = [1, NA, 3], s = [\"a\", NA, \"c\"])\nn_missing(d[\"x\"])\nfill_missing(d[\"x\"], 0)\nfill_missing(d[\"s\"], \"none\")\nfill_missing(2.5, 0)\nn_missing(fill_missing(d[\"x\"], 0))\nlet w = dataset(wages)\nn_missing(w[\"wage\"])\nassert(n_missing(fill_missing(w[\"wage\"], 0)) == 0, \"filled\")\n",
+        ),
         // The first functions written in Zeff (step 14): `clamp`, `logit` and `inv_logit` at
         // the edges and on columns, with the warnings of their bodies placed at the call.
         (

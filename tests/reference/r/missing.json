@@ -1,0 +1,139 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R; numbers written with 15 significant digits"
+ },
+ "numbers": [
+  {
+   "items": [
+    "1",
+    "NA",
+    "3",
+    "NA"
+   ],
+   "n_missing": 2,
+   "filled": [
+    "1",
+    "0",
+    "3",
+    "0"
+   ],
+   "n_missing_after": 0
+  },
+  {
+   "items": [
+    "1",
+    "2",
+    "3"
+   ],
+   "n_missing": 0,
+   "filled": [
+    "1",
+    "2",
+    "3"
+   ],
+   "n_missing_after": 0
+  },
+  {
+   "items": [
+    "NA",
+    "NA"
+   ],
+   "n_missing": 2,
+   "filled": [
+    "0",
+    "0"
+   ],
+   "n_missing_after": 0
+  },
+  {
+   "items": [
+    "1.5",
+    "NA",
+    "-2.25",
+    "1000000000000"
+   ],
+   "n_missing": 1,
+   "filled": [
+    "1.5",
+    "0",
+    "-2.25",
+    "1000000000000"
+   ],
+   "n_missing_after": 0
+  },
+  {
+   "items": [
+    "NA",
+    "0",
+    "NA",
+    "1e-08",
+    "10000000"
+   ],
+   "n_missing": 2,
+   "filled": [
+    "0",
+    "0",
+    "0",
+    "1e-08",
+    "10000000"
+   ],
+   "n_missing_after": 0
+  },
+  {
+   "items": [],
+   "n_missing": 0,
+   "filled": [],
+   "n_missing_after": 0
+  }
+ ],
+ "texts": [
+  {
+   "items": [
+    "a",
+    "NA",
+    "c"
+   ],
+   "n_missing": 1,
+   "filled": [
+    "a",
+    "none",
+    "c"
+   ]
+  },
+  {
+   "items": [
+    "NA",
+    "NA"
+   ],
+   "n_missing": 2,
+   "filled": [
+    "none",
+    "none"
+   ]
+  },
+  {
+   "items": [
+    "x"
+   ],
+   "n_missing": 0,
+   "filled": [
+    "x"
+   ]
+  }
+ ],
+ "checks": [
+  {
+   "condition": "1 + 1 == 2",
+   "holds": true
+  },
+  {
+   "condition": "2 > 3",
+   "holds": false
+  },
+  {
+   "condition": "all(c(1, 2) > 0)",
+   "holds": true
+  }
+ ]
+}

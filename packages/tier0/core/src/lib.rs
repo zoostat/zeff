@@ -27,8 +27,9 @@ fn print(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 /// The functions of `core` written in Zeff, one `functions/*.zeff` file each (Engine and Project
 /// Specification, section 9.1, "Files"), compiled in; the engine parses, checks and lowers them
-/// when it starts. `clamp`, `logit` and `inv_logit` are the first (release 0.5.0, step 14);
-/// `assert`, `n_missing` and `fill_missing` follow at step 15.
+/// when it starts: `clamp`, `logit`, `inv_logit` (release 0.5.0, step 14) and `assert` (step
+/// 15); `n_missing` and `fill_missing` are Rust, since a Zeff signature cannot take a list or a
+/// column, or a value of any scalar type, in one parameter (open decision #68).
 pub fn zeff_sources() -> Vec<ZeffSource> {
     vec![
         ZeffSource {
@@ -48,6 +49,12 @@ pub fn zeff_sources() -> Vec<ZeffSource> {
             name: "inv_logit",
             file: "core/functions/inv_logit.zeff",
             text: include_str!("../functions/inv_logit.zeff"),
+        },
+        ZeffSource {
+            package: "core",
+            name: "assert",
+            file: "core/functions/assert.zeff",
+            text: include_str!("../functions/assert.zeff"),
         },
     ]
 }

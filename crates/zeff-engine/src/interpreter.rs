@@ -1142,7 +1142,11 @@ impl<'a> Interpreter<'a> {
         }
         result.map_err(|e| {
             if inside(&e) && !e.code.starts_with("Z9") {
-                Box::new(place_at_call(*e, self.script, call.callee_span))
+                Box::new(place_at_call(
+                    named_after(*e, &builtin.name),
+                    self.script,
+                    call.callee_span,
+                ))
             } else {
                 e
             }
@@ -2120,6 +2124,7 @@ impl<'a> Interpreter<'a> {
                 | ("core", "type_of")
                 | ("core", "print")
                 | ("core", "len")
+                | ("core", "n_missing")
                 | ("results", "report")
         );
         if !takes_failed {
@@ -2432,6 +2437,21 @@ fn passes_text(n: i64) -> String {
     } else {
         format!("{count} passes")
     }
+}
+
+/// A Z0203 raised by an `if` inside the body of a built-in written in Zeff names the built-in,
+/// whose argument the condition is: "`assert` needs one Bool, but the condition is NA".
+fn named_after(mut d: Diagnostic, name: &str) -> Diagnostic {
+    if d.code == "Z0203"
+        && let Some(rest) = d.message.strip_prefix("`if` needs one Bool, but ")
+    {
+        let what = rest.rsplit_once(" is ").map_or(rest, |(_, what)| what);
+        d.message = format!("`{name}` needs one Bool, but the condition is {what}");
+        d.help = vec![format!(
+            "`{name}` takes one Bool; test a value that may be missing with `is_missing` first, and reduce a column with `all` or `any`"
+        )];
+    }
+    d
 }
 
 /// A message raised inside the body of a built-in written in Zeff, placed at the call in the
