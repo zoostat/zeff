@@ -2218,8 +2218,17 @@ impl<'a> Interpreter<'a> {
             rest,
             definitions,
         };
-        if call.lifted {
-            // A scalar function of `core` given a column: row by row (section 3.7).
+        // A scalar function given a column applies row by row (section 3.7): as the checker
+        // marked it, or as the values show when a column of the frame shadows a binding the
+        // checker typed the name as (section 3.7, "Name lookup"; W0102).
+        let column_given = call.liftable
+            && (args
+                .values
+                .iter()
+                .zip(&call.scalar_params)
+                .any(|(v, scalar)| *scalar && matches!(v, Some(Value::Column(_))))
+                || (call.rest_scalar && args.rest.iter().any(|v| matches!(v, Value::Column(_)))));
+        if call.lifted || column_given {
             return zeff_core::lift::call_rowwise(*body, &mut ctx, args, &call.returns);
         }
         body(&mut ctx, args)

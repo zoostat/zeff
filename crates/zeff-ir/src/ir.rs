@@ -387,9 +387,16 @@ pub struct Call {
     /// The arguments in the order written, receiver first: the order they are evaluated in
     /// (section 3.7, "Arguments").
     pub order: Vec<Slot>,
-    /// A scalar function of `core` given a column: it applies row by row and returns a column
-    /// (section 3.7, "Columns and scalars").
+    /// A scalar function of `core`, `text` or `time` given a column: it applies row by row and
+    /// returns a column (section 3.7, "Columns and scalars").
     pub lifted: bool,
+    /// Whether the function may apply row by row at all, and which of its parameters (and its
+    /// further values) take one row's scalar: what the interpreter needs to lift a call the
+    /// checker did not, when a column of the frame shadows a binding of the same name (section
+    /// 3.7, "Name lookup"), which the checker cannot see before the schema pass.
+    pub liftable: bool,
+    pub scalar_params: Vec<bool>,
+    pub rest_scalar: bool,
     /// A reducer called inside a frame method's definition without a receiver (`mean(lwage)` in
     /// `add`): the enclosing frame, or its group under `by:`, is the receiver (section 6).
     pub implicit_receiver: bool,

@@ -178,6 +178,8 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 
 **Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (116 codes) and the conformance report pass locally; CI to be read after the push, with the bundle figures of `text` at start.
 
+**A bug found after the step.** The owner's sample scripts exposed a clash older than the release: a column that shadows a binding of the same name was used by the interpreter (W0102) but typed by the checker as the binding, so a scalar function given it (`year`, `sqrt`) received the whole column, an internal error for dates and a misleading `NA` for numbers. Fixed with the failing test first: every call now says whether it may apply row by row and which parameters take a scalar, and the interpreter lifts the call when a column arrives at run time; the record is in `docs/decisions.md`.
+
 **Next.** Step 6 `[engine]`: shared columns and selection vectors.
 
 **For the owner to decide.** Nothing new.
