@@ -71,6 +71,7 @@ const PHRASES: &[(&str, &[&str])] = &[
             "holds an infinite value",
         ],
     ),
+    ("W0210", &["outside every interval"]),
     ("W0601", &["Unicode normalisation form"]),
     ("W0702", &["time-zone offset"]),
 ];

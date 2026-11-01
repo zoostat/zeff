@@ -165,3 +165,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 9 `[function]`: `running_sum`, `running_product`, `rank`, `bin`.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 9
+
+**Done.** Step 9 `[function]`: `running_sum`, `running_product`, `rank` and `bin`, in the current row order and within `by:` groups; Int sums stay Int with Z0211 at the row of overflow; ranks under the four tie rules with `NA` kept; `bin` as R's `cut`, an ordered category labelled as R labels it unless `labels:` is given, a value outside every interval `NA` with W0210 (the new code in section 11's tables and logged). Four help pages; R's values (`tests/reference/r/running.R`, in CI) held exactly; the conformance case `panel/running` published; the kernel's `Key::of` made public.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 10 `[function]`: `quantile_group`, `winsorize`.
+
+**For the owner to decide.** Nothing new.

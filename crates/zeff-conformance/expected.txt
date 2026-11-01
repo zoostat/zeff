@@ -163,6 +163,8 @@ panel/declare/stdout 2ca84882e91ab986
 panel/declare/stderr 58e936f4915a6b6c
 panel/lags/stdout 22d72fb766c737b7
 panel/lags/stderr 4ab71cb823a2f7ac
+panel/running/stdout 9dbb606b466e3fa2
+panel/running/stderr 2fbf395b8f20ee5c
 functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f

@@ -23,7 +23,7 @@ pub enum Key {
 }
 
 impl Key {
-    fn of(column: &Column, row: usize) -> Option<Key> {
+    pub fn of(column: &Column, row: usize) -> Option<Key> {
         Some(match column.get(row)? {
             Value::Na => Key::Na,
             Value::Bool(b) => Key::Bool(b),

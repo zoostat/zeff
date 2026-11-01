@@ -222,3 +222,7 @@ Z0601, a panel declaration refused: a unit observed twice at one time, `NA` in t
 ## 1 November 2026 — zeff_language_reference.md, section 11 (the table of codes); zeff_functions.csv, row 127
 
 Z0602, a panel function (`lag`, `lead`, `diff`, `fill_forward`) outside `add` or `update`, or on a frame with no panel declaration: section 6 ("Panels") says the functions follow the declared panel and names no code for the call that has none; the next free number of the data family, as the checklist's ruling says (step 8 of release 0.6.0). Row 127's `layer` goes from Zeff to Rust with the reason in its notes: `diff` is `x - lag(x, n)` and reads the enclosing frame's panel, which a body written in Zeff cannot reach (open decision #69, as `row_mean` and `row_sum` at 0.5.0). The totals of section 8.2 are reviewed at the close of the release, as before.
+
+## 2 November 2026 — zeff_language_reference.md, section 11 (both tables of codes)
+
+W0210, a value of `bin` outside every interval of its breaks, which becomes `NA` with a warning giving the count: section 4.2 describes `bin` by R's `cut` and names no code for the values `cut` makes `NA`; the next free number of the values family, as the checklist's ruling on provisional codes says (step 9 of release 0.6.0).

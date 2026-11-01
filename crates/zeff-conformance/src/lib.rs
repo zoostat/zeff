@@ -1104,11 +1104,17 @@ fn panel_cases() -> Vec<Line> {
     // fill forward within units and by row order, and the refusals.
     let lags = "let p = frame(firm = [2, 1, 2, 1, 3, 2], year = [2021, 2020, 2020, 2021, 2020, 2023], revenue = [12.5, 8, 11, NA, 7, 15]).panel(unit: firm, time: year)\np.add(prev = lag(revenue), next = lead(revenue), two = lag(revenue, n: 2), change = diff(revenue), filled = fill_forward(revenue))\nlet d = frame(firm = [\"a\", \"a\", \"a\", \"b\"], day = [date(\"2026-01-01\"), date(\"2026-01-02\"), date(\"2026-01-04\"), date(\"2026-01-01\")], v = [1, 2, 3, 4]).panel(unit: firm, time: day)\nd.add(prev = lag(v), change = diff(v))\nframe(g = [1, 1, 2, 2], v = [NA, 3, NA, NA]).add(f = fill_forward(v))\nframe(g = [1, 1, 2, 2], v = [5, NA, 7, NA]).add(f = fill_forward(v), by: g)\nlet w = dataset(wages).where(worker <= 3)\nw.add(prev = lag(wage), growth = diff(wage)).select([worker, year, wage, prev, growth])\nframe(x = [1, 2]).add(y = lag(x))\n";
     let moved = run_script(&fs, &project, "scripts/main.zeff", lags);
+    // The column functions (step 9): running sums and products with an `NA` and within groups,
+    // the four tie rules, and bins with open ends, both closures, labels and a value outside.
+    let running = "let s = frame(shop = [\"a\", \"a\", \"b\", \"b\", \"b\"], sales = [120, 80, NA, 150, 90], growth = [1.1, 0.9, 1.25, 1.0, 0.8])\ns.add(to_date = running_sum(sales), index = running_product(growth))\ns.add(so_far = running_sum(sales), by: shop)\nlet r = frame(name = [\"Ann\", \"Bo\", \"Cy\", \"Di\", \"Ed\"], score = [72.5, 90, 72.5, NA, 60])\nr.add(avg = rank(score), low = rank(score, ties: min), high = rank(score, ties: max), first = rank(score, ties: first))\nlet pay = frame(wage = [18.08, 8.5, 20.93, 15.68, 26.39, 33.07, NA])\npay.add(band = bin(wage, breaks: [-Inf, 10, 20, Inf]), left = bin(wage, breaks: [0, 10, 20], labels: [\"low\", \"high\"], closed: left), narrow = bin(wage, breaks: [10, 20]), fine = bin(wage, breaks: [0, 2.5, 1000, 123456, Inf]))\nframe(x = [9223372036854775800, 10]).add(s = running_sum(x))\n";
+    let ran = run_script(&fs, &project, "scripts/main.zeff", running);
     vec![
         text("panel/declare/stdout", &outcome.output.stdout),
         text("panel/declare/stderr", &outcome.output.stderr),
         text("panel/lags/stdout", &moved.output.stdout),
         text("panel/lags/stderr", &moved.output.stderr),
+        text("panel/running/stdout", &ran.output.stdout),
+        text("panel/running/stderr", &ran.output.stderr),
     ]
 }
 

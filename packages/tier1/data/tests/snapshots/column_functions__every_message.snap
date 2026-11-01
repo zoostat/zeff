@@ -1,0 +1,148 @@
+---
+source: packages/tier1/data/tests/column_functions.rs
+assertion_line: 207
+expression: out
+---
+frame(x = [9223372036854775800, 10]).add(s = running_sum(x))
+---
+error[Z0211]: Int overflow: the running sum does not fit in 64 bits at row 2
+ --> scripts/main.zeff:1:58
+  |
+1 | frame(x = [9223372036854775800, 10]).add(s = running_sum(x))
+  |                                                          ^ the column summed
+  |
+  = help: Ints are 64-bit; a Float (`1.0 * x`) holds larger magnitudes with 53 bits of precision
+
+frame(x = [1.0, Inf, -Inf, 2]).add(s = running_sum(x))
+---
+frame · 4 rows × 2 variables
+
+         x     s
+  1      1     1
+  2    Inf   Inf
+  3   -Inf    NA
+  4      2    NA
+warning: `running_sum`: Inf and -Inf together gave NA in 2 rows (line 1)
+  = help: an `NA` makes the rest of the running values `NA`; filter the infinite values first
+
+frame(x = [0.0, Inf, 2]).add(p = running_product(x))
+---
+frame · 3 rows × 2 variables
+
+        x    p
+  1     0    0
+  2   Inf   NA
+  3     2   NA
+warning: `running_product`: 0 and Inf together gave NA in 2 rows (line 1)
+  = help: an `NA` makes the rest of the running values `NA`; filter the infinite values first
+
+frame(x = [1.0, 2]).add(b = bin(x))
+---
+error[Z0406]: `bin` needs `breaks:`
+ --> scripts/main.zeff:1:29
+  |
+1 | frame(x = [1.0, 2]).add(b = bin(x))
+  |                             ^^^ `breaks:` is missing
+  |
+  = help: usage: `bin(x, breaks: [-Inf, 0, 10, Inf])`
+
+frame(x = [1.0, 2]).add(b = bin(x, breaks: [1]))
+---
+error[Z0401]: `breaks:` of `bin` needs at least two breaks to make an interval, but one was given
+ --> scripts/main.zeff:1:44
+  |
+1 | frame(x = [1.0, 2]).add(b = bin(x, breaks: [1]))
+  |                                            ^^^ fewer than two breaks
+  |
+  = help: usage: `bin(x, breaks: [-Inf, 0, 10, Inf])`, the breaks in any order; `-Inf` and `Inf` are open ends
+
+frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 1, 2]))
+---
+error[Z0401]: `breaks:` of `bin` repeats 1, which would make an empty interval
+ --> scripts/main.zeff:1:44
+  |
+1 | frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 1, 2]))
+  |                                            ^^^^^^^^^^^^ a break repeated
+  |
+  = help: usage: `bin(x, breaks: [-Inf, 0, 10, Inf])`, the breaks in any order; `-Inf` and `Inf` are open ends
+
+frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, NA, 2]))
+---
+error[Z0401]: `breaks:` of `bin` holds NA, which is no break
+ --> scripts/main.zeff:1:44
+  |
+1 | frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, NA, 2]))
+  |                                            ^^^^^^^^^^ NA among the breaks
+  |
+  = help: usage: `bin(x, breaks: [-Inf, 0, 10, Inf])`, the breaks in any order; `-Inf` and `Inf` are open ends
+
+frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: ["a"]))
+---
+error[Z0401]: `labels:` of `bin` names one label per interval: 3 breaks make 2 intervals, but 1 label was given
+ --> scripts/main.zeff:1:63
+  |
+1 | frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: ["a"]))
+  |                                                               ^^^^^ the wrong number of labels
+  |
+  = help: leave `labels:` out for R's `(a,b]` labels
+
+frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: ["a", "a"]))
+---
+error[Z0401]: `labels:` of `bin` repeats "a"; a category's levels are distinct
+ --> scripts/main.zeff:1:63
+  |
+1 | frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: ["a", "a"]))
+  |                                                               ^^^^^^^^^^ a label repeated
+  |
+  = help: give each interval its own label
+
+frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: [1, 2]))
+---
+error[Z0401]: `labels` of `bin` must be a List<Str>, but this is a List<Int>
+ --> scripts/main.zeff:1:63
+  |
+1 | frame(x = [1.0, 2]).add(b = bin(x, breaks: [0, 1, 2], labels: [1, 2]))
+  |                                                               ^^^^^^ a List<Int>
+  |
+  = help: usage: `bin(x, breaks: List<Float>, labels: List<Str>, closed: right | left = right)`
+
+frame(x = ["p", "q"]).add(b = bin(x, breaks: [0, 1]))
+---
+error[Z0401]: `bin` takes a column of numbers, but this is a Column<Str>
+ --> scripts/main.zeff:1:35
+  |
+1 | frame(x = ["p", "q"]).add(b = bin(x, breaks: [0, 1]))
+  |                                   ^ not numbers
+  |
+  = help: `to(x, Float)` converts text that holds numbers; a date is not a number
+
+frame(x = ["p", "q"]).add(r = rank(category(x)))
+---
+error[Z0221]: `rank` orders its values, but the levels of this category are not ordered
+ --> scripts/main.zeff:1:36
+  |
+1 | frame(x = ["p", "q"]).add(r = rank(category(x)))
+  |                                    ^^^^^^^^^^^ an unordered category
+  |
+  = help: `category(x, levels: [...], ordered: true)` gives the levels an order (section 4.2 of the Language Reference)
+
+running_sum(3)
+---
+error[Z0401]: `x` of `running_sum` must be a Column<Int> or Column<Float>, but this is an Int
+ --> scripts/main.zeff:1:13
+  |
+1 | running_sum(3)
+  |             ^ an Int
+  |
+  = help: usage: `running_sum(x)`
+
+frame(x = [8.5, 18.08, 26.39]).add(band = bin(x, breaks: [10, 20]))
+---
+frame · 3 rows × 2 variables
+
+          x   band
+  1     8.5   NA
+  2   18.08   (10,20]
+  3   26.39   NA
+warning: `bin`: 2 rows outside every interval became NA (line 1)
+  = help: the intervals run from 10 to 20; `-Inf` and `Inf` as the first and last breaks keep every value

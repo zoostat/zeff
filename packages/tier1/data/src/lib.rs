@@ -1,5 +1,6 @@
 //! Package data (tier 1): frames, reducers and files.
 
+pub mod column_functions;
 pub mod csv;
 pub mod frame;
 pub mod import;
@@ -983,6 +984,90 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: panel_functions::fill_forward,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "running_sum",
+                package: "data",
+                method: false,
+                params: vec![ParamSpec::required("x", "Column<Int> | Column<Float>")],
+                rest: None,
+                returns: "Same",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0211", "an Int running sum beyond 64 bits"),
+                    DiagnosticDecl::new("W0205", "Inf and -Inf together, giving NA"),
+                ],
+                help: include_str!("../help/running_sum.md"),
+                accuracy: None,
+            },
+            body: column_functions::running_sum,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "running_product",
+                package: "data",
+                method: false,
+                params: vec![ParamSpec::required("x", "Column<Int> | Column<Float>")],
+                rest: None,
+                returns: "Column<Float>",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "W0205",
+                    "0 and Inf together, giving NA",
+                )],
+                help: include_str!("../help/running_product.md"),
+                accuracy: None,
+            },
+            body: column_functions::running_product,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "rank",
+                package: "data",
+                method: false,
+                params: vec![
+                    ParamSpec::required("x", "Column"),
+                    ParamSpec::option_with_default(
+                        "ties",
+                        "average | min | max | first",
+                        "average",
+                    ),
+                ],
+                rest: None,
+                returns: "Column<Float> | Column<Int>",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0221", "a category whose levels are not ordered"),
+                    DiagnosticDecl::new("Z0401", "a column with no order"),
+                ],
+                help: include_str!("../help/rank.md"),
+                accuracy: None,
+            },
+            body: column_functions::rank,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "bin",
+                package: "data",
+                method: false,
+                params: vec![
+                    ParamSpec::required("x", "Column<Int> | Column<Float>"),
+                    ParamSpec::option("breaks", "List<Float>"),
+                    ParamSpec::option("labels", "List<Str>"),
+                    ParamSpec::option_with_default("closed", "right | left", "right"),
+                ],
+                rest: None,
+                returns: "Column<Category>",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0406", "breaks: missing"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "fewer than two breaks, a break repeated or NA, labels of the wrong number or repeated",
+                    ),
+                    DiagnosticDecl::new("W0210", "values outside every interval, which are NA"),
+                ],
+                help: include_str!("../help/bin.md"),
+                accuracy: None,
+            },
+            body: column_functions::bin,
         },
         Function {
             spec: FunctionSpec {
