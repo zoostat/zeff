@@ -622,4 +622,14 @@ mod tests {
         assert!(!essentially_perfect((5e-30_f64).sqrt(), &[2.0]));
         assert!(!essentially_perfect(0.0, &[]));
     }
+
+    /// An outcome of zeros fits with fitted values of zero and a residual variance of zero:
+    /// its scale is zero, and R's comparison is strict, so `summary.lm` gives no warning for
+    /// it and nor does the rule here; the note that the outcome has no variation covers it.
+    /// Constant fitted values that are not zero, with a residual variance of zero, are perfect.
+    #[test]
+    fn an_outcome_of_zeros_is_not_called_perfect() {
+        assert!(!essentially_perfect(0.0, &[0.0, 0.0, 0.0]));
+        assert!(essentially_perfect(0.0, &[5.0, 5.0, 5.0]));
+    }
 }
