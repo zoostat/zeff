@@ -128,7 +128,7 @@ survival = "^1.2"
 | `zeff export replication` | Build the project's replication package (section 11.1 of the Language Reference) |
 | `zeff verify <package>` | Re-run a replication package in a temporary folder and compare every result and output with its run record (section 11.1 of the Language Reference) |
 | `zeff doctor` | Report the versions and builds installed, the paths, the settings in effect and their source, PATH and completions, connectivity and disk space, each problem with the command that fixes it |
-| `zeff app install \| list \| update \| remove` | Install and manage the desktop apps, Zemp Lite (`lite`) and Zemp (`zemp`), from the command line; `--from <file>` installs from the offline bundle (Zemp Specification, section 9) |
+| `zeff app install \| list \| update \| remove` | Install and manage the desktop apps, Zemp Lite (`lite`) and Zemp Studio (`studio`), from the command line; `--from <file>` installs from the offline bundle (Zemp Specification, section 9) |
 | `zeff self update \| uninstall \| install \| path` | Update or remove the launcher; register an unpacked archive; print the PATH line (section 2.1) |
 | `zeff completions <shell>` | Completions for bash, zsh, fish and PowerShell: commands, flags, function names, diagnostic codes and engine versions |
 | `zeff dataset fetch <name> \| --all` | Pre-fetch datasets larger than a megabyte for a machine without network (section 8.5) |
@@ -170,7 +170,7 @@ A system-wide install (`/opt/zeff`, `C:\Program Files\Zeff`) holds `bin/`, `engi
 | Container image | `ghcr.io/zeff-lang/zeff:<version>` | A static binary on a minimal image, for continuous integration and clusters; `--frozen` by default |
 | GitHub Action | `uses: zeff-lang/setup-zeff@v1` | Reads the pin from `zeff.toml` and caches engines |
 | From source | `cargo install zeff --locked` | An unofficial build: `zeff version` and every run record say so, and `zeff selftest` says whether it is conformant |
-| Desktop apps | `zeff app install lite \| zemp`, `zeff app list \| update \| remove` | The launcher installs Zemp Lite or Zemp beside its engines, verified against the same built-in key; setup files for Zeff and the apps are deferred (Zemp Specification, section 17) |
+| Desktop apps | `zeff app install lite \| studio`, `zeff app list \| update \| remove` | The launcher installs Zemp Lite or Zemp Studio beside its engines, verified against the same built-in key; setup files for Zeff and the apps are deferred (Zemp Specification, section 17) |
 | Zemp desktop | Settings → Install command-line tool | Puts `~/.zeff/bin` on PATH; the app and the command share one engine store |
 | After 1.0, on request | PyPI wheel, conda-forge, Nix, Debian | Community packaging is safe because the launcher verifies every engine it installs |
 
@@ -883,7 +883,7 @@ The 258 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, the
 
 The ten functions once proposed for 1.0 were decided on 16 October 2026 (section 15): `iterate`, `event`, `posthoc` with factorial `anova` and `iv.check` (renamed `exclusion_check` on 17 October 2026) are in, and the five power functions and `survey()` form the Design release, 1.9.
 
-**Zeff and Zemp.** Zeff 1.0.0 is the engine, the command line, the language server and the public validation suite. It does not wait for the desktop app, installers or code signing, which belong to Zemp's own release line (Zemp Specification, section 15); Zemp Lite 1.0, which needs no dialogs, ships with Zeff 1.0.0, and Zemp 1.0 follows once its dialogs cover every 1.0 method. Each Zemp release records the engine versions it supports, and a Zemp fix never requires an engine release.
+**Zeff and Zemp.** Zeff 1.0.0 is the engine, the command line, the language server and the public validation suite. It does not wait for the desktop app, installers or code signing, which belong to Zemp's own release line (Zemp Specification, section 15); Zemp Lite 1.0, which needs no dialogs, ships with Zeff 1.0.0, and Zemp Studio 1.0 follows once its dialogs cover every 1.0 method. Each Zemp release records the engine versions it supports, and a Zemp fix never requires an engine release.
 
 **After 1.0.** Each minor release is built around one family of methods and the engine work it needs. The first is engine work alone, so that every method release after it is smaller and the 1.0 methods get faster at once.
 
@@ -1028,6 +1028,7 @@ Everything above is the current design; these items still need a decision.
 - [x] Fresh start of the code (17 October 2026): the prototype engine built as 0.0.1 is set aside and no version counts as released; 0.1.0 is rebuilt from scratch with the ten functions under their final names, on the tiered Cargo workspace, the typed IR, diagnostics as data and Arrow columns from the first commit, so later releases add functions rather than rework foundations; the specifications are unchanged
 - [x] Source files per function (17 October 2026; section 9.1, Files): help is always one file per function; Rust code is grouped by family into modules of its package crate, so functions that share helpers share a module; Zeff code is one `.zeff` file per function in `functions/`, with private helpers and a small family read together allowed to share it; the registry build matches help to functions by name and fails on a function without a help file or a help file without a function
 - [x] Names kept (17 October 2026): Zeff for the language and Zemp for the application, rather than alternatives considered the same day; trademark and domain checks remain open decisions (#31, #37 of zeff_open_decisions.md)
+- [x] Zemp Studio (1 November 2026): the full edition of Zemp is named Zemp Studio, beside Zemp Lite; Zemp alone stays the name of the application and the product line (Zemp Specification, section 2); `zeff app install studio` and the `zemp-studio` package names follow
 - [x] Risk register (17 October 2026): zeff_risk_register.md, twelve risks with early warnings, mitigations and fallbacks, reviewed at every minor release (section 14)
 - [x] `.gitignore` from `zeff new` (17 October 2026; section 2): caches, run records, the project lock file and session script, Zemp's view state and `data/` left out by default, for the Git panel of Zemp and Zemp Lite (Zemp Specification, section 5)
 - [x] Installation from the command line only, for now (17 October 2026; section 2.1): the launcher from the installer script, a package manager, an archive or the offline bundle, and the desktop apps, Zemp Lite and Zemp, from `zeff app install lite | zemp` or a package manager, each verified against the launcher's built-in key; setup files for Zeff and the apps deferred to the code-signing decision (zeff_open_decisions.md, #23 and #38)

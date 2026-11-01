@@ -111,3 +111,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
 
 **For the owner to decide.** #73 by 0.8.0; the owner's other interface requests (a help pane, a traceback and run-to-here, schema-aware completion and extract function, Git history and a diff of results) await the word to be recorded the same way.
+
+## 1 November 2026, after the release: the full edition named Zemp Studio
+
+**Done.** The owner named the full edition Zemp Studio. The rule (Zemp the application and the line; Zemp Studio and Zemp Lite its editions) is in section 2 of the Zemp Specification, the rename applied where the full edition is named as a product or set against Lite in both volumes, the open decisions (#38, #39, #73) and the risk register, the installer identifiers `studio` and `zemp-studio` following; logged in `docs/spec_changes.md`, the ruling in `docs/decisions.md`. The Zemp repository's copies await a Zemp session.
+
+**Green.** Documents only; CI to be read after the push.
+
+**Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
+
+**For the owner to decide.** #73 by 0.8.0; the five other interface additions (a help pane, traceback and run-to-here, schema-aware completion and extract function, Git history and a diff of results) await the word to be recorded as open decisions.

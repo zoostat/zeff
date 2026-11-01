@@ -2,7 +2,7 @@
 
 Version of this document: 17 October 2026 · Engine today: none; Zeff's code starts afresh at 0.1.0 (Zeff Specification, section 14)
 
-Zemp is a statistical application for empirical and causal research, built on the Zeff language. It aims at the analytical power of R and Stata with point-and-click and drag-and-drop on top. It comes in two editions from one codebase, each on the web and the desktop: **Zemp**, the full application, and **Zemp Lite**, a code-first edition without point-and-click for users who prefer to write Zeff, as RStudio is to R; the `zeff` command line completes the line (section 2). Every action in Zemp writes a Zeff statement, shows it, and runs it, so clicking and typing always give the same result and every session leaves a script that re-runs. This document specifies the product: principles, product line, architecture, projects, the workspace, dialogs, plots, reporting, the desktop and web versions, updates, security, scope by research question, and the release plan. The companion files are the two volumes of the **Zeff Specification** (zeff_language_reference.md and zeff_engine_specification.md, with their section numbers shared), **zeff_functions.csv** (every function), the testing handbook (zeff_testing.md), the open decisions (zeff_open_decisions.md), the business model (zemp_business_model.md) and the risk register (zeff_risk_register.md).
+Zemp is a statistical application for empirical and causal research, built on the Zeff language. It aims at the analytical power of R and Stata with point-and-click and drag-and-drop on top. It comes in two editions from one codebase, each on the web and the desktop: **Zemp Studio**, the full application, and **Zemp Lite**, a code-first edition without point-and-click for users who prefer to write Zeff, as RStudio is to R; the `zeff` command line completes the line (section 2). Every action in Zemp writes a Zeff statement, shows it, and runs it, so clicking and typing always give the same result and every session leaves a script that re-runs. This document specifies the product: principles, product line, architecture, projects, the workspace, dialogs, plots, reporting, the desktop and web versions, updates, security, scope by research question, and the release plan. The companion files are the two volumes of the **Zeff Specification** (zeff_language_reference.md and zeff_engine_specification.md, with their section numbers shared), **zeff_functions.csv** (every function), the testing handbook (zeff_testing.md), the open decisions (zeff_open_decisions.md), the business model (zemp_business_model.md) and the risk register (zeff_risk_register.md).
 
 ---
 
@@ -10,7 +10,7 @@ Zemp is a statistical application for empirical and causal research, built on th
 
 1. **Purely statistical.** Zemp is statistical software for empirical analysis, not a general programming environment or a data-engineering tool.
 2. **Code is the canonical form.** The interface writes Zeff and runs it; it never calls the engine directly. Point-and-click and syntax cannot disagree.
-3. **Every procedure both ways.** In Zemp, everything is runnable by point-and-click and by syntax. Zemp Lite is syntax only by design (section 2): it leaves out the controls that write Zeff, never a procedure, so everything Lite runs, Zemp can also run by point-and-click.
+3. **Every procedure both ways.** In Zemp, everything is runnable by point-and-click and by syntax. Zemp Lite is syntax only by design (section 2): it leaves out the controls that write Zeff, never a procedure, so everything Lite runs, Zemp Studio can also run by point-and-click.
 4. **Reproducible by default.** Work lives in projects that pin the engine version and record seeds and file hashes, so a project re-runs to identical numbers anywhere.
 5. **Nothing hidden.** Every dropped row, skipped missing value, singleton, omitted collinear term and conversion is shown with a count.
 6. **Readable output.** Plots and tables are drawn to fit the space they are shown in; nothing needs zooming to be read.
@@ -27,15 +27,15 @@ Two editions, each in two forms, plus the command line. Every product runs the s
 
 | Product | For | Engine | Interface | Data limit |
 | --- | --- | --- | --- | --- |
-| Zemp web | Quick analysis by point-and-click or code with nothing to install; links that re-run an analysis | Zeff compiled to WebAssembly, in Web Workers | Browser tab, installable as an offline app (PWA) | The project's memory budget: by default the smaller of 3.5 GB and half the device's memory; 32-bit WebAssembly caps it at 4 GB, so in practice about 2–3 GB of input data fits |
-| Zemp desktop | Research projects, large data, long runs, by point-and-click or code | Native Zeff: all memory, all cores | Tauri app window on the system web view (Electron if Linux rendering fails) | Available memory; files larger than memory streamed from 1.7 |
-| Zemp Lite web | Writing Zeff in the browser with nothing to install | As Zemp web | As Zemp web, without the point-and-click modules | As Zemp web |
-| Zemp Lite desktop | Writing Zeff on one's own machine; installed beside the `zeff` command line with `zeff app install lite` (section 9), so that "Zeff + Zemp Lite" is one product line, as R ships with its own console | As Zemp desktop | As Zemp desktop, without the point-and-click modules | As Zemp desktop |
+| Zemp Studio web | Quick analysis by point-and-click or code with nothing to install; links that re-run an analysis | Zeff compiled to WebAssembly, in Web Workers | Browser tab, installable as an offline app (PWA) | The project's memory budget: by default the smaller of 3.5 GB and half the device's memory; 32-bit WebAssembly caps it at 4 GB, so in practice about 2–3 GB of input data fits |
+| Zemp Studio desktop | Research projects, large data, long runs, by point-and-click or code | Native Zeff: all memory, all cores | Tauri app window on the system web view (Electron if Linux rendering fails) | Available memory; files larger than memory streamed from 1.7 |
+| Zemp Lite web | Writing Zeff in the browser with nothing to install | As Zemp Studio web | As Zemp Studio web, without the point-and-click modules | As Zemp Studio web |
+| Zemp Lite desktop | Writing Zeff on one's own machine; installed beside the `zeff` command line with `zeff app install lite` (section 9), so that "Zeff + Zemp Lite" is one product line, as R ships with its own console | As Zemp Studio desktop | As Zemp Studio desktop, without the point-and-click modules | As Zemp Studio desktop |
 | `zeff` command line | Servers, batch jobs, replication packages | Native Zeff | None (terminal) | As desktop |
 
-**The two editions.** Zemp Lite is the Zemp interface built without the modules that write Zeff for the user; everything that shows, runs or exports is the same.
+**The two editions.** Zemp Lite is the Zemp interface built without the modules that write Zeff for the user; everything that shows, runs or exports is the same. The names: **Zemp** alone is the application and the product line, which both editions share; **Zemp Studio** and **Zemp Lite** are its two editions, named where the two are told apart (decided 1 November 2026).
 
-| Part | Zemp | Zemp Lite |
+| Part | Zemp Studio | Zemp Lite |
 | --- | --- | --- |
 | Project panel, editor with the language server, console, log, objects | Yes | Yes |
 | Data, results and plot viewers, including sorting and filtering as view state, redraw to fit, compare, pop out and journal-size export | Yes | Yes |
@@ -49,9 +49,9 @@ Two editions, each in two forms, plus the command line. Every product runs the s
 | --- | --- |
 | One codebase | The editions are two builds of the same interface: Zemp Lite leaves the point-and-click modules out at build time, so its download is smaller, and every fix to a shared part reaches both |
 | Same projects | A project made in either edition opens and runs unchanged in the other and from the command line; nothing in a project records which edition made it, and view state (`.zemp/views.json`) is shared |
-| Layouts | Two layouts of the same panels, in both editions: **Inline**, one column in which each statement's output appears directly under it in the editor, and **Panes**, the workspace of section 5. Zemp Lite opens in Inline and Zemp in Panes; either switches with one click, and the choice is view state saved per project in `.zemp/views.json`. The script is a plain `.zeff` file in both: inline output is never written into it |
-| Moving up | Zemp Lite offers **Open in Zemp** for the current project; Zemp has no "Lite mode", since a user who wants no dialogs simply ignores them or uses Lite |
-| Same engine store | On a desktop, Zemp Lite, Zemp and the `zeff` command line share one engine store (`~/.zeff/engines/`), so an engine downloaded by any of them serves all three |
+| Layouts | Two layouts of the same panels, in both editions: **Inline**, one column in which each statement's output appears directly under it in the editor, and **Panes**, the workspace of section 5. Zemp Lite opens in Inline and Zemp Studio in Panes; either switches with one click, and the choice is view state saved per project in `.zemp/views.json`. The script is a plain `.zeff` file in both: inline output is never written into it |
+| Moving up | Zemp Lite offers **Open in Zemp Studio** for the current project; Zemp Studio has no "Lite mode", since a user who wants no dialogs simply ignores them or uses Lite |
+| Same engine store | On a desktop, Zemp Lite, Zemp Studio and the `zeff` command line share one engine store (`~/.zeff/engines/`), so an engine downloaded by any of them serves all three |
 | Free | Zemp Lite is in the free tier with no limits (zemp_business_model.md) |
 
 The web and desktop interfaces are the same code in both editions. Desktop adds real project folders, native speed, background jobs, the updater and, from 1.1, the opt-in `external` step for R and Python scripts.
@@ -80,7 +80,7 @@ The web and desktop interfaces are the same code in both editions. Desktop adds 
 | --- | --- |
 | Engine | Zeff in Rust; WebAssembly build for the browser, native build for desktop and CLI; bit-identical results on both (Zeff Specification, section 8.3) |
 | Interface | TypeScript with standard web features only, so it renders the same in WebView2 (Windows), WebKit (macOS) and WebKitGTK (Linux); UI framework chosen when interface work starts at Zeff 0.7.0 |
-| Editions | One interface codebase built twice: Zemp with every module, Zemp Lite with the Methods panel, dialogs, guides, builders and statement-writing controls left out by a build flag (section 2); the shared modules never depend on the left-out ones, which a build check enforces |
+| Editions | One interface codebase built twice: Zemp Studio with every module, Zemp Lite with the Methods panel, dialogs, guides, builders and statement-writing controls left out by a build flag (section 2); the shared modules never depend on the left-out ones, which a build check enforces |
 | Code editor | CodeMirror 6 with Zeff's tree-sitter grammar and the Zeff language server |
 | Desktop shell | Tauri: a small app bundle, the system web view, signed updates |
 | Engine ↔ interface | The interface sends Zeff source and receives results in the engine's versioned formats: tables as Arrow, plots as vector scenes, warnings and notes with codes |
@@ -100,7 +100,7 @@ Zemp works only in projects. A project is a folder with `zeff.toml` (name, pinne
 | Project only | Opening Zemp shows a project chooser; there are no loose scripts |
 | Scratch project | A Scratch project is always available for quick exploration; its work can be promoted to a named project in one step |
 | One project per window | Each window holds one project, fully isolated; frames, bindings and results are never shared between windows |
-| No duplicate opening | Opening a project already open elsewhere brings that window forward with "already open in another window"; a lock file in the project's `.zeff/` folder enforces this across processes, and data-root files are read with shared access so several projects can use them at once. The lock holds across editions: a project open in Zemp Lite cannot also be opened in Zemp |
+| No duplicate opening | Opening a project already open elsewhere brings that window forward with "already open in another window"; a lock file in the project's `.zeff/` folder enforces this across processes, and data-root files are read with shared access so several projects can use them at once. The lock holds across editions: a project open in Zemp Lite cannot also be opened in Zemp Studio |
 | Data roots | Large shared datasets are declared once as read-only data roots and read in place (`import("lfs:wages.parquet")`); Zemp shows them in the project tree and warns when a file has changed since the last run. In the browser the user grants access to the folder once |
 | Explicit sharing | Code moves between projects only through Import from another project; data through Import or a data root |
 | Engine pin | A project opens with the engine its `zeff.toml` names; Zemp installs that engine if it is missing (desktop) or loads it (web) |
@@ -157,7 +157,7 @@ Everything else (export a replication package, update the engine, viewers, help,
 
 **The welcome screen.** With no project open, Zemp Lite shows one quiet screen: **New project…**, **Open folder…**, **Clone from Git…** (on the desktop from 1.1, with the Git panel) and **Scratch project**, each with a one-line description and its shortcut, a list of recent projects with their folders and when each was last opened, and the Dark switch; the line at the bottom says no project is open. Choosing a project opens it in this window.
 
-**Planned for Inline (before Zemp Lite 1.0).** Long outputs fold to a one-line summary that expands on click, and an **Outputs: all · warnings only · none** switch shows the script with as much output as the reader wants; a large value, such as a frame of 18,000 rows, prints its first rows with "open in Data viewer" instead of filling the page. A ⌘K command **Export script with output** writes the inline view, code, results, warnings and plots in order, as an HTML or PDF file with the engine version and run record line at its foot, for a co-author or supervisor; it reuses the rendered view and comes well before the report documents planned for Zemp 1.11 (section 8). Also planned: errors shown under the line that raised them with their code and fixes, a running or queued mark in the margin while a script runs (with Cancel), and Ctrl + and Ctrl − for text size. In Zemp's Inline layout the same editor sits in the middle column of the Panes workspace, with the Project, Objects and Methods panels kept.
+**Planned for Inline (before Zemp Lite 1.0).** Long outputs fold to a one-line summary that expands on click, and an **Outputs: all · warnings only · none** switch shows the script with as much output as the reader wants; a large value, such as a frame of 18,000 rows, prints its first rows with "open in Data viewer" instead of filling the page. A ⌘K command **Export script with output** writes the inline view, code, results, warnings and plots in order, as an HTML or PDF file with the engine version and run record line at its foot, for a co-author or supervisor; it reuses the rendered view and comes well before the report documents planned for Zemp 1.11 (section 8). Also planned: errors shown under the line that raised them with their code and fixes, a running or queued mark in the margin while a script runs (with Cancel), and Ctrl + and Ctrl − for text size. In Zemp Studio's Inline layout the same editor sits in the middle column of the Panes workspace, with the Project, Objects and Methods panels kept.
 
 **Git.** A Git panel shared by both editions: the branch, the changed files with line counts, a commit message, and Commit, Pull and Push. It works with any Git remote (GitHub, GitLab, Bitbucket or an institution's own server), signing in to GitHub being a shortcut, not a requirement. `zeff new` writes a `.gitignore` that leaves out the caches (`.zeff/cache/`, `.zeff/fetched/`), the run records (`.zeff/runs/`), the project lock file and session script in `.zeff/`, `.zemp/views.json` and `data/` (Zeff Specification, section 2); the lock file must be left out because the panel commits while the project is open. A data file is committed only when the user adds it, and the panel says what is left out. Nothing leaves the machine until the user presses Push. On the desktop the panel uses the Git installed on the computer and arrives with 1.1; in the browser it waits on the hosting decision of section 17, since pushing from a web page needs a sign-in flow and a relay server.
 
@@ -169,7 +169,7 @@ Everything else (export a replication package, update the engine, viewers, help,
 
 ## 6. Point-and-click: dialogs that write Zeff
 
-Dialogs, guides and builders are part of Zemp only; Zemp Lite leaves this section out (section 2).
+Dialogs, guides and builders are part of Zemp Studio only; Zemp Lite leaves this section out (section 2).
 
 Every dialog is generated from the function's signature and help, so each of the functions in zeff_functions.csv has a dialog the day it ships, and a project's own `fn` functions get one too.
 
@@ -204,7 +204,7 @@ Rules:
 
 ## 7. The plot viewer
 
-Plots are never scaled bitmaps. The engine returns a resolution-independent scene, and the viewer redraws it to the exact size of its pane, so text, ticks and legends stay readable at every size and nothing needs zooming. The plot viewer is the same in Zemp and Zemp Lite.
+Plots are never scaled bitmaps. The engine returns a resolution-independent scene, and the viewer redraws it to the exact size of its pane, so text, ticks and legends stay readable at every size and nothing needs zooming. The plot viewer is the same in Zemp Studio and Zemp Lite.
 
 | Feature | Behaviour |
 | --- | --- |
@@ -239,14 +239,14 @@ Plots are never scaled bitmaps. The engine returns a resolution-independent scen
 
 ## 9. Zemp desktop
 
-Everything in this section applies to Zemp desktop and Zemp Lite desktop alike, except where the Installer row says otherwise.
+Everything in this section applies to Zemp Studio desktop and Zemp Lite desktop alike, except where the Installer row says otherwise.
 
 | Area | Specification |
 | --- | --- |
 | Platforms | Windows 10 and later (WebView2), macOS 12 and later (WebKit), mainstream Linux (WebKitGTK); x86-64 and ARM |
-| Installation | From the command line only, for now; setup files come later (section 17; zeff_open_decisions.md, #38). The `zeff` launcher installs the apps beside its engines: `zeff app install lite` (or `zemp`) downloads the desktop app, verifies its signature against the launcher's built-in key and puts it in the user's applications, per user and without administrator rights; `zeff app list`, `zeff app update` and `zeff app remove` do the rest. So "Zeff + Zemp Lite" is two commands: the installer script (or Homebrew, winget, Scoop; Zeff Specification, section 2.1), then `zeff app install lite`. Package managers carry the apps too: `winget install Zeff.ZempLite`, `scoop install zemp-lite`, `brew install --cask zemp-lite`, and the Linux package tools or Flathub, with `zemp` in place of `zemp-lite` for full Zemp; a package-manager install updates through the package manager, not the app's own updater. Both editions can be installed side by side |
+| Installation | From the command line only, for now; setup files come later (section 17; zeff_open_decisions.md, #38). The `zeff` launcher installs the apps beside its engines: `zeff app install lite` (or `studio`) downloads the desktop app, verifies its signature against the launcher's built-in key and puts it in the user's applications, per user and without administrator rights; `zeff app list`, `zeff app update` and `zeff app remove` do the rest. So "Zeff + Zemp Lite" is two commands: the installer script (or Homebrew, winget, Scoop; Zeff Specification, section 2.1), then `zeff app install lite`. Package managers carry the apps too: `winget install Zeff.ZempLite`, `scoop install zemp-lite`, `brew install --cask zemp-lite`, and the Linux package tools or Flathub, with `zemp-studio` in place of `zemp-lite` for Zemp Studio; a package-manager install updates through the package manager, not the app's own updater. Both editions can be installed side by side |
 | Offline install | The offline bundle of the Zeff Specification (section 2.1) also carries each app, installed with `zeff app install lite --from <file>` on locked-down university and company computers |
-| File associations | Opening a `zeff.toml` or `.zeff` file opens its project; double-click to open in Zemp, or in Zemp Lite when only Lite is installed; with both installed, the user's choice decides |
+| File associations | Opening a `zeff.toml` or `.zeff` file opens its project; double-click to open in Zemp Studio, or in Zemp Lite when only Lite is installed; with both installed, the user's choice decides |
 | Windows | One project per window; any number of windows; plots and data viewers can pop out to more windows |
 | Performance | Native engine and full memory in 1.0; all cores from 1.1; files larger than memory streamed for OLS and fixed effects from 1.7 |
 | Background jobs | Long runs continue in the background with progress and a notification; the window stays usable |
@@ -273,9 +273,9 @@ Updates download in the background, apply at the next restart, and keep the prev
 
 ## 10. Zemp web and the command line
 
-**Zemp web.** Runs entirely in the browser: the engine is WebAssembly in a Web Worker, projects live in the browser's private file system (Origin Private File System) and can be exported or synced to a folder. It installs as an offline app. From Zeff 1.1, hosting sends the cross-origin isolation headers threads need. Data never leaves the machine; a "re-run" link carries the scripts and engine version, not the data, and asks the viewer for the data files.
+**Zemp Studio web.** Runs entirely in the browser: the engine is WebAssembly in a Web Worker, projects live in the browser's private file system (Origin Private File System) and can be exported or synced to a folder. It installs as an offline app. From Zeff 1.1, hosting sends the cross-origin isolation headers threads need. Data never leaves the machine; a "re-run" link carries the scripts and engine version, not the data, and asks the viewer for the data files.
 
-**Zemp Lite web.** The Lite build of the same web app, at its own path on Zemp web's origin (the address is an open decision, section 17) and installable as its own offline app, with everything above. Both web editions on one origin share the browser's private file system, which is kept per origin, so a project made in one opens in the other; **Open in Zemp** moves the current project across without exporting it.
+**Zemp Lite web.** The Lite build of the same web app, at its own path on Zemp Studio web's origin (the address is an open decision, section 17) and installable as its own offline app, with everything above. Both web editions on one origin share the browser's private file system, which is kept per origin, so a project made in one opens in the other; **Open in Zemp** moves the current project across without exporting it.
 
 **Command line.** `zeff new`, `zeff run`, `zeff check`, `zeff fmt`, `zeff test`, `zeff lsp`, `zeff help`, `zeff version`, `zeff fix --edition`, `zeff explain`, `zeff report-bug`, `zeff audit`, `zeff repl`, `zeff eval`, `zeff selftest`, `zeff engine`, `zeff runs`, `zeff export replication`, `zeff verify`, `zeff doctor`, `zeff app`, `zeff dataset fetch`, `zeff self` and `zeff completions`, as in the Zeff Specification (section 2.1), installed by the installer script, Homebrew, winget, Scoop, an archive, the offline bundle, the container image, or Zemp desktop's Install command-line tool. A project made in either edition runs unchanged from the command line; `zeff verify` is how a replication package is checked, and `zeff repl` is the console without the window.
 
@@ -336,7 +336,7 @@ The rules of this section apply to both editions.
 
 | Target | Goal |
 | --- | --- |
-| Zemp web first start | Interface and `core`/`data` packages ready within 3 seconds on a typical laptop and broadband connection; Zemp Lite web, with its smaller interface, within 2 seconds |
+| Zemp Studio web first start | Interface and `core`/`data` packages ready within 3 seconds on a typical laptop and broadband connection; Zemp Lite web, with its smaller interface, within 2 seconds |
 | Later starts | Under 1 second (cached, offline) |
 | Import | A 1 GB CSV on the desktop in under 15 seconds |
 | OLS with two-way fixed effects | 10 million rows on the desktop within 2× of fixest's time on one thread in 1.0, and within fixest's time with all cores from 1.1 |
@@ -351,7 +351,7 @@ The rules of this section apply to both editions.
 
 Zemp has version numbers of its own (major.minor.patch, as Zeff's; Zeff Specification, section 14). Zemp Lite carries the same version numbers as Zemp, since both are builds of one codebase; a Lite release is the same release without the point-and-click modules. Each Zemp release names the Zeff engine versions it supports, and a Zemp fix never needs an engine release. After 1.0, by convention rather than by rule, Zemp's minor number follows the Zeff release whose methods it adds dialogs for, so Zemp 1.3 adds the dialogs for Zeff 1.3. Zeff 1.0.0 does not wait for Zemp: the language's name freeze depends on the engine, the command line, the language server and the validation suite, not on the desktop app, installers or code signing.
 
-Zemp Lite needs no dialogs, so it is usable earlier than Zemp: its parts (the workspace, the editor with the language server, the viewers and the plot renderer) all exist by Zeff 0.7.0 and 0.8.0, while the dialogs that Zemp needs are the slowest part to build.
+Zemp Lite needs no dialogs, so it is usable earlier than Zemp Studio: its parts (the workspace, the editor with the language server, the viewers and the plot renderer) all exist by Zeff 0.7.0 and 0.8.0, while the dialogs that Zemp Studio needs are the slowest part to build.
 
 | Zemp | Zeff engine | What it adds |
 | --- | --- | --- |
@@ -361,7 +361,7 @@ Zemp Lite needs no dialogs, so it is usable earlier than Zemp: its parts (the wo
 | 0.3 | 0.9.0 | Dialogs for logistic and probit regression |
 | 0.4 | 0.10.0 | Graph builder for causal graphs; reliability dialog; every 1.0 method checked for identical results from dialog and code |
 | 0.5 desktop beta | 0.11.0 | Native engine packaged with Tauri, part-by-part updater, `zeff app install` and the offline bundle; import dialog for Excel, Stata and Parquet; Install command-line tool; code signing decided by this release (Zeff Specification, section 15). **Zemp Lite desktop beta**, installed with `zeff app install lite` |
-| 1.0 | 1.0.0 | Zemp Lite 1.0, web and desktop, ships with Zeff 1.0.0, since it needs no dialogs; Zemp 1.0 web and desktop follows once its dialogs cover every 1.0 method, and never holds Zeff back |
+| 1.0 | 1.0.0 | Zemp Lite 1.0, web and desktop, ships with Zeff 1.0.0, since it needs no dialogs; Zemp Studio 1.0 web and desktop follows once its dialogs cover every 1.0 method, and never holds Zeff back |
 | 1.1 | 1.1 | Faster runs on all cores; bootstrap standard errors in every model dialog; `external` on the desktop; quick fixes, navigation, rename and inlay hints in the editor; the Git panel on the desktop (both editions) |
 | 1.2 | 1.2 | Staggered DiD and event-study dialogs and guides; PPML |
 | 1.3 to 1.10 | 1.3 to 1.10 | Dialogs and guides as each Zeff release lands: CFA and SEM with the model builder (1.3), mixed models with `re:` (1.4), double lasso, causal forests, and leakage-safe prediction with splits, recipes and tuning (1.5), WLSMV and ESEM (1.6), latent classes and streaming (1.7), user likelihoods with automatic differentiation (1.8), the Design menu with power, randomisation and survey designs (1.9), Bayesian estimation (1.10); Zemp Lite gains each release's methods through the engine, with nothing of its own to add |
@@ -392,9 +392,10 @@ Zeff (language and engine) is Apache 2.0. Zemp's licence is decided separately, 
 - [ ] How students are verified for the free Pro tier (zeff_open_decisions.md, #36)
 - [ ] When to file the Zeff and Zemp trademarks (zeff_open_decisions.md, #37)
 - [ ] Setup files for the desktop apps and for Zeff (Windows `.exe`/`.msi`, macOS `.dmg`/`.pkg`, Linux `.deb`, `.rpm`, AppImage): deferred on 17 October 2026, when installation was kept to the command line; to be planned with the code-signing decision (Zeff Specification, section 15; zeff_open_decisions.md, #38), since unsigned setup files meet Windows SmartScreen and macOS Gatekeeper warnings
-- [ ] Zemp Lite: whether AI assistance and the paid tiers' features (cloud sync, version history) are offered in Lite as well as in Zemp, or Lite stays free-tier only; the address of Zemp Lite web (a path on Zemp web's origin is recommended, since the browser's private file system the two editions share is per origin); and whether a Lite desktop preview ships before the 0.5 desktop beta, which would need the desktop packaging and signing of that release earlier (zeff_open_decisions.md, #39)
+- [ ] Zemp Lite: whether AI assistance and the paid tiers' features (cloud sync, version history) are offered in Lite as well as in Zemp Studio, or Lite stays free-tier only; the address of Zemp Lite web (a path on Zemp Studio web's origin is recommended, since the browser's private file system the two editions share is per origin); and whether a Lite desktop preview ships before the 0.5 desktop beta, which would need the desktop packaging and signing of that release earlier (zeff_open_decisions.md, #39)
 
 **Decided**
 
-- [x] Zemp Lite (17 October 2026): a code-first edition for users who do not want point-and-click, on both the web and the desktop, built from the same codebase without the Methods panel, dialogs, guides, builders and statement-writing controls; same projects, engine store and version numbers as Zemp; the desktop app installs from the command line with `zeff app install lite`, setup files later; free; a web preview with the 0.2 alpha, a desktop beta with the 0.5 desktop beta, and 1.0 with Zeff 1.0.0 (sections 1, 2, 5, 9, 10 and 15)
-- [x] Zemp Lite's look (17 October 2026; sections 2 and 5): the Inline layout as Lite's default and Panes as Zemp's, both available in both editions; a top bar of word controls (Projects ▾, project and file name, Git status, Dark switch, Check and Run) with everything else in ⌘K; a dark theme beside the light one in both editions, with exports always in the light print theme; a Git panel for any Git remote, on the desktop from 1.1 and in the browser once hosting is decided; a Terminal button and the Zeff console on the bottom line; stale outputs dimmed and labelled until re-run; a welcome screen; output folding and Export script with output planned before Lite 1.0. Mockups: the "Zemp Lite layouts" design canvas and zemp_lite_inline.pdf
+- [x] Zemp Studio (1 November 2026; section 2): the full edition's name, beside Zemp Lite; Zemp alone names the application and the product line; the installer identifiers follow (`zeff app install studio`, `zemp-studio`)
+- [x] Zemp Lite (17 October 2026): a code-first edition for users who do not want point-and-click, on both the web and the desktop, built from the same codebase without the Methods panel, dialogs, guides, builders and statement-writing controls; same projects, engine store and version numbers as Zemp Studio; the desktop app installs from the command line with `zeff app install lite`, setup files later; free; a web preview with the 0.2 alpha, a desktop beta with the 0.5 desktop beta, and 1.0 with Zeff 1.0.0 (sections 1, 2, 5, 9, 10 and 15)
+- [x] Zemp Lite's look (17 October 2026; sections 2 and 5): the Inline layout as Lite's default and Panes as Zemp Studio's, both available in both editions; a top bar of word controls (Projects ▾, project and file name, Git status, Dark switch, Check and Run) with everything else in ⌘K; a dark theme beside the light one in both editions, with exports always in the light print theme; a Git panel for any Git remote, on the desktop from 1.1 and in the browser once hosting is decided; a Terminal button and the Zeff console on the bottom line; stale outputs dimmed and labelled until re-run; a welcome screen; output folding and Export script with output planned before Lite 1.0. Mockups: the "Zemp Lite layouts" design canvas and zemp_lite_inline.pdf

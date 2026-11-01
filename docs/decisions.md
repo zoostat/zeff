@@ -1899,3 +1899,9 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 **What was not done.** No change to the Zemp Specification's sections 5, 8 and 15 or to the Engine and Project Specification's section 14.1; no dependency added; the mockup canvas of the Zemp interface, which lives outside the repositories, gained a screen of a typst report with its live preview for the owner to judge the idea by.
 
 **Reason.** The standing instructions on design questions; Engine and Project Specification, section 8.1 (rule 7, loading on first use) and the dependency rules (permissive licences only); risk register R4 and R8; the owner's request of 1 November 2026.
+
+## 1 November 2026: the full edition is named Zemp Studio
+
+**Choice.** The owner's name for the full edition, Zemp Studio, is written into the specifications under one rule: Zemp alone names the application and the product line, which both editions share, and Zemp Studio and Zemp Lite are the editions, named where the two are told apart. The rename was applied phrase by phrase, each matched exactly once, rather than by replacing every "Zemp", because most mentions name the application (the version line, the licence, the specification, the dialogs and panels as features of the application) and stay. Three consequences taken as engineering: the installer identifiers become `zeff app install studio` and `zemp-studio` (`zemp` alone would now be ambiguous between the line and an edition); the mockup canvas already uses the name; and the Zemp repository's copies of the documents are brought to the same text in a Zemp session, since this session may not edit that repository. Trademark decision #37 covers both names as before.
+
+**Reason.** The owner's decision of 1 November 2026; the standing rule that names are the owner's; the Zemp Specification, section 2.

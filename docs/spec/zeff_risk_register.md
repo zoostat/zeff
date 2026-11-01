@@ -48,7 +48,7 @@ Easy data matches quickly; collinearity, singleton fixed effects, perfect separa
 
 ### R4 · Browser build limits
 
-32-bit WebAssembly caps memory at 4 GB, cannot memory-map files, needs cross-origin isolation headers for threads, and is harder to debug. Arrow and Parquet enlarge the download, which threatens the start-up targets (Zemp Lite web 2 s, Zemp web 3 s). ReadStat (SPSS and SAS) is C and must be compiled for the browser.
+32-bit WebAssembly caps memory at 4 GB, cannot memory-map files, needs cross-origin isolation headers for threads, and is harder to debug. Arrow and Parquet enlarge the download, which threatens the start-up targets (Zemp Lite web 2 s, Zemp Studio web 3 s). ReadStat (SPSS and SAS) is C and must be compiled for the browser.
 
 - **Early warning:** the compressed engine bundle passes 5 MB before 0.7.0; a cold start misses its target in CI.
 - **Mitigation:** track bundle size and start time in CI from 0.1.0 (in the 0.1.0 row of section 14); build Arrow and Parquet with only the features used; load packages on first use (rule 7 of section 8.1); prove the C-to-WebAssembly path for ReadStat with a small spike before 1.1 depends on it.
