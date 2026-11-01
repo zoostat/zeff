@@ -32,6 +32,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (1 November 2026, after the release).** One decision raised from the owner's requests for the Zemp interface, recorded without any change to the normative text: #73, typst as the typesetting engine of exports and of the report document, with a live preview in both editions. Deadline 0.8.0; the spike is proposed for 0.7.0.
 
+**Status (1 November 2026, later the same day).** Five more decisions from the owner's interface requests, recorded without any change to the normative text: #74 (a Help pane), #75 (the data viewer and the environment browser), #76 (traceback, run to here and the loop inspector), #77 (schema-aware completion and extract function) and #78 (Git history and a diff of results). Deadlines 0.8.0, 0.8.0, 0.7.0, 0.7.0 and 1.1. Each is drawn on the owner's mockup canvas of Zemp Studio and Zemp Lite, outside the repositories.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -109,6 +111,11 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 71 | The fitted design through the result interface | A `design()` method giving the kept design as a frame of the rows used, so that `vif` and later diagnostics can be written in Zeff | 0.7.0 |
 | 72 | A table constructor for Zeff-written functions | `table(title, columns = [...])` in `core`, with `format` for numbers, so that `summary` can be rewritten in Zeff as section 14 planned | 0.6.0 |
 | 73 | Typst: the typesetting engine of exports and of the report document, with a live preview | Adopt, after the licence, identity and bundle checks: a spike at 0.7.0 beside the plot renderer; `.typ` exports and Lite's export of script with output as PDF at 0.8.0; the report document a typst document with executed Zeff chunks | 0.8.0 |
+| 74 | A Help pane in the Viewer | A fourth tab beside Data, Results and Plots that follows the cursor to the function's page and opens a code's explained page from the Log; in both editions | 0.8.0 |
+| 75 | The data viewer and the environment browser, made excellent | Frozen columns, a statistics header per column, search, a live row count under a filter; Objects as a tree with memory per object; Lite's viewer read-only | 0.8.0 |
+| 76 | Traceback, run to here and the loop inspector | The full call chain of an error through module functions; run to a line; one row per loop pass and per `iterate` state from the run record; no breakpoints or stepping | 0.7.0 |
+| 77 | Schema-aware completion and extract function | Completion from the schema pass (the columns of the frame at that point in the chain) at 0.7.0; extract function with inferred parameters, a page skeleton and the same-bytes check at 1.1 | 0.7.0 |
+| 78 | Git history, the diff of a script and a diff of results | History and script diffs in the Git panel, and a table of every output of two commits' run records, identical to the bit or traced to the statement that changed; merges and pull requests left to the system terminal | 1.1 |
 
 ---
 
@@ -925,3 +932,59 @@ Raised on 1 November 2026, from the owner's request for first-class typst with a
 | C. LaTeX through an installation on the user's machine | Nothing to bundle; what journals have long expected | Not deterministic, not available in the browser, not installed on most machines |
 
 *Recommendation.* A, taken in steps, each behind the standard checks for a dependency (licence, one dependency at a time, the cross-target identity of the PDF bytes with the fonts embedded, the bundle's size): a spike at 0.7.0 beside the plot renderer, whose SVG is what typst would place; `.typ` and PDF exports of tables and plots, the live preview of a project's `.typ` files, and Lite's **Export script with output** (section 5, "Planned for Inline") generated as a typst document and set by typst, at 0.8.0, which proves the chunk model before any authoring; the report document itself built as section 15 schedules it at 1.11, or pulled to an earlier release by a logged change to section 15 when the 0.8.0 slice has shown its cost. Deadline: 0.8.0, with the spike's result reported at 0.7.0.
+
+### 74. A Help pane in the Viewer
+
+Raised on 1 November 2026 from the owner's requests for the Zemp interface. Section 5 of the Zemp Specification reaches help through hover, completion, `:help` in the console and ⌘K, and gives it no pane; a Stata or SPSS user expects a help window that stays open. Every page already exists in the engine (section 9.1's contract), and every code has an explained page, so a pane costs the view and nothing else.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. A **Help** tab in the Viewer beside Data, Results and Plots, in both editions: it follows the cursor to the page of the function under it (a switch stops the following), opens a code's explained page when a Log entry is clicked, and pops out like the other viewers | The page under the cursor is one glance away; the Log's codes become readable without leaving the window; the same pane serves a project's own functions, whose pages the `///` lines give | One more tab; following the cursor must be cheap (the language server already knows the function under the cursor) |
+| B. Hover and ⌘K only, as written | Nothing to build | The user who reads help at length has nowhere to keep it |
+
+*Recommendation.* A, at the 0.2 alpha (Zeff 0.8.0), when the language server exists to say what is under the cursor. Deadline: 0.8.0.
+
+### 75. The data viewer and the environment browser, made excellent
+
+Raised on 1 November 2026. Section 5 gives the Data viewer sorting and filtering as view state, **Add to script**, and the variable view, and the Objects panel every binding with type, size, memory and stale marks; the owner asked for a strong live view of objects and an excellent data viewer. What is missing is the detail that makes a grid usable on 18,000 rows and a panel usable on a long session.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The grid gains frozen columns, a statistics header on every column (type, missing count, a small distribution, drawn from the schema and the kernel's summaries), search with matches highlighted, a live row count under a filter, copy of a range, and in Zemp Studio the statement **Add to script** will write shown before it is inserted; the Objects panel becomes a tree (a frame opens to its panel declaration and its columns, a list to its items with failed ones marked, a record to its fields) with memory per object and a filter box. Zemp Lite has the same grid without **Add to script**, the variable view read-only, and Objects filling the column Methods has in Studio (section 2) | Each item is a known gap of data grids in statistical tools; the statistics header reuses what `describe` computes; the tree is the Objects panel's existing data shown one level deeper | A virtualised grid with frozen columns is the hardest pane of the interface, which is why the framework trial of #24 is run on it |
+| B. The viewer and panel as written | Nothing to build | A grid without frozen keys or column statistics sends users back to Stata's browser |
+
+*Recommendation.* A; the grid is the subject of #24's trial at 0.6.0 and ships at the 0.2 alpha. Deadline: 0.8.0.
+
+### 76. Traceback, run to here and the loop inspector
+
+Raised on 1 November 2026 from the owner's request for tracebacks and step debugging. A Zeff run is a sequence of statements whose bindings never change (Language Reference, section 3.1), so running to a line and reading every binding is what a debugger does elsewhere by stepping, and the Inline layout already shows each statement's output under it. Three things are missing. An error inside a module function names the module's line (section 5, "A module function runs under its own file") but not the chain that led there; nothing shows a loop pass by pass; and running up to a line is done by selecting and running.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. A traceback on every error raised inside a function: the script's line, each module function's line with the values that made it fail, and the function that raised the code, with the explained page one click away; **Run to here** as a command and a gutter action, which runs the statements before the line from a fresh session or only those not yet run, since bindings never change; a loop inspector beside the Log with one row per pass of a `for` loop (the loop variable, the rows after a `where`, the result, the time) and one row per `iterate` pass (the state and what `done` compared), read from the run record, which keeps the pass as the random stream's key already does (Engine and Project Specification, section 8.3) | The interpreter knows the chain and the pass; the inspector costs nothing when closed; the three together answer the questions a debugger answers in this language | The run record grows by one line per pass, bounded by `max:`; a long `for` loop needs the inspector to fold |
+| B. A breakpoint-and-step debugger in the interpreter | What programmers expect | Nothing changes while stepping, so each step shows what Objects already shows; a second execution mode in the interpreter, under the determinism contract, for little gain |
+| C. The error's file and line only, as written | Nothing to build | A failure three calls deep is found by hand |
+
+*Recommendation.* A, the traceback with the language server at 0.7.0 and the inspector and **Run to here** at the 0.2 alpha; B rejected. Deadline: 0.7.0.
+
+### 77. Schema-aware completion and extract function
+
+Raised on 1 November 2026 from the owner's request for deeper code intelligence. The language server's table (Engine and Project Specification, section 10) has completion, signature help, hover, diagnostics and formatting at 1.0, and quick fixes, navigation, rename and inlay hints at 1.1. Two things matter more than the rest in this language. The schema pass of 0.6.0 gives the checker the columns of every frame at every point in a chain, so completion can offer them; and functions in `functions/` are how a project grows, so turning a block of a script into one should be a command.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Schema-aware completion at 0.7.0: after `frame.` or inside a formula or a column argument, the columns of that frame at that point, with type, missing count and label, and a line saying what the frame holds after the statement; **Extract function** at 1.1 beside rename: the selected statements become a `fn` in `functions/` (or in the script), its parameters inferred from the bindings the block reads but does not define, its return type from the last statement, the page skeleton Z0319 requires written, the call rewritten, and the check that the script prints the same bytes before and after; **Find references** and **Move to module** with it | Completion that knows the data is what no R or Stata editor has; extraction with inferred parameters is mechanical in a language without mutation; the same-bytes check uses the identity machinery the engine already has | Extraction needs the typed IR of the whole project, which the language server holds from 0.7.0; a block that reads a loop variable or a frame's column by bare name needs a rule, written with the feature |
+| B. The language server's table as written | Nothing to add | The two features that fit the language best are left to third-party editors, which cannot build them |
+
+*Recommendation.* A, completion at 0.7.0 and extraction at 1.1, each a row of the language server's table when adopted. Deadline: 0.7.0.
+
+### 78. Git history, the diff of a script and a diff of results
+
+Raised on 1 November 2026 from the owner's request for more advanced Git and project features. Section 5's Git panel (1.1 on the desktop) has the branch, the changed files, a message, Commit, Pull and Push. The run record of every commit holds every output (Language Reference, section 11), and the engine is bit-identical, so two commits can be compared in numbers, which no other statistical tool can do.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The panel gains the history of the project, the diff of a script between two commits, and a **Results diff**: a table of every output of the two commits' run records, each identical to the bit or different, a difference traced to the statement that changed in the script diff, and a difference with no code change flagged, since it means a different engine, seed or input file; merges, rebases and pull requests stay with the system terminal, which the bottom bar opens in the project folder | History and a script diff are what the Git installed on the computer already gives; the results diff is the run record read twice and is the panel's one feature of Zeff's own; the terminal keeps the hard Git out of the interface | The run records of past commits must be kept or recomputed (`zeff verify` recomputes one); a results diff across engine versions is a comparison, not a diff, and the table says so |
+| B. The panel as written, everything else in the terminal | Nothing to add | A researcher asks "what changed in my numbers since last week" and the tool, which knows, does not answer |
+
+*Recommendation.* A at 1.1 with the Git panel, the results diff reading the run records the project keeps. Deadline: 1.1.

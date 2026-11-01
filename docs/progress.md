@@ -121,3 +121,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
 
 **For the owner to decide.** #73 by 0.8.0; the five other interface additions (a help pane, traceback and run-to-here, schema-aware completion and extract function, Git history and a diff of results) await the word to be recorded as open decisions.
+
+## 1 November 2026, after the release: open decisions #74 to #78
+
+**Done.** The owner's five remaining interface requests recorded as open decisions with options, recommendations and deadlines: #74 a Help pane (0.8.0), #75 the data viewer and the environment browser (0.8.0), #76 traceback, run to here and the loop inspector (0.7.0), #77 schema-aware completion and extract function (0.7.0), #78 Git history and a diff of results (1.1); logged in `docs/spec_changes.md`, the engineering view in `docs/decisions.md`. Nothing in the engine or the normative text changed.
+
+**Green.** Documents only; CI to be read after the push.
+
+**Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
+
+**For the owner to decide.** #76 and #77 by 0.7.0; #73, #74 and #75 by 0.8.0; #78 by 1.1. Nothing before 0.6.0 opens.
