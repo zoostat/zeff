@@ -3,7 +3,7 @@ source: crates/zeff-cli/tests/cli.rs
 assertion_line: 480
 expression: out(&o)
 ---
-data · tier 1 · 49 of 59 functions in this release
+data · tier 1 · 52 of 59 functions in this release
 
   frame             Create a frame from named lists of values
   import            Read a data file into a frame
@@ -44,6 +44,9 @@ data · tier 1 · 49 of 59 functions in this release
   rank              Rank of each value, smallest first; NA stays NA
   bin               Category from numeric intervals, (a, b] by default as in R
   quantile_group    Group 1 to n by cutting at sample quantiles; tied values share a group
+  distinct          Rows with distinct values of the variables, the first occurrence kept
+  duplicates        Table of repeated key values
+  sample            Random sample of rows; the seed is recorded
   row_mean          Mean across variables in each row
   row_sum           Sum across variables in each row
   between           True where low <= x <= high

@@ -46,6 +46,9 @@ jobs:
       - name: Run the stochastic class, 50 seeds of 100,000 draws for each distribution
         run: cargo test -p zeff-dist --locked --release --test nightly_stochastic -- --ignored --nocapture 2>&1 | tee stochastic.log
 
+      - name: Run the stochastic class for sample, 50 seeds against the uniform
+        run: cargo test -p zeff-data --locked --release --test nightly_stochastic -- --ignored --nocapture 2>&1 | tee -a stochastic.log
+
       - name: Run the truth-recovery Monte Carlo, 50 seeds under three designs
         run: cargo test -p zeff-regress --locked --release --test nightly_truth -- --ignored --nocapture 2>&1 | tee truth.log
 

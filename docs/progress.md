@@ -185,3 +185,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 11 `[function]`: `distinct`, `duplicates`, `sample`.
 
 **For the owner to decide.** Nothing new; open decision #79 falls due at 0.7.0.
+
+## 2 November 2026: step 11
+
+**Done.** Step 11 `[function]`: `distinct`, `duplicates` and `sample`. The first two by identity through the kernel's groups, the first occurrence kept; `duplicates` in Rust since `aggregate` and `table` do not exist yet (row 113's layer corrected and logged), printing the table of question 5 (a); `sample` by `n:` or `frac:` from the run's stream or its own seed, a partial Fisher–Yates without replacement, the rows back in their original order with the note of question 5 (c). Three pages; R's values (`tests/reference/r/distinct.R`, in CI) held exactly; the stochastic class for `sample` in the nightly job; the conformance cases `verbs/distinct` and `verbs/sample` published; the registry's usage reader learnt `n: Int | frac: Float`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 12 `[function]`: `aggregate`.
+
+**For the owner to decide.** Nothing new.

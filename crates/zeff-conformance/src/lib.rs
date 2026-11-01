@@ -1112,6 +1112,12 @@ fn panel_cases() -> Vec<Line> {
     // ties at the cut points, groups within `by:`, and the capped values at two shares.
     let grouped = "let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], x = [5, 1, 9, 3, 7, NA, 2, 8])\nd.add(quartile = quantile_group(x, n: 4), third = quantile_group(x, n: 3, type: 1), within = quantile_group(x, n: 2), by: g)\nframe(x = [1, 1, 1, 1, 2]).add(q = quantile_group(x, n: 4))\nlet w = dataset(wages).head(12)\nw.add(decile = quantile_group(wage, n: 10), capped = winsorize(wage, at: 0.1), one = winsorize(wage)).select([worker, year, wage, decile, capped, one])\nframe(x = [1.0, 2]).add(w = winsorize(x, at: 0.6))\n";
     let grouped_outcome = run_script(&fs, &project, "scripts/main.zeff", grouped);
+    // `distinct` and `duplicates` (step 11): keys with repeats and `NA`, several keys, and the
+    // table; `sample` under explicit seeds, without and with replacement, by count and by share.
+    let distinct = "let sales = frame(firm = [2, 1, 2, 1, 3, NA, NA], year = [2021, 2020, 2020, 2020, 2021, 2020, 2020], revenue = [12.5, 8, 11, 9, 7, 1, 1])\nsales.distinct(firm)\nsales.distinct([firm, year])\nsales.distinct([firm, year, revenue])\nsales.duplicates(firm)\nsales.duplicates([firm, year])\nsales.duplicates(revenue)\nlet w = dataset(wages).where(worker <= 40)\nw.distinct(worker).select([worker, year, industry])\nw.duplicates(industry)\n";
+    let distinct_outcome = run_script(&fs, &project, "scripts/main.zeff", distinct);
+    let sampled = "let w = dataset(wages)\nw.sample(n: 8, seed: 20261015).select([worker, year, wage])\nw.sample(frac: 0.0005, seed: 7).select([worker, year, wage])\nw.sample(n: 6, with_replacement: true, seed: 3).select([worker, year, wage])\nw.head(5).sample(n: 7, with_replacement: true, seed: 11).select([worker, year])\nw.sample(n: 0, seed: 1).n_rows()\n";
+    let sampled_outcome = run_script(&fs, &project, "scripts/main.zeff", sampled);
     vec![
         text("panel/declare/stdout", &outcome.output.stdout),
         text("panel/declare/stderr", &outcome.output.stderr),
@@ -1127,6 +1133,10 @@ fn panel_cases() -> Vec<Line> {
             "functions/quantile_group/stderr",
             &grouped_outcome.output.stderr,
         ),
+        text("verbs/distinct/stdout", &distinct_outcome.output.stdout),
+        text("verbs/distinct/stderr", &distinct_outcome.output.stderr),
+        text("verbs/sample/stdout", &sampled_outcome.output.stdout),
+        text("verbs/sample/stderr", &sampled_outcome.output.stderr),
     ]
 }
 

@@ -1,0 +1,113 @@
+---
+source: packages/tier1/data/tests/distinct.rs
+assertion_line: 175
+expression: out
+---
+frame(x = [1, 2]).sample()
+---
+error[Z0406]: `sample` needs `n:` or `frac:`
+ --> scripts/main.zeff:1:19
+  |
+1 | frame(x = [1, 2]).sample()
+  |                   ^^^^^^ how many rows?
+  |
+  = help: usage: `data.sample(n: 500, seed: 20261015)` or `data.sample(frac: 0.1)`
+
+frame(x = [1, 2]).sample(n: 1, frac: 0.5)
+---
+error[Z0410]: `sample` takes `n:` or `frac:`, not both
+ --> scripts/main.zeff:1:38
+  |
+1 | frame(x = [1, 2]).sample(n: 1, frac: 0.5)
+  |                                      ^^^ `frac:` beside `n:`
+  |
+  = help: `n:` counts rows and `frac:` is a share of them; keep the one you mean
+
+frame(x = [1, 2]).sample(n: 3)
+---
+error[Z0401]: `n:` of `sample` is 3, but the frame has 2 rows
+ --> scripts/main.zeff:1:29
+  |
+1 | frame(x = [1, 2]).sample(n: 3)
+  |                             ^ more rows than the frame has
+  |
+  = help: a sample without replacement is at most the frame; `with_replacement: true` allows repeats
+
+frame(x = [1, 2]).sample(n: -1)
+---
+error[Z0401]: `n:` of `sample` is a count of rows of at least 0, but this is -1
+ --> scripts/main.zeff:1:29
+  |
+1 | frame(x = [1, 2]).sample(n: -1)
+  |                             ^^ not a count of rows
+  |
+  = help: `sample(n: 500)` keeps 500 rows chosen at random
+
+frame(x = [1, 2]).sample(frac: 1.5)
+---
+error[Z0401]: `frac:` of `sample` is a share between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:32
+  |
+1 | frame(x = [1, 2]).sample(frac: 1.5)
+  |                                ^^^ not a share
+  |
+  = help: `sample(frac: 0.1)` keeps a tenth of the rows, rounded to a whole number
+
+frame(x = [1, 2]).sample(frac: NA)
+---
+error[Z0401]: `frac:` of `sample` is a share between 0 and 1, but this is NA
+ --> scripts/main.zeff:1:32
+  |
+1 | frame(x = [1, 2]).sample(frac: NA)
+  |                                ^^ not a share
+  |
+  = help: `sample(frac: 0.1)` keeps a tenth of the rows, rounded to a whole number
+
+frame(x = [1, 2]).sample(n: NA)
+---
+error[Z0401]: `n:` of `sample` is a count of rows of at least 0, but this is NA
+ --> scripts/main.zeff:1:29
+  |
+1 | frame(x = [1, 2]).sample(n: NA)
+  |                             ^^ not a count of rows
+  |
+  = help: `sample(n: 500)` keeps 500 rows chosen at random
+
+frame(x = [1, 2]).distinct(y)
+---
+error[Z0101]: no variable `y` in `the frame`
+ --> scripts/main.zeff:1:28
+  |
+1 | frame(x = [1, 2]).distinct(y)
+  |                            ^ not a variable of the frame
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+
+frame(x = [1, 2]).duplicates([x, y])
+---
+error[Z0101]: no variable `y` in `the frame`
+ --> scripts/main.zeff:1:30
+  |
+1 | frame(x = [1, 2]).duplicates([x, y])
+  |                              ^^^^^^ not a variable of the frame
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+
+frame(x = [1, 2]).distinct()
+---
+error[Z0406]: `distinct` needs `vars`
+ --> scripts/main.zeff:1:19
+  |
+1 | frame(x = [1, 2]).distinct()
+  |                   ^^^^^^^^ `vars` is missing
+  |
+  = help: usage: `data.distinct(vars)`
+
+frame(x = [1, 1]).sample(n: 1)
+---
+frame · 1 row × 1 variable
+
+      x
+  1   1
+note: no seed was set, so <seed> was chosen for this run; `seed(<seed>)` at the top of the script repeats it (line 1)
+note: 1 of 2 rows sampled with seed <seed> (line 1)

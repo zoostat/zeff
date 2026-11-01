@@ -1,0 +1,138 @@
+---
+source: packages/tier1/data/tests/distinct.rs
+assertion_line: 139
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+frame · 4 rows × 3 variables
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      3   2021         7
+  4     NA   2020         1
+frame · 5 rows × 3 variables
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      2   2020        11
+  4      3   2021         7
+  5     NA   2020         1
+frame · 6 rows × 3 variables
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      2   2020        11
+  4      1   2020         9
+  5      3   2021         7
+  6     NA   2020         1
+duplicates · firm
+
+  firm   copies
+  1           2
+  2           2
+  NA          2
+duplicates · firm, year
+
+  firm   year   copies
+  1      2020        2
+  NA     2020        2
+duplicates · revenue
+
+  revenue   copies
+  1              2
+duplicates · firm, year, revenue
+
+  firm   year   revenue   copies
+  NA     2020   1              2
+frame · 1 row × 1 variable
+
+      x
+  1   4
+duplicates · x
+
+  x   copies
+  4        3
+frame · 3 rows × 1 variable
+
+      x
+  1   1
+  2   2
+  3   3
+duplicates · x
+
+  x   copies
+frame · 3 rows × 1 variable
+
+       x
+  1    1
+  2    0
+  3   NA
+frame · 2 rows × 3 variables · panel firm × year
+
+      firm   year   v
+  1      1   2020   1
+  2      2   2020   3
+frame · 2 rows × 3 variables · panel firm × year
+
+      firm   year   v
+  1      1   2020   1
+  2      2   2021   4
+frame · 3 rows × 3 variables
+
+      firm   year   v
+  1      1   2021   2
+  2      2   2021   4
+  3      2   2021   4
+frame · 4 rows × 3 variables · panel firm × year
+
+      firm   year   v
+  1      1   2020   1
+  2      1   2021   2
+  3      2   2020   3
+  4      2   2021   4
+frame · 0 rows × 3 variables · panel firm × year
+
+     firm   year   v
+2
+2
+frame · 0 rows × 1 variable
+
+     x
+frame · 5 rows × 3 variables · panel worker × year
+
+      worker   year    wage
+  1       89   2015   24.42
+  2     1141   2012    8.57
+  3     1575   2017   72.92
+  4     2691   2018   40.57
+  5     3566   2020   33.95
+frame · 5 rows × 3 variables · panel worker × year
+
+      worker   year    wage
+  1       89   2015   24.42
+  2     1141   2012    8.57
+  3     1575   2017   72.92
+  4     2691   2018   40.57
+  5     3566   2020   33.95
+18
+---
+note: 3 rows dropped as repeats of firm; 4 rows distinct (line 2)
+note: 2 rows dropped as repeats of firm, year; 5 rows distinct (line 3)
+note: 1 row dropped as a repeat of firm, year, revenue; 6 rows distinct (line 4)
+note: 2 rows dropped as repeats of x; 1 row distinct (line 9)
+note: no repeated values of x (line 12)
+note: 1 row dropped as a repeat of x; 3 rows distinct (line 13)
+note: 2 rows dropped as repeats of firm; 2 rows distinct (line 15)
+note: 2 of 4 rows sampled with seed 5 (line 16)
+note: 3 of 4 rows sampled with replacement with seed 5 (line 17)
+note: the panel declaration `firm × year` dropped: `sample` with replacement repeated rows (line 17)
+note: 4 of 4 rows sampled with seed 9 (line 18)
+note: 0 of 4 rows sampled with seed 9 (line 19)
+note: 2 of 4 rows sampled with seed 9 (line 20)
+note: 2 of 4 rows sampled with seed 9 (line 21)
+note: 0 of 0 rows sampled with seed 1 (line 22)
+note: 5 of 18,412 rows sampled with seed 20261015 (line 24)
+note: 5 of 18,412 rows sampled with seed 20261015 (line 25)
+note: 18 of 18,412 rows sampled with seed 7 (line 26)

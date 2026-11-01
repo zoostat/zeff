@@ -109,12 +109,22 @@ fn form_parameters(function: &str, usage: &str) -> Vec<String> {
             if part.is_empty() || part == "..." {
                 continue;
             }
-            let name: String = part
-                .chars()
-                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
-                .collect();
-            if !name.is_empty() {
-                names.push(name);
+            // Two options that exclude each other are written with a bar between them,
+            // `sample(n: Int | frac: Float, ...)`: each piece with a colon names a parameter,
+            // while the bars of a word list, `se: classical | robust`, or of a type union,
+            // `p: Float | List`, name none.
+            for (i, piece) in part.split(" | ").enumerate() {
+                let piece = piece.trim();
+                if i > 0 && !piece.contains(':') {
+                    continue;
+                }
+                let name: String = piece
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                    .collect();
+                if !name.is_empty() {
+                    names.push(name);
+                }
             }
         }
         names
@@ -295,5 +305,28 @@ impl Catalogue {
     /// The rows of a release, in catalogue order.
     pub fn release(&self, release: &str) -> Vec<&CatalogueRow> {
         self.rows.iter().filter(|r| r.release == release).collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_bar_between_two_options_lists_both_and_a_word_list_lists_one() {
+        assert_eq!(
+            form_parameters(
+                "sample",
+                "data.sample(n: Int | frac: Float, with_replacement: Bool = false, seed: Int)"
+            ),
+            ["data", "n", "frac", "with_replacement", "seed"]
+        );
+        assert_eq!(
+            form_parameters(
+                "reg",
+                "data.reg(formula, se: classical | robust = classical, p: Float | List)"
+            ),
+            ["data", "formula", "se", "p"]
+        );
     }
 }

@@ -230,3 +230,7 @@ W0210, a value of `bin` outside every interval of its breaks, which becomes `NA`
 ## 2 November 2026 — zeff_functions.csv, row 131
 
 Row 131's `layer` goes from Zeff to Rust with the reason in its notes: `quantile_group` needs the probabilities 1/n to (n − 1)/n as a list, and a body written in Zeff has no arithmetic over lists and no function to map over one, while `seq` with a fractional step reaches each probability within a rounding, which is not the exact value R's `quantile` is given (open decision #79, as `row_mean` and `row_sum` at 0.5.0 and `diff` at step 8). The status column records the function as implemented.
+
+## 2 November 2026 — zeff_functions.csv, row 113
+
+Row 113's `layer` goes from Zeff to Rust with the reason in its notes: `duplicates` was planned in Zeff over `aggregate`, `where` and `table`, and at step 11 of release 0.6.0 neither `aggregate` (step 12) nor `table` (row 530, open decision #72) exists yet; the Rust body groups the rows through the kernel and builds the table of question 5 (a) directly. The status column records the function as implemented; the note says the Zeff body can replace it once both pieces exist.

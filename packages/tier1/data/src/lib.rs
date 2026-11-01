@@ -2,6 +2,7 @@
 
 pub mod column_functions;
 pub mod csv;
+pub mod distinct;
 pub mod frame;
 pub mod import;
 pub mod labels;
@@ -1089,6 +1090,67 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: column_functions::quantile_group,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "distinct",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("vars", "Vars"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![DiagnosticDecl::new("Z0401", "a column with no identity")],
+                help: include_str!("../help/distinct.md"),
+                accuracy: None,
+            },
+            body: distinct::distinct,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "duplicates",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("vars", "Vars"),
+                ],
+                rest: None,
+                returns: "Table",
+                diagnostics: vec![DiagnosticDecl::new("Z0401", "a column with no identity")],
+                help: include_str!("../help/duplicates.md"),
+                accuracy: None,
+            },
+            body: distinct::duplicates,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "sample",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option("n", "Int"),
+                    ParamSpec::option("frac", "Float"),
+                    ParamSpec::option_with_default("with_replacement", "Bool", "false"),
+                    ParamSpec::option("seed", "Int"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0406", "neither n: nor frac:"),
+                    DiagnosticDecl::new("Z0410", "n: and frac: together"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "n: below 0 or more than the rows without replacement; frac: outside 0 to 1",
+                    ),
+                ],
+                help: include_str!("../help/sample.md"),
+                accuracy: None,
+            },
+            body: distinct::sample,
         },
         Function {
             spec: FunctionSpec {
