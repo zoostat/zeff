@@ -17,6 +17,7 @@ use zeff_registry::{
 pub fn functions() -> Vec<Function> {
     let mut all = zeff_core::functions();
     all.extend(zeff_time::functions());
+    all.extend(zeff_text::functions());
     all.extend(zeff_data::functions());
     all.extend(zeff_datasets::functions());
     all.extend(zeff_dist::functions());
@@ -356,7 +357,7 @@ mod tests {
         assert_eq!(
             registry.packages_shipped(),
             [
-                "core", "time", "data", "dist", "results", "stats", "datasets", "regress"
+                "core", "time", "text", "data", "dist", "results", "stats", "datasets", "regress"
             ]
         );
         assert_eq!(registry.datasets().len(), 2);

@@ -1,0 +1,155 @@
+---
+source: packages/tier1/text/tests/format.rs
+assertion_line: 201
+expression: out
+---
+format(date("2026-10-16"), digits: 2)
+---
+error[Z0401]: `digits:` of `format` does not apply to a Date
+ --> scripts/main.zeff:1:36
+  |
+1 | format(date("2026-10-16"), digits: 2)
+  |                                    ^ an option for numbers
+  |
+  = help: `digits:` and `big_mark:` shape a number; a date prints by its `pattern:`
+
+format(date("2026-10-16"), big_mark: ",")
+---
+error[Z0401]: `big_mark:` of `format` does not apply to a Date
+ --> scripts/main.zeff:1:38
+  |
+1 | format(date("2026-10-16"), big_mark: ",")
+  |                                      ^^^ an option for numbers
+  |
+  = help: `digits:` and `big_mark:` shape a number; a date prints by its `pattern:`
+
+format(3.14, pattern: "%Y")
+---
+error[Z0401]: `pattern:` of `format` does not apply to a Float
+ --> scripts/main.zeff:1:23
+  |
+1 | format(3.14, pattern: "%Y")
+  |                       ^^^^ an option for dates
+  |
+  = help: `pattern:` prints a date or a time, as `pattern: "%d/%m/%Y"`; a number is shaped by `digits:` and `big_mark:`
+
+format(date("2026-10-16"), pattern: "%Q")
+---
+error[Z0409]: `%Q` is not a date pattern: `%Q` is not a directive of a date format
+ --> scripts/main.zeff:1:37
+  |
+1 | format(date("2026-10-16"), pattern: "%Q")
+  |                                     ^^^^ the pattern
+  |
+  = help: a pattern is written as `strftime` writes it, with %Y, %y, %m, %b, %B, %d, %a, %A, %j, %H, %M, %S and %%: `pattern: "%b %Y"`
+
+format(date("2026-10-16"), pattern: "%Y %")
+---
+error[Z0409]: `%Y %` is not a date pattern: the format ends with a `%`
+ --> scripts/main.zeff:1:37
+  |
+1 | format(date("2026-10-16"), pattern: "%Y %")
+  |                                     ^^^^^^ the pattern
+  |
+  = help: a pattern is written as `strftime` writes it, with %Y, %y, %m, %b, %B, %d, %a, %A, %j, %H, %M, %S and %%: `pattern: "%b %Y"`
+
+format(date("2026-10-16"), pattern: "")
+---
+error[Z0409]: `` is not a date pattern: the format is empty
+ --> scripts/main.zeff:1:37
+  |
+1 | format(date("2026-10-16"), pattern: "")
+  |                                     ^^ the pattern
+  |
+  = help: a pattern is written as `strftime` writes it, with %Y, %y, %m, %b, %B, %d, %a, %A, %j, %H, %M, %S and %%: `pattern: "%b %Y"`
+
+format(3.14, digits: 2, pattern: "%Y")
+---
+error[Z0410]: `format` takes `pattern:` for a date or `digits:` for a number, not both
+ --> scripts/main.zeff:1:34
+  |
+1 | format(3.14, digits: 2, pattern: "%Y")
+  |                                  ^^^^ `pattern:` beside an option for numbers
+  |
+  = help: a date prints by its `pattern:`; a number by its `digits:` and `big_mark:`
+
+format(date("2026-10-16"), big_mark: ",", pattern: "%Y")
+---
+error[Z0410]: `format` takes `pattern:` for a date or `big_mark:` for a number, not both
+ --> scripts/main.zeff:1:52
+  |
+1 | format(date("2026-10-16"), big_mark: ",", pattern: "%Y")
+  |                                                    ^^^^ `pattern:` beside an option for numbers
+  |
+  = help: a date prints by its `pattern:`; a number by its `digits:` and `big_mark:`
+
+format(3.14, digits: -1)
+---
+error[Z0401]: `digits:` of `format` is a count of decimal places from 0 to 20, but this is -1
+ --> scripts/main.zeff:1:22
+  |
+1 | format(3.14, digits: -1)
+  |                      ^^ not a count of decimal places
+  |
+  = help: `digits: 2` writes two decimals: 3.14159 becomes 3.14
+
+format(3.14, digits: 21)
+---
+error[Z0401]: `digits:` of `format` is a count of decimal places from 0 to 20, but this is 21
+ --> scripts/main.zeff:1:22
+  |
+1 | format(3.14, digits: 21)
+  |                      ^^ not a count of decimal places
+  |
+  = help: `digits: 2` writes two decimals: 3.14159 becomes 3.14
+
+format(3.14, big_mark: "")
+---
+error[Z0401]: `big_mark:` of `format` is empty
+ --> scripts/main.zeff:1:24
+  |
+1 | format(3.14, big_mark: "")
+  |                        ^^ nothing to put between the groups
+  |
+  = help: write the separator, `big_mark: ","` or `big_mark: " "`
+
+format("text")
+---
+error[Z0401]: `x` of `format` must be an Int, Float, Date or DateTime, but this is a Str
+ --> scripts/main.zeff:1:8
+  |
+1 | format("text")
+  |        ^^^^^^ a Str
+  |
+  = help: usage: `format(x, digits: Int, big_mark: Str, pattern: Str)`
+
+format(true)
+---
+error[Z0401]: `x` of `format` must be an Int, Float, Date or DateTime, but this is a Bool
+ --> scripts/main.zeff:1:8
+  |
+1 | format(true)
+  |        ^^^^ a Bool
+  |
+  = help: usage: `format(x, digits: Int, big_mark: Str, pattern: Str)`
+
+format(3.14, digits: 2.5)
+---
+error[Z0401]: `digits` of `format` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:22
+  |
+1 | format(3.14, digits: 2.5)
+  |                      ^^^ a Float
+  |
+  = help: usage: `format(x, digits: Int, big_mark: Str, pattern: Str)`
+
+let f = frame(d = [date("2026-10-16")])
+f.add(t = format(d, digits: 1))
+---
+error[Z0401]: `digits:` of `format` does not apply to a Date (row 1)
+ --> scripts/main.zeff:2:29
+  |
+2 | f.add(t = format(d, digits: 1))
+  |                             ^ an option for numbers
+  |
+  = help: `digits:` and `big_mark:` shape a number; a date prints by its `pattern:`

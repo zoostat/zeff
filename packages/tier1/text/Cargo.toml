@@ -1,0 +1,22 @@
+[package]
+name = "zeff-text"
+description = "Package text (tier 1): matching, replacing, splitting and formatting; at this release format."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-core.workspace = true
+zeff-dates.workspace = true
+zeff-diagnostics.workspace = true
+zeff-registry.workspace = true
+
+[dev-dependencies]
+zeff-testkit.workspace = true
+insta = "=1.49.0"
+proptest = "=1.12.0"
+serde_json = "=1.0.154"

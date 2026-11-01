@@ -171,3 +171,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** Step 5 `[function]`: `format`, and the `text` package.
 
 **For the owner to decide.** Nothing new.
+
+## 1 November 2026, step 5 of release 0.6.0
+
+**Done.** Step 5 `[function]`: `format`, and the `text` package as a new crate `packages/tier1/text` registered between `time` and `data`: a number to a number of decimals (half to even, the plain form at any size) and with a thousands separator, a date or time by a pattern in `strftime` notation (the kernel prints with `%a`, `%A` and `%j` beside the parsing directives), the options that do not fit refused (Z0401, Z0409, Z0410); catalogue row 95 implemented; the conformance report gains `text/format`. Tests: the R reference `format.R` (exact), the crate's `format.rs` with its snapshots and property, the page's examples. The ruling is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (116 codes) and the conformance report pass locally; CI to be read after the push, with the bundle figures of `text` at start.
+
+**Next.** Step 6 `[engine]`: shared columns and selection vectors.
+
+**For the owner to decide.** Nothing new.

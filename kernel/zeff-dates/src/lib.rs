@@ -167,6 +167,84 @@ pub fn whole_days_between(start: i64, end: i64) -> i64 {
     (end - start) / MICROS_PER_DAY
 }
 
+const WEEKDAYS: [&str; 7] = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+];
+
+/// A month's English name, capitalised: `October`.
+fn month_name(month: u32) -> String {
+    let lower = MONTHS[(month - 1) as usize];
+    let mut chars = lower.chars();
+    match chars.next() {
+        Some(first) => first.to_ascii_uppercase().to_string() + chars.as_str(),
+        None => String::new(),
+    }
+}
+
+/// A day printed by a pattern in `strftime` notation (`format` of the `text` package): `%Y` the
+/// four-digit year, `%y` its last two digits, `%m` the month as two digits, `%b` and `%B` its
+/// English name as three letters or in full, `%d` the day as two digits, `%a` and `%A` the
+/// weekday's English name as three letters or in full, `%j` the day of the year as three digits,
+/// `%H`, `%M` and `%S` the time as two digits each (zero on a day), and `%%` a percent sign;
+/// anything else is written as it stands. A directive the notation lacks is an error.
+pub fn format_with(pattern: &str, days: i32, micros_of_day: i64) -> Result<String, FormatError> {
+    if pattern.is_empty() {
+        return Err(FormatError::Empty);
+    }
+    let (year, month, day) = civil_from_days(days);
+    let seconds = micros_of_day / MICROS_PER_SECOND;
+    let mut out = String::new();
+    let mut chars = pattern.chars();
+    while let Some(c) = chars.next() {
+        if c != '%' {
+            out.push(c);
+            continue;
+        }
+        let Some(d) = chars.next() else {
+            return Err(FormatError::TrailingPercent);
+        };
+        match d {
+            'Y' => write!(out, "{year:04}"),
+            'y' => write!(out, "{:02}", year.rem_euclid(100)),
+            'm' => write!(out, "{month:02}"),
+            'b' => write!(out, "{}", &month_name(month)[..3]),
+            'B' => write!(out, "{}", month_name(month)),
+            'd' => write!(out, "{day:02}"),
+            'a' => write!(out, "{}", &WEEKDAYS[(weekday_of(days) - 1) as usize][..3]),
+            'A' => write!(out, "{}", WEEKDAYS[(weekday_of(days) - 1) as usize]),
+            'j' => write!(
+                out,
+                "{:03}",
+                days - days_from_civil(year, 1, 1).expect("the year is in the calendar") + 1
+            ),
+            'H' => write!(out, "{:02}", seconds / 3600),
+            'M' => write!(out, "{:02}", (seconds / 60) % 60),
+            'S' => write!(out, "{:02}", seconds % 60),
+            '%' => write!(out, "%"),
+            other => return Err(FormatError::UnknownDirective(format!("%{other}"))),
+        }
+        .expect("writing to a string");
+    }
+    Ok(out)
+}
+
+/// A day printed by a pattern; the time directives print zeros.
+pub fn format_date_with(pattern: &str, days: i32) -> Result<String, FormatError> {
+    format_with(pattern, days, 0)
+}
+
+/// A timestamp printed by a pattern.
+pub fn format_datetime_with(pattern: &str, micros: i64) -> Result<String, FormatError> {
+    let (days, within) = split_micros(micros);
+    format_with(pattern, days, within)
+}
+
 /// The calendar day a timestamp falls on, as days since 1970-01-01 (`DateTime` to `Date` drops
 /// the time, Language Reference section 3.7, "Conversions").
 pub fn days_of_micros(micros: i64) -> i32 {
@@ -622,6 +700,50 @@ mod tests {
         assert_eq!(civil_from_days(-1), (1969, 12, 31));
         assert_eq!(civil_from_days(MIN_DAYS), (1, 1, 1));
         assert_eq!(civil_from_days(MAX_DAYS), (9999, 12, 31));
+    }
+
+    #[test]
+    fn printing_with_a_pattern() {
+        let d = days_from_civil(2026, 10, 16).unwrap();
+        let f = |p: &str| format_date_with(p, d).unwrap();
+        assert_eq!(f("%d/%m/%Y"), "16/10/2026");
+        assert_eq!(f("%b %Y"), "Oct 2026");
+        assert_eq!(f("%B %d, %Y"), "October 16, 2026");
+        assert_eq!(f("%A, %a"), "Friday, Fri");
+        assert_eq!(f("%j"), "289");
+        assert_eq!(f("%y-%m"), "26-10");
+        assert_eq!(f("100%% by %Y"), "100% by 2026");
+        assert_eq!(f("%H:%M:%S"), "00:00:00");
+        assert_eq!(
+            format_date_with("%j", days_from_civil(2024, 12, 31).unwrap()).unwrap(),
+            "366"
+        );
+        assert_eq!(
+            format_date_with("%Y %j %a", days_from_civil(1, 1, 1).unwrap()).unwrap(),
+            "0001 001 Mon"
+        );
+        let t = micros_from(
+            d,
+            Time {
+                hour: 9,
+                minute: 5,
+                second: 7,
+                micro: 250_000,
+            },
+        );
+        assert_eq!(
+            format_datetime_with("%Y-%m-%dT%H:%M:%S", t).unwrap(),
+            "2026-10-16T09:05:07"
+        );
+        assert_eq!(
+            format_date_with("%Q", d),
+            Err(FormatError::UnknownDirective("%Q".into()))
+        );
+        assert_eq!(
+            format_date_with("%Y %", d),
+            Err(FormatError::TrailingPercent)
+        );
+        assert_eq!(format_date_with("", d), Err(FormatError::Empty));
     }
 
     #[test]

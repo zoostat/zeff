@@ -10,6 +10,7 @@ members = [
     "kernel/zeff-hash",
     "packages/tier0/core",
     "packages/tier1/time",
+    "packages/tier1/text",
     "packages/tier1/data",
     "packages/tier1/datasets",
     "packages/tier1/dist",
@@ -46,6 +47,7 @@ zeff-kernels = { path = "kernel/zeff-kernels" }
 zeff-registry = { path = "kernel/zeff-registry" }
 zeff-core = { path = "packages/tier0/core" }
 zeff-time = { path = "packages/tier1/time" }
+zeff-text = { path = "packages/tier1/text" }
 zeff-data = { path = "packages/tier1/data" }
 zeff-datasets = { path = "packages/tier1/datasets" }
 zeff-dist = { path = "packages/tier1/dist" }

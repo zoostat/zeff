@@ -1,0 +1,32 @@
+---
+source: packages/tier1/text/tests/format.rs
+assertion_line: 174
+expression: stdout
+---
+0
+0.00
+0.00
+10000000000000000.0
+1e+16
+0.000
+1e-07
+123,456,789,012,345,678
+-1,234,568
+0.33333333333333331483
+42
+42
+2026-10-16
+2026-10-16T09:05:07.250000
+0001|01|001|Mon
+Friday 31 December 9999
+100% on 16/10
+no directive
+2
+4
+7
+frame · 3 rows × 7 variables
+
+           x         n   d            a          b           c          e
+  1   1250.5   1000000   2026-01-05   1,250.50   1 000 000   Jan 2026   1250.5
+  2      980         7   2024-02-29   980.00     7           Feb 2024   980
+  3       NA        42   NA           NA         42          NA         NA

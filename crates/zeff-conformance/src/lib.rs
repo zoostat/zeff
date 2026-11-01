@@ -1064,11 +1064,17 @@ fn time_cases() -> Vec<Line> {
     let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
     let arithmetic = "let d = date(\"2026-01-31\")\nadd_days(d, 30)\nadd_days(d, -31)\nadd_months(d, 1)\nadd_months(date(\"2024-01-31\"), 1)\nadd_months(d, -11)\nadd_months(date(\"9999-12-31\"), 1)\ndays_between(d, date(\"2026-03-01\"))\ndays_between(datetime(\"2026-01-31T23:00\"), datetime(\"2026-02-02T22:59\"))\nmonths_between(d, date(\"2026-02-28\"))\nmonths_between(date(\"2026-03-31\"), d)\nadd_days(datetime(\"2026-01-31T09:30\"), 1)\nlet f = frame(d = [d, date(\"2024-02-29\"), date(\"0001-01-01\")])\nf.add(later = add_months(d, 12), gap = days_between(d, date(\"2026-11-01\")), back = add_days(d, -1))\ntoday()\nnow()\ndays_between(today(), date(\"2027-01-01\"))\n";
     let moved = run_script(&fs, &project, "scripts/main.zeff", arithmetic);
+    // `format` of the `text` package (step 5): decimals, separators, the plain form of a large
+    // number, dates by a pattern, on values and on columns.
+    let formatted = "format(1234567.891, digits: 2)\nformat(1234567.891, digits: 2, big_mark: \",\")\nformat(-0.0001, digits: 2)\nformat(2.675, digits: 2)\nformat(1e16, digits: 1)\nformat(1 / 3)\nformat(123456789, big_mark: \" \")\nformat(42, digits: 3)\nformat(date(\"2026-10-16\"), pattern: \"%A %d %B %Y, day %j\")\nformat(datetime(\"2026-10-16T09:05:07.5\"), pattern: \"%y%m%d %H:%M:%S\")\nformat(date(\"0001-01-01\"))\nlet f = frame(x = [1250.5, 980, -3.14159], d = [date(\"2026-01-05\"), date(\"2024-02-29\"), date(\"9999-12-31\")])\nf.add(t = format(x, digits: 2, big_mark: \",\"), m = format(d, pattern: \"%b %Y\"), p = format(x))\n";
+    let printed = run_script(&fs, &project, "scripts/main.zeff", formatted);
     vec![
         text("time/parts/stdout", &outcome.output.stdout),
         text("time/parts/stderr", &outcome.output.stderr),
         text("time/arithmetic/stdout", &moved.output.stdout),
         text("time/arithmetic/stderr", &moved.output.stderr),
+        text("text/format/stdout", &printed.output.stdout),
+        text("text/format/stderr", &printed.output.stderr),
     ]
 }
 

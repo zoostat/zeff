@@ -914,6 +914,7 @@ dependencies = [
  "zeff-results",
  "zeff-stats",
  "zeff-syntax",
+ "zeff-text",
  "zeff-time",
 ]
 
@@ -1005,6 +1006,16 @@ name = "zeff-syntax"
 version = "0.6.0-dev"
 dependencies = [
  "zeff-diagnostics",
+]
+
+[[package]]
+name = "zeff-text"
+version = "0.6.0-dev"
+dependencies = [
+ "zeff-core",
+ "zeff-dates",
+ "zeff-diagnostics",
+ "zeff-registry",
 ]
 
 [[package]]
