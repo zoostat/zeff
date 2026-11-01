@@ -1,7 +1,13 @@
-//! A table: named columns of equal length, in order.
+//! A table: named columns of equal length, in order. A table made by a row selection (`where`,
+//! `sort`, `sample`) shares its parent's columns and records the row positions; a column is
+//! gathered into a compact buffer the first time it is read, and the buffer kept (Language
+//! Reference, section 6, "Memory"). A selection that keeps fewer than half of the parent's rows
+//! is gathered at once, and `release` gathers what is still pending from a parent that is going
+//! away, so that its buffers are freed.
 
 use crate::column::Column;
 use crate::metadata::{FrameMetadata, MetadataKey};
+use std::sync::{Arc, Mutex, OnceLock};
 
 /// Why a table could not be made.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,17 +44,180 @@ impl std::fmt::Display for TableError {
 
 impl std::error::Error for TableError {}
 
+/// A column not yet gathered: the column of the parent it is taken from (whose buffers it keeps
+/// alive), the rows to take, and a token naming the parent table, by which `release` finds the
+/// selections made from a table that is going away.
+#[derive(Debug)]
+struct Pending {
+    source: Column,
+    rows: Arc<Vec<usize>>,
+    parent: usize,
+}
+
+/// One column of a table: gathered, or pending until first read. Shared between the tables a
+/// verb derives without touching the rows (`select`, `rename`, `add`), so that a column is
+/// gathered once for all of them.
+#[derive(Debug, Default)]
+struct Slot {
+    ready: OnceLock<Column>,
+    pending: Mutex<Option<Pending>>,
+}
+
+impl Slot {
+    fn ready(column: Column) -> Arc<Slot> {
+        let slot = Slot::default();
+        let _ = slot.ready.set(column);
+        Arc::new(slot)
+    }
+
+    fn pending(source: Column, rows: Arc<Vec<usize>>, parent: usize) -> Arc<Slot> {
+        Arc::new(Slot {
+            ready: OnceLock::new(),
+            pending: Mutex::new(Some(Pending {
+                source,
+                rows,
+                parent,
+            })),
+        })
+    }
+
+    /// The column, gathered now if it was pending; the source is let go once gathered.
+    fn column(&self) -> &Column {
+        self.ready.get_or_init(|| {
+            let taken = self
+                .pending
+                .lock()
+                .map(|mut p| p.take())
+                .unwrap_or(None)
+                .expect("a slot is ready or pending");
+            taken.source.take(&taken.rows)
+        })
+    }
+
+    /// The pending source's parent token, rows and source, for composing a selection of a
+    /// selection; `None` once gathered.
+    fn pending_of(&self) -> Option<(Column, Arc<Vec<usize>>, usize)> {
+        if self.ready.get().is_some() {
+            return None;
+        }
+        self.pending.lock().ok().and_then(|p| {
+            p.as_ref()
+                .map(|p| (p.source.clone(), p.rows.clone(), p.parent))
+        })
+    }
+}
+
 /// Named columns of equal length. Names are exact: whether two names that differ only in case are
 /// allowed is for the reader that builds the table (section 3.6).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Table {
     names: Vec<String>,
-    columns: Vec<Column>,
+    columns: Vec<Arc<Slot>>,
     rows: usize,
     metadata: FrameMetadata,
 }
 
+impl PartialEq for Table {
+    /// Two tables are equal when their names, rows, metadata and every column (gathered for the
+    /// comparison) are.
+    fn eq(&self, other: &Table) -> bool {
+        self.names == other.names
+            && self.rows == other.rows
+            && self.metadata == other.metadata
+            && self.columns.len() == other.columns.len()
+            && (0..self.columns.len())
+                .all(|i| self.columns[i].column() == other.columns[i].column())
+    }
+}
+
+/// The bytes a table holds: its own gathered buffers, and the parent buffers its pending
+/// columns keep alive (with their row positions).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ByteSize {
+    pub own: usize,
+    pub kept: usize,
+}
+
 impl Table {
+    /// The token by which a selection names the table it was made from.
+    pub fn token(&self) -> usize {
+        self as *const Table as usize
+    }
+
+    /// The rows at `rows`, in that order, as a selection: the columns stay the parent's and are
+    /// gathered when first read, unless fewer than half of the parent's rows are kept, in which
+    /// case every column is gathered now and the parent let go (Language Reference, section 6,
+    /// "Memory"). A selection of a selection composes the row positions, so that a chain of
+    /// `where`s gathers once. `token` names the table `rows` index.
+    pub fn select_rows(&self, rows: Vec<usize>, token: usize) -> Table {
+        if rows.len() * 2 < self.rows {
+            return self.take_rows(&rows);
+        }
+        let rows = Arc::new(rows);
+        let columns = self
+            .columns
+            .iter()
+            .map(|slot| match slot.pending_of() {
+                Some((source, parent_rows, parent)) => {
+                    let composed: Vec<usize> = rows.iter().map(|&r| parent_rows[r]).collect();
+                    Slot::pending(source, Arc::new(composed), parent)
+                }
+                None => Slot::pending(slot.column().clone(), rows.clone(), token),
+            })
+            .collect();
+        Table {
+            names: self.names.clone(),
+            columns,
+            rows: rows.len(),
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    /// Whether any column is still pending.
+    pub fn is_pending(&self) -> bool {
+        self.columns.iter().any(|s| s.pending_of().is_some())
+    }
+
+    /// Gather every pending column now, letting the parent's buffers go.
+    pub fn compact(&self) {
+        for slot in &self.columns {
+            let _ = slot.column();
+        }
+    }
+
+    /// Gather every column still pending on the table whose token is `parent`: what a selection
+    /// does when the frame it was made from is let go. The number of columns gathered.
+    pub fn release(&self, parent: usize) -> usize {
+        let mut gathered = 0;
+        for slot in &self.columns {
+            if slot.pending_of().is_some_and(|(_, _, p)| p == parent) {
+                let _ = slot.column();
+                gathered += 1;
+            }
+        }
+        gathered
+    }
+
+    /// The bytes the table holds, its own and the parent buffers it keeps alive.
+    pub fn byte_size(&self) -> ByteSize {
+        let mut size = ByteSize::default();
+        let mut counted_rows: Vec<*const Vec<usize>> = Vec::new();
+        for slot in &self.columns {
+            match slot.pending_of() {
+                Some((source, rows, _)) => {
+                    size.kept += source.byte_size();
+                    let key = Arc::as_ptr(&rows);
+                    if !counted_rows.contains(&key) {
+                        counted_rows.push(key);
+                        size.kept += rows.len() * std::mem::size_of::<usize>();
+                    }
+                }
+                None => size.own += slot.column().byte_size(),
+            }
+        }
+        size
+    }
+
     pub fn new(columns: Vec<(String, Column)>) -> Result<Table, TableError> {
         let rows = columns.first().map_or(0, |(_, c)| c.len());
         let mut names: Vec<String> = Vec::with_capacity(columns.len());
@@ -65,7 +234,7 @@ impl Table {
                 });
             }
             names.push(name);
-            data.push(column);
+            data.push(Slot::ready(column));
         }
         Ok(Table {
             names,
@@ -91,15 +260,17 @@ impl Table {
         self.metadata.source = Some(source.to_string());
         self.columns = self
             .columns
-            .into_iter()
-            .map(|c| c.with_entry(MetadataKey::Source, source))
+            .iter()
+            .map(|s| Slot::ready(s.column().clone().with_entry(MetadataKey::Source, source)))
             .collect();
         self
     }
 
-    /// The columns with their names, in order.
+    /// The columns with their names, in order, each gathered if it was pending.
     pub fn columns(&self) -> impl Iterator<Item = (&String, &Column)> {
-        self.names.iter().zip(&self.columns)
+        self.names
+            .iter()
+            .zip(self.columns.iter().map(|s| s.column()))
     }
 
     pub fn rows(&self) -> usize {
@@ -114,12 +285,13 @@ impl Table {
         &self.names
     }
 
+    /// The column called `name`, gathered if it was pending.
     pub fn column(&self, name: &str) -> Option<&Column> {
-        self.position(name).map(|i| &self.columns[i])
+        self.position(name).map(|i| self.columns[i].column())
     }
 
     pub fn column_at(&self, index: usize) -> Option<&Column> {
-        self.columns.get(index)
+        self.columns.get(index).map(|s| s.column())
     }
 
     /// The 0-based position of the column called `name`.
@@ -131,7 +303,11 @@ impl Table {
     pub fn head(&self, n: usize) -> Table {
         Table {
             names: self.names.clone(),
-            columns: self.columns.iter().map(|c| c.slice(0, n)).collect(),
+            columns: self
+                .columns
+                .iter()
+                .map(|c| Slot::ready(c.column().slice(0, n)))
+                .collect(),
             rows: n.min(self.rows),
             metadata: self.metadata.clone(),
         }
@@ -143,18 +319,27 @@ impl Table {
         let offset = self.rows - n;
         Table {
             names: self.names.clone(),
-            columns: self.columns.iter().map(|c| c.slice(offset, n)).collect(),
+            columns: self
+                .columns
+                .iter()
+                .map(|c| Slot::ready(c.column().slice(offset, n)))
+                .collect(),
             rows: n,
             metadata: self.metadata.clone(),
         }
     }
 
-    /// The rows at `rows`, in that order: the selection a verb such as `where` or `sort` makes.
-    /// Every column's metadata and the frame's are kept.
+    /// The rows at `rows`, in that order, gathered now into compact columns: the eager form of a
+    /// selection, which `select_rows` uses for a small one and the tests use as the oracle of the
+    /// lazy one. Every column's metadata and the frame's are kept.
     pub fn take_rows(&self, rows: &[usize]) -> Table {
         Table {
             names: self.names.clone(),
-            columns: self.columns.iter().map(|c| c.take(rows)).collect(),
+            columns: self
+                .columns
+                .iter()
+                .map(|c| Slot::ready(c.column().take(rows)))
+                .collect(),
             rows: rows.len(),
             metadata: self.metadata.clone(),
         }
@@ -191,13 +376,13 @@ impl Table {
         }
         let mut table = self.clone();
         match table.names.iter().position(|n| n == name) {
-            Some(p) => table.columns[p] = column,
+            Some(p) => table.columns[p] = Slot::ready(column),
             None => {
                 if table.columns.is_empty() {
                     table.rows = column.len();
                 }
                 table.names.push(name.to_string());
-                table.columns.push(column);
+                table.columns.push(Slot::ready(column));
             }
         }
         Ok(table)

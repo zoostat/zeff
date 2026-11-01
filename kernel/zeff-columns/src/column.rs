@@ -617,6 +617,12 @@ impl Column {
     // ----- Arrow, for the IPC round trip and the files -----
 
     /// The column's array, shared.
+    /// The bytes of the column's buffers, as Arrow counts them (Engine and Project
+    /// Specification, section 8.3, point 7: a frame's reported size).
+    pub fn byte_size(&self) -> usize {
+        self.to_arrow().get_array_memory_size()
+    }
+
     pub fn to_arrow(&self) -> ArrayRef {
         match &self.data {
             Data::Bool(a) => Arc::new(a.clone()),

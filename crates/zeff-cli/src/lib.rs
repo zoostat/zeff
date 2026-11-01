@@ -716,6 +716,20 @@ fn script_of(
 }
 
 /// What a run wrote, to the two streams, with the messages filtered as the settings say.
+/// `842 B`, `2.1 kB`, `3.0 MB`: decimal units, one decimal from a kilobyte, as the column
+/// kernel prints sizes.
+fn size_text(bytes: usize) -> String {
+    if bytes < 1000 {
+        format!("{bytes} B")
+    } else if bytes < 1_000_000 {
+        format!("{:.1} kB", bytes as f64 / 1000.0)
+    } else if bytes < 1_000_000_000 {
+        format!("{:.1} MB", bytes as f64 / 1_000_000.0)
+    } else {
+        format!("{:.1} GB", bytes as f64 / 1_000_000_000.0)
+    }
+}
+
 fn emit(command: &Command<'_, '_>, outcome: &Outcome, out: &mut dyn Write, err: &mut dyn Write) {
     let _ = out.write_all(outcome.output.stdout.as_bytes());
     let _ = err.write_all(command.messages.text(&outcome.output.stderr).as_bytes());
@@ -737,6 +751,45 @@ fn run_command(
     let outcome = run_script_with(command.fs, &project, &shown, &text, &command.run_options());
     emit(command, &outcome, out, err);
     if command.settings.verbose {
+        // The memory record (Engine and Project Specification, section 8.3, point 7): what each
+        // frame held when bound, its own buffers and the parent buffers it kept alive, and when
+        // a binding was freed after its last use (Language Reference, section 6, "Memory").
+        for note in &outcome.output.memory {
+            match note {
+                zeff_engine::interpreter::MemoryNote::Bound {
+                    name,
+                    line,
+                    own,
+                    kept,
+                } => {
+                    let _ = writeln!(
+                        err,
+                        "memory: `{name}` bound at line {line} holds {}{}",
+                        size_text(*own),
+                        if *kept > 0 {
+                            format!(", keeping {} of a parent", size_text(*kept))
+                        } else {
+                            String::new()
+                        }
+                    );
+                }
+                zeff_engine::interpreter::MemoryNote::Freed {
+                    name,
+                    line,
+                    gathered,
+                } => {
+                    let _ = writeln!(
+                        err,
+                        "memory: `{name}` freed after line {line}{}",
+                        match gathered {
+                            0 => String::new(),
+                            1 => "; 1 column gathered from it".to_string(),
+                            n => format!("; {n} columns gathered from it"),
+                        }
+                    );
+                }
+            }
+        }
         let n = outcome.output.statements.len();
         let _ = writeln!(
             err,
@@ -1087,7 +1140,12 @@ impl Console<'_, '_, '_> {
             return;
         }
         let fs = self.command.fs;
-        let options = self.command.run_options();
+        // A session keeps every binding until it is shadowed (Language Reference, section 6,
+        // "Memory"); only `zeff run` frees a binding after its last use.
+        let options = RunOptions {
+            free_bindings: false,
+            ..self.command.run_options()
+        };
         let outcome = self.session.run(fs, &self.project, &options);
         let output = &outcome.output;
         if outcome.exit_code != 0 {

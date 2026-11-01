@@ -35,6 +35,28 @@ pub struct Output {
     pub stderr: String,
     /// The same, statement by statement, for the example runner.
     pub statements: Vec<StatementOutput>,
+    /// What each frame binding held when made and when freed, for `--verbose` (Engine and
+    /// Project Specification, section 8.3, point 7: a frame's reported size counts the parent
+    /// buffers it keeps alive).
+    pub memory: Vec<MemoryNote>,
+}
+
+/// One line of the memory record: a frame bound, with its own bytes and the parent bytes it
+/// keeps alive, or a binding freed after its last use.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MemoryNote {
+    Bound {
+        name: String,
+        line: u32,
+        own: usize,
+        kept: usize,
+    },
+    Freed {
+        name: String,
+        line: u32,
+        /// The columns that frames made from this one gathered before it went.
+        gathered: usize,
+    },
 }
 
 pub struct Interpreter<'a> {
@@ -43,6 +65,10 @@ pub struct Interpreter<'a> {
     script: &'a str,
     source: &'a Source,
     env: HashMap<usize, Value>,
+    /// The last top-level statement that uses each binding, when bindings are freed after their
+    /// last use (`zeff run`; section 6, "Memory"); empty when they are kept.
+    last_use: HashMap<usize, usize>,
+    free_bindings: bool,
     program: &'a Program,
     /// A test hook: the statement at this line panics before it runs, to prove that a failure
     /// inside the engine becomes Z9001 and never a crash.
@@ -113,6 +139,8 @@ impl<'a> Interpreter<'a> {
             script,
             source,
             env: HashMap::new(),
+            last_use: HashMap::new(),
+            free_bindings: true,
             program,
             panic_at_line: None,
             width: PAGE_WIDTH,
@@ -143,6 +171,13 @@ impl<'a> Interpreter<'a> {
         self
     }
 
+    /// Whether a binding is freed after its last use in the script (section 6, "Memory"); a
+    /// session keeps every binding.
+    pub fn with_freeing(mut self, free: bool) -> Self {
+        self.free_bindings = free;
+        self
+    }
+
     /// The test hook: make the statement at `line` panic before it runs.
     #[doc(hidden)]
     pub fn with_panic_at(mut self, line: Option<u32>) -> Self {
@@ -153,7 +188,10 @@ impl<'a> Interpreter<'a> {
     /// Run every statement. The error that stopped the run, if any, is rendered into
     /// `output.stderr` and returned.
     pub fn run(mut self, output: &mut Output) -> Result<(), Fail> {
-        for statement in &self.program.statements {
+        if self.free_bindings {
+            self.last_use = crate::liveness::last_uses(self.program);
+        }
+        for (index, statement) in self.program.statements.iter().enumerate() {
             self.statement += 1;
             self.random.pass = 0;
             self.jump = None;
@@ -238,11 +276,59 @@ impl<'a> Interpreter<'a> {
                 stdout: printed,
                 stderr: statement_errors,
             });
+            if let Statement::Let { binding, .. } = statement
+                && let Some(Value::Frame(frame)) = self.env.get(binding)
+            {
+                let size = frame.table.byte_size();
+                output.memory.push(MemoryNote::Bound {
+                    name: self.program.bindings[*binding].name.clone(),
+                    line,
+                    own: size.own,
+                    kept: size.kept,
+                });
+            }
+            if self.free_bindings && !failed {
+                self.free_after(index, line, output);
+            }
             if failed {
                 return result.map(|_| ());
             }
         }
         Ok(())
+    }
+
+    /// Free every top-level binding whose last use is the statement at `index` (or that was never
+    /// used, right after its `let`), and let the selections made from a freed frame gather what
+    /// they still read from it, so that its buffers go (section 6, "Memory").
+    fn free_after(&mut self, index: usize, line: u32, output: &mut Output) {
+        let dead: Vec<usize> = self
+            .env
+            .keys()
+            .copied()
+            .filter(|id| {
+                self.program.bindings[*id].kind == zeff_ir::BindingKind::Let
+                    && self.last_use.get(id).is_none_or(|last| *last <= index)
+            })
+            .collect();
+        for id in dead {
+            let Some(value) = self.env.remove(&id) else {
+                continue;
+            };
+            let mut gathered = 0;
+            if let Value::Frame(frame) = &value {
+                let token = frame.table.token();
+                for other in self.env.values() {
+                    if let Value::Frame(kept) = other {
+                        gathered += kept.table.release(token);
+                    }
+                }
+            }
+            output.memory.push(MemoryNote::Freed {
+                name: self.program.bindings[id].name.clone(),
+                line,
+                gathered,
+            });
+        }
     }
 
     /// Bind a value to a `let`: a frame or a fit takes the binding's name (for its printed

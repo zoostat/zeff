@@ -177,6 +177,9 @@ pub struct Outcome {
 pub struct RunOptions {
     /// The page width frames and tables wrap at (`--width`; 118 by default).
     pub width: usize,
+    /// Whether a binding is freed after its last use in the script (section 6, "Memory"): so in
+    /// `zeff run`; a session keeps its bindings.
+    pub free_bindings: bool,
     /// A test hook: the statement at this line panics before it runs (see `Interpreter`).
     #[doc(hidden)]
     pub panic_at_line: Option<u32>,
@@ -186,6 +189,7 @@ impl Default for RunOptions {
     fn default() -> Self {
         RunOptions {
             width: zeff_core::display::PAGE_WIDTH,
+            free_bindings: true,
             panic_at_line: None,
         }
     }
@@ -291,7 +295,8 @@ pub fn run_script_in(
         .with_zeff(zeff)
         .with_sources(&module_sources)
         .with_panic_at(options.panic_at_line)
-        .with_width(options.width);
+        .with_width(options.width)
+        .with_freeing(options.free_bindings);
     match interpreter.run(&mut output) {
         Ok(()) => Outcome {
             output,

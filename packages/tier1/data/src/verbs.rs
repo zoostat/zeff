@@ -252,7 +252,7 @@ pub fn where_(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     if kept.is_empty() {
         ctx.message(Diagnostic::plain_note("no row kept: the result is empty"));
     }
-    Ok(derived(frame.table.take_rows(&kept)))
+    Ok(derived(frame.table.select_rows(kept, frame.table.token())))
 }
 
 /// `data.drop_missing(vars)` (catalogue row 121; release 0.5.0, step 18): the rows with no
@@ -296,7 +296,7 @@ pub fn drop_missing(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail
     if kept.is_empty() {
         ctx.message(Diagnostic::plain_note("no row kept: the result is empty"));
     }
-    Ok(derived(frame.table.take_rows(&kept)))
+    Ok(derived(frame.table.select_rows(kept, frame.table.token())))
 }
 
 /// `data.select(vars)`: only the named variables, in the order named.
@@ -627,5 +627,5 @@ pub fn sort(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ),
         other => internal(ctx, format!("{other:?}")),
     })?;
-    Ok(derived(frame.table.take_rows(&order)))
+    Ok(derived(frame.table.select_rows(order, frame.table.token())))
 }

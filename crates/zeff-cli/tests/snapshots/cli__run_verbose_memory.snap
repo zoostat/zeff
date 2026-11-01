@@ -1,0 +1,11 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+assertion_line: 1092
+expression: "memory.join(\"\\n\")"
+---
+memory: `wages` bound at line 1 holds <size> <unit>
+memory: `kept` bound at line 2 holds <size> <unit>, keeping <size> <unit> of a parent
+memory: `few` bound at line 3 holds <size> <unit>
+memory: `wages` freed after line 3; 10 columns gathered from it
+memory: `kept` freed after line 4
+memory: `few` freed after line 5

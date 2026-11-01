@@ -10,6 +10,7 @@ pub mod formulas;
 pub mod fs;
 pub mod help;
 pub mod interpreter;
+pub mod liveness;
 pub mod manifest;
 pub mod modules;
 pub mod paths;

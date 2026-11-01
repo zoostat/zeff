@@ -1052,3 +1052,55 @@ fn a_failed_assert_stops_the_run_with_exit_code_1() {
     assert_eq!(out(&o), "checked\n");
     insta::assert_snapshot!("failed_assert", err(&o));
 }
+
+#[test]
+fn verbose_prints_the_memory_record_of_a_run() {
+    // The memory record of section 6 (release 0.6.0, step 6): what each frame held when bound
+    // and when a binding was freed after its last use; the byte counts are Arrow's and masked
+    // here, since they may move with its version.
+    let (_dir, project) = demo();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let wages = dataset(wages)\nlet kept = wages.where(hours > 30)\nlet few = wages.where(hours > 44)\nkept.n_rows()\nfew.n_rows()\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run", "--verbose"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let memory: Vec<String> = err(&o)
+        .lines()
+        .filter(|l| l.starts_with("memory:"))
+        .map(|l| {
+            let mut masked = String::new();
+            let mut words = l.split(' ').peekable();
+            while let Some(word) = words.next() {
+                if word.parse::<f64>().is_ok()
+                    && words
+                        .peek()
+                        .is_some_and(|unit| matches!(unit.trim_end_matches(','), "B" | "kB" | "MB"))
+                {
+                    masked.push_str("<size> ");
+                    let unit = words.next().unwrap();
+                    masked.push_str(if unit.ends_with(',') {
+                        "<unit>,"
+                    } else {
+                        "<unit>"
+                    });
+                } else {
+                    masked.push_str(word);
+                }
+                masked.push(' ');
+            }
+            masked.trim_end().to_string()
+        })
+        .collect();
+    insta::assert_snapshot!("run_verbose_memory", memory.join("\n"));
+    assert!(
+        err(&o)
+            .lines()
+            .last()
+            .unwrap()
+            .starts_with("ran scripts/main.zeff: 5 statements in"),
+        "{}",
+        err(&o)
+    );
+}

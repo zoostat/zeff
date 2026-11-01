@@ -7,8 +7,9 @@
 //! [`Column`], [`Table`] and ordinary Rust values, and the Arrow version can change here alone.
 //!
 //! Every column type is declared through one interface (`declaration`), carries a metadata store
-//! (`metadata`), and round-trips through Arrow IPC with both (`ipc`); selection vectors and shared
-//! columns arrive with 0.6.0. Grouping by keys in key order (`grouping`) and the weight rules
+//! (`metadata`), and round-trips through Arrow IPC with both (`ipc`); a table made by a row selection
+//! shares its parent's columns and gathers each on first read (`table`; Language Reference,
+//! section 6, "Memory"). Grouping by keys in key order (`grouping`) and the weight rules
 //! (`weights`) serve `by:` and `weights:` on every statistic.
 
 mod column;
