@@ -1961,10 +1961,12 @@ impl<'a> Interpreter<'a> {
         groups: &zeff_columns::Groups,
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
+        raw: Option<&mut Vec<Diagnostic>>,
     ) -> Result<Value, Fail> {
         let rows = self.receivers.last().map_or(0, |r| r.extended.table.rows());
         let mut per_row: Vec<Value> = vec![Value::Na; rows];
         let mut group_messages: Vec<Diagnostic> = Vec::new();
+        let mut all_messages: Vec<Diagnostic> = Vec::new();
         for g in 0..groups.len() {
             let members = groups.rows(g);
             if let Some(receiver) = self.receivers.last_mut() {
@@ -1980,8 +1982,9 @@ impl<'a> Interpreter<'a> {
                     .iter()
                     .any(|m| m.code == message.code && m.message == message.message)
                 {
-                    group_messages.push(message);
+                    group_messages.push(message.clone());
                 }
+                all_messages.push(message);
             }
             match &value {
                 Value::Column(c) if c.len() == members.len() => {
@@ -2011,7 +2014,12 @@ impl<'a> Interpreter<'a> {
                 }
             }
         }
-        messages.extend(group_messages);
+        // `aggregate` counts the reducers' warnings once per statement, as `summary` does: every
+        // group's messages go to the call, which merges them after its last definition.
+        match raw {
+            Some(raw) => raw.extend(all_messages),
+            None => messages.extend(group_messages),
+        }
         if rows == 0 {
             return Ok(Value::Na);
         }
@@ -2073,6 +2081,11 @@ impl<'a> Interpreter<'a> {
         };
         // The groups of `by:` on a frame method with definitions, each evaluated group by group.
         let mut groups: Option<zeff_columns::Groups> = None;
+        // `aggregate` merges the reducers' warnings of every group and definition into one per
+        // variable (the ruling of release 0.6.0, step 12: counted once per statement as
+        // `summary` counts them).
+        let merges_warnings = call.package == "data" && call.name == "aggregate";
+        let mut raw_warnings: Vec<Vec<Diagnostic>> = Vec::new();
         if call.implicit_receiver
             && let Some(receiver) = self.receivers.last()
         {
@@ -2159,10 +2172,19 @@ impl<'a> Interpreter<'a> {
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
                         receiver.in_definition = true;
                     }
-                    let evaluated = match (&groups, pushed) {
-                        (Some(groups), true) => {
-                            self.eval_by_group(&call.definitions[*i].1, groups, printed, messages)
-                        }
+                    if merges_warnings {
+                        raw_warnings.push(Vec::new());
+                    }
+                    let raw = raw_warnings.last_mut();
+                    let evaluated = match (&groups, pushed, raw) {
+                        (Some(groups), true, raw) => self.eval_by_group(
+                            &call.definitions[*i].1,
+                            groups,
+                            printed,
+                            messages,
+                            raw,
+                        ),
+                        (_, _, Some(raw)) => self.eval(&call.definitions[*i].1, printed, raw),
                         _ => self.eval(&call.definitions[*i].1, printed, messages),
                     };
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
@@ -2203,6 +2225,9 @@ impl<'a> Interpreter<'a> {
         } else {
             Vec::new()
         };
+        if !raw_warnings.is_empty() {
+            messages.extend(merge_na_warnings(raw_warnings));
+        }
         // A failed value is an argument only of the functions that look at it or skip it
         // (section 3.7, "Failed values"): `is`, `type_of` and `print`, and in a list `report`
         // and `len`.
@@ -2513,6 +2538,101 @@ fn by_names(value: &Value) -> Option<Vec<String>> {
 }
 
 /// One cell of a column as a value.
+/// A reducer's W0201 as (variable, rows with NA, whether every row had NA): the forms of the
+/// data package's `skipped`, `{n} rows with NA in {var} were skipped`, `1 row with NA in {var}
+/// was skipped` and `all {n} rows have NA in {var}: the result is NA`.
+fn na_warning_parts(message: &Diagnostic) -> Option<(String, u64, bool)> {
+    if message.code != "W0201" {
+        return None;
+    }
+    let text = message.message.as_str();
+    let parse_count = |text: &str| -> Option<u64> { text.replace(',', "").parse().ok() };
+    if let Some(rest) = text.strip_prefix("all ")
+        && let Some((count, rest)) = rest.split_once(" rows have NA in ")
+        && let Some((var, _)) = rest.split_once(':')
+        && let Some(n) = parse_count(count)
+    {
+        return Some((var.to_string(), n, true));
+    }
+    if let Some((count, rest)) = text.split_once(" row")
+        && let Some((_, rest)) = rest.split_once(" with NA in ")
+        && let Some((var, _)) = rest.rsplit_once(" w")
+        && let Some(n) = parse_count(count)
+    {
+        return Some((var.to_string(), n, false));
+    }
+    None
+}
+
+/// A reducer's W0201 from its parts, as `skipped` words it.
+fn na_warning(var: &str, n: u64, all: bool) -> Diagnostic {
+    let rows = format!(
+        "{} {}",
+        zeff_diagnostics::count(n),
+        if n == 1 { "row" } else { "rows" }
+    );
+    Diagnostic::warning(
+        "W0201",
+        if all {
+            // As `skipped` words it, the count always with `rows`.
+            format!(
+                "all {} rows have NA in {var}: the result is NA",
+                zeff_diagnostics::count(n)
+            )
+        } else {
+            format!(
+                "{rows} with NA in {var} {} skipped",
+                if n == 1 { "was" } else { "were" }
+            )
+        },
+    )
+}
+
+/// The reducers' warnings of an `aggregate`, one definition's messages per inner list: within a
+/// definition the rows with `NA` in a variable are summed over the groups; across definitions
+/// one warning per variable is kept, the largest count, since the rows with `NA` in a variable
+/// are the same rows whichever reducer skipped them (`summary` reports them once so); every
+/// other message is kept once.
+fn merge_na_warnings(per_definition: Vec<Vec<Diagnostic>>) -> Vec<Diagnostic> {
+    let mut kept: Vec<(String, u64, bool)> = Vec::new();
+    let mut others: Vec<Diagnostic> = Vec::new();
+    for raw in per_definition {
+        let mut summed: Vec<(String, u64, bool)> = Vec::new();
+        for message in raw {
+            match na_warning_parts(&message) {
+                Some((var, n, all)) => match summed.iter_mut().find(|(v, _, _)| *v == var) {
+                    Some(entry) => {
+                        entry.1 += n;
+                        entry.2 &= all;
+                    }
+                    None => summed.push((var, n, all)),
+                },
+                None => {
+                    if !others
+                        .iter()
+                        .any(|m| m.code == message.code && m.message == message.message)
+                    {
+                        others.push(message);
+                    }
+                }
+            }
+        }
+        for (var, n, all) in summed {
+            match kept.iter_mut().find(|(v, _, _)| *v == var) {
+                Some(entry) if entry.1 < n => *entry = (var, n, all),
+                Some(_) => {}
+                None => kept.push((var, n, all)),
+            }
+        }
+    }
+    let mut merged: Vec<Diagnostic> = kept
+        .into_iter()
+        .map(|(var, n, all)| na_warning(&var, n, all))
+        .collect();
+    merged.extend(others);
+    merged
+}
+
 fn cell_value(column: &zeff_columns::Column, row: usize) -> Value {
     match column.get(row).unwrap_or(zeff_columns::Value::Na) {
         zeff_columns::Value::Na => Value::Na,

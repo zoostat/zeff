@@ -15,8 +15,6 @@ error[Z0103]: no function is called `to_long`
  --> zeff_samples.zeff:64:6
 error[Z0103]: no function is called `merge`
  --> zeff_samples.zeff:65:6
-error[Z0103]: no function is called `aggregate`
- --> zeff_samples.zeff:68:30
 error[Z0103]: no function is called `save`
  --> zeff_samples.zeff:72:36
 error[Z0404]: `reg` has no argument called `fe`
@@ -95,8 +93,6 @@ error[Z0103]: no function is called `theme`
  --> zeff_samples.zeff:243:6
 error[Z0404]: `export` has no argument called `size`
  --> zeff_samples.zeff:244:37
-error[Z0103]: no function is called `aggregate`
- --> zeff_samples.zeff:246:19
 error[Z0103]: no function is called `plot`
  --> zeff_samples.zeff:247:1
 error[Z0103]: no function is called `bars`

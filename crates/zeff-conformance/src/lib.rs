@@ -1118,6 +1118,10 @@ fn panel_cases() -> Vec<Line> {
     let distinct_outcome = run_script(&fs, &project, "scripts/main.zeff", distinct);
     let sampled = "let w = dataset(wages)\nw.sample(n: 8, seed: 20261015).select([worker, year, wage])\nw.sample(frac: 0.0005, seed: 7).select([worker, year, wage])\nw.sample(n: 6, with_replacement: true, seed: 3).select([worker, year, wage])\nw.head(5).sample(n: 7, with_replacement: true, seed: 11).select([worker, year])\nw.sample(n: 0, seed: 1).n_rows()\n";
     let sampled_outcome = run_script(&fs, &project, "scripts/main.zeff", sampled);
+    // `aggregate` (step 12): reducers and arithmetic over them by one and two keys, `NA` as a
+    // group, a definition using an earlier one, no `by:`, and a panel's note.
+    let aggregated = "let sales = frame(firm = [2, 1, 2, 1, 3, 1, NA], year = [2021, 2020, 2020, 2020, 2021, 2021, 2021], revenue = [12.5, 8, 11, 9, NA, 10, 4])\nsales.aggregate(total = sum(revenue), firms = n_distinct(firm), rows = n(), by: year)\nsales.aggregate(avg = mean(revenue), spread = sd(revenue), se = spread / sqrt(n()), by: firm)\nsales.aggregate(avg = mean(revenue), rows = n(), by: [firm, year])\nsales.aggregate(total = sum(revenue), rows = n())\nlet w = dataset(wages).where(worker <= 30)\nw.aggregate(mean_wage = mean(wage), median_hours = median(hours), top = quantile(wage, p: 0.9), workers = n_distinct(worker), by: industry)\nw.aggregate(mean_wage = mean(wage), rows = n(), by: year)\n";
+    let aggregated_outcome = run_script(&fs, &project, "scripts/main.zeff", aggregated);
     vec![
         text("panel/declare/stdout", &outcome.output.stdout),
         text("panel/declare/stderr", &outcome.output.stderr),
@@ -1137,6 +1141,8 @@ fn panel_cases() -> Vec<Line> {
         text("verbs/distinct/stderr", &distinct_outcome.output.stderr),
         text("verbs/sample/stdout", &sampled_outcome.output.stdout),
         text("verbs/sample/stderr", &sampled_outcome.output.stderr),
+        text("verbs/aggregate/stdout", &aggregated_outcome.output.stdout),
+        text("verbs/aggregate/stderr", &aggregated_outcome.output.stderr),
     ]
 }
 

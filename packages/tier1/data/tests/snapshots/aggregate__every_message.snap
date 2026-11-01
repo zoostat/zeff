@@ -1,0 +1,96 @@
+---
+source: packages/tier1/data/tests/aggregate.rs
+assertion_line: 183
+expression: out
+---
+frame(g = [1, 2], x = [1.0, 2]).aggregate(y = x + 1, by: g)
+---
+error[Z0401]: `y` of `aggregate` gives a Column, not one value per group
+ --> scripts/main.zeff:1:47
+  |
+1 | frame(g = [1, 2], x = [1.0, 2]).aggregate(y = x + 1, by: g)
+  |                                               ^^^^^ a Column
+  |
+  = help: a definition reduces the group to one value, as `mean(wage)` or `sd(wage) / sqrt(n())` do; `add` keeps a value per row
+
+frame(g = [1, 2], x = [1.0, 2]).aggregate(y = x)
+---
+error[Z0401]: `y` of `aggregate` gives a Column, not one value per group
+ --> scripts/main.zeff:1:47
+  |
+1 | frame(g = [1, 2], x = [1.0, 2]).aggregate(y = x)
+  |                                               ^ a Column
+  |
+  = help: a definition reduces the group to one value, as `mean(wage)` or `sd(wage) / sqrt(n())` do; `add` keeps a value per row
+
+frame(g = [1, 2], x = [1.0, 2]).aggregate(g = mean(x), by: g)
+---
+error[Z0405]: `g` is both a `by:` variable and a definition of `aggregate`
+ --> scripts/main.zeff:1:47
+  |
+1 | frame(g = [1, 2], x = [1.0, 2]).aggregate(g = mean(x), by: g)
+  |                                               ^^^^^^^ defined again
+  |
+  = help: the `by:` variables are the first columns of the result; give the definition another name
+
+frame(g = [1, 2], x = [1.0, 2]).aggregate(m = mean(x), m = n(), by: g)
+---
+error[Z0405]: `m` is defined twice
+ --> scripts/main.zeff:1:56
+  |
+1 | frame(g = [1, 2], x = [1.0, 2]).aggregate(m = mean(x), m = n(), by: g)
+  |                                                        ^ the second time
+  |
+  = help: give each definition its own name
+
+frame(g = [1, 2], x = [1.0, 2]).aggregate(m = mean(x), by: h)
+---
+error[Z0101]: no variable `h` in `the frame`
+ --> scripts/main.zeff:1:60
+  |
+1 | frame(g = [1, 2], x = [1.0, 2]).aggregate(m = mean(x), by: h)
+  |                                                            ^ not a variable of the frame
+  |
+  = help: did you mean `g`? If you meant a category level, write it in quotes: `"g"`
+
+frame(g = [1, 2], x = [1.0, 2]).aggregate(m: mean(x), by: g)
+---
+error[Z0404]: `aggregate` has no argument called `m`
+ --> scripts/main.zeff:1:43
+  |
+1 | frame(g = [1, 2], x = [1.0, 2]).aggregate(m: mean(x), by: g)
+  |                                           ^ unknown argument
+  |
+  = help: usage: `data.aggregate(by: Vars, name = Bool | Int | Float | Str | Date | DateTime, ...)`
+
+frame(g = [1, 2], x = [1.0, 2]).aggregate(by: g)
+---
+error[Z0406]: `aggregate` needs at least one definition
+ --> scripts/main.zeff:1:33
+  |
+1 | frame(g = [1, 2], x = [1.0, 2]).aggregate(by: g)
+  |                                 ^^^^^^^^^ nothing defined
+  |
+  = help: usage: `data.aggregate(by: Vars, name = Bool | Int | Float | Str | Date | DateTime, ...)`
+
+let w = dataset(wages)
+w.aggregate(y = wage, by: industry)
+---
+error[Z0401]: `y` of `aggregate` gives a Column, not one value per group
+ --> scripts/main.zeff:2:17
+  |
+2 | w.aggregate(y = wage, by: industry)
+  |                 ^^^^ a Column
+  |
+  = help: a definition reduces the group to one value, as `mean(wage)` or `sd(wage) / sqrt(n())` do; `add` keeps a value per row
+
+let w = dataset(wages)
+w.aggregate(m = mean(wage), d = m - wage, by: industry)
+---
+error[Z0401]: `d` of `aggregate` gives a Column, not one value per group
+ --> scripts/main.zeff:2:33
+  |
+2 | w.aggregate(m = mean(wage), d = m - wage, by: industry)
+  |                                 ^^^^^^^^ a Column
+  |
+  = help: a definition reduces the group to one value, as `mean(wage)` or `sd(wage) / sqrt(n())` do; `add` keeps a value per row

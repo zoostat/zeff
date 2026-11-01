@@ -171,6 +171,8 @@ verbs/distinct/stdout aee8eceab645ed4c
 verbs/distinct/stderr 5de4178e6e530d36
 verbs/sample/stdout 28bdb6bf1877675a
 verbs/sample/stderr af1d53f1de4d9149
+verbs/aggregate/stdout 0c0a134e2ac4fc67
+verbs/aggregate/stderr 6d763b858d636bb9
 functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f

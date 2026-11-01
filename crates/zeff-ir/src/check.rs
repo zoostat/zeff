@@ -206,6 +206,10 @@ struct Checker<'a> {
     /// How many frame-method arguments that take columns enclose the expression being checked:
     /// inside one, a bare name is a column of the receiver before it is a binding.
     frame_scope: usize,
+    /// The definitions of the enclosing `aggregate` checked so far, each one value per group:
+    /// a later definition names an earlier one as that value, not as a column (section 3.7,
+    /// "Definitions in one call").
+    scalar_definitions: Vec<(String, Ty)>,
     /// How many formulas are being lowered: inside one, a bare name is a variable of the frame the
     /// formula will be used with (section 3.7, "Resolution by parameter type").
     formula_depth: usize,
@@ -265,6 +269,7 @@ impl<'a> Checker<'a> {
             bindings: Vec::new(),
             scope: Vec::new(),
             frame_scope: 0,
+            scalar_definitions: Vec::new(),
             formula_depth: 0,
             term_depth: 0,
             loops: Vec::new(),
@@ -2433,6 +2438,22 @@ impl Checker<'_> {
             };
         }
         if self.frame_scope > 0 {
+            // An earlier definition of the enclosing `aggregate`: one value per group.
+            if let Some((_, ty)) = self
+                .scalar_definitions
+                .iter()
+                .rev()
+                .find(|(name, _)| *name == text)
+            {
+                return Expr {
+                    ty: ty.clone(),
+                    span,
+                    kind: ExprKind::FrameName {
+                        name: text,
+                        binding: None,
+                    },
+                };
+            }
             // Inside a frame method's column argument: the receiver's column first, then a
             // binding; which one is known only when the statement runs (section 3.7).
             let binding = self.lookup(&text);
@@ -4586,6 +4607,16 @@ impl Checker<'_> {
         }
         // A method on a frame: its column-taking arguments see the receiver's columns.
         let frame_method = spec.method && params.first().is_some_and(|(_, ty, _)| *ty == Ty::Frame);
+        // The definitions of this call, when each is one value per group, start a list of their
+        // own; any other call (a reducer or `sqrt` inside a definition) keeps seeing the list of
+        // the `aggregate` it stands in.
+        let own_scalar_definitions = frame_method
+            && matches!(&spec.rest, Some(Rest::Definitions(ty)) if !takes_columns(&Ty::parse(ty).unwrap_or(Ty::Any)));
+        let outer_scalar_definitions = if own_scalar_definitions {
+            Some(std::mem::take(&mut self.scalar_definitions))
+        } else {
+            None
+        };
         let mut named_seen = false;
         // An argument mistake in this call; a message that would only follow from it is not added.
         let mut argument_error = false;
@@ -4705,7 +4736,16 @@ impl Checker<'_> {
                     match &spec.rest {
                         Some(Rest::Definitions(ty)) => {
                             let ty = Ty::parse(ty).unwrap_or(Ty::Any);
+                            // A definition of a frame method is an expression over the frame's
+                            // variables whatever it must give: a column for `add`, one value per
+                            // group for `aggregate`, whose reducers take the frame implicitly.
+                            if frame_method {
+                                self.frame_scope += 1;
+                            }
                             let lowered = self.argument(value, &ty, frame_method);
+                            if frame_method {
+                                self.frame_scope -= 1;
+                            }
                             let lowered = self.no_nothing(lowered, "defined");
                             if definitions.iter().any(|(n, _)| *n == def_name.text) {
                                 self.report(
@@ -4720,20 +4760,38 @@ impl Checker<'_> {
                             }
                             if !ty.accepts(&lowered.ty) {
                                 argument_error = true;
-                                self.report(
-                                    Diagnostic::error(
-                                        "Z0401",
-                                        format!(
-                                            "`{fname}` defines columns from {}, but `{}` is {}",
-                                            ty.with_article(),
-                                            def_name.text,
-                                            lowered.ty.with_article()
-                                        ),
+                                // `aggregate` alone reduces its groups; every other verb's
+                                // definition is a column or a name of the kind its usage says.
+                                let reduces = fname == "aggregate";
+                                let message = if reduces {
+                                    format!(
+                                        "`{}` of `{fname}` gives {}, not one value per group",
+                                        def_name.text,
+                                        lowered.ty.with_article()
                                     )
-                                    .primary(lowered.span, lowered.ty.with_article())
-                                    .help(format!("usage: `{}`", spec.usage())),
+                                } else {
+                                    format!(
+                                        "`{fname}` defines columns from {}, but `{}` is {}",
+                                        ty.with_article(),
+                                        def_name.text,
+                                        lowered.ty.with_article()
+                                    )
+                                };
+                                let help = if reduces {
+                                    "a definition reduces the group to one value, as `mean(wage)` or `sd(wage) / sqrt(n())` do; `add` keeps a value per row".to_string()
+                                } else {
+                                    format!("usage: `{}`", spec.usage())
+                                };
+                                self.report(
+                                    Diagnostic::error("Z0401", message)
+                                        .primary(lowered.span, lowered.ty.with_article())
+                                        .help(help),
                                 );
                                 continue;
+                            }
+                            if !takes_columns(&ty) {
+                                self.scalar_definitions
+                                    .push((def_name.text.clone(), lowered.ty.clone()));
                             }
                             order.push(Slot::Definition(definitions.len()));
                             definitions.push((def_name.text.clone(), lowered));
@@ -4846,6 +4904,9 @@ impl Checker<'_> {
                     });
                 }
             }
+        }
+        if let Some(outer) = outer_scalar_definitions {
+            self.scalar_definitions = outer;
         }
 
         for given in slots.iter_mut().flatten().chain(rest.iter_mut()) {

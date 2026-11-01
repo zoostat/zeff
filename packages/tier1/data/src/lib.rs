@@ -1,5 +1,6 @@
 //! Package data (tier 1): frames, reducers and files.
 
+pub mod aggregate;
 pub mod column_functions;
 pub mod csv;
 pub mod distinct;
@@ -1151,6 +1152,28 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: distinct::sample,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "aggregate",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option("by", "Vars"),
+                ],
+                rest: Some(Rest::Definitions(
+                    "Bool | Int | Float | Str | Date | DateTime",
+                )),
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0401", "a definition that gives a column"),
+                    DiagnosticDecl::new("Z0405", "a definition named as a by: variable"),
+                ],
+                help: include_str!("../help/aggregate.md"),
+                accuracy: None,
+            },
+            body: aggregate::aggregate,
         },
         Function {
             spec: FunctionSpec {

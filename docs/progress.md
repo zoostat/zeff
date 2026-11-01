@@ -30,107 +30,13 @@ Step 9 `[engine]`: built-in functions written in Zeff, parsed, checked and lower
 
 The functions planned in Zeff, each with its page, its R reference in base R (`zeff_functions.R`, `missing.R`, `scale.R`, `rows.R`, `drop_missing.R`, `spread.R`, `moments.R`; exact, or within 1e-12), its engine tests with the edge cases and properties, and an identity case. Written in Zeff, one `.zeff` file each with the page in its `///` lines: `clamp`, `logit` and `inv_logit` (step 14, two defects of the loader fixed on the way), `assert` (15), `between`, `center` and `standardize` (16, through a one-column frame, the reducers' warnings placed at the call), `iqr` and `mad` (19, `type:` in backticks since it is a reserved word), `skewness` and `kurtosis` (20, Joanes and Gill's forms, too few values giving `NA` with a warning). Written in Rust because the language lacks a piece, the `layer` corrected and logged and the piece an open decision by 0.7.0: `n_missing` and `fill_missing` (15, #68, a parameter of several types), `row_mean` and `row_sum` (17, #69, the enclosing frame; and a finding about the kernel's corrected mean on values that cancel, left for the review of R3), `drop_missing` (18, #70, a note and variable names as text, widened at step 20 to a coded warning). Every ruling is in `docs/decisions.md` under its step.
 
-## 31 October 2026, step 21 of release 0.5.0
+## 31 October and 1 November 2026, steps 21 to 24c and the close of release 0.5.0 (folded)
 
-**Done.** Step 21 `[function]`: `vif` (catalogue row 248 implemented) in Rust, the layer corrected and logged with open decision #71 (the fitted design through the result interface, by 0.7.0): the fit value carries the Gram matrix of its kept design and its inverse, computed from the QR's scaled R factor; the factor is the centred form with an intercept and the uncentred one without; the table of question 3 (b) with a categorical regressor's columns on their own rows and the collinear terms named under it; the page; the six rulings in `docs/decisions.md`. Tests: the R reference `vif.R` (five models over the wages and wage1, every model-matrix column within 1e-10); the regress crate's `vif.rs` (the agreement, one regressor and an orthogonal one at factor 1, and the property that rescaling a regressor changes no factor); the engine's `vif.rs` (the tables on the wages, a near-collinear pair, the intercept alone, a term dropped as collinear, every message); the identity case `control/vif`.
+Step 21 `vif` in Rust (the fit carrying the Gram matrix of its kept design; layer corrected, open decision #71); step 22 `summary` kept in Rust by its fallback (no table constructor, number formatting or coded warning in the language; open decision #72); step 23 the sample project `samples/user_functions`, the script tests, the fuzz targets and the jobs, CI green on every job; step 24a the weekly mutation run read and repaired (a four-minute floor, the EM test on one year of the wages) and the new survivors explained; step 24b the five scheduled jobs run by hand on 1f98afb, all green, their figures recorded (coverage kernel 92.9%, estimators 93.1%, workspace 91.7%; 3,686 mutants, 142 missed); step 24c the documents (33 functions frozen and marked implemented, seven layer corrections logged, section 8.2's totals brought to the catalogue, the reference versions, the known-issues list, the risk register's figures). "Release 0.5.0" on 1 November: the notes, the register's review (every rating unchanged), the version and the five pins, the tag `v0.5.0` and the GitHub release, CI green on every target on the release commit.
 
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
+## 1 November 2026, after the release: open decisions #73 to #78 and the name Zemp Studio (folded)
 
-**CI, read after the push of step 21.** Red on one test: the snapshot of the `reg` page, whose Value lists the result methods of a `RegFit` and now names `vif`. The local run had failed too, but the routine's chain tested that a result line was printed rather than that it passed, so the commit went out; the snapshot was accepted in the commit after, and the chain now stops on any `FAILED` in the suite's summary before committing.
-
-**Next.** Step 22 `[function]`: `summary` rewritten in Zeff.
-
-**For the owner to decide.** Nothing new (#67 by 0.6.0; #68 to #71 by 0.7.0).
-
-## 31 October 2026, step 22 of release 0.5.0
-
-**Done.** Step 22 `[function]`, by its fallback: `summary` stays in Rust, since the language of 0.5.0 has no table constructor, no formatting of numbers into text and no coded warning from a function; the 0.5.0 row of section 14 and catalogue row 153 corrected and logged, open decision #72 (a table constructor in `core`, by 0.6.0) recorded, the three rulings in `docs/decisions.md`. Nothing in the engine changed; the existing tests of `summary`, its benchmark digest and the identity series stand. The release's tally: eleven functions written in Zeff, six in Rust under #68 to #71, and `summary` under #72.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 23 `[engine]`: the script tests and the sample project of the release.
-
-**For the owner to decide.** Nothing new; #72 joins #67 for 0.6.0 (recommendation A), and #68 to #71 stand for 0.7.0.
-
-## 31 October 2026, step 23 of release 0.5.0
-
-**Done.** Step 23 `[engine]`: the sample project `samples/user_functions` (two modules with complete pages, `use`, `if` and `case`, loops over variables and subsamples, `attempt` with one failing subsample, Huber's location by `iterate`, `assert`), its stored output read by eye and compared byte for byte by the command-line test, the conformance crate and the report (three new cases, 5 samples); the script tests `script_tests.rs` (the statements of sections 5.1 to 5.5 in one script, the help document's runnable examples, the specification's sample script checked with its section 6 module, whose page the sample file now completes, logged); the checker fuzz target on module-and-script inputs with the dictionary `fuzz/zeff.dict` and the job's seeds extended; the language tooling's total in the weekly coverage report; the Z0304 page listing the remaining refusals (`dag`, `model`, `as`, third-party `use`); R5's count recorded (114 codes, each with a snapshot and a page, 20 added at this release); the rulings in `docs/decisions.md`. Local fuzzing before the commit: checker 50 minutes, parser 30, lexer 10, no finding.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`: 1,015 tests over 154 targets, none failing), the tier and message checks and the conformance report pass locally. On the commit fa5739e: CI green on every job (run 41183609458, the identity check of the four targets with the new sample among them); the scheduled workflow started by hand (run 41183610124): the nightly long property runs green, the fuzz job green with no crash input (lexer 1,825,737 inputs, parser 721,205, checker 173,343 of which module-and-script pairs, CSV 651,439, distributions 78,575, formulas 260,269, ten minutes each), coverage green with the new total (language tooling 92.5% of 11,328 lines: `zeff-syntax` 95.8, `zeff-ir` 93.2, `zeff-engine` 89.6; kernel 92.9%, estimators 93.1%); the 24 mutation shards were still running when the step was ticked and are read at step 24a. Step 23 ticked.
-
-**Next.** Step 24a, the pre-release routine (testing handbook, section 2.4).
-
-**For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).
-
-## 31 October and 1 November 2026, step 24a of release 0.5.0
-
-**Done.** Step 24a `[engine]`, in two parts. First, the weekly mutation run on the commit of step 23 read: 689 timeouts where 0.4.0 had ten, traced to cargo-mutants' two-minute floor being each mutant's whole budget under a suite that takes 85 seconds on a runner, with the new EM test adding a minute under a mutant that spoils convergence; the repairs are the EM test on one year of the wages, a four-minute floor, 34 shards, and the job's test builds without debug information after runners lost their disks. Second, the weekly job run by hand on that commit and read shard by shard (3,686 mutants, 10 timed out, all of them the recorded hangs); the four crates' survivors matched against the 0.4.0 records by file and mutation: nothing new in `zeff-numeric`, `zeff-kernels` and `zeff-results`; ten new in `zeff-regress`, all in code changed since the 0.4.0 run, eight with a recorded reason and two with a test (`ols.rs` 185, the estimate of exactly the smallest normal number; `reg.rs` 584, the perfect-fit rule at an outcome of zeros, where the 0.4.0 reason was wrong and R's strict rule is now pinned); confirmed by rerunning on this machine the 115 mutants of the changed code and the 18 earlier timeouts. Both records are in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, 154 targets), the tier and message checks (114 codes) pass locally; the conformance report is untouched; CI to be read after the push.
-
-**Next.** Step 24b `[engine]`: the runs and the samples (the full suite on the four targets; the nightly, fuzz, coverage, weekly and benchmark jobs by hand on the commit of 24a with their figures; the five samples and `zeff selftest` read by eye; the browser cold start's first call understood).
-
-**For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).
-
-## 1 November 2026, step 24b of release 0.5.0
-
-**Done.** Step 24b `[engine]`: the five scheduled jobs run by hand on 1f98afb, all green, their figures recorded for the notes (nightly: the stochastic and truth-recovery figures of 0.4.0 to the last digit; fuzz: no crash; coverage: kernel 92.9%, estimators 93.1%, workspace 91.7%; mutation: 3,686 mutants, 142 missed and 10 timed out, the step-24a lists mutant for mutant with the perfect-fit boundary now caught; benchmarks on a slower runner, the ordering unchanged); the suite green on the Linux runner and this machine and the 148 conformance cases identical on the five targets; the five samples and `zeff selftest` run and read by eye, byte for byte their stored output; the browser cold start's watch item closed by the record of 30 October, with this release's figures (bundle 1,457 kB, cold start 67 ms). The record is in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, 154 targets), the tier and message checks (114 codes) pass locally; the conformance report is untouched; CI to be read after the push.
-
-**Next.** Step 24c `[engine]`: the documents and the report (features frozen, the reference versions, the known-issues list, the risk register's figures, the open decisions due, the sample pins), then the owner's "Release 0.5.0".
-
-**For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).
-
-## 1 November 2026, step 24c of release 0.5.0
-
-**Done.** Step 24c `[engine]`: the documents of the pre-release routine. Features frozen: the 33 functions of the release registered with their pages, the catalogue's status column set to `implemented` for them (31 rows still read `planned`), the seven `layer` corrections logged and section 8.2's totals brought to the catalogue (235 in Rust, 23 in Zeff; logged); the reference versions collected for the notes (R 4.6.0 with `sandwich` 3.1.1 and `wooldridge` 1.4-7, Python 3.14.8, Node v22.23.4, `wasm-bindgen-cli` 0.2.129, Rust 1.99.1); the known-issues list rewritten with an "As of 0.5.0" section of eleven entries and the mutation and browser-bundle entries brought to 0.5.0; the risk register's figures collected for the review at the release (R1 to R7, R9 and R12); the open decisions due recorded (#4, #5, #13 and #17 taken and built; #14, #26, #51, #54, #67 and #72 due at 0.6.0); the five sample pins at `0.5.0-dev`, to go to `0.5.0` in the release commit. The record is in `docs/decisions.md`; the entries of steps 9 to 20 above are folded.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, 154 targets), the tier and message checks (114 codes) pass locally; the conformance report is untouched; CI to be read after the push.
-
-**Next.** The owner's "Release 0.5.0": the register's review, the notes, the version, the tag and the GitHub release. No step of the checklist is left unticked.
-
-**For the owner to decide.** Nothing new; #14, #26, #51, #54, #67 and #72 fall due at 0.6.0, #68 to #71 at 0.7.0.
-
-## 1 November 2026, release 0.5.0 closed
-
-**Done.** "Release 0.5.0": the notes (`docs/releases/0.5.0-notes.md`), the register's review (every rating unchanged; R4's watch item closed; R5's first test passed, the rating held until 0.7.0), the open-decisions status (none due; #67 to #72 raised in the release; six due by 0.6.0), the version and the five pins set to 0.5.0 with the lock files and the snapshots, the tag `v0.5.0` and the GitHub release. 148 of the 258 functions of 1.0 are implemented.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass; CI green on every target on the release commit.
-
-**Next.** The owner's "Start release 0.6.0" (Panels: 36 functions, among them joins, reshaping, `aggregate`, `panel`, `save`, the panel column functions, `event`, dates and `format`, on grouped computation, `fe:` demeaning in `reg`, the date types, shared Arrow columns and selection vectors, the schema pass behind `zeff check` and data roots in `zeff.toml`), beginning with the six open decisions due by then.
-
-**For the owner to decide.** When release 0.6.0 opens: #14 (`event()`), #26 (Zemp's framework spike), #51 (chunked reading), #54 (a second range in a formula), #67 (the default level of `ci()`) and #72 (a table constructor).
-
-## 1 November 2026, after the release: open decision #73, typst
-
-**Done.** Open decision #73 (typst as the typesetting engine of exports and of the report document, with a live preview in both editions; a spike at 0.7.0, the first slice at 0.8.0, deadline 0.8.0) recorded in the register with its options and recommendation, logged in `docs/spec_changes.md`, the engineering findings in `docs/decisions.md`. Nothing in the engine or the normative text changed.
-
-**Green.** Documents only; CI to be read after the push.
-
-**Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
-
-**For the owner to decide.** #73 by 0.8.0; the owner's other interface requests (a help pane, a traceback and run-to-here, schema-aware completion and extract function, Git history and a diff of results) await the word to be recorded the same way.
-
-## 1 November 2026, after the release: the full edition named Zemp Studio
-
-**Done.** The owner named the full edition Zemp Studio. The rule (Zemp the application and the line; Zemp Studio and Zemp Lite its editions) is in section 2 of the Zemp Specification, the rename applied where the full edition is named as a product or set against Lite in both volumes, the open decisions (#38, #39, #73) and the risk register, the installer identifiers `studio` and `zemp-studio` following; logged in `docs/spec_changes.md`, the ruling in `docs/decisions.md`. The Zemp repository's copies await a Zemp session.
-
-**Green.** Documents only; CI to be read after the push.
-
-**Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
-
-**For the owner to decide.** #73 by 0.8.0; the five other interface additions (a help pane, traceback and run-to-here, schema-aware completion and extract function, Git history and a diff of results) await the word to be recorded as open decisions.
-
-## 1 November 2026, after the release: open decisions #74 to #78
-
-**Done.** The owner's five remaining interface requests recorded as open decisions with options, recommendations and deadlines: #74 a Help pane (0.8.0), #75 the data viewer and the environment browser (0.8.0), #76 traceback, run to here and the loop inspector (0.7.0), #77 schema-aware completion and extract function (0.7.0), #78 Git history and a diff of results (1.1); logged in `docs/spec_changes.md`, the engineering view in `docs/decisions.md`. Nothing in the engine or the normative text changed.
-
-**Green.** Documents only; CI to be read after the push.
-
-**Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
-
-**For the owner to decide.** #76 and #77 by 0.7.0; #73, #74 and #75 by 0.8.0; #78 by 1.1. Nothing before 0.6.0 opens.
+Open decision #73 (typst as the typesetting engine of exports and the report document; spike at 0.7.0, first slice at 0.8.0) recorded; the full edition named Zemp Studio (Zemp the application and the line; Zemp Studio and Zemp Lite its editions) in both volumes, the register, the risk register and the installer identifiers; the owner's five other interface requests recorded as open decisions #74 (a Help pane, 0.8.0), #75 (the data viewer and the environment browser, 0.8.0), #76 (traceback, run to here and the loop inspector, 0.7.0), #77 (schema-aware completion and extract function, 0.7.0) and #78 (Git history and a diff of results, 1.1); every entry logged in `docs/spec_changes.md` and `docs/decisions.md`. Documents only; CI green.
 
 ## 1 November 2026, release 0.6.0 opened and steps 1 to 5 (folded)
 
@@ -193,5 +99,15 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes) and the conformance report pass locally; CI to be read after the push.
 
 **Next.** Step 12 `[function]`: `aggregate`.
+
+**For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 12
+
+**Done.** Step 12 `[function]`: `aggregate`. One row per group of `by:` with reducers and arithmetic over them, a later definition naming an earlier one; the keys first in key order with `NA` last, their metadata kept; a column-valued definition refused at check time; the panel declaration dropped with a note; the reducers' warnings counted once per statement. One page; R's grouped statistics on `wages` and the Wooldridge `wage1` (`tests/reference/r/aggregate.R`, in CI) held exactly or within 1e-12 by class; the conformance case `verbs/aggregate` published; the benchmark suite's `aggregate` case added with its digests at the three sizes.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 13 `[function]`: `merge`.
 
 **For the owner to decide.** Nothing new.

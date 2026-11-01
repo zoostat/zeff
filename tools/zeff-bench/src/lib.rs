@@ -1,6 +1,6 @@
 //! The benchmark suite (testing handbook, section 6; open decisions #30 and #52; release 0.4.0,
-//! step 21): `import` of a CSV, `summary` and `mean` by a group (the grouped case until
-//! `aggregate` arrives), and `reg` without fixed effects, at ten thousand, a million and ten
+//! step 21): `import` of a CSV, `summary`, `mean` and `aggregate` (release 0.6.0, step 12) by a
+//! group, and `reg` without fixed effects, at ten thousand, a million and ten
 //! million rows of generated data. Each case's result is checked against a stored digest before
 //! it is timed, so that a case can never be made faster by a numerical change; the times are
 //! reported, not judged, and the release notes record them. The cases run through the package
@@ -19,18 +19,25 @@ use zeff_numeric::random::Stream;
 pub const SIZES: [usize; 3] = [10_000, 1_000_000, 10_000_000];
 
 /// The cases, in the order the suite runs them.
-pub const CASES: [&str; 4] = ["import", "summary by group", "mean by group", "reg"];
+pub const CASES: [&str; 5] = [
+    "import",
+    "summary by group",
+    "mean by group",
+    "aggregate by group",
+    "reg",
+];
 
 /// The stored digests of every case at every size: the four cases of [`CASES`] in order. A
 /// change here is a change of results, which must be a deliberate one, explained in
 /// `docs/decisions.md`.
-pub const EXPECTED: [(usize, [&str; 4]); 3] = [
+pub const EXPECTED: [(usize, [&str; 5]); 3] = [
     (
         10_000,
         [
             "44b7ea3010016f5ece9cdd3a89a0093ee7aaf64b766111ac1f2225259a3154d6",
             "ef58e38466880f6c96ed61eab75749762355e10c8f69cdff2dc1c022d5891eb3",
             "ed059cfde3a39b386db357bc600800f2de1d99ee46a49649e12519bc04ecabc5",
+            "de47012f336a00bf39b32e23fa616cfc48ae06ac68c2c694096bbd6b0851ea3c",
             "d8f793f96173036ce3691a1bbd5b77ba3d939b89fd7e5009a4a83cbcb8403a23",
         ],
     ),
@@ -40,6 +47,7 @@ pub const EXPECTED: [(usize, [&str; 4]); 3] = [
             "7267845516803c790acdc3f4e15cfdaa3fd7799f6fef01ee7637cda3ad19bd63",
             "1eaef8dd7909f4e8dd8d4a7db3c9f8c9bddca62285001314ba83530e94a3ee84",
             "3dc5ea7f0b2ea396d45c2191b571a1e49c4cae7db6ded2a2e98cc6cc75e10455",
+            "a5740194bcb312b3c094f6a951c1f7ac67397d313197625460f428b2ebd8bbac",
             "b179916facbd103b31392271fb8af0bacf54ddd6b7c87d2175c478b9446bcd10",
         ],
     ),
@@ -49,6 +57,7 @@ pub const EXPECTED: [(usize, [&str; 4]); 3] = [
             "f2834478e2e9cc92416d24e493de33ae3b0a4b46202da1abe1dc7a40836437c6",
             "fd4a1d1d05d7a8cc0c2e250fa2e6f387e585be9a79b136008354296e152016f5",
             "c9593065a7854bc5a8423b0f9c0e7b3906a0a37b0e0ef89f63e455be1ddd4b73",
+            "6cda06a226386c614ddee3246776e1e0a9cc607ed5ef817cf61fa87451e31b71",
             "988766ff988357938c819ed0d286dd42ac3bf2a2a5c8804a4119271376af129b",
         ],
     ),
@@ -92,6 +101,17 @@ impl Files for NoFiles {
 
 /// A package body called on the frame with the values given after it, as the engine calls it.
 fn call(body: Body, table: &Table, values: Vec<Option<Value>>) -> Value {
+    call_with_definitions(body, table, values, Vec::new())
+}
+
+/// A package body called on the frame with values and definitions, as the engine calls a verb
+/// that takes definitions after evaluating them.
+fn call_with_definitions(
+    body: Body,
+    table: &Table,
+    values: Vec<Option<Value>>,
+    definitions: Vec<(String, Value)>,
+) -> Value {
     let mut output = String::new();
     let mut messages: Vec<Diagnostic> = Vec::new();
     let mut random = Randomness::default();
@@ -120,12 +140,65 @@ fn call(body: Body, table: &Table, values: Vec<Option<Value>>) -> Value {
         Args {
             values: all,
             rest: Vec::new(),
-            definitions: Vec::new(),
+            definitions,
         },
     ) {
         Ok(value) => value,
         Err(e) => panic!("{}", e.render(&sources)),
     }
+}
+
+/// `aggregate(m = mean(y), s = sd(x1), rows = n(), by: g)`, as the engine runs it: each
+/// definition evaluated on each group's rows and spread back over the rows, then the verb.
+pub fn aggregate_by(table: &Table) -> Value {
+    let g = table.column("g").expect("the group column");
+    let groups = zeff_columns::Groups::by(&[g]).expect("groups");
+    let rows = table.rows();
+    let (mut m, mut s, mut n) = (vec![None; rows], vec![None; rows], vec![None; rows]);
+    for i in 0..groups.len() {
+        let members = groups.rows(i);
+        let sub = table.take_rows(members);
+        let mean = match call(
+            zeff_data::reducers::mean,
+            &sub,
+            vec![Some(Value::Var("y".to_string()))],
+        ) {
+            Value::Float(x) => Some(x),
+            _ => None,
+        };
+        let sd = match call(
+            zeff_data::reducers::sd,
+            &sub,
+            vec![Some(Value::Var("x1".to_string()))],
+        ) {
+            Value::Float(x) => Some(x),
+            _ => None,
+        };
+        for &r in members {
+            m[r] = mean;
+            s[r] = sd;
+            n[r] = Some(members.len() as i64);
+        }
+    }
+    call_with_definitions(
+        zeff_data::aggregate::aggregate,
+        table,
+        vec![Some(Value::Var("g".to_string()))],
+        vec![
+            (
+                "m".to_string(),
+                Value::Column(zeff_columns::Column::floats(m).0),
+            ),
+            (
+                "s".to_string(),
+                Value::Column(zeff_columns::Column::floats(s).0),
+            ),
+            (
+                "rows".to_string(),
+                Value::Column(zeff_columns::Column::ints(n)),
+            ),
+        ],
+    )
 }
 
 /// `summary([y, x1, x2], by: g)`.
@@ -209,8 +282,11 @@ pub fn table_digest(table: &Table) -> String {
 
 /// The digest of a case's value: its printed form, and for a fit the bits of its estimates,
 /// standard errors and variance matrix as well, so that a change below the printed digits
-/// still shows.
+/// still shows; for a frame, every cell, since its printed form stops at ten rows.
 pub fn value_digest(value: &Value) -> String {
+    if let Value::Frame(frame) = value {
+        return table_digest(&frame.table);
+    }
     let mut bytes = show(value).into_bytes();
     if let Value::Fit(fit) = value {
         for x in fit
@@ -226,18 +302,19 @@ pub fn value_digest(value: &Value) -> String {
     zeff_hash::hash_hex(&bytes)
 }
 
-/// The digests of the four cases at `rows` rows, in the order of [`CASES`].
-pub fn digests(bytes: &[u8], table: &Table) -> [String; 4] {
+/// The digests of the five cases at `rows` rows, in the order of [`CASES`].
+pub fn digests(bytes: &[u8], table: &Table) -> [String; 5] {
     [
         table_digest(&import(bytes)),
         value_digest(&summary_by(table)),
         value_digest(&mean_by(table)),
+        value_digest(&aggregate_by(table)),
         value_digest(&reg(table)),
     ]
 }
 
 /// The stored digests at `rows` rows.
-pub fn expected(rows: usize) -> Option<&'static [&'static str; 4]> {
+pub fn expected(rows: usize) -> Option<&'static [&'static str; 5]> {
     EXPECTED
         .iter()
         .find(|(size, _)| *size == rows)
@@ -246,7 +323,7 @@ pub fn expected(rows: usize) -> Option<&'static [&'static str; 4]> {
 
 /// The cases whose digest at `rows` rows differs from the stored one, as lines to report;
 /// empty when every case holds.
-pub fn mismatches(rows: usize, found: &[String; 4]) -> Vec<String> {
+pub fn mismatches(rows: usize, found: &[String; 5]) -> Vec<String> {
     let Some(stored) = expected(rows) else {
         return vec![format!("no stored digests at {rows} rows")];
     };

@@ -1,0 +1,109 @@
+---
+source: packages/tier1/data/tests/aggregate.rs
+assertion_line: 162
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+frame · 2 rows × 4 variables
+
+      year   total   firms   rows
+  1   2020      28       2      3
+  2   2021    26.5       4      4
+frame · 4 rows × 4 variables
+
+      firm     avg    spread        se
+  1      1       9         1   0.57735
+  2      2   11.75   1.06066      0.75
+  3      3      NA        NA        NA
+  4     NA       4        NA        NA
+frame · 6 rows × 4 variables
+
+      firm   year    avg   rows
+  1      1   2020    8.5      2
+  2      1   2021     10      1
+  3      2   2020     11      1
+  4      2   2021   12.5      1
+  5      3   2021     NA      1
+  6     NA   2021      4      1
+frame · 1 row × 2 variables
+
+      total   rows
+  1    54.5      7
+frame · 4 rows × 2 variables
+
+      firm   rows
+  1      1      3
+  2      2      2
+  3      3      1
+  4     NA      1
+frame · 2 rows × 4 variables
+
+      year   constant   text   flag
+  1   2020          1   a      true
+  2   2021          1   a      true
+frame · 2 rows × 2 variables
+
+  variable   type    non-missing   missing   example
+  firm       Int               2         0   1
+  avg        Float             2         0   9
+firm
+avg
+frame · 1 row × 2 variables
+
+       g     m
+  1   NA   1.5
+frame · 0 rows × 3 variables
+
+     g   m   rows
+frame · 1 row × 2 variables
+
+       m   rows
+  1   NA      0
+frame · 2 rows × 3 variables
+
+      g    m    s
+  1   1    1   NA
+  2   2   NA   NA
+frame · 3 rows × 3 variables
+
+      g    total   smallest
+  1   a        6          2
+  2   b        1          1
+  3   NA       3          3
+frame · 2 rows × 3 variables
+
+      g    spread       half
+  1   1   1.41421   0.707107
+  2   2   2.82843    1.41421
+frame · 11 rows × 4 variables
+
+       industry              m         s   rows
+   1   Agriculture       38.42   7.16645     51
+   2   Utilities       39.7929   8.92373     14
+   3   Construction    36.8712   6.92159     74
+   4   Manufacturing   38.1421   8.11706    107
+   5   Retail          36.5264   8.48623    125
+   6   Transport       37.3793   9.66667     29
+   7   Finance         38.9408   6.76761     98
+   8   Services        37.8627   8.69408    126
+   9   Education       38.2133   7.98809     75
+  10   Health          38.1856   7.73291    139
+  … and 1 more row
+frame · 1 row × 4 variables
+
+            m         s   rows         se
+  1   37.7723   7.94349    898   0.265078
+---
+warning: 1 row with NA in revenue was skipped (line 2)
+warning: all 1 rows have NA in revenue: the result is NA (line 3)
+warning: sd needs at least two values, but revenue has one: the result is NA (line 3)
+warning: all 1 rows have NA in revenue: the result is NA (line 4)
+warning: 1 row with NA in revenue was skipped (line 5)
+note: the panel declaration `firm × year` dropped: `aggregate` summarised the rows (line 9)
+note: the panel declaration `firm × year` dropped: `aggregate` summarised the rows (line 10)
+warning: x has no values: the result is NA (line 13)
+warning: 2 rows with NA in x were skipped (line 14)
+warning: sd needs at least two values, but x has one: the result is NA (line 14)
+warning: 2 rows with NA in hours were skipped (line 18)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 18)
+warning: 2 rows with NA in hours were skipped (line 19)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 19)
