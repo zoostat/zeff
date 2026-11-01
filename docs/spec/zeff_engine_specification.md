@@ -330,7 +330,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, after 1.0, third-party packages under rule 9.
 
-Totals: 258 functions in 1.0 (69 in tier 0, 172 in tier 1, 11 in tier 2, 6 in tier 3), of which 228 are written in Rust and 30 in Zeff; none remain proposed, and 248 are on the roadmap, 505 in all. Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 258 functions in 1.0 (69 in tier 0, 172 in tier 1, 11 in tier 2, 6 in tier 3), of which 235 are written in Rust and 23 in Zeff; none remain proposed, and 248 are on the roadmap, 505 in all. Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 

@@ -22,127 +22,13 @@ Started on 23 October (22 steps; the owner took #30, #47 to #50 and #52 as recom
 
 The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of section 14, every section it names, the 32 catalogue rows, the testing handbook, the risk register (R1, R4, R5) and the open decisions due were read, and the checklist written in `docs/releases/0.5.0.md` (24 steps, the language pieces before the functions, ending with the pre-release routine in three parts); the owner said "go" and took the five questions as recommended (#4, #5, #13 and #17; `iterate`'s `max:` with the default 1,000; the four printed forms; `any` and `all` under the truth table; `skewness` and `kurtosis` with too few values giving `NA` with W0205). Step 1 `[engine]` set the version to `0.5.0-dev`, the pins and the snapshots, recorded the decisions in the register and gave `equal` its catalogue row (529), the counts of both volumes following. Step 2 `[engine]`: `if` and `case` with blocks and their scope, as statements and as values, `case` row by row inside `add` and `where` (W0208 provisional for unmatched rows, W0301 for an unreachable arm, Z0203, Z0206, Z0214, Z0217). Step 3 `[engine]`: `for` over lists, ranges and variables, `[for ...]`, `break` and `continue` carried as a flag, the loop variable fresh each pass (W0302, Z0221, Z0206, Z0106), a loop variable standing for a variable in formulas, and the loop pass joining the key of the random stream so that each pass draws its own numbers; `vars` shipped here. Step 4 `[engine]`: `..opts` in calls and `..r` in records, evaluated once where they stand, an argument written out overriding (Z0222 widened, logged). Step 5 `[engine]`: the `Failed` value and type, `attempt` under a catch, a failed value allowed in a list and in `is`, `type_of`, `print` and `report` (W0801) and refused elsewhere (Z0220), the guard warning W0209 (provisional) with narrowing, the printed form `failed · Z0801 at line 3: ...`; open decision #67 (the default level of `ci()`, by 0.6.0) recorded for the owner. Step 6 `[engine]`: `fn` in a script with typed parameters, defaults, `T?`, word lists, a checked return type (Z0225 provisional), order-independent definitions, bodies that see their parameters and other functions only, no recursion (Z0108), no script-only function inside (Z0110), Z0109 for a clash with a built-in, Z0218 for a column to a scalar parameter, methods on the first argument, W0303 and Z0320 for the `///` page. Step 7 `[engine]`: every function callable as a method on its first argument, `Fn(T1, T2) -> R` types and function values, a call through a binding of function type (Z0205), and the ruling that `iterate` runs in the interpreter. Step 8 `[engine]`: the project's modules in `functions/*.zeff` (Z0323 provisional for a statement in one), `use functions::m` and `use functions::m::name`, private `_names`, Z0103, Z0107 and Z0109 for the clashes, the qualified forms `functions::name` and `m::name`, the complete page required of a module function (Z0319), a module function running under its own file with failures naming `functions/x.zeff:N`, and `zeff help m::name`. Three CI reds were read and repaired on the way: the registry's row count and the command line's function count had slipped past local runs that stopped at the first failing binary or ran a stale test build, so the routine runs with `--no-fail-fast` and touches the catalogue first; and the cold-start measurement of risk R4 had timed the whole conformance report as its first call, crossing 1,000 ms at steps 7 and 8 with every test green, so it now times the engine's start on a one-line script (66.9 ms under Node on CI, 27.7 ms here) and prints the report's time beside it. Every ruling is in `docs/decisions.md` under its step.
 
-## 30 October 2026, step 9 of release 0.5.0
+## 30 October 2026, steps 9 to 13 of release 0.5.0 (folded)
 
-**Done.** Step 9 `[engine]`: built-in functions written in Zeff. A package lists its `functions/*.zeff` files, and the engine parses, checks and lowers each at start: the page from the `///` lines through the same parser and checks a Rust page gets; the body checked once for every way its scalar parameters may be given as columns, one lowering kept per form and the matching form run; any diagnostic a build failure; the file held to `///` text and `fn` definitions, one public function and its private helpers; the tier rule enforced on the body's calls; "Warnings and notes" generated from what the called functions declare; the body run under its own file with its messages placed at the call in the script. A fixture function proves it in the engine's tests (the page, the run as a call, a method and on a column, a private helper and a default, a warning at the script's line, the four refusals, and the property that the body inlined in a script gives the same bits), the example runner takes the bodies so a fixture's examples run, and the identity case `functions/builtin_fixture` joins the conformance report. The start-up cost is unchanged (27.7 ms against 27.4 ms). The ten rulings are in `docs/decisions.md`.
+Step 9 `[engine]`: built-in functions written in Zeff, parsed, checked and lowered at engine start from a package's `functions/*.zeff` files, the page from the `///` lines under the same checks as a Rust page, the body checked once per column form, the tier rule enforced on its calls, "Warnings and notes" generated from the callees, every message placed at the call; proved by a fixture function and the identity case `functions/builtin_fixture`, the start-up cost unchanged. Step 10 `[function]`: `iterate` in the interpreter (`step` until `done` or `max:`, the passes as a note, W0805 at `max:`, `args:` and the state's fields checked at the call), the EM of section 5.5 among its tests. Steps 11 to 13 `[function]`: the thirteen collection functions in Rust (`len`, `first`, `last`, `append`, `reversed`; `unique`, `sorted`, `is_in`, `keys`, `equal`; `any`, `all`, `seq`), each with its page, its R reference in base R (`collections.R`, `collections_order.R`, `collections_seq.R`; exact, or bit for bit for `seq`), its engine tests and an identity case; `len` joins the functions a failed item may reach; `seq` follows R's `seq.default` with Z0418 (provisional) for its refusals. One CI red after step 11 (a test that bound the new built-in `first`) was repaired, and the routine now lists every failing target and stops before anything is committed. Every ruling is in `docs/decisions.md` under its step.
 
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (112 codes) and the conformance report pass locally; CI to be read after the push.
+## 31 October 2026, steps 14 to 20 of release 0.5.0 (folded)
 
-**Next.** Step 10 `[function]`: `iterate`.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 30 October 2026, step 10 of release 0.5.0
-
-**Done.** Step 10 `[function]`: `iterate`, run by the interpreter: `step(state, ..args)` until `done(old, new)` is true or `max:` passes, the final state or every state under `keep: true`, the number of passes as a note, W0805 at `max:`; `args:` matched against `step`'s parameters by name and type at the call, the fields `step` and `done` read from the state checked against `start:` (the checker now records the fields a body reads from a `Record` parameter), a step that changes the state's fields refused at the call, `done` giving NA refused, `max:` below 1 refused; the page of `iterate` (catalogue row 435 implemented) with its examples, the explained page of W0805; the catalogue's usage parser corrected for function types. Tests: `iterate.rs` (convergence, one pass, the stop at `max:`, the path, a step without further arguments, every check at the call, every message, the EM example of section 5.5 on a two-component mixture of the wages with `dist.normal().pdf` and the reducers, which converges in 103 passes, and the properties that Newton's step reaches √a within 1e-9 relative for a from 1e-8 to 1e12 with as many kept states as passes, and that the stop at `max:` returns the state after exactly `max:` passes with the warning); the identity case `control/iterate`. The eight rulings are in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (113 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 11 `[function]`: `len`, `first`, `last`, `append`, `reversed`.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 30 October 2026, step 11 of release 0.5.0
-
-**Done.** Step 11 `[function]`: `len`, `first`, `last`, `append` and `reversed` (catalogue rows 43, 44, 45, 51, 48 implemented), each with its page: `len` on a list (failed items skipped with W0801), a string (code points), a column and a mapping; `first` and `last` in the current order, Z0207 on an empty list; `append` a new list of the joined type, Z0214 when the types do not join, an empty list taking the item's type; `reversed` a new list; the checker's return words `Element`, `Same` and `Appended`; the five rulings in `docs/decisions.md`. Tests: the R reference `collections.R` (five lists and eight strings, exact); the engine's `collections.rs` (an empty list, a list of failed items only, strings with combining marks, emoji and a flag, a failed item reaching only `len`, every message, and the properties that `len(append(xs, x))` is `len(xs) + 1`, that reversing twice gives the list back and that `first(reversed(xs))` is `last(xs)`); the identity case `control/collections_basics`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (113 codes) and the conformance report pass locally; CI to be read after the push.
-
-**CI, read after the push of step 11.** Red on one test: a test of the record spreads bound a value under the name `first`, which became a built-in in this step and may not be rebound (Z0105). The local run had found it too, but the routine's summary showed only the first failing targets; the test now binds `rec` (its first replacement, `base`, is a built-in too), and the routine lists every failing target and stops before anything is committed; the fix took two commits because the first was pushed on a chain that did not stop at the failing suite.
-
-**Next.** Step 12 `[function]`: `unique`, `sorted`, `is_in`, `keys` and `equal`.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 30 October 2026, step 12 of release 0.5.0
-
-**Done.** Step 12 `[function]`: `unique`, `sorted`, `is_in`, `keys` and `equal` (catalogue rows 46, 47, 53, 52 and 529 implemented), each with its page: identity and order as section 3.7 gives them, `NA` last either way, `is_in` lifted over a column with a category's rows matched by label, `keys` of a record or a mapping, `equal` over scalars and collections; the checker's return word `Keys` and the acceptance of a union where a union is expected; the six rulings in `docs/decisions.md`. Tests: the R reference `collections_order.R` (`unique`, `sort(na.last = TRUE)` both ways, `%in%`, `names`, `identical` on eight numeric lists with `NA`, `-0` and values to 1e12, two string lists in code-point order, and four identical pairs, exact); the engine's `collections_order.rs` (all `NA`, `-0.0` beside `0.0`, an empty list, a category column, every message, and the properties that `sorted(xs)` is an ordered permutation with `NA` last, that `desc: true` is the reverse apart from `NA`, that `unique` is idempotent, that `is_in(x, xs)` agrees with `unique(xs)` and that `equal(xs, xs)` is true); the identity case `control/collections_order`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (113 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 13 `[function]`: `any`, `all` and `seq`.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 30 October 2026, step 13 of release 0.5.0
-
-**Done.** Step 13 `[function]`: `any`, `all` and `seq` (catalogue rows 49, 50 and 54 implemented), each with its page: `any` and `all` under the truth table of section 3.7 over lists and Bool columns; `seq` as R's `seq.default` fixes it (the count by the 1e-10 tolerance, each value `from + i × step`, overshoot brought back to `to`), Ints when all three arguments are Ints, Floats otherwise; Z0418 for a zero step, a step pointing away from `to`, an `NA` or infinite argument and more than ten million values (provisional, logged, with its explained page); the checker's return word `NumberList` and a type parser that splits a union of generics; the seven rulings in `docs/decisions.md`. Tests: the R reference `collections_seq.R` (46 sequences compared bit for bit, ends from 1e7 to 1e12, and the truth table of `any` and `all` over seven lists with `NA`); the engine's `collections_seq.rs` (the table, a Bool column, Int and Float sequences, the count at the tolerance, the single value of a degenerate span, every refusal, every message, the empty `vars()`, a loop over `vars` against the fits written out, and the properties that the values follow `from + i × step` with the rule's count and that `any(xs)` is `!all(!xs)`); the identity case `control/collections_seq`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 14 `[function]`: `clamp`, `logit`, `inv_logit`, the first functions written in Zeff.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 31 October 2026, step 14 of release 0.5.0
-
-**Done.** Step 14 `[function]`: `clamp`, `logit` and `inv_logit` (catalogue rows 16, 26 and 27), the first functions of `core` written in Zeff, one `.zeff` file each in `core/functions/` with the complete page in its `///` lines (details, two references each, examples with the warnings printed), applying to a column in one pass; `logit(0)` and `logit(1)` giving `-Inf` and `Inf` with the warnings of their operations placed at the call; the six rulings in `docs/decisions.md`, among them two defects fixed (the check of `///` lines read a colon in an example's output as a parameter; a lifted call of unknown row type was not typed a column, so an enclosing scalar function got the column whole and gave `NA`; and a field read from an untyped column is Z0213, not an internal error). Tests: the R reference `zeff_functions.R` (23 probabilities and 28 log odds, `clamp` on 60 value and range pairs; `clamp` exactly `pmin(pmax())`, `logit` and `inv_logit` exactly R's but for one case each, all within 1e-15); the engine's `maths_in_zeff.rs` (0, 1, `NA`, `Inf`, a column with `NA`, the warnings on a column, the generated page, and the properties that `inv_logit(logit(p))` is within 1e-12 of `p`, that `clamp` lies within its bounds and is the identity inside them, and that the column form equals the scalar form row by row); the identity case `control/logit`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 15 `[function]`: `assert`, `n_missing`, `fill_missing`.
-
-**For the owner to decide.** Nothing new (#67 stands, by 0.6.0).
-
-## 31 October 2026, step 15 of release 0.5.0
-
-**Done.** Step 15 `[function]`: `assert` written in Zeff, `n_missing` and `fill_missing` in Rust (catalogue rows 62, 58 and 56 implemented; the layer of the two corrected to Rust, logged, with open decision #68 recording the missing piece, a parameter of several types in a built-in's `fn` line, by 0.7.0); `assert` stopping with Z0001 and exit code 1, printing nothing when the check holds, Z0203 on `NA` or a column with the message naming `assert`; a function returning `Nothing` never lifted; `n_missing` on lists and columns with failed items skipped and counted; `fill_missing` as `coalesce` under its own name; the three pages; the seven rulings in `docs/decisions.md`. The progress log's entries for the release's first eight steps were folded into one paragraph. Tests: the R reference `missing.R` (`sum(is.na())`, `replace()`, `stopifnot()`); the engine's `missing_in_zeff.rs` (a check that holds and one that fails, inside a function, `NA` and a column, all `NA`, none, columns, the joined types, every message, the generated page of `assert`, and the properties that `n_missing(fill_missing(x, v))` is 0 and that `len(x)` is `n_missing(x)` plus the values present); the command line's failed `assert` with its exit code; the identity case `control/missing`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 16 `[function]`: `between`, `standardize`, `center`.
-
-**For the owner to decide.** Nothing new (#67 by 0.6.0; #68 by 0.7.0, recommendation A).
-
-## 31 October 2026, step 16 of release 0.5.0
-
-**Done.** Step 16 `[function]`: `between`, `center` and `standardize` (catalogue rows 135, 134 and 133 implemented), the first functions of the `data` package written in Zeff, one file each in `data/functions/` with the complete page: column functions on a `Column<Float>`, `between` three-valued, `center` and `standardize` through a one-column frame with the reducers' warnings placed at the call, `NA` rows kept, no spread and one value giving `NA` with the reducers' warnings; the six rulings in `docs/decisions.md`. Tests: the R reference `scale.R` (`scale()` both ways within 1e-12 on seven vectors; `between`'s definition exactly on eight cases); the engine's `scale_in_zeff.rs` (the ends included, `where` dropping `NA` with its note, inside `add`, one value, no spread, all `NA`, `Inf`, every message, the generated page, and the properties that the z-scores have mean 0 and sd 1 within 1e-12, that `center` shifts by one constant to rounding and that `between` agrees with the two comparisons); the identity case `control/scale`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 17 `[function]`: `drop_missing`.
-
-**For the owner to decide.** Nothing new (#67 by 0.6.0; #68 by 0.7.0).
-
-## 31 October 2026, step 17 of release 0.5.0
-
-**Done.** Step 17 `[function]`: `row_mean` and `row_sum` (catalogue rows 136 and 137 implemented) in Rust, the layer corrected and logged with open decision #69 (an implicit frame for a Zeff-written built-in, by 0.7.0): a mean and a compensated sum across the variables named in each row inside `add` or `update`, a list or a range of variables, `NA` where no value is present (never 0) and where fewer than `min_valid:` are, Int and Float variables only with a Bool refused by arithmetic's hint, the group's rows under `by:`; the two pages; the seven rulings in `docs/decisions.md`, among them a finding about the kernel's corrected mean on a row whose values cancel (8e-12 relative from the exact mean where the plain quotient is exact), left for the review of R3 at the close and the next kernel step. Tests: the R reference `rows.R` (`rowMeans`, `rowSums` and the `min_valid` rule on four matrices, within 1e-12 of the largest input, R's 0 for an empty row named as Zeff's `NA`); the engine's `rows.rs` (inside `add` and `update`, a range, one variable, an all-`NA` row, `min_valid:` above the count, Ints, `by:`, every refusal, every message, and the properties that `row_sum` over k copies is k × x and that `row_mean` with `min_valid: k` over k variables is `NA` wherever any is); the identity case `control/rows`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 18 `[function]`: `drop_missing`.
-
-**For the owner to decide.** Nothing new (#67 by 0.6.0; #68 and #69 by 0.7.0).
-
-## 31 October 2026, step 18 of release 0.5.0
-
-**Done.** Step 18 `[function]`: `drop_missing` (catalogue row 121 implemented) in Rust, the layer corrected and logged with open decision #70 (a note and variable names as text from a Zeff-written built-in, by 0.7.0): the rows with no `NA` in the variables named, in their order with their metadata, one note in the decided form naming the rows dropped and the variables, or that no row had `NA` in them, and the empty-result note of `where`; the page; the five rulings in `docs/decisions.md`. Tests: the R reference `drop_missing.R` (`complete.cases` on the subset, sixteen cases, exact); the engine's `drop_missing.rs` (the kept rows and notes, nothing dropped, everything dropped, order and metadata through a label and the wages dataset, an unknown variable, a backwards range, every message, and the property that after `drop_missing` each variable named has no `NA`, the rows kept are exactly the complete ones in order and the note counts the rest); the identity case `control/drop_missing`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 19 `[function]`: `iqr`, `mad`.
-
-**For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).
-
-## 31 October 2026, step 19 of release 0.5.0
-
-**Done.** Step 19 `[function]`: `iqr` and `mad` (catalogue rows 144 and 145 implemented), frame methods written in Zeff on `quantile` and `median`, one file each with the complete page: `type:` written in backticks in the `fn` line since it is a reserved word, the reducers' warnings placed at the call, the edge cases of one value, two values, all `NA` and `Inf`; the five rulings in `docs/decisions.md`. Tests: the R reference `spread.R` (`IQR` under the nine types and `mad` under three constants on seven vectors, within 1e-12); the engine's `spread_in_zeff.rs` (the definitions and the constant, the written and method forms, the edge cases, every message, the generated page, and the properties that both are unchanged by a shift and scaled by a positive factor and that `mad(constant: 1)` on a symmetric three-point sample is its half-range); the identity case `control/spread`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 20 `[function]`: `skewness`, `kurtosis`.
-
-**For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).
-
-## 31 October 2026, step 20 of release 0.5.0
-
-**Done.** Step 20 `[function]`: `skewness` and `kurtosis` (catalogue rows 151 and 152 implemented), frame methods written in Zeff, one file each with the complete page naming which of SPSS, Excel, Stata and R's `moments` each form matches, Joanes and Gill (1998) the reference: the adjusted G1 and excess G2 by default, the plain g1 and g2 under `adjusted: false`, `excess: false` adding 3; one warning for the rows with `NA`; too few values giving `NA` with a warning (three, four and two values); no spread `NA` with the division's W0205; the six rulings in `docs/decisions.md`, with open decision #70 widened to a coded warning from a Zeff body. Tests: the R reference `moments.R` (the four forms written out on eight samples, within 1e-12); the engine's `moments_in_zeff.rs` (the forms, two to four values, no spread, all `NA`, `Inf`, every message, the generated page, the agreement of the adjusted and plain forms at a million rows within 1e-4, and the properties that a symmetric sample has skewness within 1e-12 of 0 and that a reflection negates `skewness` and keeps `kurtosis`); the identity case `control/moments`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, every failing target listed), the tier and message checks (114 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 21 `[function]`: `vif`.
-
-**For the owner to decide.** Nothing new (#67 by 0.6.0; #68, #69 and #70 by 0.7.0).
+The functions planned in Zeff, each with its page, its R reference in base R (`zeff_functions.R`, `missing.R`, `scale.R`, `rows.R`, `drop_missing.R`, `spread.R`, `moments.R`; exact, or within 1e-12), its engine tests with the edge cases and properties, and an identity case. Written in Zeff, one `.zeff` file each with the page in its `///` lines: `clamp`, `logit` and `inv_logit` (step 14, two defects of the loader fixed on the way), `assert` (15), `between`, `center` and `standardize` (16, through a one-column frame, the reducers' warnings placed at the call), `iqr` and `mad` (19, `type:` in backticks since it is a reserved word), `skewness` and `kurtosis` (20, Joanes and Gill's forms, too few values giving `NA` with a warning). Written in Rust because the language lacks a piece, the `layer` corrected and logged and the piece an open decision by 0.7.0: `n_missing` and `fill_missing` (15, #68, a parameter of several types), `row_mean` and `row_sum` (17, #69, the enclosing frame; and a finding about the kernel's corrected mean on values that cancel, left for the review of R3), `drop_missing` (18, #70, a note and variable names as text, widened at step 20 to a coded warning). Every ruling is in `docs/decisions.md` under its step.
 
 ## 31 October 2026, step 21 of release 0.5.0
 
@@ -195,3 +81,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 24c `[engine]`: the documents and the report (features frozen, the reference versions, the known-issues list, the risk register's figures, the open decisions due, the sample pins), then the owner's "Release 0.5.0".
 
 **For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).
+
+## 1 November 2026, step 24c of release 0.5.0
+
+**Done.** Step 24c `[engine]`: the documents of the pre-release routine. Features frozen: the 33 functions of the release registered with their pages, the catalogue's status column set to `implemented` for them (31 rows still read `planned`), the seven `layer` corrections logged and section 8.2's totals brought to the catalogue (235 in Rust, 23 in Zeff; logged); the reference versions collected for the notes (R 4.6.0 with `sandwich` 3.1.1 and `wooldridge` 1.4-7, Python 3.14.8, Node v22.23.4, `wasm-bindgen-cli` 0.2.129, Rust 1.99.1); the known-issues list rewritten with an "As of 0.5.0" section of eleven entries and the mutation and browser-bundle entries brought to 0.5.0; the risk register's figures collected for the review at the release (R1 to R7, R9 and R12); the open decisions due recorded (#4, #5, #13 and #17 taken and built; #14, #26, #51, #54, #67 and #72 due at 0.6.0); the five sample pins at `0.5.0-dev`, to go to `0.5.0` in the release commit. The record is in `docs/decisions.md`; the entries of steps 9 to 20 above are folded.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, 154 targets), the tier and message checks (114 codes) pass locally; the conformance report is untouched; CI to be read after the push.
+
+**Next.** The owner's "Release 0.5.0": the register's review, the notes, the version, the tag and the GitHub release. No step of the checklist is left unticked.
+
+**For the owner to decide.** Nothing new; #14, #26, #51, #54, #67 and #72 fall due at 0.6.0, #68 to #71 at 0.7.0.

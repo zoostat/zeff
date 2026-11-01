@@ -186,3 +186,7 @@ The 0.5.0 row of section 14 counted "17 functions written in Zeff (and `summary`
 ## 31 October 2026 — zeff_samples.zeff, section 6: the page of the `robustness` module
 
 The comment showing `functions/robustness.zeff` carried only the summary line above `fn robustness`, which section 5.3 of the Language Reference refuses in a module (Z0319: a module function carries the complete page of section 9.1). Found at step 23 of release 0.5.0, where the sample script is first checked with that module through the project check. The comment now shows the complete page (description, the three parameters, `returns:` and one example), and the `fn` line is unchanged. Nothing else in the file changes.
+
+## 1 November 2026 — zeff_engine_specification.md, section 8.2, the totals
+
+The totals counted 228 functions written in Rust and 30 in Zeff among the 258 of 1.0. During release 0.5.0 seven rows planned in Zeff were corrected to Rust, each logged above on 31 October (`fill_missing`, `n_missing`, `row_mean`, `row_sum`, `drop_missing`, `vif` and `summary`; open decisions #68 to #72 record the pieces the language lacks), and the catalogue now counts 235 in Rust and 23 in Zeff, which the totals follow, as the record of step 22 said they would at the close of the release. The change settles nothing else: a row returns to Zeff when its decision is built, and the totals follow it then.

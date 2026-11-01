@@ -5,6 +5,57 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
+## As of 0.5.0
+
+- **The constructs the grammar has but this release does not run** are a `model { }` block
+  (1.3), a `dag { }` block (0.10.0), a label written with `as` (1.3) and `use` of a third-party
+  package (1.11); each is refused with Z0304, whose explained page lists them. Everything else of
+  sections 5.1 to 5.5 runs: `if`, `case`, `for`, `[for ...]`, `break`, `continue`, `fn`, `use
+  functions::`, spreads, `attempt` and `iterate`. (Since 0.5.0; by the build order.)
+- **A project function is not applied row by row to a column.** A column given to a scalar
+  parameter of a function written in a script or a module is refused (Z0218), where a built-in
+  written in Zeff applies to the column in one pass; a `Column` parameter or `[for ...]` is the
+  way. A function may not call itself (Z0108) and sees its parameters and other functions only.
+  (Since 0.5.0; by design, section 5.3.)
+- **A `Var` parameter is checked when the statement runs**, against the frame it meets, not at
+  `zeff check`, until the schema pass of 0.6.0; the examples of a module function's page are
+  parsed and syntax-checked but not run until `zeff test` at 0.7.0. (Since 0.5.0.)
+- **`case` over rows evaluates every arm on the whole frame**, as R's `ifelse` does, so a warning
+  such as a division by zero may count rows the arm does not supply; a Category column is refused
+  as a value of `case` (Z0214; `to(x, Str)` gives its labels) and a Date or DateTime column until
+  the types become computable at 0.6.0 (Z0304). (Since 0.5.0.)
+- **A failed value reaches six functions**: `is`, `type_of`, `print`, `report`, `len` and
+  `n_missing`; anywhere else it is Z0220 reporting the failure it holds, so a list of fits made
+  under `attempt` is read in a loop that steps over the failed ones. (Since 0.5.0; by design,
+  section 3.7.)
+- **The pages of built-ins written in Zeff list more warnings than they can raise.** Their
+  "Warnings and notes" is the union of the codes declared by the functions a body calls
+  (`frame`'s and the reducers' for `center`, `skewness` and their kin), a message raised by an
+  inner reducer names that reducer (`median` needs a Bool, Int or Float, from `mad`) and the
+  body's column (`value`, from `standardize`), and the warning of `skewness` and `kurtosis` for
+  too few values carries no code in `--format json` (open decision #70). The lists are narrowed
+  when `zeff test` runs the pages at 0.7.0. (Since 0.5.0.)
+- **Seven functions planned in Zeff are written in Rust**: `fill_missing`, `n_missing`,
+  `row_mean`, `row_sum`, `drop_missing`, `vif` and `summary`, each for a piece the language lacks
+  (open decisions #68 to #72); nothing a script sees differs, and section 8.2's totals follow
+  the catalogue. (Since 0.5.0.)
+- **The mean of values that cancel is within a rounding of the largest input, not of the
+  result.** The kernel's mean corrects the compensated quotient by the mean of the deviations,
+  whose own rounding is the unit in the last place of the largest value: on a row holding 1e12,
+  −1e12 and 1e7 the mean is 8e-12 relative from the exact 3,333,333.33…, where the plain quotient
+  and R's long-double sum are exact. Every `mean` of the engine shares it; it is harmless on data
+  that does not cancel to a small residual, and the correction is reviewed at the next kernel
+  step (0.6.0). (Since 0.1.0; found at 0.5.0, step 17.)
+- **`vif` gives one factor per column of the design**, so each dummy column of a categorical
+  regressor has a row of its own and the generalised factor of the whole term is not given; a
+  term dropped as collinear has no row and is named under the table. (Since 0.5.0.)
+- **`equal` compares values, not columns or frames** (Z0401 for a column); `sorted` takes lists
+  of Bools, Ints, Floats or Strs only; `seq` refuses a count above ten million values and a step
+  of zero or of the wrong sign (Z0418), where R counts down by itself; `drop_missing` names its
+  variables, the whole frame being `[first..last]`. (Since 0.5.0; by design.)
+- **`iterate` prints its number of passes as a note** under the result, since no run record keeps
+  it before 0.11.0. (Since 0.5.0.)
+
 ## As of 0.4.0
 
 - **A regression refuses an outcome it cannot compute with.** An outcome above 1e150 in size has
@@ -34,12 +85,14 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **`influence` gives no Cook's distance or studentized residual with one residual degree of
   freedom**, nor for a row of leverage one; under frequency weights the leverage printed is the
   per-observation one, h/w, as R computes on the replicated rows. (Since 0.4.0; by design.)
-- **Mutation testing of a slow package against the whole workspace's tests times out.** The
-  weekly job's five-fold limit on a baseline measured on the mutated package alone falls short
-  when another package's tests run under load; its shards therefore run 69 to 224 minutes, and a
-  local rerun passes `--timeout 600` or tests only the packages holding the tests. The eight
-  recorded hangs of the numeric kernel are caught by the limit alone. (Since 0.3.0; understood at
-  0.4.0, step 22a.)
+- **Mutation testing of a slow package against the whole workspace's tests needs a wide
+  budget.** cargo-mutants takes each mutant's budget from a baseline measured on the mutated
+  package alone, so the floor is the whole budget under the workspace's tests; the weekly job's
+  floor is four minutes since 0.5.0 (two before, which timed out 689 mutants on the release's
+  first run), its 34 shards run 39 to 284 minutes against a limit of 340, `zeff-numeric` 3 of 16
+  (Spearman's exact tail) the longest, and a local rerun passes a floor of ten minutes. The ten
+  recorded hangs (eight in the numeric kernel, two in the pivoted QR) are caught by the limit
+  alone. (Since 0.3.0; understood at 0.4.0, the budget repaired at 0.5.0.)
 - **An exactly perfect fit prints `Inf` t values.** When every residual is exactly zero (a
   constant outcome on an intercept, or data on an exact line in dyadic numbers) the standard
   errors are zero and the t values print as `Inf` with p < 0.001, under the note that the fit is
@@ -112,12 +165,14 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The console's `:undo` re-runs the whole session** without its last statement, so a long
   session with large imports takes a moment to undo; the result cache that makes it immediate is
   0.11.0. (Since 0.2.0.)
-- **The browser engine bundle is 1.34 MB compressed** (brotli; 1.15 MB at 0.3.0, 1.10 MB at
-  0.2.0, 355 kB at 0.1.0), because the two datasets are embedded and the regression and results
-  packages were added; it stays under the 5 MB warning level of risk R4. The cold start is 639 ms
-  against 1,000 ms (140 ms at 0.3.0): the module loads in 17 ms and the first call takes 620 ms,
-  a rise to be understood before the next release adds to it. (Since 0.2.0; the figures are those
-  of 0.4.0.)
+- **The browser engine bundle is 1.46 MB compressed** (brotli; 1.34 MB at 0.4.0, 1.15 MB at
+  0.3.0, 1.10 MB at 0.2.0, 355 kB at 0.1.0), because the two datasets are embedded and the
+  packages, the interpreter and the functions written in Zeff were added; it stays under the 5 MB
+  warning level of risk R4. The cold start is 67 ms against 1,000 ms: the module loads in 19 ms
+  and the engine's first call, its start on a one-line script, takes 48 ms. The 620 ms first call
+  reported at 0.4.0 timed the whole conformance report, which the measurement now prints for
+  information (1,328 ms with 148 cases and five samples). (Since 0.2.0; the figures are those of
+  0.5.0.)
 - **Each project pins the exact engine version** (`zeff = "0.2.0"`). An engine of another
   version refuses the project with exit code 4; there is no launcher yet to pick the pinned engine
   (0.9.0). (Since 0.1.0.)
