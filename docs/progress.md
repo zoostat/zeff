@@ -145,3 +145,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 7 `[engine]`: the panel declaration and its index; `panel`.
 
 **For the owner to decide.** Nothing new.
+
+## 1 November 2026, step 7 of release 0.6.0
+
+**Done.** Step 7 `[engine]`: the panel declaration and its index. `data.panel(unit:, time:)` with Stata's checks (a unit observed twice at one time, `NA` in either variable, a time that is not an Int or a Date, each Z0601, the new code in section 11's table and logged); the index built once at the declaration and kept with the table, shared by the verbs that keep the rows and rebuilt by a selection on first use; the declaration kept by every verb that keeps both variables, renamed by `rename`, and dropped with a note when `select`, `drop`, `add`, `update` or `recode` leaves one out or changes it. Catalogue row 120 implemented; the page, the explained page of Z0601 and the conformance case `panel/declare`. Tests: the data crate's `panel.rs` with its snapshots and property. The ruling is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (117 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 8 `[function]`: `lag`, `lead`, `diff`, `fill_forward`.
+
+**For the owner to decide.** Nothing new.

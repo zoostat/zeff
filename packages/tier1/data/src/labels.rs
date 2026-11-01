@@ -260,7 +260,13 @@ pub fn recode(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         note.push_str("; the value labels follow their codes");
     }
     ctx.message(Diagnostic::plain_note(note));
-    replaced(ctx, &frame, &name, outcome.column)
+    // A recoded unit or time variable drops the panel declaration (section 6, "Panels").
+    let table = frame
+        .table
+        .with_column(&name, outcome.column)
+        .map_err(|e| internal(ctx, format!("{e:?}")))?;
+    let table = crate::verbs::panel_after(ctx, table, "recode", &[name.as_str()]);
+    Ok(derived(table))
 }
 
 /// Z0401 for a key or value of another kind than the variable's.

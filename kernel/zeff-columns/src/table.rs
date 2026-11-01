@@ -115,6 +115,10 @@ pub struct Table {
     columns: Vec<Arc<Slot>>,
     rows: usize,
     metadata: FrameMetadata,
+    /// The panel index (Language Reference, section 6, "Panels"; Engine and Project
+    /// Specification, section 8.3, point 10): the row positions sorted by unit then time, built
+    /// once when first needed by a declared panel and kept with the table.
+    panel_index: OnceLock<Arc<Vec<usize>>>,
 }
 
 impl PartialEq for Table {
@@ -170,6 +174,7 @@ impl Table {
             columns,
             rows: rows.len(),
             metadata: self.metadata.clone(),
+            panel_index: OnceLock::new(),
         }
     }
 
@@ -241,6 +246,7 @@ impl Table {
             columns: data,
             rows,
             metadata: FrameMetadata::default(),
+            panel_index: OnceLock::new(),
         })
     }
 
@@ -250,8 +256,25 @@ impl Table {
     }
 
     pub fn with_metadata(mut self, metadata: FrameMetadata) -> Table {
+        if metadata.panel != self.metadata.panel {
+            self.panel_index = OnceLock::new();
+        }
         self.metadata = metadata;
         self
+    }
+
+    /// The panel index of a declared panel: the row positions sorted by unit then time (stable,
+    /// `NA` last), built once and kept; `None` without a declaration, or when a declared
+    /// variable is missing or cannot order rows.
+    pub fn panel_index(&self) -> Option<Arc<Vec<usize>>> {
+        let (unit, time) = self.metadata.panel.as_ref()?;
+        let keys = [self.column(unit)?, self.column(time)?];
+        if let Some(index) = self.panel_index.get() {
+            return Some(index.clone());
+        }
+        let order = crate::grouping::sort_rows(&keys, false).ok()?;
+        let _ = self.panel_index.set(Arc::new(order));
+        self.panel_index.get().cloned()
     }
 
     /// The table as read from `source`: the frame's source, and every column's `source` key, as
@@ -310,6 +333,7 @@ impl Table {
                 .collect(),
             rows: n.min(self.rows),
             metadata: self.metadata.clone(),
+            panel_index: OnceLock::new(),
         }
     }
 
@@ -326,6 +350,7 @@ impl Table {
                 .collect(),
             rows: n,
             metadata: self.metadata.clone(),
+            panel_index: OnceLock::new(),
         }
     }
 
@@ -342,6 +367,7 @@ impl Table {
                 .collect(),
             rows: rows.len(),
             metadata: self.metadata.clone(),
+            panel_index: OnceLock::new(),
         }
     }
 
@@ -353,6 +379,7 @@ impl Table {
             columns: positions.iter().map(|&p| self.columns[p].clone()).collect(),
             rows: self.rows,
             metadata: self.metadata.clone(),
+            panel_index: OnceLock::new(),
         }
     }
 
@@ -406,6 +433,7 @@ impl Table {
             columns: self.columns.clone(),
             rows: self.rows,
             metadata: self.metadata.clone(),
+            panel_index: OnceLock::new(),
         })
     }
 }

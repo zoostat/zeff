@@ -1,0 +1,37 @@
+---
+source: packages/tier1/data/tests/panel.rs
+assertion_line: 73
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+frame · 1 row × 2 variables · panel firm × year
+
+      firm   year
+  1      1   2020
+frame · 3 rows × 2 variables · panel firm × year
+
+      firm   year
+  1      1   2020
+  2      2   2020
+  3      3   2020
+frame · 3 rows × 2 variables · panel firm × day
+
+      firm   day
+  1   a      2026-01-02
+  2   a      2026-01-01
+  3   b      2026-01-01
+18412
+one · 2,179 rows × 10 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int               2,179         0   1
+  year       Int               2,179         0   2015
+  wage       Float             2,152        27   18.08
+  educ       Int               2,179         0   17
+  exper      Int               2,176         3   9
+  age        Int               2,179         0   32
+  hours      Float             2,170         9   45.1
+  union      Int (lab)         2,179         0   no
+  female     Int (lab)         2,179         0   male
+  industry   Category          2,179         0   Retail (12 levels)
+2179
+---

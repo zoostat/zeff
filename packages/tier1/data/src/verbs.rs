@@ -13,7 +13,11 @@ use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, count};
 
 /// The frame a verb was called on.
-fn the_frame<'a>(ctx: &CallContext<'_>, name: &str, args: &'a Args) -> Result<&'a Frame, Fail> {
+pub(crate) fn the_frame<'a>(
+    ctx: &CallContext<'_>,
+    name: &str,
+    args: &'a Args,
+) -> Result<&'a Frame, Fail> {
     match args.get(0) {
         Some(Value::Frame(frame)) => Ok(frame),
         _ => Err(fail(
@@ -30,7 +34,44 @@ fn the_frame<'a>(ctx: &CallContext<'_>, name: &str, args: &'a Args) -> Result<&'
 }
 
 /// A new frame over `table`, unnamed until a `let` names it.
-fn derived(table: zeff_columns::Table) -> Value {
+/// The declaration after a verb (section 6, "Panels"): kept when the unit and time variables are
+/// still there and unchanged; dropped with a note naming what the verb did when one was left out
+/// (`select`, `drop`) or changed (`add` replacing it, `update`, `recode`).
+pub(crate) fn panel_after(
+    ctx: &mut CallContext<'_>,
+    table: zeff_columns::Table,
+    verb: &str,
+    changed: &[&str],
+) -> zeff_columns::Table {
+    let Some((unit, time)) = table.metadata().panel.clone() else {
+        return table;
+    };
+    let what = [unit.as_str(), time.as_str()].into_iter().find_map(|name| {
+        if table.position(name).is_none() {
+            Some(format!("`{verb}` left out `{name}`"))
+        } else if changed.contains(&name) {
+            Some(format!(
+                "`{verb}` {} `{name}`",
+                if verb == "add" { "replaced" } else { "changed" }
+            ))
+        } else {
+            None
+        }
+    });
+    match what {
+        None => table,
+        Some(what) => {
+            ctx.message(Diagnostic::plain_note(format!(
+                "the panel declaration `{unit} × {time}` dropped: {what}"
+            )));
+            let mut metadata = table.metadata().clone();
+            metadata.panel = None;
+            table.with_metadata(metadata)
+        }
+    }
+}
+
+pub(crate) fn derived(table: zeff_columns::Table) -> Value {
     Value::Frame(Frame {
         table: Rc::new(table),
         name: None,
@@ -94,7 +135,7 @@ pub fn resolve_vars(
 }
 
 /// The variables an argument names: one, several, or a range.
-fn vars_of(args: &Args, at: usize) -> Vec<String> {
+pub(crate) fn vars_of(args: &Args, at: usize) -> Vec<String> {
     match args.get(at) {
         Some(Value::Vars(names)) => names.clone(),
         Some(Value::Var(name)) => vec![name.clone()],
@@ -301,16 +342,18 @@ pub fn drop_missing(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail
 
 /// `data.select(vars)`: only the named variables, in the order named.
 pub fn select(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let frame = the_frame(ctx, "select", &args)?;
-    let positions = resolve_vars(ctx, frame, &vars_of(&args, 1), 1)?;
-    Ok(derived(frame.table.select(&positions)))
+    let frame = the_frame(ctx, "select", &args)?.clone();
+    let positions = resolve_vars(ctx, &frame, &vars_of(&args, 1), 1)?;
+    let table = panel_after(ctx, frame.table.select(&positions), "select", &[]);
+    Ok(derived(table))
 }
 
 /// `data.drop(vars)`: every variable but the named ones.
 pub fn drop(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let frame = the_frame(ctx, "drop", &args)?;
-    let positions = resolve_vars(ctx, frame, &vars_of(&args, 1), 1)?;
-    Ok(derived(frame.table.without(&positions)))
+    let frame = the_frame(ctx, "drop", &args)?.clone();
+    let positions = resolve_vars(ctx, &frame, &vars_of(&args, 1), 1)?;
+    let table = panel_after(ctx, frame.table.without(&positions), "drop", &[]);
+    Ok(derived(table))
 }
 
 /// `data.rename(new = old, ...)`: the variables renamed, the new name on the left, metadata kept.
@@ -350,6 +393,17 @@ pub fn rename(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 .help(format!("`drop({new})` first, or choose another name")),
             )
         })?;
+        // The declaration follows a renamed unit or time variable (section 6, "Panels").
+        if let Some((unit, time)) = table.metadata().panel.clone()
+            && (unit == *old || time == *old)
+        {
+            let mut metadata = table.metadata().clone();
+            metadata.panel = Some((
+                if unit == *old { new.clone() } else { unit },
+                if time == *old { new.clone() } else { time },
+            ));
+            table = table.with_metadata(metadata);
+        }
     }
     Ok(derived(table))
 }
@@ -414,6 +468,7 @@ pub fn add(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let frame = the_frame(ctx, "add", &args)?.clone();
     let mut table = (*frame.table).clone();
     let rows = table.rows();
+    let mut replaced_names: Vec<String> = Vec::new();
     for (i, (name, value)) in args.definitions.iter().enumerate() {
         let span = ctx
             .definition_spans
@@ -429,8 +484,11 @@ pub fn add(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             ctx.message(Diagnostic::plain_note(format!(
                 "`{name}` replaced the variable of that name"
             )));
+            replaced_names.push(name.clone());
         }
     }
+    let changed: Vec<&str> = replaced_names.iter().map(String::as_str).collect();
+    let table = panel_after(ctx, table, "add", &changed);
     Ok(derived(table))
 }
 
@@ -603,6 +661,8 @@ pub fn update(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .with_column(name, merged)
             .map_err(|e| internal(ctx, e))?;
     }
+    let names: Vec<&str> = args.definitions.iter().map(|(n, _)| n.as_str()).collect();
+    let table = panel_after(ctx, table, "update", &names);
     Ok(derived(table))
 }
 

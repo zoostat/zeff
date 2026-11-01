@@ -1078,6 +1078,34 @@ fn time_cases() -> Vec<Line> {
     ]
 }
 
+/// The panel declaration (release 0.6.0, step 7): declared on a literal frame and on the shipped
+/// `wages`, the header, its survival and dropping through the verbs, and its refusals, so that
+/// the four targets prove the index and the messages identical.
+fn panel_cases() -> Vec<Line> {
+    use std::path::Path;
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/n/zeff.toml",
+        format!(
+            "[project]\nname = \"n\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let project = match Project::open(&fs, Path::new("/n")) {
+        Ok(project) => project,
+        Err(_) => return vec![text("panel/declare", "the project did not open")],
+    };
+    let script = "let sales = frame(firm = [2, 1, 2, 1, 3], year = [2021, 2020, 2020, 2021, 2020], revenue = [12.5, 8, 11, 9, NA])\nlet p = sales.panel(unit: firm, time: year)\np\np.where(year > 2020).rename(company = firm)\np.sort(revenue).head(3)\np.drop(year)\np.add(firm = 1)\nlet w = dataset(wages).where(year >= 2019).panel(unit: worker, time: year)\nw.describe()\nw.select([worker, wage]).n_rows()\nlet d = frame(firm = [\"a\", \"a\", \"b\"], day = [to(\"2026-01-02\", Date), to(\"2026-01-01\", Date), to(\"2026-01-01\", Date)]).panel(unit: firm, time: day)\nd.sort(day)\nframe(firm = [1, 1], year = [2020, 2020]).panel(unit: firm, time: year)\n";
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    vec![
+        text("panel/declare/stdout", &outcome.output.stdout),
+        text("panel/declare/stderr", &outcome.output.stderr),
+    ]
+}
+
 /// A built-in written in Zeff (release 0.5.0, step 9): the engine's fixture `builtin_fixture`,
 /// registered beside the shipped functions, run as a call, a method, with its default and on a
 /// column, so that the four targets prove the loader and the lifted body identical.
@@ -1131,6 +1159,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(regress_cases());
     lines.extend(control_cases());
     lines.extend(time_cases());
+    lines.extend(panel_cases());
     lines.extend(builtin_fixture_cases());
     lines.extend(export_cases());
     lines.extend(kernels_cases());

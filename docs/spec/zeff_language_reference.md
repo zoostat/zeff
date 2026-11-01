@@ -1309,6 +1309,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0323 | A module file that is not one: a statement in a file of `functions/`, or a file whose name is not a name of the language or is a package's (section 5.3, "Modules") |
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |
 | Z0716 | An export path with no extension, or with one that names no format Zeff writes; the formats are listed |
+| Z0601 | A panel declaration refused: a unit observed twice at one time, `NA` in the unit or the time variable, or a time variable that is not an Int or a `Date` (section 6, "Panels"; release 0.6.0) |
 
 Examples:
 

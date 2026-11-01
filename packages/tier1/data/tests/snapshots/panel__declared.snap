@@ -1,0 +1,27 @@
+---
+source: packages/tier1/data/tests/panel.rs
+assertion_line: 27
+expression: stdout
+---
+p · 5 rows × 3 variables · panel firm × year
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      2   2020        11
+  4      1   2021         9
+  5      3   2020        NA
+p · 5 rows × 3 variables · panel firm × year
+
+  variable   type    non-missing   missing   example
+  firm       Int               5         0   2
+  year       Int               5         0   2021
+  revenue    Float             4         1   12.5
+sales · 5 rows × 3 variables
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      2   2020        11
+  4      1   2021         9
+  5      3   2020        NA

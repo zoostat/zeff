@@ -159,6 +159,8 @@ time/arithmetic/stdout 8e2948fe3d0e9221
 time/arithmetic/stderr 067db65ac307ecc4
 text/format/stdout 66baef825ea0b37f
 text/format/stderr cbf29ce484222325
+panel/declare/stdout 2ca84882e91ab986
+panel/declare/stderr 58e936f4915a6b6c
 functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f

@@ -1,0 +1,104 @@
+---
+source: packages/tier1/data/tests/panel.rs
+assertion_line: 95
+expression: out
+---
+frame(firm = [1, 1], year = [2020, 2020], sales = [8, 9]).panel(unit: firm, time: year)
+---
+error[Z0601]: `firm` 1 is observed twice at `year` 2020
+ --> scripts/main.zeff:1:59
+  |
+1 | frame(firm = [1, 1], year = [2020, 2020], sales = [8, 9]).panel(unit: firm, time: year)
+  |                                                           ^^^^^ a unit with two rows at one time
+  |
+  = help: a unit has one row per time: `duplicates([firm, year])` lists the repeated pairs; drop or aggregate them first
+
+frame(firm = [1, 1, 2, 2, 3, 3], year = [2020, 2020, 2021, 2021, 2022, 2022]).panel(unit: firm, time: year)
+---
+error[Z0601]: `firm` 1 is observed twice at `year` 2020; 2 other pairs repeat
+ --> scripts/main.zeff:1:79
+  |
+1 | frame(firm = [1, 1, 2, 2, 3, 3], year = [2020, 2020, 2021, 2021, 2022, 2022]).panel(unit: firm, time: year)
+  |                                                                               ^^^^^ a unit with two rows at one time
+  |
+  = help: a unit has one row per time: `duplicates([firm, year])` lists the repeated pairs; drop or aggregate them first
+
+frame(firm = [1, NA], year = [2020, 2021]).panel(unit: firm, time: year)
+---
+error[Z0601]: `firm` has NA in 1 row, which a panel cannot order
+ --> scripts/main.zeff:1:56
+  |
+1 | frame(firm = [1, NA], year = [2020, 2021]).panel(unit: firm, time: year)
+  |                                                        ^^^^ NA among the values
+  |
+  = help: `where(!is_missing(firm))` drops those rows, or `drop_missing([firm, year])`
+
+frame(firm = [1, 2], year = [2020, NA]).panel(unit: firm, time: year)
+---
+error[Z0601]: `year` has NA in 1 row, which a panel cannot order
+ --> scripts/main.zeff:1:65
+  |
+1 | frame(firm = [1, 2], year = [2020, NA]).panel(unit: firm, time: year)
+  |                                                                 ^^^^ NA among the values
+  |
+  = help: `where(!is_missing(year))` drops those rows, or `drop_missing([firm, year])`
+
+frame(firm = [1, 2], year = [2020.5, 2021]).panel(unit: firm, time: year)
+---
+error[Z0601]: `time:` of `panel` must be an Int or a Date, but `year` is a Float variable
+ --> scripts/main.zeff:1:69
+  |
+1 | frame(firm = [1, 2], year = [2020.5, 2021]).panel(unit: firm, time: year)
+  |                                                                     ^^^^ not a period
+  |
+  = help: a panel's time is a whole-number period or a calendar day; `to(year, Int)` if the values are whole
+
+frame(firm = [1, 2], year = ["2020", "2021"]).panel(unit: firm, time: year)
+---
+error[Z0601]: `time:` of `panel` must be an Int or a Date, but `year` is a Str variable
+ --> scripts/main.zeff:1:71
+  |
+1 | frame(firm = [1, 2], year = ["2020", "2021"]).panel(unit: firm, time: year)
+  |                                                                       ^^^^ not a period
+  |
+  = help: a panel's time is a whole-number period or a calendar day; `to(year, Int)` if the values are whole
+
+frame(firm = [1, 2], year = [2020, 2021]).panel(unit: firm)
+---
+error[Z0406]: `panel` needs `time:`
+ --> scripts/main.zeff:1:43
+  |
+1 | frame(firm = [1, 2], year = [2020, 2021]).panel(unit: firm)
+  |                                           ^^^^^ `time:` is missing
+  |
+  = help: usage: `data.panel(unit: Var, time: Var)`
+
+frame(firm = [1, 2], year = [2020, 2021]).panel(time: year)
+---
+error[Z0406]: `panel` needs `unit:`
+ --> scripts/main.zeff:1:43
+  |
+1 | frame(firm = [1, 2], year = [2020, 2021]).panel(time: year)
+  |                                           ^^^^^ `unit:` is missing
+  |
+  = help: usage: `data.panel(unit: Var, time: Var)`
+
+frame(firm = [1, 2], year = [2020, 2021]).panel(unit: [firm, year], time: year)
+---
+error[Z0401]: `unit` of `panel` must be a Var, but this is a List<?>
+ --> scripts/main.zeff:1:55
+  |
+1 | frame(firm = [1, 2], year = [2020, 2021]).panel(unit: [firm, year], time: year)
+  |                                                       ^^^^^^^^^^^^ a List<?>
+  |
+  = help: name a variable of the frame, without quotes
+
+frame(firm = [1, 2], year = [2020, 2021]).panel(unit: company, time: year)
+---
+error[Z0101]: no variable `company` in `the frame`
+ --> scripts/main.zeff:1:55
+  |
+1 | frame(firm = [1, 2], year = [2020, 2021]).panel(unit: company, time: year)
+  |                                                       ^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: firm, year

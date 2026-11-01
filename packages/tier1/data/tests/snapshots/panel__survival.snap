@@ -1,0 +1,120 @@
+---
+source: packages/tier1/data/tests/panel.rs
+assertion_line: 65
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+frame · 2 rows × 3 variables · panel firm × year
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2021         9
+frame · 5 rows × 3 variables · panel firm × year
+
+      firm   year   revenue
+  1      1   2020         8
+  2      1   2021         9
+  3      2   2020        11
+  4      2   2021      12.5
+  5      3   2020        NA
+frame · 2 rows × 3 variables · panel firm × year
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+frame · 4 rows × 3 variables · panel firm × year
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      2   2020        11
+  4      1   2021         9
+frame · 5 rows × 2 variables · panel firm × year
+
+      year   firm
+  1   2021      2
+  2   2020      1
+  3   2020      2
+  4   2021      1
+  5   2020      3
+frame · 5 rows × 3 variables · panel company × period
+
+      company   period   revenue
+  1         2     2021      12.5
+  2         1     2020         8
+  3         2     2020        11
+  4         1     2021         9
+  5         3     2020        NA
+frame · 5 rows × 4 variables · panel firm × year
+
+      firm   year   revenue   sales
+  1      2   2021      12.5      25
+  2      1   2020         8      16
+  3      2   2020        11      22
+  4      1   2021         9      18
+  5      3   2020        NA      NA
+frame · 5 rows × 3 variables · panel firm × year
+
+      firm   year   revenue
+  1      2   2021         0
+  2      1   2020         8
+  3      2   2020         0
+  4      1   2021         9
+  5      3   2020        NA
+frame · 5 rows × 3 variables · panel firm × year
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      2   2020        11
+  4      1   2021         9
+  5      3   2020        NA
+frame · 5 rows × 2 variables
+
+      firm   revenue
+  1      2      12.5
+  2      1         8
+  3      2        11
+  4      1         9
+  5      3        NA
+frame · 5 rows × 2 variables
+
+      firm   revenue
+  1      2      12.5
+  2      1         8
+  3      2        11
+  4      1         9
+  5      3        NA
+frame · 5 rows × 3 variables
+
+      firm   year   revenue
+  1      1   2021      12.5
+  2      1   2020         8
+  3      1   2020        11
+  4      1   2021         9
+  5      1   2020        NA
+frame · 5 rows × 3 variables
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2020         8
+  3      2   2020        11
+  4      1   2021         9
+  5      3   2000        NA
+frame · 5 rows × 3 variables
+
+      firm   year   revenue
+  1      2   2021      12.5
+  2      1   2019         8
+  3      2   2019        11
+  4      1   2021         9
+  5      3   2019        NA
+---
+note: 1 row with NA in revenue dropped (line 6)
+note: 1 row where `revenue > 10` was NA was left unchanged (line 10)
+note: the panel declaration `firm × year` dropped: `select` left out `year` (line 12)
+note: the panel declaration `firm × year` dropped: `drop` left out `year` (line 13)
+note: `firm` replaced the variable of that name (line 14)
+note: the panel declaration `firm × year` dropped: `add` replaced `firm` (line 14)
+note: the panel declaration `firm × year` dropped: `update` changed `year` (line 15)
+note: `year` recoded: 3 rows changed (line 16)
+note: the panel declaration `firm × year` dropped: `recode` changed `year` (line 16)

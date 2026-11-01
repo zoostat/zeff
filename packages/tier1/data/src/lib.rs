@@ -6,6 +6,7 @@ pub mod import;
 pub mod labels;
 pub mod look;
 pub mod names;
+pub mod panel;
 pub mod reducers;
 pub mod rows;
 pub mod verbs;
@@ -405,6 +406,35 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: labels::recode,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "panel",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option("unit", "Var"),
+                    ParamSpec::option("time", "Var"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0601",
+                        "a unit observed twice at one time, NA in the unit or the time, or a time that is not an Int or a Date",
+                    ),
+                    DiagnosticDecl::new("Z0406", "unit: or time: not given"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "an opaque variable as the unit, or several variables for one option",
+                    ),
+                ],
+                help: include_str!("../help/panel.md"),
+                accuracy: None,
+            },
+            body: panel::panel,
         },
         Function {
             spec: FunctionSpec {
