@@ -1,0 +1,131 @@
+---
+source: packages/tier1/time/tests/time.rs
+assertion_line: 270
+expression: out
+---
+date("2026-02-30")
+---
+NA
+warning: text that is not a date in ISO 8601 became NA (line 1)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+
+date("16/10/2026")
+---
+NA
+warning: text that is not a date in ISO 8601 became NA (line 1)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+
+date("2026-10-16", format: "%d/%m/%Y")
+---
+NA
+warning: text that does not match the format `%d/%m/%Y` became NA (line 1)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+
+date("2026-10-16", format: "%Q")
+---
+error[Z0409]: `%Q` is not a date format: `%Q` is not a directive of a date format
+ --> scripts/main.zeff:1:28
+  |
+1 | date("2026-10-16", format: "%Q")
+  |                            ^^^^ the format
+  |
+  = help: a format is written as `strftime` writes it, with %Y, %y, %m, %b, %d, %H, %M and %S: `date(s, format: "%d/%m/%Y")`
+
+date("2026-10-16", format: "%Y-%m")
+---
+error[Z0409]: `%Y-%m` is not a date format: the format has no year, month or day
+ --> scripts/main.zeff:1:28
+  |
+1 | date("2026-10-16", format: "%Y-%m")
+  |                            ^^^^^^^ the format
+  |
+  = help: a format is written as `strftime` writes it, with %Y, %y, %m, %b, %d, %H, %M and %S: `date(s, format: "%d/%m/%Y")`
+
+datetime("2026-10-16T09:30:00Z")
+---
+2026-10-16T09:30:00
+warning: a time-zone offset was applied to reach UTC (line 1)
+  = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
+
+datetime("2026-10-16T25:00")
+---
+NA
+warning: text that is not a date and time in ISO 8601 became NA (line 1)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+
+datetime("16/10/2026 09:30", format: "%d/%m/%Y %M")
+---
+error[Z0409]: `%d/%m/%Y %M` is not a date format: the format has a minute or second but no hour
+ --> scripts/main.zeff:1:38
+  |
+1 | datetime("16/10/2026 09:30", format: "%d/%m/%Y %M")
+  |                                      ^^^^^^^^^^^^^ the format
+  |
+  = help: a format is written as `strftime` writes it, with %Y, %y, %m, %b, %d, %H, %M and %S: `datetime(s, format: "%d/%m/%Y")`
+
+date(20261016)
+---
+error[Z0401]: `s` of `date` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:6
+  |
+1 | date(20261016)
+  |      ^^^^^^^^ an Int
+  |
+  = help: usage: `date(s, format: Str)`
+
+year("2026-10-16")
+---
+error[Z0401]: `d` of `year` must be a Date or DateTime, but this is a Str
+ --> scripts/main.zeff:1:6
+  |
+1 | year("2026-10-16")
+  |      ^^^^^^^^^^^^ a Str
+  |
+  = help: usage: `year(d)`
+
+year(2026)
+---
+error[Z0401]: `d` of `year` must be a Date or DateTime, but this is an Int
+ --> scripts/main.zeff:1:6
+  |
+1 | year(2026)
+  |      ^^^^ an Int
+  |
+  = help: usage: `year(d)`
+
+let f = frame(s = ["2026-10-16", "no", "x"])
+f.add(d = date(s))
+---
+frame · 3 rows × 2 variables
+
+      s            d
+  1   2026-10-16   2026-10-16
+  2   no           NA
+  3   x            NA
+warning: text that is not a date in ISO 8601 became NA in 2 rows (line 2)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+
+let f = frame(s = ["2026-10-16T09:30:00Z", "2026-10-16T09:30:00+02:00", "no"])
+f.add(t = datetime(s))
+---
+frame · 3 rows × 2 variables
+
+      s                           t
+  1   2026-10-16T09:30:00Z        2026-10-16T09:30:00
+  2   2026-10-16T09:30:00+02:00   2026-10-16T07:30:00
+  3   no                          NA
+warning: a time-zone offset was applied to reach UTC in 2 rows (line 2)
+  = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
+warning: text that is not a date and time in ISO 8601 became NA in 1 row (line 2)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+
+let f = frame(s = ["16/10/2026", "no"])
+f.add(d = date(s, format: "%d/%m/%Y"))
+---
+frame · 2 rows × 2 variables
+
+      s            d
+  1   16/10/2026   2026-10-16
+  2   no           NA
+warning: text that does not match the format `%d/%m/%Y` became NA in 1 row (line 2)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`

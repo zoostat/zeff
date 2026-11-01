@@ -1038,6 +1038,34 @@ fn control_cases() -> Vec<Line> {
     lines
 }
 
+/// The `time` package (release 0.6.0, step 3): parsing with and without a format, an offset
+/// applied, and the six date parts on dates, on a time and on a column, so that the four targets
+/// prove the calendar arithmetic identical.
+fn time_cases() -> Vec<Line> {
+    use std::path::Path;
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/t/zeff.toml",
+        format!(
+            "[project]\nname = \"t\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let project = match Project::open(&fs, Path::new("/t")) {
+        Ok(project) => project,
+        Err(_) => return vec![text("time/parts", "the project did not open")],
+    };
+    let script = "date(\"2026-10-16\")\ndate(\"16/10/2026\", format: \"%d/%m/%Y\")\ndate(\"Oct 16, 2026\", format: \"%b %d, %Y\")\ndate(\"2026-02-30\")\ndatetime(\"2026-10-16T09:30:00.25\")\ndatetime(\"2026-10-16T09:30:00+02:00\")\ndatetime(\"2026-10-16\")\nlet d = date(\"2021-01-03\")\n[year(d), month(d), day(d), weekday(d), quarter(d), week(d)]\nlet t = datetime(\"1999-12-31T23:59:59\")\n[year(t), month(t), day(t), weekday(t), quarter(t), week(t)]\nlet f = frame(s = [\"2026-01-01\", \"2024-12-30\", \"0001-01-01\", \"9999-12-31\", \"no\"])\nf.add(d = date(s)).add(y = year(d), m = month(d), dd = day(d), wd = weekday(d), q = quarter(d), w = week(d))\n";
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    vec![
+        text("time/parts/stdout", &outcome.output.stdout),
+        text("time/parts/stderr", &outcome.output.stderr),
+    ]
+}
+
 /// A built-in written in Zeff (release 0.5.0, step 9): the engine's fixture `builtin_fixture`,
 /// registered beside the shipped functions, run as a call, a method, with its default and on a
 /// column, so that the four targets prove the loader and the lifted body identical.
@@ -1090,6 +1118,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(distribution_cases());
     lines.extend(regress_cases());
     lines.extend(control_cases());
+    lines.extend(time_cases());
     lines.extend(builtin_fixture_cases());
     lines.extend(export_cases());
     lines.extend(kernels_cases());

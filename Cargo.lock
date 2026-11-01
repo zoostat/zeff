@@ -1499,6 +1499,7 @@ dependencies = [
  "zeff-stats",
  "zeff-syntax",
  "zeff-testkit",
+ "zeff-time",
 ]
 
 [[package]]
@@ -1619,6 +1620,20 @@ dependencies = [
  "zeff-core",
  "zeff-engine",
  "zeff-ir",
+]
+
+[[package]]
+name = "zeff-time"
+version = "0.6.0-dev"
+dependencies = [
+ "insta",
+ "proptest",
+ "serde_json",
+ "zeff-core",
+ "zeff-dates",
+ "zeff-diagnostics",
+ "zeff-registry",
+ "zeff-testkit",
 ]
 
 [[package]]

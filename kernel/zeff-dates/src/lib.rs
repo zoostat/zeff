@@ -97,6 +97,28 @@ fn micros_from(days: i32, time: Time) -> i64 {
     i64::from(days) * MICROS_PER_DAY + time.micros_of_day()
 }
 
+/// The day of the week of a day, 1 (Monday) to 7 (Sunday), as ISO 8601 numbers them;
+/// 1970-01-01 was a Thursday.
+pub fn weekday_of(days: i32) -> u32 {
+    (i64::from(days) + 3).rem_euclid(7) as u32 + 1
+}
+
+/// The quarter of a month, 1 to 4.
+pub fn quarter_of(month: u32) -> u32 {
+    (month - 1) / 3 + 1
+}
+
+/// The ISO 8601 week of a day: the week-numbering year and the week, 1 to 53. A week runs from
+/// Monday to Sunday and belongs to the year that holds its Thursday, so the first days of
+/// January may fall in the last week of the year before and the last days of December in week 1
+/// of the year after.
+pub fn iso_week(days: i32) -> (i32, u32) {
+    let thursday = days - weekday_of(days) as i32 + 4;
+    let (year, _, _) = civil_from_days(thursday);
+    let first = days_from_civil(year, 1, 1).expect("the Thursday's year is in the calendar");
+    (year, ((thursday - first) / 7) as u32 + 1)
+}
+
 /// The calendar day a timestamp falls on, as days since 1970-01-01 (`DateTime` to `Date` drops
 /// the time, Language Reference section 3.7, "Conversions").
 pub fn days_of_micros(micros: i64) -> i32 {
@@ -552,6 +574,43 @@ mod tests {
         assert_eq!(civil_from_days(-1), (1969, 12, 31));
         assert_eq!(civil_from_days(MIN_DAYS), (1, 1, 1));
         assert_eq!(civil_from_days(MAX_DAYS), (9999, 12, 31));
+    }
+
+    #[test]
+    fn weekdays_quarters_and_iso_weeks() {
+        assert_eq!(weekday_of(0), 4, "1970-01-01 was a Thursday");
+        assert_eq!(weekday_of(days_from_civil(2026, 10, 16).unwrap()), 5);
+        assert_eq!(weekday_of(days_from_civil(1, 1, 1).unwrap()), 1, "a Monday");
+        assert_eq!(
+            weekday_of(days_from_civil(9999, 12, 31).unwrap()),
+            5,
+            "a Friday"
+        );
+        assert_eq!(
+            (quarter_of(1), quarter_of(3), quarter_of(4), quarter_of(12)),
+            (1, 1, 2, 4)
+        );
+        // The boundaries ISO 8601 gives as examples, and the years of 53 weeks.
+        let week = |y, m, d| iso_week(days_from_civil(y, m, d).unwrap());
+        assert_eq!(week(2026, 1, 1), (2026, 1));
+        assert_eq!(week(2021, 1, 1), (2020, 53));
+        assert_eq!(week(2021, 1, 3), (2020, 53));
+        assert_eq!(week(2021, 1, 4), (2021, 1));
+        assert_eq!(week(2024, 12, 30), (2025, 1));
+        assert_eq!(week(2024, 12, 29), (2024, 52));
+        assert_eq!(week(2015, 12, 31), (2015, 53));
+        assert_eq!(week(2026, 10, 16), (2026, 42));
+        assert_eq!(week(1, 1, 1), (1, 1));
+        assert_eq!(week(9999, 12, 31), (9999, 52));
+        // 4 January is in week 1 of its own year, every year.
+        for y in 1..=9999 {
+            assert_eq!(week(y, 1, 4), (y, 1), "{y}");
+            let (wy, w) = week(y, 12, 31);
+            assert!(
+                wy == y && (52..=53).contains(&w) || wy == y + 1 && w == 1,
+                "{y}: {wy} {w}"
+            );
+        }
     }
 
     #[test]

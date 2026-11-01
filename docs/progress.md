@@ -151,3 +151,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** Step 3 `[function]`: the `time` package, part 1 (`date`, `datetime`, `year`, `month`, `day`, `weekday`, `quarter`, `week`), a new crate.
 
 **For the owner to decide.** Nothing new.
+
+## 1 November 2026, step 3 of release 0.6.0
+
+**Done.** Step 3 `[function]`: the `time` package, part 1, a new crate `packages/tier1/time` registered with the engine and the tier check: `date` and `datetime` from ISO 8601 or a written format (W0203, W0702, Z0409), and the date parts `year`, `month`, `day`, `weekday`, `quarter` and `week` on dates and times, scalar functions lifted over columns (the checker's lifting rule now names `core`, `text` and `time`); the kernel's weekday and ISO-week helpers; eight pages whose examples run; catalogue rows 67, 68 and 71 to 76 implemented. Tests: the R reference `time.R` (exact, every year boundary of the calendar), the crate's `time.rs` with its snapshots and property, the conformance case `time/parts` (the published report regenerated). The ruling is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (115 codes) and the conformance report pass locally; CI to be read after the push, with the bundle and cold-start figures of `time` at start.
+
+**Next.** Step 4 `[function]`: the `time` package, part 2 (`add_days`, `add_months`, `days_between`, `months_between`, `today`, `now`).
+
+**For the owner to decide.** Nothing new.

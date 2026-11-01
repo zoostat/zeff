@@ -1,0 +1,47 @@
+---
+source: packages/tier1/time/tests/time.rs
+assertion_line: 244
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+2026-10-16
+NA
+2024-02-29
+NA
+2026-02-01
+2026-02-01
+1999-12-31
+2026-10-16T09:30:00
+2026-10-16T00:00:00
+1
+9999
+1
+7
+1
+52
+53
+4
+2026
+42
+frame · 4 rows × 8 variables
+
+      s            d               y    m   dd   wd    q    w
+  1   2026-01-05   2026-01-05   2026    1    5    1    1    2
+  2   no           NA             NA   NA   NA   NA   NA   NA
+  3   2024-12-30   2024-12-30   2024   12   30    1    4    1
+  4   2026-02-30   NA             NA   NA   NA   NA   NA   NA
+frame · 4 rows × 4 variables
+
+      s            t                        y    w
+  1   2026-01-05   2026-01-05T00:00:00   2026    2
+  2   no           NA                      NA   NA
+  3   2024-12-30   2024-12-30T00:00:00   2024    1
+  4   2026-02-30   NA                      NA   NA
+---
+warning: text that is not a date in ISO 8601 became NA (line 2)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+warning: text that does not match the format `%d/%m/%Y` became NA (line 4)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+warning: text that is not a date in ISO 8601 became NA in 2 rows (line 20)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+warning: text that is not a date and time in ISO 8601 became NA in 2 rows (line 22)
+  = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`

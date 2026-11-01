@@ -13,6 +13,7 @@ workspace = true
 zeff-syntax.workspace = true
 zeff-ir.workspace = true
 zeff-core.workspace = true
+zeff-time.workspace = true
 zeff-data.workspace = true
 zeff-datasets.workspace = true
 zeff-dist.workspace = true

@@ -4867,14 +4867,14 @@ impl Checker<'_> {
                     .help(format!("usage: `{}`", spec.usage())),
             );
         }
-        // A scalar function of `core` applies row by row to a column and gives a column (section
-        // 3.7, "Columns and scalars"); its parameter types are read as the types of one row.
-        // A scalar function of `core`, or a method on a value that is not a frame and returns a
-        // scalar (`d.pdf(x)` on a distribution), applies to a column row by row (section 3.7).
-        // A function that returns nothing (`assert`) never lifts: a column of nothing is not a
-        // value, and a column given to it is a mistake (Z0203 for `assert`, section 5.6).
+        // A scalar function of `core`, `text` or `time` applies row by row to a column and gives
+        // a column (section 3.7, "Columns and scalars"); its parameter types are read as the
+        // types of one row. So does a method on a value that is not a frame that returns a
+        // scalar (`d.pdf(x)` on a distribution). A function that returns nothing (`assert`)
+        // never lifts: a column of nothing is not a value, and a column given to it is a mistake
+        // (Z0203 for `assert`, section 5.6).
         let liftable = spec.returns != "Nothing"
-            && ((spec.package == "core" && !spec.method)
+            && ((matches!(spec.package, "core" | "text" | "time") && !spec.method)
                 || (spec.method
                     && params.first().is_some_and(|(_, ty, _)| *ty != Ty::Frame)
                     && Ty::parse(spec.returns).is_some_and(|t| scalar_type(&t))));
