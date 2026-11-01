@@ -1,6 +1,6 @@
 ---
 source: packages/tier1/time/tests/time.rs
-assertion_line: 270
+assertion_line: 446
 expression: out
 ---
 date("2026-02-30")
@@ -129,3 +129,86 @@ frame · 2 rows × 2 variables
   2   no           NA
 warning: text that does not match the format `%d/%m/%Y` became NA in 1 row (line 2)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+
+add_days(date("9999-12-31"), 1)
+---
+NA
+warning: a date outside years 1 to 9999 became NA (line 1)
+  = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
+
+add_months(date("0001-01-31"), -1)
+---
+NA
+warning: a date outside years 1 to 9999 became NA (line 1)
+  = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
+
+let f = frame(d = [date("9999-12-31"), date("2026-10-16")])
+f.add(e = add_days(d, 1))
+---
+frame · 2 rows × 2 variables
+
+      d            e
+  1   9999-12-31   NA
+  2   2026-10-16   2026-10-17
+warning: a date outside years 1 to 9999 became NA in 1 row (line 2)
+  = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
+
+add_days(date("2026-10-16"), 1.5)
+---
+error[Z0401]: `n` of `add_days` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:30
+  |
+1 | add_days(date("2026-10-16"), 1.5)
+  |                              ^^^ a Float
+  |
+  = help: usage: `add_days(d, n)`
+
+add_days("2026-10-16", 1)
+---
+error[Z0401]: `d` of `add_days` must be a Date or DateTime, but this is a Str
+ --> scripts/main.zeff:1:10
+  |
+1 | add_days("2026-10-16", 1)
+  |          ^^^^^^^^^^^^ a Str
+  |
+  = help: usage: `add_days(d, n)`
+
+days_between(date("2026-10-16"), datetime("2026-10-16T09:30"))
+---
+error[Z0401]: `days_between` counts between two dates or two times, but `start` is a Date and `end` is a DateTime
+ --> scripts/main.zeff:1:34
+  |
+1 | days_between(date("2026-10-16"), datetime("2026-10-16T09:30"))
+  |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not the type of `start`
+  |
+  = help: write `to(end, Date)` to count days between the dates, or `to(start, DateTime)` to count between the instants
+
+days_between(date("2026-10-16"), 7)
+---
+error[Z0401]: `end` of `days_between` must be a Date or DateTime, but this is an Int
+ --> scripts/main.zeff:1:34
+  |
+1 | days_between(date("2026-10-16"), 7)
+  |                                  ^ an Int
+  |
+  = help: usage: `days_between(start, end)`
+
+date("2026-10-16") + 7
+---
+error[Z0221]: `+` does not apply to a Date and a number
+ --> scripts/main.zeff:1:1
+  |
+1 | date("2026-10-16") + 7
+  | ^^^^^^^^^^^^^^^^^^^^^^ a date beside a number
+  |
+  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+
+today(1)
+---
+error[Z0407]: `today` takes 0 arguments, but more were given
+ --> scripts/main.zeff:1:7
+  |
+1 | today(1)
+  |       ^ one too many
+  |
+  = help: usage: `today()`

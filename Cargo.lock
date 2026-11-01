@@ -1367,6 +1367,7 @@ dependencies = [
 name = "zeff-cli"
 version = "0.6.0-dev"
 dependencies = [
+ "chrono",
  "insta",
  "tempfile",
  "zeff-conformance",
@@ -1632,6 +1633,7 @@ dependencies = [
  "zeff-core",
  "zeff-dates",
  "zeff-diagnostics",
+ "zeff-engine",
  "zeff-registry",
  "zeff-testkit",
 ]

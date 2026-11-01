@@ -22,6 +22,55 @@ fn zeff_home() -> Option<PathBuf> {
         .map(|h| PathBuf::from(h).join(".zeff"))
 }
 
+/// The machine's files with its clock: `today()` and `now()` read the local wall-clock time
+/// (Language Reference, section 3.8), which the engine itself never reads, so that a run in a
+/// test or in the browser has the clock it is given.
+struct ClockedFileSystem(zeff_engine::fs::StdFileSystem);
+
+impl zeff_engine::fs::FileSystem for ClockedFileSystem {
+    fn read(&self, path: &std::path::Path) -> std::io::Result<Vec<u8>> {
+        self.0.read(path)
+    }
+
+    fn list(&self, dir: &std::path::Path) -> std::io::Result<Vec<String>> {
+        self.0.list(dir)
+    }
+
+    fn is_file(&self, path: &std::path::Path) -> bool {
+        self.0.is_file(path)
+    }
+
+    fn is_dir(&self, path: &std::path::Path) -> bool {
+        self.0.is_dir(path)
+    }
+
+    fn canonicalize(&self, path: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
+        self.0.canonicalize(path)
+    }
+
+    fn create_dir(&self, path: &std::path::Path) -> std::io::Result<()> {
+        self.0.create_dir(path)
+    }
+
+    fn write(&self, path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
+        self.0.write(path, bytes)
+    }
+
+    fn remove_dir_all(&self, path: &std::path::Path) -> std::io::Result<()> {
+        self.0.remove_dir_all(path)
+    }
+
+    fn now(&self) -> Option<i64> {
+        // The local wall-clock time, its zone forgotten: the instant a clock on the wall shows.
+        Some(
+            chrono::Local::now()
+                .naive_local()
+                .and_utc()
+                .timestamp_micros(),
+        )
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let Ok(cwd) = std::env::current_dir() else {
@@ -34,7 +83,7 @@ fn main() -> ExitCode {
     let worker = std::thread::Builder::new()
         .stack_size(STACK_SIZE)
         .spawn(move || {
-            let fs = zeff_engine::fs::StdFileSystem;
+            let fs = ClockedFileSystem(zeff_engine::fs::StdFileSystem);
             let stdin = std::io::stdin();
             let mut input = stdin.lock();
             let mut env = zeff_cli::Environment {

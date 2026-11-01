@@ -5159,7 +5159,7 @@ impl Checker<'_> {
         // column of a frame whose schema the checker does not see before 0.6.0) the result is
         // `Column<Unknown>`, so that an enclosing scalar function lifts over it in turn
         // (`min(max(w["educ"], 10), 14)`) and does not receive the column whole.
-        if lifted {
+        if lifted && !matches!(ty, Ty::Column(_)) {
             ty = Ty::Column(Box::new(ty));
         }
         let _ = expected;

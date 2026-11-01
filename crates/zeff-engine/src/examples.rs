@@ -33,9 +33,17 @@ pub const FIXTURE_FILES: [(&str, &[u8]); 3] = [
     ),
 ];
 
+/// The instant the examples' clock shows, as microseconds since 1970-01-01 00:00:00:
+/// 2026-11-01 09:30:00.
+pub const EXAMPLES_CLOCK: i64 =
+    20_758 * 86_400 * 1_000_000 + 9 * 3_600 * 1_000_000 + 30 * 60 * 1_000_000;
+
 /// The fixture project, in memory.
 pub fn fixture_project() -> (MemoryFileSystem, Project) {
     let fs = MemoryFileSystem::new();
+    // The clock of the examples: 2026-11-01 09:30:00, so that the pages of `today` and `now`
+    // print one value on every machine.
+    fs.set_clock(EXAMPLES_CLOCK);
     fs.add_file(
         "/examples/zeff.toml",
         format!(

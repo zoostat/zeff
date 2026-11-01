@@ -19,6 +19,10 @@ pub struct ProjectFiles<'a> {
 }
 
 impl Files for ProjectFiles<'_> {
+    fn now(&self) -> Option<i64> {
+        self.fs.now()
+    }
+
     fn read(&self, written: &str, span: Span, script: &str) -> Result<Vec<u8>, Fail> {
         // The `zeff:` data root: the files of the shipped datasets (section 8.5).
         if let Some(name) = written.strip_prefix("zeff:") {

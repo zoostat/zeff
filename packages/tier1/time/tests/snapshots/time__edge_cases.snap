@@ -1,6 +1,6 @@
 ---
 source: packages/tier1/time/tests/time.rs
-assertion_line: 244
+assertion_line: 409
 expression: "format!(\"{stdout}---\\n{stderr}\")"
 ---
 2026-10-16
@@ -36,6 +36,22 @@ frame · 4 rows × 4 variables
   2   no           NA                      NA   NA
   3   2024-12-30   2024-12-30T00:00:00   2024    1
   4   2026-02-30   NA                      NA   NA
+2026-10-16
+2026-02-28
+2026-01-28
+2026-02-28T09:30:00.500000
+2026-10-17T23:59:59
+0
+0
+119987
+frame · 4 rows × 6 variables
+
+      s            d            next         later        gap    m
+  1   2026-01-05   2026-01-05   2026-01-06   2026-02-05   300   72
+  2   no           NA           NA           NA            NA   NA
+  3   2024-12-30   2024-12-30   2024-12-31   2025-01-30   671   59
+  4   2026-02-30   NA           NA           NA            NA   NA
+NA
 ---
 warning: text that is not a date in ISO 8601 became NA (line 2)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
@@ -45,3 +61,5 @@ warning: text that is not a date in ISO 8601 became NA in 2 rows (line 20)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 warning: text that is not a date and time in ISO 8601 became NA in 2 rows (line 22)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
+warning: a date outside years 1 to 9999 became NA (line 32)
+  = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)

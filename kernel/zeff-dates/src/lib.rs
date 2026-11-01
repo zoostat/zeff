@@ -119,6 +119,54 @@ pub fn iso_week(days: i32) -> (i32, u32) {
     (year, ((thursday - first) / 7) as u32 + 1)
 }
 
+/// The day `n` days after `days`, or `None` outside the calendar.
+pub fn add_days(days: i32, n: i64) -> Option<i32> {
+    let moved = i64::from(days).checked_add(n)?;
+    (i64::from(MIN_DAYS)..=i64::from(MAX_DAYS))
+        .contains(&moved)
+        .then_some(moved as i32)
+}
+
+/// The day `n` months after `days`, clamped to the last day of the target month (31 January plus
+/// one month is 28 or 29 February, as Stata and SQL do; Language Reference, section 3.8, "Month
+/// arithmetic"), or `None` outside the calendar.
+pub fn add_months(days: i32, n: i64) -> Option<i32> {
+    let (year, month, day) = civil_from_days(days);
+    let months = i64::from(year) * 12 + i64::from(month) - 1 + n;
+    let year = i32::try_from(months.div_euclid(12)).ok()?;
+    let month = months.rem_euclid(12) as u32 + 1;
+    let last = days_in_month(year, month)?;
+    days_from_civil(year, month, day.min(last))
+}
+
+/// Whole months from `start` to `end` under the clamping of `add_months`: the largest `m` such
+/// that `add_months(start, m)` is at or before `end` when `end` is later, and the negative of
+/// the largest `m` such that `add_months(start, -m)` is at or after `end` when it is earlier.
+pub fn months_between(start: i32, end: i32) -> i64 {
+    let (sy, sm, _) = civil_from_days(start);
+    let (ey, em, _) = civil_from_days(end);
+    let guess = (i64::from(ey) - i64::from(sy)) * 12 + i64::from(em) - i64::from(sm);
+    if end >= start {
+        let mut m = guess.max(0);
+        while m > 0 && add_months(start, m).is_none_or(|d| d > end) {
+            m -= 1;
+        }
+        m
+    } else {
+        let mut m = (-guess).max(0);
+        while m > 0 && add_months(start, -m).is_none_or(|d| d < end) {
+            m -= 1;
+        }
+        -m
+    }
+}
+
+/// Whole days from one timestamp to another, truncated towards zero (Language Reference,
+/// section 3.8, "Differences").
+pub fn whole_days_between(start: i64, end: i64) -> i64 {
+    (end - start) / MICROS_PER_DAY
+}
+
 /// The calendar day a timestamp falls on, as days since 1970-01-01 (`DateTime` to `Date` drops
 /// the time, Language Reference section 3.7, "Conversions").
 pub fn days_of_micros(micros: i64) -> i32 {
@@ -574,6 +622,38 @@ mod tests {
         assert_eq!(civil_from_days(-1), (1969, 12, 31));
         assert_eq!(civil_from_days(MIN_DAYS), (1, 1, 1));
         assert_eq!(civil_from_days(MAX_DAYS), (9999, 12, 31));
+    }
+
+    #[test]
+    fn day_and_month_arithmetic() {
+        let d = |y, m, dd| days_from_civil(y, m, dd).unwrap();
+        assert_eq!(add_days(d(2026, 10, 16), 30), Some(d(2026, 11, 15)));
+        assert_eq!(add_days(d(2026, 10, 16), -16), Some(d(2026, 9, 30)));
+        assert_eq!(add_days(MAX_DAYS, 1), None);
+        assert_eq!(add_days(MIN_DAYS, -1), None);
+        assert_eq!(add_months(d(2026, 1, 31), 1), Some(d(2026, 2, 28)));
+        assert_eq!(add_months(d(2024, 1, 31), 1), Some(d(2024, 2, 29)));
+        assert_eq!(add_months(d(2026, 1, 31), 3), Some(d(2026, 4, 30)));
+        assert_eq!(add_months(d(2026, 3, 31), -1), Some(d(2026, 2, 28)));
+        assert_eq!(add_months(d(2026, 10, 16), 12), Some(d(2027, 10, 16)));
+        assert_eq!(add_months(d(2026, 10, 16), -22), Some(d(2024, 12, 16)));
+        assert_eq!(add_months(d(2026, 10, 16), 0), Some(d(2026, 10, 16)));
+        assert_eq!(add_months(d(9999, 12, 31), 1), None);
+        assert_eq!(add_months(d(1, 1, 31), -1), None);
+        assert_eq!(months_between(d(2026, 1, 31), d(2026, 2, 28)), 1);
+        assert_eq!(months_between(d(2026, 1, 31), d(2026, 2, 27)), 0);
+        assert_eq!(months_between(d(2026, 2, 28), d(2026, 1, 31)), 0);
+        assert_eq!(months_between(d(2026, 3, 31), d(2026, 1, 31)), -2);
+        assert_eq!(
+            months_between(d(2020, 2, 29), d(2026, 2, 28)),
+            72,
+            "six years, the day clamped"
+        );
+        assert_eq!(months_between(d(2026, 10, 16), d(2026, 10, 16)), 0);
+        assert_eq!(months_between(d(1, 1, 1), d(9999, 12, 31)), 9998 * 12 + 11);
+        assert_eq!(whole_days_between(0, MICROS_PER_DAY * 2 - 1), 1);
+        assert_eq!(whole_days_between(MICROS_PER_DAY * 2 - 1, 0), -1);
+        assert_eq!(whole_days_between(0, -MICROS_PER_DAY), -1);
     }
 
     #[test]

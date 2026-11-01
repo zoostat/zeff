@@ -155,6 +155,8 @@ control/dates/stdout e38631ee06f041b2
 control/dates/stderr 47d898bc828ad06f
 time/parts/stdout d8033b1412c3af05
 time/parts/stderr b241ae1a639a7caa
+time/arithmetic/stdout 90194801ed37b348
+time/arithmetic/stderr 94158a8c25e32dd5
 functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f

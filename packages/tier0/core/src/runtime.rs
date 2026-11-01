@@ -36,6 +36,14 @@ pub trait Files {
             .primary(span, "nowhere to write"),
         ))
     }
+
+    /// The machine's local wall-clock time, as microseconds since 1970-01-01 00:00:00 with no
+    /// zone (Language Reference, section 3.8: `now()` and `today()`), or `None` when the run
+    /// has no clock. The command line reads the machine's clock; tests and the conformance
+    /// cases fix one, so that a run never depends on when it happens unless it asks.
+    fn now(&self) -> Option<i64> {
+        None
+    }
 }
 
 /// The run's randomness (Engine and Project Specification, section 8.3, point 3): the seed the

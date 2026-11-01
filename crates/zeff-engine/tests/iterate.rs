@@ -48,7 +48,7 @@ fn iterate_converges_and_notes_the_passes() {
 #[test]
 fn done_true_after_the_first_step_gives_one_pass() {
     let out = run(
-        "/// Adds one.\nfn inc(s: Record) -> Record { {n: s.n + 1} }\n/// Always.\nfn now(old: Record, new: Record) -> Bool { true }\niterate(start: {n: 0}, step: inc, done: now)\n",
+        "/// Adds one.\nfn inc(s: Record) -> Record { {n: s.n + 1} }\n/// Always.\nfn always(old: Record, new: Record) -> Bool { true }\niterate(start: {n: 0}, step: inc, done: always)\n",
     );
     assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
     assert_eq!(out.output.stdout, "n: 1\n");

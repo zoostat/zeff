@@ -14,6 +14,8 @@ use std::path::Path;
 const PHRASES: &[(&str, &[&str])] = &[
     ("W0102", &["and a binding; the variable was used"]),
     ("W0805", &["iterate stopped at max:"]),
+    // A note with a code, printed as a note (open decision #45): `today()` and `now()`.
+    ("W0703", &["read the clock:"]),
     ("W0201", &["with NA in", "has no values", "have NA in"]),
     (
         "W0202",

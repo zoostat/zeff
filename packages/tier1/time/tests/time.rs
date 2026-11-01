@@ -7,8 +7,28 @@
 
 use proptest::prelude::*;
 use serde_json::Value as Json;
+use std::path::Path;
 use zeff_dates::{MAX_DAYS, MIN_DAYS, format_iso_date};
+use zeff_engine::fs::MemoryFileSystem;
+use zeff_engine::project::Project;
+use zeff_engine::run::{Outcome, run_script};
 use zeff_testkit::{root, run};
+
+/// A run under a fixed clock, 2026-11-01 09:30:00, as the examples and the conformance cases
+/// run (release 0.6.0, step 4).
+fn run_clocked(script: &str) -> Outcome {
+    let fs = MemoryFileSystem::new();
+    fs.set_clock(zeff_engine::examples::EXAMPLES_CLOCK);
+    fs.add_file(
+        "/c/zeff.toml",
+        format!(
+            "[project]\nname = \"c\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let project = Project::open(&fs, Path::new("/c")).unwrap();
+    run_script(&fs, &project, "scripts/main.zeff", script)
+}
 
 fn go(script: &str) -> (i32, String, String) {
     let outcome = run(script);
@@ -240,6 +260,133 @@ fn the_iso_week_agrees_with_r_at_every_year_boundary() {
     }
 }
 
+// ----- the arithmetic (step 4) -----
+
+/// A day count as R writes it, as the engine prints the day: `NA` outside the calendar, where
+/// R's proleptic calendar has a year 0 and years beyond 9999.
+fn calendar_day(days: &str) -> String {
+    match days.parse::<i64>() {
+        Ok(d) if (i64::from(MIN_DAYS)..=i64::from(MAX_DAYS)).contains(&d) => {
+            format_iso_date(d as i32)
+        }
+        _ => "NA".to_string(),
+    }
+}
+
+#[test]
+fn add_days_and_add_months_agree_with_r() {
+    let json = reference("time");
+    for (key, function) in [("add_days", "add_days"), ("add_months", "add_months")] {
+        let cases = json[key].as_array().unwrap();
+        let expressions: Vec<String> = cases
+            .iter()
+            .map(|c| {
+                format!(
+                    "{function}(date(\"{}\"), {})",
+                    c["d"].as_str().unwrap(),
+                    c["n"]
+                )
+            })
+            .collect();
+        let (lines, _) = printed(&expressions);
+        for (i, c) in cases.iter().enumerate() {
+            assert_eq!(
+                lines[i],
+                calendar_day(c["out"].as_str().unwrap()),
+                "{function}({}, {})",
+                c["d"],
+                c["n"]
+            );
+        }
+    }
+}
+
+#[test]
+fn days_between_and_months_between_agree_with_r() {
+    let json = reference("time");
+    let cases = json["between"].as_array().unwrap();
+    let expressions: Vec<String> = cases
+        .iter()
+        .flat_map(|c| {
+            let (a, b) = (c["a"].as_str().unwrap(), c["b"].as_str().unwrap());
+            [
+                format!("days_between(date(\"{a}\"), date(\"{b}\"))"),
+                format!("months_between(date(\"{a}\"), date(\"{b}\"))"),
+            ]
+        })
+        .collect();
+    let (lines, stderr) = printed(&expressions);
+    assert_eq!(stderr, "");
+    for (i, c) in cases.iter().enumerate() {
+        assert_eq!(
+            lines[2 * i],
+            c["days"].to_string(),
+            "days {} to {}",
+            c["a"],
+            c["b"]
+        );
+        assert_eq!(
+            lines[2 * i + 1],
+            c["months"].to_string(),
+            "months {} to {}",
+            c["a"],
+            c["b"]
+        );
+    }
+    let pairs = json["time_days"].as_array().unwrap();
+    let expressions: Vec<String> = pairs
+        .iter()
+        .map(|c| {
+            format!(
+                "days_between(datetime(\"{}\"), datetime(\"{}\"))",
+                c["a"].as_str().unwrap(),
+                c["b"].as_str().unwrap()
+            )
+        })
+        .collect();
+    let (lines, _) = printed(&expressions);
+    for (i, c) in pairs.iter().enumerate() {
+        assert_eq!(lines[i], c["days"].to_string(), "{} to {}", c["a"], c["b"]);
+    }
+}
+
+#[test]
+fn today_and_now_read_the_run_clock_and_note_it() {
+    let outcome = run_clocked(
+        "today()\nnow()\nlet t = today()\ndays_between(t, date(\"2027-01-01\"))\nyear(now())\nto(now(), Date) == today()\n",
+    );
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert_eq!(
+        outcome.output.stdout,
+        "2026-11-01\n2026-11-01T09:30:00\n61\n2026\ntrue\n"
+    );
+    assert_eq!(
+        outcome.output.stderr.matches("read the clock").count(),
+        6,
+        "{}",
+        outcome.output.stderr
+    );
+    insta::assert_snapshot!("clock_notes", outcome.output.stderr);
+    // Inside a function the clock is refused (Z0110), as `import` is.
+    let inside = run_clocked(
+        "/// The day.\n/// returns: Today.\n/// > day_of()\n/// 2026-11-01\nfn day_of() -> Date { today() }\nday_of()\n",
+    );
+    assert_eq!(inside.exit_code, 1);
+    assert!(
+        inside.output.stderr.contains("Z0110"),
+        "{}",
+        inside.output.stderr
+    );
+    // A run without a clock cannot answer: an internal error, never a guess.
+    let unclocked = run("today()\n");
+    assert_eq!(unclocked.exit_code, 2, "{}", unclocked.output.stderr);
+    assert!(
+        unclocked.output.stderr.contains("no clock"),
+        "{}",
+        unclocked.output.stderr
+    );
+}
+
 // ----- edge cases, columns and methods -----
 
 #[test]
@@ -266,6 +413,16 @@ let f = frame(s = ["2026-01-05", "no", "2024-12-30", "2026-02-30"])
 let g = f.add(d = date(s))
 g.add(y = year(d), m = month(d), dd = day(d), wd = weekday(d), q = quarter(d), w = week(d))
 f.add(t = datetime(s)).add(y = year(t), w = week(t))
+add_days(date("2026-10-16"), 0)
+add_months(date("2026-01-31"), 1)
+add_months(date("2026-02-28"), -1)
+add_months(datetime("2026-01-31T09:30:00.5"), 1)
+add_days(datetime("2026-10-16T23:59:59"), 1)
+days_between(datetime("2026-01-01T00:00"), datetime("2026-01-01T23:59:59"))
+months_between(date("2026-01-31"), date("2026-01-31"))
+months_between(date("0001-01-01"), date("9999-12-31"))
+g.add(next = add_days(d, 1), later = add_months(d, 1), gap = days_between(d, date("2026-11-01")), m = months_between(date("2020-01-01"), d))
+add_days(date("0001-01-01"), -1)
 "#;
     let (code, stdout, stderr) = go(script);
     assert_eq!(code, 0, "{stderr}");
@@ -289,6 +446,17 @@ fn every_message() {
         "let f = frame(s = [\"2026-10-16\", \"no\", \"x\"])\nf.add(d = date(s))\n",
         "let f = frame(s = [\"2026-10-16T09:30:00Z\", \"2026-10-16T09:30:00+02:00\", \"no\"])\nf.add(t = datetime(s))\n",
         "let f = frame(s = [\"16/10/2026\", \"no\"])\nf.add(d = date(s, format: \"%d/%m/%Y\"))\n",
+        // The arithmetic (step 4): outside the calendar, the wrong types, and mixed dates and
+        // times.
+        "add_days(date(\"9999-12-31\"), 1)\n",
+        "add_months(date(\"0001-01-31\"), -1)\n",
+        "let f = frame(d = [date(\"9999-12-31\"), date(\"2026-10-16\")])\nf.add(e = add_days(d, 1))\n",
+        "add_days(date(\"2026-10-16\"), 1.5)\n",
+        "add_days(\"2026-10-16\", 1)\n",
+        "days_between(date(\"2026-10-16\"), datetime(\"2026-10-16T09:30\"))\n",
+        "days_between(date(\"2026-10-16\"), 7)\n",
+        "date(\"2026-10-16\") + 7\n",
+        "today(1)\n",
     ];
     let mut out = String::new();
     for script in scripts {
@@ -330,5 +498,28 @@ proptest! {
             prop_assert_eq!(lines[5 * i + 3], (i64::from(y) * 10000 + i64::from(m) * 100 + i64::from(dd)).to_string());
             prop_assert_eq!(lines[5 * i + 4], "1");
         }
+    }
+
+    /// Moving by days and counting them agree; a month forward and back returns to the day
+    /// unless it was clamped; months between a day and its move are the move.
+    #[test]
+    fn moves_and_differences_agree(
+        days in MIN_DAYS + 400..=MAX_DAYS - 400,
+        n in -365i64..=365,
+        m in -12i64..=12,
+    ) {
+        let text = format_iso_date(days);
+        let script = format!(
+            "let d = date(\"{text}\")\nprint(days_between(d, add_days(d, {n})))\nprint(add_days(add_days(d, {n}), -({n})) == d)\nprint(months_between(d, add_months(d, {m})))\nprint(add_months(add_months(d, {m}), -({m})) <= d)\nprint(day(add_months(d, {m})) <= day(d))\n"
+        );
+        let (code, stdout, stderr) = go(&script);
+        prop_assert_eq!(code, 0, "{}", stderr);
+        prop_assert_eq!(stderr, "");
+        let lines: Vec<&str> = stdout.lines().collect();
+        prop_assert_eq!(lines[0], n.to_string());
+        prop_assert_eq!(lines[1], "true");
+        prop_assert_eq!(lines[2], m.to_string());
+        prop_assert_eq!(lines[3], "true");
+        prop_assert_eq!(lines[4], "true");
     }
 }

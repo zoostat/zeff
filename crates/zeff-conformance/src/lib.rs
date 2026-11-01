@@ -1054,15 +1054,21 @@ fn time_cases() -> Vec<Line> {
             zeff_engine::VERSION
         ),
     );
+    // The clock of the case: 2026-11-01 09:30:00, as the examples' clock is.
+    fs.set_clock(zeff_engine::examples::EXAMPLES_CLOCK);
     let project = match Project::open(&fs, Path::new("/t")) {
         Ok(project) => project,
         Err(_) => return vec![text("time/parts", "the project did not open")],
     };
     let script = "date(\"2026-10-16\")\ndate(\"16/10/2026\", format: \"%d/%m/%Y\")\ndate(\"Oct 16, 2026\", format: \"%b %d, %Y\")\ndate(\"2026-02-30\")\ndatetime(\"2026-10-16T09:30:00.25\")\ndatetime(\"2026-10-16T09:30:00+02:00\")\ndatetime(\"2026-10-16\")\nlet d = date(\"2021-01-03\")\n[year(d), month(d), day(d), weekday(d), quarter(d), week(d)]\nlet t = datetime(\"1999-12-31T23:59:59\")\n[year(t), month(t), day(t), weekday(t), quarter(t), week(t)]\nlet f = frame(s = [\"2026-01-01\", \"2024-12-30\", \"0001-01-01\", \"9999-12-31\", \"no\"])\nf.add(d = date(s)).add(y = year(d), m = month(d), dd = day(d), wd = weekday(d), q = quarter(d), w = week(d))\n";
     let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    let arithmetic = "let d = date(\"2026-01-31\")\nadd_days(d, 30)\nadd_days(d, -31)\nadd_months(d, 1)\nadd_months(date(\"2024-01-31\"), 1)\nadd_months(d, -11)\nadd_months(date(\"9999-12-31\"), 1)\ndays_between(d, date(\"2026-03-01\"))\ndays_between(datetime(\"2026-01-31T23:00\"), datetime(\"2026-02-02T22:59\"))\nmonths_between(d, date(\"2026-02-28\"))\nmonths_between(date(\"2026-03-31\"), d)\nadd_days(datetime(\"2026-01-31T09:30\"), 1)\nlet f = frame(d = [d, date(\"2024-02-29\"), date(\"0001-01-01\")])\nf.add(later = add_months(d, 12), gap = days_between(d, date(\"2026-11-01\")), back = add_days(d, -1))\ntoday()\nnow()\ndays_between(today(), date(\"2027-01-01\"))\n";
+    let moved = run_script(&fs, &project, "scripts/main.zeff", arithmetic);
     vec![
         text("time/parts/stdout", &outcome.output.stdout),
         text("time/parts/stderr", &outcome.output.stderr),
+        text("time/arithmetic/stdout", &moved.output.stdout),
+        text("time/arithmetic/stderr", &moved.output.stderr),
     ]
 }
 

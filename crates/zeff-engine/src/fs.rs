@@ -40,6 +40,14 @@ pub trait FileSystem {
 
     /// Remove a folder and everything in it.
     fn remove_dir_all(&self, path: &Path) -> io::Result<()>;
+
+    /// The machine's local wall-clock time as microseconds since 1970-01-01 00:00:00, with no
+    /// zone, for `today()` and `now()`; `None` when this file system has no clock. The plain
+    /// file system has none: the command line wraps it with the machine's clock, so that the
+    /// engine itself never reads one.
+    fn now(&self) -> Option<i64> {
+        None
+    }
 }
 
 /// The files of the machine the engine runs on.
@@ -95,6 +103,8 @@ pub struct MemoryFileSystem {
 struct MemoryState {
     files: BTreeMap<PathBuf, Vec<u8>>,
     dirs: BTreeSet<PathBuf>,
+    /// A fixed clock, set by `set_clock`.
+    clock: Option<i64>,
 }
 
 fn not_found(path: &Path) -> io::Error {
@@ -141,6 +151,13 @@ impl MemoryFileSystem {
         }
     }
 
+    /// Fix the clock `today()` and `now()` read: microseconds since 1970-01-01 00:00:00.
+    pub fn set_clock(&self, micros: i64) {
+        if let Ok(mut state) = self.state.lock() {
+            state.clock = Some(micros);
+        }
+    }
+
     /// Add an empty folder, and the folders above it.
     pub fn add_dir(&self, path: impl AsRef<Path>) {
         let path = normal(path.as_ref());
@@ -163,6 +180,10 @@ impl MemoryFileSystem {
 }
 
 impl FileSystem for MemoryFileSystem {
+    fn now(&self) -> Option<i64> {
+        self.with(|s| Ok(s.clock)).unwrap_or(None)
+    }
+
     fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
         let path = normal(path);
         self.with(|s| s.files.get(&path).cloned().ok_or_else(|| not_found(&path)))

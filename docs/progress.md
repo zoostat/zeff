@@ -161,3 +161,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** Step 4 `[function]`: the `time` package, part 2 (`add_days`, `add_months`, `days_between`, `months_between`, `today`, `now`).
 
 **For the owner to decide.** Nothing new.
+
+## 1 November 2026, step 4 of release 0.6.0
+
+**Done.** Step 4 `[function]`: the `time` package, part 2: `add_days` and `add_months` (clamped to the month's end, `NA` outside the calendar with W0203), `days_between` (whole days, truncated, on times; a date beside a time refused with Z0401) and `months_between` under the same clamping; `today()` and `now()` from a clock the run is given (an interface on the file systems: fixed in memory for the tests, the examples and the conformance cases, the machine's local wall-clock time through `chrono` in the command line alone), each use noted (W0703). Catalogue rows 69, 70 and 77 to 80 implemented; the conformance report gains `time/arithmetic`. Tests: `time.R` extended (exact), the crate's `time.rs` with the clock, messages and properties, the six pages' examples. The figures of step 3's CI run are recorded in `docs/decisions.md` (bundle 1,466.7 kB, cold start 93.6 ms; both within their limits). The ruling is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (116 codes, W0703 new) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 5 `[function]`: `format`, and the `text` package.
+
+**For the owner to decide.** Nothing new.
