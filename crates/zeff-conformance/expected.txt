@@ -165,6 +165,8 @@ panel/lags/stdout 22d72fb766c737b7
 panel/lags/stderr 4ab71cb823a2f7ac
 panel/running/stdout 9dbb606b466e3fa2
 panel/running/stderr 2fbf395b8f20ee5c
+functions/quantile_group/stdout 928a4363a0655d30
+functions/quantile_group/stderr 9fb2e66cac759893
 functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f

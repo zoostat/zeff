@@ -19,8 +19,6 @@ error[Z0103]: no function is called `aggregate`
  --> zeff_samples.zeff:68:30
 error[Z0103]: no function is called `save`
  --> zeff_samples.zeff:72:36
-error[Z0103]: no function is called `winsorize`
- --> zeff_samples.zeff:79:33
 error[Z0404]: `reg` has no argument called `fe`
  --> zeff_samples.zeff:88:23
 error[Z0404]: `reg` has no argument called `fe`

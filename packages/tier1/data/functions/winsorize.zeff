@@ -1,0 +1,52 @@
+/// Cap values below the at quantile and above the 1 − at quantile.
+///
+/// Each value brought within the sample quantiles at `at:` and `1 - at`: a value below the
+/// lower quantile becomes that quantile, one above the upper becomes that, and the rest stay as
+/// they are. It is `clamp(x, quantile(x, at), quantile(x, 1 - at))` with the quantile of type 7,
+/// R's default, so that an outlier is pulled in rather than dropped and the count of rows is
+/// unchanged. The quantiles are taken over the values present, with the reducers' warning for
+/// the rows with `NA` skipped (section 4.1 of the Language Reference), once for each quantile,
+/// and those rows stay `NA`. `at: 0` changes nothing, since the cut points are then the smallest
+/// and largest values; `at: 0.5` makes every value the median; a share outside 0 to 0.5 is
+/// refused (Z0001, the code of a check inside a function). Under `by:` the cut points are taken within each group. Like
+/// DescTools' `Winsorize(x, probs = c(at, 1 - at))` and Stata's `winsor2 x, cuts(1 99)`.
+///
+/// x: The column to winsorise.
+/// at: The share cut at each end, between 0 and 0.5; 0.01 unless given, so that the lowest and the highest one per cent are capped.
+/// returns: A `Column<Float>` of the same length, `NA` where `x` is.
+/// details: Closed form: the two quantiles come from `quantile` under definition 7 and each value is then `min(max(x, low), high)`, exactly R's `pmin(pmax(x, quantile(x, at)), quantile(x, 1 - at))`; nothing else is computed.
+/// reference: Hyndman, R. J. and Fan, Y. (1996) Sample quantiles in statistical packages, The American Statistician 50(4), 361–365.
+/// reference: Signorell, A., the `Winsorize` function of the DescTools package; Stata's `winsor2` command.
+/// see also: clamp, quantile, quantile_group, bin
+/// > let d = frame(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 100])
+/// > d.add(w = winsorize(x, at: 0.1))
+/// frame · 10 rows × 2 variables
+///
+///          x      w
+///    1     1    1.9
+///    2     2      2
+///    3     3      3
+///    4     4      4
+///    5     5      5
+///    6     6      6
+///    7     7      7
+///    8     8      8
+///    9     9      9
+///   10   100   18.1
+/// > winsorize(d["x"])
+/// Column<Float> · 10 values
+/// 1.09
+/// 2
+/// 3
+/// 4
+/// 5
+/// 6
+/// 7
+/// 8
+/// 9
+/// 91.81
+fn winsorize(x: Column<Float>, at: Float = 0.01) -> Column<Float> {
+    assert(at >= 0 && at <= 0.5, "`at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross")
+    let f = frame(value = x)
+    clamp(x, f.quantile(value, at), f.quantile(value, 1 - at))
+}

@@ -1108,6 +1108,10 @@ fn panel_cases() -> Vec<Line> {
     // the four tie rules, and bins with open ends, both closures, labels and a value outside.
     let running = "let s = frame(shop = [\"a\", \"a\", \"b\", \"b\", \"b\"], sales = [120, 80, NA, 150, 90], growth = [1.1, 0.9, 1.25, 1.0, 0.8])\ns.add(to_date = running_sum(sales), index = running_product(growth))\ns.add(so_far = running_sum(sales), by: shop)\nlet r = frame(name = [\"Ann\", \"Bo\", \"Cy\", \"Di\", \"Ed\"], score = [72.5, 90, 72.5, NA, 60])\nr.add(avg = rank(score), low = rank(score, ties: min), high = rank(score, ties: max), first = rank(score, ties: first))\nlet pay = frame(wage = [18.08, 8.5, 20.93, 15.68, 26.39, 33.07, NA])\npay.add(band = bin(wage, breaks: [-Inf, 10, 20, Inf]), left = bin(wage, breaks: [0, 10, 20], labels: [\"low\", \"high\"], closed: left), narrow = bin(wage, breaks: [10, 20]), fine = bin(wage, breaks: [0, 2.5, 1000, 123456, Inf]))\nframe(x = [9223372036854775800, 10]).add(s = running_sum(x))\n";
     let ran = run_script(&fs, &project, "scripts/main.zeff", running);
+    // `quantile_group` and `winsorize` (step 10): quartiles and tertiles under two definitions,
+    // ties at the cut points, groups within `by:`, and the capped values at two shares.
+    let grouped = "let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], x = [5, 1, 9, 3, 7, NA, 2, 8])\nd.add(quartile = quantile_group(x, n: 4), third = quantile_group(x, n: 3, type: 1), within = quantile_group(x, n: 2), by: g)\nframe(x = [1, 1, 1, 1, 2]).add(q = quantile_group(x, n: 4))\nlet w = dataset(wages).head(12)\nw.add(decile = quantile_group(wage, n: 10), capped = winsorize(wage, at: 0.1), one = winsorize(wage)).select([worker, year, wage, decile, capped, one])\nframe(x = [1.0, 2]).add(w = winsorize(x, at: 0.6))\n";
+    let grouped_outcome = run_script(&fs, &project, "scripts/main.zeff", grouped);
     vec![
         text("panel/declare/stdout", &outcome.output.stdout),
         text("panel/declare/stderr", &outcome.output.stderr),
@@ -1115,6 +1119,14 @@ fn panel_cases() -> Vec<Line> {
         text("panel/lags/stderr", &moved.output.stderr),
         text("panel/running/stdout", &ran.output.stdout),
         text("panel/running/stderr", &ran.output.stderr),
+        text(
+            "functions/quantile_group/stdout",
+            &grouped_outcome.output.stdout,
+        ),
+        text(
+            "functions/quantile_group/stderr",
+            &grouped_outcome.output.stderr,
+        ),
     ]
 }
 

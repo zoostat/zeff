@@ -13,7 +13,7 @@ relative 1e-12, the class tolerance of the distribution functions, since R's `pg
 carry errors of that order in their far tails on some platforms. `frames.json` holds only row
 numbers and is compared byte for byte by the workflow itself.
 
-Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|dates|time|format|panel|running <committed.json> <regenerated.json>
+Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|dates|time|format|panel|running|quantile_group <committed.json> <regenerated.json>
 
 `dates.json`, `time.json` and `format.json` hold day counts, texts, seconds, date parts and ISO texts, which are exact on every platform, and are compared exactly apart from the software line.
 """
@@ -22,7 +22,7 @@ import json
 import math
 import sys
 
-TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "dates": 0.0, "time": 0.0, "format": 0.0, "panel": 0.0, "running": 0.0}
+TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "dates": 0.0, "time": 0.0, "format": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0}
 
 
 def number(text):
@@ -245,7 +245,7 @@ def main(which, committed_path, regenerated_path):
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design, "regression": check_regression, "dates": check_dates, "time": check_dates, "format": check_dates, "panel": check_dates, "running": check_dates}
+    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design, "regression": check_regression, "dates": check_dates, "time": check_dates, "format": check_dates, "panel": check_dates, "running": check_dates, "quantile_group": check_dates}
     if which in checks:
         checks[which](committed, regenerated, problems)
     else:

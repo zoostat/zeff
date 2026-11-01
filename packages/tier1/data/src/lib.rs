@@ -1071,6 +1071,27 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "quantile_group",
+                package: "data",
+                method: false,
+                params: vec![
+                    ParamSpec::required("x", "Column<Int> | Column<Float>"),
+                    ParamSpec::option("n", "Int"),
+                    ParamSpec::option_with_default("type", "Int", "7"),
+                ],
+                rest: None,
+                returns: "Column<Int>",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0406", "n: missing"),
+                    DiagnosticDecl::new("Z0401", "n: below 1, or type: outside 1 to 9"),
+                ],
+                help: include_str!("../help/quantile_group.md"),
+                accuracy: None,
+            },
+            body: column_functions::quantile_group,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "row_mean",
                 package: "data",
                 method: false,
@@ -1112,7 +1133,8 @@ pub fn functions() -> Vec<Function> {
 /// The functions of `data` written in Zeff, one `functions/*.zeff` file each (Engine and Project
 /// Specification, section 9.1, "Files"), compiled in; the engine parses, checks and lowers them
 /// when it starts: `between`, `center` and `standardize` (release 0.5.0, step 16), `iqr` and
-/// `mad` (step 19), `skewness` and `kurtosis` (step 20); `summary` follows at step 22.
+/// `mad` (step 19), `skewness` and `kurtosis` (step 20), `winsorize` (release 0.6.0, step 10);
+/// `summary` follows at step 22.
 pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
     vec![
         zeff_registry::ZeffSource {
@@ -1156,6 +1178,12 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             name: "kurtosis",
             file: "data/functions/kurtosis.zeff",
             text: include_str!("../functions/kurtosis.zeff"),
+        },
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "winsorize",
+            file: "data/functions/winsorize.zeff",
+            text: include_str!("../functions/winsorize.zeff"),
         },
     ]
 }

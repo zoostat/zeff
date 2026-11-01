@@ -175,3 +175,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 10 `[function]`: `quantile_group`, `winsorize`.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 10
+
+**Done.** Step 10 `[function]`: `quantile_group` and `winsorize`. `winsorize` in Zeff as planned, R's `pmin(pmax())` on the type-7 quantiles, a share outside 0 to 0.5 refused; `quantile_group` in Rust on the kernel's quantile, since a Zeff body cannot build the probabilities i/n exactly (row 131's layer corrected and logged; open decision #79 raised, a `map` over lists or list arithmetic, recommended for 0.7.0), tied values sharing a group and empty groups keeping Stata's numbering. Two pages; R's values (`tests/reference/r/quantile_group.R`, in CI) held exactly under all nine quantile definitions; the conformance case `functions/quantile_group` published.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 11 `[function]`: `distinct`, `duplicates`, `sample`.
+
+**For the owner to decide.** Nothing new; open decision #79 falls due at 0.7.0.

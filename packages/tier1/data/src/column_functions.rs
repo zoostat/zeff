@@ -6,6 +6,9 @@
 //! `running_product` is Float, as R's `cumprod`; `rank` keeps `NA` as R's `na.last = "keep"`;
 //! and `bin` is R's `cut`: an ordered category whose levels are the intervals, labelled as R
 //! labels them unless `labels:` is given, a value outside every interval `NA` with W0210.
+//! `quantile_group` (row 131; step 10) is here rather than in Zeff because a body written in
+//! Zeff cannot build the probabilities i/n exactly (open decision #79): it cuts at the sample
+//! quantiles of the kernel, the same bits as `quantile`.
 
 use zeff_columns::{Column, ColumnError, ColumnType, Key, sort_rows};
 use zeff_core::display::format_float;
@@ -517,6 +520,92 @@ pub fn bin(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         other => internal(ctx, format!("{other:?}")),
     })?;
     Ok(Value::Column(column.with_ordered(true)))
+}
+
+/// `quantile_group(x, n:, type:)`: the group 1 to `n` whose cut points are the sample quantiles
+/// at i/n under the definition `type:` names; a value equal to a cut point falls in the group
+/// below it, so tied values share a group, and `NA` stays `NA`. When two cut points coincide the
+/// groups between them are empty and the numbering is kept, as Stata's `xtile` keeps it.
+pub fn quantile_group(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let x = numeric_column(ctx, "quantile_group", &args)?;
+    let n = match args.get(1) {
+        Some(Value::Int(n)) if *n >= 1 => *n,
+        Some(other) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`n:` of `quantile_group` is a count of groups of at least 1, but this is {}",
+                        match other {
+                            Value::Int(n) => n.to_string(),
+                            Value::Na => "NA".to_string(),
+                            other => other.type_word(),
+                        }
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(1), "not a count of groups")
+                .help("`quantile_group(x, n: 4)` gives quartile groups 1 to 4; `n: 10` deciles"),
+            ));
+        }
+        None => {
+            return Err(fail(
+                Diagnostic::error("Z0406", "`quantile_group` needs `n:`")
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "`n:` is missing")
+                    .help("usage: `quantile_group(x, n: 4)` for quartile groups"),
+            ));
+        }
+    };
+    let kind = match args.get(2) {
+        None => 7u8,
+        Some(Value::Int(t)) if (1..=9).contains(t) => *t as u8,
+        Some(other) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`type:` of `quantile_group` must be one of the nine definitions, 1 to 9, not {}",
+                        match other {
+                            Value::Int(t) => t.to_string(),
+                            Value::Na => "NA".to_string(),
+                            other => other.type_word(),
+                        }
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(2), "not a quantile definition")
+                .help("`type: 7` is R's default; Hyndman and Fan (1996) number the nine definitions"),
+            ));
+        }
+    };
+    let values: Vec<Option<f64>> = match x.ty() {
+        ColumnType::Int => x
+            .as_ints()
+            .expect("an Int column")
+            .map(|v| v.map(|v| v as f64))
+            .collect(),
+        _ => x.as_floats().expect("a Float column").collect(),
+    };
+    let mut present: Vec<f64> = values.iter().flatten().copied().collect();
+    present.sort_by(|a, b| a.partial_cmp(b).expect("no NaN in a column"));
+    let cuts: Vec<f64> = if present.is_empty() {
+        Vec::new()
+    } else {
+        (1..n)
+            .map(|i| {
+                zeff_numeric::order::quantile(&present, i as f64 / n as f64, kind)
+                    .expect("a quantile of values present")
+            })
+            .collect()
+    };
+    let groups = values.iter().map(|v| {
+        if present.is_empty() {
+            return None;
+        }
+        v.map(|v| 1 + cuts.iter().filter(|c| **c < v).count() as i64)
+    });
+    Ok(Value::Column(Column::ints(groups)))
 }
 
 #[cfg(test)]

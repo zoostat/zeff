@@ -484,10 +484,10 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&core)
     );
-    let later = zeff(dir.path(), &["help", "winsorize"]);
+    let later = zeff(dir.path(), &["help", "distinct"]);
     assert_eq!(code(&later), 0);
     assert!(
-        out(&later).starts_with("`winsorize` arrives with release 0.6.0, in the `data` package: "),
+        out(&later).starts_with("`distinct` arrives with release 0.6.0, in the `data` package: "),
         "{}",
         out(&later)
     );

@@ -117,6 +117,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 75 | The data viewer and the environment browser, made excellent | Frozen columns, a statistics header per column, search, a live row count under a filter; Objects as a tree with memory per object; Lite's viewer read-only | 0.8.0 |
 | 76 | Traceback, run to here and the loop inspector | The full call chain of an error through module functions; run to a line; one row per loop pass and per `iterate` state from the run record; no breakpoints or stepping | 0.7.0 |
 | 77 | Schema-aware completion and extract function | Completion from the schema pass (the columns of the frame at that point in the chain) at 0.7.0; extract function with inferred parameters, a page skeleton and the same-bytes check at 1.1 | 0.7.0 |
+| 79 | Arithmetic over lists, or a map, in a Zeff-written built-in | A `map(list, f)` over a function value, or `+`, `-`, `*` and `/` lifted over a list as they are over a column, so that `quantile_group` can build its probabilities i/n exactly and be rewritten in Zeff | 0.7.0 |
 | 78 | Git history, the diff of a script and a diff of results | History and script diffs in the Git panel, and a table of every output of two commits' run records, identical to the bit or traced to the statement that changed; merges and pull requests left to the system terminal | 1.1 |
 
 ---
@@ -1002,3 +1003,15 @@ Raised on 1 November 2026 from the owner's request for more advanced Git and pro
 | B. The panel as written, everything else in the terminal | Nothing to add | A researcher asks "what changed in my numbers since last week" and the tool, which knows, does not answer |
 
 *Recommendation.* A at 1.1 with the Git panel, the results diff reading the run records the project keeps. Deadline: 1.1.
+
+### 79. Arithmetic over lists, or a map, in a Zeff-written built-in
+
+Raised on 2 November 2026 at step 10 of release 0.6.0. `quantile_group(x, n:, type:)` was planned in Zeff as `to(bin(x, breaks: the quantiles at i/n), Int)`, and `quantile` takes its probabilities as a list; but a body written in Zeff cannot make the list 1/n to (n − 1)/n: `seq(1, n - 1)` is a list of Ints, `/` does not apply to a list (Z0221), no function maps over a list, and `seq(1 / n, 1 - 1 / n, step: 1 / n)` reaches each probability as `1/n + i × 1/n`, within a rounding of i/n but not the value R's `quantile` is given, so the groups could differ from R's at a cut point. The function is written in Rust at 0.6.0, its `layer` corrected (logged). The same limit will meet every Zeff-written function that computes with a list of numbers.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Lift the arithmetic operators over lists as they are lifted over columns, so that `seq(1, n - 1) / n` is a list of Floats | No new function; reads as the mathematics | A list is a value of the language, not data, and `[1, 2] + [3]` needs a rule for lengths; a list of Str or Bool under `+` needs a message |
+| B. A `map(list, f)` over a function value (section 3.7, "Functions as values"), `map(seq(1, n - 1), fn(i) i / n)`, with `filter` and `reduce` beside it | General: every computation over a list becomes expressible; a project's own functions gain the same | A function literal in an expression is new grammar, and the three functions are three catalogue rows to freeze in `core` before 1.0 |
+| C. Keep such functions in Rust | Nothing to build | Every Zeff-written function over a list of numbers stays Rust |
+
+*Recommendation.* B, at 0.7.0 with #68 to #70, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for row 131 then. Deadline: 0.7.0.

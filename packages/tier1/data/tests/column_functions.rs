@@ -257,9 +257,9 @@ proptest! {
     ) {
         let breaks = [0.0, 2.0, 4.0, 6.0, 8.0];
         let labels = ["b0", "b1", "b2", "b3"];
-        // The first row always holds a value, so the column has a type.
+        // The first row always holds a value inside an interval, so both columns have a type.
         let mut values = values;
-        values[0] = values[0].or(Some(3));
+        values[0] = Some(3);
         let expect: Vec<String> = values.iter().map(|v| match v {
             None => "NA".to_string(),
             Some(v) => {

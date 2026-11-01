@@ -226,3 +226,7 @@ Z0602, a panel function (`lag`, `lead`, `diff`, `fill_forward`) outside `add` or
 ## 2 November 2026 — zeff_language_reference.md, section 11 (both tables of codes)
 
 W0210, a value of `bin` outside every interval of its breaks, which becomes `NA` with a warning giving the count: section 4.2 describes `bin` by R's `cut` and names no code for the values `cut` makes `NA`; the next free number of the values family, as the checklist's ruling on provisional codes says (step 9 of release 0.6.0).
+
+## 2 November 2026 — zeff_functions.csv, row 131
+
+Row 131's `layer` goes from Zeff to Rust with the reason in its notes: `quantile_group` needs the probabilities 1/n to (n − 1)/n as a list, and a body written in Zeff has no arithmetic over lists and no function to map over one, while `seq` with a fractional step reaches each probability within a rounding, which is not the exact value R's `quantile` is given (open decision #79, as `row_mean` and `row_sum` at 0.5.0 and `diff` at step 8). The status column records the function as implemented.
