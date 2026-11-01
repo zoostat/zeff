@@ -437,6 +437,40 @@ impl Column {
         }
     }
 
+    /// The rows at `rows`, in that order, with `NA` where a position is `None`: what `lag`,
+    /// `lead` and `fill_forward` build, each row taking its value from another row or none.
+    pub fn take_optional(&self, rows: &[Option<usize>]) -> Column {
+        let indices: arrow_array::UInt64Array = rows.iter().map(|r| r.map(|r| r as u64)).collect();
+        let data = match &self.data {
+            Data::Category(a, info) => {
+                let keys: Int32Array = rows
+                    .iter()
+                    .map(|r| r.and_then(|r| (!a.is_null(r)).then(|| a.keys().value(r))))
+                    .collect();
+                Data::Category(
+                    DictionaryArray::<Int32Type>::new(keys, a.values().clone()),
+                    *info,
+                )
+            }
+            Data::Opaque(kind, a) => Data::Opaque(
+                *kind,
+                arrow_select::take::take(a.as_ref(), &indices, None)
+                    .expect("row positions within the column"),
+            ),
+            _ => {
+                let taken = arrow_select::take::take(self.to_arrow().as_ref(), &indices, None)
+                    .expect("row positions within the column");
+                Column::from_arrow(taken, self.ty())
+                    .expect("the taken array has the column's type")
+                    .data
+            }
+        };
+        Column {
+            data,
+            metadata: self.metadata.clone(),
+        }
+    }
+
     // ----- typed access: `None` when the column is of another type -----
 
     pub fn as_bools(&self) -> Option<impl Iterator<Item = Option<bool>> + '_> {

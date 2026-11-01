@@ -7,6 +7,7 @@ pub mod labels;
 pub mod look;
 pub mod names;
 pub mod panel;
+pub mod panel_functions;
 pub mod reducers;
 pub mod rows;
 pub mod verbs;
@@ -892,6 +893,96 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: verbs::drop_missing,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "lag",
+                package: "data",
+                method: false,
+                params: vec![
+                    ParamSpec::required("x", "Column"),
+                    ParamSpec::option_with_default("n", "Int", "1"),
+                ],
+                rest: None,
+                returns: "Same",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0602",
+                        "outside add or update, or a frame with no panel declaration",
+                    ),
+                    DiagnosticDecl::new("Z0401", "n: below 1 or NA"),
+                    DiagnosticDecl::new("Z0217", "a column of another frame"),
+                ],
+                help: include_str!("../help/lag.md"),
+                accuracy: None,
+            },
+            body: panel_functions::lag,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "lead",
+                package: "data",
+                method: false,
+                params: vec![
+                    ParamSpec::required("x", "Column"),
+                    ParamSpec::option_with_default("n", "Int", "1"),
+                ],
+                rest: None,
+                returns: "Same",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0602",
+                        "outside add or update, or a frame with no panel declaration",
+                    ),
+                    DiagnosticDecl::new("Z0401", "n: below 1 or NA"),
+                    DiagnosticDecl::new("Z0217", "a column of another frame"),
+                ],
+                help: include_str!("../help/lead.md"),
+                accuracy: None,
+            },
+            body: panel_functions::lead,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "diff",
+                package: "data",
+                method: false,
+                params: vec![
+                    ParamSpec::required("x", "Column<Int> | Column<Float>"),
+                    ParamSpec::option_with_default("n", "Int", "1"),
+                ],
+                rest: None,
+                returns: "Same",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0602",
+                        "outside add or update, or a frame with no panel declaration",
+                    ),
+                    DiagnosticDecl::new("Z0401", "n: below 1 or NA"),
+                    DiagnosticDecl::new("Z0217", "a column of another frame"),
+                    DiagnosticDecl::new("Z0211", "an Int difference that does not fit in 64 bits"),
+                ],
+                help: include_str!("../help/diff.md"),
+                accuracy: None,
+            },
+            body: panel_functions::diff,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "fill_forward",
+                package: "data",
+                method: false,
+                params: vec![ParamSpec::required("x", "Column")],
+                rest: None,
+                returns: "Same",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0602", "outside add or update"),
+                    DiagnosticDecl::new("Z0217", "a column of another frame"),
+                ],
+                help: include_str!("../help/fill_forward.md"),
+                accuracy: None,
+            },
+            body: panel_functions::fill_forward,
         },
         Function {
             spec: FunctionSpec {

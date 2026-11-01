@@ -155,3 +155,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 8 `[function]`: `lag`, `lead`, `diff`, `fill_forward`.
 
 **For the owner to decide.** Nothing new.
+
+## 1 November 2026: step 8
+
+**Done.** Step 8 `[function]`: `lag`, `lead`, `diff` and `fill_forward` inside `add` and `update` of a declared panel, by the exact period (a gap gives `NA`, as in Stata), the row order playing no part; `fill_forward` within units in time order on a panel and down the rows otherwise, with `by:`; refusals without a declaration or outside a verb (Z0602, the new code in section 11's table and logged), with a column of another frame (Z0217) and with `n:` below 1 (Z0401); `diff` written in Rust since a Zeff body has no handle on the enclosing frame (row 127, logged; open decision #69). Four help pages; R's values (`tests/reference/r/panel.R`, in CI) held exactly on a generated panel and a slice of `wages`; the conformance case `panel/lags` published.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (118 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 9 `[function]`: `running_sum`, `running_product`, `rank`, `bin`.
+
+**For the owner to decide.** Nothing new.

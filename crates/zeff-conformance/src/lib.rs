@@ -1100,9 +1100,15 @@ fn panel_cases() -> Vec<Line> {
     };
     let script = "let sales = frame(firm = [2, 1, 2, 1, 3], year = [2021, 2020, 2020, 2021, 2020], revenue = [12.5, 8, 11, 9, NA])\nlet p = sales.panel(unit: firm, time: year)\np\np.where(year > 2020).rename(company = firm)\np.sort(revenue).head(3)\np.drop(year)\np.add(firm = 1)\nlet w = dataset(wages).where(year >= 2019).panel(unit: worker, time: year)\nw.describe()\nw.select([worker, wage]).n_rows()\nlet d = frame(firm = [\"a\", \"a\", \"b\"], day = [to(\"2026-01-02\", Date), to(\"2026-01-01\", Date), to(\"2026-01-01\", Date)]).panel(unit: firm, time: day)\nd.sort(day)\nframe(firm = [1, 1], year = [2020, 2020]).panel(unit: firm, time: year)\n";
     let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    // The panel functions (step 8): lags, leads and differences across a gap, a Date panel, a
+    // fill forward within units and by row order, and the refusals.
+    let lags = "let p = frame(firm = [2, 1, 2, 1, 3, 2], year = [2021, 2020, 2020, 2021, 2020, 2023], revenue = [12.5, 8, 11, NA, 7, 15]).panel(unit: firm, time: year)\np.add(prev = lag(revenue), next = lead(revenue), two = lag(revenue, n: 2), change = diff(revenue), filled = fill_forward(revenue))\nlet d = frame(firm = [\"a\", \"a\", \"a\", \"b\"], day = [date(\"2026-01-01\"), date(\"2026-01-02\"), date(\"2026-01-04\"), date(\"2026-01-01\")], v = [1, 2, 3, 4]).panel(unit: firm, time: day)\nd.add(prev = lag(v), change = diff(v))\nframe(g = [1, 1, 2, 2], v = [NA, 3, NA, NA]).add(f = fill_forward(v))\nframe(g = [1, 1, 2, 2], v = [5, NA, 7, NA]).add(f = fill_forward(v), by: g)\nlet w = dataset(wages).where(worker <= 3)\nw.add(prev = lag(wage), growth = diff(wage)).select([worker, year, wage, prev, growth])\nframe(x = [1, 2]).add(y = lag(x))\n";
+    let moved = run_script(&fs, &project, "scripts/main.zeff", lags);
     vec![
         text("panel/declare/stdout", &outcome.output.stdout),
         text("panel/declare/stderr", &outcome.output.stderr),
+        text("panel/lags/stdout", &moved.output.stdout),
+        text("panel/lags/stderr", &moved.output.stderr),
     ]
 }
 

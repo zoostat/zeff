@@ -218,3 +218,7 @@ Open decision #67, taken on 1 November 2026, corrects row 163's usage to `fit.ci
 ## 1 November 2026 — zeff_language_reference.md, section 11 (the table of codes numbered while the engine was built)
 
 Z0601, a panel declaration refused: a unit observed twice at one time, `NA` in the unit or the time variable, or a time variable that is not an Int or a `Date`. Section 6 ("Panels") describes the declaration and names no code for its refusal; `panel` is built at step 7 of release 0.6.0, and the condition takes the next free number of the data family, as the checklist's ruling on provisional codes says. A code added, not a rule changed.
+
+## 1 November 2026 — zeff_language_reference.md, section 11 (the table of codes); zeff_functions.csv, row 127
+
+Z0602, a panel function (`lag`, `lead`, `diff`, `fill_forward`) outside `add` or `update`, or on a frame with no panel declaration: section 6 ("Panels") says the functions follow the declared panel and names no code for the call that has none; the next free number of the data family, as the checklist's ruling says (step 8 of release 0.6.0). Row 127's `layer` goes from Zeff to Rust with the reason in its notes: `diff` is `x - lag(x, n)` and reads the enclosing frame's panel, which a body written in Zeff cannot reach (open decision #69, as `row_mean` and `row_sum` at 0.5.0). The totals of section 8.2 are reviewed at the close of the release, as before.

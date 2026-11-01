@@ -3,7 +3,7 @@ source: crates/zeff-cli/tests/cli.rs
 assertion_line: 480
 expression: out(&o)
 ---
-data · tier 1 · 39 of 59 functions in this release
+data · tier 1 · 43 of 59 functions in this release
 
   frame          Create a frame from named lists of values
   import         Read a data file into a frame
@@ -35,6 +35,10 @@ data · tier 1 · 39 of 59 functions in this release
   n_distinct     Number of distinct values
   summary        Table of N, missing, mean, SD, min and max
   drop_missing   Remove rows with NA in the variables and report how many
+  lag            Previous values in the panel's time order
+  lead           Next values
+  diff           x − lag(x, n), so it respects the panel's time order and gaps
+  fill_forward   Replace NA with the last non-missing value, within panel units or by: groups
   row_mean       Mean across variables in each row
   row_sum        Sum across variables in each row
   between        True where low <= x <= high

@@ -1,0 +1,104 @@
+---
+source: packages/tier1/data/tests/panel_functions.rs
+assertion_line: 126
+expression: out
+---
+frame(x = [1, 2]).add(y = lag(x))
+---
+error[Z0602]: `lag` needs a panel, but the frame has no declaration
+ --> scripts/main.zeff:1:27
+  |
+1 | frame(x = [1, 2]).add(y = lag(x))
+  |                           ^^^ which unit, and which time?
+  |
+  = help: declare the panel first: `data.panel(unit: firm, time: year)` (section 6 of the Language Reference)
+
+let f = frame(x = [1, 2])
+f.add(y = fill_forward(x), z = lead(x))
+---
+error[Z0602]: `lead` needs a panel, but f has no declaration
+ --> scripts/main.zeff:2:32
+  |
+2 | f.add(y = fill_forward(x), z = lead(x))
+  |                                ^^^^ which unit, and which time?
+  |
+  = help: declare the panel first: `data.panel(unit: firm, time: year)` (section 6 of the Language Reference)
+
+let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)
+lag(p["x"])
+---
+error[Z0602]: `lag` follows a panel's time order and stands inside `add` or `update`
+ --> scripts/main.zeff:2:1
+  |
+2 | lag(p["x"])
+  | ^^^ no frame here
+  |
+  = help: write it inside a definition of a declared panel, as in `wages.add(prev = lag(wage))`
+
+let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)
+p.add(y = lag(x, n: 0))
+---
+error[Z0401]: `n:` of `lag` is a count of periods of at least 1, but this is 0
+ --> scripts/main.zeff:2:21
+  |
+2 | p.add(y = lag(x, n: 0))
+  |                     ^ not a count of periods
+  |
+  = help: `lag(x)` looks one period back; `lag(x, n: 2)` two
+
+let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)
+p.add(y = lead(x, n: -1))
+---
+error[Z0401]: `n:` of `lead` is a count of periods of at least 1, but this is -1
+ --> scripts/main.zeff:2:22
+  |
+2 | p.add(y = lead(x, n: -1))
+  |                      ^^ not a count of periods
+  |
+  = help: `lead(x)` looks one period ahead; `lead(x, n: 2)` two
+
+let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)
+p.add(y = diff(x, n: 1.5))
+---
+error[Z0401]: `n` of `diff` must be an Int, but this is a Float
+ --> scripts/main.zeff:2:22
+  |
+2 | p.add(y = diff(x, n: 1.5))
+  |                      ^^^ a Float
+  |
+  = help: usage: `diff(x, n: Int = 1)`
+
+let p = frame(u = [1, 1], t = [1, 2], s = ["a", "b"]).panel(unit: u, time: t)
+p.add(y = diff(s))
+---
+error[Z0215]: `-` does not apply to text
+ --> scripts/main.zeff:2:16
+  |
+2 | p.add(y = diff(s))
+  |                ^ the operation, row by row
+  |
+  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+
+let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)
+let q = frame(z = [1, 2, 3])
+p.add(y = lag(q["z"]))
+---
+error[Z0217]: `lag` was given a column of 3 rows, but p has 2
+ --> scripts/main.zeff:3:15
+  |
+3 | p.add(y = lag(q["z"]))
+  |               ^^^^^^ a column of another frame
+  |
+  = help: name one of the frame's own variables
+
+let p = frame(u = [1, 1], t = [1, 2], x = [1, 2]).panel(unit: u, time: t)
+p.select([u, x]).add(y = lag(x))
+---
+note: the panel declaration `u × t` dropped: `select` left out `t` (line 2)
+error[Z0602]: `lag` needs a panel, but the frame has no declaration
+ --> scripts/main.zeff:2:26
+  |
+2 | p.select([u, x]).add(y = lag(x))
+  |                          ^^^ which unit, and which time?
+  |
+  = help: declare the panel first: `data.panel(unit: firm, time: year)` (section 6 of the Language Reference)

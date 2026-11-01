@@ -305,13 +305,14 @@ jobs:
           Rscript tests/reference/r/dates.R
           Rscript tests/reference/r/time.R
           Rscript tests/reference/r/format.R
+          Rscript tests/reference/r/panel.R
 
       - name: R's values agree with the committed copies within tolerance
         # R uses the platform's maths library and, on x86, extended precision for means, so its
         # last bits differ between Linux and macOS; the committed copies are compared within
         # tolerance (tests/reference/r/check_r.py) and the differences are printed.
         run: |
-          for name in maths descriptive special distributions association kernels types design regression dates time format; do
+          for name in maths descriptive special distributions association kernels types design regression dates time format panel; do
             git show HEAD:tests/reference/r/$name.json > /tmp/committed_r_$name.json
             git diff --stat -- tests/reference/r/$name.json
             python3 -I tests/reference/r/check_r.py $name /tmp/committed_r_$name.json tests/reference/r/$name.json
