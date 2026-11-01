@@ -1,4 +1,4 @@
 [project]
 name = "data_cleaning"
-zeff = "0.5.0-dev"
+zeff = "0.5.0"
 edition = "preview"

@@ -28,6 +28,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (30 October 2026, at the opening of release 0.5.0).** The four decisions due by 0.5.0 (#4, #5, #13 and #17) were taken on 30 October 2026, each as recommended: no variadic parameters in `fn`; `equal(a, b)` added to `core` (catalogue row 529); `iterate` adopted with the catalogue's default `max: Int = 1000`, "required" read as required to be finite; panels at 0.6.0 before tests and plots at 0.7.0. None is due before 0.6.0, where #14, #51 and #54 fall due.
 
+**Status (1 November 2026, at the close of release 0.5.0).** The four decisions due at 0.5.0 (#4, #5, #13 and #17) were taken on 30 October and are built (`equal` as catalogue row 529; `iterate`; no `...` in `fn`; the order of 0.6.0 and 0.7.0 kept). Six were raised during the release: #67 (the default level of `ci()`, due 0.6.0) and #68 to #72, the pieces the language lacks for the functions planned in Zeff (a parameter of several types, the enclosing frame, a note and a coded warning from a body, the fitted design, a table constructor; #72 due 0.6.0, the rest 0.7.0). Due by 0.6.0: #14 (`event()`), #26 (Zemp's framework spike), #51 (chunked reading), #54 (a second range in a formula), #67 and #72, to be put to the owner when release 0.6.0 opens.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |

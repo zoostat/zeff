@@ -1879,3 +1879,15 @@ Each shard's full report (`caught.txt`, `missed.txt`, `timeout.txt`, `unviable.t
 **Checks.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first, 154 targets, none failing), the tier and message checks (114 codes) pass; the conformance report is untouched.
 
 **Reason.** Testing handbook, section 2.4, items 1 and 6; Engine and Project Specification, section 14; the checklist's step 24c.
+
+## 1 November 2026: Release 0.5.0
+
+**What was run.** Items 1 to 3 and 6 of the testing handbook's section 2.4 (items 4 and 5 do not exist before 0.8.0 and 0.9.0), in steps 24a to 24c, whose records stand above: the full suite on the Linux runner and this machine and the 148 conformance cases on the five targets on every push, the nightly, fuzz, coverage, weekly and benchmark jobs by hand on the commit of steps 23 and 24a, the five sample projects and `zeff selftest` read by eye, the known-issues list and the notes. The results are in `docs/releases/0.5.0-notes.md` (Validation).
+
+**The register's review** (`docs/spec/zeff_risk_register.md`, 1 November 2026): every rating unchanged (R1, R2, R7, R9 and R12 at Low; R3, R5 and R6 at Medium; R4 at Low likelihood and High impact); the watch item of R4 closed, the cold start's first call having been the conformance report; R5's first test passed, with the rating held at Medium until the formatter and the language server of 0.7.0; the runners' three faults of the release noted under R9 with the shard limit the figure to watch; no new risk.
+
+**The open decisions.** None due at 0.5.0 remains; #67 to #72 were raised during the release; the status line of 1 November names the six due by 0.6.0 (#14, #26, #51, #54, #67, #72) for the owner when that release opens.
+
+**The release commit.** The version in `Cargo.toml` and the pins of the five sample projects go from `0.5.0-dev` to `0.5.0`, with the workspace members' versions in both lock files and the three manifest snapshots that print the version; the catalogue's 33 rows of the release carry `implemented` since step 24c. The tag is `v0.5.0`, "Zeff 0.5.0 — Language complete", and the GitHub release carries the notes.
+
+**Reason.** The release routine of the standing instructions; testing handbook, section 2.4; Engine and Project Specification, section 14.

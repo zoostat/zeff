@@ -190,3 +190,7 @@ The comment showing `functions/robustness.zeff` carried only the summary line ab
 ## 1 November 2026 — zeff_engine_specification.md, section 8.2, the totals
 
 The totals counted 228 functions written in Rust and 30 in Zeff among the 258 of 1.0. During release 0.5.0 seven rows planned in Zeff were corrected to Rust, each logged above on 31 October (`fill_missing`, `n_missing`, `row_mean`, `row_sum`, `drop_missing`, `vif` and `summary`; open decisions #68 to #72 record the pieces the language lacks), and the catalogue now counts 235 in Rust and 23 in Zeff, which the totals follow, as the record of step 22 said they would at the close of the release. The change settles nothing else: a row returns to Zeff when its decision is built, and the totals follow it then.
+
+## 1 November 2026 — zeff_risk_register.md, status line and a new review section; zeff_open_decisions.md, status
+
+The review of the register at the close of release 0.5.0 (every rating unchanged; the watch item of R4 closed; R5's first test recorded; the runners' faults of the release noted under R9) and the status of the open decisions at the close (none due; #67 to #72 raised during the release; six due by 0.6.0). The routine updates of the companion documents at a release, as at 0.2.0 and 0.3.0; the change settles nothing.

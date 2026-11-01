@@ -91,3 +91,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** The owner's "Release 0.5.0": the register's review, the notes, the version, the tag and the GitHub release. No step of the checklist is left unticked.
 
 **For the owner to decide.** Nothing new; #14, #26, #51, #54, #67 and #72 fall due at 0.6.0, #68 to #71 at 0.7.0.
+
+## 1 November 2026, release 0.5.0 closed
+
+**Done.** "Release 0.5.0": the notes (`docs/releases/0.5.0-notes.md`), the register's review (every rating unchanged; R4's watch item closed; R5's first test passed, the rating held until 0.7.0), the open-decisions status (none due; #67 to #72 raised in the release; six due by 0.6.0), the version and the five pins set to 0.5.0 with the lock files and the snapshots, the tag `v0.5.0` and the GitHub release. 148 of the 258 functions of 1.0 are implemented.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks and the conformance report pass; CI green on every target on the release commit.
+
+**Next.** The owner's "Start release 0.6.0" (Panels: 36 functions, among them joins, reshaping, `aggregate`, `panel`, `save`, the panel column functions, `event`, dates and `format`, on grouped computation, `fe:` demeaning in `reg`, the date types, shared Arrow columns and selection vectors, the schema pass behind `zeff check` and data roots in `zeff.toml`), beginning with the six open decisions due by then.
+
+**For the owner to decide.** When release 0.6.0 opens: #14 (`event()`), #26 (Zemp's framework spike), #51 (chunked reading), #54 (a second range in a formula), #67 (the default level of `ci()`) and #72 (a table constructor).
