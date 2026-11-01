@@ -131,3 +131,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
 
 **For the owner to decide.** #76 and #77 by 0.7.0; #73, #74 and #75 by 0.8.0; #78 by 1.1. Nothing before 0.6.0 opens.
+
+## 1 November 2026, release 0.6.0 opened (step 1)
+
+**Done.** The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of section 14, every section it names, the 36 catalogue rows, the testing handbook, the risk register and the six open decisions due were read, and the checklist written in `docs/releases/0.6.0.md` (24 steps: dates and the `time` and `text` packages, selection vectors, the panel declaration and the panel functions, the frame verbs, `table` and `ci()`, the demeaning kernel and `fe:`, `event`, the schema pass in two parts, fused column expressions, the sample project, then the pre-release routine in three parts). The owner said "go" and took the five questions as recommended (#14, #26, #51, #54, #67 and #72; the definition and term names of `event()`; `wages.firm` and the `firms` dataset; `fixest` in the R reference library; the printed forms of `duplicates`, `save`, `sample` and `to_wide`). Step 1 `[engine]`: the version is `0.6.0-dev` with the five sample pins and the three manifest snapshots; the register's status line, summary rows and entries record the six decisions; the catalogue gains `table` (row 530) and the corrected usage of `ci` (row 163), the counts of both volumes following (259 functions of 1.0, 70 in `core`); logged in `docs/spec_changes.md`; the ruling in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 2 `[engine]`: dates and times as computable types.
+
+**For the owner to decide.** Nothing new; #68 to #71, #76 and #77 fall due at 0.7.0, #73 to #75 at 0.8.0, #78 at 1.1.

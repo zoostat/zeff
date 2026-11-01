@@ -32,6 +32,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (1 November 2026, after the release).** One decision raised from the owner's requests for the Zemp interface, recorded without any change to the normative text: #73, typst as the typesetting engine of exports and of the report document, with a live preview in both editions. Deadline 0.8.0; the spike is proposed for 0.7.0.
 
+**Status (1 November 2026, at the opening of release 0.6.0).** The six decisions due by 0.6.0 (#14, #26, #51, #54, #67 and #72) were taken on 1 November 2026, each as recommended: `event()` adopted; Zemp starts at 0.7.0 with the framework spike run during 0.6.0; chunked reading in the reader rewrite of 0.11.0 unless the 0.6.0 benchmarks show `import` to be the bottleneck; the grammar stands, a second range in a formula written in brackets; `ci()` defaults to the fit's level (catalogue row 163 corrected); `table(title:, columns:)` added to `core` (catalogue row 530), with the rewrite of `summary` waiting for #70. None is due before 0.7.0, where #68 to #71, #76 and #77 fall due.
+
 **Status (1 November 2026, later the same day).** Five more decisions from the owner's interface requests, recorded without any change to the normative text: #74 (a Help pane), #75 (the data viewer and the environment browser), #76 (traceback, run to here and the loop inspector), #77 (schema-aware completion and extract function) and #78 (Git history and a diff of results). Deadlines 0.8.0, 0.8.0, 0.7.0, 0.7.0 and 1.1. Each is drawn on the owner's mockup canvas of Zemp Studio and Zemp Lite, outside the repositories.
 
 ## Summary
@@ -51,7 +53,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 11 | Split the specification | Yes, now, before coding starts | now |
 | 12 | `posthoc` and factorial `anova(type:)` | Adopt, 0.7.0 | 0.7.0 |
 | 13 | `iterate` | Adopt, 0.5.0 | decided 30 October 2026 |
-| 14 | `event()` | Adopt, 0.6.0 | 0.6.0 |
+| 14 | `event()` | Adopt, 0.6.0 | decided 1 November 2026 |
 | 15 | Power functions | Defer to 1.9 as one Design release | 0.7.0 |
 | 16 | `survey()` in 1.0 | Defer to 1.9 | 0.7.0 |
 | 17 | Panels (0.6.0) before tests and plots (0.7.0) | Keep the order | decided 30 October 2026 |
@@ -63,7 +65,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 23 | Code signing (for setup files of the Zemp desktop apps only; the command line and `zeff app install` need none) | Free Windows signing for open source plus the Apple Developer Program | 0.11.0, with #38 |
 | 24 | Zemp interface framework | Svelte 5, after a two-week spike against Solid at 0.6.0 | 0.7.0 |
 | 25 | Zemp licence | Apache 2.0, as Zeff; a commercial path through services, not the licence. The business model assumes open core instead: decide the two together | Zemp 0.2 alpha |
-| 26 | Start Zemp at 0.7.0 | Keep; the framework spike starts at 0.6.0 | 0.6.0 |
+| 26 | Start Zemp at 0.7.0 | Keep; the framework spike starts at 0.6.0 | decided 1 November 2026 |
 | 27 | Hosting Zemp web; sync; a Zemp server | A static host that sets cross-origin isolation headers; sync through the user's own folder sync, no server. The business model's paid sync, server compute and self-hosting need a server and a change to Zemp section 13: decide the two together | Zemp 0.2 alpha |
 | 28 | AI assistance model | User's own key to a remote model, a local model as the private option, both off by default; whether Zemp also sells metered access of its own (the business model's Pro tier) is part of the same decision | Zemp 1.11 |
 | 29 | Zemp version coupling | Follow Zeff's minors until 1.11 | 1.0 |
@@ -88,10 +90,10 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 48 | Blocked kernels from the start, threads when proven | B: every kernel blocked from now and run one block after another; threads at 1.1; the browser single-threaded until proven | decided 23 October 2026 (the shape; threads at 1.1) |
 | 49 | When fused passes arrive | B: the block and selection interface now, fusion itself at 0.6.0 | decided 23 October 2026 |
 | 50 | Compact column storage | B: each column in its narrowest honest form, Floats always 64-bit | decided 23 October 2026 |
-| 51 | Reading files in parallel by chunk | B: chunked parsing with boundaries fixed by the bytes alone, in the reader rewrite of 0.11.0 at the latest | 0.6.0 |
+| 51 | Reading files in parallel by chunk | B: chunked parsing with boundaries fixed by the bytes alone, in the reader rewrite of 0.11.0 at the latest | decided 1 November 2026 |
 | 52 | A benchmark suite run at every release | B: a small suite from 0.4.0 as a new section of the testing handbook, reporting rather than failing | decided 23 October 2026 |
 | 53 | Options rather than functions: HAC standard errors and weights on the descriptives | The `se:` variants with the panel models of 1.4; `weights:` on the descriptives at 1.1 as frequency weights | 1.1 |
-| 54 | A second range of variables in one formula | A: the grammar stands; a second range is written in brackets, `(z1..z3)`, which the checker reads as the range | 0.6.0 |
+| 54 | A second range of variables in one formula | A: the grammar stands; a second range is written in brackets, `(z1..z3)`, which the checker reads as the range | decided 1 November 2026 |
 | 55 | Large and pretrained models under the determinism contract | B: results stay bit-identical; such models reach a result only through a package under the contract, a frozen file whose hash the run records, or `external`; no second accuracy class | decided 28 October 2026 (the wording by 1.0.0, the build by 1.11) |
 | 56 | Constraints and groups in model blocks | A: a repeated label means equal; `@` fixes (#3); `==` lines between labelled parameters; `group:` with one label per group written as a list | 1.3 |
 | 57 | Latent functions brought into 1.3, 1.6 and 1.7 | A: 1.3 gains `invariance`, `latent_growth`, `factor_scores` and four validity measures; 1.6 the EFA family; 1.7 `lpa`, covariates and distal outcomes, mixture regression | 1.3 |
@@ -104,12 +106,12 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 64 | A new value of an option counts as an addition | Say so in section 14, Version numbers, beside new functions and options | 1.0.0 |
 | 65 | Calling Zeff from R and Python | Thin R and Python packages over the command line and the versioned result formats, after 1.0 on request | 1.1 |
 | 66 | A published speed comparison with Stata MP and R | At 1.1, when threads arrive, on the owner's machine; reported in the release notes, never a gate | 1.1 |
-| 67 | The default `level:` of `ci()` on a fit made at another level | The fit's level, so that `ci()` agrees with the summary; `level:` written overrides it | 0.6.0 |
+| 67 | The default `level:` of `ci()` on a fit made at another level | The fit's level, so that `ci()` agrees with the summary; `level:` written overrides it | decided 1 November 2026 |
 | 68 | A parameter of several types in a Zeff-written built-in | Allow the registry's `A \| B` in the `fn` line of a built-in's file, checked once per type, so that `fill_missing` and `n_missing` can be rewritten in Zeff | 0.7.0 |
 | 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | 0.7.0 |
 | 70 | A note or a coded warning from a Zeff-written built-in | A `note(message)` function beside `warn`, a `code:` option on both, and the name of a `Var` as text (`name_of(v)`), so that `drop_missing` can be rewritten in Zeff with its note and `skewness` can raise W0205 | 0.7.0 |
 | 71 | The fitted design through the result interface | A `design()` method giving the kept design as a frame of the rows used, so that `vif` and later diagnostics can be written in Zeff | 0.7.0 |
-| 72 | A table constructor for Zeff-written functions | `table(title, columns = [...])` in `core`, with `format` for numbers, so that `summary` can be rewritten in Zeff as section 14 planned | 0.6.0 |
+| 72 | A table constructor for Zeff-written functions | `table(title, columns = [...])` in `core`, with `format` for numbers, so that `summary` can be rewritten in Zeff as section 14 planned | decided 1 November 2026 |
 | 73 | Typst: the typesetting engine of exports and of the report document, with a live preview | Adopt, after the licence, identity and bundle checks: a spike at 0.7.0 beside the plot renderer; `.typ` exports and Lite's export of script with output as PDF at 0.8.0; the report document a typst document with executed Zeff chunks | 0.8.0 |
 | 74 | A Help pane in the Viewer | A fourth tab beside Data, Results and Plots that follows the cursor to the function's page and opens a code's explained page from the Log; in both editions | 0.8.0 |
 | 75 | The data viewer and the environment browser, made excellent | Frozen columns, a statistics header per column, search, a live row count under a filter; Objects as a tree with memory per object; Lite's viewer read-only | 0.8.0 |
@@ -260,6 +262,8 @@ The plan requires these to be adopted or dropped by 0.7.0; deciding now removes 
 
 *Recommendation.* Adopt, 0.6.0: event-study leads and lags are the standard two-way fixed-effects check, cost little (indicator columns from a time and a treatment date), and Zemp's DiD recipe needs them.
 
+*Decided 1 November 2026, as recommended.* Adopted at 0.6.0 with the definition of `docs/releases/0.6.0.md`, question 2: `treat` is the period a unit is first treated (`NA` for a never-treated unit, which is a control), the relative period is `time − treat`, one indicator per relative period present except `ref:`, the terms named `event=-3`, `event=0`, `event=2` as category levels are.
+
 ### 15. Power and sample size
 
 | Option | For | Against |
@@ -354,6 +358,8 @@ The plan requires these to be adopted or dropped by 0.7.0; deciding now removes 
 ### 26. Start Zemp at 0.7.0
 
 *Recommendation.* Keep: the plot renderer and language server Zemp needs exist at 0.7.0; the framework spike (24) starts at 0.6.0 so no time is lost.
+
+*Decided 1 November 2026, as recommended.* Zemp's interface work starts at 0.7.0; the framework spike of #24 (Svelte 5 against SolidJS on the data grid and the plot viewer) runs in a Zemp session during release 0.6.0, outside the Zeff checklist.
 
 ### 27. Hosting Zemp web, and sync
 
@@ -661,6 +667,8 @@ Type inference and the `na_values` rules of section 6.1 are applied to the whole
 
 *Recommendation.* B, in the reader rewrite of 0.11.0 at the latest; earlier if the 0.6.0 panel work shows import to be the bottleneck. Deadline: 0.6.0.
 
+*Decided 1 November 2026, as recommended (option B).* Chunked parsing with boundaries fixed by the bytes alone arrives with the reader rewrite of 0.11.0; the `import` case of the 0.6.0 benchmarks is read at the pre-release routine, and the work is brought forward only if that case shows the parser to be the bottleneck of the panel work.
+
 ### 52. A benchmark suite run at every release
 
 Raised on 21 October 2026 in a review of the performance plan. The testing handbook has no benchmark. Without one, a speed-up is a guess and a slow-down goes unseen until a user reports it; section 14 names a public benchmark suite only at 1.0.0.
@@ -698,6 +706,8 @@ Raised on 23 October 2026 at step 7 of release 0.4.0, when formulas became value
 | C. `..` binds more tightly only inside a formula | Formulas read as R users expect; arithmetic is untouched | The one operator whose precedence depends on context, which section 3.3 avoids on purpose |
 
 *Recommendation.* A: the grammar is the one thing a user learns once, and brackets for a second range are a small price. Deadline: 0.6.0, when `fe:` takes `Terms` and the grammar of terms is used in two places.
+
+*Decided 1 November 2026, as recommended (option A).* The grammar stands: one bare range per formula, a further range in brackets, `(z1..z3)`, which the checker reads as the range; the form is documented in the table of section 7.1 at the `fe:` step of release 0.6.0.
 
 ## Capabilities for later releases
 
@@ -863,6 +873,8 @@ Raised on 30 October 2026 at step 4 of release 0.5.0, when the owner compared `a
 
 *Recommendation.* A, at 0.6.0, with the catalogue's usage corrected to `level: Float = the fit's level` and the page saying so; the same rule for `predict`'s intervals when they arrive. Deadline: 0.6.0.
 
+*Decided 1 November 2026, as recommended (option A).* `ci()` defaults to the level the fit was made at and `level:` written out overrides it; catalogue row 163 reads `level: Float = the fit's level`; `predict`'s intervals follow the same rule when they arrive. Built at release 0.6.0.
+
 ### 68. A parameter of several types in a Zeff-written built-in
 
 Raised on 31 October 2026 at step 15 of release 0.5.0. A built-in written in Zeff declares its parameters with the grammar's `type`, one type each; the loader checks a scalar parameter in its column forms, which covers `clamp(x: Float, ...)` on a column but not a parameter that takes a value of any scalar type (`fill_missing(x, value)`: Bool, Int, Float or Str, joined) or a list or a column (`n_missing(x)`). Both were planned in Zeff and are written in Rust at 0.5.0, their `layer` corrected (logged); `summary`, planned for a rewrite in Zeff at 0.5.0, meets the same limit with its `vars` and `stats:` parameters. A Rust built-in writes `x: Bool | Int | Float | Str` in its registry signature and the checker already understands it.
@@ -920,6 +932,8 @@ Raised on 31 October 2026 at step 22 of release 0.5.0, where `summary` was to be
 | C. `summary` stays Rust | Nothing to build | The one function section 14 named for the rewrite never moves |
 
 *Recommendation.* A at 0.6.0 beside `aggregate`, the rewrite of `summary` following in the same release; the catalogue's `layer` returns to Zeff for row 153 then.
+
+*Decided 1 November 2026, as recommended (option A), with one correction.* `table(title: Str, columns: Record)` joins `core` at 0.6.0 (catalogue row 530), taking a record whose fields are lists or columns of one length each, numbers printed by the display rules or through `format` by the caller. The rewrite of `summary` does not follow in 0.6.0: `summary` prints one combined warning naming every variable's missing rows, which a Zeff body cannot raise until #70 (0.7.0) is taken; the rewrite is scheduled with #70, and row 153 stays Rust until then.
 
 ### 73. Typst: the typesetting engine of exports and of the report document, with a live preview
 
