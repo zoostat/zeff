@@ -101,3 +101,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** The owner's "Start release 0.6.0" (Panels: 36 functions, among them joins, reshaping, `aggregate`, `panel`, `save`, the panel column functions, `event`, dates and `format`, on grouped computation, `fe:` demeaning in `reg`, the date types, shared Arrow columns and selection vectors, the schema pass behind `zeff check` and data roots in `zeff.toml`), beginning with the six open decisions due by then.
 
 **For the owner to decide.** When release 0.6.0 opens: #14 (`event()`), #26 (Zemp's framework spike), #51 (chunked reading), #54 (a second range in a formula), #67 (the default level of `ci()`) and #72 (a table constructor).
+
+## 1 November 2026, after the release: open decision #73, typst
+
+**Done.** Open decision #73 (typst as the typesetting engine of exports and of the report document, with a live preview in both editions; a spike at 0.7.0, the first slice at 0.8.0, deadline 0.8.0) recorded in the register with its options and recommendation, logged in `docs/spec_changes.md`, the engineering findings in `docs/decisions.md`. Nothing in the engine or the normative text changed.
+
+**Green.** Documents only; CI to be read after the push.
+
+**Next.** The owner's "Start release 0.6.0", beginning with the six open decisions due by then (#14, #26, #51, #54, #67, #72).
+
+**For the owner to decide.** #73 by 0.8.0; the owner's other interface requests (a help pane, a traceback and run-to-here, schema-aware completion and extract function, Git history and a diff of results) await the word to be recorded the same way.

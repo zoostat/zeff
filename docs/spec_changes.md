@@ -194,3 +194,7 @@ The totals counted 228 functions written in Rust and 30 in Zeff among the 258 of
 ## 1 November 2026 — zeff_risk_register.md, status line and a new review section; zeff_open_decisions.md, status
 
 The review of the register at the close of release 0.5.0 (every rating unchanged; the watch item of R4 closed; R5's first test recorded; the runners' faults of the release noted under R9) and the status of the open decisions at the close (none due; #67 to #72 raised during the release; six due by 0.6.0). The routine updates of the companion documents at a release, as at 0.2.0 and 0.3.0; the change settles nothing.
+
+## 1 November 2026 — zeff_open_decisions.md, status, summary row and entry #73
+
+A design question raised by the owner after the close of release 0.5.0, recorded as an open decision rather than an edit to the normative text: #73, typst as the typesetting engine of exports and of the report document of Zemp Specification section 8, with a live preview in both editions (deadline 0.8.0, a spike proposed at 0.7.0). Sections 5, 8 and 15 of the Zemp Specification and section 14.1 of the Engine and Project Specification are unchanged until the decision is taken.
