@@ -208,18 +208,17 @@ pub fn recode(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ColumnType::Float => recode_floats(ctx, &name, &column, pairs)?,
         ColumnType::Str => recode_strs(ctx, &name, &column, pairs)?,
         ColumnType::Bool => recode_bools(ctx, &name, &column, pairs)?,
+        ColumnType::Date => recode_dates(ctx, &name, &column, pairs)?,
+        ColumnType::DateTime => recode_datetimes(ctx, &name, &column, pairs)?,
         other => {
             return Err(fail(
                 Diagnostic::error(
-                    "Z0304",
-                    format!(
-                        "`recode` on a {} variable arrives at 0.6.0 with the `time` package",
-                        other.name()
-                    ),
+                    "Z0401",
+                    format!("`recode` cannot change {} variable", article(other.name())),
                 )
                 .in_file(ctx.script)
-                .primary(ctx.span_of(1), "a date or time variable")
-                .help("`to(x, Str)` gives text to recode until then"),
+                .primary(ctx.span_of(1), "an opaque variable")
+                .help("an opaque column is carried, not computed on (section 4.3 of the Language Reference)"),
             ));
         }
     };
@@ -289,6 +288,8 @@ fn wrong_kind(
             ColumnType::Int => "whole numbers",
             ColumnType::Float => "numbers",
             ColumnType::Str => "texts in quotes",
+            ColumnType::Date => "dates, as `to(\"2020-01-01\", Date)` gives them",
+            ColumnType::DateTime => "times, as `to(\"2020-01-01 09:30\", DateTime)` gives them",
             _ => "`true` or `false`",
         };
         format!(
@@ -411,6 +412,112 @@ fn recode_ints(
         unknown,
         levels: None,
         labels_followed,
+    })
+}
+
+/// `recode` on a Date column: the keys and values are dates (or `NA`), matched by identity.
+fn recode_dates(
+    ctx: &CallContext<'_>,
+    name: &str,
+    column: &Column,
+    pairs: &[(Value, Value)],
+) -> Result<Recoded, Fail> {
+    let mut map: HashMap<Option<i32>, Option<i32>> = HashMap::new();
+    let mut keys: Vec<Option<i32>> = Vec::new();
+    for (key, value) in pairs {
+        let k = match key {
+            Value::Date(d) => Some(*d),
+            Value::Na => None,
+            other => return Err(wrong_kind(ctx, name, column, "a key", other)),
+        };
+        let v = match value {
+            Value::Date(d) => Some(*d),
+            Value::Na => None,
+            other => return Err(wrong_kind(ctx, name, column, "a value", other)),
+        };
+        map.insert(k, v);
+        keys.push(k);
+    }
+    let mut seen: HashSet<Option<i32>> = HashSet::new();
+    let mut changed = 0;
+    let new: Vec<Option<i32>> = column
+        .as_dates()
+        .expect("a Date column")
+        .map(|old| match map.get(&old) {
+            Some(new) => {
+                seen.insert(old);
+                if *new != old {
+                    changed += 1;
+                }
+                *new
+            }
+            None => old,
+        })
+        .collect();
+    let unknown = keys
+        .iter()
+        .filter(|k| !seen.contains(k))
+        .map(|k| k.map_or("NA".to_string(), zeff_dates::format_iso_date))
+        .collect();
+    Ok(Recoded {
+        column: Column::dates(new).with_metadata(column.metadata().clone()),
+        changed,
+        unknown,
+        levels: None,
+        labels_followed: false,
+    })
+}
+
+/// `recode` on a DateTime column, as on a Date column.
+fn recode_datetimes(
+    ctx: &CallContext<'_>,
+    name: &str,
+    column: &Column,
+    pairs: &[(Value, Value)],
+) -> Result<Recoded, Fail> {
+    let mut map: HashMap<Option<i64>, Option<i64>> = HashMap::new();
+    let mut keys: Vec<Option<i64>> = Vec::new();
+    for (key, value) in pairs {
+        let k = match key {
+            Value::DateTime(t) => Some(*t),
+            Value::Na => None,
+            other => return Err(wrong_kind(ctx, name, column, "a key", other)),
+        };
+        let v = match value {
+            Value::DateTime(t) => Some(*t),
+            Value::Na => None,
+            other => return Err(wrong_kind(ctx, name, column, "a value", other)),
+        };
+        map.insert(k, v);
+        keys.push(k);
+    }
+    let mut seen: HashSet<Option<i64>> = HashSet::new();
+    let mut changed = 0;
+    let new: Vec<Option<i64>> = column
+        .as_datetimes()
+        .expect("a DateTime column")
+        .map(|old| match map.get(&old) {
+            Some(new) => {
+                seen.insert(old);
+                if *new != old {
+                    changed += 1;
+                }
+                *new
+            }
+            None => old,
+        })
+        .collect();
+    let unknown = keys
+        .iter()
+        .filter(|k| !seen.contains(k))
+        .map(|k| k.map_or("NA".to_string(), zeff_dates::format_iso_datetime))
+        .collect();
+    Ok(Recoded {
+        column: Column::datetimes(new).with_metadata(column.metadata().clone()),
+        changed,
+        unknown,
+        levels: None,
+        labels_followed: false,
     })
 }
 

@@ -168,16 +168,18 @@ fn unique(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
 }
 
 /// The order of section 3.7 ("Identity"): `false < true`, numbers numerically, text by code
-/// point, and `NA` after everything; items of different kinds, which one list never holds, by
-/// kind.
+/// point, dates chronologically, and `NA` after everything; items of different kinds, which one
+/// list never holds, by kind.
 fn order(a: &Value, b: &Value) -> Ordering {
     fn kind(v: &Value) -> u8 {
         match v {
             Value::Bool(_) => 0,
             Value::Int(_) | Value::Float(_) => 1,
             Value::Str(_) => 2,
-            Value::Na => 4,
-            _ => 3,
+            Value::Date(_) => 3,
+            Value::DateTime(_) => 4,
+            Value::Na => 6,
+            _ => 5,
         }
     }
     match (a, b) {
@@ -198,6 +200,8 @@ fn order(a: &Value, b: &Value) -> Ordering {
             x.partial_cmp(&(*y as f64)).unwrap_or(Ordering::Greater)
         }
         (Value::Str(x), Value::Str(y)) => x.cmp(y),
+        (Value::Date(x), Value::Date(y)) => x.cmp(y),
+        (Value::DateTime(x), Value::DateTime(y)) => x.cmp(y),
         (x, y) => kind(x).cmp(&kind(y)),
     }
 }
@@ -501,8 +505,8 @@ fn seq(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 }
 
 /// The scalar types a list may hold, which `is_in` looks for; and the values `equal` compares.
-const SCALARS: &str = "Bool | Int | Float | Str";
-const COMPARABLE: &str = "Bool | Int | Float | Str | List | Record | Mapping";
+const SCALARS: &str = "Bool | Int | Float | Str | Date | DateTime";
+const COMPARABLE: &str = "Bool | Int | Float | Str | Date | DateTime | List | Record | Mapping";
 
 pub fn functions() -> Vec<Function> {
     vec![
@@ -575,7 +579,7 @@ pub fn functions() -> Vec<Function> {
                 package: "core",
                 method: false,
                 params: vec![
-                    ParamSpec::required("list", "List<Bool | Int | Float | Str>"),
+                    ParamSpec::required("list", "List<Bool | Int | Float | Str | Date | DateTime>"),
                     ParamSpec::option_with_default("desc", "Bool", "false"),
                 ],
                 rest: None,

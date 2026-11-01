@@ -9,6 +9,7 @@ use crate::runtime::{Args, CallContext, Fail, Function, fail};
 use crate::value::{TypeValue, Value};
 use std::collections::HashMap;
 use zeff_columns::{Column, ColumnType, Contrast, Value as Cell};
+use zeff_dates::DateFormat;
 use zeff_diagnostics::{Diagnostic, count, did_you_mean};
 use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec};
 
@@ -16,13 +17,16 @@ use zeff_registry::{DiagnosticDecl, FunctionSpec, ParamSpec};
 /// (Language Reference, section 3.8, "Limits").
 const MANY_LEVELS: usize = 10_000;
 
-/// What `to` converts to at this release; dates arrive with 0.6.0.
+/// What `to` converts to: the seven column types of section 4; a date or time target may carry
+/// a format (`Date("%d/%m/%Y")`), passed beside it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Target {
     Bool,
     Int,
     Float,
     Str,
+    Date,
+    DateTime,
     Category,
 }
 
@@ -33,6 +37,8 @@ impl Target {
             "Int" => Target::Int,
             "Float" => Target::Float,
             "Str" => Target::Str,
+            "Date" => Target::Date,
+            "DateTime" => Target::DateTime,
             "Category" => Target::Category,
             _ => return None,
         })
@@ -44,6 +50,8 @@ impl Target {
             Target::Int => "Int",
             Target::Float => "Float",
             Target::Str => "Str",
+            Target::Date => "Date",
+            Target::DateTime => "DateTime",
             Target::Category => "Category",
         }
     }
@@ -56,6 +64,8 @@ enum Converted {
     Fraction,
     /// A value that does not read as the target (W0203).
     Unreadable,
+    /// A date and time whose text carried a zone offset, applied to reach UTC (W0702).
+    Offset(Value),
 }
 
 /// The type has no conversion to the target (section 4.3, rule 1: each type declares its
@@ -144,8 +154,13 @@ fn cell_type(cell: &Cell<'_>) -> Option<ColumnType> {
     })
 }
 
-/// One cell's conversion by the table of section 3.7.
-fn convert_cell(cell: &Cell<'_>, target: Target) -> Result<Converted, NoConversion> {
+/// One cell's conversion by the table of section 3.7; `format` is the format a date or time
+/// target was written with, which reads the text in place of ISO 8601.
+fn convert_cell(
+    cell: &Cell<'_>,
+    target: Target,
+    format: Option<&DateFormat>,
+) -> Result<Converted, NoConversion> {
     use Converted::{Unreadable, Value as Done};
     Ok(match (cell, target) {
         (Cell::Na, _) => Done(Value::Na),
@@ -182,6 +197,41 @@ fn convert_cell(cell: &Cell<'_>, target: Target) -> Result<Converted, NoConversi
         (Cell::Date(days), Target::Str) => Done(Value::Str(zeff_dates::format_iso_date(*days))),
         (Cell::DateTime(micros), Target::Str) => {
             Done(Value::Str(zeff_dates::format_iso_datetime(*micros)))
+        }
+        // Text to a date or time: ISO 8601 only, or the format given; an impossible date reads
+        // as nothing (section 3.7, "Conversions"; section 4.1, "Import").
+        (Cell::Str(s), Target::Date) => match format {
+            Some(f) => f
+                .parse_date(s.trim())
+                .map_or(Unreadable, |d| Done(Value::Date(d))),
+            None => {
+                zeff_dates::parse_iso_date(s.trim()).map_or(Unreadable, |d| Done(Value::Date(d)))
+            }
+        },
+        (Cell::Str(s), Target::DateTime) => match format {
+            Some(f) => f
+                .parse_datetime(s.trim())
+                .map_or(Unreadable, |t| Done(Value::DateTime(t))),
+            // An ISO date without a time is midnight, as a Date converted to DateTime is.
+            None => match zeff_dates::parse_iso_datetime(s.trim()) {
+                Some(parsed) if parsed.had_offset => {
+                    Converted::Offset(Value::DateTime(parsed.micros))
+                }
+                Some(parsed) => Done(Value::DateTime(parsed.micros)),
+                None => match zeff_dates::parse_iso_date(s.trim()) {
+                    Some(days) => Done(Value::DateTime(zeff_dates::micros_of_days(days))),
+                    None => Unreadable,
+                },
+            },
+        },
+        (Cell::Date(days), Target::Date) => Done(Value::Date(*days)),
+        (Cell::DateTime(micros), Target::DateTime) => Done(Value::DateTime(*micros)),
+        // Date to DateTime is midnight; DateTime to Date drops the time.
+        (Cell::Date(days), Target::DateTime) => {
+            Done(Value::DateTime(zeff_dates::micros_of_days(*days)))
+        }
+        (Cell::DateTime(micros), Target::Date) => {
+            Done(Value::Date(zeff_dates::days_of_micros(*micros)))
         }
         (other, _) => {
             return Err(NoConversion(
@@ -238,6 +288,27 @@ fn unreadable_warning(ctx: &mut CallContext<'_>, shown: &str, target: Target) {
     );
 }
 
+/// W0702 for date-and-time text that carried a zone offset, applied to reach UTC (section 3.8,
+/// "Time").
+fn offset_warning(ctx: &mut CallContext<'_>, offsets: usize) {
+    ctx.message(
+        Diagnostic::warning(
+            "W0702",
+            format!(
+                "{} {} a time-zone offset and {} converted to UTC",
+                if offsets == 1 {
+                    "1 value".to_string()
+                } else {
+                    format!("{} values", count(offsets as u64))
+                },
+                "carried",
+                if offsets == 1 { "was" } else { "were" }
+            ),
+        )
+        .help("a DateTime has no zone in 1.0; the instant is kept, written in UTC"),
+    );
+}
+
 /// W0202 for a number with a fraction given to Int.
 fn fraction_warning(ctx: &mut CallContext<'_>, shown: &str) {
     ctx.message(
@@ -256,6 +327,8 @@ fn cell_of(value: &Value) -> Option<Cell<'_>> {
         Value::Int(i) => Cell::Int(*i),
         Value::Float(x) => Cell::Float(*x),
         Value::Str(s) => Cell::Str(s),
+        Value::Date(d) => Cell::Date(*d),
+        Value::DateTime(t) => Cell::DateTime(*t),
         _ => return None,
     })
 }
@@ -272,17 +345,6 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
     };
     let target = match Target::of(&ty.name) {
         Some(target) => target,
-        None if ty.name == "Date" || ty.name == "DateTime" => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0304",
-                    format!("to({}) is not available in this release", ty.name),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.span_of(1), "arrives with release 0.6.0")
-                .help("conversion to dates and times arrives with the date functions of release 0.6.0"),
-            ));
-        }
         None => {
             return Err(fail(
                 Diagnostic::error(
@@ -291,12 +353,42 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
                 )
                 .in_file(ctx.script)
                 .primary(ctx.span_of(1), "not a target of `to`")
-                .help("`to` converts to Int, Float, Str, Bool or Category"),
+                .help("`to` converts to Int, Float, Str, Bool, Date, DateTime or Category"),
+            ));
+        }
+    };
+    // The format of `Date("%d/%m/%Y")`, checked when the script was checked (Z0409); a format
+    // on another target is Z0401, since only dates and times are read by one.
+    let format = match (&ty.format, target) {
+        (None, _) => None,
+        (Some(pattern), Target::Date | Target::DateTime) => match DateFormat::new(pattern) {
+            Ok(f) => Some(f),
+            Err(e) => {
+                return Err(fail(
+                    Diagnostic::error("Z0409", format!("`{pattern}` is not a date format: {e}"))
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(1), "the format")
+                        .help("a format is written as `strftime` writes it: `%d/%m/%Y`, `%Y-%m-%d %H:%M`"),
+                ));
+            }
+        },
+        (Some(_), other) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{}` takes no format; only Date and DateTime do",
+                        other.name()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(1), "a format on a type that reads none")
+                .help("write the type name alone: `to(x, Int)`"),
             ));
         }
     };
     match value {
-        Value::Column(column) => convert_column(ctx, &column, target),
+        Value::Column(column) => convert_column(ctx, &column, target, format.as_ref()),
         scalar => {
             let Some(cell) = cell_of(&scalar) else {
                 return Err(fail(
@@ -310,7 +402,7 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
                     )
                     .in_file(ctx.script)
                     .primary(ctx.span_of(0), "not a value `to` converts")
-                    .help("`to` converts a Bool, Int, Float or Str, or a column"),
+                    .help("`to` converts a Bool, Int, Float, Str, Date or DateTime, or a column"),
                 ));
             };
             if target == Target::Category {
@@ -325,8 +417,12 @@ fn to(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
                 Value::Str(s) => format!("\"{s}\""),
                 other => crate::display::show(other).trim_end().to_string(),
             };
-            match convert_cell(&cell, target) {
+            match convert_cell(&cell, target, format.as_ref()) {
                 Ok(Converted::Value(v)) => Ok(v),
+                Ok(Converted::Offset(v)) => {
+                    offset_warning(ctx, 1);
+                    Ok(v)
+                }
                 Ok(Converted::Fraction) => {
                     fraction_warning(ctx, &shown);
                     Ok(Value::Na)
@@ -347,6 +443,7 @@ fn convert_column(
     ctx: &mut CallContext<'_>,
     column: &Column,
     target: Target,
+    format: Option<&DateFormat>,
 ) -> Result<Value, Fail> {
     let ty = column.ty();
     if let ColumnType::Opaque(_) = ty {
@@ -382,12 +479,16 @@ fn convert_column(
         )));
     }
     let mut values: Vec<Value> = Vec::with_capacity(column.len());
-    let (mut fractions, mut unreadable) = (0usize, 0usize);
+    let (mut fractions, mut unreadable, mut offsets) = (0usize, 0usize, 0usize);
     let mut failing: Vec<String> = Vec::new();
     for row in 0..column.len() {
         let cell = column.get(row).unwrap_or(Cell::Na);
-        match convert_cell(&cell, target) {
+        match convert_cell(&cell, target, format) {
             Ok(Converted::Value(v)) => values.push(v),
+            Ok(Converted::Offset(v)) => {
+                offsets += 1;
+                values.push(v);
+            }
             Ok(Converted::Fraction) => {
                 fractions += 1;
                 values.push(Value::Na);
@@ -421,6 +522,9 @@ fn convert_column(
             )
             .help("`round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first"),
         );
+    }
+    if offsets > 0 {
+        offset_warning(ctx, offsets);
     }
     if unreadable > 0 {
         ctx.message(
@@ -458,6 +562,14 @@ fn convert_column(
         }
         Target::Str => Column::strs(values.iter().map(|v| match v {
             Value::Str(s) => Some(s.as_str()),
+            _ => None,
+        })),
+        Target::Date => Column::dates(values.iter().map(|v| match v {
+            Value::Date(d) => Some(*d),
+            _ => None,
+        })),
+        Target::DateTime => Column::datetimes(values.iter().map(|v| match v {
+            Value::DateTime(t) => Some(*t),
             _ => None,
         })),
         Target::Category => unreachable!("handled above"),
@@ -501,6 +613,8 @@ fn scalar_type_name(value: &Value) -> Option<&'static str> {
         Value::Int(_) => "Int",
         Value::Float(_) => "Float",
         Value::Str(_) => "Str",
+        Value::Date(_) => "Date",
+        Value::DateTime(_) => "DateTime",
         _ => return None,
     })
 }
@@ -510,9 +624,12 @@ pub fn type_name(value: &Value) -> String {
     match value {
         Value::Nothing => "Nothing".to_string(),
         Value::Na => "NA".to_string(),
-        Value::Bool(_) | Value::Int(_) | Value::Float(_) | Value::Str(_) => {
-            scalar_type_name(value).expect("a scalar").to_string()
-        }
+        Value::Bool(_)
+        | Value::Int(_)
+        | Value::Float(_)
+        | Value::Str(_)
+        | Value::Date(_)
+        | Value::DateTime(_) => scalar_type_name(value).expect("a scalar").to_string(),
         Value::Frame(_) => "Frame".to_string(),
         Value::Table(_) => "Table".to_string(),
         Value::Column(c) => format!("Column<{}>", c.ty().name()),
@@ -904,8 +1021,12 @@ pub fn functions() -> Vec<Function> {
                         "the type has no conversion to the target, or a single value is given to Category",
                     ),
                     DiagnosticDecl::new(
-                        "Z0304",
-                        "conversion to Date or DateTime, which arrives with release 0.6.0",
+                        "Z0409",
+                        "the format of a Date or DateTime target is not a date format",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0702",
+                        "date-and-time text carried a zone offset, which was applied to reach UTC",
                     ),
                 ],
                 help: include_str!("../help/to.md"),

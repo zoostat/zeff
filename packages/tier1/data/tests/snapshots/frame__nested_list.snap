@@ -1,8 +1,9 @@
 ---
 source: packages/tier1/data/tests/frame.rs
+assertion_line: 264
 expression: run(script).output.stderr
 ---
-error[Z0401]: `x` holds a List; a column holds Bool, Int, Float or Str values
+error[Z0401]: `x` holds a List; a column holds Bool, Int, Float, Str, Date or DateTime values
  --> scripts/main.zeff:1:11
   |
 1 | frame(x = [[1], [2]])

@@ -22,8 +22,8 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   parsed and syntax-checked but not run until `zeff test` at 0.7.0. (Since 0.5.0.)
 - **`case` over rows evaluates every arm on the whole frame**, as R's `ifelse` does, so a warning
   such as a division by zero may count rows the arm does not supply; a Category column is refused
-  as a value of `case` (Z0214; `to(x, Str)` gives its labels) and a Date or DateTime column until
-  the types become computable at 0.6.0 (Z0304). (Since 0.5.0.)
+  as a value of `case` (Z0214; `to(x, Str)` gives its labels). (Since 0.5.0; a Date or DateTime
+  column is accepted from 0.6.0.)
 - **A failed value reaches six functions**: `is`, `type_of`, `print`, `report`, `len` and
   `n_missing`; anywhere else it is Z0220 reporting the failure it holds, so a list of fits made
   under `attempt` is read in a loop that steps over the failed ones. (Since 0.5.0; by design,

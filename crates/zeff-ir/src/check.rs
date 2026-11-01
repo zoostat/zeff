@@ -3398,8 +3398,27 @@ impl Checker<'_> {
                     _ => false,
                 };
                 if !same {
-                    // A Date against text is Z0210 (section 3.7); it joins when Date values exist
-                    // (release 0.3.0), since no expression can hold a Date yet.
+                    // A Date never compares with text (section 3.7, "Comparison"): Z0210, with
+                    // the conversion to write.
+                    let is_time = |t: &Ty| matches!(t, Ty::Date | Ty::DateTime);
+                    if (is_time(&left.ty) && right.ty == Ty::Str)
+                        || (is_time(&right.ty) && left.ty == Ty::Str)
+                    {
+                        let (date, text) = if is_time(&left.ty) {
+                            (&left, &right)
+                        } else {
+                            (&right, &left)
+                        };
+                        self.report(
+                            Diagnostic::error(
+                                "Z0210",
+                                format!("`{symbol}` compares {} with text", date.ty.with_article()),
+                            )
+                            .primary(text.span, "text, not a date")
+                            .help("write the text as a date: `to(\"2020-01-01\", Date)`, or `date(\"2020-01-01\")` from the `time` package"),
+                        );
+                        return Expr::error(span);
+                    }
                     let (l, r) = (left.ty.clone(), right.ty.clone());
                     return self.wrong_operands(
                         span,
@@ -3422,6 +3441,53 @@ impl Checker<'_> {
                 Ty::Bool
             }
             B::Add | B::Sub | B::Mul | B::Div | B::Pow => {
+                // Dates (section 3.7, "Dates"): `Date - Date` is Int days and nothing else
+                // computes on a date, each refusal naming the function that does what was meant.
+                let is_time = |t: &Ty| matches!(t, Ty::Date | Ty::DateTime);
+                if is_time(&left.ty) || is_time(&right.ty) {
+                    let dated = if is_time(&left.ty) {
+                        &left.ty
+                    } else {
+                        &right.ty
+                    }
+                    .clone();
+                    let other = if is_time(&left.ty) {
+                        &right.ty
+                    } else {
+                        &left.ty
+                    }
+                    .clone();
+                    return match (op, &dated, &other) {
+                        (B::Sub, Ty::Date, Ty::Date | Ty::Na) => self.finish_binary(
+                            op,
+                            Ty::Int,
+                            left,
+                            right,
+                            span,
+                            column,
+                            left_column,
+                            right_column,
+                        ),
+                        (B::Sub, Ty::DateTime, Ty::DateTime | Ty::Na) => self.wrong_operands(
+                            span,
+                            "`-` between two DateTimes is not defined in 1.0".to_string(),
+                            "two DateTimes".to_string(),
+                            "`days_between(start, end)` counts the whole days between two times; a Duration type comes after 1.0",
+                        ),
+                        (B::Add | B::Sub, _, o) if is_number(o) && *o != Ty::Na => self.wrong_operands(
+                            span,
+                            format!("`{symbol}` does not apply to {} and a number", dated.with_article()),
+                            "a date beside a number".to_string(),
+                            "`add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates",
+                        ),
+                        _ => self.wrong_operands(
+                            span,
+                            format!("`{symbol}` needs numbers, but one side is {}", dated.with_article()),
+                            dated.with_article(),
+                            "the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`",
+                        ),
+                    };
+                }
                 if left.ty == Ty::Str || right.ty == Ty::Str {
                     self.report(
                         Diagnostic::error("Z0215", format!("`{symbol}` does not apply to text"))
@@ -3463,6 +3529,23 @@ impl Checker<'_> {
             }
             B::Interact | B::Range => unreachable!("handled above"),
         };
+        self.finish_binary(op, ty, left, right, span, column, left_column, right_column)
+    }
+
+    /// The expression of a binary operator whose element type `ty` is settled: a column when
+    /// either side is one, each side's type wrapped back as it was given.
+    #[allow(clippy::too_many_arguments)]
+    fn finish_binary(
+        &mut self,
+        op: ast::BinaryOp,
+        ty: Ty,
+        left: Expr,
+        right: Expr,
+        span: Span,
+        column: bool,
+        left_column: bool,
+        right_column: bool,
+    ) -> Expr {
         let ty = if column { Ty::Column(Box::new(ty)) } else { ty };
         let (left, right) = (
             Expr {

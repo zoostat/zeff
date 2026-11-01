@@ -1,5 +1,6 @@
 ---
 source: packages/tier0/core/tests/types.rs
+assertion_line: 291
 expression: all
 ---
 > to(2.5, Int)
@@ -117,28 +118,22 @@ error[Z0401]: to(Int) is not defined for a Frame
 2 | to(w, Int)
   |    ^ not a value `to` converts
   |
-  = help: `to` converts a Bool, Int, Float or Str, or a column
+  = help: `to` converts a Bool, Int, Float, Str, Date or DateTime, or a column
 [exit 1]
 
 > to(3, Date)
-error[Z0304]: to(Date) is not available in this release
+error[Z0401]: to(Date) is not defined for an Int
  --> scripts/main.zeff:1:7
   |
 1 | to(3, Date)
-  |       ^^^^ arrives with release 0.6.0
+  |       ^^^^ no conversion from Int
   |
-  = help: conversion to dates and times arrives with the date functions of release 0.6.0
+  = help: an Int converts to Float, Bool or Str; the table of conversions is in section 3.7 of the Language Reference
 [exit 1]
 
 > to("2026-10-23", DateTime)
-error[Z0304]: to(DateTime) is not available in this release
- --> scripts/main.zeff:1:18
-  |
-1 | to("2026-10-23", DateTime)
-  |                  ^^^^^^^^ arrives with release 0.6.0
-  |
-  = help: conversion to dates and times arrives with the date functions of release 0.6.0
-[exit 1]
+2026-10-23T00:00:00
+[exit 0]
 
 > to("a", Category)
 error[Z0401]: to(Category) needs a column, not a single value
@@ -157,7 +152,7 @@ error[Z0401]: to(Int) is not defined for a List<Int>
 1 | to([1, 2], Int)
   |    ^^^^^^ not a value `to` converts
   |
-  = help: `to` converts a Bool, Int, Float or Str, or a column
+  = help: `to` converts a Bool, Int, Float, Str, Date or DateTime, or a column
 [exit 1]
 
 > to(3, 4)

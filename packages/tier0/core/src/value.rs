@@ -296,6 +296,10 @@ pub enum Value {
     Int(i64),
     Float(f64),
     Str(String),
+    /// A calendar day, as days since 1970-01-01 (Language Reference, section 3.8, "Time").
+    Date(i32),
+    /// A date and time to the microsecond since 1970-01-01 00:00:00 UTC, with no zone.
+    DateTime(i64),
     Frame(Frame),
     Table(Table),
     /// A column as a value: `wages["lwage"]`, or the result of an expression over columns
@@ -356,6 +360,8 @@ impl Value {
             Value::Int(_) => "Int",
             Value::Float(_) => "Float",
             Value::Str(_) => "Str",
+            Value::Date(_) => "Date",
+            Value::DateTime(_) => "DateTime",
             Value::Table(_) => "Table",
             Value::Frame(_) => "Frame",
             Value::Column(_) => "Column",

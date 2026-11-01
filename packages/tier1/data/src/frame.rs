@@ -102,16 +102,19 @@ pub fn frame(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 fn column_from(items: &[Value], name: &str, span: Span, script: &str) -> Result<Column, Fail> {
     let (mut bools, mut ints, mut floats, mut strs, mut nas) =
         (0usize, 0usize, 0usize, 0usize, 0usize);
+    let (mut dates, mut datetimes) = (0usize, 0usize);
     for item in items {
         match item {
             Value::Bool(_) => bools += 1,
             Value::Int(_) => ints += 1,
             Value::Float(_) => floats += 1,
             Value::Str(_) => strs += 1,
+            Value::Date(_) => dates += 1,
+            Value::DateTime(_) => datetimes += 1,
             Value::Na => nas += 1,
             other => {
                 return Err(fail(
-                    Diagnostic::error("Z0401", format!("`{name}` holds {}; a column holds Bool, Int, Float or Str values", article(other.type_name())))
+                    Diagnostic::error("Z0401", format!("`{name}` holds {}; a column holds Bool, Int, Float, Str, Date or DateTime values", article(other.type_name())))
                         .in_file(script)
                         .primary(span, "not a value a column can hold")
                         .help("a frame's columns are flat lists of values; nested lists and records arrive with the opaque column types after 1.0"),
@@ -141,13 +144,19 @@ fn column_from(items: &[Value], name: &str, span: Span, script: &str) -> Result<
             .help("give the column at least one value beside the `NA`s"),
         ));
     }
-    let kinds = usize::from(bools > 0) + usize::from(strs > 0) + usize::from(ints + floats > 0);
+    let kinds = usize::from(bools > 0)
+        + usize::from(strs > 0)
+        + usize::from(ints + floats > 0)
+        + usize::from(dates > 0)
+        + usize::from(datetimes > 0);
     if kinds > 1 {
         let present: Vec<&str> = [
             (bools, "Bool"),
             (ints, "Int"),
             (floats, "Float"),
             (strs, "Str"),
+            (dates, "Date"),
+            (datetimes, "DateTime"),
         ]
         .iter()
         .filter(|(n, _)| *n > 0)
@@ -169,6 +178,16 @@ fn column_from(items: &[Value], name: &str, span: Span, script: &str) -> Result<
     Ok(if bools > 0 {
         Column::bools(items.iter().map(|v| match v {
             Value::Bool(b) => Some(*b),
+            _ => None,
+        }))
+    } else if dates > 0 {
+        Column::dates(items.iter().map(|v| match v {
+            Value::Date(d) => Some(*d),
+            _ => None,
+        }))
+    } else if datetimes > 0 {
+        Column::datetimes(items.iter().map(|v| match v {
+            Value::DateTime(t) => Some(*t),
             _ => None,
         }))
     } else if strs > 0 {

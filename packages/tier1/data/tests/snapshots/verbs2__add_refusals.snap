@@ -1,5 +1,6 @@
 ---
 source: packages/tier1/data/tests/verbs2.rs
+assertion_line: 136
 expression: all
 ---
 error[Z0219]: `z = NA` has no type
@@ -10,13 +11,13 @@ error[Z0219]: `z = NA` has no type
   |
   = help: a variable of only NA needs a type: build it from one of the frame's, as in `x * NA`; `to(NA, Float)` arrives with release 0.5.0
 
-error[Z0401]: `add` defines columns from a Column, Bool, Int, Float or Str, but `z` is a List<Int>
+error[Z0401]: `add` defines columns from a Column, Bool, Int, Float, Str, Date or DateTime, but `z` is a List<Int>
  --> scripts/main.zeff:2:11
   |
 2 | w.add(z = [1, 2, 3])
   |           ^^^^^^^^^ a List<Int>
   |
-  = help: usage: `data.add(by: Vars, name = Column | Bool | Int | Float | Str, ...)`
+  = help: usage: `data.add(by: Vars, name = Column | Bool | Int | Float | Str | Date | DateTime, ...)`
 
 error[Z0217]: `z` has 1 row and the frame has 3 rows
  --> scripts/main.zeff:3:11
@@ -40,4 +41,4 @@ error[Z0406]: `add` needs at least one definition
 2 | w.add()
   |   ^^^ nothing defined
   |
-  = help: usage: `data.add(by: Vars, name = Column | Bool | Int | Float | Str, ...)`
+  = help: usage: `data.add(by: Vars, name = Column | Bool | Int | Float | Str | Date | DateTime, ...)`

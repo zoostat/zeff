@@ -667,9 +667,9 @@ impl<'a> Interpreter<'a> {
                 .help("add a last arm for the rest, `_ => value`"),
             );
         }
-        // The values of a `case` are the computable scalar types of this release; a Category is
+        // The values of a `case` are the computable scalar types (section 4.3): a Category is
         // refused rather than turned into its labels unasked (section 3.7, "No implicit
-        // conversion"), and the types that arrive at 0.6.0 wait for it.
+        // conversion"), and an opaque column is not computed on.
         let mut fallback: Option<zeff_columns::ColumnType> = None;
         for (k, value) in values.iter().enumerate() {
             if let Some(Value::Column(column)) = value {
@@ -678,7 +678,9 @@ impl<'a> Interpreter<'a> {
                     zeff_columns::ColumnType::Bool
                     | zeff_columns::ColumnType::Int
                     | zeff_columns::ColumnType::Float
-                    | zeff_columns::ColumnType::Str => {}
+                    | zeff_columns::ColumnType::Str
+                    | zeff_columns::ColumnType::Date
+                    | zeff_columns::ColumnType::DateTime => {}
                     zeff_columns::ColumnType::Category => {
                         return Err(fail(
                             Diagnostic::error("Z0214", "a `case` arm gives a Category column, which does not combine row by row with the other arms")
@@ -691,8 +693,8 @@ impl<'a> Interpreter<'a> {
                         return Err(fail(
                             Diagnostic::error("Z0304", format!("a `case` giving a {} column is not available in this release", other.name()))
                                 .in_file(self.script)
-                                .primary(arms[k].value.span, "arrives with Zeff 0.6.0")
-                                .help("dates and the other column types become computable with release 0.6.0"),
+                                .primary(arms[k].value.span, "an opaque column")
+                                .help("an opaque column is carried, not computed on, until the package that brings its functions (section 4.3 of the Language Reference)"),
                         ));
                     }
                 }
@@ -2423,7 +2425,9 @@ fn cell_value(column: &zeff_columns::Column, row: usize) -> Value {
         zeff_columns::Value::Int(i) => Value::Int(i),
         zeff_columns::Value::Float(x) => Value::Float(x),
         zeff_columns::Value::Str(s) | zeff_columns::Value::Category(s) => Value::Str(s.to_string()),
-        _ => Value::Na,
+        zeff_columns::Value::Date(days) => Value::Date(days),
+        zeff_columns::Value::DateTime(micros) => Value::DateTime(micros),
+        zeff_columns::Value::Opaque(_) => Value::Na,
     }
 }
 

@@ -1014,6 +1014,14 @@ fn control_cases() -> Vec<Line> {
             "for_draws",
             "seed(20261030)\nlet draws = [for s in 1..3 { dist.normal().draw(4) }]\ndraws[1]\ndraws[2]\ndraws[3]\nlet picked = [for i in 1..20 {\n    if i > 12 { break }\n    if mod(i, 3) == 0 { continue }\n    i * i\n}]\npicked\nlet w = dataset(wages)\n[for y in vars(wage, hours) { w.reg(log(y) ~ educ + y:female).coef(educ) }]\n",
         ),
+        // Dates and times as computable types (release 0.6.0, step 2): conversions from text
+        // with and without a format, an offset applied, comparisons, `Date - Date`, dates in a
+        // frame through `where`, `add`, `case`, `recode`, `update` and `sort`, and the
+        // collection functions on them.
+        (
+            "dates",
+            "let d = to(\"2026-10-16\", Date)\nd\nto(\"16/10/2026\", Date(\"%d/%m/%Y\"))\nto(\"2026-02-30\", Date)\nto(\"2026-10-16T09:30:00+02:00\", DateTime)\nd - to(\"1970-01-01\", Date)\nd > to(\"2026-01-01\", Date)\nto(d, DateTime)\nto(to(\"2026-10-16T23:59:59\", DateTime), Date)\nlet f = frame(id = [1, 2, 3], sold = [d, to(\"2024-02-29\", Date), to(\"1999-12-31\", Date)])\nf.where(sold > to(\"2000-01-01\", Date)).add(days = sold - to(\"2000-01-01\", Date))\nf.add(era = case { sold < to(\"2000-01-01\", Date) => \"old\", _ => \"new\" }, d2 = case { id == 1 => to(\"1970-01-01\", Date), _ => sold })\nf.recode(sold, [to(\"1999-12-31\", Date) => to(\"2000-01-01\", Date)]).update(sold = to(\"2030-01-01\", Date), where: id == 2).sort(sold)\nsorted([d, to(\"0001-01-01\", Date), to(\"9999-12-31\", Date)])\nmin(d, to(\"2024-02-29\", Date))\nn_distinct(f[\"sold\"])\n",
+        ),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {

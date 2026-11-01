@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-engine/tests/control.rs
+assertion_line: 398
 expression: all
 ---
 ## if_on_an_int (exit 1)
@@ -195,12 +196,10 @@ error[Z0214]: a `case` arm gives a Category column, which does not combine row b
   |
   = help: write `to(x, Str)` to use its labels, or `to(x, Int)` for its level positions (section 3.7, "Conversions")
 
-## case_date (exit 1)
+## case_date (exit 0)
+frame · 2 rows × 4 variables
+
+      id   sold         amount   d
+  1    1   2026-01-05       10   NA
+  2    2   2026-02-09       20   2026-02-09
 note: data/sales.csv read as CSV: 2 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-error[Z0304]: a `case` giving a Date column is not available in this release
- --> scripts/main.zeff:2:33
-  |
-2 | s.add(d = case { amount > 15 => sold, _ => NA })
-  |                                 ^^^^ arrives with Zeff 0.6.0
-  |
-  = help: dates and the other column types become computable with release 0.6.0

@@ -9,7 +9,7 @@ use zeff_diagnostics::Diagnostic;
 use zeff_registry::{FunctionSpec, ParamSpec, Rest};
 
 /// The computable scalar types a value may have.
-const SCALAR: &str = "Bool | Int | Float | Str";
+const SCALAR: &str = "Bool | Int | Float | Str | Date | DateTime";
 
 fn is_missing(_ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     Ok(Value::Bool(matches!(args.get(0), None | Some(Value::Na))))
@@ -21,6 +21,8 @@ fn kind(value: &Value) -> Option<&'static str> {
         Value::Int(_) | Value::Float(_) => Some("number"),
         Value::Bool(_) => Some("Bool"),
         Value::Str(_) => Some("Str"),
+        Value::Date(_) => Some("Date"),
+        Value::DateTime(_) => Some("DateTime"),
         _ => None,
     }
 }

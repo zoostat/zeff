@@ -318,12 +318,14 @@ fn case_row_by_row_refuses_what_it_cannot_combine() {
         error_code("dataset(wages).add(g = case { wage < 15 => industry, _ => \"other\" })\n"),
         "Z0214"
     );
-    // The column types of 0.6.0 wait for it.
+    // A Date column is a value of `case` from 0.6.0 (step 2), the unmatched rows `NA`.
+    let dated = run(
+        "let s = import(\"data/sales.csv\")\ns.add(d = case { amount > 15 => sold, _ => NA })[\"d\"]\n",
+    );
+    assert_eq!(dated.exit_code, 0, "{}", dated.output.stderr);
     assert_eq!(
-        error_code(
-            "let s = import(\"data/sales.csv\")\ns.add(d = case { amount > 15 => sold, _ => NA })\n"
-        ),
-        "Z0304"
+        dated.output.stdout,
+        "Column<Date> · 2 values\nNA\n2026-02-09\n"
     );
 }
 

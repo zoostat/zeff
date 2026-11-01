@@ -151,6 +151,8 @@ control/iterate/stdout 1e578ed47248b4af
 control/iterate/stderr 17460efdc7e1f045
 control/for_draws/stdout fdb841f515d6951d
 control/for_draws/stderr cbf29ce484222325
+control/dates/stdout e38631ee06f041b2
+control/dates/stderr 47d898bc828ad06f
 functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f

@@ -141,3 +141,13 @@ The functions planned in Zeff, each with its page, its R reference in base R (`z
 **Next.** Step 2 `[engine]`: dates and times as computable types.
 
 **For the owner to decide.** Nothing new; #68 to #71, #76 and #77 fall due at 0.7.0, #73 to #75 at 0.8.0, #78 at 1.1.
+
+## 1 November 2026, step 2 of release 0.6.0
+
+**Done.** Step 2 `[engine]`: dates and times as computable types. `core` holds `Date` and `DateTime` values; comparisons, `Date - Date` as days, the refusals of every other arithmetic naming `add_days`, `add_months` and `days_between`, Z0210 for a date against text (new, with its page); `to` from text with or without a format and between dates and times, with W0203 and W0702; `case`, `add`, `update`, `recode`, the frame literal and the collection functions on dates; every "arrives with 0.6.0" message about dates retired. Tests: the R reference `dates.R` (exact, two departures recorded), the engine's `dates.rs` with every message and the calendar property, the conformance case `control/dates` (the published report regenerated), nine snapshots moved to the widened messages. The ruling is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (115 codes) and the conformance report pass locally; CI to be read after the push.
+
+**Next.** Step 3 `[function]`: the `time` package, part 1 (`date`, `datetime`, `year`, `month`, `day`, `weekday`, `quarter`, `week`), a new crate.
+
+**For the owner to decide.** Nothing new.

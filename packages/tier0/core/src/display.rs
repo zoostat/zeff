@@ -81,6 +81,8 @@ fn inline(value: &Value) -> String {
         Value::Int(i) => i.to_string(),
         Value::Float(x) => format_float(*x),
         Value::Str(s) => s.clone(),
+        Value::Date(days) => format_iso_date(*days),
+        Value::DateTime(micros) => format_iso_datetime(*micros),
         Value::Frame(f) => frame_header(f),
         Value::Table(t) => {
             if t.title.is_empty() {

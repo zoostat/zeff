@@ -100,8 +100,10 @@ pub enum Kind {
     Number,
     Bool,
     Text,
+    Date,
+    DateTime,
     Na,
-    /// A kind no operator computes on yet (a date, a category, a list, a frame).
+    /// A kind no operator computes on (a category, a list, a frame).
     Other,
 }
 
@@ -111,6 +113,8 @@ impl Kind {
             Value::Int(_) | Value::Float(_) => Kind::Number,
             Value::Bool(_) => Kind::Bool,
             Value::Str(_) => Kind::Text,
+            Value::Date(_) => Kind::Date,
+            Value::DateTime(_) => Kind::DateTime,
             Value::Na => Kind::Na,
             _ => Kind::Other,
         }
@@ -121,6 +125,8 @@ impl Kind {
             ColumnType::Int | ColumnType::Float => Kind::Number,
             ColumnType::Bool => Kind::Bool,
             ColumnType::Str => Kind::Text,
+            ColumnType::Date => Kind::Date,
+            ColumnType::DateTime => Kind::DateTime,
             _ => Kind::Other,
         }
     }
@@ -130,9 +136,15 @@ impl Kind {
             Kind::Number => "a number",
             Kind::Bool => "a Bool",
             Kind::Text => "text",
+            Kind::Date => "a Date",
+            Kind::DateTime => "a DateTime",
             Kind::Na => "NA",
             Kind::Other => "a value no operator takes",
         }
+    }
+
+    fn is_time(self) -> bool {
+        matches!(self, Kind::Date | Kind::DateTime)
     }
 }
 
@@ -157,6 +169,21 @@ pub fn kinds_fit(op: Op, a: Kind, b: Kind) -> Result<(), Trouble> {
         return Ok(());
     }
     if op.is_comparison() {
+        // A Date never compares with text (section 3.7, "Comparison"): Z0210, with the
+        // conversion to write.
+        if let (Some(x), Some(y)) = (other(a), other(b))
+            && x != y
+            && ((x.is_time() && y == Kind::Text) || (y.is_time() && x == Kind::Text))
+        {
+            return Err(Trouble::Types {
+                code: "Z0210",
+                message: format!(
+                    "`{symbol}` compares {} with text",
+                    if x.is_time() { x } else { y }.with_article()
+                ),
+                help: "write the text as a date: `to(\"2020-01-01\", Date)`, or `date(\"2020-01-01\")` from the `time` package",
+            });
+        }
         if let (Some(x), Some(y)) = (other(a), other(b))
             && x != y
         {
@@ -178,6 +205,41 @@ pub fn kinds_fit(op: Op, a: Kind, b: Kind) -> Result<(), Trouble> {
             });
         }
         return Ok(());
+    }
+    // Arithmetic on dates (section 3.7, "Dates"): `Date - Date` gives Int days and nothing else
+    // is allowed, each refusal naming the function that does what was meant.
+    if a.is_time() || b.is_time() {
+        return match (op, a, b) {
+            (Op::Sub, Kind::Date, Kind::Date | Kind::Na) | (Op::Sub, Kind::Na, Kind::Date) => {
+                Ok(())
+            }
+            (Op::Sub, Kind::DateTime, Kind::DateTime | Kind::Na)
+            | (Op::Sub, Kind::Na, Kind::DateTime) => Err(Trouble::Types {
+                code: "Z0221",
+                message: "`-` between two DateTimes is not defined in 1.0".to_string(),
+                help: "`days_between(start, end)` counts the whole days between two times; a Duration type comes after 1.0",
+            }),
+            (Op::Add | Op::Sub, x, y)
+                if (x.is_time() && y == Kind::Number) || (y.is_time() && x == Kind::Number) =>
+            {
+                Err(Trouble::Types {
+                    code: "Z0221",
+                    message: format!(
+                        "`{symbol}` does not apply to {} and a number",
+                        if x.is_time() { x } else { y }.with_article()
+                    ),
+                    help: "`add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates",
+                })
+            }
+            (_, x, y) => Err(Trouble::Types {
+                code: "Z0221",
+                message: format!(
+                    "`{symbol}` needs numbers, but one side is {}",
+                    if x.is_time() { x } else { y }.with_article()
+                ),
+                help: "the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`",
+            }),
+        };
     }
     for k in [a, b] {
         match k {
@@ -205,6 +267,7 @@ pub fn kinds_fit(op: Op, a: Kind, b: Kind) -> Result<(), Trouble> {
                     help: "arithmetic takes Ints and Floats",
                 });
             }
+            Kind::Date | Kind::DateTime => unreachable!("dates are decided above"),
         }
     }
     Ok(())
@@ -225,6 +288,8 @@ pub fn binary(op: Op, a: &Value, b: &Value) -> Result<(Value, Option<Note>), Tro
         return Ok((compare(op, a, b), None));
     }
     Ok(match (a, b) {
+        // `Date - Date` is Int days (section 3.7, "Dates"); the only arithmetic on dates.
+        (Value::Date(x), Value::Date(y)) => (Int(i64::from(*x) - i64::from(*y)), None),
         (Int(x), Int(y)) => match op {
             Op::Add => (Int(checked(x.checked_add(*y), op, a, b)?), None),
             Op::Sub => (Int(checked(x.checked_sub(*y), op, a, b)?), None),
@@ -304,6 +369,8 @@ fn compare(op: Op, a: &Value, b: &Value) -> Value {
         (Float(x), Float(y)) => x.partial_cmp(y),
         (Str(x), Str(y)) => Some(x.cmp(y)),
         (Bool(x), Bool(y)) => Some(x.cmp(y)),
+        (Value::Date(x), Value::Date(y)) => Some(x.cmp(y)),
+        (Value::DateTime(x), Value::DateTime(y)) => Some(x.cmp(y)),
         _ => None,
     };
     let Some(ordering) = ordering else {
@@ -366,6 +433,8 @@ pub fn identical(a: &Value, b: &Value) -> bool {
         (Int(x), Float(y)) | (Float(y), Int(x)) => *x as f64 == *y,
         (Str(x), Str(y)) => x == y,
         (Bool(x), Bool(y)) => x == y,
+        (Value::Date(x), Value::Date(y)) => x == y,
+        (Value::DateTime(x), Value::DateTime(y)) => x == y,
         _ => false,
     }
 }
@@ -474,7 +543,9 @@ fn cell_value(cell: Cell<'_>, ty: ColumnType) -> Result<Value, ColumnTrouble> {
         Cell::Int(i) => Value::Int(i),
         Cell::Float(x) => Value::Float(x),
         Cell::Str(s) => Value::Str(s.to_string()),
-        Cell::Date(_) | Cell::DateTime(_) | Cell::Category(_) | Cell::Opaque(_) => {
+        Cell::Date(days) => Value::Date(days),
+        Cell::DateTime(micros) => Value::DateTime(micros),
+        Cell::Category(_) | Cell::Opaque(_) => {
             return Err(ColumnTrouble::Unsupported(ty));
         }
     })
@@ -549,6 +620,7 @@ pub fn column_binary(
     } else if matches!(op, Op::Div | Op::Pow) || a.is_float() || b.is_float() {
         ColumnType::Float
     } else {
+        // Int, which `Date - Date` also gives.
         ColumnType::Int
     };
     Ok((column_from(out, fallback), notes))
@@ -574,6 +646,8 @@ pub fn column_unary(negation: bool, c: &Column) -> Result<Column, ColumnTrouble>
         let probe = match kind {
             Kind::Bool => Value::Bool(true),
             Kind::Text => Value::Str(String::new()),
+            Kind::Date => Value::Date(0),
+            Kind::DateTime => Value::DateTime(0),
             _ => Value::Int(0),
         };
         if let Err(Trouble::Types {
@@ -832,12 +906,15 @@ fn category_binary(
 /// fallback type.
 fn column_from(values: Vec<Value>, fallback: ColumnType) -> Column {
     let (mut floats, mut ints, mut bools, mut strs) = (false, false, false, false);
+    let (mut dates, mut datetimes) = (false, false);
     for v in &values {
         match v {
             Value::Float(_) => floats = true,
             Value::Int(_) => ints = true,
             Value::Bool(_) => bools = true,
             Value::Str(_) => strs = true,
+            Value::Date(_) => dates = true,
+            Value::DateTime(_) => datetimes = true,
             _ => {}
         }
     }
@@ -849,6 +926,10 @@ fn column_from(values: Vec<Value>, fallback: ColumnType) -> Column {
         ColumnType::Bool
     } else if strs {
         ColumnType::Str
+    } else if dates {
+        ColumnType::Date
+    } else if datetimes {
+        ColumnType::DateTime
     } else {
         fallback
     };
@@ -867,6 +948,14 @@ fn column_from(values: Vec<Value>, fallback: ColumnType) -> Column {
         })),
         ColumnType::Bool => Column::bools(values.iter().map(|v| match v {
             Value::Bool(b) => Some(*b),
+            _ => None,
+        })),
+        ColumnType::Date => Column::dates(values.iter().map(|v| match v {
+            Value::Date(d) => Some(*d),
+            _ => None,
+        })),
+        ColumnType::DateTime => Column::datetimes(values.iter().map(|v| match v {
+            Value::DateTime(t) => Some(*t),
             _ => None,
         })),
         _ => Column::strs(values.iter().map(|v| match v {
@@ -952,7 +1041,7 @@ pub fn column_trouble_diagnostic(trouble: ColumnTrouble, script: &str, span: Spa
             )
             .in_file(script)
             .primary(span, "arrives with the package that computes on it")
-            .help("dates and times gain their operators with the `time` package (release 0.6.0)")
+            .help("an opaque column is carried through the row verbs and computed on by the package that brings its functions (section 4.3 of the Language Reference)")
         ,
         ColumnTrouble::NotALevel { text, levels, row } => {
             let listed = list_levels(&levels);
@@ -1380,10 +1469,19 @@ mod tests {
         let negated = column_unary(true, &a).unwrap();
         assert_eq!(negated.get(1), Some(Cell::Int(-2)));
         let dates = Column::dates([Some(1)]);
-        assert_eq!(
+        assert!(matches!(
             column_unary(true, &dates),
-            Err(ColumnTrouble::Unsupported(ColumnType::Date))
-        );
+            Err(ColumnTrouble::Types { code: "Z0221", .. })
+        ));
+        let (days, _) = column_binary(
+            Op::Sub,
+            Operand::Column(&Column::dates([Some(10), None])),
+            Operand::Scalar(&Value::Date(3)),
+        )
+        .unwrap();
+        assert_eq!(days.ty(), ColumnType::Int);
+        assert_eq!(days.get(0), Some(Cell::Int(7)));
+        assert_eq!(days.get(1), Some(Cell::Na));
         let text = Column::strs([Some("a"), None]);
         assert!(matches!(
             column_binary(

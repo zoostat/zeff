@@ -554,7 +554,29 @@ pub fn update(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 );
                 Column::strs((0..rows).map(|r| if changed(r) { n[r] } else { o[r] }))
             }
-            (ColumnType::Bool | ColumnType::Int | ColumnType::Float | ColumnType::Str, found) => {
+            (ColumnType::Date, ColumnType::Date) => {
+                let (o, n): (Vec<_>, Vec<_>) = (
+                    old.as_dates().unwrap().collect(),
+                    new.as_dates().unwrap().collect(),
+                );
+                Column::dates((0..rows).map(|r| if changed(r) { n[r] } else { o[r] }))
+            }
+            (ColumnType::DateTime, ColumnType::DateTime) => {
+                let (o, n): (Vec<_>, Vec<_>) = (
+                    old.as_datetimes().unwrap().collect(),
+                    new.as_datetimes().unwrap().collect(),
+                );
+                Column::datetimes((0..rows).map(|r| if changed(r) { n[r] } else { o[r] }))
+            }
+            (
+                ColumnType::Bool
+                | ColumnType::Int
+                | ColumnType::Float
+                | ColumnType::Str
+                | ColumnType::Date
+                | ColumnType::DateTime,
+                found,
+            ) => {
                 return Err(refuse(&format!("{}s", found.name())));
             }
             (other, _) => {
@@ -571,7 +593,7 @@ pub fn update(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     .help(if other == ColumnType::Category {
                         "`recode` merges or renames a category's levels; `add` replaces the variable"
                     } else {
-                        "dates and times gain their functions at 0.6.0 with the `time` package"
+                        "an opaque column is carried, not computed on (section 4.3 of the Language Reference)"
                     }),
                 ));
             }

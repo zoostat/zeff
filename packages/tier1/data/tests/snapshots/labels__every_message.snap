@@ -1,5 +1,6 @@
 ---
 source: packages/tier1/data/tests/labels.rs
+assertion_line: 421
 expression: all
 ---
 > let w = dataset(wages).head(3)
@@ -229,11 +230,11 @@ d · 2 rows × 2 variables
   variable   type   non-missing   missing   example
   day        Date             2         0   2024-01-05
   n          Int              2         0   1
-error[Z0304]: `recode` on a Date variable arrives at 0.6.0 with the `time` package
- --> scripts/main.zeff:3:10
+error[Z0401]: `day` is a Date variable, but a key of the mapping is a Str
+ --> scripts/main.zeff:3:15
   |
 3 | d.recode(day, ["2024-01-05" => "x"])
-  |          ^^^ a date or time variable
+  |               ^^^^^^^^^^^^^^^^^^^^^ a key or value of another kind
   |
-  = help: `to(x, Str)` gives text to recode until then
+  = help: `recode` keeps a variable's type, so the keys and values are dates, as `to("2020-01-01", Date)` gives them or `NA`; `add(day = ...)` makes a variable of another type
 [exit 1]

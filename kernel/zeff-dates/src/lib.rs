@@ -97,6 +97,18 @@ fn micros_from(days: i32, time: Time) -> i64 {
     i64::from(days) * MICROS_PER_DAY + time.micros_of_day()
 }
 
+/// The calendar day a timestamp falls on, as days since 1970-01-01 (`DateTime` to `Date` drops
+/// the time, Language Reference section 3.7, "Conversions").
+pub fn days_of_micros(micros: i64) -> i32 {
+    split_micros(micros).0
+}
+
+/// Midnight at the start of a day, as microseconds since 1970-01-01 00:00:00 UTC (`Date` to
+/// `DateTime`).
+pub fn micros_of_days(days: i32) -> i64 {
+    i64::from(days) * MICROS_PER_DAY
+}
+
 /// The day and the microseconds within it of a timestamp.
 fn split_micros(micros: i64) -> (i32, i64) {
     let days = micros.div_euclid(MICROS_PER_DAY);

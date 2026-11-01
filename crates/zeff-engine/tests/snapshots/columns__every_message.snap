@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-engine/tests/columns.rs
+assertion_line: 235
 expression: all
 ---
 ## no_such_column (exit 1)
@@ -92,14 +93,10 @@ error[Z0221]: `..` needs two Ints, not a column
   |
   = help: a range runs from one whole number to another: `2..5`
 
-## date_column (exit 1)
-error[Z0221]: `==` is not defined for this value
- --> scripts/main.zeff:2:1
-  |
-2 | d["sold"] == d["sold"]
-  | ^^^^^^^^^^^^^^^^^^^^^^ the operation, row by row
-  |
-  = help: comparison is for numbers, text, Bool and NA
+## date_column (exit 0)
+Column<Bool> · 2 values
+true
+true
 
 ## column_in_a_list (exit 0)
 Column<Int> · 3 values

@@ -1,0 +1,248 @@
+---
+source: crates/zeff-engine/tests/dates.rs
+assertion_line: 364
+expression: out
+---
+to("2026-10-16", Date) > "2026-01-01"
+---
+error[Z0210]: `>` compares a Date with text
+ --> scripts/main.zeff:1:26
+  |
+1 | to("2026-10-16", Date) > "2026-01-01"
+  |                          ^^^^^^^^^^^^ text, not a date
+  |
+  = help: write the text as a date: `to("2020-01-01", Date)`, or `date("2020-01-01")` from the `time` package
+
+let f = frame(d = [to("2026-10-16", Date)])
+f.where("2020-01-01" < d)
+---
+error[Z0210]: `<` compares a Date with text
+ --> scripts/main.zeff:2:9
+  |
+2 | f.where("2020-01-01" < d)
+  |         ^^^^^^^^^^^^^^^^ the operation, row by row
+  |
+  = help: write the text as a date: `to("2020-01-01", Date)`, or `date("2020-01-01")` from the `time` package
+
+to("2026-10-16", Date) + 1
+---
+error[Z0221]: `+` does not apply to a Date and a number
+ --> scripts/main.zeff:1:1
+  |
+1 | to("2026-10-16", Date) + 1
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^ a date beside a number
+  |
+  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+
+1 - to("2026-10-16", Date)
+---
+error[Z0221]: `-` does not apply to a Date and a number
+ --> scripts/main.zeff:1:1
+  |
+1 | 1 - to("2026-10-16", Date)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^ a date beside a number
+  |
+  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+
+to("2026-10-16", Date) * 2
+---
+error[Z0221]: `*` needs numbers, but one side is a Date
+ --> scripts/main.zeff:1:1
+  |
+1 | to("2026-10-16", Date) * 2
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^ a Date
+  |
+  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`
+
+to("2026-10-16T09:30", DateTime) - to("2026-10-16T08:30", DateTime)
+---
+error[Z0221]: `-` between two DateTimes is not defined in 1.0
+ --> scripts/main.zeff:1:1
+  |
+1 | to("2026-10-16T09:30", DateTime) - to("2026-10-16T08:30", DateTime)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ two DateTimes
+  |
+  = help: `days_between(start, end)` counts the whole days between two times; a Duration type comes after 1.0
+
+let d = to("2026-10-16", Date)
+let m = -d
+---
+error[Z0221]: `-` needs a number, but this is a Date
+ --> scripts/main.zeff:2:9
+  |
+2 | let m = -d
+  |         ^^ a Date
+  |
+  = help: only an Int or a Float can be negated
+
+!to("2026-10-16", Date)
+---
+error[Z0221]: `!` needs a Bool, but this is a Date
+ --> scripts/main.zeff:1:1
+  |
+1 | !to("2026-10-16", Date)
+  | ^^^^^^^^^^^^^^^^^^^^^^^ a Date
+  |
+  = help: `!` negates true, false and NA; compare a number first, as in `!(x > 0)`
+
+to("2026-10-16", Date) + to("2026-10-16", Date)
+---
+error[Z0221]: `+` needs numbers, but one side is a Date
+ --> scripts/main.zeff:1:1
+  |
+1 | to("2026-10-16", Date) + to("2026-10-16", Date)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a Date
+  |
+  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`
+
+to("2026-10-16", Date) - to("2026-10-16T09:30", DateTime)
+---
+error[Z0221]: `-` needs numbers, but one side is a Date
+ --> scripts/main.zeff:1:1
+  |
+1 | to("2026-10-16", Date) - to("2026-10-16T09:30", DateTime)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a Date
+  |
+  = help: the arithmetic of dates is `Date - Date`, which gives days, `add_days` and `add_months`
+
+let f = frame(d = [to("2026-10-16", Date)])
+f.add(e = d + 7)
+---
+error[Z0221]: `+` does not apply to a Date and a number
+ --> scripts/main.zeff:2:11
+  |
+2 | f.add(e = d + 7)
+  |           ^^^^^ the operation, row by row
+  |
+  = help: `add_days(d, n)` moves a date by n days and `add_months(d, n)` by n months; `Date - Date` gives the days between two dates
+
+[1, to("2026-10-16", Date)]
+---
+error[Z0214]: a list holds one type: this one has an Int and a Date
+ --> scripts/main.zeff:1:5
+  |
+1 | [1, to("2026-10-16", Date)]
+  |     ^^^^^^^^^^^^^^^^^^^^^^ a Date
+  |
+  = help: put values of one type in a list; Int and Float join as Float
+
+frame(d = [to("2026-10-16", Date), "2026-10-17"])
+---
+error[Z0214]: a list holds one type: this one has a Date and a Str
+ --> scripts/main.zeff:1:36
+  |
+1 | frame(d = [to("2026-10-16", Date), "2026-10-17"])
+  |                                    ^^^^^^^^^^^^ a Str
+  |
+  = help: put values of one type in a list; Int and Float join as Float
+
+to(5, Date)
+---
+error[Z0401]: to(Date) is not defined for an Int
+ --> scripts/main.zeff:1:7
+  |
+1 | to(5, Date)
+  |       ^^^^ no conversion from Int
+  |
+  = help: an Int converts to Float, Bool or Str; the table of conversions is in section 3.7 of the Language Reference
+
+to(to("2026-10-16", Date), Int)
+---
+error[Z0401]: to(Int) is not defined for a Date
+ --> scripts/main.zeff:1:28
+  |
+1 | to(to("2026-10-16", Date), Int)
+  |                            ^^^ no conversion from Date
+  |
+  = help: a Date converts to DateTime or Str; the table of conversions is in section 3.7 of the Language Reference
+
+to(true, DateTime)
+---
+error[Z0401]: to(DateTime) is not defined for a Bool
+ --> scripts/main.zeff:1:10
+  |
+1 | to(true, DateTime)
+  |          ^^^^^^^^ no conversion from Bool
+  |
+  = help: a Bool converts to Int, Float or Str; the table of conversions is in section 3.7 of the Language Reference
+
+to("x", Date("%Q"))
+---
+error[Z0409]: `%Q` is not a date format
+ --> scripts/main.zeff:1:14
+  |
+1 | to("x", Date("%Q"))
+  |              ^^^^ `%Q` is not a directive of a date format
+  |
+  = help: a format uses %Y, %y, %m, %b, %d, %H, %M and %S, as in `Date("%d/%m/%Y")`
+
+to("2026-02-30", Date)
+---
+NA
+warning: "2026-02-30" could not be converted to Date and became NA (line 1)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+
+to("2026-10-16T09:30:00+02:00", DateTime)
+---
+2026-10-16T07:30:00
+warning: 1 value carried a time-zone offset and was converted to UTC (line 1)
+  = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
+
+let f = frame(s = ["2026-10-16", "no", "2026-13-01", "2026-02-30", "x"])
+f.add(d = to(s, Date))
+---
+frame · 5 rows × 2 variables
+
+      s            d
+  1   2026-10-16   2026-10-16
+  2   no           NA
+  3   2026-13-01   NA
+  4   2026-02-30   NA
+  5   x            NA
+warning: 4 values could not be converted to Date and became NA: "no", "2026-13-01", "2026-02-30" (line 2)
+  = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
+
+let f = frame(s = ["2026-10-16T09:30:00Z", "2026-10-16T09:30:00+02:00", "2026-10-16T09:30:00"])
+f.add(t = to(s, DateTime))
+---
+frame · 3 rows × 2 variables
+
+      s                           t
+  1   2026-10-16T09:30:00Z        2026-10-16T09:30:00
+  2   2026-10-16T09:30:00+02:00   2026-10-16T07:30:00
+  3   2026-10-16T09:30:00         2026-10-16T09:30:00
+warning: 2 values carried a time-zone offset and were converted to UTC (line 2)
+  = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
+
+let f = frame(d = [to("2026-10-16", Date)])
+f.recode(d, ["2026-10-16" => "2026-10-17"])
+---
+error[Z0401]: `d` is a Date variable, but a key of the mapping is a Str
+ --> scripts/main.zeff:2:13
+  |
+2 | f.recode(d, ["2026-10-16" => "2026-10-17"])
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a key or value of another kind
+  |
+  = help: `recode` keeps a variable's type, so the keys and values are dates, as `to("2020-01-01", Date)` gives them or `NA`; `add(d = ...)` makes a variable of another type
+
+let f = frame(d = [to("2026-10-16", Date)])
+f.update(d = 7, where: d > to("2000-01-01", Date))
+---
+error[Z0401]: `d` is a Date variable, but the new values are Ints
+ --> scripts/main.zeff:2:14
+  |
+2 | f.update(d = 7, where: d > to("2000-01-01", Date))
+  |              ^ values of another type
+  |
+  = help: `update` keeps a variable's type; `add(d = ...)` replaces the variable with one of the new type
+
+let f = frame(d = [to("2026-10-16", Date)])
+f.recode(d, [to("2020-01-01", Date) => to("2021-01-01", Date)])
+---
+frame · 1 row × 1 variable
+
+      d
+  1   2026-10-16
+warning: `recode`: 2020-01-01 is not a value of `d` (line 2)
+  = help: check the spelling or the type of the key; the other keys were applied
+note: `d` recoded: no row changed (line 2)

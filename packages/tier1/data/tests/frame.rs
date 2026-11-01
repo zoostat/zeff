@@ -225,7 +225,7 @@ fn the_errors_of_frame_through_the_language() {
     let nested = stderr("frame(x = [[1], [2]])\n");
     assert!(
         nested.starts_with(
-            "error[Z0401]: `x` holds a List; a column holds Bool, Int, Float or Str values"
+            "error[Z0401]: `x` holds a List; a column holds Bool, Int, Float, Str, Date or DateTime values"
         ),
         "{nested}"
     );

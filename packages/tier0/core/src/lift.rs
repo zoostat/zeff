@@ -15,19 +15,34 @@ use zeff_diagnostics::{Diagnostic, count};
 /// of kinds that do not join, or are all `NA` (whose type nothing fixes).
 pub fn collect_column(values: &[Value]) -> Option<Column> {
     let mut kinds = (false, false, false, false);
+    let (mut dates, mut datetimes) = (false, false);
     for v in values {
         match v {
             Value::Float(_) => kinds.0 = true,
             Value::Int(_) => kinds.1 = true,
             Value::Bool(_) => kinds.2 = true,
             Value::Str(_) => kinds.3 = true,
+            Value::Date(_) => dates = true,
+            Value::DateTime(_) => datetimes = true,
             Value::Na => {}
             _ => return None,
         }
     }
     let number = kinds.0 || kinds.1;
-    if (number as u8 + kinds.2 as u8 + kinds.3 as u8) != 1 {
+    if (number as u8 + kinds.2 as u8 + kinds.3 as u8 + dates as u8 + datetimes as u8) != 1 {
         return None;
+    }
+    if dates {
+        return Some(Column::dates(values.iter().map(|v| match v {
+            Value::Date(d) => Some(*d),
+            _ => None,
+        })));
+    }
+    if datetimes {
+        return Some(Column::datetimes(values.iter().map(|v| match v {
+            Value::DateTime(t) => Some(*t),
+            _ => None,
+        })));
     }
     Some(if kinds.0 {
         Column::floats(values.iter().map(|v| match v {
@@ -64,6 +79,8 @@ pub fn broadcast(value: &Value, rows: usize) -> Option<Column> {
         Value::Float(x) => Column::floats(std::iter::repeat_n(Some(*x), rows)).0,
         Value::Bool(b) => Column::bools(std::iter::repeat_n(Some(*b), rows)),
         Value::Str(s) => Column::strs(std::iter::repeat_n(Some(s.as_str()), rows)),
+        Value::Date(d) => Column::dates(std::iter::repeat_n(Some(*d), rows)),
+        Value::DateTime(t) => Column::datetimes(std::iter::repeat_n(Some(*t), rows)),
         _ => return None,
     })
 }
@@ -76,9 +93,11 @@ fn cell_value(column: &Column, row: usize) -> Value {
         Cell::Int(i) => Value::Int(i),
         Cell::Float(x) => Value::Float(x),
         Cell::Str(s) | Cell::Category(s) => Value::Str(s.to_string()),
-        // Dates and opaque cells reach no scalar function of this release: the checker admits
-        // only Bool, Int, Float and Str columns to one.
-        Cell::Date(_) | Cell::DateTime(_) | Cell::Opaque(_) => Value::Na,
+        Cell::Date(days) => Value::Date(days),
+        Cell::DateTime(micros) => Value::DateTime(micros),
+        // An opaque cell reaches no scalar function: the checker admits only computable
+        // columns to one (section 4.3).
+        Cell::Opaque(_) => Value::Na,
     }
 }
 
@@ -103,6 +122,8 @@ struct Inputs {
     int: bool,
     bool: bool,
     str: bool,
+    date: bool,
+    datetime: bool,
 }
 
 fn inputs_of(args: &Args) -> Inputs {
@@ -114,12 +135,16 @@ fn inputs_of(args: &Args) -> Inputs {
                 ColumnType::Int => inputs.int = true,
                 ColumnType::Bool => inputs.bool = true,
                 ColumnType::Str | ColumnType::Category => inputs.str = true,
+                ColumnType::Date => inputs.date = true,
+                ColumnType::DateTime => inputs.datetime = true,
                 _ => {}
             },
             Value::Float(_) => inputs.float = true,
             Value::Int(_) => inputs.int = true,
             Value::Bool(_) => inputs.bool = true,
             Value::Str(_) => inputs.str = true,
+            Value::Date(_) => inputs.date = true,
+            Value::DateTime(_) => inputs.datetime = true,
             _ => {}
         }
     }
@@ -229,16 +254,22 @@ fn column_of(results: Vec<Value>, returns: &str, inputs: Inputs) -> Column {
             "Int"
         } else if any(|v| matches!(v, Value::Bool(_))) {
             "Bool"
+        } else if any(|v| matches!(v, Value::Date(_))) {
+            "Date"
+        } else if any(|v| matches!(v, Value::DateTime(_))) {
+            "DateTime"
         } else {
             "Str"
         }
     } else {
         match returns {
-            "Float" | "Int" | "Bool" | "Str" => returns,
+            "Float" | "Int" | "Bool" | "Str" | "Date" | "DateTime" => returns,
             _ if inputs.float => "Float",
             _ if inputs.int => "Int",
             _ if inputs.str => "Str",
             _ if inputs.bool => "Bool",
+            _ if inputs.date => "Date",
+            _ if inputs.datetime => "DateTime",
             _ => "Float",
         }
     };
@@ -257,6 +288,14 @@ fn column_of(results: Vec<Value>, returns: &str, inputs: Inputs) -> Column {
         })),
         "Bool" => Column::bools(results.iter().map(|v| match v {
             Value::Bool(b) => Some(*b),
+            _ => None,
+        })),
+        "Date" => Column::dates(results.iter().map(|v| match v {
+            Value::Date(d) => Some(*d),
+            _ => None,
+        })),
+        "DateTime" => Column::datetimes(results.iter().map(|v| match v {
+            Value::DateTime(t) => Some(*t),
             _ => None,
         })),
         _ => Column::strs(results.iter().map(|v| match v {

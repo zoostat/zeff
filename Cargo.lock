@@ -1481,12 +1481,14 @@ version = "0.6.0-dev"
 dependencies = [
  "insta",
  "proptest",
+ "serde_json",
  "tempfile",
  "toml",
  "zeff-columns",
  "zeff-core",
  "zeff-data",
  "zeff-datasets",
+ "zeff-dates",
  "zeff-diagnostics",
  "zeff-dist",
  "zeff-ir",
@@ -1496,6 +1498,7 @@ dependencies = [
  "zeff-results",
  "zeff-stats",
  "zeff-syntax",
+ "zeff-testkit",
 ]
 
 [[package]]

@@ -287,7 +287,9 @@ pub fn functions() -> Vec<Function> {
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::option("by", "Vars"),
                 ],
-                rest: Some(Rest::Definitions("Column | Bool | Int | Float | Str")),
+                rest: Some(Rest::Definitions(
+                    "Column | Bool | Int | Float | Str | Date | DateTime",
+                )),
                 returns: "Frame",
                 diagnostics: vec![
                     DiagnosticDecl::note("a definition replaced a variable of that name"),
@@ -324,7 +326,9 @@ pub fn functions() -> Vec<Function> {
                     ParamSpec::option("where", "Column<Bool>"),
                     ParamSpec::option("by", "Vars"),
                 ],
-                rest: Some(Rest::Definitions("Column | Bool | Int | Float | Str")),
+                rest: Some(Rest::Definitions(
+                    "Column | Bool | Int | Float | Str | Date | DateTime",
+                )),
                 returns: "Frame",
                 diagnostics: vec![
                     DiagnosticDecl::note("rows where the condition was NA were left unchanged"),

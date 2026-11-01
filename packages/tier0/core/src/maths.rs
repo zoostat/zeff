@@ -162,8 +162,34 @@ fn round(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 }
 
 /// `min(a, b, ...)` and `max(a, b, ...)`, row by row: Int when every value is an Int; `NA` when
-/// any value is `NA`.
+/// any value is `NA`; the earliest or latest of dates, or of times, which compare chronologically
+/// (section 3.7, "Order").
 fn extreme(args: &Args, smallest: bool) -> Value {
+    let given: Vec<&Value> = args
+        .values
+        .iter()
+        .flatten()
+        .chain(args.rest.iter())
+        .collect();
+    if given.iter().any(|v| matches!(v, Value::Na)) {
+        return Value::Na;
+    }
+    if given.iter().all(|v| matches!(v, Value::Date(_))) {
+        let days = given.iter().filter_map(|v| match v {
+            Value::Date(d) => Some(*d),
+            _ => None,
+        });
+        let chosen = if smallest { days.min() } else { days.max() };
+        return chosen.map_or(Value::Na, Value::Date);
+    }
+    if given.iter().all(|v| matches!(v, Value::DateTime(_))) {
+        let micros = given.iter().filter_map(|v| match v {
+            Value::DateTime(t) => Some(*t),
+            _ => None,
+        });
+        let chosen = if smallest { micros.min() } else { micros.max() };
+        return chosen.map_or(Value::Na, Value::DateTime);
+    }
     let numbers: Vec<Number> = args
         .values
         .iter()
@@ -554,10 +580,10 @@ pub fn functions() -> Vec<Function> {
                 package: "core",
                 method: false,
                 params: vec![
-                    ParamSpec::required("a", "Float"),
-                    ParamSpec::required("b", "Float"),
+                    ParamSpec::required("a", "Float | Date | DateTime"),
+                    ParamSpec::required("b", "Float | Date | DateTime"),
                 ],
-                rest: Some(Rest::Values("Float")),
+                rest: Some(Rest::Values("Float | Date | DateTime")),
                 returns: "Number",
                 diagnostics: vec![],
                 help: include_str!("../help/min.md"),
@@ -571,10 +597,10 @@ pub fn functions() -> Vec<Function> {
                 package: "core",
                 method: false,
                 params: vec![
-                    ParamSpec::required("a", "Float"),
-                    ParamSpec::required("b", "Float"),
+                    ParamSpec::required("a", "Float | Date | DateTime"),
+                    ParamSpec::required("b", "Float | Date | DateTime"),
                 ],
-                rest: Some(Rest::Values("Float")),
+                rest: Some(Rest::Values("Float | Date | DateTime")),
                 returns: "Number",
                 diagnostics: vec![],
                 help: include_str!("../help/max.md"),
