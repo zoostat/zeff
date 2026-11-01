@@ -185,3 +185,13 @@ The previous release was tagged (`v0.4.0`) with a clean tree; the 0.5.0 row of s
 **Next.** Step 24b `[engine]`: the runs and the samples (the full suite on the four targets; the nightly, fuzz, coverage, weekly and benchmark jobs by hand on the commit of 24a with their figures; the five samples and `zeff selftest` read by eye; the browser cold start's first call understood).
 
 **For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).
+
+## 1 November 2026, step 24b of release 0.5.0
+
+**Done.** Step 24b `[engine]`: the five scheduled jobs run by hand on 1f98afb, all green, their figures recorded for the notes (nightly: the stochastic and truth-recovery figures of 0.4.0 to the last digit; fuzz: no crash; coverage: kernel 92.9%, estimators 93.1%, workspace 91.7%; mutation: 3,686 mutants, 142 missed and 10 timed out, the step-24a lists mutant for mutant with the perfect-fit boundary now caught; benchmarks on a slower runner, the ordering unchanged); the suite green on the Linux runner and this machine and the 148 conformance cases identical on the five targets; the five samples and `zeff selftest` run and read by eye, byte for byte their stored output; the browser cold start's watch item closed by the record of 30 October, with this release's figures (bundle 1,457 kB, cold start 67 ms). The record is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, 154 targets), the tier and message checks (114 codes) pass locally; the conformance report is untouched; CI to be read after the push.
+
+**Next.** Step 24c `[engine]`: the documents and the report (features frozen, the reference versions, the known-issues list, the risk register's figures, the open decisions due, the sample pins), then the owner's "Release 0.5.0".
+
+**For the owner to decide.** Nothing new (#67 and #72 by 0.6.0; #68 to #71 by 0.7.0).
