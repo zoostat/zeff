@@ -1315,6 +1315,9 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0602 | `lag`, `lead`, `diff` or `fill_forward` outside `add` or `update`, or on a frame with no panel declaration where the function needs one (section 6, "Panels"; release 0.6.0) |
 | Z0603 | A merge whose keys form a many-to-many relation, or whose `relation:` the data do not have (section 6, "Combine") |
 | Z0604 | A non-key column present in both frames of a merge, without `suffixes:` (section 6, "Combine") |
+| Z0609 | A column of one type in the left frame of `append` and of another, not Int with Float, in the right (section 6, "Combine"; release 0.6.0) |
+| Z0610 | `to_long` with no column beginning with the stub, stub columns of different types, or a name that does not parse as `names_type:` says (section 6, "Reshape and summarise"; release 0.6.0) |
+| Z0611 | `to_wide` with two rows for one id and name, or two names that give one column name (section 6, "Reshape and summarise"; release 0.6.0) |
 
 Examples:
 

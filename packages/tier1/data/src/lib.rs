@@ -13,6 +13,7 @@ pub mod names;
 pub mod panel;
 pub mod panel_functions;
 pub mod reducers;
+pub mod reshape;
 pub mod rows;
 pub mod verbs;
 
@@ -1211,6 +1212,79 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: merge::merge,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "append",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("frame", "Frame"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0609",
+                    "a column of one type in the left frame and another in the right",
+                )],
+                help: include_str!("../help/append.md"),
+                accuracy: None,
+            },
+            body: reshape::append,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "to_long",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("stub", "Str"),
+                    ParamSpec::option("id", "Vars"),
+                    ParamSpec::option("names_to", "Str"),
+                    ParamSpec::option("values_to", "Str"),
+                    ParamSpec::option_with_default("names_type", "Type", "Str"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0610",
+                        "no column begins with the stub, the stub columns differ in type, or a name does not parse as names_type:",
+                    ),
+                    DiagnosticDecl::new("Z0406", "names_to: or values_to: missing"),
+                    DiagnosticDecl::new("Z0401", "names_to: or values_to: already a variable"),
+                ],
+                help: include_str!("../help/to_long.md"),
+                accuracy: None,
+            },
+            body: reshape::to_long,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "to_wide",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::option("values_from", "Var"),
+                    ParamSpec::option("id", "Vars"),
+                    ParamSpec::option("names_from", "Var"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0611",
+                        "two rows with one id and name, or two names that give one column",
+                    ),
+                    DiagnosticDecl::new("Z0406", "values_from:, id: or names_from: missing"),
+                ],
+                help: include_str!("../help/to_wide.md"),
+                accuracy: None,
+            },
+            body: reshape::to_wide,
         },
         Function {
             spec: FunctionSpec {

@@ -1,0 +1,148 @@
+---
+source: packages/tier1/data/tests/reshape.rs
+assertion_line: 221
+expression: out
+---
+let a = frame(id = [1, 2], year = [2010, 2011])
+let b = frame(id = [3], year = ["2012"])
+a.append(b)
+---
+error[Z0609]: `year` is a column of Int in a and of Str in b
+ --> scripts/main.zeff:3:10
+  |
+3 | a.append(b)
+  |          ^ a column of another type
+  |
+  = help: the rows of one column have one type; convert one side first with `to`, or `drop` the column from one frame
+
+frame(id = [1], d = [date("2020-01-01")]).append(frame(id = [2], d = ["2020-01-02"]))
+---
+error[Z0609]: `d` is a column of Date in the frame and of Str in the frame
+ --> scripts/main.zeff:1:50
+  |
+1 | frame(id = [1], d = [date("2020-01-01")]).append(frame(id = [2], d = ["2020-01-02"]))
+  |                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a column of another type
+  |
+  = help: the rows of one column have one type; convert one side first with `to`, or `drop` the column from one frame
+
+let sales = frame(firm = [1, 2], sales_2010 = [120, 80], sales_total = [250, 160])
+sales.to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Int)
+---
+error[Z0610]: `sales_total` does not end in a whole number: `total` after `sales_`
+ --> scripts/main.zeff:2:85
+  |
+2 | sales.to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Int)
+  |                                                                                     ^^^ the type the names do not fit
+  |
+  = help: `names_type: Str` keeps the rest of each name as text; `rename` a column whose name is wrong
+
+frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("revenue_", id: firm, names_to: "year", values_to: "sales")
+---
+error[Z0610]: no variable of the frame begins with `revenue_`
+ --> scripts/main.zeff:1:54
+  |
+1 | frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("revenue_", id: firm, names_to: "year", values_to: "sales")
+  |                                                      ^^^^^^^^^^ a stub no name begins with
+  |
+  = help: the variables are: firm, sales_2010; the stub is the start the repeated names share, such as `sales_` for `sales_2010`
+
+frame(firm = [1, 2], sales_2010 = [120, 80], sales_2011 = ["x", "y"]).to_long("sales_", id: firm, names_to: "year", values_to: "sales")
+---
+error[Z0610]: the columns beginning with `sales_` do not share a type: `sales_2010` is Int and `sales_2011` is Str
+ --> scripts/main.zeff:1:79
+  |
+1 | frame(firm = [1, 2], sales_2010 = [120, 80], sales_2011 = ["x", "y"]).to_long("sales_", id: firm, names_to: "year", values_to: "sales")
+  |                                                                               ^^^^^^^^ columns of several types
+  |
+  = help: one value column has one type: convert the columns with `to` first, or leave the odd one out of the stub
+
+frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("sales_", id: firm, names_to: "firm", values_to: "sales")
+---
+error[Z0401]: `firm` is already a variable of the frame
+ --> scripts/main.zeff:1:46
+  |
+1 | frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("sales_", id: firm, names_to: "firm", values_to: "sales")
+  |                                              ^^^^^^^ a new name that is taken
+  |
+  = help: give `names_to:` and `values_to:` names the frame does not have
+
+frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("sales_", id: firm, values_to: "sales")
+---
+error[Z0406]: `to_long` needs `names_to:`
+ --> scripts/main.zeff:1:46
+  |
+1 | frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("sales_", id: firm, values_to: "sales")
+  |                                              ^^^^^^^ `names_to:` is missing
+  |
+  = help: usage: `data.to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Int)`
+
+frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Date)
+---
+error[Z0610]: `sales_2010` does not end in a date written as 2010-01-31: `2010` after `sales_`
+ --> scripts/main.zeff:1:124
+  |
+1 | frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Date)
+  |                                                                                                                            ^^^^ the type the names do not fit
+  |
+  = help: `names_type: Str` keeps the rest of each name as text; `rename` a column whose name is wrong
+
+frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("sales_", id: company, names_to: "year", values_to: "sales")
+---
+error[Z0101]: no variable `company` in `the frame`
+ --> scripts/main.zeff:1:68
+  |
+1 | frame(firm = [1, 2], sales_2010 = [120, 80]).to_long("sales_", id: company, names_to: "year", values_to: "sales")
+  |                                                                    ^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: firm, sales_2010
+
+let long = frame(firm = [1, 1, 1], year = [2010, 2010, 2011], sales = [120, 125, 130])
+long.to_wide(values_from: sales, id: firm, names_from: year)
+---
+error[Z0611]: `firm` 1 appears twice at `year` 2010
+ --> scripts/main.zeff:2:38
+  |
+2 | long.to_wide(values_from: sales, id: firm, names_from: year)
+  |                                      ^^^^ an id with two rows for one name
+  |
+  = help: `duplicates([firm, year])` lists the repeated pairs; `aggregate` them or add the variable that tells them apart to `id:`
+
+frame(firm = [1, 2], year = [2010, 2011], sales = [1, 2]).to_wide(values_from: sales, names_from: year)
+---
+error[Z0406]: `to_wide` needs `id:`
+ --> scripts/main.zeff:1:59
+  |
+1 | frame(firm = [1, 2], year = [2010, 2011], sales = [1, 2]).to_wide(values_from: sales, names_from: year)
+  |                                                           ^^^^^^^ `id:` is missing
+  |
+  = help: usage: `data.to_wide(values_from: sales, id: firm, names_from: year)`
+
+frame(firm = [1, 2], year = [2010, 2011], sales = [1, 2]).to_wide(id: firm, names_from: year)
+---
+error[Z0406]: `to_wide` needs `values_from:`
+ --> scripts/main.zeff:1:59
+  |
+1 | frame(firm = [1, 2], year = [2010, 2011], sales = [1, 2]).to_wide(id: firm, names_from: year)
+  |                                                           ^^^^^^^ `values_from:` is missing
+  |
+  = help: usage: `data.to_wide(values_from: sales, id: firm, names_from: year)`
+
+frame(firm = [1, 2], year = [2010, 2011], sales = [1, 2]).to_wide(values_from: sales, id: firm)
+---
+error[Z0406]: `to_wide` needs `names_from:`
+ --> scripts/main.zeff:1:59
+  |
+1 | frame(firm = [1, 2], year = [2010, 2011], sales = [1, 2]).to_wide(values_from: sales, id: firm)
+  |                                                           ^^^^^^^ `names_from:` is missing
+  |
+  = help: usage: `data.to_wide(values_from: sales, id: firm, names_from: year)`
+
+frame(firm = [1, 2], year = [2010, 2011], sales = [1, 2]).to_wide(values_from: sales, id: firm, names_from: period)
+---
+error[Z0101]: no variable `period` in `the frame`
+ --> scripts/main.zeff:1:109
+  |
+1 | frame(firm = [1, 2], year = [2010, 2011], sales = [1, 2]).to_wide(values_from: sales, id: firm, names_from: period)
+  |                                                                                                             ^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: firm, year, sales

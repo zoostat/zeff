@@ -1,0 +1,152 @@
+---
+source: packages/tier1/data/tests/reshape.rs
+assertion_line: 195
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+frame · 4 rows × 4 variables
+
+      firm   revenue   region   founded
+  1      1      12.5   North    NA
+  2      2         8   South    NA
+  3      1        11   NA       1990-01-05
+  4      3         7   NA       2001-11-30
+frame · 2 rows × 3 variables
+
+      firm   revenue   region
+  1      1      12.5   North
+  2      2         8   South
+frame · 2 rows × 4 variables
+
+      firm   revenue   region   founded
+  1      1        11   NA       1990-01-05
+  2      3         7   NA       2001-11-30
+frame · 4 rows × 2 variables
+
+      g     v
+  1   a     1
+  2   b     2
+  3   b   3.5
+  4   c     4
+frame · 4 rows × 2 variables
+
+  variable   type       non-missing   missing   example
+  g          Category             4         0   a (3 levels)
+  v          Float                4         0   1
+frame · 2 rows × 3 variables
+
+  variable   type   non-missing   missing   example
+  firm       Int              2         0   1
+  v          Int              1         1   1
+  w          Int              1         1   2
+frame · 3 rows × 3 variables · panel firm × year
+
+      firm   year   v
+  1      1   2020   1
+  2      2   2020   2
+  3      3   2020   3
+frame · 3 rows × 3 variables
+
+      firm   year   v
+  1      1   2020   1
+  2      2   2020   2
+  3      3   2020   3
+frame · 4 rows × 4 variables
+
+      firm   region   year   sales
+  1      1   North    2010     120
+  2      1   North    2011     130
+  3      2   South    2010      80
+  4      2   South    2011      NA
+frame · 4 rows × 4 variables
+
+      firm   region   year   sales
+  1      1   North    2010     120
+  2      1   North    2011     130
+  3      2   South    2010      80
+  4      2   South    2011      NA
+frame · 4 rows × 4 variables
+
+      firm   region   year   sales
+  1      1   North    2010     120
+  2      1   North    2011     130
+  3      2   South    2010      80
+  4      2   South    2011      NA
+frame · 2 rows × 3 variables
+
+      firm   year   sales
+  1      1   2010     120
+  2      2   2010      80
+frame · 4 rows × 3 variables
+
+      firm   day            v
+  1      1   2010-01-31   1.5
+  2      1   2010-02-28     3
+  3      2   2010-01-31     2
+  4      2   2010-02-28     4
+frame · 4 rows × 3 variables
+
+      firm   which     x
+  1      1   a         1
+  2      1   b       3.5
+  3      2   a         2
+  4      2   b        NA
+frame · 3 rows × 3 variables
+
+      firm   sales_2010   sales_2011
+  1      1          120          130
+  2      2           80           NA
+  3      3           NA           95
+frame · 3 rows × 4 variables
+
+      firm   region   sales_2010   sales_2011
+  1      1   N               120          130
+  2      2   S                80           NA
+  3      3   E                NA           95
+frame · 3 rows × 3 variables
+
+      firm   region_2010   region_2011
+  1      1   N             N
+  2      2   S             S
+  3      3   NA            E
+frame · 2 rows × 3 variables
+
+      firm   v_North East   v_South
+  1      1              1        NA
+  2      2             NA         2
+frame · 2 rows × 3 variables
+
+      firm   v_2010   v_NA
+  1      1        1     NA
+  2      2       NA      2
+wide · 2 rows × 9 variables
+
+      worker   wage_2014   wage_2015   wage_2016   wage_2017   wage_2018   wage_2019   wage_2020   wage_2021
+  1        1          NA       18.08       17.28       20.93       15.68       26.39       33.07       26.65
+  2        2       40.67       27.38       35.68        22.2          NA          NA          NA          NA
+11
+---
+note: append: 2 rows added below 2 rows; `region` only in this_year, filled with NA below; `founded` only in last_year, filled with NA above (line 3)
+note: append: 0 rows added below 2 rows (line 4)
+note: append: 2 rows added below 0 rows; `region` only in the frame, filled with NA below; `founded` only in last_year, filled with NA above (line 5)
+note: `g` replaced the variable of that name (line 6)
+note: `g` replaced the variable of that name (line 7)
+note: append: 2 rows added below 2 rows (line 8)
+note: append: 2 rows added below 2 rows (line 9)
+note: append: 1 row added below 1 row; `v` only in labelled, filled with NA below; `w` only in the frame, filled with NA above (line 11)
+note: append: 1 row added below 2 rows (line 13)
+note: append: 1 row added below 2 rows (line 14)
+note: the panel declaration `firm × year` dropped: the frame has no such declaration (line 14)
+note: to_long: 2 columns of `sales_` into 4 rows as `year` and `sales` (line 16)
+note: to_long: 2 columns of `sales_` into 4 rows as `year` and `sales` (line 17)
+note: to_long: 2 columns of `sales_` into 4 rows as `year` and `sales` (line 18)
+note: to_long: 1 column of `sales_` into 2 rows as `year` and `sales` (line 19)
+note: to_long: 2 columns of `on_` into 4 rows as `day` and `v` (line 20)
+note: to_long: 2 columns of `x_` into 4 rows as `which` and `x` (line 21)
+note: to_wide: 2 columns of `sales` by `year`, 3 rows of `firm`; `region` left out: name it in `id:` to keep it (line 23)
+note: to_wide: 2 columns of `sales` by `year`, 3 rows of `firm, region` (line 24)
+note: to_wide: 2 columns of `region` by `year`, 3 rows of `firm`; `sales` left out: name it in `id:` to keep it (line 25)
+note: to_wide: 2 columns of `v` by `region`, 2 rows of `firm` (line 26)
+note: to_wide: 2 columns of `v` by `year`, 2 rows of `firm` (line 27)
+note: to_wide: 8 columns of `wage` by `year`, 2 rows of `worker` (line 29)
+note: the panel declaration `worker × year` dropped: `to_wide` reshaped the rows (line 29)
+note: to_long: 8 columns of `wage_` into 16 rows as `year` and `wage` (line 31)

@@ -238,3 +238,7 @@ Row 113's `layer` goes from Zeff to Rust with the reason in its notes: `duplicat
 ## 2 November 2026 — zeff_language_reference.md, section 11 (the table of codes)
 
 Z0603 and Z0604 added to the table of codes: section 6 ("Combine") and the example of section 11 name both for `merge`, but the table that lists every code lacked their rows (step 13 of release 0.6.0). No behaviour changes.
+
+## 2 November 2026 — zeff_language_reference.md, section 11 (the table of codes)
+
+Z0609, Z0610 and Z0611 added to the table of codes, the next free numbers of the data family, as the checklist's ruling on provisional codes says (step 14 of release 0.6.0): `append` with a column of two types, `to_long` with stub columns it cannot turn into rows (no column with the stub, types that differ, a name that does not parse), `to_wide` with two rows for one cell. Section 6 describes each condition without a number.

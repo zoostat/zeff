@@ -121,3 +121,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 14 `[function]`: `append`, `to_long`, `to_wide`.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 14
+
+**Done.** Step 14 `[function]`: `append`, `to_long` and `to_wide`. `append` by name with the `NA` fill and note, Int with Float joining, categories united, other types refused (Z0609); `to_long` of the stub columns in tidyr's order with the names parsed as `names_type:` says, refusals as Z0610; `to_wide` with the columns of question 5 (d), a repeated pair refused (Z0611), an absent combination `NA`, the panel dropped with a note; the three codes in section 11's table and their pages. Three pages; R's values (`tests/reference/r/reshape.R`, in CI) held exactly; the conformance case `verbs/reshape` published.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (124 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 15 `[function]`: `save`.
+
+**For the owner to decide.** Nothing new.

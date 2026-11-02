@@ -175,6 +175,8 @@ verbs/aggregate/stdout 0c0a134e2ac4fc67
 verbs/aggregate/stderr 6d763b858d636bb9
 verbs/merge/stdout 4caf29fe3a083173
 verbs/merge/stderr cb9189a2747b2f9d
+verbs/reshape/stdout fc8a0a1e28809d4f
+verbs/reshape/stderr 59442dd2f5d6ff84
 functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f

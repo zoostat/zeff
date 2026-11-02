@@ -1126,6 +1126,11 @@ fn panel_cases() -> Vec<Line> {
     // keys, suffixes, the shipped wages with firms, and the refusals.
     let merged = "let sales = frame(firm = [2, 1, 3, 1, NA], year = [2021, 2020, 2021, 2021, 2020], revenue = [12.5, 8, 7, 9, 1])\nlet names = frame(firm = [1, 2, 4, NA], name = [\"Acme\", \"Bolt\", \"Dyne\", \"None\"], revenue = [0, 0, 0, 0])\nsales.merge(names.drop(revenue), on: firm)\nsales.merge(names.drop(revenue), on: firm, join: inner)\nsales.merge(names.drop(revenue), on: firm, join: full)\nsales.merge(names, on: firm, suffixes: [\"_s\", \"_n\"])\nlet by_year = frame(firm = [1, 1, 2], year = [2020, 2021, 2021], target = [10, 11, 12])\nsales.merge(by_year, on: [firm, year], relation: many_to_one)\nlet w = dataset(wages).where(worker <= 20).merge(dataset(firms), on: [firm, industry], relation: many_to_one)\nw.select([worker, year, firm, size, founded]).head(5)\nsales.merge(names, on: firm)\nsales.merge(by_year, on: firm)\nsales.merge(names.drop(revenue), on: firm, relation: one_to_one)\n";
     let merged_outcome = run_script(&fs, &project, "scripts/main.zeff", merged);
+    // `append`, `to_long` and `to_wide` (step 14): a stack with a column on each side only and
+    // Int meeting Float, the long form of a wide frame by Int names, the wide form of a long one
+    // with an absent combination, the round trip, and the refusals.
+    let reshaped = "let this_year = frame(firm = [1, 2], revenue = [12.5, 8], region = [\"North\", \"South\"])\nlet last_year = frame(firm = [1, 3], revenue = [11, 7], founded = [date(\"1990-01-05\"), date(\"2001-11-30\")])\nthis_year.append(last_year)\nlet sales = frame(firm = [1, 2], region = [\"North\", \"South\"], sales_2010 = [120, 80], sales_2011 = [130, NA])\nlet long = sales.to_long(\"sales_\", id: firm, names_to: \"year\", values_to: \"sales\", names_type: Int)\nlong\nlong.to_wide(values_from: sales, id: [firm, region], names_from: year)\nframe(unit = [3, 1, 3, 1, 2], period = [2, 1, 1, 2, 1], y = [0.5, 1.25, -2, 3.5, NA]).to_wide(values_from: y, id: unit, names_from: period)\nsales.to_long(\"sales_\", id: firm, names_to: \"year\", values_to: \"sales\", names_type: Date)\nframe(id = [1, 2], year = [2010, 2011]).append(frame(id = [3], year = [\"2012\"]))\nframe(firm = [1, 1], year = [2010, 2010], sales = [1, 2]).to_wide(values_from: sales, id: firm, names_from: year)\n";
+    let reshaped_outcome = run_script(&fs, &project, "scripts/main.zeff", reshaped);
     vec![
         text("panel/declare/stdout", &outcome.output.stdout),
         text("panel/declare/stderr", &outcome.output.stderr),
@@ -1149,6 +1154,8 @@ fn panel_cases() -> Vec<Line> {
         text("verbs/aggregate/stderr", &aggregated_outcome.output.stderr),
         text("verbs/merge/stdout", &merged_outcome.output.stdout),
         text("verbs/merge/stderr", &merged_outcome.output.stderr),
+        text("verbs/reshape/stdout", &reshaped_outcome.output.stdout),
+        text("verbs/reshape/stderr", &reshaped_outcome.output.stderr),
     ]
 }
 
