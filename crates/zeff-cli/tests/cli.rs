@@ -491,18 +491,30 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&later)
     );
-    // A name with two homes, one shipped (`core`'s `append`, release 0.5.0) and one to come
-    // (`data`'s, 0.6.0): the page, then the line that says when the other arrives.
-    let two_homes = zeff(dir.path(), &["help", "append"]);
+    // A name with two homes, one shipped (`data`'s `aggregate`, release 0.6.0) and one to come
+    // (`plot`'s, after 1.0): the page, then the line that says when the other arrives.
+    let two_homes = zeff(dir.path(), &["help", "aggregate"]);
     let text = out(&two_homes);
+    assert!(
+        text.starts_with("aggregate — One row per group with reducers"),
+        "{text}"
+    );
+    assert!(
+        text.trim_end().lines().last().is_some_and(|l| l
+            .starts_with("`aggregate` arrives with a release after 1.0, in the `plot` package: ")),
+        "{text}"
+    );
+    // A name with two homes shipped in two tiers (`core`'s `append` on lists, `data`'s on
+    // frames): both pages, and no line about a later release.
+    let two_tiers = zeff(dir.path(), &["help", "append"]);
+    let text = out(&two_tiers);
     assert!(
         text.starts_with("append — A new list with an item added"),
         "{text}"
     );
     assert!(
-        text.trim_end().lines().last().is_some_and(
-            |l| l.starts_with("`append` arrives with release 0.6.0, in the `data` package: ")
-        ),
+        text.contains("append — Stack another frame's rows below")
+            && !text.contains("arrives with"),
         "{text}"
     );
     // A name with two homes shipped (frames in `data`, results in `results`): both pages, and no
