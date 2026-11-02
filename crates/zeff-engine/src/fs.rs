@@ -12,9 +12,21 @@ use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::sync::Mutex;
 
+/// What a file system says about a file without reading it: its size, and when it was last
+/// written as microseconds since 1970-01-01 00:00:00 when the file system keeps a time (the
+/// schema cache of section 11 keeps a schema while both are unchanged).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FileInfo {
+    pub size: u64,
+    pub modified: Option<i64>,
+}
+
 pub trait FileSystem {
     /// The bytes of a file.
     fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
+
+    /// The size and modification time of a file; an error if it does not exist.
+    fn metadata(&self, path: &Path) -> io::Result<FileInfo>;
 
     /// The text of a UTF-8 file.
     fn read_to_string(&self, path: &Path) -> io::Result<String> {
@@ -57,6 +69,22 @@ pub struct StdFileSystem;
 impl FileSystem for StdFileSystem {
     fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
         std::fs::read(path)
+    }
+
+    fn metadata(&self, path: &Path) -> io::Result<FileInfo> {
+        let metadata = std::fs::metadata(path)?;
+        if !metadata.is_file() {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "not a file"));
+        }
+        let modified = metadata.modified().ok().and_then(|t| {
+            t.duration_since(std::time::UNIX_EPOCH)
+                .ok()
+                .and_then(|d| i64::try_from(d.as_micros()).ok())
+        });
+        Ok(FileInfo {
+            size: metadata.len(),
+            modified,
+        })
     }
 
     fn list(&self, dir: &Path) -> io::Result<Vec<String>> {
@@ -105,6 +133,19 @@ struct MemoryState {
     dirs: BTreeSet<PathBuf>,
     /// A fixed clock, set by `set_clock`.
     clock: Option<i64>,
+    /// When each file was last written: the clock when one is set, else a count of writes.
+    times: BTreeMap<PathBuf, i64>,
+    writes: i64,
+    /// How many files were read, for the tests of what a cache spares.
+    reads: usize,
+}
+
+impl MemoryState {
+    fn touch(&mut self, path: PathBuf) {
+        self.writes += 1;
+        let time = self.clock.unwrap_or(self.writes);
+        self.times.insert(path, time);
+    }
 }
 
 fn not_found(path: &Path) -> io::Error {
@@ -147,8 +188,14 @@ impl MemoryFileSystem {
                 state.dirs.insert(dir.to_path_buf());
                 parent = dir.parent();
             }
-            state.files.insert(path, contents.as_ref().to_vec());
+            state.files.insert(path.clone(), contents.as_ref().to_vec());
+            state.touch(path);
         }
+    }
+
+    /// How many files have been read so far.
+    pub fn reads(&self) -> usize {
+        self.with(|s| Ok(s.reads)).unwrap_or(0)
     }
 
     /// Fix the clock `today()` and `now()` read: microseconds since 1970-01-01 00:00:00.
@@ -186,7 +233,26 @@ impl FileSystem for MemoryFileSystem {
 
     fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
         let path = normal(path);
-        self.with(|s| s.files.get(&path).cloned().ok_or_else(|| not_found(&path)))
+        self.with(|s| {
+            let bytes = s
+                .files
+                .get(&path)
+                .cloned()
+                .ok_or_else(|| not_found(&path))?;
+            s.reads += 1;
+            Ok(bytes)
+        })
+    }
+
+    fn metadata(&self, path: &Path) -> io::Result<FileInfo> {
+        let path = normal(path);
+        self.with(|s| {
+            let bytes = s.files.get(&path).ok_or_else(|| not_found(&path))?;
+            Ok(FileInfo {
+                size: bytes.len() as u64,
+                modified: s.times.get(&path).copied(),
+            })
+        })
     }
 
     fn list(&self, dir: &Path) -> io::Result<Vec<String>> {
@@ -250,6 +316,7 @@ impl FileSystem for MemoryFileSystem {
         self.with(|s| match path.parent() {
             Some(parent) if s.dirs.contains(parent) => {
                 s.files.insert(path.clone(), bytes.to_vec());
+                s.touch(path.clone());
                 Ok(())
             }
             _ => Err(not_found(&path)),

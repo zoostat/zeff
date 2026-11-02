@@ -1,8 +1,10 @@
 ---
 source: crates/zeff-cli/tests/cli.rs
+assertion_line: 101
 expression: text
 ---
 [
+  {"code": "", "severity": "note", "message": "`data/wages.csv` is checked at run time: the file does not exist yet, so the variables of this frame are checked when the script runs", "file": "scripts/main.zeff", "span": {"line": 1, "column": 20, "end_line": 1, "end_column": 36}, "labels": [{"text": "no schema before the run", "primary": true, "line": 1, "column": 20, "end_line": 1, "end_column": 36}], "help": [], "fixes": []},
   {"code": "Z0404", "severity": "error", "message": "`import` has no argument called `heade`", "file": "scripts/main.zeff", "span": {"line": 1, "column": 38, "end_line": 1, "end_column": 43}, "labels": [{"text": "unknown argument", "primary": true, "line": 1, "column": 38, "end_line": 1, "end_column": 43}], "help": ["did you mean `header:`?"], "fixes": []},
   {"code": "Z0101", "severity": "error", "message": "nothing is called `wges` here", "file": "scripts/main.zeff", "span": {"line": 2, "column": 1, "end_line": 2, "end_column": 5}, "labels": [{"text": "not a binding", "primary": true, "line": 2, "column": 1, "end_line": 2, "end_column": 5}], "help": ["did you mean `wages`?"], "fixes": []},
   {"code": "Z0103", "severity": "error", "message": "no function is called `maen`", "file": "scripts/main.zeff", "span": {"line": 2, "column": 6, "end_line": 2, "end_column": 10}, "labels": [{"text": "not a function of Zeff", "primary": true, "line": 2, "column": 6, "end_line": 2, "end_column": 10}], "help": ["did you mean `mean`?"], "fixes": []},

@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-engine/tests/spread_in_zeff.rs
+assertion_line: 120
 expression: text
 ---
 ## with_na (exit 0)
@@ -38,11 +39,11 @@ error[Z0401]: `median` needs a Bool, Int or Float, but `s` is Str
   = help: choose a Bool, Int or Float variable; `data.describe()` lists the types
 
 ## unknown_variable (exit 1)
-error[Z0101]: no variable `y` in `data`
- --> scripts/main.zeff:1:19
+error[Z0101]: no variable `y` in `the frame`
+ --> scripts/main.zeff:1:23
   |
 1 | frame(x = [1, 2]).mad(y)
-  |                   ^^^ in this call
+  |                       ^ not a variable of the frame
   |
   = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
 

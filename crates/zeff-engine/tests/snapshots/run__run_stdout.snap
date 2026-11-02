@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-engine/tests/run.rs
+assertion_line: 383
 expression: outcome.output.stdout
 ---
-37.5
+

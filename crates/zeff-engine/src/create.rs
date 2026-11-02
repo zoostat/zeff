@@ -79,7 +79,7 @@ pub fn manifest_text(name: &str) -> String {
 
 /// The text of the new project's `.gitignore`: what is rebuilt is left out, and so is the data
 /// unless the user adds it on purpose (section 2, `zeff new`).
-pub const GITIGNORE: &str = "# Rebuilt on every run, so not shared.\n.zeff/cache/\n.zeff/fetched/\n.zeff/runs/\n.zeff/open.lock\n.zeff/session.zeff\n.zemp/views.json\n\n# Data stays out of Git unless you add it on purpose.\ndata/\n";
+pub const GITIGNORE: &str = "# Rebuilt on every run, so not shared.\n.zeff/cache/\n.zeff/fetched/\n.zeff/runs/\n.zeff/schemas/\n.zeff/open.lock\n.zeff/session.zeff\n.zemp/views.json\n\n# Data stays out of Git unless you add it on purpose.\ndata/\n";
 
 /// The text of the new project's `scripts/main.zeff`.
 pub const MAIN_SCRIPT: &str = "// scripts/main.zeff — the script `zeff run` starts from.\n// Put your data in data/ and read it with import(\"data/yourfile.csv\").\n";

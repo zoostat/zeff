@@ -180,10 +180,10 @@ error[Z0304]: `influence` on a fit with fixed effects is not available in this r
   = help: the leverage, Cook's distance and studentized residuals of a fit with absorbed effects arrive with release 0.8.0; `residuals()` and `fitted()` are available now
 ----
 error[Z0101]: no variable `nowhere` in `w`
- --> scripts/main.zeff:2:3
+ --> scripts/main.zeff:2:29
   |
 2 | w.reg(log(wage) ~ educ, fe: nowhere)
-  |   ^^^ not a variable of w
+  |                             ^^^^^^^ not a variable of w
   |
   = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 ----

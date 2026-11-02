@@ -535,13 +535,20 @@ fn quote_decimal_thousands_and_encoding_read_a_german_file() {
         stderr.starts_with("error[Z0608]: row 2 of `data/wages_de.csv` is not valid UTF-8"),
         "{stderr}"
     );
-    // Another quote character, and none.
+    // Another quote character, and none. A mistake in the file's first rows is found by the
+    // schema pass before anything runs (release 0.6.0, step 20), so the two imports are two
+    // scripts.
     let (code, stdout, stderr) = go_with(
         &[("data/q.csv", b"name,n\n'Smith, John',1\n")],
-        "import(\"data/q.csv\", quote: \"'\")\nimport(\"data/q.csv\", quote: \"\")\n",
+        "import(\"data/q.csv\", quote: \"'\")\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert!(stdout.contains("Smith, John"), "{stdout}");
+    let (code, _, stderr) = go_with(
+        &[("data/q.csv", b"name,n\n'Smith, John',1\n")],
+        "import(\"data/q.csv\", quote: \"\")\n",
     );
     assert_eq!(code, 1, "{stderr}");
-    assert!(stdout.contains("Smith, John"), "{stdout}");
     assert!(
         stderr.contains("error[Z0607]: row 2 of `data/q.csv` has 3 fields, but the header has 2"),
         "{stderr}"

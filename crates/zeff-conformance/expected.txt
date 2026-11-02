@@ -119,6 +119,8 @@ regress/event/stdout bbbc9cf165258b77
 regress/event/stderr 40ffab6fe4efdfad
 regress/interface/stdout 08c3aafc8156baa5
 regress/interface/stderr cbf29ce484222325
+control/check/stdout cbf29ce484222325
+control/check/stderr 78f09813226bf7ad
 control/case/stdout 31d5603dedb0df16
 control/case/stderr bb0e7314f2b5bfed
 control/modules/stdout dfd3255f4fb8b4cf

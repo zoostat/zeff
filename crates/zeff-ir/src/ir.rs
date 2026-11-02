@@ -36,6 +36,9 @@ pub struct Program {
     pub bindings: Vec<Binding>,
     /// The functions the script defines (section 5.3), in the order written.
     pub functions: Vec<Function>,
+    /// The schema of every frame the checker knew (Engine and Project Specification, section
+    /// 8.3, point 1), by the span of the expression that makes it, in order of position.
+    pub schemas: Vec<(Span, crate::schema::FrameSchema)>,
 }
 
 /// A function by position in [`Program::functions`].

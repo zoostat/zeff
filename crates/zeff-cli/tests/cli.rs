@@ -89,7 +89,13 @@ fn format_json_gives_records_for_version_and_check() {
     assert_eq!(code(&o), 1);
     assert_eq!(err(&o), "");
     let text = out(&o);
-    assert!(text.starts_with("[\n  {\"code\": \"Z0404\""), "{text}");
+    // The file does not exist in the new project: the first record is the run-time mark, a
+    // note at the path (release 0.6.0, step 20); the errors follow in position order.
+    assert!(
+        text.starts_with("[\n  {\"code\": \"\", \"severity\": \"note\""),
+        "{text}"
+    );
+    assert!(text.contains("{\"code\": \"Z0404\""), "{text}");
     assert!(
         text.contains("\"span\": {\"line\": 2, \"column\": 1, \"end_line\": 2, \"end_column\": 5}"),
         "{text}"
@@ -210,9 +216,122 @@ fn zeff_check_passes_a_sound_script() {
         "let wages = import(\"data/wages.csv\", na_values: [-99])\nwages.mean(wage)\nprint(wages.mean(hours), \"hours\")\n",
     )
     .unwrap();
+    // The file does not exist in the new project: the frame is checked at run time, which the
+    // check says in a note, and is no problem.
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let text = err(&o);
+    assert!(
+        text.starts_with(
+            "note: `data/wages.csv` is checked at run time: the file does not exist yet"
+        ),
+        "{text}"
+    );
+    assert!(
+        text.ends_with("checked scripts/main.zeff: no problems\n"),
+        "{text}"
+    );
+    // With the file in place the frame's variables are checked, and nothing is said.
+    std::fs::write(project.join("data/wages.csv"), "wage,hours\n10,40\n12,38\n").unwrap();
     let o = zeff(&project, &["check"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert_eq!(err(&o), "checked scripts/main.zeff: no problems\n");
+}
+
+/// The schema pass (release 0.6.0, step 20): a misspelt variable in the last line of a long
+/// script is reported by `zeff check` and by `zeff run` before the first import runs; two
+/// errors in one script are both listed; a missing file carries the run-time mark; a stale
+/// cache is refreshed when the file changes.
+#[test]
+fn zeff_check_reads_the_schemas_before_anything_runs() {
+    let (_dir, project) = demo();
+    std::fs::write(project.join("data/small.csv"), "a,b\n1,2.5\n3,4.5\n").unwrap();
+    let mut script = String::from("let d = import(\"data/small.csv\")\nprint(\"started\")\n");
+    for _ in 0..40 {
+        script.push_str("d.mean(a)\n");
+    }
+    script.push_str("d.mean(aa)\n");
+    std::fs::write(project.join("scripts/main.zeff"), &script).unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 1);
+    let text = err(&o);
+    assert!(
+        text.contains("error[Z0101]: no variable `aa` in `d`"),
+        "{text}"
+    );
+    assert!(text.contains("did you mean `a`?"), "{text}");
+    assert!(
+        text.ends_with("scripts/main.zeff: 1 error, 0 warnings\n"),
+        "{text}"
+    );
+    assert!(
+        project.join(".zeff/schemas/schemas.json").is_file(),
+        "the cache is written"
+    );
+    // `zeff run` stops at the check: nothing is printed, not even the first statement.
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o), "");
+    assert!(
+        err(&o).contains("error[Z0101]: no variable `aa` in `d`"),
+        "{}",
+        err(&o)
+    );
+    // Two errors in one script: both listed.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let d = import(\"data/small.csv\")\nd.mean(aa)\nd.summary([a, bb])\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 1);
+    let text = err(&o);
+    assert!(
+        text.contains("no variable `aa` in `d`") && text.contains("no variable `bb` in `d`"),
+        "{text}"
+    );
+    assert!(
+        text.ends_with("scripts/main.zeff: 2 errors, 0 warnings\n"),
+        "{text}"
+    );
+    // A missing file: the run-time mark, in the text and in `--format json`.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let m = import(\"data/missing.csv\")\nm.mean(zzz)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(
+        err(&o).contains("is checked at run time: the file does not exist yet"),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(&project, &["check", "--format", "json"]);
+    assert_eq!(code(&o), 0);
+    assert!(out(&o).contains("\"severity\": \"note\""), "{}", out(&o));
+    assert!(out(&o).contains("checked at run time"), "{}", out(&o));
+    // A stale cache: the file gains a column and loses one; the check sees the new file.
+    std::fs::write(project.join("data/small.csv"), "a,c\n1,x\n3,y\n").unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let d = import(\"data/small.csv\")\nd.mean(a)\nd.mean(b)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 1);
+    let text = err(&o);
+    assert!(text.contains("no variable `b` in `d`"), "{text}");
+    assert!(
+        text.contains("did you mean `a`?") || text.contains("the variables of `d` are"),
+        "{text}"
+    );
+    let cache = std::fs::read_to_string(project.join(".zeff/schemas/schemas.json")).unwrap();
+    assert!(
+        cache.contains("[\"a\", \"Int\"], [\"c\", \"Str\"]"),
+        "{cache}"
+    );
+    assert!(!cache.contains("\"b\""), "{cache}");
 }
 
 #[test]
@@ -399,7 +518,7 @@ fn zeff_run_stops_at_the_first_error_with_exit_code_1() {
     assert_eq!(code(&o), 1);
     assert_eq!(out(&o), "");
     assert!(
-        err(&o).contains("\nerror[Z0101]: no variable `wge` in `wages`"),
+        err(&o).starts_with("error[Z0101]: no variable `wge` in `wages`"),
         "{}",
         err(&o)
     );

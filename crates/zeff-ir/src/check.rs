@@ -9,7 +9,10 @@ use crate::ir::{
     Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, FnId, Formula, Function,
     FunctionValue, Param, Program, RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
 };
+use crate::schema::{FrameSchema, ImportRequest, SchemaLookup, Schemas};
 use crate::ty::{ResultKind, Ty};
+use std::rc::Rc;
+use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
 use zeff_registry::{Registered, Registry, Rest};
 use zeff_syntax::ast;
@@ -73,7 +76,21 @@ pub fn check_project(
     text: Option<&str>,
     modules: &[ModuleSource],
 ) -> Checked {
+    check_project_with(file, script, registry, text, modules, None)
+}
+
+/// [`check_project`] with the engine's schemas (section 11, "Checking before running"): the
+/// variables of every frame whose schema the engine knows are checked before anything runs.
+pub fn check_project_with(
+    file: &str,
+    script: &ast::Script,
+    registry: &Registry,
+    text: Option<&str>,
+    modules: &[ModuleSource],
+    schemas: Option<&dyn Schemas>,
+) -> Checked {
     let mut checker = Checker::new(file, registry, text);
+    checker.schemas = schemas;
     // The modules: each a name that is one, holding only `///` text, `fn` definitions and `use`
     // lines (Z0323); their signatures are collected before anything else (section 5.3, "Order").
     checker.modules = modules.iter().map(|m| m.name.clone()).collect();
@@ -157,11 +174,18 @@ pub fn check_project(
         }
     }
     let functions = lowered_functions(checker.functions, &checker.signatures);
+    let mut schemas: Vec<(Span, FrameSchema)> = checker
+        .frame_schemas
+        .iter()
+        .map(|(span, schema)| (*span, (**schema).clone()))
+        .collect();
+    schemas.sort_by_key(|(span, _)| (span.start, span.end));
     Checked {
         program: Program {
             statements,
             bindings: checker.bindings,
             functions,
+            schemas,
         },
         diagnostics: checker.found,
     }
@@ -229,6 +253,16 @@ struct Checker<'a> {
     /// ("Narrowing"); a method on an unguarded one is W0209.
     maybe_failed: std::collections::HashSet<BindingId>,
     safe: Vec<BindingId>,
+    /// The engine's schemas (section 11, "Checking before running"; step 20 of release 0.6.0),
+    /// when a project supplies them; without them every frame is checked when the script runs.
+    schemas: Option<&'a dyn Schemas>,
+    /// The schema of each frame-making expression, by its span, and of each binding that holds
+    /// such a frame.
+    frame_schemas: std::collections::HashMap<Span, Rc<FrameSchema>>,
+    binding_schemas: std::collections::HashMap<BindingId, Rc<FrameSchema>>,
+    /// For each function, the pairs (frame parameter, `Var` parameter) its body uses together,
+    /// so that a call can check the variable against the frame it gives (section 3.7).
+    var_uses: Vec<Vec<(usize, usize)>>,
     /// The script's text, for the functions' hashes.
     text: Option<&'a str>,
     /// The signatures of the script's functions, collected before any body or statement is
@@ -276,6 +310,10 @@ impl<'a> Checker<'a> {
             record_depth: 0,
             maybe_failed: std::collections::HashSet::new(),
             safe: Vec::new(),
+            schemas: None,
+            frame_schemas: std::collections::HashMap::new(),
+            binding_schemas: std::collections::HashMap::new(),
+            var_uses: Vec::new(),
             text,
             signatures: Vec::new(),
             functions: Vec::new(),
@@ -510,6 +548,7 @@ pub fn check_builtin(
                 statements: Vec::new(),
                 bindings: checker.bindings,
                 functions,
+                schemas: Vec::new(),
             },
             function: main,
         });
@@ -626,6 +665,9 @@ impl Checker<'_> {
                 let id = self.bind(name, value.ty.clone(), BindingKind::Let);
                 if matches!(value.kind, ExprKind::Attempt(_)) {
                     self.maybe_failed.insert(id);
+                }
+                if let Some(schema) = self.schema_of(&value) {
+                    self.binding_schemas.insert(id, schema);
                 }
                 Some(Statement::Let {
                     binding: id,
@@ -1963,7 +2005,7 @@ impl Checker<'_> {
                 _ => {}
             }
         }
-        Expr {
+        let lowered = Expr {
             ty: sig.returns.clone(),
             span,
             kind: ExprKind::CallFn {
@@ -1973,7 +2015,8 @@ impl Checker<'_> {
                 spreads,
                 order,
             },
-        }
+        };
+        self.user_call_schema_pass(lowered, index)
     }
 
     /// The condition of an `if` (section 5.1): one Bool. A column is refused here with Z0203, as
@@ -5342,8 +5385,587 @@ impl Checker<'_> {
                 returns: spec.returns.to_string(),
             }),
         };
+        let lowered = self.schema_pass(lowered, &params, frame_method);
         if is_iterate {
             return self.finish_iterate(lowered);
+        }
+        lowered
+    }
+
+    // ----- the schema pass (section 11, "Checking before running"; step 20) -----
+
+    /// The schema of a frame-valued expression, when the checker knows it: a binding's, or the
+    /// one recorded for the expression that makes the frame.
+    fn schema_of(&self, expr: &Expr) -> Option<Rc<FrameSchema>> {
+        match &expr.kind {
+            ExprKind::Binding(id) => self.binding_schemas.get(id).cloned(),
+            _ => self.frame_schemas.get(&expr.span).cloned(),
+        }
+    }
+
+    /// After a call is lowered: the schema of the frame it makes (`import` of a file whose
+    /// schema the engine gives, `dataset`, `frame`), recorded under the call; and, for a method
+    /// on a frame whose schema is known, every variable named in its arguments checked against
+    /// the frame's columns.
+    fn schema_pass(
+        &mut self,
+        lowered: Expr,
+        params: &[(String, Ty, bool)],
+        frame_method: bool,
+    ) -> Expr {
+        let ExprKind::Call(call) = &lowered.kind else {
+            return lowered;
+        };
+        let made: Option<FrameSchema> = match (call.package.as_str(), call.name.as_str()) {
+            ("data", "import") => self.import_schema(call),
+            ("datasets", "dataset") => match call.args.first() {
+                Some(Some(Expr {
+                    kind: ExprKind::Var(name),
+                    ..
+                })) => self.schemas.and_then(|s| s.dataset(name)),
+                _ => None,
+            },
+            ("data", "frame") => Some(FrameSchema {
+                columns: call
+                    .definitions
+                    .iter()
+                    .map(|(name, value)| {
+                        let ty = match &value.ty {
+                            Ty::Column(inner) | Ty::List(inner) => (**inner).clone(),
+                            other => other.clone(),
+                        };
+                        (name.clone(), ty)
+                    })
+                    .collect(),
+                origin: "the frame".to_string(),
+            }),
+            _ => None,
+        };
+        if let Some(schema) = made {
+            self.frame_schemas.insert(lowered.span, Rc::new(schema));
+        }
+        // Inside a function body: every `Var` parameter a method on a frame parameter touches,
+        // in an argument, a formula or a condition, noted for the calls (section 3.7).
+        if frame_method
+            && self.current_function.is_some()
+            && let Some(Some(receiver)) = call.args.first()
+            && matches!(&receiver.kind, ExprKind::Binding(id) if self.bindings[*id].kind == BindingKind::Parameter)
+        {
+            let mut vars: Vec<BindingId> = Vec::new();
+            for arg in call.args.iter().skip(1).flatten() {
+                self.var_parameters_in(arg, &mut vars);
+            }
+            for (_, value) in &call.definitions {
+                self.var_parameters_in(value, &mut vars);
+            }
+            for var in vars {
+                self.note_var_use(receiver, var);
+            }
+        }
+        if frame_method
+            && let Some(Some(receiver)) = call.args.first()
+            && let Some(schema) = self.schema_of(receiver)
+        {
+            let shown = match &receiver.kind {
+                ExprKind::Binding(id) => self.bindings[*id].name.clone(),
+                _ => schema.origin.clone(),
+            };
+            // The names this call defines count as its columns: a later definition may name
+            // an earlier one (section 3.7, "Definitions in one call").
+            let defined: Vec<String> = call.definitions.iter().map(|(n, _)| n.clone()).collect();
+            for (i, (_, ty, _)) in params.iter().enumerate().skip(1) {
+                if let Some(Some(arg)) = call.args.get(i) {
+                    self.check_variable_argument(arg, ty, &schema, &shown, receiver, i);
+                    self.check_frame_names(arg, &schema, &shown, &defined, false);
+                }
+            }
+            for (_, value) in &call.definitions {
+                self.check_frame_names(value, &schema, &shown, &defined, false);
+            }
+        }
+        lowered
+    }
+
+    /// An `import` whose arguments are all literals asked of the engine: its schema when the
+    /// file exists, a note that the frame is checked at run time when it does not, the error
+    /// when the path cannot be read; `None` without an answer (an option computed, or no
+    /// engine behind the checker).
+    fn import_schema(&mut self, call: &Call) -> Option<FrameSchema> {
+        let schemas = self.schemas?;
+        let literal = |i: usize| -> Option<&Expr> { call.args.get(i).and_then(|a| a.as_ref()) };
+        let text = |i: usize| -> Result<Option<String>, ()> {
+            match literal(i) {
+                None => Ok(None),
+                Some(Expr {
+                    kind: ExprKind::Str(s),
+                    ..
+                }) => Ok(Some(s.clone())),
+                Some(_) => Err(()),
+            }
+        };
+        let mut request = ImportRequest {
+            header: true,
+            ..ImportRequest::default()
+        };
+        request.path = text(0).ok()??;
+        request.delim = text(1).ok()?;
+        match literal(2) {
+            None => {}
+            Some(Expr {
+                kind: ExprKind::Bool(b),
+                ..
+            }) => request.header = *b,
+            Some(_) => return None,
+        }
+        match literal(3) {
+            None => {}
+            Some(Expr {
+                kind: ExprKind::Int(i),
+                ..
+            }) => request.skip = *i,
+            Some(_) => return None,
+        }
+        match literal(4) {
+            None => {}
+            Some(Expr {
+                kind: ExprKind::List(items),
+                ..
+            }) => {
+                for item in items {
+                    request.na_values.push(match &item.kind {
+                        ExprKind::Str(s) => s.clone(),
+                        ExprKind::Int(i) => i.to_string(),
+                        ExprKind::Float(x) => {
+                            if x.fract() == 0.0 && x.abs() < 1e15 {
+                                format!("{}", *x as i64)
+                            } else {
+                                format!("{x}")
+                            }
+                        }
+                        ExprKind::Unary {
+                            op: UnaryOp::Neg,
+                            operand,
+                        } => match &operand.kind {
+                            ExprKind::Int(i) => format!("-{i}"),
+                            ExprKind::Float(x) => format!("-{x}"),
+                            _ => return None,
+                        },
+                        _ => return None,
+                    });
+                }
+            }
+            Some(_) => return None,
+        }
+        match literal(5) {
+            None => {}
+            Some(Expr {
+                kind: ExprKind::Record(fields),
+                ..
+            }) => {
+                for field in fields {
+                    match field {
+                        RecordField::Named(
+                            name,
+                            Expr {
+                                kind: ExprKind::TypeName { name: ty, format },
+                                ..
+                            },
+                        ) => request
+                            .types
+                            .push((name.clone(), ty.clone(), format.clone())),
+                        _ => return None,
+                    }
+                }
+            }
+            Some(_) => return None,
+        }
+        match literal(6) {
+            None => {}
+            Some(Expr {
+                kind: ExprKind::Word(w),
+                ..
+            }) => request.snake_names = w == "snake",
+            Some(_) => return None,
+        }
+        request.quote = text(7).ok()?;
+        request.decimal = text(8).ok()?;
+        request.thousands = text(9).ok()?;
+        request.encoding = text(10).ok()?;
+        let path_span = literal(0).map_or(call.callee_span, |e| e.span);
+        match schemas.import(&request) {
+            SchemaLookup::Known(schema) => Some(schema),
+            SchemaLookup::RunTime(why) => {
+                self.report(
+                    Diagnostic::plain_note(format!(
+                        "`{}` is checked at run time: {why}, so the variables of this frame are checked when the script runs",
+                        request.path
+                    ))
+                    .primary(path_span, "no schema before the run"),
+                );
+                None
+            }
+            SchemaLookup::Unknown => None,
+            SchemaLookup::Problem(mut diagnostic) => {
+                // The engine knows no span: every label points at the path as written.
+                for label in &mut diagnostic.labels {
+                    label.span = path_span;
+                }
+                self.report(diagnostic);
+                None
+            }
+        }
+    }
+
+    /// A variable, or a range `x1..x9` kept as written and expanded against the frame: both
+    /// ends must be columns, in that order (Z0401 as the run says it when they are not).
+    fn require_name_or_range(&mut self, name: &str, span: Span, schema: &FrameSchema, shown: &str) {
+        let Some((first, last)) = name.split_once("..") else {
+            self.require_column(name, span, schema, shown);
+            return;
+        };
+        self.require_column(first, span, schema, shown);
+        self.require_column(last, span, schema, shown);
+        let position = |n: &str| schema.columns.iter().position(|(c, _)| c == n);
+        if let (Some(a), Some(b)) = (position(first), position(last))
+            && b < a
+        {
+            self.report(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("the range `{first}..{last}` runs backwards: `{last}` comes before `{first}` in {shown}"),
+                )
+                .primary(span, "a range runs from an earlier variable to a later one")
+                .help(format!("the variables of {shown}, in order: {}", schema.names().join(", "))),
+            );
+        }
+    }
+
+    /// A variable the frame lacks (Z0101, Z0102), as the run-time message says it.
+    fn require_column(&mut self, name: &str, span: Span, schema: &FrameSchema, shown: &str) {
+        if schema.has(name) {
+            return;
+        }
+        let columns = schema.names();
+        self.report(no_variable(&self.file, span, shown, name, &columns));
+    }
+
+    /// A loop variable or parameter read inside a frame method that is also a column of the
+    /// frame: Z0106, which the interpreter raises when the statement runs and the checker can
+    /// raise first with the schema in hand.
+    fn clash(&mut self, id: BindingId, span: Span, schema: &FrameSchema, shown: &str) {
+        let binding = &self.bindings[id];
+        if binding.kind != BindingKind::Let && schema.has(&binding.name) {
+            let name = binding.name.clone();
+            self.report(
+                Diagnostic::error(
+                    "Z0106",
+                    format!("`{name}` is both a loop variable or parameter and a variable of {shown}"),
+                )
+                .primary(span, "which one is meant?")
+                .help("rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently"),
+            );
+        }
+    }
+
+    /// A `Var`, `Vars`, `Terms` or `Formula` argument against the receiver's schema; inside a
+    /// function body, a `Var` parameter given with a frame parameter is noted for the calls.
+    fn check_variable_argument(
+        &mut self,
+        arg: &Expr,
+        ty: &Ty,
+        schema: &FrameSchema,
+        shown: &str,
+        receiver: &Expr,
+        position: usize,
+    ) {
+        let takes_names = match ty {
+            Ty::Var | Ty::Vars | Ty::Terms | Ty::Formula => true,
+            Ty::Union(options) => options
+                .iter()
+                .any(|o| matches!(o, Ty::Var | Ty::Vars | Ty::Terms | Ty::Formula)),
+            _ => false,
+        };
+        if !takes_names {
+            return;
+        }
+        let _ = position;
+        match &arg.kind {
+            ExprKind::Var(name) => self.require_name_or_range(name, arg.span, schema, shown),
+            ExprKind::Vars(names) => {
+                for name in names {
+                    self.require_name_or_range(name, arg.span, schema, shown);
+                }
+            }
+            ExprKind::Terms(terms) => {
+                for term in terms {
+                    self.check_term(term, schema, shown);
+                }
+            }
+            ExprKind::Formula(formula) => {
+                if let Some(outcome) = &formula.outcome {
+                    self.check_term(outcome, schema, shown);
+                }
+                for step in &formula.steps {
+                    match step {
+                        TermStep::Add(t) | TermStep::Remove(t) => self.check_term(t, schema, shown),
+                        TermStep::Intercept(_) => {}
+                    }
+                }
+            }
+            ExprKind::FormulaSteps { steps, .. } => {
+                for step in steps {
+                    match step {
+                        TermStep::Add(t) | TermStep::Remove(t) => self.check_term(t, schema, shown),
+                        TermStep::Intercept(_) => {}
+                    }
+                }
+            }
+            ExprKind::Binding(id) => {
+                self.clash(*id, arg.span, schema, shown);
+                self.note_var_use(receiver, *id);
+            }
+            _ => {}
+        }
+    }
+
+    /// The `Var` parameters an expression reads: as a value, in a formula's term or in a
+    /// nested call that is not a method on another frame.
+    fn var_parameters_in(&self, expr: &Expr, out: &mut Vec<BindingId>) {
+        let note = |id: BindingId, out: &mut Vec<BindingId>| {
+            if self.bindings[id].kind == BindingKind::Parameter
+                && self.bindings[id].ty == Ty::Var
+                && !out.contains(&id)
+            {
+                out.push(id);
+            }
+        };
+        fn terms_of(term: &Term, out: &mut Vec<BindingId>, checker: &Checker<'_>) {
+            match &term.kind {
+                TermKind::Bound(id) => {
+                    if checker.bindings[*id].kind == BindingKind::Parameter && !out.contains(id) {
+                        out.push(*id);
+                    }
+                }
+                TermKind::Interaction(parts) | TermKind::Product(parts) => {
+                    for part in parts {
+                        terms_of(part, out, checker);
+                    }
+                }
+                TermKind::Expr(e) => checker.var_parameters_in(e, out),
+                TermKind::Var(_) | TermKind::Range(..) => {}
+            }
+        }
+        match &expr.kind {
+            ExprKind::Binding(id) => note(*id, out),
+            ExprKind::FrameName {
+                binding: Some(id), ..
+            } => note(*id, out),
+            ExprKind::Unary { operand, .. } => self.var_parameters_in(operand, out),
+            ExprKind::Binary { lhs, rhs, .. } => {
+                self.var_parameters_in(lhs, out);
+                self.var_parameters_in(rhs, out);
+            }
+            ExprKind::List(items) => {
+                for item in items {
+                    self.var_parameters_in(item, out);
+                }
+            }
+            ExprKind::Terms(terms) => {
+                for term in terms {
+                    terms_of(term, out, self);
+                }
+            }
+            ExprKind::Formula(formula) => {
+                if let Some(outcome) = &formula.outcome {
+                    terms_of(outcome, out, self);
+                }
+                for step in &formula.steps {
+                    if let TermStep::Add(t) | TermStep::Remove(t) = step {
+                        terms_of(t, out, self);
+                    }
+                }
+            }
+            ExprKind::FormulaSteps { steps, .. } => {
+                for step in steps {
+                    if let TermStep::Add(t) | TermStep::Remove(t) = step {
+                        terms_of(t, out, self);
+                    }
+                }
+            }
+            ExprKind::Call(call) => {
+                let on_other_frame = call
+                    .args
+                    .first()
+                    .and_then(|a| a.as_ref())
+                    .is_some_and(|r| r.ty == Ty::Frame && !call.implicit_receiver);
+                if on_other_frame {
+                    return;
+                }
+                for arg in call.args.iter().flatten() {
+                    self.var_parameters_in(arg, out);
+                }
+                for arg in &call.rest {
+                    self.var_parameters_in(arg, out);
+                }
+                for (_, value) in &call.definitions {
+                    self.var_parameters_in(value, out);
+                }
+            }
+            ExprKind::Case(arms) => {
+                for arm in arms {
+                    if let Some(condition) = &arm.condition {
+                        self.var_parameters_in(condition, out);
+                    }
+                    self.var_parameters_in(&arm.value, out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Inside a function body: a `Var` parameter used with a frame parameter, so that a call
+    /// checks the variable it gives against the frame it gives (section 3.7).
+    fn note_var_use(&mut self, receiver: &Expr, var: BindingId) {
+        let Some(function) = self.current_function else {
+            return;
+        };
+        let ExprKind::Binding(frame) = &receiver.kind else {
+            return;
+        };
+        if self.bindings[*frame].kind != BindingKind::Parameter
+            || self.bindings[var].kind != BindingKind::Parameter
+        {
+            return;
+        }
+        let params = &self.signatures[function].params;
+        let index_of = |name: &str| params.iter().position(|(n, _, _, _)| n == name);
+        let (Some(f), Some(v)) = (
+            index_of(&self.bindings[*frame].name),
+            index_of(&self.bindings[var].name),
+        ) else {
+            return;
+        };
+        if self.var_uses.len() <= function {
+            self.var_uses.resize(function + 1, Vec::new());
+        }
+        if !self.var_uses[function].contains(&(f, v)) {
+            self.var_uses[function].push((f, v));
+        }
+    }
+
+    /// A term of a formula or of `fe:` against the schema: its variables, the ends of a range,
+    /// the parts of an interaction or a product, and the variables inside its arithmetic.
+    fn check_term(&mut self, term: &Term, schema: &FrameSchema, shown: &str) {
+        match &term.kind {
+            TermKind::Var(name) => self.require_column(name, term.span, schema, shown),
+            TermKind::Bound(id) => self.clash(*id, term.span, schema, shown),
+            TermKind::Range(a, b) => {
+                self.require_column(a, term.span, schema, shown);
+                self.require_column(b, term.span, schema, shown);
+            }
+            TermKind::Interaction(parts) | TermKind::Product(parts) => {
+                for part in parts {
+                    self.check_term(part, schema, shown);
+                }
+            }
+            TermKind::Expr(expr) => self.check_frame_names(expr, schema, shown, &[], true),
+        }
+    }
+
+    /// The bare names of an expression inside a frame method's argument (`FrameName`, and with
+    /// `vars_too` the `Var` names of a formula's arithmetic, which the argument check covers
+    /// otherwise) against the schema, the names the call defines counting as columns; a nested
+    /// method on another frame keeps its own arguments.
+    fn check_frame_names(
+        &mut self,
+        expr: &Expr,
+        schema: &FrameSchema,
+        shown: &str,
+        defined: &[String],
+        vars_too: bool,
+    ) {
+        match &expr.kind {
+            ExprKind::FrameName { name, binding } => match binding {
+                Some(id) => self.clash(*id, expr.span, schema, shown),
+                None => {
+                    if !defined.contains(name) {
+                        self.require_column(name, expr.span, schema, shown);
+                    }
+                }
+            },
+            ExprKind::Var(name) if vars_too => {
+                if !defined.contains(name) {
+                    self.require_column(name, expr.span, schema, shown);
+                }
+            }
+            ExprKind::Unary { operand, .. } => {
+                self.check_frame_names(operand, schema, shown, defined, vars_too);
+            }
+            ExprKind::Binary { lhs, rhs, .. } => {
+                self.check_frame_names(lhs, schema, shown, defined, vars_too);
+                self.check_frame_names(rhs, schema, shown, defined, vars_too);
+            }
+            ExprKind::List(items) => {
+                for item in items {
+                    self.check_frame_names(item, schema, shown, defined, vars_too);
+                }
+            }
+            ExprKind::Call(call) => {
+                // A method on another frame checks its own arguments; a reducer or a scalar
+                // function over this frame's columns is walked.
+                let on_other_frame = call
+                    .args
+                    .first()
+                    .and_then(|a| a.as_ref())
+                    .is_some_and(|r| r.ty == Ty::Frame && !call.implicit_receiver);
+                if on_other_frame {
+                    return;
+                }
+                for arg in call.args.iter().flatten() {
+                    self.check_frame_names(arg, schema, shown, defined, vars_too);
+                }
+                for arg in &call.rest {
+                    self.check_frame_names(arg, schema, shown, defined, vars_too);
+                }
+                for (_, value) in &call.definitions {
+                    self.check_frame_names(value, schema, shown, defined, vars_too);
+                }
+            }
+            ExprKind::Case(arms) => {
+                for arm in arms {
+                    if let Some(condition) = &arm.condition {
+                        self.check_frame_names(condition, schema, shown, defined, vars_too);
+                    }
+                    self.check_frame_names(&arm.value, schema, shown, defined, vars_too);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// A call of a project function: every `Var` its body uses with a frame parameter checked
+    /// against the frame this call gives, when that frame's schema is known.
+    fn user_call_schema_pass(&mut self, lowered: Expr, function: FnId) -> Expr {
+        let ExprKind::CallFn { args, .. } = &lowered.kind else {
+            return lowered;
+        };
+        let uses = self.var_uses.get(function).cloned().unwrap_or_default();
+        for (f, v) in uses {
+            let (Some(Some(frame)), Some(Some(var))) = (args.get(f), args.get(v)) else {
+                continue;
+            };
+            let Some(schema) = self.schema_of(frame) else {
+                continue;
+            };
+            let shown = match &frame.kind {
+                ExprKind::Binding(id) => self.bindings[*id].name.clone(),
+                _ => schema.origin.clone(),
+            };
+            match &var.kind {
+                ExprKind::Var(name) => self.require_column(name, var.span, &schema, &shown),
+                ExprKind::Binding(id) => self.clash(*id, var.span, &schema, &shown),
+                _ => {}
+            }
         }
         lowered
     }

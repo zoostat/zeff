@@ -1,11 +1,13 @@
 ---
 source: crates/zeff-engine/tests/project.rs
+assertion_line: 377
 expression: "fs.read_to_string(&root.join(\".gitignore\")).unwrap()"
 ---
 # Rebuilt on every run, so not shared.
 .zeff/cache/
 .zeff/fetched/
 .zeff/runs/
+.zeff/schemas/
 .zeff/open.lock
 .zeff/session.zeff
 .zemp/views.json

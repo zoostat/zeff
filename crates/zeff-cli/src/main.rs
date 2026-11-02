@@ -44,6 +44,10 @@ impl zeff_engine::fs::FileSystem for ClockedFileSystem {
         self.0.is_dir(path)
     }
 
+    fn metadata(&self, path: &std::path::Path) -> std::io::Result<zeff_engine::fs::FileInfo> {
+        self.0.metadata(path)
+    }
+
     fn canonicalize(&self, path: &std::path::Path) -> std::io::Result<std::path::PathBuf> {
         self.0.canonicalize(path)
     }

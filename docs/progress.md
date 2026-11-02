@@ -181,3 +181,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 20 `[engine]`: the schema pass, part 1 (file schemas and the checker).
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 20
+
+**Done.** Step 20 `[engine]`: the schema pass, part 1. The engine answers the checker's questions about `import` and `dataset` through a cache of each data file's columns (`.zeff/schemas/schemas.json`, keyed by path and import options, kept while the file's size and time are unchanged, refreshed and hashed otherwise, ignored by Git); the IR carries every frame's schema; the checker verifies `Var`, `Vars`, `Terms` and `Formula` arguments, the bare names of definitions and conditions, and the `Var` parameters of project functions against the frames whose schema it knows (an import of an existing file, a shipped dataset, a `zeff:` file, a `frame` literal, or a binding of one), with the run's codes (Z0101 with "did you mean", Z0102, Z0106) and Z0702 at the check; a missing file is marked "checked at run time" in a note. The known-issues entry on `Var` parameters closes; a frame after a verb waits for part 2.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (126 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 21 `[engine]`: the schema pass, part 2 (columns after each step, run-time marks, "from last run", the data roots' hashes).
+
+**For the owner to decide.** Nothing new.

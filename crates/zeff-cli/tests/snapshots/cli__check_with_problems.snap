@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-cli/tests/cli.rs
+assertion_line: 353
 expression: text
 ---
 error[Z0304]: `use stats` is not available in this release
@@ -9,6 +10,12 @@ error[Z0304]: `use stats` is not available in this release
   | ^^^^^^^^^ arrives with Zeff 1.11
   |
   = help: third-party packages arrive after 1.0; the project's own modules are brought in as `use functions::stats`
+
+note: `data/wages.csv` is checked at run time: the file does not exist yet, so the variables of this frame are checked when the script runs
+ --> scripts/main.zeff:2:20
+  |
+2 | let wages = import("data/wages.csv", heade: false)
+  |                    ^^^^^^^^^^^^^^^^ no schema before the run
 
 error[Z0404]: `import` has no argument called `heade`
  --> scripts/main.zeff:2:38

@@ -1,0 +1,172 @@
+---
+source: crates/zeff-engine/tests/schemas.rs
+assertion_line: 165
+expression: all
+---
+> let d = import("data/small.csv")
+d.mean(aa)
+d.summary([a, bb])
+d.reg(a ~ b + cc, fe: c)
+d.reg(a ~ log(bb))
+d.where(z > 1)
+d.add(k = a + q, m = k * 2)
+d.mean(A)
+error[Z0101]: no variable `aa` in `d`
+ --> scripts/main.zeff:2:8
+  |
+2 | d.mean(aa)
+  |        ^^ not a variable of d
+  |
+  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+error[Z0101]: no variable `bb` in `d`
+ --> scripts/main.zeff:3:11
+  |
+3 | d.summary([a, bb])
+  |           ^^^^^^^ not a variable of d
+  |
+  = help: did you mean `b`? If you meant a category level, write it in quotes: `"b"`
+error[Z0101]: no variable `cc` in `d`
+ --> scripts/main.zeff:4:15
+  |
+4 | d.reg(a ~ b + cc, fe: c)
+  |               ^^ not a variable of d
+  |
+  = help: did you mean `c`? If you meant a category level, write it in quotes: `"c"`
+error[Z0101]: no variable `bb` in `d`
+ --> scripts/main.zeff:5:15
+  |
+5 | d.reg(a ~ log(bb))
+  |               ^^ not a variable of d
+  |
+  = help: did you mean `b`? If you meant a category level, write it in quotes: `"b"`
+error[Z0101]: no variable `z` in `d`
+ --> scripts/main.zeff:6:9
+  |
+6 | d.where(z > 1)
+  |         ^ not a variable of d
+  |
+  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+error[Z0101]: no variable `q` in `d`
+ --> scripts/main.zeff:7:15
+  |
+7 | d.add(k = a + q, m = k * 2)
+  |               ^ not a variable of d
+  |
+  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+error[Z0102]: no variable `A` in `d`; names are case-sensitive
+ --> scripts/main.zeff:8:8
+  |
+8 | d.mean(A)
+  |        ^ differs only in case from `a`
+  |
+  = help: write `a`
+----
+> let w = dataset(wages)
+w.reg(log(wage) ~ educ + expr, fe: firm + yaer, cluster: wrker)
+let z = import("zeff:wages.csv")
+z.mean(wge)
+let f = frame(x = [1, 2], y = [3, 4])
+f.where(q > 1)
+frame(x = [1, 2]).mean(xx)
+error[Z0101]: no variable `expr` in `w`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.reg(log(wage) ~ educ + expr, fe: firm + yaer, cluster: wrker)
+  |                          ^^^^ not a variable of w
+  |
+  = help: did you mean `exper`? If you meant a category level, write it in quotes: `"exper"`
+error[Z0101]: no variable `yaer` in `w`
+ --> scripts/main.zeff:2:43
+  |
+2 | w.reg(log(wage) ~ educ + expr, fe: firm + yaer, cluster: wrker)
+  |                                           ^^^^ not a variable of w
+  |
+  = help: did you mean `year`? If you meant a category level, write it in quotes: `"year"`
+error[Z0101]: no variable `wrker` in `w`
+ --> scripts/main.zeff:2:58
+  |
+2 | w.reg(log(wage) ~ educ + expr, fe: firm + yaer, cluster: wrker)
+  |                                                          ^^^^^ not a variable of w
+  |
+  = help: did you mean `worker`? If you meant a category level, write it in quotes: `"worker"`
+error[Z0101]: no variable `wge` in `z`
+ --> scripts/main.zeff:4:8
+  |
+4 | z.mean(wge)
+  |        ^^^ not a variable of z
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+error[Z0101]: no variable `q` in `f`
+ --> scripts/main.zeff:6:9
+  |
+6 | f.where(q > 1)
+  |         ^ not a variable of f
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+error[Z0101]: no variable `xx` in `the frame`
+ --> scripts/main.zeff:7:24
+  |
+7 | frame(x = [1, 2]).mean(xx)
+  |                        ^^ not a variable of the frame
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+----
+> let m = import("data/missing.csv")
+m.mean(zzz)
+let c = import("data/Small.csv")
+let h = true
+let o = import("data/small.csv", header: h)
+o.mean(zzz)
+note: `data/missing.csv` is checked at run time: the file does not exist yet, so the variables of this frame are checked when the script runs
+ --> scripts/main.zeff:1:16
+  |
+1 | let m = import("data/missing.csv")
+  |                ^^^^^^^^^^^^^^^^^^ no schema before the run
+error[Z0702]: path `data/Small.csv` differs only in case from `data/small.csv`
+ --> scripts/main.zeff:3:16
+  |
+3 | let c = import("data/Small.csv")
+  |                ^^^^^^^^^^^^^^^^ the file is called differently
+  |
+  = help: write `data/small.csv`, so that the script also works on systems that tell upper and lower case apart
+----
+> let d = import("data/small.csv")
+for a in [1, 2] { d.add(k = a + b) }
+for v in vars(a, b) { d.mean(v) }
+for b in [1, 2] { d.reg(a ~ b) }
+error[Z0106]: `a` is both a loop variable or parameter and a variable of d
+ --> scripts/main.zeff:2:29
+  |
+2 | for a in [1, 2] { d.add(k = a + b) }
+  |                             ^ which one is meant?
+  |
+  = help: rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently
+----
+> use functions::clean
+let d = import("data/small.csv")
+d.share_missing(aa)
+share_missing(d, a)
+/// Mean of a variable.
+fn m(data: Frame, v: Var) -> Float { data.mean(v) }
+d.m(bbb)
+m(d, b)
+error[Z0101]: no variable `aa` in `d`
+ --> scripts/main.zeff:3:17
+  |
+3 | d.share_missing(aa)
+  |                 ^^ not a variable of d
+  |
+  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+error[Z0101]: no variable `bbb` in `d`
+ --> scripts/main.zeff:7:5
+  |
+7 | d.m(bbb)
+  |     ^^^ not a variable of d
+  |
+  = help: the variables of `d` are: a, b, c
+----
+> let d = import("data/small.csv")
+d.where(a > 1).mean(nope)
+let a = 3
+d.add(k = a)
+----

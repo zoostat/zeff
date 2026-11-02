@@ -128,13 +128,18 @@ pub fn check_in_project(
 ) -> CheckedInProject {
     let loaded = crate::modules::load(fs, project);
     let parsed = zeff_syntax::parse(script, text);
-    let mut checked = zeff_ir::check_project(
+    // The schema pass (section 11, "Checking before running"): the schemas of the files the
+    // script imports, from the cache or read now, so that variables are checked before the run.
+    let schemas = crate::schemas::SchemaCache::new(fs, project);
+    let mut checked = zeff_ir::check_project_with(
         script,
         &parsed.script,
         registry,
         Some(text),
         &loaded.modules,
+        Some(&schemas),
     );
+    let _ = schemas.save();
     let module_sources = loaded.sources();
     let mut all: Vec<Diagnostic> = loaded.diagnostics;
     all.extend(parsed.diagnostics.into_vec());
@@ -287,7 +292,14 @@ pub fn run_script_in(
             exit_code: if internal { 2 } else { 1 },
         };
     }
-    for warning in checked.diagnostics.iter() {
+    // The check's warnings are shown before the run; its notes (the run-time mark of a file
+    // that does not exist yet, section 11) are for `zeff check` and the editor, since the run
+    // reports such a file itself.
+    for warning in checked
+        .diagnostics
+        .iter()
+        .filter(|d| d.severity != Severity::Note)
+    {
         output.stderr.push_str(&warning.render(&sources));
     }
     let files = ProjectFiles { fs, project };

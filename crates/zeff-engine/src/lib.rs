@@ -17,6 +17,7 @@ pub mod paths;
 pub mod project;
 pub mod registry;
 pub mod run;
+pub mod schemas;
 pub mod scratch;
 pub mod session;
 

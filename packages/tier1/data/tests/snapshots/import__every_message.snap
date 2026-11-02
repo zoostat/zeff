@@ -1,5 +1,6 @@
 ---
 source: packages/tier1/data/tests/import.rs
+assertion_line: 451
 expression: all
 ---
 ## bom_removed (exit 0)
@@ -41,73 +42,73 @@ warning: x holds values that differ only in their Unicode normalisation form, su
 
 ## no_header (exit 1)
 error[Z0605]: `data/f.csv` has no header line
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv")
-  |         ^^^^^^ the file is empty
+  |                ^^^^^^^^^^^^ the file is empty
   |
   = help: the first row names the columns; a file without one is read with `header: false`
 
 ## empty_name (exit 1)
 error[Z0605]: `data/f.csv` has an empty column name at position 2
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv")
-  |         ^^^^^^ every column needs a name
+  |                ^^^^^^^^^^^^ every column needs a name
   |
   = help: name the column in the first row of the file, or read without names: `header: false`
 
 ## repeated_name (exit 1)
 error[Z0605]: `data/f.csv` has two columns called `x` (positions 1 and 3)
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv")
-  |         ^^^^^^ column names must be distinct
+  |                ^^^^^^^^^^^^ column names must be distinct
   |
   = help: rename one of them in the file, or read without names (`header: false`) and rename afterwards
 
 ## case_clash (exit 1)
 error[Z0605]: `data/f.csv` has columns `Wage` and `wage`, which differ only in case
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv")
-  |         ^^^^^^ names are case-sensitive, so these would be confused
+  |                ^^^^^^^^^^^^ names are case-sensitive, so these would be confused
   |
   = help: rename one of them in the file
 
 ## snake_clash (exit 1)
 error[Z0605]: `names: snake` would give both `Gross Sales` and `gross_sales` the name `gross_sales`
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv", names: snake)
-  |         ^^^^^^ two columns, one name
+  |                ^^^^^^^^^^^^ two columns, one name
   |
   = help: rename one of them in the file, or keep the original names with `names: keep`
 
 ## field_count (exit 1)
 error[Z0607]: row 3 of `data/f.csv` has 1 field, but the header has 2
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv")
-  |         ^^^^^^ every row must have the same number of fields
+  |                ^^^^^^^^^^^^ every row must have the same number of fields
   |
   = help: a delimiter inside a value must be in quotes, as in "Smith, John"; otherwise fix the row
 
 ## unclosed_quote (exit 1)
 error[Z0607]: row 2 of `data/f.csv` opens a quote that is never closed
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv")
-  |         ^^^^^^ the rest of the file was read as one value
+  |                ^^^^^^^^^^^^ the rest of the file was read as one value
   |
   = help: a quotation mark inside a quoted value is written twice: "5"" tall"
 
 ## not_utf8 (exit 1)
 error[Z0608]: row 3 of `data/f.csv` is not valid UTF-8
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv")
-  |         ^^^^^^ the file must be UTF-8, or name its encoding
+  |                ^^^^^^^^^^^^ the file must be UTF-8, or name its encoding
   |
   = help: name the file's encoding, as in `encoding: "windows-1252"` (the names of the WHATWG list), or save it as UTF-8 from the program that made it
 
@@ -122,10 +123,10 @@ error[Z0606]: row 3 of `data/f.csv` has text in a numeric column
 
 ## types_names_a_missing_column (exit 1)
 error[Z0101]: no column `y` in `data/f.csv`
- --> scripts/main.zeff:1:9
+ --> scripts/main.zeff:1:16
   |
 1 | let d = import("data/f.csv", types: {y: Int})
-  |         ^^^^^^ named in `types:`, but not in the file
+  |                ^^^^^^^^^^^^ named in `types:`, but not in the file
   |
   = help: did you mean `x`?
 

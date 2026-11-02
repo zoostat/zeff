@@ -26,6 +26,9 @@ zeff-numeric.workspace = true
 zeff-registry.workspace = true
 toml = { version = "=1.1.8", default-features = false, features = ["parse", "std"] }
 zeff-diagnostics.workspace = true
+zeff-dates.workspace = true
+zeff-hash.workspace = true
+encoding_rs = "=0.8.42"
 
 [dev-dependencies]
 zeff-dates.workspace = true

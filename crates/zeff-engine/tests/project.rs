@@ -481,6 +481,9 @@ fn a_failure_half_way_leaves_nothing_behind() {
         fn is_dir(&self, p: &Path) -> bool {
             self.0.is_dir(p)
         }
+        fn metadata(&self, p: &Path) -> std::io::Result<zeff_engine::fs::FileInfo> {
+            self.0.metadata(p)
+        }
         fn canonicalize(&self, p: &Path) -> std::io::Result<PathBuf> {
             self.0.canonicalize(p)
         }
