@@ -16,6 +16,11 @@ numbers and is compared byte for byte by the workflow itself.
 Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|fixed_effects|event|dates|time|format|panel|running|quantile_group|distinct|aggregate|merge|reshape <committed.json> <regenerated.json>
 
 `dates.json`, `time.json` and `format.json` hold day counts, texts, seconds, date parts and ISO texts, which are exact on every platform, and are compared exactly apart from the software line.
+
+`aggregate.json` holds R's grouped statistics written with 17 significant digits: the keys, the
+counts and the exact reducers (`min`, `max`, `median`, `mad`) must agree exactly and the
+closed-form ones (`mean`, `sd`, `variance`, `sum`, `q90`, `iqr`, `skewness`, `kurtosis`) to a
+relative 1e-12, since R's means accumulate in extended precision on x86.
 """
 
 import json
@@ -281,6 +286,30 @@ def check_event(committed, regenerated, problems):
                 problems.append(f"cases.{name}.{key}: committed {case[key]}, regenerated {other[key]}")
 
 
+def check_aggregate(committed, regenerated, problems):
+    """Keys, counts and the exact reducers exactly; the closed-form statistics within tolerance."""
+    tolerance = TOLERANCE["aggregate"]
+    exact = ("key", "n", "n_distinct", "min", "max", "median", "mad")
+    if len(committed["cases"]) != len(regenerated["cases"]):
+        problems.append("a different number of cases")
+        return
+    for i, (case, other) in enumerate(zip(committed["cases"], regenerated["cases"])):
+        for field in ("keys", "value", "distinct_of"):
+            if case[field] != other[field]:
+                problems.append(f"case {i} {field}: committed {case[field]}, regenerated {other[field]}")
+        if len(case["groups"]) != len(other["groups"]):
+            problems.append(f"case {i}: a different number of groups")
+            continue
+        for group, other_group in zip(case["groups"], other["groups"]):
+            key = "/".join(group["key"])
+            for stat, value in group.items():
+                if stat in exact:
+                    if value != other_group[stat]:
+                        problems.append(f"case {i} {key} {stat}: committed {value}, regenerated {other_group[stat]}")
+                elif not close(value, other_group[stat], tolerance):
+                    problems.append(f"case {i} {key} {stat}: committed {value}, regenerated {other_group[stat]}")
+
+
 def check_dates(committed, regenerated, problems):
     """Every value exact: day counts, seconds and ISO texts carry no rounding."""
     for key in committed:
@@ -296,7 +325,7 @@ def main(which, committed_path, regenerated_path):
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design, "regression": check_regression, "fixed_effects": check_fixed_effects, "event": check_event, "dates": check_dates, "time": check_dates, "format": check_dates, "panel": check_dates, "running": check_dates, "quantile_group": check_dates, "distinct": check_dates, "aggregate": check_dates, "merge": check_dates, "reshape": check_dates}
+    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design, "regression": check_regression, "fixed_effects": check_fixed_effects, "event": check_event, "dates": check_dates, "time": check_dates, "format": check_dates, "panel": check_dates, "running": check_dates, "quantile_group": check_dates, "distinct": check_dates, "aggregate": check_aggregate, "merge": check_dates, "reshape": check_dates}
     if which in checks:
         checks[which](committed, regenerated, problems)
     else:

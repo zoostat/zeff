@@ -325,7 +325,7 @@ jobs:
           for name in maths descriptive special distributions association kernels types design regression fixed_effects event dates time format panel running quantile_group distinct aggregate merge reshape; do
             git show HEAD:tests/reference/r/$name.json > /tmp/committed_r_$name.json
             git diff --stat -- tests/reference/r/$name.json
-            python3 -I tests/reference/r/check_r.py $name /tmp/committed_r_$name.json tests/reference/r/$name.json
+            python3 -I tests/reference/r/check_r.py $name /tmp/committed_r_$name.json tests/reference/r/$name.json || { git diff -- tests/reference/r/$name.json | head -400; exit 1; }
             git checkout -- tests/reference/r/$name.json
           done
 
