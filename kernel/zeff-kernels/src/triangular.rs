@@ -36,6 +36,15 @@ pub fn solve_upper(r: &Matrix, b: &[f64]) -> Result<Vec<f64>, ZeroPivot> {
 pub fn solve_upper_transposed(r: &Matrix, b: &[f64]) -> Result<Vec<f64>, ZeroPivot> {
     let n = check_square(r, b);
     let mut x = vec![0.0; n];
+    solve_upper_transposed_into(r, b, &mut x)?;
+    Ok(x)
+}
+
+/// [`solve_upper_transposed`] into a buffer the caller keeps, for a solve per row with no
+/// allocation per row (release 0.6.0, step 18b); the same operations in the same order.
+pub fn solve_upper_transposed_into(r: &Matrix, b: &[f64], x: &mut [f64]) -> Result<(), ZeroPivot> {
+    let n = check_square(r, b);
+    assert_eq!(x.len(), n, "a buffer of the system's size");
     for i in 0..n {
         let d = r.get(i, i);
         if d == 0.0 {
@@ -43,7 +52,7 @@ pub fn solve_upper_transposed(r: &Matrix, b: &[f64]) -> Result<Vec<f64>, ZeroPiv
         }
         x[i] = (b[i] - dot(&r.column(i)[..i], &x[..i])) / d;
     }
-    Ok(x)
+    Ok(())
 }
 
 /// Solve L x = b for lower-triangular L, by forward substitution.

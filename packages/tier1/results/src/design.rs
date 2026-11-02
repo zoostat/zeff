@@ -467,7 +467,9 @@ impl Design {
         }
     }
 
-    /// The design block by block, each block's columns computed for its rows.
+    /// The design block by block, each block's columns computed for its rows; a transformed
+    /// design's columns, held as values, are copied column by column (the same values, the
+    /// same bits) rather than rebuilt one cell at a time (release 0.6.0, step 18b).
     pub fn blocks(&self) -> impl Iterator<Item = Block> + '_ {
         let k = self.k();
         (0..self.rows.len())
@@ -475,6 +477,29 @@ impl Design {
             .map(move |start| {
                 let end = (start + self.block_rows).min(self.rows.len());
                 let rows = &self.rows[start..end];
+                if let Some(dense) = &self.dense {
+                    let mut x = Matrix::zeros(rows.len(), k);
+                    for c in 0..k {
+                        let column = x.column_mut(c);
+                        column.copy_from_slice(&dense.columns[c][start..end]);
+                        if let Some(w) = &self.weights {
+                            for (v, weight) in column.iter_mut().zip(&w[start..end]) {
+                                *v *= weight.sqrt();
+                            }
+                        }
+                    }
+                    let mut y: Vec<f64> = if self.outcome.is_some() {
+                        dense.outcome[start..end].to_vec()
+                    } else {
+                        vec![0.0; rows.len()]
+                    };
+                    if let Some(w) = &self.weights {
+                        for (v, weight) in y.iter_mut().zip(&w[start..end]) {
+                            *v *= weight.sqrt();
+                        }
+                    }
+                    return Block { start, x, y };
+                }
                 let x = Matrix::from_fn(rows.len(), k, |r, c| {
                     self.value_at(c, start + r) * self.root_weight(start + r)
                 });
@@ -506,6 +531,14 @@ impl Design {
     /// Whether the design has an outcome.
     pub fn has_outcome(&self) -> bool {
         self.outcome.is_some()
+    }
+
+    /// Whether an observation's leverage in the model is the leverage of this design: not for
+    /// a design with the fixed effects projected out, whose full design is not at hand (the
+    /// ruling of release 0.6.0, step 18: `hc2`, `hc3`, `influence` and W1006 wait), so that the
+    /// fit need not compute a leverage per row (step 18b).
+    pub fn leverage_available(&self) -> bool {
+        self.dense.is_none()
     }
 
     /// The value of column `column` at the row used at `index`, unweighted: from the dense

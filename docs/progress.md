@@ -85,3 +85,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 22 `[engine]`: fused column expressions.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 18b
+
+**Done.** Step 18b `[engine]`: the speed of the fixed-effects fit, taken after steps 19 to 21 (it was added to the checklist while they were under way). The group index from integer codes, reused for `cluster:`; the design's blocks and the QR's buffer filled by column copies; the leverage left out where no caller can use it; the kernel's short-slice sum without the lanes, bit for bit. A million rows 0.95 s → 0.438 s against fixest's 0.23 s, ten million 9.3 s → 4.18 s against 2.2 s: within 2×. No digest, identity file or estimate changed; piece (4) not needed.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (127 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 22 `[engine]`: fused column expressions.
+
+**For the owner to decide.** Nothing new.

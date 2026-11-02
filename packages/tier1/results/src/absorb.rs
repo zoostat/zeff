@@ -9,7 +9,7 @@ use crate::design::{Dense, Design};
 use crate::estimator::Fitted;
 use std::collections::BTreeMap;
 use std::rc::Rc;
-use zeff_columns::{Column, Key};
+use zeff_columns::{Column, ColumnType, Key};
 use zeff_kernels::demean::{Effect, Options, demean};
 
 /// The share of a regressor's original norm below which the fixed effects absorb it (section
@@ -49,9 +49,126 @@ pub fn effect_key(column: &Column, row: usize) -> Key {
     }
 }
 
+/// A column's values as integer codes whose order is the order of its keys (section 3.7:
+/// numbers numerically, dates chronologically, text by code point, a category's levels by
+/// their labels as [`effect_key`] gives them, `NA` after everything), so that grouping compares
+/// integers and never a text key per row (Engine and Project Specification, section 8.3, point
+/// 10, "Integer-coded categories"). `None` for a column the codes do not cover (a Float).
+fn codes_of(column: &Column, rows: &[usize]) -> Option<Vec<i64>> {
+    const NA: i64 = i64::MAX;
+    Some(match column.ty() {
+        ColumnType::Int => {
+            let values: Vec<Option<i64>> = column.as_ints()?.collect();
+            rows.iter()
+                .map(|&r| values[r].map_or(NA, |v| v.min(NA - 1)))
+                .collect()
+        }
+        ColumnType::Bool => {
+            let values: Vec<Option<bool>> = column.as_bools()?.collect();
+            rows.iter()
+                .map(|&r| values[r].map_or(NA, i64::from))
+                .collect()
+        }
+        ColumnType::Date => {
+            let values: Vec<Option<i32>> = column.as_dates()?.collect();
+            rows.iter()
+                .map(|&r| values[r].map_or(NA, i64::from))
+                .collect()
+        }
+        ColumnType::DateTime => {
+            let values: Vec<Option<i64>> = column.as_datetimes()?.collect();
+            rows.iter()
+                .map(|&r| values[r].map_or(NA, |v| v.min(NA - 1)))
+                .collect()
+        }
+        ColumnType::Category => {
+            // The levels ordered by their labels, as the keys order them.
+            let levels = column.levels()?;
+            let mut order: Vec<usize> = (0..levels.len()).collect();
+            order.sort_by(|&a, &b| levels[a].cmp(levels[b]));
+            let mut rank = vec![0i64; levels.len()];
+            for (r, &level) in order.iter().enumerate() {
+                rank[level] = r as i64;
+            }
+            let codes: Vec<Option<i32>> = column.as_codes()?.collect();
+            rows.iter()
+                .map(|&r| codes[r].map_or(NA, |c| rank[c as usize]))
+                .collect()
+        }
+        ColumnType::Str => {
+            // The distinct texts among the rows, in code-point order, each its rank.
+            let values: Vec<Option<&str>> = column.as_strs()?.collect();
+            let mut distinct: Vec<&str> = rows.iter().filter_map(|&r| values[r]).collect();
+            distinct.sort_unstable();
+            distinct.dedup();
+            rows.iter()
+                .map(|&r| {
+                    values[r].map_or(NA, |s| distinct.binary_search(&s).map_or(NA, |i| i as i64))
+                })
+                .collect()
+        }
+        ColumnType::Float | ColumnType::Opaque(_) => return None,
+    })
+}
+
 impl EffectGroups {
-    /// The groups of the rows `rows` under the columns of one effect, in key order.
+    /// The groups of the rows `rows` under the columns of one effect, in key order: by the
+    /// columns' integer codes when every column has them (one sort of integers, the keys looked
+    /// up once per group), by the keys themselves otherwise.
     pub fn over(
+        name: &str,
+        variables: &[String],
+        columns: &[&Column],
+        rows: &[usize],
+    ) -> EffectGroups {
+        let codes: Option<Vec<Vec<i64>>> = columns.iter().map(|c| codes_of(c, rows)).collect();
+        let Some(codes) = codes else {
+            return EffectGroups::over_by_keys(name, variables, columns, rows);
+        };
+        if columns.len() > 4 {
+            return EffectGroups::over_by_keys(name, variables, columns, rows);
+        }
+        // Each row's codes as one tuple of up to four, sorted and deduplicated: the groups in
+        // key order, each row's group found by binary search.
+        let tuple = |i: usize| -> [i64; 4] {
+            let mut t = [i64::MIN; 4];
+            for (c, column) in codes.iter().enumerate() {
+                t[c] = column[i];
+            }
+            t
+        };
+        let mut distinct: Vec<[i64; 4]> = (0..rows.len()).map(tuple).collect();
+        distinct.sort_unstable();
+        distinct.dedup();
+        let group_of_row: Vec<usize> = (0..rows.len())
+            .map(|i| {
+                distinct
+                    .binary_search(&tuple(i))
+                    .expect("every row's tuple is among the distinct ones")
+            })
+            .collect();
+        // The keys of each group from one of its rows.
+        let mut first_row = vec![usize::MAX; distinct.len()];
+        for (i, &g) in group_of_row.iter().enumerate() {
+            if first_row[g] == usize::MAX {
+                first_row[g] = rows[i];
+            }
+        }
+        let keys: Vec<Vec<Key>> = first_row
+            .iter()
+            .map(|&row| columns.iter().map(|c| effect_key(c, row)).collect())
+            .collect();
+        EffectGroups {
+            name: name.to_string(),
+            variables: variables.to_vec(),
+            keys,
+            group_of_row,
+        }
+    }
+
+    /// The groups by the keys of every row, the general way: the oracle of the integer-coded
+    /// path, and the path for a column without integer codes.
+    pub fn over_by_keys(
         name: &str,
         variables: &[String],
         columns: &[&Column],

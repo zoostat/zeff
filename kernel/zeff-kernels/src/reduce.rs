@@ -171,14 +171,38 @@ impl<const N: usize> Lanes<N> {
 /// `Inf` alone and not-a-number for `Inf` with `-Inf`, and which may still be finite where the
 /// lanes overflowed on the way.
 pub fn sum(xs: &[f64]) -> f64 {
-    let mut lanes = LaneSum::new();
-    lanes.push_slice(xs);
-    let result = lanes.value();
+    let result = if xs.len() <= LANES {
+        sum_within_lanes(xs)
+    } else {
+        let mut lanes = LaneSum::new();
+        lanes.push_slice(xs);
+        lanes.value()
+    };
     if result.is_finite() {
         result
     } else {
         xs.iter().fold(0.0, |total, &x| total + x)
     }
+}
+
+/// [`sum`] of at most `LANES` values by the very operations the lanes perform on them, without
+/// the lanes (release 0.6.0, step 18b: the group sums of a fixed effect are mostly short runs).
+/// With one value per lane, a lane's sum is that value and its error zero, so `value()` is the
+/// compensated sequential sum of the values. The lanes that hold nothing add `0.0` to the total
+/// and to the error in `value()`, which changes no bit: the total starts at `+0.0` and a rounded
+/// sum is never `-0.0`, and the error of a two-sum whose first term is not `-0.0` is never
+/// `-0.0`, so neither is ever the negative zero that `+ 0.0` would turn positive. The property
+/// test holds the two to the same bits on random short slices and on the signed zeros.
+fn sum_within_lanes(xs: &[f64]) -> f64 {
+    debug_assert!(xs.len() <= LANES);
+    let mut total = 0.0;
+    let mut error = 0.0;
+    for &x in xs {
+        let (s, e) = two_sum(total, x);
+        total = s;
+        error += e;
+    }
+    total + error
 }
 
 /// The dot product of two slices of one length, with the same fallback as [`sum`].
@@ -338,5 +362,70 @@ mod tests {
     #[should_panic(expected = "one length")]
     fn a_dot_product_of_different_lengths_is_refused() {
         dot(&[1.0], &[1.0, 2.0]);
+    }
+}
+
+#[cfg(test)]
+mod within_lanes {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// The lanes' own result for a short slice, for the comparison.
+    fn by_lanes(xs: &[f64]) -> f64 {
+        let mut lanes = LaneSum::new();
+        lanes.push_slice(xs);
+        lanes.value()
+    }
+
+    #[test]
+    fn the_short_path_matches_the_lanes_on_zeros_and_signs() {
+        for xs in [
+            &[][..],
+            &[-0.0][..],
+            &[-0.0, -0.0][..],
+            &[0.0, -0.0, 1e-300, -1e-300][..],
+            &[1e308, -1e308, 1.0][..],
+            &[1.0, 1e16, -1e16, 1.0][..],
+            // Values that cancel: the compensation carries the 2 that the plain sum loses.
+            &[1e16, 1.0, 1.0, -1e16][..],
+            &[1e16, 1.0, 1.0, -1e16, 1e-8, 3.0, -3.0, 0.5][..],
+        ] {
+            assert_eq!(
+                sum_within_lanes(xs).to_bits(),
+                by_lanes(xs).to_bits(),
+                "{xs:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_compensation_carries_what_cancels() {
+        assert_eq!(sum(&[1e16, 1.0, 1.0, -1e16]), 2.0);
+        assert_eq!(
+            sum(&[1e16, 1.0, 1.0, -1e16]).to_bits(),
+            by_lanes(&[1e16, 1.0, 1.0, -1e16]).to_bits()
+        );
+    }
+
+    proptest! {
+        #[test]
+        fn the_short_path_matches_the_lanes(xs in prop::collection::vec(prop::num::f64::ANY, 0..=LANES)) {
+            prop_assume!(xs.iter().all(|x| x.is_finite()));
+            prop_assert_eq!(sum_within_lanes(&xs).to_bits(), by_lanes(&xs).to_bits());
+            prop_assert_eq!(sum(&xs).to_bits(), by_lanes(&xs).to_bits());
+        }
+
+        /// Values of a common scale with a large one among them, where the compensation decides
+        /// the last bits.
+        #[test]
+        fn the_short_path_matches_the_lanes_where_values_cancel(
+            small in prop::collection::vec(-8.0f64..8.0, 1..=14),
+            big in prop::sample::select(vec![1e15, 1e16, 1e17, -1e16]),
+        ) {
+            let mut xs = vec![big];
+            xs.extend(&small);
+            xs.push(-big);
+            prop_assert_eq!(sum_within_lanes(&xs).to_bits(), by_lanes(&xs).to_bits());
+        }
     }
 }

@@ -11,7 +11,7 @@ use zeff_core::runtime::{CallContext, Fail, fail};
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_kernels::qr::{TallSkinnyQr, pivoted_qr};
 use zeff_kernels::svd::condition_number;
-use zeff_kernels::triangular::{inverse_upper, solve_upper, solve_upper_transposed};
+use zeff_kernels::triangular::{inverse_upper, solve_upper, solve_upper_transposed_into};
 use zeff_kernels::{LaneSum, Matrix, dot, sum_of_squares};
 use zeff_results::design::{Block, Design};
 use zeff_results::estimator::{Estimator, Fitted};
@@ -99,20 +99,23 @@ impl Estimator for Ols {
         let mut qr = TallSkinnyQr::new(k + 1);
         for block in design.blocks() {
             let rows = block.x.rows();
-            let augmented = Matrix::from_fn(rows, k + 1, |r, c| {
-                if c < k {
-                    // An oversized column (scale zero) may hold an infinity, which the weighted
-                    // design can produce from finite factors; zero times it would be not a
-                    // number, so the column is zero outright.
-                    if scales[c] == 0.0 {
-                        0.0
-                    } else {
-                        block.x.get(r, c) * scales[c]
-                    }
-                } else {
-                    block.y[r]
+            // The block scaled column by column into the factorisation's buffer (step 18b):
+            // the same product per value as before, copied rather than rebuilt one cell at a
+            // time. An oversized column (scale zero) may hold an infinity, which the weighted
+            // design can produce from finite factors; zero times it would be not a number, so
+            // the column is zero outright.
+            let mut augmented = Matrix::zeros(rows, k + 1);
+            for (c, &scale) in scales.iter().enumerate() {
+                if scale == 0.0 {
+                    continue;
                 }
-            });
+                let column = augmented.column_mut(c);
+                column.copy_from_slice(block.x.column(c));
+                for v in column.iter_mut() {
+                    *v *= scale;
+                }
+            }
+            augmented.column_mut(k).copy_from_slice(&block.y);
             qr.push_rows(&augmented);
         }
         let r_full = qr.finish();
@@ -209,11 +212,14 @@ impl Estimator for Ols {
         let mut outcome_squares = 0.0;
         let mut row_values = vec![0.0; rank];
         let mut scaled_row = vec![0.0; rank];
+        let mut z = vec![0.0; rank];
+        // The leverage per row is a triangular solve per row, left out where no caller can use
+        // it (a design with the fixed effects projected out): not a number stands in its place.
+        let leverage_available = design.leverage_available();
         for block in design.blocks() {
             for r in 0..block.x.rows() {
                 for (p, &c) in kept.iter().enumerate() {
                     row_values[p] = block.x.get(r, c);
-                    scaled_row[p] = row_values[p] * kept_scales[p];
                 }
                 let yhat = dot(&row_values, &estimates);
                 let e = block.y[r] - yhat;
@@ -223,9 +229,16 @@ impl Estimator for Ols {
                 }
                 residuals.push(e);
                 fitted.push(yhat);
-                let z = solve_upper_transposed(&r11, &scaled_row)
-                    .map_err(|_| internal(ctx, "a zero pivot in the leverage"))?;
-                leverage.push(sum_of_squares(&z));
+                if leverage_available {
+                    for p in 0..rank {
+                        scaled_row[p] = row_values[p] * kept_scales[p];
+                    }
+                    solve_upper_transposed_into(&r11, &scaled_row, &mut z)
+                        .map_err(|_| internal(ctx, "a zero pivot in the leverage"))?;
+                    leverage.push(sum_of_squares(&z));
+                } else {
+                    leverage.push(f64::NAN);
+                }
                 for (acc, x) in xte.iter_mut().zip(&row_values) {
                     *acc += x * e;
                 }

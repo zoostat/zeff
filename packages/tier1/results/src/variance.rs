@@ -37,6 +37,31 @@ pub struct Clusters {
 }
 
 impl Clusters {
+    /// The clusters from a group index over the rows used (an effect's, or one built over the
+    /// cluster variable): renumbered in the order the groups first appear along the rows, which
+    /// is the order [`Clusters::from_keys`] gives, so that the sums of the sandwich run in the
+    /// same order whichever way the index was built.
+    pub fn from_groups(group_of_row: &[usize], groups: usize) -> Clusters {
+        let mut renumbered: Vec<usize> = vec![usize::MAX; groups];
+        let mut sizes: Vec<usize> = Vec::new();
+        let of_row: Vec<usize> = group_of_row
+            .iter()
+            .map(|&g| {
+                if renumbered[g] == usize::MAX {
+                    renumbered[g] = sizes.len();
+                    sizes.push(0);
+                }
+                sizes[renumbered[g]] += 1;
+                renumbered[g]
+            })
+            .collect();
+        Clusters {
+            of_row,
+            count: sizes.len(),
+            singletons: sizes.iter().filter(|s| **s == 1).count(),
+        }
+    }
+
     /// The clusters from a key per row used, in the order the keys first appear.
     pub fn from_keys(keys: &[String]) -> Clusters {
         let mut index: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();

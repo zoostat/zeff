@@ -14,7 +14,6 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use zeff_columns::Column;
-use zeff_core::display::cell;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{ColumnExpr, FixedEffect, Formula, Term, TermKind, Value, terms_text};
 use zeff_diagnostics::{Diagnostic, count};
@@ -521,19 +520,34 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             );
         }
     }
-    // The clusters of the rows used, from the cluster variable, by identity of its values.
+    // The clusters of the rows used, from the cluster variable, by identity of its values: the
+    // integer-coded index of the effect on the same variable when there is one, else one built
+    // the same way (section 8.3, point 10, "Reused fixed-effect work").
     let clusters = match &cluster {
         Some(name) => {
-            let column = frame
-                .table
-                .column(name)
-                .ok_or_else(|| internal(ctx, "the cluster variable vanished"))?;
-            let keys: Vec<String> = design
-                .rows
-                .iter()
-                .map(|&row| cell(column.get(row).unwrap_or(zeff_columns::Value::Na)))
-                .collect();
-            Some(Clusters::from_keys(&keys))
+            let reused = fe.as_ref().and_then(|w| {
+                w.absorbed
+                    .effects
+                    .iter()
+                    .find(|e| e.variables.len() == 1 && e.variables[0] == *name)
+                    .map(|e| Clusters::from_groups(&e.group_of_row, e.levels()))
+            });
+            Some(match reused {
+                Some(clusters) => clusters,
+                None => {
+                    let column = frame
+                        .table
+                        .column(name)
+                        .ok_or_else(|| internal(ctx, "the cluster variable vanished"))?;
+                    let groups = EffectGroups::over(
+                        name,
+                        std::slice::from_ref(name),
+                        &[column],
+                        &design.rows,
+                    );
+                    Clusters::from_groups(&groups.group_of_row, groups.levels())
+                }
+            })
         }
         None => None,
     };
