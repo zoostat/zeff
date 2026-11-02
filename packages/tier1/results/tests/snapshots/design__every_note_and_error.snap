@@ -1,5 +1,6 @@
 ---
 source: packages/tier1/results/tests/design.rs
+assertion_line: 447
 expression: out
 ---
 > Inf rows: finite ~ plus
@@ -63,7 +64,7 @@ error[Z0101]: no variable `eduction` in `the frame`
 1 | let d = wage ~ eduction
   |         ^^^^^^^^^^^^^^^ not a variable of the frame
   |
-  = help: the variables of `the frame` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+  = help: the variables of `the frame` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 
 > a missing extra variable: wage ~ educ
 error[Z0101]: no variable `weight` in `the frame`
@@ -72,7 +73,7 @@ error[Z0101]: no variable `weight` in `the frame`
 1 | let d = wage ~ educ
   |         ^^^^^^^^^^^ not a variable of the frame
   |
-  = help: the variables of `the frame` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+  = help: the variables of `the frame` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 
 > a duplicate term: wage ~ educ + exper + educ
 columns: (intercept) | educ | exper

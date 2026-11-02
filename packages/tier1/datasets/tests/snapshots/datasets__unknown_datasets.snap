@@ -1,5 +1,6 @@
 ---
 source: packages/tier1/datasets/tests/datasets.rs
+assertion_line: 184
 expression: all
 ---
 error[Z0101]: no dataset is called `wage`
@@ -24,4 +25,4 @@ error[Z0715]: no file `zeff:wages.parquet` ships with Zeff
 1 | import("zeff:wages.parquet")
   |        ^^^^^^^^^^^^^^^^^^^^ not a shipped dataset file
   |
-  = help: the `zeff:` root holds: sleep.csv, sleep.arrow, wages.csv, wages.arrow; `datasets()` lists the datasets
+  = help: the `zeff:` root holds: firms.csv, firms.arrow, sleep.csv, sleep.arrow, wages.csv, wages.arrow; `datasets()` lists the datasets

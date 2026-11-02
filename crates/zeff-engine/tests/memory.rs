@@ -59,7 +59,7 @@ fn bindings_are_freed_after_their_last_use() {
             "w@1",
             "big@2+",
             "small@3",
-            "-w@3(10)",
+            "-w@3(11)",
             "-big@4(0)",
             "-k@5(0)",
             "-small@6(0)"
@@ -81,7 +81,7 @@ fn a_binding_read_in_a_loop_lives_to_the_loops_end_and_a_session_keeps_everythin
 #[test]
 fn a_frame_from_a_freed_frame_answers_from_its_own_buffers() {
     // `year >= 2012` keeps most rows, so the selection stays pending; the sort reads `wage`
-    // through it, and the nine other columns are gathered when `w` goes.
+    // through it, and the ten other columns are gathered when `w` goes.
     let script = "let w = dataset(wages)\nlet recent = w.where(year >= 2012).sort(wage)\nrecent.head(2)\nrecent.summary([wage])\n";
     let outcome = run(script, true);
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
@@ -92,6 +92,6 @@ fn a_frame_from_a_freed_frame_answers_from_its_own_buffers() {
     );
     assert_eq!(
         record(&outcome),
-        ["w@1", "recent@2+", "-w@2(9)", "-recent@4(0)"]
+        ["w@1", "recent@2+", "-w@2(10)", "-recent@4(0)"]
     );
 }

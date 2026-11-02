@@ -1,5 +1,6 @@
 ---
 source: packages/tier0/core/tests/category.rs
+assertion_line: 123
 expression: "format!(\"{stdout}--- messages ---\\n{}\", without_format_notes(&stderr))"
 ---
 []
@@ -45,7 +46,7 @@ Column<Int> · 12 values
 2
 no
 yes
-i · 12 rows × 11 variables · panel worker × year
+i · 12 rows × 12 variables · panel worker × year
 
   variable   type        non-missing   missing   example
   worker     Int                  12         0   1
@@ -58,6 +59,7 @@ i · 12 rows × 11 variables · panel worker × year
   union      Int (lab)            12         0   no
   female     Int (lab)            12         0   male
   industry   Category             12         0   Retail (12 levels)
+  firm       Int                  12         0   99
   i          Category              7         5   Retail (2 levels)
 Retail
 Mining

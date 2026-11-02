@@ -11,7 +11,7 @@ error[Z0101]: no variable `nope` in `w`
 2 | w.label(nope, "x")
   |         ^^^^ not a variable of w
   |
-  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 [exit 1]
 
 > let w = dataset(wages).head(3)
@@ -210,7 +210,7 @@ error[Z0101]: no variable `nope` in `w`
 2 | w.recode(nope, [1 => 2])
   |          ^^^^ not a variable of w
   |
-  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 [exit 1]
 
 > let w = dataset(wages).head(3)

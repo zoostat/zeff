@@ -19,6 +19,12 @@ industry); log wage, squared experience and the age group are derived in the ana
 script of section 10.1 of the Language Reference does, which also keeps the file under the
 megabyte that ships inside the engine (section 8.5). Missing values are written as empty cells:
 211 wages, 22 experience values, 35 hours, all at random.
+
+From release 0.6.0 (step 13; the owner's decision of 1 November 2026) every worker belongs to one
+firm within their industry, the eleventh variable `firm`: the workers of an industry, in order of
+their number, are cut into firms of 3 to 40 workers, most of them small (3 + 37 u^4 for a uniform
+u, 397 firms in all), by draws taken after every draw above, so that no earlier value
+changed. `generate/firms.py` writes the firms' own dataset from this file.
 """
 
 import csv
@@ -125,7 +131,33 @@ def main():
         for i in rng.sample(range(ROWS), count):
             rows[i][column] = None
 
-    header = ["worker", "year", "wage", "educ", "exper", "age", "hours", "union", "female", "industry"]
+    # Firms: the workers of each industry, in order, cut into firms of 3 to 40 workers (a last
+    # firm that would be smaller than 3 is folded into the one before), numbered across the
+    # industries in the order above.
+    workers_of = {name: [] for name in industry_names}
+    seen = set()
+    for row in rows:
+        if row[0] not in seen:
+            seen.add(row[0])
+            workers_of[row[9]].append(row[0])
+    firm_of = {}
+    next_firm = 1
+    for name in industry_names:
+        workers = workers_of[name]
+        i = 0
+        while i < len(workers):
+            size = 3 + int(37 * rng.random() ** 4)
+            size = min(size, len(workers) - i)
+            if 0 < len(workers) - (i + size) < 3:
+                size = len(workers) - i
+            for w in workers[i:i + size]:
+                firm_of[w] = next_firm
+            i += size
+            next_firm += 1
+    for row in rows:
+        row.append(firm_of[row[0]])
+
+    header = ["worker", "year", "wage", "educ", "exper", "age", "hours", "union", "female", "industry", "firm"]
     path = os.path.join(here, "..", "data", "wages.csv")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         writer = csv.writer(f, lineterminator="\n")

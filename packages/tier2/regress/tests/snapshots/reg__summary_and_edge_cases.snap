@@ -1,5 +1,6 @@
 ---
 source: packages/tier2/regress/tests/reg.rs
+assertion_line: 565
 expression: all
 ---
 > let m = dataset(wages).reg(log(wage) ~ educ + exper + exper^2 + female)
@@ -230,7 +231,7 @@ error[Z0101]: no variable `region` in `wages`
 1 | dataset(wages).reg(wage ~ region)
   |                ^^^ not a variable of wages
   |
-  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 [exit 1]
 
 > let w = import("data/wages_large.csv")
@@ -507,7 +508,7 @@ error[Z0101]: no variable `nope` in `wages`
 1 | dataset(wages).reg(log(wage) ~ educ, weights: nope)
   |                ^^^ not a variable of wages
   |
-  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 [exit 1]
 
 > dataset(wages).reg(log(wage) ~ educ, cluster: nope)
@@ -518,7 +519,7 @@ error[Z0101]: no variable `nope` in `wages`
 1 | dataset(wages).reg(log(wage) ~ educ, cluster: nope)
   |                ^^^ not a variable of wages
   |
-  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 2 more
+  = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 [exit 1]
 
 > let w = dataset(wages).head(30).add(y = wage + to(worker == 1, Int) * 500)

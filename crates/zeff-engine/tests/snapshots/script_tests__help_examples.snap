@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-engine/tests/script_tests.rs
+assertion_line: 182
 expression: text
 ---
 0.0758112
@@ -30,7 +31,7 @@ Column<Float> · 5 values
 * p < 0.05, ** p < 0.01, *** p < 0.001
 0
 0.0114599
-note: zeff:wages.csv read as CSV: 18,412 rows × 10 variables, types guessed; CSV carries no labels, value labels or categories (line 2)
+note: zeff:wages.csv read as CSV: 18,412 rows × 11 variables, types guessed; CSV carries no labels, value labels or categories (line 2)
 note: 33 of the 3,911 clusters hold one observation (line 4)
 note: 22 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them (line 9)
 note: no row kept: the result is empty (line 16)

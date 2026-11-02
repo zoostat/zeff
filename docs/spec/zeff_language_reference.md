@@ -1313,6 +1313,8 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0716 | An export path with no extension, or with one that names no format Zeff writes; the formats are listed |
 | Z0601 | A panel declaration refused: a unit observed twice at one time, `NA` in the unit or the time variable, or a time variable that is not an Int or a `Date` (section 6, "Panels"; release 0.6.0) |
 | Z0602 | `lag`, `lead`, `diff` or `fill_forward` outside `add` or `update`, or on a frame with no panel declaration where the function needs one (section 6, "Panels"; release 0.6.0) |
+| Z0603 | A merge whose keys form a many-to-many relation, or whose `relation:` the data do not have (section 6, "Combine") |
+| Z0604 | A non-key column present in both frames of a merge, without `suffixes:` (section 6, "Combine") |
 
 Examples:
 

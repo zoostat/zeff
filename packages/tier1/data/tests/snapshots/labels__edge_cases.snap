@@ -1,5 +1,6 @@
 ---
 source: packages/tier1/data/tests/labels.rs
+assertion_line: 198
 expression: "format!(\"{stdout}--- messages ---\\n{}\", without_format_notes(&stderr))"
 ---
 0
@@ -39,6 +40,21 @@ Health
 Public administration
 Retail
 Other
+frame · 12 rows × 12 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int                  12         0   1
+  year       Int                  12         0   2015
+  wage       Float                12         0   18.08
+  educ       Int                  12         0   17
+  exper      Int                  12         0   9
+  age        Int                  12         0   32
+  hours      Float                12         0   45.1
+  union      Int (lab)            12         0   no
+  female     Int (lab)            12         0   male
+  industry   Category             12         0   Retail (12 levels)
+  firm       Int                  12         0   99
+  i          Category              0        12   NA
 frame · 12 rows × 11 variables · panel worker × year
 
   variable   type        non-missing   missing   example
@@ -52,20 +68,7 @@ frame · 12 rows × 11 variables · panel worker × year
   union      Int (lab)            12         0   no
   female     Int (lab)            12         0   male
   industry   Category             12         0   Retail (12 levels)
-  i          Category              0        12   NA
-frame · 12 rows × 10 variables · panel worker × year
-
-  variable   type        non-missing   missing   example
-  worker     Int                  12         0   1
-  year       Int                  12         0   2015
-  wage       Float                12         0   18.08
-  educ       Int                  12         0   17
-  exper      Int                  12         0   9
-  age        Int                  12         0   32
-  hours      Float                12         0   45.1
-  union      Int (lab)            12         0   no
-  female     Int (lab)            12         0   male
-  industry   Category             12         0   Retail (12 levels)
+  firm       Int                  12         0   99
 Column<Int> · 8 values
 1
 1

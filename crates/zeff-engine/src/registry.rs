@@ -360,7 +360,7 @@ mod tests {
                 "core", "time", "text", "data", "dist", "results", "stats", "datasets", "regress"
             ]
         );
-        assert_eq!(registry.datasets().len(), 2);
+        assert_eq!(registry.datasets().len(), 3);
         let zeff = zeff_bodies();
         for f in registry.functions() {
             let key = (f.spec.package.to_string(), f.spec.name.to_string());

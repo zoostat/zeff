@@ -1,0 +1,167 @@
+---
+source: packages/tier1/data/tests/merge.rs
+assertion_line: 182
+expression: out
+---
+frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 1], w = [3, 4]), on: k)
+---
+error[Z0603]: many-to-many merge refused
+ --> scripts/main.zeff:1:31
+  |
+1 | frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 1], w = [3, 4]), on: k)
+  |                               ^^^^^ k repeats in both frames (1 key on the left, 1 key on the right)
+  |
+  = help: find the repeated keys with `duplicates(k)` on the right frame and remove them, then state `relation: many_to_one`
+
+let a = frame(k = [1, 1], v = [1, 2])
+let b = frame(k = [1, 1, 2, 2], w = [3, 4, 5, 6])
+a.merge(b, on: k)
+---
+error[Z0603]: many-to-many merge refused
+ --> scripts/main.zeff:3:3
+  |
+3 | a.merge(b, on: k)
+  |   ^^^^^ k repeats in both frames (1 key on the left, 2 keys on the right)
+  |
+  = help: find the repeated keys with `b.duplicates(k)` on the right frame and remove them, then state `relation: many_to_one`
+
+frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, relation: one_to_one)
+---
+error[Z0603]: `relation: one_to_one` does not hold: 1 key of `k` repeats on the left
+ --> scripts/main.zeff:1:85
+  |
+1 | frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, relation: one_to_one)
+  |                                                                                     ^^^^^^^^^^ a relation the data do not have
+  |
+  = help: find the repeated keys with `duplicates(k)` on the left frame and remove them
+
+let b = frame(k = [1, 1], w = [3, 4])
+frame(k = [1, 2], v = [1, 2]).merge(b, on: k, relation: many_to_one)
+---
+error[Z0603]: `relation: many_to_one` does not hold: 1 key of `k` repeats on the right
+ --> scripts/main.zeff:2:57
+  |
+2 | frame(k = [1, 2], v = [1, 2]).merge(b, on: k, relation: many_to_one)
+  |                                                         ^^^^^^^^^^^ a relation the data do not have
+  |
+  = help: find the repeated keys with `b.duplicates(k)` on the right frame and remove them
+
+frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, relation: one_to_many)
+---
+error[Z0603]: `relation: one_to_many` does not hold: 1 key of `k` repeats on the left
+ --> scripts/main.zeff:1:85
+  |
+1 | frame(k = [1, 1], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, relation: one_to_many)
+  |                                                                                     ^^^^^^^^^^^ a relation the data do not have
+  |
+  = help: find the repeated keys with `duplicates(k)` on the left frame and remove them
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k)
+---
+error[Z0604]: column `v` exists in both frames and is not a key
+ --> scripts/main.zeff:1:37
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k)
+  |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ shares a column with the left frame
+  |
+  = help: give suffixes: ["_l", "_r"] to keep both, or drop one of them first
+
+frame(k = [1, 2], v = [1, 2], u = [1, 2]).merge(frame(k = [1, 2], v = [3, 4], u = [3, 4]), on: k)
+---
+error[Z0604]: columns `v`, `u` exist in both frames and are not a key
+ --> scripts/main.zeff:1:49
+  |
+1 | frame(k = [1, 2], v = [1, 2], u = [1, 2]).merge(frame(k = [1, 2], v = [3, 4], u = [3, 4]), on: k)
+  |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ shares a column with the left frame
+  |
+  = help: give suffixes: ["_l", "_r"] to keep both, or drop one of them first
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k, suffixes: ["_a"])
+---
+error[Z0401]: `suffixes:` of `merge` is a list of two texts, but this has one item
+ --> scripts/main.zeff:1:85
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k, suffixes: ["_a"])
+  |                                                                                     ^^^^^^ not two suffixes
+  |
+  = help: the first suffix goes on the left frame's column, the second on the right's: `suffixes: ["_l", "_r"]`
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k, suffixes: "_a")
+---
+error[Z0401]: `suffixes` of `merge` must be a List<Str>, but this is a Str
+ --> scripts/main.zeff:1:85
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], v = [3, 4]), on: k, suffixes: "_a")
+  |                                                                                     ^^^^ a Str
+  |
+  = help: usage: `data.merge(frame, on: Vars, join: left | inner | full = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>)`
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(j = [1, 2], w = [3, 4]), on: k)
+---
+error[Z0101]: no variable `k` in `the frame`
+ --> scripts/main.zeff:1:72
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(j = [1, 2], w = [3, 4]), on: k)
+  |                                                                        ^ not a variable of the frame
+  |
+  = help: did you mean `j`? If you meant a category level, write it in quotes: `"j"`
+
+frame(j = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k)
+---
+error[Z0101]: no variable `k` in `the frame`
+ --> scripts/main.zeff:1:72
+  |
+1 | frame(j = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k)
+  |                                                                        ^ not a variable of the frame
+  |
+  = help: did you mean `j`? If you meant a category level, write it in quotes: `"j"`
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = ["1", "2"], w = [3, 4]), on: k)
+---
+error[Z0401]: `k` is a column of Int in the frame and of Str in the frame
+ --> scripts/main.zeff:1:76
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = ["1", "2"], w = [3, 4]), on: k)
+  |                                                                            ^ keys of different types
+  |
+  = help: the key variables have one type in both frames: convert one side first, `to(x, Str)` for text or `category(x)` for a category
+
+let c = frame(k = ["a", "b"], v = [1, 2]).add(k = category(k))
+c.merge(frame(k = ["a", "b"], w = [3, 4]), on: k)
+---
+note: `k` replaced the variable of that name (line 1)
+error[Z0401]: `k` is a column of Category in c and of Str in the frame
+ --> scripts/main.zeff:2:48
+  |
+2 | c.merge(frame(k = ["a", "b"], w = [3, 4]), on: k)
+  |                                                ^ keys of different types
+  |
+  = help: the key variables have one type in both frames: convert one side first, `to(x, Str)` for text or `category(x)` for a category
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]))
+---
+error[Z0406]: `merge` needs `on:`
+ --> scripts/main.zeff:1:31
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]))
+  |                               ^^^^^ `on:` is missing
+  |
+  = help: usage: `data.merge(frame, on: firm)`; the key variables exist in both frames
+
+frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: outer)
+---
+error[Z0402]: `outer` is not one of the allowed words
+ --> scripts/main.zeff:1:81
+  |
+1 | frame(k = [1, 2], v = [1, 2]).merge(frame(k = [1, 2], w = [3, 4]), on: k, join: outer)
+  |                                                                                 ^^^^^ expected one of left, inner, full
+
+dataset(wages).merge(dataset(firms), on: firm)
+---
+error[Z0604]: column `industry` exists in both frames and is not a key
+ --> scripts/main.zeff:1:22
+  |
+1 | dataset(wages).merge(dataset(firms), on: firm)
+  |                      ^^^^^^^^^^^^^^ shares a column with the left frame
+  |
+  = help: give suffixes: ["_l", "_r"] to keep both, or drop one of them first

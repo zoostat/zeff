@@ -1,0 +1,171 @@
+---
+source: packages/tier1/data/tests/merge.rs
+assertion_line: 154
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+frame · 5 rows × 4 variables
+
+      firm   year   revenue   name
+  1      2   2021      12.5   Bolt
+  2      1   2020         8   Acme
+  3      3   2021         7   NA
+  4      1   2021         9   Acme
+  5     NA   2020         1   NA
+frame · 3 rows × 4 variables
+
+      firm   year   revenue   name
+  1      2   2021      12.5   Bolt
+  2      1   2020         8   Acme
+  3      1   2021         9   Acme
+frame · 7 rows × 4 variables
+
+      firm   year   revenue   name
+  1      2   2021      12.5   Bolt
+  2      1   2020         8   Acme
+  3      3   2021         7   NA
+  4      1   2021         9   Acme
+  5     NA   2020         1   NA
+  6      4     NA        NA   Dyne
+  7     NA     NA        NA   None
+frame · 7 rows × 5 variables
+
+      firm   year   revenue_s   name   revenue_n
+  1      2   2021        12.5   Bolt           0
+  2      1   2020           8   Acme           0
+  3      3   2021           7   NA            NA
+  4      1   2021           9   Acme           0
+  5     NA   2020           1   NA            NA
+  6      4     NA          NA   Dyne           0
+  7     NA     NA          NA   None           0
+frame · 5 rows × 4 variables
+
+      firm   year   revenue   target
+  1      2   2021      12.5       12
+  2      1   2020         8       10
+  3      3   2021         7       NA
+  4      1   2021         9       11
+  5     NA   2020         1       NA
+frame · 5 rows × 3 variables
+
+      firm   name   revenue
+  1      1   Acme         8
+  2      1   Acme         9
+  3      2   Bolt      12.5
+  4      4   Dyne        NA
+  5     NA   None        NA
+frame · 2 rows × 3 variables
+
+      k   v    w
+  1   1   1   NA
+  2   2   2   NA
+frame · 0 rows × 3 variables
+
+     k   v   w
+frame · 4 rows × 3 variables
+
+      k    v    w
+  1   1    1   NA
+  2   2    2   NA
+  3   3   NA    5
+  4   4   NA    6
+frame · 2 rows × 3 variables
+
+      k   v    w
+  1   1   1   NA
+  2   2   2   NA
+frame · 3 rows × 3 variables
+
+       k   v    w
+  1    1   1    6
+  2    0   2    5
+  3   NA   3   NA
+frame · 2 rows × 4 variables · panel firm × year
+
+      firm   year   v   w
+  1      1   2020   1   5
+  2      2   2020   2   6
+frame · 3 rows × 4 variables
+
+      firm   year   v    w
+  1      1   2020   1    5
+  2      1   2020   1    6
+  3      2   2020   2   NA
+frame · 3 rows × 4 variables
+
+      firm   year    v    w
+  1      1   2020    1    5
+  2      2   2020    2   NA
+  3      3     NA   NA    6
+frame · 3 rows × 3 variables
+
+      ind    v    w
+  1   a      1   NA
+  2   b      2    3
+  3   c     NA    4
+frame · 3 rows × 3 variables
+
+  variable   type       non-missing   missing   example
+  ind        Category             3         0   a (3 levels)
+  v          Int                  2         1   1
+  w          Int                  2         1   3
+frame · 2 rows × 3 variables
+
+  variable   type   non-missing   missing   example
+  firm       Int              2         0   1
+  v          Int              2         0   1
+  w          Int              2         0   5
+frame · 13 rows × 5 variables · panel worker × year
+
+       worker   year   firm   size   founded
+   1        1   2015     99      3   1993-12-14
+   2        1   2016     99      3   1993-12-14
+   3        1   2017     99      3   1993-12-14
+   4        1   2018     99      3   1993-12-14
+   5        1   2019     99      3   1993-12-14
+   6        1   2020     99      3   1993-12-14
+   7        1   2021     99      3   1993-12-14
+   8        2   2014     57     37   1999-08-24
+   9        2   2015     57     37   1999-08-24
+  10        2   2016     57     37   1999-08-24
+  … and 3 more rows
+w · 13 rows × 13 variables · panel worker × year
+
+  variable   type        non-missing   missing   example
+  worker     Int                  13         0   1
+  year       Int                  13         0   2015
+  wage       Float                13         0   18.08
+  educ       Int                  13         0   17
+  exper      Int                  13         0   9
+  age        Int                  13         0   32
+  hours      Float                13         0   45.1
+  union      Int (lab)            13         0   no
+  female     Int (lab)            13         0   male
+  industry   Category             13         0   Retail (12 levels)
+  firm       Int                  13         0   99
+  size       Int                  13         0   3
+  founded    Date                 13         0   1993-12-14
+18412
+---
+note: merge: 3 rows matched; 2 left rows unmatched; 2 right rows unmatched (line 3)
+note: merge: 3 rows matched; 2 left rows unmatched; 2 right rows unmatched (line 4)
+note: merge: 3 rows matched; 2 left rows unmatched; 2 right rows unmatched (line 5)
+note: merge: 3 rows matched; 2 left rows unmatched; 2 right rows unmatched (line 6)
+note: merge: 3 rows matched; 2 left rows unmatched; 0 right rows unmatched (line 8)
+note: merge: 3 rows matched; 2 left rows unmatched; 2 right rows unmatched (line 9)
+note: merge: 0 rows matched; 2 left rows unmatched; 2 right rows unmatched (line 10)
+note: merge: 0 rows matched; 2 left rows unmatched; 2 right rows unmatched (line 11)
+note: merge: 0 rows matched; 2 left rows unmatched; 2 right rows unmatched (line 12)
+note: merge: 0 rows matched; 2 left rows unmatched; 0 right rows unmatched (line 13)
+note: merge: 2 rows matched; 1 left row unmatched; 1 right row unmatched (line 14)
+note: merge: 2 rows matched; 0 left rows unmatched; 0 right rows unmatched (line 16)
+note: merge: 2 rows matched; 1 left row unmatched; 0 right rows unmatched (line 17)
+note: the panel declaration `firm × year` dropped: `merge` repeated rows (line 17)
+note: merge: 1 row matched; 1 left row unmatched; 1 right row unmatched (line 18)
+note: the panel declaration `firm × year` dropped: `merge` added rows (line 18)
+note: `ind` replaced the variable of that name (line 19)
+note: `ind` replaced the variable of that name (line 20)
+note: merge: 1 row matched; 1 left row unmatched; 1 right row unmatched (line 21)
+note: merge: 1 row matched; 1 left row unmatched; 1 right row unmatched (line 22)
+note: merge: 2 rows matched; 0 left rows unmatched; 0 right rows unmatched (line 25)
+note: merge: 13 rows matched; 0 left rows unmatched; 397 right rows unmatched (line 26)
+note: merge: 18,412 rows matched; 0 left rows unmatched; 3 right rows unmatched (line 29)

@@ -8,6 +8,7 @@ pub mod frame;
 pub mod import;
 pub mod labels;
 pub mod look;
+pub mod merge;
 pub mod names;
 pub mod panel;
 pub mod panel_functions;
@@ -1174,6 +1175,42 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: aggregate::aggregate,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "merge",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("frame", "Frame"),
+                    ParamSpec::option("on", "Vars"),
+                    ParamSpec::option_with_default("join", "left | inner | full", "left"),
+                    ParamSpec::option("relation", "one_to_one | many_to_one | one_to_many"),
+                    ParamSpec::option("suffixes", "List<Str>"),
+                ],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0603",
+                        "the keys form a many-to-many relation, or relation: does not hold",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0604",
+                        "a non-key column exists in both frames and no suffixes: is given",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a key variable missing from one frame"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "keys of different types, or suffixes: not two texts",
+                    ),
+                    DiagnosticDecl::new("Z0406", "on: missing"),
+                ],
+                help: include_str!("../help/merge.md"),
+                accuracy: None,
+            },
+            body: merge::merge,
         },
         Function {
             spec: FunctionSpec {

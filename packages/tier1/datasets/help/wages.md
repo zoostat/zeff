@@ -1,11 +1,12 @@
 # wages
 
 ## Summary
-Synthetic hourly wages of 3,911 workers, 2010 to 2021
+Synthetic hourly wages of 3,911 workers in 397 firms, 2010 to 2021
 
 ## Description
 An unbalanced panel of 3,911 workers observed yearly between 2010 and 2021, 18,412 worker-years:
-hourly wage, schooling, potential experience, age, weekly hours, union membership, sex and industry.
+hourly wage, schooling, potential experience, age, weekly hours, union membership, sex, industry
+and, from release 0.6.0, the firm the worker belongs to, which merges with the `firms` dataset.
 The data are generated, not collected, so every parameter behind them is known and documented
 below; they exist to give the help pages stable numbers and the tests a known answer. The analysis
 derives what it needs from them, as the script of section 10.1 of the Language Reference does: the
@@ -29,19 +30,22 @@ Services −0.03, Education +0.01, Health +0.06, Public administration +0.08) + 
 2010 + a worker effect, normal with spread 0.30, + noise, normal with spread 0.30; the wage is its
 exponential rounded to two decimals. Missing values are drawn at random: 211 wages, 22 experience
 values and 35 weekly hours, written as empty cells. The true return to schooling is therefore 0.074
-log points a year.
+log points a year. From release 0.6.0 every worker belongs to one firm within their industry:
+the workers of an industry, in order of their number, are cut into firms of 3 to 40 workers, most
+of them small, by draws taken after every other draw, so that no value of release 0.2.0 changed;
+`firms` describes the firms.
 
 ## Licence and citation
 CC0-1.0: the data are synthetic and dedicated to the public domain. Cite as "Zeff synthetic wages
 panel, version 0.2.0".
 
 ## See also
-dataset, datasets, sleep
+dataset, datasets, sleep, firms, merge
 
 ## Examples
 > let wages = dataset(wages)
 > wages.describe()
-wages · 18,412 rows × 10 variables · panel worker × year
+wages · 18,412 rows × 11 variables · panel worker × year
 
   variable   type        non-missing   missing   example
   worker     Int              18,412         0   1
@@ -54,6 +58,7 @@ wages · 18,412 rows × 10 variables · panel worker × year
   union      Int (lab)        18,412         0   no
   female     Int (lab)        18,412         0   male
   industry   Category         18,412         0   Retail (12 levels)
+  firm       Int              18,412         0   99
 > wages.summary([wage, educ, exper], by: female)
 summary · by female
 
@@ -66,9 +71,9 @@ summary · by female
   female   exper      8,913         8   14.866    7.564   0.000    36.000
 warning: 211 rows with NA in wage and 22 with NA in exper were skipped (line 3)
 > wages.head(3)
-frame · 3 rows × 10 variables · panel worker × year
+frame · 3 rows × 11 variables · panel worker × year
 
-      worker   year    wage   educ   exper   age   hours   union   female   industry
-  1        1   2015   18.08     17       9    32    45.1   no      male     Retail
-  2        1   2016   17.28     17      10    33    41.4   no      male     Retail
-  3        1   2017   20.93     17      11    34    54.3   no      male     Retail
+      worker   year    wage   educ   exper   age   hours   union   female   industry   firm
+  1        1   2015   18.08     17       9    32    45.1   no      male     Retail       99
+  2        1   2016   17.28     17      10    33    41.4   no      male     Retail       99
+  3        1   2017   20.93     17      11    34    54.3   no      male     Retail       99

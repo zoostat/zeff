@@ -1,6 +1,6 @@
 ---
 source: packages/tier1/data/tests/panel.rs
-assertion_line: 73
+assertion_line: 76
 expression: "format!(\"{stdout}---\\n{stderr}\")"
 ---
 frame · 1 row × 2 variables · panel firm × year
@@ -20,7 +20,7 @@ frame · 3 rows × 2 variables · panel firm × day
   2   a      2026-01-01
   3   b      2026-01-01
 18412
-one · 2,179 rows × 10 variables · panel worker × year
+one · 2,179 rows × 11 variables · panel worker × year
 
   variable   type        non-missing   missing   example
   worker     Int               2,179         0   1
@@ -33,5 +33,6 @@ one · 2,179 rows × 10 variables · panel worker × year
   union      Int (lab)         2,179         0   no
   female     Int (lab)         2,179         0   male
   industry   Category          2,179         0   Retail (12 levels)
+  firm       Int               2,179         0   99
 2179
 ---

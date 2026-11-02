@@ -484,10 +484,10 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&core)
     );
-    let later = zeff(dir.path(), &["help", "merge"]);
+    let later = zeff(dir.path(), &["help", "to_long"]);
     assert_eq!(code(&later), 0);
     assert!(
-        out(&later).starts_with("`merge` arrives with release 0.6.0, in the `data` package: "),
+        out(&later).starts_with("`to_long` arrives with release 0.6.0, in the `data` package: "),
         "{}",
         out(&later)
     );

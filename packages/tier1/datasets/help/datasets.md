@@ -19,12 +19,14 @@ dataset, import
 
 ## Examples
 > datasets()
-datasets · 2 shipped with this release
+datasets · 3 shipped with this release
 
   name    rows × columns   kind        licence
+  firms          400 × 4   synthetic   CC0-1.0
   sleep           20 × 3   public      public domain (Student 1908)
-  wages      18,412 × 10   synthetic   CC0-1.0
+  wages      18,412 × 11   synthetic   CC0-1.0
 
   source                                                            size
+  generate/firms.py, seed 20261102                                 23 kB
   Student (1908), Biometrika 6, 1–25; Cushny and Peebles (1905)     2 kB
-  generate/wages.py, seed 20261019                                2.2 MB
+  generate/wages.py, seed 20261019                                2.5 MB

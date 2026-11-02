@@ -1122,6 +1122,10 @@ fn panel_cases() -> Vec<Line> {
     // group, a definition using an earlier one, no `by:`, and a panel's note.
     let aggregated = "let sales = frame(firm = [2, 1, 2, 1, 3, 1, NA], year = [2021, 2020, 2020, 2020, 2021, 2021, 2021], revenue = [12.5, 8, 11, 9, NA, 10, 4])\nsales.aggregate(total = sum(revenue), firms = n_distinct(firm), rows = n(), by: year)\nsales.aggregate(avg = mean(revenue), spread = sd(revenue), se = spread / sqrt(n()), by: firm)\nsales.aggregate(avg = mean(revenue), rows = n(), by: [firm, year])\nsales.aggregate(total = sum(revenue), rows = n())\nlet w = dataset(wages).where(worker <= 30)\nw.aggregate(mean_wage = mean(wage), median_hours = median(hours), top = quantile(wage, p: 0.9), workers = n_distinct(worker), by: industry)\nw.aggregate(mean_wage = mean(wage), rows = n(), by: year)\n";
     let aggregated_outcome = run_script(&fs, &project, "scripts/main.zeff", aggregated);
+    // `merge` (step 13): the three joins with unmatched rows on each side and `NA` keys, two
+    // keys, suffixes, the shipped wages with firms, and the refusals.
+    let merged = "let sales = frame(firm = [2, 1, 3, 1, NA], year = [2021, 2020, 2021, 2021, 2020], revenue = [12.5, 8, 7, 9, 1])\nlet names = frame(firm = [1, 2, 4, NA], name = [\"Acme\", \"Bolt\", \"Dyne\", \"None\"], revenue = [0, 0, 0, 0])\nsales.merge(names.drop(revenue), on: firm)\nsales.merge(names.drop(revenue), on: firm, join: inner)\nsales.merge(names.drop(revenue), on: firm, join: full)\nsales.merge(names, on: firm, suffixes: [\"_s\", \"_n\"])\nlet by_year = frame(firm = [1, 1, 2], year = [2020, 2021, 2021], target = [10, 11, 12])\nsales.merge(by_year, on: [firm, year], relation: many_to_one)\nlet w = dataset(wages).where(worker <= 20).merge(dataset(firms), on: [firm, industry], relation: many_to_one)\nw.select([worker, year, firm, size, founded]).head(5)\nsales.merge(names, on: firm)\nsales.merge(by_year, on: firm)\nsales.merge(names.drop(revenue), on: firm, relation: one_to_one)\n";
+    let merged_outcome = run_script(&fs, &project, "scripts/main.zeff", merged);
     vec![
         text("panel/declare/stdout", &outcome.output.stdout),
         text("panel/declare/stderr", &outcome.output.stderr),
@@ -1143,6 +1147,8 @@ fn panel_cases() -> Vec<Line> {
         text("verbs/sample/stderr", &sampled_outcome.output.stderr),
         text("verbs/aggregate/stdout", &aggregated_outcome.output.stdout),
         text("verbs/aggregate/stderr", &aggregated_outcome.output.stderr),
+        text("verbs/merge/stdout", &merged_outcome.output.stdout),
+        text("verbs/merge/stderr", &merged_outcome.output.stderr),
     ]
 }
 

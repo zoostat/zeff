@@ -27,7 +27,16 @@ pub struct Shipped {
 }
 
 /// The datasets of this release, in the order `datasets()` lists them.
-pub const SHIPPED: [Shipped; 2] = [
+pub const SHIPPED: [Shipped; 3] = [
+    Shipped {
+        name: "firms",
+        kind: "synthetic",
+        licence: "CC0-1.0",
+        source: "generate/firms.py, seed 20261102",
+        csv: include_bytes!("../data/firms.csv"),
+        arrow: include_bytes!("../data/firms.arrow"),
+        help: include_str!("../help/firms.md"),
+    },
     Shipped {
         name: "sleep",
         kind: "public",

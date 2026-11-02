@@ -46,7 +46,14 @@ fn the_shipped_files_match_their_checksums_and_the_scripts_output() {
     }
     assert_eq!(
         files(),
-        ["sleep.csv", "sleep.arrow", "wages.csv", "wages.arrow"]
+        [
+            "firms.csv",
+            "firms.arrow",
+            "sleep.csv",
+            "sleep.arrow",
+            "wages.csv",
+            "wages.arrow"
+        ]
     );
     assert!(file("wages.csv").is_some() && file("wages.parquet").is_none());
 }
@@ -54,7 +61,7 @@ fn the_shipped_files_match_their_checksums_and_the_scripts_output() {
 #[test]
 fn wages_has_the_shape_labels_categories_and_panel_of_its_page() {
     let wages = table("wages").unwrap();
-    assert_eq!((wages.rows(), wages.n_cols()), (18_412, 10));
+    assert_eq!((wages.rows(), wages.n_cols()), (18_412, 11));
     assert_eq!(
         wages.metadata().panel,
         Some(("worker".to_string(), "year".to_string()))
@@ -82,13 +89,29 @@ fn wages_has_the_shape_labels_categories_and_panel_of_its_page() {
     assert_eq!(wages.column("hours").unwrap().n_missing(), 35);
     let sleep = table("sleep").unwrap();
     assert_eq!((sleep.rows(), sleep.n_cols()), (20, 3));
+    // The firms: one row per firm of the wages, three without workers, a Date founded, the same
+    // industry levels as the wages.
+    let firms = table("firms").unwrap();
+    assert_eq!(firms.n_cols(), 4);
+    let firm = wages.column("firm").unwrap();
+    let distinct_firms = zeff_columns::Groups::by(&[firm]).unwrap().len();
+    assert_eq!(firms.rows(), distinct_firms + 3);
+    assert_eq!(
+        firms.column("founded").unwrap().ty(),
+        zeff_columns::ColumnType::Date
+    );
+    assert_eq!(
+        firms.column("industry").unwrap().levels().unwrap(),
+        industry.levels().unwrap()
+    );
+    assert_eq!(firms.column("size").unwrap().n_missing(), 0);
 }
 
 #[test]
 fn the_dataset_loads_through_the_engine_and_the_zeff_root_serves_the_csv() {
     let (code, stdout, stderr) = go("let w = dataset(wages)\nw.n_rows()\nw.n_cols()\n");
     assert_eq!(code, 0, "{stderr}");
-    assert_eq!(stdout, "18412\n10\n");
+    assert_eq!(stdout, "18412\n11\n");
     let (code, stdout, stderr) = go(
         "let csv = import(\"zeff:wages.csv\")\ncsv.n_rows()\ncsv.mean(wage)\ndataset(wages).mean(wage)\ncsv.variables()\n",
     );
@@ -114,6 +137,35 @@ fn the_dataset_loads_through_the_engine_and_the_zeff_root_serves_the_csv() {
         [lines[2], lines[3], lines[5], lines[6]],
         ["3911", "12", "2010", "2021"]
     );
+}
+
+#[test]
+fn firms_round_trips_through_ipc_with_its_labels_and_date() {
+    // The storage round trip of the testing handbook: the Arrow file written and read back is
+    // the same table, metadata included.
+    let firms = table("firms").unwrap();
+    let bytes = zeff_columns::write_ipc(&firms).unwrap();
+    let back = zeff_columns::read_ipc(&bytes).unwrap();
+    assert_eq!(back.rows(), firms.rows());
+    assert_eq!(back.names(), firms.names());
+    for (name, column) in firms.columns() {
+        let other = back.column(name).unwrap();
+        assert_eq!(other.ty(), column.ty(), "{name}");
+        assert_eq!(other.metadata(), column.metadata(), "{name}");
+        assert_eq!(other.levels(), column.levels(), "{name}");
+        for r in 0..firms.rows() {
+            assert_eq!(other.get(r), column.get(r), "{name} row {r}");
+        }
+    }
+    assert_eq!(
+        firms
+            .column("founded")
+            .unwrap()
+            .metadata()
+            .get(zeff_columns::MetadataKey::Label),
+        Some("Date founded")
+    );
+    assert_eq!(back.metadata(), firms.metadata());
 }
 
 #[test]

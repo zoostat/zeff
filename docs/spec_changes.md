@@ -234,3 +234,7 @@ Row 131's `layer` goes from Zeff to Rust with the reason in its notes: `quantile
 ## 2 November 2026 — zeff_functions.csv, row 113
 
 Row 113's `layer` goes from Zeff to Rust with the reason in its notes: `duplicates` was planned in Zeff over `aggregate`, `where` and `table`, and at step 11 of release 0.6.0 neither `aggregate` (step 12) nor `table` (row 530, open decision #72) exists yet; the Rust body groups the rows through the kernel and builds the table of question 5 (a) directly. The status column records the function as implemented; the note says the Zeff body can replace it once both pieces exist.
+
+## 2 November 2026 — zeff_language_reference.md, section 11 (the table of codes)
+
+Z0603 and Z0604 added to the table of codes: section 6 ("Combine") and the example of section 11 name both for `merge`, but the table that lists every code lacked their rows (step 13 of release 0.6.0). No behaviour changes.

@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-engine/tests/drop_missing.rs
+assertion_line: 89
 expression: out
 ---
 k · 1 row × 4 variables
@@ -11,7 +12,7 @@ k · 1 row × 4 variables
   z          Int              1         0   1
 Column<Int> · 1 value
 3
-frame · 18,201 rows × 10 variables · panel worker × year
+frame · 18,201 rows × 11 variables · panel worker × year
 
   variable   type        non-missing   missing   example
   worker     Int              18,201         0   1
@@ -24,3 +25,4 @@ frame · 18,201 rows × 10 variables · panel worker × year
   union      Int (lab)        18,201         0   no
   female     Int (lab)        18,201         0   male
   industry   Category         18,201         0   Retail (12 levels)
+  firm       Int              18,201         0   99

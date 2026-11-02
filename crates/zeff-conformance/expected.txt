@@ -159,7 +159,7 @@ time/arithmetic/stdout 8e2948fe3d0e9221
 time/arithmetic/stderr 067db65ac307ecc4
 text/format/stdout 66baef825ea0b37f
 text/format/stderr cbf29ce484222325
-panel/declare/stdout 2ca84882e91ab986
+panel/declare/stdout a439d8f644bfeb59
 panel/declare/stderr 58e936f4915a6b6c
 panel/lags/stdout 22d72fb766c737b7
 panel/lags/stderr 4ab71cb823a2f7ac
@@ -173,6 +173,8 @@ verbs/sample/stdout 28bdb6bf1877675a
 verbs/sample/stderr af1d53f1de4d9149
 verbs/aggregate/stdout 0c0a134e2ac4fc67
 verbs/aggregate/stderr 6d763b858d636bb9
+verbs/merge/stdout 4caf29fe3a083173
+verbs/merge/stderr cb9189a2747b2f9d
 functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
@@ -199,14 +201,14 @@ simulation/stdout 178da8a8350c10df
 simulation/stderr cbf29ce484222325
 simulation/exit_code a8c7f832281a39c5
 # simulation/exit_code bits 0000000000000000
-regression/stdout 7a25dd62c4c231cb
-regression/stderr 53ebea06d2afe9f3
+regression/stdout ad17aa9e2135f879
+regression/stderr b5b9622dcc56fb6e
 regression/exit_code a8c7f832281a39c5
 # regression/exit_code bits 0000000000000000
 regression/output/model5.tex 50a2cb894ae38f0c
 regression/output/table1.docx 38433d13dd4d1591
 regression/output/table1.tex 6cf45d170a0e5e55
-user_functions/stdout ff3b830c5e0d0434
+user_functions/stdout b13e85f493022fd4
 user_functions/stderr b7a40c77d9a4785f
 user_functions/exit_code a8c7f832281a39c5
 # user_functions/exit_code bits 0000000000000000

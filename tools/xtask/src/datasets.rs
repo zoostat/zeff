@@ -101,6 +101,24 @@ fn declarations() -> Vec<Dataset> {
                     levels: &INDUSTRIES,
                     ..variable("industry", TypeSpec::Str, "Industry")
                 },
+                variable("firm", TypeSpec::Int, "Firm identifier"),
+            ],
+        },
+        Dataset {
+            name: "firms",
+            source: "zeff:firms.csv (synthetic; generate/firms.py, seed 20261102)",
+            panel: None,
+            variables: vec![
+                variable("firm", TypeSpec::Int, "Firm identifier"),
+                Variable {
+                    levels: &INDUSTRIES,
+                    ..variable("industry", TypeSpec::Str, "Industry")
+                },
+                Variable {
+                    unit: "workers",
+                    ..variable("size", TypeSpec::Int, "Workers observed in wages")
+                },
+                variable("founded", TypeSpec::Date(None), "Date founded"),
             ],
         },
         Dataset {

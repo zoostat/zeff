@@ -111,3 +111,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 13 `[function]`: `merge`.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 13
+
+**Done.** Step 13 `[function]`: `merge`, with `firms` and `wages.firm`. `wages` gains `firm` by the owner's rule without any other value changing (397 firms of 3 to 40 workers); `firms` ships with its generating script, Arrow file, labels, `founded` Date, three workerless firms and its page; `merge` on key variables with the three joins, `relation:` checked before joining, many-to-many refused (Z0603), shared non-key columns refused without `suffixes:` (Z0604), `NA` keys never matching, the left order kept, the note of matched and unmatched rows; both codes given their table rows and pages. R's pairs (`tests/reference/r/merge.R`, in CI) held exactly; the conformance case `verbs/merge` published.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (121 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 14 `[function]`: `append`, `to_long`, `to_wide`.
+
+**For the owner to decide.** Nothing new.
