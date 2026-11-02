@@ -20,6 +20,7 @@
 //! model rules such values out before they arrive.
 
 pub mod cholesky;
+pub mod demean;
 pub mod matrix;
 pub mod product;
 pub mod qr;

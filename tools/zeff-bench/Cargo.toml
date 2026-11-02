@@ -15,6 +15,7 @@ zeff-core.workspace = true
 zeff-data.workspace = true
 zeff-diagnostics.workspace = true
 zeff-hash.workspace = true
+zeff-kernels.workspace = true
 zeff-numeric.workspace = true
 zeff-regress.workspace = true
 zeff-testkit.workspace = true

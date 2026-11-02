@@ -189,6 +189,7 @@ functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
 export/sample.tex 79622a8e73235482
 kernels/reductions 7a3f4eedc240791f
+kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1
 kernels/r_factor eac858aa0c7c3fb3
 kernels/inverse 5b7382e62c183d11

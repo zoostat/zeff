@@ -785,6 +785,54 @@ fn kernels_cases() -> Vec<Line> {
                 + (rng.unit() - 0.5)
         })
         .collect();
+    // The demeaning kernel (release 0.6.0, step 17): a three-effect unbalanced panel of 400 rows,
+    // two columns at unit scale and one at 1e12, the demeaned values and the pass count.
+    let demeaned = {
+        use zeff_kernels::demean::{Effect, Options, demean};
+        let mut rng2 = SplitMix64(0x0600_0017_5EED_0002);
+        let (mut unit_of, mut period_of, mut region_of) = (Vec::new(), Vec::new(), Vec::new());
+        for u in 0..60usize {
+            let stay = if u % 9 == 0 {
+                1
+            } else {
+                2 + (rng2.unit() * 7.0) as usize
+            };
+            let start = (rng2.unit() * 10.0) as usize;
+            for t in 0..stay {
+                unit_of.push(u);
+                period_of.push((start + t) % 10);
+                region_of.push(u % 4);
+            }
+        }
+        let rows = unit_of.len();
+        let a: Vec<f64> = (0..rows).map(|_| rng2.unit() - 0.5).collect();
+        let b: Vec<f64> = (0..rows).map(|i| rng2.unit() + unit_of[i] as f64).collect();
+        let c: Vec<f64> = (0..rows).map(|_| (rng2.unit() - 0.5) * 1e12).collect();
+        let out = demean(
+            &[&a, &b, &c],
+            &[
+                Effect {
+                    group_of_row: &unit_of,
+                    groups: 60,
+                },
+                Effect {
+                    group_of_row: &period_of,
+                    groups: 10,
+                },
+                Effect {
+                    group_of_row: &region_of,
+                    groups: 4,
+                },
+            ],
+            None,
+            Options::default(),
+        );
+        let mut all: Vec<f64> = out.columns.concat();
+        all.push(out.passes as f64);
+        all.push(out.singletons_dropped as f64);
+        all
+    };
+    lines.push(series("kernels/demean", &demeaned));
     let fit = least_squares(&x, &y, 1e-7, 256);
     let mut summary: Vec<f64> = fit
         .coefficients

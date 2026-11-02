@@ -1358,6 +1358,7 @@ dependencies = [
  "zeff-data",
  "zeff-diagnostics",
  "zeff-hash",
+ "zeff-kernels",
  "zeff-numeric",
  "zeff-regress",
  "zeff-testkit",

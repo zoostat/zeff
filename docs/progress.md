@@ -151,3 +151,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 17 `[engine]`: Fixed-effects demeaning: the kernel.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 17
+
+**Done.** Step 17 `[engine]`: the fixed-effects demeaning kernel in `zeff-kernels`: singletons dropped until none remains, the rows ordered once by the largest effect, one scratch buffer, alternating projections over the effects in their written order with Irons–Tuck acceleration to a tolerance of 1e-8 on the largest change, the group sums in the fixed reduction shape, weights in the projection with equal weights no weights; one effect and two balanced effects in one pass. Against the exact projection through the kernel's QR on generated panels within 1e-10; the properties of the checklist; the conformance case `kernels/demean`. On the million-row benchmark panel: one effect 1 pass in 0.028 s, two effects 3 passes in 0.066 s, three effects 3 passes in 0.096 s (ARM64, release). The corrected mean of the known-issues list reviewed: not used by the kernel; `mean` keeps it.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (124 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 18 `[engine]`: `fe:` in `reg`.
+
+**For the owner to decide.** Nothing new.
