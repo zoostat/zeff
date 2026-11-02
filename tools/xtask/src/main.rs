@@ -34,12 +34,20 @@ fn main() -> ExitCode {
 fn export_samples() -> ExitCode {
     let folder = std::path::Path::new("tests/reference/exports");
     let sample = zeff_results::export::sample();
+    let saved = zeff_data::save::sample();
+    let csv = |delim, bom, codes| {
+        zeff_data::save::delimited_bytes(&saved, delim, bom, codes)
+            .expect("the sample has no opaque column")
+    };
     let files = [
         ("sample.docx", zeff_results::export::docx(&sample)),
         (
             "sample.tex",
             zeff_results::export::tex(&sample).into_bytes(),
         ),
+        ("sample.csv", csv(b',', false, false)),
+        ("sample.tsv", csv(b'\t', false, false)),
+        ("sample_bom_codes.csv", csv(b',', true, true)),
     ];
     if let Err(error) = std::fs::create_dir_all(folder) {
         eprintln!("cannot create {}: {error}", folder.display());

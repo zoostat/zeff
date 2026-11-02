@@ -1,0 +1,75 @@
+---
+source: packages/tier1/data/tests/save.rs
+assertion_line: 75
+expression: shown
+---
+---
+note: `level` replaced the variable of that name (line 1)
+note: saved output/sample.csv · 6 rows × 7 variables (line 2)
+note: saved output/sample.tsv · 6 rows × 7 variables (line 3)
+note: saved output/codes.csv · 6 rows × 7 variables (line 4)
+note: saved output/bom.csv · 6 rows × 7 variables (line 5)
+note: saved output/empty.csv · 0 rows × 7 variables (line 6)
+note: saved output/padded.tsv · 2 rows × 1 variable (line 7)
+note: saved output/at.csv · 2 rows × 1 variable (line 8)
+note: saved output/wages.csv · 2 rows × 11 variables (line 10)
+note: saved output/wages_codes.csv · 2 rows × 11 variables (line 11)
+note: saved output/wages_tab.txt · 2 rows × 11 variables (line 12)
+=== sample.csv
+id,x,big,flag,note,day,level
+1,1.5,120.0,true,plain,1970-01-01,low
+2,0.0,0.1,false,"with, comma",2024-01-01,high
+3,0.1,123456789.12345679,,"with ""quotes""",,mid
+4,Inf,-2.5,true,"two
+lines",1900-01-01,
+5,,,false,,9999-12-31,high
+6,1e300,1e-7,true,,1969-12-31,low
+=== sample.tsv
+id<TAB>x<TAB>big<TAB>flag<TAB>note<TAB>day<TAB>level
+1<TAB>1.5<TAB>120.0<TAB>true<TAB>plain<TAB>1970-01-01<TAB>low
+2<TAB>0.0<TAB>0.1<TAB>false<TAB>with, comma<TAB>2024-01-01<TAB>high
+3<TAB>0.1<TAB>123456789.12345679<TAB><TAB>"with ""quotes"""<TAB><TAB>mid
+4<TAB>Inf<TAB>-2.5<TAB>true<TAB>"two
+lines"<TAB>1900-01-01<TAB>
+5<TAB><TAB><TAB>false<TAB><TAB>9999-12-31<TAB>high
+6<TAB>1e300<TAB>1e-7<TAB>true<TAB><TAB>1969-12-31<TAB>low
+=== codes.csv
+id,x,big,flag,note,day,level
+1,1.5,120.0,true,plain,1970-01-01,1
+2,0.0,0.1,false,"with, comma",2024-01-01,3
+3,0.1,123456789.12345679,,"with ""quotes""",,2
+4,Inf,-2.5,true,"two
+lines",1900-01-01,
+5,,,false,,9999-12-31,3
+6,1e300,1e-7,true,,1969-12-31,1
+=== bom.csv
+<BOM>id,x,big,flag,note,day,level
+1,1.5,120.0,true,plain,1970-01-01,low
+2,0.0,0.1,false,"with, comma",2024-01-01,high
+3,0.1,123456789.12345679,,"with ""quotes""",,mid
+4,Inf,-2.5,true,"two
+lines",1900-01-01,
+5,,,false,,9999-12-31,high
+6,1e300,1e-7,true,,1969-12-31,low
+=== empty.csv
+id,x,big,flag,note,day,level
+=== padded.tsv
+x
+" padded "
+"a<TAB>b"
+=== at.csv
+at
+2024-01-01T09:30:00
+
+=== wages.csv
+worker,year,wage,educ,exper,age,hours,union,female,industry,firm
+1,2015,18.08,17,9,32,45.1,0,0,Retail,99
+1,2016,17.28,17,10,33,41.4,0,0,Retail,99
+=== wages_codes.csv
+worker,year,wage,educ,exper,age,hours,union,female,industry,firm
+1,2015,18.08,17,9,32,45.1,0,0,6,99
+1,2016,17.28,17,10,33,41.4,0,0,6,99
+=== wages_tab.txt
+worker<TAB>year<TAB>wage<TAB>educ<TAB>exper<TAB>age<TAB>hours<TAB>union<TAB>female<TAB>industry<TAB>firm
+1<TAB>2015<TAB>18.08<TAB>17<TAB>9<TAB>32<TAB>45.1<TAB>0<TAB>0<TAB>Retail<TAB>99
+1<TAB>2016<TAB>17.28<TAB>17<TAB>10<TAB>33<TAB>41.4<TAB>0<TAB>0<TAB>Retail<TAB>99

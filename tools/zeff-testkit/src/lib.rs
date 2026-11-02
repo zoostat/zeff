@@ -10,7 +10,8 @@ use std::path::{Path, PathBuf};
 use zeff_core::display::format_float;
 use zeff_engine::fs::MemoryFileSystem;
 use zeff_engine::project::Project;
-use zeff_engine::run::{Outcome, run_script};
+use zeff_engine::run::Outcome;
+pub use zeff_engine::run::run_script;
 
 /// The repository root.
 pub fn root() -> PathBuf {
@@ -151,6 +152,9 @@ pub fn reference() -> Reference {
 }
 
 /// A project in memory whose `data/` holds every dataset of `tests/datasets/`.
+/// The file system of the engine, for a test that reads what a script wrote.
+pub use zeff_engine::fs::FileSystem;
+
 pub fn project() -> (MemoryFileSystem, Project) {
     let fs = MemoryFileSystem::new();
     fs.add_file(

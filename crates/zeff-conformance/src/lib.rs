@@ -1131,6 +1131,14 @@ fn panel_cases() -> Vec<Line> {
     // with an absent combination, the round trip, and the refusals.
     let reshaped = "let this_year = frame(firm = [1, 2], revenue = [12.5, 8], region = [\"North\", \"South\"])\nlet last_year = frame(firm = [1, 3], revenue = [11, 7], founded = [date(\"1990-01-05\"), date(\"2001-11-30\")])\nthis_year.append(last_year)\nlet sales = frame(firm = [1, 2], region = [\"North\", \"South\"], sales_2010 = [120, 80], sales_2011 = [130, NA])\nlet long = sales.to_long(\"sales_\", id: firm, names_to: \"year\", values_to: \"sales\", names_type: Int)\nlong\nlong.to_wide(values_from: sales, id: [firm, region], names_from: year)\nframe(unit = [3, 1, 3, 1, 2], period = [2, 1, 1, 2, 1], y = [0.5, 1.25, -2, 3.5, NA]).to_wide(values_from: y, id: unit, names_from: period)\nsales.to_long(\"sales_\", id: firm, names_to: \"year\", values_to: \"sales\", names_type: Date)\nframe(id = [1, 2], year = [2010, 2011]).append(frame(id = [3], year = [\"2012\"]))\nframe(firm = [1, 1], year = [2010, 2010], sales = [1, 2]).to_wide(values_from: sales, id: firm, names_from: year)\n";
     let reshaped_outcome = run_script(&fs, &project, "scripts/main.zeff", reshaped);
+    // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
+    // and with codes, and the refusals; the bytes of the files are part of the report.
+    let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
+    let saved_outcome = run_script(&fs, &project, "scripts/main.zeff", saved);
+    let saved_file = |name: &str| {
+        zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/n/output/{name}")))
+            .unwrap_or_else(|_| b"(not written)".to_vec())
+    };
     vec![
         text("panel/declare/stdout", &outcome.output.stdout),
         text("panel/declare/stderr", &outcome.output.stderr),
@@ -1156,6 +1164,11 @@ fn panel_cases() -> Vec<Line> {
         text("verbs/merge/stderr", &merged_outcome.output.stderr),
         text("verbs/reshape/stdout", &reshaped_outcome.output.stdout),
         text("verbs/reshape/stderr", &reshaped_outcome.output.stderr),
+        text("verbs/save/stdout", &saved_outcome.output.stdout),
+        text("verbs/save/stderr", &saved_outcome.output.stderr),
+        bytes("verbs/save/sample.csv", &saved_file("sample.csv")),
+        bytes("verbs/save/sample.tsv", &saved_file("sample.tsv")),
+        bytes("verbs/save/sample_bom.csv", &saved_file("sample_bom.csv")),
     ]
 }
 

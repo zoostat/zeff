@@ -1,0 +1,118 @@
+---
+source: packages/tier1/data/tests/save.rs
+assertion_line: 98
+expression: out
+---
+frame(x = [1]).save("output/x.parquet")
+---
+error[Z0716]: `save` writes Parquet files from release 0.11.0; this release writes CSV and TSV
+ --> scripts/main.zeff:1:21
+  |
+1 | frame(x = [1]).save("output/x.parquet")
+  |                     ^^^^^^^^^^^^^^^^^^ Parquet arrives with release 0.11.0
+  |
+  = help: write `.csv` or `.tsv` for now; Parquet, Arrow, Stata, Excel and JSON come with the reader interface of 0.11.0
+
+frame(x = [1]).save("output/x")
+---
+error[Z0716]: `output/x` has no extension, so no format is chosen
+ --> scripts/main.zeff:1:21
+  |
+1 | frame(x = [1]).save("output/x")
+  |                     ^^^^^^^^^^ which format?
+  |
+  = help: write `.csv` or `.tsv`, or give `format: "csv"`: `output/x.csv`
+
+frame(x = [1]).save("output/x.docx")
+---
+error[Z0716]: `.docx` is not a format `save` writes
+ --> scripts/main.zeff:1:21
+  |
+1 | frame(x = [1]).save("output/x.docx")
+  |                     ^^^^^^^^^^^^^^^ not a format of `save`
+  |
+  = help: this release writes `.csv` and `.tsv`; Parquet, Arrow, Stata, Excel and JSON come with release 0.11.0
+
+frame(x = [1]).save("x.csv", format: "xlsx")
+---
+error[Z0716]: `save` writes Excel files from release 0.11.0; this release writes CSV and TSV
+ --> scripts/main.zeff:1:38
+  |
+1 | frame(x = [1]).save("x.csv", format: "xlsx")
+  |                                      ^^^^^^ Excel arrives with release 0.11.0
+  |
+  = help: write `.csv` or `.tsv` for now; Parquet, Arrow, Stata, Excel and JSON come with the reader interface of 0.11.0
+
+frame(x = [1]).save("output/x.csv", format: "sav")
+---
+error[Z0716]: `save` writes SPSS files from release 1.1; this release writes CSV and TSV
+ --> scripts/main.zeff:1:45
+  |
+1 | frame(x = [1]).save("output/x.csv", format: "sav")
+  |                                             ^^^^^ SPSS arrives with release 1.1
+  |
+  = help: write `.csv` or `.tsv` for now; Parquet, Arrow, Stata, Excel and JSON come with the reader interface of 0.11.0
+
+frame(x = [1]).save("output/.csv")
+---
+error[Z0716]: `output/.csv` has no name before its extension
+ --> scripts/main.zeff:1:21
+  |
+1 | frame(x = [1]).save("output/.csv")
+  |                     ^^^^^^^^^^^^^ a name is needed
+  |
+  = help: write a name before the extension: `output/data.csv`
+
+frame(x = [1]).save("zeff:x.csv")
+---
+error[Z0707]: cannot write `zeff:x.csv`: it is outside the project
+ --> scripts/main.zeff:1:21
+  |
+1 | frame(x = [1]).save("zeff:x.csv")
+  |                     ^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/x.csv`
+
+frame(x = [1]).save("../x.csv")
+---
+error[Z0707]: cannot write `../x.csv`: it is outside the project
+ --> scripts/main.zeff:1:21
+  |
+1 | frame(x = [1]).save("../x.csv")
+  |                     ^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/x.csv`
+
+frame(x = [1]).save("nowhere/x.csv")
+---
+error[Z0707]: cannot write `nowhere/x.csv`: the folder `nowhere/` does not exist; `output/` is created as needed, another folder you create first
+ --> scripts/main.zeff:1:21
+  |
+1 | frame(x = [1]).save("nowhere/x.csv")
+  |                     ^^^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/x.csv`
+
+fn keep(d: Frame) -> Nothing {
+    d.save("output/x.csv")
+}
+keep(frame(x = [1]))
+---
+warning[W0303]: `keep` has no summary line
+ --> scripts/main.zeff:1:4
+  |
+1 | fn keep(d: Frame) -> Nothing {
+  |    ^^^^ a function without `///` text
+  |
+  = help: write one line above it, `/// What the function gives.`; the line is its help, its hover text and the title of its dialog
+error[Z0110]: `save` is allowed only in a script, not inside the function `keep`
+ --> scripts/main.zeff:2:7
+  |
+2 |     d.save("output/x.csv")
+  |       ^^^^ reads or writes outside the arguments
+  |
+  = help: a function's result depends on its arguments alone, so it may be cached; import the data in the script and pass the frame in
+
+frame(x = [1]).save("output/x.csv")
+---
+note: saved output/x.csv · 1 row × 1 variable (line 1)

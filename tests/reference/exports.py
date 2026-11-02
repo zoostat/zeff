@@ -81,3 +81,40 @@ def check_tex():
 check_docx()
 check_tex()
 print("exports ok: sample.docx and sample.tex are what the writer promises")
+
+
+def check_csv():
+    """The sample frame saved as CSV, TSV and CSV with a byte-order mark and category codes
+    (release 0.6.0, step 15): every field read back by the standard library's csv module, under
+    the writing rules of section 3.8 of the Language Reference."""
+    import csv
+
+    expected = [
+        ["1", "1.5", "true", "plain", "1970-01-01", "1970-01-01T00:00:00", "low"],
+        ["2", "0.0", "false", "with, comma", "2024-01-01", "2024-01-01T00:00:00", "high"],
+        ["3", "0.1", "", 'with "quotes"', "", "", "mid"],
+        ["4", "Inf", "true", "two\nlines", "1900-01-01", "2024-01-01T00:00:00.123456", ""],
+        ["5", "123456789.12345679", "false", "", "9999-12-31", "1969-12-31T23:59:59", "high"],
+        ["6", "", "true", "", "1970-01-02", "1970-01-02T00:00:00", "low"],
+        ["7", "1e300", "", " padded ", "1969-12-31", "1970-01-01T00:00:00.000001", "mid"],
+        ["8", "120.0", "false", "naïve café", "2019-04-14", "1970-01-01T00:00:00.999999", "high"],
+    ]
+    header = ["id", "x", "flag", "note", "day", "at", "level"]
+    for name, delimiter, bom, codes in (("sample.csv", ",", False, False), ("sample.tsv", "\t", False, False), ("sample_bom_codes.csv", ",", True, True)):
+        path = os.path.join(folder, name)
+        with open(path, "rb") as f:
+            raw = f.read()
+        assert b"\r" not in raw, name + ": a carriage return"
+        assert raw.startswith("﻿".encode("utf-8")) == bom, name + ": the byte-order mark"
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            rows = list(csv.reader(f, delimiter=delimiter))
+        assert rows[0] == header, (name, rows[0])
+        want = [list(r) for r in expected]
+        if codes:
+            positions = {"low": "1", "mid": "2", "high": "3", "": ""}
+            want = [r[:-1] + [positions[r[-1]]] for r in want]
+        assert rows[1:] == want, (name, rows[1:])
+    print("the sample CSV, TSV and byte-order-mark files read back field for field")
+
+
+check_csv()

@@ -313,6 +313,7 @@ jobs:
           Rscript tests/reference/r/aggregate.R
           Rscript tests/reference/r/merge.R
           Rscript tests/reference/r/reshape.R
+          Rscript tests/reference/r/exports.R
 
       - name: R's values agree with the committed copies within tolerance
         # R uses the platform's maths library and, on x86, extended precision for means, so its

@@ -15,6 +15,7 @@ pub mod panel_functions;
 pub mod reducers;
 pub mod reshape;
 pub mod rows;
+pub mod save;
 pub mod verbs;
 
 use zeff_core::runtime::Function;
@@ -1285,6 +1286,35 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: reshape::to_wide,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "save",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("path", "Str"),
+                    ParamSpec::option("format", "Str"),
+                    ParamSpec::option_with_default("bom", "Bool", "false"),
+                    ParamSpec::option_with_default("codes", "Bool", "false"),
+                    ParamSpec::option_with_default("version", "Int", "118"),
+                ],
+                rest: None,
+                returns: "Nothing",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0716", "a format of a later release, or none"),
+                    DiagnosticDecl::new(
+                        "Z0707",
+                        "a path in a data root, outside the project, or in a folder that does not exist",
+                    ),
+                    DiagnosticDecl::new("Z0401", "an opaque column, which a text file cannot hold"),
+                    DiagnosticDecl::new("Z0110", "save inside a function"),
+                ],
+                help: include_str!("../help/save.md"),
+                accuracy: None,
+            },
+            body: save::save,
         },
         Function {
             spec: FunctionSpec {

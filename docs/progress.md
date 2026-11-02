@@ -131,3 +131,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 15 `[function]`: `save`.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 15
+
+**Done.** Step 15 `[function]`: `save`. CSV and TSV under the writing rules of section 3.8, the format by extension or `format:`, the later formats refused by name (Z0716), paths kept under the project (Z0707), `bom:` and `codes:`, the note of question 5 (b); Floats written so that a saved frame imports as itself bit for bit; the sample files of the reference checks extended and read back by Python and R; the conformance report carries the bytes of saved files. One page.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (124 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 16 `[function]`: `table` (#72) and `ci()`'s default level (#67).
+
+**For the owner to decide.** Nothing new.
