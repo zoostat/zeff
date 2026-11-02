@@ -42,125 +42,9 @@ Open decision #73 (typst as the typesetting engine of exports and the report doc
 
 The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of section 14, every section it names, the 36 catalogue rows, the testing handbook, the risk register and the six open decisions due were read, and the checklist written in `docs/releases/0.6.0.md` (24 steps, then the pre-release routine in three parts). The owner said "go" and took the five questions as recommended (#14, #26, #51, #54, #67 and #72; the definition and term names of `event()`; `wages.firm` and the `firms` dataset; `fixest` in the R reference library; the printed forms of `duplicates`, `save`, `sample` and `to_wide`). Step 1 `[engine]`: the version `0.6.0-dev` with the five sample pins and the snapshots; the register's status line, summary rows and entries record the six decisions; the catalogue gains `table` (row 530) and the corrected usage of `ci` (row 163), the counts of both volumes following (259 functions of 1.0, 70 in `core`). Step 2 `[engine]`: dates and times as computable types (`Date` and `DateTime` values in `core`; comparisons, `Date - Date` as days, every other arithmetic refused naming `add_days`, `add_months` or `days_between`, Z0210 for a date against text with its page; `to` from text with or without a format and between dates and times; `case`, `add`, `update`, `recode`, the frame literal and the collection functions on dates; the R reference `dates.R`, the engine's `dates.rs`, the conformance case `control/dates`). Step 3 `[function]`: the `time` package, part 1, a new crate registered with the engine and the tier check (`date`, `datetime`, `year`, `month`, `day`, `weekday`, `quarter`, `week`; the checker's lifting rule now names `core`, `text` and `time`; the kernel's weekday and ISO-week helpers proved for every year; `time.R`, the crate's tests, the conformance case `time/parts`; the CI figures of this step: bundle 1,466.7 kB, cold start 93.6 ms). Step 4 `[function]`: the `time` package, part 2 (`add_days`, `add_months` clamped to the month's end, `days_between`, `months_between`; `today()` and `now()` from a clock the run is given through the file-system interface, fixed in memory for tests, the examples and the conformance cases and read from the machine by the command line alone through `chrono`, each use noted as W0703 with its page; the conformance case `time/arithmetic`). Step 5 `[function]`: `format` and the `text` package as a new crate between `time` and `data` (decimals half to even in the plain form at any size, a thousands separator, dates by a pattern the kernel prints with `%a`, `%A` and `%j`; `format.R`, the crate's tests, the conformance case `text/format`). After step 5 the owner's sample scripts exposed a clash older than the release: a column that shadows a binding of the same name was used by the interpreter (W0102) but typed by the checker as the binding, so a scalar function given it received the whole column; fixed with the failing test first (every call records whether it may apply row by row and which parameters take a scalar, and the interpreter lifts the call when a column arrives), and the two `time` conformance cases, whose hashes had been taken from the faulty run, republished from output read by eye. Every ruling is in `docs/decisions.md` under its step; CI green on every target through step 5.
 
-## 1 November 2026, step 6 of release 0.6.0
+## 1 and 2 November 2026, steps 6 to 17 of release 0.6.0 (folded)
 
-**Done.** Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`, `sort` or `drop_missing` shares its parent's columns and gathers each the first time it is read (a selection keeping fewer than half the rows gathers at once; a selection of a selection composes its rows; `select`, `rename`, `add` and `update` share the slots); in `zeff run` a binding is freed after its last use, found by a liveness pass over the IR, and the frames made from a freed frame gather what they still read from it; the interpreter keeps a memory record (bytes own and kept, bindings freed), which `zeff run --verbose` prints; the console keeps every binding. Nothing printed changed: the conformance report and the benchmark digests are byte for byte what they were. Tests: the kernel's `selection.rs` with the property that the lazy form equals the eager one, the engine's `memory.rs`, the command line's `--verbose` snapshot. Measured on this machine, release builds, the machine idle: the five-step chain of section 6 on the million-row file peaks at 689 to 691 MB (695 to 697 before), the import alone 449 MB in both, 0.77 s in both; the benchmark suite at a million rows before and after: import 488 and 490 ms, summary by group 98 and 96 ms, mean by group 69 and 67 ms, reg 405 and 405 ms. The ruling and the figures are in `docs/decisions.md`; the entries of steps 1 to 5 above are folded.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (116 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
-
-**Next.** Step 7 `[engine]`: the panel declaration and its index; `panel`.
-
-**For the owner to decide.** Nothing new.
-
-## 1 November 2026, step 7 of release 0.6.0
-
-**Done.** Step 7 `[engine]`: the panel declaration and its index. `data.panel(unit:, time:)` with Stata's checks (a unit observed twice at one time, `NA` in either variable, a time that is not an Int or a Date, each Z0601, the new code in section 11's table and logged); the index built once at the declaration and kept with the table, shared by the verbs that keep the rows and rebuilt by a selection on first use; the declaration kept by every verb that keeps both variables, renamed by `rename`, and dropped with a note when `select`, `drop`, `add`, `update` or `recode` leaves one out or changes it. Catalogue row 120 implemented; the page, the explained page of Z0601 and the conformance case `panel/declare`. Tests: the data crate's `panel.rs` with its snapshots and property. The ruling is in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (117 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 8 `[function]`: `lag`, `lead`, `diff`, `fill_forward`.
-
-**For the owner to decide.** Nothing new.
-
-## 1 November 2026: step 8
-
-**Done.** Step 8 `[function]`: `lag`, `lead`, `diff` and `fill_forward` inside `add` and `update` of a declared panel, by the exact period (a gap gives `NA`, as in Stata), the row order playing no part; `fill_forward` within units in time order on a panel and down the rows otherwise, with `by:`; refusals without a declaration or outside a verb (Z0602, the new code in section 11's table and logged), with a column of another frame (Z0217) and with `n:` below 1 (Z0401); `diff` written in Rust since a Zeff body has no handle on the enclosing frame (row 127, logged; open decision #69). Four help pages; R's values (`tests/reference/r/panel.R`, in CI) held exactly on a generated panel and a slice of `wages`; the conformance case `panel/lags` published.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (118 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 9 `[function]`: `running_sum`, `running_product`, `rank`, `bin`.
-
-**For the owner to decide.** Nothing new.
-
-## 2 November 2026: step 9
-
-**Done.** Step 9 `[function]`: `running_sum`, `running_product`, `rank` and `bin`, in the current row order and within `by:` groups; Int sums stay Int with Z0211 at the row of overflow; ranks under the four tie rules with `NA` kept; `bin` as R's `cut`, an ordered category labelled as R labels it unless `labels:` is given, a value outside every interval `NA` with W0210 (the new code in section 11's tables and logged). Four help pages; R's values (`tests/reference/r/running.R`, in CI) held exactly; the conformance case `panel/running` published; the kernel's `Key::of` made public.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 10 `[function]`: `quantile_group`, `winsorize`.
-
-**For the owner to decide.** Nothing new.
-
-## 2 November 2026: step 10
-
-**Done.** Step 10 `[function]`: `quantile_group` and `winsorize`. `winsorize` in Zeff as planned, R's `pmin(pmax())` on the type-7 quantiles, a share outside 0 to 0.5 refused; `quantile_group` in Rust on the kernel's quantile, since a Zeff body cannot build the probabilities i/n exactly (row 131's layer corrected and logged; open decision #79 raised, a `map` over lists or list arithmetic, recommended for 0.7.0), tied values sharing a group and empty groups keeping Stata's numbering. Two pages; R's values (`tests/reference/r/quantile_group.R`, in CI) held exactly under all nine quantile definitions; the conformance case `functions/quantile_group` published.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 11 `[function]`: `distinct`, `duplicates`, `sample`.
-
-**For the owner to decide.** Nothing new; open decision #79 falls due at 0.7.0.
-
-## 2 November 2026: step 11
-
-**Done.** Step 11 `[function]`: `distinct`, `duplicates` and `sample`. The first two by identity through the kernel's groups, the first occurrence kept; `duplicates` in Rust since `aggregate` and `table` do not exist yet (row 113's layer corrected and logged), printing the table of question 5 (a); `sample` by `n:` or `frac:` from the run's stream or its own seed, a partial Fisher–Yates without replacement, the rows back in their original order with the note of question 5 (c). Three pages; R's values (`tests/reference/r/distinct.R`, in CI) held exactly; the stochastic class for `sample` in the nightly job; the conformance cases `verbs/distinct` and `verbs/sample` published; the registry's usage reader learnt `n: Int | frac: Float`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes) and the conformance report pass locally; CI to be read after the push.
-
-**Next.** Step 12 `[function]`: `aggregate`.
-
-**For the owner to decide.** Nothing new.
-
-## 2 November 2026: step 12
-
-**Done.** Step 12 `[function]`: `aggregate`. One row per group of `by:` with reducers and arithmetic over them, a later definition naming an earlier one; the keys first in key order with `NA` last, their metadata kept; a column-valued definition refused at check time; the panel declaration dropped with a note; the reducers' warnings counted once per statement. One page; R's grouped statistics on `wages` and the Wooldridge `wage1` (`tests/reference/r/aggregate.R`, in CI) held exactly or within 1e-12 by class; the conformance case `verbs/aggregate` published; the benchmark suite's `aggregate` case added with its digests at the three sizes.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (119 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
-
-**Next.** Step 13 `[function]`: `merge`.
-
-**For the owner to decide.** Nothing new.
-
-## 2 November 2026: step 13
-
-**Done.** Step 13 `[function]`: `merge`, with `firms` and `wages.firm`. `wages` gains `firm` by the owner's rule without any other value changing (397 firms of 3 to 40 workers); `firms` ships with its generating script, Arrow file, labels, `founded` Date, three workerless firms and its page; `merge` on key variables with the three joins, `relation:` checked before joining, many-to-many refused (Z0603), shared non-key columns refused without `suffixes:` (Z0604), `NA` keys never matching, the left order kept, the note of matched and unmatched rows; both codes given their table rows and pages. R's pairs (`tests/reference/r/merge.R`, in CI) held exactly; the conformance case `verbs/merge` published.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (121 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
-
-**Next.** Step 14 `[function]`: `append`, `to_long`, `to_wide`.
-
-**For the owner to decide.** Nothing new.
-
-## 2 November 2026: step 14
-
-**Done.** Step 14 `[function]`: `append`, `to_long` and `to_wide`. `append` by name with the `NA` fill and note, Int with Float joining, categories united, other types refused (Z0609); `to_long` of the stub columns in tidyr's order with the names parsed as `names_type:` says, refusals as Z0610; `to_wide` with the columns of question 5 (d), a repeated pair refused (Z0611), an absent combination `NA`, the panel dropped with a note; the three codes in section 11's table and their pages. Three pages; R's values (`tests/reference/r/reshape.R`, in CI) held exactly; the conformance case `verbs/reshape` published.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (124 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
-
-**Next.** Step 15 `[function]`: `save`.
-
-**For the owner to decide.** Nothing new.
-
-## 2 November 2026: step 15
-
-**Done.** Step 15 `[function]`: `save`. CSV and TSV under the writing rules of section 3.8, the format by extension or `format:`, the later formats refused by name (Z0716), paths kept under the project (Z0707), `bom:` and `codes:`, the note of question 5 (b); Floats written so that a saved frame imports as itself bit for bit; the sample files of the reference checks extended and read back by Python and R; the conformance report carries the bytes of saved files. One page.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (124 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
-
-**Next.** Step 16 `[function]`: `table` (#72) and `ci()`'s default level (#67).
-
-**For the owner to decide.** Nothing new.
-
-## 2 November 2026: step 16
-
-**Done.** Step 16 `[function]`: `table(title:, columns:)` in `core` (open decision #72, catalogue row 530), a table from a record of lists or columns, numbers right-aligned and printed by the display rules, exported by `export`; `ci()` at the fit's level with `level:` overriding (open decision #67, row 163), the page saying so. Two pages; the conformance case `control/table` published.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (124 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
-
-**Next.** Step 17 `[engine]`: Fixed-effects demeaning: the kernel.
-
-**For the owner to decide.** Nothing new.
-
-## 2 November 2026: step 17
-
-**Done.** Step 17 `[engine]`: the fixed-effects demeaning kernel in `zeff-kernels`: singletons dropped until none remains, the rows ordered once by the largest effect, one scratch buffer, alternating projections over the effects in their written order with Irons–Tuck acceleration to a tolerance of 1e-8 on the largest change, the group sums in the fixed reduction shape, weights in the projection with equal weights no weights; one effect and two balanced effects in one pass. Against the exact projection through the kernel's QR on generated panels within 1e-10; the properties of the checklist; the conformance case `kernels/demean`. On the million-row benchmark panel: one effect 1 pass in 0.028 s, two effects 3 passes in 0.066 s, three effects 3 passes in 0.096 s (ARM64, release). The corrected mean of the known-issues list reviewed: not used by the kernel; `mean` keeps it.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (124 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
-
-**Next.** Step 18 `[engine]`: `fe:` in `reg`.
-
-**For the owner to decide.** Nothing new.
+Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`, `sort` or `drop_missing` shares its parent's columns and gathers each the first time it is read (a selection keeping fewer than half the rows gathers at once; a selection of a selection composes its rows; `select`, `rename`, `add` and `update` share the slots); in `zeff run` a binding is freed after its last use, found by a liveness pass over the IR, and the frames made from a freed frame gather what they still read from it; the interpreter keeps a memory record (bytes own and kept, bindings freed), which `zeff run --verbose` prints; the console keeps every binding. Nothing printed changed: the conformance report and the benchmark digests are byte for byte what they were. Tests: the kernel's `selection.rs` with the property that the lazy form equals the eager one, the engine's `memory.rs`, the command line's `--verbose` snapshot. Measured on this machine, release builds, the machine idle: the five-step chain of section 6 on the million-row file peaks at 689 to 691 MB (695 to 697 before), the import alone 449 MB in both, 0.77 s in both; the benchmark suite at a million rows before and after: import 488 and 490 ms, summary by group 98 and 96 ms, mean by group 69 and 67 ms, reg 405 and 405 ms. The ruling and the figures are in `docs/decisions.md`; the entries of steps 1 to 5 above are folded. Step 7 `[engine]`: the panel declaration and its index. `data.panel(unit:, time:)` with Stata's checks (a unit observed twice at one time, `NA` in either variable, a time that is not an Int or a Date, each Z0601, the new code in section 11's table and logged); the index built once at the declaration and kept with the table, shared by the verbs that keep the rows and rebuilt by a selection on first use; the declaration kept by every verb that keeps both variables, renamed by `rename`, and dropped with a note when `select`, `drop`, `add`, `update` or `recode` leaves one out or changes it. Catalogue row 120 implemented; the page, the explained page of Z0601 and the conformance case `panel/declare`. Tests: the data crate's `panel.rs` with its snapshots and property. The ruling is in `docs/decisions.md`. Step 8 `[function]`: `lag`, `lead`, `diff` and `fill_forward` inside `add` and `update` of a declared panel, by the exact period (a gap gives `NA`, as in Stata), the row order playing no part; `fill_forward` within units in time order on a panel and down the rows otherwise, with `by:`; refusals without a declaration or outside a verb (Z0602, the new code in section 11's table and logged), with a column of another frame (Z0217) and with `n:` below 1 (Z0401); `diff` written in Rust since a Zeff body has no handle on the enclosing frame (row 127, logged; open decision #69). Four help pages; R's values (`tests/reference/r/panel.R`, in CI) held exactly on a generated panel and a slice of `wages`; the conformance case `panel/lags` published. Step 9 `[function]`: `running_sum`, `running_product`, `rank` and `bin`, in the current row order and within `by:` groups; Int sums stay Int with Z0211 at the row of overflow; ranks under the four tie rules with `NA` kept; `bin` as R's `cut`, an ordered category labelled as R labels it unless `labels:` is given, a value outside every interval `NA` with W0210 (the new code in section 11's tables and logged). Four help pages; R's values (`tests/reference/r/running.R`, in CI) held exactly; the conformance case `panel/running` published; the kernel's `Key::of` made public. Step 10 `[function]`: `quantile_group` and `winsorize`. `winsorize` in Zeff as planned, R's `pmin(pmax())` on the type-7 quantiles, a share outside 0 to 0.5 refused; `quantile_group` in Rust on the kernel's quantile, since a Zeff body cannot build the probabilities i/n exactly (row 131's layer corrected and logged; open decision #79 raised, a `map` over lists or list arithmetic, recommended for 0.7.0), tied values sharing a group and empty groups keeping Stata's numbering. Two pages; R's values (`tests/reference/r/quantile_group.R`, in CI) held exactly under all nine quantile definitions; the conformance case `functions/quantile_group` published. Step 11 `[function]`: `distinct`, `duplicates` and `sample`. The first two by identity through the kernel's groups, the first occurrence kept; `duplicates` in Rust since `aggregate` and `table` do not exist yet (row 113's layer corrected and logged), printing the table of question 5 (a); `sample` by `n:` or `frac:` from the run's stream or its own seed, a partial Fisher–Yates without replacement, the rows back in their original order with the note of question 5 (c). Three pages; R's values (`tests/reference/r/distinct.R`, in CI) held exactly; the stochastic class for `sample` in the nightly job; the conformance cases `verbs/distinct` and `verbs/sample` published; the registry's usage reader learnt `n: Int | frac: Float`. Step 12 `[function]`: `aggregate`. One row per group of `by:` with reducers and arithmetic over them, a later definition naming an earlier one; the keys first in key order with `NA` last, their metadata kept; a column-valued definition refused at check time; the panel declaration dropped with a note; the reducers' warnings counted once per statement. One page; R's grouped statistics on `wages` and the Wooldridge `wage1` (`tests/reference/r/aggregate.R`, in CI) held exactly or within 1e-12 by class; the conformance case `verbs/aggregate` published; the benchmark suite's `aggregate` case added with its digests at the three sizes. Step 13 `[function]`: `merge`, with `firms` and `wages.firm`. `wages` gains `firm` by the owner's rule without any other value changing (397 firms of 3 to 40 workers); `firms` ships with its generating script, Arrow file, labels, `founded` Date, three workerless firms and its page; `merge` on key variables with the three joins, `relation:` checked before joining, many-to-many refused (Z0603), shared non-key columns refused without `suffixes:` (Z0604), `NA` keys never matching, the left order kept, the note of matched and unmatched rows; both codes given their table rows and pages. R's pairs (`tests/reference/r/merge.R`, in CI) held exactly; the conformance case `verbs/merge` published. Step 14 `[function]`: `append`, `to_long` and `to_wide`. `append` by name with the `NA` fill and note, Int with Float joining, categories united, other types refused (Z0609); `to_long` of the stub columns in tidyr's order with the names parsed as `names_type:` says, refusals as Z0610; `to_wide` with the columns of question 5 (d), a repeated pair refused (Z0611), an absent combination `NA`, the panel dropped with a note; the three codes in section 11's table and their pages. Three pages; R's values (`tests/reference/r/reshape.R`, in CI) held exactly; the conformance case `verbs/reshape` published. Step 15 `[function]`: `save`. CSV and TSV under the writing rules of section 3.8, the format by extension or `format:`, the later formats refused by name (Z0716), paths kept under the project (Z0707), `bom:` and `codes:`, the note of question 5 (b); Floats written so that a saved frame imports as itself bit for bit; the sample files of the reference checks extended and read back by Python and R; the conformance report carries the bytes of saved files. One page. Step 16 `[function]`: `table(title:, columns:)` in `core` (open decision #72, catalogue row 530), a table from a record of lists or columns, numbers right-aligned and printed by the display rules, exported by `export`; `ci()` at the fit's level with `level:` overriding (open decision #67, row 163), the page saying so. Two pages; the conformance case `control/table` published. Step 17 `[engine]`: the fixed-effects demeaning kernel in `zeff-kernels`: singletons dropped until none remains, the rows ordered once by the largest effect, one scratch buffer, alternating projections over the effects in their written order with Irons–Tuck acceleration to a tolerance of 1e-8 on the largest change, the group sums in the fixed reduction shape, weights in the projection with equal weights no weights; one effect and two balanced effects in one pass. Against the exact projection through the kernel's QR on generated panels within 1e-10; the properties of the checklist; the conformance case `kernels/demean`. On the million-row benchmark panel: one effect 1 pass in 0.028 s, two effects 3 passes in 0.066 s, three effects 3 passes in 0.096 s (ARM64, release). The corrected mean of the known-issues list reviewed: not used by the kernel; `mean` keeps it. Every step was green on the full routine and pushed; nothing arose for the owner to decide.
 
 ## 2 November 2026: step 18
 
@@ -189,5 +73,15 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (126 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
 
 **Next.** Step 21 `[engine]`: the schema pass, part 2 (columns after each step, run-time marks, "from last run", the data roots' hashes).
+
+**For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 21
+
+**Done.** Step 21 `[engine]`: the schema pass, part 2. The checker carries each frame's columns and types through every verb (`head` to `aggregate`, `merge` with its suffixes, `append`, `to_long`) and through a project function that returns a frame; `to_wide` and an import of a file that does not exist yet are marked "checked at run time" (a `mark` on the diagnostic, in `--format json`), the run records the columns they produced under the statement's hash, and the next check uses them as warnings marked "from last run"; a data root's file is hashed as it is read and a change since the last run warns (W0701, logged) with both times. The known-issues entry on columns after a verb closes.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (127 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 22 `[engine]`: fused column expressions.
 
 **For the owner to decide.** Nothing new.

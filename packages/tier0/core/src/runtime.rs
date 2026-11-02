@@ -23,6 +23,13 @@ pub fn fail(diagnostic: Diagnostic) -> Fail {
 pub trait Files {
     fn read(&self, written: &str, span: Span, script: &str) -> Result<Vec<u8>, Fail>;
 
+    /// The messages the reads of the statement that just ran left behind (a data root's file
+    /// that changed since the last run, W0701), taken once; none unless the file system keeps
+    /// such records.
+    fn take_messages(&self) -> Vec<Diagnostic> {
+        Vec::new()
+    }
+
     /// Write the bytes of a file a script exports or saves: `written` is the path in the script,
     /// resolved under the project folder (Engine and Project Specification, section 2, "Writes";
     /// Z0707 outside it). The default refuses, for a run that has no project to write into.

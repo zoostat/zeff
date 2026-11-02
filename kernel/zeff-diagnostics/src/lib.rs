@@ -74,6 +74,10 @@ pub struct Diagnostic {
     pub labels: Vec<Label>,
     pub help: Vec<String>,
     pub fixes: Vec<Fix>,
+    /// The mark of section 11 of the Language Reference, which the editor shows: `checked at
+    /// run time` on a step whose columns depend on the data, `from last run` on a diagnostic
+    /// whose only evidence is a schema cached from the last run; `None` otherwise.
+    pub mark: Option<String>,
 }
 
 /// A count as messages print it, with thousands separators (Language Reference, section 3.8):
@@ -110,6 +114,7 @@ impl Diagnostic {
             labels: Vec::new(),
             help: Vec::new(),
             fixes: Vec::new(),
+            mark: None,
         }
     }
 
@@ -165,6 +170,12 @@ impl Diagnostic {
     }
 
     /// A line of advice, printed as `= help: ...`.
+    /// The mark of section 11 (`checked at run time`, `from last run`).
+    pub fn mark(mut self, text: impl Into<String>) -> Self {
+        self.mark = Some(text.into());
+        self
+    }
+
     pub fn help(mut self, text: impl Into<String>) -> Self {
         self.help.push(text.into());
         self

@@ -95,7 +95,7 @@ fn normalise(text: &str) -> Option<Vec<&str>> {
 
 /// `root:file` split into the root name and the file, if `text` has that form (and is not a
 /// drive letter such as `C:/x`).
-fn split_root(text: &str) -> Option<(&str, &str)> {
+pub(crate) fn split_root(text: &str) -> Option<(&str, &str)> {
     let (name, rest) = text.split_once(':')?;
     let identifier =
         !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');

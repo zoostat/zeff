@@ -147,9 +147,11 @@ fn every_message_of_the_schema_pass() {
         // A `Var` given to a project function, checked against the frame it meets; the module's
         // function and a script's.
         "use functions::clean\nlet d = import(\"data/small.csv\")\nd.share_missing(aa)\nshare_missing(d, a)\n/// Mean of a variable.\nfn m(data: Frame, v: Var) -> Float { data.mean(v) }\nd.m(bbb)\nm(d, b)\n",
-        // What is not checked before the run: a frame after a verb (part 2), a bound name
-        // that may be a column or a binding.
-        "let d = import(\"data/small.csv\")\nd.where(a > 1).mean(nope)\nlet a = 3\nd.add(k = a)\n",
+        // A bound name that may be a column or a binding is not checked; a frame after a
+        // verb is (part 2, step 21): after every kind of verb, and through a project function.
+        "let d = import(\"data/small.csv\")\nlet a = 3\nd.add(k = a)\nd.where(a > 1).mean(nope)\nd.add(k = a * 2).select([k, nope2])\nd.rename(z = a).mean(a)\nd.drop([a]).mean(a)\nd.aggregate(m = mean(b), by: c).mean(a)\nd.merge(d.rename(q = a), on: [b, c], suffixes: [\"_l\", \"_r\"]).mean(q)\nd.merge(d.rename(q = a), on: [b, c], suffixes: [\"_l\", \"_r\"]).mean(a_x)\n/// Cleans.\nfn clean(data: Frame) -> Frame { data.where(a > 0).add(k = a) }\nd.clean().mean(k)\nd.clean().mean(kk)\n",
+        // A step checked at run time (`to_wide`), with the mark, before any run.
+        "let d = import(\"data/small.csv\")\nlet wide = d.to_wide(id: a, names_from: c, values_from: b)\nwide.mean(b_x)\n",
     ];
     let mut all = String::new();
     for script in scripts {
@@ -211,4 +213,117 @@ fn the_samples_check_the_same_cold_and_warm() {
         let errors: Vec<&String> = cold.iter().filter(|m| m.starts_with("error")).collect();
         assert!(errors.is_empty(), "{name}: {errors:?}");
     }
+}
+
+/// A step checked at run time, recorded by the run and used by the next check as a warning
+/// marked from last run, never an error (section 11): `to_wide` whose columns the data decide.
+#[test]
+fn a_run_records_the_columns_of_to_wide_for_the_next_check() {
+    use zeff_engine::run::run_script;
+    let fs = MemoryFileSystem::new();
+    fs.set_clock(1_000);
+    let project = project(&fs);
+    fs.add_file(
+        "/p/data/sales.csv",
+        "firm,year,sales\n1,2010,5\n1,2011,6\n2,2010,7\n2,2011,9\n",
+    );
+    let script = "let long = import(\"data/sales.csv\")\nlet wide = long.to_wide(id: firm, names_from: year, values_from: sales)\nwide.mean(sales_2010)\nwide.mean(sales_2012)\n";
+    // Before any run: the mark alone, nothing known of `wide`.
+    let before = check(&fs, &project, script);
+    assert_eq!(before.len(), 1, "{before:?}");
+    assert!(
+        before[0].starts_with(
+            "note: `to_wide` is checked at run time: its columns depend on the data, so"
+        ),
+        "{}",
+        before[0]
+    );
+    // The run records the columns `to_wide` produced, then stops at the variable the data lack.
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert_eq!(outcome.exit_code, 1);
+    assert!(
+        outcome
+            .output
+            .stderr
+            .contains("error[Z0101]: no variable `sales_2012` in `wide`"),
+        "{}",
+        outcome.output.stderr
+    );
+    let cache = SchemaCache::new(&fs, &project);
+    assert_eq!(cache.runs().len(), 1);
+    assert_eq!(
+        cache.runs()[0].columns,
+        vec![
+            ("firm".to_string(), "Int".to_string()),
+            ("sales_2010".to_string(), "Int".to_string()),
+            ("sales_2011".to_string(), "Int".to_string())
+        ]
+    );
+    // The next check: the mark says the last run's columns are used, and the mistake is a
+    // warning marked from last run.
+    let after = check(&fs, &project, script);
+    assert_eq!(after.len(), 2, "{after:?}");
+    assert!(
+        after[0].contains("the columns of the last run are used, marked from last run"),
+        "{}",
+        after[0]
+    );
+    assert!(
+        after[1].starts_with("warning[Z0101]: no variable `sales_2012` in `wide` (from last run)"),
+        "{}",
+        after[1]
+    );
+    insta::assert_snapshot!("from_last_run", after.join(""));
+}
+
+/// A data root's file read by a run is hashed; a later run whose file differs warns (W0701)
+/// with both times; the shipped `zeff:` files and the project's own files never do.
+#[test]
+fn a_changed_data_root_file_is_warned_about() {
+    use zeff_engine::run::run_script;
+    let fs = MemoryFileSystem::new();
+    fs.set_clock(1_000);
+    fs.add_file(
+        "/p/zeff.toml",
+        format!(
+            "[project]\nname = \"p\"\nzeff = \"{}\"\nedition = \"preview\"\n\n[data]\nlfs = {{ path = \"/shared\" }}\n",
+            zeff_engine::VERSION
+        ),
+    );
+    fs.add_file("/shared/r.csv", "a,b\n1,2\n");
+    fs.add_file("/p/data/own.csv", "a,b\n1,2\n");
+    let project = Project::open(&fs, Path::new("/p")).expect("the project opens");
+    let script = "let r = import(\"lfs:r.csv\")\nlet o = import(\"data/own.csv\")\nlet z = import(\"zeff:sleep.csv\")\nr.mean(a)\n";
+    let first = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert_eq!(first.exit_code, 0, "{}", first.output.stderr);
+    assert!(!first.output.stderr.contains("W0701"));
+    assert_eq!(SchemaCache::new(&fs, &project).roots().len(), 1);
+    // The same file again: no warning.
+    let again = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert!(
+        !again.output.stderr.contains("W0701"),
+        "{}",
+        again.output.stderr
+    );
+    // The root's file changes; so does the project's own, which is not warned about.
+    fs.set_clock(90_061_000_000);
+    fs.add_file("/shared/r.csv", "a,b\n1,2\n3,4\n");
+    fs.add_file("/p/data/own.csv", "a,b\n1,2\n3,4\n");
+    let changed = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert_eq!(changed.exit_code, 0, "{}", changed.output.stderr);
+    let stderr = changed.output.stderr;
+    assert!(stderr.contains("warning: `lfs:r.csv` has changed since the last run: it was read on 1970-01-01 00:00:00, and the file is now from 1970-01-02 01:01:01 (line 1)"), "{stderr}");
+    assert_eq!(
+        stderr.matches("has changed since the last run").count(),
+        1,
+        "{stderr}"
+    );
+    insta::assert_snapshot!("root_changed", stderr);
+    // Once recorded, the new file is the one the next run expects.
+    let settled = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert!(
+        !settled.output.stderr.contains("W0701"),
+        "{}",
+        settled.output.stderr
+    );
 }

@@ -254,3 +254,7 @@ The row of `x1..x9` gains the rule of open decision #54, taken on 1 November 202
 ## 2 November 2026 — zeff_language_reference.md, section 11 (the table of codes)
 
 Z0507, `event` given a `ref:` that is not a relative period of the data: question 2 of release 0.6.0 (decided 1 November 2026) says the condition is an error listing the periods present and names no code; the next free number of the formula family after the Z0504 to Z0506 the text already uses, as the checklist's ruling on provisional codes says (step 19). A code added, not a rule changed.
+
+## 2 November 2026 — zeff_language_reference.md, section 11 (the table of codes)
+
+W0701, a data root's file changed since the last run: section 2 of the Engine and Project Specification ("Data roots": each run records the hash of every file it read and warns when a file has changed since the last run) describes the warning and names no code; the next free number of the projects family, as the checklist's ruling on provisional codes says (step 21 of release 0.6.0). A code added, not a rule changed.

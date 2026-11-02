@@ -45,6 +45,7 @@ const PHRASES: &[(&str, &[&str])] = &[
     ("W1002", &["few clusters"]),
     ("W1003", &["extreme weights"]),
     ("W1004", &["little variation left after fe:"]),
+    ("W0701", &["has changed since the last run"]),
     ("Z0507", &["is not a relative period of the data"]),
     ("W1006", &["a coefficient: removing it moves an estimate"]),
     (

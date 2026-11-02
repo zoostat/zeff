@@ -1,6 +1,6 @@
 ---
 source: packages/tier2/regress/tests/reg.rs
-assertion_line: 565
+assertion_line: 566
 expression: all
 ---
 > let m = dataset(wages).reg(log(wage) ~ educ + exper + exper^2 + female)
@@ -226,10 +226,10 @@ R² 0.070 · adjusted R² 0.070
 > dataset(wages).reg(wage ~ region)
 --- messages ---
 error[Z0101]: no variable `region` in `wages`
- --> scripts/main.zeff:1:16
+ --> scripts/main.zeff:1:27
   |
 1 | dataset(wages).reg(wage ~ region)
-  |                ^^^ not a variable of wages
+  |                           ^^^^^^ not a variable of wages
   |
   = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 [exit 1]
@@ -503,10 +503,10 @@ error[Z0401]: `weights:` needs a numeric variable, but `industry` is a Category 
 > dataset(wages).reg(log(wage) ~ educ, weights: nope)
 --- messages ---
 error[Z0101]: no variable `nope` in `wages`
- --> scripts/main.zeff:1:16
+ --> scripts/main.zeff:1:47
   |
 1 | dataset(wages).reg(log(wage) ~ educ, weights: nope)
-  |                ^^^ not a variable of wages
+  |                                               ^^^^ not a variable of wages
   |
   = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 [exit 1]
@@ -514,10 +514,10 @@ error[Z0101]: no variable `nope` in `wages`
 > dataset(wages).reg(log(wage) ~ educ, cluster: nope)
 --- messages ---
 error[Z0101]: no variable `nope` in `wages`
- --> scripts/main.zeff:1:16
+ --> scripts/main.zeff:1:47
   |
 1 | dataset(wages).reg(log(wage) ~ educ, cluster: nope)
-  |                ^^^ not a variable of wages
+  |                                               ^^^^ not a variable of wages
   |
   = help: the variables of `wages` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 [exit 1]

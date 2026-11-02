@@ -34,12 +34,31 @@ pub struct Entry {
     pub columns: Vec<(String, String)>,
 }
 
+/// The columns a statement checked at run time produced in the last run (section 11, "from
+/// last run"), under the hash of the statement's text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunRecord {
+    pub statement: u64,
+    pub columns: Vec<(String, String)>,
+}
+
+/// A data root's file as the last run read it (Engine and Project Specification, section 2,
+/// "Data roots"): its hash and modification time, so that the next run can say it changed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RootRead {
+    pub path: String,
+    pub hash: String,
+    pub modified: Option<i64>,
+}
+
 /// The schemas of a project's files, read once per check or run and written back when any
 /// changed.
 pub struct SchemaCache<'a> {
     fs: &'a dyn FileSystem,
     project: &'a Project,
     entries: RefCell<Vec<Entry>>,
+    runs: RefCell<Vec<RunRecord>>,
+    roots: RefCell<Vec<RootRead>>,
     dirty: Cell<bool>,
     datasets: RefCell<HashMap<String, Option<FrameSchema>>>,
 }
@@ -48,15 +67,17 @@ impl<'a> SchemaCache<'a> {
     /// The cache of `project`, loaded from its file when there is one (an unreadable file is an
     /// empty cache, rewritten at the next save).
     pub fn new(fs: &'a dyn FileSystem, project: &'a Project) -> SchemaCache<'a> {
-        let entries = fs
+        let loaded = fs
             .read_to_string(&project.root.join(CACHE_FILE))
             .ok()
-            .and_then(|text| parse_entries(&text))
+            .and_then(|text| parse_cache(&text))
             .unwrap_or_default();
         SchemaCache {
             fs,
             project,
-            entries: RefCell::new(entries),
+            entries: RefCell::new(loaded.entries),
+            runs: RefCell::new(loaded.runs),
+            roots: RefCell::new(loaded.roots),
             dirty: Cell::new(false),
             datasets: RefCell::new(HashMap::new()),
         }
@@ -65,6 +86,52 @@ impl<'a> SchemaCache<'a> {
     /// The entries, as loaded and refreshed.
     pub fn entries(&self) -> Vec<Entry> {
         self.entries.borrow().clone()
+    }
+
+    /// The last run's records of the statements checked at run time.
+    pub fn runs(&self) -> Vec<RunRecord> {
+        self.runs.borrow().clone()
+    }
+
+    /// The data-root files as the last run read them.
+    pub fn roots(&self) -> Vec<RootRead> {
+        self.roots.borrow().clone()
+    }
+
+    /// Record what a statement checked at run time produced, for the next check.
+    pub fn record_run(&self, statement: u64, columns: Vec<(String, String)>) {
+        let mut runs = self.runs.borrow_mut();
+        runs.retain(|r| r.statement != statement);
+        runs.push(RunRecord { statement, columns });
+        self.dirty.set(true);
+    }
+
+    /// A data root's file read by this run: `Some` with the last run's hash and time when the
+    /// file differs from what the last run read; the read is recorded either way.
+    pub fn root_read(
+        &self,
+        path: &str,
+        hash: &str,
+        modified: Option<i64>,
+    ) -> Option<(String, Option<i64>)> {
+        let mut roots = self.roots.borrow_mut();
+        let previous = roots.iter().find(|r| r.path == path).cloned();
+        if previous
+            .as_ref()
+            .is_some_and(|p| p.hash == hash && p.modified == modified)
+        {
+            return None;
+        }
+        roots.retain(|r| r.path != path);
+        roots.push(RootRead {
+            path: path.to_string(),
+            hash: hash.to_string(),
+            modified,
+        });
+        self.dirty.set(true);
+        previous
+            .filter(|p| p.hash != hash)
+            .map(|p| (p.hash, p.modified))
     }
 
     /// Write the cache when a schema was read or refreshed; nothing otherwise.
@@ -80,7 +147,11 @@ impl<'a> SchemaCache<'a> {
         if !self.fs.is_dir(&folder) {
             self.fs.create_dir(&folder)?;
         }
-        let text = write_entries(&self.entries.borrow());
+        let text = write_cache(
+            &self.entries.borrow(),
+            &self.runs.borrow(),
+            &self.roots.borrow(),
+        );
         self.fs
             .write(&self.project.root.join(CACHE_FILE), text.as_bytes())?;
         self.dirty.set(false);
@@ -176,6 +247,14 @@ impl Schemas for SchemaCache<'_> {
         self.schema_of_bytes(request, &bytes, Some((info.size, info.modified)))
     }
 
+    fn last_run(&self, statement: u64) -> Option<Vec<(String, String)>> {
+        self.runs
+            .borrow()
+            .iter()
+            .find(|r| r.statement == statement)
+            .map(|r| r.columns.clone())
+    }
+
     fn dataset(&self, name: &str) -> Option<FrameSchema> {
         if let Some(found) = self.datasets.borrow().get(name) {
             return found.clone();
@@ -262,6 +341,96 @@ fn csv_options(request: &ImportRequest) -> Result<CsvOptions, String> {
 }
 
 // ----- the cache file: a small JSON written and read by hand -----
+
+/// What the cache file holds.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct CacheContents {
+    pub entries: Vec<Entry>,
+    pub runs: Vec<RunRecord>,
+    pub roots: Vec<RootRead>,
+}
+
+fn columns_json(columns: &[(String, String)]) -> String {
+    columns
+        .iter()
+        .map(|(name, ty)| format!("[{}, {}]", json_string(name), json_string(ty)))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// The whole cache as the file's text: the schemas, the last run's records and the data-root
+/// reads.
+pub fn write_cache(entries: &[Entry], runs: &[RunRecord], roots: &[RootRead]) -> String {
+    let mut out = write_entries(entries);
+    out.truncate(out.trim_end().trim_end_matches('}').trim_end().len());
+    out.push_str(",\n  \"runs\": [\n");
+    for (i, r) in runs.iter().enumerate() {
+        out.push_str(&format!(
+            "    {{\"statement\": {}, \"columns\": [{}]}}{}\n",
+            json_string(&format!("{:016x}", r.statement)),
+            columns_json(&r.columns),
+            if i + 1 < runs.len() { "," } else { "" }
+        ));
+    }
+    out.push_str("  ],\n  \"roots\": [\n");
+    for (i, r) in roots.iter().enumerate() {
+        out.push_str(&format!(
+            "    {{\"path\": {}, \"hash\": {}, \"modified\": {}}}{}\n",
+            json_string(&r.path),
+            json_string(&r.hash),
+            r.modified.map_or("null".to_string(), |m| m.to_string()),
+            if i + 1 < roots.len() { "," } else { "" }
+        ));
+    }
+    out.push_str("  ]\n}\n");
+    out
+}
+
+/// The whole cache from the file's text; `None` when the text is not the cache's shape.
+pub fn parse_cache(text: &str) -> Option<CacheContents> {
+    let value = Json::parse(text)?;
+    let object = value.object()?;
+    let entries = parse_entries(text)?;
+    let mut runs = Vec::new();
+    if let Some(items) = object.field("runs").and_then(Json::array) {
+        for item in items {
+            let fields = item.object()?;
+            let statement = u64::from_str_radix(fields.field("statement")?.string()?, 16).ok()?;
+            let columns = fields
+                .field("columns")?
+                .array()?
+                .iter()
+                .map(|pair| {
+                    let pair = pair.array()?;
+                    Some((
+                        pair.first()?.string()?.to_string(),
+                        pair.get(1)?.string()?.to_string(),
+                    ))
+                })
+                .collect::<Option<Vec<_>>>()?;
+            runs.push(RunRecord { statement, columns });
+        }
+    }
+    let mut roots = Vec::new();
+    if let Some(items) = object.field("roots").and_then(Json::array) {
+        for item in items {
+            let fields = item.object()?;
+            roots.push(RootRead {
+                path: fields.field("path")?.string()?.to_string(),
+                hash: fields.field("hash")?.string()?.to_string(),
+                modified: match fields.field("modified")? {
+                    Json::Null => None,
+                    other => Some(other.number()? as i64),
+                },
+            });
+        }
+    }
+    Some(CacheContents {
+        entries,
+        runs,
+        roots,
+    })
+}
 
 /// The entries as the cache file's text.
 pub fn write_entries(entries: &[Entry]) -> String {
@@ -539,5 +708,24 @@ mod tests {
         assert_eq!(parse_entries(&text).unwrap(), entries);
         assert_eq!(parse_entries("not json"), None);
         assert_eq!(parse_entries("{\"version\": 1}"), None);
+        let runs = vec![RunRecord {
+            statement: 0x0123_4567_89ab_cdef,
+            columns: vec![("sales_2010".to_string(), "Float".to_string())],
+        }];
+        let roots = vec![RootRead {
+            path: "lfs:wages.csv".to_string(),
+            hash: "ff".to_string(),
+            modified: Some(1_000),
+        }];
+        let text = write_cache(&entries, &runs, &roots);
+        let contents = parse_cache(&text).unwrap();
+        assert_eq!(contents.entries, entries);
+        assert_eq!(contents.runs, runs);
+        assert_eq!(contents.roots, roots);
+        // A file without the later sections still reads.
+        assert_eq!(
+            parse_cache(&write_entries(&entries)).unwrap().entries,
+            entries
+        );
     }
 }

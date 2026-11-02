@@ -20,6 +20,10 @@ pub struct FrameSchema {
     /// How a message names the frame when it is not bound, as the run names it: a shipped
     /// dataset by its name, anything else `the frame`.
     pub origin: String,
+    /// Whether the columns come from the last run's record of a step whose columns depend on
+    /// the data (`to_wide`), so that a diagnostic resting on them is a warning marked
+    /// `from last run`, never an error (section 11).
+    pub from_last_run: bool,
 }
 
 impl FrameSchema {
@@ -32,7 +36,16 @@ impl FrameSchema {
                 .map(|(name, ty)| (name.clone(), column_ty(ty)))
                 .collect(),
             origin: origin.to_string(),
+            from_last_run: false,
         }
+    }
+
+    /// The type of a column by name, when the frame has it.
+    pub fn column(&self, name: &str) -> Option<&Ty> {
+        self.columns
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, ty)| ty)
     }
 
     pub fn has(&self, name: &str) -> bool {
@@ -111,9 +124,26 @@ pub enum SchemaLookup {
 }
 
 /// The engine's side of the schema pass: what `import` and `dataset` will give, without
-/// reading the data.
+/// reading the data, and what the last run recorded for a step whose columns depend on the
+/// data (by the hash of the statement's text).
 pub trait Schemas {
     fn import(&self, request: &ImportRequest) -> SchemaLookup;
 
     fn dataset(&self, name: &str) -> Option<FrameSchema>;
+
+    /// The columns the statement with this hash produced in the last run, if recorded.
+    fn last_run(&self, statement_hash: u64) -> Option<Vec<(String, String)>> {
+        let _ = statement_hash;
+        None
+    }
+}
+
+/// FNV-1a over a statement's text, identical on every target: the key of its last-run record.
+pub fn statement_hash(text: &str) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in text.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
 }

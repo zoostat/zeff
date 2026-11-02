@@ -29,6 +29,7 @@ pub const PAGES: &[(&str, &str)] = &[
     ("W1006", include_str!("../codes/W1006.md")),
     ("W0601", include_str!("../codes/W0601.md")),
     ("W0602", include_str!("../codes/W0602.md")),
+    ("W0701", include_str!("../codes/W0701.md")),
     ("W0702", include_str!("../codes/W0702.md")),
     ("W0703", include_str!("../codes/W0703.md")),
     ("Z0101", include_str!("../codes/Z0101.md")),

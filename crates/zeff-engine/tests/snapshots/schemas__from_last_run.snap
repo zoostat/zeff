@@ -1,0 +1,17 @@
+---
+source: crates/zeff-engine/tests/schemas.rs
+assertion_line: 276
+expression: "after.join(\"\")"
+---
+note: `to_wide` is checked at run time: its columns depend on the data; the columns of the last run are used, marked from last run
+ --> scripts/main.zeff:2:17
+  |
+2 | let wide = long.to_wide(id: firm, names_from: year, values_from: sales)
+  |                 ^^^^^^^ the columns of the last run
+warning[Z0101]: no variable `sales_2012` in `wide` (from last run)
+ --> scripts/main.zeff:4:11
+  |
+4 | wide.mean(sales_2012)
+  |           ^^^^^^^^^^ not a variable of wide
+  |
+  = help: did you mean `sales_2010`? If you meant a category level, write it in quotes: `"sales_2010"`

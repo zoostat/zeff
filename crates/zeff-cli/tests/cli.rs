@@ -1235,3 +1235,93 @@ fn verbose_prints_the_memory_record_of_a_run() {
         err(&o)
     );
 }
+
+/// The schema pass, part 2 (release 0.6.0, step 21): a mistake after a verb is caught at the
+/// check; after a run with `to_wide`, a misspelt new column is a warning from last run, not an
+/// error; a changed data-root file is warned about; `--format json` carries both marks.
+#[test]
+fn zeff_check_carries_schemas_through_verbs_and_the_last_run() {
+    let (dir, project) = demo();
+    std::fs::write(
+        project.join("data/sales.csv"),
+        "firm,year,sales\n1,2010,5\n1,2011,6\n2,2010,7\n2,2011,9\n",
+    )
+    .unwrap();
+    // After a verb.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let long = import(\"data/sales.csv\")\nlong.where(year > 2010).add(k = sales * 2).mean(k)\nlong.where(year > 2010).mean(sale)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("error[Z0101]: no variable `sale` in `the frame`"),
+        "{}",
+        err(&o)
+    );
+    // `to_wide`: the run records its columns; the next check warns from last run and exits 0.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let long = import(\"data/sales.csv\")\nlet wide = long.to_wide(id: firm, names_from: year, values_from: sales)\nwide.mean(sales_2010)\nwide.mean(sales_2012)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("error[Z0101]: no variable `sales_2012` in `wide`"),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    let text = err(&o);
+    assert!(
+        text.contains("warning[Z0101]: no variable `sales_2012` in `wide` (from last run)"),
+        "{text}"
+    );
+    assert!(
+        text.contains("the columns of the last run are used, marked from last run"),
+        "{text}"
+    );
+    assert!(
+        text.ends_with("scripts/main.zeff: 0 errors, 1 warning\n"),
+        "{text}"
+    );
+    let o = zeff(&project, &["check", "--format", "json"]);
+    assert_eq!(code(&o), 0);
+    let json = out(&o);
+    assert!(json.contains("\"mark\": \"checked at run time\""), "{json}");
+    assert!(json.contains("\"mark\": \"from last run\""), "{json}");
+    assert!(json.contains("\"severity\": \"warning\""), "{json}");
+    // A data root's file that changes between runs.
+    let shared = dir.path().join("shared");
+    std::fs::create_dir_all(&shared).unwrap();
+    std::fs::write(shared.join("r.csv"), "a,b\n1,2\n").unwrap();
+    let manifest = std::fs::read_to_string(project.join("zeff.toml")).unwrap();
+    std::fs::write(
+        project.join("zeff.toml"),
+        format!("{manifest}\n[data]\nlfs = {{ path = \"../shared\" }}\n"),
+    )
+    .unwrap();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "let r = import(\"lfs:r.csv\")\nr.mean(a)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(!err(&o).contains("W0701"), "{}", err(&o));
+    std::thread::sleep(std::time::Duration::from_millis(1_100));
+    std::fs::write(shared.join("r.csv"), "a,b\n1,2\n3,4\n").unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(
+        err(&o).contains("warning: `lfs:r.csv` has changed since the last run: it was read on"),
+        "{}",
+        err(&o)
+    );
+    assert_eq!(out(&o), "2\n");
+    let o = zeff(&project, &["run"]);
+    assert!(!err(&o).contains("has changed"), "{}", err(&o));
+}

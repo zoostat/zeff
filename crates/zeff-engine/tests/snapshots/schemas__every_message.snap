@@ -1,6 +1,6 @@
 ---
 source: crates/zeff-engine/tests/schemas.rs
-assertion_line: 165
+assertion_line: 167
 expression: all
 ---
 > let d = import("data/small.csv")
@@ -166,7 +166,75 @@ error[Z0101]: no variable `bbb` in `d`
   = help: the variables of `d` are: a, b, c
 ----
 > let d = import("data/small.csv")
-d.where(a > 1).mean(nope)
 let a = 3
 d.add(k = a)
+d.where(a > 1).mean(nope)
+d.add(k = a * 2).select([k, nope2])
+d.rename(z = a).mean(a)
+d.drop([a]).mean(a)
+d.aggregate(m = mean(b), by: c).mean(a)
+d.merge(d.rename(q = a), on: [b, c], suffixes: ["_l", "_r"]).mean(q)
+d.merge(d.rename(q = a), on: [b, c], suffixes: ["_l", "_r"]).mean(a_x)
+/// Cleans.
+fn clean(data: Frame) -> Frame { data.where(a > 0).add(k = a) }
+d.clean().mean(k)
+d.clean().mean(kk)
+error[Z0101]: no variable `nope` in `the frame`
+ --> scripts/main.zeff:4:21
+  |
+4 | d.where(a > 1).mean(nope)
+  |                     ^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: a, b, c
+error[Z0101]: no variable `nope2` in `the frame`
+ --> scripts/main.zeff:5:25
+  |
+5 | d.add(k = a * 2).select([k, nope2])
+  |                         ^^^^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: a, b, c, k
+error[Z0101]: no variable `a` in `the frame`
+ --> scripts/main.zeff:6:22
+  |
+6 | d.rename(z = a).mean(a)
+  |                      ^ not a variable of the frame
+  |
+  = help: did you mean `z`? If you meant a category level, write it in quotes: `"z"`
+error[Z0101]: no variable `a` in `the frame`
+ --> scripts/main.zeff:7:18
+  |
+7 | d.drop([a]).mean(a)
+  |                  ^ not a variable of the frame
+  |
+  = help: did you mean `b`? If you meant a category level, write it in quotes: `"b"`
+error[Z0101]: no variable `a` in `the frame`
+ --> scripts/main.zeff:8:38
+  |
+8 | d.aggregate(m = mean(b), by: c).mean(a)
+  |                                      ^ not a variable of the frame
+  |
+  = help: did you mean `c`? If you meant a category level, write it in quotes: `"c"`
+error[Z0101]: no variable `a_x` in `the frame`
+ --> scripts/main.zeff:10:67
+   |
+10 | d.merge(d.rename(q = a), on: [b, c], suffixes: ["_l", "_r"]).mean(a_x)
+   |                                                                   ^^^ not a variable of the frame
+   |
+   = help: the variables of `the frame` are: a, b, c, q
+error[Z0101]: no variable `kk` in `the frame`
+ --> scripts/main.zeff:14:16
+   |
+14 | d.clean().mean(kk)
+   |                ^^ not a variable of the frame
+   |
+   = help: did you mean `k`? If you meant a category level, write it in quotes: `"k"`
+----
+> let d = import("data/small.csv")
+let wide = d.to_wide(id: a, names_from: c, values_from: b)
+wide.mean(b_x)
+note: `to_wide` is checked at run time: its columns depend on the data, so the variables of this frame are checked when the script runs
+ --> scripts/main.zeff:2:14
+  |
+2 | let wide = d.to_wide(id: a, names_from: c, values_from: b)
+  |              ^^^^^^^ no schema before the run
 ----

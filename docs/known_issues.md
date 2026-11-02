@@ -21,10 +21,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   `zeff test` at 0.7.0. (Since 0.5.0.) The other half of this entry, a `Var` parameter checked
   only when the statement runs, closed at 0.6.0, step 20: the schema pass checks it at `zeff
   check` against the frame the function uses it with, when that frame's schema is known.
-- **A frame's columns are known to the checker at its source only** (an `import` of an existing
-  file, `dataset`, a `frame` literal, or a binding of one of these) until part 2 of the schema
-  pass carries them through `where`, `add`, `select` and the other verbs; a misspelt variable
-  after a verb is reported when the statement runs. (Since 0.6.0, step 20; part 2 is step 21.)
+- **A frame's columns are not known to the checker after `to_wide`, after an import of a file
+  that does not exist yet, or after a project function whose returns differ** in their columns;
+  such a frame is marked "checked at run time", its variables are checked when the statement
+  runs, and after a run the columns the step produced serve the next check as warnings marked
+  "from last run". A frame given to `merge` without `suffixes:` while it shares a column is
+  checked at run time too, where the merge is refused. (Since 0.6.0, step 21.)
 - **`case` over rows evaluates every arm on the whole frame**, as R's `ifelse` does, so a warning
   such as a division by zero may count rows the arm does not supply; a Category column is refused
   as a value of `case` (Z0214; `to(x, Str)` gives its labels). (Since 0.5.0; a Date or DateTime

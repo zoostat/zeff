@@ -39,6 +39,9 @@ pub struct Output {
     /// Project Specification, section 8.3, point 7: a frame's reported size counts the parent
     /// buffers it keeps alive).
     pub memory: Vec<MemoryNote>,
+    /// The columns each statement checked at run time produced (section 11, "from last run"),
+    /// under the hash of the statement's text, for the schema cache.
+    pub produced: Vec<(u64, Vec<(String, String)>)>,
 }
 
 /// One line of the memory record: a frame bound, with its own bytes and the parent bytes it
@@ -252,6 +255,9 @@ impl<'a> Interpreter<'a> {
                     .help("the statements before it ran; please report the script and the data that led here"),
                 )),
             };
+            // The messages the statement's reads left behind (a data root's file that
+            // changed, W0701) join the statement's own.
+            messages.extend(self.files.take_messages());
             let mut statement_errors = String::new();
             for message in &messages {
                 statement_errors.push_str(&message.short(Some(line)));
@@ -276,6 +282,26 @@ impl<'a> Interpreter<'a> {
                 stdout: printed,
                 stderr: statement_errors,
             });
+            if let Statement::Let { binding, span, .. } = statement
+                && let Some(Value::Frame(frame)) = self.env.get(binding)
+                && let Some((_, hash)) =
+                    self.program.run_time_frames.iter().find(|(s, _)| s == span)
+            {
+                let columns: Vec<(String, String)> = frame
+                    .table
+                    .names()
+                    .iter()
+                    .enumerate()
+                    .map(|(i, name)| {
+                        let ty = frame
+                            .table
+                            .column_at(i)
+                            .map_or("Unknown", |c| c.ty().name());
+                        (name.clone(), ty.to_string())
+                    })
+                    .collect();
+                output.produced.push((*hash, columns));
+            }
             if let Statement::Let { binding, .. } = statement
                 && let Some(Value::Frame(frame)) = self.env.get(binding)
             {

@@ -85,6 +85,10 @@ impl Diagnostic {
         fields.push(format!("\"labels\": [{}]", labels.join(", ")));
         let help: Vec<String> = self.help.iter().map(|h| json_string(h)).collect();
         fields.push(format!("\"help\": [{}]", help.join(", ")));
+        fields.push(format!(
+            "\"mark\": {}",
+            self.mark.as_deref().map_or("null".to_string(), json_string)
+        ));
         let fixes: Vec<String> = self
             .fixes
             .iter()
@@ -134,7 +138,7 @@ mod tests {
         let json = d.to_json(&sources);
         assert_eq!(
             json,
-            r#"{"code": "Z0101", "severity": "error", "message": "no variable `incme` in `poll`", "file": "scripts/main.zeff", "span": {"line": 2, "column": 11, "end_line": 2, "end_column": 16}, "labels": [{"text": "not a variable of poll", "primary": true, "line": 2, "column": 11, "end_line": 2, "end_column": 16}], "help": ["did you mean `income`?"], "fixes": []}"#
+            r#"{"code": "Z0101", "severity": "error", "message": "no variable `incme` in `poll`", "file": "scripts/main.zeff", "span": {"line": 2, "column": 11, "end_line": 2, "end_column": 16}, "labels": [{"text": "not a variable of poll", "primary": true, "line": 2, "column": 11, "end_line": 2, "end_column": 16}], "help": ["did you mean `income`?"], "mark": null, "fixes": []}"#
         );
         assert_eq!(
             json_string("a \"quoted\"\nline\t\u{1}"),
@@ -143,7 +147,7 @@ mod tests {
         let plain = Diagnostic::warning("W0201", "3 rows skipped");
         assert_eq!(
             plain.to_json(&sources),
-            r#"{"code": "W0201", "severity": "warning", "message": "3 rows skipped", "file": null, "labels": [], "help": [], "fixes": []}"#
+            r#"{"code": "W0201", "severity": "warning", "message": "3 rows skipped", "file": null, "labels": [], "help": [], "mark": null, "fixes": []}"#
         );
     }
 }

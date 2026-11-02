@@ -57,6 +57,7 @@ fn fit_with(table: &Table, text: &str, options: &Options<'_>) -> Rc<Fit> {
         values: vec![
             Some(Value::Frame(Frame::new(table.clone()))),
             Some(Value::Formula(f)),
+            None,
             options.se.map(|w| Value::Word(w.to_string())),
             options.cluster.map(|v| Value::Var(v.to_string())),
             options.weights.map(|v| Value::Var(v.to_string())),

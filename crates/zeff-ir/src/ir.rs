@@ -39,6 +39,10 @@ pub struct Program {
     /// The schema of every frame the checker knew (Engine and Project Specification, section
     /// 8.3, point 1), by the span of the expression that makes it, in order of position.
     pub schemas: Vec<(Span, crate::schema::FrameSchema)>,
+    /// The script's `let` statements whose frame's columns depend on the data (`to_wide`, an
+    /// import of a file that does not exist yet), by span, with the hash of the statement's
+    /// text under which the run records the columns it produced (section 11, "from last run").
+    pub run_time_frames: Vec<(Span, u64)>,
 }
 
 /// A function by position in [`Program::functions`].

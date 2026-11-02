@@ -121,6 +121,8 @@ regress/interface/stdout 08c3aafc8156baa5
 regress/interface/stderr cbf29ce484222325
 control/check/stdout cbf29ce484222325
 control/check/stderr 78f09813226bf7ad
+control/schemas/stdout cbf29ce484222325
+control/schemas/stderr b848503fd91236e1
 control/case/stdout 31d5603dedb0df16
 control/case/stderr bb0e7314f2b5bfed
 control/modules/stdout dfd3255f4fb8b4cf

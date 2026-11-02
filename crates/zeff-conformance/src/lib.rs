@@ -977,6 +977,12 @@ fn control_cases() -> Vec<Line> {
             "check",
             "let w = dataset(wages)\nw.mean(wage)\nlet f = frame(x = [1, 2], y = [3, 4])\nf.mean(x)\nlet m = import(\"data/absent.csv\")\nw.reg(log(wage) ~ educ + expr, fe: firm)\n",
         ),
+        // The schema pass, part 2 (step 21): a mistake after a chain of verbs, caught before
+        // the first statement runs.
+        (
+            "schemas",
+            "let w = dataset(wages)\nw.mean(wage)\nlet s = w.where(year > 2015).add(lw = log(wage)).rename(pay = wage).select([worker, year, pay, lw])\ns.aggregate(m = mean(lw), by: year).mean(m)\ns.merge(dataset(firms).select([firm, size]), on: firm)\n",
+        ),
         (
             "case",
             "let w = dataset(wages)\nlet reps = if w.n_rows() < 500 { 5000 } else { 1000 }\nreps\nlet b = w.add(band = case { wage < 15 => \"low\", wage < 25 => \"mid\", _ => \"high\" }, k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })\nb.summary([k])\nb.where(case { hours > 40 => true, _ => false }).mean(wage)\ncase { w.n_rows() > 5 => \"big\", _ => \"small\" }\n",

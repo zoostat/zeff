@@ -13,14 +13,33 @@ use zeff_diagnostics::{Diagnostic, Severity, Source, Sources, Span};
 use zeff_registry::Registry;
 
 /// The files of a project, as a running script may read them: by the path rules of section 2.
+/// With the schema cache given, a data root's file is hashed as it is read and a change since
+/// the last run is warned about (W0701) after the statement that read it.
 pub struct ProjectFiles<'a> {
     pub fs: &'a dyn FileSystem,
     pub project: &'a Project,
+    pub schemas: Option<&'a crate::schemas::SchemaCache<'a>>,
+    pub pending: std::cell::RefCell<Vec<Diagnostic>>,
+}
+
+impl<'a> ProjectFiles<'a> {
+    pub fn new(fs: &'a dyn FileSystem, project: &'a Project) -> ProjectFiles<'a> {
+        ProjectFiles {
+            fs,
+            project,
+            schemas: None,
+            pending: std::cell::RefCell::new(Vec::new()),
+        }
+    }
 }
 
 impl Files for ProjectFiles<'_> {
     fn now(&self) -> Option<i64> {
         self.fs.now()
+    }
+
+    fn take_messages(&self) -> Vec<Diagnostic> {
+        std::mem::take(&mut self.pending.borrow_mut())
     }
 
     fn read(&self, written: &str, span: Span, script: &str) -> Result<Vec<u8>, Fail> {
@@ -70,13 +89,44 @@ impl Files for ProjectFiles<'_> {
                     .help(format!("put the file in the project and write its path from the project folder, as in `data/{}`", Path::new(written).file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_else(|| "wages.csv".into()))),
             ));
         }
-        self.fs.read(&path).map_err(|e| {
+        let bytes = self.fs.read(&path).map_err(|e| {
             fail(
                 Diagnostic::error("Z0715", format!("cannot read `{written}`: {e}"))
                     .in_file(script)
                     .primary(span, "the file could not be read"),
             )
-        })
+        })?;
+        // A data root's file: hashed, and compared with what the last run read (section 2,
+        // "Data roots"; W0701 after the statement).
+        if let Some(schemas) = self.schemas
+            && crate::paths::split_root(written).is_some()
+        {
+            let hash = zeff_hash::hash_hex(&bytes);
+            let modified = self.fs.metadata(&path).ok().and_then(|m| m.modified);
+            if let Some((_, previous)) = schemas.root_read(written, &hash, modified) {
+                // The time to the second, as a clock on the wall shows it.
+                let when = |t: Option<i64>| -> String {
+                    t.map_or("an unknown time".to_string(), |t| {
+                        let iso = zeff_core::display::cell(zeff_columns::Value::DateTime(t));
+                        iso.split('.').next().unwrap_or(&iso).replace('T', " ")
+                    })
+                };
+                self.pending.borrow_mut().push(
+                    Diagnostic::warning(
+                        "W0701",
+                        format!(
+                            "`{written}` has changed since the last run: it was read on {}, and the file is now from {}",
+                            when(previous),
+                            when(modified)
+                        ),
+                    )
+                    .in_file(script)
+                    .primary(span, "not the file the last run read")
+                    .help("the results may differ from the last run's; the run records of release 0.11.0 will show how"),
+                );
+            }
+        }
+        Ok(bytes)
     }
 
     /// Only under the project folder (section 2, "Writes"): `output/` is created as needed, any
@@ -302,14 +352,23 @@ pub fn run_script_in(
     {
         output.stderr.push_str(&warning.render(&sources));
     }
-    let files = ProjectFiles { fs, project };
+    // The schema cache of the run: the data-root files it reads, and the columns of the
+    // statements checked at run time, recorded for the next check (section 11).
+    let schemas = crate::schemas::SchemaCache::new(fs, project);
+    let mut files = ProjectFiles::new(fs, project);
+    files.schemas = Some(&schemas);
     let interpreter = Interpreter::new(&checked.program, bodies, &files, script, &source)
         .with_zeff(zeff)
         .with_sources(&module_sources)
         .with_panic_at(options.panic_at_line)
         .with_width(options.width)
         .with_freeing(options.free_bindings);
-    match interpreter.run(&mut output) {
+    let result = interpreter.run(&mut output);
+    for (statement, columns) in std::mem::take(&mut output.produced) {
+        schemas.record_run(statement, columns);
+    }
+    let _ = schemas.save();
+    match result {
         Ok(()) => Outcome {
             output,
             exit_code: 0,

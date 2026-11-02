@@ -9,11 +9,14 @@ use crate::ir::{
     Arm, Binding, BindingId, BindingKind, Block, Call, Expr, ExprKind, FnId, Formula, Function,
     FunctionValue, Param, Program, RecordField, Slot, Spread, Statement, Term, TermKind, TermStep,
 };
-use crate::schema::{FrameSchema, ImportRequest, SchemaLookup, Schemas};
+use crate::schema::{FrameSchema, ImportRequest, SchemaLookup, Schemas, statement_hash};
 use crate::ty::{ResultKind, Ty};
 use std::rc::Rc;
 use zeff_diagnostics::messages::no_variable;
-use zeff_diagnostics::{Diagnostic, Diagnostics, Span, did_you_mean};
+use zeff_diagnostics::{Diagnostic, Diagnostics, Severity, Span, did_you_mean};
+
+/// The schemas of frame bindings while a function body is evaluated for its result's schema.
+type SchemaEnv = std::collections::HashMap<BindingId, Rc<FrameSchema>>;
 use zeff_registry::{Registered, Registry, Rest};
 use zeff_syntax::ast;
 use zeff_syntax::ast::UnaryOp;
@@ -180,12 +183,14 @@ pub fn check_project_with(
         .map(|(span, schema)| (*span, (**schema).clone()))
         .collect();
     schemas.sort_by_key(|(span, _)| (span.start, span.end));
+    let run_time_frames = checker.run_time_statements;
     Checked {
         program: Program {
             statements,
             bindings: checker.bindings,
             functions,
             schemas,
+            run_time_frames,
         },
         diagnostics: checker.found,
     }
@@ -263,6 +268,14 @@ struct Checker<'a> {
     /// For each function, the pairs (frame parameter, `Var` parameter) its body uses together,
     /// so that a call can check the variable against the frame it gives (section 3.7).
     var_uses: Vec<Vec<(usize, usize)>>,
+    /// The span of the script statement being checked, for the hash under which a run records
+    /// the columns of a step checked at run time.
+    current_statement: Option<Span>,
+    /// The script's statements that make such a frame, with their hashes.
+    run_time_statements: Vec<(Span, u64)>,
+    /// How many project functions are being evaluated for their result's schema, one inside
+    /// another; a bound, since a function may not call itself (Z0108).
+    schema_depth: usize,
     /// The script's text, for the functions' hashes.
     text: Option<&'a str>,
     /// The signatures of the script's functions, collected before any body or statement is
@@ -314,6 +327,9 @@ impl<'a> Checker<'a> {
             frame_schemas: std::collections::HashMap::new(),
             binding_schemas: std::collections::HashMap::new(),
             var_uses: Vec::new(),
+            current_statement: None,
+            run_time_statements: Vec::new(),
+            schema_depth: 0,
             text,
             signatures: Vec::new(),
             functions: Vec::new(),
@@ -549,6 +565,7 @@ pub fn check_builtin(
                 bindings: checker.bindings,
                 functions,
                 schemas: Vec::new(),
+                run_time_frames: Vec::new(),
             },
             function: main,
         });
@@ -631,6 +648,13 @@ impl Checker<'_> {
     // ----- statements -----
 
     fn statement(&mut self, statement: &ast::Stmt) -> Option<Statement> {
+        if self.current_function.is_none() {
+            self.current_statement = Some(statement.span);
+        }
+        self.statement_inner(statement)
+    }
+
+    fn statement_inner(&mut self, statement: &ast::Stmt) -> Option<Statement> {
         match &statement.kind {
             ast::StmtKind::Let { name, value } => {
                 let value = self.expr(value, None);
@@ -5438,7 +5462,12 @@ impl Checker<'_> {
                     })
                     .collect(),
                 origin: "the frame".to_string(),
+                from_last_run: false,
             }),
+            ("data", "to_wide") => {
+                self.run_time_step(call, "`to_wide`", "its columns depend on the data")
+            }
+            _ if lowered.ty == Ty::Frame => self.verb_schema(call, &SchemaEnv::new()),
             _ => None,
         };
         if let Some(schema) = made {
@@ -5595,14 +5624,7 @@ impl Checker<'_> {
         match schemas.import(&request) {
             SchemaLookup::Known(schema) => Some(schema),
             SchemaLookup::RunTime(why) => {
-                self.report(
-                    Diagnostic::plain_note(format!(
-                        "`{}` is checked at run time: {why}, so the variables of this frame are checked when the script runs",
-                        request.path
-                    ))
-                    .primary(path_span, "no schema before the run"),
-                );
-                None
+                self.run_time_step(call, &format!("`{}`", request.path), &why)
             }
             SchemaLookup::Unknown => None,
             SchemaLookup::Problem(mut diagnostic) => {
@@ -5614,6 +5636,351 @@ impl Checker<'_> {
                 None
             }
         }
+    }
+
+    /// A step whose columns depend on the data (`to_wide`, an import of a file that does not
+    /// exist yet): noted as checked at run time, with the mark the editor shows, and recorded
+    /// under the hash of its statement so that the run stores the columns it produced; the
+    /// columns of the last run, when recorded, are the schema, marked from last run (section
+    /// 11, "Checking before running").
+    fn run_time_step(&mut self, call: &Call, what: &str, why: &str) -> Option<FrameSchema> {
+        let hash = match (self.current_statement, self.text) {
+            (Some(span), Some(text)) if self.current_function.is_none() => {
+                let hash = statement_hash(text.get(span.start..span.end).unwrap_or(""));
+                if !self.run_time_statements.iter().any(|(s, _)| *s == span) {
+                    self.run_time_statements.push((span, hash));
+                }
+                Some(hash)
+            }
+            _ => None,
+        };
+        let last_run = hash
+            .and_then(|h| self.schemas.and_then(|s| s.last_run(h)))
+            .map(|columns| FrameSchema {
+                from_last_run: true,
+                ..FrameSchema::from_names("the frame", &columns)
+            });
+        let (message, label) = match &last_run {
+            Some(_) => (
+                format!(
+                    "{what} is checked at run time: {why}; the columns of the last run are used, marked from last run"
+                ),
+                "the columns of the last run",
+            ),
+            None => (
+                format!(
+                    "{what} is checked at run time: {why}, so the variables of this frame are checked when the script runs"
+                ),
+                "no schema before the run",
+            ),
+        };
+        let span = if call.name == "import" {
+            call.args
+                .first()
+                .and_then(|a| a.as_ref())
+                .map_or(call.callee_span, |e| e.span)
+        } else {
+            call.callee_span
+        };
+        self.report(
+            Diagnostic::plain_note(message)
+                .primary(span, label)
+                .mark("checked at run time"),
+        );
+        last_run
+    }
+
+    /// The schema of a frame-valued expression evaluated with the schemas of `env` for the
+    /// bindings it reads (a function's parameters at a call): a binding's schema, a verb's
+    /// result, or a project function's result.
+    fn schema_eval(&mut self, expr: &Expr, env: &SchemaEnv) -> Option<Rc<FrameSchema>> {
+        if let Some(found) = self.frame_schemas.get(&expr.span) {
+            return Some(Rc::clone(found));
+        }
+        match &expr.kind {
+            ExprKind::Binding(id) => env
+                .get(id)
+                .cloned()
+                .or_else(|| self.binding_schemas.get(id).cloned()),
+            ExprKind::Call(call) if expr.ty == Ty::Frame => {
+                self.verb_schema(call, env).map(Rc::new)
+            }
+            ExprKind::CallFn { function, args, .. } if expr.ty == Ty::Frame => {
+                self.function_schema(*function, args, env)
+            }
+            ExprKind::Block(block) => {
+                let tail = block.tail.as_ref()?;
+                self.schema_eval(tail, env)
+            }
+            ExprKind::If {
+                then, otherwise, ..
+            } => {
+                let a = self.schema_eval(then.tail.as_ref()?, env)?;
+                let b = self.schema_eval(otherwise.as_ref()?.tail.as_ref()?, env)?;
+                (a.columns == b.columns).then_some(a)
+            }
+            _ => None,
+        }
+    }
+
+    /// The schema a project function returns for the frames given to it: its body's value,
+    /// and every `return` of its top level, evaluated with the arguments' schemas; `None`
+    /// when they disagree or cannot be told.
+    fn function_schema(
+        &mut self,
+        function: FnId,
+        args: &[Option<Expr>],
+        env: &SchemaEnv,
+    ) -> Option<Rc<FrameSchema>> {
+        if self.schema_depth > 8 {
+            return None;
+        }
+        let lowered = self.functions.get(function)?.clone()?;
+        let mut inner = SchemaEnv::new();
+        for (i, param) in lowered.params.iter().enumerate() {
+            if param.ty == Ty::Frame
+                && let Some(Some(arg)) = args.get(i)
+                && let Some(schema) = self.schema_eval(arg, env)
+            {
+                inner.insert(param.binding, schema);
+            }
+        }
+        self.schema_depth += 1;
+        let tail = lowered
+            .body
+            .tail
+            .as_ref()
+            .and_then(|t| self.schema_eval(t, &inner));
+        let mut result = tail;
+        let mut returns: Vec<&Expr> = Vec::new();
+        returns_in(&lowered.body, &mut returns);
+        for e in returns {
+            let returned = self.schema_eval(e, &inner);
+            result = match (result, returned) {
+                (Some(a), Some(b)) if a.columns == b.columns => Some(a),
+                (None, Some(b)) => Some(b),
+                _ => {
+                    self.schema_depth -= 1;
+                    return None;
+                }
+            };
+        }
+        self.schema_depth -= 1;
+        result
+    }
+
+    /// The columns a verb of `data` gives from its receiver's (Language Reference, section 6,
+    /// each verb's rule as the engine applies it); `None` where they depend on the data or on
+    /// a frame whose schema is not known.
+    fn verb_schema(&mut self, call: &Call, env: &SchemaEnv) -> Option<FrameSchema> {
+        if call.package != "data" {
+            return None;
+        }
+        let receiver = call.args.first()?.as_ref()?;
+        let input = self.schema_eval(receiver, env)?;
+        let arg = |i: usize| -> Option<&Expr> { call.args.get(i).and_then(|a| a.as_ref()) };
+        let names_of = |e: &Expr| -> Option<Vec<String>> {
+            match &e.kind {
+                ExprKind::Var(name) => Some(vec![name.clone()]),
+                ExprKind::Vars(names) => Some(names.clone()),
+                _ => None,
+            }
+        };
+        // A range `x1..x9` expands by position (section 7.1); a name the frame lacks is left
+        // out, having been reported.
+        let expand = |names: &[String]| -> Vec<String> {
+            let mut out = Vec::new();
+            for name in names {
+                match name.split_once("..") {
+                    Some((first, last)) => {
+                        let position = |n: &str| input.columns.iter().position(|(c, _)| c == n);
+                        if let (Some(a), Some(b)) = (position(first), position(last))
+                            && a <= b
+                        {
+                            out.extend(input.columns[a..=b].iter().map(|(c, _)| c.clone()));
+                        }
+                    }
+                    None => out.push(name.clone()),
+                }
+            }
+            out
+        };
+        let element = |ty: &Ty| -> Ty {
+            match ty {
+                Ty::Column(inner) | Ty::List(inner) => (**inner).clone(),
+                Ty::Na => Ty::Unknown,
+                other => other.clone(),
+            }
+        };
+        let text_of = |e: Option<&Expr>| -> Option<String> {
+            match e.map(|e| &e.kind) {
+                Some(ExprKind::Str(s)) => Some(s.clone()),
+                _ => None,
+            }
+        };
+        let mut out = (*input).clone();
+        match call.name.as_str() {
+            "head" | "tail" | "where" | "sort" | "sample" | "drop_missing" | "distinct"
+            | "panel" | "label" => {}
+            "recode" => {
+                let var = names_of(arg(1)?)?.pop()?;
+                let value_ty = match arg(2).map(|e| &e.ty) {
+                    Some(Ty::Mapping(_, value)) => (**value).clone(),
+                    _ => Ty::Unknown,
+                };
+                if let Some(column) = out.columns.iter_mut().find(|(n, _)| *n == var) {
+                    column.1 = value_ty;
+                }
+            }
+            "select" => {
+                let names = expand(&names_of(arg(1)?)?);
+                out.columns = names
+                    .iter()
+                    .filter_map(|n| input.column(n).map(|t| (n.clone(), t.clone())))
+                    .collect();
+            }
+            "drop" => {
+                let names = expand(&names_of(arg(1)?)?);
+                out.columns.retain(|(n, _)| !names.contains(n));
+            }
+            "rename" => {
+                for (new, old) in &call.definitions {
+                    if let ExprKind::Var(old) = &old.kind
+                        && let Some(column) = out.columns.iter_mut().find(|(n, _)| n == old)
+                    {
+                        column.0 = new.clone();
+                    }
+                }
+            }
+            "add" | "update" => {
+                for (name, value) in &call.definitions {
+                    let ty = element(&value.ty);
+                    match out.columns.iter_mut().find(|(n, _)| n == name) {
+                        Some(column) => column.1 = ty,
+                        None if call.name == "add" => out.columns.push((name.clone(), ty)),
+                        None => {}
+                    }
+                }
+            }
+            "merge" => {
+                let other = self.schema_eval(arg(1)?, env)?;
+                let on = expand(&names_of(arg(2)?)?);
+                let suffixes = match arg(5).map(|e| &e.kind) {
+                    Some(ExprKind::List(items)) if items.len() == 2 => {
+                        match (&items[0].kind, &items[1].kind) {
+                            (ExprKind::Str(a), ExprKind::Str(b)) => Some((a.clone(), b.clone())),
+                            _ => return None,
+                        }
+                    }
+                    Some(_) => return None,
+                    None => None,
+                };
+                let shared: Vec<&String> = input
+                    .columns
+                    .iter()
+                    .map(|(n, _)| n)
+                    .filter(|n| !on.contains(n) && other.has(n))
+                    .collect();
+                if !shared.is_empty() && suffixes.is_none() {
+                    return None;
+                }
+                let mut columns: Vec<(String, Ty)> = input
+                    .columns
+                    .iter()
+                    .map(|(n, t)| {
+                        let name = match &suffixes {
+                            Some((a, _)) if shared.contains(&n) => format!("{n}{a}"),
+                            _ => n.clone(),
+                        };
+                        (name, t.clone())
+                    })
+                    .collect();
+                for (n, t) in &other.columns {
+                    if on.contains(n) {
+                        continue;
+                    }
+                    let name = match &suffixes {
+                        Some((_, b)) if shared.contains(&n) => format!("{n}{b}"),
+                        _ => n.clone(),
+                    };
+                    columns.push((name, t.clone()));
+                }
+                out.columns = columns;
+                out.from_last_run |= other.from_last_run;
+            }
+            "append" => {
+                let other = self.schema_eval(arg(1)?, env)?;
+                for (n, t) in &other.columns {
+                    match out.columns.iter_mut().find(|(c, _)| c == n) {
+                        Some(column) => {
+                            if Ty::join(&column.1, t).is_none() {
+                                column.1 = Ty::Unknown;
+                            } else if let Some(joined) = Ty::join(&column.1, t) {
+                                column.1 = joined;
+                            }
+                        }
+                        None => out.columns.push((n.clone(), t.clone())),
+                    }
+                }
+                out.from_last_run |= other.from_last_run;
+            }
+            "to_long" => {
+                let stub = text_of(arg(1))?;
+                let ids = arg(2)
+                    .and_then(names_of)
+                    .map(|n| expand(&n))
+                    .unwrap_or_default();
+                let names_to = text_of(arg(3))?;
+                let values_to = text_of(arg(4))?;
+                let names_ty = match arg(5).map(|e| &e.kind) {
+                    Some(ExprKind::TypeName { name, .. }) => crate::schema::column_ty(name),
+                    Some(_) => return None,
+                    None => Ty::Str,
+                };
+                let stubs: Vec<&(String, Ty)> = input
+                    .columns
+                    .iter()
+                    .filter(|(n, _)| n.starts_with(&stub) && !ids.contains(n))
+                    .collect();
+                if stubs.is_empty() {
+                    return None;
+                }
+                let mut value_ty = stubs[0].1.clone();
+                for (_, t) in &stubs[1..] {
+                    value_ty = Ty::join(&value_ty, t).unwrap_or(Ty::Unknown);
+                }
+                let mut columns: Vec<(String, Ty)> = ids
+                    .iter()
+                    .filter_map(|n| input.column(n).map(|t| (n.clone(), t.clone())))
+                    .collect();
+                columns.extend(
+                    input
+                        .columns
+                        .iter()
+                        .filter(|(n, _)| !ids.contains(n) && !(n.starts_with(&stub)))
+                        .cloned(),
+                );
+                columns.push((names_to, names_ty));
+                columns.push((values_to, value_ty));
+                out.columns = columns;
+            }
+            "aggregate" => {
+                let by = arg(1)
+                    .and_then(names_of)
+                    .map(|n| expand(&n))
+                    .unwrap_or_default();
+                let mut columns: Vec<(String, Ty)> = by
+                    .iter()
+                    .filter_map(|n| input.column(n).map(|t| (n.clone(), t.clone())))
+                    .collect();
+                for (name, value) in &call.definitions {
+                    columns.push((name.clone(), element(&value.ty)));
+                }
+                out.columns = columns;
+            }
+            _ => return None,
+        }
+        Some(out)
     }
 
     /// A variable, or a range `x1..x9` kept as written and expanded against the frame: both
@@ -5629,24 +5996,25 @@ impl Checker<'_> {
         if let (Some(a), Some(b)) = (position(first), position(last))
             && b < a
         {
-            self.report(
-                Diagnostic::error(
-                    "Z0401",
-                    format!("the range `{first}..{last}` runs backwards: `{last}` comes before `{first}` in {shown}"),
-                )
-                .primary(span, "a range runs from an earlier variable to a later one")
-                .help(format!("the variables of {shown}, in order: {}", schema.names().join(", "))),
-            );
+            let diagnostic = Diagnostic::error(
+                "Z0401",
+                format!("the range `{first}..{last}` runs backwards: `{last}` comes before `{first}` in {shown}"),
+            )
+            .primary(span, "a range runs from an earlier variable to a later one")
+            .help(format!("the variables of {shown}, in order: {}", schema.names().join(", ")));
+            self.report(from_last_run_if(diagnostic, schema));
         }
     }
 
-    /// A variable the frame lacks (Z0101, Z0102), as the run-time message says it.
+    /// A variable the frame lacks (Z0101, Z0102), as the run-time message says it; a warning
+    /// marked from last run when the schema is the last run's record (section 11).
     fn require_column(&mut self, name: &str, span: Span, schema: &FrameSchema, shown: &str) {
         if schema.has(name) {
             return;
         }
         let columns = schema.names();
-        self.report(no_variable(&self.file, span, shown, name, &columns));
+        let diagnostic = no_variable(&self.file, span, shown, name, &columns);
+        self.report(from_last_run_if(diagnostic, schema));
     }
 
     /// A loop variable or parameter read inside a frame method that is also a column of the
@@ -5656,14 +6024,13 @@ impl Checker<'_> {
         let binding = &self.bindings[id];
         if binding.kind != BindingKind::Let && schema.has(&binding.name) {
             let name = binding.name.clone();
-            self.report(
-                Diagnostic::error(
-                    "Z0106",
-                    format!("`{name}` is both a loop variable or parameter and a variable of {shown}"),
-                )
-                .primary(span, "which one is meant?")
-                .help("rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently"),
-            );
+            let diagnostic = Diagnostic::error(
+                "Z0106",
+                format!("`{name}` is both a loop variable or parameter and a variable of {shown}"),
+            )
+            .primary(span, "which one is meant?")
+            .help("rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently");
+            self.report(from_last_run_if(diagnostic, schema));
         }
     }
 
@@ -5949,6 +6316,11 @@ impl Checker<'_> {
         let ExprKind::CallFn { args, .. } = &lowered.kind else {
             return lowered;
         };
+        if lowered.ty == Ty::Frame
+            && let Some(schema) = self.function_schema(function, args, &SchemaEnv::new())
+        {
+            self.frame_schemas.insert(lowered.span, schema);
+        }
         let uses = self.var_uses.get(function).cloned().unwrap_or_default();
         for (f, v) in uses {
             let (Some(Some(frame)), Some(Some(var))) = (args.get(f), args.get(v)) else {
@@ -6590,4 +6962,47 @@ fn fnv1a(text: &str) -> u64 {
         hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
     }
     hash
+}
+
+/// A diagnostic whose only evidence is a schema cached from the last run is a warning, marked
+/// `from last run`, never an error (section 11, "Checking before running").
+fn from_last_run_if(mut diagnostic: Diagnostic, schema: &FrameSchema) -> Diagnostic {
+    if schema.from_last_run {
+        diagnostic.severity = Severity::Warning;
+        diagnostic.message.push_str(" (from last run)");
+        diagnostic = diagnostic.mark("from last run");
+    }
+    diagnostic
+}
+
+/// Every `return` with a value inside a block, at any depth: in the block's statements, in the
+/// branches of an `if` and in the body of a loop.
+fn returns_in<'e>(block: &'e Block, out: &mut Vec<&'e Expr>) {
+    fn in_expr<'e>(expr: &'e Expr, out: &mut Vec<&'e Expr>) {
+        match &expr.kind {
+            ExprKind::Block(block) => returns_in(block, out),
+            ExprKind::If {
+                then, otherwise, ..
+            } => {
+                returns_in(then, out);
+                if let Some(otherwise) = otherwise {
+                    returns_in(otherwise, out);
+                }
+            }
+            _ => {}
+        }
+    }
+    for statement in &block.statements {
+        match statement {
+            Statement::Return { value: Some(e), .. } => out.push(e),
+            Statement::Let { value, .. }
+            | Statement::Print { value, .. }
+            | Statement::Expr { value, .. } => in_expr(value, out),
+            Statement::For { body, .. } => returns_in(body, out),
+            _ => {}
+        }
+    }
+    if let Some(tail) = &block.tail {
+        in_expr(tail, out);
+    }
 }
