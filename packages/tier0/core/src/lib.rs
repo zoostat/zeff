@@ -9,6 +9,7 @@ pub mod operators;
 pub mod program;
 pub mod runtime;
 pub mod special;
+pub mod table;
 pub mod types;
 pub mod value;
 
@@ -84,5 +85,6 @@ pub fn functions() -> Vec<Function> {
     all.extend(program::functions());
     all.extend(types::functions());
     all.extend(collections::functions());
+    all.extend(table::functions());
     all
 }

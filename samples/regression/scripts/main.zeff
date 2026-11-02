@@ -51,10 +51,10 @@ m3.predict(newdata: frame(educ = [12, 16, 16], exper = [5, 5, 20], exper2 = [25,
 
 // 7. The publication table, printed and exported to Word and LaTeX, and one model's summary
 //    exported on its own.
-let table = report([m1, m2, m3, m4], stats: [n_obs, r_squared],
+let table1 = report([m1, m2, m3, m4], stats: [n_obs, r_squared],
                    labels: {educ: "Years of schooling", exper: "Experience", exper2: "Experience squared"},
                    title: "Table 1. Log hourly wage")
-table
-table.export("output/table1.docx")
-table.export("output/table1.tex")
+table1
+table1.export("output/table1.docx")
+table1.export("output/table1.tex")
 m5.export("output/model5.tex")

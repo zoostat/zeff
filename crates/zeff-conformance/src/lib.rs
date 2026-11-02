@@ -942,6 +942,12 @@ fn control_cases() -> Vec<Line> {
             "collections_basics",
             "let xs = [3, 1, 2]\nlen(xs)\nfirst(xs)\nlast(xs)\nappend(xs, 9)\nreversed(xs)\nlen(\"caf\\u{e9}\")\nlen(\"e\\u{301}\")\nlen(\"\\u{1F600}\")\nlet w = dataset(wages)\nlen(w[\"wage\"])\nlen([1 => \"a\", 2 => \"b\"])\nappend([1.5], 2)\nlet d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])\nlet fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]\nlen(fits)\n",
         ),
+        // `table` of release 0.6.0, step 16 (open decision #72): a table from lists and from a
+        // frame's columns, with the labels, and `ci()` at the fit's level (open decision #67).
+        (
+            "table",
+            "table(title: \"sales by year\", columns: {year: [2010, 2011, 2012], sales: [120.5, 130, NA], region: [\"North\", \"South\", \"West\"], flag: [true, false, true], day: [date(\"2024-01-01\"), NA, date(\"1999-12-31\")]})\nlet w = dataset(wages).where(worker <= 2)\ntable(title: \"two workers\", columns: {worker: w[\"worker\"], year: w[\"year\"], wage: w[\"wage\"], female: w[\"female\"], industry: w[\"industry\"]})\ntable(title: \"one row\", columns: {k: [1]})\nlet m90 = dataset(wages).reg(log(wage) ~ educ + exper + female, level: 0.9)\nm90.ci()\nm90.ci(educ)\nm90.ci(educ, level: 0.95)\n",
+        ),
         // `vif` of step 21: the factors of a textbook model, a categorical regressor's columns, a
         // fit without an intercept, and one regressor.
         (

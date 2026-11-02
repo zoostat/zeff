@@ -242,3 +242,7 @@ Z0603 and Z0604 added to the table of codes: section 6 ("Combine") and the examp
 ## 2 November 2026 — zeff_language_reference.md, section 11 (the table of codes)
 
 Z0609, Z0610 and Z0611 added to the table of codes, the next free numbers of the data family, as the checklist's ruling on provisional codes says (step 14 of release 0.6.0): `append` with a column of two types, `to_long` with stub columns it cannot turn into rows (no column with the stub, types that differ, a name that does not parse), `to_wide` with two rows for one cell. Section 6 describes each condition without a number.
+
+## 2 November 2026 — zeff_open_decisions.md, entry #72
+
+A non-normative note that `table` was built at release 0.6.0, step 16, added to entry #72, as entry #67 already carries for `ci()`.

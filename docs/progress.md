@@ -141,3 +141,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 16 `[function]`: `table` (#72) and `ci()`'s default level (#67).
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 16
+
+**Done.** Step 16 `[function]`: `table(title:, columns:)` in `core` (open decision #72, catalogue row 530), a table from a record of lists or columns, numbers right-aligned and printed by the display rules, exported by `export`; `ci()` at the fit's level with `level:` overriding (open decision #67, row 163), the page saying so. Two pages; the conformance case `control/table` published.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (124 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 17 `[engine]`: Fixed-effects demeaning: the kernel.
+
+**For the owner to decide.** Nothing new.

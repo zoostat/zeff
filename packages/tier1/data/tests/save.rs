@@ -114,7 +114,9 @@ proptest! {
         ints in proptest::collection::vec(prop_oneof![Just(None), any::<i32>().prop_map(|i| Some(i as i64))], 1..12),
         floats in proptest::collection::vec(prop_oneof![Just(None), any::<f64>().prop_filter("finite or infinite", |x| !x.is_nan()).prop_map(Some)], 12),
         bools in proptest::collection::vec(prop_oneof![Just(None), any::<bool>().prop_map(Some)], 12),
-        words in proptest::collection::vec(prop_oneof![Just(None), "[a-z ,\"\\n]{1,8}".prop_map(Some)], 12),
+        // Without a line break, which the files snapshot covers: a value spanning lines would spoil
+        // the reading of `describe` below.
+        words in proptest::collection::vec(prop_oneof![Just(None), "[a-z ,\"]{1,8}".prop_map(Some)], 12),
         days in proptest::collection::vec(prop_oneof![Just(None), (-700_000i32..2_900_000).prop_map(Some)], 12),
         tsv in any::<bool>(),
     ) {

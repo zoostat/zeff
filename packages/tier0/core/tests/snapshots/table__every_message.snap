@@ -1,0 +1,94 @@
+---
+source: packages/tier0/core/tests/table.rs
+assertion_line: 54
+expression: out
+---
+table(columns: {k: [1]})
+---
+error[Z0406]: `table` needs `title:`
+ --> scripts/main.zeff:1:1
+  |
+1 | table(columns: {k: [1]})
+  | ^^^^^ `title:` is missing
+  |
+  = help: usage: `table(title: "by year", columns: {year: years, mean: means})`
+
+table(title: "t")
+---
+error[Z0406]: `table` needs `columns:`
+ --> scripts/main.zeff:1:1
+  |
+1 | table(title: "t")
+  | ^^^^^ `columns:` is missing
+  |
+  = help: usage: `table(title: "by year", columns: {year: years, mean: means})`, each field a list or a column
+
+table(title: "t", columns: {})
+---
+error[Z0401]: `columns:` of `table` holds no field
+ --> scripts/main.zeff:1:28
+  |
+1 | table(title: "t", columns: {})
+  |                            ^^ an empty record
+  |
+  = help: give at least one column: `columns: {year: [2010, 2011]}`
+
+table(title: "t", columns: {a: [1, 2], b: [1]})
+---
+error[Z0401]: the columns of `table` differ in length: `a` has 2 rows and `b` has 1 row
+ --> scripts/main.zeff:1:28
+  |
+1 | table(title: "t", columns: {a: [1, 2], b: [1]})
+  |                            ^^^^^^^^^^^^^^^^^^^ columns of different lengths
+  |
+  = help: every column of a table has one value per row
+
+table(title: "t", columns: {a: 3})
+---
+error[Z0401]: `a` of `columns:` is an Int, not a list or a column
+ --> scripts/main.zeff:1:28
+  |
+1 | table(title: "t", columns: {a: 3})
+  |                            ^^^^^^ not a column
+  |
+  = help: each field of `columns:` is a list of values or a column of a frame, all of one length
+
+table(title: "t", columns: {a: [[1], [2]]})
+---
+error[Z0401]: `a` of `columns:` holds a List<Int>, which a cell cannot show
+ --> scripts/main.zeff:1:28
+  |
+1 | table(title: "t", columns: {a: [[1], [2]]})
+  |                            ^^^^^^^^^^^^^^^ not a value a cell holds
+  |
+  = help: a column of a table is a list of text, numbers, Bools or dates, or a column of a frame
+
+table(title: "t", columns: {a: [attempt(frame(x = [1, 2]).reg(x ~ x))]})
+---
+error[Z0220]: a failed value cannot be a cell of `a`: it failed with Z0802 at line 1: no residual degrees of freedom: 2 rows and 2 regressors
+ --> scripts/main.zeff:1:28
+  |
+1 | table(title: "t", columns: {a: [attempt(frame(x = [1, 2]).reg(x ~ x))]})
+  |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a failed value in a column
+  |
+  = help: test it first with `x.is(Failed)`, or leave it out of the list
+
+table(title: "t", columns: {a: [frame(x = [1, 2], y = [2, 5]).reg(y ~ x)]})
+---
+error[Z0802]: no residual degrees of freedom: 2 rows and 2 regressors
+ --> scripts/main.zeff:1:63
+  |
+1 | table(title: "t", columns: {a: [frame(x = [1, 2], y = [2, 5]).reg(y ~ x)]})
+  |                                                               ^^^ as many regressors as rows, or more
+  |
+  = help: a model needs more rows than regressors; drop terms or use more data
+
+table(title: 3, columns: {a: [1]})
+---
+error[Z0401]: `title` of `table` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:14
+  |
+1 | table(title: 3, columns: {a: [1]})
+  |              ^ an Int
+  |
+  = help: usage: `table(title: Str, columns: Record)`

@@ -1,0 +1,49 @@
+---
+source: packages/tier0/core/tests/table.rs
+assertion_line: 33
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+sales by year
+
+  year   sales   region   flag    day
+  2010   120.5   North    true    2024-01-01
+  2011     130   South    false   NA
+  2012      NA   West     true    1999-12-31
+two workers
+
+  worker   year    wage   female   industry
+       1   2015   18.08     male   Retail
+       1   2016   17.28     male   Retail
+       1   2017   20.93     male   Retail
+       1   2018   15.68     male   Retail
+       1   2019   26.39     male   Retail
+       1   2020   33.07     male   Retail
+       1   2021   26.65     male   Retail
+       2   2014   40.67   female   Manufacturing
+       2   2015   27.38   female   Manufacturing
+       2   2016   35.68   female   Manufacturing
+       2   2017    22.2   female   Manufacturing
+one row
+
+  k
+  1
+dates
+
+  d
+  2024-01-01
+  NA
+all missing
+
+   k   t
+  NA   a
+  NA   b
+empty columns
+
+  k
+t
+
+  k
+  1
+  2
+Table
+---

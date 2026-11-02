@@ -86,10 +86,7 @@ pub fn functions() -> Vec<Function> {
         ),
         result_method(
             "ci",
-            vec![
-                term(),
-                ParamSpec::option_with_default("level", "Float", "0.95"),
-            ],
+            vec![term(), ParamSpec::option("level", "Float")],
             "ByTerm<List<Float>, Table>",
             vec![
                 unknown_term(),

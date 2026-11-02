@@ -934,7 +934,7 @@ Raised on 31 October 2026 at step 22 of release 0.5.0, where `summary` was to be
 
 *Recommendation.* A at 0.6.0 beside `aggregate`, the rewrite of `summary` following in the same release; the catalogue's `layer` returns to Zeff for row 153 then.
 
-*Decided 1 November 2026, as recommended (option A), with one correction.* `table(title: Str, columns: Record)` joins `core` at 0.6.0 (catalogue row 530), taking a record whose fields are lists or columns of one length each, numbers printed by the display rules or through `format` by the caller. The rewrite of `summary` does not follow in 0.6.0: `summary` prints one combined warning naming every variable's missing rows, which a Zeff body cannot raise until #70 (0.7.0) is taken; the rewrite is scheduled with #70, and row 153 stays Rust until then.
+*Decided 1 November 2026, as recommended (option A), with one correction.* `table(title: Str, columns: Record)` joins `core` at 0.6.0 (catalogue row 530), taking a record whose fields are lists or columns of one length each, numbers printed by the display rules or through `format` by the caller. The rewrite of `summary` does not follow in 0.6.0: `summary` prints one combined warning naming every variable's missing rows, which a Zeff body cannot raise until #70 (0.7.0) is taken; the rewrite is scheduled with #70, and row 153 stays Rust until then. Built at release 0.6.0, step 16.
 
 ### 73. Typst: the typesetting engine of exports and of the report document, with a live preview
 

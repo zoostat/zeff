@@ -121,12 +121,15 @@ fn level_text(level: f64) -> String {
 /// one term, at the level asked for; recomputed from the estimates, the standard errors and the
 /// t table of the fit, so that any level is available after the fit. A test's result gives `NA`.
 pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let level = match args.get(2) {
-        Some(Value::Float(l)) => *l,
-        Some(Value::Int(i)) => *i as f64,
-        _ => 0.95,
+    // `level:` written out, or the level the fit was made at (open decision #67).
+    let given = match args.get(2) {
+        Some(Value::Float(l)) => Some(*l),
+        Some(Value::Int(i)) => Some(*i as f64),
+        _ => None,
     };
-    if !(level > 0.0 && level < 1.0) {
+    if let Some(level) = given
+        && !(level > 0.0 && level < 1.0)
+    {
         return Err(fail(
             Diagnostic::error(
                 "Z0401",
@@ -137,13 +140,18 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("write a level such as 0.95 or 0.99"),
         ));
     }
+    let received = receiver(ctx, &args, "ci")?;
+    let level = match &received {
+        Receiver::Fit(fit) => given.unwrap_or(fit.level),
+        Receiver::Test(_) => given.unwrap_or(0.95),
+    };
     let title = format!("ci · {}", level_text(level));
     let columns = vec![
         ("term".to_string(), Align::Left),
         ("lower".to_string(), Align::Right),
         ("upper".to_string(), Align::Right),
     ];
-    match receiver(ctx, &args, "ci")? {
+    match received {
         Receiver::Fit(fit) => {
             let q = quantile(fit.df_residual, level);
             let intervals: Vec<(f64, f64)> = fit
