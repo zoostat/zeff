@@ -6,8 +6,15 @@
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 Sys.setlocale("LC_TIME", "C")
 
+# The eighteenth number is 12345678901234.567 written as the hexadecimal of its correctly rounded
+# double (12345678901234.56640625). R reads a decimal literal with its own parser, which
+# accumulates the digits in the platform's long double; with seventeen digits that is exact on
+# x86-64 Linux (80-bit) but one binary step too high on arm64 macOS (64-bit), where the decimal
+# literal gives the neighbour above, and the texts from three decimals on differ between the two.
+# A hexadecimal literal is read exactly everywhere. The engine reads the decimal literal correctly
+# rounded, so this is the value it would hold.
 numbers <- c(1234567.891, 2.675, 0.125, 0.375, -0.0001, 1e16, 1e-7, 123456789.123456789, -1234.5, 0.5, 1.5, 2.5,
-             1e15, 999999.5, 1 / 3, 2 / 3, 1e12 + 0.5, 12345678901234.567, 42, -42.42)
+             1e15, 999999.5, 1 / 3, 2 / 3, 1e12 + 0.5, 0x1.674e79c5fe522p+43, 42, -42.42)
 decimals <- 0:6
 fixed <- list()
 for (x in numbers) for (d in decimals) {

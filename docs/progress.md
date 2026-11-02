@@ -105,3 +105,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 23 `[engine]`: script tests, the 0.6.0 sample project, the fuzz targets, the jobs and the benchmark suite.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: the red `reference` job
+
+**Done.** A side task while step 23 waits: the CI `reference` job, red on every push since 1 November because `tests/reference/r/format.json` regenerated on Ubuntu differed in eleven lines. The cause was not `sprintf` but R's own reading of the decimal literal `12345678901234.567`, one binary step too high on arm64 macOS (where R's long double is a plain double) and correctly rounded on x86-64 Linux; `format.R` now writes the number as an exact hexadecimal literal and `format.json` was regenerated, so the file agrees on both platforms and the comparison stays exact. The decision is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied and all workspace tests (`--no-fail-fast`, the catalogue touched first) pass locally; the `reference` job is read on the pull request.
+
+**Next.** Step 23 `[engine]`: script tests, the 0.6.0 sample project, the fuzz targets, the jobs and the benchmark suite.
+
+**For the owner to decide.** Nothing new.
