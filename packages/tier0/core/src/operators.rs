@@ -458,7 +458,8 @@ pub struct Notes {
 }
 
 impl Notes {
-    fn add(&mut self, note: Note) {
+    /// Count a note of one row.
+    pub fn add(&mut self, note: Note) {
         match note {
             Note::DivisionByZero => self.division_by_zero += 1,
             Note::Invalid(cause) => match self.invalid.iter_mut().find(|(c, _)| *c == cause) {

@@ -6,6 +6,7 @@
 use crate::registry::{Bodies, ZeffBodies, ZeffBuiltin};
 use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, show, show_width};
+use zeff_core::fused;
 use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
 use zeff_core::value::{
@@ -94,6 +95,8 @@ pub struct Interpreter<'a> {
     sources: Option<&'a HashMap<String, Source>>,
     /// The built-ins written in Zeff, lowered once at engine start.
     zeff: Option<&'a ZeffBodies>,
+    /// Whether column expressions run as fused passes (section 8.3, point 10).
+    fusion: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -153,7 +156,16 @@ impl<'a> Interpreter<'a> {
             jump: None,
             sources: None,
             zeff: None,
+            fusion: true,
         }
+    }
+
+    /// Whether column expressions inside frame methods run as fused passes (the default) or
+    /// through the tree-walking evaluation that is the oracle of the fused one (Engine and
+    /// Project Specification, section 8.3, point 10; `ZEFF_UNFUSED` in the run options).
+    pub fn with_fusion(mut self, fusion: bool) -> Self {
+        self.fusion = fusion;
+        self
     }
 
     /// The built-ins written in Zeff.
@@ -1519,6 +1531,15 @@ impl<'a> Interpreter<'a> {
                 }
                 Value::Mapping(values)
             }
+            // Inside a frame method an expression over columns is compiled into a plan and run
+            // as a fused pass (section 8.3, point 10 of the Engine and Project Specification);
+            // outside one, where no column of a frame is in scope, the tree is walked.
+            ExprKind::Unary { .. } | ExprKind::Binary { .. } if !self.receivers.is_empty() => {
+                return self.eval_fused(expr, printed, messages);
+            }
+            ExprKind::Call(call) if !self.receivers.is_empty() && self.row_wise_candidate(call) => {
+                return self.eval_fused(expr, printed, messages);
+            }
             ExprKind::Unary { op, operand } => {
                 let value = self.eval(operand, printed, messages)?;
                 if let Value::Failed(failure) = &value {
@@ -2260,19 +2281,34 @@ impl<'a> Interpreter<'a> {
         if !raw_warnings.is_empty() {
             messages.extend(merge_na_warnings(raw_warnings));
         }
-        // A failed value is an argument only of the functions that look at it or skip it
-        // (section 3.7, "Failed values"): `is`, `type_of` and `print`, and in a list `report`
-        // and `len`.
-        let takes_failed = matches!(
-            (call.package.as_str(), call.name.as_str()),
-            ("core", "is")
-                | ("core", "type_of")
-                | ("core", "print")
-                | ("core", "len")
-                | ("core", "n_missing")
-                | ("results", "report")
-        );
-        if !takes_failed {
+        self.apply_call(
+            call,
+            values,
+            rest,
+            definitions,
+            columns_used,
+            printed,
+            messages,
+        )
+    }
+
+    /// A call whose arguments are evaluated: the checks on the values, then the body, row by row
+    /// when a scalar function was given a column.
+    #[allow(clippy::too_many_arguments)]
+    fn apply_call(
+        &mut self,
+        call: &Call,
+        values: Vec<Option<Value>>,
+        rest: Vec<Value>,
+        definitions: Vec<(String, Value)>,
+        columns_used: Vec<String>,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let key = (call.package.clone(), call.name.clone());
+        let zeff = self.zeff.and_then(|z| z.get(&key));
+        let body = self.bodies.get(&key);
+        if !takes_failed(call) {
             let in_list = |v: &Value| match v {
                 Value::List(items) => items.iter().find_map(|i| match i {
                     Value::Failed(f) => Some(f.clone()),
@@ -2390,6 +2426,384 @@ impl<'a> Interpreter<'a> {
     /// Z0414 (provisional): a term name that the result does not have. The terms of a fit are
     /// the columns of its model matrix, those with an estimate and those omitted as collinear; a
     /// test's result has none.
+    /// Whether a call is one a plan applies row by row itself (section 3.7, "Columns and
+    /// scalars"): a scalar function of `core`, `text` or `time` with a Rust body, written
+    /// without a spread or a definition, that is not one of the functions that take a failed
+    /// value; the rest are evaluated as the tree-walk evaluates them and stand in the plan as
+    /// values.
+    fn row_wise_candidate(&self, call: &Call) -> bool {
+        let key = (call.package.clone(), call.name.clone());
+        call.liftable
+            && !call.implicit_receiver
+            && call.spreads.is_empty()
+            && call.definitions.is_empty()
+            && !takes_failed(call)
+            && !(call.package == "core" && call.name == "iterate")
+            && self.zeff.and_then(|z| z.get(&key)).is_none()
+            && self.bodies.get(&key).is_some()
+    }
+
+    /// An expression inside a frame method, compiled into a plan and evaluated (fused, unless
+    /// the run says otherwise): the same bits and messages as the tree-walk gives.
+    fn eval_fused(
+        &mut self,
+        expr: &Expr,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let mut plan = fused::Plan::new(self.script);
+        self.build_into(expr, printed, &mut plan);
+        self.evaluate_plan(&plan, printed, messages)
+    }
+
+    fn evaluate_plan(
+        &mut self,
+        plan: &fused::Plan,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let frame = self.receivers.last().map(|r| r.current().clone());
+        let mut resources = fused::Resources {
+            files: self.files,
+            text: self.source.text(),
+            frame,
+            output: printed,
+            random: &mut self.random,
+            statement: self.statement,
+        };
+        fused::evaluate(plan, self.fusion, &mut resources, messages)
+    }
+
+    /// Append the nodes of `expr` to the plan, in the order the tree-walk evaluates them, the
+    /// last node its root: an operator or a row-wise call over columns is a node of its own, an
+    /// operator on two scalars is folded as it is met (so `&&` and `||` on a scalar left side
+    /// still skip the right side), and anything else is evaluated now and stands as a value.
+    /// `false` when the building stopped at an error, which the plan raises after the nodes
+    /// before it have been evaluated, as the tree-walk would have.
+    fn build_into(&mut self, expr: &Expr, printed: &mut String, plan: &mut fused::Plan) -> bool {
+        match &expr.kind {
+            ExprKind::Unary { op, operand } => {
+                if !self.build_into(operand, printed, plan) {
+                    return false;
+                }
+                let node = plan.root();
+                let negation = *op == UnaryOp::Neg;
+                let scalar = match &plan.nodes[node] {
+                    fused::Node::Value(Value::Failed(failure)) => {
+                        let error = self.failed_used(failure, operand.span, "in arithmetic");
+                        plan.truncate(error);
+                        return false;
+                    }
+                    fused::Node::Value(Value::Column(_)) => None,
+                    fused::Node::Value(value) => Some(value.clone()),
+                    _ => None,
+                };
+                match scalar {
+                    None => {
+                        plan.push(
+                            fused::Node::Unary {
+                                negation,
+                                operand: node,
+                                span: expr.span,
+                            },
+                            Vec::new(),
+                        );
+                        true
+                    }
+                    Some(value) => {
+                        let folded = if negation {
+                            operators::negate(&value)
+                        } else {
+                            operators::not(&value)
+                        };
+                        match folded {
+                            Ok(v) => {
+                                plan.push(fused::Node::Value(v), Vec::new());
+                                true
+                            }
+                            Err(trouble) => {
+                                plan.truncate(self.trouble(trouble, expr));
+                                false
+                            }
+                        }
+                    }
+                }
+            }
+            ExprKind::Binary { op, lhs, rhs } => {
+                let op = operator(*op);
+                if !self.build_into(lhs, printed, plan) {
+                    return false;
+                }
+                let left = plan.root();
+                let left_value = match &plan.nodes[left] {
+                    fused::Node::Value(v) => Some(v.clone()),
+                    _ => None,
+                };
+                if let Some(Value::Failed(failure)) = &left_value {
+                    let error = self.failed_used(failure, lhs.span, "in an expression");
+                    plan.truncate(error);
+                    return false;
+                }
+                if let Some(v) = &left_value
+                    && !matches!(v, Value::Column(_))
+                    && let Some(decided) = operators::decided_by_left(op, v)
+                {
+                    plan.push(fused::Node::Value(decided), Vec::new());
+                    return true;
+                }
+                if !self.build_into(rhs, printed, plan) {
+                    return false;
+                }
+                let right = plan.root();
+                let right_value = match &plan.nodes[right] {
+                    fused::Node::Value(v) => Some(v.clone()),
+                    _ => None,
+                };
+                if let Some(Value::Failed(failure)) = &right_value {
+                    let error = self.failed_used(failure, rhs.span, "in an expression");
+                    plan.truncate(error);
+                    return false;
+                }
+                let is_column = |v: &Option<Value>| matches!(v, Some(Value::Column(_)));
+                match (left_value, right_value) {
+                    (Some(l), Some(r))
+                        if !is_column(&Some(l.clone())) && !is_column(&Some(r.clone())) =>
+                    {
+                        // A word compares with text by its spelling (a parameter `effect: d | g`).
+                        let as_text = |v: Value| match v {
+                            Value::Word(w) if op.is_comparison() => Value::Str(w),
+                            other => other,
+                        };
+                        let (l, r) = (as_text(l), as_text(r));
+                        match operators::binary(op, &l, &r) {
+                            Ok((value, note)) => {
+                                let messages = match note {
+                                    Some(note) => vec![operators::warning_of(note, &value)],
+                                    None => Vec::new(),
+                                };
+                                plan.push(fused::Node::Value(value), messages);
+                                true
+                            }
+                            Err(trouble) => {
+                                plan.truncate(self.trouble(trouble, expr));
+                                false
+                            }
+                        }
+                    }
+                    _ => {
+                        plan.push(
+                            fused::Node::Binary {
+                                op,
+                                lhs: left,
+                                rhs: right,
+                                span: expr.span,
+                            },
+                            Vec::new(),
+                        );
+                        true
+                    }
+                }
+            }
+            ExprKind::Call(call) if self.row_wise_candidate(call) => {
+                self.build_call(call, expr, printed, plan)
+            }
+            _ => {
+                let mut messages = Vec::new();
+                match self.eval(expr, printed, &mut messages) {
+                    Ok(value) => {
+                        plan.push(fused::Node::Value(value), messages);
+                        true
+                    }
+                    Err(error) => {
+                        plan.push(fused::Node::Value(Value::Nothing), messages);
+                        plan.truncate(error);
+                        false
+                    }
+                }
+            }
+        }
+    }
+
+    /// A scalar function's call in a plan: its arguments built as plans of their own in the
+    /// order written; given a column, the call is a row-wise node over them; otherwise the
+    /// arguments are evaluated and the call applied once, as any other call.
+    fn build_call(
+        &mut self,
+        call: &Call,
+        expr: &Expr,
+        printed: &mut String,
+        plan: &mut fused::Plan,
+    ) -> bool {
+        let mut built: Vec<(Slot, fused::Plan)> = Vec::new();
+        let mut params: Vec<Option<usize>> = vec![None; call.args.len()];
+        let mut rest: Vec<Option<usize>> = vec![None; call.rest.len()];
+        for slot in &call.order {
+            let arg = match slot {
+                Slot::Param(i) => call.args[*i].as_ref(),
+                Slot::Rest(i) => Some(&call.rest[*i]),
+                Slot::Spread(_) | Slot::Definition(_) => None,
+            };
+            let Some(arg) = arg else {
+                continue;
+            };
+            let mut sub = fused::Plan::new(self.script);
+            let ok = self.build_into(arg, printed, &mut sub);
+            if !ok {
+                for (_, earlier) in built {
+                    plan.absorb(earlier);
+                }
+                plan.absorb(sub);
+                return false;
+            }
+            match slot {
+                Slot::Param(i) => params[*i] = Some(built.len()),
+                Slot::Rest(i) => rest[*i] = Some(built.len()),
+                _ => {}
+            }
+            built.push((*slot, sub));
+        }
+        let value_of = |k: usize| -> Option<Value> {
+            let sub = &built[k].1;
+            match &sub.nodes[sub.root()] {
+                fused::Node::Value(v) => Some(v.clone()),
+                _ => None,
+            }
+        };
+        let is_column = |k: usize| built[k].1.is_column(built[k].1.root());
+        // A failed value is an argument only of the functions that look at it (section 3.7,
+        // "Failed values"), and none of those is applied row by row.
+        let spans: Vec<(Option<usize>, Span)> = params
+            .iter()
+            .enumerate()
+            .map(|(i, k)| {
+                (
+                    *k,
+                    call.args[i].as_ref().map_or(call.callee_span, |e| e.span),
+                )
+            })
+            .chain(
+                rest.iter()
+                    .enumerate()
+                    .map(|(i, k)| (*k, call.rest[i].span)),
+            )
+            .collect();
+        for (k, span) in &spans {
+            let Some(k) = k else { continue };
+            let Some(value) = value_of(*k) else { continue };
+            let failure = match &value {
+                Value::Failed(failure) => Some((failure.clone(), "as an argument")),
+                Value::List(items) => items.iter().find_map(|i| match i {
+                    Value::Failed(f) => Some((f.clone(), "in a list given as an argument")),
+                    _ => None,
+                }),
+                _ => None,
+            };
+            if let Some((failure, how)) = failure {
+                let error = self.failed_used(&failure, *span, how);
+                for (_, sub) in built {
+                    plan.absorb(sub);
+                }
+                plan.truncate(error);
+                return false;
+            }
+        }
+        // A `Term` argument is checked against the result it is used with.
+        if let Some(Some(first)) = params.first()
+            && let Some(receiver) = value_of(*first)
+        {
+            for (i, k) in params.iter().enumerate().skip(1) {
+                if let Some(k) = k
+                    && let Some(Value::Term(name)) = value_of(*k)
+                    && let Err(error) = self.check_term(&receiver, &name, spans[i].1)
+                {
+                    for (_, sub) in built {
+                        plan.absorb(sub);
+                    }
+                    plan.truncate(error);
+                    return false;
+                }
+            }
+        }
+        let column_given = call.liftable
+            && (params
+                .iter()
+                .zip(&call.scalar_params)
+                .any(|(k, scalar)| *scalar && k.is_some_and(is_column))
+                || (call.rest_scalar && rest.iter().any(|k| k.is_some_and(is_column))));
+        let key = (call.package.clone(), call.name.clone());
+        if call.lifted || column_given {
+            let Some(body) = self.bodies.get(&key) else {
+                for (_, sub) in built {
+                    plan.absorb(sub);
+                }
+                plan.truncate(self.no_body(call));
+                return false;
+            };
+            let body = *body;
+            let mut roots: Vec<usize> = Vec::with_capacity(built.len());
+            for (_, sub) in built {
+                roots.push(plan.absorb(sub));
+            }
+            let node = fused::CallNode {
+                body,
+                args: params.iter().map(|k| k.map(|k| roots[k])).collect(),
+                rest: rest
+                    .iter()
+                    .map(|k| roots[k.expect("every further value is built")])
+                    .collect(),
+                returns: call.returns.clone(),
+                callee_span: call.callee_span,
+                arg_spans: call
+                    .args
+                    .iter()
+                    .map(|a| a.as_ref().map(|e| e.span))
+                    .collect(),
+                rest_spans: call.rest.iter().map(|e| e.span).collect(),
+            };
+            plan.push(fused::Node::Call(Box::new(node)), Vec::new());
+            let _ = expr;
+            return true;
+        }
+        // Not row by row: the arguments evaluated in the order written, then the call once.
+        let mut messages: Vec<Diagnostic> = Vec::new();
+        let mut values: Vec<Option<Value>> = vec![None; call.args.len()];
+        let mut further: Vec<Value> = vec![Value::Nothing; call.rest.len()];
+        for (k, (slot, sub)) in built.iter().enumerate() {
+            match self.evaluate_plan(sub, printed, &mut messages) {
+                Ok(value) => match slot {
+                    Slot::Param(i) => values[*i] = Some(value),
+                    Slot::Rest(i) => further[*i] = value,
+                    _ => {}
+                },
+                Err(error) => {
+                    let _ = k;
+                    plan.push(fused::Node::Value(Value::Nothing), messages);
+                    plan.truncate(error);
+                    return false;
+                }
+            }
+        }
+        match self.apply_call(
+            call,
+            values,
+            further,
+            Vec::new(),
+            Vec::new(),
+            printed,
+            &mut messages,
+        ) {
+            Ok(value) => {
+                plan.push(fused::Node::Value(value), messages);
+                true
+            }
+            Err(error) => {
+                plan.push(fused::Node::Value(Value::Nothing), messages);
+                plan.truncate(error);
+                false
+            }
+        }
+    }
+
     fn check_term(
         &self,
         receiver: &Value,
@@ -2521,6 +2935,20 @@ impl<'a> Interpreter<'a> {
 
 /// The IR's operator as the value rules know it.
 /// The operator of `core` for a syntax operator; `..` and `:` never reach the interpreter.
+/// A failed value is an argument only of the functions that look at it or skip it (section 3.7,
+/// "Failed values"): `is`, `type_of` and `print`, and in a list `report` and `len`.
+fn takes_failed(call: &Call) -> bool {
+    matches!(
+        (call.package.as_str(), call.name.as_str()),
+        ("core", "is")
+            | ("core", "type_of")
+            | ("core", "print")
+            | ("core", "len")
+            | ("core", "n_missing")
+            | ("results", "report")
+    )
+}
+
 pub(crate) fn operator(op: BinaryOp) -> Op {
     match op {
         BinaryOp::Pow => Op::Pow,

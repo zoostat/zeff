@@ -238,6 +238,11 @@ pub struct RunOptions {
     /// A test hook: the statement at this line panics before it runs (see `Interpreter`).
     #[doc(hidden)]
     pub panic_at_line: Option<u32>,
+    /// Whether column expressions inside frame methods run as fused passes (Engine and Project
+    /// Specification, section 8.3, point 10): so by default; with the environment variable
+    /// `ZEFF_UNFUSED` set they run through the tree-walking evaluation, the oracle the fused
+    /// passes are tested against, which gives the same bits and messages.
+    pub fused: bool,
 }
 
 impl Default for RunOptions {
@@ -246,6 +251,7 @@ impl Default for RunOptions {
             width: zeff_core::display::PAGE_WIDTH,
             free_bindings: true,
             panic_at_line: None,
+            fused: std::env::var_os("ZEFF_UNFUSED").is_none(),
         }
     }
 }
@@ -362,7 +368,8 @@ pub fn run_script_in(
         .with_sources(&module_sources)
         .with_panic_at(options.panic_at_line)
         .with_width(options.width)
-        .with_freeing(options.free_bindings);
+        .with_freeing(options.free_bindings)
+        .with_fusion(options.fused);
     let result = interpreter.run(&mut output);
     for (statement, columns) in std::mem::take(&mut output.produced) {
         schemas.record_run(statement, columns);

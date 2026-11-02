@@ -2,6 +2,7 @@
 
 pub mod collections;
 pub mod display;
+pub mod fused;
 pub mod lift;
 pub mod maths;
 pub mod missing;

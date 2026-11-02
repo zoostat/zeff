@@ -1,11 +1,14 @@
 //! The benchmark suite (testing handbook, section 6; open decisions #30 and #52; release 0.4.0,
 //! step 21): `import` of a CSV, `summary`, `mean` and `aggregate` (release 0.6.0, step 12) by a
 //! group, `reg` without fixed effects, and `reg` with two-way fixed effects (release 0.6.0, step
-//! 18; the case of section 8.3, point 10 of the Engine and Project Specification), at ten
-//! thousand, a million and ten million rows of generated data. Each case's result is checked against a stored digest before
+//! 18; the case of section 8.3, point 10 of the Engine and Project Specification), and a chain
+//! of five frame verbs run as a script through the engine (release 0.6.0, step 22: the column
+//! expressions of `where`, `add`, `update` and `aggregate`), at ten thousand, a million and ten
+//! million rows of generated data. Each case's result is checked against a stored digest before
 //! it is timed, so that a case can never be made faster by a numerical change; the times are
 //! reported, not judged, and the release notes record them. The cases run through the package
-//! bodies, as the engine calls them, on a frame parsed once from the generated file.
+//! bodies, as the engine calls them, on a frame parsed once from the generated file; the chain
+//! runs through the interpreter, since what it times is the evaluation of expressions.
 
 use std::fmt::Write as _;
 use zeff_columns::Table;
@@ -20,19 +23,20 @@ use zeff_numeric::random::Stream;
 pub const SIZES: [usize; 3] = [10_000, 1_000_000, 10_000_000];
 
 /// The cases, in the order the suite runs them.
-pub const CASES: [&str; 6] = [
+pub const CASES: [&str; 7] = [
     "import",
     "summary by group",
     "mean by group",
     "aggregate by group",
     "reg",
     "reg with two-way fixed effects",
+    "column chain",
 ];
 
 /// The stored digests of every case at every size: the cases of [`CASES`] in order. A change
 /// here is a change of results, which must be a deliberate one, explained in
 /// `docs/decisions.md`.
-pub const EXPECTED: [(usize, [&str; 6]); 3] = [
+pub const EXPECTED: [(usize, [&str; 7]); 3] = [
     (
         10_000,
         [
@@ -42,6 +46,7 @@ pub const EXPECTED: [(usize, [&str; 6]); 3] = [
             "de47012f336a00bf39b32e23fa616cfc48ae06ac68c2c694096bbd6b0851ea3c",
             "d8f793f96173036ce3691a1bbd5b77ba3d939b89fd7e5009a4a83cbcb8403a23",
             "b8f5339b1768b5a23cf51ca29842cbd75b5bad46588f27c90227c980910d7c0c",
+            "cbbf990199f49a0f783191b4fa72dbe588d3be8feba92eeffa311562702d8bf5",
         ],
     ),
     (
@@ -53,6 +58,7 @@ pub const EXPECTED: [(usize, [&str; 6]); 3] = [
             "a5740194bcb312b3c094f6a951c1f7ac67397d313197625460f428b2ebd8bbac",
             "b179916facbd103b31392271fb8af0bacf54ddd6b7c87d2175c478b9446bcd10",
             "88888a096fa97607edc44431893dd53c03fac0fe5a99c231526b5ff5731ccc64",
+            "b30a472b4dde92683eca808d211ad2fe8459efb478ecffcd1f6f7d652ed27147",
         ],
     ),
     (
@@ -64,6 +70,7 @@ pub const EXPECTED: [(usize, [&str; 6]); 3] = [
             "6cda06a226386c614ddee3246776e1e0a9cc607ed5ef817cf61fa87451e31b71",
             "988766ff988357938c819ed0d286dd42ac3bf2a2a5c8804a4119271376af129b",
             "253b8caa45dcd3a3c6cc9b76528ebf2a2d08c29787831d4eb740969e714e4ffa",
+            "e4b9642a2cede9b6fcab38e8a3163ce688a7078936ce5c20792588e32aa9e478",
         ],
     ),
 ];
@@ -272,6 +279,44 @@ pub fn reg_two_way(table: &Table) -> Value {
     )
 }
 
+/// The script of the column chain: five frame verbs on the generated file, each with an
+/// expression over the columns, run through the engine as `zeff run` runs it. `where` keeps the
+/// treated rows with `x1` above −0.5; `add` makes a logarithm, a rational expression and a
+/// `case` over the rows; `update` centres `z` within each group (a reduction inside the
+/// expression); `aggregate` reduces by the group; the result is printed.
+pub const CHAIN_SCRIPT: &str = "let d = import(\"data/bench.csv\")
+    .where(x1 > -0.5 && d == 1)
+    .add(lx = log(x2 + 1.0), z = (x1 - x2) / (1.0 + x2 * x2), big = case { z > 0.1 => 1, _ => 0 })
+    .update(z = z - mean(z), by: g)
+    .aggregate(m = mean(lx), s = sd(z), k = sum(big), by: g)
+print(d)
+";
+
+/// The column chain: the script above run in a project whose `data/bench.csv` is the generated
+/// file, giving what the run printed and reported (its standard output, then its standard
+/// error), which the digest covers.
+pub fn chain(bytes: &[u8]) -> String {
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/b/zeff.toml",
+        format!(
+            "[project]\nname = \"b\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    fs.add_file("/b/data/bench.csv", bytes);
+    let project = Project::open(&fs, std::path::Path::new("/b")).expect("the project opens");
+    let outcome = zeff_engine::run::run_script(&fs, &project, "scripts/main.zeff", CHAIN_SCRIPT);
+    assert_eq!(
+        outcome.exit_code, 0,
+        "the chain failed:\n{}",
+        outcome.output.stderr
+    );
+    format!("{}{}", outcome.output.stdout, outcome.output.stderr)
+}
+
 /// The digest of a frame: every column's name, type and cells, bit for bit.
 pub fn table_digest(table: &Table) -> String {
     let mut parts = String::new();
@@ -333,8 +378,8 @@ pub fn value_digest(value: &Value) -> String {
     zeff_hash::hash_hex(&bytes)
 }
 
-/// The digests of the six cases at `rows` rows, in the order of [`CASES`].
-pub fn digests(bytes: &[u8], table: &Table) -> [String; 6] {
+/// The digests of the seven cases at `rows` rows, in the order of [`CASES`].
+pub fn digests(bytes: &[u8], table: &Table) -> [String; 7] {
     [
         table_digest(&import(bytes)),
         value_digest(&summary_by(table)),
@@ -342,11 +387,12 @@ pub fn digests(bytes: &[u8], table: &Table) -> [String; 6] {
         value_digest(&aggregate_by(table)),
         value_digest(&reg(table)),
         value_digest(&reg_two_way(&with_units(table))),
+        zeff_hash::hash_hex(chain(bytes).as_bytes()),
     ]
 }
 
 /// The stored digests at `rows` rows.
-pub fn expected(rows: usize) -> Option<&'static [&'static str; 6]> {
+pub fn expected(rows: usize) -> Option<&'static [&'static str; 7]> {
     EXPECTED
         .iter()
         .find(|(size, _)| *size == rows)
@@ -355,7 +401,7 @@ pub fn expected(rows: usize) -> Option<&'static [&'static str; 6]> {
 
 /// The cases whose digest at `rows` rows differs from the stored one, as lines to report;
 /// empty when every case holds.
-pub fn mismatches(rows: usize, found: &[String; 6]) -> Vec<String> {
+pub fn mismatches(rows: usize, found: &[String; 7]) -> Vec<String> {
     let Some(stored) = expected(rows) else {
         return vec![format!("no stored digests at {rows} rows")];
     };

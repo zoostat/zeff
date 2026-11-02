@@ -1357,6 +1357,7 @@ dependencies = [
  "zeff-core",
  "zeff-data",
  "zeff-diagnostics",
+ "zeff-engine",
  "zeff-hash",
  "zeff-kernels",
  "zeff-numeric",

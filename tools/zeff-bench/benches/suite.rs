@@ -7,8 +7,8 @@ use std::time::Duration;
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use zeff_bench::{
-    SIZES, aggregate_by, csv, digests, import, mean_by, mismatches, reg, reg_two_way, summary_by,
-    with_units,
+    SIZES, aggregate_by, chain, csv, digests, import, mean_by, mismatches, reg, reg_two_way,
+    summary_by, with_units,
 };
 
 fn suite(c: &mut Criterion) {
@@ -42,6 +42,7 @@ fn suite(c: &mut Criterion) {
         group.bench_function("reg with two-way fixed effects", |b| {
             b.iter(|| reg_two_way(black_box(&units)))
         });
+        group.bench_function("column chain", |b| b.iter(|| chain(black_box(&bytes))));
         group.finish();
     }
 }

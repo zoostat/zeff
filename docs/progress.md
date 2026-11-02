@@ -95,3 +95,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 22 `[engine]`: fused column expressions.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 22
+
+**Done.** Step 22 `[engine]`: fused column expressions. An expression inside a frame method is compiled into a plan when the statement runs and evaluated in blocks of 4,096 rows with no temporary columns, the reductions inside it computed first; the tree-walking evaluation stays as the oracle (`ZEFF_UNFUSED=1`); a property over generated trees and a script test hold the two to the same bits and messages; the benchmark suite gains a seventh case, the column chain, with its digests at the three sizes and the times before and after recorded in `docs/decisions.md` (the expressions' share at a million rows from about 1.0 s to 0.56 s).
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the same with `ZEFF_UNFUSED=1`, the tier and message checks (127 codes), the conformance report (identical) and the benchmark digests at every size pass locally; CI to be read after the push.
+
+**Next.** Step 23 `[engine]`: script tests, the 0.6.0 sample project, the fuzz targets, the jobs and the benchmark suite.
+
+**For the owner to decide.** Nothing new.
