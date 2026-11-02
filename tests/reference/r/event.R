@@ -2,8 +2,9 @@
 # release, decided 1 November 2026): `i(rel, ref = c(-1, -1000))` with the never-treated rows at
 # the reference of their own, on a generated staggered panel with never-treated units, under
 # two-way fixed effects with clustered errors, pooled with an intercept, and with a Date time
-# whose relative periods are days. The panel is written beside the references with 17
-# significant digits. Values to 17 significant digits. Run with `Rscript tests/reference/r/event.R`.
+# whose relative periods are days. The panel is written beside the references, its generated
+# columns rounded to six decimals so that the file is the same on every platform. Values to 17
+# significant digits. Run with `Rscript tests/reference/r/event.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 Sys.setlocale("LC_COLLATE", "C")
 root <- normalizePath(file.path(here(), "..", "..", ".."))
@@ -16,17 +17,21 @@ TOL <- 1e-11
 # The panel: 60 units over 2010 to 2017; cohorts first treated in 2012, 2014 and 2016 (15 units
 # each) and 15 never treated; y = unit effect + year effect + 0.3 x + a dynamic effect of
 # 0.2 (k + 1) from the period of treatment on + noise, with R's generator under a fixed seed
-# (the file, not the draws, is the reference input).
+# (the file, not the draws, is the reference input). The draws are rounded to six decimals: R's
+# normal generator inverts through the platform's `log`, so a few draws differ in the last bit
+# between Linux and macOS, and written with 17 significant digits the file would differ too; at
+# six decimals the two platforms hold the same doubles, and the engine reads the same from the
+# file.
 set.seed(20261102)
 units <- 60; years <- 2010:2017
 d <- expand.grid(year = years, unit = seq_len(units))[, c("unit", "year")]
 cohort <- rep(c(2012, 2014, 2016, NA), each = 15)
 d$treat <- cohort[d$unit]
 unit_effect <- rnorm(units, 0, 0.5); year_effect <- 0.05 * (years - 2010) + rnorm(length(years), 0, 0.1)
-d$x <- rnorm(nrow(d))
+d$x <- round(rnorm(nrow(d)), 6)
 rel <- d$year - d$treat
 effect <- ifelse(!is.na(rel) & rel >= 0, 0.2 * (rel + 1), 0)
-d$y <- unit_effect[d$unit] + year_effect[d$year - 2009] + 0.3 * d$x + effect + rnorm(nrow(d), 0, 0.3)
+d$y <- round(unit_effect[d$unit] + year_effect[d$year - 2009] + 0.3 * d$x + effect + rnorm(nrow(d), 0, 0.3), 6)
 d$day <- as.Date("2020-01-01") + 7 * (d$year - 2010)
 d$treat_day <- as.Date("2020-01-01") + 7 * (d$treat - 2010)
 
