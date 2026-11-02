@@ -304,6 +304,7 @@ jobs:
           Rscript tests/reference/r/design.R
           Rscript tests/reference/r/regression.R
           Rscript tests/reference/r/fixed_effects.R
+          Rscript tests/reference/r/event.R
           Rscript tests/reference/r/dates.R
           Rscript tests/reference/r/time.R
           Rscript tests/reference/r/format.R
@@ -321,7 +322,7 @@ jobs:
         # last bits differ between Linux and macOS; the committed copies are compared within
         # tolerance (tests/reference/r/check_r.py) and the differences are printed.
         run: |
-          for name in maths descriptive special distributions association kernels types design regression fixed_effects dates time format panel running quantile_group distinct aggregate merge reshape; do
+          for name in maths descriptive special distributions association kernels types design regression fixed_effects event dates time format panel running quantile_group distinct aggregate merge reshape; do
             git show HEAD:tests/reference/r/$name.json > /tmp/committed_r_$name.json
             git diff --stat -- tests/reference/r/$name.json
             python3 -I tests/reference/r/check_r.py $name /tmp/committed_r_$name.json tests/reference/r/$name.json

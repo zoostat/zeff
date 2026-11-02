@@ -1,0 +1,163 @@
+---
+source: packages/tier2/regress/tests/event.rs
+assertion_line: 187
+expression: all
+---
+reg · y ~ event(year, treat) · fe: unit + year
+N = 16 (no singletons)
+fixed effects: unit (4), year (4)
+standard errors: classical
+
+  term       estimate   std.error   t value   p value   95% CI
+  event=-3    -0.1316      0.2121     -0.62     0.568   [-0.7204, 0.4571]
+  event=-2    -0.0063      0.1411     -0.04     0.966   [-0.3981, 0.3854]
+  event=0      1.0273      0.1242      8.27     0.001   [0.6823, 1.3722]
+  event=1      1.3119      0.1738      7.55     0.002   [0.8293, 1.7944]
+  event=2      1.4502      0.2510      5.78     0.004   [0.7534, 2.1470]
+
+R² within 0.953 · R² overall 0.990
+1.02727
+                           (1)
+  event=-3             -0.132
+                       (0.212)
+  event=-2             -0.006
+                       (0.141)
+  event=0               1.027**
+                       (0.124)
+  event=1               1.312**
+                       (0.174)
+  event=2               1.450**
+                       (0.251)
+  ──────────────────────────────
+  Fixed effects       unit, year
+  SEs                  classical
+  N                           16
+  R²              0.953 (within)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+reg · y ~ event(year, treat) · fe: unit + year
+N = 16 (no singletons)
+fixed effects: unit (4), year (4)
+standard errors: clustered by unit (4 clusters, CR1)
+
+  term       estimate   std.error   t value   p value   95% CI
+  event=-3    -0.1316      0.0670     -1.96     0.144   [-0.3449, 0.0817]
+  event=-2    -0.0063      0.1266     -0.05     0.963   [-0.4092, 0.3966]
+  event=0      1.0273      0.1329      7.73     0.005   [0.6043, 1.4502]
+  event=1      1.3119      0.0743     17.65    <0.001   [1.0754, 1.5484]
+  event=2      1.4502      0.0742     19.54    <0.001   [1.2140, 1.6864]
+
+R² within 0.953 · R² overall 0.990
+warning: few clusters: 4 clusters give clustered errors little to rest on (line 6)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
+----
+error[Z0802]: no regressor remains: every one is absorbed by fe: unit + year (`event=-2`, `event=0`, `event=1`)
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ event(year, treat), fe: unit + year)
+  |   ^^^ nothing varies within the effects' levels
+  |
+  = help: a regressor must vary within the levels of every effect; the leads and lags of units all treated at once are the time effects themselves, so drop the time effect or add never-treated units
+----
+reg · y ~ event(year, treat) · fe: unit + year
+N = 16 (no singletons)
+fixed effects: unit (4), year (4)
+standard errors: classical
+
+  term        estimate   std.error   t value   p value   95% CI
+  event=-3      0.1828      0.6246      0.29     0.782   [-1.4228, 1.7884]
+  event=-2      0.1211      0.4266      0.28     0.788   [-0.9755, 1.2176]
+  event=0       0.5723      0.2865      2.00     0.102   [-0.1641, 1.3088]
+  event=1       0.3271      0.3584      0.91     0.403   [-0.5942, 1.2484]
+  event=2    (omitted)
+
+R² within 0.459 · R² overall 0.885
+note: `event=2` is collinear with the columns before it and was dropped (line 2)
+----
+error[Z0507]: `ref: 5` of `event(year, treat, ref: 5)` is not a relative period of the data
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ event(year, treat, ref: 5), fe: unit + year)
+  |   ^^^ no row at this period
+  |
+  = help: the relative periods present are -3, -2, -1, 0, 1, 2; `ref:` names the one left out as the base, −1 unless given
+----
+reg · y ~ event(year, treat, ref: 0) · fe: unit + year
+N = 16 (no singletons)
+fixed effects: unit (4), year (4)
+standard errors: classical
+
+  term       estimate   std.error   t value   p value   95% CI
+  event=-3    -1.1589      0.2510     -4.62     0.010   [-1.8556, -0.4621]
+  event=-2    -1.0336      0.1738     -5.95     0.004   [-1.5161, -0.5511]
+  event=-1    -1.0273      0.1242     -8.27     0.001   [-1.3722, -0.6823]
+  event=1      0.2846      0.1411      2.02     0.114   [-0.1072, 0.6764]
+  event=2      0.4229      0.2121      1.99     0.117   [-0.1658, 1.0117]
+
+R² within 0.953 · R² overall 0.990
+----
+reg · y ~ event(day, treat_day, ref: -7) · fe: unit + year
+N = 16 (no singletons)
+fixed effects: unit (4), year (4)
+standard errors: classical
+
+  term        estimate   std.error   t value   p value   95% CI
+  event=-21    -0.1316      0.2121     -0.62     0.568   [-0.7204, 0.4571]
+  event=-14    -0.0063      0.1411     -0.04     0.966   [-0.3981, 0.3854]
+  event=0       1.0273      0.1242      8.27     0.001   [0.6823, 1.3722]
+  event=7       1.3119      0.1738      7.55     0.002   [0.8293, 1.7944]
+  event=14      1.4502      0.2510      5.78     0.004   [0.7534, 2.1470]
+
+R² within 0.953 · R² overall 0.990
+----
+error[Z0401]: `event(year, never)` finds no treated row: `never` is NA wherever `year` is not
+ --> scripts/main.zeff:3:3
+  |
+3 | e.reg(y ~ event(year, never))
+  |   ^^^ no unit is ever treated
+  |
+  = help: `treat` holds the period a unit was first treated in and `NA` for a unit never treated; an event study needs some of each
+----
+error[Z0401]: `event` needs `time` and `treat` of one type, both Int or both Date, but `year` is an Int and `t` is a Str
+ --> scripts/main.zeff:3:3
+  |
+3 | e.reg(y ~ event(year, t))
+  |   ^^^ two kinds of time
+  |
+  = help: `treat` is the period a unit was first treated in, in the time variable's own type; `NA` marks a unit never treated
+----
+error[Z0401]: `event` is a term of a formula and has no value outside one
+ --> scripts/main.zeff:2:1
+  |
+2 | event(year, treat)
+  | ^^^^^ called outside a formula
+  |
+  = help: write it on the right of `~`: `y ~ event(year, treated_in)`, usually with `fe: unit + year`
+----
+reg · y ~ event(year, treat) + event(year, treat) · fe: unit + year
+N = 16 (no singletons)
+fixed effects: unit (4), year (4)
+standard errors: classical
+
+  term       estimate   std.error   t value   p value   95% CI
+  event=-3    -0.1316      0.2121     -0.62     0.568   [-0.7204, 0.4571]
+  event=-2    -0.0063      0.1411     -0.04     0.966   [-0.3981, 0.3854]
+  event=0      1.0273      0.1242      8.27     0.001   [0.6823, 1.3722]
+  event=1      1.3119      0.1738      7.55     0.002   [0.8293, 1.7944]
+  event=2      1.4502      0.2510      5.78     0.004   [0.7534, 2.1470]
+
+R² within 0.953 · R² overall 0.990
+note: `event=-3` is written twice and is kept once (line 2)
+note: `event=-2` is written twice and is kept once (line 2)
+note: `event=0` is written twice and is kept once (line 2)
+note: `event=1` is written twice and is kept once (line 2)
+note: `event=2` is written twice and is kept once (line 2)
+----
+error[Z0401]: `ref` of `event` must be an Int, but this is a Str
+ --> scripts/main.zeff:2:35
+  |
+2 | d.reg(y ~ event(year, treat, ref: "before"))
+  |                                   ^^^^^^^^ a Str
+  |
+  = help: usage: `event(time, treat, ref: Int = -1)`
+----

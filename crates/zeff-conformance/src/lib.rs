@@ -915,6 +915,13 @@ fn regress_cases() -> Vec<Line> {
             "fe",
             "let w = dataset(wages)\nlet m1 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: firm)\nm1\nlet m2 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: industry + year, cluster: worker)\nm2\nlet m3 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: worker + year, cluster: worker)\nm3\nw.reg(log(wage) ~ educ + female, fe: industry:year, weights: hours)\nm2.r_squared()\nreport([m1, m2, m3], stats: [n_obs, r_squared, r_squared_within])\nm1.predict(newdata: w.head(5))\n",
         ),
+        // Event-study terms (release 0.6.0, step 19): the leads and lags of a staggered panel
+        // with never-treated units under two-way fixed effects, another reference period, and
+        // the refusal of a period absent from the data.
+        (
+            "event",
+            "let d = frame(unit = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], year = [2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013], treat = [2011, 2011, 2011, 2011, 2012, 2012, 2012, 2012, 2013, 2013, 2013, 2013, NA, NA, NA, NA], y = [1.0, 2.1, 2.4, 2.6, 1.5, 1.4, 2.6, 2.9, 0.8, 0.9, 1.1, 2.0, 1.2, 1.3, 1.1, 1.4])\nlet m = d.reg(y ~ event(year, treat), fe: unit + year)\nm\nreport([m])\nd.reg(y ~ event(year, treat, ref: 0), fe: unit + year)\nd.reg(y ~ event(year, treat, ref: 9), fe: unit + year)\n",
+        ),
         // The result interface (step 15): the summary with its options, the estimates frame, the
         // mappings and the intervals of one fit.
         (

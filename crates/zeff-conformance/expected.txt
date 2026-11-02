@@ -115,6 +115,8 @@ regress/weighted/stdout aeb6bde8c819a0fc
 regress/weighted/stderr 0379ea182b39c370
 regress/fe/stdout 14fbe484f294ee6b
 regress/fe/stderr 46f0e043f2d3a8fd
+regress/event/stdout bbbc9cf165258b77
+regress/event/stderr 40ffab6fe4efdfad
 regress/interface/stdout 08c3aafc8156baa5
 regress/interface/stderr cbf29ce484222325
 control/case/stdout 31d5603dedb0df16

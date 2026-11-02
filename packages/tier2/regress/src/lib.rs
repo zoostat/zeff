@@ -1,7 +1,7 @@
 //! Package regress (tier 2): linear regression (Engine and Project Specification, section 13;
 //! release 0.4.0): `reg`, ordinary least squares on the kernels with the variance layer of
-//! `results`; `interact`, the formula term of section 7.2; and the methods of regression fits,
-//! `r_squared` and `influence`.
+//! `results`; `interact` and `event`, the formula terms of section 7.2 and catalogue row 252;
+//! and the methods of regression fits, `r_squared`, `influence` and `vif`.
 
 pub mod diagnostics;
 pub mod ols;
@@ -23,6 +23,20 @@ pub fn interact(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
         .in_file(ctx.script)
         .primary(ctx.callee_span, "called outside a formula")
         .help("write it on the right of `~`: `y ~ interact([a, b, c], order: 2)`"),
+    ))
+}
+
+/// `event(time, treat, ref:)` is read by the model matrix inside a formula (catalogue row 252;
+/// question 2 of release 0.6.0); called anywhere else it has no value to give.
+pub fn event(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
+    Err(fail(
+        Diagnostic::error(
+            "Z0401",
+            "`event` is a term of a formula and has no value outside one",
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "called outside a formula")
+        .help("write it on the right of `~`: `y ~ event(year, treated_in)`, usually with `fe: unit + year`"),
     ))
 }
 
@@ -123,6 +137,33 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: interact,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "event",
+                package: "regress",
+                method: false,
+                params: vec![
+                    ParamSpec::required("time", "Var"),
+                    ParamSpec::required("treat", "Var"),
+                    ParamSpec::option_with_default("ref", "Int", "-1"),
+                ],
+                rest: None,
+                returns: "Column",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "called outside a formula; `time` and `treat` not both Int or both Date; no treated row at all",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0507",
+                        "`ref:` is not a relative period of the data; the message lists the periods present",
+                    ),
+                ],
+                help: include_str!("../help/event.md"),
+                accuracy: None,
+            },
+            body: event,
         },
         Function {
             spec: FunctionSpec {

@@ -1298,6 +1298,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0414 | A term name given to a result method that the result does not have; the message lists the fit's terms, and a test's result has none |
 | Z0415 | A restriction given to `test` that is not an equality linear in the coefficients, or restrictions that repeat one another |
 | Z0416 | A `compare` of two regressions on different rows, with the same terms, or not nested |
+| Z0507 | `event` given a `ref:` that is not a relative period of the data; the message lists the periods present |
 | Z0417 | A definition given to `derive` that it cannot differentiate |
 | Z0418 | A `seq` that cannot be built: a zero step, a step pointing away from `to`, an argument that is `NA` or infinite, or more than ten million values |
 | Z0111 | `seed` called after a draw, or a second time |

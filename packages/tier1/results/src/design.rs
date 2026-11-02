@@ -1035,6 +1035,18 @@ impl Builder<'_, '_> {
                     .collect::<Result<Vec<Vec<usize>>, _>>()?;
                 interactions_up_to(&units, order as usize, out);
             }
+            TermKind::Expr(ColumnExpr::Call {
+                package,
+                name,
+                args,
+                ..
+            }) if package == "regress" && name == "event" => {
+                for source in self.event_sources(&term.text, args)? {
+                    out.push(ExpandedTerm {
+                        sources: vec![source],
+                    });
+                }
+            }
             TermKind::Expr(expr) => {
                 let source = self.expression(&term.text, expr)?;
                 out.push(ExpandedTerm {
@@ -1043,6 +1055,165 @@ impl Builder<'_, '_> {
             }
         }
         Ok(())
+    }
+
+    /// `event(time, treat, ref:)` (catalogue row 252; question 2 of release 0.6.0): one indicator
+    /// column per relative period `time − treat` present among the treated rows, except `ref:`
+    /// (the period before treatment, −1, unless given), named `event=-3`, `event=0`, in period
+    /// order; a row whose `treat` is `NA` is never treated and is 0 in every column, so such
+    /// units are the controls, as fixest's `i(rel, ref = c(-1, -1000))` arranges; a row whose
+    /// `time` is `NA` is `NA` in every column and dropped with the model variables'. `time` and
+    /// `treat` are both Int or both Date (a Date's relative period is in days); no treated row
+    /// at all is refused, and `ref:` absent from the periods present is Z0507 listing them.
+    fn event_sources(
+        &mut self,
+        text: &str,
+        args: &[Option<ColumnExpr>],
+    ) -> Result<Vec<usize>, Fail> {
+        let column_of = |this: &mut Self, which: usize, role: &str| -> Result<Column, Fail> {
+            let expr = match args.get(which) {
+                Some(Some(expr)) => expr.clone(),
+                _ => return Err(this.internal("`event` without its variables")),
+            };
+            match this.evaluate(&expr)? {
+                Value::Column(column) => Ok(column),
+                other => Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`{role}` of `event` is a variable of the frame, but `{}` gives {}",
+                            column_expr_text(&expr),
+                            other.type_word()
+                        ),
+                    )
+                    .in_file(this.ctx.script)
+                    .primary(this.ctx.callee_span, "not a column")
+                    .help("`event(time, treat)` names the time variable and the period each unit was first treated in"),
+                )),
+            }
+        };
+        let time = column_of(self, 0, "time")?;
+        let treat = column_of(self, 1, "treat")?;
+        let reference = match args.get(2) {
+            Some(Some(expr)) => {
+                match self.evaluate(expr)? {
+                    Value::Int(r) => r,
+                    other => {
+                        return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!("`ref:` of `event` is a whole number, but this is {}", other.type_word()),
+                        )
+                        .in_file(self.ctx.script)
+                        .primary(self.ctx.callee_span, "not a relative period")
+                        .help("`ref: -1` is the period before treatment; a Date's periods are days"),
+                    ));
+                    }
+                }
+            }
+            _ => -1,
+        };
+        let (time_text, treat_text) = (
+            args[0].as_ref().map(column_expr_text).unwrap_or_default(),
+            args[1].as_ref().map(column_expr_text).unwrap_or_default(),
+        );
+        let same_kind = matches!(
+            (time.ty(), treat.ty()),
+            (ColumnType::Int, ColumnType::Int) | (ColumnType::Date, ColumnType::Date)
+        );
+        if !same_kind {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`event` needs `time` and `treat` of one type, both Int or both Date, but `{time_text}` is {} and `{treat_text}` is {}",
+                        article(time.ty().name()),
+                        article(treat.ty().name())
+                    ),
+                )
+                .in_file(self.ctx.script)
+                .primary(self.ctx.callee_span, "two kinds of time")
+                .help("`treat` is the period a unit was first treated in, in the time variable's own type; `NA` marks a unit never treated"),
+            ));
+        }
+        let rows = time.len();
+        if treat.len() != rows {
+            return Err(self.internal("an event term of another number of rows"));
+        }
+        // The relative period, `time − treat`, by the column kernels: days between two dates.
+        let (relative, _) =
+            operators::column_binary(Op::Sub, Operand::Column(&time), Operand::Column(&treat))
+                .map_err(|t| self.column_trouble(t))?;
+        let relative: Vec<Option<i64>> = relative
+            .as_ints()
+            .ok_or_else(|| self.internal("a relative period that is not a whole number"))?
+            .collect();
+        let time_na: Vec<bool> = (0..rows)
+            .map(|row| matches!(time.get(row), None | Some(zeff_columns::Value::Na)))
+            .collect();
+        let mut periods: Vec<i64> = relative.iter().flatten().copied().collect();
+        periods.sort_unstable();
+        periods.dedup();
+        if periods.is_empty() {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("`{text}` finds no treated row: `{treat_text}` is NA wherever `{time_text}` is not"),
+                )
+                .in_file(self.ctx.script)
+                .primary(self.ctx.callee_span, "no unit is ever treated")
+                .help("`treat` holds the period a unit was first treated in and `NA` for a unit never treated; an event study needs some of each"),
+            ));
+        }
+        if !periods.contains(&reference) {
+            let listed = if periods.len() <= 12 {
+                periods
+                    .iter()
+                    .map(|p| p.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            } else {
+                format!(
+                    "{} to {} ({} periods)",
+                    periods[0],
+                    periods[periods.len() - 1],
+                    count(periods.len() as u64)
+                )
+            };
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0507",
+                    format!("`ref: {reference}` of `{text}` is not a relative period of the data"),
+                )
+                .in_file(self.ctx.script)
+                .primary(self.ctx.callee_span, "no row at this period")
+                .help(format!("the relative periods present are {listed}; `ref:` names the one left out as the base, −1 unless given")),
+            ));
+        }
+        let mut sources = Vec::new();
+        for period in periods.into_iter().filter(|p| *p != reference) {
+            let key = format!("event={period}");
+            if let Some(i) = self.keys.iter().position(|k| *k == key) {
+                sources.push(i);
+                continue;
+            }
+            let values: Vec<Option<f64>> = (0..rows)
+                .map(|row| {
+                    if time_na[row] {
+                        None
+                    } else {
+                        Some(match relative[row] {
+                            Some(r) if r == period => 1.0,
+                            _ => 0.0,
+                        })
+                    }
+                })
+                .collect();
+            self.keys.push(key);
+            self.sources.push(numeric(values));
+            sources.push(self.sources.len() - 1);
+        }
+        Ok(sources)
     }
 
     /// The variables from `first` to `last` in the frame's order (section 7.1, `x1..x9`).

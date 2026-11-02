@@ -109,7 +109,9 @@ fn effect_specs(terms: &[Term]) -> Vec<(String, Vec<String>)> {
 }
 
 /// Every variable a formula names: the outcome, each term and the variables inside its
-/// arithmetic.
+/// arithmetic. The variables of an `event` term are left out: its time variable is read for the
+/// relative periods alone and is usually a fixed effect too (`event(year, treat)` with
+/// `fe: unit + year`, as fixest's `i(rel) | unit + year`).
 fn formula_variables(formula: &Formula) -> Vec<String> {
     fn of_expr(expr: &ColumnExpr, out: &mut Vec<String>) {
         match expr {
@@ -124,6 +126,7 @@ fn formula_variables(formula: &Formula) -> Vec<String> {
                 of_expr(lhs, out);
                 of_expr(rhs, out);
             }
+            ColumnExpr::Call { package, name, .. } if package == "regress" && name == "event" => {}
             ColumnExpr::Call { args, rest, .. } => {
                 args.iter().flatten().for_each(|a| of_expr(a, out));
                 rest.iter().for_each(|a| of_expr(a, out));
@@ -904,6 +907,25 @@ fn fit_with_effects(
             .in_file(ctx.script)
             .primary(ctx.callee_span, "nothing to estimate within the effects")
             .help("an effect whose every level has one row absorbs every row; use a coarser effect, or leave it out"),
+        ));
+    }
+    // Every regressor absorbed: nothing varies within the effects' levels (the indicators of
+    // units all treated at once under time effects, a group-level regressor under its group).
+    if absorbed_design.k() > 0 && absorbed.absorbed_columns.len() == absorbed_design.k() {
+        let listed = absorbed
+            .absorbed_columns
+            .iter()
+            .map(|&c| format!("`{}`", absorbed_design.names[c]))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(fail(
+            Diagnostic::error(
+                "Z0802",
+                format!("no regressor remains: every one is absorbed by fe: {effects_text} ({listed})"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "nothing varies within the effects' levels")
+            .help("a regressor must vary within the levels of every effect; the leads and lags of units all treated at once are the time effects themselves, so drop the time effect or add never-treated units"),
         ));
     }
     let fitted = Ols.fit(ctx, &absorbed_design)?;

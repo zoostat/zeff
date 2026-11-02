@@ -171,3 +171,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 19 `[function]`: `event`.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 19
+
+**Done.** Step 19 `[function]`: `event(time, treat, ref:)`, the event-study term of a formula (catalogue row 252, question 2): one indicator per relative period present among the treated rows but the reference, named `event=-3`, `event=0`, …, never-treated units as controls, Int or Date times, `ref:` absent from the data Z0507 (logged), its variables exempt from the rule that a fixed effect may not be a model variable; every regressor absorbed by the effects now named as such. Against fixest's `i()` on a generated staggered panel within 1e-7; the edge cases and properties of the checklist; the page; the conformance case `regress/event`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (126 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 20 `[engine]`: the schema pass, part 1 (file schemas and the checker).
+
+**For the owner to decide.** Nothing new.

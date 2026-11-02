@@ -13,7 +13,7 @@ relative 1e-12, the class tolerance of the distribution functions, since R's `pg
 carry errors of that order in their far tails on some platforms. `frames.json` holds only row
 numbers and is compared byte for byte by the workflow itself.
 
-Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|fixed_effects|dates|time|format|panel|running|quantile_group|distinct|aggregate|merge|reshape <committed.json> <regenerated.json>
+Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|fixed_effects|event|dates|time|format|panel|running|quantile_group|distinct|aggregate|merge|reshape <committed.json> <regenerated.json>
 
 `dates.json`, `time.json` and `format.json` hold day counts, texts, seconds, date parts and ISO texts, which are exact on every platform, and are compared exactly apart from the software line.
 """
@@ -22,7 +22,7 @@ import json
 import math
 import sys
 
-TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "fixed_effects": 1e-9, "dates": 0.0, "time": 0.0, "format": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0, "distinct": 0.0, "aggregate": 1e-12, "merge": 0.0, "reshape": 0.0}
+TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "fixed_effects": 1e-9, "event": 1e-9, "dates": 0.0, "time": 0.0, "format": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0, "distinct": 0.0, "aggregate": 1e-12, "merge": 0.0, "reshape": 0.0}
 
 
 def number(text):
@@ -258,6 +258,29 @@ def check_fixed_effects(committed, regenerated, problems):
                     problems.append(f"cases.{name}.{key}[{i}]: committed {a}, regenerated {b}")
 
 
+def check_event(committed, regenerated, problems):
+    """event.json: every term's statistics and both R² forms of every case within the tolerance,
+    the terms, the omitted ones, the counts and the degrees of freedom exactly."""
+    tolerance = TOLERANCE["event"]
+    for name, case in committed["cases"].items():
+        other = regenerated["cases"].get(name)
+        if other is None:
+            problems.append(f"cases.{name}: missing")
+            continue
+        for key in ("terms", "omitted", "nobs", "df_t"):
+            if case[key] != other[key]:
+                problems.append(f"cases.{name}.{key}: committed {case[key]}, regenerated {other[key]}")
+        for term, values in case["columns"].items():
+            theirs = other["columns"].get(term, {})
+            for key, a in values.items():
+                b = theirs.get(key)
+                if b is None or not close(a, b, tolerance, 1e-14):
+                    problems.append(f"cases.{name}.{term}.{key}: committed {a}, regenerated {b}")
+        for key in ("r_squared", "within_r_squared"):
+            if not close(case[key], other[key], tolerance, 1e-14):
+                problems.append(f"cases.{name}.{key}: committed {case[key]}, regenerated {other[key]}")
+
+
 def check_dates(committed, regenerated, problems):
     """Every value exact: day counts, seconds and ISO texts carry no rounding."""
     for key in committed:
@@ -273,7 +296,7 @@ def main(which, committed_path, regenerated_path):
     with open(regenerated_path, encoding="utf-8") as f:
         regenerated = json.load(f)
     problems = []
-    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design, "regression": check_regression, "fixed_effects": check_fixed_effects, "dates": check_dates, "time": check_dates, "format": check_dates, "panel": check_dates, "running": check_dates, "quantile_group": check_dates, "distinct": check_dates, "aggregate": check_dates, "merge": check_dates, "reshape": check_dates}
+    checks = {"maths": check_maths, "descriptive": check_descriptive, "kernels": check_kernels, "design": check_design, "regression": check_regression, "fixed_effects": check_fixed_effects, "event": check_event, "dates": check_dates, "time": check_dates, "format": check_dates, "panel": check_dates, "running": check_dates, "quantile_group": check_dates, "distinct": check_dates, "aggregate": check_dates, "merge": check_dates, "reshape": check_dates}
     if which in checks:
         checks[which](committed, regenerated, problems)
     else:
