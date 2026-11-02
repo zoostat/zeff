@@ -30,14 +30,24 @@ fn regression(ctx: &CallContext<'_>, args: &Args, name: &str) -> Result<Rc<Fit>,
 }
 
 /// `fit.r_squared()`: R² and adjusted R² as a record (question 4), `NA` when the outcome has no
-/// variation; within and overall join it with fixed effects at 0.6.0.
+/// variation. With fixed effects (release 0.6.0, step 18) `r_squared` and `adjusted` are the
+/// overall forms, the effects' fit included, and `within` and `adjusted_within` the forms of
+/// the regression on the demeaned columns, as fixest's `r2`, `ar2`, `wr2` and `war2`.
 pub fn r_squared(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let fit = regression(ctx, &args, "r_squared")?;
     let measure = |x: Option<f64>| x.map_or(Value::Na, Value::Float);
-    Ok(Value::Record(vec![
+    let mut fields = vec![
         ("r_squared".to_string(), measure(fit.r_squared)),
         ("adjusted".to_string(), measure(fit.adjusted_r_squared)),
-    ]))
+    ];
+    if !fit.effects.is_empty() {
+        fields.push(("within".to_string(), measure(fit.r_squared_within)));
+        fields.push((
+            "adjusted_within".to_string(),
+            measure(fit.adjusted_r_squared_within),
+        ));
+    }
+    Ok(Value::Record(fields))
 }
 
 /// The variance inflation factor of each regressor (catalogue row 248; release 0.5.0, step
@@ -144,6 +154,19 @@ pub fn measures(fit: &Fit) -> Vec<(f64, f64, f64)> {
 /// of the fitted frame's full length with `NA` in the rows the fit dropped.
 pub fn influence(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let fit = regression(ctx, &args, "influence")?;
+    // With absorbed effects the leverage of the full design cannot be had from the demeaned
+    // factorisation (the ruling of release 0.6.0, step 18), so the measures wait.
+    if !fit.effects.is_empty() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0304",
+                "`influence` on a fit with fixed effects is not available in this release",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "a fit with `fe:`")
+            .help("the leverage, Cook's distance and studentized residuals of a fit with absorbed effects arrive with release 0.8.0; `residuals()` and `fitted()` are available now"),
+        ));
+    }
     let measured = measures(&fit);
     let full = |pick: &dyn Fn(&(f64, f64, f64)) -> f64| -> Column {
         let mut all: Vec<Option<f64>> = vec![None; fit.frame_rows];

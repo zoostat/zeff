@@ -12,6 +12,7 @@
 //! of release 0.4.0 under the `sum`, `helmert` and `poly` contrasts.
 
 use std::collections::BTreeSet;
+use std::rc::Rc;
 use zeff_columns::{Column, ColumnType, Contrast, Table};
 use zeff_core::display::list_levels;
 use zeff_core::lift;
@@ -28,7 +29,7 @@ pub const BLOCK_ROWS: usize = zeff_kernels::qr::BLOCK_ROWS;
 
 /// A column of the frame, or an expression over its columns, evaluated once: numbers with their
 /// missing rows, or the codes of a category with its levels and contrast.
-enum Source {
+pub(crate) enum Source {
     Numeric {
         values: Vec<f64>,
         na: Vec<bool>,
@@ -59,7 +60,7 @@ enum Part {
 
 /// One column of the design: its name and the parts whose product it is; no part is the
 /// intercept.
-struct DesignColumn {
+pub(crate) struct DesignColumn {
     name: String,
     parts: Vec<Part>,
 }
@@ -105,12 +106,26 @@ pub struct Design {
     /// When built on new data with a fit's levels (`predict`): by category variable, the rows
     /// whose label the fit never saw, which count as `NA`.
     pub unseen: Vec<(String, usize)>,
-    columns: Vec<DesignColumn>,
-    sources: Vec<Source>,
-    outcome: Option<usize>,
+    pub(crate) columns: Vec<DesignColumn>,
+    pub(crate) sources: Vec<Source>,
+    pub(crate) outcome: Option<usize>,
     /// The outcome's term as written, for messages that name it.
-    outcome_text: Option<String>,
-    block_rows: usize,
+    pub(crate) outcome_text: Option<String>,
+    pub(crate) block_rows: usize,
+    /// The columns and the outcome held as values per row used, in the order of `rows`, when
+    /// the design has been transformed (the fixed effects projected out, `absorb`); the blocks
+    /// read them in place of the sources.
+    pub(crate) dense: Option<Dense>,
+    /// The outcome before the transformation, per row used and unweighted, for the overall R²
+    /// and the fitted values that include the effects.
+    pub original_outcome: Option<Vec<f64>>,
+}
+
+/// The design's values held per row used: one vector per column of `names`, and the outcome.
+#[derive(Debug, Clone)]
+pub(crate) struct Dense {
+    pub columns: Vec<Rc<Vec<f64>>>,
+    pub outcome: Rc<Vec<f64>>,
 }
 
 /// One block of the design: the rows of `rows` from `start`, their design as a matrix and their
@@ -144,6 +159,36 @@ impl Design {
         extra: &[&str],
         plan: &[(String, Vec<String>)],
     ) -> Result<Design, Fail> {
+        Design::build_full(ctx, frame, formula, extra, plan, &[], false)
+    }
+
+    /// The design of a model whose intercept the fixed effects absorb (section 7.2, "Fixed
+    /// effects"): no `(intercept)` column, every category coded by K − 1 indicators as with an
+    /// intercept, `- 1` without effect; the variables of `na_only` (the fixed effects, of any
+    /// type) join the model variables whose `NA` rows are dropped and counted, without becoming
+    /// columns.
+    pub fn build_absorbing(
+        ctx: &mut CallContext<'_>,
+        frame: &Frame,
+        formula: &Formula,
+        extra: &[&str],
+        na_only: &[&str],
+    ) -> Result<Design, Fail> {
+        Design::build_full(ctx, frame, formula, extra, &[], na_only, true)
+    }
+
+    /// The design with every choice: the levels of `plan` for the category variables (`predict`),
+    /// the `NA`-only variables, and whether the intercept is absorbed by fixed effects (no
+    /// `(intercept)` column, categories coded as with one).
+    pub fn build_full(
+        ctx: &mut CallContext<'_>,
+        frame: &Frame,
+        formula: &Formula,
+        extra: &[&str],
+        plan: &[(String, Vec<String>)],
+        na_only: &[&str],
+        absorbed_intercept: bool,
+    ) -> Result<Design, Fail> {
         let mut builder = Builder {
             ctx,
             frame: &frame.table,
@@ -167,14 +212,19 @@ impl Design {
             .iter()
             .map(|name| builder.variable(name))
             .collect::<Result<_, _>>()?;
-        let columns = builder.columns(&terms, formula.intercept);
+        let masks: Vec<(String, Vec<bool>)> = na_only
+            .iter()
+            .map(|name| builder.na_mask(name).map(|m| (name.to_string(), m)))
+            .collect::<Result<_, _>>()?;
+        let intercept = formula.intercept && !absorbed_intercept;
+        let columns = builder.columns(&terms, intercept || absorbed_intercept);
         let mut names: Vec<String> = Vec::new();
-        if formula.intercept {
+        if intercept {
             names.push("(intercept)".to_string());
         }
         names.extend(columns.iter().map(|c| c.name.clone()));
         builder.refuse_infinities()?;
-        let (rows, dropped, dropped_in) = builder.rows_without_na(&extra_sources, outcome);
+        let (rows, dropped, dropped_in) = builder.rows_without_na(&extra_sources, outcome, &masks);
         builder.refuse_infinite_products(&columns, &rows)?;
         Ok(Design {
             names,
@@ -182,7 +232,7 @@ impl Design {
             dropped,
             dropped_in,
             notes: builder.notes,
-            intercept: formula.intercept,
+            intercept,
             weights: None,
             weight_kind: None,
             zero_weights: 0,
@@ -192,6 +242,8 @@ impl Design {
             outcome,
             outcome_text: formula.outcome.as_ref().map(|t| t.text.clone()),
             block_rows: BLOCK_ROWS,
+            dense: None,
+            original_outcome: None,
         })
     }
 
@@ -380,8 +432,9 @@ impl Design {
         self.outcome_text.clone()
     }
 
-    /// The value of column `column` (the intercept counted) at the frame row `row`.
-    fn value(&self, column: usize, row: usize) -> f64 {
+    /// The value of column `column` (the intercept counted) at the frame row `row`, from the
+    /// sources.
+    pub(crate) fn value(&self, column: usize, row: usize) -> f64 {
         let column = if self.intercept {
             if column == 0 {
                 return 1.0;
@@ -406,8 +459,8 @@ impl Design {
         product
     }
 
-    /// The outcome at the frame row `row`, or 0 without one.
-    fn outcome_at(&self, row: usize) -> f64 {
+    /// The outcome at the frame row `row`, or 0 without one, from the sources.
+    pub(crate) fn outcome_at(&self, row: usize) -> f64 {
         match self.outcome.map(|s| &self.sources[s]) {
             Some(Source::Numeric { values, .. }) => values[row],
             _ => 0.0,
@@ -423,12 +476,10 @@ impl Design {
                 let end = (start + self.block_rows).min(self.rows.len());
                 let rows = &self.rows[start..end];
                 let x = Matrix::from_fn(rows.len(), k, |r, c| {
-                    self.value(c, rows[r]) * self.root_weight(start + r)
+                    self.value_at(c, start + r) * self.root_weight(start + r)
                 });
-                let y = rows
-                    .iter()
-                    .enumerate()
-                    .map(|(r, &row)| self.outcome_at(row) * self.root_weight(start + r))
+                let y = (0..rows.len())
+                    .map(|r| self.outcome_value_at(start + r) * self.root_weight(start + r))
                     .collect();
                 Block { start, x, y }
             })
@@ -439,14 +490,39 @@ impl Design {
     pub fn matrix(&self) -> Matrix {
         let k = self.k();
         Matrix::from_fn(self.rows.len(), k, |r, c| {
-            self.value(c, self.rows[r]) * self.root_weight(r)
+            self.value_at(c, r) * self.root_weight(r)
         })
     }
 
     /// The outcome of every row used, unweighted, or `None` for a formula without one.
     pub fn outcome(&self) -> Option<Vec<f64>> {
+        if let Some(dense) = &self.dense {
+            return self.outcome.map(|_| dense.outcome.as_ref().clone());
+        }
         self.outcome
             .map(|_| self.rows.iter().map(|&row| self.outcome_at(row)).collect())
+    }
+
+    /// Whether the design has an outcome.
+    pub fn has_outcome(&self) -> bool {
+        self.outcome.is_some()
+    }
+
+    /// The value of column `column` at the row used at `index`, unweighted: from the dense
+    /// values when the design has been transformed, from the sources otherwise.
+    pub(crate) fn value_at(&self, column: usize, index: usize) -> f64 {
+        match &self.dense {
+            Some(dense) => dense.columns[column][index],
+            None => self.value(column, self.rows[index]),
+        }
+    }
+
+    /// The outcome at the row used at `index`, unweighted.
+    pub(crate) fn outcome_value_at(&self, index: usize) -> f64 {
+        match &self.dense {
+            Some(dense) => dense.outcome[index],
+            None => self.outcome_at(self.rows[index]),
+        }
     }
 }
 
@@ -501,6 +577,24 @@ impl Builder<'_, '_> {
             self.unseen.push((var.to_string(), unseen));
         }
         (codes, planned)
+    }
+
+    /// Which rows of the variable `name` are `NA`, for a variable that joins the rows dropped
+    /// without becoming a source (a fixed effect of any type); Z0101 when there is none.
+    fn na_mask(&self, name: &str) -> Result<Vec<bool>, Fail> {
+        let Some(column) = self.frame.column(name) else {
+            let columns: Vec<&str> = self.frame.names().iter().map(String::as_str).collect();
+            return Err(fail(no_variable(
+                self.ctx.script,
+                self.ctx.callee_span,
+                &self.shown,
+                name,
+                &columns,
+            )));
+        };
+        Ok((0..column.len())
+            .map(|row| matches!(column.get(row), None | Some(zeff_columns::Value::Na)))
+            .collect())
     }
 
     /// The source of a variable of the frame (Z0101 when there is none).
@@ -1241,6 +1335,7 @@ impl Builder<'_, '_> {
         &self,
         extra: &[usize],
         outcome: Option<usize>,
+        masks: &[(String, Vec<bool>)],
     ) -> (Vec<usize>, usize, Vec<(String, usize)>) {
         let rows = self.frame.rows();
         let mut counts: Vec<(String, usize)> = Vec::new();
@@ -1259,14 +1354,21 @@ impl Builder<'_, '_> {
         let _ = extra;
         for row in 0..rows {
             let mut missing = false;
+            let mut note = |name: &String, counts: &mut Vec<(String, usize)>| {
+                missing = true;
+                match counts.iter_mut().find(|(n, _)| n == name) {
+                    Some((_, c)) => *c += 1,
+                    None => counts.push((name.clone(), 1)),
+                }
+            };
             for &s in &used {
                 if self.sources[s].is_na(row) {
-                    missing = true;
-                    let name = &self.keys[s];
-                    match counts.iter_mut().find(|(n, _)| n == name) {
-                        Some((_, c)) => *c += 1,
-                        None => counts.push((name.clone(), 1)),
-                    }
+                    note(&self.keys[s], &mut counts);
+                }
+            }
+            for (name, mask) in masks {
+                if mask[row] && !used.iter().any(|&s| &self.keys[s] == name) {
+                    note(name, &mut counts);
                 }
             }
             if missing {

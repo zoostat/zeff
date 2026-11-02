@@ -176,6 +176,15 @@ impl fmt::Display for Formula {
     }
 }
 
+/// Fixed-effect terms as they are written: `firm + year`, `industry:year`.
+pub fn terms_text(terms: &[Term]) -> String {
+    terms
+        .iter()
+        .map(|t| t.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" + ")
+}
+
 /// A fitted model as a value (Language Reference, section 4: `RegFit` and the result types to
 /// come, every one of them a `Result`): what every estimator fills and `results` reads (Engine
 /// and Project Specification, section 8.1, rule 5). The columns with an estimate are `terms`;
@@ -248,6 +257,31 @@ pub struct Fit {
     pub gram: Vec<f64>,
     /// Its inverse, (XᵀX)⁻¹, laid out the same way.
     pub inverse_gram: Vec<f64>,
+    /// The fixed effects absorbed (section 7.2, "Fixed effects"), in the order written, each
+    /// with its levels and their estimated effects; empty without `fe:`.
+    pub effects: Vec<FixedEffect>,
+    /// The rows dropped as singletons of the fixed effects, over every round.
+    pub singletons: usize,
+    /// The parameters the absorbed effects stand for in the degrees of freedom: the levels of
+    /// every effect, less one for each effect after the first; zero without `fe:`.
+    pub absorbed_parameters: usize,
+    /// R² within and its adjusted form, the R² of the regression on the demeaned columns; `None`
+    /// without `fe:` or when the demeaned outcome has no variation. With `fe:`, `r_squared` and
+    /// `adjusted_r_squared` are the overall forms, the effects' fit included.
+    pub r_squared_within: Option<f64>,
+    pub adjusted_r_squared_within: Option<f64>,
+}
+
+/// One absorbed fixed effect: its name as written (`firm`, `industry:year`), the variables it
+/// groups by, the key of each level in level order (a category's level as its label, so that
+/// `predict` matches new data by label) and the effect estimated for each level, the sum over
+/// the effects of a row's levels being the effects' part of its fitted value.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FixedEffect {
+    pub name: String,
+    pub variables: Vec<String>,
+    pub keys: Vec<Vec<zeff_columns::Key>>,
+    pub values: Vec<f64>,
 }
 
 /// A test statistic with its degrees of freedom: `F(1, 18179)`, `t(23.4)`, `z`.
@@ -318,6 +352,9 @@ pub enum Value {
     Type(TypeValue),
     Distribution(Distribution),
     Formula(Formula),
+    /// Fixed-effect terms given to a parameter of type `Terms` (section 7.1, `fe:`): the right
+    /// side of a formula without `~`, admitting `+` and `:` only.
+    Terms(Vec<Term>),
     /// A fitted model, shared rather than copied.
     Fit(Rc<Fit>),
     /// A test's result, shared rather than copied.
@@ -374,6 +411,7 @@ impl Value {
             Value::Type(_) => "Type",
             Value::Distribution(_) => "Distribution",
             Value::Formula(_) => "Formula",
+            Value::Terms(_) => "Terms",
             Value::Fit(fit) => fit.kind,
             Value::TestResult(_) => "TestResult",
             Value::Term(_) | Value::TermExpr { .. } => "Term",

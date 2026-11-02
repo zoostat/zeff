@@ -1,19 +1,27 @@
-//! `reg` (Language Reference, sections 6, 7.1, 7.2 and 10.2; question 3 (a) of release 0.4.0):
-//! the design of the formula on the frame, weighted when `weights:` is given, the least-squares
-//! fit, the variance of the kind `se:` and `cluster:` ask for, the notes of what was changed, the
-//! statistical warnings of section 11.1, and the fit value with its printed summary. A fitted
-//! design is kept for the run, so that a second `reg` with another `se:` on the same frame and
-//! formula reuses the factorisation (Engine and Project Specification, section 8.3, point 10).
+//! `reg` (Language Reference, sections 6, 7.1, 7.2 and 10.2; question 3 (a) of release 0.4.0;
+//! release 0.6.0, step 18 for `fe:`): the design of the formula on the frame, weighted when
+//! `weights:` is given, the fixed effects of `fe:` projected out of it by the kernel of step 17,
+//! the least-squares fit, the variance of the kind `se:` and `cluster:` ask for with the degrees
+//! of freedom the absorbed effects take, the notes of what was changed, the statistical warnings
+//! of section 11.1, and the fit value with its printed summary. A fitted design is kept for the
+//! run, so that a second `reg` with another `se:` on the same frame and formula reuses the
+//! factorisation, and the group indexes and demeaned columns of a set of fixed effects are kept
+//! under the effects and the rows used, so that a robustness table demeans each column once
+//! (Engine and Project Specification, section 8.3, point 10, "Reused fixed-effect work").
 
 use crate::ols::Ols;
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::rc::Rc;
+use zeff_columns::Column;
 use zeff_core::display::cell;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::Value;
+use zeff_core::value::{ColumnExpr, FixedEffect, Formula, Term, TermKind, Value, terms_text};
 use zeff_diagnostics::{Diagnostic, count};
+use zeff_kernels::demean::Options;
 use zeff_kernels::{Matrix, sum};
 use zeff_numeric::order::WeightKind;
+use zeff_results::absorb::{Absorbed, EffectGroups, effect_values};
 use zeff_results::design::Design;
 use zeff_results::estimator::{Estimator, Fitted};
 use zeff_results::summary::{self, Setting, n_note, rows};
@@ -37,10 +45,143 @@ struct Kept {
     key: String,
     design: Rc<Design>,
     fitted: Rc<Fitted>,
+    /// The fixed-effect work of the fit, when it has `fe:`.
+    fe: Option<Rc<FixedEffectWork>>,
+}
+
+/// What a fit with `fe:` keeps beside its design: what the projection found, the effects'
+/// estimates, and the category levels of the design before the projection (the transformed
+/// design holds values alone).
+struct FixedEffectWork {
+    absorbed: Absorbed,
+    effects: Vec<FixedEffect>,
+    levels: Vec<(String, Vec<String>)>,
+}
+
+/// The group indexes and demeaned columns of one set of fixed effects over one set of rows
+/// (section 8.3, point 10, "Reused fixed-effect work"): a later fit with the same frame, effects,
+/// rows and weights reuses the indexes and every column it shares, demeaning only the rest.
+struct GroupsKept {
+    table: Rc<zeff_columns::Table>,
+    effects_text: String,
+    rows: Vec<usize>,
+    weights: Option<Vec<f64>>,
+    groups: Rc<Vec<EffectGroups>>,
+    demeaned: BTreeMap<String, Rc<Vec<f64>>>,
 }
 
 thread_local! {
     static KEPT: RefCell<Option<Kept>> = const { RefCell::new(None) };
+    static GROUPS: RefCell<Option<GroupsKept>> = const { RefCell::new(None) };
+    static WORK: RefCell<(usize, usize)> = const { RefCell::new((0, 0)) };
+}
+
+/// How many sets of group indexes this thread built and how many it reused, for `--verbose`.
+pub fn fixed_effect_work() -> (usize, usize) {
+    WORK.with(|w| *w.borrow())
+}
+
+/// The counts of [`fixed_effect_work`] set back to zero, at the start of a run.
+pub fn reset_fixed_effect_work() {
+    WORK.with(|w| *w.borrow_mut() = (0, 0));
+}
+
+/// A fixed effect as written: its name and the variables it groups by, from a `Terms` value
+/// (a variable, or an interaction of variables; the checker admits nothing else).
+fn effect_specs(terms: &[Term]) -> Vec<(String, Vec<String>)> {
+    terms
+        .iter()
+        .map(|term| match &term.kind {
+            TermKind::Interaction(parts) => (
+                term.text.clone(),
+                parts
+                    .iter()
+                    .map(|p| match &p.kind {
+                        TermKind::Var(name) => name.clone(),
+                        _ => p.text.clone(),
+                    })
+                    .collect(),
+            ),
+            TermKind::Var(name) => (term.text.clone(), vec![name.clone()]),
+            _ => (term.text.clone(), vec![term.text.clone()]),
+        })
+        .collect()
+}
+
+/// Every variable a formula names: the outcome, each term and the variables inside its
+/// arithmetic.
+fn formula_variables(formula: &Formula) -> Vec<String> {
+    fn of_expr(expr: &ColumnExpr, out: &mut Vec<String>) {
+        match expr {
+            ColumnExpr::Var(name) => {
+                if !out.contains(name) {
+                    out.push(name.clone());
+                }
+            }
+            ColumnExpr::List(items) => items.iter().for_each(|i| of_expr(i, out)),
+            ColumnExpr::Unary { operand, .. } => of_expr(operand, out),
+            ColumnExpr::Binary { lhs, rhs, .. } => {
+                of_expr(lhs, out);
+                of_expr(rhs, out);
+            }
+            ColumnExpr::Call { args, rest, .. } => {
+                args.iter().flatten().for_each(|a| of_expr(a, out));
+                rest.iter().for_each(|a| of_expr(a, out));
+            }
+            _ => {}
+        }
+    }
+    fn of_term(term: &Term, out: &mut Vec<String>) {
+        match &term.kind {
+            TermKind::Var(name) => {
+                if !out.contains(name) {
+                    out.push(name.clone());
+                }
+            }
+            TermKind::Range(a, b) => {
+                for name in [a, b] {
+                    if !out.contains(name) {
+                        out.push(name.clone());
+                    }
+                }
+            }
+            TermKind::Interaction(parts) | TermKind::Product(parts) => {
+                parts.iter().for_each(|p| of_term(p, out));
+            }
+            TermKind::Expr(expr) => of_expr(expr, out),
+        }
+    }
+    let mut out = Vec::new();
+    if let Some(outcome) = &formula.outcome {
+        of_term(outcome, &mut out);
+    }
+    formula.terms.iter().for_each(|t| of_term(t, &mut out));
+    out
+}
+
+/// The parameters the absorbed effects stand for (the ruling of release 0.6.0 on degrees of
+/// freedom, which reproduces fixest's `fixef.K = "nested"` and reghdfe): the levels of every
+/// effect, less one for each effect after the first; an effect nested within the cluster
+/// variable (every level inside one cluster) is left out, and when every effect is nested one
+/// parameter remains for the grand mean.
+fn absorbed_parameters(groups: &[EffectGroups], clusters: Option<&Clusters>) -> usize {
+    let nested = |effect: &EffectGroups| -> bool {
+        let Some(clusters) = clusters else {
+            return false;
+        };
+        let mut cluster_of_level: Vec<Option<usize>> = vec![None; effect.levels()];
+        for (row, &g) in effect.group_of_row.iter().enumerate() {
+            match cluster_of_level[g] {
+                None => cluster_of_level[g] = Some(clusters.of_row[row]),
+                Some(c) if c != clusters.of_row[row] => return false,
+                Some(_) => {}
+            }
+        }
+        true
+    };
+    let counted: Vec<&EffectGroups> = groups.iter().filter(|e| !nested(e)).collect();
+    let levels: usize = counted.iter().map(|e| e.levels()).sum();
+    levels + 1 - counted.len()
 }
 
 /// `data.reg(formula, se:, cluster:, weights:, weight_type:, level:)`.
@@ -53,15 +194,19 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     };
     let frame = frame.clone();
     let formula = formula.clone();
-    let cluster = match args.get(3) {
+    let effects: Vec<Term> = match args.get(FE) {
+        Some(Value::Terms(terms)) => terms.clone(),
+        _ => Vec::new(),
+    };
+    let cluster = match args.get(CLUSTER) {
         Some(Value::Var(name)) => Some(name.clone()),
         _ => None,
     };
-    let weights = match args.get(4) {
+    let weights = match args.get(WEIGHTS) {
         Some(Value::Var(name)) => Some(name.clone()),
         _ => None,
     };
-    let weight_kind = match args.get(5) {
+    let weight_kind = match args.get(WEIGHT_TYPE) {
         Some(Value::Word(word)) => match word.as_str() {
             "frequency" => WeightKind::Frequency,
             "analytic" => WeightKind::Analytic,
@@ -70,10 +215,40 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         _ => WeightKind::Sampling,
     };
     let sampling = weights.is_some() && weight_kind == WeightKind::Sampling;
-    let se_word = match args.get(2) {
+    let se_word = match args.get(SE) {
         Some(Value::Word(word)) => Some(word.clone()),
         _ => None,
     };
+    // A fixed effect that is a model variable too is refused: an absorbed effect cannot also be
+    // a regressor or the outcome.
+    let specs = effect_specs(&effects);
+    let model_variables = formula_variables(&formula);
+    if let Some(name) = specs
+        .iter()
+        .flat_map(|(_, vars)| vars.iter())
+        .find(|v| model_variables.contains(v))
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`{name}` is a fixed effect of `fe:` and a variable of the formula too"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(FE), "absorbed and in the model")
+            .help("an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula"),
+        ));
+    }
+    if let (Some(word @ ("hc2" | "hc3")), false) = (se_word.as_deref(), effects.is_empty()) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0410",
+                format!("`se: {word}` and `fe:` exclude each other: with absorbed effects an observation's leverage in the full design is not available"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(SE), "needs every observation's leverage")
+            .help("`se: robust` (HC1) or `cluster:` with `fe:`; HC2 and HC3 with fixed effects arrive with release 0.8.0"),
+        ));
+    }
     let kind = match (se_word.as_deref(), cluster.is_some()) {
         (Some(word @ ("hc2" | "hc3")), true) => {
             return Err(fail(
@@ -82,7 +257,7 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     format!("`se: {word}` and `cluster:` exclude each other"),
                 )
                 .in_file(ctx.script)
-                .primary(ctx.span_of(2), "two kinds of standard error")
+                .primary(ctx.span_of(SE), "two kinds of standard error")
                 .help("clustered errors are CR1; leave `se:` out with `cluster:`"),
             ));
         }
@@ -102,7 +277,7 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                         "`se: classical` with sampling weights: classical errors treat the weights as precision weights",
                     )
                     .in_file(ctx.script)
-                    .primary(ctx.span_of(2), "not valid for probability weights")
+                    .primary(ctx.span_of(SE), "not valid for probability weights")
                     .help("leave `se:` out, which gives `robust`, or write `weight_type: analytic` for precision weights"),
                 ));
             }
@@ -118,12 +293,12 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     format!("`se: {other}` is not available in this release"),
                 )
                 .in_file(ctx.script)
-                .primary(ctx.span_of(2), "arrives with release 1.1")
+                .primary(ctx.span_of(SE), "arrives with release 1.1")
                 .help("`classical`, `robust`, `hc2`, `hc3` and `cluster:` are available now"),
             ));
         }
     };
-    let level = match args.get(6) {
+    let level = match args.get(LEVEL) {
         Some(Value::Float(level)) => *level,
         Some(Value::Int(level)) => *level as f64,
         _ => 0.95,
@@ -135,37 +310,58 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 format!("`level:` is a probability strictly between 0 and 1, but this is {level}"),
             )
             .in_file(ctx.script)
-            .primary(ctx.span_of(6), "not a confidence level")
+            .primary(ctx.span_of(LEVEL), "not a confidence level")
             .help("the usual levels are 0.9, 0.95 and 0.99"),
         ));
     }
     // The design and the fit, reused when this run already made them for this frame, formula
     // and weighting (the cluster's `NA` rows change the rows used, so it is part of the key).
+    let effects_text = terms_text(&effects);
     let key = format!(
-        "{formula}|{}|{:?}|{}",
+        "{formula}|{effects_text}|{}|{:?}|{}",
         weights.as_deref().unwrap_or(""),
         weights.as_ref().map(|_| weight_kind),
         cluster.as_deref().unwrap_or("")
     );
     let reused = KEPT.with(|kept| {
         kept.borrow().as_ref().and_then(|k| {
-            (Rc::ptr_eq(&k.table, &frame.table) && k.key == key)
-                .then(|| (Rc::clone(&k.design), Rc::clone(&k.fitted)))
+            (Rc::ptr_eq(&k.table, &frame.table) && k.key == key).then(|| {
+                (
+                    Rc::clone(&k.design),
+                    Rc::clone(&k.fitted),
+                    k.fe.as_ref().map(Rc::clone),
+                )
+            })
         })
     });
-    let (design, fitted) = match reused {
-        Some(pair) => pair,
+    let (design, fitted, fe) = match reused {
+        Some(found) => found,
         None => {
             let extra: Vec<&str> = weights
                 .iter()
                 .chain(cluster.iter())
                 .map(String::as_str)
                 .collect();
-            let mut design = Design::build(ctx, &frame, &formula, &extra)?;
-            if let Some(name) = &weights {
-                design = design.weighted(ctx, &frame, name, weight_kind)?;
-            }
-            let fitted = Ols.fit(ctx, &design)?;
+            let (design, fitted, fe) = if effects.is_empty() {
+                let mut design = Design::build(ctx, &frame, &formula, &extra)?;
+                if let Some(name) = &weights {
+                    design = design.weighted(ctx, &frame, name, weight_kind)?;
+                }
+                let fitted = Ols.fit(ctx, &design)?;
+                (design, fitted, None)
+            } else {
+                let (design, fitted, work) = fit_with_effects(
+                    ctx,
+                    &frame,
+                    &formula,
+                    &extra,
+                    &specs,
+                    &effects_text,
+                    weights.as_deref(),
+                    weight_kind,
+                )?;
+                (design, fitted, Some(Rc::new(work)))
+            };
             let (design, fitted) = (Rc::new(design), Rc::new(fitted));
             KEPT.with(|kept| {
                 *kept.borrow_mut() = Some(Kept {
@@ -173,9 +369,10 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     key,
                     design: Rc::clone(&design),
                     fitted: Rc::clone(&fitted),
+                    fe: fe.as_ref().map(Rc::clone),
                 });
             });
-            (design, fitted)
+            (design, fitted, fe)
         }
     };
     for note in &design.notes {
@@ -214,9 +411,23 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         notes.push(text.clone());
         ctx.message(Diagnostic::plain_note(text));
     };
+    // A column the fixed effects absorbed (section 7.2, "Collinearity") is zeroed by the
+    // projection and dropped by the fit; it is named so, and not as a zero column.
+    let absorbed_columns: Vec<usize> = fe
+        .as_ref()
+        .map(|w| w.absorbed.absorbed_columns.clone())
+        .unwrap_or_default();
+    note(
+        ctx,
+        &mut notes,
+        names(&absorbed_columns),
+        &format!("is absorbed by fe: {effects_text} and was dropped"),
+        &format!("are absorbed by fe: {effects_text} and were dropped"),
+    );
     let (levels, zeros): (Vec<usize>, Vec<usize>) = fitted
         .zero
         .iter()
+        .filter(|c| !absorbed_columns.contains(c))
         .partition(|&&c| design.names[c].contains('='));
     note(
         ctx,
@@ -277,6 +488,36 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 .help("two regressors are almost the same column; drop one, or combine them"),
         );
     }
+    // W1004: a regressor that keeps less than one per cent of its norm after the fixed effects
+    // are projected out, so that its estimate rests on little variation.
+    if let Some(work) = &fe
+        && !work.absorbed.little_variation.is_empty()
+    {
+        let listed = work
+            .absorbed
+            .little_variation
+            .iter()
+            .filter(|(c, _)| fitted.kept.contains(c))
+            .map(|(c, share)| {
+                format!(
+                    "`{}` keeps {}% of its variation",
+                    design.names[*c],
+                    zeff_core::display::fixed(share * 100.0, 2)
+                )
+            })
+            .collect::<Vec<_>>();
+        if !listed.is_empty() {
+            let text = format!(
+                "little variation left after fe: {effects_text}: {}",
+                listed.join(", ")
+            );
+            warnings.push(format!("warning[W1004]: {text}"));
+            ctx.message(
+                Diagnostic::warning("W1004", text)
+                    .help("the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation"),
+            );
+        }
+    }
     // The clusters of the rows used, from the cluster variable, by identity of its values.
     let clusters = match &cluster {
         Some(name) => {
@@ -294,6 +535,11 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         None => None,
     };
     let bread = Ols.bread(&fitted);
+    // The parameters of the absorbed effects in every N − k: the levels less one per effect
+    // after the first, the effects nested within the cluster variable left out.
+    let absorbed = fe.as_ref().map_or(0, |w| {
+        absorbed_parameters(&w.absorbed.effects, clusters.as_ref())
+    });
     let (vcov, df) = match variance::variance(
         kind,
         &Ols,
@@ -301,6 +547,7 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         &fitted,
         &bread,
         clusters.as_ref(),
+        absorbed,
     ) {
         Ok(pair) => pair,
         Err(VarianceError::Asymmetric) => {
@@ -338,7 +585,7 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     ),
                 )
                 .in_file(ctx.script)
-                .primary(ctx.span_of(3), "one cluster")
+                .primary(ctx.span_of(CLUSTER), "one cluster")
                 .help("cluster by a variable with several values, or leave `cluster:` out"),
             ));
         }
@@ -407,7 +654,13 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             );
         }
     }
-    let driving = driving_observations(&design, &fitted, &bread);
+    // An observation's leverage in the full design is not available with absorbed effects, so
+    // W1006 is judged without them.
+    let driving = if fe.is_some() {
+        Vec::new()
+    } else {
+        driving_observations(&design, &fitted, &bread)
+    };
     if !driving.is_empty() {
         let listed = driving
             .iter()
@@ -466,6 +719,17 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             None => sum_text,
         });
     }
+    if let Some(work) = &fe {
+        let singletons = match work.absorbed.singletons {
+            0 => "no singletons".to_string(),
+            1 => "1 row dropped as a singleton".to_string(),
+            n => format!("{} dropped as singletons", rows(n)),
+        };
+        note = Some(match note {
+            Some(rest) => format!("{rest}; {singletons}"),
+            None => singletons,
+        });
+    }
     let more_lines = match (&weights, design.weight_kind) {
         (Some(name), Some(kind)) => vec![format!(
             "weights: {name} ({})",
@@ -488,8 +752,15 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         n_note: note,
         more_lines,
         model: formula.clone(),
-        levels: design.category_levels(),
+        levels: fe
+            .as_ref()
+            .map_or_else(|| design.category_levels(), |w| w.levels.clone()),
         frame_rows: frame.table.rows(),
+        effects: fe.as_ref().map_or_else(Vec::new, |w| w.effects.clone()),
+        absorbed_parameters: fe
+            .as_ref()
+            .map_or(0, |w| absorbed_parameters(&w.absorbed.effects, None)),
+        singletons: fe.as_ref().map_or(0, |w| w.absorbed.singletons),
     };
     let mut fit = summary::linear_fit(&design, &fitted, &vcov, &setting);
     fit.warnings = warnings;
@@ -499,6 +770,13 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         for (i, root) in w.iter().map(|w| w.sqrt()).enumerate() {
             fit.residuals[i] /= root;
             fit.fitted[i] /= root;
+        }
+    }
+    // With fixed effects the fitted values include the effects' part, as fixest's `fitted`:
+    // the outcome less the residual, which the projection leaves unchanged.
+    if let Some(original) = &design.original_outcome {
+        for (i, y) in original.iter().enumerate() {
+            fit.fitted[i] = y - fit.residuals[i];
         }
     }
     if fit.r_squared.is_none() {
@@ -517,6 +795,136 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ctx.message(Diagnostic::plain_note(text));
     }
     Ok(Value::Fit(Rc::new(fit)))
+}
+
+/// The positions of `reg`'s arguments after the frame and the formula.
+const FE: usize = 2;
+const SE: usize = 3;
+const CLUSTER: usize = 4;
+const WEIGHTS: usize = 5;
+const WEIGHT_TYPE: usize = 6;
+const LEVEL: usize = 7;
+
+/// The design with the fixed effects projected out, and its fit (section 7.2, "Fixed effects"
+/// and "Rows"): the rows with `NA` in an effect dropped with the model variables', the effects'
+/// groups over the rows used (reused from the last set of effects over the same frame, rows and
+/// weights, with every demeaned column they share), the kernel of step 17 on the columns and the
+/// outcome, singletons dropped and counted, the intercept absorbed, and the effects' estimates
+/// recovered for `predict`.
+#[allow(clippy::too_many_arguments)]
+fn fit_with_effects(
+    ctx: &mut CallContext<'_>,
+    frame: &zeff_core::value::Frame,
+    formula: &Formula,
+    extra: &[&str],
+    specs: &[(String, Vec<String>)],
+    effects_text: &str,
+    weights: Option<&str>,
+    weight_kind: WeightKind,
+) -> Result<(Design, Fitted, FixedEffectWork), Fail> {
+    let effect_variables: Vec<&str> = specs
+        .iter()
+        .flat_map(|(_, vars)| vars.iter().map(String::as_str))
+        .collect();
+    let mut design = Design::build_absorbing(ctx, frame, formula, extra, &effect_variables)?;
+    if let Some(name) = weights {
+        design = design.weighted(ctx, frame, name, weight_kind)?;
+    }
+    if design.n() == 0 {
+        // The design's own refusal (Z0801) comes from the fit; the projection cannot run on no
+        // rows, so the fit is asked first.
+        Ols.fit(ctx, &design)?;
+    }
+    // The group indexes, reused when the last ones were built over this frame, these effects,
+    // these rows and these weights; the demeaned columns they share come with them.
+    let reused = GROUPS.with(|kept| {
+        kept.borrow().as_ref().and_then(|k| {
+            (Rc::ptr_eq(&k.table, &frame.table)
+                && k.effects_text == effects_text
+                && k.rows == design.rows
+                && k.weights == design.weights)
+                .then(|| (Rc::clone(&k.groups), k.demeaned.clone()))
+        })
+    });
+    let (groups, known) = match reused {
+        Some(found) => {
+            WORK.with(|w| w.borrow_mut().1 += 1);
+            found
+        }
+        None => {
+            WORK.with(|w| w.borrow_mut().0 += 1);
+            let groups: Vec<EffectGroups> = specs
+                .iter()
+                .map(|(name, vars)| {
+                    let columns: Vec<&Column> = vars
+                        .iter()
+                        .map(|v| {
+                            frame
+                                .table
+                                .column(v)
+                                .expect("the design checked the variable")
+                        })
+                        .collect();
+                    EffectGroups::over(name, vars, &columns, &design.rows)
+                })
+                .collect();
+            (Rc::new(groups), BTreeMap::new())
+        }
+    };
+    let (absorbed_design, absorbed) = design.absorb(&groups, Options::default(), &known);
+    GROUPS.with(|kept| {
+        *kept.borrow_mut() = Some(GroupsKept {
+            table: Rc::clone(&frame.table),
+            effects_text: effects_text.to_string(),
+            rows: design.rows.clone(),
+            weights: design.weights.clone(),
+            groups: Rc::clone(&groups),
+            demeaned: absorbed.demeaned.clone(),
+        });
+    });
+    // Self-check (section 11.1): converged demeaning.
+    if !absorbed.converged {
+        return Err(internal(
+            ctx,
+            &format!(
+                "the demeaning did not converge in {} passes (largest change {:.3e})",
+                count(absorbed.passes as u64),
+                absorbed.largest_change
+            ),
+        ));
+    }
+    if absorbed_design.n() == 0 {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0801",
+                format!(
+                    "no row remains to fit the model: every row is a singleton of fe: {effects_text}"
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "nothing to estimate within the effects")
+            .help("an effect whose every level has one row absorbs every row; use a coarser effect, or leave it out"),
+        ));
+    }
+    let fitted = Ols.fit(ctx, &absorbed_design)?;
+    let values = effect_values(&design, &absorbed_design, &fitted, &absorbed);
+    let effects: Vec<FixedEffect> = absorbed
+        .effects
+        .iter()
+        .zip(values)
+        .map(|(e, values)| FixedEffect {
+            name: e.name.clone(),
+            variables: e.variables.clone(),
+            keys: e.keys.clone(),
+            values,
+        })
+        .collect();
+    let work = FixedEffectWork {
+        levels: design.category_levels(),
+        absorbed,
+        effects,
+    };
+    Ok((absorbed_design, fitted, work))
 }
 
 /// The rows (1-based, in the frame) whose removal moves some estimate by more than

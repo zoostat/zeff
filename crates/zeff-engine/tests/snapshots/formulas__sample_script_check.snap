@@ -13,28 +13,16 @@ error[Z0404]: `export` has no argument called `size`
  --> zeff_samples.zeff:56:77
 error[Z0103]: no function is called `scatter`
  --> zeff_samples.zeff:57:7
-error[Z0404]: `reg` has no argument called `fe`
- --> zeff_samples.zeff:88:23
-error[Z0404]: `reg` has no argument called `fe`
- --> zeff_samples.zeff:89:37
-error[Z0404]: `reg` has no argument called `fe`
- --> zeff_samples.zeff:90:23
 error[Z0103]: no function is called `coef_plot`
  --> zeff_samples.zeff:102:4
 error[Z0404]: `export` has no argument called `size`
  --> zeff_samples.zeff:102:46
-error[Z0404]: `reg` has no argument called `fe`
- --> zeff_samples.zeff:109:42
 error[Z0103]: no function is called `robustness`
  --> zeff_samples.zeff:135:14
 error[Z0103]: no function is called `ivreg`
  --> zeff_samples.zeff:141:15
 error[Z0103]: no function is called `first_stage`
  --> zeff_samples.zeff:146:4
-error[Z0404]: `reg` has no argument called `fe`
- --> zeff_samples.zeff:147:58
-error[Z0404]: `reg` has no argument called `fe`
- --> zeff_samples.zeff:154:45
 error[Z0103]: no function is called `t_test`
  --> zeff_samples.zeff:160:7
 error[Z0103]: no function is called `t_test`

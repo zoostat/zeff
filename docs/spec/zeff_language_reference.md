@@ -861,7 +861,7 @@ One formula grammar covers every model, from OLS to SEM: R's notation for regres
 | `a:b` | The interaction only | `educ:female` |
 | `x^2`, `log(x)` | Arithmetic, worked out before fitting, so no `I()` is needed | `exper + exper^2` |
 | `category(x)`, `base(x, "level")` | Indicator variables, with a chosen base level | `base(industry, "Retail")` |
-| `x1..x9` | A range of variables | `y ~ d + x1..x9` |
+| `x1..x9` | A range of variables; `..` binds more loosely than `+` and does not chain, so a formula holds one bare range and a second is written in brackets, `(z1..z3)` (open decision #54) | `y ~ d + x1..x9 + (z1..z3)` |
 | `f + terms` | A formula binding plus more terms is a new formula | `wages.reg(f + educ:female)` |
 | `- 1` | No intercept | `y ~ x - 1` |
 | `y ~ 1` | The intercept-only model | `wages.reg(lwage ~ 1)` |

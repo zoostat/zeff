@@ -94,6 +94,7 @@ fn inline(value: &Value) -> String {
         Value::Column(c) => column_header(c),
         Value::Distribution(d) => distribution_text(d),
         Value::Formula(formula) => formula.to_string(),
+        Value::Terms(terms) => crate::value::terms_text(terms),
         Value::Fit(fit) => format!("{} · {}", fit.kind, fit.summary.title),
         Value::TestResult(result) => format!("TestResult · {}", result.title),
         Value::Failed(failure) => failure.text(),

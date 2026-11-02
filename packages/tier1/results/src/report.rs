@@ -162,12 +162,33 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         row.extend(fits.iter().map(|f| cell(f)));
         rows.push(row);
     };
+    // The `Fixed effects` row of section 10.2 when any model absorbs some: `none` otherwise.
+    if fits.iter().any(|f| !f.effects.is_empty()) {
+        statistic_row("Fixed effects", &|f| {
+            if f.effects.is_empty() {
+                "none".to_string()
+            } else {
+                f.effects
+                    .iter()
+                    .map(|e| e.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            }
+        });
+    }
     statistic_row("SEs", &|f| se_label(&f.se_kind));
+    // `R²` is the within R² marked `(within)` for a model with fixed effects, as section 10.2
+    // prints it, unless `r_squared_within` has its own row, when `R²` is the overall form.
+    let within_row = stats.iter().any(|s| s == "r_squared_within");
     for stat in &stats {
         match stat.as_str() {
             "n_obs" => statistic_row("N", &|f| count(f.n as u64)),
-            "r_squared" => statistic_row("R²", &|f| {
-                f.r_squared.map_or("NA".to_string(), |r| fixed(r, 3))
+            "r_squared" => statistic_row("R²", &|f| match (f.r_squared_within, within_row) {
+                (Some(within), false) => format!("{} (within)", fixed(within, 3)),
+                _ => f.r_squared.map_or("NA".to_string(), |r| fixed(r, 3)),
+            }),
+            "r_squared_within" => statistic_row("R² within", &|f| {
+                f.r_squared_within.map_or(String::new(), |r| fixed(r, 3))
             }),
             "aic" => statistic_row("AIC", &|f| fixed(information_criteria(f).0, 1)),
             "bic" => statistic_row("BIC", &|f| fixed(information_criteria(f).1, 1)),

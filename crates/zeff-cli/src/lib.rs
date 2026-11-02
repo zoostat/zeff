@@ -748,9 +748,25 @@ fn run_command(
         Err(code) => return code,
     };
     let started = Instant::now();
+    zeff_regress::reg::reset_fixed_effect_work();
     let outcome = run_script_with(command.fs, &project, &shown, &text, &command.run_options());
     emit(command, &outcome, out, err);
     if command.settings.verbose {
+        // The reused fixed-effect work (Engine and Project Specification, section 8.3, point
+        // 10): the sets of group indexes built for `fe:` and the fits that reused one, with the
+        // demeaned columns it carried.
+        let (built, reused) = zeff_regress::reg::fixed_effect_work();
+        if built + reused > 0 {
+            let _ = writeln!(
+                err,
+                "fixed effects: {built} {} built, {reused} reused by later fits",
+                if built == 1 {
+                    "set of group indexes"
+                } else {
+                    "sets of group indexes"
+                }
+            );
+        }
         // The memory record (Engine and Project Specification, section 8.3, point 7): what each
         // frame held when bound, its own buffers and the parent buffers it kept alive, and when
         // a binding was freed after its last use (Language Reference, section 6, "Memory").

@@ -1,5 +1,6 @@
 ---
 source: crates/zeff-engine/tests/spreads.rs
+assertion_line: 211
 expression: all
 ---
 ## spread_of_a_number (exit 1)
@@ -27,7 +28,7 @@ error[Z0404]: `reg` has no argument called `leval`, which the spread supplies
 3 | w.reg(log(wage) ~ educ, ..o)
   |                           ^ supplies `leval`
   |
-  = help: did you mean `level`? Only the fields that name arguments can be spread; usage: `data.reg(formula, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
+  = help: did you mean `level`? Only the fields that name arguments can be spread; usage: `data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
 
 ## spread_supplies_the_receiver (exit 1)
 error[Z0404]: `data` is the receiver of `reg`, written before the dot, and cannot come from a spread
@@ -45,7 +46,7 @@ error[Z0401]: `level` of `reg` must be a Float, but the spread gives a Str
 2 | w.reg(log(wage) ~ educ, ..{level: "high"})
   |                           ^^^^^^^^^^^^^^^ `level` is a Str
   |
-  = help: usage: `data.reg(formula, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
+  = help: usage: `data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
 
 ## two_spreads_one_field (exit 1)
 error[Z0405]: `level` is given twice, by two spreads
@@ -63,7 +64,7 @@ error[Z0406]: `reg` needs `formula`
 2 | w.reg(..{level: 0.9}, log(wage) ~ educ)
   |   ^^^ `formula` is missing
   |
-  = help: usage: `data.reg(formula, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
+  = help: usage: `data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)`
 
 ## record_field_twice (exit 1)
 error[Z0222]: a record's field names are unique, but `a` is written twice

@@ -198,6 +198,11 @@ fn expr_uses(expr: &Expr, used: &mut Vec<BindingId>) {
             block_uses(body, used);
         }
         ExprKind::Formula(formula) => formula_uses(formula, used),
+        ExprKind::Terms(terms) => {
+            for term in terms {
+                term_uses(term, used);
+            }
+        }
         ExprKind::FormulaSteps { formula, steps } => {
             expr_uses(formula, used);
             for step in steps {

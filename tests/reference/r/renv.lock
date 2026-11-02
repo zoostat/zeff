@@ -21,7 +21,28 @@
       "Version": "1.4-7",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git); the textbook data wage1 and wage2 for regression.R alone, written to tests/reference/data/ as reference inputs"
+      "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git); the textbook data wage1, wage2 and wagepan for regression.R and fixed_effects.R, written to tests/reference/data/ as reference inputs"
+    },
+    "fixest": {
+      "Package": "fixest",
+      "Version": "0.14.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git), with its dependencies dreamerr and stringmagic from the same snapshot; the reference for fe: (fixed_effects.R) and event (release 0.6.0, question 4, decided 1 November 2026); GPL-licensed R code used by the harness alone, never linked"
+    },
+    "dreamerr": {
+      "Package": "dreamerr",
+      "Version": "1.5.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "a dependency of fixest, installed with it"
+    },
+    "stringmagic": {
+      "Package": "stringmagic",
+      "Version": "1.3.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "a dependency of fixest, installed with it"
     }
   }
 }

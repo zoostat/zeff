@@ -5,7 +5,7 @@
 use crate::design::Design;
 use crate::estimator::Fitted;
 use zeff_core::display::{fixed, p_value_text};
-use zeff_core::value::{Align, Distribution, Fit, Formula, Table};
+use zeff_core::value::{Align, Distribution, Fit, FixedEffect, Formula, Table};
 use zeff_diagnostics::count;
 use zeff_dist::families;
 use zeff_kernels::Matrix;
@@ -30,6 +30,14 @@ pub struct Setting<'a> {
     pub model: Formula,
     pub levels: Vec<(String, Vec<String>)>,
     pub frame_rows: usize,
+    /// The fixed effects absorbed, with their levels' estimates, as written (`fe: firm + year`
+    /// in the title, `fixed effects: firm (397), year (12)` before the grid); empty without
+    /// `fe:`.
+    pub effects: Vec<FixedEffect>,
+    /// The parameters the absorbed effects stand for in the degrees of freedom.
+    pub absorbed_parameters: usize,
+    /// The rows dropped as singletons of the effects.
+    pub singletons: usize,
 }
 
 /// The fit value of a linear model: the table of estimates under the variance `vcov`, the fit
@@ -37,6 +45,7 @@ pub struct Setting<'a> {
 pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Setting<'_>) -> Fit {
     let n = design.n();
     let k = fitted.kept.len();
+    let absorbed = setting.absorbed_parameters;
     let df_residual = setting.df;
     let terms: Vec<String> = fitted
         .kept
@@ -90,13 +99,42 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         zeff_kernels::sum(&squares)
     };
     let rss = fitted.residual_sum_of_squares;
-    let residual_df = (n_obs - k as f64).max(1.0);
-    let (r_squared, adjusted) = if total > 0.0 {
+    let residual_df = (n_obs - k as f64 - absorbed as f64).max(1.0);
+    let (mut r_squared, mut adjusted) = if total > 0.0 {
         let r2 = 1.0 - rss / total;
         let numerator = if design.intercept { n_obs - 1.0 } else { n_obs };
         (Some(r2), Some(1.0 - (1.0 - r2) * numerator / residual_df))
     } else {
         (None, None)
+    };
+    // With fixed effects the measures above are the within forms, on the demeaned outcome; the
+    // overall forms take the original outcome about its weighted mean with the effects' fit
+    // included, as fixest's `r2` and `ar2`, and the adjusted within form counts the effects'
+    // parameters as fixest's `war2` does: 1 − (1 − R²w)(N − p)/(N − k − p).
+    let (r_squared_within, adjusted_r_squared_within) = match &design.original_outcome {
+        Some(original) => {
+            let within = r_squared;
+            let adjusted_within =
+                within.map(|w| 1.0 - (1.0 - w) * (n_obs - absorbed as f64) / residual_df);
+            let weighted: Vec<f64> = original.iter().zip(&weights).map(|(v, w)| v * w).collect();
+            let mean = zeff_kernels::sum(&weighted) / zeff_kernels::sum(&weights);
+            let centred: Vec<f64> = original
+                .iter()
+                .zip(&weights)
+                .map(|(v, w)| (v - mean) * (v - mean) * w)
+                .collect();
+            let total = zeff_kernels::sum(&centred);
+            if total > 0.0 {
+                let r2 = 1.0 - rss / total;
+                r_squared = Some(r2);
+                adjusted = Some(1.0 - (1.0 - r2) * (n_obs - 1.0) / residual_df);
+            } else {
+                r_squared = None;
+                adjusted = None;
+            }
+            (within, adjusted_within)
+        }
+        None => (None, None),
     };
     // The log-likelihood as R's `logLik` gives it: under analytic and sampling weights, which R
     // takes as precision weights, with half the sum of the logarithms of the weights (as scaled
@@ -153,6 +191,7 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         setting,
         r_squared,
         adjusted,
+        r_squared_within,
     );
     Fit {
         kind: "RegFit",
@@ -198,6 +237,11 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
         weight_kind: design.weight_kind,
         gram,
         inverse_gram,
+        effects: setting.effects.clone(),
+        singletons: setting.singletons,
+        absorbed_parameters: absorbed,
+        r_squared_within,
+        adjusted_r_squared_within,
     }
 }
 
@@ -227,6 +271,7 @@ fn summary_of(
     setting: &Setting<'_>,
     r_squared: Option<f64>,
     adjusted: Option<f64>,
+    r_squared_within: Option<f64>,
 ) -> Table {
     let mut before = Vec::new();
     let n_line = match &setting.n_note {
@@ -234,6 +279,17 @@ fn summary_of(
         None => format!("N = {}", count(setting.n as u64)),
     };
     before.push(n_line);
+    if !setting.effects.is_empty() {
+        before.push(format!(
+            "fixed effects: {}",
+            setting
+                .effects
+                .iter()
+                .map(|e| format!("{} ({})", e.name, count(e.keys.len() as u64)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
     before.extend(setting.more_lines.iter().cloned());
     before.push(format!("standard errors: {}", setting.se_line));
     // The rows in the design's order: an omitted column keeps its place.
@@ -268,8 +324,37 @@ fn summary_of(
         ]);
     }
     let measure = |x: Option<f64>| x.map_or("NA".to_string(), |v| fixed(v, 3));
+    let (title, after) = if setting.effects.is_empty() {
+        (
+            format!("{} · {}", setting.method, setting.formula),
+            format!(
+                "R² {} · adjusted R² {}",
+                measure(r_squared),
+                measure(adjusted)
+            ),
+        )
+    } else {
+        (
+            format!(
+                "{} · {} · fe: {}",
+                setting.method,
+                setting.formula,
+                setting
+                    .effects
+                    .iter()
+                    .map(|e| e.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" + ")
+            ),
+            format!(
+                "R² within {} · R² overall {}",
+                measure(r_squared_within),
+                measure(r_squared)
+            ),
+        )
+    };
     Table {
-        title: format!("{} · {}", setting.method, setting.formula),
+        title,
         before,
         columns: vec![
             ("term".to_string(), Align::Left),
@@ -280,11 +365,7 @@ fn summary_of(
             (level_heading(setting.level), Align::Left),
         ],
         rows: rows_out,
-        after: vec![format!(
-            "R² {} · adjusted R² {}",
-            measure(r_squared),
-            measure(adjusted)
-        )],
+        after: vec![after],
         more: Vec::new(),
         rules: Vec::new(),
     }

@@ -1,7 +1,8 @@
 //! The benchmark suite (testing handbook, section 6; open decisions #30 and #52; release 0.4.0,
 //! step 21): `import` of a CSV, `summary`, `mean` and `aggregate` (release 0.6.0, step 12) by a
-//! group, and `reg` without fixed effects, at ten thousand, a million and ten
-//! million rows of generated data. Each case's result is checked against a stored digest before
+//! group, `reg` without fixed effects, and `reg` with two-way fixed effects (release 0.6.0, step
+//! 18; the case of section 8.3, point 10 of the Engine and Project Specification), at ten
+//! thousand, a million and ten million rows of generated data. Each case's result is checked against a stored digest before
 //! it is timed, so that a case can never be made faster by a numerical change; the times are
 //! reported, not judged, and the release notes record them. The cases run through the package
 //! bodies, as the engine calls them, on a frame parsed once from the generated file.
@@ -19,18 +20,19 @@ use zeff_numeric::random::Stream;
 pub const SIZES: [usize; 3] = [10_000, 1_000_000, 10_000_000];
 
 /// The cases, in the order the suite runs them.
-pub const CASES: [&str; 5] = [
+pub const CASES: [&str; 6] = [
     "import",
     "summary by group",
     "mean by group",
     "aggregate by group",
     "reg",
+    "reg with two-way fixed effects",
 ];
 
-/// The stored digests of every case at every size: the four cases of [`CASES`] in order. A
-/// change here is a change of results, which must be a deliberate one, explained in
+/// The stored digests of every case at every size: the cases of [`CASES`] in order. A change
+/// here is a change of results, which must be a deliberate one, explained in
 /// `docs/decisions.md`.
-pub const EXPECTED: [(usize, [&str; 5]); 3] = [
+pub const EXPECTED: [(usize, [&str; 6]); 3] = [
     (
         10_000,
         [
@@ -39,6 +41,7 @@ pub const EXPECTED: [(usize, [&str; 5]); 3] = [
             "ed059cfde3a39b386db357bc600800f2de1d99ee46a49649e12519bc04ecabc5",
             "de47012f336a00bf39b32e23fa616cfc48ae06ac68c2c694096bbd6b0851ea3c",
             "d8f793f96173036ce3691a1bbd5b77ba3d939b89fd7e5009a4a83cbcb8403a23",
+            "b8f5339b1768b5a23cf51ca29842cbd75b5bad46588f27c90227c980910d7c0c",
         ],
     ),
     (
@@ -49,6 +52,7 @@ pub const EXPECTED: [(usize, [&str; 5]); 3] = [
             "3dc5ea7f0b2ea396d45c2191b571a1e49c4cae7db6ded2a2e98cc6cc75e10455",
             "a5740194bcb312b3c094f6a951c1f7ac67397d313197625460f428b2ebd8bbac",
             "b179916facbd103b31392271fb8af0bacf54ddd6b7c87d2175c478b9446bcd10",
+            "88888a096fa97607edc44431893dd53c03fac0fe5a99c231526b5ff5731ccc64",
         ],
     ),
     (
@@ -59,6 +63,7 @@ pub const EXPECTED: [(usize, [&str; 5]); 3] = [
             "c9593065a7854bc5a8423b0f9c0e7b3906a0a37b0e0ef89f63e455be1ddd4b73",
             "6cda06a226386c614ddee3246776e1e0a9cc607ed5ef817cf61fa87451e31b71",
             "988766ff988357938c819ed0d286dd42ac3bf2a2a5c8804a4119271376af129b",
+            "253b8caa45dcd3a3c6cc9b76528ebf2a2d08c29787831d4eb740969e714e4ffa",
         ],
     ),
 ];
@@ -241,6 +246,32 @@ pub fn reg(table: &Table) -> Value {
     )
 }
 
+/// The frame with a `unit` column for the two-way case: ten rows per unit in row order, so that
+/// a million rows hold a hundred thousand units, beside the twenty groups of `g`.
+pub fn with_units(table: &Table) -> Table {
+    let units: Vec<Option<i64>> = (0..table.rows())
+        .map(|r| Some((r / 10) as i64 + 1))
+        .collect();
+    table
+        .with_column("unit", zeff_columns::Column::ints(units))
+        .expect("a new column")
+}
+
+/// `reg(y ~ x1 + x2 + d, fe: unit + g, cluster: unit)`: the two-way fixed effects of section
+/// 8.3, point 10, with errors clustered by the unit.
+pub fn reg_two_way(table: &Table) -> Value {
+    call(
+        zeff_regress::reg::reg,
+        table,
+        vec![
+            Some(Value::Formula(zeff_testkit::formula("y ~ x1 + x2 + d"))),
+            Some(Value::Terms(zeff_testkit::terms("unit + g"))),
+            None,
+            Some(Value::Var("unit".to_string())),
+        ],
+    )
+}
+
 /// The digest of a frame: every column's name, type and cells, bit for bit.
 pub fn table_digest(table: &Table) -> String {
     let mut parts = String::new();
@@ -302,19 +333,20 @@ pub fn value_digest(value: &Value) -> String {
     zeff_hash::hash_hex(&bytes)
 }
 
-/// The digests of the five cases at `rows` rows, in the order of [`CASES`].
-pub fn digests(bytes: &[u8], table: &Table) -> [String; 5] {
+/// The digests of the six cases at `rows` rows, in the order of [`CASES`].
+pub fn digests(bytes: &[u8], table: &Table) -> [String; 6] {
     [
         table_digest(&import(bytes)),
         value_digest(&summary_by(table)),
         value_digest(&mean_by(table)),
         value_digest(&aggregate_by(table)),
         value_digest(&reg(table)),
+        value_digest(&reg_two_way(&with_units(table))),
     ]
 }
 
 /// The stored digests at `rows` rows.
-pub fn expected(rows: usize) -> Option<&'static [&'static str; 5]> {
+pub fn expected(rows: usize) -> Option<&'static [&'static str; 6]> {
     EXPECTED
         .iter()
         .find(|(size, _)| *size == rows)
@@ -323,7 +355,7 @@ pub fn expected(rows: usize) -> Option<&'static [&'static str; 5]> {
 
 /// The cases whose digest at `rows` rows differs from the stored one, as lines to report;
 /// empty when every case holds.
-pub fn mismatches(rows: usize, found: &[String; 5]) -> Vec<String> {
+pub fn mismatches(rows: usize, found: &[String; 6]) -> Vec<String> {
     let Some(stored) = expected(rows) else {
         return vec![format!("no stored digests at {rows} rows")];
     };

@@ -246,3 +246,7 @@ Z0609, Z0610 and Z0611 added to the table of codes, the next free numbers of the
 ## 2 November 2026 — zeff_open_decisions.md, entry #72
 
 A non-normative note that `table` was built at release 0.6.0, step 16, added to entry #72, as entry #67 already carries for `ci()`.
+
+## 2 November 2026 — zeff_language_reference.md, section 7.1 (the table of forms)
+
+The row of `x1..x9` gains the rule of open decision #54, taken on 1 November 2026 as recommended (step 18 of release 0.6.0): `..` binds more loosely than `+` and does not chain, so one formula holds one bare range and a second is written in brackets, `(z1..z3)`, which the engine has read since release 0.4.0. A rule the checker already applied, written down; no behaviour changes.

@@ -14,7 +14,8 @@ use zeff_columns::{Column, Table as Columns};
 use zeff_core::display::{fixed, fixed_grouped, format_float, list_levels, statistic_line};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Align, Distribution, Fit, Frame, Table, TestResult, Value};
-use zeff_diagnostics::Diagnostic;
+use zeff_diagnostics::messages::no_variable;
+use zeff_diagnostics::{Diagnostic, count};
 use zeff_dist::families;
 
 /// The receiver of a result method: a fitted model or a test's result.
@@ -268,9 +269,10 @@ pub fn standardized(fit: &Fit) -> Vec<Option<f64>> {
 }
 
 /// Akaike's and Schwarz's criteria, counting the variance as a parameter as R's `AIC` and `BIC`
-/// do: −2ℓ + 2(k + 1) and −2ℓ + ln(N)(k + 1), with k the terms with an estimate.
+/// do: −2ℓ + 2(k + 1) and −2ℓ + ln(N)(k + 1), with k the terms with an estimate and, with
+/// fixed effects, the effects' parameters, as fixest counts them.
 pub fn information_criteria(fit: &Fit) -> (f64, f64) {
-    let parameters = fit.terms.len() as f64 + 1.0;
+    let parameters = (fit.terms.len() + fit.absorbed_parameters) as f64 + 1.0;
     let aic = -2.0 * fit.log_likelihood + 2.0 * parameters;
     let bic = -2.0 * fit.log_likelihood + zeff_numeric::maths::log(fit.n as f64) * parameters;
     (aic, bic)
@@ -481,7 +483,16 @@ pub fn predict(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     };
     let mut model = fit.model.clone();
     model.outcome = None;
-    let design = Design::build_with(ctx, &newdata, &model, &[], &fit.levels)?;
+    // A fit with fixed effects has no intercept column, its categories coded as with one.
+    let design = Design::build_full(
+        ctx,
+        &newdata,
+        &model,
+        &[],
+        &fit.levels,
+        &[],
+        !fit.effects.is_empty(),
+    )?;
     for (var, n) in &design.unseen {
         let levels = fit
             .levels
@@ -543,6 +554,71 @@ pub fn predict(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 }
             }
             values[design.rows[block.start + r]] = Some(yhat);
+        }
+    }
+    // The fixed effects' part (section 7.2; fixest's `predict` with `fixef`): each row's level
+    // of every effect looked up by its key, a level the fit never saw predicting `NA` with a
+    // warning, as an unseen category level does.
+    for effect in &fit.effects {
+        let columns: Vec<&Column> = effect
+            .variables
+            .iter()
+            .map(|name| {
+                newdata.table.column(name).ok_or_else(|| {
+                    let names: Vec<&str> =
+                        newdata.table.names().iter().map(String::as_str).collect();
+                    fail(no_variable(
+                        ctx.script,
+                        ctx.span_of(1),
+                        &newdata.shown_name(),
+                        name,
+                        &names,
+                    ))
+                })
+            })
+            .collect::<Result<_, _>>()?;
+        let index: std::collections::BTreeMap<&[zeff_columns::Key], usize> = effect
+            .keys
+            .iter()
+            .enumerate()
+            .map(|(g, key)| (key.as_slice(), g))
+            .collect();
+        let mut unseen = 0usize;
+        for (row, value) in values.iter_mut().enumerate() {
+            let Some(yhat) = value else { continue };
+            let key: Vec<zeff_columns::Key> = columns
+                .iter()
+                .map(|c| crate::absorb::effect_key(c, row))
+                .collect();
+            match index.get(key.as_slice()) {
+                Some(&g) => *yhat += effect.values[g],
+                None => {
+                    unseen += 1;
+                    *value = None;
+                }
+            }
+        }
+        if unseen > 0 {
+            let (hold, its) = if unseen == 1 {
+                ("holds", "its prediction is")
+            } else {
+                ("hold", "their predictions are")
+            };
+            ctx.message(
+                Diagnostic::warning(
+                    "W0207",
+                    format!(
+                        "{} of newdata {hold} a level of `{}` the fit never saw, so {its} NA",
+                        rows(unseen),
+                        effect.name
+                    ),
+                )
+                .help(format!(
+                    "a fixed effect predicts only for the levels it was estimated on; the fit saw {} levels of `{}`",
+                    count(effect.keys.len() as u64),
+                    effect.name
+                )),
+            );
         }
     }
     Ok(Value::Column(Column::floats(values).0))

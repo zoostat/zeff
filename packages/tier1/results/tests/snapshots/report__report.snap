@@ -1,5 +1,6 @@
 ---
 source: packages/tier1/results/tests/report.rs
+assertion_line: 168
 expression: all
 ---
 > let wages = dataset(wages)
@@ -188,7 +189,7 @@ error[Z0401]: `fits` of `report` must be a List<Result>, but this is a RegFit
 3 | report(m1)
   |        ^^ a RegFit
   |
-  = help: usage: `report(fits, stats: List<n_obs | r_squared | aic | bic>, digits: Int = 3, stars: Bool = true, labels: Record, title: Str)`
+  = help: usage: `report(fits, stats: List<n_obs | r_squared | r_squared_within | aic | bic>, digits: Int = 3, stars: Bool = true, labels: Record, title: Str)`
 [exit 1]
 
 > let wages = dataset(wages)
@@ -199,7 +200,7 @@ error[Z0402]: `n` is not one of the allowed words
  --> scripts/main.zeff:3:22
   |
 3 | report([m1], stats: [n])
-  |                      ^ expected one of n_obs, r_squared, aic, bic
+  |                      ^ expected one of n_obs, r_squared, r_squared_within, aic, bic
 [exit 1]
 
 > let wages = dataset(wages)
@@ -225,7 +226,7 @@ error[Z0401]: `stars` of `report` must be a Bool, but this is an Int
 3 | report([m1], stars: 1)
   |                     ^ an Int
   |
-  = help: usage: `report(fits, stats: List<n_obs | r_squared | aic | bic>, digits: Int = 3, stars: Bool = true, labels: Record, title: Str)`
+  = help: usage: `report(fits, stats: List<n_obs | r_squared | r_squared_within | aic | bic>, digits: Int = 3, stars: Bool = true, labels: Record, title: Str)`
 [exit 1]
 
 > let wages = dataset(wages)

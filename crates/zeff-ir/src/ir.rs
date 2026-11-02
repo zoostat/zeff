@@ -294,6 +294,9 @@ pub enum ExprKind {
         formula: Box<Expr>,
         steps: Vec<TermStep>,
     },
+    /// Fixed-effect terms given to a parameter of type `Terms` (section 7.1, `fe:`): variables
+    /// and interactions of variables joined by `+`, in the order written.
+    Terms(Vec<Term>),
     /// An expression that could not be lowered; its error has been reported.
     Error,
 }

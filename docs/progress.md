@@ -161,3 +161,13 @@ The previous release was tagged (`v0.5.0`) with a clean tree; the 0.6.0 row of s
 **Next.** Step 18 `[engine]`: `fe:` in `reg`.
 
 **For the owner to decide.** Nothing new.
+
+## 2 November 2026: step 18
+
+**Done.** Step 18 `[engine]`: `fe:` in `reg`. A `Terms` argument checked to be variables and `a:b` interactions joined by `+`; rows with `NA` in an effect dropped with the model variables', singletons dropped by the kernel of step 17 and counted, the intercept absorbed with every category at K − 1 indicators; a regressor the effects absorb named and dropped, little variation left warned about (W1004); degrees of freedom by the ruling, effects nested in the clusters left out, which reproduces fixest's defaults and reghdfe; R² within and overall with their adjusted forms in the printed fit, `r_squared()` and `report` (the `Fixed effects` row and `r_squared_within`); `fitted` with the effects' part and `predict` by level; `hc2`, `hc3` and `influence` refused with `fe:` until 0.8.0; the group indexes and demeaned columns reused within a run, counted under `--verbose`; the demeaning's convergence a self-check. fixest 0.14.2 added to the harness (question 4) and the fits on `wages` and `wagepan` checked within 1e-7; the two-way panel in the nightly Monte Carlo; the conformance case `regress/fe`; the benchmark case of two-way fixed effects at the three sizes. Four pages updated, the W1004 page, open decision #54 written into section 7.1 (logged).
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks (125 codes), the conformance report and the benchmark digests pass locally; CI to be read after the push.
+
+**Next.** Step 19 `[function]`: `event`.
+
+**For the owner to decide.** Nothing new.

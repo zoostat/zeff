@@ -131,6 +131,9 @@ fn symmetrised(
 }
 
 /// The variance of the estimates under `kind`, and the degrees of freedom of the t table.
+/// `absorbed` counts the parameters of the fixed effects projected out of the design (section
+/// 7.2; the ruling of release 0.6.0 on degrees of freedom), which join the kept columns in
+/// every N − k; zero without `fe:`.
 pub fn variance(
     kind: Kind,
     estimator: &dyn Estimator,
@@ -138,17 +141,20 @@ pub fn variance(
     fitted: &Fitted,
     bread: &Matrix,
     clusters: Option<&Clusters>,
+    absorbed: usize,
 ) -> Result<(Matrix, usize), VarianceError> {
     let k = fitted.kept.len();
+    // The parameters in every N − k: the kept columns and the absorbed effects'.
+    let parameters = (k + absorbed) as f64;
     // N: the rows used, or the sum of the frequency weights.
     let n = match design.weight_kind {
         Some(WeightKind::Frequency) => design.weight_total(),
         _ => design.n() as f64,
     };
-    let df = (n - k as f64).max(0.0) as usize;
+    let df = (n - parameters).max(0.0) as usize;
     match kind {
         Kind::Classical => {
-            let sigma2 = fitted.residual_sum_of_squares / (n - k as f64);
+            let sigma2 = fitted.residual_sum_of_squares / (n - parameters);
             let vcov = Matrix::from_fn(k, k, |i, j| sigma2 * bread.get(i, j));
             Ok((symmetrised(&vcov, fitted.condition_number, None)?, df))
         }
@@ -180,7 +186,7 @@ pub fn variance(
             // HC1 is HC0 scaled by N/(N − k); HC2 and HC3 correct by the leverage alone, as R's
             // sandwich and Stata's hc2 and hc3 options do.
             let adjustment = if kind == Kind::Hc1 {
-                n / (n - k as f64)
+                n / (n - parameters)
             } else {
                 1.0
             };
@@ -219,7 +225,7 @@ pub fn variance(
             });
             let sandwich = matmul(&matmul(bread, &meat), bread);
             let g = clusters.count as f64;
-            let adjustment = g / (g - 1.0) * (n - 1.0) / (n - k as f64);
+            let adjustment = g / (g - 1.0) * (n - 1.0) / (n - parameters);
             let vcov = Matrix::from_fn(k, k, |i, j| adjustment * sandwich.get(i, j));
             let magnitudes = term_magnitudes(bread, &meat_bound, adjustment);
             Ok((

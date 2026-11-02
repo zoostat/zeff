@@ -2261,6 +2261,9 @@ impl Checker<'_> {
                 kind: ExprKind::TermExpr(Box::new(lowered)),
             };
         }
+        if *ty == Ty::Terms {
+            return self.terms_argument(value);
+        }
         let columns = frame_method && takes_columns(ty);
         if columns {
             self.frame_scope += 1;
@@ -2280,6 +2283,95 @@ impl Checker<'_> {
             };
         }
         lowered
+    }
+
+    /// Fixed-effect terms (section 7.1, `fe:`; section 6, the shared argument): the operands of
+    /// `+`, each a variable, a loop variable holding one, or an interaction `a:b` of such;
+    /// `fe:` admits `+` and `:` only, so `*`, `-`, a range, an expression over variables and
+    /// the intercept are refused with help.
+    fn terms_argument(&mut self, value: &ast::Expr) -> Expr {
+        let span = value.span;
+        self.formula_depth += 1;
+        let mut steps = Vec::new();
+        self.terms_into(value, true, &mut steps);
+        self.formula_depth -= 1;
+        let refuse = |this: &mut Self, at: Span, what: &str, help: &str| {
+            this.report(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("`fe:` takes fixed effects joined by `+`, and {what}"),
+                )
+                .primary(at, "not a fixed effect")
+                .help(help),
+            );
+            Expr::error(span)
+        };
+        let mut terms = Vec::new();
+        for step in steps {
+            let term = match step {
+                TermStep::Add(term) => term,
+                TermStep::Remove(term) => {
+                    return refuse(
+                        self,
+                        term.span,
+                        &format!("`- {}` removes nothing from it", term.text),
+                        "`fe:` admits `+` and `:` only: `fe: firm + year`, or `fe: firm:year` for an interacted effect",
+                    );
+                }
+                TermStep::Intercept(_) => {
+                    return refuse(
+                        self,
+                        span,
+                        "`1` is not one: the intercept is absorbed by the effects",
+                        "write the effects alone, `fe: firm + year`",
+                    );
+                }
+            };
+            let is_variable = |t: &Term| matches!(t.kind, TermKind::Var(_) | TermKind::Bound(_));
+            let (what, help) = match &term.kind {
+                _ if is_variable(&term) => {
+                    terms.push(term);
+                    continue;
+                }
+                TermKind::Interaction(parts) if parts.iter().all(is_variable) => {
+                    terms.push(term);
+                    continue;
+                }
+                TermKind::Interaction(_) => (
+                    format!("`{}` interacts something that is not a variable", term.text),
+                    "an interacted effect joins variables with `:`: `fe: industry:year`",
+                ),
+                TermKind::Product(_) => (
+                    format!("`{}` uses `*`, which it does not admit", term.text),
+                    "`fe:` admits `+` and `:` only: write `fe: a + b` for two effects, or `fe: a:b` for their interaction",
+                ),
+                TermKind::Range(..) => (
+                    format!("`{}` is a range of variables", term.text),
+                    "name each effect: `fe: firm + year`",
+                ),
+                TermKind::Expr(_) => (
+                    format!("`{}` is an expression, not a variable", term.text),
+                    "a fixed effect is a variable of the frame, or an interaction `a:b` of two; compute a new variable with `add` first",
+                ),
+                TermKind::Var(_) | TermKind::Bound(_) => {
+                    unreachable!("a variable is a fixed effect")
+                }
+            };
+            return refuse(self, term.span, &what, help);
+        }
+        if terms.is_empty() {
+            return refuse(
+                self,
+                span,
+                "this names none",
+                "write the effects to absorb: `fe: firm`, `fe: firm + year`",
+            );
+        }
+        Expr {
+            ty: Ty::Terms,
+            span,
+            kind: ExprKind::Terms(terms),
+        }
     }
 
     /// A bare name: what it means depends on the parameter's type (section 3.7, "Resolution by

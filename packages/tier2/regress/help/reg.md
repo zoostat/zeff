@@ -1,7 +1,7 @@
 # reg
 
 ## Summary
-Linear regression by ordinary least squares
+Linear regression by least squares, with fixed effects
 
 ## Description
 Fits the formula by ordinary least squares on the rows of the frame without `NA` in a model
@@ -15,14 +15,24 @@ regressor collinear with the columns before it is dropped and named in a note, a
 with no observations among the rows used; a design whose scaled condition number passes 1e8 is
 warned about (W1001). `se:` chooses classical, robust (HC1), HC2 or HC3 standard errors,
 `cluster:` errors clustered by a variable (CR1), and `weights:` with `weight_type:` frequency,
-analytic or sampling weights; fixed effects (`fe:`) arrive with release 0.6.0. Like R's `lm`
-with `sandwich`, and Stata's `regress`.
+analytic or sampling weights. `fe:` absorbs fixed effects by alternating projections before the
+fit, as fixest and reghdfe do, so a model with a thousand firm effects never builds a thousand
+indicator columns: rows with `NA` in an effect are dropped with the model variables', then the
+singletons of the effects (a level with one row, repeated until none remains) are dropped and
+counted, the outcome and the regressors are demeaned within the effects' levels, and the fit
+runs on what remains, the intercept absorbed. Like R's `lm` with `sandwich` and `fixest::feols`,
+and Stata's `regress` and `reghdfe`.
 
 ## Arguments
 - data: The frame.
 - formula: `y ~ terms`, written in the call or bound with `let`.
+- fe: The fixed effects to absorb: a variable, `firm`; several joined by `+`, `firm + year`; an
+  interacted effect joined by `:`, `industry:year`. Int, text, category and date variables all
+  serve; `*`, a range, an expression and the intercept are refused, and so is an effect that
+  is also a variable of the formula.
 - se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless
-  sampling weights are given, when `robust`.
+  sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410),
+  since an observation's leverage in the full design is not available.
 - cluster: The variable whose values group the observations for clustered errors (CR1).
 - weights: The weight variable.
 - weight_type: What the weights are: `frequency` counts, `analytic` precision weights, `sampling`
@@ -50,24 +60,41 @@ are precision weights, scaled to sum to the rows; sampling weights are probabili
 which `se:` defaults to `robust` and `classical` is refused. A row with `NA` in the weight or the
 cluster is dropped with the others; a zero weight leaves its row out, with a note; a negative
 weight is an error. A column that is zero in every row used, or whose values are too small to be scaled, is dropped
-with a note of its own; a fit whose residual variance is below 1e-30 of the fitted values' scale
+with a note of its own. With `fe:` the effects are projected out by alternating projections with
+Irons–Tuck acceleration to a tolerance of 1e-8 on the largest change, in a scratch buffer of the
+model's columns alone (section 7.2 of the Language Reference), the rows ordered once by the
+largest effect; under `weights:` the projections are weighted. A regressor whose remaining norm
+is below 1e-8 of its original is absorbed by the effects and dropped with a note; one keeping
+less than one per cent of its norm is warned about (W1004). The degrees of freedom count the
+absorbed effects' levels, less one for each effect after the first; under `cluster:` an effect
+nested within the clusters is not counted, which reproduces fixest's `fixef.K = "nested"` and
+reghdfe, and the t table uses G − 1 as without effects. The summary prints R² within, the R²
+of the regression on the demeaned columns, and R² overall, 1 − RSS/TSS of the outcome with the
+effects' fit included, as fixest's `wr2` and `r2`; `r_squared()` gives both with their adjusted
+forms. `fitted()` includes the effects' part and `predict()` adds each row's effects by level,
+a level the fit never saw predicting `NA` with a warning (W0207); `influence()` on a fit with
+effects waits for release 0.8.0 (Z0304). A fit whose residual variance is below 1e-30 of the fitted values' scale
 is noted as essentially perfect, which is R's rule, since its standard errors are then rounding
 alone. After every fit the residuals are checked to be orthogonal to the regressors and the
-variance matrix to be symmetric with no negative variance, a failure being an internal error
-rather than a result. The shipped `wages` recovers its generating model: the return to schooling
+variance matrix to be symmetric with no negative variance, and the demeaning to have converged,
+a failure being an internal error rather than a result. The shipped `wages` recovers its generating model: the return to schooling
 of 0.074 lies inside the interval of the pooled regression with errors clustered by worker, which
 the test suite checks, and the textbook regressions on Wooldridge's `wage1` and `wage2` agree
-with R to ten decimal places.
+with R to ten decimal places, and the fixed-effects fits on `wages` and on Wooldridge's `wagepan`
+agree with fixest within 1e-7 on the estimates, standard errors and both R² forms.
 
 ## References
 Davidson, R. and MacKinnon, J. G. (2004). *Econometric Theory and Methods*. Oxford University
 Press, chapters 2 and 3. MacKinnon, J. G. and White, H. (1985). Some heteroskedasticity-consistent
 covariance matrix estimators with improved finite sample properties. *Journal of Econometrics*,
 29, 305–325. Cameron, A. C. and Miller, D. L. (2015). A practitioner's guide to cluster-robust
-inference. *Journal of Human Resources*, 50, 317–372.
+inference. *Journal of Human Resources*, 50, 317–372. Correia, S. (2016). Linear models with
+high-dimensional fixed effects: an efficient and feasible estimator. Working paper, Duke
+University. Gaure, S. (2013). OLS with multiple high dimensional category variables.
+*Computational Statistics and Data Analysis*, 66, 8–18.
 
 ## See also
-category, base, interact, summary
+category, base, interact, summary, r_squared, report
 
 ## Examples
 > let wages = dataset(wages)
@@ -109,3 +136,21 @@ standard errors: clustered by worker (3,911 clusters, CR1)
 
 R² 0.098 · adjusted R² 0.098
 note: 30 of the 3,911 clusters hold one observation (line 4)
+> let m = wages.reg(log(wage) ~ educ + exper + exper^2 + female, fe: firm, cluster: firm)
+> m
+reg · log(wage) ~ educ + exper + exper^2 + female · fe: firm
+N = 18,179 (233 rows dropped for NA in model variables; no singletons)
+fixed effects: firm (397)
+standard errors: clustered by firm (397 clusters, CR1)
+
+  term      estimate   std.error   t value   p value   95% CI
+  educ        0.0769      0.0024     32.70    <0.001   [0.0723, 0.0815]
+  exper       0.0434      0.0025     17.34    <0.001   [0.0385, 0.0484]
+  exper^2    -0.0007      0.0001     -8.79    <0.001   [-0.0009, -0.0005]
+  female     -0.1294      0.0133     -9.70    <0.001   [-0.1556, -0.1032]
+
+R² within 0.211 · R² overall 0.288
+> m.coef(educ)
+0.0768816
+> m.std_errors(educ)
+0.00235105

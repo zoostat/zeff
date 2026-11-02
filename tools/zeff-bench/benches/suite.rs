@@ -6,7 +6,10 @@ use std::hint::black_box;
 use std::time::Duration;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use zeff_bench::{SIZES, aggregate_by, csv, digests, import, mean_by, mismatches, reg, summary_by};
+use zeff_bench::{
+    SIZES, aggregate_by, csv, digests, import, mean_by, mismatches, reg, reg_two_way, summary_by,
+    with_units,
+};
 
 fn suite(c: &mut Criterion) {
     for &rows in &SIZES {
@@ -35,6 +38,10 @@ fn suite(c: &mut Criterion) {
             b.iter(|| aggregate_by(black_box(&table)))
         });
         group.bench_function("reg", |b| b.iter(|| reg(black_box(&table))));
+        let units = with_units(&table);
+        group.bench_function("reg with two-way fixed effects", |b| {
+            b.iter(|| reg_two_way(black_box(&units)))
+        });
         group.finish();
     }
 }

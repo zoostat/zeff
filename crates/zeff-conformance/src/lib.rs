@@ -908,6 +908,13 @@ fn regress_cases() -> Vec<Line> {
             "weighted",
             "let w = dataset(wages)\nw.reg(log(wage) ~ educ + female, weights: hours)\nw.reg(log(wage) ~ educ + female, weights: exper, weight_type: frequency)\n",
         ),
+        // Fixed effects (release 0.6.0, step 18): one, two and interacted effects, clustered
+        // errors with an effect nested in the clusters, the absorbed regressors and the
+        // `report` table with its `Fixed effects` row.
+        (
+            "fe",
+            "let w = dataset(wages)\nlet m1 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: firm)\nm1\nlet m2 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: industry + year, cluster: worker)\nm2\nlet m3 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: worker + year, cluster: worker)\nm3\nw.reg(log(wage) ~ educ + female, fe: industry:year, weights: hours)\nm2.r_squared()\nreport([m1, m2, m3], stats: [n_obs, r_squared, r_squared_within])\nm1.predict(newdata: w.head(5))\n",
+        ),
         // The result interface (step 15): the summary with its options, the estimates frame, the
         // mappings and the intervals of one fit.
         (

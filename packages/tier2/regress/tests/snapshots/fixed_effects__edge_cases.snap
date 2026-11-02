@@ -1,0 +1,318 @@
+---
+source: packages/tier2/regress/tests/fixed_effects.rs
+assertion_line: 406
+expression: all
+---
+error[Z0801]: no row remains to fit the model: every row is a singleton of fe: id
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ x, fe: id)
+  |   ^^^ nothing to estimate within the effects
+  |
+  = help: an effect whose every level has one row absorbs every row; use a coarser effect, or leave it out
+----
+reg · y ~ x · fe: g
+N = 5 (no singletons)
+fixed effects: g (1)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        0.8000      0.3464      2.31     0.104   [-0.3024, 1.9024]
+
+R² within 0.640 · R² overall 0.640
+reg · y ~ x
+N = 5
+standard errors: classical
+
+  term          estimate   std.error   t value   p value   95% CI
+  (intercept)     0.6000      1.1489      0.52     0.638   [-3.0564, 4.2564]
+  x               0.8000      0.3464      2.31     0.104   [-0.3024, 1.9024]
+
+R² 0.640 · adjusted R² 0.520
+----
+reg · y ~ x + z · fe: g
+N = 6 (no singletons)
+fixed effects: g (3)
+standard errors: classical
+
+  term    estimate   std.error   t value   p value   95% CI
+  x         0.8824      0.1500      5.88     0.028   [0.2371, 1.5276]
+  z      (omitted)
+
+R² within 0.945 · R² overall 0.984
+reg · y ~ x - 1 · fe: g
+N = 6 (no singletons)
+fixed effects: g (3)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        0.8824      0.1500      5.88     0.028   [0.2371, 1.5276]
+
+R² within 0.945 · R² overall 0.984
+note: `z` is absorbed by fe: g and was dropped (line 2)
+----
+reg · y ~ x · fe: day
+N = 6 (no singletons)
+fixed effects: day (3)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        1.0294      0.1195      8.62     0.013   [0.5154, 1.5435]
+
+R² within 0.974 · R² overall 0.990
+reg · y ~ x · fe: shop + day
+N = 6 (no singletons)
+fixed effects: shop (2), day (3)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        1.7500      0.4330      4.04     0.154   [-3.7519, 7.2519]
+
+R² within 0.942 · R² overall 0.998
+----
+reg · y ~ x · fe: g
+N = 5 (1 row with zero weight left out; 1 row dropped as a singleton)
+fixed effects: g (2)
+weights: w (analytic)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        1.0909      0.0850     12.83     0.006   [0.7250, 1.4568]
+
+R² within 0.988 · R² overall 0.991
+reg · y ~ x · fe: g
+N = 6 (1 row dropped for NA in model variables; no singletons)
+fixed effects: g (3)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        1.0294      0.1195      8.62     0.013   [0.5154, 1.5435]
+
+R² within 0.974 · R² overall 0.990
+note: 1 row with a zero weight left out of the estimate and the observation count (line 2)
+----
+reg · log(wage) ~ educ + female · fe: firm
+N = 18,201 (211 rows dropped for NA in model variables; no singletons)
+fixed effects: firm (397)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term     estimate   std.error   t value   p value   95% CI
+  educ       0.0561      0.0026     21.82    <0.001   [0.0511, 0.0612]
+  female    -0.1389      0.0130    -10.72    <0.001   [-0.1643, -0.1135]
+
+R² within 0.099 · R² overall 0.187
+reg · log(wage) ~ educ + female · fe: firm
+N = 18,201 (211 rows dropped for NA in model variables; no singletons)
+fixed effects: firm (397)
+standard errors: clustered by industry (12 clusters, CR1)
+
+  term     estimate   std.error   t value   p value   95% CI
+  educ       0.0561      0.0031     18.28    <0.001   [0.0494, 0.0629]
+  female    -0.1389      0.0142     -9.79    <0.001   [-0.1701, -0.1076]
+
+R² within 0.099 · R² overall 0.187
+note: 30 of the 3,911 clusters hold one observation (line 2)
+warning: few clusters: 12 clusters give clustered errors little to rest on (line 3)
+  = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
+----
+error[Z0401]: `fe:` takes fixed effects joined by `+`, and `firm * year` uses `*`, which it does not admit
+ --> scripts/main.zeff:2:29
+  |
+2 | w.reg(log(wage) ~ educ, fe: firm * year)
+  |                             ^^^^^^^^^^^ not a fixed effect
+  |
+  = help: `fe:` admits `+` and `:` only: write `fe: a + b` for two effects, or `fe: a:b` for their interaction
+----
+error[Z0401]: `fe:` takes fixed effects joined by `+`, and `educ..exper` is a range of variables
+ --> scripts/main.zeff:2:29
+  |
+2 | w.reg(log(wage) ~ educ, fe: educ..exper)
+  |                             ^^^^^^^^^^^ not a fixed effect
+  |
+  = help: name each effect: `fe: firm + year`
+----
+error[Z0401]: `fe:` takes fixed effects joined by `+`, and `log(firm)` is an expression, not a variable
+ --> scripts/main.zeff:2:29
+  |
+2 | w.reg(log(wage) ~ educ, fe: log(firm))
+  |                             ^^^^^^^^^ not a fixed effect
+  |
+  = help: a fixed effect is a variable of the frame, or an interaction `a:b` of two; compute a new variable with `add` first
+----
+error[Z0401]: `fe:` takes fixed effects joined by `+`, and `1` is not one: the intercept is absorbed by the effects
+ --> scripts/main.zeff:2:29
+  |
+2 | w.reg(log(wage) ~ educ, fe: firm - 1)
+  |                             ^^^^^^^^ not a fixed effect
+  |
+  = help: write the effects alone, `fe: firm + year`
+----
+error[Z0401]: `fe:` takes fixed effects joined by `+`, and `1` is not one: the intercept is absorbed by the effects
+ --> scripts/main.zeff:2:29
+  |
+2 | w.reg(log(wage) ~ educ, fe: 1)
+  |                             ^ not a fixed effect
+  |
+  = help: write the effects alone, `fe: firm + year`
+----
+error[Z0401]: `firm` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:36
+  |
+2 | w.reg(log(wage) ~ educ + firm, fe: firm)
+  |                                    ^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+----
+error[Z0410]: `se: hc3` and `fe:` exclude each other: with absorbed effects an observation's leverage in the full design is not available
+ --> scripts/main.zeff:2:44
+  |
+2 | w.reg(log(wage) ~ educ, fe: firm:year, se: hc3)
+  |                                            ^^^ needs every observation's leverage
+  |
+  = help: `se: robust` (HC1) or `cluster:` with `fe:`; HC2 and HC3 with fixed effects arrive with release 0.8.0
+----
+error[Z0304]: `influence` on a fit with fixed effects is not available in this release
+ --> scripts/main.zeff:2:1
+  |
+2 | w.reg(log(wage) ~ educ, fe: firm).influence()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a fit with `fe:`
+  |
+  = help: the leverage, Cook's distance and studentized residuals of a fit with absorbed effects arrive with release 0.8.0; `residuals()` and `fitted()` are available now
+----
+error[Z0101]: no variable `nowhere` in `w`
+ --> scripts/main.zeff:2:3
+  |
+2 | w.reg(log(wage) ~ educ, fe: nowhere)
+  |   ^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+----
+reg · log(wage) ~ educ + exper + exper^2 + female · fe: industry + year
+N = 18,179 (233 rows dropped for NA in model variables; no singletons)
+fixed effects: industry (12), year (12)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term      estimate   std.error   t value   p value   95% CI
+  educ        0.0735      0.0025     28.94    <0.001   [0.0685, 0.0785]
+  exper       0.0402      0.0026     15.41    <0.001   [0.0351, 0.0453]
+  exper^2    -0.0007      0.0001     -8.16    <0.001   [-0.0008, -0.0005]
+  female     -0.1320      0.0119    -11.06    <0.001   [-0.1554, -0.1086]
+
+R² within 0.186 · R² overall 0.234
+r_squared: 0.23352
+adjusted: 0.232422
+within: 0.186446
+adjusted_within: 0.186267
+                      (1)              (2)
+  (intercept)      1.787***
+                  (0.023)
+  educ             0.076***         0.074***
+                  (0.001)          (0.003)
+  exper            0.042***         0.040***
+                  (0.002)          (0.003)
+  exper^2         -0.001***        -0.001***
+                  (0.000)          (0.000)
+  female          -0.132***        -0.132***
+                  (0.006)          (0.012)
+  ──────────────────────────────────────────
+  Fixed effects        none   industry, year
+  SEs                robust   cluster worker
+  N                  18,179           18,179
+  R²                  0.210   0.186 (within)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(2) note: 33 of the 3,911 clusters hold one observation
+                      (1)              (2)
+  (intercept)      1.787***
+                  (0.023)
+  educ             0.076***         0.074***
+                  (0.001)          (0.003)
+  exper            0.042***         0.040***
+                  (0.002)          (0.003)
+  exper^2         -0.001***        -0.001***
+                  (0.000)          (0.000)
+  female          -0.132***        -0.132***
+                  (0.006)          (0.012)
+  ──────────────────────────────────────────
+  Fixed effects        none   industry, year
+  SEs                robust   cluster worker
+  N                  18,179           18,179
+  R²                  0.210            0.234
+  R² within                            0.186
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(2) note: 33 of the 3,911 clusters hold one observation
+Column<Float> · 3 values
+3.36972
+3.40695
+3.42813
+Column<Float> · 18,412 values
+3.36972
+3.40695
+3.42813
+3.48149
+3.52143
+3.5582
+3.5869
+3.24128
+3.28532
+3.3158
+3.33023
+3.10876
+3.14754
+3.07157
+3.11682
+3.28609
+3.30831
+3.31079
+3.33246
+3.39407
+… and 18,392 more values
+Column<Float> · 18,412 values
+-0.474914
+-0.557405
+-0.386946
+-0.729106
+-0.248444
+-0.0595705
+-0.304107
+0.464216
+0.0244887
+0.258786
+-0.230133
+1.03517
+0.551541
+-0.43824
+-0.225897
+-0.122722
+0.0754005
+0.239407
+0.0700693
+0.513745
+… and 18,392 more values
+note: 33 of the 3,911 clusters hold one observation (line 3)
+----
+reg · log(wage) ~ exper + exper^2 · fe: worker + year
+N = 18,146 (233 rows dropped for NA in model variables; 33 rows dropped as singletons)
+fixed effects: worker (3,878), year (12)
+standard errors: clustered by worker (3,878 clusters, CR1)
+
+  term      estimate   std.error   t value   p value   95% CI
+  exper       0.0367      0.0134      2.74     0.006   [0.0105, 0.0629]
+  exper^2    -0.0009      0.0001    -10.16    <0.001   [-0.0010, -0.0007]
+
+R² within 0.007 · R² overall 0.692
+warning: little variation left after fe: worker + year: `exper` keeps 0.89% of its variation (line 2)
+  = help: the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation
+----
+                           (1)              (2)
+  educ                  0.056***         0.054***
+                       (0.001)          (0.001)
+  ───────────────────────────────────────────────
+  Fixed effects             firm         industry
+  SEs                  classical        classical
+  N                       18,201           18,201
+  R²              0.080 (within)   0.079 (within)
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+----

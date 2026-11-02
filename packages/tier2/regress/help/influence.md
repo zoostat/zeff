@@ -11,7 +11,9 @@ the row), as a frame of the fitted frame's full length with `NA` in the rows the
 that `wages.add(h = m.influence()["leverage"])` lines up. A row of leverage one has no distance
 and no studentized residual. Like `influence.measures` in R and `predict, cooksd` and
 `predict, rstudent` in Stata; the warning W1006 names the rows whose removal moves an estimate by
-more than its standard error.
+more than its standard error. A fit with fixed effects is refused (Z0304): its leverage in the
+full design cannot be had from the demeaned factorisation, and the measures arrive with release
+0.8.0.
 
 ## Arguments
 - fit: The regression fit.

@@ -253,3 +253,9 @@ pub fn formula(text: &str) -> zeff_core::value::Formula {
     };
     zeff_engine::formulas::formula_value(formula).unwrap_or_else(|what| panic!("{what}"))
 }
+
+/// Fixed-effect terms as a `fe:` argument carries them: the terms of `y ~ text`, so that a test
+/// can call `reg` with `fe:` without a script.
+pub fn terms(text: &str) -> Vec<zeff_core::value::Term> {
+    formula(&format!("y ~ {text}")).terms
+}

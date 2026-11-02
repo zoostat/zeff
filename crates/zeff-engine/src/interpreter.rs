@@ -1393,6 +1393,12 @@ impl<'a> Interpreter<'a> {
                 self.apply_steps(&mut value, steps, expr, messages)?;
                 Value::Formula(value)
             }
+            ExprKind::Terms(terms) => Value::Terms(
+                terms
+                    .iter()
+                    .map(|term| self.term_value(term, expr))
+                    .collect::<Result<Vec<_>, _>>()?,
+            ),
             ExprKind::FrameName { name, binding } => {
                 self.frame_name(expr, name, *binding, messages)?
             }

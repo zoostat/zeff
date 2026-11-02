@@ -37,6 +37,7 @@ pub fn functions() -> Vec<Function> {
                 params: vec![
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::required("formula", "Formula"),
+                    ParamSpec::option("fe", "Terms"),
                     ParamSpec::option("se", "classical | robust | hc2 | hc3"),
                     ParamSpec::option("cluster", "Var"),
                     ParamSpec::option("weights", "Var"),
@@ -51,7 +52,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "RegFit",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small to scale dropped; a category of one level; rows with a zero weight left out; clusters of one observation; an outcome without variation; an essentially perfect fit",
+                        "a term written twice kept once; a collinear column, a level with no observations, a zero column or one too small to scale dropped; a regressor absorbed by the fixed effects; a category of one level; rows with a zero weight left out; clusters of one observation; an outcome without variation; an essentially perfect fit",
                     ),
                     DiagnosticDecl::new(
                         "W1001",
@@ -59,6 +60,10 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new("W1002", "fewer than 30 clusters"),
                     DiagnosticDecl::new("W1003", "extreme weights, with the effective sample size"),
+                    DiagnosticDecl::new(
+                        "W1004",
+                        "little variation left after the fixed effects: a regressor keeping less than one per cent of its norm",
+                    ),
                     DiagnosticDecl::new(
                         "W1006",
                         "an observation whose removal moves an estimate by more than its standard error",
@@ -75,15 +80,15 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "text in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a number, or a frequency weight with a fraction",
+                        "text in the model, a category as the outcome, a level outside 0 to 1, a weight that is not a number, a frequency weight with a fraction, `fe:` with `*`, a range, an expression or the intercept, or a fixed effect that is a model variable too",
                     ),
                     DiagnosticDecl::new(
                         "Z0410",
-                        "`se: classical` with sampling weights, or `se: hc2` or `hc3` with `cluster:`",
+                        "`se: classical` with sampling weights, `se: hc2` or `hc3` with `cluster:`, or `se: hc2` or `hc3` with `fe:`",
                     ),
                     DiagnosticDecl::new(
                         "Z0801",
-                        "no row remains after the rows with NA are dropped",
+                        "no row remains after the rows with NA are dropped, or every row is a singleton of the fixed effects",
                     ),
                     DiagnosticDecl::new(
                         "Z0802",
@@ -141,7 +146,10 @@ pub fn functions() -> Vec<Function> {
                 params: vec![ParamSpec::required("fit", "RegFit")],
                 rest: None,
                 returns: "Frame",
-                diagnostics: vec![],
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0304",
+                    "a fit with fixed effects, whose influence measures arrive with release 0.8.0",
+                )],
                 help: include_str!("../help/influence.md"),
                 accuracy: None,
             },

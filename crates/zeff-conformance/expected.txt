@@ -113,6 +113,8 @@ regress/clustered/stdout c468af3ee1c58d49
 regress/clustered/stderr 87dd24d632bfd4d4
 regress/weighted/stdout aeb6bde8c819a0fc
 regress/weighted/stderr 0379ea182b39c370
+regress/fe/stdout 14fbe484f294ee6b
+regress/fe/stderr 46f0e043f2d3a8fd
 regress/interface/stdout 08c3aafc8156baa5
 regress/interface/stderr cbf29ce484222325
 control/case/stdout 31d5603dedb0df16

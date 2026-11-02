@@ -4,6 +4,7 @@
 //! registers `export` on tables and results (steps 13 and 19), the result interface (step 15),
 //! the estimator interface (steps 16 and 18) and `report` (step 19).
 
+pub mod absorb;
 pub mod design;
 pub mod estimator;
 pub mod export;
@@ -274,7 +275,10 @@ pub fn functions() -> Vec<Function> {
                 method: false,
                 params: vec![
                     ParamSpec::required("fits", "List<Result>"),
-                    ParamSpec::option("stats", "List<n_obs | r_squared | aic | bic>"),
+                    ParamSpec::option(
+                        "stats",
+                        "List<n_obs | r_squared | r_squared_within | aic | bic>",
+                    ),
                     ParamSpec::option_with_default("digits", "Int", "3"),
                     ParamSpec::option_with_default("stars", "Bool", "true"),
                     ParamSpec::option("labels", "Record"),
