@@ -230,3 +230,8 @@ user_functions/stdout b13e85f493022fd4
 user_functions/stderr b7a40c77d9a4785f
 user_functions/exit_code a8c7f832281a39c5
 # user_functions/exit_code bits 0000000000000000
+panel/stdout 8f9eeec8e717e2a4
+panel/stderr ecebbb9295206dfe
+panel/exit_code a8c7f832281a39c5
+# panel/exit_code bits 0000000000000000
+panel/output/industry_year.csv 4a627b56e0a02c82

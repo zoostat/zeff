@@ -1,0 +1,77 @@
+// The sample project of release 0.6.0: panels end to end, on the shipped wages and firms and
+// three generated files (make_data.py). `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the script tests
+// compare both byte for byte on every target, and the conformance report carries the digest
+// of the file section 2 saves.
+
+// 1. The wages, read from the engine's own data root, with each worker's firm's size and
+//    founding date merged in from the firms dataset (the CSV form of the wages carries the
+//    industry as text, so the firms' category of it stays out of the merge), the variables the
+//    models need, and the panel declared: `lag`, `diff`, `fill_forward` and `fe:` then follow
+//    the worker and the year.
+let firms = dataset(firms)
+let wages = import("zeff:wages.csv")
+    .merge(firms.select([firm, size, founded]), on: firm, relation: many_to_one)
+    .add(lwage = log(wage), exper2 = exper^2)
+    .panel(unit: worker, time: year)
+wages.describe()
+
+// 2. Reshape, merge, aggregate and save: the yearly sales of each firm arrive in one row per
+//    firm with a column per year, as a spreadsheet keeps them; `to_long` makes one row per
+//    firm and year, the firms' industries are merged in, and the industry-year averages are
+//    saved as a CSV file under `output/`.
+let firm_sales = import("data/sales_wide.csv")
+    .to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Int)
+    .merge(firms, on: firm, relation: many_to_one)
+    .add(log_sales = log1p(sales))
+let by_industry = firm_sales.aggregate(avg_sales = mean(sales),
+                                       med_sales = median(sales),
+                                       firms = n(),
+                                       by: [industry, year])
+by_industry.sort([industry, year]).save("output/industry_year.csv")
+by_industry.where(industry == "Retail")
+
+// 3. Panel variables: the yearly growth of the log wage and the hours of the year before
+//    follow each worker in year order, with `NA` where a year is missing; the hours a worker
+//    did not report are carried forward from the last year that reported them; the log wage
+//    is winsorized at the first and last percentile; and the deviation from the firm's mean
+//    log wage is computed firm by firm with `by:`.
+let wages = wages.add(wage_growth = diff(lwage),
+                      lag_hours = lag(hours),
+                      hours_filled = fill_forward(hours),
+                      lwage_w = winsorize(lwage, at: 0.01))
+let wages = wages.add(dev_firm = lwage - mean(lwage), by: firm)
+wages.summary([wage_growth, lag_hours, hours_filled, lwage_w, dev_firm])
+
+// 4. Dates: the founding date of each firm, as a year, as the firm's age, and written as text.
+let firms = firms.add(founded_year = year(founded),
+                      firm_age = 2026 - year(founded),
+                      founded_text = format(founded, pattern: "%b %Y"))
+firms.head(5)
+firms.summary([firm_age], by: industry)
+
+// 5. Regressions: robust errors, then industry and year effects absorbed, then firm and year
+//    effects with the return to schooling allowed to differ by sex and the errors clustered by
+//    the firm; the within and overall R² of a fixed-effects fit, and the three in one table.
+let f = lwage ~ educ + exper + exper2 + female
+let m1 = wages.reg(f, se: robust)
+let m2 = wages.reg(f, fe: industry + year, cluster: worker)
+let m3 = wages.reg(f + educ:female, fe: firm + year, cluster: firm)
+m2
+m3.r_squared()
+report([m1, m2, m3], stats: [n_obs, r_squared, r_squared_within],
+       title: "Table 1. The wage equation with and without fixed effects")
+
+// 6. An event study on a staggered policy: 60 units over ten years, adopting in 2013, 2015 or
+//    2017 or never; `event` makes an indicator for each year relative to adoption, the year
+//    before adoption the reference, and the never-adopting units are the controls.
+let policy = import("data/policy.csv").panel(unit: unit, time: year)
+let es = policy.reg(y ~ event(year, adopted), fe: unit + year, cluster: unit)
+es
+
+// 7. A two-period difference in differences: 80 counties observed in 2010 and 2015, half of
+//    them treated after 2010; the county and year effects absorb `treated` and `post`, and the
+//    interaction is the effect of the treatment.
+let counties = import("data/counties.csv").panel(unit: county, time: year)
+let dd = counties.reg(emp ~ treated * post, fe: county + year, cluster: county)
+dd

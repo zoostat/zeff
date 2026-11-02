@@ -688,6 +688,7 @@ fn every_sample_project_runs_to_its_stored_output() {
         "simulation",
         "regression",
         "user_functions",
+        "panel",
     ] {
         let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("../../samples/{name}"));
         let o = zeff(&sample, &["run"]);

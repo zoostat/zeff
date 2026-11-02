@@ -317,14 +317,42 @@ pub const USER_FUNCTIONS: Sample = Sample {
     stderr: include_str!("../../../samples/user_functions/expected/stderr.txt"),
 };
 
+/// The sample of release 0.6.0: panels end to end, on the shipped wages and firms and three
+/// generated files: a merge from the `zeff:` root, a wide file reshaped, aggregated and saved,
+/// the panel variables, dates, fixed-effects regressions in one table, an event study and a
+/// two-period difference in differences.
+pub const PANEL: Sample = Sample {
+    name: "panel",
+    manifest: include_str!("../../../samples/panel/zeff.toml"),
+    data: &[
+        (
+            "sales_wide.csv",
+            include_bytes!("../../../samples/panel/data/sales_wide.csv"),
+        ),
+        (
+            "policy.csv",
+            include_bytes!("../../../samples/panel/data/policy.csv"),
+        ),
+        (
+            "counties.csv",
+            include_bytes!("../../../samples/panel/data/counties.csv"),
+        ),
+    ],
+    modules: &[],
+    script: include_str!("../../../samples/panel/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/panel/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/panel/expected/stderr.txt"),
+};
+
 /// Every sample project, oldest first; each adds three cases to the report, and one more for
 /// every file it writes under `output/`.
-pub const SAMPLES: [&Sample; 5] = [
+pub const SAMPLES: [&Sample; 6] = [
     &FIRST_ENGINE,
     &DATA_CLEANING,
     &SIMULATION,
     &REGRESSION,
     &USER_FUNCTIONS,
+    &PANEL,
 ];
 
 /// Run a sample project on an in-memory copy of its files.

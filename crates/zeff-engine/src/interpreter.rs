@@ -2136,8 +2136,12 @@ impl<'a> Interpreter<'a> {
         let mut groups: Option<zeff_columns::Groups> = None;
         // `aggregate` merges the reducers' warnings of every group and definition into one per
         // variable (the ruling of release 0.6.0, step 12: counted once per statement as
-        // `summary` counts them).
+        // `summary` counts them); so do `add` and `update` under `by:`, whose definitions are
+        // evaluated group by group the same way (step 23a), and not without it, where a
+        // definition's warnings are its own.
         let merges_warnings = call.package == "data" && call.name == "aggregate";
+        let merges_under_by =
+            call.package == "data" && matches!(call.name.as_str(), "add" | "update");
         let mut raw_warnings: Vec<Vec<Diagnostic>> = Vec::new();
         if call.implicit_receiver
             && let Some(receiver) = self.receivers.last()
@@ -2225,7 +2229,7 @@ impl<'a> Interpreter<'a> {
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
                         receiver.in_definition = true;
                     }
-                    if merges_warnings {
+                    if merges_warnings || (merges_under_by && groups.is_some()) {
                         raw_warnings.push(Vec::new());
                     }
                     let raw = raw_warnings.last_mut();

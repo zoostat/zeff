@@ -115,3 +115,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 23 `[engine]`: script tests, the 0.6.0 sample project, the fuzz targets, the jobs and the benchmark suite.
 
 **For the owner to decide.** Nothing new.
+
+## 3 November 2026: step 23a
+
+**Done.** Step 23 split into 23a to 23d. Step 23a `[engine]`: the sample project `samples/panel` (three generated data files, a script of seven sections from the merge off the `zeff:` root to the event study and the two-period difference in differences, its output read by eye and stored, four new cases in the conformance report); the reducers' warnings under `by:` merged for `add` and `update` as for `aggregate`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks, the conformance report regenerated with the sample's cases; CI to be read after the push.
+
+**Next.** Step 23b `[engine]`: the script tests of sections 6, 6.1 and 7.1 and the help examples, and the storage round trips.
+
+**For the owner to decide.** Nothing new.

@@ -1,0 +1,4 @@
+[project]
+name = "panel"
+zeff = "0.6.0-dev"
+edition = "preview"

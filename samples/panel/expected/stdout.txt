@@ -1,0 +1,129 @@
+wages · 18,412 rows × 15 variables · panel worker × year
+
+  variable   type    non-missing   missing   example
+  worker     Int          18,412         0   1
+  year       Int          18,412         0   2015
+  wage       Float        18,201       211   18.08
+  educ       Int          18,412         0   17
+  exper      Int          18,390        22   9
+  age        Int          18,412         0   32
+  hours      Float        18,377        35   45.1
+  union      Int          18,412         0   0
+  female     Int          18,412         0   0
+  industry   Str          18,412         0   Retail
+  firm       Int          18,412         0   99
+  size       Int          18,412         0   3
+  founded    Date         18,412         0   1993-12-14
+  lwage      Float        18,201       211   2.89481
+  exper2     Float        18,390        22   81
+frame · 5 rows × 5 variables
+
+      industry   year   avg_sales   med_sales   firms
+  1   Retail     2018     22.2131        19.5      65
+  2   Retail     2019     22.0581       19.55      65
+  3   Retail     2020     21.5797       15.95      65
+  4   Retail     2021     26.2841        20.2      65
+  5   Retail     2022     28.1483        20.3      65
+summary · wages
+
+  variable            N   missing     mean      sd      min      max
+  wage_growth    14,162     4,250    0.035   0.428   -1.499    1.726
+  lag_hours      14,471     3,941   37.944   8.154    8.100   69.200
+  hours_filled   18,405         7   37.948   8.158    7.000   69.200
+  lwage_w        18,201       211    3.192   0.477    2.073    4.316
+  dev_firm       18,201       211    0.000   0.461   -1.890    1.633
+frame · 5 rows × 7 variables
+
+      firm   industry      size   founded      founded_year   firm_age   founded_text
+  1      1   Agriculture      3   1990-11-06           1990         36   Nov 1990
+  2      2   Agriculture      5   1957-07-02           1957         69   Jul 1957
+  3      3   Agriculture      3   1998-11-07           1998         28   Nov 1998
+  4      4   Agriculture     11   1999-07-17           1999         27   Jul 1999
+  5      5   Agriculture     10   1989-08-07           1989         37   Aug 1989
+summary · by industry
+
+  industry                variable    N   missing     mean       sd      min      max
+  Agriculture             firm_age   13         0   37.154   13.127   20.000   69.000
+  Mining                  firm_age    4         0   59.500   18.358   36.000   76.000
+  Utilities               firm_age    8         0   48.625   17.880   18.000   69.000
+  Construction            firm_age   32         0   47.812   14.040   17.000   71.000
+  Manufacturing           firm_age   43         0   45.186   16.981   18.000   74.000
+  Retail                  firm_age   65         0   46.600   17.595   17.000   76.000
+  Transport               firm_age   24         0   48.000   15.531   17.000   71.000
+  Finance                 firm_age   31         0   48.258   16.405   18.000   75.000
+  Services                firm_age   54         0   49.000   16.601   17.000   76.000
+  Education               firm_age   47         0   46.723   16.829   18.000   72.000
+  Health                  firm_age   45         0   51.000   17.289   18.000   76.000
+  Public administration   firm_age   34         0   46.735   15.938   20.000   72.000
+reg · lwage ~ educ + exper + exper2 + female · fe: industry + year
+N = 18,179 (233 rows dropped for NA in model variables; no singletons)
+fixed effects: industry (12), year (12)
+standard errors: clustered by worker (3,911 clusters, CR1)
+
+  term     estimate   std.error   t value   p value   95% CI
+  educ       0.0735      0.0025     28.94    <0.001   [0.0685, 0.0785]
+  exper      0.0402      0.0026     15.41    <0.001   [0.0351, 0.0453]
+  exper2    -0.0007      0.0001     -8.16    <0.001   [-0.0008, -0.0005]
+  female    -0.1320      0.0119    -11.06    <0.001   [-0.1554, -0.1086]
+
+R² within 0.186 · R² overall 0.234
+r_squared: 0.293286
+adjusted: 0.276897
+within: 0.182539
+adjusted_within: 0.182309
+Table 1. The wage equation with and without fixed effects
+
+                      (1)              (2)            (3)
+  (intercept)      1.787***
+                  (0.023)
+  educ             0.076***         0.074***       0.078***
+                  (0.001)          (0.003)        (0.003)
+  exper            0.042***         0.040***       0.041***
+                  (0.002)          (0.003)        (0.003)
+  exper2          -0.001***        -0.001***      -0.001***
+                  (0.000)          (0.000)        (0.000)
+  female          -0.132***        -0.132***      -0.035
+                  (0.006)          (0.012)        (0.070)
+  educ:female                                     -0.007
+                                                  (0.005)
+  ─────────────────────────────────────────────────────────
+  Fixed effects        none   industry, year     firm, year
+  SEs                robust   cluster worker   cluster firm
+  N                  18,179           18,179         18,179
+  R²                  0.210            0.234          0.293
+  R² within                            0.186          0.183
+
+* p < 0.05, ** p < 0.01, *** p < 0.001
+(2) note: 33 of the 3,911 clusters hold one observation
+reg · y ~ event(year, adopted) · fe: unit + year
+N = 600 (no singletons)
+fixed effects: unit (60), year (10)
+standard errors: clustered by unit (60 clusters, CR1)
+
+  term       estimate   std.error   t value   p value   95% CI
+  event=-7     0.0843      0.1231      0.68     0.496   [-0.1621, 0.3307]
+  event=-6    -0.0643      0.1248     -0.52     0.608   [-0.3140, 0.1854]
+  event=-5     0.0397      0.0913      0.44     0.665   [-0.1430, 0.2225]
+  event=-4    -0.0384      0.1041     -0.37     0.714   [-0.2466, 0.1698]
+  event=-3     0.0775      0.0751      1.03     0.306   [-0.0728, 0.2277]
+  event=-2     0.0679      0.0964      0.70     0.484   [-0.1251, 0.2609]
+  event=0      0.5911      0.0971      6.09    <0.001   [0.3967, 0.7855]
+  event=1      0.5702      0.0650      8.77    <0.001   [0.4401, 0.7003]
+  event=2      0.7689      0.1010      7.62    <0.001   [0.5669, 0.9709]
+  event=3      0.8427      0.0913      9.23    <0.001   [0.6600, 1.0254]
+  event=4      0.8577      0.1120      7.66    <0.001   [0.6335, 1.0818]
+  event=5      1.1204      0.1255      8.92    <0.001   [0.8692, 1.3716]
+  event=6      1.1068      0.1319      8.39    <0.001   [0.8430, 1.3707]
+
+R² within 0.294 · R² overall 0.940
+reg · emp ~ treated * post · fe: county + year
+N = 160 (no singletons)
+fixed effects: county (80), year (2)
+standard errors: clustered by county (80 clusters, CR1)
+
+  term            estimate   std.error   t value   p value   95% CI
+  treated        (omitted)
+  post           (omitted)
+  treated:post      1.4881      0.3084      4.83    <0.001   [0.8743, 2.1020]
+
+R² within 0.231 · R² overall 0.993
