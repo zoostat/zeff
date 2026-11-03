@@ -1,10 +1,14 @@
 ---
 source: crates/zeff-engine/tests/script_tests.rs
-assertion_line: 182
+assertion_line: 359
 expression: text
 ---
 0.0758112
 0.00255344
+0.0768816
+0.00235105
+14
+failed · Z0604 at line 14: columns `industry`, `size`, `founded` exist in both frames and are not a key
 8921
 12815
 0.975002
@@ -33,8 +37,10 @@ Column<Float> · 5 values
 0.0114599
 note: zeff:wages.csv read as CSV: 18,412 rows × 11 variables, types guessed; CSV carries no labels, value labels or categories (line 2)
 note: 33 of the 3,911 clusters hold one observation (line 4)
-note: 22 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them (line 9)
-note: no row kept: the result is empty (line 16)
-warning: 1 of 5 fits failed (Z0801 at line 17) and was skipped (line 19)
+note: zeff:firms.csv read as CSV: 400 rows × 4 variables, types guessed; CSV carries no labels, value labels or categories (line 11)
+note: merge: 18,412 rows matched; 0 left rows unmatched; 3 right rows unmatched (line 12)
+note: 22 rows dropped where `exper > 10` was NA; `wages.where(is_missing(exper))` lists them (line 17)
+note: no row kept: the result is empty (line 24)
+warning: 1 of 5 fits failed (Z0801 at line 25) and was skipped (line 27)
   = help: the table uses the fits that succeeded; `x.is(Failed)` tells which failed
-note: no row kept: the result is empty (line 21)
+note: no row kept: the result is empty (line 29)

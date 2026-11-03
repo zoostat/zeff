@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/script_tests.rs
+expression: outcome.output.stderr
+---
+error[Z0401]: `fe:` takes fixed effects joined by `+`, and `firm * year` uses `*`, which it does not admit
+ --> scripts/main.zeff:2:33
+  |
+2 | wages.reg(log(wage) ~ educ, fe: firm * year)
+  |                                 ^^^^^^^^^^^ not a fixed effect
+  |
+  = help: `fe:` admits `+` and `:` only: write `fe: a + b` for two effects, or `fe: a:b` for their interaction

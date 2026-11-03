@@ -125,3 +125,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 23b `[engine]`: the script tests of sections 6, 6.1 and 7.1 and the help examples, and the storage round trips.
 
 **For the owner to decide.** Nothing new.
+
+## 3 November 2026: step 23b
+
+**Done.** Step 23b `[engine]`: the script tests of sections 6, 6.1 and 7.1 of the Language Reference and the help examples this release runs (`reg` with `fe:`, `merge`), each read by eye and stored; the storage round trips of every frame the release added, through Arrow IPC with their declarations.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks, the conformance report unchanged; CI to be read after the push.
+
+**Next.** Step 23c `[engine]`: the fuzz targets extended and a night's run.
+
+**For the owner to decide.** Nothing new.
