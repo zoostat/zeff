@@ -145,3 +145,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 23d `[engine]`: the jobs and the register.
 
 **For the owner to decide.** Nothing new.
+
+## 3 November 2026: step 23d
+
+**Done.** Step 23d `[engine]`, and with it the whole of step 23: the coverage report gains the other packages' group (`time`, `text` and the new modules among them), the nightly job names the seven benchmark cases, and R5's count is recorded (127 codes, 785 snapshots, every one with a page). The nightly, fuzz and coverage jobs were run by hand on the commit and their figures are in `docs/decisions.md`: coverage 93.5% in the kernel and 93.2% in the estimators; no fuzz crash; every property and truth run green; the benchmark times on the x86-64 runner recorded. Two findings fixed: the stochastic class for `sample` had failed on every nightly since its labels followed R's `cut` (its test now reads a break as a number), and the scheduled workflow's piped steps could not fail (every step now runs under `bash` with `pipefail`).
+
+**Green.** Format, clippy with warnings denied, the sample stochastic test in release mode, the tier and message checks; the workspace suite as at step 23b (no engine code changed); the nightly job started again on the commit of the fixes, to be read at step 24b with the weekly mutation run already under way on 1b31366.
+
+**Next.** Step 24a `[engine]`: the weekly mutation records matched and the new survivors.
+
+**For the owner to decide.** Nothing new.

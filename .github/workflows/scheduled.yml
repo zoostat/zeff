@@ -23,6 +23,13 @@ on:
 permissions:
   contents: read
 
+# `shell: bash` named explicitly, so that every step runs with `-o pipefail` and a test that
+# fails behind `| tee` fails the step (the default shell of a Linux runner has no pipefail,
+# which let the stochastic class for `sample` fail unnoticed on 3 November 2026).
+defaults:
+  run:
+    shell: bash
+
 jobs:
   nightly:
     name: nightly (long property runs)

@@ -13,13 +13,15 @@ const DRAWN: usize = 1_000;
 const BLOCK: usize = 100;
 
 /// The counts per block of a `sum(one, by: slot)` table, the slots `(a,b]` of `BLOCK` rows.
+/// A break prints as `bin` labels it, with three significant digits as R's `cut` does, so
+/// `1000` is `1e+03` and `1100` is `1.1e+03`: read as a number, not as digits.
 fn counts_of(table: &str) -> Vec<u32> {
     let mut counts = vec![0u32; ROWS / BLOCK];
     for line in table.lines() {
         let line = line.trim();
         if let Some(rest) = line.strip_prefix('(') {
             let (low, tail) = rest.split_once(',').expect("a slot");
-            let low: usize = low.parse().expect("a break");
+            let low: usize = low.parse::<f64>().expect("a break").round() as usize;
             let total: u32 = tail
                 .split_whitespace()
                 .last()
