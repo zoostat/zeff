@@ -135,3 +135,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 23c `[engine]`: the fuzz targets extended and a night's run.
 
 **For the owner to decide.** Nothing new.
+
+## 3 November 2026: step 23c
+
+**Done.** Step 23c `[engine]`: the CSV fuzz target extended to declared types, date patterns, naming rules and encodings; the checker target run with a project's schemas in hand and the dictionary extended to the release's verbs and arguments; the six targets run locally for ten to sixty minutes each (figures in `docs/decisions.md`), the two slow units found being stalls of the loaded machine and not of the code.
+
+**Green.** The fuzz targets build with the nightly toolchain and run clean; no workspace code changed (format, clippy and the tests stand as at step 23b); CI to be read after the push, the nightly fuzz job on the commit at step 23d.
+
+**Next.** Step 23d `[engine]`: the jobs and the register.
+
+**For the owner to decide.** Nothing new.

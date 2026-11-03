@@ -19,6 +19,10 @@ zeff-ir = { path = "../crates/zeff-ir" }
 zeff-registry = { path = "../kernel/zeff-registry" }
 zeff-engine = { path = "../crates/zeff-engine" }
 zeff-data = { path = "../packages/tier1/data" }
+zeff-datasets = { path = "../packages/tier1/datasets" }
+zeff-dates = { path = "../kernel/zeff-dates" }
+zeff-diagnostics = { path = "../kernel/zeff-diagnostics" }
+encoding_rs = "=0.8.42"
 
 [[bin]]
 name = "lexer"

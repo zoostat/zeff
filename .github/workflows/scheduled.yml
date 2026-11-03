@@ -179,9 +179,10 @@ jobs:
           for module in samples/user_functions/functions/*.zeff; do
             { cat "$module"; printf '\000'; cat samples/user_functions/scripts/main.zeff; } > "fuzz/corpus/checker/project_$(basename "$module")"
           done
-          for file in tests/datasets/*.csv samples/data_cleaning/data/staff_de.csv; do
-            # Four option bytes (delimiter detected, quote `"`, decimal `.`, header) before the file.
-            { printf '\000\001\000\000'; cat "$file"; } > "fuzz/corpus/csv/$(basename "$file")"
+          for file in tests/datasets/*.csv samples/data_cleaning/data/staff_de.csv samples/panel/data/*.csv tests/reference/data/event_panel.csv; do
+            # Five option bytes (delimiter detected, quote `"`, decimal `.`, header, no declared
+            # types) before the file.
+            { printf '\000\001\000\000\000'; cat "$file"; } > "fuzz/corpus/csv/$(basename "$file")"
           done
 
       - name: Build the fuzz targets
@@ -214,7 +215,7 @@ jobs:
           {
             echo "## Nightly: fuzzing"
             echo
-            echo "Each target ran for ten minutes under libFuzzer (nightly toolchain, fuzz targets only); the lexer, parser and checker with the dictionary of the language's words, the checker also on module-and-script inputs."
+            echo "Each target ran for ten minutes under libFuzzer (nightly toolchain, fuzz targets only); the lexer, parser and checker with the dictionary of the language's words, the checker also on module-and-script inputs and with the schemas of a project in hand, the CSV reader with declared types, date patterns, naming rules and encodings."
             echo "A crash leaves its input under \`artifacts/<target>/\`; it becomes a regression test (testing handbook, section 1)."
             echo
             echo '```'
