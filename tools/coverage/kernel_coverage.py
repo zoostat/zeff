@@ -3,13 +3,16 @@
 Usage: python3 -I tools/coverage/kernel_coverage.py coverage.json 80
 
 Prints a table of line coverage per crate (the kernel crates first, then the estimators, then
-the language tooling), then the kernel's total, the estimators' total (the `results` and
-`regress` packages: the design, the estimator and variance layers and the regressions) and the
-language tooling's total (`zeff-syntax`, `zeff-ir` and `zeff-engine`: the lexer and parser, the
-checker and the interpreter, reported for the risk register's R5), and exits 1 when the kernel's
-or the estimators' total is below the threshold given (the testing handbook asks for 80% or more
-in the kernel and the estimators; the language tooling has no threshold and is reported only).
-The table is Markdown, so it reads well in a job summary.
+the language tooling, then the other packages), then the kernel's total, the estimators' total
+(the `results` and `regress` packages: the design, the estimator and variance layers and the
+regressions), the language tooling's total (`zeff-syntax`, `zeff-ir` and `zeff-engine`: the
+lexer and parser, the checker and the interpreter, reported for the risk register's R5) and the
+other packages' total (`core`, `time`, `text`, `data`, `dist`, `stats` and `datasets`: the
+language's values and operators, the dates and the text functions, the verbs and the
+distributions, reported since release 0.6.0), and exits 1 when the kernel's or the estimators'
+total is below the threshold given (the testing handbook asks for 80% or more in the kernel and
+the estimators; the language tooling and the other packages have no threshold and are reported
+only). The table is Markdown, so it reads well in a job summary.
 """
 
 import json
@@ -30,6 +33,11 @@ def crate_of(path):
 
 ESTIMATORS = ("packages/tier1/results", "packages/tier2/regress")
 LANGUAGE = ("crates/zeff-syntax", "crates/zeff-ir", "crates/zeff-engine")
+
+
+def is_package(crate):
+    """A package of the tiers that is not an estimator: the language's own functions."""
+    return crate.startswith("packages/") and crate not in ESTIMATORS
 
 
 def total(lines, chosen):
@@ -57,7 +65,13 @@ def main(argv):
     print()
     print("| Crate | Lines covered | Lines | Coverage |")
     print("| --- | ---: | ---: | ---: |")
-    order = lambda c: (not c.startswith("kernel/"), c not in ESTIMATORS, c not in LANGUAGE, c)
+    order = lambda c: (
+        not c.startswith("kernel/"),
+        c not in ESTIMATORS,
+        c not in LANGUAGE,
+        not is_package(c),
+        c,
+    )
     for crate in sorted(lines, key=order):
         covered, count = lines[crate]
         pct = 100.0 * covered / count if count else 100.0
@@ -65,6 +79,7 @@ def main(argv):
     kernel_covered, kernel_count, kernel_pct = total(lines, lambda c: c.startswith("kernel/"))
     estimators_covered, estimators_count, estimators_pct = total(lines, lambda c: c in ESTIMATORS)
     language_covered, language_count, language_pct = total(lines, lambda c: c in LANGUAGE)
+    packages_covered, packages_count, packages_pct = total(lines, is_package)
     print()
     print(f"Kernel total: {kernel_pct:.1f}% of {kernel_count:,} lines (threshold {threshold:g}%).")
     print()
@@ -76,6 +91,11 @@ def main(argv):
     print(
         f"Language tooling total (syntax, ir and engine): {language_pct:.1f}% of {language_count:,} lines"
         " (reported for risk R5; no threshold)."
+    )
+    print()
+    print(
+        f"Other packages total (core, time, text, data, dist, stats and datasets): {packages_pct:.1f}%"
+        f" of {packages_count:,} lines (reported; no threshold)."
     )
     short = []
     if kernel_pct < threshold:

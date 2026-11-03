@@ -2175,3 +2175,15 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **The local run (this machine, the six targets at once, release instrumented builds).** The parser 2,472,342 inputs in twenty minutes, the lexer 2,008,677 in ten, the formulas 667,728 in twenty, the distributions 135,336 in ten, each clean. The CSV reader stopped after thirty-five minutes at an input libFuzzer timed at 99 seconds, and the checker wrote a slow unit of 133 bytes timed at 1,019 seconds; run alone, the same inputs take 1.7 s, 0.75 s (a one-row file of 19,098 tab-separated columns, 0.25 s without instrumentation) and 0.04 s, so both were stalls of a machine running six fuzzers and a release build at once, not of the code; nothing to fix, and the artifacts were removed. The checker's hour with the schemas: 548,170 inputs, 11,659 edges covered against 8,473 at the 0.5.0 run (the schema pass and the verbs of this release reached), no crash, no timeout and no slow unit beyond the stall above. The nightly job's run on the commit is recorded in `docs/progress.md` (step 23d).
 
 **Reason.** Testing handbook, sections 1 ("Fuzzing") and 2.2; Language Reference, sections 6, 6.1, 7.1 and 11; risk register R5; the checklist's step 23c.
+
+## 3 November 2026: the jobs and the register (step 23d)
+
+**The weekly coverage report.** The table gains a fourth group with a total of its own, the packages that are not estimators (`core`, `time`, `text`, `data`, `dist`, `stats` and `datasets`: the language's values and operators, the dates and the text functions, the verbs and the distributions), reported without a threshold as the language tooling is, since the handbook sets its 80 per cent for the kernel and the estimators only; `zeff-time` and `zeff-text` and every module this release added (the fused evaluator in `core`, the schema cache in the engine, the absorption in `results`) are thereby in the report, each crate on its own row as before. The step that fails below the threshold is unchanged.
+
+**The nightly job.** Its benchmark step names the seven cases (`reg` with two-way fixed effects from step 18 and the column chain from step 22 beside the five of 0.4.0 and 0.5.0); the stochastic class for `sample` has run in it since step 11 and stays. The fuzz job's seeding and summary were changed at step 23c.
+
+**R5, for the register's review at the close.** 127 diagnostic codes, each written on the diagnostics-as-data path with a message snapshot (785 snapshot files) and an explained page, checked by `check-messages` on every push; 13 codes joined at this release (114 at 0.5.0): the panel, merge, reshape and fixed-effects refusals and the schema pass's notes and warnings.
+
+**The runs on the commit.** RUN_FIGURES
+
+**Reason.** Testing handbook, sections 1 (coverage; the stochastic class; the benchmark suite), 2.2, 2.3 and 6; risk register R5; the checklist's step 23d.

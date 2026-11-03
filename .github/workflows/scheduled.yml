@@ -52,7 +52,7 @@ jobs:
       - name: Run the truth-recovery Monte Carlo, 50 seeds under three designs
         run: cargo test -p zeff-regress --locked --release --test nightly_truth -- --ignored --nocapture 2>&1 | tee truth.log
 
-      - name: Run the benchmark suite (import, summary, mean and aggregate by group, reg; 10⁴, 10⁶ and 10⁷ rows)
+      - name: Run the benchmark suite (import, summary, mean and aggregate by group, reg, reg with two-way fixed effects, the column chain; 10⁴, 10⁶ and 10⁷ rows)
         run: cargo bench -p zeff-bench --locked --bench suite 2>&1 | tee bench-suite.log
 
       - name: Write the note
