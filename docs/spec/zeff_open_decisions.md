@@ -36,6 +36,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (1 November 2026, later the same day).** Five more decisions from the owner's interface requests, recorded without any change to the normative text: #74 (a Help pane), #75 (the data viewer and the environment browser), #76 (traceback, run to here and the loop inspector), #77 (schema-aware completion and extract function) and #78 (Git history and a diff of results). Deadlines 0.8.0, 0.8.0, 0.7.0, 0.7.0 and 1.1. Each is drawn on the owner's mockup canvas of Zemp Studio and Zemp Lite, outside the repositories.
 
+**Status (5 November 2026, the owner's proposal of 4 November).** The owner's proposal of 4 November 2026 for shorter and clearer scripts (kept outside the repository) was checked against both volumes, the catalogue, this register and the code, and the owner asked for its core set to be recorded here, with no change to the normative text: #80 (`each(...)` as the one marker for "separately", and tests on several variables), #81 (model sets: `nested` and `each` terms in a formula, `RegFits`, and one frame of estimates for a set), #82 (what `size:` means for a table in `export`), #83 (the sentence of section 3.7 on bare words, beside the option records of section 3.1) and #84 (reserving `each` and `peek` before `core` freezes). Deadlines 0.7.0, 0.8.0, 0.11.0, 0.7.0 and 0.11.0. The proposal's other items are additions a minor release may make before or after 1.0 and are not recorded; each is raised here if the owner adopts it. Nothing enters release 0.6.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -119,6 +121,11 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 77 | Schema-aware completion and extract function | Completion from the schema pass (the columns of the frame at that point in the chain) at 0.7.0; extract function with inferred parameters, a page skeleton and the same-bytes check at 1.1 | 0.7.0 |
 | 79 | Arithmetic over lists, or a map, in a Zeff-written built-in | A `map(list, f)` over a function value, or `+`, `-`, `*` and `/` lifted over a list as they are over a column, so that `quantile_group` can build its probabilities i/n exactly and be rewritten in Zeff | 0.7.0 |
 | 78 | Git history, the diff of a script and a diff of results | History and script diffs in the Git panel, and a table of every output of two commits' run records, identical to the bit or traced to the statement that changed; merges and pull requests left to the system terminal | 1.1 |
+| 80 | `each(...)`: one marker for "separately", and tests on several variables | Adopt the rule and write its text before 0.7.0 opens; build it with the tests at 0.7.0 only if that release's checklist has room, otherwise in the first release that has, the word kept under #84; the default adjustment and the default rows are the owner's | 0.7.0 (with the tests or after them); 0.11.0 (the word) |
+| 81 | Model sets: `nested` and `each` terms in a formula, `RegFits`, and one frame of estimates for a set | Adopt for 1.0: `reg` at 0.8.0 and each other estimator in the release after it ships; the whole moves to a later minor release if 0.8.0 runs late; the words of the rows rule are the owner's | 0.8.0 |
+| 82 | What `size:` means for a table in `export` | Refuse `size:` on a table with a named diagnostic at 1.0; table sizes with an exact splitting rule follow as an addition, written with the typesetting engine of #73 | 0.11.0 |
+| 83 | The sentence of section 3.7 on bare words, beside the option records of section 3.1 | Amend section 3.7 to say what the engine has done since 0.5.0: in a record literal, a bare name that a parameter accepts as a word is that word | 0.7.0 |
+| 84 | Reserving `each` and `peek` before `core` freezes | At 0.11.0, add whichever word has not shipped as a `core` function to the words reserved for later use (section 3.6); `peek` only if the owner wants `.peek()` | 0.11.0 |
 
 ---
 
@@ -1015,3 +1022,94 @@ Raised on 2 November 2026 at step 10 of release 0.6.0. `quantile_group(x, n:, ty
 | C. Keep such functions in Rust | Nothing to build | Every Zeff-written function over a list of numbers stays Rust |
 
 *Recommendation.* B, at 0.7.0 with #68 to #70, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for row 131 then. Deadline: 0.7.0.
+
+---
+
+## Shorter and clearer scripts
+
+Added 5 November 2026. The owner's proposal of 4 November 2026 gathers ideas for making scripts shorter, clearer and harder to get wrong without hidden state, each held to four checks: it contradicts no written rule, reverses no recorded decision, respects the tier rules and gives no word a second meaning. The proposal was checked against both volumes, the catalogue, this register and the code on 5 November. Its citations hold, and its two set terms parse under the grammar of section 3.4 as it stands; its counts predate the 259 functions of section 14, and it was written before #41 to #79. The owner asked for the core set to be recorded: the two items that need a `core` name or serve the brevity criterion of section 13 (#80 and #81), the two gaps in the text the proposal found (#82 and #83), and the word reservation that takes the deadline off the first two (#84). The other items (plots of several variables, several outcomes in one model, updating a fit, models by group, `highlight:`, lists of variables in `label` and `recode`, the check-time `case` warning, adaptive digits and the footnote sentence as options, idiom hints and the rest) are additions a minor release may make before or after 1.0; none is recorded until the owner adopts it. No entry here changes the normative text.
+
+### 80. `each(...)`: one marker for "separately", and tests on several variables
+
+Raised on 5 November 2026 from the owner's proposal (its item P7a). Running one test on several variables takes a loop, `[for v in vars(lwage, hours, educ) { wages.t_test(v, group: female) }]`, and then `p_adjust` over the collected p-values, which come back detached from the tests. A plain list cannot carry the meaning, because `[a, b]` means "together" wherever it appears (`drop_missing`, `correlation`, `by:`). The proposal adds one rule beside the lifting rule of section 3.7: a `Var` parameter of a built-in function that receives `each(a, b, c)` runs the function once per variable and returns a set.
+
+```
+wages.t_test(each(lwage, hours, educ), group: female)
+```
+
+For the tests of 0.7.0 the set is a `TestResults`, declared in `stats`: one table with one row per variable in the order written, N on every row, the raw and the adjusted p-value both printed (`p_adjust: holm | bonferroni | bh | by | none = holm`, the methods and the default of catalogue row 178), and `missing: pairwise | listwise = pairwise` as in `correlation`. One `each` per call; `each` in a `Vars` parameter, or given to a project function (which is not lifted, section 3.7), is an error. The grammar does not change. `each` would be a `core` name, so it cannot be bound once it exists (section 3.6), and it cannot join `core` after 1.0 without breaking a script that binds it; hence #84.
+
+What the text must settle before it is built, since section 1 allows no unspecified behaviour: whether `each(...)` is a value a `let` may bind or exists only where it is written in an argument, as a bare word does; which functions accept it (the proposal names the one-variable forms of `t_test`, `wilcoxon_test`, `proportion_test`, `anova`, `kruskal_test`, `shapiro_test` and `ks_test`, the first variable of `chi2_test` and `fisher_test`, and the `group:` of a test; not the paired forms); how it meets `by:`, which statistics already take (section 6); what `p_values()` gives on a set, raw or adjusted; and the places that name `TestResult` alone (the naming table of section 3.6, the types of section 4, the join rule of section 3.7).
+
+Two choices are the owner's as a statistician: whether the adjusted p-value is printed by default when the family is simply the variables of one call (R and Stata print the raw value only), and whether each test uses its own complete rows by default.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Adopt, built at 0.7.0 with the tests | The tests ship once, with their final printed forms and help pages; the same rule then serves model sets (#81) and, later, plots; the target analysis is as short as in rstatix or Stata | 0.7.0 is already the largest release (60 functions, the plot renderer, the language server) with #68 to #71, #76, #77 and #79 due; a new result type brings its page, its snapshots on four targets and its reference comparison (R's tests one at a time with `p.adjust`); Zemp's test dialogs gain a form for several variables before Zemp Studio 1.0 |
+| B. Adopt the rule now, build it after the tests, in whichever minor release has room, before or after 1.0 | 0.7.0's row stands; a new form of an argument is an addition and breaks no script; the word is kept by #84 | Until then the loop; the tests' pages and dialogs are visited twice |
+| C. Not adopted | Nothing to build | The loop and the detached p-values stay, and section 13's brevity comparison is made with them |
+
+*Recommendation.* Adopt the rule, and write its text, with the points above settled, before release 0.7.0 opens. Build it at 0.7.0 only if that release's checklist shows room once its own row is planned (option A); otherwise in the first release that has (option B), the word kept under #84. Deadline: 0.7.0 for the choice between A and B; 0.11.0 for the word.
+
+### 81. Model sets: `nested` and `each` terms in a formula, `RegFits`, and one frame of estimates for a set
+
+Raised on 5 November 2026 from the owner's proposal (its items P1 and G2). A family of related models names the data once per model, and whether the models are nested or rivals is known only to the author. fixest writes a table of nested models in one call (`csw`, `sw`) and Stata has `nestreg`; section 13 asks that a target analysis be no longer in Zeff than in R or Stata.
+
+```
+let m = wages.reg(lwage ~ educ + nested([exper, exper2], female, tenure), se: robust)
+let r = wages.reg(lwage ~ educ + each(exper, age), se: robust)
+report(m, stats: [n_obs, r_squared])
+m.compare()
+```
+
+`nested(a, [b, c], d)` fits the base with `a`, then with `b` and `c` added, then with `d` added; `each(a, b)` fits the base with `a` and the base with `b`, separately. The base is the rest of the formula; an argument is a variable or a list of variables added as one block, and a transformed term is added as a column first, because operators inside a call in a formula are arithmetic (section 7.2). `base_model: true` adds the base alone as the first member. One set term per formula, on the right of `~`; the call's options apply to every member. The call returns a `RegFits`, declared in `regress` as `LcaFits` is in `latent`, which the checker knows from the formula. `report` and `coef_plot` read a set through the result interface of section 8.1, rule 5, which gains a label on each member naming the terms it added; `estimates()` on a set gives one frame with a `model` column, from which any figure can be built; `compare()` on a nested set gives one test per added block by the rules of catalogue row 249 as they stand, and is refused on a set of rivals, as any non-nested comparison is. `nested` is a formula term of `regress`, beside `interact` and `event`; `each` is the word of #80. The grammar does not change. A set of outcomes on the left of `~` is a separate addition and is not part of this entry.
+
+What the text must settle before it is built:
+
+1. *The rows.* The proposal fits every member of a nested or rival set on the rows complete for the largest member by default (as Stata's `nestreg`; fixest's default is each model on its own rows), under `missing: listwise | pairwise`. In `correlation`, `pairwise` means the rows complete for each pair of variables; here it would mean each member on its own rows, a second meaning of the word. The rule, its two words and its default are the owner's; the "Rows" rule of section 7.2 then gains the member that drops a row for a variable it does not use.
+2. *What a `RegFits` is.* No rule lets one type stand where another is expected (section 3.7, "No implicit conversion" and "Joining types"), so "behaves as a `List<RegFit>`" needs writing out: either a result type on which indexing and `for` are defined, or a `List<RegFit>` whose members carry their labels and the kind of set.
+3. *A member that fails.* The whole call stops, naming the member, or the set holds a `Failed` member, as a list may (section 3.7).
+4. *A block that adds nothing.* When `fe:` absorbs a block or it is dropped as collinear, the member is kept with a note; the test of that block in `compare()` has no degrees of freedom and needs a stated result.
+5. *The names.* `nested`, `each`, `base_model:` (not `base:`, which `base()` uses) and `RegFits`.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Adopt for 1.0: `reg` at 0.8.0, and `ivreg`, `logistic` and `probit` each in the release after it ships | A table of nested models is one statement; the set knows how it was built, so `compare()` runs only where a valid nested test exists; nothing in the grammar or in an existing rule changes | 0.8.0's row is two functions around one hard engine piece (two-stage least squares with the weak-instrument statistics); sets add a kind of formula term, a result type, labelled columns in `report`, comparison over a set and reference comparisons against R's `anova()`, `nestreg` and fixest; the regression dialog gains a control before Zemp Studio 1.0 |
+| B. Adopt the design before 1.0 and build it after, as an addition | The release plan stands; a formula term of `regress` and a new type are additions, and only the word `each` has a deadline (#84) | 1.0 ships with the list of fits written out, `report([m1, m2, m3])`, and its brevity comparison is made without sets |
+| C. Not adopted | Nothing to build | The relation between the models stays in the author's head |
+
+*Recommendation.* A, bounded: `reg` alone at 0.8.0, the other estimators following; if 0.8.0 runs late the whole moves to a later minor release, which costs nothing in compatibility. Points 2 to 5 are engineering and are settled in the text when it is written; point 1 is the owner's. Deadline: 0.8.0.
+
+### 82. What `size:` means for a table in `export`
+
+Raised on 5 November 2026 from the owner's proposal (its item T5). Catalogue row 165 gives `x.export(path, size: one_column | two_column | slide)` for "a result, table or plot", and section 7.6 of the Language Reference defines the three sizes for figures only. Section 1 allows no unspecified behaviour, so what `size:` does to a Word or LaTeX table must be said by 1.0. The engine exports tables without `size:` today; the option arrives with the plots of 0.7.0.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Define it: for a table, `size:` sets the font size and the total width; a table too wide for its size splits into panels with the row labels repeated, or turns the page, with a warning, by a rule stated exactly so that two machines never split a table differently | A table made for a journal column fits it; one option for figures and tables | The widths of typeset text enter a rule that must be bit-identical on every target, and they depend on the typesetting engine, which #73 decides at 0.8.0 |
+| B. In 1.0, `size:` on a table is refused with a named diagnostic whose help says tables take their width from the document; table sizes follow as an addition | One diagnostic closes the gap; a later release may make the call work, which an addition may do (#64) | A table still has to be fitted to its column by hand in Word or LaTeX |
+
+*Recommendation.* B at 0.11.0, and A afterwards, written once #73 is decided and its layout can state the splitting rule exactly. Deadline: 0.11.0.
+
+### 83. The sentence of section 3.7 on bare words, beside the option records of section 3.1
+
+Raised on 5 November 2026 from the owner's proposal. Section 3.1 ("Definitions") and section 3.2 write option records with bare words, `{se: robust}` and `{ se: robust, cluster: firm }`; section 3.7 ("Words and types") says that a bare word "exists only as an argument whose parameter lists its allowed values" and is an unknown name anywhere else (Z0101). The two cannot both hold. The engine has followed section 3.1 since step 4 of release 0.5.0 (`docs/decisions.md`, 30 October 2026, "Option records hold words"): inside a record literal, a bare name that is no binding and that some parameter accepts as a word is that word, checked against the parameter's list when the record is spread into a call; a name no parameter accepts stays Z0101, so `{se: robst}` is caught where it is written. The sentence of section 3.7 was not amended then.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Amend the row of section 3.7 to say what the engine does, and what a variable name in such a record is (`cluster: firm` in section 3.2), the change logged in `docs/spec_changes.md` | The text agrees with itself and with the engine; options can be named once and spread, `wages.reg(f, ..opts)`; no behaviour changes | None found |
+| B. Keep section 3.7 and remove the word from the examples of sections 3.1 and 3.2 | The rule on bare words keeps one clause | An option that takes a word could no longer travel in a record, and the tests of 0.5.0 that spread one would be withdrawn |
+
+*Recommendation.* A, a correction of the text with no change to the engine. Deadline: 0.7.0.
+
+### 84. Reserving `each` and `peek` before `core` freezes
+
+Raised on 5 November 2026 while the owner's proposal was checked. `core` freezes at 1.0 (Engine and Project Specification, section 8.1, rule 1) and a `let` cannot reuse a `core` name (section 3.6), so a word added to `core` after 1.0 breaks every 1.x script that binds it. #80 and #81 need `each` as a `core` name. The proposal's `.peek()` (its item L1: print the receiver through the display interface and pass it on unchanged, so that a chain can be looked into without being broken) would be a `core` name too; it is not among the items the owner adopted on 5 November. Section 3.6 already keeps a list of words "reserved for later use" (`type`, `while`, `match` and five more), so that a later release can give them meaning without a new edition.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Each word joins `core` as a function by 0.11.0, which means its feature is built by then | No reserved word that does nothing | The deadline of a word becomes the deadline of a feature, in releases that are already full |
+| B. At 0.11.0, a word whose feature has not shipped joins the words reserved for later use; the feature then arrives in any minor release, before or after 1.0 | The deadline is met by one line of the text and the lexer; no script can bind the word in the meantime, so making it a function later breaks nothing | The 26 reserved words of sections 3.1 and 3.4 become 27 or 28; until the feature ships, a column named `each` or `peek` is written in backticks; a word reserved and never used is a small cost that stays |
+| C. Neither: a feature that misses 1.0 takes another spelling or waits for an edition | Nothing to do now | `each` is the word both #80 and #81 are designed around |
+
+*Recommendation.* B, as the fallback at 0.11.0 for whichever word has not shipped by then: `each` if #80 or #81 is adopted, `peek` only if the owner wants `.peek()`. Deadline: 0.11.0.
