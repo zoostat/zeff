@@ -155,3 +155,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 24a `[engine]`: the weekly mutation records matched and the new survivors.
 
 **For the owner to decide.** Nothing new.
+
+## 5 November 2026: step 24a
+
+**Done.** Step 24a `[engine]`: the weekly mutation run on 1b31366 read shard by shard (34 shards, 4,131 mutants: 3,795 caught, 193 missed, 17 timed out, 126 unviable) and matched against the 0.5.0 records by file and mutation. `zeff-numeric` has nothing new (eight of its old survivors are caught now). The new survivors (19 in the demeaning kernel, 25 in the results package, 16 in the fit, with 7 new timeouts) all lie in this release's fixed-effects code; each has a test or a recorded reason in `docs/decisions.md`, and the tests are confirmed by rerunning the mutants on this machine. Nine tests were added or extended (weighted group means and their compensation, no effects in no pass, the codes at the top of their range, an effect of five variables, the criteria and the prediction wording under effects, two unbalanced effects on a small-scale outcome, the reset of the work counters) and the edge-case snapshot gained thirteen scripts. One correction of behaviour came out of it: a variable inside a range of the formula (`y ~ x1..x3` with `fe: x2`) is now refused as a fixed effect, as the range's ends already were. The second nightly run (41603843932, on f38f4e1) is green with the `sample` stochastic test passing under the corrected shell.
+
+**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks; CI to be read after the push.
+
+**Next.** Step 24b `[engine]`: the runs and the samples.
+
+**For the owner to decide.** Nothing new. (A handbook PDF that appeared untracked under `docs/handbook/` on 4 November was moved out of the repository at the owner's word; generated handbooks are kept beside the repositories, not in them.)

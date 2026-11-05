@@ -108,10 +108,12 @@ fn effect_specs(terms: &[Term]) -> Vec<(String, Vec<String>)> {
 }
 
 /// Every variable a formula names: the outcome, each term and the variables inside its
-/// arithmetic. The variables of an `event` term are left out: its time variable is read for the
-/// relative periods alone and is usually a fixed effect too (`event(year, treat)` with
-/// `fe: unit + year`, as fixest's `i(rel) | unit + year`).
-fn formula_variables(formula: &Formula) -> Vec<String> {
+/// arithmetic, a range `x1..x9` as every variable of the frame from its first end to its last
+/// (`columns` are the frame's, in order; a range whose ends the frame lacks gives its ends
+/// alone, and the design names the missing one). The variables of an `event` term are left
+/// out: its time variable is read for the relative periods alone and is usually a fixed effect
+/// too (`event(year, treat)` with `fe: unit + year`, as fixest's `i(rel) | unit + year`).
+fn formula_variables(formula: &Formula, columns: &[String]) -> Vec<String> {
     fn of_expr(expr: &ColumnExpr, out: &mut Vec<String>) {
         match expr {
             ColumnExpr::Var(name) => {
@@ -133,7 +135,7 @@ fn formula_variables(formula: &Formula) -> Vec<String> {
             _ => {}
         }
     }
-    fn of_term(term: &Term, out: &mut Vec<String>) {
+    fn of_term(term: &Term, columns: &[String], out: &mut Vec<String>) {
         match &term.kind {
             TermKind::Var(name) => {
                 if !out.contains(name) {
@@ -141,23 +143,34 @@ fn formula_variables(formula: &Formula) -> Vec<String> {
                 }
             }
             TermKind::Range(a, b) => {
-                for name in [a, b] {
+                let ends = (
+                    columns.iter().position(|c| c == a),
+                    columns.iter().position(|c| c == b),
+                );
+                let named: Vec<&String> = match ends {
+                    (Some(i), Some(j)) if i <= j => columns[i..=j].iter().collect(),
+                    _ => vec![a, b],
+                };
+                for name in named {
                     if !out.contains(name) {
                         out.push(name.clone());
                     }
                 }
             }
             TermKind::Interaction(parts) | TermKind::Product(parts) => {
-                parts.iter().for_each(|p| of_term(p, out));
+                parts.iter().for_each(|p| of_term(p, columns, out));
             }
             TermKind::Expr(expr) => of_expr(expr, out),
         }
     }
     let mut out = Vec::new();
     if let Some(outcome) = &formula.outcome {
-        of_term(outcome, &mut out);
+        of_term(outcome, columns, &mut out);
     }
-    formula.terms.iter().for_each(|t| of_term(t, &mut out));
+    formula
+        .terms
+        .iter()
+        .for_each(|t| of_term(t, columns, &mut out));
     out
 }
 
@@ -224,7 +237,7 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     // A fixed effect that is a model variable too is refused: an absorbed effect cannot also be
     // a regressor or the outcome.
     let specs = effect_specs(&effects);
-    let model_variables = formula_variables(&formula);
+    let model_variables = formula_variables(&formula, frame.table.names());
     if let Some(name) = specs
         .iter()
         .flat_map(|(_, vars)| vars.iter())

@@ -346,6 +346,46 @@ pub fn demean(
 mod tests {
     use super::*;
 
+    /// The weighted means in row order (the branch of an effect that is not the largest) keep
+    /// the rounding errors of both accumulators: a group of 2⁵³, 1 and 1 has the mean
+    /// (2⁵³ + 2)/3 and not 2⁵³/3, and weights of 2⁵⁴, 2 and 2 are summed to 2⁵⁴ + 4 and not
+    /// 2⁵⁴. The expected values are written out by an independent compensated sum.
+    #[test]
+    fn weighted_means_in_row_order_keep_their_compensation() {
+        fn compensated(values: &[f64]) -> f64 {
+            let (mut sum, mut error) = (0.0f64, 0.0f64);
+            for &v in values {
+                let s = sum + v;
+                let bv = s - sum;
+                error += (sum - (s - bv)) + (v - bv);
+                sum = s;
+            }
+            sum + error
+        }
+        fn naive(values: &[f64]) -> f64 {
+            values.iter().fold(0.0, |a, b| a + b)
+        }
+        let big = 9_007_199_254_740_992.0f64; // 2⁵³
+        let x = [big, 1.0, 1.0, 5.0, 7.0, 9.0];
+        let w = [1.0, 1.0, 1.0, 2.0 * big, 2.0, 2.0];
+        let effect = Grouped {
+            group_of_row: vec![0, 0, 0, 1, 1, 1],
+            rows_of_group: vec![vec![0, 1, 2], vec![3, 4, 5]],
+            runs: None,
+        };
+        let mut scratch = Vec::new();
+        group_means(&x, Some(&w), &effect, &mut scratch);
+        let wx1 = [5.0 * 2.0 * big, 7.0 * 2.0, 9.0 * 2.0];
+        let w1 = [2.0 * big, 2.0, 2.0];
+        let expected0 = compensated(&[big, 1.0, 1.0]) / compensated(&[1.0, 1.0, 1.0]);
+        let expected1 = compensated(&wx1) / compensated(&w1);
+        assert_eq!(scratch, vec![expected0, expected1]);
+        // The compensation shows: the naive sums give other numbers (the first group's
+        // values, the second group's weights).
+        assert_ne!(expected0, naive(&[big, 1.0, 1.0]) / 3.0);
+        assert_ne!(expected1, naive(&wx1) / naive(&w1));
+    }
+
     #[test]
     fn one_effect_is_centring_by_group_in_one_sweep() {
         let g = [0usize, 0, 1, 1, 1];

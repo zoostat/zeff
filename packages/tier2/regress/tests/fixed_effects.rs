@@ -373,6 +373,31 @@ fn the_edge_cases() {
         "let d = frame(id = [1, 2, 3, 4], y = [1.0, 2.0, 3.0, 5.0], x = [1.0, 3.0, 2.0, 4.0])\nd.reg(y ~ x, fe: id)\n",
         // One group: the effect is the intercept.
         "let d = frame(g = [1, 1, 1, 1, 1], y = [1.0, 2.0, 3.0, 5.0, 4.0], x = [1.0, 3.0, 2.0, 4.0, 5.0])\nd.reg(y ~ x, fe: g)\nd.reg(y ~ x)\n",
+        // W1004 under weights: the share of variation left is the weighted one, the heavy
+        // weights on the group with the large values so that the weighted total shows.
+        "let d = frame(g = [1, 1, 1, 2, 2, 2, 3, 3, 3], w = [1, 2, 1, 1, 2, 1, 9, 8, 9], y = [1.0, 2.5, 2.0, 4.0, 3.0, 5.5, 6.0, 7.5, 6.5], x = [10.05, 10.1, 10.0, 20.15, 20.0, 20.05, 30.0, 30.1, 30.05])\nd.reg(y ~ x, fe: g, weights: w, weight_type: analytic)\nd.reg(y ~ x, fe: g)\n",
+        // An outcome constant within the effect's groups: the effects fit it, and it is not
+        // itself reported as absorbed.
+        "let d = frame(g = [1, 1, 1, 2, 2, 2], y = [3.0, 3.0, 3.0, 5.0, 5.0, 5.0], x = [1.0, 2.0, 4.0, 3.0, 5.0, 9.0])\nd.reg(y ~ x, fe: g)\n",
+        // An effect whose name needs backticks, alone and in an interaction.
+        "let d = frame(`my var` = [1, 1, 1, 2, 2, 2], g = [1, 2, 1, 2, 1, 2], y = [1.0, 2.5, 2.0, 4.0, 3.0, 5.5], x = [1.0, 2.0, 4.0, 3.0, 5.0, 9.0])\nd.reg(y ~ x, fe: `my var`)\nd.reg(y ~ x, fe: `my var`:g)\n",
+        // A fixed effect's variable inside a term's arithmetic is a variable of the formula too:
+        // in a call, a power, a negation, a list and an interaction.
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ + log(firm), fe: firm)\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ + firm^2, fe: firm)\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ + (-firm), fe: firm)\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ + is_in(educ, [firm]), fe: firm)\n",
+        "let w = dataset(wages)\nw.reg(log(wage) ~ educ + educ:firm, fe: firm)\n",
+        // A variable of a range is a variable of the formula: an end of the range and a
+        // variable inside it are refused alike as fixed effects.
+        "let d = frame(y = [1.0, 2.5, 2.0, 4.0, 3.0, 5.5, 6.0, 7.5], x1 = [1, 1, 2, 2, 3, 3, 4, 4], x2 = [1, 2, 1, 2, 1, 2, 1, 2], x3 = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0, 6.0, 9.0])\nd.reg(y ~ x1..x3, fe: x1)\n",
+        "let d = frame(y = [1.0, 2.5, 2.0, 4.0, 3.0, 5.5, 6.0, 7.5], x1 = [1, 1, 2, 2, 3, 3, 4, 4], x2 = [1, 2, 1, 2, 1, 2, 1, 2], x3 = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0, 6.0, 9.0])\nd.reg(y ~ x1..x3, fe: x2)\n",
+        // An effect that stands before the range in the frame, and one after it, are not of it.
+        "let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], y = [1.0, 2.5, 2.0, 4.0, 3.0, 5.5, 6.0, 7.5], x1 = [1, 1, 2, 2, 3, 3, 4, 4], x2 = [1, 2, 1, 2, 1, 2, 1, 2], x3 = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0, 6.0, 9.0], h = [1, 2, 2, 1, 1, 2, 2, 1])\nd.reg(y ~ x1..x3, fe: g)\nd.reg(y ~ x1..x3, fe: h)\n",
+        // A range written backwards is the design's to refuse, under an effect as without one.
+        "let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], y = [1.0, 2.5, 2.0, 4.0, 3.0, 5.5, 6.0, 7.5], x1 = [1, 1, 2, 2, 3, 3, 4, 4], x2 = [1, 2, 1, 2, 1, 2, 1, 2], x3 = [1.0, 3.0, 2.0, 5.0, 4.0, 7.0, 6.0, 9.0])\nd.reg(y ~ x3..x1, fe: g)\n",
+        // The intercept alone under an effect: nothing to estimate, refused by the fit itself.
+        "let d = frame(g = [1, 1, 1, 2, 2, 2], y = [1.0, 2.5, 2.0, 4.0, 3.0, 5.5], x = [1, 2, 3, 4, 5, 6])\nd.reg(y ~ 1, fe: g)\n",
         // A regressor constant within the groups is absorbed and named; `- 1` has no effect.
         "let d = frame(g = [1, 1, 2, 2, 3, 3], z = [10, 10, 20, 20, 30, 30], y = [1.0, 2.0, 3.0, 5.0, 4.0, 7.0], x = [1.0, 3.0, 2.0, 4.0, 5.0, 8.0])\nlet m = d.reg(y ~ x + z, fe: g)\nm\nd.reg(y ~ x - 1, fe: g)\n",
         // A Date effect, and an effect of text.
@@ -523,6 +548,105 @@ fn fits_sharing_effects_and_rows_reuse_the_group_indexes() {
     let other = Frame::new(table.with_column("x", Column::floats(values).0).unwrap());
     fit_frame(&other, "y ~ x", &options).unwrap();
     assert_eq!(zeff_regress::reg::fixed_effect_work(), (2, 1));
+    // The counts go back to zero at the start of a run.
+    zeff_regress::reg::reset_fixed_effect_work();
+    assert_eq!(zeff_regress::reg::fixed_effect_work(), (0, 0));
+}
+
+/// Two effects on an outcome of a small scale: the effects' values are recovered to the
+/// outcome's own scale, so that `predict` on the rows of the fit gives the fitted values. The
+/// second effect is unbalanced against the first (half the rows in one level), so that one
+/// sweep over the effects is not yet the answer.
+#[test]
+fn predict_recovers_two_effects_on_a_small_scale() {
+    let table = panel(60, 5, 9);
+    let mut stream = zeff_numeric::random::Stream::new(5, 1, 0);
+    let levels: Vec<usize> = (0..table.rows())
+        .map(|_| {
+            let u = stream.uniform();
+            if u < 0.5 {
+                0
+            } else {
+                1 + (u * 6.0) as usize % 3
+            }
+        })
+        .collect();
+    let y: Vec<Option<f64>> = table
+        .column("y")
+        .unwrap()
+        .as_floats()
+        .unwrap()
+        .enumerate()
+        .map(|(i, v)| v.map(|v| (v + levels[i] as f64) * 1e-6))
+        .collect();
+    let h: Vec<Option<i64>> = levels.iter().map(|&l| Some(l as i64)).collect();
+    let table = table
+        .with_column("y", Column::floats(y).0)
+        .unwrap()
+        .with_column("h", Column::ints(h))
+        .unwrap();
+    let (fit, _) = fit_with(
+        &table,
+        "y ~ x",
+        &Options {
+            fe: Some("g + h"),
+            ..Options::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(fit.effects.len(), 2);
+    let (predicted, messages) = predict_with(&fit, &table).unwrap();
+    assert!(messages.is_empty(), "{messages:?}");
+    let scale = fit.fitted.iter().fold(0.0f64, |m, v| m.max(v.abs()));
+    assert!(scale < 1e-4, "the outcome is small: {scale}");
+    for (i, &row) in fit.rows.iter().enumerate() {
+        let p = predicted[row].unwrap();
+        assert!(
+            (p - fit.fitted[i]).abs() <= 1e-8 * scale,
+            "row {row}: {p} vs {}",
+            fit.fitted[i]
+        );
+    }
+}
+
+/// Akaike's and Schwarz's criteria of a fixed-effects fit count the effects' parameters beside
+/// the terms, as fixest does: −2ℓ + 2(k + p + 1) and −2ℓ + ln(N)(k + p + 1).
+#[test]
+fn the_information_criteria_count_the_absorbed_parameters() {
+    let table = panel(60, 5, 3);
+    let (fit, _) = fit_with(
+        &table,
+        "y ~ x",
+        &Options {
+            fe: Some("g"),
+            ..Options::default()
+        },
+    )
+    .unwrap();
+    assert!(fit.absorbed_parameters > 0, "{}", fit.absorbed_parameters);
+    let parameters = (fit.terms.len() + fit.absorbed_parameters) as f64 + 1.0;
+    let (aic, bic) = zeff_results::interface::information_criteria(&fit);
+    assert!(
+        close(
+            aic,
+            -2.0 * fit.log_likelihood + 2.0 * parameters,
+            1e-12,
+            1e-12
+        ),
+        "{aic}"
+    );
+    assert!(
+        close(
+            bic,
+            -2.0 * fit.log_likelihood + zeff_numeric::maths::log(fit.n as f64) * parameters,
+            1e-12,
+            1e-12
+        ),
+        "{bic}"
+    );
+    // Without effects the count is the terms alone, so the two differ by 2p and p ln N.
+    let (plain, _) = fit_with(&table, "y ~ x", &Options::default()).unwrap();
+    assert_eq!(plain.absorbed_parameters, 0);
 }
 
 /// `predict` adds each row's effects to the regressors' part: on the rows the fit used it gives
@@ -556,9 +680,24 @@ fn predict_includes_the_effects() {
     assert!(predicted[0].is_none());
     assert!(predicted[1].is_some());
     assert!(
+        messages.iter().any(|m| m.contains("W0207")
+            && m.contains("`g`")
+            && m.contains("1 row of newdata holds")
+            && m.contains("its prediction is NA")),
+        "{messages:?}"
+    );
+    // Two rows with unseen levels: the wording is plural.
+    let mut g: Vec<Option<i64>> = table.column("g").unwrap().as_ints().unwrap().collect();
+    g[0] = Some(99);
+    g[1] = Some(98);
+    let unseen = table.with_column("g", Column::ints(g)).unwrap();
+    let (predicted, messages) = predict_with(&fit, &unseen).unwrap();
+    assert!(predicted[0].is_none() && predicted[1].is_none() && predicted[2].is_some());
+    assert!(
         messages
             .iter()
-            .any(|m| m.contains("W0207") && m.contains("`g`")),
+            .any(|m| m.contains("2 rows of newdata hold a level")
+                && m.contains("their predictions are NA")),
         "{messages:?}"
     );
 }

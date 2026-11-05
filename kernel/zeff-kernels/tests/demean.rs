@@ -264,3 +264,64 @@ proptest! {
         prop_assert_eq!(out.columns, weighted.columns);
     }
 }
+
+/// The residual of `y` on the indicators under weights `w`: the weighted projection, through
+/// the kernel's QR on the rows scaled by the square root of their weights.
+fn projected_out_weighted(x: &Matrix, y: &[f64], w: &[f64]) -> Vec<f64> {
+    let roots: Vec<f64> = w.iter().map(|v| v.sqrt()).collect();
+    let scaled_columns: Vec<Vec<f64>> = (0..x.cols())
+        .map(|j| (0..y.len()).map(|i| x.get(i, j) * roots[i]).collect())
+        .collect();
+    let scaled = Matrix::from_columns(&scaled_columns);
+    let scaled_y: Vec<f64> = y.iter().zip(&roots).map(|(v, r)| v * r).collect();
+    projected_out(&scaled, &scaled_y)
+        .iter()
+        .zip(&roots)
+        .map(|(v, r)| v / r)
+        .collect()
+}
+
+/// Two effects under weights, the second with fewer groups so that its means are taken by the
+/// compensated accumulators in row order: the kernel agrees with the weighted projection.
+#[test]
+fn weights_with_two_effects_agree_with_the_weighted_projection() {
+    let mut rng = SplitMix64(0x5EED_0623);
+    let n = 120;
+    let first: Vec<usize> = (0..n).map(|i| i % 12).collect();
+    let second: Vec<usize> = (0..n).map(|_| rng.below(4)).collect();
+    let x: Vec<f64> = (0..n).map(|_| rng.unit() * 20.0 - 10.0).collect();
+    let y: Vec<f64> = (0..n)
+        .map(|i| 3.0 * first[i] as f64 - 2.0 * second[i] as f64 + rng.unit())
+        .collect();
+    let w: Vec<f64> = (0..n).map(|_| 0.5 + rng.unit() * 3.0).collect();
+    let groups = vec![first.clone(), second.clone()];
+    let effects = effects_of(&groups, &[12, 4]);
+    let result = demean(&[&x, &y], &effects, Some(&w), Options::default());
+    assert!(result.converged);
+    assert_eq!(result.singletons_dropped, 0);
+    let rows = result.rows.clone();
+    let indicators = indicators(&groups, &rows);
+    for (c, column) in [&x, &y].iter().enumerate() {
+        let ordered: Vec<f64> = rows.iter().map(|&r| column[r]).collect();
+        let ordered_w: Vec<f64> = rows.iter().map(|&r| w[r]).collect();
+        let exact = projected_out_weighted(&indicators, &ordered, &ordered_w);
+        for (i, (a, b)) in result.columns[c].iter().zip(&exact).enumerate() {
+            assert!(
+                (a - b).abs() <= 1e-8 * (1.0 + b.abs()),
+                "column {c}, row {i}: {a} vs {b}"
+            );
+        }
+    }
+}
+
+/// No effects: the columns come back as given, converged, in no pass.
+#[test]
+fn no_effects_change_nothing_in_no_pass() {
+    let x = [1.0, 2.5, -3.0, 4.0];
+    let result = demean(&[&x], &[], None, Options::default());
+    assert_eq!(result.columns, vec![x.to_vec()]);
+    assert_eq!(result.rows, vec![0, 1, 2, 3]);
+    assert!(result.converged);
+    assert_eq!(result.passes, 0);
+    assert_eq!(result.singletons_dropped, 0);
+}

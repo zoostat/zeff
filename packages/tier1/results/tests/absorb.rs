@@ -82,3 +82,42 @@ proptest! {
         }
     }
 }
+
+/// The largest Int and the largest DateTime are values, not the code of `NA`: a column holding
+/// both has a group for each, as the keys give.
+#[test]
+fn the_largest_value_is_not_the_missing_one() {
+    let ints = Column::ints([Some(i64::MAX), None, Some(1), Some(i64::MAX), None]);
+    let times = Column::datetimes([Some(i64::MAX), None, Some(0), Some(i64::MAX), None]);
+    let rows: Vec<usize> = (0..5).collect();
+    for (name, column) in [("ints", &ints), ("times", &times)] {
+        agree(name, &[column], &rows).unwrap();
+        let groups = EffectGroups::over(name, &[name.to_string()], &[column], &rows);
+        assert_eq!(
+            groups.levels(),
+            3,
+            "{name}: a value, the largest value and NA"
+        );
+        assert_ne!(groups.group_of_row[0], groups.group_of_row[1], "{name}");
+        assert_eq!(groups.group_of_row[0], groups.group_of_row[3], "{name}");
+        assert_eq!(groups.group_of_row[1], groups.group_of_row[4], "{name}");
+    }
+}
+
+/// An effect of five variables, beyond the four the integer codes cover in one tuple, groups
+/// as its keys do.
+#[test]
+fn an_effect_of_five_variables_groups_by_its_keys() {
+    let a = Column::ints([1, 1, 2, 2, 1, 1, 2, 2].map(Some));
+    let b = Column::ints([1, 2, 1, 2, 1, 2, 1, 2].map(Some));
+    let c = Column::bools([true, true, true, true, false, false, false, false].map(Some));
+    let d = Column::strs(["x", "x", "y", "y", "x", "x", "y", "y"].map(Some));
+    let e = Column::ints([7, 7, 7, 8, 8, 8, 9, 9].map(Some));
+    let rows: Vec<usize> = (0..8).collect();
+    let columns = [&a, &b, &c, &d, &e];
+    agree("five", &columns, &rows).unwrap();
+    let groups = EffectGroups::over("five", &["five".to_string()], &columns, &rows);
+    assert_eq!(groups.levels(), 8, "every row is its own group");
+    // Four of them: the codes' own path, the same groups as the keys.
+    agree("four", &columns[..4], &rows).unwrap();
+}

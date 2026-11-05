@@ -1,6 +1,6 @@
 ---
 source: packages/tier2/regress/tests/fixed_effects.rs
-assertion_line: 406
+assertion_line: 431
 expression: all
 ---
 error[Z0801]: no row remains to fit the model: every row is a singleton of fe: id
@@ -29,6 +29,155 @@ standard errors: classical
   x               0.8000      0.3464      2.31     0.104   [-0.3024, 1.9024]
 
 R² 0.640 · adjusted R² 0.520
+----
+reg · y ~ x · fe: g
+N = 9 (no singletons)
+fixed effects: g (3)
+weights: w (analytic)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x       12.1616      4.3060      2.82     0.037   [1.0925, 23.2306]
+
+R² within 0.615 · R² overall 0.944
+reg · y ~ x · fe: g
+N = 9 (no singletons)
+fixed effects: g (3)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        6.5385      6.4976      1.01     0.360   [-10.1642, 23.2411]
+
+R² within 0.168 · R² overall 0.887
+warning: little variation left after fe: g: `x` keeps 0.16% of its variation (line 2)
+  = help: the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation
+warning: little variation left after fe: g: `x` keeps 0.23% of its variation (line 3)
+  = help: the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation
+----
+reg · y ~ x · fe: g
+N = 6 (no singletons)
+fixed effects: g (2)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        0.0000      0.0000        NA        NA   [0.0000, 0.0000]
+
+R² within NA · R² overall 1.000
+note: the fit is essentially perfect, so the standard errors and t values say nothing (line 2)
+----
+reg · y ~ x · fe: `my var`
+N = 6 (no singletons)
+fixed effects: `my var` (2)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        0.2929      0.1825      1.60     0.207   [-0.2880, 0.8737]
+
+R² within 0.462 · R² overall 0.813
+reg · y ~ x · fe: `my var`:g
+N = 4 (2 rows dropped as singletons)
+fixed effects: `my var`:g (2)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x        0.2667      0.0333      8.00     0.079   [-0.1569, 0.6902]
+
+R² within 0.985 · R² overall 0.998
+----
+error[Z0401]: `firm` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:41
+  |
+2 | w.reg(log(wage) ~ educ + log(firm), fe: firm)
+  |                                         ^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+----
+error[Z0401]: `firm` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:38
+  |
+2 | w.reg(log(wage) ~ educ + firm^2, fe: firm)
+  |                                      ^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+----
+error[Z0401]: `firm` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:39
+  |
+2 | w.reg(log(wage) ~ educ + (-firm), fe: firm)
+  |                                       ^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+----
+error[Z0401]: `firm` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:51
+  |
+2 | w.reg(log(wage) ~ educ + is_in(educ, [firm]), fe: firm)
+  |                                                   ^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+----
+error[Z0401]: `firm` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:41
+  |
+2 | w.reg(log(wage) ~ educ + educ:firm, fe: firm)
+  |                                         ^^^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+----
+error[Z0401]: `x1` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:23
+  |
+2 | d.reg(y ~ x1..x3, fe: x1)
+  |                       ^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+----
+error[Z0401]: `x2` is a fixed effect of `fe:` and a variable of the formula too
+ --> scripts/main.zeff:2:23
+  |
+2 | d.reg(y ~ x1..x3, fe: x2)
+  |                       ^^ absorbed and in the model
+  |
+  = help: an absorbed effect cannot be a regressor or the outcome as well; drop it from `fe:` or from the formula
+----
+reg · y ~ x1..x3 · fe: g
+N = 8 (no singletons)
+fixed effects: g (2)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x1       0.1250      1.1748      0.11     0.922   [-3.6138, 3.8638]
+  x2      -0.8750      1.8042     -0.48     0.661   [-6.6168, 4.8668]
+  x3       1.0000      0.6455      1.55     0.219   [-1.0543, 3.0543]
+
+R² within 0.959 · R² overall 0.982
+reg · y ~ x1..x3 · fe: h
+N = 8 (no singletons)
+fixed effects: h (2)
+standard errors: classical
+
+  term   estimate   std.error   t value   p value   95% CI
+  x1      -0.6875      1.3429     -0.51     0.644   [-4.9612, 3.5862]
+  x2      -1.5625      2.0107     -0.78     0.494   [-7.9615, 4.8365]
+  x3       1.2500      0.7217      1.73     0.182   [-1.0467, 3.5467]
+
+R² within 0.982 · R² overall 0.982
+----
+error[Z0401]: the range `x3..x1` runs backwards: `x1` comes before `x3` in the frame
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ x3..x1, fe: g)
+  |   ^^^ a range runs from an earlier variable to a later one
+  |
+  = help: the variables, in order: g, y, x1, x2, x3
+----
+error[Z0802]: no regressor remains: every column of the design is zero
+ --> scripts/main.zeff:2:3
+  |
+2 | d.reg(y ~ 1, fe: g)
+  |   ^^^ nothing to estimate
+  |
+  = help: a model needs at least one regressor that varies, or an intercept
 ----
 reg · y ~ x + z · fe: g
 N = 6 (no singletons)
