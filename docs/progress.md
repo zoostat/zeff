@@ -165,3 +165,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 24b `[engine]`: the runs and the samples.
 
 **For the owner to decide.** Nothing new. (A handbook PDF that appeared untracked under `docs/handbook/` on 4 November was moved out of the repository at the owner's word; generated handbooks are kept beside the repositories, not in them.)
+
+## 5 November 2026: step 24b begun, and a correction it found
+
+**Done.** Step 24b `[engine]` is begun, not finished. On 80b026d: CI green on every target (the test job on its second attempt; the first lost its runner's linker to a bus error before any test ran); the nightly job (193 test programs, the stochastic and truth-recovery classes), the fuzz job (4.2 million inputs, no crash), the coverage job (kernel 93.8%, estimators 93.5%, language tooling 92.0%, other packages 90.3%) and the benchmark job green; the six samples and `zeff selftest` (194 of 194) run and read; the bundle 1,653 kB and the cold start 107 ms with `time` and `text` at start; `import` read against open decision #51 (about the cost of one two-way fit, so the chunked reader stays at 0.11.0). The weekly mutation run showed that a property test of `event` could fail by chance on correct code (2 of its 27,944 panels have every unit treated at once) and that such a failure, saved in a shard's working copy, then decided every later mutant of the shard: 63 mutants in the run step 24a matched, 52 in today's. Corrected: the generator always has a control and a treated unit, with a test over every panel; the mutation job draws its property cases from one fixed seed; `is_tie` has its subnormal case. The record is in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests; the tier and message checks are untouched by the change.
+
+**Next.** Still step 24b `[engine]`: every scheduled job run again on the commit of the correction; the clean weekly records matched and any survivor the chance failures had covered resolved as at step 24a; then the figures recorded and the step ticked. Step 24c `[engine]` follows.
+
+**For the owner to decide.** Nothing.

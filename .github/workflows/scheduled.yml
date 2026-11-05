@@ -367,6 +367,15 @@ jobs:
           # some runner images have little more than that free. The build carries no debug
           # information here; a mutant's verdict is the test's pass or fail, not a backtrace.
           CARGO_PROFILE_DEV_DEBUG: 0
+          # The property tests draw their cases from one fixed seed here. With a fresh seed for
+          # every mutant, a property that fails by chance on correct code leaves its failing
+          # case beside the test in the shard's working copy, where it is replayed against
+          # every later mutant, and each of those is counted as caught whether or not a test
+          # catches it: at 0.6.0 two panels of the event-study generator did so in seven shards
+          # and decided 63 mutants (found at step 24b, the generator corrected). With one seed the
+          # unmutated baseline and every mutant see the same cases, so a failure under a mutant
+          # is the mutant's own.
+          PROPTEST_RNG_SEED: "20261105"
         run: |
           # Surviving mutants and timeouts are a note to act on, not a failure of the job. Two
           # tests of the dist package make over a million calls into the kernel (the moments of

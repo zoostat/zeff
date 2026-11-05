@@ -308,6 +308,11 @@ mod tests {
         assert!(!is_tie(16.0, -1));
         assert!(!is_tie(15.1, -1));
         assert!(!is_tie(1e-310, 0));
+        // The smallest subnormal is 2^-1074, and 2 * 2^-1074 * 10^1073 = 5^1073 is odd: a tie
+        // at 1,073 digits and at no other count, though `round` never asks beyond 15.
+        assert!(is_tie(f64::from_bits(1), 1073));
+        assert!(!is_tie(f64::from_bits(1), 1072));
+        assert!(!is_tie(f64::from_bits(1), -1));
     }
 
     /// Floored division and the remainder at infinite operands keep IEEE's answers (an infinite

@@ -228,14 +228,22 @@ fn the_edge_cases() {
 
 /// A generated staggered panel: `units` units over `periods` periods, a share never treated, the
 /// rest first treated at one of three cohorts; `y` the sum of unit and period effects, a treated
-/// indicator and noise.
+/// indicator and noise. The first unit is never treated and the second is treated from period
+/// 2, whatever the draws: a panel whose units are all treated at once has its leads and lags
+/// absorbed by the time effects and no fit to compare (Z0802, an edge case of its own), and a
+/// draw of six units gave one now and then.
 fn generated(units: usize, periods: usize, seed: u64) -> Table {
     let mut stream = zeff_numeric::random::Stream::new(seed, 2, 0);
     let (mut unit, mut time, mut treat, mut y) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
     for i in 0..units {
-        let cohort = match (stream.uniform() * 4.0) as usize {
+        let drawn = match (stream.uniform() * 4.0) as usize {
             0 => None,
             k => Some(1 + k as i64),
+        };
+        let cohort = match i {
+            0 => None,
+            1 => Some(2),
+            _ => drawn,
         };
         let effect = stream.uniform();
         for t in 0..periods {
@@ -258,6 +266,35 @@ fn generated(units: usize, periods: usize, seed: u64) -> Table {
         ("y".to_string(), Column::floats(y).0),
     ])
     .unwrap()
+}
+
+/// Every panel the properties below can draw has a control and a treated unit, over all the
+/// sizes and all the seeds, and at the smallest number of units, where two draws of the 27,944
+/// once had every unit treated at the same period, each has a fit under unit and time effects:
+/// no draw fails by chance.
+#[test]
+fn every_generated_panel_has_a_control_and_a_fit() {
+    for units in 6usize..20 {
+        for periods in 4usize..8 {
+            for seed in 1u64..500 {
+                let table = generated(units, periods, seed);
+                let treat: Vec<Option<i64>> =
+                    table.column("treat").unwrap().as_ints().unwrap().collect();
+                assert!(
+                    treat.contains(&None) && treat.contains(&Some(2)),
+                    "units = {units}, periods = {periods}, seed = {seed}"
+                );
+                if units > 6 {
+                    continue;
+                }
+                if let Err(message) =
+                    fit_with(&table, "y ~ event(time, treat)", Some("unit + time"), None)
+                {
+                    panic!("units = {units}, periods = {periods}, seed = {seed}: {message}");
+                }
+            }
+        }
+    }
 }
 
 fn property_cases(usual: u32) -> u32 {
