@@ -185,3 +185,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Step 24c `[engine]`: the documents and the report (the release notes, the known issues, the catalogue's status column, the reviews of the risk register and of the open decisions).
 
 **For the owner to decide.** Nothing.
+
+## 6 November 2026: step 24c done, the checklist of 0.6.0 complete
+
+**Done.** Step 24c `[engine]`. Features frozen: the 37 functions implemented, each with its page. The counts of section 8.2 corrected to follow the catalogue (239 in Rust, 20 in Zeff, 271 on the roadmap, 530 in all; the 23 roadmap rows of 21 October had never been counted), logged. The reference versions collected (`fixest` 0.14.2 new); `docs/known_issues.md` rewritten with an "As of 0.6.0" list of thirteen entries; the risk register's figures, the decisions due and the sample pins recorded in `docs/decisions.md` for the release. Two findings recorded there: the `test` job had been red on seven pushes of 1 and 2 November behind the already red `reference` job (three causes, all corrected then, none a wrong result); and a leftover branch and working copy named under a forbidden word, removed at the owner's word, with `main` and the five tags all that remain.
+
+**Green.** Format, clippy with warnings denied, all 190 test programs, the tier and message checks; CI green on the last pushes.
+
+**Next.** The checklist is complete. The release itself waits for the owner's "Release 0.6.0": the notes, the register's review, the version and the pins, the tag and the GitHub release.
+
+**For the owner to decide.** Whether the two-week trial of the Zemp interface framework (open decision #24, due at 0.7.0) was run during this release; this repository has no record of it.

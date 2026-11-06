@@ -5,6 +5,78 @@ each release (testing handbook, section 2.4) and copied into the release notes. 
 release that introduced it and, where one is planned, the release that removes it. A wrong result
 is never listed here as accepted: it is fixed or the function is withdrawn.
 
+## As of 0.6.0
+
+- **`save` writes CSV and TSV only.** Parquet, Arrow, Stata, Excel and JSON are refused with
+  Z0716, which names 0.11.0, the release of the reader and writer interface (SPSS 1.1); an
+  opaque column is refused with the advice to drop it. What is written reads back bit for bit.
+  (Since 0.6.0; by the build order.)
+- **Under `fe:` a fit has no leverage.** `se: hc2` and `se: hc3` are refused (Z0410),
+  `influence` is refused (Z0304, until 0.8.0) and W1006 is not judged, because an observation's
+  leverage in the full design cannot be had from the demeaned columns. `fe:` takes variables and
+  interactions `a:b` joined by `+`; `*`, a range or an expression is refused (Z0401), as is a
+  fixed effect that is also a variable of the formula. `ivreg` with `fe:` arrives at 0.8.0 and
+  two-way clustering at 1.1. (Since 0.6.0.)
+- **The fixed effects are projected out by an iteration**, to a tolerance of 1e-8 on each
+  column, so the estimates agree with fixest on the reference fits within 1e-7 rather than to
+  the last digits of a closed form. A projection that has not converged in 10,000 passes stops
+  the fit with an internal error rather than giving a result; no data met in testing reaches it.
+  `predict` gives `NA` with W0207 for a level of an effect the fit did not see. (Since 0.6.0.)
+- **A fixed-effects fit runs on one thread.** On the benchmark panel the two-way fit takes
+  0.44 s at a million rows and 4.2 s at ten million on the development machine, against 0.23 s
+  and 2.2 s for fixest on the same files, within the factor of two the release set itself;
+  `--threads` arrives at 1.1. (Since 0.6.0.)
+- **`event` needs units that are treated at different times, or never.** When every unit is
+  treated at the same period and the fit has time effects, the leads and lags are the time
+  effects themselves: they are dropped as collinear with a note, and a fit left with no
+  regressor is refused (Z0802). A frame with no treated row is refused (Z0401) and a `ref:`
+  that is not a relative period of the data is Z0507, listing the periods present. `did` and
+  `pre_trends` arrive at 1.2. (Since 0.6.0; by design.)
+- **A panel's time is an Int or a `Date`, and a `Date` counts days.** A gap is one missing
+  integer or one missing calendar day, so monthly, quarterly or yearly observations dated as
+  `Date`s are a day apart to no one and `lag`, `lead` and `diff` give `NA`; declare the panel on
+  a whole-number period (`year(d) * 12 + month(d)`, say) until the `Period` type of a 1.x
+  release. A unit is one variable; a composite unit comes with it. `lag`, `lead` and `diff` need the
+  declaration (Z0602) and work inside `add` and `update` only. (Since 0.6.0; by design, section
+  6.)
+- **Dates and times carry no time zone and no duration.** A `DateTime` is a wall-clock instant;
+  text with `Z` or an offset is converted to UTC and counted (W0702). `Date - Date` is days;
+  every other arithmetic on a date is refused (Z0221) with the function to use (`add_days`,
+  `add_months`, `days_between`, `months_between`). Years run from 1 to 9999, a result outside
+  them is `NA` (W0203); `add_months` clamps to the month's last day, so it does not undo itself
+  there; `format` prints weekday and month names in English. (Since 0.6.0; by design.)
+- **`today()` and `now()` are recorded only by their note.** Each use prints W0703 with the
+  value it gave; the run record that keeps it, and `zeff run --replay`, arrive at 0.11.0. Both
+  are refused inside a function (Z0110). (Since 0.6.0.)
+- **A frame's columns are not known to the checker after `to_wide`, after an import of a file
+  that does not exist yet, or after a project function whose returns differ** in their columns;
+  such a frame is marked "checked at run time", its variables are checked when the statement
+  runs, and after a run the columns the step produced serve the next check as warnings marked
+  "from last run". A frame given to `merge` without `suffixes:` while it shares a column is
+  checked at run time too, where the merge is refused. (Since 0.6.0, step 21.)
+- **`merge` refuses a many-to-many relation**, a key that repeats on both sides (Z0603; `relation:`
+  names one of the three others to have it checked), needs `suffixes:` when the frames share a
+  column that is not a key (Z0604), and never matches a key that is `NA`. `append` joins Int with
+  Float and refuses any other pair of types for one column (Z0609). `aggregate` takes definitions
+  that give one value per group and drops a panel declaration with a note, as `to_wide` does.
+  (Since 0.6.0; by design, section 6.)
+- **`winsorize` warns twice and names `value`.** It is written in Zeff over two calls of
+  `quantile`, each of which counts the missing rows of the body's own column, so a column with
+  `NA` prints "rows with NA in value were skipped" twice, where the script's variable is meant;
+  a share outside 0 to 0.5 is refused by the body's `assert` (Z0001). Both wait for a coded
+  warning from a body (open decision #70, 0.7.0). (Since 0.6.0.)
+- **Three more functions planned in Zeff are written in Rust**: `diff` (it reads the enclosing
+  frame's panel; open decision #69), `quantile_group` (no arithmetic over a list; #79) and
+  `duplicates` (its pieces, `aggregate` and `table`, came later in the release); `summary` stays
+  in Rust until #70. Ten in all with the seven of 0.5.0; nothing a script sees differs, and
+  section 8.2's totals follow the catalogue (239 in Rust, 20 in Zeff). (Since 0.6.0.)
+- **Eight conditions carry codes numbered at this release**, the next free numbers of their
+  families, each logged in `docs/spec_changes.md` and listed in section 11 of the Language
+  Reference: Z0507 (`event`'s `ref:`), Z0601 and Z0602 (the panel declaration and the panel
+  functions), Z0609, Z0610 and Z0611 (`append`, `to_long`, `to_wide`), W0210 (`bin`) and W0701
+  (a data root's file changed since the last run). W0701 compares hashes kept in the project's
+  cache, which stand in for the run record until 0.11.0. (Since 0.6.0.)
+
 ## As of 0.5.0
 
 - **The constructs the grammar has but this release does not run** are a `model { }` block
@@ -18,15 +90,7 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   way. A function may not call itself (Z0108) and sees its parameters and other functions only.
   (Since 0.5.0; by design, section 5.3.)
 - **The examples of a module function's page are parsed and syntax-checked but not run** until
-  `zeff test` at 0.7.0. (Since 0.5.0.) The other half of this entry, a `Var` parameter checked
-  only when the statement runs, closed at 0.6.0, step 20: the schema pass checks it at `zeff
-  check` against the frame the function uses it with, when that frame's schema is known.
-- **A frame's columns are not known to the checker after `to_wide`, after an import of a file
-  that does not exist yet, or after a project function whose returns differ** in their columns;
-  such a frame is marked "checked at run time", its variables are checked when the statement
-  runs, and after a run the columns the step produced serve the next check as warnings marked
-  "from last run". A frame given to `merge` without `suffixes:` while it shares a column is
-  checked at run time too, where the merge is refused. (Since 0.6.0, step 21.)
+  `zeff test` at 0.7.0. (Since 0.5.0; the other half of this entry is under "Resolved at 0.6.0".)
 - **`case` over rows evaluates every arm on the whole frame**, as R's `ifelse` does, so a warning
   such as a division by zero may count rows the arm does not supply; a Category column is refused
   as a value of `case` (Z0214; `to(x, Str)` gives its labels). (Since 0.5.0; a Date or DateTime
@@ -51,8 +115,11 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   whose own rounding is the unit in the last place of the largest value: on a row holding 1e12,
   −1e12 and 1e7 the mean is 8e-12 relative from the exact 3,333,333.33…, where the plain quotient
   and R's long-double sum are exact. Every `mean` of the engine shares it; it is harmless on data
-  that does not cancel to a small residual, and the correction is reviewed at the next kernel
-  step (0.6.0). (Since 0.1.0; found at 0.5.0, step 17.)
+  that does not cancel to a small residual. Reviewed at 0.6.0 with the demeaning kernel (step
+  17), as promised: `mean` keeps its corrected form and this entry stands as a documented
+  property; the group means of a fixed-effects fit do not use it (a plain compensated quotient),
+  so values that cancel within a group lose nothing there. (Since 0.1.0; found at 0.5.0, step
+  17; reviewed at 0.6.0.)
 - **`vif` gives one factor per column of the design**, so each dummy column of a categorical
   regressor has a row of its own and the generalised factor of the whole term is not given; a
   term dropped as collinear has no row and is named under the table. (Since 0.5.0.)
@@ -92,14 +159,20 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **`influence` gives no Cook's distance or studentized residual with one residual degree of
   freedom**, nor for a row of leverage one; under frequency weights the leverage printed is the
   per-observation one, h/w, as R computes on the replicated rows. (Since 0.4.0; by design.)
-- **Mutation testing of a slow package against the whole workspace's tests needs a wide
-  budget.** cargo-mutants takes each mutant's budget from a baseline measured on the mutated
-  package alone, so the floor is the whole budget under the workspace's tests; the weekly job's
-  floor is four minutes since 0.5.0 (two before, which timed out 689 mutants on the release's
-  first run), its 34 shards run 39 to 284 minutes against a limit of 340, `zeff-numeric` 3 of 16
-  (Spearman's exact tail) the longest, and a local rerun passes a floor of ten minutes. The ten
-  recorded hangs (eight in the numeric kernel, two in the pivoted QR) are caught by the limit
-  alone. (Since 0.3.0; understood at 0.4.0, the budget repaired at 0.5.0.)
+- **Mutation testing of a slow package against the whole workspace's tests needs a wide budget.**
+  cargo-mutants takes each mutant's budget from a baseline measured on the mutated package alone,
+  so the floor is the whole budget under the workspace's tests; the weekly job's floor is four
+  minutes since 0.5.0 (two before, which timed out 689 mutants on the release's first run), its 34
+  shards run 74 to 201 minutes against a limit of 340 at 0.6.0 (39 to 284 at 0.5.0), and a local
+  rerun passes a floor of ten minutes. The twelve recorded hangs (eight in the numeric kernel, two
+  in the pivoted QR, two in the demeaning kernel's singleton loop) are caught by the limit alone,
+  and six mutants that make a fit slow without hanging it (five send the loop of the fixed effects'
+  estimates to its cap, one leaves the demeaning kernel's rows unordered) time out on a slow runner
+  and are caught when given their time. Since 0.6.0 the job draws its property-test cases from a
+  fixed seed: a property test that failed by chance (about once in 350 runs, a fault of the test's
+  own data, corrected) had left its failing case in a shard's working copy, where it marked later
+  mutants as caught; the clean rerun matched the records. (Since 0.3.0; understood at 0.4.0, the
+  budget repaired at 0.5.0, the seed fixed at 0.6.0.)
 - **An exactly perfect fit prints `Inf` t values.** When every residual is exactly zero (a
   constant outcome on an intercept, or data on an exact line in dyadic numbers) the standard
   errors are zero and the t values print as `Inf` with p < 0.001, under the note that the fit is
@@ -172,20 +245,26 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The console's `:undo` re-runs the whole session** without its last statement, so a long
   session with large imports takes a moment to undo; the result cache that makes it immediate is
   0.11.0. (Since 0.2.0.)
-- **The browser engine bundle is 1.46 MB compressed** (brotli; 1.34 MB at 0.4.0, 1.15 MB at
-  0.3.0, 1.10 MB at 0.2.0, 355 kB at 0.1.0), because the two datasets are embedded and the
-  packages, the interpreter and the functions written in Zeff were added; it stays under the 5 MB
-  warning level of risk R4. The cold start is 67 ms against 1,000 ms: the module loads in 19 ms
-  and the engine's first call, its start on a one-line script, takes 48 ms. The 620 ms first call
-  reported at 0.4.0 timed the whole conformance report, which the measurement now prints for
-  information (1,328 ms with 148 cases and five samples). (Since 0.2.0; the figures are those of
-  0.5.0.)
+- **The browser engine bundle is 1.65 MB compressed** (brotli; 1.46 MB at 0.5.0, 1.34 MB at
+  0.4.0, 1.15 MB at 0.3.0, 1.10 MB at 0.2.0, 355 kB at 0.1.0), because the three datasets are
+  embedded and the packages, the interpreter and the functions written in Zeff were added, `time`
+  and `text` loaded at start among them; it stays under the 5 MB warning level of risk R4. The
+  cold start is 107 ms against 1,000 ms (67 ms at 0.5.0): the module loads in 29 ms and the
+  engine's first call, its start on a one-line script, takes 75 ms. The whole conformance report,
+  printed for information, takes 1,904 ms with 194 cases. (Since 0.2.0; the figures are those of
+  0.6.0.)
 - **Each project pins the exact engine version** (`zeff = "0.2.0"`). An engine of another
   version refuses the project with exit code 4; there is no launcher yet to pick the pinned engine
   (0.9.0). (Since 0.1.0.)
 - **The function catalogue's status column** is updated at each release close, not per function,
   so between releases it lags the registry; `zeff help <package>` shows what is shipped. (Since
   0.1.0.)
+
+## Resolved at 0.6.0
+
+- A `Var` parameter of a project function is checked at `zeff check`, against the frame the
+  function uses it with, when that frame's columns are known (listed at 0.5.0 as checked only
+  when the statement runs). Since step 20, the schema pass.
 
 ## Resolved at 0.4.0
 

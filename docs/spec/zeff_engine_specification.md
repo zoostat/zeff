@@ -289,10 +289,10 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | --- | --- | --- | --- | --- |
 | 1 | `time` | Work with dates and times | Parsing, date parts, date arithmetic | 14 / 0 / 2 |
 | 2 | `text` | Work with text | Matching, replacing, splitting, formatting numbers and dates | 13 / 0 / 0 |
-| 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 59 / 0 / 6 |
+| 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 59 / 0 / 13 |
 | 4 | `dist` | Probability distributions | Twelve families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 19 / 0 / 0 |
 | 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface, publication tables, export | 17 / 0 / 2 |
-| 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 13 / 0 / 10 |
+| 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 13 / 0 / 21 |
 | 7 | `optim` | Fit anything defined by an objective | Minimisers, MLE and GMM frameworks, mathematical programming | 0 / 0 / 11 |
 | 8 | `resample` | Uncertainty and validation by resampling | Bootstrap, jackknife, permutation, holdout splits and cross-validation folds | 0 / 0 / 7 |
 | 9 | `survey` | Design-correct estimates from survey data | Design declaration, replicate weights, calibration | 0 / 0 / 8 |
@@ -304,13 +304,13 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
-| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 8 / 0 / 7 |
-| 2 | `glm` | Non-linear outcomes | Binary, count, ordinal, multinomial, censored and selection models | 2 / 0 / 12 |
+| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 8 / 0 / 9 |
+| 2 | `glm` | Non-linear outcomes | Binary, count, ordinal, multinomial, censored and selection models | 2 / 0 / 14 |
 | 3 | `multilevel` | Repeated and nested data | Random effects (`re:`), mixed and growth models, dynamic panels | 0 / 0 / 6 |
 | 4 | `explore` | Find structure before testing | Dimension reduction, missingness, imputation and outlier checks | 0 / 0 / 9 |
 | 5 | `series` | Time series and forecasting | ARIMA, ETS, VAR, state space, dynamic factors | 0 / 0 / 7 |
 | 6 | `latent` | Latent-variable models | CFA and SEM (1.3); EFA, ESEM, latent classes and profiles | 0 / 0 / 18 |
-| 7 | `measure` | Reliability and validity of measures | Reliability, validity, invariance, IRT, agreement | 1 / 0 / 13 |
+| 7 | `measure` | Reliability and validity of measures | Reliability, validity, invariance, IRT, agreement | 1 / 0 / 14 |
 | 8 | `learn` | Leakage-safe prediction | Recipes, model specifications, supervised learners, tuning, metrics, explanation | 0 / 0 / 32 |
 | 9 | `groups` | Hidden groupings | Clustering, mixtures, topic models, communities | 0 / 0 / 7 |
 
@@ -330,7 +330,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, after 1.0, third-party packages under rule 9.
 
-Totals: 259 functions in 1.0 (70 in tier 0, 172 in tier 1, 11 in tier 2, 6 in tier 3), of which 236 are written in Rust and 23 in Zeff; none remain proposed, and 248 are on the roadmap, 505 in all. Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 259 functions in 1.0 (70 in tier 0, 172 in tier 1, 11 in tier 2, 6 in tier 3), of which 239 are written in Rust and 20 in Zeff; none remain proposed, and 271 are on the roadmap, 530 in all. Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
