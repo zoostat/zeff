@@ -2261,3 +2261,11 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **The sample pins.** The six sample projects pin `0.6.0-dev`, as the three manifest snapshots print it; they go to `0.6.0` with `Cargo.toml` in the release commit.
 
 **Reason.** Testing handbook, section 2.4, items 1 and 6; Engine and Project Specification, sections 8.2 and 14; the standing rule on forbidden words and on deleting a branch; the checklist's step 24c.
+
+## 6 November 2026: the trial of the Zemp interface framework has not yet been run
+
+**Fact.** Asked at the close of step 24c, the owner answered that the two-week trial of the two interface frameworks for Zemp (open decision #24), which the plan of 1 November 2026 placed in a Zemp session during release 0.6.0, has not yet been run.
+
+**Choice.** Nothing is changed in the register: #24 keeps its deadline of 0.7.0 and its proposal, and the trial remains to be run in a Zemp session before the decision is taken. It does not hold back the release of 0.6.0 of the engine, which uses nothing of it.
+
+**Reason.** The trial belongs to the Zemp repository and is the evidence for #24; recording that it is outstanding keeps the release notes and the review of the open decisions at "Release 0.6.0" from assuming it was done.

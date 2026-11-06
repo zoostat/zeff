@@ -194,4 +194,4 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 
 **Next.** The checklist is complete. The release itself waits for the owner's "Release 0.6.0": the notes, the register's review, the version and the pins, the tag and the GitHub release.
 
-**For the owner to decide.** Whether the two-week trial of the Zemp interface framework (open decision #24, due at 0.7.0) was run during this release; this repository has no record of it.
+**For the owner to decide.** Nothing. The owner answered on 6 November 2026 that the two-week trial of the Zemp interface framework (open decision #24, due at 0.7.0) has not yet been run; it remains to be run in a Zemp session before #24 is taken.
