@@ -38,6 +38,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (5 November 2026, the owner's proposal of 4 November).** The owner's proposal of 4 November 2026 for shorter and clearer scripts (kept outside the repository) was checked against both volumes, the catalogue, this register and the code, and the owner asked for its core set to be recorded here, with no change to the normative text: #80 (`each(...)` as the one marker for "separately", and tests on several variables), #81 (model sets: `nested` and `each` terms in a formula, `RegFits`, and one frame of estimates for a set), #82 (what `size:` means for a table in `export`), #83 (the sentence of section 3.7 on bare words, beside the option records of section 3.1) and #84 (reserving `each` and `peek` before `core` freezes). Deadlines 0.7.0, 0.8.0, 0.11.0, 0.7.0 and 0.11.0. The proposal's other items are additions a minor release may make before or after 1.0 and are not recorded; each is raised here if the owner adopts it. Nothing enters release 0.6.0.
 
+**Status (6 November 2026, at the close of release 0.6.0).** The six decisions due at 0.6.0 (#14, #26, #51, #54, #67 and #72) were taken on 1 November and are built or stand (`event` as catalogue row 252; Zemp at 0.7.0; the chunked reader at 0.11.0, its condition read at the pre-release routine, where `import` was found not to be the bottleneck of panel work; one bare range in a formula; `ci()` at the fit's level; `table` as row 530); none remains due. Raised since the close of 0.5.0: #73 to #78 (the owner's requests for the Zemp interface), #79 (arithmetic over lists, or a map, in a Zeff-written built-in, raised at step 10) and #80 to #84 (the core set of the proposal of 4 November). The summary rows of #12, #15 and #16 now read "decided 16 October 2026", as the status paragraph of that day has recorded them since. Due by 0.7.0, to be put to the owner when that release opens: #24 (the Zemp interface framework; the owner said on 6 November that its two-week trial, placed in a Zemp session during 0.6.0 by #26, has not yet been run, so the trial comes before the decision), #68 to #71 and #79 (the pieces the Zeff-written built-ins lack), #76 and #77 (the traceback and schema-aware completion), #80 (`each`, with the tests or after them) and #83 (the sentence of section 3.7 on bare words). #73's trial of the typesetting engine is planned beside the plot renderer of 0.7.0, its decision due at 0.8.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -53,11 +55,11 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 9 | Registry hosting | GitHub Pages and Releases with a signed index, mirrored on Codeberg | 1.5 |
 | 10 | `synthesize` | A package through the registry, not the engine | after 1.11 |
 | 11 | Split the specification | Yes, now, before coding starts | now |
-| 12 | `posthoc` and factorial `anova(type:)` | Adopt, 0.7.0 | 0.7.0 |
+| 12 | `posthoc` and factorial `anova(type:)` | Adopt, 0.7.0 | decided 16 October 2026 |
 | 13 | `iterate` | Adopt, 0.5.0 | decided 30 October 2026 |
 | 14 | `event()` | Adopt, 0.6.0 | decided 1 November 2026 |
-| 15 | Power functions | Defer to 1.9 as one Design release | 0.7.0 |
-| 16 | `survey()` in 1.0 | Defer to 1.9 | 0.7.0 |
+| 15 | Power functions | Defer to 1.9 as one Design release | decided 16 October 2026 |
+| 16 | `survey()` in 1.0 | Defer to 1.9 | decided 16 October 2026 |
 | 17 | Panels (0.6.0) before tests and plots (0.7.0) | Keep the order | decided 30 October 2026 |
 | 18 | Swap 1.2 DiD and 1.3 SEM | Decide at the 0.8.0 alpha from what its users ask for; DiD first otherwise | 0.8.0 |
 | 19 | Design methods for 1.9 | Add designed experiments, repeated-measures ANOVA and TOST to the catalogue now | now |
