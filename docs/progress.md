@@ -139,3 +139,13 @@ Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` in
 **Next.** The owner's "Start release 0.7.0" (Tests, plots and the language server: 60 functions, among them `tabulate`, nine tests, `anova` with `posthoc`, `p_adjust`, the plot grammar's 35 functions and 12 text functions, on the language server, `zeff fmt`, `zeff test`, the plot renderer and the engine worker), beginning with the open decisions due by then. Its first step is tagged `[engine]`.
 
 **For the owner to decide.** When release 0.7.0 opens: #24 (the Zemp interface framework, after its two-week trial, which is still to be run in a Zemp session), #68 to #71 and #79 (the pieces the Zeff-written built-ins lack), #76 and #77 (the traceback and schema-aware completion), #80 (`each`) and #83 (the sentence on bare words).
+
+## 6 November 2026, release 0.7.0 opened (step 1)
+
+**Done.** `v0.6.0` was tagged with a clean tree; the 0.7.0 row of section 14, the sections it names (7.6, 12, 2 and 2.1, 8.3 points 5 and 7), the 60 catalogue rows, the testing handbook, the risk register and the open decisions due were read, and the checklist written in `docs/releases/0.7.0.md` (44 steps: the pragma and the pieces Zeff-written built-ins lacked; `text`; `tabulate`, the tests, `dist.tukey` and `posthoc`; the plot renderer, its three writers and the 35 plot functions; `zeff fmt`, `zeff test`, the engine worker, the language server in three parts, the tree-sitter grammar and `zeff completions`; then the samples and the pre-release routine). The owner said "go" and took the eight questions as recommended. Step 1 `[engine]`: the version `0.7.0-dev` with the six sample pins, both lock files and the four snapshots; the register records #68 to #71, #76, #77, #79, #80 (option B) and #83 as decided and gains #85, #86 and #87; the row "Words and types" of section 3.7 corrected (logged); the rulings in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass locally; CI read after the push.
+
+**Next.** Step 2 `[engine]`: the warning pragma `// zeff: allow(W…)` and `--deny-warnings`.
+
+**For the owner to decide.** #24 before the close of 0.7.0, after its trial in a Zemp session. By 0.8.0: #73 to #75, #86 (folding, snippets and **Run** ranges) and #87 (a variable name in an option record). By 0.9.0: #85 (Games–Howell). The six figures of step 22 are to be read by eye.

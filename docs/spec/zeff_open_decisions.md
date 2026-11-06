@@ -40,6 +40,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (6 November 2026, at the close of release 0.6.0).** The six decisions due at 0.6.0 (#14, #26, #51, #54, #67 and #72) were taken on 1 November and are built or stand (`event` as catalogue row 252; Zemp at 0.7.0; the chunked reader at 0.11.0, its condition read at the pre-release routine, where `import` was found not to be the bottleneck of panel work; one bare range in a formula; `ci()` at the fit's level; `table` as row 530); none remains due. Raised since the close of 0.5.0: #73 to #78 (the owner's requests for the Zemp interface), #79 (arithmetic over lists, or a map, in a Zeff-written built-in, raised at step 10) and #80 to #84 (the core set of the proposal of 4 November). The summary rows of #12, #15 and #16 now read "decided 16 October 2026", as the status paragraph of that day has recorded them since. Due by 0.7.0, to be put to the owner when that release opens: #24 (the Zemp interface framework; the owner said on 6 November that its two-week trial, placed in a Zemp session during 0.6.0 by #26, has not yet been run, so the trial comes before the decision), #68 to #71 and #79 (the pieces the Zeff-written built-ins lack), #76 and #77 (the traceback and schema-aware completion), #80 (`each`, with the tests or after them) and #83 (the sentence of section 3.7 on bare words). #73's trial of the typesetting engine is planned beside the plot renderer of 0.7.0, its decision due at 0.8.0.
 
+**Status (6 November 2026, at the opening of release 0.7.0).** The owner said "go" to the checklist of `docs/releases/0.7.0.md` and took its eight questions as recommended. Decided: #68, #69, #70 and #79 (option B: `map`, `filter` and `reduce` over a function value), built at steps 3 and 3b; #71, built with the result plots at step 30; #76 (option A: the traceback at 0.7.0, the inspector and **Run to here** with Zemp's alpha); #77 (option A: completion from the schema pass at 0.7.0, extract function at 1.1); #80 (option B: the rule adopted, built in the first later release with room, its text written then with the owner's two statistical choices; the word kept under #84); #83 (option A, the row of section 3.7 corrected). The adopted pieces bring six names (`note`, `name_of`, `map`, `filter` and `reduce` in `core`, `design` in `results`); their catalogue rows and the counts of both volumes follow in the steps that build them. #24 stays open: its two-week trial is run in a Zemp session during this release and the decision taken before the close. #73's trial runs as a tool-only step beside the plot renderer (step 22b), its decision due at 0.8.0. Raised at this opening: #85 (the Games–Howell comparison in `posthoc`), #86 (the release of folding, snippets and the statement ranges behind **Run**; formatting through the language server is built at 0.7.0) and #87 (a variable name in an option record, found while correcting section 3.7).
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -111,23 +113,26 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 65 | Calling Zeff from R and Python | Thin R and Python packages over the command line and the versioned result formats, after 1.0 on request | 1.1 |
 | 66 | A published speed comparison with Stata MP and R | At 1.1, when threads arrive, on the owner's machine; reported in the release notes, never a gate | 1.1 |
 | 67 | The default `level:` of `ci()` on a fit made at another level | The fit's level, so that `ci()` agrees with the summary; `level:` written overrides it | decided 1 November 2026 |
-| 68 | A parameter of several types in a Zeff-written built-in | Allow the registry's `A \| B` in the `fn` line of a built-in's file, checked once per type, so that `fill_missing` and `n_missing` can be rewritten in Zeff | 0.7.0 |
-| 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | 0.7.0 |
-| 70 | A note or a coded warning from a Zeff-written built-in | A `note(message)` function beside `warn`, a `code:` option on both, and the name of a `Var` as text (`name_of(v)`), so that `drop_missing` can be rewritten in Zeff with its note and `skewness` can raise W0205 | 0.7.0 |
-| 71 | The fitted design through the result interface | A `design()` method giving the kept design as a frame of the rows used, so that `vif` and later diagnostics can be written in Zeff | 0.7.0 |
+| 68 | A parameter of several types in a Zeff-written built-in | Allow the registry's `A \| B` in the `fn` line of a built-in's file, checked once per type, so that `fill_missing` and `n_missing` can be rewritten in Zeff | decided 6 November 2026 |
+| 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | decided 6 November 2026 |
+| 70 | A note or a coded warning from a Zeff-written built-in | A `note(message)` function beside `warn`, a `code:` option on both, and the name of a `Var` as text (`name_of(v)`), so that `drop_missing` can be rewritten in Zeff with its note and `skewness` can raise W0205 | decided 6 November 2026 |
+| 71 | The fitted design through the result interface | A `design()` method giving the kept design as a frame of the rows used, so that `vif` and later diagnostics can be written in Zeff | decided 6 November 2026 |
 | 72 | A table constructor for Zeff-written functions | `table(title, columns = [...])` in `core`, with `format` for numbers, so that `summary` can be rewritten in Zeff as section 14 planned | decided 1 November 2026 |
 | 73 | Typst: the typesetting engine of exports and of the report document, with a live preview | Adopt, after the licence, identity and bundle checks: a spike at 0.7.0 beside the plot renderer; `.typ` exports and Lite's export of script with output as PDF at 0.8.0; the report document a typst document with executed Zeff chunks | 0.8.0 |
 | 74 | A Help pane in the Viewer | A fourth tab beside Data, Results and Plots that follows the cursor to the function's page and opens a code's explained page from the Log; in both editions | 0.8.0 |
 | 75 | The data viewer and the environment browser, made excellent | Frozen columns, a statistics header per column, search, a live row count under a filter; Objects as a tree with memory per object; Lite's viewer read-only | 0.8.0 |
-| 76 | Traceback, run to here and the loop inspector | The full call chain of an error through module functions; run to a line; one row per loop pass and per `iterate` state from the run record; no breakpoints or stepping | 0.7.0 |
-| 77 | Schema-aware completion and extract function | Completion from the schema pass (the columns of the frame at that point in the chain) at 0.7.0; extract function with inferred parameters, a page skeleton and the same-bytes check at 1.1 | 0.7.0 |
-| 79 | Arithmetic over lists, or a map, in a Zeff-written built-in | A `map(list, f)` over a function value, or `+`, `-`, `*` and `/` lifted over a list as they are over a column, so that `quantile_group` can build its probabilities i/n exactly and be rewritten in Zeff | 0.7.0 |
+| 76 | Traceback, run to here and the loop inspector | The full call chain of an error through module functions; run to a line; one row per loop pass and per `iterate` state from the run record; no breakpoints or stepping | decided 6 November 2026 |
+| 77 | Schema-aware completion and extract function | Completion from the schema pass (the columns of the frame at that point in the chain) at 0.7.0; extract function with inferred parameters, a page skeleton and the same-bytes check at 1.1 | decided 6 November 2026 |
+| 79 | Arithmetic over lists, or a map, in a Zeff-written built-in | A `map(list, f)` over a function value, or `+`, `-`, `*` and `/` lifted over a list as they are over a column, so that `quantile_group` can build its probabilities i/n exactly and be rewritten in Zeff | decided 6 November 2026 |
 | 78 | Git history, the diff of a script and a diff of results | History and script diffs in the Git panel, and a table of every output of two commits' run records, identical to the bit or traced to the statement that changed; merges and pull requests left to the system terminal | 1.1 |
-| 80 | `each(...)`: one marker for "separately", and tests on several variables | Adopt the rule and write its text before 0.7.0 opens; build it with the tests at 0.7.0 only if that release's checklist has room, otherwise in the first release that has, the word kept under #84; the default adjustment and the default rows are the owner's | 0.7.0 (with the tests or after them); 0.11.0 (the word) |
+| 80 | `each(...)`: one marker for "separately", and tests on several variables | Adopt the rule and write its text before 0.7.0 opens; build it with the tests at 0.7.0 only if that release's checklist has room, otherwise in the first release that has, the word kept under #84; the default adjustment and the default rows are the owner's | decided 6 November 2026 (option B); 0.11.0 (the word) |
 | 81 | Model sets: `nested` and `each` terms in a formula, `RegFits`, and one frame of estimates for a set | Adopt for 1.0: `reg` at 0.8.0 and each other estimator in the release after it ships; the whole moves to a later minor release if 0.8.0 runs late; the words of the rows rule are the owner's | 0.8.0 |
 | 82 | What `size:` means for a table in `export` | Refuse `size:` on a table with a named diagnostic at 1.0; table sizes with an exact splitting rule follow as an addition, written with the typesetting engine of #73 | 0.11.0 |
-| 83 | The sentence of section 3.7 on bare words, beside the option records of section 3.1 | Amend section 3.7 to say what the engine has done since 0.5.0: in a record literal, a bare name that a parameter accepts as a word is that word | 0.7.0 |
+| 83 | The sentence of section 3.7 on bare words, beside the option records of section 3.1 | Amend section 3.7 to say what the engine has done since 0.5.0: in a record literal, a bare name that a parameter accepts as a word is that word | decided 6 November 2026 |
 | 84 | Reserving `each` and `peek` before `core` freezes | At 0.11.0, add whichever word has not shipped as a `core` function to the words reserved for later use (section 3.6); `peek` only if the owner wants `.peek()` | 0.11.0 |
+| 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
+| 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
+| 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
 
 ---
 
@@ -897,6 +902,8 @@ Raised on 31 October 2026 at step 15 of release 0.5.0. A built-in written in Zef
 
 *Recommendation.* A, at 0.7.0 with `zeff test` and `zeff fmt`, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for both rows then.
 
+*Decided 6 November 2026, as recommended (option A).* Built at step 3 of `docs/releases/0.7.0.md`; `fill_missing` and `n_missing` return to Zeff at step 4.
+
 ### 69. Access to the enclosing frame from a Zeff-written built-in
 
 Raised on 31 October 2026 at step 17 of release 0.5.0. `row_mean([q1, q2, q3])` inside `add` reads three variables of the frame whose method encloses the call; a Rust body reads them from the call's context, but a function written in Zeff sees its parameters and other functions only (section 5.3, "Scope"), and a `Vars` parameter is a list of names with no frame to look them up in. Both row functions were planned in Zeff and are written in Rust at 0.5.0, their `layer` corrected (logged). The same limit will meet every Zeff-written column function that takes variables rather than a column.
@@ -909,6 +916,8 @@ Raised on 31 October 2026 at step 17 of release 0.5.0. `row_mean([q1, q2, q3])` 
 
 *Recommendation.* A, at 0.7.0 with open decision #68, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for both rows then.
 
+*Decided 6 November 2026, as recommended (option A).* Built at step 3; `row_mean`, `row_sum` and `diff` return to Zeff at step 4 where the piece expresses them.
+
 ### 70. A note or a coded warning from a Zeff-written built-in
 
 Raised on 31 October 2026 at step 18 of release 0.5.0, widened at step 20: `skewness` and `kurtosis`, written in Zeff, give `NA` for too few values with a warning that the owner's answer to question 5 numbers W0205, and `warn(message)` carries no code, so the warning prints the same under a result (a warning under a result shows no code, #45) but carries no code in `--format json`. `drop_missing` reports the rows it dropped in a note that names the variables, `note: 228 rows with NA in educ or exper dropped`. A body written in Zeff can print, `warn` and `error`, but `warn` prints a warning where section 4.1 asks for a note, and a `Var` has no text form, so the variables' names cannot be written into the message. The function was planned in Zeff and is written in Rust at 0.5.0, its `layer` corrected (logged).
@@ -920,6 +929,8 @@ Raised on 31 October 2026 at step 18 of release 0.5.0, widened at step 20: `skew
 
 *Recommendation.* A, at 0.7.0 with #68 and #69; the catalogue's `layer` returns to Zeff for row 121 then.
 
+*Decided 6 November 2026, as recommended (option A).* `note(message)`, `code:` on `warn` and `note`, and `name_of(v)` are built at step 3, their catalogue rows added there; `drop_missing`, `skewness` with W0205 and `summary` on `table` (#72) follow at step 4.
+
 ### 71. The fitted design through the result interface
 
 Raised on 31 October 2026 at step 21 of release 0.5.0. `vif` regresses each column of the design a fit used on the other columns; a script has the fit's estimates, variances, residuals, fitted values and leverages through the result interface (section 8.1, rule 5) but not the design, so the function was planned in Zeff and is written in Rust at 0.5.0 on the Gram matrix the fit now keeps, its `layer` corrected (logged). Later diagnostics in Zeff (partial residual plots, added-variable plots, leverage against the regressors) meet the same wall.
@@ -930,6 +941,8 @@ Raised on 31 October 2026 at step 21 of release 0.5.0. `vif` regresses each colu
 | B. Keep the Gram matrix and write such diagnostics in Rust | Nothing stored beyond k × k numbers | Every design diagnostic stays Rust |
 
 *Recommendation.* A, at 0.7.0 with the plot grammar, which needs the design for its result plots; the catalogue's `layer` returns to Zeff for row 248 then.
+
+*Decided 6 November 2026, as recommended (option A).* `design()` is built with the result plots at step 30, its catalogue row added there; `vif` returns to Zeff in the same step.
 
 ### 72. A table constructor for Zeff-written functions
 
@@ -991,6 +1004,8 @@ Raised on 1 November 2026 from the owner's request for tracebacks and step debug
 
 *Recommendation.* A, the traceback with the language server at 0.7.0 and the inspector and **Run to here** at the 0.2 alpha; B rejected. Deadline: 0.7.0.
 
+*Decided 6 November 2026, as recommended (option A).* The traceback through module functions is built with the engine worker at step 33; **Run to here** and the loop inspector belong to Zemp's 0.2 alpha.
+
 ### 77. Schema-aware completion and extract function
 
 Raised on 1 November 2026 from the owner's request for deeper code intelligence. The language server's table (Engine and Project Specification, section 10) has completion, signature help, hover, diagnostics and formatting at 1.0, and quick fixes, navigation, rename and inlay hints at 1.1. Two things matter more than the rest in this language. The schema pass of 0.6.0 gives the checker the columns of every frame at every point in a chain, so completion can offer them; and functions in `functions/` are how a project grows, so turning a block of a script into one should be a command.
@@ -1001,6 +1016,8 @@ Raised on 1 November 2026 from the owner's request for deeper code intelligence.
 | B. The language server's table as written | Nothing to add | The two features that fit the language best are left to third-party editors, which cannot build them |
 
 *Recommendation.* A, completion at 0.7.0 and extraction at 1.1, each a row of the language server's table when adopted. Deadline: 0.7.0.
+
+*Decided 6 November 2026, as recommended (option A).* Completion from the schema pass is built at step 35; extract function stays at 1.1.
 
 ### 78. Git history, the diff of a script and a diff of results
 
@@ -1024,6 +1041,8 @@ Raised on 2 November 2026 at step 10 of release 0.6.0. `quantile_group(x, n:, ty
 | C. Keep such functions in Rust | Nothing to build | Every Zeff-written function over a list of numbers stays Rust |
 
 *Recommendation.* B, at 0.7.0 with #68 to #70, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for row 131 then. Deadline: 0.7.0.
+
+*Decided 6 November 2026, as recommended (option B).* A function literal in an expression, with `map`, `filter` and `reduce` in `core`, is built at step 3b, the grammar and the three catalogue rows added there; `quantile_group` returns to Zeff at step 4.
 
 ---
 
@@ -1052,6 +1071,8 @@ Two choices are the owner's as a statistician: whether the adjusted p-value is p
 | C. Not adopted | Nothing to build | The loop and the detached p-values stay, and section 13's brevity comparison is made with them |
 
 *Recommendation.* Adopt the rule, and write its text, with the points above settled, before release 0.7.0 opens. Build it at 0.7.0 only if that release's checklist shows room once its own row is planned (option A); otherwise in the first release that has (option B), the word kept under #84. Deadline: 0.7.0 for the choice between A and B; 0.11.0 for the word.
+
+*Decided 6 November 2026 (option B).* The rule is adopted and is not built at 0.7.0, the largest release of the plan: the tests ship in their one-variable forms, and `each` is built in the first later release with room. Its text is written then, with the points listed above and the owner's two statistical choices (the adjusted p-value by default; each test's own complete rows). The word is kept under #84.
 
 ### 81. Model sets: `nested` and `each` terms in a formula, `RegFits`, and one frame of estimates for a set
 
@@ -1104,6 +1125,8 @@ Raised on 5 November 2026 from the owner's proposal. Section 3.1 ("Definitions")
 
 *Recommendation.* A, a correction of the text with no change to the engine. Deadline: 0.7.0.
 
+*Decided 6 November 2026, as recommended (option A).* The row "Words and types" of section 3.7 is corrected (logged in `docs/spec_changes.md`). Checking the engine for the correction showed what a variable name in such a record is: a bare name that is neither a binding nor a word is refused (Z0101), since a record literal has no frame to look a variable up in; a record carries a variable only through a binding that holds a `Var`, such as the variable of a loop over `vars(...)`. The example of section 3.2, `{ se: robust, cluster: firm }`, therefore reads as a record only where `firm` is such a binding; whether a variable should be writable in an option record is #87.
+
 ### 84. Reserving `each` and `peek` before `core` freezes
 
 Raised on 5 November 2026 while the owner's proposal was checked. `core` freezes at 1.0 (Engine and Project Specification, section 8.1, rule 1) and a `let` cannot reuse a `core` name (section 3.6), so a word added to `core` after 1.0 breaks every 1.x script that binds it. #80 and #81 need `each` as a `core` name. The proposal's `.peek()` (its item L1: print the receiver through the display interface and pass it on unchanged, so that a chain can be looked into without being broken) would be a `core` name too; it is not among the items the owner adopted on 5 November. Section 3.6 already keeps a list of words "reserved for later use" (`type`, `while`, `match` and five more), so that a later release can give them meaning without a new edition.
@@ -1115,3 +1138,45 @@ Raised on 5 November 2026 while the owner's proposal was checked. `core` freezes
 | C. Neither: a feature that misses 1.0 takes another spelling or waits for an edition | Nothing to do now | `each` is the word both #80 and #81 are designed around |
 
 *Recommendation.* B, as the fallback at 0.11.0 for whichever word has not shipped by then: `each` if #80 or #81 is adopted, `peek` only if the owner wants `.peek()`. Deadline: 0.11.0.
+
+---
+
+## Raised at the opening of release 0.7.0
+
+Added 6 November 2026, from the planning of `docs/releases/0.7.0.md` and its first step.
+
+### 85. The Games–Howell comparison in `posthoc`
+
+Raised on 6 November 2026. Catalogue row 195 gives `fit.posthoc(method: tukey | bonferroni | holm = tukey)`, and `anova` is Welch's by default (row 171). Tukey's honest significant difference assumes equal variances, so after the default ANOVA the default comparison rests on an assumption the ANOVA did not make. At 0.7.0 the owner's ruling stands: `tukey` is Tukey's HSD on the pooled variance, as R's `TukeyHSD`, with a note that the ANOVA did not assume equal variances, and `bonferroni` and `holm` use pairwise Welch tests. The Games–Howell comparison is the unequal-variance counterpart of Tukey's (the studentized range of `dist.tukey` with Welch's degrees of freedom for each pair), and is what SPSS and the `rstatix` package of R offer beside it.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Add `games_howell` to `method:`, the default staying `tukey` | Completes the pair of defaults; needs no new distribution | A fourth word in a frozen list; one more reference comparison (`rstatix::games_howell_test`, a package the reference library does not hold) |
+| B. Add it and make it the default after a Welch ANOVA | The default comparison then matches the default ANOVA | The default would depend on an earlier argument, and R's and Stata's users expect Tukey |
+| C. Not added | Nothing to build | The note stays as the only guard |
+
+*Recommendation.* A, in the first release after 0.7.0 with room. Deadline: 0.9.0, so that the word is settled well before the names freeze.
+
+### 86. Folding, snippets and the statement ranges behind **Run** in the language server
+
+Raised on 6 November 2026. Section 12 of the Engine and Project Specification says 1.0 ships completion, signature help, hover, live diagnostics, formatting, highlighting, running and folding, with snippets in its table; the row of 0.7.0 in section 14 names completion, signature help, hover and live diagnostics, and no later row names the rest. Formatting through the server is `zeff fmt` and is built at 0.7.0 by the owner's word of 6 November. Folding, snippets and the ranges of the current statement or chain, which **Run** needs, have no release.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. At 0.8.0, with Zemp's alpha, which is the first interface to use them | Built when something reads them; 0.7.0 keeps its row | 0.8.0's row gains engine work it does not name |
+| B. At 0.7.0, with the rest of the server | The server is finished in one release | 0.7.0 is already the largest release of the plan |
+| C. At 1.0.0 | Nothing moves | Zemp's alpha and beta would run statements by ranges of their own |
+
+*Recommendation.* A. Deadline: 0.8.0.
+
+### 87. A variable name in an option record
+
+Raised on 6 November 2026, from the correction of section 3.7 under #83. Options can be named once and spread, `wages.reg(f, ..opts)`, and a word travels in the record (`{ se: robust }`). A variable does not: `let opts = { se: robust, cluster: firm }` is refused (Z0101), because a record literal stands outside any frame's method and has no frame to look `firm` up in (section 3.7), and `vars(firm)` is a `Vars`, which a `Var` parameter such as `cluster:` refuses (Z0401). Today a record carries a variable only through a binding that holds a `Var`, such as the variable of a loop over `vars(...)`. The most common option record of applied work, robust errors clustered by one variable, therefore cannot be written once and reused, and the example of section 3.2 shows exactly that record.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. A `Vars` of exactly one variable is accepted where a parameter takes a `Var`, directly or through a spread, so the record is written `{ se: robust, cluster: vars(firm) }` | Small; explicit; `vars(...)` is already how a variable is named outside a frame; a misspelt word in a record is still caught where it is written | The record of section 3.2 gains `vars( )`; a `Vars` of two variables given to a `Var` needs its own message |
+| B. Inside a record literal, a bare name that is neither a binding nor a word is kept as a variable name and checked against the frame when the record is spread | The record reads as section 3.2 writes it | A misspelt word (`{ se: robst }`) is no longer caught where it is written but at the spread, as an unknown variable; the rule that a variable is named only inside a frame's method gains an exception |
+| C. Keep the refusal; correct the example of section 3.2 | Nothing to build | Options with a variable are repeated at every call |
+
+*Recommendation.* A. Deadline: 0.8.0, when instrumental-variable models bring more calls that share their options.
