@@ -158,11 +158,11 @@ survival = "^1.2"
 
 A system-wide install (`/opt/zeff`, `C:\Program Files\Zeff`) holds `bin/`, `engines/`, `packages/` and `datasets/` read-only for every user; `config.toml`, `secrets.toml`, `cache/` and `scratch/` always live in the user's own `~/.zeff`, which the launcher searches first.
 
-**Installing.** Host names are placeholders until the domain is decided (section 15).
+**Installing.** The host is `zeff-lang.dev` (decided 6 November 2026, open decision #31); the GitHub organisation in the channels below is a placeholder until it is decided (section 15).
 
 | Channel | Command | Notes |
 | --- | --- | --- |
-| Installer script | `curl -fsSL https://zeff.dev/install.sh \| sh`; `irm https://zeff.dev/install.ps1 \| iex` | Prints every step before taking it (`--dry-run` takes none); installs the launcher and the newest engine into `~/.zeff`, verifies checksums and signatures, adds one line to the shell's start-up file or the user's PATH on Windows, shown first and removed by `zeff self uninstall`; never asks for administrator rights; `--system` with `ZEFF_HOME` for a shared install |
+| Installer script | `curl -fsSL https://zeff-lang.dev/install.sh \| sh`; `irm https://zeff-lang.dev/install.ps1 \| iex` | Prints every step before taking it (`--dry-run` takes none); installs the launcher and the newest engine into `~/.zeff`, verifies checksums and signatures, adds one line to the shell's start-up file or the user's PATH on Windows, shown first and removed by `zeff self uninstall`; never asks for administrator rights; `--system` with `ZEFF_HOME` for a shared install |
 | Homebrew | `brew install zeff-lang/tap/zeff` | macOS and Linux; launcher only, engines on demand; completions and man page installed |
 | winget, Scoop | `winget install Zeff.Zeff`; `scoop install zeff` | Windows, per user |
 | Archive | `zeff-<version>-<target>.tar.zst` or `.zip`, with `SHA256SUMS` and its signature | Launcher and engine together; unpack anywhere and run `zeff self install` |
@@ -978,7 +978,7 @@ Everything above is the current design; these items still need a decision.
 - [ ] Bayesian estimation (1.10): which models come first, and whether priors are written in `model { }` blocks or as arguments
 - [ ] Code signing for the Zemp desktop app: pay for Apple and Windows signing, or ship unsigned builds with published checksums until a free open-source signing service accepts the project. Installation is from the command line only for now (17 October 2026): the command line and the apps installed by `zeff app install` or a package manager need neither for that route, and setup files, which do, are deferred until this is decided (section 2.1; Zemp Specification, section 17; zeff_open_decisions.md, #23 and #38)
 - [ ] A specification freeze while 0.1.0 to 0.3.0 are built, as the risk register's R12 recommends: the normative text changes only for bugs found while coding, and further design work is recorded as an open decision with a deadline release (zeff_open_decisions.md, #40); decide at 0.1.0
-- [ ] Names: the domain for the installer, documentation and registry hosts (`zeff.dev` or `zeff-lang.org`) and the GitHub organisation, needed before 0.9.0, when the launcher ships with the URL of its signed key list, and so well before the installer URL of 1.0.0 (zeff_open_decisions.md, #31)
+- [ ] Names: the domain for the installer, documentation and registry hosts (`zeff-lang.dev`, decided 6 November 2026; `zeff.dev` was found registered by others) and the GitHub organisation, needed before 0.9.0, when the launcher ships with the URL of its signed key list, and so well before the installer URL of 1.0.0 (zeff_open_decisions.md, #31)
 
 **Decided on 15 and 16 October 2026**
 

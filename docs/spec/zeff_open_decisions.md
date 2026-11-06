@@ -42,6 +42,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (6 November 2026, at the opening of release 0.7.0).** The owner said "go" to the checklist of `docs/releases/0.7.0.md` and took its eight questions as recommended. Decided: #68, #69, #70 and #79 (option B: `map`, `filter` and `reduce` over a function value), built at steps 3 and 3b; #71, built with the result plots at step 30; #76 (option A: the traceback at 0.7.0, the inspector and **Run to here** with Zemp's alpha); #77 (option A: completion from the schema pass at 0.7.0, extract function at 1.1); #80 (option B: the rule adopted, built in the first later release with room, its text written then with the owner's two statistical choices; the word kept under #84); #83 (option A, the row of section 3.7 corrected). The adopted pieces bring six names (`note`, `name_of`, `map`, `filter` and `reduce` in `core`, `design` in `results`); their catalogue rows and the counts of both volumes follow in the steps that build them. #24 stays open: its two-week trial is run in a Zemp session during this release and the decision taken before the close. #73's trial runs as a tool-only step beside the plot renderer (step 22b), its decision due at 0.8.0. Raised at this opening: #85 (the Games–Howell comparison in `posthoc`), #86 (the release of folding, snippets and the statement ranges behind **Run**; formatting through the language server is built at 0.7.0) and #87 (a variable name in an option record, found while correcting section 3.7).
 
+**Status (6 November 2026, later the same day).** #31's domain was decided by the owner: `zeff-lang.dev`. A look-up in the public DNS that day found `zeff.dev`, `zeff.org`, `zeff.com`, `zeff.io` and `zeff.app` registered by others, and no record for `zeff-lang.dev`, `zeff-lang.org`, `zeff-lang.io` or `zefflang.org`; the GitHub names `zeff-lang` and `zefflang` were free. The organisation stays open, due before 0.9.0, with `zeff-lang` recommended; the installer line of section 2.1 of the Engine and Project Specification now names the host.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -76,7 +78,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 28 | AI assistance model | User's own key to a remote model, a local model as the private option, both off by default; whether Zemp also sells metered access of its own (the business model's Pro tier) is part of the same decision | Zemp 1.11 |
 | 29 | Zemp version coupling | Follow Zeff's minors until 1.11 | 1.0 |
 | 30 | Performance targets | Put the two stress cases in the benchmark suite now; set targets at first measurement, tighten each release | decided 23 October 2026 |
-| 31 | Names: domain and GitHub organisation | `zeff-lang.org` with the `zeff-lang` organisation; the installer URL and signing-key list depend on it | before 0.9.0 |
+| 31 | Names: domain and GitHub organisation | The domain `zeff-lang.dev` (decided 6 November 2026); the organisation `zeff-lang` as recommended, still to be confirmed | organisation before 0.9.0 |
 | 32 | A file of several frames and fitted results | A zip of Arrow files and JSON result descriptions, at 1.5 with the heavy models; never a binary format of Zeff's own | 1.5 |
 | 33 | Interface revamp: density, icons, desktop menus, tablet and phone (the dark theme was decided on 17 October 2026) | As zemp_gui_revamp.md section 4 recommends for the four: one density with a larger-type setting; no icons; native menus mirroring the palette; no tablet or phone in 1.0 | Zemp 0.2 alpha |
 | 34 | Long-term-support releases for institutions | None: exact pins and engines downloadable for ever already keep results stable; sell support, not a release line | Zemp Institution tier |
@@ -413,6 +415,8 @@ The installer script, the documentation, the registry index (#9) and the signed 
 | C. GitHub Pages only (`zeff-lang.github.io`) | No cost, no administration | A host name the project does not own; moving later breaks every installer line already published |
 
 *Recommendation.* B, registered now and pointed at GitHub Pages, so that nothing breaks if the hosting changes.
+
+*Domain decided 6 November 2026: `zeff-lang.dev`,* option A's zone with option B's name, since `zeff.dev` was found registered by others. The owner preferred `.dev` to `.org` and to `.io`: `.dev` is a generic zone that serves only HTTPS, which suits a host carrying the installer and the signed key list, while `.io` is the country code of the British Indian Ocean Territory, whose future is uncertain since the 2025 agreement to transfer the territory, a risk a key-list address that cannot move should not take. The name is registered by the owner and pointed at GitHub Pages, as the recommendation says, so that nothing breaks if the hosting changes; `zeff-lang.org` may be held later to forward to it. The organisation is still open, with `zeff-lang` recommended (free on GitHub on 6 November 2026), due before 0.9.0.
 
 ### 32. A file of several frames and fitted results
 

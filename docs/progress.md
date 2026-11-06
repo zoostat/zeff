@@ -149,3 +149,9 @@ Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` in
 **Next.** Step 2 `[engine]`: the warning pragma `// zeff: allow(W…)` and `--deny-warnings`.
 
 **For the owner to decide.** #24 before the close of 0.7.0, after its trial in a Zemp session. By 0.8.0: #73 to #75, #86 (folding, snippets and **Run** ranges) and #87 (a variable name in an option record). By 0.9.0: #85 (Games–Howell). The six figures of step 22 are to be read by eye.
+
+## 6 November 2026, the domain (open decision #31)
+
+**Done.** The owner chose `zeff-lang.dev`; the register, section 2.1's installer lines and the decisions log record it, logged in `docs/spec_changes.md`. Zeff 0.6.0 was installed on the owner's Mac from the tag with `cargo install` and passed `zeff selftest` (194 of 194).
+
+**For the owner to do.** Register `zeff-lang.dev` with automatic renewal, a registrar lock and two-step sign-in. **To decide** before 0.9.0: the GitHub organisation (`zeff-lang` recommended).
