@@ -175,3 +175,13 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 **Next.** Still step 24b `[engine]`: every scheduled job run again on the commit of the correction; the clean weekly records matched and any survivor the chance failures had covered resolved as at step 24a; then the figures recorded and the step ticked. Step 24c `[engine]` follows.
 
 **For the owner to decide.** Nothing.
+
+## 6 November 2026: step 24b done
+
+**Done.** Step 24b `[engine]`, on 19ea819 (the commit of the correction; the same engine as 80b026d). CI green on every target at the first attempt; the nightly, fuzz, coverage, weekly and benchmark jobs run by hand, all green, their figures recorded in `docs/decisions.md` for the notes. The clean weekly run (34 shards, a fixed seed; 4,136 mutants, 3,830 caught, 162 missed, 18 timed out) matches the records: every survivor is a recorded equivalent of 0.5.0 or of step 24a, every survivor resolved by a test at step 24a is caught, and the chance failures of the event property test had hidden no survivor without a record; one more timeout of the recorded kind (a loop of `effect_values` that its cap ends). The six samples read by eye, `zeff selftest` conformant on 194 of 194 cases; the bundle 1,653 kB compressed and the cold start 107 ms with `time` and `text` at start, both far inside R4's limits; `import` costs about one fit of the same panel, so open decision #51 stands (the chunked reader at 0.11.0).
+
+**Green.** Format, clippy with warnings denied, all 190 test programs here; CI and every scheduled job on 19ea819.
+
+**Next.** Step 24c `[engine]`: the documents and the report (the release notes, the known issues, the catalogue's status column, the reviews of the risk register and of the open decisions).
+
+**For the owner to decide.** Nothing.
