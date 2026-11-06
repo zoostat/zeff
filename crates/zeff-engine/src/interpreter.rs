@@ -3,6 +3,7 @@
 //! not a `let` prints its value; warnings and notes print under the output they belong to; the
 //! first error stops the run (Language Reference, sections 3.1, 3.7 and 10.2).
 
+use crate::pragmas::{Allowed, Allows};
 use crate::registry::{Bodies, ZeffBodies, ZeffBuiltin};
 use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, show, show_width};
@@ -43,6 +44,8 @@ pub struct Output {
     /// The columns each statement checked at run time produced (section 11, "from last run"),
     /// under the hash of the statement's text, for the schema cache.
     pub produced: Vec<(u64, Vec<(String, String)>)>,
+    /// The warnings a pragma silenced, in the order raised (Language Reference, section 11.1).
+    pub allowed: Vec<Allowed>,
 }
 
 /// One line of the memory record: a frame bound, with its own bytes and the parent bytes it
@@ -97,6 +100,12 @@ pub struct Interpreter<'a> {
     zeff: Option<&'a ZeffBodies>,
     /// Whether column expressions run as fused passes (section 8.3, point 10).
     fusion: bool,
+    /// The warnings the project's pragmas allow (section 11.1), and those silenced by the
+    /// statement being run, on their way to the output.
+    allows: Option<&'a Allows>,
+    allowed: Vec<Allowed>,
+    /// `--deny-warnings`: a warning no pragma allows stops the run as an error.
+    deny_warnings: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -157,6 +166,47 @@ impl<'a> Interpreter<'a> {
             sources: None,
             zeff: None,
             fusion: true,
+            allows: None,
+            allowed: Vec::new(),
+            deny_warnings: false,
+        }
+    }
+
+    /// The warnings the project's pragmas allow (section 11.1).
+    pub fn with_allows(mut self, allows: &'a Allows) -> Self {
+        self.allows = (!allows.is_empty()).then_some(allows);
+        self
+    }
+
+    /// `--deny-warnings`: the first warning that no pragma allows stops the run.
+    pub fn with_denied_warnings(mut self, deny: bool) -> Self {
+        self.deny_warnings = deny;
+        self
+    }
+
+    /// Take out of `messages`, from position `from` on, every warning that a pragma on the
+    /// statement beginning at `start` in the file being run allows, and record it. A pragma
+    /// covers whatever its statement runs, so this is called as each statement ends, at every
+    /// depth, on the messages raised since it began.
+    fn silence(&mut self, start: usize, from: usize, messages: &mut Vec<Diagnostic>) {
+        let Some(allows) = self.allows else {
+            return;
+        };
+        if from >= messages.len() || !allows.any_on(self.script, start) {
+            return;
+        }
+        let raised = messages.split_off(from);
+        for message in raised {
+            match allows
+                .on(self.script, start, &message.code)
+                .filter(|_| crate::pragmas::allowable(&message))
+            {
+                Some(allow) => {
+                    self.allowed
+                        .push(Allowed::new(allow, self.script, self.source, &message));
+                }
+                None => messages.push(message),
+            }
         }
     }
 
@@ -270,12 +320,33 @@ impl<'a> Interpreter<'a> {
             // The messages the statement's reads left behind (a data root's file that
             // changed, W0701) join the statement's own.
             messages.extend(self.files.take_messages());
+            self.silence(span.start, 0, &mut messages);
+            output.allowed.append(&mut self.allowed);
+            // `--deny-warnings` (section 11.1): a warning that no pragma allows is an error,
+            // and the run stops after the statement that raised it. A statement that failed
+            // stops the run with its own error.
+            let refused = self.deny_warnings
+                && result.is_ok()
+                && messages.iter().any(crate::pragmas::deniable);
             let mut statement_errors = String::new();
+            let mut first_refused: Option<Diagnostic> = None;
             for message in &messages {
-                statement_errors.push_str(&message.short(Some(line)));
+                if refused && crate::pragmas::deniable(message) {
+                    let error = crate::pragmas::denied(message);
+                    statement_errors.push_str(&error.short_coded(Some(line)));
+                    first_refused.get_or_insert_with(|| message.clone());
+                } else {
+                    statement_errors.push_str(&message.short(Some(line)));
+                }
             }
+            let result = match first_refused {
+                Some(warning) => Err(fail(warning)),
+                None => result,
+            };
             let failed = result.is_err();
-            if let Err(error) = &result {
+            if let Err(error) = &result
+                && !refused
+            {
                 // The script's source and the modules', so that an error inside a module
                 // function names its file and line.
                 let mut sources = zeff_diagnostics::Sources::new();
@@ -391,41 +462,70 @@ impl<'a> Interpreter<'a> {
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
         for statement in &block.statements {
-            match statement {
-                Statement::Let { binding, value, .. } => {
-                    let v = self.eval(value, printed, messages)?;
-                    self.bind(*binding, v);
-                }
-                Statement::Expr { value, .. } | Statement::Print { value, .. } => {
-                    self.eval(value, printed, messages)?;
-                }
-                Statement::For {
-                    binding,
-                    iter,
-                    body,
-                    ..
-                } => {
-                    self.run_for(*binding, iter, body, None, printed, messages)?;
-                }
-                Statement::Break { .. } => self.jump = Some(Jump::Break),
-                Statement::Continue { .. } => self.jump = Some(Jump::Continue),
-                Statement::Return { value, .. } => {
-                    let v = match value {
-                        Some(e) => self.eval(e, printed, messages)?,
-                        None => Value::Nothing,
-                    };
-                    self.jump = Some(Jump::Return(v));
-                }
-            }
+            // The messages the statement raises, for the pragma that may stand on it.
+            let raised_from = messages.len();
+            let start = match statement {
+                Statement::Let { span, .. }
+                | Statement::Print { span, .. }
+                | Statement::Expr { span, .. }
+                | Statement::For { span, .. }
+                | Statement::Break { span }
+                | Statement::Continue { span }
+                | Statement::Return { span, .. } => span.start,
+            };
+            let ran = self.run_in_block(statement, printed, messages);
+            self.silence(start, raised_from, messages);
+            ran?;
             // A jump leaves the block at once; the loop it belongs to takes it.
             if self.jump.is_some() {
                 return Ok(Value::Nothing);
             }
         }
         match &block.tail {
-            Some(tail) => self.eval(tail, printed, messages),
+            Some(tail) => {
+                let raised_from = messages.len();
+                let value = self.eval(tail, printed, messages);
+                self.silence(tail.span.start, raised_from, messages);
+                value
+            }
             None => Ok(Value::Nothing),
         }
+    }
+
+    /// One statement of a block that is not its value.
+    fn run_in_block(
+        &mut self,
+        statement: &Statement,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<(), Fail> {
+        match statement {
+            Statement::Let { binding, value, .. } => {
+                let v = self.eval(value, printed, messages)?;
+                self.bind(*binding, v);
+            }
+            Statement::Expr { value, .. } | Statement::Print { value, .. } => {
+                self.eval(value, printed, messages)?;
+            }
+            Statement::For {
+                binding,
+                iter,
+                body,
+                ..
+            } => {
+                self.run_for(*binding, iter, body, None, printed, messages)?;
+            }
+            Statement::Break { .. } => self.jump = Some(Jump::Break),
+            Statement::Continue { .. } => self.jump = Some(Jump::Continue),
+            Statement::Return { value, .. } => {
+                let v = match value {
+                    Some(e) => self.eval(e, printed, messages)?,
+                    None => Value::Nothing,
+                };
+                self.jump = Some(Jump::Return(v));
+            }
+        }
+        Ok(())
     }
 
     /// What a `for` runs over (section 5.2): the items of a list, or each variable of a `Vars`
@@ -1201,7 +1301,11 @@ impl<'a> Interpreter<'a> {
             }
             self.bind(param.binding, value);
         }
-        let result = self.eval_block(&f.body, printed, messages)?;
+        // A pragma above the `fn` covers the whole body.
+        let raised_from = messages.len();
+        let result = self.eval_block(&f.body, printed, messages);
+        self.silence(f.span.start, raised_from, messages);
+        let result = result?;
         match self.jump.take() {
             Some(Jump::Return(value)) => Ok(value),
             Some(_) => Err(fail(

@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/pragmas.rs
+expression: render(text)
+---
+error[Z0317]: this pragma belongs to no statement
+ --> scripts/main.zeff:2:17
+  |
+2 |     .add(a = 1) // zeff: allow(W0204) zeros are real
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no statement begins on this line
+  |
+  = help: write the pragma on its own line above the statement, or at the end of the statement's first line

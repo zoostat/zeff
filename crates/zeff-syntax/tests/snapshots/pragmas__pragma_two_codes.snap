@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/pragmas.rs
+expression: render(text)
+---
+error[Z0317]: a pragma allows one warning
+ --> scripts/main.zeff:1:16
+  |
+1 | // zeff: allow(W0203, W0204) both
+  |                ^^^^^^^^^^^^ more than one code
+  |
+  = help: write one pragma line for each code, each with its reason

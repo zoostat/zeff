@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/pragmas.rs
+expression: render(text)
+---
+error[Z0317]: `Z0101` is an error, and a pragma allows warnings only
+ --> scripts/main.zeff:1:26
+  |
+1 | let a = 1 // zeff: allow(Z0101) it is fine
+  |                          ^^^^^ an error's code
+  |
+  = help: an error has to be put right; `zeff help Z0101` explains it

@@ -1,0 +1,10 @@
+---
+source: crates/zeff-engine/tests/pragmas.rs
+expression: outcome.output.stderr
+---
+error[W0204]: log of zero gave -Inf in 1 row (line 2)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+  = help: `--deny-warnings` makes every warning an error; to keep this one deliberately, write `// zeff: allow(W0204) reason` above the statement
+error[W0205]: log of a negative number gave NA in 1 row (line 2)
+  = help: a negative number has no real logarithm; `where(x > 0)` keeps the rows that have one
+  = help: `--deny-warnings` makes every warning an error; to keep this one deliberately, write `// zeff: allow(W0205) reason` above the statement

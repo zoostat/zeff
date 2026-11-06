@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/pragmas.rs
+expression: render(text)
+---
+error[Z0317]: `skipped` is not a warning's code
+ --> scripts/main.zeff:1:16
+  |
+1 | // zeff: allow(skipped) it is fine
+  |                ^^^^^^^ not a code
+  |
+  = help: a warning's code is `W` and four digits, as in `W0203`

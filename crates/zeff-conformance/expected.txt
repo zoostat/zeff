@@ -163,6 +163,10 @@ control/for_draws/stdout fdb841f515d6951d
 control/for_draws/stderr cbf29ce484222325
 control/dates/stdout e38631ee06f041b2
 control/dates/stderr 47d898bc828ad06f
+control/pragma/stdout bf41e16d523c5fe2
+control/pragma/stderr 8c5251ab20aa4b10
+control/pragma_denied/stdout 0ed6d42d1957e735
+control/pragma_denied/stderr 4cd8ad2c725305c0
 time/parts/stdout 9d8407bf30ba8484
 time/parts/stderr 60aa12d44055dffa
 time/arithmetic/stdout 8e2948fe3d0e9221

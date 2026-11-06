@@ -1,0 +1,12 @@
+---
+source: crates/zeff-engine/tests/pragmas.rs
+expression: outcome.output.stderr
+---
+error[W0303]: `double` has no summary line
+ --> scripts/main.zeff:1:4
+  |
+1 | fn double(x: Float) -> Float { x * 2 }
+  |    ^^^^^^ a function without `///` text
+  |
+  = help: write one line above it, `/// What the function gives.`; the line is its help, its hover text and the title of its dialog
+  = help: `--deny-warnings` makes every warning an error; to keep this one deliberately, write `// zeff: allow(W0303) reason` above the statement

@@ -10,6 +10,7 @@
 
 use crate::ast::*;
 use crate::lexer::{Pragma, lex};
+use crate::pragma::Allow;
 use crate::token::{Keyword, Token, TokenKind as K};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span};
 
@@ -25,6 +26,10 @@ pub struct Parsed {
     /// Everything found by the lexer and the parser, in the order of the text.
     pub diagnostics: Diagnostics,
     pub pragmas: Vec<Pragma>,
+    /// The warnings the file's pragmas allow, each with the statement it belongs to (section
+    /// 11.1); a pragma that cannot be read or belongs to no statement is among the diagnostics
+    /// (Z0317).
+    pub allows: Vec<Allow>,
 }
 
 /// Parse `text`, the contents of the project file named `file`.
@@ -36,6 +41,14 @@ pub fn parse(file: &str, text: &str) -> Parsed {
 
     let mut all = lexed.diagnostics.into_vec();
     all.extend(parser.diags.into_vec());
+    // A pragma is placed against the statements the parser found; where the file did not
+    // parse, a statement may be missing from them, and only what the pragma says is checked.
+    let parsed_whole = !all
+        .iter()
+        .any(|d| d.severity == zeff_diagnostics::Severity::Error);
+    let (allows, pragma_problems) =
+        crate::pragma::resolve(file, text, &lexed.pragmas, &parser.statements, parsed_whole);
+    all.extend(pragma_problems);
     all.sort_by_key(|d| d.labels.first().map_or(usize::MAX, |l| l.span.start));
     let mut diagnostics = Diagnostics::new();
     for diagnostic in all {
@@ -45,6 +58,7 @@ pub fn parse(file: &str, text: &str) -> Parsed {
         script,
         diagnostics,
         pragmas: lexed.pragmas,
+        allows,
     }
 }
 
@@ -67,6 +81,9 @@ struct Parser<'a> {
     pos: usize,
     diags: Diagnostics,
     lexer_found_unclosed: bool,
+    /// The span of every `use`, `fn` and statement, at every depth, in the order parsed: what a
+    /// pragma can belong to (section 11.1).
+    statements: Vec<Span>,
     depth: usize,
     functions: usize,
     loops: usize,
@@ -220,6 +237,7 @@ impl<'a> Parser<'a> {
             pos: 0,
             diags: Diagnostics::new(),
             lexer_found_unclosed,
+            statements: Vec::new(),
             depth: 0,
             functions: 0,
             loops: 0,
@@ -477,6 +495,11 @@ impl<'a> Parser<'a> {
             let saved = self.depth;
             match self.item() {
                 Ok(item) => {
+                    self.statements.push(match &item {
+                        Item::Use(u) => u.span,
+                        Item::Fn(f) => f.span,
+                        Item::Statement(s) => s.span,
+                    });
                     items.push(item);
                     if self.end_of_statement(false).is_err() {
                         self.synchronise(false);
@@ -757,6 +780,7 @@ impl<'a> Parser<'a> {
             let saved = self.depth;
             match self.statement(false) {
                 Ok(statement) => {
+                    self.statements.push(statement.span);
                     statements.push(statement);
                     if self.end_of_statement(true).is_err() {
                         self.synchronise(true);

@@ -1326,3 +1326,104 @@ fn zeff_check_carries_schemas_through_verbs_and_the_last_run() {
     let o = zeff(&project, &["run"]);
     assert!(!err(&o).contains("has changed"), "{}", err(&o));
 }
+
+/// Pragmas and `--deny-warnings` through the program (Language Reference, section 11.1; the
+/// exit codes of section 3.8): a warning refused is exit code 3 from `run` and from `check`, a
+/// warning allowed passes and is listed by `--verbose` with its reason, and the option applies
+/// to those two commands.
+#[test]
+fn deny_warnings_and_pragmas_through_the_program() {
+    let (_dir, project) = demo();
+    let main = project.join("scripts/main.zeff");
+
+    // A warning of the run.
+    std::fs::write(
+        &main,
+        "print(\"before\")\nlet a = log(0)\nprint(\"after\")\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "before\nafter\n");
+    assert!(err(&o).starts_with("warning: log of zero"), "{}", err(&o));
+    let o = zeff(&project, &["run", "--deny-warnings"]);
+    assert_eq!(code(&o), 3, "{}", err(&o));
+    assert_eq!(out(&o), "before\n");
+    insta::assert_snapshot!("run_deny_warnings", err(&o));
+    // The check finds nothing: the warning is the data's.
+    let o = zeff(&project, &["check", "--deny-warnings"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+
+    // Allowed, the run passes, and `--verbose` lists what was silenced.
+    std::fs::write(
+        &main,
+        "print(\"before\")\n// zeff: allow(W0204) a zero is a worker in the first year\nlet a = log(0)\nprint(\"after\")\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["--deny-warnings", "run", "-v"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "before\nafter\n");
+    assert!(
+        err(&o).contains(
+            "allowed: W0204 at line 3, 1 warning: a zero is a worker in the first year\n"
+        ),
+        "{}",
+        err(&o)
+    );
+    assert!(
+        !err(&o).lines().any(|l| l.starts_with("warning")),
+        "{}",
+        err(&o)
+    );
+
+    // A warning of the check: reported as an error, in the text and in the records.
+    std::fs::write(&main, "fn double(x: Float) -> Float { x * 2 }\ndouble(2)\n").unwrap();
+    let o = zeff(&project, &["check"]);
+    assert_eq!(code(&o), 0);
+    assert!(err(&o).contains("0 errors, 1 warning"), "{}", err(&o));
+    let o = zeff(&project, &["check", "--deny-warnings"]);
+    assert_eq!(code(&o), 3);
+    insta::assert_snapshot!("check_deny_warnings", err(&o));
+    let o = zeff(&project, &["check", "--deny-warnings", "--format", "json"]);
+    assert_eq!(code(&o), 3);
+    assert!(
+        out(&o).contains("{\"code\": \"W0303\", \"severity\": \"error\""),
+        "{}",
+        out(&o)
+    );
+    // An error of the script beside it keeps exit code 1.
+    std::fs::write(
+        &main,
+        "fn double(x: Float) -> Float { x * 2 }\ndouble(nothing)\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["check", "--deny-warnings"]);
+    assert_eq!(code(&o), 1);
+    assert!(err(&o).contains("2 errors, 0 warnings"), "{}", err(&o));
+
+    // A pragma that cannot be applied, and its page.
+    std::fs::write(&main, "let a = log(0) // zeff: allow(W0204)\n").unwrap();
+    let o = zeff(&project, &["run"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).starts_with("error[Z0317]: the pragma gives no reason"),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(&project, &["help", "Z0317"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(
+        out(&o).starts_with("Z0317 — a pragma that cannot be applied"),
+        "{}",
+        out(&o)
+    );
+
+    // The option belongs to `run` and `check`.
+    let o = zeff(&project, &["--deny-warnings", "eval", "1 + 1"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("`--deny-warnings` applies to `zeff run` and `zeff check`"),
+        "{}",
+        err(&o)
+    );
+}

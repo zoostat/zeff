@@ -1131,6 +1131,10 @@ fn control_cases() -> Vec<Line> {
             "dates",
             "let d = to(\"2026-10-16\", Date)\nd\nto(\"16/10/2026\", Date(\"%d/%m/%Y\"))\nto(\"2026-02-30\", Date)\nto(\"2026-10-16T09:30:00+02:00\", DateTime)\nd - to(\"1970-01-01\", Date)\nd > to(\"2026-01-01\", Date)\nto(d, DateTime)\nto(to(\"2026-10-16T23:59:59\", DateTime), Date)\nlet f = frame(id = [1, 2, 3], sold = [d, to(\"2024-02-29\", Date), to(\"1999-12-31\", Date)])\nf.where(sold > to(\"2000-01-01\", Date)).add(days = sold - to(\"2000-01-01\", Date))\nf.add(era = case { sold < to(\"2000-01-01\", Date) => \"old\", _ => \"new\" }, d2 = case { id == 1 => to(\"1970-01-01\", Date), _ => sold })\nf.recode(sold, [to(\"1999-12-31\", Date) => to(\"2000-01-01\", Date)]).update(sold = to(\"2030-01-01\", Date), where: id == 2).sort(sold)\nsorted([d, to(\"0001-01-01\", Date), to(\"9999-12-31\", Date)])\nmin(d, to(\"2024-02-29\", Date))\nn_distinct(f[\"sold\"])\n",
         ),
+        // Deliberate exceptions (release 0.7.0, step 2): a pragma above a statement, at the end
+        // of its first line, in a loop and in a function silences its warning there and nowhere
+        // else; the statements without one keep theirs.
+        ("pragma", PRAGMA_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1144,8 +1148,29 @@ fn control_cases() -> Vec<Line> {
             &outcome.output.stderr,
         ));
     }
+    // The same script under `--deny-warnings`: it stops at the first warning that no pragma
+    // allows, and what it printed and said up to there is digested.
+    let denied = zeff_engine::run::run_script_with(
+        &fs,
+        &project,
+        "scripts/main.zeff",
+        PRAGMA_SCRIPT,
+        &zeff_engine::run::RunOptions {
+            deny_warnings: true,
+            ..zeff_engine::run::RunOptions::default()
+        },
+    );
+    lines.push(text("control/pragma_denied/stdout", &denied.output.stdout));
+    lines.push(text(
+        "control/pragma_denied/stderr",
+        &format!("{}exit {}\n", denied.output.stderr, denied.exit_code),
+    ));
     lines
 }
+
+/// The script of the `pragma` cases: the logarithm of experience, which is zero for the workers
+/// in their first year (W0204), allowed in four places and left to warn in two.
+const PRAGMA_SCRIPT: &str = "let w = dataset(wages)\n// zeff: allow(W0204) a worker in the first year has no experience\nlet a = w.add(l = log(exper))\na.summary([l])\nlet b = w.add(l = log(exper)) // zeff: allow(W0204) the same, at the end of the line\nb.n_rows()\nfor i in [1, 2] {\n    // zeff: allow(W0204) in each pass\n    print(w.add(l = log(exper) * i).n_rows())\n}\n/// The rows of a frame after its logarithm is taken.\nfn logged(f: Frame) -> Int {\n    // zeff: allow(W0204) inside a function\n    f.add(l = log(exper)).n_rows()\n}\nlogged(w)\nprint(\"allowed so far\")\nlet c = w.add(l = log(exper))\nc.n_rows()\nlet d = w.add(l = log(exper - 1))\n";
 
 /// The `time` package (release 0.6.0, step 3): parsing with and without a format, an offset
 /// applied, and the six date parts on dates, on a time and on a column, so that the four targets

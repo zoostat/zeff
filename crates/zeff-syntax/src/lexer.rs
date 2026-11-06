@@ -10,12 +10,15 @@ use crate::token::{Keyword, Token, TokenKind};
 use zeff_diagnostics::{Diagnostic, Diagnostics, Span};
 
 /// A `// zeff: ...` comment (section 11.1). It is not in the token stream: the grammar does not
-/// see comments. The pragma checks arrive with release 0.7.0.
+/// see comments. What it says and the statement it belongs to are worked out after parsing
+/// (`crate::pragma`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pragma {
     pub span: Span,
     /// The text after `zeff:`, trimmed.
     pub text: String,
+    /// Whether the comment stands on a line of its own, with no token before it.
+    pub alone: bool,
 }
 
 /// The result of lexing one file.
@@ -303,6 +306,7 @@ impl<'a> Lexer<'a> {
             self.pragmas.push(Pragma {
                 span: Span::new(start, self.pos),
                 text: text.trim().to_string(),
+                alone: !self.line_has_tokens,
             });
         }
     }

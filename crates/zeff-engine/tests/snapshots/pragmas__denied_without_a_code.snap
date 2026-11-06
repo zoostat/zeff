@@ -1,0 +1,6 @@
+---
+source: crates/zeff-engine/tests/pragmas.rs
+expression: outcome.output.stderr
+---
+error: check the units (line 1)
+  = help: `--deny-warnings` makes every warning an error

@@ -3,10 +3,12 @@
 pub mod ast;
 mod lexer;
 mod parser;
+mod pragma;
 pub mod sexp;
 mod token;
 pub mod written;
 
 pub use lexer::{Lexed, Pragma, lex};
 pub use parser::{Parsed, parse};
+pub use pragma::Allow;
 pub use token::{Keyword, Token, TokenKind};

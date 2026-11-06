@@ -207,6 +207,24 @@ impl Diagnostic {
         out
     }
 
+    /// The short form with the code shown, as an error prints: `error[W0201]: 12 rows gave -Inf
+    /// from log(sales) (line 9)`, then `= help:` lines. A message without a code prints as
+    /// [`Diagnostic::short`] does.
+    pub fn short_coded(&self, line: Option<u32>) -> String {
+        if self.code.is_empty() {
+            return self.short(line);
+        }
+        let mut out = format!("{}[{}]: {}", self.severity.word(), self.code, self.message);
+        if let Some(line) = line {
+            out.push_str(&format!(" (line {line})"));
+        }
+        out.push('\n');
+        for help in &self.help {
+            out.push_str(&format!("  = help: {help}\n"));
+        }
+        out
+    }
+
     /// The record that leaves the engine: the same content with positions in place of byte
     /// offsets. A span in a file `sources` does not hold gets the position 0:0.
     pub fn record(&self, sources: &Sources) -> Record {

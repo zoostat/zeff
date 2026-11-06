@@ -155,3 +155,13 @@ Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` in
 **Done.** The owner chose `zeff-lang.dev`; the register, section 2.1's installer lines and the decisions log record it, logged in `docs/spec_changes.md`. Zeff 0.6.0 was installed on the owner's Mac from the tag with `cargo install` and passed `zeff selftest` (194 of 194).
 
 **For the owner to do.** Register `zeff-lang.dev` with automatic renewal, a registrar lock and two-step sign-in. **To decide** before 0.9.0: the GitHub organisation (`zeff-lang` recommended).
+
+## 6 November 2026, release 0.7.0, step 2 (the warning pragma)
+
+**Done.** `// zeff: allow(CODE) reason` silences one warning on one statement, above it or at the end of its first line, at the top of a script, in a loop, in a function and in a module, for the warnings of the check and of the run; every warning silenced is recorded with its reason and listed by `zeff run --verbose`. A pragma that cannot be applied is Z0317, with its explained page. `--deny-warnings` on `zeff run` and `zeff check` makes every warning that no pragma allows an error, exit code 3. The row of section 11.1 says what a misplaced pragma is (logged). Step 2b is added to the checklist: the code of a warning printed under a result (open decision #45).
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass locally; CI read after the push.
+
+**Next.** Step 2b `[engine]`: the code of a warning under a result, `warning[W0204]: …`.
+
+**For the owner to decide.** Nothing new. A ruling he may overturn: a pragma that silences nothing is passed over without a message.

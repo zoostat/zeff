@@ -14,6 +14,7 @@ pub mod liveness;
 pub mod manifest;
 pub mod modules;
 pub mod paths;
+pub mod pragmas;
 pub mod project;
 pub mod registry;
 pub mod run;

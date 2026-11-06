@@ -14,6 +14,8 @@ use zeff_ir::ModuleSource;
 pub struct Loaded {
     pub modules: Vec<ModuleSource>,
     pub diagnostics: Vec<Diagnostic>,
+    /// The warnings each module's pragmas allow (section 11.1), by file.
+    pub allows: Vec<(String, Vec<zeff_syntax::Allow>)>,
 }
 
 impl Loaded {
@@ -67,6 +69,10 @@ pub fn load(fs: &dyn FileSystem, project: &Project) -> Loaded {
         };
         let parsed = zeff_syntax::parse(&file, &text);
         loaded.diagnostics.extend(parsed.diagnostics.into_vec());
+        loaded
+            .diagnostics
+            .extend(crate::pragmas::unknown_codes(&file, &parsed.allows));
+        loaded.allows.push((file.clone(), parsed.allows));
         loaded.modules.push(ModuleSource {
             name: stem.to_string(),
             file,

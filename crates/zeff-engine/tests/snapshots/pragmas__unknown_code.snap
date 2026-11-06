@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/pragmas.rs
+expression: outcome.output.stderr
+---
+error[Z0317]: no warning has the code `W9999`
+ --> scripts/main.zeff:1:16
+  |
+1 | // zeff: allow(W9999) no such warning
+  |                ^^^^^ not a code Zeff raises
+  |
+  = help: copy the code from the warning itself; `zeff help W0203` explains a code

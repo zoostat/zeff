@@ -1,0 +1,11 @@
+---
+source: crates/zeff-syntax/tests/pragmas.rs
+expression: render(text)
+---
+error[Z0317]: the pragma gives no reason
+ --> scripts/main.zeff:1:1
+  |
+1 | // zeff: allow(W0203)
+  | ^^^^^^^^^^^^^^^^^^^^^ no reason after the code
+  |
+  = help: say after the code why the warning is expected, as in `// zeff: allow(W0203) "varies" coded as NA by design`

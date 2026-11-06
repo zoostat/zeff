@@ -45,6 +45,8 @@ Options:
                           colour in messages; `auto` means a terminal, and NO_COLOR is honoured
   --ascii                 rules and symbols in ASCII, for fonts without them
   --width <n>             the width frames and tables wrap at (default 118, at least 40)
+  --deny-warnings         for `run` and `check`: a warning that no `// zeff: allow(CODE) reason`
+                          pragma allows is an error (exit code 3)
   -q, --quiet             hide notes
   -v, --verbose           show timings and build details
 ";
@@ -82,7 +84,7 @@ const LATER: [&str; 13] = [
 ];
 
 /// Options the specification names that this release does not have yet.
-const LATER_OPTIONS: [&str; 12] = [
+const LATER_OPTIONS: [&str; 11] = [
     "--frozen",
     "--install",
     "-y",
@@ -91,7 +93,6 @@ const LATER_OPTIONS: [&str; 12] = [
     "--threads",
     "--fresh",
     "--replay",
-    "--deny-warnings",
     "--no-external",
     "--refresh",
     "--offline",
@@ -129,6 +130,8 @@ struct Settings {
     width: usize,
     quiet: bool,
     verbose: bool,
+    /// `--deny-warnings`: a warning that no pragma allows is an error (exit code 3).
+    deny_warnings: bool,
 }
 
 impl Default for Settings {
@@ -141,6 +144,7 @@ impl Default for Settings {
             width: RunOptions::default().width,
             quiet: false,
             verbose: false,
+            deny_warnings: false,
         }
     }
 }
@@ -219,6 +223,7 @@ fn take_options<'a>(words: &[&'a str]) -> Result<(Vec<&'a str>, Settings), Strin
             "--ascii" => settings.ascii = true,
             "-q" | "--quiet" => settings.quiet = true,
             "-v" | "--verbose" => settings.verbose = true,
+            "--deny-warnings" => settings.deny_warnings = true,
             "--help" | "-h" | "--version" | "-V" => rest.push(word),
             later if LATER_OPTIONS.contains(&later) => {
                 return Err(format!("`{later}` is not available in this release yet"));
@@ -354,6 +359,7 @@ impl Command<'_, '_> {
     fn run_options(&self) -> RunOptions {
         RunOptions {
             width: self.settings.width,
+            deny_warnings: self.settings.deny_warnings,
             ..RunOptions::default()
         }
     }
@@ -392,6 +398,12 @@ pub fn run(
         return usage_error(
             &mut err,
             "`--format json` applies to `zeff check`, `zeff version` and `zeff selftest` in this release",
+        );
+    }
+    if settings.deny_warnings && !matches!(words.first(), Some(&("run" | "check"))) {
+        return usage_error(
+            &mut err,
+            "`--deny-warnings` applies to `zeff run` and `zeff check` in this release",
         );
     }
     let cwd = match &settings.project {
@@ -806,6 +818,30 @@ fn run_command(
                 }
             }
         }
+        // The warnings a pragma silenced (Language Reference, section 11.1), by statement.
+        let mut silenced: Vec<(&zeff_engine::pragmas::Allowed, usize)> = Vec::new();
+        for allowed in &outcome.output.allowed {
+            match silenced.iter_mut().find(|(seen, _)| {
+                (&seen.code, &seen.file, seen.line) == (&allowed.code, &allowed.file, allowed.line)
+            }) {
+                Some((_, count)) => *count += 1,
+                None => silenced.push((allowed, 1)),
+            }
+        }
+        for (allowed, count) in silenced {
+            let place = if allowed.file == shown {
+                format!("line {}", allowed.line)
+            } else {
+                format!("{}:{}", allowed.file, allowed.line)
+            };
+            let _ = writeln!(
+                err,
+                "allowed: {} at {place}, {count} {}: {}",
+                allowed.code,
+                if count == 1 { "warning" } else { "warnings" },
+                allowed.reason
+            );
+        }
         let n = outcome.output.statements.len();
         let _ = writeln!(
             err,
@@ -820,7 +856,9 @@ fn run_command(
 /// `zeff check [script]`: parse and check a script against the registry, report every problem,
 /// and exit 0 when there is none, 1 otherwise (Language Reference, section 3.8, "Exit codes").
 /// With `--format json` the problems go to standard output as one JSON array of records, one per
-/// line, and nothing is said on standard error; the exit code is the same.
+/// line, and nothing is said on standard error; the exit code is the same. With
+/// `--deny-warnings` a warning that no pragma allows is reported as an error, and the exit code
+/// is 3 when such warnings are the only errors (section 11.1).
 fn check_command(
     command: &Command<'_, '_>,
     script: Option<&str>,
@@ -842,27 +880,46 @@ fn check_command(
     for module in in_project.module_sources {
         sources.add(module);
     }
-    let checked = in_project.checked;
-    let (mut errors, mut warnings) = (0usize, 0usize);
-    for diagnostic in checked.diagnostics.iter() {
+    let deny = command.settings.deny_warnings;
+    let (mut errors, mut warnings, mut refused) = (0usize, 0usize, 0usize);
+    let diagnostics: Vec<Diagnostic> = in_project
+        .checked
+        .diagnostics
+        .iter()
+        .map(|diagnostic| {
+            if deny && zeff_engine::pragmas::deniable(diagnostic) {
+                refused += 1;
+                zeff_engine::pragmas::denied(diagnostic)
+            } else {
+                diagnostic.clone()
+            }
+        })
+        .collect();
+    for diagnostic in &diagnostics {
         match diagnostic.severity {
             Severity::Error => errors += 1,
             Severity::Warning => warnings += 1,
             Severity::Note => {}
         }
     }
+    // 1 for an error of the script; 3 when the only errors are warnings refused.
+    let exit_code = match (errors, refused) {
+        (0, _) => 0,
+        (e, r) if e == r => 3,
+        _ => 1,
+    };
     if command.settings.format == Format::Json {
         let _ = writeln!(out, "[");
-        let last = checked.diagnostics.len().saturating_sub(1);
-        for (i, diagnostic) in checked.diagnostics.iter().enumerate() {
+        let last = diagnostics.len().saturating_sub(1);
+        for (i, diagnostic) in diagnostics.iter().enumerate() {
             let comma = if i < last { "," } else { "" };
             let _ = writeln!(out, "  {}{comma}", diagnostic.to_json(&sources));
         }
         let _ = writeln!(out, "]");
-        return if errors > 0 { 1 } else { 0 };
+        return exit_code;
     }
     let mut first = true;
-    for diagnostic in checked.diagnostics.iter() {
+    for diagnostic in diagnostics.iter() {
         if command.settings.quiet && diagnostic.severity == Severity::Note {
             continue;
         }
@@ -892,7 +949,7 @@ fn check_command(
             plural(warnings, "warning")
         );
     }
-    if errors > 0 { 1 } else { 0 }
+    exit_code
 }
 
 fn internal_error(err: &mut dyn Write, errors: Vec<zeff_registry::RegistryError>) -> i32 {

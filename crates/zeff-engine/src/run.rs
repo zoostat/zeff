@@ -5,6 +5,7 @@
 use crate::fs::FileSystem;
 use crate::interpreter::{Interpreter, Output};
 use crate::paths::PathProblem;
+use crate::pragmas::{Allowed, Allows};
 use crate::project::Project;
 use crate::registry::{self, Bodies, ZeffBodies};
 use std::path::Path;
@@ -164,6 +165,10 @@ impl Files for ProjectFiles<'_> {
 pub struct CheckedInProject {
     pub checked: zeff_ir::Checked,
     pub module_sources: Vec<Source>,
+    /// The warnings the pragmas of the script and the modules allow (section 11.1).
+    pub allows: Allows,
+    /// The warnings of the check that a pragma silenced; they are not among the diagnostics.
+    pub allowed: Vec<Allowed>,
 }
 
 /// Parse and check `text` as `script`, with the modules of `functions/`; the diagnostics come
@@ -191,9 +196,40 @@ pub fn check_in_project(
     );
     let _ = schemas.save();
     let module_sources = loaded.sources();
+    // The pragmas (section 11.1): a code no warning has is Z0317; a warning of the check that
+    // points inside a statement whose pragma allows it is taken out and recorded.
+    let mut allows = Allows::default();
+    for (file, module_allows) in loaded.allows {
+        allows.add(&file, module_allows);
+    }
+    let unknown = crate::pragmas::unknown_codes(script, &parsed.allows);
+    allows.add(script, parsed.allows);
     let mut all: Vec<Diagnostic> = loaded.diagnostics;
     all.extend(parsed.diagnostics.into_vec());
+    all.extend(unknown);
     all.extend(checked.diagnostics.into_vec());
+    let mut allowed = Vec::new();
+    if !allows.is_empty() {
+        let script_source = Source::new(script, text);
+        all.retain(|d| {
+            if !crate::pragmas::allowable(d) {
+                return true;
+            }
+            let file = d.file.as_deref().unwrap_or(script);
+            let Some(at) = d.labels.first().map(|l| l.span.start) else {
+                return true;
+            };
+            let Some(allow) = allows.covering(file, at, &d.code) else {
+                return true;
+            };
+            let source = module_sources
+                .iter()
+                .find(|s| s.name() == file)
+                .unwrap_or(&script_source);
+            allowed.push(Allowed::new(allow, file, source, d));
+            false
+        });
+    }
     let order_of = |d: &Diagnostic| -> (usize, usize) {
         let file = d.file.clone().unwrap_or_default();
         let position = loaded
@@ -215,6 +251,8 @@ pub fn check_in_project(
     CheckedInProject {
         checked,
         module_sources,
+        allows,
+        allowed,
     }
 }
 
@@ -222,7 +260,8 @@ pub fn check_in_project(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Outcome {
     pub output: Output,
-    /// 0 for success, 1 for an error in the script, 2 for an internal error.
+    /// 0 for success, 1 for an error in the script, 2 for an internal error, 3 for a warning
+    /// that `--deny-warnings` made an error (Language Reference, section 3.8, "Exit codes").
     pub exit_code: i32,
 }
 
@@ -243,6 +282,9 @@ pub struct RunOptions {
     /// `ZEFF_UNFUSED` set they run through the tree-walking evaluation, the oracle the fused
     /// passes are tested against, which gives the same bits and messages.
     pub fused: bool,
+    /// `--deny-warnings` (Language Reference, section 11.1): a warning that no pragma allows
+    /// is an error; the run stops at the first, with exit code 3.
+    pub deny_warnings: bool,
 }
 
 impl Default for RunOptions {
@@ -252,6 +294,7 @@ impl Default for RunOptions {
             free_bindings: true,
             panic_at_line: None,
             fused: std::env::var_os("ZEFF_UNFUSED").is_none(),
+            deny_warnings: false,
         }
     }
 }
@@ -322,6 +365,8 @@ pub fn run_script_in(
     for module in checked.module_sources.iter() {
         sources.add(module.clone());
     }
+    let allows = checked.allows;
+    output.allowed = checked.allowed;
     let checked = checked.checked;
     if let Some(first) = checked
         .diagnostics
@@ -348,6 +393,22 @@ pub fn run_script_in(
             exit_code: if internal { 2 } else { 1 },
         };
     }
+    // `--deny-warnings` (section 11.1): a warning of the check that no pragma allows is an
+    // error, and as with any error of the check the run does not start.
+    if options.deny_warnings
+        && let Some(first) = checked
+            .diagnostics
+            .iter()
+            .find(|d| crate::pragmas::deniable(d))
+    {
+        output
+            .stderr
+            .push_str(&crate::pragmas::denied(first).render(&sources));
+        return Outcome {
+            output,
+            exit_code: 3,
+        };
+    }
     // The check's warnings are shown before the run; its notes (the run-time mark of a file
     // that does not exist yet, section 11) are for `zeff check` and the editor, since the run
     // reports such a file itself.
@@ -369,7 +430,9 @@ pub fn run_script_in(
         .with_panic_at(options.panic_at_line)
         .with_width(options.width)
         .with_freeing(options.free_bindings)
-        .with_fusion(options.fused);
+        .with_fusion(options.fused)
+        .with_allows(&allows)
+        .with_denied_warnings(options.deny_warnings);
     let result = interpreter.run(&mut output);
     for (statement, columns) in std::mem::take(&mut output.produced) {
         schemas.record_run(statement, columns);
@@ -379,6 +442,11 @@ pub fn run_script_in(
         Ok(()) => Outcome {
             output,
             exit_code: 0,
+        },
+        // A warning that `--deny-warnings` refused comes back as it was raised.
+        Err(error) if error.severity != Severity::Error => Outcome {
+            output,
+            exit_code: 3,
         },
         Err(error) => Outcome {
             output,

@@ -1,0 +1,7 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: err(&o)
+---
+error[W0204]: log of zero gave -Inf (line 2)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+  = help: `--deny-warnings` makes every warning an error; to keep this one deliberately, write `// zeff: allow(W0204) reason` above the statement
