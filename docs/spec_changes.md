@@ -335,3 +335,7 @@ Not an error: the record of step 4.4 of release 0.7.0. `quantile_group` returns 
 ## 7 November 2026 — zeff_functions.csv (row 153); zeff_open_decisions.md (the summary row and entry #72)
 
 Not an error: the record of step 4.5 of release 0.7.0. `summary` stays in Rust although `table` (#72) and the pieces of #70 are built: its table's formatting needs `format` and its combined warning `join`, both of `text`, its title carries the frame's name, which no function gives a body, and it takes `weights:`. Its row says so, and the entry records it under its decision.
+
+## 7 November 2026 — zeff_functions.csv (row 121); zeff_open_decisions.md (status, entry #70, the summary row and new entry #90)
+
+Not an error: the record of step 5b of release 0.7.0. `drop_missing` stays in Rust although `join` can now write its note: a variable range reaches a body as its written token, which only a Rust body resolves against the frame, and the errors its page declares would be Z0001 from a body (#89). The row says so; #70 records the outcome; the new entry #90 records the question of variable ranges in a Zeff-written built-in, with its deadline.

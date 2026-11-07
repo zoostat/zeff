@@ -71,10 +71,11 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   body does not pass on), `n_missing` (a list holding failed values reaches it), `summary` (its
   table's formatting and combined warning need `format` and `join` of `text`, its title the
   frame's name, and it takes `weights:`) and `duplicates` (its pieces came later in 0.6.0);
-  `drop_missing` moves at step 5b of 0.7.0 once `join` ships, and `vif` at step 30 with
+  `drop_missing` stays too until a body can resolve a variable range and raise the errors
+  its page declares (open decisions #90 and #89, 0.8.0), and `vif` moves at step 30 with
   `design()`. `fill_missing` and `quantile_group` returned to Zeff at steps 4.1 and 4.4 of
   0.7.0. Nothing a script sees differs, and section 8.2's totals follow the catalogue. (Since
-  0.5.0; the list as of step 4.5 of 0.7.0.)
+  0.5.0; the list as of step 5b of 0.7.0.)
 - **Eight conditions carry codes numbered at this release**, the next free numbers of their
   families, each logged in `docs/spec_changes.md` and listed in section 11 of the Language
   Reference: Z0507 (`event`'s `ref:`), Z0601 and Z0602 (the panel declaration and the panel

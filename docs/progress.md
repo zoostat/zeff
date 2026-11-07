@@ -128,3 +128,13 @@ The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of s
 **Next.** Step 5b `[function]`: `drop_missing` in Zeff, its note built with `join`.
 
 **For the owner to decide.** Nothing new. Rulings he may overturn: `pad` pads on the left only (no `side:`); `join` writes an `NA` item as `NA` rather than refusing it; `trim` removes every Unicode white space where R removes ASCII white space only.
+
+## 7 November 2026, release 0.7.0, step 5b (`drop_missing` stays in Rust)
+
+**Done.** A record-only step. With `join` in hand the note could be written, but a variable range such as `[id..z]` reaches a body as its written token, which only a Rust body resolves against the frame, and the two errors the page declares (Z0101 naming the frame, Z0401 for a backwards range) would be Z0001 from a body; the conformance case calls both forms, so the digests could not be held. `drop_missing` stays in Rust with the reasons in its catalogue row, in open decision #70 and in the known-issues list; the question of variable ranges in a Zeff-written built-in is open decision #90, recommended for 0.8.0 with #89 (logged).
+
+**Green.** The registry, command-line and conformance programs on the catalogue; the digests unchanged; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 6 `[function]`: `text`, part 2 (`contains`, `replace`, `extract`, `split` with `regex:` and `ignore_case:` on the pinned `regex` crate).
+
+**For the owner to decide.** Open decisions #89 and #90 at 0.8.0, which together let `drop_missing` and its kind move to Zeff.

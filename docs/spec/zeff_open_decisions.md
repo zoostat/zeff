@@ -44,7 +44,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (6 November 2026, later the same day).** #31's domain was decided by the owner: `zeff-lang.dev`. A look-up in the public DNS that day found `zeff.dev`, `zeff.org`, `zeff.com`, `zeff.io` and `zeff.app` registered by others, and no record for `zeff-lang.dev`, `zeff-lang.org`, `zeff-lang.io` or `zefflang.org`; the GitHub names `zeff-lang` and `zefflang` were free. The organisation stays open, due before 0.9.0, with `zeff-lang` recommended; the installer line of section 2.1 of the Engine and Project Specification now names the host.
 
-**Status (7 November 2026, release 0.7.0 under way).** Steps 2 to 4.4 of 0.7.0 applied #45, #68, #69, #70 and #79 (each entry says how); #89 is raised at step 4.4, deadline 0.8.0.
+**Status (7 November 2026, release 0.7.0 under way).** Steps 2 to 4.4 of 0.7.0 applied #45, #68, #69, #70 and #79 (each entry says how); #89 is raised at step 4.4 and #90 at step 5b, both with deadline 0.8.0.
 
 **Status (7 November 2026, a study of R packages).** The owner asked for 135 R packages to be studied against the catalogue (the study and its plan are kept outside the repository), then asked which functions should join 1.0, and decided the same day: the nine items of #88, all as proposed. Eight functions join 1.0, five of them from the roadmap (`ar_test` at 0.8.0; `margins`, `roc` and `confusion` at 0.9.0; `mcnemar_test` at 0.10.0) and three new (`dist.weibull`, `dist.logistic` and `dist.hypergeometric` at 0.10.0, catalogue rows 531 to 533), and `merge` gains `join: semi | anti` at 0.10.0. 1.0 is 267 functions, with 266 on the roadmap and 533 in all. Three further additions were offered and declined; the study's proposals for after 1.0 are not recorded here and stay with the owner.
 
@@ -139,6 +139,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 90 | Variable ranges in a Zeff-written built-in | A `Vars` argument's ranges, `[id..z]`, resolved against the frame before a body sees them, so that `for v in vars` and `name_of(v)` meet plain names | deadline 0.8.0 |
 | 89 | A coded error from a Zeff-written built-in | `error(message, code:)` in a built-in's file, so that a body refuses an argument with the code a Rust body gives (Z0401, Z0406) rather than Z0001 | deadline 0.8.0 |
 | 88 | Functions brought into 1.0 after the study of R packages | Nine items: `ar_test` (0.8.0); `margins`, `roc`, `confusion` (0.9.0); `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `mcnemar_test` and `merge(join: semi \| anti)` (0.10.0) | decided 7 November 2026 |
 
@@ -949,7 +950,7 @@ Raised on 31 October 2026 at step 18 of release 0.5.0, widened at step 20: `skew
 
 *Decided 6 November 2026, as recommended (option A).* `note(message)`, `code:` on `warn` and `note`, and `name_of(v)` are built at step 3, their catalogue rows added there; `drop_missing`, `skewness` with W0205 and `summary` on `table` (#72) follow at step 4.
 
-*Applied 7 November 2026 (release 0.7.0, step 3.1).* `note(message)` and `name_of(v)` are rows 534 and 535 of `core`; `warn` and `note` take `code:`, a warning's code written bare (`code: W0205`) or as text, which the engine checks against its pages when the statement runs (Z0401 for a code no warning has, or an error's code). A coded message from `warn` or `note` is one the pragma of section 11.1 allows and `--deny-warnings` refuses, as the engine's own; the page of a built-in written in Zeff declares the codes its body gives the two. Section 5.4 of the Language Reference and the "Warnings and notes" row of section 9.1 of the Engine and Project Specification say so (logged); the counts of both volumes and of the Zemp Specification follow. At step 4.3 the warnings of `skewness` and `kurtosis` for too few values carry W0205, as the owner's answer numbered them; `drop_missing` waits for `join` (step 5) to write its note and is step 5b.
+*Applied 7 November 2026 (release 0.7.0, step 3.1).* `note(message)` and `name_of(v)` are rows 534 and 535 of `core`; `warn` and `note` take `code:`, a warning's code written bare (`code: W0205`) or as text, which the engine checks against its pages when the statement runs (Z0401 for a code no warning has, or an error's code). A coded message from `warn` or `note` is one the pragma of section 11.1 allows and `--deny-warnings` refuses, as the engine's own; the page of a built-in written in Zeff declares the codes its body gives the two. Section 5.4 of the Language Reference and the "Warnings and notes" row of section 9.1 of the Engine and Project Specification say so (logged); the counts of both volumes and of the Zemp Specification follow. At step 4.3 the warnings of `skewness` and `kurtosis` for too few values carry W0205, as the owner's answer numbered them. At step 5b, `join` in hand, `drop_missing` still stays in Rust: a variable range reaches a body as its written token (#90) and the errors its page declares would be Z0001 from a body (#89).
 
 ### 71. The fitted design through the result interface
 
@@ -1253,4 +1254,16 @@ Raised on 7 November 2026 at step 4.4 of release 0.7.0. `quantile_group`, writte
 | C. Leave it: a Zeff-written built-in's argument errors are Z0001 | Nothing to build | The codes differ from the Rust functions' for the same mistakes, which the known-issues list must keep saying |
 
 *Recommendation.* A, at 0.8.0 (`zeff explain` and `zeff report-bug` arrive there, and both read codes), with the argument's name as an optional third piece so that the label can point at it. Deadline: 0.8.0.
+
+### 90. Variable ranges in a Zeff-written built-in
+
+Raised on 7 November 2026 at step 5b of release 0.7.0, where `drop_missing` was to move to Zeff with `join` writing its note. A `Vars` argument reaches a body as the names written, a range among them as its token, `id..z`; a Rust body resolves the token against the frame (`resolve_vars`, Z0401 for a range that runs backwards), but a body written in Zeff has no function that does, and `split` (step 6) with a search of `data.variables()` would be a reimplementation in every such body. `drop_missing`, `select`, `drop`, `row_mean` and every verb over several variables meets the same token.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The interpreter resolves a `Vars` argument against the frame before binding it to a Zeff body's parameter, when the function is a frame method or declares the enclosing frame: ranges expanded by position, each name once, Z0101 and Z0401 as the Rust bodies give them | Every body sees plain names, `for v in vars` and `name_of(v)` work, and the messages are the engine's, naming the frame | A `Vars` parameter means two things, written names in a script's function and resolved names in a built-in's; a built-in that wants the token (none today) could not have it |
+| B. A function `variables_of(data, vars)` giving the resolved list of names as texts, called by the body | No change to what a parameter means | Every body must call it first, and the backwards-range error is still the body's to raise, as Z0001 until #89 |
+| C. Leave it: a verb over variables stays in Rust | Nothing to build | `drop_missing` and its kind never move |
+
+*Recommendation.* A, at 0.8.0 with #89, since both are what `drop_missing` needs and both touch the loader of Zeff-written built-ins. Deadline: 0.8.0.
 

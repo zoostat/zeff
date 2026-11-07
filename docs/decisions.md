@@ -2446,3 +2446,11 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** `packages/tier1/text/tests/basics.rs`: the five groups against R, the edge cases (`NA`, the empty text, Unicode white space, a slice past the end, a fill of two characters or none, a list that is not text), the column forms inside `add` and `where`, every message as a snapshot, and the properties that the length never changes under `upper` and `lower`, that `trim` is idempotent and that a slice of the whole is the whole, on random printable text. The conformance case `text/basics`, two digests added and none changed. The eight pages, with their examples run.
 
 **Reason.** Language Reference, section 3.8 ("Text"); the catalogue rows 83 to 85, 87, 88 and 92 to 94; the testing handbook, section 4.
+
+## 7 November 2026: `drop_missing` stays in Rust; open decision #90 (release 0.7.0, step 5b)
+
+**Decision.** `drop_missing` is not rewritten, `join` notwithstanding. A body could keep the complete rows by folding `where(!is_missing(f[name]))` over the names and write the note with `join`, `format(n, big_mark: ",")` and `name_of`; what it cannot do is see the variables a range names. A `Vars` value holds the names as written, a range as the one token `id..z`, which the Rust verbs resolve against the frame (`resolve_vars`), and no function of the language resolves it: `split` arrives at step 6, and a search of `data.variables()` by position in every body would reimplement the engine's rule. The two errors the page declares, Z0101 naming the frame and Z0401 for a backwards range, would come out as Z0001 from `error` (#89). So the conformance digest of `control/drop_missing`, which calls `d.drop_missing([id..z])` and `[z..x]`, cannot be held. The question of variable ranges in a Zeff-written built-in is open decision #90, recommended as the interpreter resolving a `Vars` argument against the frame before a body sees it, at 0.8.0 with #89; the catalogue row and the known-issues entry say so.
+
+**Tests.** Nothing changes but the texts; the digests are unchanged.
+
+**Reason.** The checklist of 0.7.0, step 5b: the digests unchanged bit for bit; a function the pieces still do not express stays in Rust with the reason recorded.
