@@ -312,7 +312,7 @@ fn a_changed_data_root_file_is_warned_about() {
     let changed = run_script(&fs, &project, "scripts/main.zeff", script);
     assert_eq!(changed.exit_code, 0, "{}", changed.output.stderr);
     let stderr = changed.output.stderr;
-    assert!(stderr.contains("warning: `lfs:r.csv` has changed since the last run: it was read on 1970-01-01 00:00:00, and the file is now from 1970-01-02 01:01:01 (line 1)"), "{stderr}");
+    assert!(stderr.contains("warning[W0701]: `lfs:r.csv` has changed since the last run: it was read on 1970-01-01 00:00:00, and the file is now from 1970-01-02 01:01:01 (line 1)"), "{stderr}");
     assert_eq!(
         stderr.matches("has changed since the last run").count(),
         1,

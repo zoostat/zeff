@@ -315,7 +315,13 @@ fn deny_warnings_stops_at_the_first_warning_with_exit_code_3() {
     assert_eq!(outcome.exit_code, 3);
     assert_eq!(outcome.output.stdout, "before\n");
     assert!(outcome.output.stderr.starts_with("error[W0204]: "));
-    assert!(!outcome.output.stderr.contains("warning: "));
+    assert!(
+        !outcome
+            .output
+            .stderr
+            .lines()
+            .any(|l| l.starts_with("warning"))
+    );
 }
 
 #[test]

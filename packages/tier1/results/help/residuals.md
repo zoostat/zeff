@@ -35,4 +35,4 @@ summary · frame
 
   variable        N   missing    mean      sd      min     max
   res        18,179       233   0.000   0.433   -2.006   1.530
-warning: 233 rows with NA in res were skipped (line 3)
+warning[W0201]: 233 rows with NA in res were skipped (line 3)

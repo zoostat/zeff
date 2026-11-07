@@ -246,17 +246,17 @@ error[Z0204]: no key `2` in the mapping
 
 ## division_by_zero (exit 0)
 Inf
-warning: division by zero gave Inf (line 1)
+warning[W0204]: division by zero gave Inf (line 1)
   = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
 
 ## zero_over_zero (exit 0)
 NA
-warning: 0 / 0 gave NA (line 1)
+warning[W0205]: 0 / 0 gave NA (line 1)
 
 ## inf_minus_inf (exit 0)
 NA
-warning: Inf - Inf gave NA (line 1)
+warning[W0205]: Inf - Inf gave NA (line 1)
 
 ## power_without_a_real_value (exit 0)
 NA
-warning: -8 ^ 0.5 (no real value) gave NA (line 1)
+warning[W0205]: -8 ^ 0.5 (no real value) gave NA (line 1)

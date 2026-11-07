@@ -18,7 +18,7 @@ error[Z0413]: `sd` of `dist.normal` must be a positive number, but this is -2
   |
   = help: `zeff help dist.normal` gives the domain of every parameter
 
-warning: sqrt of a negative number gave NA (line 1)
+warning[W0205]: sqrt of a negative number gave NA (line 1)
   = help: a negative number has no real square root; `where(x >= 0)` keeps the rows that have one
 error[Z0413]: `sd` of `dist.normal` must be a positive number, but this is NA
  --> scripts/main.zeff:1:17

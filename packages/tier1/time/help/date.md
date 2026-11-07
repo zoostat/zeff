@@ -39,7 +39,7 @@ datetime, to, year, month, day
 2026-10-16
 > date("2026-02-30")
 NA
-warning: text that is not a date in ISO 8601 became NA (line 4)
+warning[W0203]: text that is not a date in ISO 8601 became NA (line 4)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 > let sales = frame(sold = ["2026-01-05", "5/2/2026", "2026-03-01"])
 > sales.add(d = date(sold))
@@ -49,5 +49,5 @@ frame · 3 rows × 2 variables
   1   2026-01-05   2026-01-05
   2   5/2/2026     NA
   3   2026-03-01   2026-03-01
-warning: text that is not a date in ISO 8601 became NA in 1 row (line 6)
+warning[W0203]: text that is not a date in ISO 8601 became NA in 1 row (line 6)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`

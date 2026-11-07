@@ -172,7 +172,7 @@ error[Z0413]: the interval of `dist.truncated` holds no probability of the distr
   |
   = help: choose bounds inside the distribution's support, where its probability is not zero
 
-warning: sqrt of a negative number gave NA (line 1)
+warning[W0205]: sqrt of a negative number gave NA (line 1)
   = help: a negative number has no real square root; `where(x >= 0)` keeps the rows that have one
 error[Z0413]: `lower` of `dist.truncated` must be a number, but this is NA
  --> scripts/main.zeff:1:38

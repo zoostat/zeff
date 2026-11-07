@@ -49,9 +49,9 @@ standard errors: classical
   x        6.5385      6.4976      1.01     0.360   [-10.1642, 23.2411]
 
 R² within 0.168 · R² overall 0.887
-warning: little variation left after fe: g: `x` keeps 0.16% of its variation (line 2)
+warning[W1004]: little variation left after fe: g: `x` keeps 0.16% of its variation (line 2)
   = help: the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation
-warning: little variation left after fe: g: `x` keeps 0.23% of its variation (line 3)
+warning[W1004]: little variation left after fe: g: `x` keeps 0.23% of its variation (line 3)
   = help: the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation
 ----
 reg · y ~ x · fe: g
@@ -261,7 +261,7 @@ standard errors: clustered by industry (12 clusters, CR1)
 
 R² within 0.099 · R² overall 0.187
 note: 30 of the 3,911 clusters hold one observation (line 2)
-warning: few clusters: 12 clusters give clustered errors little to rest on (line 3)
+warning[W1002]: few clusters: 12 clusters give clustered errors little to rest on (line 3)
   = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
 ----
 error[Z0401]: `fe:` takes fixed effects joined by `+`, and `firm * year` uses `*`, which it does not admit
@@ -451,7 +451,7 @@ standard errors: clustered by worker (3,878 clusters, CR1)
   exper^2    -0.0009      0.0001    -10.16    <0.001   [-0.0010, -0.0007]
 
 R² within 0.007 · R² overall 0.692
-warning: little variation left after fe: worker + year: `exper` keeps 0.89% of its variation (line 2)
+warning[W1004]: little variation left after fe: worker + year: `exper` keeps 0.89% of its variation (line 2)
   = help: the regressor barely varies within the effects' groups, so its estimate is poorly determined; a coarser effect, or the regressor's group mean as a control, keeps the variation
 ----
                            (1)              (2)

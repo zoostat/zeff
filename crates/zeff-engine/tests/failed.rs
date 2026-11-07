@@ -194,10 +194,9 @@ fn report_skips_failed_fits_with_a_count() {
         outcome.output.stdout
     );
     assert!(
-        outcome
-            .output
-            .stderr
-            .contains("warning: 2 of 4 fits failed (Z0801 at line 3) and were skipped (line 5)"),
+        outcome.output.stderr.contains(
+            "warning[W0801]: 2 of 4 fits failed (Z0801 at line 3) and were skipped (line 5)"
+        ),
         "{}",
         outcome.output.stderr
     );
@@ -221,7 +220,7 @@ fn the_warning_names_three_causes_and_marks_the_rest() {
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert!(
         outcome.output.stderr.contains(
-            "warning: 3 of 4 fits failed (Z0801 at line 4, Z0801 at line 5, Z0801 at line 6) and were skipped (line 8)"
+            "warning[W0801]: 3 of 4 fits failed (Z0801 at line 4, Z0801 at line 5, Z0801 at line 6) and were skipped (line 8)"
         ),
         "{}",
         outcome.output.stderr
@@ -233,7 +232,7 @@ fn the_warning_names_three_causes_and_marks_the_rest() {
     assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
     assert!(
         outcome.output.stderr.contains(
-            "warning: 4 of 5 fits failed (Z0801 at line 4, Z0801 at line 5, Z0801 at line 6, …) and were skipped (line 9)"
+            "warning[W0801]: 4 of 5 fits failed (Z0801 at line 4, Z0801 at line 5, Z0801 at line 6, …) and were skipped (line 9)"
         ),
         "{}",
         outcome.output.stderr
@@ -337,7 +336,7 @@ proptest! {
             if failing == 0 {
                 prop_assert!(!outcome.output.stderr.contains("fits failed"), "{}", outcome.output.stderr);
             } else {
-                let expected = format!("warning: {failing} of {} fits failed", cuts.len());
+                let expected = format!("warning[W0801]: {failing} of {} fits failed", cuts.len());
                 prop_assert!(outcome.output.stderr.contains(&expected), "{}", outcome.output.stderr);
             }
         }

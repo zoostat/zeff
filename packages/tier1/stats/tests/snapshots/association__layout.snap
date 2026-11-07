@@ -60,5 +60,5 @@ N per pair
   g   7   7   7
   y   8   7   8
 ---
-warning: correlation of c, which does not vary, gave NA (line 3)
+warning[W0205]: correlation of c, which does not vary, gave NA (line 3)
   = help: a constant has no correlation with anything; `describe()` shows each variable's spread

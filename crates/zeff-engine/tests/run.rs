@@ -115,7 +115,7 @@ fn mean_skips_missing_values_with_a_warning_under_the_output() {
     assert_eq!(outcome.output.stdout, "37.5\n");
     assert_eq!(
         without_format_notes(&outcome.output.stderr),
-        "warning: 1 row with NA in hours was skipped (line 2)\n"
+        "warning[W0201]: 1 row with NA in hours was skipped (line 2)\n"
     );
 }
 
@@ -129,7 +129,7 @@ fn mean_of_a_bool_column_is_the_share_and_of_all_missing_is_na() {
     assert_eq!(outcome.output.stdout, "0.666667\nNA\n");
     assert_eq!(
         without_format_notes(&outcome.output.stderr),
-        "warning: all 3 rows have NA in empty: the result is NA (line 3)\n"
+        "warning[W0201]: all 3 rows have NA in empty: the result is NA (line 3)\n"
     );
 }
 
@@ -143,7 +143,7 @@ fn infinities_in_a_mean() {
     assert_eq!(outcome.output.stdout, "Inf\nNA\n");
     assert_eq!(
         without_format_notes(&outcome.output.stderr),
-        "warning: b holds both Inf and -Inf, so its mean is NA (line 3)\n"
+        "warning[W0204]: b holds both Inf and -Inf, so its mean is NA (line 3)\n"
     );
 }
 

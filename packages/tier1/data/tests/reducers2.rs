@@ -202,7 +202,7 @@ fn by_gives_a_table_in_key_order_with_na_last() {
     insta::assert_snapshot!("by_tables", outcome.output.stdout);
     assert_eq!(
         without_format_notes(&outcome.output.stderr),
-        "warning: 1 row with NA in x was skipped (line 2)\nwarning: 1 row with NA in x was skipped (line 3)\nwarning: 1 row with NA in x was skipped (line 5)\nwarning: 1 row with NA in x was skipped (line 6)\nwarning: 1 row with NA in x was skipped (line 7)\n"
+        "warning[W0201]: 1 row with NA in x was skipped (line 2)\nwarning[W0201]: 1 row with NA in x was skipped (line 3)\nwarning[W0201]: 1 row with NA in x was skipped (line 5)\nwarning[W0201]: 1 row with NA in x was skipped (line 6)\nwarning[W0201]: 1 row with NA in x was skipped (line 7)\n"
     );
 }
 

@@ -36,5 +36,5 @@ first, last, append, reversed, attempt
 note: no row kept: the result is empty (line 6)
 > len(fits)
 2
-warning: 1 of 3 items failed (Z0801 at line 6) and was skipped (line 7)
+warning[W0801]: 1 of 3 items failed (Z0801 at line 6) and was skipped (line 7)
   = help: the count is of the items that succeeded; `x.is(Failed)` tells which failed

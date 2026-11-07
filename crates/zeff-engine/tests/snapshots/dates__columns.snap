@@ -90,9 +90,9 @@ frame · 2 rows × 1 variable
   1   2026-10-16T08:00:00
   2   2026-10-16T09:30:00
 ---
-warning: "2026-02-30" could not be converted to Date and became NA (line 1)
+warning[W0203]: "2026-02-30" could not be converted to Date and became NA (line 1)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 note: 1 row dropped where `sold > to("2000-01-01", Date)` was NA; `f.where(is_missing(sold))` lists them (line 4)
-warning: `recode`: 1950-01-01 is not a value of `sold` (line 9)
+warning[W0206]: `recode`: 1950-01-01 is not a value of `sold` (line 9)
   = help: check the spelling or the type of the key; the other keys were applied
 note: `sold` recoded: 1 row changed (line 9)

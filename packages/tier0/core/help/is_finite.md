@@ -31,7 +31,7 @@ true
 false
 > is_finite(1 / 0)
 false
-warning: division by zero gave Inf (line 3)
+warning[W0204]: division by zero gave Inf (line 3)
   = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
 > let wages = import("data/wages.csv")
 note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 4)

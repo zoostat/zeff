@@ -4,7 +4,7 @@ assertion_line: 321
 expression: stderr
 ---
 note: lfs:r.csv read as CSV: 2 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-warning: `lfs:r.csv` has changed since the last run: it was read on 1970-01-01 00:00:00, and the file is now from 1970-01-02 01:01:01 (line 1)
+warning[W0701]: `lfs:r.csv` has changed since the last run: it was read on 1970-01-01 00:00:00, and the file is now from 1970-01-02 01:01:01 (line 1)
   = help: the results may differ from the last run's; the run records of release 0.11.0 will show how
 note: data/own.csv read as CSV: 2 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 2)
 note: zeff:sleep.csv read as CSV: 20 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 3)

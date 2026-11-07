@@ -189,7 +189,7 @@ fn case_over_one_value_without_a_match_is_na_with_a_warning() {
     assert_eq!(outcome.output.stdout, "NA\n");
     assert_eq!(
         outcome.output.stderr,
-        "warning: no arm of the `case` matched, so its value is NA (line 2)\n  = help: add a last arm for the rest, `_ => value`\n"
+        "warning[W0208]: no arm of the `case` matched, so its value is NA (line 2)\n  = help: add a last arm for the rest, `_ => value`\n"
     );
 }
 
@@ -240,13 +240,13 @@ fn case_row_by_row_without_a_match_gives_na_with_the_count() {
     );
     assert_eq!(
         outcome.output.stderr,
-        "warning: 2 rows matched no arm of the `case` and are NA (line 2)\n  = help: add a last arm for the rest, `_ => value`\n"
+        "warning[W0208]: 2 rows matched no arm of the `case` and are NA (line 2)\n  = help: add a last arm for the rest, `_ => value`\n"
     );
     let one = run("let d = frame(x = [1, 5])\nd.add(y = case { x < 3 => 0 })\n");
     assert!(
         one.output
             .stderr
-            .starts_with("warning: 1 row matched no arm of the `case` and is NA"),
+            .starts_with("warning[W0208]: 1 row matched no arm of the `case` and is NA"),
         "{}",
         one.output.stderr
     );

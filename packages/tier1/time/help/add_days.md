@@ -32,7 +32,7 @@ add_months, days_between, date
 2026-10-17T09:30:00
 > add_days(date("9999-12-31"), 1)
 NA
-warning: a date outside years 1 to 9999 became NA (line 4)
+warning[W0203]: a date outside years 1 to 9999 became NA (line 4)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
 > let sales = frame(sold = [date("2026-01-05"), date("2024-02-29")])
 > sales.add(due = add_days(sold, 30))

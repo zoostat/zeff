@@ -194,27 +194,16 @@ impl Diagnostic {
     }
 
     /// The short form a warning or note takes under the output it belongs to (Language Reference,
-    /// section 10.2): `warning: 211 rows ... were skipped (line 21)`, then `= help:` lines.
+    /// section 10.2): `warning[W0201]: 211 rows ... were skipped (line 21)`, then `= help:`
+    /// lines. The code is shown so that `// zeff: allow(W0201) reason` can be written from the
+    /// line (open decision #45, from release 0.7.0); a message without a code, as `warn` and
+    /// `note` raise, prints `warning: ...`.
     pub fn short(&self, line: Option<u32>) -> String {
-        let mut out = format!("{}: {}", self.severity.word(), self.message);
-        if let Some(line) = line {
-            out.push_str(&format!(" (line {line})"));
-        }
-        out.push('\n');
-        for help in &self.help {
-            out.push_str(&format!("  = help: {help}\n"));
-        }
-        out
-    }
-
-    /// The short form with the code shown, as an error prints: `error[W0201]: 12 rows gave -Inf
-    /// from log(sales) (line 9)`, then `= help:` lines. A message without a code prints as
-    /// [`Diagnostic::short`] does.
-    pub fn short_coded(&self, line: Option<u32>) -> String {
-        if self.code.is_empty() {
-            return self.short(line);
-        }
-        let mut out = format!("{}[{}]: {}", self.severity.word(), self.code, self.message);
+        let mut out = if self.code.is_empty() {
+            format!("{}: {}", self.severity.word(), self.message)
+        } else {
+            format!("{}[{}]: {}", self.severity.word(), self.code, self.message)
+        };
         if let Some(line) = line {
             out.push_str(&format!(" (line {line})"));
         }
@@ -370,6 +359,30 @@ mod tests {
         assert_eq!(
             n.render(&Sources::new()),
             "note: 211 values of wage read as NA from na_values -99\n"
+        );
+    }
+
+    #[test]
+    fn the_short_form_shows_the_code_a_pragma_needs() {
+        let w = Diagnostic::warning("W0201", "211 rows with NA in lwage were skipped")
+            .help("`drop_missing(lwage)` drops them first");
+        assert_eq!(
+            w.short(Some(21)),
+            "warning[W0201]: 211 rows with NA in lwage were skipped (line 21)\n  = help: `drop_missing(lwage)` drops them first\n"
+        );
+        let n = Diagnostic::note("W0703", "today() read the clock: 2026-11-01");
+        assert_eq!(
+            n.short(None),
+            "note[W0703]: today() read the clock: 2026-11-01\n"
+        );
+        // A message without a code, as `warn` and `note` raise, has nothing to show.
+        assert_eq!(
+            Diagnostic::plain_warning("check the units").short(Some(3)),
+            "warning: check the units (line 3)\n"
+        );
+        assert_eq!(
+            Diagnostic::plain_note("read on a Tuesday").short(None),
+            "note: read on a Tuesday\n"
         );
     }
 

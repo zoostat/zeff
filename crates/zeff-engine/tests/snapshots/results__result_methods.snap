@@ -64,6 +64,6 @@ derive · m
 test · m · hours == 0
 F(1, 9) = 1698.28   p < 0.001
 --- messages ---
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 note: `h2` is collinear with the columns before it and was dropped (line 35)

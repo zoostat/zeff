@@ -41,9 +41,9 @@ log_gamma, factorial, beta, dist.gamma
 2.36327
 > gamma(0)
 NA
-warning: gamma at a pole gave NA (line 4)
+warning[W0205]: gamma at a pole gave NA (line 4)
   = help: Γ has poles at zero and the negative whole numbers; between them it is finite
 > gamma(200)
 Inf
-warning: gamma above 171.6 gave Inf (line 5)
+warning[W0204]: gamma above 171.6 gave Inf (line 5)
   = help: Γ(x) exceeds the largest Float; `log_gamma(x)` gives the logarithm, which stays finite

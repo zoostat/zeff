@@ -198,7 +198,7 @@ fn na_takes_the_type_of_its_list_and_is_skipped_with_a_warning() {
     assert_eq!(outcome.output.stdout, "1.75\n");
     assert_eq!(
         outcome.output.stderr,
-        "warning: 2 rows with NA in x were skipped (line 1)\n"
+        "warning[W0201]: 2 rows with NA in x were skipped (line 1)\n"
     );
 }
 

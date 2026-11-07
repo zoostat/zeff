@@ -1,24 +1,24 @@
 ---
 source: packages/tier1/time/tests/time.rs
-assertion_line: 446
+assertion_line: 466
 expression: out
 ---
 date("2026-02-30")
 ---
 NA
-warning: text that is not a date in ISO 8601 became NA (line 1)
+warning[W0203]: text that is not a date in ISO 8601 became NA (line 1)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 
 date("16/10/2026")
 ---
 NA
-warning: text that is not a date in ISO 8601 became NA (line 1)
+warning[W0203]: text that is not a date in ISO 8601 became NA (line 1)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 
 date("2026-10-16", format: "%d/%m/%Y")
 ---
 NA
-warning: text that does not match the format `%d/%m/%Y` became NA (line 1)
+warning[W0203]: text that does not match the format `%d/%m/%Y` became NA (line 1)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 
 date("2026-10-16", format: "%Q")
@@ -44,13 +44,13 @@ error[Z0409]: `%Y-%m` is not a date format: the format has no year, month or day
 datetime("2026-10-16T09:30:00Z")
 ---
 2026-10-16T09:30:00
-warning: a time-zone offset was applied to reach UTC (line 1)
+warning[W0702]: a time-zone offset was applied to reach UTC (line 1)
   = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
 
 datetime("2026-10-16T25:00")
 ---
 NA
-warning: text that is not a date and time in ISO 8601 became NA (line 1)
+warning[W0203]: text that is not a date and time in ISO 8601 became NA (line 1)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 
 datetime("16/10/2026 09:30", format: "%d/%m/%Y %M")
@@ -102,7 +102,7 @@ frame · 3 rows × 2 variables
   1   2026-10-16   2026-10-16
   2   no           NA
   3   x            NA
-warning: text that is not a date in ISO 8601 became NA in 2 rows (line 2)
+warning[W0203]: text that is not a date in ISO 8601 became NA in 2 rows (line 2)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 
 let f = frame(s = ["2026-10-16T09:30:00Z", "2026-10-16T09:30:00+02:00", "no"])
@@ -114,9 +114,9 @@ frame · 3 rows × 2 variables
   1   2026-10-16T09:30:00Z        2026-10-16T09:30:00
   2   2026-10-16T09:30:00+02:00   2026-10-16T07:30:00
   3   no                          NA
-warning: a time-zone offset was applied to reach UTC in 2 rows (line 2)
+warning[W0702]: a time-zone offset was applied to reach UTC in 2 rows (line 2)
   = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
-warning: text that is not a date and time in ISO 8601 became NA in 1 row (line 2)
+warning[W0203]: text that is not a date and time in ISO 8601 became NA in 1 row (line 2)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 
 let f = frame(s = ["16/10/2026", "no"])
@@ -127,19 +127,19 @@ frame · 2 rows × 2 variables
       s            d
   1   16/10/2026   2026-10-16
   2   no           NA
-warning: text that does not match the format `%d/%m/%Y` became NA in 1 row (line 2)
+warning[W0203]: text that does not match the format `%d/%m/%Y` became NA in 1 row (line 2)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
 
 add_days(date("9999-12-31"), 1)
 ---
 NA
-warning: a date outside years 1 to 9999 became NA (line 1)
+warning[W0203]: a date outside years 1 to 9999 became NA (line 1)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
 
 add_months(date("0001-01-31"), -1)
 ---
 NA
-warning: a date outside years 1 to 9999 became NA (line 1)
+warning[W0203]: a date outside years 1 to 9999 became NA (line 1)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
 
 let f = frame(d = [date("9999-12-31"), date("2026-10-16")])
@@ -150,7 +150,7 @@ frame · 2 rows × 2 variables
       d            e
   1   9999-12-31   NA
   2   2026-10-16   2026-10-17
-warning: a date outside years 1 to 9999 became NA in 1 row (line 2)
+warning[W0203]: a date outside years 1 to 9999 became NA in 1 row (line 2)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)
 
 add_days(date("2026-10-16"), 1.5)

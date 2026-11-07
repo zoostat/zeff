@@ -592,6 +592,8 @@ Found while writing the interpreter of 0.1.0 (docs/releases/0.1.0.md, step 13). 
 
 *Decided 18 October 2026.* Option A until the pragma arrives (0.7.0): a warning under a result prints without its code, as section 10.2 shows; the code is in `--format json` from 0.2.0 and in the explained-code pages. Errors keep their code.
 
+*Applied 7 November 2026 (release 0.7.0, step 2b).* Option B from 0.7.0, the pragma having arrived at step 2: a warning or a note that carries a code prints it under the result, `warning[W0204]: 12 rows gave −Inf from log(sales) where sales = 0 (line 9)`, and a message without a code (`warn(message)`, the notes of a format or a seed) prints as before. The printed examples of sections 5.4 and 10.2 follow (logged in `docs/spec_changes.md`).
+
 ### 46. Diagnostic codes for four conditions of expressions and calls
 
 Found while writing the operators of 0.2.0 (docs/releases/0.2.0.md, step 2). Section 3.7 settles the conditions in words but gives them no number: "Bool is not a number: `female + 1` with a Bool `female` is an error that suggests `to(female, Int)`"; comparison "only between values of one type"; a list indexed by something that is not an Int; a mapping looked up by a key of another type; "keys are unique". The engine uses the free numbers below provisionally, in the Z02xx range of types and values; the specification text is not edited (decision #40).

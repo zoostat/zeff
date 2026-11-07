@@ -65,6 +65,6 @@ frame · 1 row × 3 variables
 
       name   dept   grade
   1   Ann    Shop       2
-warning: `recode`: "Marketing" is not a value of `dept` (line 7)
+warning[W0206]: `recode`: "Marketing" is not a value of `dept` (line 7)
   = help: check the spelling or the type of the key; the other keys were applied
 note: `dept` recoded: 2 rows changed (line 7)

@@ -89,13 +89,13 @@ NA
 NA
 --- messages ---
 note: 2 values of nan_mixed read as NA from NaN (line 10)
-warning: 2 values with a fraction became NA under to(Int) (line 11)
+warning[W0202]: 2 values with a fraction became NA under to(Int) (line 11)
   = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
-warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 16)
+warning[W0601]: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 16)
   = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
-warning: "99999999999999999999" could not be converted to Int and became NA (line 21)
+warning[W0203]: "99999999999999999999" could not be converted to Int and became NA (line 21)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
-warning: "  " could not be converted to Float and became NA (line 23)
+warning[W0203]: "  " could not be converted to Float and became NA (line 23)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
-warning: "NaN" could not be converted to Float and became NA (line 24)
+warning[W0203]: "NaN" could not be converted to Float and became NA (line 24)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards

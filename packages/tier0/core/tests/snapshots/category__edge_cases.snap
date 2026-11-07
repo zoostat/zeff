@@ -102,7 +102,7 @@ NA
 NA
 12
 --- messages ---
-warning: 5 values are none of the levels given and became NA: "Manufacturing", "Public administration" (line 15)
+warning[W0203]: 5 values are none of the levels given and became NA: "Manufacturing", "Public administration" (line 15)
   = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards
-warning: 4 values are none of the levels given and became NA: "15" (line 21)
+warning[W0203]: 4 values are none of the levels given and became NA: "15" (line 21)
   = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards

@@ -33,7 +33,7 @@ abs, exp, log
 1.41421
 > sqrt(-1)
 NA
-warning: sqrt of a negative number gave NA (line 3)
+warning[W0205]: sqrt of a negative number gave NA (line 3)
   = help: a negative number has no real square root; `where(x >= 0)` keeps the rows that have one
 > let wages = import("data/wages.csv")
 note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 4)

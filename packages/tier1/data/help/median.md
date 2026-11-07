@@ -35,4 +35,4 @@ note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carr
 23.4
 > wages.median(hours)
 37.5
-warning: 1 row with NA in hours was skipped (line 3)
+warning[W0201]: 1 row with NA in hours was skipped (line 3)

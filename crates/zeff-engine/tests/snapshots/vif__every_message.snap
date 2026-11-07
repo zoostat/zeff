@@ -26,5 +26,5 @@ vif · y ~ 1
   term   vif
 
 no regressor beside the intercept
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row

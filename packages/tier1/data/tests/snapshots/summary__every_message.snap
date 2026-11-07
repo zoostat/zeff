@@ -9,29 +9,29 @@ summary · w
   id         3         0    2.000   1.000    1.000    3.000
   wage       3         0   24.533   6.178   19.000   31.200
   hours      2         1   37.500   3.536   35.000   40.000
-warning: 1 row with NA in hours was skipped (line 2)
+warning[W0201]: 1 row with NA in hours was skipped (line 2)
 
 ## all_missing (exit 0)
 summary · d
 
   variable   N   missing   mean   sd   min   max
   x          0         3     NA   NA    NA    NA
-warning: all 3 rows have NA in x: its statistics are NA (line 2)
+warning[W0201]: all 3 rows have NA in x: its statistics are NA (line 2)
 
 ## one_value (exit 0)
 summary · frame
 
   variable   N   missing    mean   sd     min     max
   b          1         1   1.000   NA   1.000   1.000
-warning: 1 row with NA in b was skipped (line 1)
-warning: sd needs at least two values, but b has one: its sd is NA (line 1)
+warning[W0201]: 1 row with NA in b was skipped (line 1)
+warning[W0205]: sd needs at least two values, but b has one: its sd is NA (line 1)
 
 ## no_values (exit 0)
 summary · e
 
   variable   N   missing   mean   sd   min   max
   x          0         0     NA   NA    NA    NA
-warning: x has no values: its statistics are NA (line 2)
+warning[W0201]: x has no values: its statistics are NA (line 2)
 
 ## infinities (exit 0)
 summary · d
@@ -40,9 +40,9 @@ summary · d
   plus       3         0    Inf   NA   1.000   Inf
   both       3         0     NA   NA    -Inf   Inf
 note: 2 values of nan_mixed read as NA from NaN (line 1)
-warning: plus holds an infinite value, so its sd is NA (line 2)
-warning: both holds both Inf and -Inf, so its mean is NA (line 2)
-warning: both holds an infinite value, so its sd is NA (line 2)
+warning[W0205]: plus holds an infinite value, so its sd is NA (line 2)
+warning[W0204]: both holds both Inf and -Inf, so its mean is NA (line 2)
+warning[W0205]: both holds an infinite value, so its sd is NA (line 2)
 
 ## no_such_variable (exit 1)
 error[Z0101]: no variable `hour` in `w`
@@ -138,7 +138,7 @@ summary · by id
   1    hours      1         0   40.000   NA   40.000   40.000
   2    hours      1         0   35.000   NA   35.000   35.000
   3    hours      0         1       NA   NA       NA       NA
-warning: 1 row with NA in hours was skipped (line 2)
-warning: sd needs at least two values, but id has one: its sd is NA (line 2)
-warning: sd needs at least two values, but wage has one: its sd is NA (line 2)
-warning: sd needs at least two values, but hours has one: its sd is NA (line 2)
+warning[W0201]: 1 row with NA in hours was skipped (line 2)
+warning[W0205]: sd needs at least two values, but id has one: its sd is NA (line 2)
+warning[W0205]: sd needs at least two values, but wage has one: its sd is NA (line 2)
+warning[W0205]: sd needs at least two values, but hours has one: its sd is NA (line 2)

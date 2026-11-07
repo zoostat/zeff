@@ -5,37 +5,37 @@ expression: all
 ---
 > to(2.5, Int)
 NA
-warning: 2.5 has a fraction, so to(Int) gave NA (line 1)
+warning[W0202]: 2.5 has a fraction, so to(Int) gave NA (line 1)
   = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
 [exit 0]
 
 > to(Inf, Int)
 NA
-warning: Inf has a fraction, so to(Int) gave NA (line 1)
+warning[W0202]: Inf has a fraction, so to(Int) gave NA (line 1)
   = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
 [exit 0]
 
 > to("1,000", Float)
 NA
-warning: "1,000" could not be converted to Float and became NA (line 1)
+warning[W0203]: "1,000" could not be converted to Float and became NA (line 1)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 [exit 0]
 
 > to(7, Bool)
 NA
-warning: 7 could not be converted to Bool and became NA (line 1)
+warning[W0203]: 7 could not be converted to Bool and became NA (line 1)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 [exit 0]
 
 > to("yes", Bool)
 NA
-warning: "yes" could not be converted to Bool and became NA (line 1)
+warning[W0203]: "yes" could not be converted to Bool and became NA (line 1)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 [exit 0]
 
 > to("99999999999999999999", Int)
 NA
-warning: "99999999999999999999" could not be converted to Int and became NA (line 1)
+warning[W0203]: "99999999999999999999" could not be converted to Int and became NA (line 1)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 [exit 0]
 
@@ -67,7 +67,7 @@ NA
 NA
 NA
 … and 1,180 more values
-warning: 1,200 values could not be converted to Int and became NA: "Québec", "Zürich", "São Paulo" (line 2)
+warning[W0203]: 1,200 values could not be converted to Int and became NA: "Québec", "Zürich", "São Paulo" (line 2)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 [exit 0]
 
@@ -95,7 +95,7 @@ NA
 NA
 NA
 … and 1,180 more values
-warning: 1,194 values with a fraction became NA under to(Int) (line 2)
+warning[W0202]: 1,194 values with a fraction became NA under to(Int) (line 2)
   = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
 [exit 0]
 

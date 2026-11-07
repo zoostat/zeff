@@ -49,4 +49,4 @@ summary · frame
   leverage         18,179       233   0.000   0.000    0.000   0.001
   cooks_distance   18,179       233   0.000   0.000    0.000   0.002
   studentized      18,179       233   0.000   1.000   -4.639   3.537
-warning: 233 rows with NA in leverage, 233 with NA in cooks_distance and 233 with NA in studentized were skipped (line 3)
+warning[W0201]: 233 rows with NA in leverage, 233 with NA in cooks_distance and 233 with NA in studentized were skipped (line 3)

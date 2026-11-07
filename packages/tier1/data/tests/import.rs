@@ -167,7 +167,7 @@ fn a_file_whose_columns_hold_only_missing_values() {
     assert_eq!(stdout, "NA\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: all 3 rows have NA in y: the result is NA (line 2)\n"
+        "warning[W0201]: all 3 rows have NA in y: the result is NA (line 2)\n"
     );
 }
 
@@ -210,7 +210,7 @@ fn bool_columns_in_every_spelling() {
     assert_eq!(stdout, "0.75\n0.5\n0.5\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: 2 rows with NA in with_na were skipped (line 4)\n"
+        "warning[W0201]: 2 rows with NA in with_na were skipped (line 4)\n"
     );
 }
 
@@ -223,7 +223,7 @@ fn unicode_text_and_awkward_names_are_kept_as_the_file_has_them() {
     // The file holds "café" in both normalisation forms on purpose: the warning of section 3.8.
     assert!(
         without_format_notes(&stderr).starts_with(
-            "warning: city holds values that differ only in their Unicode normalisation form"
+            "warning[W0601]: city holds values that differ only in their Unicode normalisation form"
         ),
         "{stderr}"
     );

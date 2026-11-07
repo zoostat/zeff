@@ -47,7 +47,7 @@ summary · frame
   yhat       18,179       233   3.192   0.218    2.529   3.926
 233
 --- messages ---
-warning: 233 rows with NA in res and 233 with NA in yhat were skipped (line 5)
+warning[W0201]: 233 rows with NA in res and 233 with NA in yhat were skipped (line 5)
 [exit 0]
 
 > let wages = dataset(wages)
@@ -69,7 +69,7 @@ Column<Float> · 3 values
 NA
 NA
 --- messages ---
-warning: 1 row of newdata holds a level of `industry` the fit never saw, so its prediction is NA (line 5)
+warning[W0207]: 1 row of newdata holds a level of `industry` the fit never saw, so its prediction is NA (line 5)
   = help: the fit's levels of `industry` are "Agriculture", "Mining", "Utilities", "Construction", "Manufacturing", "Retail", "Transport", "Finance", "Services", "Education", "Health", "Public administration"
 [exit 0]
 

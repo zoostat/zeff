@@ -50,7 +50,7 @@ summary · wages
   variable   N   missing     mean      sd      min      max
   wage       3         0   24.533   6.178   19.000   31.200
   hours      2         1   37.500   3.536   35.000   40.000
-warning: 1 row with NA in hours was skipped (line 2)
+warning[W0201]: 1 row with NA in hours was skipped (line 2)
 > wages.summary(stats: [n, mean])
 summary · wages
 
@@ -58,4 +58,4 @@ summary · wages
   id         3    2.000
   wage       3   24.533
   hours      2   37.500
-warning: 1 row with NA in hours was skipped (line 3)
+warning[W0201]: 1 row with NA in hours was skipped (line 3)

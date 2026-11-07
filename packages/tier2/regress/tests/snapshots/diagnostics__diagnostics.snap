@@ -42,7 +42,7 @@ summary · frame
 4
 233
 --- messages ---
-warning: 233 rows with NA in leverage, 233 with NA in cooks_distance and 233 with NA in studentized were skipped (line 4)
+warning[W0201]: 233 rows with NA in leverage, 233 with NA in cooks_distance and 233 with NA in studentized were skipped (line 4)
 note: 233 rows dropped where `cooks_distance > 0.001` was NA; `where(is_missing(cooks_distance))` lists them (line 5)
 [exit 0]
 
@@ -62,9 +62,9 @@ summary · frame
   cooks_distance   17,839       573    0.000   0.000    0.000   0.000
   studentized      17,839       573   -0.156   1.023   -4.976   3.674
 --- messages ---
-warning: 245 rows with NA in leverage, 245 with NA in cooks_distance and 245 with NA in studentized were skipped (line 2)
+warning[W0201]: 245 rows with NA in leverage, 245 with NA in cooks_distance and 245 with NA in studentized were skipped (line 2)
 note: 340 rows with a zero weight left out of the estimate and the observation count (line 3)
-warning: 573 rows with NA in leverage, 573 with NA in cooks_distance and 573 with NA in studentized were skipped (line 3)
+warning[W0201]: 573 rows with NA in leverage, 573 with NA in cooks_distance and 573 with NA in studentized were skipped (line 3)
 [exit 0]
 
 > dataset(wages).add(c = 5).reg(c ~ educ).r_squared()

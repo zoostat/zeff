@@ -41,4 +41,4 @@ note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carr
 6.17846
 > wages.sd(hours)
 3.53553
-warning: 1 row with NA in hours was skipped (line 3)
+warning[W0201]: 1 row with NA in hours was skipped (line 3)

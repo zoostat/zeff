@@ -333,7 +333,7 @@ impl<'a> Interpreter<'a> {
             for message in &messages {
                 if refused && crate::pragmas::deniable(message) {
                     let error = crate::pragmas::denied(message);
-                    statement_errors.push_str(&error.short_coded(Some(line)));
+                    statement_errors.push_str(&error.short(Some(line)));
                     first_refused.get_or_insert_with(|| message.clone());
                 } else {
                     statement_errors.push_str(&message.short(Some(line)));

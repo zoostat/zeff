@@ -42,9 +42,9 @@ date, to, year, day
 2026-10-16T09:30:00
 > datetime("2026-10-16T09:30:00+02:00")
 2026-10-16T07:30:00
-warning: a time-zone offset was applied to reach UTC (line 5)
+warning[W0702]: a time-zone offset was applied to reach UTC (line 5)
   = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
 > datetime("2026-10-16T25:00")
 NA
-warning: text that is not a date and time in ISO 8601 became NA (line 6)
+warning[W0203]: text that is not a date and time in ISO 8601 became NA (line 6)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`

@@ -96,7 +96,7 @@ EXAMPLES
     35
     note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 3)
     note: 1 value of hours read as NA from na_values 40 (line 3)
-    warning: 2 rows with NA in hours were skipped (line 3)
+    warning[W0201]: 2 rows with NA in hours were skipped (line 3)
     > import("data/wages_de.csv", decimal: ",", thousands: ".", encoding: "windows-1252")
     frame · 2 rows × 4 variables
 

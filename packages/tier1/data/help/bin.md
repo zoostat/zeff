@@ -51,7 +51,7 @@ frame · 6 rows × 3 variables
   4        4   15.68   high
   5        5   26.39   NA
   6        6   33.07   NA
-warning: `bin`: 3 rows outside every interval became NA (line 3)
+warning[W0210]: `bin`: 3 rows outside every interval became NA (line 3)
   = help: the intervals run from 0 to 20; `-Inf` and `Inf` as the first and last breaks keep every value
 > pay.add(band = bin(wage, breaks: [10, 20, 30, 40]))
 frame · 6 rows × 3 variables
@@ -63,5 +63,5 @@ frame · 6 rows × 3 variables
   4        4   15.68   (10,20]
   5        5   26.39   (20,30]
   6        6   33.07   (30,40]
-warning: `bin`: 1 row outside every interval became NA (line 4)
+warning[W0210]: `bin`: 1 row outside every interval became NA (line 4)
   = help: the intervals run from 10 to 40; `-Inf` and `Inf` as the first and last breaks keep every value

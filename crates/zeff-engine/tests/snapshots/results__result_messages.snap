@@ -2,7 +2,7 @@
 source: crates/zeff-engine/tests/results.rs
 expression: text
 ---
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `nope` is not a term of this fit
  --> scripts/main.zeff:3:14
@@ -12,7 +12,7 @@ error[Z0414]: `nope` is not a term of this fit
   |
   = help: the terms are `(intercept)`, `hours`, `educ`
 
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `hour` is not a term of this fit
  --> scripts/main.zeff:3:14
@@ -22,7 +22,7 @@ error[Z0414]: `hour` is not a term of this fit
   |
   = help: did you mean `hours`? the terms are `(intercept)`, `hours`, `educ`
 
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `educ:hours` is not a term of this fit
  --> scripts/main.zeff:3:14
@@ -32,7 +32,7 @@ error[Z0414]: `educ:hours` is not a term of this fit
   |
   = help: the terms are `(intercept)`, `hours`, `educ`
 
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `hours` names a term, but a test's result has no terms
  --> scripts/main.zeff:4:14
@@ -82,7 +82,7 @@ error[Z0401]: this must be a Bool over the terms of the fit, but it is a Float
   |
   = help: a restriction is an equality over the terms, such as `educ == exper` or `educ + exper == 1`
 
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0414]: `wage` is not a term of this fit
  --> scripts/main.zeff:3:8
@@ -100,7 +100,7 @@ error[Z0401]: this must be a Float over the terms of the fit, but it is a Bool
   |
   = help: a definition is an expression over the terms, such as `educ / exper` or `exp(educ * 10)`
 
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 error[Z0401]: `test` needs a regression fit, but this is a TestResult
  --> scripts/main.zeff:3:1

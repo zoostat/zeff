@@ -35,5 +35,5 @@ wage, hours
 > }
 27.3695
 37.9446
-warning: 211 rows with NA in wage were skipped (line 3)
-warning: 35 rows with NA in hours were skipped (line 3)
+warning[W0201]: 211 rows with NA in wage were skipped (line 3)
+warning[W0201]: 35 rows with NA in hours were skipped (line 3)

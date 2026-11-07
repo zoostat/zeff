@@ -36,4 +36,4 @@ d · 3 rows × 2 variables
 24.5333
 > frame(x = [1, 2.5, NA]).mean(x)
 1.75
-warning: 1 row with NA in x was skipped (line 4)
+warning[W0201]: 1 row with NA in x was skipped (line 4)

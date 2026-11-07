@@ -41,5 +41,5 @@ gamma, factorial, beta
 5905.22
 > log_gamma(-1)
 Inf
-warning: log_gamma at a pole gave Inf (line 4)
+warning[W0204]: log_gamma at a pole gave Inf (line 4)
   = help: Γ has poles at zero and the negative whole numbers, so its logarithm is infinite there

@@ -40,11 +40,11 @@ is, type_of, is_missing, coalesce
 42
 > to(2.5, Int)
 NA
-warning: 2.5 has a fraction, so to(Int) gave NA (line 2)
+warning[W0202]: 2.5 has a fraction, so to(Int) gave NA (line 2)
   = help: `round(x)`, `floor(x)` or `truncate(x)` chooses the whole number first
 > to("1,000", Float)
 NA
-warning: "1,000" could not be converted to Float and became NA (line 3)
+warning[W0203]: "1,000" could not be converted to Float and became NA (line 3)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 > to(true, Int)
 1
@@ -56,7 +56,7 @@ warning: "1,000" could not be converted to Float and became NA (line 3)
 2026-10-16
 > to("2026-02-30", Date)
 NA
-warning: "2026-02-30" could not be converted to Date and became NA (line 8)
+warning[W0203]: "2026-02-30" could not be converted to Date and became NA (line 8)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 > to(to("2026-10-16", Date), DateTime)
 2026-10-16T00:00:00

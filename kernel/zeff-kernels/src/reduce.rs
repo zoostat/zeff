@@ -191,8 +191,10 @@ pub fn sum(xs: &[f64]) -> f64 {
 /// compensated sequential sum of the values. The lanes that hold nothing add `0.0` to the total
 /// and to the error in `value()`, which changes no bit: the total starts at `+0.0` and a rounded
 /// sum is never `-0.0`, and the error of a two-sum whose first term is not `-0.0` is never
-/// `-0.0`, so neither is ever the negative zero that `+ 0.0` would turn positive. The property
-/// test holds the two to the same bits on random short slices and on the signed zeros.
+/// `-0.0`, so neither is ever the negative zero that `+ 0.0` would turn positive. Where the sum
+/// overflows the error term is not a number, and the lanes' `value()` falls back on the plain
+/// sum of the lanes, which is the plain sum of the values here: so does this. The property test
+/// holds the two to the same bits on random short slices and on the signed zeros.
 fn sum_within_lanes(xs: &[f64]) -> f64 {
     debug_assert!(xs.len() <= LANES);
     let mut total = 0.0;
@@ -202,7 +204,12 @@ fn sum_within_lanes(xs: &[f64]) -> f64 {
         total = s;
         error += e;
     }
-    total + error
+    let result = total + error;
+    if result.is_finite() {
+        result
+    } else {
+        xs.iter().fold(0.0, |acc, &x| acc + x)
+    }
 }
 
 /// The dot product of two slices of one length, with the same fallback as [`sum`].
@@ -389,6 +396,9 @@ mod within_lanes {
             // Values that cancel: the compensation carries the 2 that the plain sum loses.
             &[1e16, 1.0, 1.0, -1e16][..],
             &[1e16, 1.0, 1.0, -1e16, 1e-8, 3.0, -3.0, 0.5][..],
+            // An overflow: the error term is not a number, and both give the plain sum, `-Inf`.
+            &[-1.62188584572062e308, -1.409388621989384e308][..],
+            &[1e308, 1e308, -1e308][..],
         ] {
             assert_eq!(
                 sum_within_lanes(xs).to_bits(),

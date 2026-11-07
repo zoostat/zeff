@@ -145,7 +145,7 @@ error[Z0401]: `level` of `base` must be a Str, but this is an Int
 levels(category(w["industry"], levels: ["Retail", "Mining"]))
 Retail
 Mining
-warning: 5 values are none of the levels given and became NA: "Manufacturing", "Public administration" (line 2)
+warning[W0203]: 5 values are none of the levels given and became NA: "Manufacturing", "Public administration" (line 2)
   = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards
 [exit 0]
 

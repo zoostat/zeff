@@ -165,3 +165,13 @@ Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` in
 **Next.** Step 2b `[engine]`: the code of a warning under a result, `warning[W0204]: …`.
 
 **For the owner to decide.** Nothing new. A ruling he may overturn: a pragma that silences nothing is passed over without a message.
+
+## 7 November 2026, release 0.7.0, step 2b (the code of a warning under a result)
+
+**Done.** A warning or a note with a code prints it, `warning[W0204]: log of zero gave -Inf (line 4)`; a `warn()` message and the notes without a code print as before. Sections 5.4 and 10.2 of the Language Reference follow (logged); open decision #45 records the application. Every help page, explained page, sample, snapshot and conformance digest that shows such a line was regenerated and read; the phrase table of `check-messages` is retired. A kernel helper of the reductions was corrected on an overflow the random test found (no result changes; recorded in `docs/decisions.md`).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks; the full suite ran once (1,189 passed, 11 expectations then corrected) and the eleven programs that failed were rerun green with everything that reads the specification or the digests; the whole suite runs again on CI, read after the push.
+
+**Next.** Step 3 `[engine]`: what a Zeff-written built-in lacked, part 1 (#68, #69, #70).
+
+**For the owner to decide.** Nothing new.

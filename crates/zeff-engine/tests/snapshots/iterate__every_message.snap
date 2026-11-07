@@ -8,7 +8,7 @@ note: 6 passes until done (line 5)
 
 ## w0805_at_max (exit 0)
 x: 1.41667
-warning: iterate stopped at max: 2 passes without done becoming true (line 5)
+warning[W0805]: iterate stopped at max: 2 passes without done becoming true (line 5)
   = help: the state returned is the last one; raise `max:` or loosen `done:`, and `keep: true` shows the path
 
 ## args_missing (exit 1)

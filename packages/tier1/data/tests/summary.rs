@@ -135,7 +135,7 @@ fn vars_and_stats_choose_the_rows_and_the_columns() {
     insta::assert_snapshot!("vars_and_stats", stdout);
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: 1 row with NA in hours was skipped (line 3)\nwarning: 1 row with NA in hours was skipped (line 4)\n"
+        "warning[W0201]: 1 row with NA in hours was skipped (line 3)\nwarning[W0201]: 1 row with NA in hours was skipped (line 4)\n"
     );
 }
 
@@ -148,7 +148,7 @@ fn rows_skipped_in_several_variables_are_one_warning() {
     assert!(stdout.contains("\n  a          3         1"), "{stdout}");
     assert_eq!(
         stderr,
-        "warning: 1 row with NA in a, 2 with NA in b and 1 with NA in d were skipped (line 1)\n"
+        "warning[W0201]: 1 row with NA in a, 2 with NA in b and 1 with NA in d were skipped (line 1)\n"
     );
 }
 

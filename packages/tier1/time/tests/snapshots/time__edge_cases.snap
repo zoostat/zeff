@@ -1,6 +1,6 @@
 ---
 source: packages/tier1/time/tests/time.rs
-assertion_line: 409
+assertion_line: 429
 expression: "format!(\"{stdout}---\\n{stderr}\")"
 ---
 2026-10-16
@@ -53,13 +53,13 @@ frame · 4 rows × 6 variables
   4   2026-02-30   NA           NA           NA            NA   NA
 NA
 ---
-warning: text that is not a date in ISO 8601 became NA (line 2)
+warning[W0203]: text that is not a date in ISO 8601 became NA (line 2)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
-warning: text that does not match the format `%d/%m/%Y` became NA (line 4)
+warning[W0203]: text that does not match the format `%d/%m/%Y` became NA (line 4)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
-warning: text that is not a date in ISO 8601 became NA in 2 rows (line 20)
+warning[W0203]: text that is not a date in ISO 8601 became NA in 2 rows (line 20)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
-warning: text that is not a date and time in ISO 8601 became NA in 2 rows (line 22)
+warning[W0203]: text that is not a date and time in ISO 8601 became NA in 2 rows (line 22)
   = help: `to(s, Date)` and `to(s, DateTime)` name the failing values; a format is written as `strftime` writes it, `format: "%d/%m/%Y"`
-warning: a date outside years 1 to 9999 became NA (line 32)
+warning[W0203]: a date outside years 1 to 9999 became NA (line 32)
   = help: the calendar runs from 0001-01-01 to 9999-12-31 (section 3.8 of the Language Reference)

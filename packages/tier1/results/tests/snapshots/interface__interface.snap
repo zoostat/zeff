@@ -80,8 +80,8 @@ R² 0.098 · adjusted R² 0.098
 Table
 Table
 --- messages ---
-warning: 211 rows with NA in wage were skipped (line 2)
-warning: 211 rows with NA in wage were skipped (line 6)
+warning[W0201]: 211 rows with NA in wage were skipped (line 2)
+warning[W0201]: 211 rows with NA in wage were skipped (line 6)
 [exit 0]
 
 > let m = dataset(wages).reg(log(wage) ~ educ + exper + female)

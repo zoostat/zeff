@@ -71,14 +71,14 @@ fn logit_and_inv_logit_at_the_edges() {
     assert!(
         out.output
             .stderr
-            .contains("warning: log of zero gave -Inf (line 1)"),
+            .contains("warning[W0204]: log of zero gave -Inf (line 1)"),
         "{}",
         out.output.stderr
     );
     assert!(
         out.output
             .stderr
-            .contains("warning: division by zero gave Inf (line 2)"),
+            .contains("warning[W0204]: division by zero gave Inf (line 2)"),
         "{}",
         out.output.stderr
     );

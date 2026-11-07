@@ -48,7 +48,7 @@ standard errors: clustered by unit (4 clusters, CR1)
   event=2      1.4502      0.0742     19.54    <0.001   [1.2140, 1.6864]
 
 R² within 0.953 · R² overall 0.990
-warning: few clusters: 4 clusters give clustered errors little to rest on (line 6)
+warning[W1002]: few clusters: 4 clusters give clustered errors little to rest on (line 6)
   = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
 ----
 error[Z0802]: no regressor remains: every one is absorbed by fe: unit + year (`event=-2`, `event=0`, `event=1`)

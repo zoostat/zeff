@@ -501,7 +501,7 @@ fn zeff_run_writes_output_to_stdout_and_messages_to_stderr() {
     assert_eq!(out(&o), "37.5\ndone\n");
     assert_eq!(
         err(&o),
-        "note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)\nwarning: 1 row with NA in hours was skipped (line 2)\n"
+        "note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)\nwarning[W0201]: 1 row with NA in hours was skipped (line 2)\n"
     );
 }
 
@@ -768,7 +768,7 @@ fn colour_quiet_verbose_and_project_options() {
         err(&o)
     );
     assert!(
-        err(&o).contains("warning: 1 row with NA in hours"),
+        err(&o).contains("warning[W0201]: 1 row with NA in hours"),
         "{}",
         err(&o)
     );
@@ -779,7 +779,7 @@ fn colour_quiet_verbose_and_project_options() {
         err(&o)
     );
     assert!(
-        err(&o).contains("\x1b[1;33mwarning\x1b[0m: 1 row"),
+        err(&o).contains("\x1b[1;33mwarning[W0201]\x1b[0m: 1 row"),
         "{}",
         err(&o)
     );
@@ -805,7 +805,7 @@ fn colour_quiet_verbose_and_project_options() {
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert_eq!(
         err(&o),
-        "warning: 1 row with NA in hours was skipped (line 2)\n"
+        "warning[W0201]: 1 row with NA in hours was skipped (line 2)\n"
     );
     assert_eq!(out(&o), "37.5\n");
     // Verbose adds a timing line.
@@ -1318,7 +1318,8 @@ fn zeff_check_carries_schemas_through_verbs_and_the_last_run() {
     let o = zeff(&project, &["run"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert!(
-        err(&o).contains("warning: `lfs:r.csv` has changed since the last run: it was read on"),
+        err(&o)
+            .contains("warning[W0701]: `lfs:r.csv` has changed since the last run: it was read on"),
         "{}",
         err(&o)
     );
@@ -1345,7 +1346,11 @@ fn deny_warnings_and_pragmas_through_the_program() {
     let o = zeff(&project, &["run"]);
     assert_eq!(code(&o), 0, "{}", err(&o));
     assert_eq!(out(&o), "before\nafter\n");
-    assert!(err(&o).starts_with("warning: log of zero"), "{}", err(&o));
+    assert!(
+        err(&o).starts_with("warning[W0204]: log of zero"),
+        "{}",
+        err(&o)
+    );
     let o = zeff(&project, &["run", "--deny-warnings"]);
     assert_eq!(code(&o), 3, "{}", err(&o));
     assert_eq!(out(&o), "before\n");

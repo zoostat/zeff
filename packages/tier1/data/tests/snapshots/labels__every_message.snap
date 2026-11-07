@@ -38,7 +38,7 @@ error[Z0401]: value labels name the codes of an Int variable, but `industry` is 
 
 > let u = import("data/unicode_labels.csv")
 u.label(city, [1 => "one"])
-warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
+warning[W0601]: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
   = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
 error[Z0401]: value labels name the codes of an Int variable, but `city` is a Str variable
  --> scripts/main.zeff:2:9
@@ -107,7 +107,7 @@ error[Z0401]: `labels` of `label` must be a Str or Mapping<Int, Str>, but this i
 > let w = dataset(wages).head(12)
 w.recode(industry, ["Retail" => "Shop", "Farming" => "Shop"]).n_rows()
 12
-warning: `recode`: "Farming" is not a level of `industry` (line 2)
+warning[W0206]: `recode`: "Farming" is not a level of `industry` (line 2)
   = help: `levels(industry)` lists the levels; the other keys were applied
 note: `industry` recoded: 7 rows changed; 12 levels (line 2)
 [exit 0]
@@ -115,7 +115,7 @@ note: `industry` recoded: 7 rows changed; 12 levels (line 2)
 > let w = dataset(wages).head(12)
 w.recode(industry, ["Farming" => "Shop", "Fishing" => "Shop"]).n_rows()
 12
-warning: `recode`: 2 keys are none of the levels of `industry`: "Farming", "Fishing" (line 2)
+warning[W0206]: `recode`: 2 keys are none of the levels of `industry`: "Farming", "Fishing" (line 2)
   = help: `levels(industry)` lists the levels; the other keys were applied
 note: `industry` recoded: no row changed; 12 levels (line 2)
 [exit 0]
@@ -123,7 +123,7 @@ note: `industry` recoded: no row changed; 12 levels (line 2)
 > let w = dataset(wages).head(12)
 w.recode(educ, [99 => 1]).n_rows()
 12
-warning: `recode`: 99 is not a value of `educ` (line 2)
+warning[W0206]: `recode`: 99 is not a value of `educ` (line 2)
   = help: check the spelling or the type of the key; the other keys were applied
 note: `educ` recoded: no row changed (line 2)
 [exit 0]
@@ -131,7 +131,7 @@ note: `educ` recoded: no row changed (line 2)
 > let w = dataset(wages).head(12)
 w.recode(educ, [99 => 1, NA => 1]).n_rows()
 12
-warning: `recode`: 2 keys are none of the values of `educ`: 99, NA (line 2)
+warning[W0206]: `recode`: 2 keys are none of the values of `educ`: 99, NA (line 2)
   = help: check the spelling or the type of the key; the other keys were applied
 note: `educ` recoded: no row changed (line 2)
 [exit 0]

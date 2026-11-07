@@ -40,7 +40,7 @@ frame · 2 rows × 4 variables
       year   total   firms   rows
   1   2020      28       2      3
   2   2021    22.5       3      3
-warning: 1 row with NA in revenue was skipped (line 2)
+warning[W0201]: 1 row with NA in revenue was skipped (line 2)
 > sales.aggregate(avg = mean(revenue), spread = sd(revenue), se = spread / sqrt(n()), by: firm)
 frame · 3 rows × 4 variables
 
@@ -48,10 +48,10 @@ frame · 3 rows × 4 variables
   1      1       9         1   0.57735
   2      2   11.75   1.06066      0.75
   3      3      NA        NA        NA
-warning: all 1 rows have NA in revenue: the result is NA (line 3)
+warning[W0201]: all 1 rows have NA in revenue: the result is NA (line 3)
 > sales.aggregate(total = sum(revenue), rows = n())
 frame · 1 row × 2 variables
 
       total   rows
   1    50.5      6
-warning: 1 row with NA in revenue was skipped (line 4)
+warning[W0201]: 1 row with NA in revenue was skipped (line 4)

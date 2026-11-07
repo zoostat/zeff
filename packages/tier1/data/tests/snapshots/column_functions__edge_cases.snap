@@ -94,7 +94,7 @@ frame · 3 rows × 4 variables
 (1.5,3]
 ---
 note: `e` replaced the variable of that name (line 12)
-warning: `bin`: 1 row outside every interval became NA (line 13)
+warning[W0210]: `bin`: 1 row outside every interval became NA (line 13)
   = help: the intervals run from 0 to 30; `-Inf` and `Inf` as the first and last breaks keep every value
-warning: `bin`: 1 row outside every interval became NA (line 13)
+warning[W0210]: `bin`: 1 row outside every interval became NA (line 13)
   = help: the intervals run from 0 to 30; `-Inf` and `Inf` as the first and last breaks keep every value

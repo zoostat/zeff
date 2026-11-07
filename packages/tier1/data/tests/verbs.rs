@@ -193,7 +193,7 @@ fn a_name_that_is_both_a_variable_and_a_binding_is_the_variable_with_a_warning()
     assert_eq!(stdout, "1\n");
     assert!(
         stderr.contains(
-            "warning: `hours` is both a variable of w and a binding; the variable was used (line 3)"
+            "warning[W0102]: `hours` is both a variable of w and a binding; the variable was used (line 3)"
         ),
         "{stderr}"
     );

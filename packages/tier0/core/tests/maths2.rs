@@ -237,7 +237,7 @@ fn columns_apply_row_by_row_and_count_their_warnings() {
     );
     assert_eq!(
         without_format_notes(&stderr),
-        "note: 2 values of nan_mixed read as NA from NaN (line 1)\nwarning: sin of an infinite value gave NA in 1 row (line 2)\n  = help: an angle must be finite; `where(is_finite(x))` keeps the rows that are\n"
+        "note: 2 values of nan_mixed read as NA from NaN (line 1)\nwarning[W0205]: sin of an infinite value gave NA in 1 row (line 2)\n  = help: an angle must be finite; `where(is_finite(x))` keeps the rows that are\n"
     );
 }
 

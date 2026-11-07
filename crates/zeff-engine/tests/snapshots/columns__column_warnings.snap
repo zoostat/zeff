@@ -13,7 +13,7 @@ Column<Float> · 4 values
 NA
 2
 
-warning: division by zero gave Inf or -Inf in 2 rows (line 2)
+warning[W0204]: division by zero gave Inf or -Inf in 2 rows (line 2)
   = help: `where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise
-warning: 0 / 0 gave NA in 1 row (line 2)
-warning: -2 ^ 0.5 (no real value) gave NA in 1 row (line 3)
+warning[W0205]: 0 / 0 gave NA in 1 row (line 2)
+warning[W0205]: -2 ^ 0.5 (no real value) gave NA in 1 row (line 3)

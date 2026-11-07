@@ -34,4 +34,4 @@ summary · frame
 
   variable        N   missing    mean      sd     min     max
   yhat       18,179       233   3.192   0.218   2.529   3.926
-warning: 233 rows with NA in yhat were skipped (line 3)
+warning[W0201]: 233 rows with NA in yhat were skipped (line 3)

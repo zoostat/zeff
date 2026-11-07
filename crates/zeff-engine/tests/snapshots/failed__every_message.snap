@@ -125,5 +125,5 @@ error[Z0406]: `report` needs at least one fit, but all 2 failed (Z0801 at line 2
 
 * p < 0.05, ** p < 0.01, *** p < 0.001
 note: no row kept: the result is empty (line 2)
-warning: 1 of 2 fits failed (Z0801 at line 2) and was skipped (line 2)
+warning[W0801]: 1 of 2 fits failed (Z0801 at line 2) and was skipped (line 2)
   = help: the table uses the fits that succeeded; `x.is(Failed)` tells which failed

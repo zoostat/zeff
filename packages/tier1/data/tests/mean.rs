@@ -36,7 +36,7 @@ fn all_missing_and_no_rows_give_na_with_a_warning() {
     assert_eq!(stdout, "NA\nNA\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: all 3 rows have NA in x: the result is NA (line 2)\nwarning: all 3 rows have NA in y: the result is NA (line 3)\n"
+        "warning[W0201]: all 3 rows have NA in x: the result is NA (line 2)\nwarning[W0201]: all 3 rows have NA in y: the result is NA (line 3)\n"
     );
     let (code, stdout, stderr) = go(
         "let d = import(\"data/empty.csv\", types: {x: Float, y: Bool})\nd.mean(x)\nd.mean(y)\n",
@@ -45,7 +45,7 @@ fn all_missing_and_no_rows_give_na_with_a_warning() {
     assert_eq!(stdout, "NA\nNA\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: x has no values: the result is NA (line 2)\nwarning: y has no values: the result is NA (line 3)\n"
+        "warning[W0201]: x has no values: the result is NA (line 2)\nwarning[W0201]: y has no values: the result is NA (line 3)\n"
     );
 }
 
@@ -66,7 +66,7 @@ fn one_row_zero_variance_and_a_large_constant() {
     );
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: 1 row with NA in constant_with_na was skipped (line 3)\n"
+        "warning[W0201]: 1 row with NA in constant_with_na was skipped (line 3)\n"
     );
 }
 
@@ -79,7 +79,7 @@ fn a_bool_column_gives_the_share_of_true() {
     assert_eq!(stdout, "0.75\n0.5\n0.5\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: 2 rows with NA in with_na were skipped (line 4)\n"
+        "warning[W0201]: 2 rows with NA in with_na were skipped (line 4)\n"
     );
 }
 
@@ -92,7 +92,7 @@ fn infinities_follow_the_rules_of_section_4_1() {
     assert_eq!(stdout, "Inf\n-Inf\nNA\n1.5\n2\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "note: 2 values of nan_mixed read as NA from NaN (line 1)\nwarning: both holds both Inf and -Inf, so its mean is NA (line 4)\nwarning: 2 rows with NA in nan_mixed were skipped (line 5)\n"
+        "note: 2 values of nan_mixed read as NA from NaN (line 1)\nwarning[W0204]: both holds both Inf and -Inf, so its mean is NA (line 4)\nwarning[W0201]: 2 rows with NA in nan_mixed were skipped (line 5)\n"
     );
 }
 
@@ -116,7 +116,7 @@ fn the_large_file_and_the_magnitudes_print_six_significant_digits() {
     );
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: 61 rows with NA in hours were skipped (line 3)\n"
+        "warning[W0201]: 61 rows with NA in hours were skipped (line 3)\n"
     );
 }
 

@@ -76,8 +76,8 @@ frame · 7 rows × 3 variables
   6                9   2               9
   7               11   3              11
 ---
-warning: 2 rows with NA in value were skipped (line 1)
-warning: 2 rows with NA in value were skipped (line 1)
-warning: 2 rows with NA in value were skipped (line 6)
-warning: 2 rows with NA in value were skipped (line 6)
-warning: 2 rows with NA in value were skipped (line 8)
+warning[W0201]: 2 rows with NA in value were skipped (line 1)
+warning[W0201]: 2 rows with NA in value were skipped (line 1)
+warning[W0201]: 2 rows with NA in value were skipped (line 6)
+warning[W0201]: 2 rows with NA in value were skipped (line 6)
+warning[W0201]: 2 rows with NA in value were skipped (line 8)

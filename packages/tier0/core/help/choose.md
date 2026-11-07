@@ -40,5 +40,5 @@ factorial, gamma, log_gamma
 0
 > choose(1100, 550)
 Inf
-warning: choose beyond the largest Float gave Inf (line 4)
+warning[W0204]: choose beyond the largest Float gave Inf (line 4)
   = help: `log_gamma(n + 1) - log_gamma(k + 1) - log_gamma(n - k + 1)` gives the logarithm, which stays finite

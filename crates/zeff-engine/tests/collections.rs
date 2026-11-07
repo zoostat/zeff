@@ -71,9 +71,9 @@ fn len_skips_failed_items_with_a_count() {
     assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
     assert_eq!(out.output.stdout, "2\n");
     assert!(
-        out.output
-            .stderr
-            .contains("warning: 1 of 3 items failed (Z0801 at line 2) and was skipped (line 3)"),
+        out.output.stderr.contains(
+            "warning[W0801]: 1 of 3 items failed (Z0801 at line 2) and was skipped (line 3)"
+        ),
         "{}",
         out.output.stderr
     );

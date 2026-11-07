@@ -20,11 +20,11 @@
 /// -2.19722
 /// > logit(0)
 /// -Inf
-/// warning: log of zero gave -Inf (line 4)
+/// warning[W0204]: log of zero gave -Inf (line 4)
 ///   = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
 /// > logit(1)
 /// Inf
-/// warning: division by zero gave Inf (line 5)
+/// warning[W0204]: division by zero gave Inf (line 5)
 ///   = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
 fn logit(p: Float) -> Float {
     log(p / (1 - p))

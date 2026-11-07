@@ -179,13 +179,13 @@ error[Z0409]: `%Q` is not a date format
 to("2026-02-30", Date)
 ---
 NA
-warning: "2026-02-30" could not be converted to Date and became NA (line 1)
+warning[W0203]: "2026-02-30" could not be converted to Date and became NA (line 1)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 
 to("2026-10-16T09:30:00+02:00", DateTime)
 ---
 2026-10-16T07:30:00
-warning: 1 value carried a time-zone offset and was converted to UTC (line 1)
+warning[W0702]: 1 value carried a time-zone offset and was converted to UTC (line 1)
   = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
 
 let f = frame(s = ["2026-10-16", "no", "2026-13-01", "2026-02-30", "x"])
@@ -199,7 +199,7 @@ frame · 5 rows × 2 variables
   3   2026-13-01   NA
   4   2026-02-30   NA
   5   x            NA
-warning: 4 values could not be converted to Date and became NA: "no", "2026-13-01", "2026-02-30" (line 2)
+warning[W0203]: 4 values could not be converted to Date and became NA: "no", "2026-13-01", "2026-02-30" (line 2)
   = help: the page of `to` lists what converts; `is_missing` finds the NA afterwards
 
 let f = frame(s = ["2026-10-16T09:30:00Z", "2026-10-16T09:30:00+02:00", "2026-10-16T09:30:00"])
@@ -211,7 +211,7 @@ frame · 3 rows × 2 variables
   1   2026-10-16T09:30:00Z        2026-10-16T09:30:00
   2   2026-10-16T09:30:00+02:00   2026-10-16T07:30:00
   3   2026-10-16T09:30:00         2026-10-16T09:30:00
-warning: 2 values carried a time-zone offset and were converted to UTC (line 2)
+warning[W0702]: 2 values carried a time-zone offset and were converted to UTC (line 2)
   = help: a DateTime has no zone in 1.0; the instant is kept, written in UTC
 
 let f = frame(d = [to("2026-10-16", Date)])
@@ -243,6 +243,6 @@ frame · 1 row × 1 variable
 
       d
   1   2026-10-16
-warning: `recode`: 2020-01-01 is not a value of `d` (line 2)
+warning[W0206]: `recode`: 2020-01-01 is not a value of `d` (line 2)
   = help: check the spelling or the type of the key; the other keys were applied
 note: `d` recoded: no row changed (line 2)

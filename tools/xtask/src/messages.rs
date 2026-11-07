@@ -1,83 +1,15 @@
 //! The message-snapshot rule (Language Reference, section 11, "Message snapshots", from 0.2.0):
 //! every diagnostic code the engine can raise has a stored copy of its wording. The check lists
 //! the codes written in the sources (`"Z0101"`, `"W0201"`) and looks for each in the snapshot
-//! files: an error or a check-time warning appears as `[Z0101]` in its rendered form; a warning
-//! printed under a result has no code (open decision #45), so it is found by a phrase of its
-//! wording, kept in the table below. From 0.2.0 every code also has an explained page,
+//! files, where every message shows its code in brackets: an error or a warning of the check as
+//! `error[Z0101]`, a warning or a note printed under a result as `warning[W0201]` (open decision
+//! #45: the code is printed there from release 0.7.0; until then such a warning was found by a
+//! phrase of its wording). From 0.2.0 every code also has an explained page,
 //! `crates/zeff-engine/codes/<CODE>.md` (Language Reference, section 11.1), and a page for a code
 //! nothing raises is stale: the check reports both.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-
-/// For the warnings printed without their code, a phrase every snapshot of them contains.
-const PHRASES: &[(&str, &[&str])] = &[
-    ("W0102", &["and a binding; the variable was used"]),
-    ("W0805", &["iterate stopped at max:"]),
-    // A note with a code, printed as a note (open decision #45): `today()` and `now()`.
-    ("W0703", &["read the clock:"]),
-    ("W0201", &["with NA in", "has no values", "have NA in"]),
-    (
-        "W0202",
-        &[
-            "has a fraction, so to(Int) gave NA",
-            "with a fraction became NA under to(Int)",
-        ],
-    ),
-    (
-        "W0203",
-        &["could not be converted to", "none of the levels given"],
-    ),
-    ("W0207", &["the fit never saw"]),
-    (
-        "W0208",
-        &[
-            "matched no arm of the `case`",
-            "no arm of the `case` matched",
-        ],
-    ),
-    ("W0602", &["levels, more than"]),
-    (
-        "W0801",
-        &["fits failed (", "and were skipped", "and was skipped"],
-    ),
-    ("W1001", &["near-singular regressors"]),
-    ("W1002", &["few clusters"]),
-    ("W1003", &["extreme weights"]),
-    ("W1004", &["little variation left after fe:"]),
-    ("W0701", &["has changed since the last run"]),
-    ("Z0507", &["is not a relative period of the data"]),
-    ("W1006", &["a coefficient: removing it moves an estimate"]),
-    (
-        "W0206",
-        &[
-            "is not a level of `",
-            "is not a value of `",
-            "keys are none of the levels of `",
-            "keys are none of the values of `",
-        ],
-    ),
-    (
-        "W0204",
-        &[
-            "division by zero gave",
-            "holds both Inf and -Inf",
-            "of zero gave",
-            "log1p of -1 gave",
-        ],
-    ),
-    (
-        "W0205",
-        &[
-            "gave NA",
-            "needs at least two values",
-            "holds an infinite value",
-        ],
-    ),
-    ("W0210", &["outside every interval"]),
-    ("W0601", &["Unicode normalisation form"]),
-    ("W0702", &["time-zone offset"]),
-];
 
 /// Codes a source mentions without raising them: the exit-code table names the lock mismatch
 /// (Z0703) that arrives with `zeff.lock`.
@@ -120,7 +52,7 @@ pub fn codes_in_source(source: &str) -> BTreeSet<String> {
     found
 }
 
-/// The codes a snapshot text proves: those in brackets, and those whose phrase it carries.
+/// The codes a snapshot text proves: those it shows in brackets.
 pub fn codes_in_snapshot(text: &str) -> BTreeSet<String> {
     let mut found = BTreeSet::new();
     let bytes = text.as_bytes();
@@ -135,11 +67,6 @@ pub fn codes_in_snapshot(text: &str) -> BTreeSet<String> {
             i += 7;
         } else {
             i += 1;
-        }
-    }
-    for (code, phrases) in PHRASES {
-        if phrases.iter().any(|p| text.contains(p)) {
-            found.insert((*code).to_string());
         }
     }
     found
@@ -244,11 +171,9 @@ mod tests {
         let source = "Diagnostic::error(\"Z0101\", \"x\").help(\"Z01\"); warning(\"W0201\", ..); \"ZZ999\" \"Z12345\"\n// a comment mentions \"Z0555\"\n#[cfg(test)]\nmod tests { let _ = \"Z0777\"; }\n";
         let found = codes_in_source(source);
         assert_eq!(found.into_iter().collect::<Vec<_>>(), ["W0201", "Z0101"]);
-        let snapshot =
-            "error[Z0101]: no variable\nwarning: 3 rows with NA in x were skipped (line 2)\n";
+        let snapshot = "error[Z0101]: no variable\nwarning[W0201]: 3 rows with NA in x were skipped (line 2)\nwarning: check the units (line 3)\n";
         let proven = codes_in_snapshot(snapshot);
-        assert!(proven.contains("Z0101") && proven.contains("W0201"));
-        assert!(!proven.contains("W0204"));
+        assert_eq!(proven.into_iter().collect::<Vec<_>>(), ["W0201", "Z0101"]);
     }
 
     #[test]

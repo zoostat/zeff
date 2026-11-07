@@ -334,7 +334,7 @@ fn a_columns_warnings_are_counted_once() {
     assert_eq!(
         without_format_notes(&stderr),
         format!(
-            "warning: sqrt of a negative number gave NA in {negatives} rows (line 2)\n  = help: a negative number has no real square root; `where(x >= 0)` keeps the rows that have one\n"
+            "warning[W0205]: sqrt of a negative number gave NA in {negatives} rows (line 2)\n  = help: a negative number has no real square root; `where(x >= 0)` keeps the rows that have one\n"
         )
     );
     // Float division by zero and 0 / 0 in a column, each counted.

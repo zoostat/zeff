@@ -38,9 +38,9 @@ choose, gamma, log_gamma
 7.25742e+306
 > factorial(171)
 Inf
-warning: factorial above 170 gave Inf (line 4)
+warning[W0204]: factorial above 170 gave Inf (line 4)
   = help: 171! exceeds the largest Float; `log_gamma(n + 1)` gives the logarithm, which stays finite
 > factorial(-3)
 NA
-warning: factorial of a negative number gave NA (line 5)
+warning[W0205]: factorial of a negative number gave NA (line 5)
   = help: n! is defined for whole numbers from 0; `gamma(x + 1)` extends it to other numbers

@@ -70,7 +70,7 @@ fn one_value_all_missing_and_no_rows_give_na_with_a_warning() {
     assert_eq!(stdout, "NA\nNA\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: sd needs at least two values, but x has one: the result is NA (line 2)\nwarning: sd needs at least two values, but flag has one: the result is NA (line 3)\n"
+        "warning[W0205]: sd needs at least two values, but x has one: the result is NA (line 2)\nwarning[W0205]: sd needs at least two values, but flag has one: the result is NA (line 3)\n"
     );
     // Two values with one missing is one value left: skipped, then too few.
     let (code, stdout, stderr) = go("let d = import(\"data/infinities.csv\")\nd.sd(nan_mixed)\n");
@@ -78,7 +78,7 @@ fn one_value_all_missing_and_no_rows_give_na_with_a_warning() {
     assert_eq!(stdout, "NA\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "note: 2 values of nan_mixed read as NA from NaN (line 1)\nwarning: 2 rows with NA in nan_mixed were skipped (line 2)\nwarning: sd needs at least two values, but nan_mixed has one: the result is NA (line 2)\n"
+        "note: 2 values of nan_mixed read as NA from NaN (line 1)\nwarning[W0201]: 2 rows with NA in nan_mixed were skipped (line 2)\nwarning[W0205]: sd needs at least two values, but nan_mixed has one: the result is NA (line 2)\n"
     );
     let (code, stdout, stderr) = go(
         "let a = import(\"data/all_na.csv\", types: {x: Float})\na.sd(x)\nlet e = import(\"data/empty.csv\", types: {x: Float})\ne.sd(x)\n",
@@ -87,7 +87,7 @@ fn one_value_all_missing_and_no_rows_give_na_with_a_warning() {
     assert_eq!(stdout, "NA\nNA\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: all 3 rows have NA in x: the result is NA (line 2)\nwarning: x has no values: the result is NA (line 4)\n"
+        "warning[W0201]: all 3 rows have NA in x: the result is NA (line 2)\nwarning[W0201]: x has no values: the result is NA (line 4)\n"
     );
 }
 
@@ -100,7 +100,7 @@ fn a_constant_column_has_sd_zero_whatever_its_magnitude() {
     assert_eq!(stdout, "0\n0\n0\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: 1 row with NA in constant_with_na was skipped (line 3)\n"
+        "warning[W0201]: 1 row with NA in constant_with_na was skipped (line 3)\n"
     );
 }
 
@@ -113,7 +113,7 @@ fn infinities_make_the_sd_na_with_a_warning() {
     assert_eq!(stdout, "NA\nNA\nNA\n1\n");
     assert_eq!(
         without_format_notes(&stderr),
-        "note: 2 values of nan_mixed read as NA from NaN (line 1)\nwarning: plus holds an infinite value, so its sd is NA (line 2)\nwarning: minus holds an infinite value, so its sd is NA (line 3)\nwarning: both holds an infinite value, so its sd is NA (line 4)\n"
+        "note: 2 values of nan_mixed read as NA from NaN (line 1)\nwarning[W0205]: plus holds an infinite value, so its sd is NA (line 2)\nwarning[W0205]: minus holds an infinite value, so its sd is NA (line 3)\nwarning[W0205]: both holds an infinite value, so its sd is NA (line 4)\n"
     );
 }
 
@@ -128,7 +128,7 @@ fn bools_the_large_file_and_the_magnitudes() {
     assert_eq!(lines[0], format_float((0.75f64 * 0.25 * 4.0 / 3.0).sqrt()));
     assert_eq!(
         without_format_notes(&stderr),
-        "warning: 61 rows with NA in hours were skipped (line 4)\n"
+        "warning[W0201]: 61 rows with NA in hours were skipped (line 4)\n"
     );
     // The offset column is a billion plus a spread below one: the spread, not the offset, is
     // what the two-pass algorithm keeps.

@@ -27,8 +27,8 @@ frame · 3 rows × 2 variables
   1    1   1.02
   2   NA     NA
   3    3   2.98
-warning: 1 row with NA in value was skipped (line 1)
-warning: 1 row with NA in value was skipped (line 1)
+warning[W0201]: 1 row with NA in value was skipped (line 1)
+warning[W0201]: 1 row with NA in value was skipped (line 1)
 
 frame(x = [1.0, 2]).add(q = quantile_group(x))
 ---

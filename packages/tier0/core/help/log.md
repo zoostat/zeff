@@ -43,7 +43,7 @@ exp, log2, log10, log1p
 3
 > log(0)
 -Inf
-warning: log of zero gave -Inf (line 4)
+warning[W0204]: log of zero gave -Inf (line 4)
   = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
 > let wages = import("data/wages.csv")
 note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 5)

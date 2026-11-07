@@ -1,5 +1,6 @@
 ---
 source: packages/tier0/core/tests/special.rs
+assertion_line: 133
 expression: "format!(\"{stdout}---\\n{}\", without_format_notes(&stderr))"
 ---
 Column<Float> · 5 values
@@ -33,15 +34,15 @@ Inf
 Inf
 NA
 ---
-warning: gamma at a pole gave NA in 2 rows (line 2)
+warning[W0205]: gamma at a pole gave NA in 2 rows (line 2)
   = help: Γ has poles at zero and the negative whole numbers; between them it is finite
-warning: factorial of a negative number gave NA in 1 row (line 3)
+warning[W0205]: factorial of a negative number gave NA in 1 row (line 3)
   = help: n! is defined for whole numbers from 0; `gamma(x + 1)` extends it to other numbers
-warning: factorial above 170 gave Inf in 1 row (line 3)
+warning[W0204]: factorial above 170 gave Inf in 1 row (line 3)
   = help: 171! exceeds the largest Float; `log_gamma(n + 1)` gives the logarithm, which stays finite
-warning: choose with a negative n gave NA in 1 row (line 4)
+warning[W0205]: choose with a negative n gave NA in 1 row (line 4)
   = help: the number of ways to choose k of n needs a whole number n of 0 or more
-warning: beta with an argument that is not positive gave NA in 2 rows (line 5)
+warning[W0205]: beta with an argument that is not positive gave NA in 2 rows (line 5)
   = help: B(a, b) is defined for positive a and b
-warning: log_gamma at a pole gave Inf in 2 rows (line 6)
+warning[W0204]: log_gamma at a pole gave Inf in 2 rows (line 6)
   = help: Γ has poles at zero and the negative whole numbers, so its logarithm is infinite there

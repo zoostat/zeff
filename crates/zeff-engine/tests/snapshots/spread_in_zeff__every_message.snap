@@ -6,10 +6,10 @@ expression: text
 ## with_na (exit 0)
 5
 4.4478
-warning: 1 row with NA in x was skipped (line 2)
-warning: 1 row with NA in x was skipped (line 2)
-warning: 1 row with NA in x was skipped (line 3)
-warning: 1 row with NA in deviation was skipped (line 3)
+warning[W0201]: 1 row with NA in x was skipped (line 2)
+warning[W0201]: 1 row with NA in x was skipped (line 2)
+warning[W0201]: 1 row with NA in x was skipped (line 3)
+warning[W0201]: 1 row with NA in deviation was skipped (line 3)
 
 ## bad_type (exit 1)
 error[Z0401]: `type:` of `quantile` must be one of the nine definitions, 1 to 9, not 10

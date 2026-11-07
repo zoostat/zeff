@@ -23,5 +23,5 @@ note: 211 rows dropped where `wage > cut` was NA; `w.where(is_missing(wage))` li
 note: 211 rows dropped where `wage > cut` was NA; `w.where(is_missing(wage))` lists them (line 2)
 note: 211 rows dropped where `wage > cut` was NA; `w.where(is_missing(wage))` lists them (line 2)
 note: no row kept: the result is empty (line 2)
-warning: 1 of 4 fits failed (Z0801 at line 3) and was skipped (line 5)
+warning[W0801]: 1 of 4 fits failed (Z0801 at line 3) and was skipped (line 5)
   = help: the table uses the fits that succeeded; `x.is(Failed)` tells which failed

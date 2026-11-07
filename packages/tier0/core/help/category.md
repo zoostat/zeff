@@ -64,6 +64,6 @@ frame · 4 rows × 3 variables
   name       Str                  4         0   Ann
   dept       Category             3         1   Sales (2 levels)
   grade      Int                  4         0   2
-warning: 1 value is none of the levels given and became NA: "HR" (line 6)
+warning[W0203]: 1 value is none of the levels given and became NA: "HR" (line 6)
   = help: add the value to `levels:`, or recode it first; `is_missing` finds the NA afterwards
 note: `dept` replaced the variable of that name (line 6)

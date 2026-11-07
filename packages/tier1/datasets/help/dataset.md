@@ -29,7 +29,7 @@ mean · wage by union
   union     mean
   no      26.463
   yes     29.314
-warning: 211 rows with NA in wage were skipped (line 2)
+warning[W0201]: 211 rows with NA in wage were skipped (line 2)
 > import("zeff:sleep.csv").n_cols()
 3
 note: zeff:sleep.csv read as CSV: 20 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 3)

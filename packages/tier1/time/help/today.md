@@ -26,9 +26,9 @@ now, date, days_between
 ## Examples
 > today()
 2026-11-01
-note: today() read the clock: 2026-11-01 (line 1)
+note[W0703]: today() read the clock: 2026-11-01 (line 1)
   = help: the value depends on when the script runs; `zeff run --replay` will reuse it (release 0.11.0)
 > days_between(today(), date("2027-01-01"))
 61
-note: today() read the clock: 2026-11-01 (line 2)
+note[W0703]: today() read the clock: 2026-11-01 (line 2)
   = help: the value depends on when the script runs; `zeff run --replay` will reuse it (release 0.11.0)

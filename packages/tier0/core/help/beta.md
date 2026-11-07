@@ -41,5 +41,5 @@ gamma, log_gamma, choose, dist.beta
 3.14159
 > beta(0, 1)
 NA
-warning: beta with an argument that is not positive gave NA (line 3)
+warning[W0205]: beta with an argument that is not positive gave NA (line 3)
   = help: B(a, b) is defined for positive a and b

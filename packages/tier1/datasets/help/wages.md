@@ -69,7 +69,7 @@ summary · by female
   female   educ       8,921         0   13.514    2.503   8.000    20.000
   male     exper      9,477        14   15.264    7.468   0.000    36.000
   female   exper      8,913         8   14.866    7.564   0.000    36.000
-warning: 211 rows with NA in wage and 22 with NA in exper were skipped (line 3)
+warning[W0201]: 211 rows with NA in wage and 22 with NA in exper were skipped (line 3)
 > wages.head(3)
 frame · 3 rows × 11 variables · panel worker × year
 

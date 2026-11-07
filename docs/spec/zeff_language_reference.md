@@ -702,7 +702,7 @@ warning[W0801]: 17 of 2,000 bootstrap draws did not converge and were skipped (l
 let fits = [for s in 1..200 {
     attempt(sims.where(rep == s).logistic(y ~ treat + x))
 }]
-report(fits)      // warning: 3 of 200 fits failed (Z0803 at line 51) and were skipped
+report(fits)      // warning[W0801]: 3 of 200 fits failed (Z0803 at line 51) and were skipped
 ```
 
 Every warning, including those the engine raises, is printed with its line and kept in the run record. Section 11 lists the diagnostics.
@@ -1188,7 +1188,7 @@ summary · by female
   female   educ        8,690         0   13.718    2.488    0.000   20.000
   female   exper       8,681         9    8.902    5.977    0.000   36.000
 
-warning: 211 rows with NA in lwage and 22 with NA in exper were skipped (line 21)
+warning[W0201]: 211 rows with NA in lwage and 22 with NA in exper were skipped (line 21)
 ```
 
 `m2` (a statement that is not a `let` prints its value)
@@ -1248,7 +1248,7 @@ Warnings and notes print under the output they belong to and are kept in the run
 ```
 note: 211 values of wage read as NA from na_values -99 (line 5)
 note: seed 20261015 set at line 2; recorded in .zeff/runs/2026-10-15T21-04/
-warning: 12 rows gave −Inf from log(sales) where sales = 0 (line 9 of another script)
+warning[W0204]: 12 rows gave −Inf from log(sales) where sales = 0 (line 9 of another script)
   = help: use log1p(sales), or filter with where(sales > 0) first
 ```
 

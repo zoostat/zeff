@@ -341,7 +341,7 @@ standard errors: clustered by industry (12 clusters, CR1)
 
 R² 0.203 · adjusted R² 0.203
 --- messages ---
-warning: few clusters: 12 clusters give clustered errors little to rest on (line 1)
+warning[W1002]: few clusters: 12 clusters give clustered errors little to rest on (line 1)
   = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
 [exit 0]
 
@@ -434,7 +434,7 @@ standard errors: clustered by worker (10 clusters, CR1)
 
 R² 0.106 · adjusted R² 0.057
 --- messages ---
-warning: few clusters: 10 clusters give clustered errors little to rest on (line 1)
+warning[W1002]: few clusters: 10 clusters give clustered errors little to rest on (line 1)
   = help: the wild cluster bootstrap (`se: bootstrap`, release 1.1) is the usual remedy below 30 clusters
 [exit 0]
 
@@ -483,9 +483,9 @@ standard errors: robust (HC1)
 
 R² 0.000 · adjusted R² 0.000
 --- messages ---
-warning: extreme weights: the effective sample size is 7 of 18,201 rows (line 1)
+warning[W1003]: extreme weights: the effective sample size is 7 of 18,201 rows (line 1)
   = help: a few rows carry most of the weight; check them, or trim the weights
-warning: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 4, 6) (line 1)
+warning[W1006]: 2 observations drive a coefficient: removing one moves an estimate by more than its standard error (rows 4, 6) (line 1)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 [exit 0]
 
@@ -551,9 +551,9 @@ standard errors: classical
 
 R² 0.547 · adjusted R² 0.377
 --- messages ---
-warning: near-singular regressors: the condition number of the scaled design is 3.847e10 (line 3)
+warning[W1001]: near-singular regressors: the condition number of the scaled design is 3.847e10 (line 3)
   = help: two regressors are almost the same column; drop one, or combine them
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 3)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 12) (line 3)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 [exit 0]
 
@@ -631,9 +631,9 @@ standard errors: classical
 R² 0.067 · adjusted R² -0.400
 --- messages ---
 note: data/unicode_labels.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-warning: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
+warning[W0601]: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
   = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 4) (line 1)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 4) (line 1)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 [exit 0]
 

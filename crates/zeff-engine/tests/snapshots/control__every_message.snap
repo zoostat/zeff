@@ -40,7 +40,7 @@ error[Z0203]: `if` needs one Bool, but the condition is NA
   = help: an `NA` condition is neither true nor false; test it first with `is_missing`, or give the comparison a value with `coalesce`
 
 ## if_on_a_column_found_at_run_time (exit 1)
-warning: `x` is both a variable of d and a binding; the variable was used (line 3)
+warning[W0102]: `x` is both a variable of d and a binding; the variable was used (line 3)
   = help: rename the binding, or write `d["x"]` and the binding apart; inside a frame method a bare name is the frame's variable first
 error[Z0203]: `if` needs one Bool, but `x` is an Int column
  --> scripts/main.zeff:3:14
@@ -144,7 +144,7 @@ warning[W0301]: this condition is always true, so the arms after it can never be
 
 ## case_no_match (exit 0)
 NA
-warning: no arm of the `case` matched, so its value is NA (line 2)
+warning[W0208]: no arm of the `case` matched, so its value is NA (line 2)
   = help: add a last arm for the rest, `_ => value`
 
 ## case_rows_no_match (exit 0)
@@ -155,7 +155,7 @@ frame · 4 rows × 2 variables
   2    5   NA
   3    9   NA
   4   NA   NA
-warning: 3 rows matched no arm of the `case` and are NA (line 2)
+warning[W0208]: 3 rows matched no arm of the `case` and are NA (line 2)
   = help: add a last arm for the rest, `_ => value`
 
 ## case_rows_of_two_lengths (exit 1)
@@ -168,7 +168,7 @@ error[Z0217]: this `case` runs over 2 rows, but this arm gives 3 rows
   = help: two columns combine only when they belong to the same frame or have the same length; `merge` joins frames first
 
 ## case_condition_column_not_bool (exit 1)
-warning: `x` is both a variable of d and a binding; the variable was used (line 3)
+warning[W0102]: `x` is both a variable of d and a binding; the variable was used (line 3)
   = help: rename the binding, or write `d["x"]` and the binding apart; inside a frame method a bare name is the frame's variable first
 error[Z0203]: a `case` arm's condition must be a Bool or a Bool column, but `x` is an Int column
  --> scripts/main.zeff:3:18

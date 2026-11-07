@@ -41,7 +41,7 @@ standard errors: robust (HC1)
 R² 0.667 · adjusted R² 0.333
 --- messages ---
 note: data/one.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 [exit 0]
 
@@ -58,6 +58,6 @@ standard errors: classical
 R² 0.667 · adjusted R² 0.333
 --- messages ---
 note: data/one.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-warning: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 3) (line 2)
   = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
 [exit 0]

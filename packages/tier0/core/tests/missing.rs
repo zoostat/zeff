@@ -41,7 +41,7 @@ fn is_missing_and_coalesce_on_scalars() {
         "true\nfalse\nfalse\nfalse\nfalse\n2\n1\nnone\nNA\n2.5\n9.22337e+18\nfalse\n"
     );
     assert!(
-        stderr.starts_with("warning: division by zero gave Inf (line 5)"),
+        stderr.starts_with("warning[W0204]: division by zero gave Inf (line 5)"),
         "{stderr}"
     );
 }

@@ -54,5 +54,5 @@ note: 6 passes until done (line 3)
 note: 6 passes until done (line 4)
 > iterate(start: {x: 1.0}, step: newton, args: {a: 2.0}, done: close, max: 2)
 x: 1.41667
-warning: iterate stopped at max: 2 passes without done becoming true (line 5)
+warning[W0805]: iterate stopped at max: 2 passes without done becoming true (line 5)
   = help: the state returned is the last one; raise `max:` or loosen `done:`, and `keep: true` shows the path

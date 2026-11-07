@@ -52,5 +52,5 @@ true
   R²                0.984       0.923
 
 * p < 0.05, ** p < 0.01, *** p < 0.001
-warning: 1 of 3 fits failed (Z0801 at line 3) and was skipped (line 7)
+warning[W0801]: 1 of 3 fits failed (Z0801 at line 3) and was skipped (line 7)
   = help: the table uses the fits that succeeded; `x.is(Failed)` tells which failed
