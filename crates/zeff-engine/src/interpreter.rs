@@ -1043,6 +1043,7 @@ impl<'a> Interpreter<'a> {
                 let mut values = values;
                 values.resize(count, None);
                 let args: Vec<Option<Expr>> = vec![None; count];
+                self.restore_captured(function);
                 self.enter_user(index, span, &args, values, printed, messages)
             }
             None => {
@@ -1058,6 +1059,98 @@ impl<'a> Interpreter<'a> {
                     printed,
                     messages,
                 )
+            }
+        }
+    }
+
+    /// A function literal's captured bindings put back in sight before its body runs: the values
+    /// they had where it was written (section 3.7, "Functions as values").
+    fn restore_captured(&mut self, function: &FunctionValue) {
+        for (id, value) in &function.captured {
+            self.env.insert(*id, value.clone());
+        }
+    }
+
+    /// `map(list, f)`, `filter(list, f)` and `reduce(list, f, start)` (Language Reference,
+    /// section 3.7, "Functions as values"): `f` applied to each item in order, the results as a
+    /// list, the items it answers `true` for, or the running value from `start`. A list holding
+    /// a `Failed` item is refused at the call as any list argument is (Z0220); `filter` needs
+    /// `true` or `false` from `f` (Z0203 on `NA`).
+    fn run_list_function(
+        &mut self,
+        call: &Call,
+        mut values: Vec<Option<Value>>,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Value, Fail> {
+        let span_of = |i: usize| {
+            call.args
+                .get(i)
+                .and_then(|a| a.as_ref())
+                .map_or(call.callee_span, |e| e.span)
+        };
+        let name = call.name.as_str();
+        let (script, callee_span) = (self.script, call.callee_span);
+        let internal = move |what: &str| {
+            fail(
+                Diagnostic::error(
+                    "Z9001",
+                    format!("internal error: this is a bug in Zeff, not in your script (`{name}` {what})"),
+                )
+                .in_file(script)
+                .primary(callee_span, "the call that failed"),
+            )
+        };
+        let mut take = |i: usize| values.get_mut(i).and_then(Option::take);
+        let Some(Value::List(items)) = take(0) else {
+            return Err(internal("without a list"));
+        };
+        let Some(Value::Function(f)) = take(1) else {
+            return Err(internal("without a function"));
+        };
+        let start = take(2);
+        let f_span = span_of(1);
+        match name {
+            "map" => {
+                let mut out = Vec::with_capacity(items.len());
+                for item in items {
+                    out.push(self.apply(&f, vec![Some(item)], f_span, printed, messages)?);
+                }
+                Ok(Value::List(out))
+            }
+            "filter" => {
+                let mut out = Vec::with_capacity(items.len());
+                for item in items {
+                    match self.apply(&f, vec![Some(item.clone())], f_span, printed, messages)? {
+                        Value::Bool(true) => out.push(item),
+                        Value::Bool(false) => {}
+                        Value::Na => {
+                            return Err(fail(
+                                Diagnostic::error("Z0203", "`f` of `filter` gave NA where true or false was needed")
+                                    .in_file(self.script)
+                                    .primary(f_span, "answered NA for an item")
+                                    .help("decide the missing case in the function: `!is_missing(x) && x > 0`, or `coalesce(x > 0, false)`"),
+                            ));
+                        }
+                        _ => return Err(internal("got no Bool from `f`")),
+                    }
+                }
+                Ok(Value::List(out))
+            }
+            _ => {
+                let Some(mut running) = start else {
+                    return Err(internal("without a start"));
+                };
+                for item in items {
+                    running = self.apply(
+                        &f,
+                        vec![Some(running), Some(item)],
+                        f_span,
+                        printed,
+                        messages,
+                    )?;
+                }
+                Ok(running)
             }
         }
     }
@@ -1906,6 +1999,12 @@ impl<'a> Interpreter<'a> {
                 arity: f.arity,
                 rest: f.rest,
                 signature: f.signature.clone(),
+                // A literal takes the bindings in sight with it, as they are now.
+                captured: f
+                    .captures
+                    .iter()
+                    .filter_map(|id| self.env.get(id).map(|v| (*id, v.clone())))
+                    .collect(),
             }),
             // A call through a function value (section 3.7, "Functions as values"): a function
             // of the script runs as a call of it; a built-in runs its body with the arguments in
@@ -1923,6 +2022,7 @@ impl<'a> Interpreter<'a> {
                         slots.resize(count, None);
                         let order: Vec<Slot> =
                             (0..args.len().min(count)).map(Slot::Param).collect();
+                        self.restore_captured(&function);
                         self.call_user(index, callee.span, &slots, &[], &order, printed, messages)?
                     }
                     None => {
@@ -2510,6 +2610,10 @@ impl<'a> Interpreter<'a> {
         // `iterate` is the interpreter's: it calls the functions it is given (section 5.5).
         if call.package == "core" && call.name == "iterate" {
             return self.run_iterate(call, values, printed, messages);
+        }
+        // So are `map`, `filter` and `reduce` (section 3.7, "Functions as values").
+        if call.package == "core" && matches!(call.name.as_str(), "map" | "filter" | "reduce") {
+            return self.run_list_function(call, values, printed, messages);
         }
         // A built-in written in Zeff: its lowered body, with the arguments as evaluated.
         if let Some(builtin) = zeff {

@@ -4,6 +4,7 @@ pub mod check;
 pub mod ir;
 pub mod schema;
 pub mod ty;
+pub mod uses;
 
 pub use check::{
     BuiltinChecked, BuiltinForm, BuiltinProblem, check_builtin, enclosing_param, type_text,

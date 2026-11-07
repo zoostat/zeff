@@ -1282,8 +1282,39 @@ impl<'a> Parser<'a> {
             K::Keyword(Keyword::Case) => self.case_expr(),
             K::Keyword(Keyword::Model) => self.model_block(),
             K::Keyword(Keyword::Dag) => self.dag_block(),
+            K::Keyword(Keyword::Fn) => self.fn_literal(),
             _ => Err(self.unexpected("an expression")),
         }
+    }
+
+    /// `fn(i) i / n`, `fn(i: Int, j) i + j`: a function literal, its parameters each with a type
+    /// when one is written, and one expression as its body.
+    fn fn_literal(&mut self) -> PResult<Expr> {
+        let start = self.span().start;
+        self.bump(); // fn
+        self.expect(&K::LParen, "`(` and the parameters")?;
+        let mut params = Vec::new();
+        while !self.at(&K::RParen) {
+            let name = self.ident()?;
+            let ty = if self.eat(&K::Colon) {
+                Some(self.ty()?)
+            } else {
+                None
+            };
+            params.push(LiteralParam { name, ty });
+            if !self.eat(&K::Comma) {
+                break;
+            }
+        }
+        self.expect(&K::RParen, "`,` or `)`")?;
+        let body = self.expr()?;
+        Ok(Expr {
+            kind: ExprKind::FnLiteral {
+                params,
+                body: Box::new(body),
+            },
+            span: self.span_from(start),
+        })
     }
 
     fn int_literal(&mut self) -> PResult<Expr> {

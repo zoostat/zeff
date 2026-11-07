@@ -34,7 +34,7 @@ Zeff is a statically typed, expression-oriented, mostly functional language for 
 | Definitions and options | `=` creates a name (`add(lwage = log(wage))`), `:` sets an option (`se: robust`) | R uses `=` for both; Stata uses `generate` and commas |
 | Errors | No exceptions: an error stops the script; `attempt` turns one into a `Failed` value, like Rust's `Result` | R has `tryCatch`, Stata `capture` |
 | Termination | No `while` and no recursion: every loop has a known length and `iterate` needs a finite `max:`, so a script always finishes | |
-| Functions | First-class but named; closures after 1.0 | R has full closures |
+| Functions | First-class, by name or as a literal `fn(i) i / n` where a parameter takes a function; closures bound to a name after 1.0 | R has full closures |
 | Reproducibility | Seeds always recorded; bit-identical results on every platform (section 8.3 of the Engine and Project Specification) | Neither guarantees this |
 | Execution | Interpreted from a typed intermediate representation; every built-in method is compiled Rust | R is interpreted over C; Stata is closed-source C |
 | Indexing and case | Positions start at 1; names are case-sensitive (section 3.6) | As R |
@@ -156,6 +156,10 @@ postfix     = primary { "." qname "(" [ args ] ")" | "." NAME | "[" expr "]" }
             // from the function registry (section 3.7)
 primary     = literal | qname | qname "(" [ args ] ")" | "(" expr ")"
             | if_expr | case_expr | model_block | dag_block | "[" for_loop "]" | "."
+            | fn_literal
+fn_literal  = "fn" "(" [ NAME [ ":" type ] { "," NAME [ ":" type ] } ] ")" expr
+            // a function value where a parameter takes one (section 3.7, "Functions as
+            // values"); a parameter's type is the function type's unless written
             // "." alone: every other column, only as a term on the right of ~ in the
             // formulas of learn and tune (section 7.5); elsewhere Z0321
 if_expr     = "if" expr block [ "else" ( if_expr | block ) ]
@@ -333,7 +337,7 @@ This section fixes the rules an implementation needs beyond the grammar.
 | `Nothing` | `print`, `warn`, `assert` and an `if` without `else` have the type `Nothing`, which cannot be bound or passed (Z0206) and prints nothing; an `if` used as a value must have an `else` |
 | Records | A record literal has a structural type, its field names and their types, inferred from the literal; `r.name` on a record without that field is a check-time error (Z0209). `Record` alone in a signature accepts any record, and the fields the function reads are checked at each call against the argument's type, so `iterate`'s state is checked where `iterate` is called |
 | Mappings | A `Mapping<K, V>` has one key type and one value type: `[0 => "male"]` is `Mapping<Int, Str>`, and the mappings of `re:` have `Var` keys and `Terms` values. Keys are unique and keep insertion order; `m[k]` for an absent key is an error (Z0204), and `is_in(k, keys(m))` tests first |
-| Functions as values | A function type is written `Fn(T1, T2) -> R`. A parameter of that type accepts a named function whose parameter types and return type match exactly, defaults ignored; any other function is an error listing both signatures (Z0205) |
+| Functions as values | A function type is written `Fn(T1, T2) -> R`. A parameter of that type accepts a named function whose parameter types and return type match exactly, defaults ignored; any other function is an error listing both signatures (Z0205). It also accepts a function literal written where it is used, `fn(i) i / n`: its parameters take the function type's types unless written, `fn(i: Int) ...`, which must then agree; its body is one expression over the parameters and the bindings in sight where the literal stands, whose values it takes with it; a literal anywhere else is an error (Z0205). `map(list, f)`, `filter(list, f)` and `reduce(list, f, start)` of `core` take `f` typed by the list's items, `Fn(T) -> R` giving a `List<R>`, `Fn(T) -> Bool` giving the list's type, and `Fn(S, T) -> S` with `S` the type of `start`, so that `map(seq(1, n - 1), fn(i) i / n)` is the probabilities i/n, each computed exactly |
 | Indexing | `xs[i]` outside `1..len(xs)` is an error naming the index (Z0207); indices are never negative; `xs[2..4]` is the sub-list from 2 to 4; a frame's `wages["lwage"]` names a column (Z0101 when absent) |
 | Conversion | `to(x, T)` follows the table below; a value that cannot convert becomes `NA` with a warning giving the count and three failing values (W0203), never silently |
 | Dates | Date minus Date gives Int days; Date plus Int is not allowed: use `add_days`; DateTime likewise with `days_between`. This stays so when `Duration` arrives (section 4.3): `DateTime − DateTime`, an error in 1.0, then gives a Duration, and no existing script changes type |
@@ -672,7 +676,7 @@ report(wages.robustness(lwage ~ educ + exper)).export("output/table3.docx")
 | Fixed lists | `effect: d \| g = g` accepts only the listed words |
 | Pure | A function cannot change anything outside itself; it returns new values |
 | Scope | A function body sees its parameters and other functions (built-in and the project's), never the script's bindings; anything else it needs is passed as an argument, so a function gives the same result wherever it is called |
-| Values | A named function can be passed to a parameter typed `Fn(...) -> R` (`minimize(f, start)`, `iterate(step: em_step, ...)`); closures (`\|x\| ...`) come after 1.0 |
+| Values | A named function can be passed to a parameter typed `Fn(...) -> R` (`minimize(f, start)`, `iterate(step: em_step, ...)`), and so can a function literal written there, `map(xs, fn(i) i / n)` (section 3.7, "Functions as values"); a literal bound to a name (`let f = fn(x) ...`) comes after 1.0 |
 | Recursion | Not allowed: a function may not call itself directly or through other functions (Z0108); iteration is `for` and `iterate` |
 | Placement | `fn` appears only at the top level of a file (Z0309): in `functions/` for reuse, or in a script, where it is private to that script |
 | Order | Definitions are order-independent: a function may call one defined later in its file or in another module; a module file holds only `///` text, `fn` definitions and `use` lines, and `use` lines come before the first statement of a script |

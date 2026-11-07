@@ -130,3 +130,13 @@ Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (th
 **Next.** Step 3b `[engine]`: functions as values over lists (#79, option B): a function literal, `map`, `filter` and `reduce`.
 
 **For the owner to decide.** Nothing new. Rulings he may overturn: the spelling `data: Frame = enclosing`; the page has no entry for the enclosing frame; a function of the script called inside a definition sees no frame, as with `n()` today.
+
+## 7 November 2026, release 0.7.0, step 3b (functions as values over lists)
+
+**Done.** A function literal, `fn(i) i / n`, is accepted where a parameter takes a function: its parameters take the function type's types unless written (which must then agree), its body is one expression over them and the bindings in sight, whose values the literal takes with it; a literal anywhere else is refused (Z0205) with a help naming the rule. `map(list, f)`, `filter(list, f)` and `reduce(list, f, start)` join `core` (rows 536 to 538; 272 functions in 1.0, 75 in `core`), each typed by the list's items at the call and run by the interpreter as `iterate` is; `map(seq(1, n - 1), fn(i) i / n)` gives the probabilities i/n exactly, the owner's definition of done. The engine's liveness pass counts a literal's captures as reads, through the reads walker now shared with the checker (`zeff-ir`, `uses.rs`). The grammar of section 3.4 and the rows of sections 3.7 and 5.3 of the Language Reference, the counts of both volumes and the collections of `core` in section 9.2 follow (logged); open decision #79 records the application. Proved by the parser's tree, the engine program `list_functions` (the run, the edge cases, every message as a snapshot, the property that `map` keeps the length and the order), the three help pages' examples and the conformance case `control/map` (two digests added, none changed).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the syntax, checker, registry, command-line and conformance programs, and the engine programs the step touches (the list functions, the examples, `iterate`, the functions, the failed values, the memory pass, the built-ins written in Zeff); the whole suite on CI, read job by job after the push.
+
+**Next.** Step 4 `[function]`: the rewrites in Zeff (`fill_missing`, `n_missing`, `row_mean`, `row_sum`, `diff`, `drop_missing`, `skewness`, `quantile_group`, `summary` on `table`).
+
+**For the owner to decide.** Nothing new. Rulings he may overturn: a literal's body is one expression, not a block; a literal bound to a name (`let f = fn(x) ...`) stays after 1.0; `filter` refuses `NA` from its function (Z0203) rather than dropping the item.

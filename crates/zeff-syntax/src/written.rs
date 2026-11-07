@@ -53,6 +53,18 @@ pub fn written(expr: &Expr) -> String {
             None => format!("{} {}", op.symbol(), written(rhs)),
         },
         ExprKind::Paren(inner) => format!("({})", written(inner)),
+        ExprKind::FnLiteral { params, body } => format!(
+            "fn({}) {}",
+            params
+                .iter()
+                .map(|p| match &p.ty {
+                    Some(ty) => format!("{}: {}", ident(&p.name), crate::sexp::ty(ty)),
+                    None => ident(&p.name),
+                })
+                .collect::<Vec<_>>()
+                .join(", "),
+            written(body)
+        ),
         ExprKind::List(items) => format!(
             "[{}]",
             items.iter().map(written).collect::<Vec<_>>().join(", ")

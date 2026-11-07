@@ -195,6 +195,20 @@ pub enum ExprKind {
     },
     Model(Vec<ModelLine>),
     Dag(Vec<DagLine>),
+    /// `fn(i) i / n`: a function literal where a parameter takes a function (section 3.7,
+    /// "Functions as values"); a parameter's type may be written, `fn(i: Int) i / n`, and is
+    /// otherwise the function type's.
+    FnLiteral {
+        params: Vec<LiteralParam>,
+        body: Box<Expr>,
+    },
+}
+
+/// A parameter of a function literal: its name and, when written, its type.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LiteralParam {
+    pub name: Ident,
+    pub ty: Option<Type>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

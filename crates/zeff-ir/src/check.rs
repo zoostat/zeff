@@ -1236,6 +1236,9 @@ impl Checker<'_> {
                 otherwise,
             } => self.if_expr(cond, then, otherwise.as_deref(), span, expected),
             ast::ExprKind::Case { arms } => self.case_expr(arms, span, expected),
+            ast::ExprKind::FnLiteral { params, body } => {
+                self.fn_literal(params, body, span, expected)
+            }
             ast::ExprKind::Model(_) => {
                 self.not_yet(
                     span,
@@ -4496,6 +4499,7 @@ impl Checker<'_> {
                         arity: sig.params.len(),
                         rest: false,
                         signature,
+                        captures: Vec::new(),
                     },
                     Ty::Fn(params, false, Box::new(sig.returns.clone())),
                 )
@@ -4539,6 +4543,7 @@ impl Checker<'_> {
                         arity: f.spec.params.len(),
                         rest,
                         signature: f.spec.usage(),
+                        captures: Vec::new(),
                     },
                     Ty::Fn(params, rest, Box::new(returns)),
                 )
@@ -4567,6 +4572,418 @@ impl Checker<'_> {
             ty: actual,
             span,
             kind: ExprKind::FunctionValue(value),
+        }
+    }
+
+    /// A function literal, `fn(i) i / n` (section 3.7, "Functions as values"): accepted where a
+    /// parameter takes a function, whose type gives each parameter its type unless one is
+    /// written (and then they must agree); the body is one expression, checked in the scope of
+    /// the parameters over the bindings in sight where the literal stands, which the value
+    /// takes with it. It is lowered as a function of the program with a name no call can
+    /// write, and typed by the function type, with the body's type where that leaves the
+    /// result open (`map`).
+    fn fn_literal(
+        &mut self,
+        params: &[ast::LiteralParam],
+        body: &ast::Expr,
+        span: Span,
+        expected: Option<&Ty>,
+    ) -> Expr {
+        let written_form = format!(
+            "fn({})",
+            params
+                .iter()
+                .map(|p| p.name.text.clone())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        let Some(Ty::Fn(want, dots, ret)) = expected else {
+            self.report(
+                Diagnostic::error(
+                    "Z0205",
+                    format!("`{written_form}` stands where no parameter takes a function"),
+                )
+                .primary(span, "a function literal")
+                .help("a function literal is the argument of a parameter typed `Fn(...)`, as `map(xs, fn(i) i / n)`; a function to call by name is defined at the top level, `fn name(i: Int) -> Float { ... }`"),
+            );
+            return Expr::error(span);
+        };
+        let (want, dots, ret) = (want.clone(), *dots, (**ret).clone());
+        let fits = if dots {
+            params.len() >= want.len()
+        } else {
+            params.len() == want.len()
+        };
+        if !fits {
+            let takes = want.len();
+            self.report(
+                Diagnostic::error(
+                    "Z0205",
+                    format!(
+                        "`{written_form}` has {} {}, but `{}` takes {takes}",
+                        params.len(),
+                        if params.len() == 1 {
+                            "parameter"
+                        } else {
+                            "parameters"
+                        },
+                        expected.unwrap()
+                    ),
+                )
+                .primary(
+                    span,
+                    format!(
+                        "{} {}",
+                        params.len(),
+                        if params.len() == 1 {
+                            "parameter"
+                        } else {
+                            "parameters"
+                        }
+                    ),
+                )
+                .help(format!(
+                    "write one parameter per value the function is given{}",
+                    if dots { ", and more after them" } else { "" }
+                )),
+            );
+            return Expr::error(span);
+        }
+        // Each parameter's type: the function type's, or the one written, which must agree.
+        let mut types: Vec<Ty> = Vec::with_capacity(params.len());
+        let mut sound = true;
+        for (i, p) in params.iter().enumerate() {
+            let given = p.ty.as_ref().map(|t| self.lower_type(t).0);
+            let ty = match (want.get(i), given) {
+                (Some(w), Some(g)) if *w != g && g != Ty::Unknown => {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0205",
+                            format!(
+                                "`{}` is declared {}, but `{}` gives it {}",
+                                p.name.text,
+                                g.with_article(),
+                                expected.unwrap(),
+                                w.with_article()
+                            ),
+                        )
+                        .primary(p.ty.as_ref().map_or(p.name.span, |t| t.span), g.with_article())
+                        .help("leave the type out, and the parameter takes the type the function type gives it"),
+                    );
+                    sound = false;
+                    w.clone()
+                }
+                (Some(w), _) => w.clone(),
+                (None, Some(g)) => g,
+                (None, None) => {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0205",
+                            format!("`{}` needs its type written", p.name.text),
+                        )
+                        .primary(p.name.span, "no type")
+                        .help(format!(
+                            "`{}` says nothing of the parameters after the first {}; write `{}: Float`, or the type it has",
+                            expected.unwrap(),
+                            want.len(),
+                            p.name.text
+                        )),
+                    );
+                    sound = false;
+                    Ty::Unknown
+                }
+            };
+            types.push(ty);
+        }
+        if !sound {
+            return Expr::error(span);
+        }
+        // The bindings made from here on are the literal's own; what its body reads of the
+        // ones before is what the value takes with it.
+        let floor = self.bindings.len();
+        let depth = self.scope.len();
+        let mut lowered_params: Vec<Param> = Vec::with_capacity(params.len());
+        let mut sig_params: Vec<(String, Ty, bool, Span)> = Vec::with_capacity(params.len());
+        for (p, ty) in params.iter().zip(&types) {
+            if sig_params.iter().any(|(n, _, _, _)| *n == p.name.text) {
+                self.report(
+                    Diagnostic::error(
+                        "Z0405",
+                        format!("`{}` is declared twice in `{written_form}`", p.name.text),
+                    )
+                    .primary(p.name.span, "the second time")
+                    .help("give each parameter its own name"),
+                );
+            }
+            let binding = self.bind(&p.name, ty.clone(), BindingKind::Parameter);
+            lowered_params.push(Param {
+                binding,
+                name: p.name.text.clone(),
+                ty: ty.clone(),
+                default: None,
+                optional: false,
+                span: p.name.span,
+            });
+            sig_params.push((p.name.text.clone(), ty.clone(), false, p.name.span));
+        }
+        let open = matches!(ret, Ty::Unknown | Ty::Any);
+        let lowered = self.expr(body, if open { None } else { Some(&ret) });
+        let lowered = self.no_nothing(lowered, "the body of a function literal");
+        self.scope.truncate(depth);
+        let mut captures: Vec<BindingId> = Vec::new();
+        crate::uses::expr_uses(&lowered, &mut captures);
+        captures.retain(|id| *id < floor);
+        captures.sort_unstable();
+        captures.dedup();
+        let returns = if open {
+            lowered.ty.clone()
+        } else {
+            if !ret.accepts(&lowered.ty) && lowered.ty != Ty::Unknown {
+                self.report(
+                    Diagnostic::error(
+                        "Z0205",
+                        format!(
+                            "the body of `{written_form}` gives {}, but `{}` needs {}",
+                            lowered.ty.with_article(),
+                            expected.unwrap(),
+                            ret.with_article()
+                        ),
+                    )
+                    .primary(lowered.span, lowered.ty.with_article())
+                    .help("a function passed as a value matches the parameter types and the return type exactly; write a body of that type"),
+                );
+                return Expr::error(span);
+            }
+            ret.clone()
+        };
+        let signature = format!(
+            "fn({}) -> {returns}",
+            sig_params
+                .iter()
+                .map(|(n, t, _, _)| format!("{n}: {t}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        let index = self.signatures.len();
+        self.signatures.push(Signature {
+            name: written_form.clone(),
+            name_span: span,
+            params: sig_params,
+            returns: returns.clone(),
+            module: self.current_module.clone(),
+            public: false,
+            file: self.file.clone(),
+        });
+        self.functions.push(Some(Function {
+            name: written_form,
+            name_span: span,
+            module: self.current_module.clone(),
+            public: false,
+            file: self.file.clone(),
+            params: lowered_params,
+            returns: returns.clone(),
+            body: Block {
+                statements: Vec::new(),
+                tail: Some(Box::new(lowered)),
+                span,
+            },
+            span,
+            doc: Vec::new(),
+            hash: 0,
+        }));
+        self.calls.push(Vec::new());
+        Expr {
+            ty: Ty::Fn(types, false, Box::new(returns)),
+            span,
+            kind: ExprKind::FunctionValue(FunctionValue {
+                package: None,
+                name: signature.clone(),
+                script: Some(index),
+                arity: params.len(),
+                rest: false,
+                signature,
+                captures,
+            }),
+        }
+    }
+
+    /// `map(list, f)`, `filter(list, f)` and `reduce(list, f, start)` of `core` (section 3.7,
+    /// "Functions as values"): the list is read first and its items' type is what `f` is given,
+    /// `Fn(T) -> ?` for `map` (its result a list of what `f` gives), `Fn(T) -> Bool` for
+    /// `filter` (its result the list's type) and `Fn(S, T) -> S` for `reduce`, where `S` is
+    /// the type of `start`, read before `f`; a bare name or a function literal fits.
+    fn list_function(
+        &mut self,
+        spec: &zeff_registry::FunctionSpec,
+        receiver: Option<Expr>,
+        args: &[ast::Arg],
+        callee_span: Span,
+        span: Span,
+    ) -> Expr {
+        let fname = spec.name.to_string();
+        let names: Vec<&str> = spec.params.iter().map(|p| p.name).collect();
+        // The arguments by parameter, as written, before any is lowered.
+        let mut given: Vec<Option<&ast::Expr>> = vec![None; names.len()];
+        let mut order: Vec<Slot> = Vec::new();
+        let mut next = usize::from(receiver.is_some());
+        if receiver.is_some() {
+            order.push(Slot::Param(0));
+        }
+        let mut named_seen = false;
+        for arg in args {
+            let (position, value) = match arg {
+                ast::Arg::Positional(e) => {
+                    if named_seen {
+                        self.report(
+                            Diagnostic::error("Z0408", "a positional argument after a named one")
+                                .primary(e.span, "once one argument is named, the rest must be")
+                                .help("write it as `name: value`, or move it before the named arguments"),
+                        );
+                        return Expr::error(span);
+                    }
+                    if next >= names.len() {
+                        self.report(
+                            Diagnostic::error(
+                                "Z0407",
+                                format!(
+                                    "`{fname}` takes {} arguments, but more were given",
+                                    names.len()
+                                ),
+                            )
+                            .primary(e.span, "one too many")
+                            .help(format!("usage: `{}`", spec.usage())),
+                        );
+                        return Expr::error(span);
+                    }
+                    next += 1;
+                    (next - 1, e)
+                }
+                ast::Arg::Named { name, value } => {
+                    named_seen = true;
+                    let Some(position) = names.iter().position(|n| *n == name.text) else {
+                        let mut d = Diagnostic::error(
+                            "Z0404",
+                            format!("`{fname}` has no argument `{}:`", name.text),
+                        )
+                        .primary(name.span, "not an argument");
+                        d = match did_you_mean(&name.text, names.iter().copied()) {
+                            Some(near) => d.help(format!("did you mean `{near}:`?")),
+                            None => d.help(format!("usage: `{}`", spec.usage())),
+                        };
+                        self.report(d);
+                        return Expr::error(span);
+                    };
+                    (position, value)
+                }
+                ast::Arg::Define { name, .. } => {
+                    self.report(
+                        Diagnostic::error(
+                            "Z0404",
+                            format!("`{fname}` takes no definition `{} = ...`", name.text),
+                        )
+                        .primary(name.span, "not an argument")
+                        .help(format!("usage: `{}`", spec.usage())),
+                    );
+                    return Expr::error(span);
+                }
+                ast::Arg::Spread(e) => {
+                    self.report(
+                        Diagnostic::error("Z0404", format!("`{fname}` takes no spread"))
+                            .primary(e.span, "a spread")
+                            .help(format!("write the arguments out: `{}`", spec.usage())),
+                    );
+                    return Expr::error(span);
+                }
+            };
+            if given[position].is_some() {
+                self.report(
+                    Diagnostic::error(
+                        "Z0405",
+                        format!("`{}` of `{fname}` is given twice", names[position]),
+                    )
+                    .primary(value.span, "the second time")
+                    .help("give each argument once"),
+                );
+                return Expr::error(span);
+            }
+            given[position] = Some(value);
+            order.push(Slot::Param(position));
+        }
+        for (i, name) in names.iter().enumerate() {
+            if given[i].is_none() && !(i == 0 && receiver.is_some()) {
+                self.report(
+                    Diagnostic::error("Z0406", format!("`{fname}` needs `{name}`"))
+                        .primary(callee_span, format!("`{name}` not given"))
+                        .help(format!("usage: `{}`", spec.usage())),
+                );
+                return Expr::error(span);
+            }
+        }
+        // The list, then `start` for `reduce`, then `f` typed by them.
+        let list = match receiver {
+            Some(r) => r,
+            None => self.argument(given[0].unwrap(), &Ty::List(Box::new(Ty::Any)), false),
+        };
+        let items = match &list.ty {
+            Ty::List(inner) => (**inner).clone(),
+            Ty::Unknown => Ty::Unknown,
+            other => {
+                self.report(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!("`list` of `{fname}` must be a List, but this is {}", other.with_article()),
+                    )
+                    .primary(list.span, other.with_article())
+                    .help(format!("`{fname}` goes over the items of a list; `[for ...]` and `seq` make one, and `wages[\"wage\"]` is a column, which `add` goes over")),
+                );
+                return Expr::error(span);
+            }
+        };
+        let items = if items == Ty::Any { Ty::Unknown } else { items };
+        let mut slots: Vec<Option<Expr>> = vec![None; names.len()];
+        let start = given.get(2).copied().flatten().map(|e| self.expr(e, None));
+        let start = start.map(|s| self.no_nothing(s, "`start` of `reduce`"));
+        let f_type = match fname.as_str() {
+            "map" => Ty::Fn(vec![items.clone()], false, Box::new(Ty::Unknown)),
+            "filter" => Ty::Fn(vec![items.clone()], false, Box::new(Ty::Bool)),
+            _ => {
+                let acc = start.as_ref().map_or(Ty::Unknown, |s| s.ty.clone());
+                Ty::Fn(vec![acc.clone(), items.clone()], false, Box::new(acc))
+            }
+        };
+        let f = self.argument(given[1].unwrap(), &f_type, false);
+        let ty = match (fname.as_str(), &f.ty) {
+            ("map", Ty::Fn(_, _, gives)) => Ty::List(gives.clone()),
+            ("map", _) => Ty::List(Box::new(Ty::Unknown)),
+            ("filter", _) => Ty::List(Box::new(items)),
+            _ => start.as_ref().map_or(Ty::Unknown, |s| s.ty.clone()),
+        };
+        slots[0] = Some(list);
+        slots[1] = Some(f);
+        if let Some(start) = start {
+            slots[2] = Some(start);
+        }
+        self.called.push(("core".to_string(), fname.clone()));
+        Expr {
+            ty,
+            span,
+            kind: ExprKind::Call(Call {
+                package: "core".to_string(),
+                name: fname,
+                callee_span,
+                args: slots,
+                rest: Vec::new(),
+                definitions: Vec::new(),
+                spreads: Vec::new(),
+                order,
+                lifted: false,
+                liftable: false,
+                scalar_params: vec![false; names.len()],
+                rest_scalar: false,
+                implicit_receiver: false,
+                by_slot: None,
+                returns: spec.returns.to_string(),
+            }),
         }
     }
 
@@ -4996,6 +5413,11 @@ impl Checker<'_> {
         };
         let spec = chosen.spec.clone();
         let (package, fname) = (spec.package.to_string(), spec.name.to_string());
+        // `map`, `filter` and `reduce` type their function by the list's items (section 3.7,
+        // "Functions as values"), so their arguments are matched on their own.
+        if package == "core" && matches!(fname.as_str(), "map" | "filter" | "reduce") {
+            return self.list_function(&spec, receiver, args, callee_span, span);
+        }
         // A function's result depends on its arguments alone (section 3.7, "Effects").
         if self.current_function.is_some() && SCRIPT_ONLY.contains(&fname.as_str()) {
             let function = self

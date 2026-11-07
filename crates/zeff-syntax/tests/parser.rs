@@ -488,6 +488,11 @@ fn messages() {
         ("as_outside_a_model", "let a = x as y\n"),
         ("measurement_outside_a_model", "let a = y =~ x\n"),
         ("fn_in_a_block", "if a {\n    fn g() -> Float { 1 }\n}\n"),
+        (
+            "fn_literal_without_parameters_bracket",
+            "let a = map(xs, fn i)\n",
+        ),
+        ("fn_literal_without_a_body", "let a = map(xs, fn(i))\n"),
         ("use_after_a_statement", "let a = 1\nuse clean\n"),
         ("integer_too_large", "let a = 9223372036854775808\n"),
         ("return_outside_a_function", "return 1\n"),
@@ -645,4 +650,18 @@ fn limits() {
     };
     insta::assert_snapshot!("too_deep", shorten(&deep[0]));
     insta::assert_snapshot!("too_long_a_chain", shorten(&long[0]));
+}
+
+/// A function literal (section 3.7, "Functions as values"): parameters with and without a type,
+/// one expression as the body, nested in a call, as a method's argument, and empty.
+#[test]
+fn function_literals_parse_as_primaries() {
+    insta::assert_snapshot!(
+        "fn_literal_tree",
+        tree(
+            "let p = map(seq(1, n - 1), fn(i) i / n)\nlet s = reduce(xs, fn(acc: Float, x) acc + x, 0.0)\nlet k = xs.filter(fn(x) if x > 1 { true } else { false })\nlet e = map([], fn() 1)\n"
+        )
+    );
+    assert_eq!(expr("fn(i) i / n"), "(fn (i) (/ i n))");
+    assert_eq!(expr("fn(a: Int, b) a + b"), "(fn (a: Int b) (+ a b))");
 }

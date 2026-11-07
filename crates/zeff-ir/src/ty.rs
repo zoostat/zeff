@@ -264,7 +264,9 @@ impl Ty {
             // its return type, defaults ignored (section 3.7); a trailing `..` takes any further
             // parameters, which the call that supplies them checks.
             (Ty::Fn(want, dots, ret), Ty::Fn(have, _, gives)) => {
-                ret == gives
+                // `map` wants `Fn(T) -> ?`: whatever the function gives is the item type of
+                // its result.
+                (**ret == Ty::Unknown || ret == gives)
                     && (if *dots {
                         have.len() >= want.len()
                     } else {

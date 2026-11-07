@@ -59,6 +59,9 @@ pub struct FunctionValue {
     pub arity: usize,
     pub rest: bool,
     pub signature: String,
+    /// For a function literal, `fn(i) i / n` (section 3.7, "Functions as values"): the bindings
+    /// in scope where it is written, whose values it takes with it when it is made.
+    pub captures: Vec<BindingId>,
 }
 
 /// A function defined in a script (Language Reference, section 5.3): typed parameters with

@@ -1,0 +1,156 @@
+---
+source: crates/zeff-engine/tests/list_functions.rs
+expression: text
+---
+## a_literal_where_no_function_is_expected
+error[Z0205]: `fn(x)` stands where no parameter takes a function
+ --> scripts/main.zeff:1:9
+  |
+1 | let f = fn(x) x + 1
+  |         ^^^^^^^^^^^ a function literal
+  |
+  = help: a function literal is the argument of a parameter typed `Fn(...)`, as `map(xs, fn(i) i / n)`; a function to call by name is defined at the top level, `fn name(i: Int) -> Float { ... }`
+
+## too_many_parameters
+error[Z0205]: `fn(i, j)` has 2 parameters, but `Fn(Int) -> ?` takes 1
+ --> scripts/main.zeff:1:13
+  |
+1 | map([1, 2], fn(i, j) i + j)
+  |             ^^^^^^^^^^^^^^ 2 parameters
+  |
+  = help: write one parameter per value the function is given
+
+## too_few_parameters
+error[Z0205]: `fn(acc)` has 1 parameter, but `Fn(Int, Int) -> Int` takes 2
+ --> scripts/main.zeff:1:16
+  |
+1 | reduce([1, 2], fn(acc) acc, 0)
+  |                ^^^^^^^^^^^ 1 parameter
+  |
+  = help: write one parameter per value the function is given
+
+## a_written_type_that_disagrees
+error[Z0205]: `i` is declared a Str, but `Fn(Int) -> ?` gives it an Int
+ --> scripts/main.zeff:1:19
+  |
+1 | map([1, 2], fn(i: Str) i)
+  |                   ^^^ a Str
+  |
+  = help: leave the type out, and the parameter takes the type the function type gives it
+
+## a_body_of_the_wrong_type
+error[Z0205]: the body of `fn(i)` gives an Int, but `Fn(Int) -> Bool` needs a Bool
+ --> scripts/main.zeff:1:22
+  |
+1 | filter([1, 2], fn(i) i + 1)
+  |                      ^^^^^ an Int
+  |
+  = help: a function passed as a value matches the parameter types and the return type exactly; write a body of that type
+
+## a_body_of_the_wrong_type_for_reduce
+error[Z0205]: the body of `fn(acc, x)` gives a Float, but `Fn(Int, Float) -> Int` needs an Int
+ --> scripts/main.zeff:1:31
+  |
+1 | reduce([1.5, 2.5], fn(acc, x) acc * x, 1)
+  |                               ^^^^^^^ a Float
+  |
+  = help: a function passed as a value matches the parameter types and the return type exactly; write a body of that type
+
+## a_parameter_declared_twice
+error[Z0405]: `i` is declared twice in `fn(i, i)`
+ --> scripts/main.zeff:1:22
+  |
+1 | reduce([1, 2], fn(i, i) i, 0)
+  |                      ^ the second time
+  |
+  = help: give each parameter its own name
+
+## a_named_function_of_the_wrong_signature
+error[Z0205]: `two` has the signature `Fn(Int, Int) -> Int`, but `Fn(Int) -> ?` is needed here
+ --> scripts/main.zeff:3:13
+  |
+3 | map([1, 2], two)
+  |             ^^^ `Fn(Int, Int) -> Int`
+  |
+  = help: a function passed as a value matches the parameter types and the return type exactly, defaults ignored; write a function with that signature
+
+## not_a_list
+error[Z0401]: `list` of `map` must be a List, but this is an Int
+ --> scripts/main.zeff:1:5
+  |
+1 | map(3, fn(i) i)
+  |     ^ an Int
+  |
+  = help: `map` goes over the items of a list; `[for ...]` and `seq` make one, and `wages["wage"]` is a column, which `add` goes over
+
+## a_column_is_not_a_list
+error[Z0401]: `list` of `map` must be a List, but this is a Column
+ --> scripts/main.zeff:2:5
+  |
+2 | map(d["x"], fn(i) i)
+  |     ^^^^^^ a Column
+  |
+  = help: `map` goes over the items of a list; `[for ...]` and `seq` make one, and `wages["wage"]` is a column, which `add` goes over
+
+## an_unknown_argument
+error[Z0404]: `map` has no argument `by:`
+ --> scripts/main.zeff:1:19
+  |
+1 | map([1], fn(i) i, by: 2)
+  |                   ^^ not an argument
+  |
+  = help: usage: `map(list, f)`
+
+## start_missing
+error[Z0406]: `reduce` needs `start`
+ --> scripts/main.zeff:1:1
+  |
+1 | reduce([1, 2], fn(acc, x) acc + x)
+  | ^^^^^^ `start` not given
+  |
+  = help: usage: `reduce(list, f, start)`
+
+## too_many_arguments
+error[Z0407]: `map` takes 2 arguments, but more were given
+ --> scripts/main.zeff:1:19
+  |
+1 | map([1], fn(i) i, 3)
+  |                   ^ one too many
+  |
+  = help: usage: `map(list, f)`
+
+## a_failed_item
+error[Z0220]: a failed value cannot be used in a list given as an argument: it failed with Z0207 at line 1: index 5 is outside 1..2
+ --> scripts/main.zeff:2:5
+  |
+2 | map([1, k], fn(i) i)
+  |     ^^^^^^ a failed value
+  |
+  = help: test it first with `x.is(Failed)`, or keep it in a list for `report` and `len` to skip with a count (section 5.4)
+
+## na_from_filter
+error[Z0203]: `f` of `filter` gave NA where true or false was needed
+ --> scripts/main.zeff:1:20
+  |
+1 | filter([1, NA, 3], fn(x) x > 1)
+  |                    ^^^^^^^^^^^ answered NA for an item
+  |
+  = help: decide the missing case in the function: `!is_missing(x) && x > 0`, or `coalesce(x > 0, false)`
+
+## a_body_that_does_not_check
+error[Z0215]: `+` does not apply to text
+ --> scripts/main.zeff:1:19
+  |
+1 | map([1, 2], fn(i) i + "a")
+  |                   ^^^^^^^ text in arithmetic
+  |
+  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+
+## a_literal_as_a_statement_in_a_block
+error[Z0309]: `fn` is only allowed at the top level of a file
+ --> scripts/main.zeff:2:5
+  |
+2 |     fn(i) i
+  |     ^^ inside a block
+  |
+  = help: define the function at the top level, or use a project function from `functions/`

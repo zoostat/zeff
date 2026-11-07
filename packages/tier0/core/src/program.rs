@@ -94,6 +94,19 @@ fn error(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 /// `attempt(expr)` never reaches a body: the checker lowers it to its own node and the
 /// interpreter evaluates the expression under a catch. A call that arrives here is a bug.
+/// `map`, `filter` and `reduce` run in the interpreter, which applies the function they are
+/// given; a call that reaches this body is a bug.
+fn list_function(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
+    Err(fail(
+        Diagnostic::error(
+            "Z9001",
+            "internal error: this is a bug in Zeff, not in your script (`map`, `filter` or `reduce` reached a body)",
+        )
+        .in_file(ctx.script)
+        .primary(ctx.callee_span, "the call that failed"),
+    ))
+}
+
 fn iterate(ctx: &mut CallContext<'_>, _args: Args) -> Result<Value, Fail> {
     Err(fail(
         Diagnostic::error(
@@ -219,6 +232,69 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: iterate,
+        },
+        // `map`, `filter` and `reduce` (section 3.7, "Functions as values"; open decision #79)
+        // are the interpreter's too: it applies the function they are given to each item.
+        Function {
+            spec: FunctionSpec {
+                name: "map",
+                package: "core",
+                method: false,
+                params: vec![
+                    ParamSpec::required("list", "List"),
+                    ParamSpec::required("f", "Fn(Any) -> Any"),
+                ],
+                rest: None,
+                returns: "List",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0220",
+                    "a Failed item in the list given",
+                )],
+                help: include_str!("../help/map.md"),
+                accuracy: None,
+            },
+            body: list_function,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "filter",
+                package: "core",
+                method: false,
+                params: vec![
+                    ParamSpec::required("list", "List"),
+                    ParamSpec::required("f", "Fn(Any) -> Bool"),
+                ],
+                rest: None,
+                returns: "Same",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0203", "f gave NA where true or false was needed"),
+                    DiagnosticDecl::new("Z0220", "a Failed item in the list given"),
+                ],
+                help: include_str!("../help/filter.md"),
+                accuracy: None,
+            },
+            body: list_function,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "reduce",
+                package: "core",
+                method: false,
+                params: vec![
+                    ParamSpec::required("list", "List"),
+                    ParamSpec::required("f", "Fn(Any, Any) -> Any"),
+                    ParamSpec::required("start", "Any"),
+                ],
+                rest: None,
+                returns: "Any",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0220",
+                    "a Failed item in the list given",
+                )],
+                help: include_str!("../help/reduce.md"),
+                accuracy: None,
+            },
+            body: list_function,
         },
         Function {
             spec: FunctionSpec {

@@ -5,11 +5,11 @@ use zeff_registry::Catalogue;
 #[test]
 fn the_compiled_catalogue_reads_in_full() {
     let catalogue = Catalogue::compiled().unwrap();
-    assert_eq!(catalogue.rows().len(), 535);
+    assert_eq!(catalogue.rows().len(), 538);
     let mut ids: Vec<u32> = catalogue.rows().iter().map(|r| r.id).collect();
     ids.sort_unstable();
     ids.dedup();
-    assert_eq!(ids.len(), 535, "ids are distinct");
+    assert_eq!(ids.len(), 538, "ids are distinct");
 }
 
 #[test]

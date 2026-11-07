@@ -1147,6 +1147,10 @@ fn control_cases() -> Vec<Line> {
         // The row functions move to Zeff at step 4 on this piece, and the digests must not
         // move with them.
         ("enclosing", ENCLOSING_SCRIPT),
+        // A function literal with `map`, `filter` and `reduce` (release 0.7.0, step 3b): the
+        // probabilities i/n, a literal reading a binding and a loop variable, a named function
+        // as the value, the method form, nested literals, and a Failed item under `attempt`.
+        ("map", MAP_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1179,6 +1183,9 @@ fn control_cases() -> Vec<Line> {
     ));
     lines
 }
+
+/// The script of the `map` case: the three list functions over literals and named functions.
+const MAP_SCRIPT: &str = "let k = 8\nmap(seq(1, k - 1), fn(i) i / k)\nlet offset = 10\nmap([1, 2, 3], fn(i) i * i + offset)\nfilter([3, NA, 1, 2], fn(x) !is_missing(x) && x > 1)\nprint(reduce([1, 2, 3, 4], fn(acc, x) acc + x, 0))\nprint(reduce([1.5, 2.5, 4], fn(acc, x) acc * x, 1.0))\n/// Twice.\nfn twice(x: Int) -> Int {\n    x * 2\n}\n[1, 2, 3].map(twice)\n[for m in 1..2 { map([1, 2], fn(i) i * m) }]\nmap([\"b\", \"aa\"], len)\nlet w = dataset(wages)\nmap([1, 2], fn(i) i * w.n_rows())\nlet failed = attempt([1][2])\nprint(attempt(map([1, failed], fn(i) i)).is(Failed))\nfilter([1, NA], fn(x) x > 0)\n";
 
 /// The script of the `enclosing` case: `n()`, `row_mean` and `row_sum` wherever a frame
 /// method gives them a frame, and once where none does.

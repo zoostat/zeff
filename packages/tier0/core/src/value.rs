@@ -432,6 +432,9 @@ pub struct FunctionValue {
     pub arity: usize,
     pub rest: bool,
     pub signature: String,
+    /// For a function literal: the bindings in scope where it was written, by id, with their
+    /// values when it was made (section 3.7, "Functions as values").
+    pub captured: Vec<(usize, Value)>,
 }
 
 /// The failure `attempt` caught (section 5.4): the error's code, message and the line of the

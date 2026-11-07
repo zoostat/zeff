@@ -68,7 +68,7 @@ fn fn_def(f: &FnDef) -> String {
     )
 }
 
-fn ty(t: &Type) -> String {
+pub(crate) fn ty(t: &Type) -> String {
     match &t.kind {
         TypeKind::Named { path: p, args } if args.is_empty() => path(p),
         TypeKind::Named { path: p, args } => format!(
@@ -224,6 +224,13 @@ pub fn expr(e: &Expr) -> String {
                 format!("({pattern} => {body})")
             });
             format!("(case {arms})")
+        }
+        ExprKind::FnLiteral { params, body } => {
+            let params = join(params, |p| match &p.ty {
+                Some(t) => format!("{}: {}", ident(&p.name), ty(t)),
+                None => ident(&p.name),
+            });
+            format!("(fn ({params}) {})", expr(body))
         }
         ExprKind::Model(lines) => {
             let lines = join(lines, |l| match l {

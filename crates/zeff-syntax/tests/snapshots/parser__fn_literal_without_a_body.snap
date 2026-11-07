@@ -1,0 +1,9 @@
+---
+source: crates/zeff-syntax/tests/parser.rs
+expression: render(text)
+---
+error[Z0301]: expected an expression, found `)`
+ --> scripts/main.zeff:1:22
+  |
+1 | let a = map(xs, fn(i))
+  |                      ^ expected an expression
