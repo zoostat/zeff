@@ -48,6 +48,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (7 November 2026, a study of R packages).** The owner asked for 135 R packages to be studied against the catalogue (the study and its plan are kept outside the repository), then asked which functions should join 1.0, and decided the same day: the nine items of #88, all as proposed. Eight functions join 1.0, five of them from the roadmap (`ar_test` at 0.8.0; `margins`, `roc` and `confusion` at 0.9.0; `mcnemar_test` at 0.10.0) and three new (`dist.weibull`, `dist.logistic` and `dist.hypergeometric` at 0.10.0, catalogue rows 531 to 533), and `merge` gains `join: semi | anti` at 0.10.0. 1.0 is 267 functions, with 266 on the roadmap and 533 in all. Three further additions were offered and declined; the study's proposals for after 1.0 are not recorded here and stay with the owner.
 
+**Status (8 November 2026, release 0.7.0, before step 7).** The owner raised #91 (hypothesis and decision lines in every printed test, with `alternative:` on the four directional tests), to be decided before step 7 builds `TestResult`; the entry records his recommendation (A) and the two gaps it exposes (`shapiro_test` above 5,000 observations; the printed name of an unlabelled group).
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -139,6 +141,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 91 | Hypothesis and decision lines in test output | Every `TestResult` prints an `H0:` and `H1:` block (population-level sentences with standard symbols) and a `decision at α` line beside the p-value; `alternative:` added to the four directional tests; α fixed at 0.05 where no `level:` exists, revisited with #15 | 0.7.0, before step 7 |
 | 90 | Variable ranges in a Zeff-written built-in | A `Vars` argument's ranges, `[id..z]`, resolved against the frame before a body sees them, so that `for v in vars` and `name_of(v)` meet plain names | deadline 0.8.0 |
 | 89 | A coded error from a Zeff-written built-in | `error(message, code:)` in a built-in's file, so that a body refuses an argument with the code a Rust body gives (Z0401, Z0406) rather than Z0001 | deadline 0.8.0 |
 | 88 | Functions brought into 1.0 after the study of R packages | Nine items: `ar_test` (0.8.0); `margins`, `roc`, `confusion` (0.9.0); `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `mcnemar_test` and `merge(join: semi \| anti)` (0.10.0) | decided 7 November 2026 |
@@ -1267,3 +1270,95 @@ Raised on 7 November 2026 at step 5b of release 0.7.0, where `drop_missing` was 
 
 *Recommendation.* A, at 0.8.0 with #89, since both are what `drop_missing` needs and both touch the loader of Zeff-written built-ins. Deadline: 0.8.0.
 
+
+### 91. Hypothesis and decision lines in test output
+
+Raised on 8 November 2026 by the owner, before step 7 of release 0.7.0 builds `TestResult` and the first test prints. Every hypothesis test Zeff prints would state the hypothesis it tests and the one it accepts when the null is rejected, in words and, where a standard symbolic form exists, in symbols, with a decision line beside the p-value. The reader of a log, a Zemp card or a pasted result should never have to infer the null from the name of the test, and a student should never read "the data are normal" from a test that cannot say so. Among mainstream packages, Stata prints H0 and all three alternatives for `ttest`; R prints the alternative only; SPSS prints a null and a decision for its nonparametric tests; SAS, Minitab's normality tests and the Python libraries print neither.
+
+**The rules proposed** ("test" means every function whose result is a `TestResult`).
+
+- R1, position: the hypothesis block follows the header line and precedes the data table, indented two spaces as the tables are.
+- R2, both hypotheses, H0 first: exactly two lines, `H0:` and `H1:`, written with the digit, not a subscript, so the block is identical in a terminal, a log file and a Zemp card.
+- R3, population, never sample: every hypothesis is a statement about the population or the data-generating distribution. "Population mean", "population proportion", "drawn from", "in the population" or "distribution" appears in every H0; a hypothesis never says a variable "is normal", "has mean 0" or "is independent of" without that qualifier.
+- R4, words, then symbols: each line gives a sentence, then, after at least two spaces, the symbolic form where one is standard; every symbol is defined by the sentence beside it. Tests without a standard symbolic form (Shapiro–Wilk, Kolmogorov–Smirnov, Kruskal–Wallis, Fisher) print the sentence only.
+- R5, names from the call: the variable's name, the labels of `group:` in label order, and the names of `a` and `b` in the paired form; the symbols use the same labels, as `μ(male) − μ(female)`.
+- R6, sign convention: a difference is taken in the order of the printed estimate, first group label minus second, or `a − b` in the paired form, so the H0 line, the `difference (…)` line and the sign of the statistic agree.
+- R7, H1 follows the alternative tested: H1 states the alternative the p-value was computed for and no other; never the three alternatives together as Stata prints them. The alternative is `≠` unless the call says `alternative: less` or `alternative: greater`, when H1 uses `<` or `>` and the sentence says "is less than" or "is greater than". Tests with no directional form print their fixed H1.
+- R8, the decision line: after the statistic line, `decision at α = <alpha>: reject H0 (p <value>)` or `decision at α = <alpha>: fail to reject H0 (p <value>)`, the p-value printed as the statistic line prints it. The words "accept H0", "H0 is true", "the data are normal", "the means are equal" and "no effect" never appear. α is `1 − level` where the test takes `level:`; where it does not, α is 0.05 (the second question below).
+- R9, one block per test, none per row: a test that prints several rows each with its own p-value (the factorial `anova` table) prints no block and no decision line; one line above the table states the family, `each row tests H0: the population effect of the term is zero, against H1: it is not`.
+- R10, printed layout: the block is part of the printed layout fixed within an edition (Language Reference, section 3.7, "Stability"); adopted before 0.7.0 ships, so no shipped layout changes, and every example that shows a test result is updated at the same time, since `zeff test` compares output exactly.
+- R11, the result value: `TestResult` gains `h0: Str` and `h1: Str`, holding the sentences, and `alternative: two_sided | less | greater`; `summary()` prints them as the block does, Zemp shows them in a card's hover text, and `report()` may put them in a table note.
+
+**The hypotheses by test.** The sentences are the normative text, with `<var>`, `<a>`, `<b>`, `<g1>`, `<g2>`, `<mu>`, `<p>` and `<dist>` filled from the call; symbols for the two-sided case, R7 giving the one-sided forms.
+
+| Function and form | H0 | H1 (two-sided) | Symbols | Directional |
+| --- | --- | --- | --- | --- |
+| `t_test(var, mu:)` | the population mean of `<var>` equals `<mu>` | the population mean of `<var>` differs from `<mu>` | `μ = <mu>` · `μ ≠ <mu>` | yes |
+| `t_test(var, group:)` | the population means of `<var>` are equal in `<g1>` and `<g2>` | the population means of `<var>` differ between `<g1>` and `<g2>` | `μ(<g1>) − μ(<g2>) = 0` · `≠ 0` | yes |
+| `t_test(a, b, paired: true)` | the population mean of the paired differences `<a> − <b>` is 0 | the population mean of the paired differences `<a> − <b>` is not 0 | `μ_d = 0` · `μ_d ≠ 0` | yes |
+| `wilcoxon_test(var, mu:)` | the distribution of `<var>` is symmetric about `<mu>` | the distribution of `<var>` is not symmetric about `<mu>`; values tend to lie on one side of it | none | yes |
+| `wilcoxon_test(var, group:)` | the distribution of `<var>` is the same in `<g1>` and `<g2>` | values of `<var>` in `<g1>` tend to be larger or smaller than in `<g2>` | none | yes |
+| `wilcoxon_test(a, b, paired: true)` | the distribution of the paired differences `<a> − <b>` is symmetric about 0 | the paired differences `<a> − <b>` tend to lie on one side of 0 | none | yes |
+| `anova(var, group:)`, one-way | the population means of `<var>` are equal in all `<k>` groups of `<group>` | at least one group of `<group>` has a different population mean of `<var>` | `μ₁ = μ₂ = … = μ_k` · `not all equal` | no |
+| `anova(y ~ a * b)`, factorial | one line above the table (R9); no block | | | no |
+| `kruskal_test(var, group:)` | the distribution of `<var>` is the same in all `<k>` groups of `<group>` | at least one group of `<group>` tends to give larger or smaller values of `<var>` | none | no |
+| `chi2_test(a, b)` | `<a>` and `<b>` are independent in the population | `<a>` and `<b>` are associated in the population | none | no |
+| `chi2_test(var, p:)` | the population proportions of `<var>` equal the given `p` | at least one population proportion of `<var>` differs from the given `p` | `π = p` · `π ≠ p` | no |
+| `fisher_test(a, b)` | `<a>` and `<b>` are independent in the population | `<a>` and `<b>` are associated in the population | 2 × 2 only: `OR = 1` · `OR ≠ 1` | 2 × 2 only |
+| `proportion_test(var, p:)` | the population proportion of `<var>` equals `<p>` | the population proportion of `<var>` differs from `<p>` | `π = <p>` · `π ≠ <p>` | yes |
+| `proportion_test(var, group:)` | the population proportions of `<var>` are equal in `<g1>` and `<g2>` | the population proportions of `<var>` differ between `<g1>` and `<g2>` | `π(<g1>) − π(<g2>) = 0` · `≠ 0` | yes |
+| `shapiro_test(var)` | `<var>` was drawn from a normally distributed population | `<var>` was not drawn from a normally distributed population | none | no |
+| `ks_test(var, dist)` | `<var>` was drawn from the `<dist>` distribution | `<var>` was not drawn from the `<dist>` distribution | none | no |
+| `ks_test(var, dist, estimated: true)` | `<var>` was drawn from a `<dist family>` distribution with unspecified parameters | `<var>` was not drawn from any `<dist family>` distribution | none | no |
+
+The rank-sum and signed-rank sentences avoid "median" and "location shift" on purpose: the rank-sum test is a test of stochastic dominance under its general null and tests a shift in location only under the extra assumption of a common shape, which Zeff does not check (R's "true location shift is equal to 0" assumes it without saying so). Welch's ANOVA tests the same H0 as the pooled test, so the sentence is the same and the header names the variant. `ks_test` with `estimated: true` is the Lilliefors form, whose H0 is about the family. π is the population proportion, never the sample proportion `p̂` or the argument `p:`.
+
+**Two additions to the catalogue the rules need, both within 0.7.0.** First, `alternative: two_sided | less | greater = two_sided`, shared, on `t_test`, `wilcoxon_test`, `proportion_test` and `fisher_test` (2 × 2 only; a new error code on a larger table): `less` means the first-named quantity is less than the second or than the reference value in the convention of R6, so `t_test(lwage, group: female, alternative: less)` tests `μ(<g1>) − μ(<g2>) < 0`; the p-value, the one-sided interval (as R gives it) and H1 follow it. No catalogue row carries the argument today. Second, α for the six tests that print no interval and take no `level:` (`shapiro_test`, `ks_test`, `chi2_test`, `fisher_test`, `anova`, `kruskal_test`):
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. α fixed at 0.05 in the decision line; no new argument | Nothing added; 0.05 is what every reader expects | A reader working at 0.01 recomputes by eye |
+| B. A shared `alpha: Float = 0.05` on every test, `level:` derived as `1 − alpha` where an interval prints | One name for the threshold everywhere | Two arguments that must agree on `t_test` and `proportion_test`; a planned signature changes |
+| C. `level:` on the six tests as well, used only for the decision line | A name already in the table | "Confidence level" is an odd name for a test that prints no interval |
+
+The owner recommends A for 0.7.0, revisited with #15 (power and sample size, 1.9), where α becomes an argument in its own right and one convention can serve tests and power functions together. Whether to print the decision line at all: the American Statistical Association's 2016 statement and APA's seventh edition both discourage reporting a test as a bare reject/retain decision; the line is kept because Zeff's first users are students taught the decision rule, and the p-value prints beside the verdict so that neither displaces the other. A project setting `decision: false` could suppress the line; it is not proposed for 1.0 and is recorded here so that it is not lost.
+
+**Two gaps the proposal exposes, for the owner.** (a) `shapiro_test` is catalogued "for 3 to 5,000 observations", and what happens above 5,000 is stated nowhere: an error as R's `shapiro.test` gives, or the first 5,000 non-missing rows with a note (the proposal's example takes the latter and cites Z0415, which is already the code of a restriction `test` cannot use, so a new code is needed either way). (b) R5 names groups by their labels; the shipped `female` is a 0/1 integer with no value labels, so the printed form of an unlabelled group variable (`female=0` and `female=1`, as the indicator columns of #55 are named, or the values alone) must be fixed before the first snapshot.
+
+**The example** (illustrative figures, consistent with the example of the Language Reference, section 10.2):
+
+```
+t_test · Welch two-sample · lwage by female
+  H0: the population means of lwage are equal in male and female        μ(male) − μ(female) = 0
+  H1: the population means of lwage differ between male and female      μ(male) − μ(female) ≠ 0
+
+  group      N      mean      sd
+  male    9,604    3.214   0.512
+  female  8,597    3.061   0.498
+
+  difference (male − female) = 0.153   95% CI [0.138, 0.168]
+  t = 20.42   df = 18,074.2   p < 0.001
+  Hedges' g = 0.30   95% CI [0.27, 0.33]
+  decision at α = 0.05: reject H0 (p < 0.001)
+```
+
+```
+shapiro_test · lwage
+  H0: lwage was drawn from a normally distributed population
+  H1: lwage was not drawn from a normally distributed population
+
+  N = 2,836   (35 rows dropped for NA in lwage)
+  W = 0.9997   p = 0.928
+  decision at α = 0.05: fail to reject H0 (p = 0.928)
+```
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Both hypotheses, the one alternative tested, and a decision line; α = 1 − level, or 0.05 where there is no `level:` | Self-describing output for students and logs; the null is never phrased at sample level; a one-sided test shows exactly what was tested | Four lines longer per test; a decision line some referees consider dichotomous |
+| B. The alternative only, as R | The shortest addition | The null, under which the p-value is computed, is still left to the reader |
+| C. H0 and all three alternatives with three p-values, as Stata | Familiar to Stata users | Prints two tests nobody asked for, against the rule of printing what was computed |
+| D. No hypothesis text, as SAS and the Python libraries | Nothing to maintain | The gap this decision exists to close |
+
+**If A is adopted, before step 7 of 0.7.0:** `alternative:` added to the catalogue rows of `t_test`, `wilcoxon_test`, `fisher_test` and `proportion_test`, a new error code for `alternative:` on a Fisher table larger than 2 × 2, and the over-5,000 behaviour of `shapiro_test` stated in its row; the block and the decision line inserted into the `t_test` example of the Language Reference, section 10.2, and the `h0`, `h1` and `alternative` fields added to `TestResult` in section 7; the `t_test` page of the help examples updated (the example, `alternative:` under ARGUMENTS, one sentence in DESCRIPTION); one golden-output case per row of the table above in the testing handbook, with one `less` and one `greater` case; each change logged in `docs/spec_changes.md` as a correction found while coding, since the layout is adopted before any test ships.
+
+*Recommendation.* The owner's: A, with α as option A of the second question, adopted before step 7 so that no shipped layout changes; α revisited with #15 at 1.9. Deadline: 0.7.0, before step 7.
