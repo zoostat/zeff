@@ -181,6 +181,8 @@ time/arithmetic/stdout 8e2948fe3d0e9221
 time/arithmetic/stderr 6a11d8fbcfd0c419
 text/format/stdout 66baef825ea0b37f
 text/format/stderr cbf29ce484222325
+text/basics/stdout 7f0dbf727663ed1c
+text/basics/stderr c5e9fc8a7363330f
 panel/declare/stdout a439d8f644bfeb59
 panel/declare/stderr 58e936f4915a6b6c
 panel/lags/stdout 22d72fb766c737b7

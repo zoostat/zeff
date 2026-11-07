@@ -1237,6 +1237,11 @@ fn time_cases() -> Vec<Line> {
     // number, dates by a pattern, on values and on columns.
     let formatted = "format(1234567.891, digits: 2)\nformat(1234567.891, digits: 2, big_mark: \",\")\nformat(-0.0001, digits: 2)\nformat(2.675, digits: 2)\nformat(1e16, digits: 1)\nformat(1 / 3)\nformat(123456789, big_mark: \" \")\nformat(42, digits: 3)\nformat(date(\"2026-10-16\"), pattern: \"%A %d %B %Y, day %j\")\nformat(datetime(\"2026-10-16T09:05:07.5\"), pattern: \"%y%m%d %H:%M:%S\")\nformat(date(\"0001-01-01\"))\nlet f = frame(x = [1250.5, 980, -3.14159], d = [date(\"2026-01-05\"), date(\"2024-02-29\"), date(\"9999-12-31\")])\nf.add(t = format(x, digits: 2, big_mark: \",\"), m = format(d, pattern: \"%b %Y\"), p = format(x))\n";
     let printed = run_script(&fs, &project, "scripts/main.zeff", formatted);
+    // The text functions of release 0.7.0, step 5: case by simple mapping, trimming of Unicode
+    // white space, prefix and suffix tests, slices and padding by scalar values, and joining,
+    // on values and on a frame's text column.
+    let basics = "upper(\"caf\u{e9} Stra\u{df}e \u{fb01}sh\")\nlower(\"\u{c9}COLE \u{3a3}\u{3af}\u{3c3}\u{3c5}\u{3c6}\u{3bf}\u{3c2}\")\nlen(upper(\"e\u{301}\"))\ntrim(\"\u{a0} padded\t\u{2003}\")\nstarts_with(\"Hello, World\", \"Hello\")\nends_with(\"caf\u{e9}\", \"\u{e9}\")\nslice(\"Hello, World\", start: 8, len: 50)\nslice(\"\u{65e5}\u{672c}\u{8a9e}\", start: 2, len: 2)\npad(\"7\", width: 3, fill: \"0\")\npad(\"abcdef\", width: 3)\njoin([\"a\", NA, \"c\"], sep: \"/\")\njoin(map([1.5, 2], fn(x) format(x, digits: 1)), sep: \" and \")\nlet d = frame(name = [\"  Ada \", \"grace\", NA], code = [\"ab-1\", \"cd-22\", \"ef-3\"])\nd.add(clean = upper(trim(name)), prefix = slice(code, start: 1, len: 2), two = ends_with(code, \"2\"), padded = pad(code, width: 6, fill: \".\"))\nd.where(starts_with(code, \"c\"))\nslice(\"abc\", start: 0, len: 1)\n";
+    let texts = run_script(&fs, &project, "scripts/main.zeff", basics);
     vec![
         text("time/parts/stdout", &outcome.output.stdout),
         text("time/parts/stderr", &outcome.output.stderr),
@@ -1244,6 +1249,8 @@ fn time_cases() -> Vec<Line> {
         text("time/arithmetic/stderr", &moved.output.stderr),
         text("text/format/stdout", &printed.output.stdout),
         text("text/format/stderr", &printed.output.stderr),
+        text("text/basics/stdout", &texts.output.stdout),
+        text("text/basics/stderr", &texts.output.stderr),
     ]
 }
 

@@ -118,3 +118,13 @@ The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of s
 
 **For the owner to decide.** Whether `summary` is rewritten in Zeff after `text` ships, with a frame-name accessor as a piece of its own (open decision #72), or stays in Rust for 1.0.
 
+
+## 7 November 2026, release 0.7.0, step 5 (`text`, part 1)
+
+**Done.** `upper`, `lower`, `trim`, `starts_with`, `ends_with`, `slice`, `pad` and `join` in `text`, each with its page: case by Unicode simple case mapping (one scalar value to one, so `ß` and `ﬁ` stay), trimming of Unicode white space, prefix and suffix tests by scalar value, slices and padding counting scalar values from 1, and joining with `NA` written as `NA`. The R reference `text.R` (fifteen strings with accented, combining and non-Latin text) is compared exactly and joins the CI job; the test program covers the five groups against R, the edge cases, the column forms, every message and three properties; the conformance case `text/basics` adds two digests and changes none. `text` stands at 9 of 13; `join` is now available for `drop_missing` (step 5b).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the text, registry, command-line and conformance programs and the engine's examples and functions; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 5b `[function]`: `drop_missing` in Zeff, its note built with `join`.
+
+**For the owner to decide.** Nothing new. Rulings he may overturn: `pad` pads on the left only (no `side:`); `join` writes an `NA` item as `NA` rather than refusing it; `trim` removes every Unicode white space where R removes ASCII white space only.

@@ -1,0 +1,371 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R; numbers written with 15 significant digits"
+ },
+ "cases": [
+  {
+   "text": "Hello, World",
+   "upper": "HELLO, WORLD",
+   "lower": "hello, world",
+   "trimmed": "Hello, World",
+   "len": 12
+  },
+  {
+   "text": "café",
+   "upper": "CAFÉ",
+   "lower": "café",
+   "trimmed": "café",
+   "len": 4
+  },
+  {
+   "text": "ÉCOLE",
+   "upper": "ÉCOLE",
+   "lower": "école",
+   "trimmed": "ÉCOLE",
+   "len": 5
+  },
+  {
+   "text": "é",
+   "upper": "É",
+   "lower": "é",
+   "trimmed": "é",
+   "len": 2
+  },
+  {
+   "text": "Straße",
+   "upper": "STRAßE",
+   "lower": "straße",
+   "trimmed": "Straße",
+   "len": 6
+  },
+  {
+   "text": "ﬁsh",
+   "upper": "ﬁSH",
+   "lower": "ﬁsh",
+   "trimmed": "ﬁsh",
+   "len": 3
+  },
+  {
+   "text": "Σίσυφος",
+   "upper": "ΣΊΣΥΦΟΣ",
+   "lower": "σίσυφος",
+   "trimmed": "Σίσυφος",
+   "len": 7
+  },
+  {
+   "text": "Привет",
+   "upper": "ПРИВЕТ",
+   "lower": "привет",
+   "trimmed": "Привет",
+   "len": 6
+  },
+  {
+   "text": "日本語",
+   "upper": "日本語",
+   "lower": "日本語",
+   "trimmed": "日本語",
+   "len": 3
+  },
+  {
+   "text": "😀",
+   "upper": "😀",
+   "lower": "😀",
+   "trimmed": "😀",
+   "len": 1
+  },
+  {
+   "text": "🇬🇧",
+   "upper": "🇬🇧",
+   "lower": "🇬🇧",
+   "trimmed": "🇬🇧",
+   "len": 2
+  },
+  {
+   "text": "  padded  ",
+   "upper": "  PADDED  ",
+   "lower": "  padded  ",
+   "trimmed": "padded",
+   "len": 10
+  },
+  {
+   "text": " spaces and\nlines \n",
+   "upper": " SPACES AND\nLINES \n",
+   "lower": " spaces and\nlines \n",
+   "trimmed": "spaces and\nlines",
+   "len": 19
+  },
+  {
+   "text": "",
+   "upper": "",
+   "lower": "",
+   "trimmed": "",
+   "len": 0
+  },
+  {
+   "text": "MiXeD 123",
+   "upper": "MIXED 123",
+   "lower": "mixed 123",
+   "trimmed": "MiXeD 123",
+   "len": 9
+  }
+ ],
+ "affixes": [
+  {
+   "text": "Hello, World",
+   "affix": "Hello",
+   "starts": true,
+   "ends": false
+  },
+  {
+   "text": "Hello, World",
+   "affix": "hello",
+   "starts": false,
+   "ends": false
+  },
+  {
+   "text": "Hello, World",
+   "affix": "World",
+   "starts": false,
+   "ends": true
+  },
+  {
+   "text": "Hello, World",
+   "affix": "",
+   "starts": true,
+   "ends": true
+  },
+  {
+   "text": "café",
+   "affix": "caf",
+   "starts": true,
+   "ends": false
+  },
+  {
+   "text": "café",
+   "affix": "é",
+   "starts": false,
+   "ends": true
+  },
+  {
+   "text": "café",
+   "affix": "cafés",
+   "starts": false,
+   "ends": false
+  },
+  {
+   "text": "",
+   "affix": "",
+   "starts": true,
+   "ends": true
+  },
+  {
+   "text": "",
+   "affix": "a",
+   "starts": false,
+   "ends": false
+  },
+  {
+   "text": "日本語",
+   "affix": "日",
+   "starts": true,
+   "ends": false
+  },
+  {
+   "text": "日本語",
+   "affix": "語",
+   "starts": false,
+   "ends": true
+  },
+  {
+   "text": "é",
+   "affix": "e",
+   "starts": true,
+   "ends": false
+  },
+  {
+   "text": "é",
+   "affix": "́",
+   "starts": false,
+   "ends": true
+  }
+ ],
+ "slices": [
+  {
+   "text": "Hello, World",
+   "start": 1,
+   "len": 5,
+   "out": "Hello"
+  },
+  {
+   "text": "Hello, World",
+   "start": 8,
+   "len": 5,
+   "out": "World"
+  },
+  {
+   "text": "Hello, World",
+   "start": 8,
+   "len": 50,
+   "out": "World"
+  },
+  {
+   "text": "Hello, World",
+   "start": 13,
+   "len": 2,
+   "out": ""
+  },
+  {
+   "text": "Hello, World",
+   "start": 1,
+   "len": 0,
+   "out": ""
+  },
+  {
+   "text": "café",
+   "start": 4,
+   "len": 1,
+   "out": "é"
+  },
+  {
+   "text": "café",
+   "start": 2,
+   "len": 2,
+   "out": "af"
+  },
+  {
+   "text": "é",
+   "start": 2,
+   "len": 1,
+   "out": "́"
+  },
+  {
+   "text": "日本語",
+   "start": 2,
+   "len": 2,
+   "out": "本語"
+  },
+  {
+   "text": "🇬🇧",
+   "start": 2,
+   "len": 1,
+   "out": "🇧"
+  },
+  {
+   "text": "",
+   "start": 1,
+   "len": 3,
+   "out": ""
+  },
+  {
+   "text": "abc",
+   "start": 3,
+   "len": 1,
+   "out": "c"
+  }
+ ],
+ "pads": [
+  {
+   "text": "abc",
+   "width": 6,
+   "out": "   abc"
+  },
+  {
+   "text": "abc",
+   "width": 3,
+   "out": "abc"
+  },
+  {
+   "text": "abc",
+   "width": 1,
+   "out": "abc"
+  },
+  {
+   "text": "",
+   "width": 2,
+   "out": "  "
+  },
+  {
+   "text": "12.5",
+   "width": 8,
+   "out": "    12.5"
+  },
+  {
+   "text": "x",
+   "width": 0,
+   "out": "x"
+  }
+ ],
+ "joins": [
+  {
+   "items": [
+    "a",
+    "b",
+    "c"
+   ],
+   "na": [
+    false,
+    false,
+    false
+   ],
+   "sep": ", ",
+   "out": "a, b, c"
+  },
+  {
+   "items": [
+    "a",
+    "b",
+    "c"
+   ],
+   "na": [
+    false,
+    false,
+    false
+   ],
+   "sep": "",
+   "out": "abc"
+  },
+  {
+   "items": [
+    "one"
+   ],
+   "na": [
+    false
+   ],
+   "sep": "-",
+   "out": "one"
+  },
+  {
+   "items": [],
+   "na": [],
+   "sep": ", ",
+   "out": ""
+  },
+  {
+   "items": [
+    "café",
+    "日本"
+   ],
+   "na": [
+    false,
+    false
+   ],
+   "sep": " | ",
+   "out": "café | 日本"
+  },
+  {
+   "items": [
+    "a",
+    "NA",
+    "c"
+   ],
+   "na": [
+    false,
+    true,
+    false
+   ],
+   "sep": "/",
+   "out": "a/NA/c"
+  }
+ ]
+}

@@ -1,8 +1,12 @@
 //! Package `text` (tier 1): work with text (Engine and Project Specification, section 8.2). At
 //! this release `format` (release 0.6.0, step 5): a number or a date to text, to a number of
-//! decimals, with a thousands separator, or by a pattern; the other twelve functions follow at
-//! 0.7.0. Every function is a scalar function that applies row by row to a column (Language
-//! Reference, section 3.7, "Columns and scalars").
+//! decimals, with a thousands separator, or by a pattern; and the eight functions of `basics`
+//! (release 0.7.0, step 5): case, trimming, prefix and suffix tests, slicing, padding and
+//! joining. The four pattern functions follow at step 6 of 0.7.0. Every function but `join` is
+//! a scalar function that applies row by row to a column (Language Reference, section 3.7,
+//! "Columns and scalars").
+
+mod basics;
 
 use zeff_core::display::format_float;
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
@@ -224,7 +228,7 @@ fn format(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 
 /// The functions of `text` in this release.
 pub fn functions() -> Vec<Function> {
-    vec![Function {
+    let mut all = vec![Function {
         spec: FunctionSpec {
             name: "format",
             package: "text",
@@ -249,5 +253,7 @@ pub fn functions() -> Vec<Function> {
             accuracy: None,
         },
         body: format,
-    }]
+    }];
+    all.extend(basics::functions());
+    all
 }

@@ -13,9 +13,9 @@ relative 1e-12, the class tolerance of the distribution functions, since R's `pg
 carry errors of that order in their far tails on some platforms. `frames.json` holds only row
 numbers and is compared byte for byte by the workflow itself.
 
-Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|fixed_effects|event|dates|time|format|panel|running|quantile_group|distinct|aggregate|merge|reshape <committed.json> <regenerated.json>
+Usage: python3 -I tests/reference/r/check_r.py maths|descriptive|special|distributions|association|kernels|types|design|regression|fixed_effects|event|dates|time|format|text|panel|running|quantile_group|distinct|aggregate|merge|reshape <committed.json> <regenerated.json>
 
-`dates.json`, `time.json` and `format.json` hold day counts, texts, seconds, date parts and ISO texts, which are exact on every platform, and are compared exactly apart from the software line.
+`dates.json`, `time.json`, `format.json` and `text.json` hold day counts, texts, seconds, date parts and ISO texts, which are exact on every platform, and are compared exactly apart from the software line.
 
 `aggregate.json` holds R's grouped statistics written with 17 significant digits: the keys, the
 counts and the exact reducers (`min`, `max`, `median`, `mad`) must agree exactly and the
@@ -27,7 +27,7 @@ import json
 import math
 import sys
 
-TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "fixed_effects": 1e-9, "event": 1e-9, "dates": 0.0, "time": 0.0, "format": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0, "distinct": 0.0, "aggregate": 1e-12, "merge": 0.0, "reshape": 0.0}
+TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "fixed_effects": 1e-9, "event": 1e-9, "dates": 0.0, "time": 0.0, "format": 0.0, "text": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0, "distinct": 0.0, "aggregate": 1e-12, "merge": 0.0, "reshape": 0.0}
 
 
 def number(text):

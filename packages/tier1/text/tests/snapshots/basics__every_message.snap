@@ -1,0 +1,103 @@
+---
+source: packages/tier1/text/tests/basics.rs
+expression: out
+---
+slice("abc", start: 0, len: 1)
+---
+error[Z0401]: `start:` of `slice` counts positions from 1, but this is 0
+ --> scripts/main.zeff:1:21
+  |
+1 | slice("abc", start: 0, len: 1)
+  |                     ^ before the first character
+  |
+  = help: the first character is at position 1, as in R's `substr` and Stata's `substr`
+
+slice("abc", start: 1, len: -1)
+---
+error[Z0401]: `len:` of `slice` is a number of characters, but this is -1
+ --> scripts/main.zeff:1:29
+  |
+1 | slice("abc", start: 1, len: -1)
+  |                             ^^ a negative length
+  |
+  = help: `len: 0` gives the empty text; a length past the end gives what is there
+
+slice("abc", start: 1)
+---
+error[Z0406]: `slice` needs `len:`
+ --> scripts/main.zeff:1:1
+  |
+1 | slice("abc", start: 1)
+  | ^^^^^ `len:` is missing
+  |
+  = help: usage: `slice(s, start: 1, len: 3)` for the first three characters
+
+pad("abc")
+---
+error[Z0406]: `pad` needs `width:`
+ --> scripts/main.zeff:1:1
+  |
+1 | pad("abc")
+  | ^^^ `width:` is missing
+  |
+  = help: usage: `pad(s, width: 8)` for eight characters, spaces on the left
+
+pad("abc", width: -1)
+---
+error[Z0401]: `width:` of `pad` is a number of characters, but this is -1
+ --> scripts/main.zeff:1:19
+  |
+1 | pad("abc", width: -1)
+  |                   ^^ a negative width
+  |
+  = help: a width below the text's length leaves the text as it is
+
+pad("abc", width: 5, fill: "ab")
+---
+error[Z0401]: `fill:` of `pad` is one character, but this is 2 characters
+ --> scripts/main.zeff:1:28
+  |
+1 | pad("abc", width: 5, fill: "ab")
+  |                            ^^^^ not one character
+  |
+  = help: `fill: "0"` pads a number with zeros, `fill: "."` leads the eye across a table
+
+pad("abc", width: 5, fill: "")
+---
+error[Z0401]: `fill:` of `pad` is one character, but this is empty
+ --> scripts/main.zeff:1:28
+  |
+1 | pad("abc", width: 5, fill: "")
+  |                            ^^ not one character
+  |
+  = help: `fill: "0"` pads a number with zeros, `fill: "."` leads the eye across a table
+
+join([1, 2], sep: ", ")
+---
+error[Z0401]: `list` of `join` must be a List<Str>, but this is a List<Int>
+ --> scripts/main.zeff:1:6
+  |
+1 | join([1, 2], sep: ", ")
+  |      ^^^^^^ a List<Int>
+  |
+  = help: usage: `join(list, sep: Str = "")`
+
+upper(3)
+---
+error[Z0401]: `s` of `upper` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:7
+  |
+1 | upper(3)
+  |       ^ an Int
+  |
+  = help: usage: `upper(s)`
+
+starts_with("abc")
+---
+error[Z0406]: `starts_with` needs `prefix`
+ --> scripts/main.zeff:1:1
+  |
+1 | starts_with("abc")
+  | ^^^^^^^^^^^ `prefix` is missing
+  |
+  = help: usage: `starts_with(s, prefix)`
