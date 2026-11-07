@@ -160,3 +160,13 @@ Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (th
 **Next.** Step 4.3 `[function]`: `drop_missing` with its note and `skewness` with W0205 (#70). The note names the variables dropped, which needs `join` (text, step 5); the step will say what it can do before then.
 
 **For the owner to decide.** Nothing new. Ruling he may overturn: the row functions stay in Rust rather than reaching the kernel through a reshape per call.
+
+## 7 November 2026, release 0.7.0, step 4.3 (W0205 on the moments' warnings)
+
+**Done.** The warnings of `skewness` and `kurtosis` for too few values carry W0205, so they can be allowed by a pragma and are refused by `--deny-warnings`; their pages list the code and W0205's explained page names the case. `drop_missing` is not moved: its note joins a count and the variables' names into one text, which needs `join` (step 5), so it becomes step 5b, right after `text`, part 1. The known-issues entry on the uncoded warning is resolved; open decision #70 records both (logged).
+
+**Green.** The moments, examples and built-in programs, the registry, command-line and conformance programs; one stderr digest (`control/moments`) changed by the code and none of a result; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 4.4 `[function]`: `quantile_group` in Zeff, its probabilities i/n by `map`.
+
+**For the owner to decide.** Nothing new. Ruling he may overturn: `drop_missing` waits for `join` rather than moving with a note that names one variable at a time.

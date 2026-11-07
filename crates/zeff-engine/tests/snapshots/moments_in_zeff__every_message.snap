@@ -1,19 +1,18 @@
 ---
 source: crates/zeff-engine/tests/moments_in_zeff.rs
-assertion_line: 147
 expression: text
 ---
 ## skewness_two_values (exit 0)
 NA
-warning: skewness needs at least three values for the adjusted form: the result is NA (line 1)
+warning[W0205]: skewness needs at least three values for the adjusted form: the result is NA (line 1)
 
 ## kurtosis_three_values (exit 0)
 NA
-warning: kurtosis needs at least four values for the adjusted form: the result is NA (line 1)
+warning[W0205]: kurtosis needs at least four values for the adjusted form: the result is NA (line 1)
 
 ## one_value_plain (exit 0)
 NA
-warning: kurtosis needs at least two values: the result is NA (line 1)
+warning[W0205]: kurtosis needs at least two values: the result is NA (line 1)
 
 ## no_spread (exit 0)
 NA

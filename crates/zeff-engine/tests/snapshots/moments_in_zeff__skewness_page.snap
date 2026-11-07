@@ -31,7 +31,7 @@ DETAILS
     cubed deviations from the mean, each a compensated sum, and n is the count of values present.
 
 WARNINGS AND NOTES
-    W0205   a negative number has no real square root: the result is NA
+    W0205   an operation with no value gave NA
     W0203   a value could not be converted, so it became NA
     W0202   a number with a fraction was given to Int, so it became NA
     Z0401   the type has no conversion to the target, or a single value is given to Category

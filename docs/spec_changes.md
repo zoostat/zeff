@@ -323,3 +323,7 @@ Not an error: the record of step 4.1 of release 0.7.0. `fill_missing` returns to
 ## 7 November 2026 — zeff_functions.csv (rows 127, 136 and 137); zeff_open_decisions.md, entry #69
 
 Not an error: the record of step 4.2 of release 0.7.0. `row_mean`, `row_sum` and `diff` stay in Rust although the enclosing frame of open decision #69 is built: the row functions reduce each row with the kernel's compensated sum and mean, which `+` over columns does not reproduce bit for bit, and `diff`'s `lag` reads the panel of the frame around the call, which a body written in Zeff does not pass on to the functions it calls. Their rows say so in place of the reasons of 31 October and 2 November, and the entry records the outcome under its application paragraph.
+
+## 7 November 2026 — zeff_open_decisions.md, entry #70; docs/releases/0.7.0.md, steps 4.3 and 5b
+
+Not an error: the record of step 4.3 of release 0.7.0. The warnings of `skewness` and `kurtosis` for too few values carry the code W0205, as the owner's answer to question 5 of 0.5.0 numbered them, so a pragma can allow them and `--deny-warnings` refuses them; the entry's application paragraph says so. `drop_missing` moves to a step of its own after `text`, part 1, since its note names the variables dropped and their count, which needs `join`; the checklist records the move.

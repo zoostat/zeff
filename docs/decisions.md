@@ -2404,3 +2404,13 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** Nothing changes but the texts; the conformance digests are unchanged and `diff`'s page prints its new sentence.
 
 **Reason.** The checklist of 0.7.0, step 4: a function the pieces still do not express stays in Rust with the reason recorded; open decision #69.
+
+## 7 November 2026: W0205 on the moments' warnings; `drop_missing` waits for `join` (release 0.7.0, step 4.3)
+
+**Decision.** The four `warn` calls of `skewness` and `kurtosis` for too few values take `code: W0205`, the code the owner's answer to question 5 of 0.5.0 gave them (open decision #70): the warning prints `warning[W0205]: skewness needs at least three values for the adjusted form: the result is NA`, a pragma allows it, `--deny-warnings` refuses it, and the two pages list W0205 under "Warnings and notes" from the codes the bodies raise. W0205's explained page names the case among its causes. The stderr digest of the conformance case `control/moments` changes by the code, as every coded warning's did at step 2b; no result changes.
+
+**`drop_missing` deferred.** Its note, `228 rows with NA in educ or exper dropped`, joins a count and the names of the variables into one text, with "or" before the last; a body written in Zeff has `name_of` and `to(n, Str)` but no way to put texts together until `join` ships at step 5. Rather than move the verb with a poorer note, it becomes step 5b, right after `text`, part 1, with its checklist line carrying what the note needs.
+
+**Tests.** The moments' message snapshot and the page snapshot of `skewness` refreshed for the code; the examples; the conformance digests regenerated (one stderr digest changed, none of a result).
+
+**Reason.** Open decision #70; the checklist of 0.7.0, step 4 (a function the pieces still do not express waits, with the reason recorded).

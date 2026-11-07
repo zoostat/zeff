@@ -140,7 +140,7 @@ control/table/stderr cbf29ce484222325
 control/vif/stdout cb231bc5bd3963b4
 control/vif/stderr cbf29ce484222325
 control/moments/stdout 556d89db012b5b98
-control/moments/stderr dc1f354d17a9ddf9
+control/moments/stderr 863f87d24f827097
 control/spread/stdout ede5c48e00baab72
 control/spread/stderr 21d8635b98dd81be
 control/drop_missing/stdout b040d903ac347919

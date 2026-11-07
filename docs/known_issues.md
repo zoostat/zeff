@@ -103,9 +103,9 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   "Warnings and notes" is the union of the codes declared by the functions a body calls
   (`frame`'s and the reducers' for `center`, `skewness` and their kin), a message raised by an
   inner reducer names that reducer (`median` needs a Bool, Int or Float, from `mad`) and the
-  body's column (`value`, from `standardize`), and the warning of `skewness` and `kurtosis` for
-  too few values carries no code in `--format json` (open decision #70). The lists are narrowed
-  when `zeff test` runs the pages at 0.7.0. (Since 0.5.0.)
+  body's column (`value`, from `standardize`). The lists are narrowed when `zeff test` runs the
+  pages at 0.7.0. (Since 0.5.0; the warning of `skewness` and `kurtosis` for too few values
+  carries W0205 from step 4.3 of 0.7.0.)
 - **Seven functions planned in Zeff are written in Rust**: `fill_missing`, `n_missing`,
   `row_mean`, `row_sum`, `drop_missing`, `vif` and `summary`, each for a piece the language lacks
   (open decisions #68 to #72); nothing a script sees differs, and section 8.2's totals follow
