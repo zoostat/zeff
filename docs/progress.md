@@ -50,95 +50,9 @@ Step 6 `[engine]`: shared columns and selection vectors. A frame made by `where`
 
 Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` interactions; rows with a missing effect and singletons dropped and counted; a regressor the effects absorb named and dropped, W1004 for little variation left; degrees of freedom as fixest's defaults and reghdfe; R² within and overall in the printed fit, `r_squared()` and `report`; `fitted` and `predict` with the effects' part; `hc2`, `hc3` and `influence` refused with `fe:` until 0.8.0; fixest 0.14.2 added to the harness and the fits on `wages` and `wagepan` checked within 1e-7; open decision #54 written into section 7.1, logged). Step 19 `[function]`: `event(time, treat, ref:)`, one indicator per relative period but the reference, never-treated units as controls, Z0507 for a `ref:` absent from the data, against fixest's `i()` within 1e-7. Step 20 `[engine]`: the schema pass, part 1 (the cache of each data file's columns in `.zeff/schemas/`; the checker verifies `Var`, `Vars`, `Terms` and `Formula` arguments and a project function's `Var` parameters against the frames whose schema it knows). Step 21 `[engine]`: the schema pass, part 2 (the columns after every verb; `to_wide` and a missing file "checked at run time"; "from last run" warnings; a data root's file hashed and a change warned, W0701). Step 18b `[engine]`, added at the owner's "yes": the speed of the fixed-effects fit (the group index from integer codes, reused for `cluster:`; column copies; the leverage left out where no caller can use it), a million rows 0.95 s to 0.438 s against fixest's 0.23 s and ten million 9.3 s to 4.18 s against 2.2 s, within 2×, no digest or estimate changed. Step 22 `[engine]`: fused column expressions (a plan evaluated in blocks of 4,096 rows with no temporary columns, the tree-walking evaluation kept as the oracle under `ZEFF_UNFUSED=1`; the benchmark suite's seventh case, the column chain). A side task: the CI `reference` job, red since 1 November, traced to R's reading of a seventeen-digit literal on two platforms, an exact comparison where a tolerance was meant and the last bits of R's normal draws, each corrected in the reference and recorded in `docs/decisions.md`. 127 codes at the end of the day; every step green and pushed.
 
-## 3 November 2026: step 23a
+## 3 to 6 November 2026, steps 23a to 24c and the close of release 0.6.0 (folded)
 
-**Done.** Step 23 split into 23a to 23d. Step 23a `[engine]`: the sample project `samples/panel` (three generated data files, a script of seven sections from the merge off the `zeff:` root to the event study and the two-period difference in differences, its output read by eye and stored, four new cases in the conformance report); the reducers' warnings under `by:` merged for `add` and `update` as for `aggregate`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks, the conformance report regenerated with the sample's cases; CI to be read after the push.
-
-**Next.** Step 23b `[engine]`: the script tests of sections 6, 6.1 and 7.1 and the help examples, and the storage round trips.
-
-**For the owner to decide.** Nothing new.
-
-## 3 November 2026: step 23b
-
-**Done.** Step 23b `[engine]`: the script tests of sections 6, 6.1 and 7.1 of the Language Reference and the help examples this release runs (`reg` with `fe:`, `merge`), each read by eye and stored; the storage round trips of every frame the release added, through Arrow IPC with their declarations.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks, the conformance report unchanged; CI to be read after the push.
-
-**Next.** Step 23c `[engine]`: the fuzz targets extended and a night's run.
-
-**For the owner to decide.** Nothing new.
-
-## 3 November 2026: step 23c
-
-**Done.** Step 23c `[engine]`: the CSV fuzz target extended to declared types, date patterns, naming rules and encodings; the checker target run with a project's schemas in hand and the dictionary extended to the release's verbs and arguments; the six targets run locally for ten to sixty minutes each (figures in `docs/decisions.md`), the two slow units found being stalls of the loaded machine and not of the code.
-
-**Green.** The fuzz targets build with the nightly toolchain and run clean; no workspace code changed (format, clippy and the tests stand as at step 23b); CI to be read after the push, the nightly fuzz job on the commit at step 23d.
-
-**Next.** Step 23d `[engine]`: the jobs and the register.
-
-**For the owner to decide.** Nothing new.
-
-## 3 November 2026: step 23d
-
-**Done.** Step 23d `[engine]`, and with it the whole of step 23: the coverage report gains the other packages' group (`time`, `text` and the new modules among them), the nightly job names the seven benchmark cases, and R5's count is recorded (127 codes, 785 snapshots, every one with a page). The nightly, fuzz and coverage jobs were run by hand on the commit and their figures are in `docs/decisions.md`: coverage 93.5% in the kernel and 93.2% in the estimators; no fuzz crash; every property and truth run green; the benchmark times on the x86-64 runner recorded. Two findings fixed: the stochastic class for `sample` had failed on every nightly since its labels followed R's `cut` (its test now reads a break as a number), and the scheduled workflow's piped steps could not fail (every step now runs under `bash` with `pipefail`).
-
-**Green.** Format, clippy with warnings denied, the sample stochastic test in release mode, the tier and message checks; the workspace suite as at step 23b (no engine code changed); the nightly job started again on the commit of the fixes, to be read at step 24b with the weekly mutation run already under way on 1b31366.
-
-**Next.** Step 24a `[engine]`: the weekly mutation records matched and the new survivors.
-
-**For the owner to decide.** Nothing new.
-
-## 5 November 2026: step 24a
-
-**Done.** Step 24a `[engine]`: the weekly mutation run on 1b31366 read shard by shard (34 shards, 4,131 mutants: 3,795 caught, 193 missed, 17 timed out, 126 unviable) and matched against the 0.5.0 records by file and mutation. `zeff-numeric` has nothing new (eight of its old survivors are caught now). The new survivors (19 in the demeaning kernel, 25 in the results package, 16 in the fit, with 7 new timeouts) all lie in this release's fixed-effects code; each has a test or a recorded reason in `docs/decisions.md`, and the tests are confirmed by rerunning the mutants on this machine. Nine tests were added or extended (weighted group means and their compensation, no effects in no pass, the codes at the top of their range, an effect of five variables, the criteria and the prediction wording under effects, two unbalanced effects on a small-scale outcome, the reset of the work counters) and the edge-case snapshot gained thirteen scripts. One correction of behaviour came out of it: a variable inside a range of the formula (`y ~ x1..x3` with `fe: x2`) is now refused as a fixed effect, as the range's ends already were. The second nightly run (41603843932, on f38f4e1) is green with the `sample` stochastic test passing under the corrected shell.
-
-**Green.** Format, clippy with warnings denied, all workspace tests (`--no-fail-fast`, the catalogue touched first), the tier and message checks; CI to be read after the push.
-
-**Next.** Step 24b `[engine]`: the runs and the samples.
-
-**For the owner to decide.** Nothing new. (A handbook PDF that appeared untracked under `docs/handbook/` on 4 November was moved out of the repository at the owner's word; generated handbooks are kept beside the repositories, not in them.)
-
-## 5 November 2026: step 24b begun, and a correction it found
-
-**Done.** Step 24b `[engine]` is begun, not finished. On 80b026d: CI green on every target (the test job on its second attempt; the first lost its runner's linker to a bus error before any test ran); the nightly job (193 test programs, the stochastic and truth-recovery classes), the fuzz job (4.2 million inputs, no crash), the coverage job (kernel 93.8%, estimators 93.5%, language tooling 92.0%, other packages 90.3%) and the benchmark job green; the six samples and `zeff selftest` (194 of 194) run and read; the bundle 1,653 kB and the cold start 107 ms with `time` and `text` at start; `import` read against open decision #51 (about the cost of one two-way fit, so the chunked reader stays at 0.11.0). The weekly mutation run showed that a property test of `event` could fail by chance on correct code (2 of its 27,944 panels have every unit treated at once) and that such a failure, saved in a shard's working copy, then decided every later mutant of the shard: 63 mutants in the run step 24a matched, 52 in today's. Corrected: the generator always has a control and a treated unit, with a test over every panel; the mutation job draws its property cases from one fixed seed; `is_tie` has its subnormal case. The record is in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests; the tier and message checks are untouched by the change.
-
-**Next.** Still step 24b `[engine]`: every scheduled job run again on the commit of the correction; the clean weekly records matched and any survivor the chance failures had covered resolved as at step 24a; then the figures recorded and the step ticked. Step 24c `[engine]` follows.
-
-**For the owner to decide.** Nothing.
-
-## 6 November 2026: step 24b done
-
-**Done.** Step 24b `[engine]`, on 19ea819 (the commit of the correction; the same engine as 80b026d). CI green on every target at the first attempt; the nightly, fuzz, coverage, weekly and benchmark jobs run by hand, all green, their figures recorded in `docs/decisions.md` for the notes. The clean weekly run (34 shards, a fixed seed; 4,136 mutants, 3,830 caught, 162 missed, 18 timed out) matches the records: every survivor is a recorded equivalent of 0.5.0 or of step 24a, every survivor resolved by a test at step 24a is caught, and the chance failures of the event property test had hidden no survivor without a record; one more timeout of the recorded kind (a loop of `effect_values` that its cap ends). The six samples read by eye, `zeff selftest` conformant on 194 of 194 cases; the bundle 1,653 kB compressed and the cold start 107 ms with `time` and `text` at start, both far inside R4's limits; `import` costs about one fit of the same panel, so open decision #51 stands (the chunked reader at 0.11.0).
-
-**Green.** Format, clippy with warnings denied, all 190 test programs here; CI and every scheduled job on 19ea819.
-
-**Next.** Step 24c `[engine]`: the documents and the report (the release notes, the known issues, the catalogue's status column, the reviews of the risk register and of the open decisions).
-
-**For the owner to decide.** Nothing.
-
-## 6 November 2026: step 24c done, the checklist of 0.6.0 complete
-
-**Done.** Step 24c `[engine]`. Features frozen: the 37 functions implemented, each with its page. The counts of section 8.2 corrected to follow the catalogue (239 in Rust, 20 in Zeff, 271 on the roadmap, 530 in all; the 23 roadmap rows of 21 October had never been counted), logged. The reference versions collected (`fixest` 0.14.2 new); `docs/known_issues.md` rewritten with an "As of 0.6.0" list of thirteen entries; the risk register's figures, the decisions due and the sample pins recorded in `docs/decisions.md` for the release. Two findings recorded there: the `test` job had been red on seven pushes of 1 and 2 November behind the already red `reference` job (three causes, all corrected then, none a wrong result); and a leftover branch and working copy named under a forbidden word, removed at the owner's word, with `main` and the five tags all that remain.
-
-**Green.** Format, clippy with warnings denied, all 190 test programs, the tier and message checks; CI green on the last pushes.
-
-**Next.** The checklist is complete. The release itself waits for the owner's "Release 0.6.0": the notes, the register's review, the version and the pins, the tag and the GitHub release.
-
-**For the owner to decide.** Nothing. The owner answered on 6 November 2026 that the two-week trial of the Zemp interface framework (open decision #24, due at 0.7.0) has not yet been run; it remains to be run in a Zemp session before #24 is taken.
-
-## 6 November 2026, release 0.6.0 closed
-
-**Done.** "Release 0.6.0": the notes (`docs/releases/0.6.0-notes.md`), the register's review (every rating unchanged; R3 passed its first model release since 0.4.0; one item to watch under R7, the full suite's three to four hours on this machine; the two faults of the project's own checks named), the open-decisions status (none due; #73 to #84 raised since 0.5.0; the rows of #12, #15 and #16 brought up to date; the omitted log entry for #80 to #84 made good), the version and the six pins set to 0.6.0 with the lock files and the snapshots, the tag `v0.6.0` and the GitHub release. 185 of the 259 functions of 1.0 are implemented.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass on the release commit; CI green on every target on it.
-
-**Next.** The owner's "Start release 0.7.0" (Tests, plots and the language server: 60 functions, among them `tabulate`, nine tests, `anova` with `posthoc`, `p_adjust`, the plot grammar's 35 functions and 12 text functions, on the language server, `zeff fmt`, `zeff test`, the plot renderer and the engine worker), beginning with the open decisions due by then. Its first step is tagged `[engine]`.
-
-**For the owner to decide.** When release 0.7.0 opens: #24 (the Zemp interface framework, after its two-week trial, which is still to be run in a Zemp session), #68 to #71 and #79 (the pieces the Zeff-written built-ins lack), #76 and #77 (the traceback and schema-aware completion), #80 (`each`) and #83 (the sentence on bare words).
+Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (three generated data files, a script from the merge off the `zeff:` root to the event study and the difference in differences, four conformance cases; the reducers' warnings under `by:` merged for `add` and `update`); the script tests of sections 6, 6.1 and 7.1 and the help examples, with the storage round trips of every new frame; the CSV and checker fuzz targets extended and run for an evening; the coverage and nightly jobs extended and run by hand (coverage 93.5% in the kernel, 93.2% in the estimators; a stochastic test of `sample` that had failed on every nightly since its labels followed R's `cut`, and piped workflow steps that could not fail, both corrected). Step 24a `[engine]`: the weekly mutation run on 1b31366 (4,131 mutants) matched against the 0.5.0 records, the new survivors all in the fixed-effects code, each given a test or a recorded reason; a variable inside a formula range refused as a fixed effect. Step 24b `[engine]`, in two sessions: every scheduled job run by hand on 80b026d and again on 19ea819 after a correction the weekly run exposed (a property test of `event` could fail by chance on correct code and then decide every later mutant of its shard; the generator always has a control and a treated unit, the job draws from one fixed seed); the clean run (4,136 mutants, 3,830 caught, 162 missed, 18 timed out) matching the records; the six samples and `zeff selftest` (194 of 194) read; the bundle 1,653 kB and the cold start 107 ms; open decision #51 confirmed. Step 24c `[engine]`: 37 functions frozen and implemented, section 8.2's counts corrected to the catalogue (the 23 roadmap rows of 21 October had never been counted), the reference versions (`fixest` 0.14.2 new), `docs/known_issues.md` rewritten, the risk register's figures and the sample pins recorded; two findings (the `test` job red on seven pushes behind the red `reference` job, none a wrong result; a leftover branch and working copy named under a forbidden word, removed at the owner's word). "Release 0.6.0" on 6 November: the notes, the register's review (every rating unchanged; R7 to watch the suite's three to four hours on this machine), the open-decisions status, the version and the six pins, the tag `v0.6.0` and the GitHub release; 185 of the 259 functions of 1.0 implemented; CI green on every target. The owner said that the two-week trial of the Zemp interface framework (#24) has still to be run in a Zemp session. Every ruling is in `docs/decisions.md` under its step.
 
 ## 6 November 2026, release 0.7.0 opened (step 1)
 
@@ -190,8 +104,19 @@ Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` in
 
 **Done.** `note(message)` prints a note under the statement and carries on; `warn` and `note` take `code:`, a warning's code written bare (`code: W0205`) or as text, which a pragma allows and `--deny-warnings` refuses as any coded message; a code no warning has, or an error's code, stops the run (Z0401); `name_of(v)` is a variable's name as text, `NA` for an optional variable left out. A function written in Zeff declares on its page the codes its body raises, and the engine refuses to build on a code without an explained page. Two catalogue rows (535 in all; 269 functions in 1.0) and the counts of both volumes; sections 3.7, 5.3 and 5.4 of the Language Reference and 9.1 of the Engine and Project Specification follow (logged); open decisions #45 and #70 record the application. Texts cannot yet be joined (`join` ships later in this release), so the messages of the examples name the variable alone.
 
-**Green.** Format, clippy with warnings denied, the tier and message checks, the registry, core, conformance and engine programs the step touches with the help examples; the whole suite on CI, read job by job after the push (the owner's decision of today: the five-minute local routine of the handbook, CI as the full run; recorded in `docs/decisions.md`). CI's first run failed one command-line test, the count of `core`'s functions in `zeff help core`, corrected in a follow-up commit; the routine now names that program.
+**Green.** Format, clippy with warnings denied, the tier and message checks, the registry, core, conformance and engine programs the step touches with the help examples; the whole suite on CI, read job by job after the push (the owner's decision of today: the five-minute local routine of the handbook, CI as the full run; recorded in `docs/decisions.md`). CI's first run failed one command-line test, the count of `core`'s functions in `zeff help core`, and its second a page snapshot of `skewness` that lists `warn`'s new wording; each corrected in a follow-up commit, and the routine now names both kinds of program. CI green on every job at 6a8f78e.
 
 **Next.** Step 3.2 `[engine]`: a parameter of several types in a built-in's `fn` line (#68).
 
 **For the owner to decide.** Nothing new. Rulings he may overturn: a code is checked when the warning is raised, not when the script is checked; `name_of` of `NA` is `NA` rather than an error.
+
+## 7 November 2026, release 0.7.0, step 3.2 (a parameter of several types)
+
+**Done.** In the `fn` line of a built-in's file, and there only, a parameter may be declared with several types, `x: Bool | Int | Float | Str` or `x: List | Column`, and the result typed `Join` (the one type of the arguments) or `Same` (the first argument's). The checker reads the body once per choice of one type per such parameter, each choice once per column form as before, leaving out a choice whose types do not join and refusing more than 256 forms; the interpreter runs the form of the arguments' types. A project function declaring several types, or `Join`, is refused with a help naming the rule. Proved on three fixtures (a `fill_missing` in Zeff with 24 forms, a `Same` result, a list-or-column parameter), with every message as a snapshot and a property test agreeing with the Rust `fill_missing` on random values. Section 9.1 of the Engine and Project Specification and the grammar's comment follow (logged); open decision #68 records the application. The conformance case waits for step 4, when `fill_missing` is the first shipped built-in to use the piece.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the checker's unit tests and the engine programs of the built-ins, the functions, the modules and the help examples; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 3.3 `[engine]`: the enclosing frame of a Zeff-written built-in (#69).
+
+**For the owner to decide.** Nothing new. Rulings he may overturn: at most 256 forms for one built-in; an Int given where a built-in offers both `Int` and `Float` takes the `Int` form.
+

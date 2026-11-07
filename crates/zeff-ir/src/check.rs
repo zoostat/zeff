@@ -300,9 +300,14 @@ struct Checker<'a> {
     called: Vec<(String, String)>,
     /// The codes the bodies give `warn` and `note`, each once.
     raised_codes: Vec<String>,
-    /// While a built-in written in Zeff is checked: the function whose scalar parameters are read
-    /// as columns in this form, one flag per parameter (section 3.7, "Columns and scalars").
-    lift_mask: Option<(String, Vec<bool>)>,
+    /// While a built-in written in Zeff is checked: the form under check (which of its scalar
+    /// parameters are read as columns, section 3.7, "Columns and scalars", and the type chosen
+    /// for each parameter declared with several types, open decision #68).
+    form_under: Option<FormUnder>,
+    /// Whether the file is a built-in's (Engine and Project Specification, section 9.1), where a
+    /// parameter may be declared with several types, `x: Bool | Int`, and the result typed by
+    /// `Join` or `Same`.
+    builtin_file: bool,
     /// Every field a function body reads from a parameter typed `Record` alone: the function, the
     /// parameter's binding, the field and where it is read, so that the call that supplies the
     /// record can check it has the field (section 3.7, "Records"; `iterate`'s state).
@@ -343,7 +348,8 @@ impl<'a> Checker<'a> {
             imported: Vec::new(),
             called: Vec::new(),
             raised_codes: Vec::new(),
-            lift_mask: None,
+            form_under: None,
+            builtin_file: false,
             record_reads: Vec::new(),
             words: registry
                 .functions()
@@ -408,13 +414,47 @@ pub fn is_code_text(text: &str) -> bool {
     text.len() == 5 && text.starts_with(['W', 'Z']) && text[1..].bytes().all(|b| b.is_ascii_digit())
 }
 
-/// One form of a built-in written in Zeff: which parameters are given as columns, and the body
-/// lowered under those types (a call inside it lifts exactly where this form needs it).
+/// One form of a built-in written in Zeff: which parameters are given as columns, the type
+/// chosen for each parameter declared with several types (`None` for one declared with one), and
+/// the body lowered under those types (a call inside it lifts exactly where this form needs it).
 #[derive(Debug, Clone)]
 pub struct BuiltinForm {
     pub columns: Vec<bool>,
+    pub chosen: Vec<Option<Ty>>,
     pub program: Program,
     pub function: FnId,
+}
+
+/// The form of a built-in under check: the function, which of its parameters are read as columns,
+/// and the type chosen for each parameter declared with several types.
+#[derive(Debug, Clone)]
+struct FormUnder {
+    name: String,
+    columns: Vec<bool>,
+    chosen: Vec<Option<Ty>>,
+}
+
+/// `Join` or `Same` written as a return type in a built-in's file (open decision #68): a rule
+/// resolved under each form rather than a type.
+fn joined_return(ty: &ast::Type) -> Option<&'static str> {
+    match &ty.kind {
+        ast::TypeKind::Named { path, args } if args.is_empty() && path.segments.len() == 1 => {
+            match path.segments[0].text.as_str() {
+                "Join" => Some("Join"),
+                "Same" => Some("Same"),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+/// The one type of several, joined left to right (section 3.7, "Joining types"); `None` when two
+/// do not join.
+fn join_all(types: &[Ty]) -> Option<Ty> {
+    let (first, rest) = types.split_first()?;
+    rest.iter()
+        .try_fold(first.clone(), |so_far, t| Ty::join(&so_far, t))
 }
 
 /// A problem found in a built-in's file: the form it was found under (empty for the written
@@ -502,103 +542,170 @@ pub fn check_builtin(
     if !problems.is_empty() {
         return Err(problems);
     }
-    // The scalar parameters of the built-in, each of which a column may stand for when the
-    // function lifts.
-    let scalar_positions: Vec<usize> = if lift {
-        definitions[main]
-            .params
+    // The types each parameter may take: the options of one declared with several types
+    // (`x: Bool | Int | Float | Str`, open decision #68), or the one it is declared with (an
+    // optional type, `Float?`, is never read as a column).
+    let main_params = &definitions[main].params;
+    let declared: Vec<Option<Ty>> = main_params
+        .iter()
+        .map(|p| Ty::parse(&written_type(&p.ty)))
+        .collect();
+    let options: Vec<Vec<Option<Ty>>> = main_params
+        .iter()
+        .map(
+            |p| match Ty::parse(written_type(&p.ty).trim_end_matches('?')) {
+                Some(Ty::Union(types)) => types.into_iter().map(Some).collect(),
+                _ => vec![None],
+            },
+        )
+        .collect();
+    // Every choice of one type per parameter, in the order written; when the result is `Join`,
+    // a choice whose types do not join is left out, since no call reaches it (Z0214).
+    let mut choices: Vec<Vec<Option<Ty>>> = vec![Vec::new()];
+    for param in &options {
+        choices = choices
             .iter()
-            .enumerate()
-            .filter(|(_, p)| Ty::parse(&written_type(&p.ty)).is_some_and(|t| scalar_type(&t)))
-            .map(|(i, _)| i)
-            .collect()
-    } else {
-        Vec::new()
-    };
-    if scalar_positions.len() > 8 {
+            .flat_map(|so_far| {
+                param.iter().map(move |option| {
+                    let mut choice = so_far.clone();
+                    choice.push(option.clone());
+                    choice
+                })
+            })
+            .collect();
+    }
+    if joined_return(&definitions[main].ret) == Some("Join") {
+        choices.retain(|chosen| {
+            let types: Vec<Ty> = chosen
+                .iter()
+                .zip(&declared)
+                .filter_map(|(c, d)| c.clone().or_else(|| d.clone()))
+                .collect();
+            types.is_empty() || join_all(&types).is_some()
+        });
+    }
+    // Under each choice, the scalar parameters, each of which a column may stand for when the
+    // function lifts.
+    let mut plan: Vec<(Vec<Option<Ty>>, Vec<usize>)> = Vec::new();
+    for chosen in choices {
+        let scalar_positions: Vec<usize> = if lift {
+            chosen
+                .iter()
+                .zip(&declared)
+                .enumerate()
+                .filter(|(_, (c, d))| c.as_ref().or(d.as_ref()).is_some_and(scalar_type))
+                .map(|(i, _)| i)
+                .collect()
+        } else {
+            Vec::new()
+        };
+        if scalar_positions.len() > 8 {
+            problems.push(plain(
+                Diagnostic::error(
+                    "Z0323",
+                    format!(
+                        "`{name}` has {} scalar parameters; a lifted built-in may have at most 8",
+                        scalar_positions.len()
+                    ),
+                )
+                .in_file(file)
+                .primary(definitions[main].name.span, "too many forms to check")
+                .help("take a list where the function needs many values"),
+            ));
+            return Err(problems);
+        }
+        plan.push((chosen, scalar_positions));
+    }
+    let total: usize = plan.iter().map(|(_, s)| 1usize << s.len()).sum();
+    if total > 256 {
         problems.push(plain(
             Diagnostic::error(
                 "Z0323",
-                format!(
-                    "`{name}` has {} scalar parameters; a lifted built-in may have at most 8",
-                    scalar_positions.len()
-                ),
+                format!("`{name}` has {total} forms to check; a built-in may have at most 256"),
             )
             .in_file(file)
             .primary(definitions[main].name.span, "too many forms to check")
-            .help("take a list where the function needs many values"),
+            .help(
+                "fewer parameters of several types, or a list where the function needs many values",
+            ),
         ));
         return Err(problems);
     }
-    let forms = 1usize << scalar_positions.len();
     let mut lowered: Vec<BuiltinForm> = Vec::new();
     let mut calls: Vec<(String, String)> = Vec::new();
     let mut codes: Vec<String> = Vec::new();
     let mut seen: Vec<(String, String, usize)> = Vec::new();
-    for form in 0..forms {
-        let mask: Vec<bool> = definitions[main]
-            .params
-            .iter()
-            .enumerate()
-            .map(|(i, _)| {
-                scalar_positions
-                    .iter()
-                    .position(|p| *p == i)
-                    .is_some_and(|bit| form & (1 << bit) != 0)
-            })
-            .collect();
-        let columns: Vec<String> = definitions[main]
-            .params
-            .iter()
-            .zip(&mask)
-            .filter(|(_, m)| **m)
-            .map(|(p, _)| format!("`{}`", p.name.text))
-            .collect();
-        let form_text = if columns.is_empty() {
-            String::new()
-        } else {
-            format!("with {} given as a column", columns.join(" and "))
-        };
-        let mut checker = Checker::new(file, registry, Some(text));
-        checker.lift_mask = Some((name.to_string(), mask.clone()));
-        for f in &definitions {
-            checker.declare(f);
-        }
-        for (i, f) in definitions.iter().enumerate() {
-            checker.function_body(f, i);
-        }
-        checker.check_recursion();
-        let found = checker.found.into_vec();
-        let functions = lowered_functions(checker.functions, &checker.signatures);
-        lowered.push(BuiltinForm {
-            columns: mask,
-            program: Program {
-                statements: Vec::new(),
-                bindings: checker.bindings,
-                functions,
-                schemas: Vec::new(),
-                run_time_frames: Vec::new(),
-            },
-            function: main,
-        });
-        calls.extend(checker.called);
-        for code in checker.raised_codes {
-            if !codes.contains(&code) {
-                codes.push(code);
+    for (chosen, scalar_positions) in &plan {
+        for form in 0..(1usize << scalar_positions.len()) {
+            let mask: Vec<bool> = (0..main_params.len())
+                .map(|i| {
+                    scalar_positions
+                        .iter()
+                        .position(|p| *p == i)
+                        .is_some_and(|bit| form & (1 << bit) != 0)
+                })
+                .collect();
+            let mut parts: Vec<String> = Vec::new();
+            for (i, p) in main_params.iter().enumerate() {
+                if let Some(t) = &chosen[i] {
+                    parts.push(format!("`{}` read as {}", p.name.text, t.with_article()));
+                }
+                if mask[i] {
+                    parts.push(format!("`{}` given as a column", p.name.text));
+                }
             }
-        }
-        for d in found {
-            let key = (
-                d.code.clone(),
-                d.message.clone(),
-                d.labels.first().map_or(0, |l| l.span.start),
-            );
-            if !seen.contains(&key) {
-                seen.push(key);
-                problems.push(BuiltinProblem {
-                    form: form_text.clone(),
-                    diagnostic: d,
-                });
+            let form_text = if parts.is_empty() {
+                String::new()
+            } else {
+                format!("with {}", parts.join(" and "))
+            };
+            let mut checker = Checker::new(file, registry, Some(text));
+            checker.builtin_file = true;
+            checker.form_under = Some(FormUnder {
+                name: name.to_string(),
+                columns: mask.clone(),
+                chosen: chosen.clone(),
+            });
+            for f in &definitions {
+                checker.declare(f);
+            }
+            for (i, f) in definitions.iter().enumerate() {
+                checker.function_body(f, i);
+            }
+            checker.check_recursion();
+            let found = checker.found.into_vec();
+            let functions = lowered_functions(checker.functions, &checker.signatures);
+            lowered.push(BuiltinForm {
+                columns: mask,
+                chosen: chosen.clone(),
+                program: Program {
+                    statements: Vec::new(),
+                    bindings: checker.bindings,
+                    functions,
+                    schemas: Vec::new(),
+                    run_time_frames: Vec::new(),
+                },
+                function: main,
+            });
+            calls.extend(checker.called);
+            for code in checker.raised_codes {
+                if !codes.contains(&code) {
+                    codes.push(code);
+                }
+            }
+            for d in found {
+                let key = (
+                    d.code.clone(),
+                    d.message.clone(),
+                    d.labels.first().map_or(0, |l| l.span.start),
+                );
+                if !seen.contains(&key) {
+                    seen.push(key);
+                    problems.push(BuiltinProblem {
+                        form: form_text.clone(),
+                        diagnostic: d,
+                    });
+                }
             }
         }
     }
@@ -1163,10 +1270,40 @@ impl Checker<'_> {
     fn lower_type(&mut self, ty: &ast::Type) -> (Ty, bool) {
         match &ty.kind {
             ast::TypeKind::Nullable(inner) => (self.lower_type(inner).0, true),
-            ast::TypeKind::Words(words) => (
-                Ty::Words(words.iter().map(|w| w.text.clone()).collect()),
-                false,
-            ),
+            ast::TypeKind::Words(words) => {
+                // In a built-in's file a list of type names is a parameter of several types,
+                // `x: Bool | Int | Float | Str` (open decision #68); a project function declares
+                // one type.
+                if words
+                    .iter()
+                    .all(|w| w.text.starts_with(|c: char| c.is_ascii_uppercase()))
+                {
+                    let written = written_type(ty);
+                    if !self.builtin_file {
+                        self.report(
+                            Diagnostic::error("Z0101", format!("no type is called `{written}`"))
+                                .primary(ty.span, "several types")
+                                .help("a parameter of several types belongs to a built-in's file (Engine and Project Specification, section 9.1); a project function declares one type, or takes a List"),
+                        );
+                        return (Ty::Unknown, false);
+                    }
+                    return match Ty::parse(&written) {
+                        Some(union) => (union, false),
+                        None => {
+                            self.report(
+                                Diagnostic::error("Z0101", format!("no type is called `{written}`"))
+                                    .primary(ty.span, "not a type")
+                                    .help("each name of a parameter of several types is a type of section 4: Bool, Int, Float, Str, Date, DateTime, List or Column"),
+                            );
+                            (Ty::Unknown, false)
+                        }
+                    };
+                }
+                (
+                    Ty::Words(words.iter().map(|w| w.text.clone()).collect()),
+                    false,
+                )
+            }
             ast::TypeKind::Record(fields) => (
                 Ty::Record(
                     fields
@@ -1245,12 +1382,17 @@ impl Checker<'_> {
         let mut params: Vec<(String, Ty, bool, Span)> = Vec::new();
         for p in &f.params {
             let (ty, nullable) = self.lower_type(&p.ty);
-            // A form of a lifted built-in: this scalar parameter is given as a column.
-            let ty = match &self.lift_mask {
-                Some((target, mask))
-                    if *target == name && mask.get(params.len()).copied().unwrap_or(false) =>
-                {
-                    Ty::Column(Box::new(ty))
+            // A form of a built-in: the one type chosen for a parameter declared with several,
+            // and a column where this form reads a scalar parameter as one.
+            let ty = match &self.form_under {
+                Some(form) if form.name == name => {
+                    let i = params.len();
+                    let ty = form.chosen.get(i).cloned().flatten().unwrap_or(ty);
+                    if form.columns.get(i).copied().unwrap_or(false) {
+                        Ty::Column(Box::new(ty))
+                    } else {
+                        ty
+                    }
                 }
                 _ => ty,
             };
@@ -1271,12 +1413,36 @@ impl Checker<'_> {
                 p.name.span,
             ));
         }
-        let (returns, _) = self.lower_type(&f.ret);
+        // In a built-in's file the result may be typed `Join`, the one type of every argument,
+        // or `Same`, the first argument's (section 3.7, "Joining types"; open decision #68),
+        // resolved under each form from the parameters' types.
+        let returns = match (self.builtin_file, joined_return(&f.ret)) {
+            (true, Some(rule)) => match &self.form_under {
+                Some(form) if form.name == name => {
+                    let rows: Vec<Ty> = params
+                        .iter()
+                        .map(|(_, t, _, _)| match t {
+                            Ty::Column(inner) => (**inner).clone(),
+                            other => other.clone(),
+                        })
+                        .collect();
+                    if rule == "Same" {
+                        rows.first().cloned().unwrap_or(Ty::Unknown)
+                    } else {
+                        join_all(&rows).unwrap_or(Ty::Unknown)
+                    }
+                }
+                _ => Ty::Unknown,
+            },
+            _ => self.lower_type(&f.ret).0,
+        };
         // A form of a lifted built-in with a column among its arguments gives a column (section
         // 3.7, "Columns and scalars").
-        let returns = match &self.lift_mask {
-            Some((target, mask))
-                if *target == name && mask.iter().any(|m| *m) && scalar_type(&returns) =>
+        let returns = match &self.form_under {
+            Some(form)
+                if form.name == name
+                    && form.columns.iter().any(|m| *m)
+                    && scalar_type(&returns) =>
             {
                 Ty::Column(Box::new(returns))
             }
@@ -1313,9 +1479,9 @@ impl Checker<'_> {
         for (i, (p, (pname, ty, optional, pspan))) in f.params.iter().zip(&sig.params).enumerate() {
             // Under a form of a lifted built-in that reads this parameter as a column, its default
             // is still one row's value, which stands for every row (section 3.7).
-            let default_ty: Ty = match (&self.lift_mask, ty) {
-                (Some((target, mask)), Ty::Column(inner))
-                    if *target == sig.name && mask.get(i) == Some(&true) =>
+            let default_ty: Ty = match (&self.form_under, ty) {
+                (Some(form), Ty::Column(inner))
+                    if form.name == sig.name && form.columns.get(i) == Some(&true) =>
                 {
                     (**inner).clone()
                 }

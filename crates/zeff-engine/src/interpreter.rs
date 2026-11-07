@@ -16,7 +16,7 @@ use zeff_core::value::{
 use zeff_diagnostics::{Diagnostic, Source, Span, did_you_mean};
 use zeff_ir::BindingKind;
 use zeff_ir::ir::{Arm, BinaryOp, Block, Term, TermKind, TermStep, UnaryOp};
-use zeff_ir::{Call, Expr, ExprKind, Program, RecordField, Slot, Statement};
+use zeff_ir::{BuiltinForm, Call, Expr, ExprKind, Program, RecordField, Slot, Statement, Ty};
 
 /// What one statement wrote.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -1330,8 +1330,9 @@ impl<'a> Interpreter<'a> {
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
-        // The form whose columns are the arguments' (the written form when none matches, which
-        // the checker's lifting rule makes impossible).
+        // The form whose columns are the arguments' and whose chosen types are theirs, exactly
+        // first, then accepting them (the written form when none matches, which the checker's
+        // rules make impossible).
         let columns: Vec<bool> = values
             .iter()
             .map(|v| matches!(v, Some(Value::Column(_))))
@@ -1339,7 +1340,13 @@ impl<'a> Interpreter<'a> {
         let form = builtin
             .forms
             .iter()
-            .find(|f| f.columns == columns)
+            .find(|f| f.columns == columns && types_match(f, &values, true))
+            .or_else(|| {
+                builtin
+                    .forms
+                    .iter()
+                    .find(|f| f.columns == columns && types_match(f, &values, false))
+            })
             .unwrap_or(&builtin.forms[0]);
         let f = &form.program.functions[form.function];
         let saved_program = std::mem::replace(&mut self.program, &form.program);
@@ -3311,4 +3318,37 @@ fn plural_rows(n: usize) -> String {
 
 fn shown(value: &Value) -> String {
     show(value).trim_end().to_string()
+}
+
+/// Whether the arguments fit a form's chosen types (open decision #68): a parameter declared
+/// with several types takes the form whose type is the argument's, exactly when `exact`, else
+/// one that accepts it (an Int for a Float); `NA` fits any, and a column fits by its values'
+/// type where the form reads a scalar, by `Column<T>` where it is declared as one.
+fn types_match(form: &BuiltinForm, values: &[Option<Value>], exact: bool) -> bool {
+    form.chosen
+        .iter()
+        .zip(values)
+        .all(|(chosen, value)| match (chosen, value) {
+            (None, _) | (_, None) | (_, Some(Value::Na)) => true,
+            (Some(ty), Some(value)) => {
+                let given = match value {
+                    Value::Column(c) => {
+                        let items = Ty::parse(c.ty().name()).unwrap_or(Ty::Unknown);
+                        if matches!(ty, Ty::Column(_)) {
+                            Some(Ty::Column(Box::new(items)))
+                        } else {
+                            Some(items)
+                        }
+                    }
+                    other => Ty::parse(&zeff_core::types::type_name(other)),
+                };
+                given.is_some_and(|given| {
+                    if exact {
+                        given == *ty
+                    } else {
+                        ty.accepts(&given)
+                    }
+                })
+            }
+        })
 }

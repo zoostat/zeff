@@ -1,0 +1,34 @@
+---
+source: crates/zeff-engine/tests/several_types.rs
+expression: page
+---
+fixture_fill — Replace NA with a value, as a fixture                         core · tier 0 · since 0.7.0 · 1.0 · exact
+
+USAGE
+    fixture_fill(x, value)
+
+DESCRIPTION
+    `value` where `x` is NA and `x` otherwise, for the four scalar types: the fixture of a parameter of
+    several types and a result typed `Join`.
+
+ARGUMENTS
+    x           Bool | Int | Float | Str. The value, of any scalar type, or a column of them.
+    value       Bool | Int | Float | Str. What stands in for NA, of a type that joins with x's.
+
+VALUE
+    x or value, of their joined type; a column when x is one.
+
+WARNINGS AND NOTES
+    Z0214   the arguments are of types that do not join
+
+ACCURACY
+    Exact.
+
+SEE ALSO
+    fill_missing, coalesce
+
+EXAMPLES
+    > fixture_fill(NA, 3)
+    3
+    > fixture_fill("a", "b")
+    a

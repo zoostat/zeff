@@ -124,7 +124,9 @@ type        = simple [ "?" ] | words | fn_type | "Nothing"
 simple      = qname [ "<" type { "," type } ">" ]
             | "{" NAME ":" type { "," NAME ":" type } "}"
             // a record type: fields and their types
-words       = NAME "|" NAME { "|" NAME }                               // a fixed list of bare words
+words       = NAME "|" NAME { "|" NAME }                               // a fixed list of bare words; in a built-in's file, type names
+                                                                       // here declare a parameter of several types (Engine and Project
+                                                                       // Specification, section 9.1)
 fn_type     = "Fn" "(" [ type { "," type } [ "," ".." ] ] ")" "->" type
             // a trailing .. accepts further parameters, checked at each call against the
             // record that supplies them, as iterate's args: does (section 5.5)

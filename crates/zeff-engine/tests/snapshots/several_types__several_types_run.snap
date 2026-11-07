@@ -1,0 +1,33 @@
+---
+source: crates/zeff-engine/tests/several_types.rs
+expression: out.output.stdout
+---
+3
+1
+2.5
+true
+a
+2
+x
+Column<Int> · 3 values
+1
+0
+3
+Column<Str> · 3 values
+a
+none
+c
+Column<Int> · 3 values
+1
+NA
+3
+Column<Int> · 3 values
+1
+NA
+3
+3
+3
+Column<Float> · 3 values
+1
+0.5
+3

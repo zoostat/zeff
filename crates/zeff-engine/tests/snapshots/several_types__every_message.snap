@@ -1,0 +1,60 @@
+---
+source: crates/zeff-engine/tests/several_types.rs
+expression: text
+---
+## types_that_do_not_join
+error[Z0214]: `fixture_fill` needs values of one type, but these are a Str and an Int
+ --> scripts/main.zeff:1:19
+  |
+1 | fixture_fill("a", 1)
+  |                   ^ an Int
+  |
+  = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant
+
+## several_types_in_a_project_function
+error[Z0101]: no type is called `Bool | Int`
+ --> scripts/main.zeff:2:11
+  |
+2 | fn one(x: Bool | Int) -> Int {
+  |           ^^^^^^^^^^ several types
+  |
+  = help: a parameter of several types belongs to a built-in's file (Engine and Project Specification, section 9.1); a project function declares one type, or takes a List
+
+## join_in_a_project_function
+error[Z0101]: no type is called `Join`
+ --> scripts/main.zeff:2:20
+  |
+2 | fn same(x: Int) -> Join {
+  |                    ^^^^ not a type
+  |
+  = help: the types of section 4: Bool, Int, Float, Str, Frame, Column<Float>, List<RegFit>, Var, Formula, Record, and the result types
+
+## a_form_that_does_not_check
+the Zeff source of core::bad_fixture does not build:
+  error[Z0215]: `+` does not apply to text
+   --> core/functions/bad_fixture.zeff:9:5
+    |
+  9 |     x + 1
+    |     ^^^^^ text in arithmetic
+    |
+    = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)` (with `x` read as a Str)
+
+## too_many_forms
+the Zeff source of core::bad_fixture does not build:
+  error[Z0323]: `bad_fixture` has 32768 forms to check; a built-in may have at most 256
+   --> core/functions/bad_fixture.zeff:12:4
+     |
+  12 | fn bad_fixture(x: Bool | Int | Float | Str, a: Bool | Int | Float | Str, b: Bool | Int | Float | Str, c: Bool | Int | Float | Str, d: Bool | Int | Float | Str) -> Int {
+     |    ^^^^^^^^^^^ too many forms to check
+     |
+     = help: fewer parameters of several types, or a list where the function needs many values
+
+## a_name_that_is_no_type
+the Zeff source of core::bad_fixture does not build:
+  error[Z0101]: no type is called `Int | Number`
+   --> core/functions/bad_fixture.zeff:8:19
+    |
+  8 | fn bad_fixture(x: Int | Number) -> Int {
+    |                   ^^^^^^^^^^^^ not a type
+    |
+    = help: each name of a parameter of several types is a type of section 4: Bool, Int, Float, Str, Date, DateTime, List or Column
