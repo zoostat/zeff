@@ -65,11 +65,16 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   `NA` prints "rows with NA in value were skipped" twice, where the script's variable is meant;
   a share outside 0 to 0.5 is refused by the body's `assert` (Z0001). Both wait for a coded
   warning from a body (open decision #70, 0.7.0). (Since 0.6.0.)
-- **Three more functions planned in Zeff are written in Rust**: `diff` (it reads the enclosing
-  frame's panel; open decision #69), `quantile_group` (no arithmetic over a list; #79) and
-  `duplicates` (its pieces, `aggregate` and `table`, came later in the release); `summary` stays
-  in Rust until #70. Ten in all with the seven of 0.5.0; nothing a script sees differs, and
-  section 8.2's totals follow the catalogue (239 in Rust, 20 in Zeff). (Since 0.6.0.)
+- **Six functions planned in Zeff are written in Rust**, each with the reason in its catalogue
+  row: `row_mean` and `row_sum` (the kernel's compensated row reduction, which `+` over columns
+  does not reproduce), `diff` (its `lag` reads the panel of the frame around the call, which a
+  body does not pass on), `n_missing` (a list holding failed values reaches it), `summary` (its
+  table's formatting and combined warning need `format` and `join` of `text`, its title the
+  frame's name, and it takes `weights:`) and `duplicates` (its pieces came later in 0.6.0);
+  `drop_missing` moves at step 5b of 0.7.0 once `join` ships, and `vif` at step 30 with
+  `design()`. `fill_missing` and `quantile_group` returned to Zeff at steps 4.1 and 4.4 of
+  0.7.0. Nothing a script sees differs, and section 8.2's totals follow the catalogue. (Since
+  0.5.0; the list as of step 4.5 of 0.7.0.)
 - **Eight conditions carry codes numbered at this release**, the next free numbers of their
   families, each logged in `docs/spec_changes.md` and listed in section 11 of the Language
   Reference: Z0507 (`event`'s `ref:`), Z0601 and Z0602 (the panel declaration and the panel
@@ -106,10 +111,6 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   body's column (`value`, from `standardize`). The lists are narrowed when `zeff test` runs the
   pages at 0.7.0. (Since 0.5.0; the warning of `skewness` and `kurtosis` for too few values
   carries W0205 from step 4.3 of 0.7.0.)
-- **Seven functions planned in Zeff are written in Rust**: `fill_missing`, `n_missing`,
-  `row_mean`, `row_sum`, `drop_missing`, `vif` and `summary`, each for a piece the language lacks
-  (open decisions #68 to #72); nothing a script sees differs, and section 8.2's totals follow
-  the catalogue. (Since 0.5.0.)
 - **The mean of values that cancel is within a rounding of the largest input, not of the
   result.** The kernel's mean corrects the compensated quotient by the mean of the deviations,
   whose own rounding is the unit in the last place of the largest value: on a row holding 1e12,

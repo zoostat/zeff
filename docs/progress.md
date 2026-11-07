@@ -54,82 +54,9 @@ Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` in
 
 Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (three generated data files, a script from the merge off the `zeff:` root to the event study and the difference in differences, four conformance cases; the reducers' warnings under `by:` merged for `add` and `update`); the script tests of sections 6, 6.1 and 7.1 and the help examples, with the storage round trips of every new frame; the CSV and checker fuzz targets extended and run for an evening; the coverage and nightly jobs extended and run by hand (coverage 93.5% in the kernel, 93.2% in the estimators; a stochastic test of `sample` that had failed on every nightly since its labels followed R's `cut`, and piped workflow steps that could not fail, both corrected). Step 24a `[engine]`: the weekly mutation run on 1b31366 (4,131 mutants) matched against the 0.5.0 records, the new survivors all in the fixed-effects code, each given a test or a recorded reason; a variable inside a formula range refused as a fixed effect. Step 24b `[engine]`, in two sessions: every scheduled job run by hand on 80b026d and again on 19ea819 after a correction the weekly run exposed (a property test of `event` could fail by chance on correct code and then decide every later mutant of its shard; the generator always has a control and a treated unit, the job draws from one fixed seed); the clean run (4,136 mutants, 3,830 caught, 162 missed, 18 timed out) matching the records; the six samples and `zeff selftest` (194 of 194) read; the bundle 1,653 kB and the cold start 107 ms; open decision #51 confirmed. Step 24c `[engine]`: 37 functions frozen and implemented, section 8.2's counts corrected to the catalogue (the 23 roadmap rows of 21 October had never been counted), the reference versions (`fixest` 0.14.2 new), `docs/known_issues.md` rewritten, the risk register's figures and the sample pins recorded; two findings (the `test` job red on seven pushes behind the red `reference` job, none a wrong result; a leftover branch and working copy named under a forbidden word, removed at the owner's word). "Release 0.6.0" on 6 November: the notes, the register's review (every rating unchanged; R7 to watch the suite's three to four hours on this machine), the open-decisions status, the version and the six pins, the tag `v0.6.0` and the GitHub release; 185 of the 259 functions of 1.0 implemented; CI green on every target. The owner said that the two-week trial of the Zemp interface framework (#24) has still to be run in a Zemp session. Every ruling is in `docs/decisions.md` under its step.
 
-## 6 November 2026, release 0.7.0 opened (step 1)
+## 6 and 7 November 2026, release 0.7.0 opened and steps 1 to 3.3 (folded)
 
-**Done.** `v0.6.0` was tagged with a clean tree; the 0.7.0 row of section 14, the sections it names (7.6, 12, 2 and 2.1, 8.3 points 5 and 7), the 60 catalogue rows, the testing handbook, the risk register and the open decisions due were read, and the checklist written in `docs/releases/0.7.0.md` (44 steps: the pragma and the pieces Zeff-written built-ins lacked; `text`; `tabulate`, the tests, `dist.tukey` and `posthoc`; the plot renderer, its three writers and the 35 plot functions; `zeff fmt`, `zeff test`, the engine worker, the language server in three parts, the tree-sitter grammar and `zeff completions`; then the samples and the pre-release routine). The owner said "go" and took the eight questions as recommended. Step 1 `[engine]`: the version `0.7.0-dev` with the six sample pins, both lock files and the four snapshots; the register records #68 to #71, #76, #77, #79, #80 (option B) and #83 as decided and gains #85, #86 and #87; the row "Words and types" of section 3.7 corrected (logged); the rulings in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass locally; CI read after the push.
-
-**Next.** Step 2 `[engine]`: the warning pragma `// zeff: allow(W…)` and `--deny-warnings`.
-
-**For the owner to decide.** #24 before the close of 0.7.0, after its trial in a Zemp session. By 0.8.0: #73 to #75, #86 (folding, snippets and **Run** ranges) and #87 (a variable name in an option record). By 0.9.0: #85 (Games–Howell). The six figures of step 22 are to be read by eye.
-
-## 6 November 2026, the domain (open decision #31)
-
-**Done.** The owner chose `zeff-lang.dev`; the register, section 2.1's installer lines and the decisions log record it, logged in `docs/spec_changes.md`. Zeff 0.6.0 was installed on the owner's Mac from the tag with `cargo install` and passed `zeff selftest` (194 of 194).
-
-**For the owner to do.** Register `zeff-lang.dev` with automatic renewal, a registrar lock and two-step sign-in. **To decide** before 0.9.0: the GitHub organisation (`zeff-lang` recommended).
-
-## 6 November 2026, release 0.7.0, step 2 (the warning pragma)
-
-**Done.** `// zeff: allow(CODE) reason` silences one warning on one statement, above it or at the end of its first line, at the top of a script, in a loop, in a function and in a module, for the warnings of the check and of the run; every warning silenced is recorded with its reason and listed by `zeff run --verbose`. A pragma that cannot be applied is Z0317, with its explained page. `--deny-warnings` on `zeff run` and `zeff check` makes every warning that no pragma allows an error, exit code 3. The row of section 11.1 says what a misplaced pragma is (logged). Step 2b is added to the checklist: the code of a warning printed under a result (open decision #45).
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass locally; CI read after the push.
-
-**Next.** Step 2b `[engine]`: the code of a warning under a result, `warning[W0204]: …`.
-
-**For the owner to decide.** Nothing new. A ruling he may overturn: a pragma that silences nothing is passed over without a message.
-
-## 7 November 2026, release 0.7.0, step 2b (the code of a warning under a result)
-
-**Done.** A warning or a note with a code prints it, `warning[W0204]: log of zero gave -Inf (line 4)`; a `warn()` message and the notes without a code print as before. Sections 5.4 and 10.2 of the Language Reference follow (logged); open decision #45 records the application. Every help page, explained page, sample, snapshot and conformance digest that shows such a line was regenerated and read; the phrase table of `check-messages` is retired. A kernel helper of the reductions was corrected on an overflow the random test found (no result changes; recorded in `docs/decisions.md`).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks; the full suite ran once (1,189 passed, 11 expectations then corrected) and the eleven programs that failed were rerun green with everything that reads the specification or the digests; the whole suite runs again on CI, read after the push.
-
-**Next.** Step 3 `[engine]`: what a Zeff-written built-in lacked, part 1 (#68, #69, #70).
-
-**For the owner to decide.** Nothing new.
-
-## 7 November 2026, nine items brought into 1.0 (open decision #88)
-
-**Done.** A study of 135 R packages against the catalogue, with a plan, written for the owner outside the repository. From it the owner brought nine items into 1.0: `ar_test` (0.8.0); `margins`, `roc` and `confusion` (0.9.0); `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `mcnemar_test` and `merge(join: semi | anti)` (0.10.0). The catalogue (533 rows), sections 8, 9.2, 14 and 15 of the Engine and Project Specification, the Zemp Specification's scale and the register record it: 1.0 is 267 functions, 266 are on the roadmap. Section 9.2's roadmap lists, stale since 21 October, corrected and logged. No code is built and release 0.7.0 is unchanged.
-
-**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass locally; CI read after the push.
-
-**Next.** Step 3 `[engine]` of 0.7.0, as before: what a Zeff-written built-in lacked, part 1 (#68, #69, #70).
-
-**For the owner to decide.** Whether the study's proposals for after 1.0 (survival, additive models, time-series tests, spatial, networks; five questions) are recorded as an open decision. Three additions were offered and declined (odds ratios for `logistic`, two-way clustering, `kappa`). Rulings he may overturn: the argument names of the three new distributions.
-
-## 7 November 2026, release 0.7.0, step 3.1 (a note, a coded warning, a variable's name)
-
-**Done.** `note(message)` prints a note under the statement and carries on; `warn` and `note` take `code:`, a warning's code written bare (`code: W0205`) or as text, which a pragma allows and `--deny-warnings` refuses as any coded message; a code no warning has, or an error's code, stops the run (Z0401); `name_of(v)` is a variable's name as text, `NA` for an optional variable left out. A function written in Zeff declares on its page the codes its body raises, and the engine refuses to build on a code without an explained page. Two catalogue rows (535 in all; 269 functions in 1.0) and the counts of both volumes; sections 3.7, 5.3 and 5.4 of the Language Reference and 9.1 of the Engine and Project Specification follow (logged); open decisions #45 and #70 record the application. Texts cannot yet be joined (`join` ships later in this release), so the messages of the examples name the variable alone.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, the registry, core, conformance and engine programs the step touches with the help examples; the whole suite on CI, read job by job after the push (the owner's decision of today: the five-minute local routine of the handbook, CI as the full run; recorded in `docs/decisions.md`). CI's first run failed one command-line test, the count of `core`'s functions in `zeff help core`, and its second a page snapshot of `skewness` that lists `warn`'s new wording; each corrected in a follow-up commit, and the routine now names both kinds of program. CI green on every job at 6a8f78e.
-
-**Next.** Step 3.2 `[engine]`: a parameter of several types in a built-in's `fn` line (#68).
-
-**For the owner to decide.** Nothing new. Rulings he may overturn: a code is checked when the warning is raised, not when the script is checked; `name_of` of `NA` is `NA` rather than an error.
-
-## 7 November 2026, release 0.7.0, step 3.2 (a parameter of several types)
-
-**Done.** In the `fn` line of a built-in's file, and there only, a parameter may be declared with several types, `x: Bool | Int | Float | Str` or `x: List | Column`, and the result typed `Join` (the one type of the arguments) or `Same` (the first argument's). The checker reads the body once per choice of one type per such parameter, each choice once per column form as before, leaving out a choice whose types do not join and refusing more than 256 forms; the interpreter runs the form of the arguments' types. A project function declaring several types, or `Join`, is refused with a help naming the rule. Proved on three fixtures (a `fill_missing` in Zeff with 24 forms, a `Same` result, a list-or-column parameter), with every message as a snapshot and a property test agreeing with the Rust `fill_missing` on random values. Section 9.1 of the Engine and Project Specification and the grammar's comment follow (logged); open decision #68 records the application. The conformance case waits for step 4, when `fill_missing` is the first shipped built-in to use the piece.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, the checker's unit tests and the engine programs of the built-ins, the functions, the modules and the help examples; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 3.3 `[engine]`: the enclosing frame of a Zeff-written built-in (#69).
-
-**For the owner to decide.** Nothing new. Rulings he may overturn: at most 256 forms for one built-in; an Int given where a built-in offers both `Int` and `Float` takes the `Int` form.
-
-
-## 7 November 2026, release 0.7.0, step 3.3 (the enclosing frame)
-
-**Done.** In the `fn` line of a built-in's file, and there only, the first parameter may be written `data: Frame = enclosing`: the frame of the frame method the call stands in (the group's rows under `by:`), which the engine binds before the arguments at the call and which the usage line and the page leave out; a call that stands in no frame method is refused as `n()` is (Z0401, "no frame here"), and a project function writing the mark is refused with a help naming the rule. The checker refuses the mark on a helper, on a parameter that is not first or not a `Frame`, and a page entry for it (Z0323); the page declares the Z0401 under "Warnings and notes". Proved on two fixtures of `data` (a Zeff `n()` and a reducer over a variable beside the frame) inside `add`, `aggregate`, `update` and `where`, with and without `by:`, agreeing with `n()` and `mean` in each place, with every message as a snapshot; the conformance case `control/enclosing` digests `n()`, `row_mean` and `row_sum` wherever a frame method gives them a frame, so that step 4, which moves the row functions to Zeff on this piece, is held to the same output. Section 9.1 of the Engine and Project Specification and the grammar's comment follow (logged); open decision #69 records the application.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, the checker's tests, the engine programs of the built-ins written in Zeff, the functions, the modules, the rows, the notes and the help examples, the conformance and command-line programs; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 3b `[engine]`: functions as values over lists (#79, option B): a function literal, `map`, `filter` and `reduce`.
-
-**For the owner to decide.** Nothing new. Rulings he may overturn: the spelling `data: Frame = enclosing`; the page has no entry for the enclosing frame; a function of the script called inside a definition sees no frame, as with `n()` today.
+The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of section 14, every section it names, the catalogue rows of the release, the testing handbook, the risk register and the open decisions due were read, and the checklist written in `docs/releases/0.7.0.md`; the owner said "go" and answered the questions, and the domain `zeff-lang.dev` was chosen (open decision #31). Step 1 `[engine]`: the version `0.7.0-dev`, the register and the correction of section 3.7 (#83). Step 2 `[engine]`: the warning pragma, `// zeff: allow(W…) reason` above a statement or at the end of its first line, silencing one statement's warning and counted, with `--deny-warnings` turning every warning not allowed into an error (exit code 3) and the conformance cases `control/pragma` and `control/pragma_denied`. Step 2b `[engine]`: a warning or a note that carries a code prints it under the result, `warning[W0204]: …`, every snapshot, page and digest regenerated and read, and the phrase table of `check-messages` retired (open decision #45). Between steps, the owner brought nine items into 1.0 after a study of 135 R packages (open decision #88): 267 functions in 1.0 then, the catalogue, sections 8, 9.2, 14 and 15 and the Zemp scale following. Step 3 was split into 3.1 to 3.3. Step 3.1 `[engine]`: `note(message)`, `code:` on `warn` and `note` (a code no warning has is Z0401 when the statement runs), `name_of(v)`, the codes a Zeff-written body raises declared on its page, and from this step the local routine is the handbook's five-minute one with CI as the full run (#70). Step 3.2 `[engine]`: a parameter of several types in a built-in's `fn` line, `x: Bool | Int | Float | Str`, the body checked once per type and per column form under at most 256 forms, the result typed `Join` or `Same` (#68). Step 3.3 `[engine]`: the enclosing frame, `data: Frame = enclosing` first in a built-in's `fn` line, supplied from the frame method the call stands in (the group's rows under `by:`), Z0401 outside one as `n()` gives, the conformance case `control/enclosing` (#69). Every step green on CI; rulings the owner may overturn are in `docs/decisions.md` under each step.
 
 ## 7 November 2026, release 0.7.0, step 3b (functions as values over lists)
 
@@ -180,3 +107,14 @@ Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (th
 **Next.** Step 4.5 `[function]`: `summary` on `table` (#72 with #70), and the known-issues entries of step 4 resolved.
 
 **For the owner to decide.** Open decision #89 at 0.8.0: a coded error from a Zeff-written built-in (recommendation A, `error(message, code:)` in a built-in's file). Rulings he may overturn: `n:` stays an option rather than a positional parameter; the Z0001 codes until #89.
+
+## 7 November 2026, release 0.7.0, step 4.5 (`summary` stays in Rust; step 4 closed)
+
+**Done.** A record-only step. `summary` stays in Rust: its table needs `format` and `join` of `text` (steps 5 and 6), its title the frame's binding name, which no function gives a body, and its `weights:` the reducers' weighted kernels; the reasons are in its catalogue row and in open decision #72 (logged). The two known-issues entries on functions planned in Zeff are one, naming the six that stay in Rust with their reasons, the two that returned at 4.1 and 4.4 and the two that move later. Step 4 is closed: of its nine functions, `fill_missing` and `quantile_group` moved, `skewness` gained its code, `drop_missing` is step 5b, and five stay in Rust with reasons. The entries of steps 1 to 3.3 of this release are folded into one paragraph to keep this file under 200 lines.
+
+**Green.** The registry, command-line and conformance programs on the catalogue and the pages; the digests unchanged; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 5 `[function]`: `text`, part 1 (`upper`, `lower`, `trim`, `starts_with`, `ends_with`, `slice`, `pad`, `join`), with the R reference `text.R`.
+
+**For the owner to decide.** Whether `summary` is rewritten in Zeff after `text` ships, with a frame-name accessor as a piece of its own (open decision #72), or stays in Rust for 1.0.
+

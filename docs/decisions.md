@@ -2426,3 +2426,13 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** The package program `quantile_group` (R agreement under the nine definitions, the edge cases, the properties) unchanged but for the message snapshot, which shows the three Z0001 messages and the column guard's wording; the examples of the page; the conformance digests unchanged, `functions/quantile_group`, `panel` and the samples among them.
 
 **Reason.** Open decision #79, the owner's definition of done for step 3b (`map(seq(1, n - 1), fn(i) i / n)` exactly), and the checklist of 0.7.0, step 4.
+
+## 7 November 2026: `summary` stays in Rust; the known-issues list of step 4; the progress log folded within the release (release 0.7.0, step 4.5)
+
+**Decision.** `summary` is not rewritten. Four pieces are still missing for a faithful table: `format(x, decimals:)` for the three-decimal statistics and the counts with thousands separators, `join` for the one warning that names every variable with missing rows (both of `text`, steps 5 and 6), a way for a body to read the frame's binding name for the title `summary · wages`, and the weighted mean and standard deviation of `weights:` and `weight_type:`, which are the reducers' kernels. The catalogue row, the register's entry #72 and the known-issues list say so; whether the rewrite is scheduled after `text` ships, with a frame-name accessor as a piece of its own, is the owner's to decide.
+
+**The known-issues list.** The two entries on functions planned in Zeff and written in Rust (0.5.0's seven and 0.6.0's three) are one entry as of this step, naming the six that stay (`row_mean`, `row_sum`, `diff`, `n_missing`, `summary`, `duplicates`) with their reasons, the two that returned (`fill_missing`, `quantile_group`) and the two that move later (`drop_missing` at 5b, `vif` at step 30).
+
+**The progress log.** The file's rule keeps it under 200 lines by folding entries older than the current release; every older entry is already one paragraph, and this release's entries alone would pass the limit before the release closes. The entries of steps 1 to 3.3 of 0.7.0 are folded into one paragraph, and the same will be done for each finished group of steps as the file nears the limit; the detail stays in `docs/decisions.md` and in the commits.
+
+**Reason.** The checklist of 0.7.0, step 4: a function the pieces still do not express stays in Rust with the reason recorded, and the known-issues entries on the functions of step 4 are resolved at 4.5; the progress file's own rule.

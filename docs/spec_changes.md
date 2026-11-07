@@ -331,3 +331,7 @@ Not an error: the record of step 4.3 of release 0.7.0. The warnings of `skewness
 ## 7 November 2026 — zeff_functions.csv (row 131); zeff_engine_specification.md, section 8.2 (the totals); zeff_open_decisions.md (status, the summary rows of #79 and #89, entries #79 and the new #89)
 
 Not an error: the record of step 4.4 of release 0.7.0. `quantile_group` returns to Zeff on `map` and a function literal (open decision #79), so its `layer` is `Zeff` again and the totals read 250 in Rust and 22 in Zeff. The entry of #79 records the application; the new entry #89 records the question the step raised, a coded error from a Zeff-written built-in, with its deadline.
+
+## 7 November 2026 — zeff_functions.csv (row 153); zeff_open_decisions.md (the summary row and entry #72)
+
+Not an error: the record of step 4.5 of release 0.7.0. `summary` stays in Rust although `table` (#72) and the pieces of #70 are built: its table's formatting needs `format` and its combined warning `join`, both of `text`, its title carries the frame's name, which no function gives a body, and it takes `weights:`. Its row says so, and the entry records it under its decision.
