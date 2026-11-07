@@ -78,6 +78,9 @@ pub enum Ty {
     Vars,
     /// A type name used as a value (`Str`, `Date("%d/%m/%Y")`), for `types:`.
     Type,
+    /// A diagnostic code written bare, `W0205`, or as text; the `code:` of `warn` and `note`
+    /// (Language Reference, section 5.4). At run time it is text.
+    Code,
     Column(Box<Ty>),
     List(Box<Ty>),
     /// `Mapping<K, V>`: one key type and one value type (section 3.7).
@@ -220,6 +223,7 @@ impl Ty {
             "Var" => Ty::Var,
             "Vars" => Ty::Vars,
             "Type" => Ty::Type,
+            "Code" => Ty::Code,
             "List" => Ty::List(Box::new(Ty::Any)),
             "Mapping" => Ty::Mapping(Box::new(Ty::Any), Box::new(Ty::Any)),
             "Column" => Ty::Column(Box::new(Ty::Unknown)),
@@ -253,6 +257,8 @@ impl Ty {
             (Ty::Vars, Ty::Var) => true,
             (Ty::Result(None), Ty::Result(_)) => true,
             (Ty::Term, Ty::Str) => true,
+            // A code may be written as text, `code: "W0205"`.
+            (Ty::Code, Ty::Str) => true,
             (Ty::AnyRecord, Ty::Record(_) | Ty::AnyRecord) => true,
             // A function value matches a function type exactly, parameter by parameter and in
             // its return type, defaults ignored (section 3.7); a trailing `..` takes any further
@@ -364,6 +370,7 @@ impl fmt::Display for Ty {
             Ty::Var => write!(f, "Var"),
             Ty::Vars => write!(f, "Vars"),
             Ty::Type => write!(f, "Type"),
+            Ty::Code => write!(f, "Code"),
             Ty::Column(t) if **t == Ty::Unknown => write!(f, "Column"),
             Ty::Column(t) => write!(f, "Column<{t}>"),
             Ty::List(t) if **t == Ty::Any => write!(f, "List"),
@@ -421,6 +428,7 @@ mod tests {
             "Nothing",
             "Any",
             "Type",
+            "Code",
             "List",
             "Record",
             "Column<Bool>",
@@ -468,6 +476,7 @@ mod tests {
                 .accepts(&Ty::parse("List<Int>").unwrap())
         );
         assert!(Ty::AnyRecord.accepts(&Ty::Record(vec![("a".into(), Ty::Int)])));
+        assert!(Ty::Code.accepts(&Ty::Str) && !Ty::Str.accepts(&Ty::Code));
         assert!(!Ty::Str.accepts(&Ty::Int) && !Ty::Frame.accepts(&Ty::Table));
         assert!(Ty::parse("Var | Vars").unwrap().accepts(&Ty::Vars));
         assert!(

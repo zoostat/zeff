@@ -102,6 +102,9 @@ pub fn build(
     //    packages below it, or before it in its tier, never upwards.
     let mut zeff: ZeffBodies = HashMap::new();
     let mut calls_of: HashMap<(String, String), Vec<(String, String)>> = HashMap::new();
+    // The codes a body gives `warn` and `note` (section 5.4), with the title of each one's page
+    // for the built-in's "Warnings and notes"; a code without a page is a build failure.
+    let mut codes_of: HashMap<(String, String), Vec<DiagnosticDecl>> = HashMap::new();
     for (source, lift) in &parsed {
         let source_text = Source::new(source.file, source.text);
         let mut sources_for_rendering = Sources::new();
@@ -157,6 +160,28 @@ pub fn build(
             continue;
         }
         let key = (source.package.to_string(), source.name.to_string());
+        let mut own_codes: Vec<DiagnosticDecl> = Vec::new();
+        let mut unknown: Vec<String> = Vec::new();
+        for code in &checked.codes {
+            match crate::explain::explain(code) {
+                Ok(page) if code.starts_with('W') => {
+                    own_codes.push(DiagnosticDecl::new(leak(code.clone()), leak(page.title)));
+                }
+                _ => unknown.push(format!(
+                    "`{}` of `{}` gives `warn` or `note` the code `{code}`, which no warning of the engine has; `code:` takes a warning's code",
+                    source.name, source.package
+                )),
+            }
+        }
+        if !unknown.is_empty() {
+            errors.push(RegistryError::ZeffBody {
+                package: source.package.to_string(),
+                name: source.name.to_string(),
+                problems: unknown,
+            });
+            continue;
+        }
+        codes_of.insert(key.clone(), own_codes);
         calls_of.insert(key.clone(), checked.calls.clone());
         zeff.insert(
             key,
@@ -188,7 +213,7 @@ pub fn build(
     for _ in 0..=keys.len() {
         let mut changed = false;
         for key in &keys {
-            let mut generated: Vec<DiagnosticDecl> = Vec::new();
+            let mut generated: Vec<DiagnosticDecl> = codes_of[key].clone();
             for callee in &calls_of[key] {
                 for decl in declared.get(callee).into_iter().flatten() {
                     if !generated.iter().any(|g| g.code == decl.code) {
@@ -210,6 +235,11 @@ pub fn build(
     }
     let registry = registry.with_datasets(datasets)?;
     Ok(Built { registry, zeff })
+}
+
+/// Text that lives as long as the engine, as a Rust page's does.
+fn leak(s: String) -> &'static str {
+    Box::leak(s.into_boxed_str())
 }
 
 /// Whether a type names one row's value, so that a column may stand for it (section 3.7,

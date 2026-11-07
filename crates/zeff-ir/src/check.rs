@@ -298,6 +298,8 @@ struct Checker<'a> {
     /// Every built-in a lowered call or function value names, in order, for the loader of the
     /// built-ins written in Zeff (the tier rule and the generated "Warnings and notes").
     called: Vec<(String, String)>,
+    /// The codes the bodies give `warn` and `note`, each once.
+    raised_codes: Vec<String>,
     /// While a built-in written in Zeff is checked: the function whose scalar parameters are read
     /// as columns in this form, one flag per parameter (section 3.7, "Columns and scalars").
     lift_mask: Option<(String, Vec<bool>)>,
@@ -340,6 +342,7 @@ impl<'a> Checker<'a> {
             current_module: None,
             imported: Vec::new(),
             called: Vec::new(),
+            raised_codes: Vec::new(),
             lift_mask: None,
             record_reads: Vec::new(),
             words: registry
@@ -395,6 +398,14 @@ pub struct BuiltinChecked {
     /// columns match the arguments given.
     pub forms: Vec<BuiltinForm>,
     pub calls: Vec<(String, String)>,
+    /// The codes the bodies give `warn` and `note` (section 5.4), for the page's "Warnings and
+    /// notes".
+    pub codes: Vec<String>,
+}
+
+/// Whether `text` has the shape of a diagnostic code: `W` or `Z` and four digits.
+pub fn is_code_text(text: &str) -> bool {
+    text.len() == 5 && text.starts_with(['W', 'Z']) && text[1..].bytes().all(|b| b.is_ascii_digit())
 }
 
 /// One form of a built-in written in Zeff: which parameters are given as columns, and the body
@@ -522,6 +533,7 @@ pub fn check_builtin(
     let forms = 1usize << scalar_positions.len();
     let mut lowered: Vec<BuiltinForm> = Vec::new();
     let mut calls: Vec<(String, String)> = Vec::new();
+    let mut codes: Vec<String> = Vec::new();
     let mut seen: Vec<(String, String, usize)> = Vec::new();
     for form in 0..forms {
         let mask: Vec<bool> = definitions[main]
@@ -570,6 +582,11 @@ pub fn check_builtin(
             function: main,
         });
         calls.extend(checker.called);
+        for code in checker.raised_codes {
+            if !codes.contains(&code) {
+                codes.push(code);
+            }
+        }
         for d in found {
             let key = (
                 d.code.clone(),
@@ -590,9 +607,11 @@ pub fn check_builtin(
     }
     calls.sort();
     calls.dedup();
+    codes.sort();
     Ok(BuiltinChecked {
         forms: lowered,
         calls,
+        codes,
     })
 }
 
@@ -2485,6 +2504,15 @@ impl Checker<'_> {
                     ty: Ty::Vars,
                     span,
                     kind: ExprKind::Vars(vec![text]),
+                };
+            }
+            // Where a code is expected, a bare `W0205` is that code, as text; whether the engine
+            // raises it is checked when the statement runs.
+            Some(Ty::Code) if is_code_text(&text) => {
+                return Expr {
+                    ty: Ty::Code,
+                    span,
+                    kind: ExprKind::Str(text),
                 };
             }
             Some(Ty::Union(options)) if options.iter().any(|o| matches!(o, Ty::Var | Ty::Vars)) => {
@@ -5387,6 +5415,19 @@ impl Checker<'_> {
         }
         let _ = expected;
         self.called.push((package.clone(), fname.clone()));
+        // The code a body gives `warn` or `note`, for the page of a built-in written in Zeff
+        // (Engine and Project Specification, section 9.1, "Warnings and notes").
+        if package == "core"
+            && matches!(fname.as_str(), "warn" | "note")
+            && let Some(position) = spec.params.iter().position(|p| p.name == "code")
+            && let Some(Expr {
+                kind: ExprKind::Str(code),
+                ..
+            }) = slots.get(position).and_then(Option::as_ref)
+            && !self.raised_codes.contains(code)
+        {
+            self.raised_codes.push(code.clone());
+        }
         let is_iterate = package == "core" && fname == "iterate";
         let lowered = Expr {
             ty,

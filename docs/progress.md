@@ -185,3 +185,13 @@ Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` in
 **Next.** Step 3 `[engine]` of 0.7.0, as before: what a Zeff-written built-in lacked, part 1 (#68, #69, #70).
 
 **For the owner to decide.** Whether the study's proposals for after 1.0 (survival, additive models, time-series tests, spatial, networks; five questions) are recorded as an open decision. Three additions were offered and declined (odds ratios for `logistic`, two-way clustering, `kappa`). Rulings he may overturn: the argument names of the three new distributions.
+
+## 7 November 2026, release 0.7.0, step 3.1 (a note, a coded warning, a variable's name)
+
+**Done.** `note(message)` prints a note under the statement and carries on; `warn` and `note` take `code:`, a warning's code written bare (`code: W0205`) or as text, which a pragma allows and `--deny-warnings` refuses as any coded message; a code no warning has, or an error's code, stops the run (Z0401); `name_of(v)` is a variable's name as text, `NA` for an optional variable left out. A function written in Zeff declares on its page the codes its body raises, and the engine refuses to build on a code without an explained page. Two catalogue rows (535 in all; 269 functions in 1.0) and the counts of both volumes; sections 3.7, 5.3 and 5.4 of the Language Reference and 9.1 of the Engine and Project Specification follow (logged); open decisions #45 and #70 record the application. Texts cannot yet be joined (`join` ships later in this release), so the messages of the examples name the variable alone.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the registry, core, conformance and engine programs the step touches with the help examples; the whole suite on CI, read job by job after the push (the owner's decision of today: the five-minute local routine of the handbook, CI as the full run; recorded in `docs/decisions.md`).
+
+**Next.** Step 3.2 `[engine]`: a parameter of several types in a built-in's `fn` line (#68).
+
+**For the owner to decide.** Nothing new. Rulings he may overturn: a code is checked when the warning is raised, not when the script is checked; `name_of` of `NA` is `NA` rather than an error.

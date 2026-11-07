@@ -24,7 +24,7 @@ error[Z0401]: `message` of `warn` must be a Str, but this is an Int
 1 | warn(1)
   |      ^ an Int
   |
-  = help: usage: `warn(message)`
+  = help: usage: `warn(message, code: Code)`
 
 error[Z0001]: NA
  --> scripts/main.zeff:1:1

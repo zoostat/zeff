@@ -1135,6 +1135,11 @@ fn control_cases() -> Vec<Line> {
         // of its first line, in a loop and in a function silences its warning there and nowhere
         // else; the statements without one keep theirs.
         ("pragma", PRAGMA_SCRIPT),
+        // A note, a coded warning and a variable's name (release 0.7.0, step 3.1): `note`
+        // with and without a code, `warn` with a code written bare and as text, a pragma that
+        // allows the coded warning, and `name_of` in a message, from the script and from a
+        // function.
+        ("notes", NOTES_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1167,6 +1172,10 @@ fn control_cases() -> Vec<Line> {
     ));
     lines
 }
+
+/// The script of the `notes` case: the notes and coded warnings of section 5.4 from a script
+/// and from a function, one allowed by a pragma, and a variable's name written into a message.
+const NOTES_SCRIPT: &str = "let w = dataset(wages)\nnote(\"the wage data of the shipped example\")\nnote(\"one pass over the rows\", code: W0703)\nwarn(\"fewer than a thousand workers per industry\", code: W0205)\nwarn(\"the same, as text\", code: \"W0205\")\n// zeff: allow(W0205) the industry counts are known to be small\nwarn(\"allowed, so not printed\", code: W0205)\nprint(name_of(educ))\n/// Says which variable it looked at.\nfn looked_at(f: Frame, v: Var) -> Int {\n    note(name_of(v))\n    warn(\"a coded warning from a function\", code: W0201)\n    f.n_rows()\n}\nw.looked_at(educ)\n";
 
 /// The script of the `pragma` cases: the logarithm of experience, which is zero for the workers
 /// in their first year (W0204), allowed in four places and left to warn in two.

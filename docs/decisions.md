@@ -2339,3 +2339,20 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** The catalogue test's row count, 530 to 533. No function is built, so no other test is added.
 
 **Reason.** The owner's decision; Engine and Project Specification, sections 8.1 (rule 5), 8.2, 9.1 (the help check), 9.2 and 14; `docs/spec_changes.md`.
+
+## 7 November 2026: A note, a coded warning and a variable's name (release 0.7.0, step 3.1)
+
+**Decision.** `note(message)` and `name_of(v)` join `core` in Rust (rows 534 and 535); `warn` and `note` take `code:`. The code is written bare, `code: W0205`, or as text, and a new checker type `Code` carries it: where a parameter is typed `Code`, a bare name of the shape `W` or `Z` and four digits is that code as text, and text is accepted as it is. Whether the engine raises the code is checked when the statement runs, not by the checker, which does not know the engine's pages: the body raises the coded message, and the interpreter, which knows the pages, replaces a message whose code has no page by Z0401 at the call ("no warning has the code `W9999`"); an error's code is refused by the body itself (Z0401, "an error's code"), since a warning cannot carry one. A coded message from `warn` or `note` is then one the pragma allows and `--deny-warnings` refuses, as the engine's own, with no new rule. `name_of` gives `NA` for `NA`, so an optional variable left out reads as `NA` in a message.
+
+**Reason.** Open decision #70, option A, the pieces step 4 needs to move `drop_missing`, `skewness` and `summary` into Zeff. The code is checked at run time because the explained pages live in the engine crate, above the checker and the packages; a check at build time exists for the one place it matters at build time, a built-in written in Zeff, whose page declares the codes its body gives `warn` and `note` and whose build fails on a code without a page.
+
+**Step 3 split.** The step's three pieces (#70, #68, #69) are three engine pieces, each a commit of its own: 3.1 to 3.3 in the checklist.
+
+**The catalogue's usage of `warn`.** `warn(message, code: Code?)`, since the registry requires the usage to list every parameter.
+
+## 7 November 2026: The local routine on every step is the handbook's five-minute one; CI is the full run
+
+**Decision.** From step 3.1 of release 0.7.0, a step is checked locally with format, clippy with warnings denied, the tier and message checks, and the test programs the step touches together with those that read the catalogue, the specification and the conformance digests (about ten minutes); the whole suite runs on CI, on the four targets in parallel, and a step is ticked only when CI is green. A CI failure is fixed in a follow-up commit before the next step begins. The full local run stays where the handbook puts it: before each release (section 2.4) and after a change to a kernel crate or the registry that every program depends on.
+
+**Reason.** The owner's decision of 7 November, asked when a step's local run had grown to three hours and more: the suite is about 130 test programs, macOS inspects every rebuilt program before it runs, and the catalogue is compiled into the registry, so every function step rebuilds nearly everything. The testing handbook's routine on every change (section 2.1) is the five-minute one, with the four-target check on CI; the full local run had been the sessions' habit, not the handbook's rule, so the handbook is unchanged. The cost accepted: a commit may reach `main` that CI then fails, for the twenty minutes until the fix follows.
+

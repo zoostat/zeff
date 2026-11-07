@@ -940,6 +940,8 @@ Raised on 31 October 2026 at step 18 of release 0.5.0, widened at step 20: `skew
 
 *Decided 6 November 2026, as recommended (option A).* `note(message)`, `code:` on `warn` and `note`, and `name_of(v)` are built at step 3, their catalogue rows added there; `drop_missing`, `skewness` with W0205 and `summary` on `table` (#72) follow at step 4.
 
+*Applied 7 November 2026 (release 0.7.0, step 3.1).* `note(message)` and `name_of(v)` are rows 534 and 535 of `core`; `warn` and `note` take `code:`, a warning's code written bare (`code: W0205`) or as text, which the engine checks against its pages when the statement runs (Z0401 for a code no warning has, or an error's code). A coded message from `warn` or `note` is one the pragma of section 11.1 allows and `--deny-warnings` refuses, as the engine's own; the page of a built-in written in Zeff declares the codes its body gives the two. Section 5.4 of the Language Reference and the "Warnings and notes" row of section 9.1 of the Engine and Project Specification say so (logged); the counts of both volumes and of the Zemp Specification follow.
+
 ### 71. The fitted design through the result interface
 
 Raised on 31 October 2026 at step 21 of release 0.5.0. `vif` regresses each column of the design a fit used on the other columns; a script has the fit's estimates, variances, residuals, fitted values and leverages through the result interface (section 8.1, rule 5) but not the design, so the function was planned in Zeff and is written in Rust at 0.5.0 on the Gram matrix the fit now keeps, its `layer` corrected (logged). Later diagnostics in Zeff (partial residual plots, added-variable plots, leverage against the regressors) meet the same wall.

@@ -1406,6 +1406,7 @@ impl<'a> Interpreter<'a> {
         };
         let enclosing = self.receivers.last().map(|r| r.current().clone());
         let rest_spans = vec![callee_span; rest.len()];
+        let before = messages.len();
         let mut ctx = CallContext {
             files: self.files,
             script: self.script,
@@ -1421,14 +1422,16 @@ impl<'a> Interpreter<'a> {
             random: &mut self.random,
             statement: self.statement,
         };
-        body(
+        let result = body(
             &mut ctx,
             Args {
                 values,
                 rest,
                 definitions: Vec::new(),
             },
-        )
+        );
+        self.refuse_unknown_codes(messages, before, callee_span)?;
+        result
     }
 
     /// Z0220 (section 5.6): a failed value used anywhere but in a list, reporting the failure
@@ -2485,6 +2488,7 @@ impl<'a> Interpreter<'a> {
             return Err(self.no_body(call));
         };
         let enclosing = self.receivers.last().map(|r| r.current().clone());
+        let before = messages.len();
         let mut ctx = CallContext {
             files: self.files,
             script: self.script,
@@ -2515,10 +2519,41 @@ impl<'a> Interpreter<'a> {
                 .zip(&call.scalar_params)
                 .any(|(v, scalar)| *scalar && matches!(v, Some(Value::Column(_))))
                 || (call.rest_scalar && args.rest.iter().any(|v| matches!(v, Value::Column(_)))));
-        if call.lifted || column_given {
-            return zeff_core::lift::call_rowwise(*body, &mut ctx, args, &call.returns);
-        }
-        body(&mut ctx, args)
+        let result = if call.lifted || column_given {
+            zeff_core::lift::call_rowwise(*body, &mut ctx, args, &call.returns)
+        } else {
+            body(&mut ctx, args)
+        };
+        self.refuse_unknown_codes(messages, before, call.callee_span)?;
+        result
+    }
+
+    /// Z0401: a code given to `warn` or `note` that no warning of the engine has (section 5.4:
+    /// `code:` takes a warning's code). The body cannot know the engine's codes, so the message
+    /// it raised is refused here, at the call that gave the code, and removed.
+    fn refuse_unknown_codes(
+        &self,
+        messages: &mut Vec<Diagnostic>,
+        from: usize,
+        callee_span: Span,
+    ) -> Result<(), Fail> {
+        let known = crate::explain::codes();
+        let Some(at) = messages[from..]
+            .iter()
+            .position(|m| !m.code.is_empty() && !known.contains(&m.code.as_str()))
+        else {
+            return Ok(());
+        };
+        let unknown = messages.remove(from + at);
+        Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("no warning has the code `{}`", unknown.code),
+            )
+            .in_file(self.script)
+            .primary(callee_span, "not a code Zeff raises")
+            .help("copy the code from the warning itself; `zeff help W0203` explains a code"),
+        ))
     }
 
     /// Z9001: a registered function with neither a Rust body nor a Zeff one, which the build

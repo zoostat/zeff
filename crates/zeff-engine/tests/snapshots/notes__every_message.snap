@@ -1,0 +1,71 @@
+---
+source: crates/zeff-engine/tests/notes.rs
+expression: text
+---
+## unknown_code
+error[Z0401]: no warning has the code `W9999`
+ --> scripts/main.zeff:1:1
+  |
+1 | warn("x", code: W9999)
+  | ^^^^ not a code Zeff raises
+  |
+  = help: copy the code from the warning itself; `zeff help W0203` explains a code
+
+## error_code
+error[Z0401]: `code` of `warn` must be a warning's code, but this is `Z0101`
+ --> scripts/main.zeff:1:17
+  |
+1 | warn("x", code: Z0101)
+  |                 ^^^^^ an error's code
+  |
+  = help: a warning's code is `W` and four digits, as in `code: W0205`; `zeff help W0205` explains a code
+
+## not_a_code
+error[Z0401]: `code` of `note` must be a warning's code, but this is `skipped`
+ --> scripts/main.zeff:1:17
+  |
+1 | note("x", code: "skipped")
+  |                 ^^^^^^^^^ not a warning's code
+  |
+  = help: a warning's code is `W` and four digits, as in `code: W0205`; `zeff help W0205` explains a code
+
+## bare_name
+error[Z0101]: nothing is called `skipped` here
+ --> scripts/main.zeff:1:17
+  |
+1 | warn("x", code: skipped)
+  |                 ^^^^^^^ not a binding
+
+## note_bound
+warning[W0101]: `n` hides the function `data::n`
+ --> scripts/main.zeff:1:5
+  |
+1 | let n = note("x")
+  |     ^ a binding with a built-in name
+  |
+  = help: the function is still reachable as `data::n`; a different name avoids the confusion
+error[Z0206]: this gives no value, so it cannot be bound
+ --> scripts/main.zeff:1:9
+  |
+1 | let n = note("x")
+  |         ^^^^^^^^^ its type is Nothing
+  |
+  = help: `print` and the other statements that print or warn return nothing; use the value they were given
+
+## name_of_text
+error[Z0401]: `v` of `name_of` must be a Var, but this is a Str
+ --> scripts/main.zeff:1:9
+  |
+1 | name_of("educ")
+  |         ^^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+## name_of_nothing
+error[Z0406]: `name_of` needs `v`
+ --> scripts/main.zeff:1:1
+  |
+1 | name_of()
+  | ^^^^^^^ `v` is missing
+  |
+  = help: usage: `name_of(v)`
