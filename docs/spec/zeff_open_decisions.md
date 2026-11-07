@@ -44,6 +44,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (6 November 2026, later the same day).** #31's domain was decided by the owner: `zeff-lang.dev`. A look-up in the public DNS that day found `zeff.dev`, `zeff.org`, `zeff.com`, `zeff.io` and `zeff.app` registered by others, and no record for `zeff-lang.dev`, `zeff-lang.org`, `zeff-lang.io` or `zefflang.org`; the GitHub names `zeff-lang` and `zefflang` were free. The organisation stays open, due before 0.9.0, with `zeff-lang` recommended; the installer line of section 2.1 of the Engine and Project Specification now names the host.
 
+**Status (7 November 2026, a study of R packages).** The owner asked for 135 R packages to be studied against the catalogue (the study and its plan are kept outside the repository), then asked which functions should join 1.0, and decided the same day: the nine items of #88, all as proposed. Eight functions join 1.0, five of them from the roadmap (`ar_test` at 0.8.0; `margins`, `roc` and `confusion` at 0.9.0; `mcnemar_test` at 0.10.0) and three new (`dist.weibull`, `dist.logistic` and `dist.hypergeometric` at 0.10.0, catalogue rows 531 to 533), and `merge` gains `join: semi | anti` at 0.10.0. 1.0 is 267 functions, with 266 on the roadmap and 533 in all. Three further additions were offered and declined; the study's proposals for after 1.0 are not recorded here and stay with the owner.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -135,6 +137,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 88 | Functions brought into 1.0 after the study of R packages | Nine items: `ar_test` (0.8.0); `margins`, `roc`, `confusion` (0.9.0); `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `mcnemar_test` and `merge(join: semi \| anti)` (0.10.0) | decided 7 November 2026 |
 
 ---
 
@@ -1186,3 +1189,38 @@ Raised on 6 November 2026, from the correction of section 3.7 under #83. Options
 | C. Keep the refusal; correct the example of section 3.2 | Nothing to build | Options with a variable are repeated at every call |
 
 *Recommendation.* A. Deadline: 0.8.0, when instrumental-variable models bring more calls that share their options.
+
+---
+
+## Raised from the study of R packages
+
+Added 7 November 2026.
+
+### 88. Functions brought into 1.0 after the study of R packages
+
+Raised on 7 November 2026. The owner asked for 135 R packages, from `data.table` and `fixest` to `sf` and `rugarch`, to be set against the catalogue. By their main verdict 25 are answered by 1.0, 34 by a dated release, 32 by the undated roadmap, 22 are gaps and 22 belong outside the engine. Almost everything missing can wait, because after 1.0 a new function is an addition that breaks no script (section 14, Version numbers). The question was which functions a user of 1.0 would miss on the first day, where the machinery exists by the release named and no new engine piece is needed.
+
+| Item | Release | Why before 1.0 |
+| --- | --- | --- |
+| `margins` (catalogue row 260), for `reg`, `logistic` and `probit` | 0.9.0 | With `logistic` and `probit` and no marginal effects, the quantity applied researchers report could be had only one coefficient at a time through `derive`; Stata's `margins` and R's `marginaleffects` are the references |
+| `roc` and `confusion` (rows 515 and 516) | 0.9.0 | The area under the curve and the classification table are standard output after a binary model (Stata's `lroc` and `estat classification`); both are small and exact |
+| `ar_test` (row 256) | 0.8.0 | `first_stage` reports that instruments are weak, and 1.0 offered no inference that stays valid when they are; the Anderson–Rubin test and confidence set are that inference |
+| `dist.weibull`, `dist.logistic`, `dist.hypergeometric` (new rows 531 to 533) | 0.10.0 | `dist` had no roadmap row, and 1.0's design goal rests on simulation; all three are closed forms on the special functions of 0.3.0, and `fisher_test` computes the hypergeometric already |
+| `mcnemar_test` (row 508) | 0.10.0 | `t_test` has a paired form and proportions had none |
+| `merge(join: semi \| anti)` (row 115, a new value of an option) | 0.10.0 | "The rows that found no match", as a frame, is an everyday step of cleaning |
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The three of 0.9.0 only | The strongest case, at the least cost: three rows and about three steps | The weak-instrument remedy and the small additions wait for 1.x |
+| B. All nine items | 1.0 answers what its own models raise: effects after a binary model, inference under weak instruments, paired proportions, unmatched rows | Eight more functions and about six steps before 1.0, against risk R1 (scope) |
+| C. None | The plan of 16 October stands untouched | A logit without marginal effects in a release named "Binary outcomes" |
+
+*Recommendation.* A as the minimum, B as the owner's choice.
+
+*Decided 7 November 2026.* Option B: all nine items. The catalogue, sections 8.1 (rule 5), 8.2, 9.2, 14 and 15 of the Engine and Project Specification and section 11 of the Zemp Specification record it; 1.0 is 267 functions, with 266 on the roadmap and 533 in all. No release before 0.8.0 changes.
+
+*Left for the releases that build them.* For `margins`, when 0.9.0 opens: the effect of a category and of a 0/1 regressor (a difference between predictions, as Stata, or a derivative), whether the standard errors treat the sample's regressors as fixed (Stata's default) or as sampled, and what `at:` holds the other regressors at. For `ar_test`, when 0.8.0 opens: the form of the test under robust and clustered errors and with more than one instrumented regressor. For the three distributions the argument names follow R's meaning, `dist.weibull(shape, scale)`, `dist.logistic(location, scale)` and `dist.hypergeometric(successes, failures, draws)`, a ruling the owner may overturn before 0.10.0.
+
+*Offered the same day and declined.* Odds ratios as an option on the results of `logistic`; two-way clustering, `cluster:` taking two variables, before 1.0 (the Language Reference, section 6, keeps it for after 1.0); and `kappa` at 0.10.0. Each stays where the specification had it. The Games–Howell comparison is #85, still due at 0.9.0.
+
+*Not decided here.* The study's proposals for after 1.0 (survival analysis, additive models, time-series tests and volatility models, a `spatial` package, networks, about eighty candidate functions and an order of ten method releases after 1.11) are not recorded in this register; they wait for the owner's word.

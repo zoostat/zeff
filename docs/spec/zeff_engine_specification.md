@@ -267,7 +267,7 @@ Tier 0  centre       core
 2. **Calls go down freely.** A package may call any package on a lower tier.
 3. **Calls go sideways only in order.** Within a tier, a package may call only the packages listed before it (`→`), so calls can never go round in a circle. Each package is its own Rust crate, and Rust refuses to build circular dependencies; the loader holds Zeff-written functions to the same rule. The order within a tier is also a build order: a package's prerequisites are the packages before it, so a roadmap package is scheduled only after they exist.
 4. **Shared types are declared in `core`.** `Frame`, `Column`, `Date`, `DateTime`, `Table`, `Plot`, `Result`, `Failed`, `Model`, `Dag`, `Formula`, `Terms`, `Term`, `Distribution` and `SurveyDesign` are declared in `core` and implemented by packages, so a package that only accepts a result never depends on the package that makes it. Machinery several tiers need, such as date parsing, resampling and design-based variance, lives in the engine kernel, so `data` and `stats` honour a declared survey design without calling `survey`.
-5. **Lower packages define interfaces; higher ones implement them.** `core` declares the display interface, how any value prints, which every type implements in its own package. `results` builds on it and defines the two interfaces every fitted model implements: the result interface (`summary`, `estimates`, `std_errors`, `p_values`, `ci`, `n_obs`, `export`, and `report` for tables) and the estimator interface (`coef`, `vcov`, `fit_measures`, `predict`, `residuals`, `fitted`, `compare`, `test`, `derive`; `margins` and `contrasts` after 1.0), which is the Zeff face of the estimator trait of section 8.3. A model package implements both for its own result types and adds only what is specific to its models (`r_squared`, `influence`, `vif` and `first_stage` in `regress`), so no model package depends on another model package, a new estimator has every generic method on its first day, and `plot` adds `.plot()` to every result.
+5. **Lower packages define interfaces; higher ones implement them.** `core` declares the display interface, how any value prints, which every type implements in its own package. `results` builds on it and defines the two interfaces every fitted model implements: the result interface (`summary`, `estimates`, `std_errors`, `p_values`, `ci`, `n_obs`, `export`, and `report` for tables) and the estimator interface (`coef`, `vcov`, `fit_measures`, `predict`, `residuals`, `fitted`, `compare`, `test`, `derive`; `margins` from 0.9.0 and `contrasts` after 1.0), which is the Zeff face of the estimator trait of section 8.3. A model package implements both for its own result types and adds only what is specific to its models (`r_squared`, `influence`, `vif` and `first_stage` in `regress`), so no model package depends on another model package, a new estimator has every generic method on its first day, and `plot` adds `.plot()` to every result.
 6. **One home per name per type.** A name may be defined for several types of first argument, once per type, and the type of the first argument chooses the definition when the script is checked: `summary` (frames in `data`, results in `results`), `quantile` (columns in `data`, distributions in `dist`), `append` (lists in `core`, frames in `data`), `min` and `max` (several values row by row in `core`; one column in `data`), `plot` (frames and results in `plot`, causal graphs in `identify`), `histogram`, `density` and `boxplot` (frames as shorthands, plots as layers, both in `plot`), `aggregate` (frames in `data`, plots in `plot` from 1.2), and the recipe steps `impute`, `pca`, `standardize`, `center`, `bin`, `winsorize` and `add` (recipes in `learn`; frames or columns in `data` and `explore`). Two definitions whose types overlap, such as one for every `Result` and one for `IvFit`, are not allowed, which is why the instrument check is `exclusion_check` rather than a second `check`. A project function that reuses a built-in name is written in full, as `functions::name`. A package is never named after a frame verb or one of the shared arguments of section 6 of the Language Reference (`by:`, `group:`, `cluster:`, `fe:`, `re:`, `se:`, `weights:` and the rest), so `cluster:` and `panel()` keep their one meaning each; an ordinary argument such as `time:`, `data:` or `text:` may share a package's name, since an argument name means something only before a colon.
 7. **Packages ship with the engine and load on use.** All packages are available without imports; pinning the engine version in `zeff.toml` pins every function. The browser loads `core`, `text`, `time` and `data` at start and fetches the rest on first use, and bundles only packages that have shipped a function. `zeff help` and Zemp's menus list a package, and a research goal, only once at least one of its functions has shipped; the rest appear in a roadmap view with their planned release, so an empty package is never a menu entry.
 8. **The engine kernel is not a package.** It is Rust code every package uses and scripts cannot call. Its modules are fixed here, and adding one is a change to this specification, so the kernel cannot grow silently as the escape from rule 3: column store and selection vectors · NA rules · date parsing · compensated sums · linear algebra (`zeff-kernels`) · special functions · random streams (Philox) · resampling · design-based variance · the likelihood optimiser · thread pool (from 1.1) · display registry · function registry.
@@ -290,9 +290,9 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 1 | `time` | Work with dates and times | Parsing, date parts, date arithmetic | 14 / 0 / 2 |
 | 2 | `text` | Work with text | Matching, replacing, splitting, formatting numbers and dates | 13 / 0 / 0 |
 | 3 | `data` | Make any dataset ready for analysis | Frames, verbs, panels, reducers, files | 59 / 0 / 13 |
-| 4 | `dist` | Probability distributions | Twelve families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 19 / 0 / 0 |
-| 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface, publication tables, export | 17 / 0 / 2 |
-| 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 13 / 0 / 21 |
+| 4 | `dist` | Probability distributions | Fifteen families, the studentized range, truncation and mixtures; `pdf`, `cdf`, `quantile`, `draw` | 22 / 0 / 0 |
+| 5 | `results` | Every result looks and behaves the same | Result interface, estimator interface with marginal effects, publication tables, export | 18 / 0 / 1 |
+| 6 | `stats` | Classical inference | Correlation, tests, post-hoc comparisons, power, effect sizes, smoothing | 14 / 0 / 20 |
 | 7 | `optim` | Fit anything defined by an objective | Minimisers, MLE and GMM frameworks, mathematical programming | 0 / 0 / 11 |
 | 8 | `resample` | Uncertainty and validation by resampling | Bootstrap, jackknife, permutation, holdout splits and cross-validation folds | 0 / 0 / 7 |
 | 9 | `survey` | Design-correct estimates from survey data | Design declaration, replicate weights, calibration | 0 / 0 / 8 |
@@ -304,8 +304,8 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 | # | Package | Objective | Focus | 1.0 / proposed / roadmap |
 | --- | --- | --- | --- | --- |
-| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 8 / 0 / 9 |
-| 2 | `glm` | Non-linear outcomes | Binary, count, ordinal, multinomial, censored and selection models | 2 / 0 / 14 |
+| 1 | `regress` | Linear and IV regression | OLS, fixed effects, IV with the Anderson–Rubin test, event-study terms, linear-model diagnostics, wild bootstrap, quantile regression | 9 / 0 / 8 |
+| 2 | `glm` | Non-linear outcomes | Binary models with their classification table and ROC curve; count, ordinal, multinomial, censored and selection models | 4 / 0 / 12 |
 | 3 | `multilevel` | Repeated and nested data | Random effects (`re:`), mixed and growth models, dynamic panels | 0 / 0 / 6 |
 | 4 | `explore` | Find structure before testing | Dimension reduction, missingness, imputation and outlier checks | 0 / 0 / 9 |
 | 5 | `series` | Time series and forecasting | ARIMA, ETS, VAR, state space, dynamic factors | 0 / 0 / 7 |
@@ -330,7 +330,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 
 **Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, after 1.0, third-party packages under rule 9.
 
-Totals: 259 functions in 1.0 (70 in tier 0, 172 in tier 1, 11 in tier 2, 6 in tier 3), of which 239 are written in Rust and 20 in Zeff; none remain proposed, and 271 are on the roadmap, 530 in all. Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
+Totals: 267 functions in 1.0 (70 in tier 0, 177 in tier 1, 14 in tier 2, 6 in tier 3), of which 247 are written in Rust and 20 in Zeff; none remain proposed, and 266 are on the roadmap, 533 in all (eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
 ### 8.3 Engine architecture
 
@@ -628,30 +628,30 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Text:** `upper`, `lower`, `trim`, `contains`, `starts_with`, `ends_with`, `replace`, `extract`, `split`, `join`, `slice`, `pad`, `format`
 
-#### `data` (tier 1) · 59 in 1.0, 0 proposed, 6 on the roadmap
+#### `data` (tier 1) · 59 in 1.0, 0 proposed, 13 on the roadmap
 
 - **Frames:** `frame`, `import`, `n_rows`, `n_cols`, `variables`, `describe`, `head`, `tail`, `where`, `select`, `drop`, `rename`, `add`, `update`, `sort`, `distinct`, `duplicates`, `sample`, `merge`, `append`, `to_long`, `to_wide`, `aggregate`, `panel`, `drop_missing`, `label`, `recode`, `save`
 - **Column functions:** `lag`, `lead`, `diff`, `running_sum`, `running_product`, `rank`, `quantile_group`, `bin`, `standardize`, `center`, `between`, `row_mean`, `row_sum`, `winsorize`, `fill_forward`
 - **Reducers and summaries:** `mean`, `sd`, `variance`, `median`, `iqr`, `mad`, `quantile`, `min`, `max`, `sum`, `n`, `n_distinct`, `skewness`, `kurtosis`, `summary`, `tabulate`
-- **Roadmap:** `stream`, `external` (desktop), `unnest`, `moving_average`, `growth_rate`, `index_number`
+- **Roadmap:** `stream`, `external` (desktop), `unnest`, `moving_average`, `growth_rate`, `index_number`, `rolling`, `gini` (as a reducer and, by group, as a frame method), `theil`, `atkinson`, `herfindahl`, `lorenz`; `merge` gains `join: semi | anti` at 0.10.0
 
-#### `dist` (tier 1) · 19 in 1.0, 0 proposed, 0 on the roadmap
+#### `dist` (tier 1) · 22 in 1.0, 0 proposed, 0 on the roadmap
 
-- **Distributions:** `dist.normal`, `dist.lognormal`, `dist.t`, `dist.chi2`, `dist.f`, `dist.binomial`, `dist.poisson`, `dist.negbinomial`, `dist.uniform`, `dist.exponential`, `dist.gamma`, `dist.beta`, `dist.tukey`, `dist.truncated`, `dist.mixture`
+- **Distributions:** `dist.normal`, `dist.lognormal`, `dist.t`, `dist.chi2`, `dist.f`, `dist.binomial`, `dist.poisson`, `dist.negbinomial`, `dist.uniform`, `dist.exponential`, `dist.gamma`, `dist.beta`, `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `dist.tukey`, `dist.truncated`, `dist.mixture`
 - **Methods on a distribution:** `pdf`, `cdf`, `quantile`, `draw`
 
-#### `results` (tier 1) · 17 in 1.0, 0 proposed, 2 on the roadmap
+#### `results` (tier 1) · 18 in 1.0, 0 proposed, 1 on the roadmap
 
 - **Result interface:** `summary`, `estimates`, `std_errors`, `p_values`, `ci`, `n_obs`, `export`
-- **Estimator interface:** `coef`, `vcov`, `fit_measures`, `predict`, `residuals`, `fitted`, `compare`, `test`, `derive`
+- **Estimator interface:** `coef`, `vcov`, `fit_measures`, `predict`, `residuals`, `fitted`, `compare`, `test`, `derive`, `margins` (0.9.0; for `reg`, `logistic` and `probit` in 1.0)
 - **Tables and export:** `report`
-- **Roadmap:** `margins`, `contrasts`
+- **Roadmap:** `contrasts`
 
-#### `stats` (tier 1) · 13 in 1.0, 0 proposed, 10 on the roadmap
+#### `stats` (tier 1) · 14 in 1.0, 0 proposed, 20 on the roadmap
 
 - **Association:** `correlation`, `covariance`
-- **Tests:** `t_test`, `wilcoxon_test`, `anova` (one-way and factorial, with `type:`), `posthoc`, `kruskal_test`, `chi2_test`, `fisher_test`, `proportion_test`, `shapiro_test`, `ks_test`, `p_adjust`
-- **Roadmap:** `power.t_test`, `power.proportion_test`, `power.anova`, `mde`, `repeated_anova`, `tost` (1.9); `ci_median`, `effect_size`, `loess`, `spline`
+- **Tests:** `t_test`, `wilcoxon_test`, `anova` (one-way and factorial, with `type:`), `posthoc`, `kruskal_test`, `chi2_test`, `fisher_test`, `proportion_test`, `mcnemar_test`, `shapiro_test`, `ks_test`, `p_adjust`
+- **Roadmap:** `power.t_test`, `power.proportion_test`, `power.anova`, `mde`, `repeated_anova`, `tost` (1.9); `ci_median`, `effect_size`, `loess`, `spline`, `levene_test`, `bartlett_test`, `cochran_q_test`, `friedman_test`, `sign_test`, `jarque_bera_test`, `manova`, `hotelling_test`, `box_m_test`, `mardia_test`
 
 #### `optim` (tier 1) · 0 in 1.0, 0 proposed, 11 on the roadmap
 
@@ -680,16 +680,17 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap (1.1, section 8.6):** `fetch`, `secret`, `flatten`, `rate_limit`
 
-#### `regress` (tier 2) · 8 in 1.0, 0 proposed, 7 on the roadmap
+#### `regress` (tier 2) · 9 in 1.0, 0 proposed, 8 on the roadmap
 
 - **Models:** `reg`, `ivreg`
-- **Linear-model methods:** `r_squared`, `influence`, `vif`, `first_stage` (the generic result methods are in `results`)
+- **Linear-model methods:** `r_squared`, `influence`, `vif`, `first_stage`, `ar_test` (the generic result methods are in `results`)
 - **Formula terms:** `interact`, `event`
-- **Roadmap:** `power.reg` (1.9), `wild_bootstrap`, `ivreg` method `liml`, `ar_test`, `quantile_reg`, `het_test`, `reset_test`
+- **Roadmap:** `power.reg` (1.9), `wild_bootstrap`, `ivreg` method `liml`, `quantile_reg`, `het_test`, `reset_test`, `durbin_watson`, `ljung_box_test`
 
-#### `glm` (tier 2) · 2 in 1.0, 0 proposed, 12 on the roadmap
+#### `glm` (tier 2) · 4 in 1.0, 0 proposed, 12 on the roadmap
 
 - **Binary models:** `logistic`, `probit`
+- **Methods on a binary fit:** `roc`, `confusion`
 - **Roadmap:** `poisson` (1.2), `negbin`, `gamma_reg`, `beta_reg`, `fractional`, `ordinal`, `multinomial`, `tobit`, `heckman`, `zero_inflated`, `hurdle`, `surv` (the censored-outcome term of `surv(time, event) ~ x`)
 
 #### `multilevel` (tier 2) · 0 in 1.0, 0 proposed, 6 on the roadmap
@@ -708,10 +709,10 @@ fn share_missing(data: Frame, var: Var) -> Float {
 
 - **Roadmap:** `model`, `cfa`, `sem`, `effects`, `loadings`, `mod_indices` (1.3), `lca`, `pick`, `profiles`, `efa`, `kmo`, `sphericity_test`, `parallel_analysis`, `factor_scores`, `latent_growth`, `lpa`, `lta`, `growth_mixture`; also WLSMV and `efa()` blocks (ESEM) in `cfa` and `sem`
 
-#### `measure` (tier 2) · 1 in 1.0, 0 proposed, 13 on the roadmap
+#### `measure` (tier 2) · 1 in 1.0, 0 proposed, 14 on the roadmap
 
 - **Reliability:** `reliability`
-- **Roadmap:** `item_stats`, `polychoric`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt`, `invariance`, `alignment`, `irt`, `dif`, `icc`, `kappa`, `g_study`
+- **Roadmap:** `item_stats`, `polychoric`, `composite_reliability`, `ave`, `fornell_larcker`, `htmt`, `invariance`, `alignment`, `irt`, `dif`, `icc`, `kappa`, `g_study`, `bland_altman`
 
 #### `learn` (tier 2) · 0 in 1.0, 0 proposed, 32 on the roadmap
 
@@ -862,7 +863,7 @@ Zeff ships a language server (`zeff lsp`, the Language Server Protocol), a forma
 
 Before 1.0 every release is a minor release and is written in full (0.7.0). After 1.0 a minor release is written as 1.2 and a patch as 1.2.1 in prose; pins, tags and `zeff engine` always carry three numbers (`zeff = "1.2.0"`). A version number never goes back to 0.0.x: the first release is 0.1.0. No version has been released: an earlier prototype engine (built as 0.0.1) was set aside on 17 October 2026, and the code starts afresh at 0.1.0, built on the architecture of section 8 from its first commit.
 
-The 259 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, then 1.0.0 freezes the names. Each release is named for what it is for. A function waits for everything it uses; functions written in Zeff wait for `fn` in 0.5.0 (frame `summary` runs in Rust until then). By 0.7.0, 245 of the 259 functions have shipped and every release up to it lets someone run one more real analysis; the four releases after it are engine milestones, each with a hard engine piece of its own.
+The 267 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, then 1.0.0 freezes the names. Each release is named for what it is for. A function waits for everything it uses; functions written in Zeff wait for `fn` in 0.5.0 (frame `summary` runs in Rust until then). By 0.7.0, 245 of the 267 functions have shipped and every release up to it lets someone run one more real analysis; the four releases after it are engine milestones, each with a hard engine piece of its own.
 
 **Why this scope.** The schedule is set by hard engine pieces, not by the number of functions. 1.0 has seven: the formula engine and model matrix with QR and robust and clustered SEs; fixed-effects demeaning; two-stage least squares with weak-instrument statistics; logistic and probit fitting; accurate special functions and distributions; the plot renderer; and the language server with the schema pass. Callaway–Sant'Anna DiD, PPML, the thread pool and bootstrap, SEM, mixed models, lasso and forests, WLSMV and ESEM, latent classes, streaming and lazy chains are each a project of their own, and come after 1.0, one per release. Causal graphs join 1.0 because their algorithms (cycle detection, d-separation, back-door adjustment sets) are small, exact and well documented, and checking a fitted model against a causal graph is something mainstream statistics packages do not do.
 
@@ -875,9 +876,9 @@ The 259 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, the
 | 0.5.0 | Language complete | 33: 14 collection functions (`equal` among them, open decision #5); `attempt`, `iterate`; 17 functions planned in Zeff, written in Zeff where the language of 0.5.0 expresses them (11) and in Rust otherwise (6, open decisions #68 to #71); `summary` stays in Rust until a table constructor exists (open decision #72) | `if`, `case`, `for`, `fn`, `use`, calling any function as a method; the `Failed` type | User-written functions |
 | 0.6.0 | Panels | 37: joins, reshaping, `aggregate`, `panel`, `save`; panel column functions; `event`; dates and `format`; `table` (open decision #72) | Grouped computation; `fe:` demeaning in `reg`; date types; shared Arrow columns and selection vectors; the schema pass behind `zeff check`; data roots in `zeff.toml` | Panel research |
 | 0.7.0 | Tests, plots and the language server | 60: `tabulate`; nine tests, `anova` with factorial tables, `posthoc` and `dist.tukey`; `p_adjust`; the plot grammar and its shorthands (35 functions, section 7.6 of the Language Reference); 12 text functions | Language server (completion, signature help, hover, live diagnostics), tree-sitter grammar, `zeff fmt` and `zeff test`, ready for Zemp's prototype (Zemp 0.1; its alpha follows at 0.8.0); layered-grammar plot renderer with the Okabe–Ito and viridis scales, redraw to fit and journal sizes; exact Wilcoxon distribution; engine worker with progress, cancellation and memory budget; `zeff completions` | Exploratory analysis; Zemp's interface starts |
-| 0.8.0 | Instrumental variables | 2: `ivreg`, `first_stage` | Two-stage least squares with `instruments:`; Kleibergen–Paap, Cragg–Donald and effective F; `zeff report-bug` with shrinking; `zeff explain` | IV studies |
-| 0.9.0 | Binary outcomes | 3: `logistic`, `probit`, `timer` | The likelihood trait and shared optimiser; IRLS and Newton fitting; separation checks; robust and clustered SEs from the variance layer; patch releases begin, with the launcher and engine split, `zeff engine`, `zeff doctor` and signed engine downloads (section 2.1); the known-issues list and `zeff audit`, which patch releases need from their first day | Binary outcomes |
-| 0.10.0 | Causal graphs and validation | 7: `reliability`; `dag`, `adjustment_sets`, `implied_independencies`, `check`, `exclusion_check`, `g.plot` | `dag { }` parser; cycle detection, d-separation and back-door adjustment sets; the validation suite run in full for every function and published | Scale reliability; causal graphs; public validation results |
+| 0.8.0 | Instrumental variables | 3: `ivreg`, `first_stage`, `ar_test` | Two-stage least squares with `instruments:`; Kleibergen–Paap, Cragg–Donald and effective F; the Anderson–Rubin test and confidence set, valid when instruments are weak; `zeff report-bug` with shrinking; `zeff explain` | IV studies |
+| 0.9.0 | Binary outcomes | 6: `logistic`, `probit`, `margins`, `roc`, `confusion`, `timer` | The likelihood trait and shared optimiser; IRLS and Newton fitting; separation checks; robust and clustered SEs from the variance layer; marginal effects with delta-method standard errors for `reg`, `logistic` and `probit`; patch releases begin, with the launcher and engine split, `zeff engine`, `zeff doctor` and signed engine downloads (section 2.1); the known-issues list and `zeff audit`, which patch releases need from their first day | Binary outcomes |
+| 0.10.0 | Causal graphs and validation | 11: `reliability`; `dag`, `adjustment_sets`, `implied_independencies`, `check`, `exclusion_check`, `g.plot`; `dist.weibull`, `dist.logistic`, `dist.hypergeometric`; `mcnemar_test` | `merge` gains `join: semi \| anti`; `dag { }` parser; cycle detection, d-separation and back-door adjustment sets; the validation suite run in full for every function and published | Scale reliability; causal graphs; public validation results |
 | 0.11.0 | Help and formats | 2: `version`, `help` | Help built from `///`; the reader interface (section 6.1 of the Language Reference) and, through it, Excel, OpenDocument, Parquet, Arrow, Stata, JSON, fixed-width and compressed files in `import` and `save`, with opaque columns carried (section 4.3 of the Language Reference); versioned result and run-record schemas; the content-addressed result cache and the import cache, both Arrow IPC, deterministic Parquet writing and the Zeff Parquet profile (section 8.7); `zeff runs`, `zeff export replication`, `zeff verify` and `zeff dataset fetch`; `zeff app` for the desktop apps and the offline bundle (section 2.1), which Zemp's desktop beta installs through | Replication packages; a stable engine for Zemp's desktop beta |
 | 1.0.0 | Names frozen | None | Names frozen; edition 2027 declared; extension interfaces and the package manifest published; public benchmark suite; documentation; the installer script, signed archives, Homebrew, winget, Scoop, the container image, the GitHub Action, `zeff self update` and reproducible official builds (section 2.1) | Public release of the language, installable from a package manager |
 
@@ -1029,6 +1030,7 @@ Everything above is the current design; these items still need a decision.
 - [x] Source files per function (17 October 2026; section 9.1, Files): help is always one file per function; Rust code is grouped by family into modules of its package crate, so functions that share helpers share a module; Zeff code is one `.zeff` file per function in `functions/`, with private helpers and a small family read together allowed to share it; the registry build matches help to functions by name and fails on a function without a help file or a help file without a function
 - [x] Names kept (17 October 2026): Zeff for the language and Zemp for the application, rather than alternatives considered the same day; trademark and domain checks remain open decisions (#31, #37 of zeff_open_decisions.md)
 - [x] Zemp Studio (1 November 2026): the full edition of Zemp is named Zemp Studio, beside Zemp Lite; Zemp alone stays the name of the application and the product line (Zemp Specification, section 2); `zeff app install studio` and the `zemp-studio` package names follow
+- [x] Eight functions brought into 1.0 (7 November 2026; zeff_open_decisions.md, #88), after a study of 135 R packages against the catalogue: `ar_test` at 0.8.0; `margins` (for `reg`, `logistic` and `probit`), `roc` and `confusion` at 0.9.0; `dist.weibull`, `dist.logistic`, `dist.hypergeometric` and `mcnemar_test` at 0.10.0, where `merge` also gains `join: semi | anti`; 1.0 is 267 functions, with 266 on the roadmap and 533 in all
 - [x] Risk register (17 October 2026): zeff_risk_register.md, twelve risks with early warnings, mitigations and fallbacks, reviewed at every minor release (section 14)
 - [x] `.gitignore` from `zeff new` (17 October 2026; section 2): caches, run records, the project lock file and session script, Zemp's view state and `data/` left out by default, for the Git panel of Zemp and Zemp Lite (Zemp Specification, section 5)
 - [x] Installation from the command line only, for now (17 October 2026; section 2.1): the launcher from the installer script, a package manager, an archive or the offline bundle, and the desktop apps, Zemp Lite and Zemp, from `zeff app install lite | zemp` or a package manager, each verified against the launcher's built-in key; setup files for Zeff and the apps deferred to the code-signing decision (zeff_open_decisions.md, #23 and #38)

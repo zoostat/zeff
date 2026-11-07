@@ -175,3 +175,13 @@ Step 18 `[engine]`: `fe:` in `reg` (a `Terms` argument of variables and `a:b` in
 **Next.** Step 3 `[engine]`: what a Zeff-written built-in lacked, part 1 (#68, #69, #70).
 
 **For the owner to decide.** Nothing new.
+
+## 7 November 2026, nine items brought into 1.0 (open decision #88)
+
+**Done.** A study of 135 R packages against the catalogue, with a plan, written for the owner outside the repository. From it the owner brought nine items into 1.0: `ar_test` (0.8.0); `margins`, `roc` and `confusion` (0.9.0); `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `mcnemar_test` and `merge(join: semi | anti)` (0.10.0). The catalogue (533 rows), sections 8, 9.2, 14 and 15 of the Engine and Project Specification, the Zemp Specification's scale and the register record it: 1.0 is 267 functions, 266 are on the roadmap. Section 9.2's roadmap lists, stale since 21 October, corrected and logged. No code is built and release 0.7.0 is unchanged.
+
+**Green.** Format, clippy with warnings denied, all workspace tests, the tier and message checks pass locally; CI read after the push.
+
+**Next.** Step 3 `[engine]` of 0.7.0, as before: what a Zeff-written built-in lacked, part 1 (#68, #69, #70).
+
+**For the owner to decide.** Whether the study's proposals for after 1.0 (survival, additive models, time-series tests, spatial, networks; five questions) are recorded as an open decision. Three additions were offered and declined (odds ratios for `logistic`, two-way clustering, `kappa`). Rulings he may overturn: the argument names of the three new distributions.
