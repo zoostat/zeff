@@ -4,7 +4,7 @@
 //! reference files that continuous integration checks with Python's `zipfile`.
 
 use std::rc::Rc;
-use zeff_core::value::{Align, Statistic, Table, TestResult, Value};
+use zeff_core::value::{Align, Alternative, Statistic, Table, TestResult, Value};
 use zeff_results::export::{
     Format, crc32, document_xml, docx, escape_tex, escape_xml, result_table, sample, test_table,
     tex, zip,
@@ -167,6 +167,13 @@ fn a_test_result_exports_as_a_table() {
         after: Vec::new(),
         notes: Vec::new(),
         n: 18_179,
+        hypotheses: None,
+        alternative: Alternative::TwoSided,
+        estimate: None,
+        effect: None,
+        level: 0.95,
+        alpha: None,
+        dropped: 0,
     };
     let of_plain = test_table(&plain);
     assert_eq!(of_plain.title, plain.title);

@@ -1307,6 +1307,8 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0803 | An outcome with values too large to compute with (above 1e150 in size, where a square cannot be represented) or too small against its regressors (an estimate below 2.2e-308, the smallest normal number, which keeps a few digits only); a regressor above 1e150 or below 1e-150 in size is dropped with a note instead |
 | Z0222 | A mapping key written or computed twice; a record field written twice, or supplied by two spreads |
 | Z0410 | Two options of one call that exclude each other, given together (`round` with `digits:` and `sig:`; `se: classical` with sampling weights) |
+| Z0411 | `weights:` of a test whose kind is sampling, the default of `weight_type:`; a test takes frequency or analytic weights (section 6) |
+| Z0412 | `group:` of a two-group test naming a variable with one level or more than two (section 6) |
 | Z0413 | A parameter of a distribution outside its domain, or `NA` |
 | Z0414 | A term name given to a result method that the result does not have; the message lists the fit's terms, and a test's result has none |
 | Z0415 | A restriction given to `test` that is not an equality linear in the coefficients, or restrictions that repeat one another |

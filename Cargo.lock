@@ -1607,6 +1607,7 @@ dependencies = [
  "zeff-dist",
  "zeff-numeric",
  "zeff-registry",
+ "zeff-results",
  "zeff-testkit",
 ]
 

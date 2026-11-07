@@ -9,7 +9,9 @@
 //! crate is added; the `.tex` is a `tabular` with booktabs rules, the lines above and below the
 //! printed grid as table notes, and special characters escaped.
 
-use zeff_core::display::{degrees_text, fixed, p_value_text, statistic_line};
+use zeff_core::display::{
+    degrees_text, fixed, p_value_text, test_result_after, test_result_before,
+};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Align, Table, TestResult, Value};
 use zeff_diagnostics::Diagnostic;
@@ -135,22 +137,31 @@ pub fn result_table(value: &Value) -> Option<Table> {
 /// test has one (`compare`); otherwise one row of the statistic, its degrees of freedom and its
 /// p-value.
 pub fn test_table(result: &TestResult) -> Table {
-    let statistic = statistic_line(&result.statistic, result.p_value);
+    let before = test_result_before(result);
+    let after = test_result_after(result);
     match &result.table {
         Some(table) => Table {
             title: result.title.clone(),
-            before: result.header.clone(),
+            before,
             columns: table.columns.clone(),
             rows: table.rows.clone(),
-            after: std::iter::once(statistic)
-                .chain(result.after.iter().cloned())
-                .collect(),
+            after,
             more: Vec::new(),
             rules: table.rules.clone(),
         },
+        // A test with an estimate prints its lines and needs no grid of the statistic.
+        None if result.estimate.is_some() => Table {
+            title: result.title.clone(),
+            before,
+            columns: Vec::new(),
+            rows: Vec::new(),
+            after,
+            more: Vec::new(),
+            rules: Vec::new(),
+        },
         None => Table {
             title: result.title.clone(),
-            before: result.header.clone(),
+            before,
             columns: vec![
                 ("statistic".to_string(), Align::Left),
                 ("value".to_string(), Align::Right),
@@ -169,7 +180,10 @@ pub fn test_table(result: &TestResult) -> Table {
                     .join(", "),
                 p_value_text(result.p_value),
             ]],
-            after: result.after.clone(),
+            after: after
+                .into_iter()
+                .filter(|line| !line.starts_with(&result.statistic.name))
+                .collect(),
             more: Vec::new(),
             rules: Vec::new(),
         },

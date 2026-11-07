@@ -304,21 +304,76 @@ pub struct Statistic {
 /// `F(1, 18,179) = 4.21   p = 0.040`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TestResult {
-    /// The method that made it: `test`, `compare`.
+    /// The method that made it: `test`, `compare`, `t_test`.
     pub method: String,
     /// The title line, `test · m3 · educ == exper`.
     pub title: String,
+    /// The hypotheses the test prints under its title (open decision #91), `None` for a result
+    /// that prints none (`test` and `compare`, and a table of several p-values).
+    pub hypotheses: Option<Hypotheses>,
+    /// The alternative the p-value was computed for.
+    pub alternative: Alternative,
     /// Lines under the title, before the table.
     pub header: Vec<String>,
     /// A table between the title and the statistic line.
     pub table: Option<Table>,
+    /// The estimate the test rests on (a mean, a difference, a proportion), printed with its
+    /// interval before the statistic line; `None` for a test that has none.
+    pub estimate: Option<Estimate>,
     pub statistic: Statistic,
     pub p_value: f64,
-    /// Lines under the statistic line.
+    /// An effect size, printed with its interval after the statistic line.
+    pub effect: Option<Estimate>,
+    /// The confidence level of the intervals, 0.95 unless `level:` said otherwise.
+    pub level: f64,
+    /// The α of the decision line, `1 − level` for a test that takes `level:` and 0.05 for one
+    /// that does not; `None` prints no decision line.
+    pub alpha: Option<f64>,
+    /// Lines under the decision line.
     pub after: Vec<String>,
     pub notes: Vec<String>,
-    /// The observations the test rests on (`n_obs`).
+    /// The observations the test rests on (`n_obs`), and the rows dropped for `NA`.
     pub n: usize,
+    pub dropped: usize,
+}
+
+/// The hypotheses a test prints (open decision #91): each a sentence about the population, and
+/// the symbolic forms where a standard one exists, H0's and H1's.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Hypotheses {
+    pub h0: String,
+    pub h1: String,
+    pub symbols: Option<(String, String)>,
+}
+
+/// The alternative a test's p-value is computed for (section 6, `alternative:`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Alternative {
+    #[default]
+    TwoSided,
+    Less,
+    Greater,
+}
+
+impl Alternative {
+    /// The word of the argument.
+    pub fn word(self) -> &'static str {
+        match self {
+            Alternative::TwoSided => "two_sided",
+            Alternative::Less => "less",
+            Alternative::Greater => "greater",
+        }
+    }
+}
+
+/// A quantity a test reports with its interval: the estimate (`difference (male − female)`)
+/// or an effect size (`Hedges' g`), printed to `decimals` places.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Estimate {
+    pub label: String,
+    pub value: f64,
+    pub ci: Option<(f64, f64)>,
+    pub decimals: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]

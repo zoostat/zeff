@@ -11,7 +11,9 @@ use crate::design::Design;
 use crate::summary::rows;
 use std::rc::Rc;
 use zeff_columns::{Column, Table as Columns};
-use zeff_core::display::{fixed, fixed_grouped, format_float, list_levels, statistic_line};
+use zeff_core::display::{
+    fixed, fixed_grouped, format_float, list_levels, test_result_after, test_result_before,
+};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Align, Distribution, Fit, Frame, Table, TestResult, Value};
 use zeff_diagnostics::messages::no_variable;
@@ -144,7 +146,7 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let received = receiver(ctx, &args, "ci")?;
     let level = match &received {
         Receiver::Fit(fit) => given.unwrap_or(fit.level),
-        Receiver::Test(_) => given.unwrap_or(0.95),
+        Receiver::Test(test) => given.unwrap_or(test.level),
     };
     let title = format!("ci · {}", level_text(level));
     let columns = vec![
@@ -183,9 +185,51 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 }),
             })
         }
-        // A test's result has no intervals at this release (the tests of `stats`, 0.7.0, add
-        // the interval of their estimate).
-        Receiver::Test(_) => Ok(Value::Na),
+        // A test's result: the intervals of its estimate and its effect size, when it has them
+        // (the tests of `stats`); `test` and `compare` have none.
+        Receiver::Test(test) => {
+            let mut rows: Vec<Vec<String>> = Vec::new();
+            for item in [&test.estimate, &test.effect].into_iter().flatten() {
+                if let Some((lower, upper)) = item.ci {
+                    rows.push(vec![
+                        item.label.clone(),
+                        fixed(lower, item.decimals),
+                        fixed(upper, item.decimals),
+                    ]);
+                }
+            }
+            if rows.is_empty() {
+                return Ok(Value::Na);
+            }
+            if (level - test.level).abs() > 1e-12 {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`ci` of a test's result gives the intervals the test was made at, {}, not at {}",
+                            level_text(test.level),
+                            level_text(level)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(2), "another level")
+                    .help("run the test with `level:` for intervals at another level"),
+                ));
+            }
+            Ok(Value::Table(Table {
+                title,
+                before: Vec::new(),
+                columns: vec![
+                    ("term".to_string(), Align::Left),
+                    ("lower".to_string(), Align::Right),
+                    ("upper".to_string(), Align::Right),
+                ],
+                rows,
+                after: Vec::new(),
+                more: Vec::new(),
+                rules: Vec::new(),
+            }))
+        }
     }
 }
 
@@ -225,20 +269,35 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 floats(fit.intervals.iter().map(|v| Some(v.1)).collect()),
             ),
         ],
+        // A test's result: one row, its estimate and interval when it has them (the tests of
+        // `stats`), else its statistic alone (`test`, `compare`).
         Receiver::Test(test) => vec![
             (
                 "term".to_string(),
-                Column::strs([Some(test.statistic.name.as_str())]),
+                Column::strs([Some(
+                    test.estimate
+                        .as_ref()
+                        .map_or(test.statistic.name.as_str(), |e| e.label.as_str()),
+                )]),
             ),
-            ("estimate".to_string(), floats(vec![None])),
+            (
+                "estimate".to_string(),
+                floats(vec![test.estimate.as_ref().map(|e| e.value)]),
+            ),
             ("std_error".to_string(), floats(vec![None])),
             (
                 "statistic".to_string(),
                 floats(vec![Some(test.statistic.value)]),
             ),
             ("p_value".to_string(), floats(vec![Some(test.p_value)])),
-            ("ci_lower".to_string(), floats(vec![None])),
-            ("ci_upper".to_string(), floats(vec![None])),
+            (
+                "ci_lower".to_string(),
+                floats(vec![test.estimate.as_ref().and_then(|e| e.ci).map(|c| c.0)]),
+            ),
+            (
+                "ci_upper".to_string(),
+                floats(vec![test.estimate.as_ref().and_then(|e| e.ci).map(|c| c.1)]),
+            ),
         ],
     };
     let table = Columns::new(columns).map_err(|e| {
@@ -321,14 +380,12 @@ fn test_table(test: &TestResult) -> Table {
         Some(table) => (table.columns.clone(), table.rows.clone()),
         None => (Vec::new(), Vec::new()),
     };
-    let mut after = vec![statistic_line(&test.statistic, test.p_value)];
-    after.extend(test.after.iter().cloned());
     Table {
         title: test.title.clone(),
-        before: test.header.clone(),
+        before: test_result_before(test),
         columns,
         rows,
-        after,
+        after: test_result_after(test),
         more: Vec::new(),
         rules: Vec::new(),
     }

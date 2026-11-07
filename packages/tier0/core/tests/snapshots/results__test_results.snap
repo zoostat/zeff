@@ -15,7 +15,7 @@ F(11, 18,167) = 30.71   p < 0.001
 
 t_test · Welch two-sample · lwage by female
 difference (male − female) = 0.153   95% CI [0.138, 0.168]
-t(18,074.2) = 20.42   p < 0.001
+t = 20.42   df = 18,074.2   p < 0.001
 Hedges' g = 0.30   95% CI [0.27, 0.33]
 
 test · z

@@ -158,3 +158,13 @@ The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of s
 **Next.** Step 7 `[engine]`: `TestResult` and the shared arguments. Note for it: a `TestResult` value already exists in `core` (`test` and `compare`, release 0.6.0), so the step extends it with `h0`, `h1` and `alternative` and the shared checks rather than creating a new type.
 
 **For the owner to decide.** Nothing new.
+
+## 8 November 2026, release 0.7.0, step 7 (`TestResult` and the shared arguments)
+
+**Done.** `TestResult` carries what section 4 and open decision #91 name (the hypotheses as sentences with their symbols, the alternative, the estimate and the effect size with their intervals, the level, the decision's α, the rows dropped) and prints as section 10.2's example does: the H0 and H1 block under the title, the table, the estimate line, the statistic line (`t = 20.42   df = 18,074.2   p < 0.001`), the effect line and `decision at α = 0.05: reject H0 (p < 0.001)`. `stats` gains the pieces every test shares: `level:`, `alternative:`, the refusal of sampling weights (Z0411), the two groups of `group:` with their labels (Z0412 otherwise) and the complete rows with their note. The interface answers for a test (`estimates`, `ci`, `p_values`, `n_obs`, `summary`), `export` writes its table and `report` sets tests side by side. Z0411 and Z0412 have their pages and their rows in section 11 (logged). Proved on a hand-built Welch `t_test` and a one-sided signed-rank result, with snapshots of the printed form, the LaTeX and the report.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the core, results, stats, registry, command-line and conformance programs and the engine's examples and results; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 8 `[function]`: `tabulate` in `data`.
+
+**For the owner to decide.** Nothing new. Rulings he may overturn: `test` and `compare` print no hypothesis block; a `t` statistic writes `df =` after its value where the others keep brackets; the blank line after a test's table stays (section 10.2's example will gain it at step 9); `ci` on a test at another level is refused.

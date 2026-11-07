@@ -6,7 +6,7 @@
 use std::rc::Rc;
 use zeff_core::display::fixed;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Align, Fit, Table, Value};
+use zeff_core::value::{Align, Fit, Table, TestResult, Value};
 use zeff_diagnostics::{Diagnostic, count};
 
 use crate::interface::information_criteria;
@@ -63,6 +63,16 @@ fn ordinal(i: usize) -> String {
 /// rule; the rows `SEs`, `N` and the statistics asked for; then the stars legend and the fits'
 /// notes and statistical warnings as the footer.
 pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    // A list of tests' results sets the tests side by side instead (release 0.7.0, step 7).
+    if let Some(Value::List(items)) = args.get(FITS)
+        && !items.is_empty()
+        && items
+            .iter()
+            .all(|v| matches!(v, Value::TestResult(_) | Value::Failed(_)))
+        && items.iter().any(|v| matches!(v, Value::TestResult(_)))
+    {
+        return tests_report(ctx, &args);
+    }
     let fits = fits(ctx, &args)?;
     let stats: Vec<String> = match args.get(STATS) {
         Some(Value::List(items)) => items
@@ -217,6 +227,92 @@ pub fn report(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         after,
         more: Vec::new(),
         rules,
+    }))
+}
+
+/// `report([t1, t2])` over tests' results: one column per test headed `(1)`, `(2)`, …; the
+/// rows `estimate`, `statistic`, `df`, `p value`, `effect size` and `N`, a cell empty where a
+/// test has no such quantity; the footer gives each test's hypotheses (open decision #91, rule
+/// R11) and its notes, numbered as its column is.
+fn tests_report(ctx: &mut CallContext<'_>, args: &Args) -> Result<Value, Fail> {
+    let Some(Value::List(items)) = args.get(FITS) else {
+        unreachable!("checked by the caller");
+    };
+    let tests: Vec<Rc<TestResult>> = items
+        .iter()
+        .filter_map(|v| match v {
+            Value::TestResult(t) => Some(Rc::clone(t)),
+            _ => None,
+        })
+        .collect();
+    let failed = items.len() - tests.len();
+    if failed > 0 {
+        ctx.message(
+            Diagnostic::warning(
+                "W0801",
+                format!(
+                    "{} of {} results failed and {} left out of the table",
+                    count(failed as u64),
+                    count(items.len() as u64),
+                    if failed == 1 { "was" } else { "were" }
+                ),
+            )
+            .help("the table uses the results that succeeded; `x.is(Failed)` tells which failed"),
+        );
+    }
+    let title = match args.get(TITLE) {
+        Some(Value::Str(s)) => s.clone(),
+        _ => "report".to_string(),
+    };
+    let mut columns = vec![(String::new(), Align::Left)];
+    columns.extend((1..=tests.len()).map(|k| (format!("({k})"), Align::Right)));
+    let row = |label: &str, cell: &dyn Fn(&TestResult) -> String| -> Vec<String> {
+        std::iter::once(label.to_string())
+            .chain(tests.iter().map(|t| cell(t)))
+            .collect()
+    };
+    let rows = vec![
+        row("estimate", &|t| {
+            t.estimate
+                .as_ref()
+                .map_or(String::new(), |e| fixed(e.value, e.decimals))
+        }),
+        row("statistic", &|t| {
+            format!("{} = {}", t.statistic.name, fixed(t.statistic.value, 2))
+        }),
+        row("df", &|t| {
+            t.statistic
+                .df
+                .iter()
+                .map(|&d| zeff_core::display::degrees_text(d))
+                .collect::<Vec<_>>()
+                .join(", ")
+        }),
+        row("p value", &|t| zeff_core::display::p_value_text(t.p_value)),
+        row("effect size", &|t| {
+            t.effect.as_ref().map_or(String::new(), |e| {
+                format!("{} = {}", e.label, fixed(e.value, e.decimals))
+            })
+        }),
+        row("N", &|t| count(t.n as u64)),
+    ];
+    let mut after = Vec::new();
+    for (k, test) in tests.iter().enumerate() {
+        if let Some(h) = &test.hypotheses {
+            after.push(format!("({}) H0: {}; H1: {}", k + 1, h.h0, h.h1));
+        }
+        for note in &test.notes {
+            after.push(format!("({}) note: {note}", k + 1));
+        }
+    }
+    Ok(Value::Table(Table {
+        title,
+        before: Vec::new(),
+        columns,
+        rows,
+        after,
+        more: Vec::new(),
+        rules: vec![5],
     }))
 }
 

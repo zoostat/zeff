@@ -1,0 +1,17 @@
+---
+source: packages/tier1/stats/tests/test_result.rs
+expression: "zeff_core::display::show(&Value::Table(table))"
+---
+report
+
+                             (1)         (2)
+  estimate                 0.153
+  statistic            t = 20.42   V = 61.00
+  df                    18,074.2
+  p value                 <0.001       0.023
+  effect size   Hedges' g = 0.30
+  ──────────────────────────────────────────
+  N                       18,201          12
+
+(1) H0: the population means of lwage are equal in male and female; H1: the population means of lwage differ between male and female
+(2) H0: the distribution of gain is symmetric about 0; H1: values of gain tend to lie above 0

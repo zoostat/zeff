@@ -3,6 +3,8 @@
 //! 11): matrices as tables, with pairwise or listwise deletion, and the p-values of R's
 //! `cor.test` for the three correlation methods.
 
+pub mod testing;
+
 use zeff_columns::{Column, ColumnType};
 use zeff_core::display::format_float;
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};

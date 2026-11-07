@@ -9,7 +9,9 @@ use std::rc::Rc;
 use zeff_core::display::{fixed, p_value_text};
 use zeff_core::operators::Op;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Align, ColumnExpr, Distribution, Fit, Statistic, Table, TestResult, Value};
+use zeff_core::value::{
+    Align, Alternative, ColumnExpr, Distribution, Fit, Statistic, Table, TestResult, Value,
+};
 use zeff_diagnostics::{Diagnostic, Span, count, did_you_mean};
 use zeff_dist::families;
 use zeff_kernels::Matrix;
@@ -312,17 +314,24 @@ pub fn test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     Ok(Value::TestResult(Rc::new(TestResult {
         method: "test".to_string(),
         title: format!("test · {} · {}", fit_name(&fit), texts.join(", ")),
+        hypotheses: None,
+        alternative: Alternative::TwoSided,
         header: Vec::new(),
         table: None,
+        estimate: None,
         statistic: Statistic {
             name: "F".to_string(),
             value: f,
             df: vec![q as f64, df as f64],
         },
         p_value: p,
+        effect: None,
+        level: fit.level,
+        alpha: None,
         after: Vec::new(),
         notes: Vec::new(),
         n: fit.n,
+        dropped: 0,
     })))
 }
 
@@ -442,17 +451,24 @@ pub fn compare(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     Ok(Value::TestResult(Rc::new(TestResult {
         method: "compare".to_string(),
         title: format!("compare · {} against {}", fit_name(&a), fit_name(&b)),
+        hypotheses: None,
+        alternative: Alternative::TwoSided,
         header: Vec::new(),
         table: Some(table),
+        estimate: None,
         statistic: Statistic {
             name: "F".to_string(),
             value: f,
             df: vec![q as f64, df as f64],
         },
         p_value: p,
+        effect: None,
+        level: a.level,
+        alpha: None,
         after: Vec::new(),
         notes: Vec::new(),
         n: a.n,
+        dropped: 0,
     })))
 }
 

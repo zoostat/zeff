@@ -14,7 +14,7 @@
 //! A table wider than the page (118 characters, the width of a help page) prints its columns in
 //! blocks, as R does, every value shown; a frame repeats the row numbers at the start of each block.
 
-use crate::value::{Align, Distribution, Frame, Statistic, Table, TestResult, Value};
+use crate::value::{Align, Distribution, Estimate, Frame, Statistic, Table, TestResult, Value};
 use zeff_columns::{ColumnType, MetadataKey, Value as Cell};
 use zeff_dates::{format_iso_date, format_iso_datetime};
 use zeff_diagnostics::count;
@@ -260,8 +260,8 @@ fn frame_text(frame: &Frame, width: usize) -> String {
 /// it.
 pub fn test_result_text(result: &TestResult, width: usize) -> String {
     let mut text = format!("{}\n", result.title);
-    for line in &result.header {
-        text.push_str(line);
+    for line in test_result_before(result) {
+        text.push_str(&line);
         text.push('\n');
     }
     if let Some(table) = &result.table {
@@ -275,13 +275,101 @@ pub fn test_result_text(result: &TestResult, width: usize) -> String {
         ));
         text.push('\n');
     }
-    text.push_str(&statistic_line(&result.statistic, result.p_value));
-    text.push('\n');
-    for line in &result.after {
-        text.push_str(line);
+    for line in test_result_after(result) {
+        text.push_str(&line);
         text.push('\n');
     }
     text
+}
+
+/// The lines a test prints between its title and its table: the hypothesis block of open
+/// decision #91 when the test has one (indented two spaces, `H0:` then `H1:`, each sentence
+/// followed by its symbolic form in one column), then the header lines.
+pub fn test_result_before(result: &TestResult) -> Vec<String> {
+    let mut lines = Vec::new();
+    if let Some(h) = &result.hypotheses {
+        match &h.symbols {
+            Some((s0, s1)) => {
+                let width = h.h0.chars().count().max(h.h1.chars().count());
+                lines.push(format!("  H0: {:<width$}      {s0}", h.h0));
+                lines.push(format!("  H1: {:<width$}      {s1}", h.h1));
+            }
+            None => {
+                lines.push(format!("  H0: {}", h.h0));
+                lines.push(format!("  H1: {}", h.h1));
+            }
+        }
+    }
+    lines.extend(result.header.iter().cloned());
+    lines
+}
+
+/// The lines a test prints after its table: the estimate with its interval, the statistic
+/// line, the effect size with its interval, the decision line, and the lines after.
+pub fn test_result_after(result: &TestResult) -> Vec<String> {
+    let mut lines = Vec::new();
+    if let Some(estimate) = &result.estimate {
+        lines.push(estimate_line(estimate, result.level));
+    }
+    lines.push(statistic_line(&result.statistic, result.p_value));
+    if let Some(effect) = &result.effect {
+        lines.push(estimate_line(effect, result.level));
+    }
+    if let Some(alpha) = result.alpha {
+        lines.push(decision_line(alpha, result.p_value));
+    }
+    lines.extend(result.after.iter().cloned());
+    lines
+}
+
+/// `difference (male − female) = 0.153   95% CI [0.138, 0.168]`: an estimate to its decimals,
+/// with its interval at the level when it has one.
+pub fn estimate_line(estimate: &Estimate, level: f64) -> String {
+    let value = fixed(estimate.value, estimate.decimals);
+    match estimate.ci {
+        Some((lower, upper)) => format!(
+            "{} = {value}   {} CI [{}, {}]",
+            estimate.label,
+            level_text(level),
+            fixed(lower, estimate.decimals),
+            fixed(upper, estimate.decimals)
+        ),
+        None => format!("{} = {value}", estimate.label),
+    }
+}
+
+/// `decision at α = 0.05: reject H0 (p < 0.001)` or `… fail to reject H0 (p = 0.231)` (open
+/// decision #91, rule R8): the p-value printed as the statistic line prints it.
+pub fn decision_line(alpha: f64, p: f64) -> String {
+    let verdict = if p < alpha {
+        "reject H0"
+    } else {
+        "fail to reject H0"
+    };
+    format!(
+        "decision at α = {}: {verdict} ({})",
+        alpha_text(alpha),
+        p_part(p)
+    )
+}
+
+/// α as the decision line writes it: `0.05`, `0.01`, `0.1`, free of the rounding of `1 − level`.
+pub fn alpha_text(alpha: f64) -> String {
+    format_float((alpha * 1e10).round() / 1e10)
+}
+
+/// `95%` for a level of 0.95.
+pub fn level_text(level: f64) -> String {
+    format!("{}%", format_float((level * 1e12).round() / 1e10))
+}
+
+/// `p < 0.001` or `p = 0.040`.
+fn p_part(p: f64) -> String {
+    let p_text = p_value_text(p);
+    match p_text.strip_prefix('<') {
+        Some(below) => format!("p < {below}"),
+        None => format!("p = {p_text}"),
+    }
 }
 
 /// The statistic line of a test: `F(1, 18,179) = 4.21   p = 0.040`, with the statistic to two
@@ -289,17 +377,22 @@ pub fn test_result_text(result: &TestResult, width: usize) -> String {
 /// and p to three decimals, `p < 0.001` below.
 pub fn statistic_line(statistic: &Statistic, p: f64) -> String {
     let df: Vec<String> = statistic.df.iter().map(|&d| degrees_text(d)).collect();
+    // A t statistic writes its one degree of freedom as `df = …` after the value, as the
+    // examples of section 10.2 print it; the others write theirs in brackets, `F(1, 18,179)`.
+    if statistic.name == "t" && df.len() == 1 {
+        return format!(
+            "t = {}   df = {}   {}",
+            fixed(statistic.value, 2),
+            df[0],
+            p_part(p)
+        );
+    }
     let head = if df.is_empty() {
         statistic.name.clone()
     } else {
         format!("{}({})", statistic.name, df.join(", "))
     };
-    let p_text = p_value_text(p);
-    let p_part = match p_text.strip_prefix('<') {
-        Some(below) => format!("p < {below}"),
-        None => format!("p = {p_text}"),
-    };
-    format!("{head} = {}   {p_part}", fixed(statistic.value, 2))
+    format!("{head} = {}   {}", fixed(statistic.value, 2), p_part(p))
 }
 
 /// Degrees of freedom as a test line writes them: a whole number as a count, `18,179`; otherwise

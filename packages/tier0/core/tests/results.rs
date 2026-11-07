@@ -5,7 +5,7 @@
 use std::rc::Rc;
 use zeff_core::display::{show, statistic_line};
 use zeff_core::types::{has_type, type_name};
-use zeff_core::value::{Align, Statistic, Table, TestResult, TypeValue, Value};
+use zeff_core::value::{Align, Alternative, Statistic, Table, TestResult, TypeValue, Value};
 
 fn stat(name: &str, value: f64, df: &[f64]) -> Statistic {
     Statistic {
@@ -33,6 +33,13 @@ fn result(
         after: after.iter().map(|s| s.to_string()).collect(),
         notes: Vec::new(),
         n: 18_179,
+        hypotheses: None,
+        alternative: Alternative::TwoSided,
+        estimate: None,
+        effect: None,
+        level: 0.95,
+        alpha: None,
+        dropped: 0,
     }))
 }
 
@@ -110,9 +117,11 @@ fn the_statistic_line_rounds_as_section_3_8_says() {
         line("F", 4.215, &[2.0, 7.0], 0.0005),
         "F(2, 7) = 4.21   p = 0.001"
     );
+    // A t statistic writes its degrees of freedom after the value, as section 10.2's example of
+    // `t_test` prints them (release 0.7.0, step 7).
     assert_eq!(
         line("t", 20.42, &[18_074.2], 1e-90),
-        "t(18,074.2) = 20.42   p < 0.001"
+        "t = 20.42   df = 18,074.2   p < 0.001"
     );
     assert_eq!(
         line("chi2", 0.004, &[3.0], 0.999_9),
@@ -121,7 +130,7 @@ fn the_statistic_line_rounds_as_section_3_8_says() {
     assert_eq!(line("z", -1.96, &[], 0.05), "z = -1.96   p = 0.050");
     assert_eq!(
         line("t", 2.0, &[1_234_567.5], 0.5),
-        "t(1,234,567.5) = 2.00   p = 0.500"
+        "t = 2.00   df = 1,234,567.5   p = 0.500"
     );
     assert_eq!(
         line("F", f64::NAN, &[1.0, 2.0], f64::NAN),

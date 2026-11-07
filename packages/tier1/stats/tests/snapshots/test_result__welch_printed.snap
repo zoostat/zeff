@@ -1,0 +1,16 @@
+---
+source: packages/tier1/stats/tests/test_result.rs
+expression: text
+---
+t_test · Welch two-sample · lwage by female
+  H0: the population means of lwage are equal in male and female        μ(male) − μ(female) = 0
+  H1: the population means of lwage differ between male and female      μ(male) − μ(female) ≠ 0
+
+  group        N    mean      sd
+  male     9,604   3.214   0.512
+  female   8,597   3.061   0.498
+
+difference (male − female) = 0.153   95% CI [0.138, 0.168]
+t = 20.42   df = 18,074.2   p < 0.001
+Hedges' g = 0.30   95% CI [0.27, 0.33]
+decision at α = 0.05: reject H0 (p < 0.001)
