@@ -119,7 +119,8 @@ statement   = "let" NAME "=" expr | for_loop
             // return only in a function, break and continue only in a loop (Z0313)
 fn_def      = { DOC } "fn" NAME "(" [ params ] ")" "->" type block
 params      = param { "," param }
-param       = NAME ":" type [ "=" expr ]
+param       = NAME ":" type [ "=" expr ]                               // in a built-in's file, `= enclosing` on the first parameter marks
+                                                                       // the enclosing frame (Engine and Project Specification, section 9.1)
 type        = simple [ "?" ] | words | fn_type | "Nothing"
 simple      = qname [ "<" type { "," type } ">" ]
             | "{" NAME ":" type { "," NAME ":" type } "}"

@@ -5,6 +5,7 @@
 
 use crate::pragmas::{Allowed, Allows};
 use crate::registry::{Bodies, ZeffBodies, ZeffBuiltin};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use zeff_core::display::{PAGE_WIDTH, show, show_width};
 use zeff_core::fused;
@@ -1349,6 +1350,37 @@ impl<'a> Interpreter<'a> {
             })
             .unwrap_or(&builtin.forms[0]);
         let f = &form.program.functions[form.function];
+        // The enclosing frame (open decision #69): the frame of the frame method the call
+        // stands in, the group's rows under `by:`, bound to the first parameter before the
+        // arguments; Z0401 outside one, as `n()` gives it.
+        let (values, args): (Vec<Option<Value>>, Cow<'_, [Option<Expr>]>) = if builtin.enclosing {
+            let Some(frame) = self.receivers.last().map(|r| r.current().clone()) else {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`{}` reads the frame around it and stands inside a frame method such as `add` or `aggregate`",
+                            builtin.name
+                        ),
+                    )
+                    .in_file(self.script)
+                    .primary(call.callee_span, "no frame here")
+                    .help(format!(
+                        "write it inside a definition, as in `wages.add(y = {}(...))`",
+                        builtin.name
+                    )),
+                ));
+            };
+            let values = std::iter::once(Some(Value::Frame(frame)))
+                .chain(values)
+                .collect();
+            let args = std::iter::once(None)
+                .chain(call.args.iter().cloned())
+                .collect::<Vec<_>>();
+            (values, Cow::Owned(args))
+        } else {
+            (values, Cow::Borrowed(call.args.as_slice()))
+        };
         let saved_program = std::mem::replace(&mut self.program, &form.program);
         let saved_env = std::mem::take(&mut self.env);
         let saved_receivers = std::mem::take(&mut self.receivers);
@@ -1356,15 +1388,7 @@ impl<'a> Interpreter<'a> {
         self.script = builtin.source.name();
         self.source = &builtin.source;
         let before = messages.len();
-        let result = self.run_user(
-            f,
-            call.callee_span,
-            &call.args,
-            values,
-            true,
-            printed,
-            messages,
-        );
+        let result = self.run_user(f, call.callee_span, &args, values, true, printed, messages);
         self.program = saved_program;
         self.env = saved_env;
         self.receivers = saved_receivers;

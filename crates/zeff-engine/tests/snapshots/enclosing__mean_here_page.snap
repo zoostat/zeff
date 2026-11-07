@@ -1,0 +1,40 @@
+---
+source: crates/zeff-engine/tests/enclosing.rs
+expression: page
+---
+fixture_mean_here — The mean of a variable of the frame around the call, as a fixture  data · tier 1 · since 0.7.0 · 1.0 · exact
+
+USAGE
+    fixture_mean_here(var)
+
+DESCRIPTION
+    `mean` of `var` over the enclosing frame, or over its group under `by:`: the fixture of the enclosing
+    frame beside an argument the call gives.
+
+ARGUMENTS
+    var         Var. The variable, of the frame the call stands in.
+
+VALUE
+    The mean, a Float.
+
+WARNINGS AND NOTES
+    Z0401   outside a frame method, where there is no frame around the call
+    W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
+    W0204   Inf and -Inf both present, so the result is NA
+    Z0101   no such variable in the frame
+    Z0102   a variable that differs only in case from the name written
+
+ACCURACY
+    Exact.
+
+SEE ALSO
+    mean, n
+
+EXAMPLES
+    > let d = frame(x = [1, 2, 6], g = ["a", "a", "b"])
+    > d.aggregate(m = fixture_mean_here(x), by: g)
+    frame · 2 rows × 2 variables
+
+          g     m
+      1   a   1.5
+      2   b     6

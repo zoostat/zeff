@@ -1140,6 +1140,13 @@ fn control_cases() -> Vec<Line> {
         // allows the coded warning, and `name_of` in a message, from the script and from a
         // function.
         ("notes", NOTES_SCRIPT),
+        // The enclosing frame (release 0.7.0, step 3.3): the functions that read the frame
+        // around the call, `n()` and the row functions, inside `add`, `update`, `aggregate`
+        // and `where`, under `by:` where the group's rows are the frame, from the script and
+        // through a project function, and the Z0401 of a call that stands in no frame method.
+        // The row functions move to Zeff at step 4 on this piece, and the digests must not
+        // move with them.
+        ("enclosing", ENCLOSING_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1172,6 +1179,10 @@ fn control_cases() -> Vec<Line> {
     ));
     lines
 }
+
+/// The script of the `enclosing` case: `n()`, `row_mean` and `row_sum` wherever a frame
+/// method gives them a frame, and once where none does.
+const ENCLOSING_SCRIPT: &str = "let d = frame(q1 = [5, 4, NA, 2], q2 = [3, NA, NA, 2], q3 = [4, 4, 2, NA], s = [1.5, 2.5, NA, 4.5], g = [\"a\", \"a\", \"b\", \"b\"])\nd.add(rows = n(), score = row_mean([q1, q2, q3]), total = row_sum([q1, q2, q3]))\nd.add(rows = n(), score = row_mean([q1, q2, q3], min_valid: 2), by: g)\nd.aggregate(rows = n(), by: g)\nd.update(s = row_sum([q1, q2, q3]) / n(), where: is_missing(s))\nd.where(row_sum([q1, q2, q3]) > n())\nlet w = dataset(wages)\nw.aggregate(rows = n(), mean_wage = mean(wage), by: female)\nw.add(share = wage / n()).summary([share])\n/// The row count, through a function, which sees no frame.\nfn rows() -> Int {\n    n()\n}\nd.add(k = rows())\n";
 
 /// The script of the `notes` case: the notes and coded warnings of section 5.4 from a script
 /// and from a function, one allowed by a pragma, and a variable's name written into a message.

@@ -118,7 +118,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 66 | A published speed comparison with Stata MP and R | At 1.1, when threads arrive, on the owner's machine; reported in the release notes, never a gate | 1.1 |
 | 67 | The default `level:` of `ci()` on a fit made at another level | The fit's level, so that `ci()` agrees with the summary; `level:` written overrides it | decided 1 November 2026 |
 | 68 | A parameter of several types in a Zeff-written built-in | Allow the registry's `A \| B` in the `fn` line of a built-in's file, checked once per type, so that `fill_missing` and `n_missing` can be rewritten in Zeff | decided 6 November 2026 |
-| 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | decided 6 November 2026 |
+| 69 | Access to the enclosing frame from a Zeff-written built-in | An implicit `Frame` parameter the checker supplies to a built-in that declares it, so that `row_mean` and `row_sum` can be rewritten in Zeff | decided 6 November 2026; applied 7 November 2026 (0.7.0, step 3.3) |
 | 70 | A note or a coded warning from a Zeff-written built-in | A `note(message)` function beside `warn`, a `code:` option on both, and the name of a `Var` as text (`name_of(v)`), so that `drop_missing` can be rewritten in Zeff with its note and `skewness` can raise W0205 | decided 6 November 2026 |
 | 71 | The fitted design through the result interface | A `design()` method giving the kept design as a frame of the rows used, so that `vif` and later diagnostics can be written in Zeff | decided 6 November 2026 |
 | 72 | A table constructor for Zeff-written functions | `table(title, columns = [...])` in `core`, with `format` for numbers, so that `summary` can be rewritten in Zeff as section 14 planned | decided 1 November 2026 |
@@ -928,6 +928,8 @@ Raised on 31 October 2026 at step 17 of release 0.5.0. `row_mean([q1, q2, q3])` 
 *Recommendation.* A, at 0.7.0 with open decision #68, when the `fn` line of a built-in is next touched; the catalogue's `layer` returns to Zeff for both rows then.
 
 *Decided 6 November 2026, as recommended (option A).* Built at step 3; `row_mean`, `row_sum` and `diff` return to Zeff at step 4 where the piece expresses them.
+
+*Applied 7 November 2026 (release 0.7.0, step 3.3).* The spelling is `data: Frame = enclosing`, the first parameter of the built-in's own `fn` line, typed `Frame`; the usage line and the page leave it out, and the engine binds it at the call to the frame of the frame method the call stands in, the group's rows under `by:`, before the arguments. A call that stands in no frame method is refused as `n()` is (Z0401, "no frame here"), and a project function marking a parameter is refused (Z0101) with a help naming the rule. Section 9.1 of the Engine and Project Specification and the grammar of section 3.4 of the Language Reference record it (logged). The conformance case `control/enclosing` digests `n()`, `row_mean` and `row_sum` wherever a frame method gives them a frame, so that step 4, which moves the row functions to Zeff on this piece, is held to the same output.
 
 ### 70. A note or a coded warning from a Zeff-written built-in
 

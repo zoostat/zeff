@@ -407,11 +407,25 @@ pub struct BuiltinChecked {
     /// The codes the bodies give `warn` and `note` (section 5.4), for the page's "Warnings and
     /// notes".
     pub codes: Vec<String>,
+    /// Whether the first parameter is the enclosing frame (open decision #69), which a call
+    /// never gives: the interpreter supplies the frame of the frame method the call stands in.
+    pub enclosing: bool,
 }
 
 /// Whether `text` has the shape of a diagnostic code: `W` or `Z` and four digits.
 pub fn is_code_text(text: &str) -> bool {
     text.len() == 5 && text.starts_with(['W', 'Z']) && text[1..].bytes().all(|b| b.is_ascii_digit())
+}
+
+/// Whether a parameter is written `data: Frame = enclosing`: in a built-in's file, and there
+/// only, the first parameter so marked is the enclosing frame, the frame of the frame method
+/// the call stands in (the group's rows under `by:`), which the interpreter supplies and the
+/// usage line leaves out (Engine and Project Specification, section 9.1; open decision #69).
+pub fn enclosing_param(p: &ast::Param) -> bool {
+    matches!(
+        p.default.as_ref().map(|d| &d.kind),
+        Some(ast::ExprKind::Name(path)) if path.segments.len() == 1 && path.segments[0].text == "enclosing"
+    )
 }
 
 /// One form of a built-in written in Zeff: which parameters are given as columns, the type
@@ -537,6 +551,82 @@ pub fn check_builtin(
                 .primary(f.name.span, "a second public function")
                 .help(format!("a file holds one built-in, `{name}`, and the private helpers only it uses, named with a leading `_`")),
             ));
+        }
+    }
+    // The enclosing frame (open decision #69): `data: Frame = enclosing` marks the first
+    // parameter of the built-in's own `fn` line, typed `Frame`; a helper takes the frame as an
+    // argument, and the page has no entry for it, since a call gives no argument for it.
+    for f in &definitions {
+        for (i, p) in f.params.iter().enumerate() {
+            if !enclosing_param(p) {
+                continue;
+            }
+            let d = p
+                .default
+                .as_ref()
+                .expect("a marked parameter has a default");
+            let problem = if f.name.text != name {
+                Some((
+                    "the enclosing frame belongs to the built-in's own `fn` line",
+                    format!(
+                        "a helper takes the frame as an argument: `{}(data: Frame, ...)`, called with the frame `{name}` was given",
+                        f.name.text
+                    ),
+                ))
+            } else if i != 0 {
+                Some((
+                    "the enclosing frame is the first parameter",
+                    format!(
+                        "write `{}: Frame = enclosing` first, before the arguments a call gives",
+                        p.name.text
+                    ),
+                ))
+            } else if written_type(&p.ty) != "Frame" {
+                Some((
+                    "the enclosing frame is typed `Frame`",
+                    format!(
+                        "write `{}: Frame = enclosing`; the frame method the call stands in supplies a frame, never `NA`",
+                        p.name.text
+                    ),
+                ))
+            } else {
+                None
+            };
+            if let Some((message, help)) = problem {
+                problems.push(plain(
+                    Diagnostic::error("Z0323", message)
+                        .in_file(file)
+                        .primary(d.span, "`= enclosing`")
+                        .help(help),
+                ));
+            }
+        }
+    }
+    let enclosing = definitions[main]
+        .params
+        .first()
+        .is_some_and(enclosing_param);
+    if enclosing {
+        let hidden = &definitions[main].params[0].name.text;
+        for line in &definitions[main].doc {
+            if line.text.trim_start().starts_with('>') {
+                break;
+            }
+            if line
+                .text
+                .split_once(':')
+                .is_some_and(|(key, _)| key.trim() == hidden)
+            {
+                problems.push(plain(
+                    Diagnostic::error(
+                        "Z0323",
+                        format!("the help of `{name}` describes `{hidden}`, the enclosing frame, which a call never gives"),
+                    )
+                    .in_file(file)
+                    .primary(line.span, "no entry for the enclosing frame")
+                    .help("the page lists the arguments of the usage line; say in the description that the function stands inside a frame method"),
+                ));
+            }
         }
     }
     if !problems.is_empty() {
@@ -719,6 +809,7 @@ pub fn check_builtin(
         forms: lowered,
         calls,
         codes,
+        enclosing,
     })
 }
 
@@ -1406,12 +1497,10 @@ impl Checker<'_> {
                     .help("give each parameter its own name"),
                 );
             }
-            params.push((
-                p.name.text.clone(),
-                ty,
-                nullable || p.default.is_some(),
-                p.name.span,
-            ));
+            // The enclosing frame of a built-in is always supplied, so it is never optional.
+            let optional =
+                nullable || (p.default.is_some() && !(self.builtin_file && enclosing_param(p)));
+            params.push((p.name.text.clone(), ty, optional, p.name.span));
         }
         // In a built-in's file the result may be typed `Join`, the one type of every argument,
         // or `Same`, the first argument's (section 3.7, "Joining types"; open decision #68),
@@ -1488,7 +1577,22 @@ impl Checker<'_> {
                 _ => ty.clone(),
             };
             let ty = &default_ty;
-            let default = p.default.as_ref().map(|d| {
+            // `= enclosing` marks the enclosing frame of a built-in (open decision #69), which
+            // the interpreter supplies: there is no default to evaluate. In a project it names
+            // nothing, unless a binding of that name is in scope.
+            let marker = enclosing_param(p) && self.lookup("enclosing").is_none();
+            if marker && !self.builtin_file {
+                let d = p
+                    .default
+                    .as_ref()
+                    .expect("a marked parameter has a default");
+                self.report(
+                    Diagnostic::error("Z0101", "nothing is called `enclosing` here")
+                        .primary(d.span, "not a binding")
+                        .help("the enclosing frame belongs to a built-in's file (Engine and Project Specification, section 9.1); a project function takes the frame as an argument, `data: Frame`, and is called as a method on it"),
+                );
+            }
+            let default = p.default.as_ref().filter(|_| !marker).map(|d| {
                 let lowered = self.argument(d, ty, false);
                 let lowered = self.no_nothing(lowered, "a default");
                 if !ty.accepts(&lowered.ty) {

@@ -5,7 +5,9 @@ pub mod ir;
 pub mod schema;
 pub mod ty;
 
-pub use check::{BuiltinChecked, BuiltinForm, BuiltinProblem, check_builtin, type_text};
+pub use check::{
+    BuiltinChecked, BuiltinForm, BuiltinProblem, check_builtin, enclosing_param, type_text,
+};
 pub use check::{Checked, check, check_source};
 pub use check::{ModuleSource, check_project, check_project_with, check_with_text};
 pub use ir::{

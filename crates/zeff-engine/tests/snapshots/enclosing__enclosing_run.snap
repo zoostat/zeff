@@ -1,0 +1,39 @@
+---
+source: crates/zeff-engine/tests/enclosing.rs
+expression: out
+---
+frame · 4 rows × 4 variables
+
+      x   g   k     m
+  1   1   a   4   4.5
+  2   2   a   4   4.5
+  3   6   b   4   4.5
+  4   9   b   4   4.5
+frame · 4 rows × 4 variables
+
+      x   g   k     m
+  1   1   a   2   1.5
+  2   2   a   2   1.5
+  3   6   b   2   7.5
+  4   9   b   2   7.5
+frame · 1 row × 2 variables
+
+      k     m
+  1   4   4.5
+frame · 2 rows × 3 variables
+
+      g   k     m
+  1   a   2   1.5
+  2   b   2   7.5
+frame · 4 rows × 2 variables
+
+       x   g
+  1    1   a
+  2    2   a
+  3   24   b
+  4   36   b
+frame · 2 rows × 2 variables
+
+      x   g
+  1   6   b
+  2   9   b

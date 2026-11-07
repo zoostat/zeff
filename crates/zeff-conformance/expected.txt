@@ -167,6 +167,8 @@ control/pragma/stdout bf41e16d523c5fe2
 control/pragma/stderr be7c0ee72fc0221c
 control/notes/stdout 38946dfb9d240014
 control/notes/stderr f611ae5ba2d75eda
+control/enclosing/stdout 8612e10f4afaca6c
+control/enclosing/stderr cb9025bdddb33e8e
 control/pragma_denied/stdout 0ed6d42d1957e735
 control/pragma_denied/stderr 4cd8ad2c725305c0
 time/parts/stdout 9d8407bf30ba8484

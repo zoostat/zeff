@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 use zeff_core::runtime::{Body, Function};
 use zeff_diagnostics::{Source, Sources};
-use zeff_ir::{BuiltinChecked, BuiltinForm, type_text};
+use zeff_ir::{BuiltinChecked, BuiltinForm, enclosing_param, type_text};
 use zeff_registry::{
     Catalogue, DiagnosticDecl, FunctionSpec, ParamSpec, Registry, RegistryError, ZeffSource,
     page_markdown,
@@ -53,6 +53,9 @@ pub struct ZeffBuiltin {
     pub name: String,
     pub source: Source,
     pub forms: Vec<BuiltinForm>,
+    /// Whether the body's first parameter is the enclosing frame (open decision #69), which the
+    /// interpreter supplies from the frame method the call stands in, before the arguments.
+    pub enclosing: bool,
 }
 
 /// The lowered built-ins written in Zeff, by package and name.
@@ -190,6 +193,7 @@ pub fn build(
                 name: source.name.to_string(),
                 source: source_text,
                 forms: checked.forms,
+                enclosing: checked.enclosing,
             },
         );
     }
@@ -210,10 +214,20 @@ pub fn build(
         .collect();
     let mut keys: Vec<(String, String)> = calls_of.keys().cloned().collect();
     keys.sort();
+    // What a Zeff built-in declares of its own: the Z0401 of the enclosing frame.
+    let own_of: HashMap<(String, String), Vec<DiagnosticDecl>> = keys
+        .iter()
+        .map(|key| (key.clone(), declared[key].clone()))
+        .collect();
     for _ in 0..=keys.len() {
         let mut changed = false;
         for key in &keys {
-            let mut generated: Vec<DiagnosticDecl> = codes_of[key].clone();
+            let mut generated: Vec<DiagnosticDecl> = own_of[key].clone();
+            for decl in &codes_of[key] {
+                if !generated.iter().any(|g| g.code == decl.code) {
+                    generated.push(decl.clone());
+                }
+            }
             for callee in &calls_of[key] {
                 for decl in declared.get(callee).into_iter().flatten() {
                     if !generated.iter().any(|g| g.code == decl.code) {
@@ -274,9 +288,16 @@ fn derive_spec(
     };
     let leak = |s: String| -> &'static str { Box::leak(s.into_boxed_str()) };
     let method = row.kind.ends_with("method");
+    // The enclosing frame, `data: Frame = enclosing` first (open decision #69), is supplied by
+    // the frame method the call stands in: the usage line and the page leave it out, and the
+    // function declares the Z0401 it raises outside one, as `n()` does.
+    // A mark anywhere else is the checker's to refuse (Z0323), so every marked parameter is
+    // left out here, and the usage check does not speak first.
+    let enclosing = f.params.first().is_some_and(enclosing_param);
     let params: Vec<ParamSpec> = f
         .params
         .iter()
+        .filter(|p| !enclosing_param(p))
         .map(|p| {
             let ty = type_text(&p.ty);
             let (ty, nullable) = match ty.strip_suffix('?') {
@@ -313,7 +334,14 @@ fn derive_spec(
             params,
             rest: None,
             returns,
-            diagnostics: Vec::new(),
+            diagnostics: if enclosing {
+                vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "outside a frame method, where there is no frame around the call",
+                )]
+            } else {
+                Vec::new()
+            },
             help,
             accuracy: None,
         },

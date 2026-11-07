@@ -120,3 +120,13 @@ Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (th
 
 **For the owner to decide.** Nothing new. Rulings he may overturn: at most 256 forms for one built-in; an Int given where a built-in offers both `Int` and `Float` takes the `Int` form.
 
+
+## 7 November 2026, release 0.7.0, step 3.3 (the enclosing frame)
+
+**Done.** In the `fn` line of a built-in's file, and there only, the first parameter may be written `data: Frame = enclosing`: the frame of the frame method the call stands in (the group's rows under `by:`), which the engine binds before the arguments at the call and which the usage line and the page leave out; a call that stands in no frame method is refused as `n()` is (Z0401, "no frame here"), and a project function writing the mark is refused with a help naming the rule. The checker refuses the mark on a helper, on a parameter that is not first or not a `Frame`, and a page entry for it (Z0323); the page declares the Z0401 under "Warnings and notes". Proved on two fixtures of `data` (a Zeff `n()` and a reducer over a variable beside the frame) inside `add`, `aggregate`, `update` and `where`, with and without `by:`, agreeing with `n()` and `mean` in each place, with every message as a snapshot; the conformance case `control/enclosing` digests `n()`, `row_mean` and `row_sum` wherever a frame method gives them a frame, so that step 4, which moves the row functions to Zeff on this piece, is held to the same output. Section 9.1 of the Engine and Project Specification and the grammar's comment follow (logged); open decision #69 records the application.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the checker's tests, the engine programs of the built-ins written in Zeff, the functions, the modules, the rows, the notes and the help examples, the conformance and command-line programs; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 3b `[engine]`: functions as values over lists (#79, option B): a function literal, `map`, `filter` and `reduce`.
+
+**For the owner to decide.** Nothing new. Rulings he may overturn: the spelling `data: Frame = enclosing`; the page has no entry for the enclosing frame; a function of the script called inside a definition sees no frame, as with `n()` today.
