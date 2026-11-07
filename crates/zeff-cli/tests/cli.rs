@@ -599,7 +599,7 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
     insta::assert_snapshot!("help_data", out(&o));
     let core = zeff(dir.path(), &["help", "core"]);
     assert!(
-        out(&core).starts_with("core · tier 0 · 67 of 70 functions in this release"),
+        out(&core).starts_with("core · tier 0 · 69 of 72 functions in this release"),
         "{}",
         out(&core)
     );
