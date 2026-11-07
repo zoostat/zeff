@@ -171,6 +171,8 @@ control/enclosing/stdout 8612e10f4afaca6c
 control/enclosing/stderr cb9025bdddb33e8e
 control/map/stdout c6147ac7d2f36b65
 control/map/stderr 2fccac6587b5a5bc
+control/several_types/stdout fbcf43f4740d7edf
+control/several_types/stderr cbf29ce484222325
 control/pragma_denied/stdout 0ed6d42d1957e735
 control/pragma_denied/stderr 4cd8ad2c725305c0
 time/parts/stdout 9d8407bf30ba8484

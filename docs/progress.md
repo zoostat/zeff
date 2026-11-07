@@ -140,3 +140,13 @@ Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (th
 **Next.** Step 4 `[function]`: the rewrites in Zeff (`fill_missing`, `n_missing`, `row_mean`, `row_sum`, `diff`, `drop_missing`, `skewness`, `quantile_group`, `summary` on `table`).
 
 **For the owner to decide.** Nothing new. Rulings he may overturn: a literal's body is one expression, not a block; a literal bound to a name (`let f = fn(x) ...`) stays after 1.0; `filter` refuses `NA` from its function (Z0203) rather than dropping the item.
+
+## 7 November 2026, release 0.7.0, step 4.1 (`fill_missing` back in Zeff)
+
+**Done.** Step 4 split into 4.1 to 4.5, one group of rewrites each. `fill_missing` is `core/functions/fill_missing.zeff`, one line over `coalesce` on two parameters of six types, checked under 32 forms, its page in the `///` lines; the Rust body and page are gone and the catalogue's `layer` is Zeff again (251 in Rust, 21 in Zeff). `n_missing` stays in Rust with the reason in its row: a list holding failed values reaches it and no function of the language takes such a list apart. Two run-time gaps in the loader of Zeff built-ins closed on the way: a call no form fits is refused with Z0214 in the built-in's name instead of running the written form unchecked, and the form matcher no longer mistakes a parameter declared as a column for a scalar read as one (which had put `winsorize` on the fallback). The conformance case `control/several_types` is added, two digests and none changed; one message snapshot of `fill_missing` loses its "(row 1)".
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the registry, core, command-line and conformance programs, and the engine programs of the built-ins written in Zeff, the missing values, the examples and the functions; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 4.2 `[function]`: `row_mean`, `row_sum` and `diff` on the enclosing frame.
+
+**For the owner to decide.** Nothing new. Ruling he may overturn: `n_missing` stays in Rust rather than gaining a list function that admits failed values.

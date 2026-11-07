@@ -1425,23 +1425,22 @@ impl<'a> Interpreter<'a> {
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
         // The form whose columns are the arguments' and whose chosen types are theirs, exactly
-        // first, then accepting them (the written form when none matches, which the checker's
-        // rules make impossible).
-        let columns: Vec<bool> = values
-            .iter()
-            .map(|v| matches!(v, Some(Value::Column(_))))
-            .collect();
+        // first, then accepting them. None fits when a column's values and another argument
+        // are of types that do not join, which the checker cannot see when the column's type
+        // is not known before the run: that is Z0214 at the call, as the Rust form gave it.
         let form = builtin
             .forms
             .iter()
-            .find(|f| f.columns == columns && types_match(f, &values, true))
+            .find(|f| columns_match(f, &values) && types_match(f, &values, true))
             .or_else(|| {
                 builtin
                     .forms
                     .iter()
-                    .find(|f| f.columns == columns && types_match(f, &values, false))
-            })
-            .unwrap_or(&builtin.forms[0]);
+                    .find(|f| columns_match(f, &values) && types_match(f, &values, false))
+            });
+        let Some(form) = form else {
+            return Err(self.no_form_fits(builtin, call, &values));
+        };
         let f = &form.program.functions[form.function];
         // The enclosing frame (open decision #69): the frame of the frame method the call
         // stands in, the group's rows under `by:`, bound to the first parameter before the
@@ -1505,6 +1504,54 @@ impl<'a> Interpreter<'a> {
                 e
             }
         })
+    }
+
+    /// No form of a built-in written in Zeff fits the arguments: two of them are of types that
+    /// do not join (section 3.7, "Joining types"), Z0214 as the checker words it; anything else
+    /// is a bug, since the checker admits a call only under a form it checked.
+    fn no_form_fits(&self, builtin: &ZeffBuiltin, call: &Call, values: &[Option<Value>]) -> Fail {
+        let mut so_far: Option<Ty> = None;
+        for value in values.iter().flatten() {
+            let given = match value {
+                Value::Na => continue,
+                Value::Column(c) => Ty::parse(c.ty().name()),
+                other => Ty::parse(&zeff_core::types::type_name(other)),
+            };
+            let Some(given) = given else { continue };
+            match &so_far {
+                None => so_far = Some(given),
+                Some(seen) => match Ty::join(seen, &given) {
+                    Some(joined) => so_far = Some(joined),
+                    None => {
+                        return fail(
+                            Diagnostic::error(
+                                "Z0214",
+                                format!(
+                                    "`{}` needs values of one type, but these are {} and {}",
+                                    builtin.name,
+                                    seen.with_article(),
+                                    given.with_article()
+                                ),
+                            )
+                            .in_file(self.script)
+                            .primary(call.callee_span, "values of two types")
+                            .help("Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant"),
+                        );
+                    }
+                },
+            }
+        }
+        fail(
+            Diagnostic::error(
+                "Z9001",
+                format!(
+                    "internal error: this is a bug in Zeff, not in your script (no form of `{}` fits the arguments given)",
+                    builtin.name
+                ),
+            )
+            .in_file(self.script)
+            .primary(call.callee_span, "the call that failed"),
+        )
     }
 
     /// A built-in's body run with evaluated arguments, in parameter order, for a call through a
@@ -3446,6 +3493,21 @@ fn plural_rows(n: usize) -> String {
 
 fn shown(value: &Value) -> String {
     show(value).trim_end().to_string()
+}
+
+/// Whether the arguments' columns fit a form: a parameter the form reads as a column, or one
+/// declared as a column (`x: Column<Float>`, `x: List | Column`), takes a column and no other
+/// does; an argument left out fits any form.
+fn columns_match(form: &BuiltinForm, values: &[Option<Value>]) -> bool {
+    let params = &form.program.functions[form.function].params;
+    values.iter().enumerate().all(|(i, value)| match value {
+        None => true,
+        Some(value) => {
+            let given_column = matches!(value, Value::Column(_));
+            let takes_column = params.get(i).is_some_and(|p| matches!(p.ty, Ty::Column(_)));
+            given_column == takes_column
+        }
+    })
 }
 
 /// Whether the arguments fit a form's chosen types (open decision #68): a parameter declared

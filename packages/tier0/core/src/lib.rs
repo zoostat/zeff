@@ -58,6 +58,12 @@ pub fn zeff_sources() -> Vec<ZeffSource> {
             file: "core/functions/assert.zeff",
             text: include_str!("../functions/assert.zeff"),
         },
+        ZeffSource {
+            package: "core",
+            name: "fill_missing",
+            file: "core/functions/fill_missing.zeff",
+            text: include_str!("../functions/fill_missing.zeff"),
+        },
     ]
 }
 

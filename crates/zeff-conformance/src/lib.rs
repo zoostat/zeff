@@ -1151,6 +1151,10 @@ fn control_cases() -> Vec<Line> {
         // probabilities i/n, a literal reading a binding and a loop variable, a named function
         // as the value, the method form, nested literals, and a Failed item under `attempt`.
         ("map", MAP_SCRIPT),
+        // A parameter of several types (release 0.7.0, step 3.2, shipped at step 4.1 with
+        // `fill_missing` in Zeff): each scalar type, `NA` typed and bare, Int with Float both
+        // ways, the column forms, and the join inside `add`.
+        ("several_types", SEVERAL_TYPES_SCRIPT),
     ];
     let mut lines = Vec::new();
     for (name, script) in scripts {
@@ -1183,6 +1187,10 @@ fn control_cases() -> Vec<Line> {
     ));
     lines
 }
+
+/// The script of the `several_types` case: `fill_missing`, written in Zeff on a parameter of
+/// several types, under every type and column form a call may take.
+const SEVERAL_TYPES_SCRIPT: &str = "fill_missing(NA, 3)\nfill_missing(to(NA, Int), 0)\nfill_missing(true, false)\nfill_missing(to(NA, Bool), true)\nfill_missing(\"a\", \"b\")\nfill_missing(to(NA, Str), \"none\")\nfill_missing(1, 2.5)\nfill_missing(2.5, 1)\nfill_missing(to(NA, Float), 1)\nfill_missing(to(NA, Int), 1.5)\nfill_missing(to(\"2026-01-01\", Date), to(\"2000-01-01\", Date))\nfill_missing(to(NA, Date), to(\"2000-01-01\", Date))\nlet d = frame(i = [1, NA, 3], f = [1.5, NA, 2], s = [\"a\", NA, \"c\"], b = [true, NA, false])\nfill_missing(d[\"i\"], 0)\nfill_missing(d[\"f\"], 0)\nfill_missing(d[\"i\"], 0.5)\nfill_missing(d[\"s\"], \"none\")\nfill_missing(d[\"b\"], false)\nfill_missing(NA, d[\"i\"])\nfill_missing(d[\"f\"], d[\"i\"])\nd.add(i2 = fill_missing(i, 0), f2 = fill_missing(f, i), s2 = fill_missing(s, \"-\"))\nlet w = dataset(wages)\nw.add(wage2 = fill_missing(wage, 0)).summary([wage2])\n";
 
 /// The script of the `map` case: the three list functions over literals and named functions.
 const MAP_SCRIPT: &str = "let k = 8\nmap(seq(1, k - 1), fn(i) i / k)\nlet offset = 10\nmap([1, 2, 3], fn(i) i * i + offset)\nfilter([3, NA, 1, 2], fn(x) !is_missing(x) && x > 1)\nprint(reduce([1, 2, 3, 4], fn(acc, x) acc + x, 0))\nprint(reduce([1.5, 2.5, 4], fn(acc, x) acc * x, 1.0))\n/// Twice.\nfn twice(x: Int) -> Int {\n    x * 2\n}\n[1, 2, 3].map(twice)\n[for m in 1..2 { map([1, 2], fn(i) i * m) }]\nmap([\"b\", \"aa\"], len)\nlet w = dataset(wages)\nmap([1, 2], fn(i) i * w.n_rows())\nlet failed = attempt([1][2])\nprint(attempt(map([1, failed], fn(i) i)).is(Failed))\nfilter([1, NA], fn(x) x > 0)\n";

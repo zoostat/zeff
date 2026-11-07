@@ -64,7 +64,7 @@ error[Z0214]: `fill_missing` needs values of one type, but these are a Float and
   = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant
 
 ## fill_missing_column_no_join (exit 1)
-error[Z0214]: `fill_missing` needs values of one type, but these are an Int and a Str (row 1)
+error[Z0214]: `fill_missing` needs values of one type, but these are an Int and a Str
  --> scripts/main.zeff:2:1
   |
 2 | fill_missing(d["x"], "none")

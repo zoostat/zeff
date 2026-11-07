@@ -58,13 +58,15 @@ pub fn catalogue_with(rows: &[&str]) -> Catalogue {
     Catalogue::parse(&text).expect("the catalogue with the fixture rows parses")
 }
 
-/// The engine's functions with the given Zeff sources beside them, built against the catalogue
-/// with the given rows: what the tests of the loader use, with a source that must build and
-/// with ones that must not.
+/// The engine's functions, those written in Zeff included, with the given Zeff sources beside
+/// them, built against the catalogue with the given rows: what the tests of the loader use,
+/// with a source that must build and with ones that must not.
 pub fn build_with(sources: &[ZeffSource], rows: &[&str]) -> Result<Built, Vec<RegistryError>> {
+    let mut all = registry::zeff_sources();
+    all.extend(sources.iter().copied());
     registry::build(
         &registry::functions(),
-        sources,
+        &all,
         catalogue_with(rows),
         zeff_datasets::dataset_specs(),
     )

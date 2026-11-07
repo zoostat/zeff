@@ -140,11 +140,6 @@ fn n_missing(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
     }
 }
 
-/// `fill_missing(x, value)`: `coalesce(x, value)`, the common case of one fallback.
-fn fill_missing(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    coalesce_as("fill_missing", ctx, args)
-}
-
 /// The missing-value functions of `core` in this release.
 pub fn functions() -> Vec<Function> {
     vec![
@@ -164,26 +159,6 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: n_missing,
-        },
-        Function {
-            spec: FunctionSpec {
-                name: "fill_missing",
-                package: "core",
-                method: false,
-                params: vec![
-                    ParamSpec::required("x", SCALAR),
-                    ParamSpec::required("value", SCALAR),
-                ],
-                rest: None,
-                returns: "Join",
-                diagnostics: vec![zeff_registry::DiagnosticDecl::new(
-                    "Z0214",
-                    "x and value are of types that do not join",
-                )],
-                help: include_str!("../help/fill_missing.md"),
-                accuracy: None,
-            },
-            body: fill_missing,
         },
         Function {
             spec: FunctionSpec {
