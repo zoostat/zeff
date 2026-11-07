@@ -2394,3 +2394,13 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** The existing programs of `fill_missing` unchanged but for that snapshot; its page's examples; the conformance case `control/several_types` (every scalar type, `NA` typed and bare, Int with Float both ways, the column forms, the join inside `add`), two digests added and none changed, `control/missing` among them.
 
 **Reason.** Open decision #68 and the checklist of 0.7.0, step 4: a function moves to Zeff where the adopted pieces express it and stays in Rust, with the reason recorded, where they do not.
+
+## 7 November 2026: `row_mean`, `row_sum` and `diff` stay in Rust (release 0.7.0, step 4.2)
+
+**Decision.** None of the three moves to Zeff, and the reasons are recorded in their catalogue rows, the register and `diff`'s page. `row_mean` and `row_sum` take the values present in a row and reduce them with `zeff_numeric::sum` and `zeff_numeric::mean`, the kernel's compensated reductions, as every sum and mean of the engine does (Engine and Project Specification, section 8.3, point 3). A body written in Zeff has `+` over columns as its only row-wise arithmetic, a plain left-to-right sum, and `/` by a count for the mean: on the `rows` conformance case (1e12 beside 1.5 and 2.5) and on the wages data the results differ in the last bits, so the digests would move, which step 4 forbids, and the help's promise of the compensated summation would be broken. Building the row through `to_long` and `aggregate(mean(value), by: row)` would reach the kernel but at the cost of a reshape per call and the reducers' warnings in the caller's output. `diff` is `x - lag(x, n)`, and `lag` reads the panel of the frame around the call from the interpreter's receiver stack, which `run_zeff` empties while a body runs (section 5.3, "Scope": a function sees its parameters only); the enclosing frame reaches the body as a value, not as a context its callees read.
+
+**What the enclosing frame is for.** The Zeff-written functions over a frame's variables that need no kernel reduction of their own and call nothing that reads the frame for itself: `drop_missing` (step 4.3), and the later verbs that read several variables and return the frame or a count.
+
+**Tests.** Nothing changes but the texts; the conformance digests are unchanged and `diff`'s page prints its new sentence.
+
+**Reason.** The checklist of 0.7.0, step 4: a function the pieces still do not express stays in Rust with the reason recorded; open decision #69.

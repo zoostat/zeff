@@ -319,3 +319,7 @@ Not an error: the application of open decision #79 (decided 6 November 2026, opt
 ## 7 November 2026 — zeff_functions.csv (rows 56 and 58); zeff_engine_specification.md, section 8.2 (the totals)
 
 Not an error: the record of step 4.1 of release 0.7.0. `fill_missing` returns to Zeff on the parameter of several types of open decision #68, so its `layer` is `Zeff` again and the totals read 251 in Rust and 21 in Zeff. `n_missing` stays in Rust: a list holding failed values reaches it, skipped with W0801, and no function of the language takes such a list apart (every list function refuses a failed item at the call, section 5.6); its notes say so in place of the reason of 31 October.
+
+## 7 November 2026 — zeff_functions.csv (rows 127, 136 and 137); zeff_open_decisions.md, entry #69
+
+Not an error: the record of step 4.2 of release 0.7.0. `row_mean`, `row_sum` and `diff` stay in Rust although the enclosing frame of open decision #69 is built: the row functions reduce each row with the kernel's compensated sum and mean, which `+` over columns does not reproduce bit for bit, and `diff`'s `lag` reads the panel of the frame around the call, which a body written in Zeff does not pass on to the functions it calls. Their rows say so in place of the reasons of 31 October and 2 November, and the entry records the outcome under its application paragraph.

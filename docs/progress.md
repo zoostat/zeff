@@ -150,3 +150,13 @@ Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (th
 **Next.** Step 4.2 `[function]`: `row_mean`, `row_sum` and `diff` on the enclosing frame.
 
 **For the owner to decide.** Nothing new. Ruling he may overturn: `n_missing` stays in Rust rather than gaining a list function that admits failed values.
+
+## 7 November 2026, release 0.7.0, step 4.2 (the row functions and `diff` stay in Rust)
+
+**Done.** A record-only step. `row_mean` and `row_sum` reduce each row with the kernel's compensated sum and mean, which `+` over columns does not reproduce bit for bit (the `rows` conformance case holds 1e12 beside 1.5 and 2.5), and `diff`'s `lag` reads the panel of the frame around the call, which a body written in Zeff does not pass on to the functions it calls; so all three stay in Rust, with the reasons in their catalogue rows, in open decision #69 and in `diff`'s page (logged). The enclosing frame of step 3.3 stands for the Zeff-written functions over variables that need no kernel reduction of their own, `drop_missing` first.
+
+**Green.** The registry, command-line and conformance programs and the help examples; the digests unchanged; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 4.3 `[function]`: `drop_missing` with its note and `skewness` with W0205 (#70). The note names the variables dropped, which needs `join` (text, step 5); the step will say what it can do before then.
+
+**For the owner to decide.** Nothing new. Ruling he may overturn: the row functions stay in Rust rather than reaching the kernel through a reshape per call.

@@ -19,8 +19,9 @@ A column of the type of `x`, one value per row.
 
 ## Details
 Exact: the subtraction of the two values, row by row, with the lag found in the panel's sorted
-index. Written in Rust rather than Zeff, since it reads the enclosing frame's panel (open
-decision #69).
+index. Written in Rust rather than Zeff: its `lag` reads the panel of the frame around the
+call, which a body written in Zeff does not pass on to the functions it calls (open decision
+#69).
 
 ## See also
 lag, lead, panel
