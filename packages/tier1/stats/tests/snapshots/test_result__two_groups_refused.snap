@@ -1,0 +1,10 @@
+---
+source: packages/tier1/stats/tests/test_result.rs
+expression: "format!(\"{}{}\", one.render(&zeff_diagnostics::Sources::new()),\nthree.render(&zeff_diagnostics::Sources::new()))"
+---
+error[Z0412]: `group:` of `t_test` has one level, but a two-group test compares two
+ --> t.zeff
+  = help: a two-group test needs rows of two values of the variable; `where` or `recode` may give them
+error[Z0412]: `group:` of `t_test` has 3 levels, but a two-group test compares two
+ --> t.zeff
+  = help: `anova` compares several groups and `kruskal_test` ranks them; `where` keeps two of them for this test

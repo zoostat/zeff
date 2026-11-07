@@ -444,6 +444,10 @@ fn sampling_weights_are_refused_and_the_other_kinds_taken() {
             "{}",
             sampling.message
         );
+        insta::assert_snapshot!(
+            "sampling_weights_refused",
+            sampling.render(&zeff_diagnostics::Sources::new())
+        );
         let frequency = testing::weights(
             ctx,
             &frame,
@@ -502,6 +506,14 @@ fn two_groups_by_label_and_the_refusals() {
         .unwrap_err();
         assert_eq!(three.code, "Z0412");
         assert!(three.message.contains("has 3 levels"), "{}", three.message);
+        insta::assert_snapshot!(
+            "two_groups_refused",
+            format!(
+                "{}{}",
+                one.render(&zeff_diagnostics::Sources::new()),
+                three.render(&zeff_diagnostics::Sources::new())
+            )
+        );
     });
 }
 

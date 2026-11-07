@@ -1,0 +1,7 @@
+---
+source: packages/tier1/stats/tests/test_result.rs
+expression: "sampling.render(&zeff_diagnostics::Sources::new())"
+---
+error[Z0411]: `weights:` of `t_test` are sampling weights, which a test cannot use
+ --> t.zeff
+  = help: a regression with robust standard errors gives design-based inference, `reg(y ~ 1, weights: w, se: robust)`; frequency or analytic weights are taken with `weight_type: frequency` or `weight_type: analytic`
