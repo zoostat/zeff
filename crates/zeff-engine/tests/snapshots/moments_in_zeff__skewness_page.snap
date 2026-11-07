@@ -1,6 +1,5 @@
 ---
 source: crates/zeff-engine/tests/moments_in_zeff.rs
-assertion_line: 159
 expression: "zeff_engine::help::help_text(registry, \"skewness\").unwrap()"
 ---
 skewness — Sample skewness                                             data · tier 1 · since 0.5.0 · 1.0 · closed form
@@ -38,7 +37,7 @@ WARNINGS AND NOTES
     Z0401   the type has no conversion to the target, or a single value is given to Category
     Z0409   the format of a Date or DateTime target is not a date format
     W0702   date-and-time text carried a zone offset, which was applied to reach UTC
-    Note    the script's own warning, printed with its line
+    Note    the script's own warning, printed with its line and with the code `code:` gives it
     Z0206   the result of warn is bound or passed; it has none
     W0102   a name in a definition is both a variable and a binding
     Z0101   a definition names a variable the frame does not have
