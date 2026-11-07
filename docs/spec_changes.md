@@ -347,3 +347,7 @@ Not an error: the application of open decision #91, which the owner raised and d
 ## 8 November 2026 — zeff_language_reference.md, section 7 (the shared-arguments table and the `Result` row) and section 10.2 (the `t_test` example)
 
 Not an error: the same decision. The shared-arguments table gains `alternative: two_sided | less | greater = two_sided`; the `Result` row names the fields of a `TestResult`, including `h0`, `h1` and `alternative`; the `t_test` example of section 10.2 shows the `H0:` and `H1:` lines under the header and the decision line after Hedges' g, and a paragraph after it states the rule for every test. The `t_test` page of the help examples and the definition of done of the testing handbook were changed the same day (commit "Adopt open decision #91").
+
+## 8 November 2026 — zeff_language_reference.md, section 11 (the table "Codes numbered while the engine was built", new row Z0419)
+
+An omission corrected while building the pattern functions (release 0.7.0, step 6). Section 3.8 fixes the syntax of regular expressions and excludes back-references and look-around, but no code named the error of a pattern the engine cannot read. Z0419, the next free number of its family as the release's rule for provisional codes gives it, covers an unclosed group or bracket, a repetition with nothing to repeat, and look-around or a back-reference; its explained page says which was the cause.

@@ -1,0 +1,2764 @@
+{
+ "reference": {
+  "software": "R version 4.6.0 (2026-04-24)",
+  "note": "base R; numbers written with 15 significant digits"
+ },
+ "contains": [
+  {
+   "text": "Hello, World",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "café au lait",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "café au lait",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "café au lait",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "café au lait",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "café au lait",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "café au lait",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "café au lait",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "café au lait",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "x",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "x",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "x",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "x",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "World",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "world",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "c1",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": ".",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "aaa",
+   "pattern": "é",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "aa",
+   "regex": false,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "aaa",
+   "pattern": "-",
+   "regex": false,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "[0-9]+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "^H",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "d$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "aaa",
+   "pattern": "a|x",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "aaa",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "aaa",
+   "pattern": "[aeiou]",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "aaa",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "(ab)+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "\\.",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": false,
+   "out": true
+  },
+  {
+   "text": "aaa",
+   "pattern": "a{2,3}",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "aaa",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "\\s+",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "^$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": false,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "W.r",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "HELLO",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "WORLD",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "DEF",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "café au lait",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": true
+  },
+  {
+   "text": "  two  words ",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "x",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "日本語 123",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  },
+  {
+   "text": "aaa",
+   "pattern": "Caf",
+   "regex": true,
+   "ignore": true,
+   "out": false
+  }
+ ],
+ "replaces": [
+  {
+   "text": "Hello, World",
+   "from": "o",
+   "to": "0",
+   "regex": false,
+   "out": "Hell0, W0rld"
+  },
+  {
+   "text": "a.b.c",
+   "from": ".",
+   "to": "-",
+   "regex": false,
+   "out": "a-b-c"
+  },
+  {
+   "text": "a.b.c",
+   "from": ".",
+   "to": "-",
+   "regex": true,
+   "out": "-----"
+  },
+  {
+   "text": "abc123def45",
+   "from": "[0-9]+",
+   "to": "#",
+   "regex": true,
+   "out": "abc#def#"
+  },
+  {
+   "text": "  two  words ",
+   "from": "\\s+",
+   "to": " ",
+   "regex": true,
+   "out": " two words "
+  },
+  {
+   "text": "aaa",
+   "from": "a",
+   "to": "bb",
+   "regex": false,
+   "out": "bbbbbb"
+  },
+  {
+   "text": "aaa",
+   "from": "aa",
+   "to": "b",
+   "regex": false,
+   "out": "ba"
+  },
+  {
+   "text": "café",
+   "from": "é",
+   "to": "e",
+   "regex": false,
+   "out": "cafe"
+  },
+  {
+   "text": "Hello, World",
+   "from": "xyz",
+   "to": "!",
+   "regex": false,
+   "out": "Hello, World"
+  },
+  {
+   "text": "2026-10-16",
+   "from": "-",
+   "to": "/",
+   "regex": false,
+   "out": "2026/10/16"
+  },
+  {
+   "text": "x1y22z333",
+   "from": "\\d",
+   "to": "",
+   "regex": true,
+   "out": "xyz"
+  },
+  {
+   "text": "Hello, World",
+   "from": "(l+)",
+   "to": "[L]",
+   "regex": true,
+   "out": "He[L]o, Wor[L]d"
+  },
+  {
+   "text": "",
+   "from": "a",
+   "to": "b",
+   "regex": false,
+   "out": ""
+  }
+ ],
+ "extracts": [
+  {
+   "text": "abc123def45",
+   "pattern": "[0-9]+",
+   "found": true,
+   "out": "123"
+  },
+  {
+   "text": "abc123def45",
+   "pattern": "[a-z]+$",
+   "found": false,
+   "out": ""
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "W\\w+",
+   "found": true,
+   "out": "World"
+  },
+  {
+   "text": "a.b.c",
+   "pattern": "\\.",
+   "found": true,
+   "out": "."
+  },
+  {
+   "text": "2026-10-16",
+   "pattern": "\\d{2}$",
+   "found": true,
+   "out": "16"
+  },
+  {
+   "text": "Hello, World",
+   "pattern": "xyz",
+   "found": false,
+   "out": ""
+  },
+  {
+   "text": "café au lait",
+   "pattern": "au \\w+",
+   "found": true,
+   "out": "au lait"
+  },
+  {
+   "text": "",
+   "pattern": "a",
+   "found": false,
+   "out": ""
+  },
+  {
+   "text": "aaa",
+   "pattern": "a*",
+   "found": true,
+   "out": "aaa"
+  },
+  {
+   "text": "x",
+   "pattern": ".",
+   "found": true,
+   "out": "x"
+  }
+ ],
+ "splits": [
+  {
+   "text": "a,b,c",
+   "sep": ",",
+   "out": [
+    "a",
+    "b",
+    "c"
+   ]
+  },
+  {
+   "text": "a.b.c",
+   "sep": "\\.",
+   "out": [
+    "a",
+    "b",
+    "c"
+   ]
+  },
+  {
+   "text": "one  two three",
+   "sep": "\\s+",
+   "out": [
+    "one",
+    "two",
+    "three"
+   ]
+  },
+  {
+   "text": "2026-10-16",
+   "sep": "-",
+   "out": [
+    "2026",
+    "10",
+    "16"
+   ]
+  },
+  {
+   "text": "abc",
+   "sep": "x",
+   "out": [
+    "abc"
+   ]
+  },
+  {
+   "text": "a1b22c333d",
+   "sep": "[0-9]+",
+   "out": [
+    "a",
+    "b",
+    "c",
+    "d"
+   ]
+  },
+  {
+   "text": "key=value",
+   "sep": "=",
+   "out": [
+    "key",
+    "value"
+   ]
+  },
+  {
+   "text": "café|au|lait",
+   "sep": "\\|",
+   "out": [
+    "café",
+    "au",
+    "lait"
+   ]
+  },
+  {
+   "text": ",a,b",
+   "sep": ",",
+   "out": [
+    "",
+    "a",
+    "b"
+   ]
+  }
+ ]
+}

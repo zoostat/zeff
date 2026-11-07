@@ -5819,8 +5819,17 @@ impl Checker<'_> {
         // types of one row. So does a method on a value that is not a frame that returns a
         // scalar (`d.pdf(x)` on a distribution). A function that returns nothing (`assert`)
         // never lifts: a column of nothing is not a value, and a column given to it is a mistake
-        // (Z0203 for `assert`, section 5.6).
+        // (Z0203 for `assert`, section 5.6). Nor does one that returns a list (`split`): a column
+        // holds one row's value, not a list, so the function takes one text and a column given
+        // to it is refused as to any other parameter.
+        let row_result = match Ty::parse(spec.returns) {
+            Some(t) => scalar_type(&t),
+            // The return words resolved at the call (`Number`, `Join`, `Same`, `Typed`, …) name
+            // one row's value where the arguments are rows.
+            None => !matches!(spec.returns, "List" | "Keys" | "Appended" | "NumberList"),
+        };
         let liftable = spec.returns != "Nothing"
+            && row_result
             && ((matches!(spec.package, "core" | "text" | "time") && !spec.method)
                 || (spec.method
                     && params.first().is_some_and(|(_, ty, _)| *ty != Ty::Frame)

@@ -1635,6 +1635,7 @@ version = "0.7.0-dev"
 dependencies = [
  "insta",
  "proptest",
+ "regex",
  "serde_json",
  "zeff-core",
  "zeff-dates",

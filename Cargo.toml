@@ -48,6 +48,9 @@ zeff-registry = { path = "kernel/zeff-registry" }
 zeff-core = { path = "packages/tier0/core" }
 zeff-time = { path = "packages/tier1/time" }
 zeff-text = { path = "packages/tier1/text" }
+# Regular expressions of section 3.8 of the Language Reference (MIT or Apache-2.0): Unicode
+# classes, no back-references or look-around, matching in linear time, identical everywhere.
+regex = "=1.13.1"
 zeff-data = { path = "packages/tier1/data" }
 zeff-datasets = { path = "packages/tier1/datasets" }
 zeff-dist = { path = "packages/tier1/dist" }

@@ -2,11 +2,12 @@
 //! this release `format` (release 0.6.0, step 5): a number or a date to text, to a number of
 //! decimals, with a thousands separator, or by a pattern; and the eight functions of `basics`
 //! (release 0.7.0, step 5): case, trimming, prefix and suffix tests, slicing, padding and
-//! joining. The four pattern functions follow at step 6 of 0.7.0. Every function but `join` is
-//! a scalar function that applies row by row to a column (Language Reference, section 3.7,
-//! "Columns and scalars").
+//! joining; and the four of `patterns` (step 6): matching, replacing, extracting and splitting
+//! on regular expressions. Every function but `join` and `split` is a scalar function that
+//! applies row by row to a column (Language Reference, section 3.7, "Columns and scalars").
 
 mod basics;
+mod patterns;
 
 use zeff_core::display::format_float;
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
@@ -255,5 +256,6 @@ pub fn functions() -> Vec<Function> {
         body: format,
     }];
     all.extend(basics::functions());
+    all.extend(patterns::functions());
     all
 }

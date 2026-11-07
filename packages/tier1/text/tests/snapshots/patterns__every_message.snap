@@ -1,0 +1,93 @@
+---
+source: packages/tier1/text/tests/patterns.rs
+expression: out
+---
+contains("abc", "(ab", regex: true)
+---
+error[Z0419]: `(ab` is not a regular expression: unclosed group
+ --> scripts/main.zeff:1:17
+  |
+1 | contains("abc", "(ab", regex: true)
+  |                 ^^^^^ the pattern of `contains`
+  |
+  = help: the syntax is Rust's `regex` crate's: Unicode classes, no back-references or look-around (section 3.8); for a literal text, leave `regex:` off
+
+contains("abc", "a(?=b)", regex: true)
+---
+error[Z0419]: `a(?=b)` is not a regular expression: it uses look-around, which Zeff's regular expressions do not have
+ --> scripts/main.zeff:1:17
+  |
+1 | contains("abc", "a(?=b)", regex: true)
+  |                 ^^^^^^^^ the pattern of `contains`
+  |
+  = help: the syntax is Rust's `regex` crate's: Unicode classes, no back-references or look-around (section 3.8); for a literal text, leave `regex:` off
+
+replace("abab", "(a)\\1", "x", regex: true)
+---
+error[Z0419]: `(a)\1` is not a regular expression: it uses a back-reference, which Zeff's regular expressions do not have
+ --> scripts/main.zeff:1:17
+  |
+1 | replace("abab", "(a)\\1", "x", regex: true)
+  |                 ^^^^^^^^ the pattern of `replace`
+  |
+  = help: the syntax is Rust's `regex` crate's: Unicode classes, no back-references or look-around (section 3.8); for a literal text, leave `regex:` off
+
+extract("abc", "*a")
+---
+error[Z0419]: `*a` is not a regular expression: repetition operator missing expression
+ --> scripts/main.zeff:1:16
+  |
+1 | extract("abc", "*a")
+  |                ^^^^ the pattern of `extract`
+  |
+  = help: the syntax is Rust's `regex` crate's: Unicode classes, no back-references or look-around (section 3.8); for a literal text, leave `regex:` off
+
+split("abc", "[a")
+---
+error[Z0419]: `[a` is not a regular expression: unclosed character class
+ --> scripts/main.zeff:1:14
+  |
+1 | split("abc", "[a")
+  |              ^^^^ the pattern of `split`
+  |
+  = help: the syntax is Rust's `regex` crate's: Unicode classes, no back-references or look-around (section 3.8); for a literal text, leave `regex:` off
+
+replace("abc", "", "-")
+---
+error[Z0401]: `from` of `replace` is empty
+ --> scripts/main.zeff:1:16
+  |
+1 | replace("abc", "", "-")
+  |                ^^ nothing to replace
+  |
+  = help: give the text to replace; with `regex: true`, an expression that matches the empty text inserts `to` between the characters
+
+contains("abc")
+---
+error[Z0406]: `contains` needs `pattern`
+ --> scripts/main.zeff:1:1
+  |
+1 | contains("abc")
+  | ^^^^^^^^ `pattern` is missing
+  |
+  = help: usage: `contains(s, pattern, regex: Bool = false, ignore_case: Bool = false)`
+
+contains(3, "a")
+---
+error[Z0401]: `s` of `contains` must be a Str, but this is an Int
+ --> scripts/main.zeff:1:10
+  |
+1 | contains(3, "a")
+  |          ^ an Int
+  |
+  = help: usage: `contains(s, pattern, regex: Bool = false, ignore_case: Bool = false)`
+
+split(frame(s = ["a"])["s"], ",")
+---
+error[Z0401]: `s` of `split` must be a Str, but this is a Column
+ --> scripts/main.zeff:1:7
+  |
+1 | split(frame(s = ["a"])["s"], ",")
+  |       ^^^^^^^^^^^^^^^^^^^^^ a Column
+  |
+  = help: usage: `split(s, sep)`

@@ -138,3 +138,13 @@ The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of s
 **Next.** Step 6 `[function]`: `text`, part 2 (`contains`, `replace`, `extract`, `split` with `regex:` and `ignore_case:` on the pinned `regex` crate).
 
 **For the owner to decide.** Open decisions #89 and #90 at 0.8.0, which together let `drop_missing` and its kind move to Zeff.
+
+## 8 November 2026, release 0.7.0, step 6 (`text`, part 2)
+
+**Done.** `contains`, `replace`, `extract` and `split` on the `regex` crate (1.13.1, MIT or Apache-2.0, pinned and recorded), with their pages: literal matching and replacing unless `regex: true`, simple case folding under `ignore_case:`, the first match or `NA`, every piece of a split kept so that `join` undoes it. A pattern the engine cannot read is the new Z0419, naming look-around and back-references (the Language Reference's table gains the row, logged). The lifting rule now requires a result that is one row's value, so `split` on a column is refused rather than giving `NA`s in silence. The R reference `text_regex.R` (360 `contains` cases and the three other groups, with `perl = TRUE`) is compared exactly and joins the CI job; the conformance case `text/patterns` adds two digests and changes none. `text` stands at 13 of 13.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the text, registry, syntax, checker, command-line and conformance programs and the engine programs of the examples, the collections, the list functions and the built-ins written in Zeff; the whole suite on CI, read job by job after the push, with the bundle's size before and after taken from CI's measurements.
+
+**Next.** Step 7 `[engine]`: `TestResult` and the shared arguments.
+
+**For the owner to decide.** Nothing new. Rulings he may overturn: the replacement text is plain in both modes (no group references); a trailing separator yields an empty last piece where R drops it; `ß` does not match `SS` under `ignore_case:`.

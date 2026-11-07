@@ -1315,6 +1315,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0701 | A data root's file has changed since the last run: its hash differs from the one the last run recorded, and both modification times are given (section 2 of the Engine and Project Specification, "Data roots") |
 | Z0417 | A definition given to `derive` that it cannot differentiate |
 | Z0418 | A `seq` that cannot be built: a zero step, a step pointing away from `to`, an argument that is `NA` or infinite, or more than ten million values |
+| Z0419 | A regular expression that cannot be read: an unclosed group or bracket, a repetition with nothing to repeat, or look-around or a back-reference, which section 3.8 excludes |
 | Z0111 | `seed` called after a draw, or a second time |
 | W0102 | A name in a frame method's argument that is both a variable of the frame and a binding: the variable is used, with a warning |
 | W0201, W0204 | Missing values skipped by a reducer, with the count; `Inf` and `-Inf` both present, so the result is `NA` |

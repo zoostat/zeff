@@ -1242,6 +1242,11 @@ fn time_cases() -> Vec<Line> {
     // on values and on a frame's text column.
     let basics = "upper(\"caf\u{e9} Stra\u{df}e \u{fb01}sh\")\nlower(\"\u{c9}COLE \u{3a3}\u{3af}\u{3c3}\u{3c5}\u{3c6}\u{3bf}\u{3c2}\")\nlen(upper(\"e\u{301}\"))\ntrim(\"\u{a0} padded\t\u{2003}\")\nstarts_with(\"Hello, World\", \"Hello\")\nends_with(\"caf\u{e9}\", \"\u{e9}\")\nslice(\"Hello, World\", start: 8, len: 50)\nslice(\"\u{65e5}\u{672c}\u{8a9e}\", start: 2, len: 2)\npad(\"7\", width: 3, fill: \"0\")\npad(\"abcdef\", width: 3)\njoin([\"a\", NA, \"c\"], sep: \"/\")\njoin(map([1.5, 2], fn(x) format(x, digits: 1)), sep: \" and \")\nlet d = frame(name = [\"  Ada \", \"grace\", NA], code = [\"ab-1\", \"cd-22\", \"ef-3\"])\nd.add(clean = upper(trim(name)), prefix = slice(code, start: 1, len: 2), two = ends_with(code, \"2\"), padded = pad(code, width: 6, fill: \".\"))\nd.where(starts_with(code, \"c\"))\nslice(\"abc\", start: 0, len: 1)\n";
     let texts = run_script(&fs, &project, "scripts/main.zeff", basics);
+    // The pattern functions (step 6): literal and regular-expression matching, case folding,
+    // replacing, extracting, splitting, on values and on a frame's text column, and a pattern
+    // that cannot be read.
+    let patterns = "contains(\"Hello, World\", \"World\")\ncontains(\"Hello, World\", \"WORLD\", ignore_case: true)\ncontains(\"abc123\", \"[0-9]+\", regex: true)\ncontains(\"Stra\u{df}e\", \"STRASSE\", ignore_case: true)\nreplace(\"a.b.c\", \".\", \"-\")\nreplace(\"a.b.c\", \".\", \"-\", regex: true)\nreplace(\"  two  words \", \"\\\\s+\", \" \", regex: true)\nreplace(\"abc\", \"\", \"-\", regex: true)\nextract(\"abc123def45\", \"[0-9]+\")\nextract(\"Hello\", \"xyz\")\nsplit(\"a,b,\", \",\")\nsplit(\"abc\", \"\")\nlet d = frame(code = [\"ab-1\", \"CD-22\", NA, \"ef-333\"])\nd.add(digits = extract(code, \"[0-9]+\"), letters = replace(code, \"[^a-z]\", \"\", regex: true), has_two = contains(code, \"2\"), cd = contains(code, \"cd\", ignore_case: true))\nd.where(contains(code, \"^[a-z]+-\\\\d$\", regex: true))\ncontains(\"abc\", \"(ab\", regex: true)\n";
+    let patterned = run_script(&fs, &project, "scripts/main.zeff", patterns);
     vec![
         text("time/parts/stdout", &outcome.output.stdout),
         text("time/parts/stderr", &outcome.output.stderr),
@@ -1251,6 +1256,8 @@ fn time_cases() -> Vec<Line> {
         text("text/format/stderr", &printed.output.stderr),
         text("text/basics/stdout", &texts.output.stdout),
         text("text/basics/stderr", &texts.output.stderr),
+        text("text/patterns/stdout", &patterned.output.stdout),
+        text("text/patterns/stderr", &patterned.output.stderr),
     ]
 }
 
