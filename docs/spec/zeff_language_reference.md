@@ -503,7 +503,7 @@ Every value has one of the types below. Types are inferred everywhere and writte
 | Variables | `Var`, `Vars`, `Term` | `firm`; `[age, x1..x50]` in a frame method, `vars(age, x1..x50)` outside one; `educ` in `m.coef(educ)` | Variable names, checked against the frame where they are used; a `Term` names a column of a model matrix (section 7.2) and is checked against the result |
 | Data | `Frame`, `SurveyDesign` (1.9) | `import("data/wages.csv")`, `data.survey(...)` | A dataset; `panel()` adds unit and time to it; a survey design adds weights, strata and clusters |
 | Specification | `Formula`, `Terms`, `Model`, `Dag`, `Distribution` | `lwage ~ educ`, `firm + year`, `model { }`, `dag { }`, `dist.t(df: 24)` | Values like any other: `let f = lwage ~ educ + exper`. `Terms` is the right side of a formula without `~`, as `fe:` takes it. A distribution parameter outside its domain (`sd:` not positive, `df:` not positive) or a probability outside [0, 1] given to `quantile` is an error (Z0413) |
-| Result | `TestResult`, `RegFit`, `IvFit`, `GlmFit` in 1.0; `DidFit`, `SemFit`, `MixedFit`, `LassoFit`, `ForestFit`, `LcaFit`, `LcaFits` and more as packages arrive | `wages.reg(f)` | `Result` is the interface every one of them implements: the result and estimator interfaces of `results` (section 8.1 of the Engine and Project Specification, rule 5) |
+| Result | `TestResult`, `RegFit`, `IvFit`, `GlmFit` in 1.0; `DidFit`, `SemFit`, `MixedFit`, `LassoFit`, `ForestFit`, `LcaFit`, `LcaFits` and more as packages arrive | `wages.reg(f)` | `Result` is the interface every one of them implements: the result and estimator interfaces of `results` (section 8.1 of the Engine and Project Specification, rule 5). A `TestResult` carries `statistic`, `df`, `p_value`, `estimate`, `ci`, `effect_size` and `n_obs`, and, from open decision #91, `h0` and `h1` (the hypotheses it printed, as sentences) and `alternative` |
 | Failure | `Failed` | `attempt(expr)` when `expr` errors | Holds the error code, message and line; may stand in any `List<T>`, so `[for ...]` with `attempt` gives `List<RegFit>` with some entries failed; `report` and `len` skip it with a count (section 5.4) |
 | Output | `Table`, `Plot` | `report([m1, m2])`, `fit.plot()` | Matrix results (correlation, covariance, vcov) are Tables; exported with `.export(path)` |
 | Function | `Fn(T1, …) -> R` | a named `fn` | Functions can be passed as arguments to a parameter of matching type (section 3.7) |
@@ -806,6 +806,7 @@ let ind_year = import("data/sales_wide.csv")
 | `max_fail:` | `Float = 0.01` | Largest share of draws that may fail before the run stops | Anything with `on_fail: skip` |
 | `seed:` | `Int` | Random seed; one is chosen and recorded when omitted | Everything that draws random numbers |
 | `level:` | `Float = 0.95` | Confidence level | Tests, `ci` |
+| `alternative:` | `two_sided \| less \| greater = two_sided` | The alternative a test's p-value is computed for; H1 and the interval follow it, and `less` means the first-named quantity (the mean, the first group, `a`) is less than the second or than the reference value (open decision #91) | `t_test`, `wilcoxon_test`, `proportion_test`; `fisher_test` on a 2 × 2 table |
 | `title:` | `Str` | Title | Plots, `report` |
 
 **Panels.** `data.panel(unit: firm, time: year)` declares the panel once. After it, `lag`, `lead`, `diff` and `fill_forward` follow each unit's time order, a gap in time gives `NA` as Stata's `L.` does, and `did` takes its unit and time from the panel. What a gap is depends on the time variable's type: consecutive integers for an Int, consecutive calendar days for a Date, and consecutive periods of its own frequency for a `Period` (section 4.3), so a monthly panel never mistakes a missing month for a 30-day gap; until `Period` is computable, a monthly or quarterly panel uses an Int index such as `year * 12 + month`. `unit:` takes one variable in 1.0; a list of variables for a composite unit (store and product) is an additive change for later.
@@ -1219,6 +1220,8 @@ R² within 0.262 · R² overall 0.301
 
 ```
 t_test · Welch two-sample · lwage by female
+  H0: the population means of lwage are equal in male and female        μ(male) − μ(female) = 0
+  H1: the population means of lwage differ between male and female      μ(male) − μ(female) ≠ 0
 
   group      N      mean      sd
   male    9,604    3.214   0.512
@@ -1227,7 +1230,10 @@ t_test · Welch two-sample · lwage by female
 difference (male − female) = 0.153   95% CI [0.138, 0.168]
 t = 20.42   df = 18,074.2   p < 0.001
 Hedges' g = 0.30   95% CI [0.27, 0.33]
+decision at α = 0.05: reject H0 (p < 0.001)
 ```
+
+Every test prints the two hypotheses it tests under its header, `H0:` and `H1:`, as statements about the population in words and, where a standard form exists, in symbols, with the names and group labels of the call (a group variable without value labels prints `female=0` and `female=1`); H1 is the one alternative the p-value was computed for. After the statistic, `decision at α = <alpha>: reject H0 (p …)` or `fail to reject H0 (p …)`, with α = 1 − level, or 0.05 for a test that takes no `level:`. A table of several p-values, such as the factorial `anova`, prints one line naming the family of hypotheses instead. Open decision #91 gives the sentence of every test.
 
 `report([m1, m2])` as printed text (the exported .docx and .tex carry the same layout)
 

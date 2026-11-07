@@ -2454,3 +2454,13 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** Nothing changes but the texts; the digests are unchanged.
 
 **Reason.** The checklist of 0.7.0, step 5b: the digests unchanged bit for bit; a function the pieces still do not express stays in Rust with the reason recorded.
+
+## 8 November 2026: hypothesis and decision lines in test output; open decision #91 applied (release 0.7.0, before step 7)
+
+**Decision.** The owner raised and decided #91 on 8 November 2026: every `TestResult` prints `H0:` and `H1:` under its header, as statements about the population in words and standard symbols, and a `decision at α` line beside the p-value; `alternative: two_sided | less | greater` joins the shared arguments for `t_test`, `wilcoxon_test`, `proportion_test` and `fisher_test` (2 × 2 only); α is `1 − level`, or 0.05 for a test without `level:`, revisited with #15 at 1.9. The two gaps the entry exposed he settled the same day: `shapiro_test` refuses more than 5,000 non-missing observations, as R does; a group variable without value labels prints `female=0` and `female=1`.
+
+**Rulings taken in applying it.** The `H0:` and `H1:` lines are indented two spaces, as the tables are (rule R1 of the entry); the decision line stands flush with the statistic lines it follows, as the existing example of section 10.2 prints them, rather than indented as the owner's draft showed. A one-sided interval prints as R gives it, `[0.136, Inf)`. The two refusals (`alternative:` on a Fisher table larger than 2 × 2; `shapiro_test` above the cap) receive their codes at steps 13 and 14, the release's ruling being that a provisional code is numbered at the step that raises it, with its row, its explained page and its log entry. The `TestResult` fields `h0` and `h1` hold the sentences, not the symbols, so that Zemp's hover text and `report()`'s table notes read as prose.
+
+**Tests.** None yet: no test ships before step 7. The testing handbook's definition of done now asks, of every function returning a `TestResult`, a snapshot of the block for every form in the entry's table, with one `less` and one `greater` case; step 7 adds the shared machinery, each test step its snapshots.
+
+**Reason.** The specification freeze allows a normative change only to correct an error found while coding or by the owner's decision recorded in the register; adopting the layout before the first test ships means no shipped layout ever changes, which section 3.7's stability rule would otherwise forbid within an edition.

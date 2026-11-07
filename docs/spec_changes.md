@@ -339,3 +339,11 @@ Not an error: the record of step 4.5 of release 0.7.0. `summary` stays in Rust a
 ## 7 November 2026 — zeff_functions.csv (row 121); zeff_open_decisions.md (status, entry #70, the summary row and new entry #90)
 
 Not an error: the record of step 5b of release 0.7.0. `drop_missing` stays in Rust although `join` can now write its note: a variable range reaches a body as its written token, which only a Rust body resolves against the frame, and the errors its page declares would be Z0001 from a body (#89). The row says so; #70 records the outcome; the new entry #90 records the question of variable ranges in a Zeff-written built-in, with its deadline.
+
+## 8 November 2026 — zeff_functions.csv, rows 169, 170, 174, 175 and 176 (`t_test`, `wilcoxon_test`, `fisher_test`, `proportion_test`, `shapiro_test`)
+
+Not an error: the application of open decision #91, which the owner raised and decided on 8 November 2026, before step 7 of release 0.7.0 builds `TestResult`, so that no shipped layout changes. The descriptions of the four directional tests name the shared argument `alternative:`; `fisher_test` says that only a 2 × 2 table takes it; `shapiro_test` says that more than 5,000 non-missing observations are refused, as R does, with `ks_test` and `qq_plot` suggested. The codes of the two refusals are numbered at the steps that raise them (13 and 14), by the release's ruling on provisional codes.
+
+## 8 November 2026 — zeff_language_reference.md, section 7 (the shared-arguments table and the `Result` row) and section 10.2 (the `t_test` example)
+
+Not an error: the same decision. The shared-arguments table gains `alternative: two_sided | less | greater = two_sided`; the `Result` row names the fields of a `TestResult`, including `h0`, `h1` and `alternative`; the `t_test` example of section 10.2 shows the `H0:` and `H1:` lines under the header and the decision line after Hedges' g, and a paragraph after it states the rule for every test. The `t_test` page of the help examples and the definition of done of the testing handbook were changed the same day (commit "Adopt open decision #91").
