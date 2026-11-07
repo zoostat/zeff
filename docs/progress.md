@@ -170,3 +170,13 @@ Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (th
 **Next.** Step 4.4 `[function]`: `quantile_group` in Zeff, its probabilities i/n by `map`.
 
 **For the owner to decide.** Nothing new. Ruling he may overturn: `drop_missing` waits for `join` rather than moving with a note that names one variable at a time.
+
+## 7 November 2026, release 0.7.0, step 4.4 (`quantile_group` back in Zeff)
+
+**Done.** `quantile_group` is written in Zeff: the cut points from `quantile` at the probabilities `map(seq(1, n - 1), fn(i) i / n)`, each row's group folded with `reduce`; every result and every conformance digest unchanged (250 in Rust, 22 in Zeff). Three pieces on the way: `quantile` given a list of probabilities is typed as a list at the call; the pragmas of a built-in's file travel with its body (one silences the reducer's W0201 inside `quantile_group`); and the loader refuses a column of the wrong type to a parameter declared as a column, in the checker's words. The body's argument errors print as Z0001 at the call where the Rust form gave Z0406 and Z0401, as `winsorize`'s do; that question is open decision #89, deadline 0.8.0. The register's status, #79 and the counts follow (logged).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the syntax, checker, registry, data, command-line and conformance programs, and the engine programs of the built-ins written in Zeff, the pragmas, the examples and the functions; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 4.5 `[function]`: `summary` on `table` (#72 with #70), and the known-issues entries of step 4 resolved.
+
+**For the owner to decide.** Open decision #89 at 0.8.0: a coded error from a Zeff-written built-in (recommendation A, `error(message, code:)` in a built-in's file). Rulings he may overturn: `n:` stays an option rather than a positional parameter; the Z0001 codes until #89.

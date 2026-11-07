@@ -1428,6 +1428,7 @@ impl<'a> Interpreter<'a> {
         // first, then accepting them. None fits when a column's values and another argument
         // are of types that do not join, which the checker cannot see when the column's type
         // is not known before the run: that is Z0214 at the call, as the Rust form gave it.
+        self.declared_columns_fit(builtin, call, &values)?;
         let form = builtin
             .forms
             .iter()
@@ -1504,6 +1505,48 @@ impl<'a> Interpreter<'a> {
                 e
             }
         })
+    }
+
+    /// A parameter declared as a column, `x: Column<Float>`, given a column of another type at
+    /// the run (a frame literal's column is not typed before it): Z0401 in the checker's words,
+    /// where the checker would have said it had it known the column (section 3.7).
+    fn declared_columns_fit(
+        &self,
+        builtin: &ZeffBuiltin,
+        call: &Call,
+        values: &[Option<Value>],
+    ) -> Result<(), Fail> {
+        let params = &builtin.forms[0].program.functions[builtin.forms[0].function].params;
+        for (i, (param, value)) in params.iter().zip(values).enumerate() {
+            let (Ty::Column(inner), Some(Value::Column(column))) = (&param.ty, value) else {
+                continue;
+            };
+            let given = Ty::parse(column.ty().name()).unwrap_or(Ty::Unknown);
+            if given == Ty::Unknown || inner.accepts(&given) {
+                continue;
+            }
+            let span = call
+                .args
+                .get(i - usize::from(builtin.enclosing))
+                .and_then(|a| a.as_ref())
+                .map_or(call.callee_span, |e| e.span);
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{}` of `{}` must be a {}, but this is a Column<{}>",
+                        param.name,
+                        builtin.name,
+                        param.ty,
+                        column.ty().name()
+                    ),
+                )
+                .in_file(self.script)
+                .primary(span, format!("a Column<{}>", column.ty().name()))
+                .help(format!("usage: `{}`", builtin.usage)),
+            ));
+        }
+        Ok(())
     }
 
     /// No form of a built-in written in Zeff fits the arguments: two of them are of types that

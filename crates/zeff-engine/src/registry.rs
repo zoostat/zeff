@@ -56,6 +56,10 @@ pub struct ZeffBuiltin {
     /// Whether the body's first parameter is the enclosing frame (open decision #69), which the
     /// interpreter supplies from the frame method the call stands in, before the arguments.
     pub enclosing: bool,
+    /// The usage line of the page, for the help of a message at the call.
+    pub usage: String,
+    /// The pragmas of the file (section 11.1), applied to the body's statements as they run.
+    pub allows: Vec<zeff_syntax::Allow>,
 }
 
 /// The lowered built-ins written in Zeff, by package and name.
@@ -134,6 +138,19 @@ pub fn build(
                     continue;
                 }
             };
+        // A pragma of the file names a warning's code, as a script's does (Z0317 otherwise).
+        let unknown = crate::pragmas::unknown_codes(source.file, &checked.allows);
+        if !unknown.is_empty() {
+            errors.push(RegistryError::ZeffBody {
+                package: source.package.to_string(),
+                name: source.name.to_string(),
+                problems: unknown
+                    .iter()
+                    .map(|d| d.render(&sources_for_rendering))
+                    .collect(),
+            });
+            continue;
+        }
         let own = registry
             .catalogue()
             .find(source.package, source.name)
@@ -194,6 +211,11 @@ pub fn build(
                 source: source_text,
                 forms: checked.forms,
                 enclosing: checked.enclosing,
+                usage: registry
+                    .function(source.package, source.name)
+                    .map(|f| f.spec.usage())
+                    .unwrap_or_default(),
+                allows: checked.allows,
             },
         );
     }

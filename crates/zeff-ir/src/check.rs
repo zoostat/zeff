@@ -410,6 +410,9 @@ pub struct BuiltinChecked {
     /// Whether the first parameter is the enclosing frame (open decision #69), which a call
     /// never gives: the interpreter supplies the frame of the frame method the call stands in.
     pub enclosing: bool,
+    /// The pragmas of the file (Language Reference, section 11.1), which silence a warning of
+    /// the body where they stand.
+    pub allows: Vec<zeff_syntax::Allow>,
 }
 
 /// Whether `text` has the shape of a diagnostic code: `W` or `Z` and four digits.
@@ -810,6 +813,7 @@ pub fn check_builtin(
         calls,
         codes,
         enclosing,
+        allows: parsed.allows,
     })
 }
 
@@ -6096,7 +6100,21 @@ impl Checker<'_> {
                 result
             }
         } else {
-            Ty::parse(spec.returns).unwrap_or(Ty::Unknown)
+            let declared = Ty::parse(spec.returns).unwrap_or(Ty::Unknown);
+            // A reducer whose `p:` takes one probability or a list of them (`quantile`) gives
+            // one value or a list of them, by what it was given.
+            let given_list = spec.params.iter().enumerate().any(|(i, p)| {
+                p.ty == "Float | List"
+                    && matches!(
+                        slots.get(i).and_then(|s| s.as_ref()).map(|e| &e.ty),
+                        Some(Ty::List(_))
+                    )
+            });
+            if given_list && !matches!(declared, Ty::List(_) | Ty::Unknown) {
+                Ty::List(Box::new(declared))
+            } else {
+                declared
+            }
         };
         // A lifted call gives a column, whatever its row type: with a row type not yet known (a
         // column of a frame whose schema the checker does not see before 0.6.0) the result is

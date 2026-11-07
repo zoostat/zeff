@@ -1,6 +1,5 @@
 ---
 source: packages/tier1/data/tests/quantile_group.rs
-assertion_line: 135
 expression: out
 ---
 frame(x = [1.0, 2]).add(w = winsorize(x, at: 0.6))
@@ -32,47 +31,41 @@ warning[W0201]: 1 row with NA in value was skipped (line 1)
 
 frame(x = [1.0, 2]).add(q = quantile_group(x))
 ---
-error[Z0406]: `quantile_group` needs `n:`
+error[Z0001]: `quantile_group` needs `n:`; `quantile_group(x, n: 4)` gives quartile groups 1 to 4 and `n: 10` deciles
  --> scripts/main.zeff:1:29
   |
 1 | frame(x = [1.0, 2]).add(q = quantile_group(x))
-  |                             ^^^^^^^^^^^^^^ `n:` is missing
-  |
-  = help: usage: `quantile_group(x, n: 4)` for quartile groups
+  |                             ^^^^^^^^^^^^^^ in this call
 
 frame(x = [1.0, 2]).add(q = quantile_group(x, n: 0))
 ---
-error[Z0401]: `n:` of `quantile_group` is a count of groups of at least 1, but this is 0
- --> scripts/main.zeff:1:50
+error[Z0001]: `n:` of `quantile_group` is a count of groups of at least 1
+ --> scripts/main.zeff:1:29
   |
 1 | frame(x = [1.0, 2]).add(q = quantile_group(x, n: 0))
-  |                                                  ^ not a count of groups
-  |
-  = help: `quantile_group(x, n: 4)` gives quartile groups 1 to 4; `n: 10` deciles
+  |                             ^^^^^^^^^^^^^^ in this call
 
 frame(x = [1.0, 2]).add(q = quantile_group(x, n: 2, type: 10))
 ---
-error[Z0401]: `type:` of `quantile_group` must be one of the nine definitions, 1 to 9, not 10
- --> scripts/main.zeff:1:59
+error[Z0001]: `type:` of `quantile_group` must be one of the nine definitions, 1 to 9; `type: 7` is R's default
+ --> scripts/main.zeff:1:29
   |
 1 | frame(x = [1.0, 2]).add(q = quantile_group(x, n: 2, type: 10))
-  |                                                           ^^ not a quantile definition
-  |
-  = help: `type: 7` is R's default; Hyndman and Fan (1996) number the nine definitions
+  |                             ^^^^^^^^^^^^^^ in this call
 
 frame(x = ["a", "b"]).add(q = quantile_group(x, n: 2))
 ---
-error[Z0401]: `quantile_group` takes a column of numbers, but this is a Column<Str>
+error[Z0401]: `x` of `quantile_group` must be a Column<Float>, but this is a Column<Str>
  --> scripts/main.zeff:1:46
   |
 1 | frame(x = ["a", "b"]).add(q = quantile_group(x, n: 2))
-  |                                              ^ not numbers
+  |                                              ^ a Column<Str>
   |
-  = help: `to(x, Float)` converts text that holds numbers; a date is not a number
+  = help: usage: `quantile_group(x, n: Int, type: Int = 7)`
 
 quantile_group(3, n: 2)
 ---
-error[Z0401]: `x` of `quantile_group` must be a Column<Int> or Column<Float>, but this is an Int
+error[Z0401]: `x` of `quantile_group` must be a Column<Float>, but this is an Int
  --> scripts/main.zeff:1:16
   |
 1 | quantile_group(3, n: 2)

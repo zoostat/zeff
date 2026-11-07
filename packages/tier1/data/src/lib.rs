@@ -1076,27 +1076,6 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
-                name: "quantile_group",
-                package: "data",
-                method: false,
-                params: vec![
-                    ParamSpec::required("x", "Column<Int> | Column<Float>"),
-                    ParamSpec::option("n", "Int"),
-                    ParamSpec::option_with_default("type", "Int", "7"),
-                ],
-                rest: None,
-                returns: "Column<Int>",
-                diagnostics: vec![
-                    DiagnosticDecl::new("Z0406", "n: missing"),
-                    DiagnosticDecl::new("Z0401", "n: below 1, or type: outside 1 to 9"),
-                ],
-                help: include_str!("../help/quantile_group.md"),
-                accuracy: None,
-            },
-            body: column_functions::quantile_group,
-        },
-        Function {
-            spec: FunctionSpec {
                 name: "distinct",
                 package: "data",
                 method: true,
@@ -1410,6 +1389,12 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             name: "winsorize",
             file: "data/functions/winsorize.zeff",
             text: include_str!("../functions/winsorize.zeff"),
+        },
+        zeff_registry::ZeffSource {
+            package: "data",
+            name: "quantile_group",
+            file: "data/functions/quantile_group.zeff",
+            text: include_str!("../functions/quantile_group.zeff"),
         },
     ]
 }

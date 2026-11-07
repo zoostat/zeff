@@ -365,7 +365,12 @@ pub fn run_script_in(
     for module in checked.module_sources.iter() {
         sources.add(module.clone());
     }
-    let allows = checked.allows;
+    // The pragmas of the built-ins written in Zeff join the script's and the modules', under
+    // their own files, so that a warning of a body is silenced where its file says so.
+    let mut allows = checked.allows;
+    for body in zeff.values() {
+        allows.add(body.source.name(), body.allows.clone());
+    }
     output.allowed = checked.allowed;
     let checked = checked.checked;
     if let Some(first) = checked

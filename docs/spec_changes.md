@@ -327,3 +327,7 @@ Not an error: the record of step 4.2 of release 0.7.0. `row_mean`, `row_sum` and
 ## 7 November 2026 — zeff_open_decisions.md, entry #70; docs/releases/0.7.0.md, steps 4.3 and 5b
 
 Not an error: the record of step 4.3 of release 0.7.0. The warnings of `skewness` and `kurtosis` for too few values carry the code W0205, as the owner's answer to question 5 of 0.5.0 numbered them, so a pragma can allow them and `--deny-warnings` refuses them; the entry's application paragraph says so. `drop_missing` moves to a step of its own after `text`, part 1, since its note names the variables dropped and their count, which needs `join`; the checklist records the move.
+
+## 7 November 2026 — zeff_functions.csv (row 131); zeff_engine_specification.md, section 8.2 (the totals); zeff_open_decisions.md (status, the summary rows of #79 and #89, entries #79 and the new #89)
+
+Not an error: the record of step 4.4 of release 0.7.0. `quantile_group` returns to Zeff on `map` and a function literal (open decision #79), so its `layer` is `Zeff` again and the totals read 250 in Rust and 22 in Zeff. The entry of #79 records the application; the new entry #89 records the question the step raised, a coded error from a Zeff-written built-in, with its deadline.

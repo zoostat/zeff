@@ -12,13 +12,13 @@ error[Z0401]: `x` of `between` must be a Column<Float>, but this is an Int
   = help: usage: `between(x, low, high)`
 
 ## between_text (exit 1)
-error[Z0221]: `<=` compares values of one type, but these are a number and text
- --> scripts/main.zeff:2:1
+error[Z0401]: `x` of `between` must be a Column<Float>, but this is a Column<Str>
+ --> scripts/main.zeff:2:9
   |
 2 | between(d["s"], 1, 5)
-  | ^^^^^^^ in this call
+  |         ^^^^^^ a Column<Str>
   |
-  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+  = help: usage: `between(x, low, high)`
 
 ## center_scalar (exit 1)
 error[Z0401]: `x` of `center` must be a Column<Float>, but this is a Float

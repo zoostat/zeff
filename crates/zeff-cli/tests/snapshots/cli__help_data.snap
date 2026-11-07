@@ -1,6 +1,5 @@
 ---
 source: crates/zeff-cli/tests/cli.rs
-assertion_line: 480
 expression: out(&o)
 ---
 data · tier 1 · 58 of 59 functions in this release
@@ -43,7 +42,6 @@ data · tier 1 · 58 of 59 functions in this release
   running_product   Cumulative product down the rows; an NA makes the rest NA
   rank              Rank of each value, smallest first; NA stays NA
   bin               Category from numeric intervals, (a, b] by default as in R
-  quantile_group    Group 1 to n by cutting at sample quantiles; tied values share a group
   distinct          Rows with distinct values of the variables, the first occurrence kept
   duplicates        Table of repeated key values
   sample            Random sample of rows; the seed is recorded
@@ -63,5 +61,6 @@ data · tier 1 · 58 of 59 functions in this release
   skewness          Sample skewness
   kurtosis          Sample kurtosis
   winsorize         Cap values below the at quantile and above the 1 − at quantile
+  quantile_group    Group 1 to n by cutting at sample quantiles; tied values share a group
 
 the rest arrive with later releases; `zeff help <name>` says when
