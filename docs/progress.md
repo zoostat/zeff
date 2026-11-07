@@ -148,3 +148,13 @@ The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of s
 **Next.** Step 7 `[engine]`: `TestResult` and the shared arguments.
 
 **For the owner to decide.** Nothing new. Rulings he may overturn: the replacement text is plain in both modes (no group references); a trailing separator yields an empty last piece where R drops it; `ß` does not match `SS` under `ignore_case:`.
+
+## 8 November 2026, open decision #91 (hypothesis and decision lines in test output)
+
+**Done.** The owner's proposal was recorded as #91 (41 was taken), decided the same day as recommended, and applied before step 7 so that no shipped layout changes: every `TestResult` prints `H0:` and `H1:` under its header, as statements about the population in words and standard symbols, and a `decision at α` line beside the p-value; `alternative: two_sided | less | greater` joins the shared arguments of `t_test`, `wilcoxon_test`, `proportion_test` and `fisher_test` (2 × 2 only); α is `1 − level`, or 0.05 where a test takes no `level:`, revisited with #15 at 1.9. Two gaps settled with it: `shapiro_test` refuses more than 5,000 non-missing observations, as R does; a group variable without value labels prints `female=0` and `female=1`. Changed and logged: catalogue rows 169, 170, 174, 175 and 176; the Language Reference (the shared-arguments table and the `Result` row of section 7, the `t_test` example of section 10.2); the `t_test` page of the help examples; the definition of done of the testing handbook. The two refusal codes are numbered at steps 13 and 14, by the release's ruling on provisional codes. Rulings recorded in `docs/decisions.md`: the hypothesis lines indented two spaces, the decision line flush with the statistic lines, the one-sided interval as R prints it.
+
+**Green.** Documents only; the catalogue parses with its sixteen columns and its row count unchanged; CI on each push read green (the push of step 6 by the other session was still running when this entry was written). The edits to files step 6 then held were built from the committed versions and staged alone, so that session's work was untouched.
+
+**Next.** Step 7 `[engine]`: `TestResult` and the shared arguments. Note for it: a `TestResult` value already exists in `core` (`test` and `compare`, release 0.6.0), so the step extends it with `h0`, `h1` and `alternative` and the shared checks rather than creating a new type.
+
+**For the owner to decide.** Nothing new.
