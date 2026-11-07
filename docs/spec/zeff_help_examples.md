@@ -88,15 +88,17 @@ one name, three forms; Welch by default, with the reference that says so
 t_test — t-tests for one mean, two groups or paired measurements      stats · tier 1 · since 0.7.0 · 1.0 · closed form
 
 USAGE
-    data.t_test(var, mu: Float = 0, level: Float = 0.95)
-    data.t_test(var, group: Var, equal_var: Bool = false, effect: d | g = g, level: Float = 0.95)
-    data.t_test(a, b, paired: true, level: Float = 0.95)
+    data.t_test(var, mu: Float = 0, alternative: two_sided | less | greater = two_sided, level: Float = 0.95)
+    data.t_test(var, group: Var, equal_var: Bool = false, effect: d | g = g,
+                alternative: two_sided | less | greater = two_sided, level: Float = 0.95)
+    data.t_test(a, b, paired: true, alternative: two_sided | less | greater = two_sided, level: Float = 0.95)
 
 DESCRIPTION
     Three tests under one name, chosen by the arguments given: a one-sample test of the mean of `var`
     against `mu`, a two-group comparison of `var` between the two levels of `group`, or a paired comparison
-    of `a` and `b` row by row. Each prints the means, the difference with its confidence interval, t, the
-    degrees of freedom, the p-value and an effect size.
+    of `a` and `b` row by row. Each prints the hypotheses it tests, H0 and H1, in words and symbols; the
+    means; the difference with its confidence interval; t, the degrees of freedom and the p-value; an effect
+    size; and a decision at α = 1 − level beside the p-value.
 
     The two-group form is Welch's test by default, as R's `t.test` and unlike Stata's `ttest`, which assumes
     equal variances; `equal_var: true` gives the pooled test. The effect size is Hedges' g, which corrects
@@ -112,13 +114,17 @@ ARGUMENTS
     effect:     d | g = g. The effect size reported: Cohen's d or Hedges' g.
     a, b        Var, Var. The two paired measurements (paired form); a row with NA in either is dropped.
     paired:     Bool. Must be `true` in the paired form; it selects that form.
+    alternative: two_sided | less | greater = two_sided. The alternative tested, which H1, the p-value and
+                the interval follow: `less` means the first-named quantity (the mean, the first group, `a`)
+                is less than the second or than `mu`.                                                  (shared)
     level:      Float = 0.95. Confidence level.                                                     (shared)
     weights:    Var. Frequency or analytic weights; sampling weights are refused (Z0411) and point to
                 regression with robust errors.                                                      (shared)
 
 VALUE
-    A `TestResult`: statistic, df, p_value, estimate (the mean or the difference), ci, effect_size and
-    n_obs, with the result interface (summary, estimates, export, report).
+    A `TestResult`: statistic, df, p_value, estimate (the mean or the difference), ci, effect_size, n_obs,
+    h0 and h1 (the hypotheses as sentences) and alternative, with the result interface (summary,
+    estimates, export, report).
 
 DETAILS
     Welch degrees of freedom by the Welch–Satterthwaite equation. Hedges' g = d × (1 − 3 / (4(n₁ + n₂) − 9)).
@@ -145,6 +151,8 @@ EXAMPLES
     > let wages = import("zeff:wages.csv")
     > wages.t_test(lwage, group: female)
     t_test · Welch two-sample · lwage by female
+      H0: the population means of lwage are equal in male and female        μ(male) − μ(female) = 0
+      H1: the population means of lwage differ between male and female      μ(male) − μ(female) ≠ 0
 
       group      N      mean      sd
       male    9,604    3.214   0.512
@@ -153,7 +161,16 @@ EXAMPLES
     difference (male − female) = 0.153   95% CI [0.138, 0.168]
     t = 20.42   df = 18,074.2   p < 0.001
     Hedges' g = 0.30   95% CI [0.27, 0.33]
-    > wages.t_test(lwage, mu: 3)
+    decision at α = 0.05: reject H0 (p < 0.001)
+    > wages.t_test(lwage, mu: 3, alternative: greater)
+    t_test · one-sample · lwage
+      H0: the population mean of lwage equals 3            μ = 3
+      H1: the population mean of lwage is greater than 3   μ > 3
+
+    N = 18,201   mean = 3.142   sd = 0.511
+    difference (mean − 3) = 0.142   95% CI [0.136, Inf)
+    t = 37.48   df = 18,200   p < 0.001
+    decision at α = 0.05: reject H0 (p < 0.001)
     > import("zeff:sleep.csv").t_test(extra_1, extra_2, paired: true)
 ```
 

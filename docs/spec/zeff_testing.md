@@ -107,6 +107,7 @@ Mutation testing and coverage, with a short note of any surviving mutants or new
 - [ ] Has at least one property test, and a truth-recovery test if it is an estimator
 - [ ] Has self-checks on its result, if it fits a model (Zeff Specification, section 11.1)
 - [ ] Has snapshot tests for its printed output and every message it can give
+- [ ] If it returns a `TestResult`: has a snapshot of the printed hypothesis block and decision line for every form in the table of open decision #91, including one `alternative: less` and one `alternative: greater` case where the test takes the argument, since `zeff test` compares output exactly
 - [ ] Gives identical results on WebAssembly, both x86-64 SIMD levels and ARM64
 - [ ] Has the complete help page of the help contract (Zeff Specification, section 9.1): summary, description, every argument, value, details and references if it is a statistical method, see also, and at least one example that runs and prints what the page says; the build refuses the function otherwise
 - [ ] Has a benchmark, if it is in the performance table
