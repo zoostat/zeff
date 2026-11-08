@@ -1600,6 +1600,7 @@ name = "zeff-stats"
 version = "0.7.0-dev"
 dependencies = [
  "insta",
+ "proptest",
  "serde_json",
  "zeff-columns",
  "zeff-core",

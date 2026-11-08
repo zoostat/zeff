@@ -300,6 +300,10 @@ pub fn test_result_before(result: &TestResult) -> Vec<String> {
             }
         }
     }
+    // A blank line separates the block from the header lines, as it does from a table.
+    if result.hypotheses.is_some() && !result.header.is_empty() {
+        lines.push(String::new());
+    }
     lines.extend(result.header.iter().cloned());
     lines
 }
@@ -326,13 +330,16 @@ pub fn test_result_after(result: &TestResult) -> Vec<String> {
 /// with its interval at the level when it has one.
 pub fn estimate_line(estimate: &Estimate, level: f64) -> String {
     let value = fixed(estimate.value, estimate.decimals);
+    // A one-sided interval is open at its infinite end: `[0.136, Inf)`, `(-Inf, 0.2]`.
     match estimate.ci {
         Some((lower, upper)) => format!(
-            "{} = {value}   {} CI [{}, {}]",
+            "{} = {value}   {} CI {}{}, {}{}",
             estimate.label,
             level_text(level),
+            if lower.is_infinite() { "(" } else { "[" },
             fixed(lower, estimate.decimals),
-            fixed(upper, estimate.decimals)
+            fixed(upper, estimate.decimals),
+            if upper.is_infinite() { ")" } else { "]" }
         ),
         None => format!("{} = {value}", estimate.label),
     }

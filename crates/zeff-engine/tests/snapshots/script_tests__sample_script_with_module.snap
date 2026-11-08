@@ -16,10 +16,6 @@ error[Z0103]: no function is called `ivreg`
  --> zeff_samples.zeff:141:15
 error[Z0103]: no function is called `first_stage`
  --> zeff_samples.zeff:146:4
-error[Z0103]: no function is called `t_test`
- --> zeff_samples.zeff:160:7
-error[Z0103]: no function is called `t_test`
- --> zeff_samples.zeff:161:7
 error[Z0103]: no function is called `wilcoxon_test`
  --> zeff_samples.zeff:162:7
 error[Z0103]: no function is called `anova`
@@ -28,8 +24,6 @@ error[Z0103]: no function is called `chi2_test`
  --> zeff_samples.zeff:164:7
 error[Z0103]: no function is called `proportion_test`
  --> zeff_samples.zeff:165:7
-error[Z0103]: no function is called `t_test`
- --> zeff_samples.zeff:169:11
 error[Z0103]: no function is called `p_adjust`
  --> zeff_samples.zeff:171:1
 error[Z0103]: no function is called `logistic`

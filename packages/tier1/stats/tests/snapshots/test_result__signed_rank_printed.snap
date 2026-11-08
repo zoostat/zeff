@@ -5,6 +5,7 @@ expression: text
 wilcoxon_test · signed rank · gain
   H0: the distribution of gain is symmetric about 0
   H1: values of gain tend to lie above 0
+
 N = 12
 V = 61.00   p = 0.023
 decision at α = 0.01: fail to reject H0 (p = 0.023)

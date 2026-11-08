@@ -179,3 +179,13 @@ The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of s
 
 **For the owner to decide.** Nothing new. A ruling he may overturn: a Category's unused levels are not listed with a count of 0 (R's `table` lists them, Stata does not).
 
+## 8 November 2026, release 0.7.0, step 9 (`t_test`)
+
+**Done.** Step 8 needed two more small commits after its push (a CLI test that used `tabulate` as its example of an unshipped function, and the sample script's check snapshots, which no longer report `tabulate` as unknown); from this step the local routine runs the complete test programs of every crate touched plus the whole engine and command-line programs, gated on cargo's exit code. Then `t_test` in `stats`, in Rust (open decision #92 records why not Zeff): the three forms under one name, Welch's test by default, Hedges' g or Cohen's d with the large-sample interval (open decision #93), one-sided alternatives with one-sided intervals, frequency and analytic weights, the hypothesis block and decision line of #91; the checker lets a positional parameter with a default be omitted; `alternative` in the registry's shared table; the R reference within 1e-6 in every form, edge cases, two properties, snapshots, the conformance case `tests/t_test`, the page with running examples, the catalogue row implemented.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the full test programs of ir, registry, core, results, stats, data, engine, command line and conformance; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 10 `[function]`: `proportion_test` and `chi2_test`.
+
+**For the owner to decide.** Nothing blocking. Two new open decisions for 0.8.0: #92 (a `TestResult` constructor so that tests can be written in Zeff) and #93 (the noncentral t for effect-size intervals). A ruling he may overturn: the one-sample and paired forms print no effect size, as the help example shows.
+

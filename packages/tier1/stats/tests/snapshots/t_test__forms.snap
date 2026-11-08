@@ -1,0 +1,89 @@
+---
+source: packages/tier1/stats/tests/t_test.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+t_test · Welch two-sample · lwage by female
+  H0: the population means of lwage are equal in male and female        μ(male) − μ(female) = 0
+  H1: the population means of lwage differ between male and female      μ(male) − μ(female) ≠ 0
+
+  group        N    mean      sd
+  male     9,375   3.259   0.480
+  female   8,826   3.121   0.480
+
+difference (male − female) = 0.138   95% CI [0.124, 0.152]
+t = 19.35   df = 18,130.3   p < 0.001
+Hedges' g = 0.29   95% CI [0.26, 0.32]
+decision at α = 0.05: reject H0 (p < 0.001)
+t_test · one-sample · lwage
+  H0: the population mean of lwage equals 3               μ = 3
+  H1: the population mean of lwage is greater than 3      μ > 3
+
+N = 18,201   mean = 3.192   sd = 0.485
+difference (mean − 3) = 0.192   95% CI [0.186, Inf)
+t = 53.42   df = 18,200   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+t_test · pooled two-sample · lwage by union
+  H0: the population means of lwage are equal in no and yes        μ(no) − μ(yes) = 0
+  H1: the population means of lwage differ between no and yes      μ(no) − μ(yes) ≠ 0
+
+  group        N    mean      sd
+  no      12,413   3.157   0.487
+  yes      5,788   3.267   0.471
+
+difference (no − yes) = -0.109   99% CI [-0.129, -0.090]
+t = -14.24   df = 18,199   p < 0.001
+Cohen's d = -0.23   99% CI [-0.27, -0.19]
+decision at α = 0.01: reject H0 (p < 0.001)
+t_test · Welch two-sample · lwage by female
+  H0: the population means of lwage are equal in male and female       μ(male) − μ(female) = 0
+  H1: the population mean of lwage is less in male than in female      μ(male) − μ(female) < 0
+
+  group        N    mean      sd
+  male     9,375   3.259   0.480
+  female   8,826   3.121   0.480
+
+difference (male − female) = 0.138   95% CI (-Inf, 0.149]
+t = 19.35   df = 18,130.3   p = 1.000
+Hedges' g = 0.29   95% CI (-Inf, 0.31]
+decision at α = 0.05: fail to reject H0 (p = 1.000)
+t_test · paired · before and after
+  H0: the population mean of the paired differences before − after is 0          μ_d = 0
+  H1: the population mean of the paired differences before − after is not 0      μ_d ≠ 0
+
+N = 10 pairs   mean(before) = 0.750   mean(after) = 2.330   sd of differences = 1.230
+difference (before − after) = -1.580   95% CI [-2.460, -0.700]
+t = -4.06   df = 9   p = 0.003
+decision at α = 0.05: reject H0 (p = 0.003)
+t_test · paired · before and after
+  H0: the population mean of the paired differences before − after is 0                μ_d = 0
+  H1: the population mean of the paired differences before − after is less than 0      μ_d < 0
+
+N = 10 pairs   mean(before) = 0.750   mean(after) = 2.330   sd of differences = 1.230
+difference (before − after) = -1.580   90% CI (-Inf, -1.042]
+t = -4.06   df = 9   p = 0.001
+decision at α = 0.1: reject H0 (p = 0.001)
+t_test · one-sample · x
+  H0: the population mean of x equals 1            μ = 1
+  H1: the population mean of x differs from 1      μ ≠ 1
+
+N = 6   mean = 2.667   sd = 1.506
+difference (mean − 1) = 1.667   95% CI [0.087, 3.247]
+t = 2.71   df = 5   p = 0.042
+decision at α = 0.05: reject H0 (p = 0.042)
+t_test · Welch two-sample · x by s
+  H0: the population means of x are equal in a and b        μ(a) − μ(b) = 0
+  H1: the population means of x differ between a and b      μ(a) − μ(b) ≠ 0
+
+  group   N    mean      sd
+  a       3   2.000   0.500
+  b       3   4.167   0.764
+
+difference (a − b) = -2.167   95% CI [-3.727, -0.606]
+t = -4.11   df = 3.4   p = 0.020
+Hedges' g = -2.69   95% CI [-4.67, -0.70]
+decision at α = 0.05: reject H0 (p = 0.020)
+---
+note: 211 rows with NA in lwage or female dropped (line 2)
+note: 211 rows with NA in lwage dropped (line 3)
+note: 211 rows with NA in lwage or union dropped (line 4)
+note: 211 rows with NA in lwage or female dropped (line 5)

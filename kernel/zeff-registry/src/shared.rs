@@ -11,7 +11,7 @@ pub struct SharedArgument {
     pub meaning: &'static str,
 }
 
-pub const SHARED: [SharedArgument; 15] = [
+pub const SHARED: [SharedArgument; 16] = [
     SharedArgument {
         name: "by",
         ty: "Var | Vars",
@@ -81,6 +81,11 @@ pub const SHARED: [SharedArgument; 15] = [
         name: "level",
         ty: "Float = 0.95",
         meaning: "Confidence level.",
+    },
+    SharedArgument {
+        name: "alternative",
+        ty: "two_sided | less | greater = two_sided",
+        meaning: "The alternative a test's p-value is computed for; H1 and the interval follow it, and `less` means the first-named quantity (the mean, the first group, `a`) is less than the second or than the reference value (open decision #91).",
     },
     SharedArgument {
         name: "title",

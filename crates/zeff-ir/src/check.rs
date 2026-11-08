@@ -5444,10 +5444,12 @@ impl Checker<'_> {
             .params
             .iter()
             .map(|p| {
+                // A positional parameter with a default may be left out, as the table of
+                // section 3.4 says of defaults (`t_test`'s second variable, release 0.7.0).
                 (
                     p.name.to_string(),
                     Ty::parse(p.ty).unwrap_or(Ty::Unknown),
-                    p.option,
+                    p.option || p.default.is_some(),
                 )
             })
             .collect();

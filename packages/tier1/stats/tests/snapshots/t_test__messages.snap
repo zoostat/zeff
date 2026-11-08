@@ -1,0 +1,91 @@
+---
+source: packages/tier1/stats/tests/t_test.rs
+expression: all
+---
+error[Z0401]: the values of x are all equal, so the t statistic is undefined
+ --> scripts/main.zeff:1:32
+  |
+1 | frame(x = [2, 2, 2, 2]).t_test(x)
+  |                                ^ no variation
+  |
+  = help: a t test needs a standard error above zero; R refuses the same data as essentially constant
+
+error[Z0401]: `t_test` needs at least two values of x, but there is one
+ --> scripts/main.zeff:1:25
+  |
+1 | frame(x = [2.5]).t_test(x)
+  |                         ^ too few values
+  |
+  = help: a mean needs values to vary around; check the rows kept and the `NA`s dropped
+
+error[Z0412]: `group:` of `t_test` has 4 levels, but a two-group test compares two
+ --> scripts/main.zeff:1:60
+  |
+1 | frame(x = [1, 2, 3, 4], g = [0, 1, 2, 3]).t_test(x, group: g)
+  |                                                            ^ `g`
+  |
+  = help: `anova` compares several groups and `kruskal_test` ranks them; `where` keeps two of them for this test
+
+error[Z0401]: `group:` chooses the two-group form, which takes neither `mu:` nor `paired:`
+ --> scripts/main.zeff:1:60
+  |
+1 | frame(x = [1, 2, 3, 4], g = [0, 0, 1, 1]).t_test(x, group: g, mu: 1)
+  |                                                            ^ mixed forms
+  |
+  = help: the three forms are `t_test(var, mu: 0)`, `t_test(var, group: g)` and `t_test(a, b, paired: true)`
+
+error[Z0401]: `t_test` with two variables is the paired form, which needs `paired: true`
+ --> scripts/main.zeff:1:53
+  |
+1 | frame(x = [1, 2, 3, 4], y = [1, 2, 3, 5]).t_test(x, y)
+  |                                                     ^ a second variable without `paired: true`
+  |
+  = help: the three forms are `t_test(var, mu: 0)`, `t_test(var, group: g)` and `t_test(a, b, paired: true)`
+
+error[Z0401]: `paired: true` needs two variables, `t_test(a, b, paired: true)`
+ --> scripts/main.zeff:1:43
+  |
+1 | frame(x = [1, 2, 3, 4]).t_test(x, paired: true)
+  |                                           ^^^^ paired without a second variable
+  |
+  = help: the three forms are `t_test(var, mu: 0)`, `t_test(var, group: g)` and `t_test(a, b, paired: true)`
+
+error[Z0401]: the paired form tests the mean difference against 0 and takes no `mu:`
+ --> scripts/main.zeff:1:74
+  |
+1 | frame(x = [1, 2, 3, 4], y = [1, 2, 3, 5]).t_test(x, y, paired: true, mu: 2)
+  |                                                                          ^ `mu:` in the paired form
+  |
+  = help: the three forms are `t_test(var, mu: 0)`, `t_test(var, group: g)` and `t_test(a, b, paired: true)`
+
+error[Z0411]: `weights:` of `t_test` are sampling weights, which a test cannot use
+ --> scripts/main.zeff:1:62
+  |
+1 | frame(x = [1, 2, 3, 4], w = [1, 1, 2, 2]).t_test(x, weights: w)
+  |                                                              ^ sampling weights
+  |
+  = help: a regression with robust standard errors gives design-based inference, `reg(y ~ 1, weights: w, se: robust)`; frequency or analytic weights are taken with `weight_type: frequency` or `weight_type: analytic`
+
+error[Z0401]: `t_test` compares means, so `s` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:1:30
+  |
+1 | frame(s = ["a", "b"]).t_test(s)
+  |                              ^ not a numeric variable
+  |
+  = help: a test of a text or category variable's frequencies is `chi2_test` or `proportion_test`
+
+error[Z0401]: `level:` of `t_test` is a confidence level between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:39
+  |
+1 | frame(x = [1, 2, 3]).t_test(x, level: 1.5)
+  |                                       ^^^ outside (0, 1)
+  |
+  = help: write a level such as 0.95 or 0.99
+
+error[Z0101]: no variable `y` in `the frame`
+ --> scripts/main.zeff:1:29
+  |
+1 | frame(x = [1, 2, 3]).t_test(y)
+  |                             ^ not a variable of the frame
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`

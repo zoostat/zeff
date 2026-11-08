@@ -205,6 +205,8 @@ verbs/reshape/stdout fc8a0a1e28809d4f
 verbs/reshape/stderr 59442dd2f5d6ff84
 verbs/tabulate/stdout 75cb0a6d88c8c64c
 verbs/tabulate/stderr 368bc6793773976a
+tests/t_test/stdout a2474ac1856fed59
+tests/t_test/stderr f1c1faef91db77a8
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa
