@@ -1,12 +1,9 @@
 ---
 source: crates/zeff-engine/tests/formulas.rs
-assertion_line: 112
 expression: text
 ---
 error[Z0103]: no module is called `robustness`: there is no `functions/robustness.zeff`
  --> zeff_samples.zeff:17:1
-error[Z0103]: no function is called `tabulate`
- --> zeff_samples.zeff:53:7
 error[Z0103]: no function is called `histogram`
  --> zeff_samples.zeff:56:7
 error[Z0404]: `export` has no argument called `size`
