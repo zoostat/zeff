@@ -104,7 +104,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_fifteen_shared_arguments_of_section_6() {
+    fn the_sixteen_shared_arguments_of_section_6() {
         let names: Vec<&str> = SHARED.iter().map(|s| s.name).collect();
         assert_eq!(
             names,
@@ -123,6 +123,7 @@ mod tests {
                 "max_fail",
                 "seed",
                 "level",
+                "alternative",
                 "title"
             ]
         );
