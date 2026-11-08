@@ -175,11 +175,21 @@ fn counts(
                 } else if x == 0.0 {
                     false
                 } else {
-                    return Err(not_binary(ctx, name, &zeff_core::display::cell(Cell::Float(x)), slot));
+                    return Err(not_binary(
+                        ctx,
+                        name,
+                        &zeff_core::display::cell(Cell::Float(x)),
+                        slot,
+                    ));
                 }
             }
             Some(other) => {
-                return Err(not_binary(ctx, name, &zeff_core::display::cell(other), slot));
+                return Err(not_binary(
+                    ctx,
+                    name,
+                    &zeff_core::display::cell(other),
+                    slot,
+                ));
             }
             None => continue,
         };
