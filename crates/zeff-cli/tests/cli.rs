@@ -603,10 +603,10 @@ fn zeff_help_lists_a_package_and_says_when_a_function_arrives() {
         "{}",
         out(&core)
     );
-    let later = zeff(dir.path(), &["help", "tabulate"]);
+    let later = zeff(dir.path(), &["help", "version"]);
     assert_eq!(code(&later), 0);
     assert!(
-        out(&later).starts_with("`tabulate` arrives with release 0.7.0, in the `data` package: "),
+        out(&later).starts_with("`version` arrives with release 0.11.0, in the `core` package: "),
         "{}",
         out(&later)
     );
