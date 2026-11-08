@@ -535,7 +535,11 @@ proptest! {
         let (la, ua) = a.estimate.as_ref().unwrap().ci.unwrap();
         let (lb, ub) = b.estimate.as_ref().unwrap().ci.unwrap();
         prop_assert!((la + ub).abs() <= 1e-9 && (ua + lb).abs() <= 1e-9, "intervals {:?} and {:?}", (la, ua), (lb, ub));
-        // The cross-table's statistic does not depend on which variable is the row.
+        // The cross-table's statistic does not depend on which variable is the row. An outcome
+        // with one value has no cross-table, which `chi2_test` refuses by design.
+        if y.iter().all(|b| *b == Some(true)) || y.iter().all(|b| *b == Some(false)) {
+            return Ok(());
+        }
         let yi: Vec<Option<i64>> = y.iter().map(|b| b.map(i64::from)).collect();
         let table = frame_of(vec![("y", Column::ints(yi)), ("g", Column::ints(g))]);
         let (ab, _) = call(chi2_test, &table, vec![(1, var("y")), (2, var("g"))]).unwrap();

@@ -20,6 +20,7 @@ pub mod maths;
 pub mod order;
 pub mod random;
 pub mod special;
+pub mod wilcoxon;
 
 /// The sum of `values` in the reduction shape of `zeff-kernels` (compensated, in a fixed order).
 /// The sum of no values is `0.0`.

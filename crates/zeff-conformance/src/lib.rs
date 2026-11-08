@@ -1328,6 +1328,11 @@ fn panel_cases() -> Vec<Line> {
     // table and a corrected 2 × 2; goodness of fit; an empty cell's warning; frequency weights.
     let counted = "let wages = dataset(wages)\nwages.proportion_test(union, p: 0.3)\nwages.proportion_test(union, p: 0.3, correct: true, ci: exact, alternative: greater)\nwages.proportion_test(union, group: female)\nwages.proportion_test(union, group: female, ci: wald, correct: true, level: 0.99)\nwages.chi2_test(industry, female)\nwages.chi2_test(union, female, correct: true)\nwages.chi2_test(female, p: [0.5, 0.5])\nlet small = frame(a = [\"x\", \"x\", \"y\", \"y\", \"z\", NA], b = [1, 2, 1, 2, 1, 2], w = [1, 1, 2, 1, 1, 1])\nsmall.chi2_test(a, b)\nsmall.chi2_test(a, b, weights: w, weight_type: frequency)\nlet coin = frame(heads = [true, true, false, true, true, true, false, true, true, false])\ncoin.proportion_test(heads, p: 0.5, ci: wald, alternative: less)\n";
     let counted_outcome = run_script(&fs, &project, "scripts/main.zeff", counted);
+    // `wilcoxon_test` (release 0.7.0, step 11): the exact signed rank without and with ties and
+    // zeros, the approximation forced, one-sided alternatives and other levels, the paired form,
+    // the exact and approximate rank sum, and the wages' rank sum with ties.
+    let ranked = "let d = frame(x = [1.83, 0.50, 1.62, 2.48, 1.68, 1.88, 1.55, 3.06, 1.30], y = [0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29])\nd.wilcoxon_test(x, mu: 1)\nd.wilcoxon_test(x, mu: 1, exact: false, level: 0.99)\nd.wilcoxon_test(x, y, paired: true, alternative: greater)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9])\nt.wilcoxon_test(v, mu: 5)\nt.wilcoxon_test(v, mu: 5, exact: false, alternative: less)\nlet g = frame(s = [0.80, 0.83, 1.89, 1.04, 1.45, 1.38, 1.91, 1.64, 0.73, 1.46, 1.15, 0.88, 0.90, 0.74, 1.21], grp = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2])\ng.wilcoxon_test(s, group: grp)\ng.wilcoxon_test(s, group: grp, alternative: greater, level: 0.9, exact: false)\nlet w = dataset(wages).where(worker <= 400).add(lwage = log(wage))\nw.wilcoxon_test(lwage, group: female)\n";
+    let ranked_outcome = run_script(&fs, &project, "scripts/main.zeff", ranked);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1367,6 +1372,8 @@ fn panel_cases() -> Vec<Line> {
         text("tests/t_test/stderr", &tested_outcome.output.stderr),
         text("tests/counts/stdout", &counted_outcome.output.stdout),
         text("tests/counts/stderr", &counted_outcome.output.stderr),
+        text("tests/wilcoxon/stdout", &ranked_outcome.output.stdout),
+        text("tests/wilcoxon/stderr", &ranked_outcome.output.stderr),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),

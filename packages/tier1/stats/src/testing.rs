@@ -4,7 +4,7 @@
 //! variables with the note on the rows dropped, and the pieces of a `TestResult` that every
 //! test fills the same way: the hypothesis block, the decision line's α, the intervals' level.
 
-use zeff_columns::{Column, Value as Cell, WeightType, Weights};
+use zeff_columns::{Column, Value as Cell, WeightError, WeightType, Weights};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Alternative, Frame, Value};
 use zeff_diagnostics::messages::no_variable;
@@ -99,15 +99,66 @@ pub fn weights(
         )));
     };
     Weights::from_column(column, kind).map(Some).map_err(|e| {
-        fail(
-            Diagnostic::error(
+        // The rows named, 1-based, the first twenty at most, as the reducers name them.
+        let listed = |rows: &[usize], total: usize| -> String {
+            let shown: Vec<String> = rows.iter().map(|r| count(*r as u64)).collect();
+            if total > rows.len() {
+                format!("{}, …", shown.join(", "))
+            } else {
+                shown.join(", ")
+            }
+        };
+        let rows_word = |n: usize| if n == 1 { "row" } else { "rows" };
+        let diagnostic = match e {
+            WeightError::NotNumeric(ty) => Diagnostic::error(
                 "Z0401",
-                format!("`weights:` of `{name}` cannot be read from `{var}`: {e:?}"),
+                format!(
+                    "`weights:` of `{name}` must be a numeric variable, but `{var}` is a {}",
+                    ty.name()
+                ),
             )
-            .in_file(ctx.script)
-            .primary(span, "not usable weights")
-            .help("name a numeric variable without negative or infinite values"),
-        )
+            .primary(span, "not numbers")
+            .help("name a Bool, Int or Float variable of the frame"),
+            WeightError::Negative { rows, count: n } => Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`weights:` of `{name}` has {} negative {} in {} {}",
+                    count(n as u64),
+                    if n == 1 { "value" } else { "values" },
+                    rows_word(n),
+                    listed(&rows, n)
+                ),
+            )
+            .primary(span, "a weight is never negative")
+            .help(format!(
+                "`where({var} >= 0)` keeps the rows with a usable weight; a zero weight leaves its row out"
+            )),
+            WeightError::Infinite { rows, count: n } => Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`weights:` of `{name}` has {} infinite {} in {} {}",
+                    count(n as u64),
+                    if n == 1 { "value" } else { "values" },
+                    rows_word(n),
+                    listed(&rows, n)
+                ),
+            )
+            .primary(span, "a weight must be finite")
+            .help(format!("`where(is_finite({var}))` keeps the rows with a usable weight")),
+            WeightError::NotWhole { rows, count: n } => Diagnostic::error(
+                "Z0401",
+                format!(
+                    "frequency weights are whole numbers, but `{var}` has {} {} in {} {}",
+                    count(n as u64),
+                    if n == 1 { "fraction" } else { "fractions" },
+                    rows_word(n),
+                    listed(&rows, n)
+                ),
+            )
+            .primary(span, "a frequency weight counts rows")
+            .help("a weight with fractions is an analytic or a sampling weight: `weight_type: analytic`"),
+        };
+        fail(diagnostic.in_file(ctx.script))
     })
 }
 

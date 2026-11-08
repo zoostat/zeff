@@ -1,0 +1,91 @@
+---
+source: packages/tier1/stats/tests/wilcoxon.rs
+expression: all
+---
+error[Z0401]: every value of x less 2 is 0, so there is nothing to rank
+ --> scripts/main.zeff:1:36
+  |
+1 | frame(x = [2, 2, 2]).wilcoxon_test(x, mu: 2)
+  |                                    ^ all zero
+  |
+  = help: a signed-rank test needs differences that are not all equal to the hypothesised value
+
+error[Z0401]: every difference a − b is 0, so there is nothing to rank
+ --> scripts/main.zeff:1:45
+  |
+1 | frame(a = [1, 2], b = [1, 2]).wilcoxon_test(a, b, paired: true)
+  |                                             ^ all zero
+  |
+  = help: a signed-rank test needs differences that are not all equal to the hypothesised value
+
+error[Z0401]: `wilcoxon_test` ranks numbers, so `s` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:1:37
+  |
+1 | frame(s = ["a", "b"]).wilcoxon_test(s)
+  |                                     ^ not a numeric variable
+  |
+  = help: a test of a text or category variable's frequencies is `chi2_test`
+
+error[Z0401]: `wilcoxon_test` with two variables is the paired form, which needs `paired: true`
+ --> scripts/main.zeff:1:54
+  |
+1 | frame(x = [1, 2, 3], y = [1, 2, 4]).wilcoxon_test(x, y)
+  |                                                      ^ a second variable without `paired: true`
+  |
+  = help: the three forms are `wilcoxon_test(var, mu: 0)`, `wilcoxon_test(var, group: g)` and `wilcoxon_test(a, b, paired: true)`
+
+error[Z0401]: `paired: true` needs two variables, `wilcoxon_test(a, b, paired: true)`
+ --> scripts/main.zeff:1:47
+  |
+1 | frame(x = [1, 2, 3]).wilcoxon_test(x, paired: true)
+  |                                               ^^^^ paired without a second variable
+  |
+  = help: the three forms are `wilcoxon_test(var, mu: 0)`, `wilcoxon_test(var, group: g)` and `wilcoxon_test(a, b, paired: true)`
+
+error[Z0401]: `group:` chooses the rank-sum form, which is not paired
+ --> scripts/main.zeff:1:88
+  |
+1 | frame(x = [1, 2, 3, 4], g = [0, 0, 1, 1], y = [1, 2, 3, 5]).wilcoxon_test(x, y, group: g, paired: true)
+  |                                                                                        ^ mixed forms
+  |
+  = help: the three forms are `wilcoxon_test(var, mu: 0)`, `wilcoxon_test(var, group: g)` and `wilcoxon_test(a, b, paired: true)`
+
+error[Z0412]: `group:` of `wilcoxon_test` has 4 levels, but a two-group test compares two
+ --> scripts/main.zeff:1:67
+  |
+1 | frame(x = [1, 2, 3, 4], g = [0, 1, 2, 3]).wilcoxon_test(x, group: g)
+  |                                                                   ^ `g`
+  |
+  = help: `anova` compares several groups and `kruskal_test` ranks them; `where` keeps two of them for this test
+
+error[Z0411]: `weights:` of `wilcoxon_test` are sampling weights, which a test cannot use
+ --> scripts/main.zeff:1:63
+  |
+1 | frame(x = [1, 2, 3], w = [1, 1, 2]).wilcoxon_test(x, weights: w)
+  |                                                               ^ sampling weights
+  |
+  = help: a regression with robust standard errors gives design-based inference, `reg(y ~ 1, weights: w, se: robust)`; frequency or analytic weights are taken with `weight_type: frequency` or `weight_type: analytic`
+
+error[Z0401]: frequency weights are whole numbers, but `w` has 1 fraction in row 1
+ --> scripts/main.zeff:1:65
+  |
+1 | frame(x = [1, 2, 3], w = [1.5, 1, 2]).wilcoxon_test(x, weights: w, weight_type: frequency)
+  |                                                                 ^ a frequency weight counts rows
+  |
+  = help: a weight with fractions is an analytic or a sampling weight: `weight_type: analytic`
+
+error[Z0401]: `wilcoxon_test` ranks rows, so its weights are frequency weights, not analytic
+ --> scripts/main.zeff:1:79
+  |
+1 | frame(x = [1, 2, 3], w = [1, 1, 2]).wilcoxon_test(x, weights: w, weight_type: analytic)
+  |                                                                               ^^^^^^^^ analytic weights on ranks
+  |
+  = help: write `weight_type: frequency` for weights that say how many rows each row stands for
+
+error[Z0401]: `level:` of `wilcoxon_test` is a confidence level between 0 and 1, but this is 0
+ --> scripts/main.zeff:1:46
+  |
+1 | frame(x = [1, 2, 3]).wilcoxon_test(x, level: 0)
+  |                                              ^ outside (0, 1)
+  |
+  = help: write a level such as 0.95 or 0.99

@@ -1,0 +1,108 @@
+---
+source: packages/tier1/stats/tests/wilcoxon.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+wilcoxon_test · signed rank · x
+  H0: the distribution of x is symmetric about 1
+  H1: the distribution of x is not symmetric about 1; values tend to lie on one side of it
+
+N = 9
+pseudomedian = 1.725   95% CI [1.165, 2.370]
+V = 43.00   p = 0.012
+decision at α = 0.05: reject H0 (p = 0.012)
+exact p-value, no ties
+wilcoxon_test · signed rank · x
+  H0: the distribution of x is symmetric about 1
+  H1: the distribution of x is not symmetric about 1; values tend to lie on one side of it
+
+N = 9
+pseudomedian = 1.725   99% CI [1.025, 2.480]
+V = 43.00   p = 0.018
+decision at α = 0.01: fail to reject H0 (p = 0.018)
+normal approximation with continuity correction
+wilcoxon_test · signed rank · paired · x and y
+  H0: the distribution of the paired differences x − y is symmetric about 0
+  H1: the paired differences x − y tend to lie above 0
+
+N = 9 pairs
+pseudomedian of differences (x − y) = 0.460   95% CI [0.175, Inf)
+V = 40.00   p = 0.020
+decision at α = 0.05: reject H0 (p = 0.020)
+exact p-value, no ties
+wilcoxon_test · signed rank · paired · x and y
+  H0: the distribution of the paired differences x − y is symmetric about 0
+  H1: the paired differences x − y tend to lie below 0
+
+N = 9 pairs
+pseudomedian of differences (x − y) = 0.460   95% CI (-Inf, 0.726]
+V = 40.00   p = 0.981
+decision at α = 0.05: fail to reject H0 (p = 0.981)
+normal approximation
+wilcoxon_test · signed rank · v
+  H0: the distribution of v is symmetric about 5
+  H1: the distribution of v is not symmetric about 5; values tend to lie on one side of it
+
+N = 15
+pseudomedian = 5.000   95% CI [3.500, 7.000]
+V = 60.00   p = 0.900
+decision at α = 0.05: fail to reject H0 (p = 0.900)
+exact p-value, over the tied ranks, 3 differences of 0 set aside
+wilcoxon_test · signed rank · v
+  H0: the distribution of v is symmetric about 5
+  H1: values of v tend to lie below 5
+
+N = 15
+pseudomedian = 5.000   95% CI (-Inf, 6.500]
+V = 42.00   p = 0.609
+decision at α = 0.05: fail to reject H0 (p = 0.609)
+normal approximation with continuity correction, ties, 3 differences of 0 dropped
+wilcoxon_test · rank sum · s by grp
+  H0: the distribution of s is the same in grp=1 and grp=2
+  H1: values of s in grp=1 tend to be larger or smaller than in grp=2
+
+  group    N   median
+  grp=1   10    1.415
+  grp=2    5    0.900
+
+location shift (grp=1 − grp=2) = 0.305   95% CI [-0.150, 0.760]
+W = 35.00   p = 0.254
+decision at α = 0.05: fail to reject H0 (p = 0.254)
+exact p-value, no ties
+wilcoxon_test · rank sum · s by grp
+  H0: the distribution of s is the same in grp=1 and grp=2
+  H1: values of s in grp=1 tend to be larger than in grp=2
+
+  group    N   median
+  grp=1   10    1.415
+  grp=2    5    0.900
+
+location shift (grp=1 − grp=2) = 0.305   90% CI [-0.010, Inf)
+W = 35.00   p = 0.122
+decision at α = 0.1: fail to reject H0 (p = 0.122)
+normal approximation with continuity correction
+wilcoxon_test · rank sum · s by grp
+  H0: the distribution of s in grp=1, shifted by 0.2, is the same as in grp=2
+  H1: values of s in grp=1, shifted by 0.2, tend to be larger or smaller than in grp=2
+
+  group    N   median
+  grp=1   10    1.415
+  grp=2    5    0.900
+
+location shift (grp=1 − grp=2) = 0.305   95% CI [-0.150, 0.760]
+W = 30.00   p = 0.594
+decision at α = 0.05: fail to reject H0 (p = 0.594)
+exact p-value, no ties
+wilcoxon_test · rank sum · lwage by female
+  H0: the distribution of lwage is the same in male and female
+  H1: values of lwage in male tend to be larger or smaller than in female
+
+  group      N   median
+  male     922    3.199
+  female   957    3.127
+
+location shift (male − female) = 0.066   95% CI [0.023, 0.109]
+W = 476715.50   p = 0.003
+decision at α = 0.05: reject H0 (p = 0.003)
+normal approximation with continuity correction, ties
+---
+note: 21 rows with NA in lwage or female dropped (line 14)

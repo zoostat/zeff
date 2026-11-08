@@ -122,3 +122,13 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 
 **For the owner to decide.** Nothing blocking. Rulings he may overturn: the interval of a proportion names its method in the estimate line (`proportion (Wilson) = …`); `p:` of `chi2_test` must sum to 1 rather than being rescaled as R does on request.
 
+## 8 November 2026, release 0.7.0, step 11 (the exact Wilcoxon distributions and `wilcoxon_test`)
+
+**Done.** Step 10 needed one more commit (a formatting slip after its clippy fixes; the routine now ends with the format check). Then the signed-rank and rank-sum distributions counted in integers in the numeric kernel, with and without tied ranks, and `wilcoxon_test` in `stats` in the three forms, reproducing R 4.6.0's `wilcox.test`: exact p-values below 50 observations, over the tied ranks with ties or zeros, the normal approximation with the continuity correction otherwise, `exact:` and `correct:` as overrides, the Hodges–Lehmann estimate with R's interval; the reference for every n from 2 to 60 and a grid of group sizes agrees to 1e-12 (exact) and to R's root tolerance (approximate intervals); properties, edge cases, snapshots, the conformance case `tests/wilcoxon`, the page with running examples, the catalogue row implemented. The shared weight helper's debug-form error of step 7 now prints sentences.
+
+**Green.** Format (checked last), clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line, without stopping at a failure; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 12 `[function]`: `kruskal_test` and `p_adjust`.
+
+**For the owner to decide.** One ruling to confirm or overturn: question 4 (a) was taken "as R does", but R 4.6.0 (the pinned reference) gives exact p-values below 50 observations even with ties or zeros, from the permutation distribution of the tied ranks, where the recommendation's wording (R before 4.5) switched to the approximation; `wilcoxon_test` follows R 4.6.0, and the older rule is one line to restore (`docs/decisions.md`, step 11).
+

@@ -7,6 +7,7 @@ pub mod chi2_test;
 pub mod proportion_test;
 pub mod t_test;
 pub mod testing;
+pub mod wilcoxon_test;
 
 use zeff_columns::{Column, ColumnType};
 use zeff_core::display::format_float;
@@ -556,6 +557,60 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: chi2_test::chi2_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "wilcoxon_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec {
+                        name: "b",
+                        ty: "Var",
+                        default: Some("NA"),
+                        option: false,
+                    },
+                    ParamSpec::option_with_default("mu", "Float", "0"),
+                    ParamSpec::option("exact", "Bool"),
+                    ParamSpec::option_with_default("correct", "Bool", "true"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option_with_default("paired", "Bool", "false"),
+                    ParamSpec::option_with_default(
+                        "alternative",
+                        "two_sided | less | greater",
+                        "two_sided",
+                    ),
+                    ParamSpec::option_with_default("level", "Float", "0.95"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows with NA in a tested variable dropped, with the count",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numeric; arguments of two forms mixed, or a second variable without paired: true; no values, or differences all equal to mu; analytic weights, or frequency weights with a fraction; level: outside (0, 1)",
+                    ),
+                    DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
+                    DiagnosticDecl::new("Z0412", "group: has one level or more than two"),
+                ],
+                help: include_str!("../help/wilcoxon_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 wilcox.test() (tests/reference/r/wilcoxon.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: wilcoxon_test::wilcoxon_test,
         },
         Function {
             spec: FunctionSpec {
