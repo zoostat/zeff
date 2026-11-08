@@ -203,6 +203,8 @@ verbs/merge/stdout 4caf29fe3a083173
 verbs/merge/stderr cb9189a2747b2f9d
 verbs/reshape/stdout fc8a0a1e28809d4f
 verbs/reshape/stderr 59442dd2f5d6ff84
+verbs/tabulate/stdout 75cb0a6d88c8c64c
+verbs/tabulate/stderr 368bc6793773976a
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

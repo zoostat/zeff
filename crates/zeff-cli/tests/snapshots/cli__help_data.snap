@@ -2,7 +2,7 @@
 source: crates/zeff-cli/tests/cli.rs
 expression: out(&o)
 ---
-data · tier 1 · 58 of 59 functions in this release
+data · tier 1 · 59 of 59 functions in this release
 
   frame             Create a frame from named lists of values
   import            Read a data file into a frame
@@ -33,6 +33,7 @@ data · tier 1 · 58 of 59 functions in this release
   n                 Row count, as a reducer inside add and aggregate
   n_distinct        Number of distinct values
   summary           Table of N, missing, mean, SD, min and max
+  tabulate          Frequencies and percentages, one- or two-way
   drop_missing      Remove rows with NA in the variables and report how many
   lag               Previous values in the panel's time order
   lead              Next values

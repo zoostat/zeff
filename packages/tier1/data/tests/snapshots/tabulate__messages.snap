@@ -1,0 +1,49 @@
+---
+source: packages/tier1/data/tests/tabulate.rs
+expression: all
+---
+error[Z0401]: tabulate takes one or two variables, not 3
+ --> scripts/main.zeff:2:12
+  |
+2 | f.tabulate([a, b, c])
+  |            ^^^^^^^^^ the variables to tabulate
+  |
+  = help: write one variable, `tabulate(industry)`, or two in a list, `tabulate([industry, female])`
+
+error[Z0401]: `percent: row` and `percent: col` need two variables; one variable's table always shows the percentage of all rows
+ --> scripts/main.zeff:2:24
+  |
+2 | f.tabulate(a, percent: row)
+  |                        ^^^ row or column percentages of a one-way table
+  |
+  = help: give two variables, `tabulate([industry, female], percent: row)`, or leave `percent:` out
+
+error[Z0401]: `percent: row` and `percent: col` need two variables; one variable's table always shows the percentage of all rows
+ --> scripts/main.zeff:2:24
+  |
+2 | f.tabulate(a, percent: col)
+  |                        ^^^ row or column percentages of a one-way table
+  |
+  = help: give two variables, `tabulate([industry, female], percent: row)`, or leave `percent:` out
+
+error[Z0402]: `cell` is not one of the allowed words
+ --> scripts/main.zeff:2:24
+  |
+2 | f.tabulate(a, percent: cell)
+  |                        ^^^^ expected one of row, col, total
+
+error[Z0101]: no variable `b` in `f`
+ --> scripts/main.zeff:2:12
+  |
+2 | f.tabulate(b)
+  |            ^ not a variable of f
+  |
+  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
+
+error[Z0102]: no variable `age` in `f`; names are case-sensitive
+ --> scripts/main.zeff:2:12
+  |
+2 | f.tabulate(age)
+  |            ^^^ differs only in case from `Age`
+  |
+  = help: write `Age`

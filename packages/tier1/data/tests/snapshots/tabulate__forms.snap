@@ -1,0 +1,101 @@
+---
+source: packages/tier1/data/tests/tabulate.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+tabulate · wages · industry
+
+  industry                     N       %
+  Agriculture                535     2.9
+  Mining                     200     1.1
+  Utilities                  370     2.0
+  Construction             1,477     8.0
+  Manufacturing            2,574    14.0
+  Retail                   2,871    15.6
+  Transport                  976     5.3
+  Finance                  1,560     8.5
+  Services                 2,637    14.3
+  Education                1,693     9.2
+  Health                   2,098    11.4
+  Public administration    1,421     7.7
+  ──────────────────────────────────────
+  Total                   18,412   100.0
+tabulate · wages · female × union
+
+  female       no     yes    Total
+  male      6,516   2,975    9,491
+  female    6,040   2,881    8,921
+  ────────────────────────────────
+  Total    12,556   5,856   18,412
+tabulate · wages · female × union · row %
+
+  female       no     yes    Total
+  male      6,516   2,975    9,491
+             68.7    31.3    100.0
+  female    6,040   2,881    8,921
+             67.7    32.3    100.0
+  ────────────────────────────────
+  Total    12,556   5,856   18,412
+             68.2    31.8    100.0
+tabulate · wages · female × union · column %
+
+  female       no     yes    Total
+  male      6,516   2,975    9,491
+             51.9    50.8     51.5
+  female    6,040   2,881    8,921
+             48.1    49.2     48.5
+  ────────────────────────────────
+  Total    12,556   5,856   18,412
+            100.0   100.0    100.0
+tabulate · wages · female × union · % of total
+
+  female       no     yes    Total
+  male      6,516   2,975    9,491
+             35.4    16.2     51.5
+  female    6,040   2,881    8,921
+             32.8    15.6     48.5
+  ────────────────────────────────
+  Total    12,556   5,856   18,412
+             68.2    31.8    100.0
+tabulate · small · sex
+
+  sex     N       %
+  f       3    50.0
+  m       2    33.3
+  NA      1    16.7
+  ─────────────────
+  Total   6   100.0
+tabulate · small · sex × smoker
+
+  sex     false   true   NA   Total
+  f           1      1    1       3
+  m           2      0    0       2
+  NA          0      1    0       1
+  ─────────────────────────────────
+  Total       3      2    1       6
+tabulate · small · sex × smoker · column %
+
+  sex     false    true      NA   Total
+  f           1       1       1       3
+           33.3    50.0   100.0    50.0
+  m           2       0       0       2
+           66.7     0.0     0.0    33.3
+  NA          0       1       0       1
+            0.0    50.0     0.0    16.7
+  ─────────────────────────────────────
+  Total       3       2       1       6
+          100.0   100.0   100.0   100.0
+tabulate · small · smoker
+
+  smoker   N       %
+  false    3    50.0
+  true     2    33.3
+  NA       1    16.7
+  ──────────────────
+  Total    6   100.0
+tabulate · e · a
+
+  a       N    %
+  ──────────────
+  Total   0   NA
+---
+note: no row kept: the result is empty (line 12)

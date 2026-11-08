@@ -56,13 +56,13 @@ fn plural(n: usize, one: &str, many: &str) -> String {
     format!("{} {}", count(n as u64), if n == 1 { one } else { many })
 }
 
-fn article(type_name: &str) -> String {
+pub(crate) fn article(type_name: &str) -> String {
     let vowel = type_name == "NA"
         || (type_name.starts_with(['A', 'E', 'I', 'O', 'U']) && !type_name.starts_with("Union"));
     format!("{} {type_name}", if vowel { "an" } else { "a" })
 }
 
-fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
+pub(crate) fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
     fail(
         Diagnostic::error(
             "Z9001",

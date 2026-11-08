@@ -168,3 +168,14 @@ The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of s
 **Next.** Step 8 `[function]`: `tabulate` in `data`.
 
 **For the owner to decide.** Nothing new. Rulings he may overturn: `test` and `compare` print no hypothesis block; a `t` statistic writes `df =` after its value where the others keep brackets; the blank line after a test's table stays (section 10.2's example will gain it at step 9); `ci` on a test at another level is refused.
+
+## 8 November 2026, release 0.7.0, step 8 (`tabulate`)
+
+**Done.** Step 7's CI needed one more commit: the tiers job requires a rendered snapshot of every code's wording, and Z0411 and Z0412 had none (the local check had passed on an earlier scan); the snapshots were added and CI went green. Then `tabulate` in `data`: one- and two-way frequency tables with `N` and `%`, `percent: row | col | total` under each row of counts, `NA` as its own row or column, a `Total` row under a rule, labels and category levels as the frame prints them; the R reference (`table` with `useNA`, `prop.table`), edge cases, a property, snapshots of every form and message, the conformance case `verbs/tabulate`, the help page with running examples, catalogue row 154 marked implemented.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, the data, core, registry, command-line and conformance programs and the engine's examples; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 9 `[function]`: `t_test`, written in Zeff, with the blank-line correction to section 10.2's example (ruling (c) of step 7).
+
+**For the owner to decide.** Nothing new. A ruling he may overturn: a Category's unused levels are not listed with a count of 0 (R's `table` lists them, Stata does not).
+

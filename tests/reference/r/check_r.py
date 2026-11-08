@@ -27,7 +27,7 @@ import json
 import math
 import sys
 
-TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "fixed_effects": 1e-9, "event": 1e-9, "dates": 0.0, "time": 0.0, "format": 0.0, "text": 0.0, "text_regex": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0, "distinct": 0.0, "aggregate": 1e-12, "merge": 0.0, "reshape": 0.0}
+TOLERANCE = {"maths": 1e-13, "descriptive": 1e-12, "special": 1e-12, "distributions": 1e-12, "association": 1e-12, "kernels": 1e-12, "types": 1e-12, "design": 1e-12, "regression": 1e-10, "fixed_effects": 1e-9, "event": 1e-9, "dates": 0.0, "time": 0.0, "format": 0.0, "text": 0.0, "text_regex": 0.0, "panel": 0.0, "running": 0.0, "quantile_group": 0.0, "distinct": 0.0, "aggregate": 1e-12, "merge": 0.0, "reshape": 0.0, "tabulate": 1e-12}
 
 
 def number(text):

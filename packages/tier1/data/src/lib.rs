@@ -16,6 +16,7 @@ pub mod reducers;
 pub mod reshape;
 pub mod rows;
 pub mod save;
+pub mod tabulate;
 pub mod verbs;
 
 use zeff_core::runtime::Function;
@@ -876,6 +877,34 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: reducers::summary,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "tabulate",
+                package: "data",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("vars", "Vars"),
+                    ParamSpec::option("percent", "row | col | total"),
+                ],
+                rest: None,
+                returns: "Table",
+                diagnostics: vec![
+                    DiagnosticDecl::new("Z0101", "no such variable in the frame"),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "more than two variables; an opaque variable; percent: row or col with one variable",
+                    ),
+                ],
+                help: include_str!("../help/tabulate.md"),
+                accuracy: None,
+            },
+            body: tabulate::tabulate,
         },
         Function {
             spec: FunctionSpec {
