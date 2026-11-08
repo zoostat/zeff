@@ -4,7 +4,7 @@
 //! variables with the note on the rows dropped, and the pieces of a `TestResult` that every
 //! test fills the same way: the hypothesis block, the decision line's α, the intervals' level.
 
-use zeff_columns::{Column, Value as Cell, WeightError, WeightType, Weights};
+use zeff_columns::{Column, Groups, Value as Cell, WeightError, WeightType, Weights};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Alternative, Frame, Value};
 use zeff_diagnostics::messages::no_variable;
@@ -162,9 +162,74 @@ pub fn weights(
     })
 }
 
-/// The two groups of `group:` (section 6; Z0412 for one level or more than two): each group's
-/// label, by the variable's value labels where it has them and as `var=value` otherwise (open
-/// decision #91, rule R5), in the order of the values, and the rows of each, `NA` rows left out.
+/// One group of `group:` (step 12): its label, by the variable's value labels where it has them
+/// and as `var=value` otherwise (open decision #91, rule R5), and its rows, `NA` rows left out.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Group {
+    pub label: String,
+    pub rows: Vec<usize>,
+}
+
+/// The groups of `group:` (section 6), in the order of section 3.7 (codes ascending, texts by
+/// code point, a category's levels in their order), `NA` rows left out. A variable that is not
+/// Bool, Int, Float, Str or Category is Z0401.
+pub fn groups(
+    ctx: &CallContext<'_>,
+    column: &Column,
+    var: &str,
+    slot: usize,
+    name: &str,
+) -> Result<Vec<Group>, Fail> {
+    let not_grouping = |what: &str| {
+        fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`group:` of `{name}` must be a Bool, Int, Str or Category variable, but `{var}` is a {what}"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(slot), "not a grouping variable")
+            .help("a group is a value shared by its rows; `bin` or `quantile_group` makes groups from a number"),
+        )
+    };
+    if matches!(
+        column.ty(),
+        zeff_columns::ColumnType::Date
+            | zeff_columns::ColumnType::DateTime
+            | zeff_columns::ColumnType::Opaque(_)
+    ) {
+        return Err(not_grouping(column.ty().name()));
+    }
+    let grouped = Groups::by(&[column]).map_err(|e| internal(ctx, &format!("{e:?}")))?;
+    let labels = column.metadata().value_labels();
+    let mut out = Vec::with_capacity(grouped.len());
+    for g in 0..grouped.len() {
+        let rows = grouped.rows(g).to_vec();
+        let (text, plain) = match column.get(rows[0]) {
+            None | Some(Cell::Na) => continue,
+            Some(Cell::Int(i)) => (i.to_string(), false),
+            Some(Cell::Bool(b)) => (b.to_string(), false),
+            Some(Cell::Float(x)) => (format!("{x}"), false),
+            Some(Cell::Str(s)) | Some(Cell::Category(s)) => (s.to_string(), true),
+            Some(other) => return Err(not_grouping(&format!("{other:?}"))),
+        };
+        let label = labels
+            .as_ref()
+            .and_then(|ls| ls.iter().find(|(code, _)| *code == text))
+            .map(|(_, l)| l.clone())
+            .unwrap_or_else(|| {
+                if plain {
+                    text.clone()
+                } else {
+                    format!("{var}={text}")
+                }
+            });
+        out.push(Group { label, rows });
+    }
+    Ok(out)
+}
+
+/// The two groups of `group:` (section 6; Z0412 for one level or more than two): the groups of
+/// `groups`, which must be exactly two.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TwoGroups {
     pub labels: [String; 2],
@@ -178,44 +243,9 @@ pub fn two_groups(
     slot: usize,
     name: &str,
 ) -> Result<TwoGroups, Fail> {
-    let mut keys: Vec<(String, String, Vec<usize>)> = Vec::new();
-    let labels = column.metadata().value_labels();
-    for row in 0..column.len() {
-        let text = match column.get(row) {
-            None | Some(Cell::Na) => continue,
-            Some(Cell::Int(i)) => i.to_string(),
-            Some(Cell::Bool(b)) => b.to_string(),
-            Some(Cell::Str(s)) => s.to_string(),
-            Some(Cell::Float(x)) => format!("{x}"),
-            Some(_) => {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!("`group:` of `{name}` must be a Bool, Int or Str variable, but `{var}` is a {}", column.ty().name()),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(slot), "not a grouping variable")
-                    .help("a group is a value shared by its rows; `bin` or `quantile_group` makes groups from a number"),
-                ));
-            }
-        };
-        match keys.iter_mut().find(|(k, _, _)| *k == text) {
-            Some((_, _, rows)) => rows.push(row),
-            None => {
-                let label = labels
-                    .as_ref()
-                    .and_then(|ls| ls.iter().find(|(code, _)| *code == text))
-                    .map(|(_, l)| l.clone())
-                    .unwrap_or_else(|| match column.ty() {
-                        zeff_columns::ColumnType::Str => text.clone(),
-                        _ => format!("{var}={text}"),
-                    });
-                keys.push((text, label, vec![row]));
-            }
-        }
-    }
-    if keys.len() != 2 {
-        let levels = keys.len();
+    let found = groups(ctx, column, var, slot, name)?;
+    if found.len() != 2 {
+        let levels = found.len();
         return Err(fail(
             Diagnostic::error(
                 "Z0412",
@@ -229,7 +259,7 @@ pub fn two_groups(
                 ),
             )
             .in_file(ctx.script)
-            .primary(ctx.span_of(slot), format!("`{var}`")) 
+            .primary(ctx.span_of(slot), format!("`{var}`"))
             .help(if levels > 2 {
                 "`anova` compares several groups and `kruskal_test` ranks them; `where` keeps two of them for this test"
             } else {
@@ -237,25 +267,62 @@ pub fn two_groups(
             }),
         ));
     }
-    // In the order of the values: codes numerically, texts by code point.
-    let numeric = keys.iter().all(|(k, _, _)| k.parse::<f64>().is_ok());
-    keys.sort_by(|a, b| {
-        if numeric {
-            a.0.parse::<f64>()
-                .unwrap()
-                .partial_cmp(&b.0.parse::<f64>().unwrap())
-                .unwrap()
-        } else {
-            a.0.cmp(&b.0)
-        }
-    });
-    let mut it = keys.into_iter();
-    let (_, l1, r1) = it.next().unwrap();
-    let (_, l2, r2) = it.next().unwrap();
+    let mut it = found.into_iter();
+    let (g1, g2) = (it.next().unwrap(), it.next().unwrap());
     Ok(TwoGroups {
-        labels: [l1, l2],
-        rows: [r1, r2],
+        labels: [g1.label, g2.label],
+        rows: [g1.rows, g2.rows],
     })
+}
+
+/// The variable named in `slot`, with its column, or `None` when the slot is empty; a name the
+/// frame does not have is Z0101.
+pub fn variable<'a>(
+    ctx: &CallContext<'_>,
+    frame: &'a Frame,
+    args: &Args,
+    slot: usize,
+) -> Result<Option<(String, &'a Column)>, Fail> {
+    let Some(Value::Var(name)) = args.get(slot) else {
+        return Ok(None);
+    };
+    let columns: Vec<&str> = frame.table.names().iter().map(String::as_str).collect();
+    match frame.table.column(name) {
+        Some(column) => Ok(Some((name.clone(), column))),
+        None => Err(fail(no_variable(
+            ctx.script,
+            ctx.span_of(slot),
+            &frame.shown_name(),
+            name,
+            &columns,
+        ))),
+    }
+}
+
+/// A Bool, Int or Float cell as a number; anything else `NaN`.
+pub fn number(column: &Column, row: usize) -> f64 {
+    match column.get(row) {
+        Some(Cell::Float(x)) => x,
+        Some(Cell::Int(i)) => i as f64,
+        Some(Cell::Bool(b)) => f64::from(u8::from(b)),
+        _ => f64::NAN,
+    }
+}
+
+/// The values of `column` in `rows`, each repeated by its frequency weight.
+pub fn replicated(column: &Column, rows: &[usize], weights: Option<&Weights>) -> Vec<f64> {
+    let mut out = Vec::with_capacity(rows.len());
+    for &row in rows {
+        let copies = match weights {
+            Some(w) if !w.counts(row) => 0,
+            Some(w) => w.of(row).round() as usize,
+            None => 1,
+        };
+        for _ in 0..copies {
+            out.push(number(column, row));
+        }
+    }
+    out
 }
 
 /// The rows with a value in every one of `columns`, in order, and the note on the rows dropped
@@ -290,7 +357,7 @@ pub fn complete_rows(
     (kept, dropped)
 }
 
-fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
+pub fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
     fail(
         Diagnostic::error(
             "Z9001",

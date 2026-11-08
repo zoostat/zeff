@@ -1,0 +1,89 @@
+---
+source: packages/tier1/stats/tests/kruskal.rs
+expression: all
+---
+error[Z0401]: `kruskal_test` compares the groups of `group:`, which is missing
+ --> scripts/main.zeff:1:22
+  |
+1 | frame(x = [1, 2, 3]).kruskal_test(x)
+  |                      ^^^^^^^^^^^^ no `group:`
+  |
+  = help: write `kruskal_test(var, group: g)`; a test of one variable against a centre is `wilcoxon_test`
+
+error[Z0401]: `group:` of `kruskal_test` has one level, but the test compares two or more
+ --> scripts/main.zeff:1:60
+  |
+1 | frame(x = [1, 2, 3], g = [1, 1, 1]).kruskal_test(x, group: g)
+  |                                                            ^ `g`
+  |
+  = help: the groups are the values of the variable among the rows kept; `where` or `recode` may give more
+
+error[Z0401]: every value of `x` is the same, so there is nothing to rank
+ --> scripts/main.zeff:1:56
+  |
+1 | frame(x = [2, 2, 2, 2], g = [1, 1, 2, 2]).kruskal_test(x, group: g)
+  |                                                        ^ one value throughout
+  |
+  = help: a test needs values that differ between rows
+
+error[Z0401]: `kruskal_test` ranks numbers, so `s` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:1:48
+  |
+1 | frame(s = ["a", "b"], g = [1, 2]).kruskal_test(s, group: g)
+  |                                                ^ not a numeric variable
+  |
+  = help: a test of a text or category variable's frequencies is `chi2_test`
+
+error[Z0401]: `group:` of `kruskal_test` must be a Bool, Int, Str or Category variable, but `d` is a Date
+ --> scripts/main.zeff:1:111
+  |
+1 | frame(x = [1, 2, 3], d = [date("2024-01-01"), date("2024-01-02"), date("2024-01-01")]).kruskal_test(x, group: d)
+  |                                                                                                               ^ not a grouping variable
+  |
+  = help: a group is a value shared by its rows; `bin` or `quantile_group` makes groups from a number
+
+error[Z0411]: `weights:` of `kruskal_test` are sampling weights, which a test cannot use
+ --> scripts/main.zeff:1:96
+  |
+1 | frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2], w = [1, 1, 2, 1]).kruskal_test(x, group: g, weights: w)
+  |                                                                                                ^ sampling weights
+  |
+  = help: a regression with robust standard errors gives design-based inference, `reg(y ~ 1, weights: w, se: robust)`; frequency or analytic weights are taken with `weight_type: frequency` or `weight_type: analytic`
+
+error[Z0401]: frequency weights are whole numbers, but `w` has 1 fraction in row 1
+ --> scripts/main.zeff:1:98
+  |
+1 | frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2], w = [1.5, 1, 2, 1]).kruskal_test(x, group: g, weights: w, weight_type: frequency)
+  |                                                                                                  ^ a frequency weight counts rows
+  |
+  = help: a weight with fractions is an analytic or a sampling weight: `weight_type: analytic`
+
+error[Z0401]: `kruskal_test` ranks rows, so its weights are frequency weights, not analytic
+ --> scripts/main.zeff:1:112
+  |
+1 | frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2], w = [1, 1, 2, 1]).kruskal_test(x, group: g, weights: w, weight_type: analytic)
+  |                                                                                                                ^^^^^^^^ analytic weights on ranks
+  |
+  = help: write `weight_type: frequency` for weights that say how many rows each row stands for
+
+error[Z0214]: a list holds one type: this one has a Float and a Str
+ --> scripts/main.zeff:1:17
+  |
+1 | p_adjust([0.01, "a"])
+  |                 ^^^ a Str
+  |
+  = help: put values of one type in a list; Int and Float join as Float
+
+error[Z0401]: a p-value lies between 0 and 1, but item 2 of `p_adjust` is 1.2
+ --> scripts/main.zeff:1:10
+  |
+1 | p_adjust([0.01, 1.2])
+  |          ^^^^^^^^^^^ not a p-value
+  |
+  = help: check the list; `NA` stands for a p-value that is missing
+
+error[Z0402]: `hochberg` is not one of the allowed words
+ --> scripts/main.zeff:1:31
+  |
+1 | p_adjust([0.01, 0.2], method: hochberg)
+  |                               ^^^^^^^^ expected one of holm, bonferroni, bh, by

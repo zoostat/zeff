@@ -132,3 +132,12 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 
 **For the owner to decide.** One ruling to confirm or overturn: question 4 (a) was taken "as R does", but R 4.6.0 (the pinned reference) gives exact p-values below 50 observations even with ties or zeros, from the permutation distribution of the tied ranks, where the recommendation's wording (R before 4.5) switched to the approximation; `wilcoxon_test` follows R 4.6.0, and the older rule is one line to restore (`docs/decisions.md`, step 11).
 
+## 8 November 2026, release 0.7.0, step 12 (`kruskal_test` and `p_adjust`)
+
+**Done.** `kruskal_test` in `stats`: the Kruskal–Wallis test across the groups of `group:` with average ranks and the tie correction, the chi-squared p-value, a table of the groups with counts and medians, frequency weights by repetition; `p_adjust` with Holm, Bonferroni, Benjamini–Hochberg and Benjamini–Yekutieli, `NA` kept in place as R does. Both in Rust (decision recorded; #92 stands). The shared group helper now accepts Category variables in level order, which `anova` will need too. The reference (R 4.6.0's `kruskal.test` and `p.adjust`, with ties and `NA`) agrees to 1e-12; properties, edge cases, snapshots, the conformance case `tests/kruskal`, both pages with running examples, the catalogue rows implemented. Steps 11b to 11d (speed) were added and withdrawn by the owner in another session on the same evening; nothing of them remains in the checklist.
+
+**Green.** Format (checked last), clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line, without stopping at a failure; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 13 `[engine]`: `fisher_test`.
+
+**For the owner to decide.** Nothing new; the ruling on question 4 (a) from step 11 still awaits a word.

@@ -1333,6 +1333,11 @@ fn panel_cases() -> Vec<Line> {
     // the exact and approximate rank sum, and the wages' rank sum with ties.
     let ranked = "let d = frame(x = [1.83, 0.50, 1.62, 2.48, 1.68, 1.88, 1.55, 3.06, 1.30], y = [0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29])\nd.wilcoxon_test(x, mu: 1)\nd.wilcoxon_test(x, mu: 1, exact: false, level: 0.99)\nd.wilcoxon_test(x, y, paired: true, alternative: greater)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9])\nt.wilcoxon_test(v, mu: 5)\nt.wilcoxon_test(v, mu: 5, exact: false, alternative: less)\nlet g = frame(s = [0.80, 0.83, 1.89, 1.04, 1.45, 1.38, 1.91, 1.64, 0.73, 1.46, 1.15, 0.88, 0.90, 0.74, 1.21], grp = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2])\ng.wilcoxon_test(s, group: grp)\ng.wilcoxon_test(s, group: grp, alternative: greater, level: 0.9, exact: false)\nlet w = dataset(wages).where(worker <= 400).add(lwage = log(wage))\nw.wilcoxon_test(lwage, group: female)\n";
     let ranked_outcome = run_script(&fs, &project, "scripts/main.zeff", ranked);
+    // `kruskal_test` and `p_adjust` (release 0.7.0, step 12): three and two groups without ties,
+    // heavy ties, a Category grouping variable with the note on rows dropped, frequency weights,
+    // and the four adjustments with an `NA` kept in place.
+    let compared = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\ng.kruskal_test(s, group: site)\ng.where(site < 3).kruskal_test(s, group: site)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"], w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])\nt.kruskal_test(v, group: k)\nt.kruskal_test(v, group: k, weights: w, weight_type: frequency)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.kruskal_test(lwage, group: industry)\np_adjust([0.01, 0.04, 0.03, 0.005, 0.2])\np_adjust([0.01, 0.04, 0.03, 0.005, 0.2], method: bonferroni)\np_adjust([0.01, NA, 0.03, 0.005, 0.2], method: bh)\np_adjust([0.01, NA, 0.03, 0.005, 0.2], method: by)\n";
+    let compared_outcome = run_script(&fs, &project, "scripts/main.zeff", compared);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1374,6 +1379,8 @@ fn panel_cases() -> Vec<Line> {
         text("tests/counts/stderr", &counted_outcome.output.stderr),
         text("tests/wilcoxon/stdout", &ranked_outcome.output.stdout),
         text("tests/wilcoxon/stderr", &ranked_outcome.output.stderr),
+        text("tests/kruskal/stdout", &compared_outcome.output.stdout),
+        text("tests/kruskal/stderr", &compared_outcome.output.stderr),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),

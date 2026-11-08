@@ -211,6 +211,8 @@ tests/counts/stdout a7717c18a5565e3e
 tests/counts/stderr 52828015bdae440f
 tests/wilcoxon/stdout 192b719562229135
 tests/wilcoxon/stderr 93c75308cc8ba522
+tests/kruskal/stdout f95df06b459151e8
+tests/kruskal/stderr b278fd056143a710
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

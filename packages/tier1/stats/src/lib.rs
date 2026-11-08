@@ -4,6 +4,8 @@
 //! `cor.test` for the three correlation methods.
 
 pub mod chi2_test;
+pub mod kruskal_test;
+pub mod p_adjust;
 pub mod proportion_test;
 pub mod t_test;
 pub mod testing;
@@ -611,6 +613,66 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: wilcoxon_test::wilcoxon_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "kruskal_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows with NA in the variable or the groups dropped, with the count",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numeric; group: missing, or with fewer than two groups among the rows kept; every value the same; analytic weights, or frequency weights with a fraction",
+                    ),
+                    DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
+                ],
+                help: include_str!("../help/kruskal_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 kruskal.test() (tests/reference/r/kruskal.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: kruskal_test::kruskal_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "p_adjust",
+                package: "stats",
+                method: false,
+                params: vec![
+                    ParamSpec::required("p", "List<Float> | Column<Float>"),
+                    ParamSpec::option_with_default("method", "holm | bonferroni | bh | by", "holm"),
+                ],
+                rest: None,
+                returns: "List<Float>",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "a p-value outside [0, 1], or a column that is not numeric",
+                )],
+                help: include_str!("../help/p_adjust.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 p.adjust() (tests/reference/r/kruskal.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: p_adjust::p_adjust,
         },
         Function {
             spec: FunctionSpec {

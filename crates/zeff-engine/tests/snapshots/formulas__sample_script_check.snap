@@ -22,8 +22,6 @@ error[Z0103]: no function is called `first_stage`
  --> zeff_samples.zeff:146:4
 error[Z0103]: no function is called `anova`
  --> zeff_samples.zeff:163:7
-error[Z0103]: no function is called `p_adjust`
- --> zeff_samples.zeff:171:1
 error[Z0103]: no function is called `logistic`
  --> zeff_samples.zeff:176:16
 error[Z0103]: no function is called `probit`

@@ -1,0 +1,108 @@
+---
+source: packages/tier1/stats/tests/kruskal.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+kruskal_test · s by site
+  H0: the distribution of s is the same in every group of site
+  H1: values of s in at least one group of site tend to be larger or smaller than in another
+
+  group    N   median
+  site=1   5    2.900
+  site=2   4    3.250
+  site=3   5    2.800
+
+H(2) = 0.77   p = 0.680
+decision at α = 0.05: fail to reject H0 (p = 0.680)
+chi-squared approximation over 3 groups, no ties
+kruskal_test · s by site
+  H0: the distribution of s is the same in every group of site
+  H1: values of s in at least one group of site tend to be larger or smaller than in another
+
+  group    N   median
+  site=1   5    2.900
+  site=2   4    3.250
+
+H(1) = 0.24   p = 0.624
+decision at α = 0.05: fail to reject H0 (p = 0.624)
+chi-squared approximation over 2 groups, no ties
+kruskal_test · v by k
+  H0: the distribution of v is the same in every group of k
+  H1: values of v in at least one group of k tend to be larger or smaller than in another
+
+  group   N   median
+  a       5    3.000
+  b       5    5.000
+  c       5    8.000
+
+H(2) = 3.61   p = 0.165
+decision at α = 0.05: fail to reject H0 (p = 0.165)
+chi-squared approximation over 3 groups, ranks averaged over ties and the tie correction applied
+kruskal_test · v by k
+  H0: the distribution of v is the same in every group of k
+  H1: values of v in at least one group of k tend to be larger or smaller than in another
+
+  group   N   median
+  a       6    3.000
+  b       6    5.000
+  c       7    9.000
+
+H(2) = 6.79   p = 0.034
+decision at α = 0.05: reject H0 (p = 0.034)
+chi-squared approximation over 3 groups, ranks averaged over ties and the tie correction applied
+kruskal_test · x by g
+  H0: the distribution of x is the same in every group of g
+  H1: values of x in at least one group of g tend to be larger or smaller than in another
+
+  group   N   median
+  g=1     2    2.000
+  g=2     1    4.500
+  g=3     2    7.000
+
+H(2) = 3.60   p = 0.165
+decision at α = 0.05: fail to reject H0 (p = 0.165)
+chi-squared approximation over 3 groups, no ties
+kruskal_test · lwage by industry
+  H0: the distribution of lwage is the same in every group of industry
+  H1: values of lwage in at least one group of industry tend to be larger or smaller than in another
+
+  group                       N   median
+  Agriculture               528    3.014
+  Mining                    199    3.177
+  Utilities                 366    3.209
+  Construction            1,457    3.236
+  Manufacturing           2,543    3.236
+  Retail                  2,836    3.157
+  Transport                 962    3.192
+  Finance                 1,544    3.274
+  Services                2,612    3.094
+  Education               1,669    3.184
+  Health                  2,077    3.201
+  Public administration   1,408    3.263
+
+H(11) = 316.05   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+chi-squared approximation over 12 groups, ranks averaged over ties and the tie correction applied
+0.04
+0.09
+0.09
+0.025
+0.2
+0.05
+0.2
+0.15
+0.025
+1
+0.02
+NA
+0.04
+0.02
+0.2
+0.0416667
+NA
+0.0833333
+0.0416667
+0.416667
+[]
+---
+note: 2 rows with NA in x or g dropped (line 8)
+note: 211 rows with NA in lwage or industry dropped (line 10)
