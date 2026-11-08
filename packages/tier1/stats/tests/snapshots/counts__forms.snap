@@ -1,0 +1,139 @@
+---
+source: packages/tier1/stats/tests/counts.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+proportion_test · one-sample · union
+  H0: the population proportion of union equals 0.3            π = 0.3
+  H1: the population proportion of union differs from 0.3      π ≠ 0.3
+
+N = 18,412   successes = 5,856
+proportion (Wilson) = 0.318   95% CI [0.311, 0.325]
+z = 5.35   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+proportion_test · one-sample · union · continuity-corrected
+  H0: the population proportion of union equals 0.3               π = 0.3
+  H1: the population proportion of union is greater than 0.3      π > 0.3
+
+N = 18,412   successes = 5,856
+proportion (exact) = 0.318   95% CI [0.312, 1.000]
+z = 5.34   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+proportion_test · two-sample · union by female
+  H0: the population proportions of union are equal in male and female        π(male) − π(female) = 0
+  H1: the population proportions of union differ between male and female      π(male) − π(female) ≠ 0
+
+  group        N   successes   proportion
+  male     9,491       2,975        0.313
+  female   8,921       2,881        0.323
+
+difference (male − female, Newcombe) = -0.009   95% CI [-0.023, 0.004]
+z = -1.38   p = 0.167
+decision at α = 0.05: fail to reject H0 (p = 0.167)
+proportion_test · two-sample · union by female · continuity-corrected
+  H0: the population proportions of union are equal in male and female        π(male) − π(female) = 0
+  H1: the population proportions of union differ between male and female      π(male) − π(female) ≠ 0
+
+  group        N   successes   proportion
+  male     9,491       2,975        0.313
+  female   8,921       2,881        0.323
+
+difference (male − female, Wald) = -0.009   99% CI [-0.027, 0.008]
+z = -1.37   p = 0.172
+decision at α = 0.01: fail to reject H0 (p = 0.172)
+proportion_test · two-sample · union by female
+  H0: the population proportions of union are equal in male and female       π(male) − π(female) = 0
+  H1: the population proportion of union is less in male than in female      π(male) − π(female) < 0
+
+  group        N   successes   proportion
+  male     9,491       2,975        0.313
+  female   8,921       2,881        0.323
+
+difference (male − female, Newcombe) = -0.009   95% CI [-1.000, 0.002]
+z = -1.38   p = 0.083
+decision at α = 0.05: fail to reject H0 (p = 0.083)
+chi2_test · independence · industry × female
+  H0: industry and female are independent in the population
+  H1: industry and female are associated in the population
+
+  industry                 male   female    Total
+  Agriculture               274      261      535
+  Mining                    110       90      200
+  Utilities                 223      147      370
+  Construction              811      666    1,477
+  Manufacturing           1,422    1,152    2,574
+  Retail                  1,414    1,457    2,871
+  Transport                 476      500      976
+  Finance                   806      754    1,560
+  Services                1,423    1,214    2,637
+  Education                 799      894    1,693
+  Health                  1,014    1,084    2,098
+  Public administration     719      702    1,421
+  ───────────────────────────────────────────────
+  Total                   9,491    8,921   18,412
+
+chi2(11) = 70.31   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+chi2_test · independence · union × female · continuity-corrected
+  H0: union and female are independent in the population
+  H1: union and female are associated in the population
+
+  union    male   female    Total
+  no      6,516    6,040   12,556
+  yes     2,975    2,881    5,856
+  ───────────────────────────────
+  Total   9,491    8,921   18,412
+
+chi2(1) = 1.87   p = 0.172
+decision at α = 0.05: fail to reject H0 (p = 0.172)
+chi2_test · goodness of fit · female
+  H0: the population proportions of female equal the given p                     π = p
+  H1: at least one population proportion of female differs from the given p      π ≠ p
+
+  female   observed   expected     p
+  male        9,491    9,206.0   0.5
+  female      8,921    9,206.0   0.5
+  ──────────────────────────────────
+  Total      18,412   18,412.0     1
+
+chi2(1) = 17.65   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+chi2_test · independence · a × b
+  H0: a and b are independent in the population
+  H1: a and b are associated in the population
+
+  a       1   2   Total
+  x       1   1       2
+  y       1   1       2
+  z       1   0       1
+  ─────────────────────
+  Total   3   2       5
+
+chi2(2) = 0.83   p = 0.659
+decision at α = 0.05: fail to reject H0 (p = 0.659)
+proportion_test · one-sample · heads
+  H0: the population proportion of heads equals 0.5            π = 0.5
+  H1: the population proportion of heads differs from 0.5      π ≠ 0.5
+
+N = 10   successes = 7
+proportion (exact) = 0.700   95% CI [0.348, 0.933]
+z = 1.26   p = 0.206
+decision at α = 0.05: fail to reject H0 (p = 0.206)
+proportion_test · one-sample · heads
+  H0: the population proportion of heads equals 0.5            π = 0.5
+  H1: the population proportion of heads is less than 0.5      π < 0.5
+
+N = 10   successes = 7
+proportion (Wald) = 0.700   95% CI [0.000, 0.938]
+z = 1.26   p = 0.897
+decision at α = 0.05: fail to reject H0 (p = 0.897)
+proportion_test · one-sample · heads
+  H0: the population proportion of heads equals 0.5            π = 0.5
+  H1: the population proportion of heads differs from 0.5      π ≠ 0.5
+
+N = 11   successes = 8
+proportion (Wilson) = 0.727   95% CI [0.434, 0.903]
+z = 1.51   p = 0.132
+decision at α = 0.05: fail to reject H0 (p = 0.132)
+---
+warning[W0211]: 6 of 6 expected counts are below 5, so the chi-squared approximation may be poor (line 11)
+  = help: `fisher_test` is exact for a small table; merging sparse values raises the expected counts

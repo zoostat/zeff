@@ -1323,6 +1323,11 @@ fn panel_cases() -> Vec<Line> {
     // weights, text groups, and the note on rows dropped.
     let tested = "let wages = dataset(wages).add(lwage = log(wage))\nwages.t_test(lwage, group: female)\nwages.t_test(lwage, mu: 3, alternative: greater)\nwages.t_test(lwage, group: union, equal_var: true, effect: d, level: 0.99)\nlet pairs = frame(before = [0.7, -1.6, -0.2, -1.2, -0.1, 3.4, 3.7, 0.8, 0.0, 2.0], after = [1.9, 0.8, 1.1, 0.1, -0.1, 4.4, 5.5, 1.6, 4.6, 3.4])\npairs.t_test(before, after, paired: true)\npairs.t_test(before, after, paired: true, alternative: less, level: 0.9)\nlet w = frame(x = [1.0, 2.0, 4.0, NA], f = [2, 1, 3, 1], s = [\"a\", \"a\", \"b\", \"b\"])\nw.t_test(x, mu: 1, weights: f, weight_type: frequency)\nw.t_test(x, group: s)\n";
     let tested_outcome = run_script(&fs, &project, "scripts/main.zeff", tested);
+    // `proportion_test` and `chi2_test` (release 0.7.0, step 10): one and two proportions with
+    // the three intervals, the correction and one-sided alternatives; independence on a wide
+    // table and a corrected 2 × 2; goodness of fit; an empty cell's warning; frequency weights.
+    let counted = "let wages = dataset(wages)\nwages.proportion_test(union, p: 0.3)\nwages.proportion_test(union, p: 0.3, correct: true, ci: exact, alternative: greater)\nwages.proportion_test(union, group: female)\nwages.proportion_test(union, group: female, ci: wald, correct: true, level: 0.99)\nwages.chi2_test(industry, female)\nwages.chi2_test(union, female, correct: true)\nwages.chi2_test(female, p: [0.5, 0.5])\nlet small = frame(a = [\"x\", \"x\", \"y\", \"y\", \"z\", NA], b = [1, 2, 1, 2, 1, 2], w = [1, 1, 2, 1, 1, 1])\nsmall.chi2_test(a, b)\nsmall.chi2_test(a, b, weights: w, weight_type: frequency)\nlet coin = frame(heads = [true, true, false, true, true, true, false, true, true, false])\ncoin.proportion_test(heads, p: 0.5, ci: wald, alternative: less)\n";
+    let counted_outcome = run_script(&fs, &project, "scripts/main.zeff", counted);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1360,6 +1365,8 @@ fn panel_cases() -> Vec<Line> {
         text("verbs/tabulate/stderr", &tabulated_outcome.output.stderr),
         text("tests/t_test/stdout", &tested_outcome.output.stdout),
         text("tests/t_test/stderr", &tested_outcome.output.stderr),
+        text("tests/counts/stdout", &counted_outcome.output.stdout),
+        text("tests/counts/stderr", &counted_outcome.output.stderr),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),

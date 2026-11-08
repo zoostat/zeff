@@ -98,7 +98,7 @@ special/normal_quantile a65a9dcd6e8e94ed
 special/incomplete_gamma 178181e6ffc44efd
 special/incomplete_gamma_inverse d898c98019df6cb4
 special/incomplete_beta 948805e8d32d7820
-special/incomplete_beta_inverse cf768799a937d0b4
+special/incomplete_beta_inverse 9fe4374eecbb402e
 random/philox bfcc0e89d2e2c989
 random/uniform 2be774397b461029
 dist/values 611216e2d82cdc3d
@@ -207,6 +207,8 @@ verbs/tabulate/stdout 75cb0a6d88c8c64c
 verbs/tabulate/stderr 368bc6793773976a
 tests/t_test/stdout a2474ac1856fed59
 tests/t_test/stderr f1c1faef91db77a8
+tests/counts/stdout a7717c18a5565e3e
+tests/counts/stderr 52828015bdae440f
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

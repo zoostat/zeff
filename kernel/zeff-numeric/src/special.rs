@@ -654,14 +654,37 @@ fn newton_with_bracket(
     result: &mut f64,
 ) {
     let mut x = start;
-    // The sign of f at the lower end tells which way the root lies.
+    // Which way `f` runs: from its values at the ends of a finite bracket, where both are
+    // defined; otherwise from its slope at the start, which lies where the function moves (the
+    // slope at the midpoint of [0, 1] underflows to zero for a beta distribution concentrated
+    // far from one half, and a zero slope says nothing about the direction).
     let increasing_sign = {
-        let probe = if lo.is_finite() && hi.is_finite() {
-            0.5 * (lo + hi)
+        let from_ends = if lo.is_finite() && hi.is_finite() {
+            let (f_lo, f_hi) = (f(lo), f(hi));
+            if f_lo.is_finite() && f_hi.is_finite() && f_lo != f_hi {
+                Some(f_hi > f_lo)
+            } else {
+                None
+            }
         } else {
-            start
+            None
         };
-        derivative(probe) >= 0.0
+        match from_ends {
+            Some(increasing) => increasing,
+            None => {
+                let at_start = derivative(start);
+                if at_start != 0.0 && at_start.is_finite() {
+                    at_start > 0.0
+                } else {
+                    let probe = if lo.is_finite() && hi.is_finite() {
+                        0.5 * (lo + hi)
+                    } else {
+                        start
+                    };
+                    derivative(probe) >= 0.0
+                }
+            }
+        }
     };
     for _ in 0..200 {
         let fx = f(x);
@@ -930,6 +953,29 @@ mod tests {
         assert_eq!(beta_density(1.0, 1.0, 0.0), 1.0);
         assert_eq!(beta_density(0.5, 2.0, 0.0), f64::INFINITY);
         assert_eq!(beta_density(2.0, 2.0, 1.0), 0.0);
+    }
+
+    /// A beta distribution concentrated far from one half (the exact interval of a proportion
+    /// of 5,856 in 18,412): the density at the midpoint of [0, 1] underflows to zero, which once
+    /// read as "increasing" and sent the solver to the wrong end (found at release 0.7.0, step
+    /// 10). R's `qbeta` to 15 digits; the class is 1e-12 relative.
+    #[test]
+    fn the_beta_inverse_holds_where_the_density_underflows_at_one_half() {
+        for (p, upper, want) in [
+            (0.99, false, 0.326086002970978),
+            (0.975, false, 0.324818409385426),
+            (0.025, false, 0.311365431743488),
+            (0.01, false, 0.310118523882235),
+            (0.01, true, 0.326086002970978),
+        ] {
+            let x = incomplete_beta_inverse(5857.0, 12557.0, p, upper);
+            assert!(
+                (x - want).abs() <= 1e-12 * want,
+                "p = {p}, upper = {upper}: {x} against {want}"
+            );
+        }
+        let swapped = incomplete_beta_inverse(12557.0, 5857.0, 0.99, false);
+        assert!((swapped - 0.689881476117765).abs() <= 1e-12);
     }
 
     /// Binomial coefficients are exact while the integers fit and rounded once after; a product

@@ -1,0 +1,115 @@
+---
+source: packages/tier1/stats/tests/counts.rs
+expression: all
+---
+error[Z0401]: `proportion_test` counts a Bool, or a variable of 0 and 1, but `y` holds 2
+ --> scripts/main.zeff:1:38
+  |
+1 | frame(y = [1, 2, 3]).proportion_test(y, p: 0.5)
+  |                                      ^ not a Bool or 0/1 variable
+  |
+  = help: make the outcome a Bool first, `add(high = wage > 20)`, or recode it to 0 and 1
+
+error[Z0401]: `proportion_test` counts a Bool, or a variable of 0 and 1, but `s` is a Str
+ --> scripts/main.zeff:1:39
+  |
+1 | frame(s = ["a", "b"]).proportion_test(s, p: 0.5)
+  |                                       ^ not a Bool or 0/1 variable
+  |
+  = help: make the outcome a Bool first, `add(high = wage > 20)`; `chi2_test` compares the frequencies of a text or category variable
+
+error[Z0401]: `p:` of `proportion_test` is a proportion strictly between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:1:48
+  |
+1 | frame(y = [true, false]).proportion_test(y, p: 1.5)
+  |                                                ^^^ outside (0, 1)
+  |
+  = help: write the hypothesised proportion, such as `p: 0.5`
+
+error[Z0401]: `proportion_test` needs `p:`, the proportion tested, or `group:`, the two groups compared
+ --> scripts/main.zeff:1:26
+  |
+1 | frame(y = [true, false]).proportion_test(y)
+  |                          ^^^^^^^^^^^^^^^ neither `p:` nor `group:`
+  |
+  = help: the two forms are `proportion_test(var, p: 0.5)` and `proportion_test(var, group: g)`
+
+error[Z0401]: `proportion_test` tests one proportion against `p:` or compares two by `group:`, not both
+ --> scripts/main.zeff:1:72
+  |
+1 | frame(y = [true, false], g = [0, 1]).proportion_test(y, p: 0.5, group: g)
+  |                                                                        ^ mixed forms
+  |
+  = help: the two forms are `proportion_test(var, p: 0.5)` and `proportion_test(var, group: g)`
+
+error[Z0401]: `ci: exact` is the Clopper–Pearson interval of one proportion; a difference of two proportions has no exact interval
+ --> scripts/main.zeff:1:90
+  |
+1 | frame(y = [true, false, true, false], g = [0, 0, 1, 1]).proportion_test(y, group: g, ci: exact)
+  |                                                                                          ^^^^^ exact with `group:`
+  |
+  = help: `ci: wilson` gives Newcombe's score interval for the difference, `ci: wald` the interval of R's `prop.test`; `fisher_test` is the exact test of the 2 × 2 table
+
+error[Z0401]: `proportion_test` counts successes, so its weights are frequency weights, not analytic
+ --> scripts/main.zeff:1:94
+  |
+1 | frame(y = [true, false], w = [1.5, 2.5]).proportion_test(y, p: 0.5, weights: w, weight_type: analytic)
+  |                                                                                              ^^^^^^^^ analytic weights on a count
+  |
+  = help: write `weight_type: frequency` for weights that say how many rows each row stands for
+
+error[Z0401]: `chi2_test` tests independence of two variables or the fit of one to `p:`, not both
+ --> scripts/main.zeff:1:50
+  |
+1 | frame(a = [1, 2], b = [1, 2]).chi2_test(a, b, p: [0.5, 0.5])
+  |                                                  ^^^^^^^^^^ mixed forms
+  |
+  = help: the two forms are `chi2_test(a, b)` and `chi2_test(var, p: [0.5, 0.5])`
+
+error[Z0401]: `chi2_test` needs a second variable, for independence, or `p:`, the proportions to fit
+ --> scripts/main.zeff:1:19
+  |
+1 | frame(a = [1, 2]).chi2_test(a)
+  |                   ^^^^^^^^^ one variable and no `p:`
+  |
+  = help: the two forms are `chi2_test(a, b)` and `chi2_test(var, p: [0.5, 0.5])`
+
+error[Z0401]: `chi2_test` needs at least two values of `a`, but there is one
+ --> scripts/main.zeff:1:41
+  |
+1 | frame(a = [1, 1], b = [1, 2]).chi2_test(a, b)
+  |                                         ^ too few values
+  |
+  = help: a cross-table needs at least two rows and two columns; check the rows kept and the `NA`s dropped
+
+error[Z0401]: `p:` of `chi2_test` has 2 proportions, but `a` has 3 values: 1, 2, 3
+ --> scripts/main.zeff:1:38
+  |
+1 | frame(a = [1, 2, 3]).chi2_test(a, p: [0.5, 0.5])
+  |                                      ^^^^^^^^^^ one proportion per value
+  |
+  = help: write the proportions in the order the values are listed
+
+error[Z0401]: `p:` of `chi2_test` must be positive proportions that sum to 1, but these sum to 0.8
+ --> scripts/main.zeff:1:35
+  |
+1 | frame(a = [1, 2]).chi2_test(a, p: [0.5, 0.3])
+  |                                   ^^^^^^^^^^ not a distribution
+  |
+  = help: divide each by their total, or write them as shares such as `p: [0.5, 0.3, 0.2]`
+
+error[Z0401]: `p:` of `chi2_test` is a list of proportions, but it holds a Str
+ --> scripts/main.zeff:1:35
+  |
+1 | frame(a = [1, 2]).chi2_test(a, p: ["x", "y"])
+  |                                   ^^^^^^^^^^ not a proportion
+  |
+  = help: write one proportion per value of the variable, in its order: `p: [0.5, 0.3, 0.2]`
+
+error[Z0401]: `chi2_test` counts rows, so its weights are frequency weights, not analytic
+ --> scripts/main.zeff:1:88
+  |
+1 | frame(a = [1, 2], w = [1.5, 2.5]).chi2_test(a, p: [0.5, 0.5], weights: w, weight_type: analytic)
+  |                                                                                        ^^^^^^^^ analytic weights on counts
+  |
+  = help: write `weight_type: frequency` for weights that say how many rows each row stands for

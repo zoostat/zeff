@@ -3,6 +3,8 @@
 //! 11): matrices as tables, with pairwise or listwise deletion, and the p-values of R's
 //! `cor.test` for the three correlation methods.
 
+pub mod chi2_test;
+pub mod proportion_test;
 pub mod t_test;
 pub mod testing;
 
@@ -461,6 +463,99 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: t_test::t_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "proportion_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("p", "Float"),
+                    ParamSpec::option_with_default("correct", "Bool", "false"),
+                    ParamSpec::option_with_default("ci", "wilson | wald | exact", "wilson"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option_with_default(
+                        "alternative",
+                        "two_sided | less | greater",
+                        "two_sided",
+                    ),
+                    ParamSpec::option_with_default("level", "Float", "0.95"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows with NA in a tested variable dropped, with the count",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not a Bool or 0/1; p: outside (0, 1); p: and group: together, or neither; ci: exact with group:; analytic weights; no trials; level: outside (0, 1)",
+                    ),
+                    DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
+                    DiagnosticDecl::new("Z0412", "group: has one level or more than two"),
+                ],
+                help: include_str!("../help/proportion_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 prop.test() and binom.test() (tests/reference/r/counts.R)"
+                        .to_string(),
+                    last_run: None,
+                }),
+            },
+            body: proportion_test::proportion_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "chi2_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("a", "Var"),
+                    ParamSpec {
+                        name: "b",
+                        ty: "Var",
+                        default: Some("NA"),
+                        option: false,
+                    },
+                    ParamSpec::option_with_default("correct", "Bool", "false"),
+                    ParamSpec::option("p", "List"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows with NA in a tested variable dropped, with the count",
+                    ),
+                    DiagnosticDecl::new("W0211", "an expected count below 5"),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a second variable and p: together, or neither; fewer than two values of a variable; p: with the wrong number of proportions, or proportions that are not positive and summing to 1; an opaque variable; analytic weights",
+                    ),
+                    DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
+                ],
+                help: include_str!("../help/chi2_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 chisq.test() (tests/reference/r/counts.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: chi2_test::chi2_test,
         },
         Function {
             spec: FunctionSpec {

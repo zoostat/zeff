@@ -24,10 +24,6 @@ error[Z0103]: no function is called `wilcoxon_test`
  --> zeff_samples.zeff:162:7
 error[Z0103]: no function is called `anova`
  --> zeff_samples.zeff:163:7
-error[Z0103]: no function is called `chi2_test`
- --> zeff_samples.zeff:164:7
-error[Z0103]: no function is called `proportion_test`
- --> zeff_samples.zeff:165:7
 error[Z0103]: no function is called `p_adjust`
  --> zeff_samples.zeff:171:1
 error[Z0103]: no function is called `logistic`

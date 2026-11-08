@@ -746,6 +746,7 @@ Every problem that can arise while a correct-looking script runs is one of the f
 | `to(x, T)` or `date(s)` that cannot convert | `NA`, with a warning giving the count and three failing values; a Float with a fraction converted to Int likewise | W0203, W0202 |
 | A key of `recode` that no row holds, or that is no level of the category | The other keys are applied, with a warning naming the key | W0206 |
 | A value of `bin` outside every interval of its breaks | `NA`, with a warning giving the count | W0210 |
+| An expected count below 5 in `chi2_test` | The test runs, with a warning giving the count of such cells and pointing to `fisher_test` | W0211 |
 | `slice(s, start, len)` past the end of the text | The characters that exist; no warning | |
 | A numeric range `5..2` | An empty list; a variable range out of order is a check-time error (section 3.7) | |
 | `if` or `assert` on `NA` or on a column | Error | Z0203 |
@@ -1325,6 +1326,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0208 | Rows of a `case` without `_` that no arm matched, whose values are `NA` (section 5.1); over one value, the value itself |
 | W0209 | A method called on a binding that may hold a `Failed` value, unguarded by `x.is(Failed)` (section 3.7, "Failed values") |
 | W0210 | Values of `bin` outside every interval of its breaks, which are `NA`, with the count (section 4.2) |
+| W0211 | Expected counts below 5 in `chi2_test`, where the chi-squared approximation may be poor, with the count of such cells |
 | Z0225 | A function whose body, or a `return` in it, gives a type other than the declared return type, or no value where one is declared (sections 3.7, "Inference", and 5.3) |
 | Z0323 | A module file that is not one: a statement in a file of `functions/`, or a file whose name is not a name of the language or is a package's (section 5.3, "Modules") |
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |

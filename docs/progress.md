@@ -58,86 +58,9 @@ Step 23 split into 23a to 23d `[engine]`: the sample project `samples/panel` (th
 
 The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of section 14, every section it names, the catalogue rows of the release, the testing handbook, the risk register and the open decisions due were read, and the checklist written in `docs/releases/0.7.0.md`; the owner said "go" and answered the questions, and the domain `zeff-lang.dev` was chosen (open decision #31). Step 1 `[engine]`: the version `0.7.0-dev`, the register and the correction of section 3.7 (#83). Step 2 `[engine]`: the warning pragma, `// zeff: allow(W…) reason` above a statement or at the end of its first line, silencing one statement's warning and counted, with `--deny-warnings` turning every warning not allowed into an error (exit code 3) and the conformance cases `control/pragma` and `control/pragma_denied`. Step 2b `[engine]`: a warning or a note that carries a code prints it under the result, `warning[W0204]: …`, every snapshot, page and digest regenerated and read, and the phrase table of `check-messages` retired (open decision #45). Between steps, the owner brought nine items into 1.0 after a study of 135 R packages (open decision #88): 267 functions in 1.0 then, the catalogue, sections 8, 9.2, 14 and 15 and the Zemp scale following. Step 3 was split into 3.1 to 3.3. Step 3.1 `[engine]`: `note(message)`, `code:` on `warn` and `note` (a code no warning has is Z0401 when the statement runs), `name_of(v)`, the codes a Zeff-written body raises declared on its page, and from this step the local routine is the handbook's five-minute one with CI as the full run (#70). Step 3.2 `[engine]`: a parameter of several types in a built-in's `fn` line, `x: Bool | Int | Float | Str`, the body checked once per type and per column form under at most 256 forms, the result typed `Join` or `Same` (#68). Step 3.3 `[engine]`: the enclosing frame, `data: Frame = enclosing` first in a built-in's `fn` line, supplied from the frame method the call stands in (the group's rows under `by:`), Z0401 outside one as `n()` gives, the conformance case `control/enclosing` (#69). Every step green on CI; rulings the owner may overturn are in `docs/decisions.md` under each step.
 
-## 7 November 2026, release 0.7.0, step 3b (functions as values over lists)
+## 7 November 2026, steps 3b to 5b of release 0.7.0 (folded)
 
-**Done.** A function literal, `fn(i) i / n`, is accepted where a parameter takes a function: its parameters take the function type's types unless written (which must then agree), its body is one expression over them and the bindings in sight, whose values the literal takes with it; a literal anywhere else is refused (Z0205) with a help naming the rule. `map(list, f)`, `filter(list, f)` and `reduce(list, f, start)` join `core` (rows 536 to 538; 272 functions in 1.0, 75 in `core`), each typed by the list's items at the call and run by the interpreter as `iterate` is; `map(seq(1, n - 1), fn(i) i / n)` gives the probabilities i/n exactly, the owner's definition of done. The engine's liveness pass counts a literal's captures as reads, through the reads walker now shared with the checker (`zeff-ir`, `uses.rs`). The grammar of section 3.4 and the rows of sections 3.7 and 5.3 of the Language Reference, the counts of both volumes and the collections of `core` in section 9.2 follow (logged); open decision #79 records the application. Proved by the parser's tree, the engine program `list_functions` (the run, the edge cases, every message as a snapshot, the property that `map` keeps the length and the order), the three help pages' examples and the conformance case `control/map` (two digests added, none changed).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, the syntax, checker, registry, command-line and conformance programs, and the engine programs the step touches (the list functions, the examples, `iterate`, the functions, the failed values, the memory pass, the built-ins written in Zeff); the whole suite on CI, read job by job after the push.
-
-**Next.** Step 4 `[function]`: the rewrites in Zeff (`fill_missing`, `n_missing`, `row_mean`, `row_sum`, `diff`, `drop_missing`, `skewness`, `quantile_group`, `summary` on `table`).
-
-**For the owner to decide.** Nothing new. Rulings he may overturn: a literal's body is one expression, not a block; a literal bound to a name (`let f = fn(x) ...`) stays after 1.0; `filter` refuses `NA` from its function (Z0203) rather than dropping the item.
-
-## 7 November 2026, release 0.7.0, step 4.1 (`fill_missing` back in Zeff)
-
-**Done.** Step 4 split into 4.1 to 4.5, one group of rewrites each. `fill_missing` is `core/functions/fill_missing.zeff`, one line over `coalesce` on two parameters of six types, checked under 32 forms, its page in the `///` lines; the Rust body and page are gone and the catalogue's `layer` is Zeff again (251 in Rust, 21 in Zeff). `n_missing` stays in Rust with the reason in its row: a list holding failed values reaches it and no function of the language takes such a list apart. Two run-time gaps in the loader of Zeff built-ins closed on the way: a call no form fits is refused with Z0214 in the built-in's name instead of running the written form unchecked, and the form matcher no longer mistakes a parameter declared as a column for a scalar read as one (which had put `winsorize` on the fallback). The conformance case `control/several_types` is added, two digests and none changed; one message snapshot of `fill_missing` loses its "(row 1)".
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, the registry, core, command-line and conformance programs, and the engine programs of the built-ins written in Zeff, the missing values, the examples and the functions; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 4.2 `[function]`: `row_mean`, `row_sum` and `diff` on the enclosing frame.
-
-**For the owner to decide.** Nothing new. Ruling he may overturn: `n_missing` stays in Rust rather than gaining a list function that admits failed values.
-
-## 7 November 2026, release 0.7.0, step 4.2 (the row functions and `diff` stay in Rust)
-
-**Done.** A record-only step. `row_mean` and `row_sum` reduce each row with the kernel's compensated sum and mean, which `+` over columns does not reproduce bit for bit (the `rows` conformance case holds 1e12 beside 1.5 and 2.5), and `diff`'s `lag` reads the panel of the frame around the call, which a body written in Zeff does not pass on to the functions it calls; so all three stay in Rust, with the reasons in their catalogue rows, in open decision #69 and in `diff`'s page (logged). The enclosing frame of step 3.3 stands for the Zeff-written functions over variables that need no kernel reduction of their own, `drop_missing` first.
-
-**Green.** The registry, command-line and conformance programs and the help examples; the digests unchanged; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 4.3 `[function]`: `drop_missing` with its note and `skewness` with W0205 (#70). The note names the variables dropped, which needs `join` (text, step 5); the step will say what it can do before then.
-
-**For the owner to decide.** Nothing new. Ruling he may overturn: the row functions stay in Rust rather than reaching the kernel through a reshape per call.
-
-## 7 November 2026, release 0.7.0, step 4.3 (W0205 on the moments' warnings)
-
-**Done.** The warnings of `skewness` and `kurtosis` for too few values carry W0205, so they can be allowed by a pragma and are refused by `--deny-warnings`; their pages list the code and W0205's explained page names the case. `drop_missing` is not moved: its note joins a count and the variables' names into one text, which needs `join` (step 5), so it becomes step 5b, right after `text`, part 1. The known-issues entry on the uncoded warning is resolved; open decision #70 records both (logged).
-
-**Green.** The moments, examples and built-in programs, the registry, command-line and conformance programs; one stderr digest (`control/moments`) changed by the code and none of a result; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 4.4 `[function]`: `quantile_group` in Zeff, its probabilities i/n by `map`.
-
-**For the owner to decide.** Nothing new. Ruling he may overturn: `drop_missing` waits for `join` rather than moving with a note that names one variable at a time.
-
-## 7 November 2026, release 0.7.0, step 4.4 (`quantile_group` back in Zeff)
-
-**Done.** `quantile_group` is written in Zeff: the cut points from `quantile` at the probabilities `map(seq(1, n - 1), fn(i) i / n)`, each row's group folded with `reduce`; every result and every conformance digest unchanged (250 in Rust, 22 in Zeff). Three pieces on the way: `quantile` given a list of probabilities is typed as a list at the call; the pragmas of a built-in's file travel with its body (one silences the reducer's W0201 inside `quantile_group`); and the loader refuses a column of the wrong type to a parameter declared as a column, in the checker's words. The body's argument errors print as Z0001 at the call where the Rust form gave Z0406 and Z0401, as `winsorize`'s do; that question is open decision #89, deadline 0.8.0. The register's status, #79 and the counts follow (logged).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, the syntax, checker, registry, data, command-line and conformance programs, and the engine programs of the built-ins written in Zeff, the pragmas, the examples and the functions; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 4.5 `[function]`: `summary` on `table` (#72 with #70), and the known-issues entries of step 4 resolved.
-
-**For the owner to decide.** Open decision #89 at 0.8.0: a coded error from a Zeff-written built-in (recommendation A, `error(message, code:)` in a built-in's file). Rulings he may overturn: `n:` stays an option rather than a positional parameter; the Z0001 codes until #89.
-
-## 7 November 2026, release 0.7.0, step 4.5 (`summary` stays in Rust; step 4 closed)
-
-**Done.** A record-only step. `summary` stays in Rust: its table needs `format` and `join` of `text` (steps 5 and 6), its title the frame's binding name, which no function gives a body, and its `weights:` the reducers' weighted kernels; the reasons are in its catalogue row and in open decision #72 (logged). The two known-issues entries on functions planned in Zeff are one, naming the six that stay in Rust with their reasons, the two that returned at 4.1 and 4.4 and the two that move later. Step 4 is closed: of its nine functions, `fill_missing` and `quantile_group` moved, `skewness` gained its code, `drop_missing` is step 5b, and five stay in Rust with reasons. The entries of steps 1 to 3.3 of this release are folded into one paragraph to keep this file under 200 lines.
-
-**Green.** The registry, command-line and conformance programs on the catalogue and the pages; the digests unchanged; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 5 `[function]`: `text`, part 1 (`upper`, `lower`, `trim`, `starts_with`, `ends_with`, `slice`, `pad`, `join`), with the R reference `text.R`.
-
-**For the owner to decide.** Whether `summary` is rewritten in Zeff after `text` ships, with a frame-name accessor as a piece of its own (open decision #72), or stays in Rust for 1.0.
-
-
-## 7 November 2026, release 0.7.0, step 5 (`text`, part 1)
-
-**Done.** `upper`, `lower`, `trim`, `starts_with`, `ends_with`, `slice`, `pad` and `join` in `text`, each with its page: case by Unicode simple case mapping (one scalar value to one, so `ß` and `ﬁ` stay), trimming of Unicode white space, prefix and suffix tests by scalar value, slices and padding counting scalar values from 1, and joining with `NA` written as `NA`. The R reference `text.R` (fifteen strings with accented, combining and non-Latin text) is compared exactly and joins the CI job; the test program covers the five groups against R, the edge cases, the column forms, every message and three properties; the conformance case `text/basics` adds two digests and changes none. `text` stands at 9 of 13; `join` is now available for `drop_missing` (step 5b).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, the text, registry, command-line and conformance programs and the engine's examples and functions; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 5b `[function]`: `drop_missing` in Zeff, its note built with `join`.
-
-**For the owner to decide.** Nothing new. Rulings he may overturn: `pad` pads on the left only (no `side:`); `join` writes an `NA` item as `NA` rather than refusing it; `trim` removes every Unicode white space where R removes ASCII white space only.
-
-## 7 November 2026, release 0.7.0, step 5b (`drop_missing` stays in Rust)
-
-**Done.** A record-only step. With `join` in hand the note could be written, but a variable range such as `[id..z]` reaches a body as its written token, which only a Rust body resolves against the frame, and the two errors the page declares (Z0101 naming the frame, Z0401 for a backwards range) would be Z0001 from a body; the conformance case calls both forms, so the digests could not be held. `drop_missing` stays in Rust with the reasons in its catalogue row, in open decision #70 and in the known-issues list; the question of variable ranges in a Zeff-written built-in is open decision #90, recommended for 0.8.0 with #89 (logged).
-
-**Green.** The registry, command-line and conformance programs on the catalogue; the digests unchanged; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 6 `[function]`: `text`, part 2 (`contains`, `replace`, `extract`, `split` with `regex:` and `ignore_case:` on the pinned `regex` crate).
-
-**For the owner to decide.** Open decisions #89 and #90 at 0.8.0, which together let `drop_missing` and its kind move to Zeff.
+Step 3b brought functions as values over lists (`fn(i) i / n` literals with captures, `map`, `filter` and `reduce` in `core`, open decision #79). Step 4 moved what the new pieces let move back to Zeff and recorded what stays in Rust: `fill_missing` on a parameter of several types (4.1); the row functions and `diff` stay in Rust for the kernel's compensated row reduction and the panel (4.2); `skewness` and `kurtosis` carry W0205 (4.3); `quantile_group` returned to Zeff with its probabilities by `map`, its argument errors printing as Z0001 (open decision #89) (4.4); `summary` stays in Rust, needing `format`, `join`, the frame's name and the weighted kernels (4.5). Step 5 shipped the first eight functions of `text` with an R reference; step 5b found `drop_missing` cannot move until a variable range reaches a body resolved (open decision #90). Every step committed green with its records.
 
 ## 8 November 2026, release 0.7.0, step 6 (`text`, part 2)
 
@@ -188,4 +111,14 @@ The previous release was tagged (`v0.6.0`) with a clean tree; the 0.7.0 row of s
 **Next.** Step 10 `[function]`: `proportion_test` and `chi2_test`.
 
 **For the owner to decide.** Nothing blocking. Two new open decisions for 0.8.0: #92 (a `TestResult` constructor so that tests can be written in Zeff) and #93 (the noncentral t for effect-size intervals). A ruling he may overturn: the one-sample and paired forms print no effect size, as the help example shows.
+
+## 8 November 2026, release 0.7.0, step 10 (`proportion_test` and `chi2_test`)
+
+**Done.** Step 9 needed one more commit after its push (the registry's unit test that lists the shared arguments gained `alternative`; it had not run locally because an earlier program stopped the run, so the routine now runs every program with `--no-fail-fast`). Then the two tests of counts in `stats`, in Rust (open decision #92): one and two proportions with Wilson's, Wald's and the exact interval (Newcombe's for a difference), the z of Stata's `prtest` with Yates's correction on request; independence and goodness of fit by Pearson's chi-squared, the correction on a 2 × 2 only, W0211 (new, logged) when an expected count is below 5; the R reference within 1e-6 in every form, edge cases, properties, snapshots, the conformance case `tests/counts`, both pages with running examples, both catalogue rows implemented. A fault in the kernel's bracketed Newton solver, which sent a concentrated beta's quantile to the wrong end of [0, 1], was found by the exact interval and corrected with a unit test.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line, without stopping at a failure; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 11 `[engine]`: the exact Wilcoxon distributions and `wilcoxon_test`.
+
+**For the owner to decide.** Nothing blocking. Rulings he may overturn: the interval of a proportion names its method in the estimate line (`proportion (Wilson) = …`); `p:` of `chi2_test` must sum to 1 rather than being rescaled as R does on request.
 

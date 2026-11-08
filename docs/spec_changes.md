@@ -355,3 +355,8 @@ An omission corrected while building the pattern functions (release 0.7.0, step 
 ## 8 November 2026 — zeff_language_reference.md, section 11 (the table "Codes numbered while the engine was built", rows Z0411 and Z0412)
 
 An omission corrected while building `TestResult` (release 0.7.0, step 7). Section 6 gives the two codes in its rows for `group:` and `weight_type:`, and the release plan lists them among the codes the text already gives, but the table of section 11 had no row for either; the rows now say what each refuses, as the explained pages do.
+
+## 8 November 2026 — zeff_language_reference.md, section 4.1 (the table of situations) and section 11 (the table "Codes numbered while the engine was built", row W0211)
+
+An omission corrected while building `chi2_test` (release 0.7.0, step 10). The catalogue row says the test "warns when expected counts fall below 5", but no code named the warning. W0211, the next free number of its family as the release plan's ruling prescribes, is the warning, with its row in both tables and its explained page.
+
