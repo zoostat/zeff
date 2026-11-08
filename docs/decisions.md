@@ -2534,3 +2534,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** `packages/tier1/stats/tests/wilcoxon.rs`: the reference `tests/reference/r/wilcoxon.json` (R 4.6.0's `wilcox.test` with `conf.int = TRUE`: the signed-rank test on a fixed series for every n from 2 to 60, exact and approximate, the alternative rotating; the rank-sum test on ten pairs of group sizes up to 60 in each of three alternatives, exact and approximate; eleven cases with ties and zeros; the paired form), statistics, exact p-values, estimates and exact intervals within a relative 1e-12, approximate p-values within 1e-10 (a normal tail at z ≈ 4) and approximate bounds within 2e-4 (R's root tolerance); the kernel's distributions sum to one exactly and are symmetric for every n to 60; the rule of exactness and every refusal; frequency weights against the replicated frame; a property (negating the data mirrors V, the p-value, the estimate and the interval; shifting data and `mu:` together moves the estimate alone); snapshots of every form and every message; the conformance case `tests/wilcoxon`.
 
 **Reason.** The checklist of 0.7.0, step 11 and its question 4 (a); catalogue row 170; Language Reference, sections 4, 6 and 10.2; open decision #91; R 4.6.0's `wilcox.test` and its `.wilcox_test_*` helpers, read from the owner's installation.
+
+## 8 November 2026: steps 11b, 11c and 11d added to release 0.7.0, the speed of plain OLS, grouped evaluation and column chains
+
+**Choice.** Three steps `[engine]` join the checklist of `docs/releases/0.7.0.md` after step 11, so that they are the next steps taken: 11b, the plain `reg` fit within 2× of fixest's `feols` on one thread and never slower than `lm`; 11c, `aggregate` and `by:` within 3× of data.table, a kernel reduction computed in one pass over the group index instead of on a copy of each group's rows; 11d, the suite's column chain, the import set aside, within 5× of data.table. Each step splits the time first and cuts the largest parts; no result may move by a bit, so the digests of the benchmark suite and every conformance case are the check. A part that cannot be cut without moving a bit is measured, recorded and reported to the owner instead. Threads (1.1), lazy pushdown (1.1), the import (0.11.0, open decision #51) and the engine's own elementary functions are outside the steps.
+
+**Figures (8 November 2026, Zeff 0.6.0, the benchmark suite's generated files, one thread on both sides; R 4.6.0 with data.table 1.18.4 and fixest 0.14.2; best of the suite's samples for Zeff and of three to five runs for R).**
+
+| Task | 1 million rows: Zeff | R | 10 million rows: Zeff | R |
+| --- | --- | --- | --- | --- |
+| Read the CSV | 0.49 s | 0.063 s (`fread`; `read.csv` 1.57 s) | 5.1 s | 0.64 s |
+| `reg(y ~ x1 + x2 + d)` | 0.41 s | 0.048 s (`feols`; `lm` 0.19 s) | 4.0 s | 0.45 s (`lm` 2.6 s) |
+| The same with `fe: unit + g, cluster: unit` | 0.40 s | 0.21 s | 3.8 s | 2.25 s |
+| `aggregate(m = mean(y), s = sd(x1), rows = n(), by: g)` | 0.20 s | 0.016 s | 2.0 s | 0.18 s |
+| The suite's column chain, the import set aside | 0.58 s | 0.019 s | 5.9 s | 0.21 s |
+
+The two-way fit is within the 2× of section 13 of the Engine and Project Specification since step 18b of 0.6.0; the three other gaps are in no release's plan. The import's gap is the reader rewrite of 0.11.0 (open decision #51) and the import cache of the same release, and is left there.
+
+**Reason.** The owner asked on 8 November 2026 how Zeff's speed compares with R's and in which release it gets faster; the figures above showed that no planned release closes the gaps of plain OLS, grouped evaluation and column chains, which are single-thread work that section 8.3, point 10, already asks for ("Speed comes first from avoiding work"). The owner chose to add the work to this release ("Yes, add it"). What the code shows: the plain fit pushes its design into the tall-skinny QR row by row and allocates the reflector and the column segment per column of each block, where step 18b handed the demeaned design over whole; grouped evaluation copies each group's rows into a frame of its own (`take_rows`) before a reduction. The steps are placed first among the unticked so that the session working through the checklist takes them next; the session that recorded this decision only measured and read the code.

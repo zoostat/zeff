@@ -132,3 +132,13 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 
 **For the owner to decide.** One ruling to confirm or overturn: question 4 (a) was taken "as R does", but R 4.6.0 (the pinned reference) gives exact p-values below 50 observations even with ties or zeros, from the permutation distribution of the tied ranks, where the recommendation's wording (R before 4.5) switched to the approximation; `wilcoxon_test` follows R 4.6.0, and the older rule is one line to restore (`docs/decisions.md`, step 11).
 
+
+## 8 November 2026, release 0.7.0: three speed steps added (11b, 11c, 11d)
+
+**Done.** Zeff 0.6.0 timed beside R on the suite's files, one thread on both sides: two-way fixed effects is within 2× of fixest (0.40 s against 0.21 s at a million rows), but plain OLS is 8× slower than `feols` and 2× slower than `lm`, `aggregate` 12× slower than data.table, and the column chain about 30× slower; the import is 8× slower than `fread`, which the reader rewrite of 0.11.0 addresses. At the owner's "yes", steps 11b (plain OLS), 11c (`aggregate` and `by:`) and 11d (the column chain) join the checklist, each with its target and no result allowed to move; the figures are in `docs/decisions.md`.
+
+**Green.** Documents only; no code changed.
+
+**Next.** Step 11b `[engine]`: the speed of plain OLS.
+
+**For the owner to decide.** Nothing.
