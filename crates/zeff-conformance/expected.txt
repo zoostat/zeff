@@ -213,6 +213,8 @@ tests/wilcoxon/stdout 192b719562229135
 tests/wilcoxon/stderr 93c75308cc8ba522
 tests/kruskal/stdout f95df06b459151e8
 tests/kruskal/stderr b278fd056143a710
+tests/fisher/stdout 7f517681ac48644e
+tests/fisher/stderr b83be8741898d11e
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

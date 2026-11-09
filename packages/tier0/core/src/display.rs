@@ -381,8 +381,12 @@ fn p_part(p: f64) -> String {
 
 /// The statistic line of a test: `F(1, 18,179) = 4.21   p = 0.040`, with the statistic to two
 /// decimals (section 3.8), whole degrees of freedom as counts and fractional ones to one decimal,
-/// and p to three decimals, `p < 0.001` below.
+/// and p to three decimals, `p < 0.001` below; `p = 0.486` alone for a test without a statistic.
 pub fn statistic_line(statistic: &Statistic, p: f64) -> String {
+    // A test with no statistic of its own (Fisher's exact test) prints its p-value alone.
+    if statistic.name.is_empty() && statistic.df.is_empty() {
+        return p_part(p);
+    }
     let df: Vec<String> = statistic.df.iter().map(|&d| degrees_text(d)).collect();
     // A t statistic writes its one degree of freedom as `df = …` after the value, as the
     // examples of section 10.2 print it; the others write theirs in brackets, `F(1, 18,179)`.

@@ -4,6 +4,7 @@
 //! `cor.test` for the three correlation methods.
 
 pub mod chi2_test;
+pub mod fisher_test;
 pub mod kruskal_test;
 pub mod p_adjust;
 pub mod proportion_test;
@@ -650,6 +651,52 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: kruskal_test::kruskal_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "fisher_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("a", "Var"),
+                    ParamSpec::required("b", "Var"),
+                    ParamSpec::option_with_default(
+                        "alternative",
+                        "two_sided | less | greater",
+                        "two_sided",
+                    ),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows with NA in a tested variable dropped, with the count",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "fewer than two values of a variable with rows; an opaque variable; a table with more than a million tables sharing its margins; analytic weights, or frequency weights giving a fractional count",
+                    ),
+                    DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
+                    DiagnosticDecl::new(
+                        "Z0420",
+                        "alternative: less or greater on a table larger than 2 × 2",
+                    ),
+                ],
+                help: include_str!("../help/fisher_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 fisher.test() (tests/reference/r/fisher.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: fisher_test::fisher_test,
         },
         Function {
             spec: FunctionSpec {

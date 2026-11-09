@@ -360,3 +360,7 @@ An omission corrected while building `TestResult` (release 0.7.0, step 7). Secti
 
 An omission corrected while building `chi2_test` (release 0.7.0, step 10). The catalogue row says the test "warns when expected counts fall below 5", but no code named the warning. W0211, the next free number of its family as the release plan's ruling prescribes, is the warning, with its row in both tables and its explained page.
 
+
+## 9 November 2026 — zeff_language_reference.md, section 11 (the table "Codes numbered while the engine was built", new row Z0420)
+
+The code open decision #91 announced for `alternative:` on a Fisher table larger than 2 × 2, given at step 13 of release 0.7.0 as the release's ruling on provisional codes says. Z0420, the next free number of its family, refuses `less` or `greater` on such a table, whose exact test has no direction; `two_sided`, the default, is accepted since it is what the larger table computes. The row, the explained page and the catalogue row 174 name it.

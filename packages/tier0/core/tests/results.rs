@@ -136,6 +136,10 @@ fn the_statistic_line_rounds_as_section_3_8_says() {
         line("F", f64::NAN, &[1.0, 2.0], f64::NAN),
         "F(1, 2) = NA   p = NA"
     );
+    // A test without a statistic of its own, Fisher's exact test, prints the p-value alone
+    // (release 0.7.0, step 13).
+    assert_eq!(line("", f64::NAN, &[], 0.485_714), "p = 0.486");
+    assert_eq!(line("", f64::NAN, &[], 1e-5), "p < 0.001");
 }
 
 #[test]

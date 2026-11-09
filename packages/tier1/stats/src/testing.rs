@@ -5,6 +5,7 @@
 //! test fills the same way: the hypothesis block, the decision line's α, the intervals' level.
 
 use zeff_columns::{Column, Groups, Value as Cell, WeightError, WeightType, Weights};
+use zeff_core::display::labelled_cell;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Alternative, Frame, Value};
 use zeff_diagnostics::messages::no_variable;
@@ -366,4 +367,94 @@ pub fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
         .in_file(ctx.script)
         .primary(ctx.callee_span, "the call that failed"),
     )
+}
+
+/// The cross-table of two variables over their complete rows: the values of each in the order
+/// of section 3.7 (`NA` excluded, since rows with `NA` are dropped and counted), the count of
+/// rows in each cell (frequency weights summed where given), and the rows dropped.
+pub struct CrossTable {
+    /// The values of the first variable, down the side.
+    pub side: Vec<String>,
+    /// The values of the second variable, along the top.
+    pub top: Vec<String>,
+    /// `observed[i][j]`: the count at the i-th value of the first and the j-th of the second.
+    pub observed: Vec<Vec<f64>>,
+    pub dropped: usize,
+}
+
+/// The cross-table of `a` by `b` for the test `name`, each variable needing at least two values
+/// among the rows kept (Z0401) and neither opaque (Z0401); `slots` are the argument slots of
+/// the two variables, for the messages.
+pub fn cross_table(
+    ctx: &mut CallContext<'_>,
+    frame: &Frame,
+    (a, a_column): (&str, &Column),
+    (b, b_column): (&str, &Column),
+    slots: (usize, usize),
+    weights: Option<&Weights>,
+    name: &str,
+) -> Result<CrossTable, Fail> {
+    let (rows, dropped) = complete_rows(ctx, frame, &[(a, a_column), (b, b_column)]);
+    let kept = frame.table.take_rows(&rows);
+    let a_kept = kept
+        .column(a)
+        .ok_or_else(|| internal(ctx, "a column vanished"))?;
+    let b_kept = kept
+        .column(b)
+        .ok_or_else(|| internal(ctx, "a column vanished"))?;
+    let levels = |ctx: &CallContext<'_>, column: &Column, slot: usize| {
+        let groups = Groups::by(&[column]).map_err(|e| match e {
+            zeff_columns::GroupError::OpaqueKey(ty) => fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("a {} variable has no frequencies to test", ty.name()),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(slot), "an opaque variable")
+                .help("test a Bool, Int, Str, Date or Category variable"),
+            ),
+            other => internal(ctx, &format!("{other:?}")),
+        })?;
+        let labels: Vec<String> = (0..groups.len())
+            .map(|g| labelled_cell(column, groups.rows(g)[0]))
+            .collect();
+        Ok::<_, Fail>((groups, labels))
+    };
+    let (ga, side) = levels(ctx, a_kept, slots.0)?;
+    let (gb, top) = levels(ctx, b_kept, slots.1)?;
+    if side.len() < 2 || top.len() < 2 {
+        let (var, k, slot) = if side.len() < 2 {
+            (a, side.len(), slots.0)
+        } else {
+            (b, top.len(), slots.1)
+        };
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`{name}` needs at least two values of `{var}`, but there {}",
+                    if k == 0 { "is none" } else { "is one" }
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(slot), "too few values")
+            .help("a cross-table needs at least two rows and two columns; check the rows kept and the `NA`s dropped"),
+        ));
+    }
+    let mut observed = vec![vec![0.0f64; top.len()]; side.len()];
+    let (ra, rb) = (ga.group_of_row(), gb.group_of_row());
+    for (i, &row) in rows.iter().enumerate() {
+        let w = match weights {
+            Some(w) if !w.counts(row) => continue,
+            Some(w) => w.of(row),
+            None => 1.0,
+        };
+        observed[ra[i]][rb[i]] += w;
+    }
+    Ok(CrossTable {
+        side,
+        top,
+        observed,
+        dropped,
+    })
 }

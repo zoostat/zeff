@@ -1,0 +1,83 @@
+---
+source: packages/tier1/stats/tests/fisher.rs
+expression: all
+---
+error[Z0420]: `alternative:` of `fisher_test` applies to a 2 × 2 table, but `industry` × `female` is 12 × 2
+ --> scripts/main.zeff:1:59
+  |
+1 | dataset(wages).fisher_test(industry, female, alternative: greater)
+  |                                                           ^^^^^^^ a direction on a larger table
+  |
+  = help: the exact test of a larger table has no direction: drop `alternative:`, or keep two values of each variable with `where`
+
+error[Z0401]: `fisher_test` would have to enumerate more than 1,000,000 tables with the margins of `industry` × `female`
+ --> scripts/main.zeff:1:16
+  |
+1 | dataset(wages).fisher_test(industry, female)
+  |                ^^^^^^^^^^^ too large to enumerate
+  |
+  = help: `chi2_test` approximates the test of a large table; merging sparse values makes a smaller one
+
+error[Z0401]: `fisher_test` needs at least two values of `a`, but there is one
+ --> scripts/main.zeff:1:49
+  |
+1 | frame(a = [1, 1, 1], b = [1, 2, 1]).fisher_test(a, b)
+  |                                                 ^ too few values
+  |
+  = help: a cross-table needs at least two rows and two columns; check the rows kept and the `NA`s dropped
+
+error[Z0401]: `fisher_test` needs at least two values of `b`, but there is one
+ --> scripts/main.zeff:1:52
+  |
+1 | frame(a = [1, 2, 1], b = [1, 1, 1]).fisher_test(a, b)
+  |                                                    ^ too few values
+  |
+  = help: a cross-table needs at least two rows and two columns; check the rows kept and the `NA`s dropped
+
+error[Z0401]: `fisher_test` needs at least two values of `a` with rows, but there is one
+ --> scripts/main.zeff:1:73
+  |
+1 | frame(a = [1, 1, 2, 2], b = [1, 2, 1, 2], w = [1, 1, 0, 0]).fisher_test(a, b, weights: w, weight_type: frequency)
+  |                                                                         ^ too few values
+  |
+  = help: a cross-table needs at least two rows and two columns; check the rows kept, the `NA`s dropped and the weights
+
+error[Z0401]: frequency weights are whole numbers, but `w` has 1 fraction in row 1
+ --> scripts/main.zeff:1:90
+  |
+1 | frame(a = [1, 2, 1, 2], b = [1, 2, 2, 1], w = [1.5, 1, 1, 1]).fisher_test(a, b, weights: w, weight_type: frequency)
+  |                                                                                          ^ a frequency weight counts rows
+  |
+  = help: a weight with fractions is an analytic or a sampling weight: `weight_type: analytic`
+
+error[Z0411]: `weights:` of `fisher_test` are sampling weights, which a test cannot use
+ --> scripts/main.zeff:1:88
+  |
+1 | frame(a = [1, 2, 1, 2], b = [1, 2, 2, 1], w = [1, 1, 1, 1]).fisher_test(a, b, weights: w)
+  |                                                                                        ^ sampling weights
+  |
+  = help: a regression with robust standard errors gives design-based inference, `reg(y ~ 1, weights: w, se: robust)`; frequency or analytic weights are taken with `weight_type: frequency` or `weight_type: analytic`
+
+error[Z0401]: `fisher_test` counts rows, so its weights are frequency weights, not analytic
+ --> scripts/main.zeff:1:104
+  |
+1 | frame(a = [1, 2, 1, 2], b = [1, 2, 2, 1], w = [1, 1, 1, 1]).fisher_test(a, b, weights: w, weight_type: analytic)
+  |                                                                                                        ^^^^^^^^ analytic weights on counts
+  |
+  = help: write `weight_type: frequency` for weights that say how many rows each row stands for
+
+error[Z0406]: `fisher_test` needs `b`
+ --> scripts/main.zeff:1:43
+  |
+1 | frame(a = [1, 2, 1, 2], b = [1, 2, 2, 1]).fisher_test(a)
+  |                                           ^^^^^^^^^^^ `b` is missing
+  |
+  = help: usage: `data.fisher_test(a, b, alternative: two_sided | less | greater = two_sided, weights: Var, weight_type: frequency | analytic | sampling = sampling)`
+
+error[Z0101]: no variable `c` in `the frame`
+ --> scripts/main.zeff:1:58
+  |
+1 | frame(a = [1, 2, 1, 2], b = [1, 2, 2, 1]).fisher_test(a, c)
+  |                                                          ^ not a variable of the frame
+  |
+  = help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`

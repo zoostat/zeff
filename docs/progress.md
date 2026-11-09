@@ -141,3 +141,13 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 **Next.** Step 13 `[engine]`: `fisher_test`.
 
 **For the owner to decide.** Nothing new; the ruling on question 4 (a) from step 11 still awaits a word.
+
+## 9 November 2026, release 0.7.0, step 13 (`fisher_test`)
+
+**Done.** `fisher_test` in `stats` (Rust): on a 2 × 2 table the exact p-value for the alternative asked, the conditional maximum-likelihood odds ratio and its 95% interval, built by the recurrence of the conditional distribution from its mode and solved to the last digit; on a larger table the exact p-value over every table with the same margins, up to a million of them, beyond which the test is refused with `chi2_test` suggested (question 4 (d)). `alternative: less` or `greater` on a larger table is refused with the new code Z0420 (row, explained page and spec-changes entry written). A value with no rows, possible only through weights, is left out and named. `TestResult` now prints `p = …` alone for a test without a statistic. The cross-table of two variables became a shared helper. Reference (R 4.6.0's `fisher.test`, thirteen 2 × 2 and nine larger tables): p-values to 1e-12 on the first run; the odds ratio and bounds to 1e-9 against R's formulas re-solved tightly, since R's own solver stops near 1e-4. Properties, edge cases, snapshots of every form and message, the conformance case `tests/fisher`, the page with running examples, the catalogue row implemented. Also: the Kruskal R reference is compared across platforms within 1e-9 after the Linux runner's R differed from this machine's in the last digits of a small H (decision addendum).
+
+**Green.** The fisher test program, the conformance digests and the core display test on their own; the full routine and CI follow in this session.
+
+**Next.** Step 14 `[engine]`: `shapiro_test`.
+
+**For the owner to decide.** The wording of the directional hypothesis of `fisher_test` on a 2 × 2 table, "the odds of female = male are higher among union = no than among union = yes", is a provisional sentence to confirm or replace (`docs/decisions.md`, step 13). The ruling on question 4 (a) from step 11 still awaits a word.
