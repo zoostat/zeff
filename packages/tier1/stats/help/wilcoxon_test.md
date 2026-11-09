@@ -38,8 +38,9 @@ Rows with `NA` in a tested variable are dropped and counted in a note.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
-`export`, `report`): the statistic, the p-value, the estimate with its interval, and the
-hypotheses.
+`export`, `report`): the statistic, the p-value, the estimate with its interval, and the hypotheses.
+Its own methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1()` and `alternative()` give the
+figures as values.
 
 ## Details
 V is the sum of the ranks of the positive differences among the absolute differences; W is the

@@ -25,10 +25,10 @@ NA
 12
 test · m · hours == 0
 F(1, 9) = 1698.28   p < 0.001
-frame · 1 row × 7 variables
+frame · 1 row × 9 variables
 
-      term   estimate   std_error   statistic       p_value   ci_lower   ci_upper
-  1   F            NA          NA     1698.28   1.45357e-11         NA         NA
+      term   estimate   std_error   statistic   df   df2       p_value   ci_lower   ci_upper
+  1   F            NA          NA     1698.28    1     9   1.45357e-11         NA         NA
 NA
 NA
 NA

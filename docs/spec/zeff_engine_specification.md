@@ -640,9 +640,9 @@ fn share_missing(data: Frame, var: Var) -> Float {
 - **Distributions:** `dist.normal`, `dist.lognormal`, `dist.t`, `dist.chi2`, `dist.f`, `dist.binomial`, `dist.poisson`, `dist.negbinomial`, `dist.uniform`, `dist.exponential`, `dist.gamma`, `dist.beta`, `dist.weibull`, `dist.logistic`, `dist.hypergeometric`, `dist.tukey`, `dist.truncated`, `dist.mixture`
 - **Methods on a distribution:** `pdf`, `cdf`, `quantile`, `draw`
 
-#### `results` (tier 1) · 18 in 1.0, 0 proposed, 1 on the roadmap
+#### `results` (tier 1) · 24 in 1.0, 0 proposed, 1 on the roadmap
 
-- **Result interface:** `summary`, `estimates`, `std_errors`, `p_values`, `ci`, `n_obs`, `export`
+- **Result interface:** `summary`, `estimates`, `std_errors`, `p_values`, `ci`, `n_obs`, `export`; on a `TestResult` alone, `statistic`, `df`, `effect_size`, `h0`, `h1`, `alternative` (open decision #94)
 - **Estimator interface:** `coef`, `vcov`, `fit_measures`, `predict`, `residuals`, `fitted`, `compare`, `test`, `derive`, `margins` (0.9.0; for `reg`, `logistic` and `probit` in 1.0)
 - **Tables and export:** `report`
 - **Roadmap:** `contrasts`

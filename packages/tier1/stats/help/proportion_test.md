@@ -34,8 +34,9 @@ tested variable are dropped and counted in a note.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
-`export`, `report`): the statistic, the p-value, the proportion or the difference with its
-interval, and the hypotheses.
+`export`, `report`): the statistic, the p-value, the proportion or the difference with its interval,
+and the hypotheses. Its own methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1()` and
+`alternative()` give the figures as values.
 
 ## Details
 One proportion: z = (x − n p) / √(n p (1 − p)), the correction subtracting ½ from |x − n p|

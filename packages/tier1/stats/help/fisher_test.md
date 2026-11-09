@@ -32,7 +32,8 @@ through weights) is left out of the table and named below it.
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
 `export`, `report`): the p-value and the hypotheses; on a 2 × 2 table the odds ratio with its
-interval, and no statistic of its own.
+interval, and no statistic of its own. Its own methods `statistic()`, `df()`, `effect_size()`,
+`h0()`, `h1()` and `alternative()` give the figures as values.
 
 ## Details
 Given the margins of a 2 × 2 table, the first cell has the hypergeometric distribution under

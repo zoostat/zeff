@@ -1340,6 +1340,12 @@ fn panel_cases() -> Vec<Line> {
     let compared_outcome = run_script(&fs, &project, "scripts/main.zeff", compared);
     let exact = "let wages = dataset(wages)\nwages.fisher_test(union, female)\nwages.fisher_test(union, female, alternative: greater)\nlet t = frame(a = [\"x\", \"x\", \"x\", \"x\", \"y\", \"y\", \"y\", \"y\"], b = [1, 1, 1, 2, 1, 2, 2, 2])\nt.fisher_test(a, b)\nt.fisher_test(a, b, alternative: less)\nlet z = frame(a = [\"x\", \"x\", \"x\", \"x\", \"x\", \"y\", \"y\", \"y\", \"y\", \"y\", \"y\", \"y\"], b = [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2])\nz.fisher_test(a, b)\nlet m = frame(r = [\"a\", \"a\", \"a\", \"a\", \"a\", \"a\", \"b\", \"b\", \"b\", \"b\", \"c\", \"c\", \"c\", \"c\", \"c\", \"c\"], c = [1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 1, 2, 2, 2, 2, 2])\nm.fisher_test(r, c)\nlet w = frame(r = [\"a\", \"a\", \"b\", \"b\", \"c\", \"c\"], c = [1, 2, 1, 2, 1, 2], w = [3, 1, 1, 3, 0, 0])\nw.fisher_test(r, c, weights: w, weight_type: frequency)\nlet d = frame(a = [\"x\", \"x\", NA, \"y\", \"y\", \"x\"], b = [1, 2, 1, 1, 2, 1])\nd.fisher_test(a, b)\n";
     let exact_outcome = run_script(&fs, &project, "scripts/main.zeff", exact);
+    // A `TestResult` read as values (release 0.7.0, step 12b; open decision #94): the six
+    // methods on a t test, a chi-squared test, a Wald test and an exact test, the widened
+    // `estimates` of a test and of a fit, the sentence built with `format` and `join`, and the
+    // refusal on a fit.
+    let fields = "let wages = dataset(wages).add(lwage = log(wage))\nlet t = wages.t_test(lwage, group: female)\nt.statistic()\nt.df()\nt.effect_size()\nt.h0()\nt.h1()\nt.alternative()\nt.estimates()\nlet c = wages.chi2_test(union, female)\nc.df()\nc.effect_size()\nc.estimates()\nlet m = wages.reg(lwage ~ educ + female)\nm.estimates()\nm.test(educ == 0).df()\nwages.fisher_test(union, female).statistic()\njoin([\"t(\", format(t.df()[1], digits: 1), \") = \", format(t.statistic(), digits: 2), \", g = \", format(t.effect_size(), digits: 3)])\nm.df()\n";
+    let fields_outcome = run_script(&fs, &project, "scripts/main.zeff", fields);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1385,6 +1391,8 @@ fn panel_cases() -> Vec<Line> {
         text("tests/kruskal/stderr", &compared_outcome.output.stderr),
         text("tests/fisher/stdout", &exact_outcome.output.stdout),
         text("tests/fisher/stderr", &exact_outcome.output.stderr),
+        text("tests/fields/stdout", &fields_outcome.output.stdout),
+        text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),

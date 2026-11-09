@@ -122,9 +122,10 @@ ARGUMENTS
                 regression with robust errors.                                                      (shared)
 
 VALUE
-    A `TestResult`: statistic, df, p_value, estimate (the mean or the difference), ci, effect_size, n_obs,
-    h0 and h1 (the hypotheses as sentences) and alternative, with the result interface (summary,
-    estimates, export, report).
+    A `TestResult`, with the result interface (summary, estimates, p_values, ci, n_obs, export, report)
+    and its own methods statistic(), df(), effect_size(), h0(), h1() and alternative(): the statistic,
+    the degrees of freedom, the p-value, the estimate (the mean or the difference) with its interval,
+    the effect size, and the hypotheses as sentences.
 
 DETAILS
     Welch degrees of freedom by the Welch–Satterthwaite equation. Hedges' g = d × (1 − 3 / (4(n₁ + n₂) − 9)).

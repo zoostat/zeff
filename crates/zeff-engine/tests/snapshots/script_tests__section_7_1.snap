@@ -3,80 +3,80 @@ source: crates/zeff-engine/tests/script_tests.rs
 expression: text
 ---
 0.0760102
-frame · 4 rows × 7 variables
+frame · 4 rows × 9 variables
 
-      term             estimate     std_error   statistic        p_value      ci_lower      ci_upper
-  1   (intercept)       1.85849     0.0554803     33.4981   9.16709e-239       1.74974       1.96723
-  2   educ            0.0728969    0.00139625     52.2089              0     0.0701602     0.0756337
-  3   exper^2       0.000620617   1.46521e-05     42.3569              0   0.000591897   0.000649336
-  4   log(hours)      0.0483227     0.0142475     3.39167    0.000696165     0.0203963     0.0762491
-frame · 3 rows × 7 variables
+      term             estimate     std_error   statistic      df   df2        p_value      ci_lower      ci_upper
+  1   (intercept)       1.85849     0.0554803     33.4981   18141    NA   9.16709e-239       1.74974       1.96723
+  2   educ            0.0728969    0.00139625     52.2089   18141    NA              0     0.0701602     0.0756337
+  3   exper^2       0.000620617   1.46521e-05     42.3569   18141    NA              0   0.000591897   0.000649336
+  4   log(hours)      0.0483227     0.0142475     3.39167   18141    NA    0.000696165     0.0203963     0.0762491
+frame · 3 rows × 9 variables
 
-      term           estimate    std_error   statistic        p_value    ci_lower    ci_upper
-  1   (intercept)     3.25876   0.00486683     669.586              0     3.24922      3.2683
-  2   educ:female   0.0521746   0.00200268     26.0524   6.19264e-147   0.0482492   0.0561001
-  3   female         -0.84262    0.0279456    -30.1522    6.1082e-195   -0.897396   -0.787844
-frame · 4 rows × 7 variables
+      term           estimate    std_error   statistic      df   df2        p_value    ci_lower    ci_upper
+  1   (intercept)     3.25876   0.00486683     669.586   18198    NA              0     3.24922      3.2683
+  2   educ:female   0.0521746   0.00200268     26.0524   18198    NA   6.19264e-147   0.0482492   0.0561001
+  3   female         -0.84262    0.0279456    -30.1522   18198    NA    6.1082e-195   -0.897396   -0.787844
+frame · 4 rows × 9 variables
 
-      term                    estimate   std_error   statistic       p_value   ci_lower   ci_upper
-  1   (intercept)              2.27069   0.0273704     82.9613             0    2.21704    2.32433
-  2   industry=Mining         0.217915     0.03837     5.67932   1.37298e-08   0.142707   0.293124
-  3   industry=Utilities      0.245784   0.0313724      7.8344   4.96886e-15   0.184291   0.307276
-  4   industry=Construction   0.245585   0.0234269     10.4831   1.22298e-25   0.199666   0.291504
-frame · 4 rows × 7 variables
+      term                    estimate   std_error   statistic      df   df2       p_value   ci_lower   ci_upper
+  1   (intercept)              2.27069   0.0273704     82.9613   18188    NA             0    2.21704    2.32433
+  2   industry=Mining         0.217915     0.03837     5.67932   18188    NA   1.37298e-08   0.142707   0.293124
+  3   industry=Utilities      0.245784   0.0313724      7.8344   18188    NA   4.96886e-15   0.184291   0.307276
+  4   industry=Construction   0.245585   0.0234269     10.4831   18188    NA   1.22298e-25   0.199666   0.291504
+frame · 4 rows × 9 variables
 
-      term                    estimate   std_error   statistic       p_value    ci_lower     ci_upper
-  1   (intercept)              2.41016   0.0207093     116.381             0     2.36957      2.45075
-  2   industry=Agriculture   -0.139476     0.02186    -6.38043   1.80853e-10   -0.182324   -0.0966284
-  3   industry=Mining        0.0784394   0.0338349      2.3183     0.0204439   0.0121199     0.144759
-  4   industry=Utilities      0.106308   0.0256253     4.14854    3.3612e-05   0.0560796     0.156536
-frame · 7 rows × 7 variables
+      term                    estimate   std_error   statistic      df   df2       p_value    ci_lower     ci_upper
+  1   (intercept)              2.41016   0.0207093     116.381   18188    NA             0     2.36957      2.45075
+  2   industry=Agriculture   -0.139476     0.02186    -6.38043   18188    NA   1.80853e-10   -0.182324   -0.0966284
+  3   industry=Mining        0.0784394   0.0338349      2.3183   18188    NA     0.0204439   0.0121199     0.144759
+  4   industry=Utilities      0.106308   0.0256253     4.14854   18188    NA    3.3612e-05   0.0560796     0.156536
+frame · 7 rows × 9 variables
 
-      term              estimate     std_error   statistic       p_value      ci_lower      ci_upper
-  1   (intercept)        1.45853     0.0865863     16.8449   3.45808e-63       1.28882       1.62825
-  2   x1                0.004027     0.0136505    0.295007      0.767992    -0.0227293     0.0307833
-  3   x2              -0.0514923     0.0137724    -3.73881   0.000185458    -0.0784874    -0.0244972
-  4   x3               0.0725745      0.013696     5.29894   1.17836e-07      0.045729       0.09942
-  5   z1            -0.000369297   0.000398711   -0.926228       0.35434   -0.00115081   0.000412215
-  6   z2               0.0905223    0.00690849     13.1031   4.75737e-39     0.0769811      0.104064
-  7   z3               -0.135657    0.00650227     -20.863   1.53722e-95     -0.148402     -0.122912
-frame · 4 rows × 7 variables
+      term              estimate     std_error   statistic      df   df2       p_value      ci_lower      ci_upper
+  1   (intercept)        1.45853     0.0865863     16.8449   18138    NA   3.45808e-63       1.28882       1.62825
+  2   x1                0.004027     0.0136505    0.295007   18138    NA      0.767992    -0.0227293     0.0307833
+  3   x2              -0.0514923     0.0137724    -3.73881   18138    NA   0.000185458    -0.0784874    -0.0244972
+  4   x3               0.0725745      0.013696     5.29894   18138    NA   1.17836e-07      0.045729       0.09942
+  5   z1            -0.000369297   0.000398711   -0.926228   18138    NA       0.35434   -0.00115081   0.000412215
+  6   z2               0.0905223    0.00690849     13.1031   18138    NA   4.75737e-39     0.0769811      0.104064
+  7   z3               -0.135657    0.00650227     -20.863   18138    NA   1.53722e-95     -0.148402     -0.122912
+frame · 4 rows × 9 variables
 
-      term             estimate     std_error   statistic      p_value    ci_lower     ci_upper
-  1   (intercept)       1.83489     0.0218341     84.0382            0      1.7921      1.87769
-  2   educ            0.0807362    0.00138417     58.3281            0   0.0780231    0.0834493
-  3   exper           0.0220079   0.000451465     48.7476            0   0.0211229    0.0228928
-  4   educ:female   -0.00963385   0.000468422    -20.5666   6.2385e-93   -0.010552   -0.0087157
-frame · 1 row × 7 variables
+      term             estimate     std_error   statistic      df   df2      p_value    ci_lower     ci_upper
+  1   (intercept)       1.83489     0.0218341     84.0382   18175    NA            0      1.7921      1.87769
+  2   educ            0.0807362    0.00138417     58.3281   18175    NA            0   0.0780231    0.0834493
+  3   exper           0.0220079   0.000451465     48.7476   18175    NA            0   0.0211229    0.0228928
+  4   educ:female   -0.00963385   0.000468422    -20.5666   18175    NA   6.2385e-93   -0.010552   -0.0087157
+frame · 1 row × 9 variables
 
-      term   estimate     std_error   statistic   p_value   ci_lower   ci_upper
-  1   educ   0.230669   0.000348473     661.944         0   0.229986   0.231352
-frame · 1 row × 7 variables
+      term   estimate     std_error   statistic      df   df2   p_value   ci_lower   ci_upper
+  1   educ   0.230669   0.000348473     661.944   18200    NA         0   0.229986   0.231352
+frame · 1 row × 9 variables
 
-      term          estimate    std_error   statistic   p_value   ci_lower   ci_upper
-  1   (intercept)    3.19198   0.00359362     888.236         0    3.18494    3.19903
-frame · 2 rows × 7 variables
+      term          estimate    std_error   statistic      df   df2   p_value   ci_lower   ci_upper
+  1   (intercept)    3.19198   0.00359362     888.236   18200    NA         0    3.18494    3.19903
+frame · 2 rows × 9 variables
 
-      term           estimate    std_error   statistic        p_value    ci_lower    ci_upper
-  1   (intercept)     2.46017    0.0190433     129.188              0     2.42284     2.49749
-  2   educ          0.0542589   0.00138853     39.0764   8.48805e-321   0.0515372   0.0569805
-frame · 2 rows × 7 variables
+      term           estimate    std_error   statistic      df   df2        p_value    ci_lower    ci_upper
+  1   (intercept)     2.46017    0.0190433     129.188   18199    NA              0     2.42284     2.49749
+  2   educ          0.0542589   0.00138853     39.0764   18199    NA   8.48805e-321   0.0515372   0.0569805
+frame · 2 rows × 9 variables
 
-      term     estimate     std_error   statistic        p_value    ci_lower    ci_upper
-  1   educ    0.0747629    0.00142166     52.5885              0   0.0719763   0.0775495
-  2   exper   0.0198265   0.000507422     39.0729   1.93081e-320   0.0188319   0.0208211
-frame · 2 rows × 7 variables
+      term     estimate     std_error   statistic      df   df2        p_value    ci_lower    ci_upper
+  1   educ    0.0747629    0.00142166     52.5885   17769    NA              0   0.0719763   0.0775495
+  2   exper   0.0198265   0.000507422     39.0729   17769    NA   1.93081e-320   0.0188319   0.0208211
+frame · 2 rows × 9 variables
 
-      term     estimate     std_error   statistic   p_value    ci_lower    ci_upper
-  1   educ    0.0736966    0.00138098     53.3654         0   0.0709897   0.0764034
-  2   exper   0.0199785   0.000493149     40.5121         0   0.0190119   0.0209451
-frame · 4 rows × 7 variables
+      term     estimate     std_error   statistic      df   df2   p_value    ci_lower    ci_upper
+  1   educ    0.0736966    0.00138098     53.3654   18033    NA         0   0.0709897   0.0764034
+  2   exper   0.0199785   0.000493149     40.5121   18033    NA         0   0.0190119   0.0209451
+frame · 4 rows × 9 variables
 
-      term            estimate   std_error   statistic       p_value   ci_lower   ci_upper
-  1   (intercept)      48.9472     1.28707       38.03   8.33206e-81    46.4049    51.4895
-  2   treated        -0.398155     1.79785   -0.221461      0.825023   -3.94943    3.15312
-  3   post             2.01359     1.82019     1.10625       0.27032   -1.58181    5.60899
-  4   treated:post     1.48812     2.54255    0.585285      0.559201   -3.53415    6.51039
+      term            estimate   std_error   statistic    df   df2       p_value   ci_lower   ci_upper
+  1   (intercept)      48.9472     1.28707       38.03   156    NA   8.33206e-81    46.4049    51.4895
+  2   treated        -0.398155     1.79785   -0.221461   156    NA      0.825023   -3.94943    3.15312
+  3   post             2.01359     1.82019     1.10625   156    NA       0.27032   -1.58181    5.60899
+  4   treated:post     1.48812     2.54255    0.585285   156    NA      0.559201   -3.53415    6.51039
                       (1)              (2)
   (intercept)      1.718***
                   (0.023)

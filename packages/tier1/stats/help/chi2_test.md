@@ -29,8 +29,9 @@ and counted in a note.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
-`export`, `report`): the statistic, the degrees of freedom, the p-value and the hypotheses; it
-has no estimate.
+`export`, `report`): the statistic, the degrees of freedom, the p-value and the hypotheses; it has
+no estimate. Its own methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1()` and
+`alternative()` give the figures as values.
 
 ## Details
 Independence: expected counts E = (row total × column total) / N, χ² = Σ (|O − E| − c)² / E with

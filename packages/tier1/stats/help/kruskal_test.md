@@ -21,8 +21,9 @@ without a continuity correction, together with an estimate of the shift.
   since ranks cannot be scaled, and sampling weights by the shared rule (Z0411).
 
 ## Value
-A `TestResult`, with the result interface (`summary`, `p_values`, `n_obs`, `export`, `report`):
-the statistic, its degrees of freedom, the p-value and the hypotheses.
+A `TestResult`, with the result interface (`summary`, `p_values`, `n_obs`, `export`, `report`): the
+statistic, its degrees of freedom, the p-value and the hypotheses. Its own methods `statistic()`,
+`df()`, `effect_size()`, `h0()`, `h1()` and `alternative()` give the figures as values.
 
 ## Details
 Every value is ranked in the pooled sample, ties taking the average rank. With N values in k

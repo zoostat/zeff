@@ -283,6 +283,8 @@ fn the_interface_agrees_with_r_on_every_reference_fit() {
                         "estimate",
                         "std_error",
                         "statistic",
+                        "df",
+                        "df2",
                         "p_value",
                         "ci_lower",
                         "ci_upper"

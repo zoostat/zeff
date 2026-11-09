@@ -50,14 +50,14 @@ standard errors: clustered by worker (3,911 clusters, CR1)
 
 R² 0.210 · adjusted R² 0.210
 log-likelihood -10,478.4 · AIC 20,968.9 · BIC 21,015.7
-frame · 5 rows × 7 variables
+frame · 5 rows × 9 variables
 
-      term              estimate     std_error   statistic        p_value      ci_lower       ci_upper
-  1   (intercept)        1.78729     0.0428674     41.6935   1.15061e-314       1.70325        1.87134
-  2   educ             0.0758112    0.00255344     29.6898   7.23638e-175      0.070805      0.0808174
-  3   exper            0.0420585    0.00260761     16.1291     1.0376e-56     0.0369461      0.0471709
-  4   exper2        -0.000660252   8.38928e-05    -7.87018    4.54948e-15   -0.00082473   -0.000495774
-  5   female           -0.131936     0.0121915     -10.822    6.49476e-27     -0.155838      -0.108034
+      term              estimate     std_error   statistic     df   df2        p_value      ci_lower       ci_upper
+  1   (intercept)        1.78729     0.0428674     41.6935   3910    NA   1.15061e-314       1.70325        1.87134
+  2   educ             0.0758112    0.00255344     29.6898   3910    NA   7.23638e-175      0.070805      0.0808174
+  3   exper            0.0420585    0.00260761     16.1291   3910    NA     1.0376e-56     0.0369461      0.0471709
+  4   exper2        -0.000660252   8.38928e-05    -7.87018   3910    NA    4.54948e-15   -0.00082473   -0.000495774
+  5   female           -0.131936     0.0121915     -10.822   3910    NA    6.49476e-27     -0.155838      -0.108034
 return to schooling:
 0.0758112
 0.0716102

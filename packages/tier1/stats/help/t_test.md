@@ -36,7 +36,9 @@ variable are dropped and counted in a note.
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
 `export`, `report`): the statistic, the degrees of freedom, the p-value, the estimate (the mean
-difference) with its interval, the effect size in the two-group form, and the hypotheses.
+difference) with its interval, the effect size in the two-group form, and the hypotheses. Its own
+methods `statistic()`, `df()`, `effect_size()`, `h0()`, `h1()` and `alternative()` give the figures
+as values.
 
 ## Details
 Welch's degrees of freedom are the Welch–Satterthwaite equation. Cohen's d divides the difference

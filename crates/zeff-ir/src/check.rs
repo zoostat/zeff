@@ -4262,7 +4262,7 @@ impl Checker<'_> {
                         ),
                     )
                     .primary(span, other.with_article())
-                    .help(format!("a method call has parentheses: `.{}()`", name.text)),
+                    .help(result_field_help(&other, &name.text)),
                 );
                 Expr::error(span)
             }
@@ -7766,5 +7766,19 @@ fn returns_in<'e>(block: &'e Block, out: &mut Vec<&'e Expr>) {
     }
     if let Some(tail) = &block.tail {
         in_expr(tail, out);
+    }
+}
+
+/// The help of Z0213: a result is read by its methods (open decision #94), so `t.statistic`
+/// names them; anything else is a method call missing its parentheses.
+pub(crate) fn result_field_help(ty: &Ty, name: &str) -> String {
+    match ty {
+        Ty::Result(Some(ResultKind::TestResult)) | Ty::Result(None) => format!(
+            "a test's result is read by its methods: `.statistic()`, `.df()`, `.p_values()`, `.estimates()`, `.ci()`, `.effect_size()`, `.n_obs()`, `.h0()`, `.h1()` and `.alternative()`; a method call has parentheses: `.{name}()`"
+        ),
+        Ty::Result(Some(_)) => format!(
+            "a fit is read by its methods, by term: `.coef(term)`, `.std_errors(term)`, `.p_values(term)` and `.ci(term)`, or `.estimates()` for them all; a method call has parentheses: `.{name}()`"
+        ),
+        _ => format!("a method call has parentheses: `.{name}()`"),
     }
 }

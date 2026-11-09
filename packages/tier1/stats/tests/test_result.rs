@@ -283,7 +283,11 @@ fn the_result_interface_answers_for_a_hand_built_result() {
         let Value::Frame(frame) = estimates(ctx, args(vec![Some(result.clone())])).unwrap() else {
             panic!("a frame")
         };
-        assert_eq!(frame.table.rows(), 1);
+        assert_eq!(
+            frame.table.rows(),
+            2,
+            "the estimate and the effect size (#94)"
+        );
         let cell = |name: &str| {
             frame
                 .table
@@ -562,27 +566,28 @@ fn the_fields_the_types_table_names_exist() {
         .find(|l| l.starts_with("| Result | `TestResult`"))
         .expect("the Result row of the types table");
     let result = welch();
-    // Each name the row gives is a field of the value, read here so that a renamed field fails.
+    // Each method the row names (open decision #94) reads a part of the value, checked here so
+    // that a renamed part fails.
     let fields: Vec<(&str, bool)> = vec![
-        ("statistic", result.statistic.value.is_finite()),
-        ("df", !result.statistic.df.is_empty()),
-        ("p_value", result.p_value.is_finite()),
-        ("estimate", result.estimate.is_some()),
+        ("statistic()", result.statistic.value.is_finite()),
+        ("df()", !result.statistic.df.is_empty()),
+        ("p_values()", result.p_value.is_finite()),
+        ("estimates()", result.estimate.is_some()),
         (
-            "ci",
+            "ci()",
             result.estimate.as_ref().is_some_and(|e| e.ci.is_some()),
         ),
-        ("effect_size", result.effect.is_some()),
-        ("n_obs", result.n > 0),
+        ("effect_size()", result.effect.is_some()),
+        ("n_obs()", result.n > 0),
         (
-            "h0",
+            "h0()",
             result.hypotheses.as_ref().is_some_and(|h| !h.h0.is_empty()),
         ),
         (
-            "h1",
+            "h1()",
             result.hypotheses.as_ref().is_some_and(|h| !h.h1.is_empty()),
         ),
-        ("alternative", result.alternative == Alternative::TwoSided),
+        ("alternative()", result.alternative == Alternative::TwoSided),
     ];
     for (name, present) in fields {
         assert!(row.contains(&format!("`{name}`")), "the row names `{name}`");

@@ -5,7 +5,8 @@
 //! and `p_values` a `Mapping` by term or one `Float` for a named term, `ci` a `Table` of
 //! intervals or `[lower, upper]` for one term, and `n_obs` an `Int`. The estimator interface's
 //! first part (step 16) follows: `coef`, `vcov`, `fit_measures`, `predict`, `residuals` and
-//! `fitted`.
+//! `fitted`. The methods of a test's result alone (open decision #94; release 0.7.0, step 12b)
+//! end the file: `statistic`, `df`, `effect_size`, `h0`, `h1` and `alternative`.
 
 use crate::design::Design;
 use crate::summary::rows;
@@ -233,9 +234,15 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
 }
 
+/// A statistic's value as a frame holds it: `None` where the test has no statistic (the exact
+/// tests), which `TestResult` carries as NaN.
+fn finite(value: f64) -> Option<f64> {
+    value.is_finite().then_some(value)
+}
+
 /// `fit.estimates()`: a frame of the terms with an estimate and their estimate, standard error,
-/// statistic, p-value and interval at the fit's level; for a test's result one row with its
-/// statistic and p-value.
+/// statistic, degrees of freedom, p-value and interval at the fit's level; for a test's result
+/// a row for its estimate with the statistic and the p-value, and one for its effect size.
 pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let floats = |values: Vec<Option<f64>>| Column::floats(values).0;
     let columns = match receiver(ctx, &args, "estimates")? {
@@ -256,6 +263,12 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 "statistic".to_string(),
                 floats(fit.statistics.iter().map(|v| Some(*v)).collect()),
             ),
+            // The t statistics share the residual degrees of freedom; `df2` is for an F.
+            (
+                "df".to_string(),
+                floats(vec![Some(fit.df_residual as f64); fit.terms.len()]),
+            ),
+            ("df2".to_string(), floats(vec![None; fit.terms.len()])),
             (
                 "p_value".to_string(),
                 floats(fit.p_values.iter().map(|v| Some(*v)).collect()),
@@ -269,36 +282,49 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 floats(fit.intervals.iter().map(|v| Some(v.1)).collect()),
             ),
         ],
-        // A test's result: one row, its estimate and interval when it has them (the tests of
-        // `stats`), else its statistic alone (`test`, `compare`).
-        Receiver::Test(test) => vec![
-            (
-                "term".to_string(),
-                Column::strs([Some(
-                    test.estimate
-                        .as_ref()
-                        .map_or(test.statistic.name.as_str(), |e| e.label.as_str()),
-                )]),
-            ),
-            (
-                "estimate".to_string(),
-                floats(vec![test.estimate.as_ref().map(|e| e.value)]),
-            ),
-            ("std_error".to_string(), floats(vec![None])),
-            (
-                "statistic".to_string(),
-                floats(vec![Some(test.statistic.value)]),
-            ),
-            ("p_value".to_string(), floats(vec![Some(test.p_value)])),
-            (
-                "ci_lower".to_string(),
-                floats(vec![test.estimate.as_ref().and_then(|e| e.ci).map(|c| c.0)]),
-            ),
-            (
-                "ci_upper".to_string(),
-                floats(vec![test.estimate.as_ref().and_then(|e| e.ci).map(|c| c.1)]),
-            ),
-        ],
+        // A test's result (open decision #94): a row for its estimate with the statistic, the
+        // degrees of freedom and the p-value (the estimate's label, or the statistic's name
+        // where the test has no estimate: `test`, `compare`, `chi2_test`), and a row for its
+        // effect size with its interval where it has one.
+        Receiver::Test(test) => {
+            let first = test
+                .estimate
+                .as_ref()
+                .map_or(test.statistic.name.clone(), |e| e.label.clone());
+            let mut terms = vec![Some(first)];
+            let mut values = vec![test.estimate.as_ref().map(|e| e.value)];
+            let mut statistics = vec![finite(test.statistic.value)];
+            let mut dfs = vec![test.statistic.df.first().copied()];
+            let mut df2s = vec![test.statistic.df.get(1).copied()];
+            let mut p_values = vec![Some(test.p_value)];
+            let mut lowers = vec![test.estimate.as_ref().and_then(|e| e.ci).map(|c| c.0)];
+            let mut uppers = vec![test.estimate.as_ref().and_then(|e| e.ci).map(|c| c.1)];
+            if let Some(effect) = &test.effect {
+                terms.push(Some(effect.label.clone()));
+                values.push(Some(effect.value));
+                statistics.push(None);
+                dfs.push(None);
+                df2s.push(None);
+                p_values.push(None);
+                lowers.push(effect.ci.map(|c| c.0));
+                uppers.push(effect.ci.map(|c| c.1));
+            }
+            let rows = terms.len();
+            vec![
+                (
+                    "term".to_string(),
+                    Column::strs(terms.iter().map(|t| t.as_deref())),
+                ),
+                ("estimate".to_string(), floats(values)),
+                ("std_error".to_string(), floats(vec![None; rows])),
+                ("statistic".to_string(), floats(statistics)),
+                ("df".to_string(), floats(dfs)),
+                ("df2".to_string(), floats(df2s)),
+                ("p_value".to_string(), floats(p_values)),
+                ("ci_lower".to_string(), floats(lowers)),
+                ("ci_upper".to_string(), floats(uppers)),
+            ]
+        }
     };
     let table = Columns::new(columns).map_err(|e| {
         fail(
@@ -679,4 +705,85 @@ pub fn predict(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
     }
     Ok(Value::Column(Column::floats(values).0))
+}
+
+// ----- the methods of a test's result alone (open decision #94; release 0.7.0, step 12b) -----
+
+/// The receiver of a method only a test's result answers: Z0401 on a fit, whose values the
+/// estimator interface gives by term.
+fn test_receiver(ctx: &CallContext<'_>, args: &Args, name: &str) -> Result<Rc<TestResult>, Fail> {
+    match args.get(0) {
+        Some(Value::TestResult(test)) => Ok(Rc::clone(test)),
+        other => {
+            let found = other.map_or("nothing".to_string(), Value::type_word);
+            let mut d = Diagnostic::error(
+                "Z0401",
+                format!("`{name}` is a method of a test's result, but this is {found}"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "not a test's result");
+            if matches!(other, Some(Value::Fit(_))) {
+                d = d.help(
+                    "a regression's values are read by term: `coef`, `std_errors`, `p_values` and `ci`; `estimates()` gives them all as a frame",
+                );
+            }
+            Err(fail(d))
+        }
+    }
+}
+
+/// `t.statistic()`: the test statistic as a number; `NA` for a test that has none (the exact
+/// tests).
+pub fn statistic(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let test = test_receiver(ctx, &args, "statistic")?;
+    Ok(finite(test.statistic.value).map_or(Value::Na, Value::Float))
+}
+
+/// `t.df()`: the degrees of freedom as a list of one or two numbers, in the order the statistic
+/// writes them, `F(1, 18,179)`; `NA` for a statistic that has none.
+pub fn df(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let test = test_receiver(ctx, &args, "df")?;
+    if test.statistic.df.is_empty() {
+        return Ok(Value::Na);
+    }
+    Ok(Value::List(
+        test.statistic.df.iter().map(|d| Value::Float(*d)).collect(),
+    ))
+}
+
+/// `t.effect_size()`: the effect size the test printed, as a number; `NA` for a test that has
+/// none.
+pub fn effect_size(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let test = test_receiver(ctx, &args, "effect_size")?;
+    Ok(test
+        .effect
+        .as_ref()
+        .map_or(Value::Na, |e| Value::Float(e.value)))
+}
+
+/// `t.h0()`: the null hypothesis as the sentence the test printed; `NA` for a result that prints
+/// none (`test`, `compare`).
+pub fn h0(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let test = test_receiver(ctx, &args, "h0")?;
+    Ok(test
+        .hypotheses
+        .as_ref()
+        .map_or(Value::Na, |h| Value::Str(h.h0.clone())))
+}
+
+/// `t.h1()`: the alternative hypothesis as the sentence the test printed; `NA` for a result
+/// that prints none.
+pub fn h1(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let test = test_receiver(ctx, &args, "h1")?;
+    Ok(test
+        .hypotheses
+        .as_ref()
+        .map_or(Value::Na, |h| Value::Str(h.h1.clone())))
+}
+
+/// `t.alternative()`: the alternative the p-value was computed for, as the word of the argument:
+/// `"two_sided"`, `"less"` or `"greater"`.
+pub fn alternative(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let test = test_receiver(ctx, &args, "alternative")?;
+    Ok(Value::Str(test.alternative.word().to_string()))
 }

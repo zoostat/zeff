@@ -44,6 +44,33 @@ fn result_method(
     }
 }
 
+/// A method of a test's result alone (open decision #94): the receiver `t` of type `TestResult`,
+/// refused on a fit (Z0401).
+fn test_method(
+    name: &'static str,
+    returns: &'static str,
+    help: &'static str,
+    body: zeff_core::runtime::Body,
+) -> Function {
+    Function {
+        spec: FunctionSpec {
+            name,
+            package: "results",
+            method: true,
+            params: vec![ParamSpec::required("t", "TestResult")],
+            rest: None,
+            returns,
+            diagnostics: vec![DiagnosticDecl::new(
+                "Z0401",
+                "a receiver that is not a test's result",
+            )],
+            help,
+            accuracy: None,
+        },
+        body,
+    }
+}
+
 /// The functions of `results` in this release, with their help pages: `export` on a table, and
 /// the result interface on every result; `export` on a result arrives with step 19.
 pub fn functions() -> Vec<Function> {
@@ -103,6 +130,32 @@ pub fn functions() -> Vec<Function> {
             vec![],
             include_str!("../help/n_obs.md"),
             interface::n_obs,
+        ),
+        test_method(
+            "statistic",
+            "Float",
+            include_str!("../help/statistic.md"),
+            interface::statistic,
+        ),
+        test_method(
+            "df",
+            "List<Float>",
+            include_str!("../help/df.md"),
+            interface::df,
+        ),
+        test_method(
+            "effect_size",
+            "Float",
+            include_str!("../help/effect_size.md"),
+            interface::effect_size,
+        ),
+        test_method("h0", "Str", include_str!("../help/h0.md"), interface::h0),
+        test_method("h1", "Str", include_str!("../help/h1.md"), interface::h1),
+        test_method(
+            "alternative",
+            "Str",
+            include_str!("../help/alternative.md"),
+            interface::alternative,
         ),
         result_method(
             "coef",

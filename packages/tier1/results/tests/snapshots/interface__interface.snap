@@ -88,20 +88,20 @@ warning[W0201]: 211 rows with NA in wage were skipped (line 6)
 m.estimates()
 m.estimates().where(p_value < 0.05)
 m.estimates().n_rows()
-frame · 4 rows × 7 variables
+frame · 4 rows × 9 variables
 
-      term           estimate     std_error   statistic       p_value    ci_lower    ci_upper
-  1   (intercept)     1.89982     0.0220778     86.0514             0     1.85655      1.9431
-  2   educ          0.0760082    0.00136477     55.6929             0   0.0733332   0.0786833
-  3   exper           0.02202   0.000451384     48.7833             0   0.0211352   0.0229048
-  4   female        -0.132924    0.00642367    -20.6929   4.86824e-94   -0.145515   -0.120333
-frame · 4 rows × 7 variables
+      term           estimate     std_error   statistic      df   df2       p_value    ci_lower    ci_upper
+  1   (intercept)     1.89982     0.0220778     86.0514   18175    NA             0     1.85655      1.9431
+  2   educ          0.0760082    0.00136477     55.6929   18175    NA             0   0.0733332   0.0786833
+  3   exper           0.02202   0.000451384     48.7833   18175    NA             0   0.0211352   0.0229048
+  4   female        -0.132924    0.00642367    -20.6929   18175    NA   4.86824e-94   -0.145515   -0.120333
+frame · 4 rows × 9 variables
 
-      term           estimate     std_error   statistic       p_value    ci_lower    ci_upper
-  1   (intercept)     1.89982     0.0220778     86.0514             0     1.85655      1.9431
-  2   educ          0.0760082    0.00136477     55.6929             0   0.0733332   0.0786833
-  3   exper           0.02202   0.000451384     48.7833             0   0.0211352   0.0229048
-  4   female        -0.132924    0.00642367    -20.6929   4.86824e-94   -0.145515   -0.120333
+      term           estimate     std_error   statistic      df   df2       p_value    ci_lower    ci_upper
+  1   (intercept)     1.89982     0.0220778     86.0514   18175    NA             0     1.85655      1.9431
+  2   educ          0.0760082    0.00136477     55.6929   18175    NA             0   0.0733332   0.0786833
+  3   exper           0.02202   0.000451384     48.7833   18175    NA             0   0.0211352   0.0229048
+  4   female        -0.132924    0.00642367    -20.6929   18175    NA   4.86824e-94   -0.145515   -0.120333
 4
 --- messages ---
 [exit 0]

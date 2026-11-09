@@ -2029,6 +2029,17 @@ impl<'a> Interpreter<'a> {
                         } else {
                             "a"
                         };
+                        // A result is read by its methods (open decision #94): the help names
+                        // them, as the checker's does.
+                        let help = match &other {
+                            Value::TestResult(_) => format!(
+                                "a test's result is read by its methods: `.statistic()`, `.df()`, `.p_values()`, `.estimates()`, `.ci()`, `.effect_size()`, `.n_obs()`, `.h0()`, `.h1()` and `.alternative()`; a method call has parentheses: `.{name}()`"
+                            ),
+                            Value::Fit(_) => format!(
+                                "a fit is read by its methods, by term: `.coef(term)`, `.std_errors(term)`, `.p_values(term)` and `.ci(term)`, or `.estimates()` for them all; a method call has parentheses: `.{name}()`"
+                            ),
+                            _ => format!("a method call has parentheses: `.{name}()`"),
+                        };
                         return Err(fail(
                             Diagnostic::error(
                                 "Z0213",
@@ -2036,7 +2047,7 @@ impl<'a> Interpreter<'a> {
                             )
                             .in_file(self.script)
                             .primary(expr.span, format!("{a} {found}"))
-                            .help(format!("a method call has parentheses: `.{name}()`")),
+                            .help(help),
                         ));
                     }
                 }

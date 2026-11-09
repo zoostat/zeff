@@ -117,7 +117,7 @@ regress/fe/stdout 14fbe484f294ee6b
 regress/fe/stderr 3a1c5af0b433d571
 regress/event/stdout bbbc9cf165258b77
 regress/event/stderr 40ffab6fe4efdfad
-regress/interface/stdout 08c3aafc8156baa5
+regress/interface/stdout fd7dbbc7c62d6ee7
 regress/interface/stderr cbf29ce484222325
 control/check/stdout cbf29ce484222325
 control/check/stderr 78f09813226bf7ad
@@ -215,6 +215,8 @@ tests/kruskal/stdout f95df06b459151e8
 tests/kruskal/stderr b278fd056143a710
 tests/fisher/stdout 7f517681ac48644e
 tests/fisher/stderr b83be8741898d11e
+tests/fields/stdout cbf29ce484222325
+tests/fields/stderr 066add1139daf971
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa
@@ -247,7 +249,7 @@ simulation/stdout 178da8a8350c10df
 simulation/stderr cbf29ce484222325
 simulation/exit_code a8c7f832281a39c5
 # simulation/exit_code bits 0000000000000000
-regression/stdout ad17aa9e2135f879
+regression/stdout fb34b6230a38d307
 regression/stderr 4900cc247de814c8
 regression/exit_code a8c7f832281a39c5
 # regression/exit_code bits 0000000000000000

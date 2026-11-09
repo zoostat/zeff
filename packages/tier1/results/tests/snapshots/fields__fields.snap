@@ -1,0 +1,187 @@
+---
+source: packages/tier1/results/tests/fields.rs
+expression: all
+---
+> let wages = dataset(wages).add(lwage = log(wage))
+let t = wages.t_test(lwage, group: female)
+t.statistic()
+t.df()
+t.effect_size()
+t.h0()
+t.h1()
+t.alternative()
+t.p_values()
+t.n_obs()
+t.estimates()
+t.ci()
+join(["t(", format(t.df()[1], digits: 1), ") = ", format(t.statistic(), digits: 2), ", p ", format(t.p_values(), digits: 3), ", g = ", format(t.effect_size(), digits: 3)])
+type_of(t.df())
+type_of(t.h0())
+19.3458
+18130.3
+0.286923
+the population means of lwage are equal in male and female
+the population means of lwage differ between male and female
+two_sided
+1.50026e-82
+18201
+frame · 2 rows × 9 variables
+
+      term                         estimate   std_error   statistic        df   df2       p_value   ci_lower
+  1   difference (male − female)   0.137707          NA     19.3458   18130.3    NA   1.50026e-82   0.123754
+  2   Hedges' g                    0.286923          NA          NA        NA    NA            NA   0.257706
+
+      ci_upper
+  1   0.151659
+  2    0.31614
+ci · 95%
+
+  term                         lower   upper
+  difference (male − female)   0.124   0.152
+  Hedges' g                     0.26    0.32
+t(18130.3) = 19.35, p 0.000, g = 0.287
+List<Float>
+Str
+--- messages ---
+note: 211 rows with NA in lwage or female dropped (line 2)
+[exit 0]
+
+> let c = dataset(wages).chi2_test(union, female)
+c.statistic()
+c.df()
+c.effect_size()
+c.h0()
+c.h1()
+c.alternative()
+c.estimates()
+1.90985
+1
+NA
+union and female are independent in the population
+union and female are associated in the population
+two_sided
+frame · 1 row × 9 variables
+
+      term   estimate   std_error   statistic   df   df2   p_value   ci_lower   ci_upper
+  1   chi2         NA          NA     1.90985    1    NA   0.16698         NA         NA
+--- messages ---
+[exit 0]
+
+> let wages = dataset(wages).add(lwage = log(wage))
+let k = wages.kruskal_test(lwage, group: industry)
+k.statistic()
+k.df()
+k.h1()
+k.estimates()
+wages.t_test(lwage, group: female, alternative: greater).alternative()
+wages.t_test(lwage, group: female, alternative: less).h1()
+316.051
+11
+values of lwage in at least one group of industry tend to be larger or smaller than in another
+frame · 1 row × 9 variables
+
+      term   estimate   std_error   statistic   df   df2       p_value   ci_lower   ci_upper
+  1   H            NA          NA     316.051   11    NA   3.61714e-61         NA         NA
+greater
+the population mean of lwage is less in male than in female
+--- messages ---
+note: 211 rows with NA in lwage or industry dropped (line 2)
+note: 211 rows with NA in lwage or female dropped (line 7)
+note: 211 rows with NA in lwage or female dropped (line 8)
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ + female)
+let w = m.test(educ == 0)
+w.df()
+w.h0()
+w.alternative()
+w.estimates()
+m.estimates()
+1
+18198
+NA
+two_sided
+frame · 1 row × 9 variables
+
+      term   estimate   std_error   statistic   df     df2   p_value   ci_lower   ci_upper
+  1   F            NA          NA     1576.79    1   18198         0         NA         NA
+frame · 3 rows × 9 variables
+
+      term           estimate    std_error   statistic      df   df2       p_value    ci_lower    ci_upper
+  1   (intercept)      2.5247    0.0190879     132.267   18198    NA             0     2.48728     2.56211
+  2   educ          0.0545135   0.00137283     39.7089   18198    NA             0   0.0518226   0.0572043
+  3   female        -0.140157   0.00682868    -20.5247   18198    NA   1.44622e-92   -0.153541   -0.126772
+--- messages ---
+[exit 0]
+
+> let f = dataset(wages).fisher_test(union, female)
+f.statistic()
+f.df()
+f.estimates()
+NA
+NA
+frame · 1 row × 9 variables
+
+      term                           estimate   std_error   statistic   df   df2    p_value   ci_lower   ci_upper
+  1   odds ratio (conditional MLE)    1.04472          NA          NA   NA    NA   0.168421   0.981374    1.11215
+--- messages ---
+[exit 0]
+
+> let m = dataset(wages).reg(log(wage) ~ educ)
+m.df()
+--- messages ---
+error[Z0401]: `df` cannot be called on a RegFit
+ --> scripts/main.zeff:2:1
+  |
+2 | m.df()
+  | ^ this is a RegFit
+  |
+  = help: `df` takes a TestResult first; `x.df(...)` is `df(x, ...)`
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ)
+statistic(m)
+--- messages ---
+error[Z0401]: `statistic` cannot be called on a RegFit
+ --> scripts/main.zeff:2:11
+  |
+2 | statistic(m)
+  |           ^ this is a RegFit
+  |
+  = help: usage: `t.statistic()`
+[exit 1]
+
+> let t = dataset(wages).t_test(wage, group: female)
+t.statistic
+--- messages ---
+error[Z0213]: `.statistic` reads a record field, but this is a TestResult
+ --> scripts/main.zeff:2:1
+  |
+2 | t.statistic
+  | ^^^^^^^^^^^ a TestResult
+  |
+  = help: a test's result is read by its methods: `.statistic()`, `.df()`, `.p_values()`, `.estimates()`, `.ci()`, `.effect_size()`, `.n_obs()`, `.h0()`, `.h1()` and `.alternative()`; a method call has parentheses: `.statistic()`
+[exit 1]
+
+> let m = dataset(wages).reg(log(wage) ~ educ)
+m.coef
+--- messages ---
+error[Z0213]: `.coef` reads a record field, but this is a RegFit
+ --> scripts/main.zeff:2:1
+  |
+2 | m.coef
+  | ^^^^^^ a RegFit
+  |
+  = help: a fit is read by its methods, by term: `.coef(term)`, `.std_errors(term)`, `.p_values(term)` and `.ci(term)`, or `.estimates()` for them all; a method call has parentheses: `.coef()`
+[exit 1]
+
+> statistic(3)
+--- messages ---
+error[Z0401]: `statistic` cannot be called on an Int
+ --> scripts/main.zeff:1:11
+  |
+1 | statistic(3)
+  |           ^ this is an Int
+  |
+  = help: usage: `t.statistic()`
+[exit 1]

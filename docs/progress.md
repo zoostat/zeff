@@ -151,3 +151,13 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 **Next.** Step 14 `[engine]`: `shapiro_test`.
 
 **For the owner to decide.** The wording of the directional hypothesis of `fisher_test` on a 2 × 2 table, "the odds of female = male are higher among union = no than among union = yes", is a provisional sentence to confirm or replace (`docs/decisions.md`, step 13). The ruling on question 4 (a) from step 11 still awaits a word.
+
+## 9 November 2026, release 0.7.0, step 12b (a `TestResult` read as values)
+
+**Done.** The owner added step 12b to the checklist on 9 November after deciding open decision #94 (B), so it comes before step 14. Six methods in `results`, on a test's result alone: `statistic()`, `df()` (a list of one or two numbers), `effect_size()`, `h0()`, `h1()` and `alternative()`, each `NA` where the test has nothing to give; a fit is refused with Z0401 before the script runs. `estimates()` gained the columns `df` and `df2` on every result and a row for a test's effect size. The help of Z0213 on a result now names the methods, in the checker and the interpreter, with the case on its explained page. The `Result` row of the types table, the engine specification's list and count for `results`, and the `t_test` page of the help examples were corrected (logged in `docs/spec_changes.md`); the catalogue gained rows 539 to 544 and the widened description of `estimates`; the six help pages and the widened `estimates` page carry the engine's own output; the `Value` paragraph of every test's page names the methods. Tests: the six methods on hand-built results, the shape of `estimates()`, the refusals, a snapshot of every method through the engine on five kinds of test with the sentence of the definition of done (`t(18130.3) = 19.35, p 0.000, g = 0.287`, built with `format` and `join`), and the conformance case `tests/fields`.
+
+**Green.** The step's own program and the engine's output on its scripts; the full routine and CI follow in this session.
+
+**Next.** Step 14 `[engine]`: `shapiro_test`.
+
+**For the owner to decide.** Nothing new: two rulings where the decision was silent are recorded (`docs/decisions.md`, step 12b): `df2` as a second column for an F's two degrees of freedom, and no effect-size row for a test without one. The wording of the directional hypothesis of `fisher_test` (step 13) and the ruling on question 4 (a) (step 11) still await a word.
