@@ -217,6 +217,8 @@ tests/fisher/stdout 7f517681ac48644e
 tests/fisher/stderr b83be8741898d11e
 tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
+tests/shapiro/stdout bb094c197a0d6c4d
+tests/shapiro/stderr 7e808d36f5cbf368
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

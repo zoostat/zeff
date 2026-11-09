@@ -315,7 +315,18 @@ pub fn test_result_after(result: &TestResult) -> Vec<String> {
     if let Some(estimate) = &result.estimate {
         lines.push(estimate_line(estimate, result.level));
     }
-    lines.push(statistic_line(&result.statistic, result.p_value));
+    // The Shapiro–Wilk W lies in (0, 1] and differs from 1 in its third or fourth decimal, so
+    // its line carries four decimals where every other statistic carries two.
+    let decimals = if result.method == "shapiro_test" {
+        4
+    } else {
+        2
+    };
+    lines.push(statistic_line_to(
+        &result.statistic,
+        result.p_value,
+        decimals,
+    ));
     if let Some(effect) = &result.effect {
         lines.push(estimate_line(effect, result.level));
     }
@@ -383,6 +394,11 @@ fn p_part(p: f64) -> String {
 /// decimals (section 3.8), whole degrees of freedom as counts and fractional ones to one decimal,
 /// and p to three decimals, `p < 0.001` below; `p = 0.486` alone for a test without a statistic.
 pub fn statistic_line(statistic: &Statistic, p: f64) -> String {
+    statistic_line_to(statistic, p, 2)
+}
+
+/// The statistic line with the statistic to `decimals` places.
+pub fn statistic_line_to(statistic: &Statistic, p: f64, decimals: usize) -> String {
     // A test with no statistic of its own (Fisher's exact test) prints its p-value alone.
     if statistic.name.is_empty() && statistic.df.is_empty() {
         return p_part(p);
@@ -393,7 +409,7 @@ pub fn statistic_line(statistic: &Statistic, p: f64) -> String {
     if statistic.name == "t" && df.len() == 1 {
         return format!(
             "t = {}   df = {}   {}",
-            fixed(statistic.value, 2),
+            fixed(statistic.value, decimals),
             df[0],
             p_part(p)
         );
@@ -403,7 +419,11 @@ pub fn statistic_line(statistic: &Statistic, p: f64) -> String {
     } else {
         format!("{}({})", statistic.name, df.join(", "))
     };
-    format!("{head} = {}   {}", fixed(statistic.value, 2), p_part(p))
+    format!(
+        "{head} = {}   {}",
+        fixed(statistic.value, decimals),
+        p_part(p)
+    )
 }
 
 /// Degrees of freedom as a test line writes them: a whole number as a count, `18,179`; otherwise

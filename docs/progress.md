@@ -161,3 +161,13 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 **Next.** Step 14 `[engine]`: `shapiro_test`.
 
 **For the owner to decide.** Nothing new: two rulings where the decision was silent are recorded (`docs/decisions.md`, step 12b): `df2` as a second column for an F's two degrees of freedom, and no effect-size row for a test without one. The wording of the directional hypothesis of `fisher_test` (step 13) and the ruling on question 4 (a) (step 11) still await a word.
+
+## 9 November 2026, release 0.7.0, step 14 (`shapiro_test`)
+
+**Done.** `shapiro_test` in `stats`: Royston's (1995) algorithm for 3 to 5,000 values, as R's `shapiro.test` computes it, with the hypotheses of open decision #91, `N = …`, W to four decimals and the p-value, a decision at α = 0.05 and a line naming the p-value's source. More than 5,000 non-missing values are refused with the new code Z0421 (its row in the Language Reference, section 11; its explained page; logged in `docs/spec_changes.md`), naming `qq_plot` and `ks_test`. The R reference `tests/reference/r/shapiro.R` at every size the step names, with ties and `NA`; the conformance case `tests/shapiro`; the help page; the catalogue row 176 marked implemented.
+
+**Green.** The step's own test groups and the affected groups of the engine, the CLI and the conformance crate; the full routine and CI follow in this session.
+
+**Next.** Step 15 `[engine]`: `ks_test`.
+
+**For the owner to decide.** Nothing new. Rulings recorded in `docs/decisions.md` (step 14): W printed to four decimals; constant data refused only at a range of exactly zero; the rows dropped in the shared note rather than in the header. Still open from earlier steps: the fisher directional wording and question 4 (a).

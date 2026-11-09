@@ -1320,6 +1320,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0418 | A `seq` that cannot be built: a zero step, a step pointing away from `to`, an argument that is `NA` or infinite, or more than ten million values |
 | Z0419 | A regular expression that cannot be read: an unclosed group or bracket, a repetition with nothing to repeat, or look-around or a back-reference, which section 3.8 excludes |
 | Z0420 | `alternative: less` or `greater` given to `fisher_test` on a table larger than 2 × 2, whose exact test has no direction (section 6; open decision #91) |
+| Z0421 | More than 5,000 non-missing values given to `shapiro_test`, beyond which Royston's approximation of W's distribution is not defined; R refuses them too (section 6; open decision #91) |
 | Z0111 | `seed` called after a draw, or a second time |
 | W0102 | A name in a frame method's argument that is both a variable of the frame and a binding: the variable is used, with a warning |
 | W0201, W0204 | Missing values skipped by a reducer, with the count; `Inf` and `-Inf` both present, so the result is `NA` |

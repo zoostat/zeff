@@ -1,0 +1,68 @@
+---
+source: packages/tier1/stats/tests/shapiro.rs
+expression: all
+---
+error[Z0101]: no variable `y` in `the frame`
+ --> scripts/main.zeff:1:35
+  |
+1 | frame(x = [1, 2, 3]).shapiro_test(y)
+  |                                   ^ not a variable of the frame
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+
+error[Z0406]: `shapiro_test` needs `var`
+ --> scripts/main.zeff:1:22
+  |
+1 | frame(x = [1, 2, 3]).shapiro_test()
+  |                      ^^^^^^^^^^^^ `var` is missing
+  |
+  = help: usage: `data.shapiro_test(var)`
+
+error[Z0401]: `shapiro_test` tests a numeric variable, so `s` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:1:41
+  |
+1 | frame(s = ["a", "b", "c"]).shapiro_test(s)
+  |                                         ^ not a numeric variable
+  |
+  = help: a test of a text or category variable's frequencies is `chi2_test`
+
+error[Z0401]: `shapiro_test` needs at least 3 values of `x`, but only two are present
+ --> scripts/main.zeff:1:32
+  |
+1 | frame(x = [1, 2]).shapiro_test(x)
+  |                                ^ 2 after dropping NA
+  |
+  = help: the values are the non-missing rows of the variable; a test of normality says little below 20 or so
+
+note: 2 rows with NA in x dropped (line 1)
+error[Z0401]: `shapiro_test` needs at least 3 values of `x`, but only one is present
+ --> scripts/main.zeff:1:37
+  |
+1 | frame(x = [1, NA, NA]).shapiro_test(x)
+  |                                     ^ 1 after dropping NA
+  |
+  = help: the values are the non-missing rows of the variable; a test of normality says little below 20 or so
+
+error[Z0401]: every value of `x` is the same, so there is no distribution to test
+ --> scripts/main.zeff:1:38
+  |
+1 | frame(x = [2, 2, 2, 2]).shapiro_test(x)
+  |                                      ^ one value throughout
+  |
+  = help: a test needs values that differ between rows
+
+error[Z0421]: `shapiro_test` takes 3 to 5,000 values, but `x` has 5,001
+ --> scripts/main.zeff:1:38
+  |
+1 | frame(x = seq(1, 5001)).shapiro_test(x)
+  |                                      ^ more than 5,000 values
+  |
+  = help: Royston's approximation stops at 5,000, as R's `shapiro.test` does; with this many rows, judge normality from `qq_plot`, or test the distribution with `ks_test`
+
+error[Z0421]: `shapiro_test` takes 3 to 5,000 values, but `educ` has 18,412
+ --> scripts/main.zeff:1:29
+  |
+1 | dataset(wages).shapiro_test(educ)
+  |                             ^^^^ more than 5,000 values
+  |
+  = help: Royston's approximation stops at 5,000, as R's `shapiro.test` does; with this many rows, judge normality from `qq_plot`, or test the distribution with `ks_test`

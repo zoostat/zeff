@@ -1,0 +1,81 @@
+---
+source: packages/tier1/stats/tests/shapiro.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+shapiro_test · s
+  H0: s was drawn from a normally distributed population
+  H1: s was not drawn from a normally distributed population
+
+N = 14
+W = 0.9665   p = 0.826
+decision at α = 0.05: fail to reject H0 (p = 0.826)
+p-value from Royston's (1995) normal approximation of W
+shapiro_test · x
+  H0: x was drawn from a normally distributed population
+  H1: x was not drawn from a normally distributed population
+
+N = 3
+W = 0.9973   p = 0.900
+decision at α = 0.05: fail to reject H0 (p = 0.900)
+exact p-value for three observations
+shapiro_test · x
+  H0: x was drawn from a normally distributed population
+  H1: x was not drawn from a normally distributed population
+
+N = 3
+W = 0.7500   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+exact p-value for three observations
+shapiro_test · x
+  H0: x was drawn from a normally distributed population
+  H1: x was not drawn from a normally distributed population
+
+N = 5
+W = 0.8358   p = 0.154
+decision at α = 0.05: fail to reject H0 (p = 0.154)
+p-value from Royston's (1995) normal approximation of W
+shapiro_test · x
+  H0: x was drawn from a normally distributed population
+  H1: x was not drawn from a normally distributed population
+
+N = 11
+W = 0.9684   p = 0.870
+decision at α = 0.05: fail to reject H0 (p = 0.870)
+p-value from Royston's (1995) normal approximation of W
+shapiro_test · x
+  H0: x was drawn from a normally distributed population
+  H1: x was not drawn from a normally distributed population
+
+N = 12
+W = 0.6273   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+p-value from Royston's (1995) normal approximation of W
+shapiro_test · x
+  H0: x was drawn from a normally distributed population
+  H1: x was not drawn from a normally distributed population
+
+N = 11
+W = 0.9199   p = 0.318
+decision at α = 0.05: fail to reject H0 (p = 0.318)
+p-value from Royston's (1995) normal approximation of W
+shapiro_test · b
+  H0: b was drawn from a normally distributed population
+  H1: b was not drawn from a normally distributed population
+
+N = 8
+W = 0.6647   p = 0.001
+decision at α = 0.05: reject H0 (p = 0.001)
+p-value from Royston's (1995) normal approximation of W
+shapiro_test · lwage
+  H0: lwage was drawn from a normally distributed population
+  H1: lwage was not drawn from a normally distributed population
+
+N = 531
+W = 0.9980   p = 0.795
+decision at α = 0.05: fail to reject H0 (p = 0.795)
+p-value from Royston's (1995) normal approximation of W
+0.981607
+2.67844e-06
+---
+note: 1 row with NA in x dropped (line 8)
+note: 6 rows with NA in lwage dropped (line 11)

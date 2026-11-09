@@ -8,6 +8,7 @@ pub mod fisher_test;
 pub mod kruskal_test;
 pub mod p_adjust;
 pub mod proportion_test;
+pub mod shapiro_test;
 pub mod t_test;
 pub mod testing;
 pub mod wilcoxon_test;
@@ -697,6 +698,34 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: fisher_test::fisher_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "shapiro_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note("rows with NA in the variable dropped, with the count"),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numeric; fewer than three values; every value the same; an infinite value",
+                    ),
+                    DiagnosticDecl::new("Z0421", "more than 5,000 non-missing values"),
+                ],
+                help: include_str!("../help/shapiro_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 shapiro.test() (tests/reference/r/shapiro.R)".to_string(),
+                    last_run: None,
+                }),
+            },
+            body: shapiro_test::shapiro_test,
         },
         Function {
             spec: FunctionSpec {

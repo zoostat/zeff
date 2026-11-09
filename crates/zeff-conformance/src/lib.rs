@@ -1346,6 +1346,11 @@ fn panel_cases() -> Vec<Line> {
     // refusal on a fit.
     let fields = "let wages = dataset(wages).add(lwage = log(wage))\nlet t = wages.t_test(lwage, group: female)\nt.statistic()\nt.df()\nt.effect_size()\nt.h0()\nt.h1()\nt.alternative()\nt.estimates()\nlet c = wages.chi2_test(union, female)\nc.df()\nc.effect_size()\nc.estimates()\nlet m = wages.reg(lwage ~ educ + female)\nm.estimates()\nm.test(educ == 0).df()\nwages.fisher_test(union, female).statistic()\njoin([\"t(\", format(t.df()[1], digits: 1), \") = \", format(t.statistic(), digits: 2), \", g = \", format(t.effect_size(), digits: 3)])\nm.df()\n";
     let fields_outcome = run_script(&fs, &project, "scripts/main.zeff", fields);
+    // `shapiro_test` (release 0.7.0, step 14): fourteen values, the exact case of three, tied
+    // values, small sizes on both sides of the approximation's branch, NA, a subset of the shipped
+    // wages, the result read as values, and the refusal of the whole dataset.
+    let normality = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0])\ng.shapiro_test(s)\nframe(x = [1.2, 3.4, 2.2]).shapiro_test(x)\nframe(x = [1, 1, 2]).shapiro_test(x)\nframe(x = [1, 2, 3, 4, 10]).shapiro_test(x)\nframe(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).shapiro_test(x)\nframe(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 40]).shapiro_test(x)\nframe(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 2.0, 3.0, 9.0, 1.0, 2.5]).shapiro_test(x)\nlet wages = dataset(wages).where(year == 2010).add(lwage = log(wage))\nwages.shapiro_test(lwage)\nwages.shapiro_test(educ).statistic()\nwages.shapiro_test(educ).p_values()\ndataset(wages).shapiro_test(educ)\n";
+    let normality_outcome = run_script(&fs, &project, "scripts/main.zeff", normality);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1393,6 +1398,8 @@ fn panel_cases() -> Vec<Line> {
         text("tests/fisher/stderr", &exact_outcome.output.stderr),
         text("tests/fields/stdout", &fields_outcome.output.stdout),
         text("tests/fields/stderr", &fields_outcome.output.stderr),
+        text("tests/shapiro/stdout", &normality_outcome.output.stdout),
+        text("tests/shapiro/stderr", &normality_outcome.output.stderr),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),
