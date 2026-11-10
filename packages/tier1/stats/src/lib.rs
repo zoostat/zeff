@@ -3,6 +3,7 @@
 //! 11): matrices as tables, with pairwise or listwise deletion, and the p-values of R's
 //! `cor.test` for the three correlation methods.
 
+pub mod anova;
 pub mod chi2_test;
 pub mod fisher_test;
 pub mod kruskal_test;
@@ -766,6 +767,45 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: ks_test::ks_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "anova",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option_with_default("equal_var", "Bool", "false"),
+                    ParamSpec::option("weights", "Var"),
+                    ParamSpec::option_with_default(
+                        "weight_type",
+                        "frequency | analytic | sampling",
+                        "sampling",
+                    ),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "rows with NA in the variable or the groups dropped, with the count",
+                    ),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numeric; group: missing, or with fewer than two groups among the rows kept; under Welch's test a group of one value or without variation; under equal_var: true no degrees of freedom within the groups or a pooled variance of zero",
+                    ),
+                    DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
+                ],
+                help: include_str!("../help/anova.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 oneway.test() and aov() (tests/reference/r/anova.R)"
+                        .to_string(),
+                    last_run: None,
+                }),
+            },
+            body: anova::anova,
         },
         Function {
             spec: FunctionSpec {

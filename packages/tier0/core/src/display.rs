@@ -273,6 +273,22 @@ pub fn test_result_text(result: &TestResult, width: usize) -> String {
             false,
             width,
         ));
+        // A further table of the test (the sums of squares of a classical `anova`) follows the
+        // first after a blank line, with its title when it has one.
+        for further in &table.more {
+            text.push('\n');
+            if !further.title.is_empty() {
+                text.push_str(&further.title);
+                text.push('\n');
+            }
+            text.push_str(&grid(
+                &further.columns,
+                &further.rows,
+                &further.rules,
+                false,
+                width,
+            ));
+        }
         text.push('\n');
     }
     for line in test_result_after(result) {

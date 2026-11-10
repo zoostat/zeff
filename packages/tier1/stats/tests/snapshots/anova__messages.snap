@@ -1,0 +1,100 @@
+---
+source: packages/tier1/stats/tests/anova.rs
+expression: all
+---
+error[Z0401]: `anova` compares the means of the groups of `group:`, which is missing
+ --> scripts/main.zeff:1:22
+  |
+1 | frame(x = [1, 2, 3]).anova(x)
+  |                      ^^^^^ no `group:`
+  |
+  = help: write `anova(var, group: g)`; a test of one mean against a value is `t_test` with `mu:`
+
+error[Z0101]: no variable `y` in `the frame`
+ --> scripts/main.zeff:1:28
+  |
+1 | frame(x = [1, 2, 3]).anova(y, group: x)
+  |                            ^ not a variable of the frame
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+
+error[Z0401]: `group:` of `anova` has one level, but the test compares two or more
+ --> scripts/main.zeff:1:53
+  |
+1 | frame(x = [1, 2, 3], g = [1, 1, 1]).anova(x, group: g)
+  |                                                     ^ `g`
+  |
+  = help: the groups are the values of the variable among the rows kept; `where` or `recode` may give more
+
+note: 3 rows with NA in x or g dropped (line 1)
+error[Z0401]: `group:` of `anova` has no value, but the test compares two or more
+ --> scripts/main.zeff:1:56
+  |
+1 | frame(x = [1, NA, 3], g = [NA, 1, NA]).anova(x, group: g)
+  |                                                        ^ `g`
+  |
+  = help: the groups are the values of the variable among the rows kept; `where` or `recode` may give more
+
+error[Z0401]: `anova` compares means, so `s` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:1:41
+  |
+1 | frame(s = ["a", "b"], g = [1, 2]).anova(s, group: g)
+  |                                         ^ not a numeric variable
+  |
+  = help: a test of a text or category variable's frequencies is `chi2_test`
+
+error[Z0401]: `group:` of `anova` must be a Bool, Int, Str or Category variable, but `d` is a Date
+ --> scripts/main.zeff:1:104
+  |
+1 | frame(x = [1, 2, 3], d = [date("2024-01-01"), date("2024-01-02"), date("2024-01-01")]).anova(x, group: d)
+  |                                                                                                        ^ not a grouping variable
+  |
+  = help: a group is a value shared by its rows; `bin` or `quantile_group` makes groups from a number
+
+error[Z0401]: Welch's `anova` needs at least two values of `x` in every group, but g=3 has one
+ --> scripts/main.zeff:1:65
+  |
+1 | frame(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g)
+  |                                                                 ^ a group of one
+  |
+  = help: `equal_var: true` pools the variance across the groups and admits a group of one; or leave the group out with `where`
+
+error[Z0401]: the values of `x` in g=1 are all equal, so Welch's `anova` cannot weight that group
+ --> scripts/main.zeff:1:65
+  |
+1 | frame(x = [2, 2, 2, 3.5, 4.5, 6], g = [1, 1, 1, 2, 2, 2]).anova(x, group: g)
+  |                                                                 ^ no variation in one group
+  |
+  = help: `equal_var: true` pools the variance across the groups; or leave the group out with `where`
+
+error[Z0401]: `anova` with `equal_var: true` needs more values than groups, but there are 3 values in 3 groups
+ --> scripts/main.zeff:1:43
+  |
+1 | frame(x = [1, 2, 3], g = [1, 2, 3]).anova(x, group: g, equal_var: true)
+  |                                           ^ no degrees of freedom within the groups
+  |
+  = help: a group of one carries no variance; the pooled variance needs at least one group of two or more
+
+error[Z0401]: the values of `x` are all equal within every group, so the pooled variance is zero and F is undefined
+ --> scripts/main.zeff:1:49
+  |
+1 | frame(x = [2, 2, 3, 3], g = [1, 1, 2, 2]).anova(x, group: g, equal_var: true)
+  |                                                 ^ no variation within the groups
+  |
+  = help: a test of means needs values that differ within a group
+
+error[Z0411]: `weights:` of `anova` are sampling weights, which a test cannot use
+ --> scripts/main.zeff:1:89
+  |
+1 | frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2], w = [1, 1, 2, 1]).anova(x, group: g, weights: w)
+  |                                                                                         ^ sampling weights
+  |
+  = help: a regression with robust standard errors gives design-based inference, `reg(y ~ 1, weights: w, se: robust)`; frequency or analytic weights are taken with `weight_type: frequency` or `weight_type: analytic`
+
+error[Z0401]: frequency weights are whole numbers, but `w` has 1 fraction in row 1
+ --> scripts/main.zeff:1:91
+  |
+1 | frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2], w = [1.5, 1, 2, 1]).anova(x, group: g, weights: w, weight_type: frequency)
+  |                                                                                           ^ a frequency weight counts rows
+  |
+  = help: a weight with fractions is an analytic or a sampling weight: `weight_type: analytic`

@@ -402,9 +402,13 @@ fn fit_measures_line(fit: &Fit) -> String {
 /// A test's result as a table: its title, its header lines, its table if it has one, and its
 /// statistic line with the lines after it.
 fn test_table(test: &TestResult) -> Table {
-    let (columns, rows) = match &test.table {
-        Some(table) => (table.columns.clone(), table.rows.clone()),
-        None => (Vec::new(), Vec::new()),
+    let (columns, rows, more) = match &test.table {
+        Some(table) => (
+            table.columns.clone(),
+            table.rows.clone(),
+            table.more.clone(),
+        ),
+        None => (Vec::new(), Vec::new(), Vec::new()),
     };
     Table {
         title: test.title.clone(),
@@ -412,7 +416,7 @@ fn test_table(test: &TestResult) -> Table {
         columns,
         rows,
         after: test_result_after(test),
-        more: Vec::new(),
+        more,
         rules: Vec::new(),
     }
 }

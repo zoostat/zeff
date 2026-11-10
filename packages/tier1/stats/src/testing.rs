@@ -10,6 +10,7 @@ use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Alternative, Frame, Value};
 use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, count};
+use zeff_numeric::order::{WeightKind, weighted_mean, weighted_variance};
 
 /// `level:` of a test: 0.95 unless given; outside (0, 1) is Z0401.
 pub fn level(ctx: &CallContext<'_>, args: &Args, slot: usize, name: &str) -> Result<f64, Fail> {
@@ -307,6 +308,74 @@ pub fn number(column: &Column, row: usize) -> f64 {
         Some(Cell::Int(i)) => i as f64,
         Some(Cell::Bool(b)) => f64::from(u8::from(b)),
         _ => f64::NAN,
+    }
+}
+
+/// A sample as a test of means sees it (steps 9 and 16): its values with their weights, one
+/// weight per value, and the kind of the weights.
+pub struct Sample {
+    pub values: Vec<f64>,
+    pub weights: Vec<f64>,
+    pub kind: WeightKind,
+}
+
+impl Sample {
+    /// The values of `column` in `rows`, weighted by `weights` (one for every row of the frame).
+    pub fn of(column: &Column, rows: &[usize], weights: Option<&Weights>) -> Sample {
+        let mut values = Vec::with_capacity(rows.len());
+        let mut ws = Vec::with_capacity(rows.len());
+        for &row in rows {
+            if let Some(w) = weights
+                && !w.counts(row)
+            {
+                continue;
+            }
+            values.push(number(column, row));
+            ws.push(weights.map_or(1.0, |w| w.of(row)));
+        }
+        let kind = match weights.map(Weights::kind) {
+            Some(WeightType::Frequency) => WeightKind::Frequency,
+            Some(WeightType::Analytic) => WeightKind::Analytic,
+            Some(WeightType::Sampling) => WeightKind::Sampling,
+            None => WeightKind::Frequency,
+        };
+        Sample {
+            values,
+            weights: ws,
+            kind,
+        }
+    }
+
+    /// The differences of two columns, row by row.
+    pub fn differences(
+        a: &Column,
+        b: &Column,
+        rows: &[usize],
+        weights: Option<&Weights>,
+    ) -> Sample {
+        let mut sample = Sample::of(a, rows, weights);
+        let second = Sample::of(b, rows, weights);
+        for (x, y) in sample.values.iter_mut().zip(&second.values) {
+            *x -= y;
+        }
+        sample
+    }
+
+    /// N as the test counts it: the rows under analytic weights or none, the weight sum under
+    /// frequency weights.
+    pub fn n(&self) -> f64 {
+        match self.kind {
+            WeightKind::Frequency => zeff_numeric::sum(&self.weights),
+            _ => self.values.len() as f64,
+        }
+    }
+
+    pub fn mean(&self) -> f64 {
+        weighted_mean(&self.values, &self.weights).unwrap_or(f64::NAN)
+    }
+
+    pub fn variance(&self) -> f64 {
+        weighted_variance(&self.values, &self.weights, self.kind).unwrap_or(f64::NAN)
     }
 }
 

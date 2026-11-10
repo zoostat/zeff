@@ -1,0 +1,211 @@
+---
+source: packages/tier1/stats/tests/anova.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+anova · Welch one-way · s by site
+  H0: the population means of s are equal in all 3 groups of site          μ₁ = μ₂ = μ₃
+  H1: at least one group of site has a different population mean of s      not all equal
+
+  group    N    mean      sd
+  site=1   5   2.840   0.288
+  site=2   4   3.225   0.793
+  site=3   5   2.820   0.736
+
+F(2, 5.5) = 0.39   p = 0.693
+eta squared = 0.092
+decision at α = 0.05: fail to reject H0 (p = 0.693)
+Welch's F over 3 groups, the variances not assumed equal; eta squared = SS between / SS total
+anova · classical one-way · s by site
+  H0: the population means of s are equal in all 3 groups of site          μ₁ = μ₂ = μ₃
+  H1: at least one group of site has a different population mean of s      not all equal
+
+  group    N    mean      sd
+  site=1   5   2.840   0.288
+  site=2   4   3.225   0.793
+  site=3   5   2.820   0.736
+
+  source           df      SS      MS
+  between groups    2   0.447   0.223
+  within groups    11   4.388   0.399
+  ───────────────────────────────────
+  total            13   4.834
+
+F(2, 11) = 0.56   p = 0.587
+eta squared = 0.092
+decision at α = 0.05: fail to reject H0 (p = 0.587)
+classical F over 3 groups on the pooled within-group variance; eta squared = SS between / SS total
+anova · Welch one-way · s by site
+  H0: the population means of s are equal in all 2 groups of site          μ₁ = μ₂
+  H1: at least one group of site has a different population mean of s      not all equal
+
+  group    N    mean      sd
+  site=1   5   2.840   0.288
+  site=2   4   3.225   0.793
+
+F(1, 3.6) = 0.85   p = 0.413
+eta squared = 0.129
+decision at α = 0.05: fail to reject H0 (p = 0.413)
+Welch's F over 2 groups, the variances not assumed equal; eta squared = SS between / SS total
+anova · Welch one-way · v by k
+  H0: the population means of v are equal in all 3 groups of k          μ₁ = μ₂ = μ₃
+  H1: at least one group of k has a different population mean of v      not all equal
+
+  group   N    mean      sd
+  a       5   3.600   3.130
+  b       5   4.800   2.280
+  c       5   7.000   2.345
+
+F(2, 7.9) = 1.99   p = 0.199
+eta squared = 0.266
+decision at α = 0.05: fail to reject H0 (p = 0.199)
+Welch's F over 3 groups, the variances not assumed equal; eta squared = SS between / SS total
+anova · Welch one-way · v by k
+  H0: the population means of v are equal in all 3 groups of k          μ₁ = μ₂ = μ₃
+  H1: at least one group of k has a different population mean of v      not all equal
+
+  group   N    mean      sd
+  a       6   3.500   2.811
+  b       6   4.167   2.563
+  c       7   7.571   2.149
+
+F(2, 10.1) = 5.21   p = 0.028
+eta squared = 0.387
+decision at α = 0.05: reject H0 (p = 0.028)
+Welch's F over 3 groups, the variances not assumed equal; eta squared = SS between / SS total
+anova · classical one-way · v by k
+  H0: the population means of v are equal in all 3 groups of k          μ₁ = μ₂ = μ₃
+  H1: at least one group of k has a different population mean of v      not all equal
+
+  group   N    mean      sd
+  a       5   3.500   2.869
+  b       5   4.167   2.615
+  c       5   7.571   2.225
+
+  source           df        SS       MS
+  between groups    2    47.689   23.844
+  within groups    12    80.074    6.673
+  ──────────────────────────────────────
+  total            14   127.763
+
+F(2, 12) = 3.57   p = 0.061
+eta squared = 0.373
+decision at α = 0.05: fail to reject H0 (p = 0.061)
+classical F over 3 groups on the pooled within-group variance; eta squared = SS between / SS total
+anova · Welch one-way · x by g
+  H0: the population means of x are equal in all 3 groups of g          μ₁ = μ₂ = μ₃
+  H1: at least one group of g has a different population mean of x      not all equal
+
+  group   N    mean      sd
+  g=1     2   2.000   0.707
+  g=2     2   4.000   0.707
+  g=3     2   7.000   0.707
+
+F(2, 2) = 19.00   p = 0.050
+eta squared = 0.944
+decision at α = 0.05: fail to reject H0 (p = 0.050)
+Welch's F over 3 groups, the variances not assumed equal; eta squared = SS between / SS total
+anova · classical one-way · x by g
+  H0: the population means of x are equal in all 3 groups of g          μ₁ = μ₂ = μ₃
+  H1: at least one group of g has a different population mean of x      not all equal
+
+  group   N    mean      sd
+  g=1     2   2.000   0.707
+  g=2     2   4.000   0.707
+  g=3     1   9.000      NA
+
+  source           df       SS       MS
+  between groups    2   32.800   16.400
+  within groups     2    1.000    0.500
+  ─────────────────────────────────────
+  total             4   33.800
+
+F(2, 2) = 32.80   p = 0.030
+eta squared = 0.970
+decision at α = 0.05: reject H0 (p = 0.030)
+classical F over 3 groups on the pooled within-group variance; eta squared = SS between / SS total
+anova · Welch one-way · lwage by industry
+  H0: the population means of lwage are equal in all 12 groups of industry         μ₁ = μ₂ = … = μ₁₂
+  H1: at least one group of industry has a different population mean of lwage      not all equal
+
+  group                       N    mean      sd
+  Agriculture               528   3.004   0.460
+  Mining                    199   3.190   0.410
+  Utilities                 366   3.229   0.459
+  Construction            1,457   3.244   0.478
+  Manufacturing           2,543   3.238   0.475
+  Retail                  2,836   3.151   0.479
+  Transport                 962   3.175   0.462
+  Finance                 1,544   3.279   0.503
+  Services                2,612   3.097   0.492
+  Education               1,669   3.198   0.482
+  Health                  2,077   3.197   0.497
+  Public administration   1,408   3.278   0.456
+
+F(11, 3,489.4) = 31.60   p < 0.001
+eta squared = 0.019
+decision at α = 0.05: reject H0 (p < 0.001)
+Welch's F over 12 groups, the variances not assumed equal; eta squared = SS between / SS total
+anova · classical one-way · lwage by industry
+  H0: the population means of lwage are equal in all 12 groups of industry         μ₁ = μ₂ = … = μ₁₂
+  H1: at least one group of industry has a different population mean of lwage      not all equal
+
+  group                    N    mean      sd
+  Agriculture             20   2.951   0.483
+  Mining                   5   3.470   0.288
+  Utilities               11   2.754   0.591
+  Construction            49   3.003   0.536
+  Manufacturing           68   2.974   0.479
+  Retail                  75   2.914   0.465
+  Transport               20   3.056   0.359
+  Finance                 46   3.007   0.476
+  Services                78   2.965   0.508
+  Education               46   2.867   0.492
+  Health                  71   3.063   0.487
+  Public administration   42   3.132   0.579
+
+  source            df        SS      MS
+  between groups    11     4.322   0.393
+  within groups    519   127.287   0.245
+  ──────────────────────────────────────
+  total            530   131.609
+
+F(11, 519) = 1.60   p = 0.094
+eta squared = 0.033
+decision at α = 0.05: fail to reject H0 (p = 0.094)
+classical F over 12 groups on the pooled within-group variance; eta squared = SS between / SS total
+31.6012
+11
+3489.38
+0.0185603
+frame · 2 rows × 9 variables
+
+      term           estimate   std_error   statistic   df       df2       p_value   ci_lower   ci_upper
+  1   F                    NA          NA     31.6012   11   3489.38   1.71579e-64         NA         NA
+  2   eta squared   0.0185603          NA          NA   NA        NA            NA         NA         NA
+anova · Welch one-way · lwage by industry
+  H0: the population means of lwage are equal in all 12 groups of industry         μ₁ = μ₂ = … = μ₁₂
+  H1: at least one group of industry has a different population mean of lwage      not all equal
+
+  group                       N    mean      sd
+  Agriculture               528   3.004   0.460
+  Mining                    199   3.190   0.410
+  Utilities                 366   3.229   0.459
+  Construction            1,457   3.244   0.478
+  Manufacturing           2,543   3.238   0.475
+  Retail                  2,836   3.151   0.479
+  Transport                 962   3.175   0.462
+  Finance                 1,544   3.279   0.503
+  Services                2,612   3.097   0.492
+  Education               1,669   3.198   0.482
+  Health                  2,077   3.197   0.497
+  Public administration   1,408   3.278   0.456
+
+F(11, 3,489.4) = 31.60   p < 0.001
+eta squared = 0.019
+decision at α = 0.05: reject H0 (p < 0.001)
+Welch's F over 12 groups, the variances not assumed equal; eta squared = SS between / SS total
+---
+note: 2 rows with NA in x or g dropped (line 10)
+note: 211 rows with NA in lwage or industry dropped (line 13)
+note: 6 rows with NA in lwage or industry dropped (line 14)
+note: 211 rows with NA in lwage or industry dropped (line 15)

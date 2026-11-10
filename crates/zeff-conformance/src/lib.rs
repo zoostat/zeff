@@ -1357,6 +1357,12 @@ fn panel_cases() -> Vec<Line> {
     // `estimated: true` on another family.
     let kolmogorov = "let g = frame(u = [0.11, 0.32, 0.45, 0.58, 0.63, 0.77, 0.84, 0.92])\ng.ks_test(u, dist.uniform())\ng.ks_test(u, dist.normal(mean: 0.5, sd: 0.3))\nframe(x = [1.2, 3.4, 2.2, 2.2, 5.1]).ks_test(x, dist.normal(mean: 2, sd: 1))\nframe(x = [1.2, 3.4, 2.2, 0.8, 5.1, 2.9, 3.3]).ks_test(x, dist.normal(), estimated: true)\nframe(x = [0.4]).ks_test(x, dist.uniform())\nframe(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5]).ks_test(x, dist.exponential(rate: 0.25))\nlet wages = dataset(wages).where(year == 2010).add(lwage = log(wage))\nwages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5))\nwages.ks_test(lwage, dist.normal(), estimated: true)\nwages.ks_test(lwage, dist.truncated(dist.normal(mean: 3, sd: 0.5), lower: 1.5, upper: 4.6))\nwages.ks_test(educ, dist.poisson(lambda: 12))\nwages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5)).statistic()\nwages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5)).p_values()\nwages.ks_test(lwage, dist.exponential(), estimated: true)\n";
     let kolmogorov_outcome = run_script(&fs, &project, "scripts/main.zeff", kolmogorov);
+    // `anova`, one-way (release 0.7.0, step 16): Welch's F and the classical table on three
+    // groups, two groups, text groups with frequency and analytic weights, NA, a group of one under
+    // the classical form, the shipped wages by industry, the result read as values, and the
+    // refusal of a group of one under Welch's form.
+    let one_way = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\ng.anova(s, group: site)\ng.anova(s, group: site, equal_var: true)\ng.where(site < 3).anova(s, group: site)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"], w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])\nt.anova(v, group: k, weights: w, weight_type: frequency)\nt.anova(v, group: k, weights: w, weight_type: analytic, equal_var: true)\nlet m = frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 3.5], g = [1, 1, 2, 2, NA, 3, 3, 2])\nm.anova(x, group: g)\nframe(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g, equal_var: true)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage, group: industry)\nlet a = wages.where(year == 2010).anova(lwage, group: industry, equal_var: true)\na\na.df()\na.effect_size()\nframe(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g)\n";
+    let one_way_outcome = run_script(&fs, &project, "scripts/main.zeff", one_way);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1408,6 +1414,8 @@ fn panel_cases() -> Vec<Line> {
         text("tests/shapiro/stderr", &normality_outcome.output.stderr),
         text("tests/ks/stdout", &kolmogorov_outcome.output.stdout),
         text("tests/ks/stderr", &kolmogorov_outcome.output.stderr),
+        text("tests/anova_oneway/stdout", &one_way_outcome.output.stdout),
+        text("tests/anova_oneway/stderr", &one_way_outcome.output.stderr),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),

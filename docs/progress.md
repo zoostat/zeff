@@ -166,7 +166,7 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 
 **Done.** `shapiro_test` in `stats`: Royston's (1995) algorithm for 3 to 5,000 values, as R's `shapiro.test` computes it, with the hypotheses of open decision #91, `N = …`, W to four decimals and the p-value, a decision at α = 0.05 and a line naming the p-value's source. More than 5,000 non-missing values are refused with the new code Z0421 (its row in the Language Reference, section 11; its explained page; logged in `docs/spec_changes.md`), naming `qq_plot` and `ks_test`. The R reference `tests/reference/r/shapiro.R` at every size the step names, with ties and `NA`; the conformance case `tests/shapiro`; the help page; the catalogue row 176 marked implemented.
 
-**Green.** The step's own test groups and the affected groups of the engine, the CLI and the conformance crate; the full routine and CI follow in this session.
+**Green.** The full local routine (format, lint with warnings denied, tier and message checks, all 148 test groups); the two stored outputs of the sample script lost the line saying `anova` does not exist, which is the intended change. CI follows the push.
 
 **Next.** Step 15 `[engine]`: `ks_test`.
 
@@ -176,8 +176,18 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 
 **Done.** `ks_test` in `stats`: D against any distribution value, the exact distribution of D (Marsaglia, Tsang and Wang) below 100 values without ties and the limiting Kolmogorov distribution otherwise, summed to convergence; `estimated: true` as Lilliefors' test of normality with Dallal and Wilkinson's p-value, refused for any other family with the new code Z0422; tied values warned about with the new code W0212. Both codes have their rows in the Language Reference, section 11, their explained pages and their entry in `docs/spec_changes.md`. The R reference `tests/reference/r/ks.R` (`ks.test` against eleven families and `nortest`'s `lillie.test`, which joins `install.R` and `renv.lock`); the conformance case `tests/ks`; the help page; the catalogue row 177 marked implemented.
 
-**Green.** The step's own test groups and the affected groups of the engine, the CLI and the conformance crate; the full routine and CI follow in this session.
+**Green.** The full local routine (format, lint with warnings denied, tier and message checks, all 148 test groups); the two stored outputs of the sample script lost the line saying `anova` does not exist, which is the intended change. CI follows the push.
 
 **Next.** Step 16 `[function]`: `anova`, one-way.
 
 **For the owner to decide.** Nothing new. Rulings recorded in `docs/decisions.md` (step 15): the asymptotic p-value summed to convergence rather than to R's tolerance; ties warned in both forms; the phrase that names a distribution in a hypothesis. Still open from earlier steps: the fisher directional wording and question 4 (a).
+
+## 10 November 2026, release 0.7.0, step 16 (`anova`, one-way)
+
+**Done.** The one-way form of `anova` in `stats`: Welch's F as R's `oneway.test` by default and the classical F on the pooled variance under `equal_var: true`, with its table of sums of squares; eta squared as the effect size; the hypotheses of open decision #91 with `μ₁ = μ₂ = … = μ_k`; a group of one or without variation refused under Welch's form with a message pointing to `equal_var: true`. The test-result printer, `summary()` and `export` now carry a result's further tables. The weighted sample of `t_test` moved into `stats::testing` for both tests of means. The R reference `tests/reference/r/anova.R` (`oneway.test` and `aov`); the conformance case `tests/anova_oneway`; the help page's one-way half; the catalogue row 171 noted (it stays `planned` until step 17 adds the factorial form).
+
+**Green.** The full local routine (format, lint with warnings denied, tier and message checks, all 148 test groups); the two stored outputs of the sample script lost the line saying `anova` does not exist, which is the intended change. CI follows the push.
+
+**Next.** Step 17 `[engine]`: `anova`, factorial.
+
+**For the owner to decide.** Nothing new. Rulings recorded in `docs/decisions.md` (step 16): eta squared without an interval; the refusals of Welch's form; the classical table as a further table. Still open from earlier steps: the fisher directional wording and question 4 (a).

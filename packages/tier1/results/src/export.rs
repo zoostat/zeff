@@ -146,7 +146,7 @@ pub fn test_table(result: &TestResult) -> Table {
             columns: table.columns.clone(),
             rows: table.rows.clone(),
             after,
-            more: Vec::new(),
+            more: table.more.clone(),
             rules: table.rules.clone(),
         },
         // A test with an estimate prints its lines and needs no grid of the statistic.
