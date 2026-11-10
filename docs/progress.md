@@ -159,3 +159,13 @@ Step 9 `[function]`: `t_test` in `stats`, in Rust (open decision #92 records why
 **Next.** Step 18b `[function]`: `p_adjust` gains `hochberg`, `hommel`, `sidak` and `none`. Then step 19 `[function]`: `posthoc`.
 
 **For the owner to decide.** Open decision #102, due at 0.7.0, new at this step: R's `ptukey` takes `nranges`, the largest of several independent studentized ranges, which Stata does not have and `posthoc` does not need; the proposal is one more parameter, `ranges: Int = 1`, as a small `[engine]` step after step 19, the name being his. A ruling he may overturn: `df:` is accepted from 1, where R and Stata need 2 or more. Decisions #100 and #101 stay open.
+
+## 11 November 2026, release 0.7.0, step 18b (`p_adjust`, four further methods)
+
+**Done.** `p_adjust` now offers eight methods: `hochberg`, `hommel`, `sidak` and `none` beside `holm`, `bonferroni`, `bh` and `by`, the default still `holm`. Hochberg's method steps up from the largest p-value with Holm's multipliers. Hommel's is the closed test built on Simes's rule, computed by Wright's pass over the set sizes and checked against the definition itself, every set visited, for lists of up to eight p-values. Šidák's is the single-step 1 − (1 − p)ⁿ, as in Stata, computed so that a very small p-value keeps its digits. R's `p.adjust` is the reference for `hochberg`, `hommel` and `none` on fourteen cases with `NA`, ties, 0 and 1; Šidák's formula is checked by hand. The help page is rewritten: the eight methods, what R and Stata call each, when each holds, and the cost of Hommel's method, which grows with the square of the number of p-values as R's does. The catalogue row 178 carries the new usage (logged in `docs/spec_changes.md`). Details in `docs/decisions.md`.
+
+**Green.** Format (checked last), clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line; `zeff selftest` at 233 of 233, the output digest of the unpublished case `tests/kruskal` renewed; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 19 `[function]`: `posthoc`, the pairwise comparisons after either form of `anova`, with ten methods. Then section D from step 20.
+
+**For the owner to decide.** Nothing new. `n:` on `p_adjust`, the number of comparisons when it exceeds the p-values given, stays under question 3 of open decision #99, due at 0.8.0. Decisions #100, #101 and #102 stay open.

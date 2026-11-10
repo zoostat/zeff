@@ -82,8 +82,8 @@ error[Z0401]: a p-value lies between 0 and 1, but item 2 of `p_adjust` is 1.2
   |
   = help: check the list; `NA` stands for a p-value that is missing
 
-error[Z0402]: `hochberg` is not one of the allowed words
+error[Z0402]: `tukey` is not one of the allowed words
  --> scripts/main.zeff:1:31
   |
-1 | p_adjust([0.01, 0.2], method: hochberg)
-  |                               ^^^^^^^^ expected one of holm, bonferroni, bh, by
+1 | p_adjust([0.01, 0.2], method: tukey)
+  |                               ^^^^^ expected one of holm, bonferroni, hochberg, hommel, bh, by, sidak, none

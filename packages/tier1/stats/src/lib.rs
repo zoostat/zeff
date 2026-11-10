@@ -826,7 +826,11 @@ pub fn functions() -> Vec<Function> {
                 method: false,
                 params: vec![
                     ParamSpec::required("p", "List<Float> | Column<Float>"),
-                    ParamSpec::option_with_default("method", "holm | bonferroni | bh | by", "holm"),
+                    ParamSpec::option_with_default(
+                        "method",
+                        "holm | bonferroni | hochberg | hommel | bh | by | sidak | none",
+                        "holm",
+                    ),
                 ],
                 rest: None,
                 returns: "List<Float>",
@@ -836,7 +840,7 @@ pub fn functions() -> Vec<Function> {
                 )],
                 help: include_str!("../help/p_adjust.md"),
                 accuracy: Some(AccuracyRecord {
-                    reference: "R 4.6.0 p.adjust() (tests/reference/r/kruskal.R)".to_string(),
+                    reference: "R 4.6.0 p.adjust() (tests/reference/r/kruskal.R); Šidák's formula by hand".to_string(),
                     last_run: None,
                 }),
             },

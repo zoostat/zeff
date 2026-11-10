@@ -44,9 +44,15 @@ kruskal[[length(kruskal) + 1]] <- kw(series(300, digits = 2), rep(1:5, length.ou
 
 adj <- function(p) {
   out <- list(p = as.list(num(p)))
-  for (m in c("holm", "bonferroni", "BH", "BY")) {
+  for (m in c("holm", "bonferroni", "hochberg", "hommel", "BH", "BY", "none")) {
     out[[tolower(m)]] <- as.list(num(p.adjust(p, method = m)))
   }
+  # Sidak's single-step adjustment, which p.adjust() does not have: 1 - (1 - p)^n over the n
+  # p-values present, through the logarithm so that a small p keeps its digits (step 18b).
+  n <- sum(!is.na(p))
+  sidak <- if (n <= 1) p else pmin(1, -expm1(n * log1p(-p)))
+  sidak[which(p == 0)] <- 0  # a plain zero, whatever sign the platform's log1p gives its own
+  out$sidak <- as.list(num(sidak))
   out
 }
 adjust <- list(
@@ -57,7 +63,15 @@ adjust <- list(
   adj(c(NA, NA)),
   adj(c(0.5, 0.5, 0.5, 0.5)),
   adj(round(abs(sin(1:25)) / 3, 4)),
-  adj(c(0.9, 0.95, 0.99, 1))
+  adj(c(0.9, 0.95, 0.99, 1)),
+  # Step 18b: two and three p-values, cases where Hommel's method gains on Hochberg's, ties
+  # among the largest, and NA beside a p-value of 0 and of 1.
+  adj(c(0.04, 0.03)),
+  adj(c(0.02, 0.03, 0.025)),
+  adj(c(0.01, 0.02, 0.022, 0.09)),
+  adj(c(0.011, 0.012, 0.013, 0.014, 0.6, 0.6)),
+  adj(c(NA, 0, 0.04, 1, 0.04, NA, 0.0004)),
+  adj(round(abs(cos(1:40)) / 5, 5))
 )
 
 write_json(list(reference = reference_block(), kruskal = kruskal, adjust = adjust),

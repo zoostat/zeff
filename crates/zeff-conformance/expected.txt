@@ -212,7 +212,7 @@ tests/counts/stdout a7717c18a5565e3e
 tests/counts/stderr 52828015bdae440f
 tests/wilcoxon/stdout 192b719562229135
 tests/wilcoxon/stderr 93c75308cc8ba522
-tests/kruskal/stdout f95df06b459151e8
+tests/kruskal/stdout 4d4e61383e812be6
 tests/kruskal/stderr b278fd056143a710
 tests/fisher/stdout 7f517681ac48644e
 tests/fisher/stderr b83be8741898d11e
