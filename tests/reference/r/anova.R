@@ -77,6 +77,7 @@ anova_cases[[length(anova_cases) + 1]] <- one_way(series(15), rep(c(1, 2), lengt
 # weights against lm(weights =) with the weights scaled to sum to the rows. The term order of
 # each table is R's, by degree. Sums of squares, degrees of freedom, F and p are held to a
 # relative 1e-9.
+.libPaths(c(file.path(here(), "library"), .libPaths()))
 suppressMessages(library(car))
 
 layout <- function(n) {
