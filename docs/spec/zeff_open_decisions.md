@@ -155,6 +155,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 103 | The quality of the help pages, and a reference website | The owner's ruling: before 1.0 every function has a help page of the quality of the sample written for `add` (the commonest forms first, missing values under their own heading, a caption on every example, a common mistake with its real diagnostic, the R and Stata equivalents), and later a website carries every page in the manner of the tidyverse reference sites; open are the parts required of each kind of function, the timetable for the existing pages, and the release of the website | 0.8.0 |
 | 102 | The largest of several studentized ranges: R's `nranges` on `dist.tukey` | One more parameter, proposed `ranges: Int = 1`, for the largest of that many independent ranges on one estimate of the standard deviation, as `ptukey(q, nmeans, df, nranges)` and `qtukey` give it; Stata has no equivalent; `posthoc` does not need it; until decided the help page says it is not offered | 0.7.0 |
 | 101 | Partial omega squared as Stata's `estat esize` computes it | One more word on `effect:` of `anova`, proposed `omega_f`, for the figure Stata's `estat esize, omega` and R's `F_to_omega2` compute from F; `omega` stays the ruled formula of R's `omega_squared`; until decided the help page states the difference | 0.7.0 |
 | 100 | One term of the factorial `anova` table read as a value | `p_values("dose")`, `statistic("dose")`, `df("dose")` and `effect_size("dose")` read the row of that term, as the same methods read a term of a fit; without a term they stay the whole model's; until decided a term named there is an error and `estimates()` gives every row | 0.7.0 |
@@ -1730,3 +1731,34 @@ Raised on 11 November 2026 at step 18 of release 0.7.0, which builds `dist.tukey
 | C. Nothing at all | The smallest surface | Against the rule |
 
 *Recommendation.* A, as a small `[engine]` step of 0.7.0 after step 19, because the rule asks for it and the kernel and its reference are fresh; the default of 1 leaves every value of step 18 unchanged. B is the choice if 0.7.0 should not grow further. Deadline: 0.7.0.
+
+### 103. The quality of the help pages, and a reference website
+
+Raised on 11 November 2026 by the owner, after comparing the help page of `add` with the reference page of `dplyr::mutate()` and reading a sample page written for `add` in the same session. The owner's ruling in principle: before 1.0 every catalogued function has a help page of the quality of that sample, and later the project has a website carrying every function's help page in the manner of the tidyverse reference sites. The ruling stands. What is open is how the help contract of section 9.1 of the Engine Specification changes, when the existing pages are brought up to it, and when the website appears. Section 9.1 is frozen (#40), so its text changes only when this entry is decided.
+
+Where the pages stand at commit 170ffa0: 209 pages and 9,619 lines; the median page has 41 lines, the shortest 22 (`h0`) and the longest 330 (`anova`); 94 pages carry three example statements or fewer and 12 carry seven or more; no example has a caption saying what it shows; 176 pages mention `NA` or missing values somewhere but none under a heading of its own; 170 mention R or Stata, mostly inside Details. The catalogue schedules 278 functions up to 1.0, so about 70 pages are still to be written and 209 to be revised. The sample page was roughly twice as long as today's page for `add`.
+
+What the sample added to the parts of section 9.1:
+
+- **In brief**, before the description: the two or three commonest forms of the call, each with one line saying what it does.
+- **Missing values** under a heading of its own: what the function does with `NA`, and what it prints when it drops or produces one.
+- **A caption on every example**, saying what the example shows, and examples on the example files that ship with the engine rather than on a file of three rows.
+- **A common mistake**: the wrong call a newcomer is most likely to write, with the diagnostic the engine really prints and the corrected call.
+- **Related tasks**: "to do this other thing, use that function", one line each, beside the bare list of See also.
+- **Coming from R or Stata**: the equivalent calls, and the differences that would surprise a user of either.
+- Details divided under short headings where the function has several distinct matters to explain (for `add`: what a definition may contain).
+
+Questions for the owner:
+
+1. Which of these parts are required, and of which functions. Proposed: a caption on every example and Missing values on every function that reads data; In brief on every function with more than one form of call; A common mistake wherever the function has a diagnostic of its own; Coming from R or Stata wherever the catalogue's `equivalent` column is filled, the equivalents generated from the catalogue and the differences written by hand; Related tasks and the headings inside Details where they help, not required.
+2. The least an example section must show. Proposed: every argument appears in at least one example, and every example runs on the shipped example files.
+3. The timetable, in the table below.
+4. The website: its release, its address and its name. Proposed: generated from the same help files and the same tested examples as the engine's own help, so that the two cannot disagree; one page per function, an index by package and by task, and a search box; published with the documentation of 1.0.0.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Amend section 9.1 at the opening of 0.8.0. Every function written from 0.8.0 onwards meets the new contract in its own commit; the pages written before it are revised package by package as the closing steps of 0.8.0, 0.9.0 and 0.10.0, complete at 0.10.0, where the validation suite is published; the website is generated at 1.0.0 | No page is written twice after 0.8.0; the revision is spread over three releases that are small beside 0.7.0; the build check keeps every page to the contract from then on; the pages are complete before `core` freezes at 0.11.0 | The remaining functions of 0.7.0 are written to today's contract and revised later; three releases each carry extra steps |
+| B. One pass over every page at 1.0.0, under "documentation" in the build order | Nothing changes until the functions are all in place; one consistent voice | About 280 pages in a single release that also carries packaging and the launch; every page written until then is written twice; faults such as the out-of-date sentence on `add` stay in the engine through four releases |
+| C. Amend the contract now and write the rest of 0.7.0 to it | The 35 or so functions still to come in 0.7.0 are written once | Changes the definition of done in the middle of the largest release, with a concurrent step in hand; pulls a specification change forward of its decision |
+
+*Recommendation.* A, with the proposals of questions 1, 2 and 4 as written. Engineering that follows, recorded in docs/decisions.md when the entry is decided: the build check of the help contract extended to the new headings; a way of writing a caption within the markup section 9.1 allows; the generator of the website. Found on the way and to be corrected as errors whatever is decided here: the page of `add` says that reducers inside a definition and `by:` "arrive later in this release", though both work; it has no example of either; and its last printed line, on an `add` of the `learn` package after 1.0, reads as though this function were unavailable. Deadline: 0.8.0 for questions 1 to 3; 1.0.0 for the address and name of the website.
