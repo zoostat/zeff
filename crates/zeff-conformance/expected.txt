@@ -226,6 +226,8 @@ tests/anova_oneway/stdout 73ec1aaf49e06bac
 tests/anova_oneway/stderr 44b8e20762fa68d7
 tests/anova_factorial/stdout b41156ba0a74efa4
 tests/anova_factorial/stderr 9c735bc3dbfdcd45
+tests/posthoc/stdout b2f54f1768323401
+tests/posthoc/stderr baf7559147e45c13
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

@@ -1,0 +1,91 @@
+---
+source: packages/tier1/stats/tests/posthoc.rs
+expression: all
+---
+error[Z0402]: `dunnett` is not one of the allowed words
+ --> scripts/main.zeff:2:38
+  |
+2 | d.anova(x, group: g).posthoc(method: dunnett)
+  |                                      ^^^^^^^ expected one of tukey, bonferroni, holm, hochberg, hommel, bh, by, sidak, scheffe, none
+
+error[Z0401]: `method` of `posthoc` must be a tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none, but this is an Int
+ --> scripts/main.zeff:2:38
+  |
+2 | d.anova(x, group: g).posthoc(method: 2)
+  |                                      ^ an Int
+  |
+  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey)`
+
+error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the result of `kruskal_test`
+ --> scripts/main.zeff:2:1
+  |
+2 | d.kruskal_test(x, group: g).posthoc()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ not the result of an `anova`
+  |
+  = help: write `d.anova(y, group: g).posthoc()`; the comparisons rest on the group means and variances of that test
+
+error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the result of `t_test`
+ --> scripts/main.zeff:2:1
+  |
+2 | d.t_test(x, group: g).posthoc(method: holm)
+  | ^^^^^^^^^^^^^^^^^^^^^ not the result of an `anova`
+  |
+  = help: write `d.anova(y, group: g).posthoc()`; the comparisons rest on the group means and variances of that test
+
+note: no term of the formula is a category, so each row tests a slope; `reg` gives the estimates (line 2)
+error[Z0401]: `posthoc` compares the groups of a one-way `anova`, but this `anova` was given a formula
+ --> scripts/main.zeff:2:1
+  |
+2 | d.anova(y ~ a + b).posthoc()
+  | ^^^^^^^^^^^^^^^^^^ the result of a formula
+  |
+  = help: the comparisons of one factor are `d.anova(y, group: a).posthoc()`
+
+error[Z0401]: `posthoc` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | d.posthoc()
+  | ^ this is a Frame
+  |
+  = help: `posthoc` takes a TestResult first; `x.posthoc(...)` is `posthoc(x, ...)`
+
+error[Z0401]: `posthoc` cannot be called on a RegFit
+ --> scripts/main.zeff:2:1
+  |
+2 | d.reg(x ~ g).posthoc()
+  | ^^^^^^^^^^^^ this is a RegFit
+  |
+  = help: `posthoc` takes a TestResult first; `x.posthoc(...)` is `posthoc(x, ...)`
+
+note: `tukey` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests (line 2)
+error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the result of `posthoc`
+ --> scripts/main.zeff:2:1
+  |
+2 | d.anova(x, group: g).posthoc().posthoc()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not the result of an `anova`
+  |
+  = help: write `d.anova(y, group: g).posthoc()`; the comparisons rest on the group means and variances of that test
+
+error[Z0404]: `posthoc` has no argument called `level`
+ --> scripts/main.zeff:2:30
+  |
+2 | d.anova(x, group: g).posthoc(level: 0.9)
+  |                              ^^^^^ unknown argument
+  |
+  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey)`
+
+error[Z0401]: `ci` of a test's result gives the intervals the test was made at, 95%, not at 90%
+ --> scripts/main.zeff:2:54
+  |
+2 | d.anova(x, group: g).posthoc(method: none).ci(level: 0.9)
+  |                                                      ^^^ another level
+  |
+  = help: `posthoc` gives its intervals at 95% and takes no `level:`
+
+error[Z0401]: Welch's `anova` needs at least two values of `x` in every group, but g=3 has one
+ --> scripts/main.zeff:2:9
+  |
+2 | d.anova(x, group: g).posthoc()
+  |         ^ a group of one
+  |
+  = help: `equal_var: true` pools the variance across the groups and admits a group of one; or leave the group out with `where`

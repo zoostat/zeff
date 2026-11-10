@@ -256,6 +256,7 @@ pub fn shapiro_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail
         ));
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "shapiro_test".to_string(),
         title: format!("shapiro_test · {var}"),

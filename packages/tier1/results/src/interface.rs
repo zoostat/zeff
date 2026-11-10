@@ -187,13 +187,25 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             })
         }
         // A test's result: the intervals of its estimate and its effect size, when it has them
-        // (the tests of `stats`); `test` and `compare` have none.
+        // (the tests of `stats`), and of the estimate of each of its rows (the comparisons of
+        // `posthoc`); `test` and `compare` have none.
         Receiver::Test(test) => {
             let mut rows: Vec<Vec<String>> = Vec::new();
             for item in [&test.estimate, &test.effect].into_iter().flatten() {
                 if let Some((lower, upper)) = item.ci {
                     rows.push(vec![
                         item.label.clone(),
+                        fixed(lower, item.decimals),
+                        fixed(upper, item.decimals),
+                    ]);
+                }
+            }
+            for row in &test.terms {
+                if let Some(item) = &row.estimate
+                    && let Some((lower, upper)) = item.ci
+                {
+                    rows.push(vec![
+                        row.term.clone(),
                         fixed(lower, item.decimals),
                         fixed(upper, item.decimals),
                     ]);
@@ -214,7 +226,11 @@ pub fn ci(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     )
                     .in_file(ctx.script)
                     .primary(ctx.span_of(2), "another level")
-                    .help("run the test with `level:` for intervals at another level"),
+                    .help(if test.method == "posthoc" {
+                        "`posthoc` gives its intervals at 95% and takes no `level:`"
+                    } else {
+                        "run the test with `level:` for intervals at another level"
+                    }),
                 ));
             }
             Ok(Value::Table(Table {
@@ -286,11 +302,14 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         // degrees of freedom and the p-value (the estimate's label, or the statistic's name
         // where the test has no estimate: `test`, `compare`, `chi2_test`), and a row for its
         // effect size with its interval where it has one.
-        // A test of several rows (a factorial `anova`): a row per term with its statistic,
-        // degrees of freedom and p-value, then a row per term for its effect size.
+        // A test of several rows: a row per term with its statistic, degrees of freedom and
+        // p-value (a factorial `anova`), and with its estimate, standard error and interval
+        // where the row rests on one (a comparison of `posthoc`); then a row per term for its
+        // effect size.
         Receiver::Test(test) if !test.terms.is_empty() => {
             let mut terms: Vec<Option<String>> = Vec::new();
             let mut values = Vec::new();
+            let mut errors = Vec::new();
             let mut statistics = Vec::new();
             let mut dfs = Vec::new();
             let mut df2s = Vec::new();
@@ -298,14 +317,16 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             let mut lowers = Vec::new();
             let mut uppers = Vec::new();
             for row in &test.terms {
+                let interval = row.estimate.as_ref().and_then(|e| e.ci);
                 terms.push(Some(row.term.clone()));
-                values.push(None);
+                values.push(row.estimate.as_ref().and_then(|e| finite(e.value)));
+                errors.push(row.std_error.and_then(finite));
                 statistics.push(finite(row.statistic.value));
                 dfs.push(row.statistic.df.first().copied());
                 df2s.push(row.statistic.df.get(1).copied());
                 p_values.push(finite(row.p_value));
-                lowers.push(None);
-                uppers.push(None);
+                lowers.push(interval.map(|c| c.0));
+                uppers.push(interval.map(|c| c.1));
             }
             for row in &test.terms {
                 let Some(effect) = &row.effect else {
@@ -313,6 +334,7 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 };
                 terms.push(Some(format!("{} ({})", effect.label, row.term)));
                 values.push(finite(effect.value));
+                errors.push(None);
                 statistics.push(None);
                 dfs.push(None);
                 df2s.push(None);
@@ -320,14 +342,13 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 lowers.push(effect.ci.map(|c| c.0));
                 uppers.push(effect.ci.map(|c| c.1));
             }
-            let rows = terms.len();
             vec![
                 (
                     "term".to_string(),
                     Column::strs(terms.iter().map(|t| t.as_deref())),
                 ),
                 ("estimate".to_string(), floats(values)),
-                ("std_error".to_string(), floats(vec![None; rows])),
+                ("std_error".to_string(), floats(errors)),
                 ("statistic".to_string(), floats(statistics)),
                 ("df".to_string(), floats(dfs)),
                 ("df2".to_string(), floats(df2s)),

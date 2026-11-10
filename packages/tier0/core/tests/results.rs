@@ -24,6 +24,7 @@ fn result(
     after: &[&str],
 ) -> Value {
     Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: title.split(' ').next().unwrap_or("test").to_string(),
         title: title.to_string(),

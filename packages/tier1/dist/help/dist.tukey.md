@@ -49,7 +49,7 @@ true)`, and the 5% critical value is `quantile(0.95)`. Every value costs a doubl
 `draw`, which inverts the distribution function once for each value drawn, is slow for a large `n`.
 
 ## See also
-dist.t, dist.f, dist.normal
+dist.t, dist.f, dist.normal, posthoc
 
 ## References
 - Tukey, J. W. (1949). Comparing individual means in the analysis of variance. *Biometrics*, 5,

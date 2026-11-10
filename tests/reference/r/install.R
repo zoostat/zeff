@@ -27,7 +27,11 @@ if (Sys.info()[["sysname"]] == "Linux" && file.exists("/etc/os-release")) {
                                     paste(getRversion(), R.version$platform, R.version$arch, R.version$os)))
   }
 }
-wanted <- c(sandwich = "3.1.1", wooldridge = "1.4-7", fixest = "0.14.2", nortest = "1.0-4", car = "3.1-5")
+# DescTools and emmeans (release 0.7.0, step 19, 11 November 2026) are references for `posthoc`:
+# ScheffeTest() for Scheffe's method, and pairs() with adjust = "sidak" for Sidak's, which
+# p.adjust() does not have. DescTools brings some thirty packages with it and emmeans one.
+wanted <- c(sandwich = "3.1.1", wooldridge = "1.4-7", fixest = "0.14.2", nortest = "1.0-4", car = "3.1-5",
+            DescTools = "0.99.60", emmeans = "2.0.4")
 for (name in names(wanted)) {
   present <- requireNamespace(name, quietly = TRUE) && packageVersion(name) == wanted[[name]]
   if (!present) {

@@ -19,7 +19,8 @@ use zeff_columns::{Column, ColumnType, Weights};
 use zeff_core::display::fixed;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Align, Alternative, Distribution, Estimate, Hypotheses, Statistic, Table, TestResult, Value,
+    Align, Alternative, Distribution, Estimate, FollowUp, GroupMean, Hypotheses, Statistic, Table,
+    TestResult, Value,
 };
 use zeff_diagnostics::{Diagnostic, count};
 
@@ -539,6 +540,22 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         Effect::Epsilon => "epsilon squared = (SS between − (k − 1) MS within) / SS total",
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        // What `posthoc` reads: the groups as they are printed, at full precision.
+        follow_up: Some(Rc::new(FollowUp::OneWay {
+            outcome: var.clone(),
+            factor: group_name.clone(),
+            groups: labels
+                .iter()
+                .zip(&summaries)
+                .map(|(label, g)| GroupMean {
+                    label: label.clone(),
+                    n: g.n,
+                    mean: g.mean,
+                    variance: g.variance,
+                })
+                .collect(),
+            pooled: equal_var,
+        })),
         terms: Vec::new(),
         method: "anova".to_string(),
         title: format!("anova · {variant} one-way · {var} by {group_name}"),

@@ -10,6 +10,7 @@ pub mod fisher_test;
 pub mod kruskal_test;
 pub mod ks_test;
 pub mod p_adjust;
+pub mod posthoc;
 pub mod proportion_test;
 pub mod shapiro_test;
 pub mod t_test;
@@ -845,6 +846,39 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: p_adjust::p_adjust,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "posthoc",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("fit", "TestResult"),
+                    ParamSpec::option_with_default(
+                        "method",
+                        "tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none",
+                        "tukey",
+                    ),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "after Welch's anova, method: tukey or scheffe pools the variances that the anova did not assume equal",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a receiver that is not the result of an anova, or is the result of an anova of a formula",
+                    ),
+                ],
+                help: include_str!("../help/posthoc.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference: "R 4.6.0 TukeyHSD(), pairwise.t.test() and t.test(), DescTools 0.99.60 ScheffeTest(), emmeans 2.0.3 pairs() (tests/reference/r/posthoc.R)"
+                        .to_string(),
+                    last_run: None,
+                }),
+            },
+            body: posthoc::posthoc,
         },
         Function {
             spec: FunctionSpec {

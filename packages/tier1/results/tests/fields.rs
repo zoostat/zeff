@@ -2,20 +2,28 @@
 //! `df`, `effect_size`, `h0`, `h1` and `alternative` on hand-built results, the shape of
 //! `estimates` with its `df` columns and its effect-size row, the refusal on a fit, and every
 //! method through the engine on `t_test`, `chi2_test`, `kruskal_test`, `test` and `fisher_test`,
-//! with the sentence the step's definition of done asks for.
+//! with the sentence the step's definition of done asks for; and a result of several rows that
+//! each rest on an estimate (the comparisons of `posthoc`; release 0.7.0, step 19), which
+//! `estimates` and `ci` give row by row.
 
 mod common;
 
 use common::{Options, call, fit_with, table_of};
 use std::rc::Rc;
+use zeff_columns::Value as Cell;
 use zeff_core::runtime::{Args, Body, CallContext, Fail, Randomness};
-use zeff_core::value::{Alternative, Estimate, Hypotheses, Statistic, TestResult, Value};
+use zeff_core::value::{Alternative, Estimate, Hypotheses, Statistic, TermTest, TestResult, Value};
 use zeff_diagnostics::{Diagnostic, Span};
-use zeff_results::interface::{alternative, df, effect_size, estimates, h0, h1, statistic};
+use zeff_results::interface::{alternative, ci, df, effect_size, estimates, h0, h1, statistic};
 use zeff_testkit::run;
 
 /// A body called with one value, its failure returned.
 fn try_call(body: Body, value: Value) -> Result<Value, Fail> {
+    try_with(body, vec![Some(value)])
+}
+
+/// A body called with its arguments by slot, its failure returned.
+fn try_with(body: Body, values: Vec<Option<Value>>) -> Result<Value, Fail> {
     let mut output = String::new();
     let mut messages: Vec<Diagnostic> = Vec::new();
     let mut random = Randomness::default();
@@ -26,7 +34,7 @@ fn try_call(body: Body, value: Value) -> Result<Value, Fail> {
         columns_used: Vec::new(),
         frame: None,
         callee_span: Span::new(0, 1),
-        arg_spans: vec![Some(Span::new(2, 3))],
+        arg_spans: vec![Some(Span::new(2, 3)); values.len()],
         rest_spans: Vec::new(),
         definition_spans: Vec::new(),
         output: &mut output,
@@ -37,7 +45,7 @@ fn try_call(body: Body, value: Value) -> Result<Value, Fail> {
     body(
         &mut ctx,
         Args {
-            values: vec![Some(value)],
+            values,
             rest: Vec::new(),
             definitions: Vec::new(),
         },
@@ -56,6 +64,7 @@ fn method(body: Body, test: &Rc<TestResult>) -> Value {
 /// A Welch t test with everything a result can carry.
 fn welch() -> Rc<TestResult> {
     Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "t_test".to_string(),
         title: "t_test · Welch · lwage by female".to_string(),
@@ -97,6 +106,7 @@ fn welch() -> Rc<TestResult> {
 /// An F test of a restriction, as `test` gives it: two degrees of freedom, no hypotheses.
 fn wald() -> Rc<TestResult> {
     Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "test".to_string(),
         title: "test · m · educ == 0".to_string(),
@@ -124,6 +134,7 @@ fn wald() -> Rc<TestResult> {
 /// An exact test, as `fisher_test` gives it: an odds ratio, no statistic, one-sided.
 fn exact() -> Rc<TestResult> {
     Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "fisher_test".to_string(),
         title: "fisher_test · exact · union × female".to_string(),
@@ -259,6 +270,143 @@ fn a_fit_and_a_number_are_refused() {
         failed.message,
         "`statistic` is a method of a test's result, but this is an Int"
     );
+}
+
+/// Three pairwise comparisons, as `posthoc` gives them: each row an estimate with its standard
+/// error and, where `intervals` holds, its interval; the test of the whole an F.
+fn comparisons(intervals: bool) -> Rc<TestResult> {
+    let row = |term: &str, value: f64, se: f64, p: f64| TermTest {
+        term: term.to_string(),
+        statistic: Statistic {
+            name: "t".to_string(),
+            value: value / se,
+            df: vec![12.0],
+        },
+        p_value: p,
+        effect: None,
+        estimate: Some(Estimate {
+            label: term.to_string(),
+            value,
+            ci: intervals.then_some((value - 2.0 * se, value + 2.0 * se)),
+            decimals: 3,
+        }),
+        std_error: Some(se),
+    };
+    Rc::new(TestResult {
+        follow_up: None,
+        terms: vec![
+            row("a − b", -1.25, 0.5, 0.09),
+            row("a − c", 0.5, 0.25, 0.25),
+            row("b − c", 1.75, 0.5, 0.02),
+        ],
+        method: "posthoc".to_string(),
+        title: "posthoc · Bonferroni · v by k".to_string(),
+        hypotheses: None,
+        alternative: Alternative::TwoSided,
+        header: Vec::new(),
+        table: None,
+        estimate: None,
+        statistic: Statistic {
+            name: "F".to_string(),
+            value: 3.5,
+            df: vec![2.0, 12.0],
+        },
+        p_value: 0.0625,
+        effect: None,
+        level: 0.95,
+        alpha: None,
+        after: Vec::new(),
+        notes: Vec::new(),
+        n: 15,
+        dropped: 0,
+    })
+}
+
+#[test]
+fn a_result_of_several_rows_gives_each_row_its_estimate_and_its_interval() {
+    for intervals in [true, false] {
+        let result = comparisons(intervals);
+        let Value::Frame(frame) = method(estimates, &result) else {
+            panic!("not a frame");
+        };
+        assert_eq!(frame.table.rows(), 3);
+        let text = |row: usize| match frame.table.column("term").unwrap().get(row).unwrap() {
+            Cell::Str(s) => s.to_string(),
+            other => panic!("not a text: {other:?}"),
+        };
+        let cell = |name: &str, row: usize| match frame.table.column(name).unwrap().get(row) {
+            Some(Cell::Float(v)) => Some(v),
+            Some(Cell::Na) => None,
+            other => panic!("{name}: {other:?}"),
+        };
+        assert_eq!([text(0), text(1), text(2)], ["a − b", "a − c", "b − c"]);
+        for (i, (value, se, p)) in [(-1.25, 0.5, 0.09), (0.5, 0.25, 0.25), (1.75, 0.5, 0.02)]
+            .into_iter()
+            .enumerate()
+        {
+            assert_eq!(cell("estimate", i), Some(value));
+            assert_eq!(cell("std_error", i), Some(se));
+            assert_eq!(cell("statistic", i), Some(value / se));
+            assert_eq!(cell("df", i), Some(12.0));
+            assert_eq!(cell("df2", i), None);
+            assert_eq!(cell("p_value", i), Some(p));
+            assert_eq!(cell("ci_lower", i), intervals.then_some(value - 2.0 * se));
+            assert_eq!(cell("ci_upper", i), intervals.then_some(value + 2.0 * se));
+        }
+        // `ci` gives the interval of each row at the level they were made at, and NA where the
+        // method gives none.
+        match method(ci, &result) {
+            Value::Table(table) => {
+                assert!(intervals);
+                assert_eq!(table.title, "ci · 95%");
+                assert_eq!(
+                    table.rows,
+                    vec![
+                        vec!["a − b", "-2.250", "-0.250"],
+                        vec!["a − c", "0.000", "1.000"],
+                        vec!["b − c", "0.750", "2.750"],
+                    ]
+                );
+            }
+            Value::Na => assert!(!intervals),
+            other => panic!("neither a table nor NA: {other:?}"),
+        }
+        // The single figures stay those of the test of the whole.
+        assert_eq!(method(statistic, &result), Value::Float(3.5));
+        assert_eq!(
+            method(df, &result),
+            Value::List(vec![Value::Float(2.0), Value::Float(12.0)])
+        );
+        assert_eq!(method(effect_size, &result), Value::Na);
+    }
+    // Another level is refused, with the help that fits the test.
+    let at_90 = |test: &Rc<TestResult>| {
+        try_with(
+            ci,
+            vec![
+                Some(Value::TestResult(Rc::clone(test))),
+                None,
+                Some(Value::Float(0.9)),
+            ],
+        )
+    };
+    let failed = at_90(&comparisons(true)).expect_err("another level");
+    assert_eq!(failed.code, "Z0401");
+    assert_eq!(
+        failed.message,
+        "`ci` of a test's result gives the intervals the test was made at, 95%, not at 90%"
+    );
+    assert_eq!(
+        failed.help,
+        ["`posthoc` gives its intervals at 95% and takes no `level:`"]
+    );
+    let failed = at_90(&welch()).expect_err("another level");
+    assert_eq!(
+        failed.help,
+        ["run the test with `level:` for intervals at another level"]
+    );
+    // Where there is no interval to give, the answer is NA whatever the level.
+    assert_eq!(at_90(&comparisons(false)).unwrap(), Value::Na);
 }
 
 fn printed(script: &str) -> String {

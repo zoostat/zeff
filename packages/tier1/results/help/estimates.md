@@ -9,7 +9,10 @@ p-value and confidence interval at the result's level as a frame, one row per te
 estimate, for tables and plots of one's own; a term omitted as collinear has no row. A test's
 result gives a row for its estimate, with the statistic, its degrees of freedom and the p-value,
 and a row for its effect size with its interval where it has one; `df2` holds the second degrees
-of freedom of an F and is `NA` otherwise. Like `broom::tidy` in R and `r(table)` in Stata.
+of freedom of an F and is `NA` otherwise. A test of several rows gives a row for each: a term of
+a factorial `anova` with its F, a comparison of `posthoc` with its difference in `estimate`, its
+standard error and its interval where the method has one. Like `broom::tidy` in R and `r(table)`
+in Stata.
 
 ## Arguments
 - fit: The result.

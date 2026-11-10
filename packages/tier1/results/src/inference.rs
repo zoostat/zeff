@@ -312,6 +312,7 @@ pub fn test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let df = fit.df_residual;
     let p = f_p_value(f, q as f64, df as f64);
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "test".to_string(),
         title: format!("test · {} · {}", fit_name(&fit), texts.join(", ")),
@@ -450,6 +451,7 @@ pub fn compare(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         rules: Vec::new(),
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "compare".to_string(),
         title: format!("compare · {} against {}", fit_name(&a), fit_name(&b)),

@@ -717,6 +717,7 @@ pub fn anova(
         _ => String::new(),
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: table
             .terms
             .iter()
@@ -730,6 +731,8 @@ pub fn anova(
                     ci: None,
                     decimals: 3,
                 }),
+                estimate: None,
+                std_error: None,
             })
             .collect(),
         method: "anova".to_string(),

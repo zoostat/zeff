@@ -11,6 +11,10 @@ level is the one the fit was made at, so `ci()` agrees with the summary, and `le
 out overrides it, so that any level is available after the fit; `predict`'s intervals follow the
 same rule when they arrive. Like `confint` in R, which always uses 95% unless told otherwise.
 
+A test's result gives the intervals it was made with: those of its estimate and its effect size,
+and of each comparison of `posthoc`, at the level of the test, or `NA` when it has none. Another
+level is asked of the test itself, as `t_test(level: 0.9)`.
+
 ## Arguments
 - fit: The result.
 - term: A term of the model, a bare name or text: `educ`, `industry=Retail`, `educ:female`.

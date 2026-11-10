@@ -340,16 +340,48 @@ pub struct TestResult {
     /// The observations the test rests on (`n_obs`), and the rows dropped for `NA`.
     pub n: usize,
     pub dropped: usize,
+    /// What the call that follows the test reads from it beyond what it prints (`posthoc` after
+    /// `anova`); `None` for a test nothing follows.
+    pub follow_up: Option<Rc<FollowUp>>,
+}
+
+/// What a test leaves for the call that follows it (release 0.7.0, step 19): the numbers its
+/// lines were printed from, at full precision.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FollowUp {
+    /// The one-way `anova`: the outcome and the grouping variable as the call named them, the
+    /// groups in the order they were printed, and whether F pooled the variances
+    /// (`equal_var: true`).
+    OneWay {
+        outcome: String,
+        factor: String,
+        groups: Vec<GroupMean>,
+        pooled: bool,
+    },
+}
+
+/// One group of a one-way `anova`: its printed label, its count (the sum of the weights under
+/// frequency weights), its mean and its sample variance (`NaN` for a group of one).
+#[derive(Debug, Clone, PartialEq)]
+pub struct GroupMean {
+    pub label: String,
+    pub n: f64,
+    pub mean: f64,
+    pub variance: f64,
 }
 
 /// One row of a test that reports several (open decision #91, rule R9): the term it tests, its
-/// statistic with the degrees of freedom, its p-value and its effect size.
+/// statistic with the degrees of freedom, its p-value and its effect size; and, for a row that
+/// rests on an estimate (a difference of two means in `posthoc`), the estimate with its interval
+/// and its standard error.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TermTest {
     pub term: String,
     pub statistic: Statistic,
     pub p_value: f64,
     pub effect: Option<Estimate>,
+    pub estimate: Option<Estimate>,
+    pub std_error: Option<f64>,
 }
 
 /// The hypotheses a test prints (open decision #91): each a sentence about the population, and

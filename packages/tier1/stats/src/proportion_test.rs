@@ -460,6 +460,7 @@ fn one_sample(
         Alternative::Greater => (format!("is greater than {p_text}"), ">"),
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "proportion_test".to_string(),
         title: format!("proportion_test · one-sample · {var}{}", variant(o.correct)),
@@ -619,6 +620,7 @@ fn two_groups(
         ]
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "proportion_test".to_string(),
         title: format!(

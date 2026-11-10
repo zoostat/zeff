@@ -350,6 +350,7 @@ fn one_sample(
         Alternative::Greater => (format!("is greater than {m}"), ">"),
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "t_test".to_string(),
         title: format!("t_test · one-sample · {var}"),
@@ -429,6 +430,7 @@ fn paired_form(
         Alternative::Greater => ("is greater than 0", ">"),
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "t_test".to_string(),
         title: format!("t_test · paired · {a} and {b}"),
@@ -559,6 +561,7 @@ fn two_groups(
         ]
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        follow_up: None,
         terms: Vec::new(),
         method: "t_test".to_string(),
         title: format!("t_test · {variant} two-sample · {var} by {group_name}"),
