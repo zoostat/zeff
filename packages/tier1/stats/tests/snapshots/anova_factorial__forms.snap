@@ -1,0 +1,234 @@
+---
+source: packages/tier1/stats/tests/anova_factorial.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+anova · factorial, type 2 · y ~ a * b
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       5   13.794   2.759   0.94     0.516                 0.440
+  a           2    2.052   1.026   0.35     0.718                 0.105
+  b           1    5.741   5.741   1.96     0.211                 0.246
+  a:b         2    6.002   3.001   1.02     0.414                 0.255
+  residual    6   17.575   2.929
+  ─────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 12
+anova · factorial, type 1 · y ~ a * b + x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       6   14.581   2.430   0.72     0.651                 0.465
+  a           2    2.052   1.026   0.31     0.750                 0.109
+  b           1    5.741   5.741   1.71     0.248                 0.255
+  x           1    0.009   0.009   0.00     0.960                 0.001
+  a:b         2    6.779   3.390   1.01     0.428                 0.288
+  residual    5   16.788   3.358
+  ─────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 1 sums of squares: each term adjusted for the terms above it, so the order of the terms matters
+partial eta squared = SS / (SS + SS residual); N = 12
+anova · factorial, type 1 · y ~ x + a * b
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       6   14.581   2.430   0.72     0.651                 0.465
+  x           1    2.408   2.408   0.72     0.436                 0.125
+  a           2    1.381   0.691   0.21     0.821                 0.076
+  b           1    4.012   4.012   1.19     0.324                 0.193
+  a:b         2    6.779   3.390   1.01     0.428                 0.288
+  residual    5   16.788   3.358
+  ─────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 1 sums of squares: each term adjusted for the terms above it, so the order of the terms matters
+partial eta squared = SS / (SS + SS residual); N = 12
+anova · factorial, type 3 · y ~ a * b + x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       6   14.581   2.430   0.72     0.651                 0.465
+  a           2    1.369   0.684   0.20     0.822                 0.075
+  b           1    2.011   2.011   0.60     0.474                 0.107
+  x           1    0.787   0.787   0.23     0.649                 0.045
+  a:b         2    6.779   3.390   1.01     0.428                 0.288
+  residual    5   16.788   3.358
+  ─────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 3 sums of squares: each term adjusted for every other term, the categories coded by deviations from the mean
+partial eta squared = SS / (SS + SS residual); N = 12
+anova · factorial, type 2 · y ~ a + category(s)
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       3    7.792   2.597   0.88     0.490                 0.248
+  a           2    2.052   1.026   0.35     0.716                 0.080
+  s           1    5.741   5.741   1.95     0.200                 0.196
+  residual    8   23.577   2.947
+  ─────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 12
+anova · factorial, type 2 · y ~ a + x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       3   11.619   3.873   1.19     0.357                 0.245
+  a           2    4.466   2.233   0.69     0.523                 0.111
+  x           1    2.734   2.734   0.84     0.378                 0.071
+  residual   11   35.721   3.247
+  ─────────────────────────────────────────────────────────────────────
+  total      14   47.340
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 15, frequency weights w
+anova · factorial, type 2 · y ~ a + x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       3    8.521   2.840   0.76     0.552                 0.245
+  a           2    3.275   1.638   0.44     0.662                 0.111
+  x           1    2.005   2.005   0.54     0.488                 0.071
+  residual    7   26.195   3.742
+  ─────────────────────────────────────────────────────────────────────
+  total      10   34.716
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 11, analytic weights w
+anova · factorial, type 2 · y ~ a * b
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       4   13.326   3.331   1.41     0.351                 0.530
+  a           2    5.866   2.933   1.24     0.365                 0.332
+  b           1    9.680   9.680   4.10     0.099                 0.451
+  a:b         1    2.000   2.000   0.85     0.399                 0.145
+  residual    5   11.795   2.359
+  ─────────────────────────────────────────────────────────────────────
+  total       9   25.121
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 10
+anova · factorial, type 2 · y ~ x + x2
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       1    2.408   2.408   0.83     0.383                 0.077
+  x           0    0.000
+  x2          0    0.000
+  residual   10   28.961   2.896
+  ─────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 12
+anova · factorial, type 2 · y ~ x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       1    2.408   2.408   0.83     0.383                 0.077
+  x           1    2.408   2.408   0.83     0.383                 0.077
+  residual   10   28.961   2.896
+  ─────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 12
+anova · factorial, type 2 · lwage ~ industry * category(female) + educ
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source                df         SS        MS         F   p value   partial eta squared
+  model                 24    505.438    21.060    101.47    <0.001                 0.118
+  industry              11     77.856     7.078     34.10    <0.001                 0.020
+  female                 1     88.792    88.792    427.81    <0.001                 0.023
+  educ                   1    329.462   329.462   1587.37    <0.001                 0.080
+  industry:female       11      7.137     0.649      3.13    <0.001                 0.002
+  residual          18,176   3772.468     0.208
+  ───────────────────────────────────────────────────────────────────────────────────────
+  total             18,200   4277.906
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 18,201
+anova · factorial, type 3 · lwage ~ industry * category(female) + educ
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source                df         SS        MS         F   p value   partial eta squared
+  model                 24    505.438    21.060    101.47    <0.001                 0.118
+  industry              11     78.749     7.159     34.49    <0.001                 0.020
+  female                 1     36.528    36.528    176.00    <0.001                 0.010
+  educ                   1    329.462   329.462   1587.37    <0.001                 0.080
+  industry:female       11      7.137     0.649      3.13    <0.001                 0.002
+  residual          18,176   3772.468     0.208
+  ───────────────────────────────────────────────────────────────────────────────────────
+  total             18,200   4277.906
+
+type 3 sums of squares: each term adjusted for every other term, the categories coded by deviations from the mean
+partial eta squared = SS / (SS + SS residual); N = 18,201
+anova · factorial, type 1 · lwage ~ industry + category(union) + educ * exper
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source        df        SS       MS        F   p value   partial eta squared
+  model         15    34.785    2.319    12.37    <0.001                 0.265
+  industry      11     4.310    0.392     2.09     0.020                 0.043
+  union          1     1.172    1.172     6.26     0.013                 0.012
+  educ           1     7.483    7.483    39.93    <0.001                 0.072
+  exper          1    21.590   21.590   115.21    <0.001                 0.183
+  educ:exper     1     0.229    0.229     1.22     0.270                 0.002
+  residual     514    96.322    0.187
+  ────────────────────────────────────────────────────────────────────────────
+  total        529   131.107
+
+type 1 sums of squares: each term adjusted for the terms above it, so the order of the terms matters
+partial eta squared = SS / (SS + SS residual); N = 530
+0.723769
+6
+5
+0.651082
+12
+NA
+frame · 8 rows × 9 variables
+
+      term                        estimate   std_error   statistic   df   df2    p_value   ci_lower   ci_upper
+  1   a                                 NA          NA     0.28427    2     5   0.763962         NA         NA
+  2   b                                 NA          NA     1.19493    1     5   0.324183         NA         NA
+  3   x                                 NA          NA    0.234325    1     5   0.648793         NA         NA
+  4   a:b                               NA          NA     1.00953    2     5   0.428279         NA         NA
+  5   partial eta squared (a)     0.102099          NA          NA   NA    NA         NA         NA         NA
+  6   partial eta squared (b)     0.192889          NA          NA   NA    NA         NA         NA         NA
+  7   partial eta squared (x)     0.044767          NA          NA   NA    NA         NA         NA         NA
+  8   partial eta squared (a:b)   0.287654          NA          NA   NA    NA         NA         NA         NA
+NA
+anova · factorial, type 2 · y ~ a * b + x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial eta squared
+  model       6   14.581   2.430   0.72     0.651                 0.465
+  a           2    1.909   0.954   0.28     0.764                 0.102
+  b           1    4.012   4.012   1.19     0.324                 0.193
+  x           1    0.787   0.787   0.23     0.649                 0.045
+  a:b         2    6.779   3.390   1.01     0.428                 0.288
+  residual    5   16.788   3.358
+  ─────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 12
+---
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+note: 1 row with zero weight left out (line 7)
+note: 1 row with zero weight left out (line 8)
+note: 1 of the model's 6 columns is determined by the others (a combination of levels with no observations, or a term that repeats the others) and carries no degree of freedom (line 9)
+note: 1 of the model's 3 columns is determined by the others (a term that repeats the others) and carries no degree of freedom (line 10)
+note: `x` has no degrees of freedom once the other terms are in the model, so it has no test (line 10)
+note: `x2` has no degrees of freedom once the other terms are in the model, so it has no test (line 10)
+note: no term of the formula is a category, so each row tests a slope; `reg` gives the estimates (line 10)
+note: no term of the formula is a category, so each row tests a slope; `reg` gives the estimates (line 11)
+note: 211 rows with NA in a model variable dropped (line 13)
+note: 211 rows with NA in a model variable dropped (line 14)
+note: 7 rows with NA in a model variable dropped (line 15)

@@ -558,6 +558,7 @@ pub fn fisher_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail>
     total.push(count_text(n));
     table_rows.push(total);
     Ok(Value::TestResult(Rc::new(TestResult {
+        terms: Vec::new(),
         method: "fisher_test".to_string(),
         title: format!("fisher_test · exact · {a} × {b}"),
         hypotheses: Some(Hypotheses {

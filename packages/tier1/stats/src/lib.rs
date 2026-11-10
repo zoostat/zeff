@@ -4,6 +4,7 @@
 //! `cor.test` for the three correlation methods.
 
 pub mod anova;
+pub mod anova_factorial;
 pub mod chi2_test;
 pub mod fisher_test;
 pub mod kruskal_test;
@@ -775,7 +776,7 @@ pub fn functions() -> Vec<Function> {
                 method: true,
                 params: vec![
                     ParamSpec::required("data", "Frame"),
-                    ParamSpec::required("var", "Var"),
+                    ParamSpec::required("var", "Var | Formula"),
                     ParamSpec::option("group", "Var"),
                     ParamSpec::option_with_default("equal_var", "Bool", "false"),
                     ParamSpec::option("weights", "Var"),
@@ -784,23 +785,33 @@ pub fn functions() -> Vec<Function> {
                         "frequency | analytic | sampling",
                         "sampling",
                     ),
+                    ParamSpec::option_with_default("type", "Int", "2"),
                 ],
                 rest: None,
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in the variable or the groups dropped, with the count",
+                        "rows with NA in the variable or the groups dropped, with the count; with a formula, rows with NA in a model variable or a zero weight, a column determined by the others, a term left without degrees of freedom, and a model without a category",
                     ),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable that is not numeric; group: missing, or with fewer than two groups among the rows kept; under Welch's test a group of one value or without variation; under equal_var: true no degrees of freedom within the groups or a pooled variance of zero",
+                        "a variable that is not numeric; group: missing, or with fewer than two groups among the rows kept; under Welch's test a group of one value or without variation; under equal_var: true no degrees of freedom within the groups or a pooled variance of zero; type: with a variable, or group: or equal_var: with a formula; type: not 1, 2 or 3; a formula without an outcome, without an intercept or without a term; a category of one level; an outcome that does not vary; type: 3 with a column determined by the others (a combination of levels with no observations)",
                     ),
                     DiagnosticDecl::new("Z0411", "weights: with weight_type: sampling"),
+                    DiagnosticDecl::new("Z0801", "with a formula, no row remains"),
+                    DiagnosticDecl::new(
+                        "Z0802",
+                        "with a formula, no term that varies, no residual degrees of freedom, or a model that reproduces the outcome",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0803",
+                        "with a formula, an outcome or a term above 1e150 in size",
+                    ),
                 ],
                 help: include_str!("../help/anova.md"),
                 accuracy: Some(AccuracyRecord {
-                    reference: "R 4.6.0 oneway.test() and aov() (tests/reference/r/anova.R)"
+                    reference: "R 4.6.0 oneway.test(), aov() and anova(lm()), car 3.1-5 Anova() (tests/reference/r/anova.R)"
                         .to_string(),
                     last_run: None,
                 }),

@@ -322,6 +322,7 @@ fn independence(
     total.push(count_text(n));
     table_rows.push(total);
     Ok(Value::TestResult(Rc::new(TestResult {
+        terms: Vec::new(),
         method: "chi2_test".to_string(),
         title: format!(
             "chi2_test · independence · {a} × {b}{}",
@@ -450,6 +451,7 @@ fn goodness_of_fit(
         "1".to_string(),
     ]);
     Ok(Value::TestResult(Rc::new(TestResult {
+        terms: Vec::new(),
         method: "chi2_test".to_string(),
         title: format!("chi2_test · goodness of fit · {var}"),
         hypotheses: Some(Hypotheses {

@@ -1363,6 +1363,12 @@ fn panel_cases() -> Vec<Line> {
     // refusal of a group of one under Welch's form.
     let one_way = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\ng.anova(s, group: site)\ng.anova(s, group: site, equal_var: true)\ng.where(site < 3).anova(s, group: site)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"], w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])\nt.anova(v, group: k, weights: w, weight_type: frequency)\nt.anova(v, group: k, weights: w, weight_type: analytic, equal_var: true)\nlet m = frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 3.5], g = [1, 1, 2, 2, NA, 3, 3, 2])\nm.anova(x, group: g)\nframe(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g, equal_var: true)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage, group: industry)\nlet a = wages.where(year == 2010).anova(lwage, group: industry, equal_var: true)\na\na.df()\na.effect_size()\nframe(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g)\n";
     let one_way_outcome = run_script(&fs, &project, "scripts/main.zeff", one_way);
+    // `anova`, factorial (release 0.7.0, step 17): the three types of sums of squares on an
+    // unbalanced layout with a covariate, the terms in two orders, frequency and analytic weights,
+    // an empty cell, a repeated variable, the shipped wages by industry and sex, the result read
+    // as values, and the refusal of type 3 where a cell is empty.
+    let factorial = "let d = frame(y = [3.1, 4.2, 5.0, 6.3, 2.2, 7.9, 4.4, 5.1, 6.6, 3.8, 4.9, 7.2], a = [\"p\", \"p\", \"p\", \"p\", \"q\", \"q\", \"q\", \"q\", \"r\", \"r\", \"r\", \"r\"], b = [\"u\", \"v\", \"u\", \"v\", \"u\", \"v\", \"u\", \"v\", \"u\", \"v\", \"u\", \"v\"], x = [1.0, 2.5, 0.3, 4.1, 2.2, 3.3, 1.9, 0.7, 2.8, 3.9, 1.1, 2.0], w = [1, 2, 1, 0, 1, 3, 1, 1, 2, 1, 1, 1]).add(a = category(a), b = category(b))\nd.anova(y ~ a * b)\nd.anova(y ~ a * b + x, type: 1)\nd.anova(y ~ x + a * b, type: 1)\nd.anova(y ~ a * b + x, type: 3)\nd.anova(y ~ a + x, weights: w, weight_type: frequency)\nd.anova(y ~ a + x, weights: w, weight_type: analytic)\nd.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b)\nd.add(x2 = 2 * x).anova(y ~ x + x2)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage ~ industry * category(female) + educ)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3)\nlet t = d.anova(y ~ a * b + x)\nt.statistic()\nt.df()\nt.p_values()\nt.estimates()\nd.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b, type: 3)\n";
+    let factorial_outcome = run_script(&fs, &project, "scripts/main.zeff", factorial);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1416,6 +1422,14 @@ fn panel_cases() -> Vec<Line> {
         text("tests/ks/stderr", &kolmogorov_outcome.output.stderr),
         text("tests/anova_oneway/stdout", &one_way_outcome.output.stdout),
         text("tests/anova_oneway/stderr", &one_way_outcome.output.stderr),
+        text(
+            "tests/anova_factorial/stdout",
+            &factorial_outcome.output.stdout,
+        ),
+        text(
+            "tests/anova_factorial/stderr",
+            &factorial_outcome.output.stderr,
+        ),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),

@@ -218,6 +218,7 @@ pub fn kruskal_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail
         })
         .collect();
     Ok(Value::TestResult(Rc::new(TestResult {
+        terms: Vec::new(),
         method: "kruskal_test".to_string(),
         title: format!("kruskal_test · {var} by {group_name}"),
         hypotheses: Some(Hypotheses {

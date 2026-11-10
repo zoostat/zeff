@@ -1,0 +1,192 @@
+---
+source: packages/tier1/stats/tests/anova_factorial.rs
+expression: all
+---
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `group:` belongs to the one-way form of `anova`; with a formula the groups are its terms
+ --> scripts/main.zeff:2:27
+  |
+2 | d.anova(y ~ a * b, group: a)
+  |                           ^ not used with a formula
+  |
+  = help: write the grouping variable as a term, `anova(y ~ g)`; or name the variable alone, `anova(y, group: g)`, for the one-way test
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `equal_var:` belongs to the one-way form of `anova`; the table of a formula always pools the variance
+ --> scripts/main.zeff:2:31
+  |
+2 | d.anova(y ~ a * b, equal_var: true)
+  |                               ^^^^ not used with a formula
+  |
+  = help: leave `equal_var:` out; Welch's F, which does not pool, is `anova(y, group: g)`
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `type:` belongs to the factorial form of `anova`, which takes a formula
+ --> scripts/main.zeff:2:28
+  |
+2 | d.anova(y, group: a, type: 3)
+  |                            ^ not used with a variable and `group:`
+  |
+  = help: write the model as a formula, `anova(y ~ a * b, type: 3)`; the one-way test of a variable has one term and no type of sums of squares
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `type:` of `anova` must be 1, 2 or 3, not 4
+ --> scripts/main.zeff:2:26
+  |
+2 | d.anova(y ~ a * b, type: 4)
+  |                          ^ not a type of sums of squares
+  |
+  = help: `type: 1` adjusts each term for the terms above it, `type: 2` (the default) for every other term that does not contain it, `type: 3` for every other term
+
+error[Z0401]: `type` of `anova` must be an Int, but this is a Str
+ --> scripts/main.zeff:2:26
+  |
+2 | d.anova(y ~ a * b, type: "2")
+  |                          ^^^ a Str
+  |
+  = help: usage: `data.anova(var, group: Var, equal_var: Bool = false, weights: Var, weight_type: frequency | analytic | sampling = sampling, type: Int = 2)`
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `anova` adjusts every term for the grand mean, but the formula removes the intercept
+ --> scripts/main.zeff:2:9
+  |
+2 | d.anova(y ~ a * b - 1)
+  |         ^^^^^^^^^^^^^ a model without an intercept
+  |
+  = help: leave `- 1` out of the formula; `reg` fits a model without an intercept
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: the formula of `anova` has no term to test
+ --> scripts/main.zeff:2:9
+  |
+2 | d.anova(y ~ 1)
+  |         ^^^^^ an intercept alone
+  |
+  = help: write the terms on the right of `~`, `anova(y ~ a * b)`; a test of one mean against a value is `t_test` with `mu:`
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0411]: `weights:` of `anova` are sampling weights, which a test cannot use
+ --> scripts/main.zeff:2:29
+  |
+2 | d.anova(y ~ a + x, weights: w)
+  |                             ^ sampling weights
+  |
+  = help: a regression with robust standard errors gives design-based inference, `reg(y ~ 1, weights: w, se: robust)`; frequency or analytic weights are taken with `weight_type: frequency` or `weight_type: analytic`
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+note: no row kept: the result is empty (line 2)
+error[Z0801]: no row remains for `anova`: the frame has no rows
+ --> scripts/main.zeff:2:18
+  |
+2 | d.where(y > 100).anova(y ~ a)
+  |                  ^^^^^ nothing to estimate
+  |
+  = help: a model needs rows; the frame's own steps left none
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `a` has one level among the rows used, so `anova` has no groups of it to compare
+ --> scripts/main.zeff:2:25
+  |
+2 | d.where(a == "p").anova(y ~ a + b)
+  |                         ^^^^^^^^^ a category of one level
+  |
+  = help: a term needs two levels or more among the rows kept; leave the variable out of the formula, or keep more rows
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `k` has the same value in every row used, so there is no variation to divide among the terms
+ --> scripts/main.zeff:2:22
+  |
+2 | d.add(k = 2.5).anova(k ~ a + b)
+  |                      ^^^^^^^^^ an outcome that does not vary
+  |
+  = help: an analysis of variance needs an outcome that varies
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0803]: `big` has values too large to compute with (above 1e150 in size)
+ --> scripts/main.zeff:2:30
+  |
+2 | d.add(big = y * 1e160).anova(big ~ a)
+  |                              ^^^^^^^ an outcome too large to square
+  |
+  = help: divide the outcome by a power of ten first, `add(big_m = big / 1e6)`, and read the sums of squares in those units
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0803]: `big` has values too large to compute with (above 1e150 in size)
+ --> scripts/main.zeff:2:30
+  |
+2 | d.add(big = x * 1e160).anova(y ~ a + big)
+  |                              ^^^^^^^^^^^ a term too large to square
+  |
+  = help: divide the variable by a power of ten first; no test of the model changes
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0802]: no residual degrees of freedom: 12 observations and 12 estimated columns, the intercept counted
+ --> scripts/main.zeff:2:9
+  |
+2 | d.anova(y ~ a * b * x)
+  |         ^^^^^^^^^^^^^ as many columns as observations, or more
+  |
+  = help: F divides by the residual mean square, which needs more observations than the model has columns; an interaction of two categories needs a cell with two observations or more, or drop the interaction
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0802]: the model reproduces `y` exactly, so the residual sum of squares is zero and no F is defined
+ --> scripts/main.zeff:2:28
+  |
+2 | d.add(z = 2 * y + 1).anova(y ~ z)
+  |                            ^^^^^ an essentially perfect fit
+  |
+  = help: an analysis of variance needs variation the terms do not explain; check that no term is the outcome under another name
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `type: 3` cannot adjust each term for every other: 1 of the model's 6 columns is determined by the others
+ --> scripts/main.zeff:2:57
+  |
+2 | d.where(!(a == "r" && b == "v")).anova(y ~ a * b, type: 3)
+  |                                                         ^ a combination of levels with no observations, or a term that repeats the others
+  |
+  = help: `type: 2` tests each term whatever cells are empty; `tabulate` shows the cells of two categories
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `type: 3` cannot adjust each term for every other: 1 of the model's 3 columns is determined by the others
+ --> scripts/main.zeff:2:43
+  |
+2 | d.add(x2 = 2 * x).anova(y ~ x + x2, type: 3)
+  |                                           ^ a term that repeats the others
+  |
+  = help: leave the term that repeats the others out of the formula
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0401]: `s` is text, and a model needs numbers or a category
+ --> scripts/main.zeff:2:3
+  |
+2 | d.anova(y ~ a + s)
+  |   ^^^^^ a text variable in the model
+  |
+  = help: `category(s)` makes it a category, in the formula or with `add`
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0414]: `a` names a term, but the methods of a test's result take no term
+ --> scripts/main.zeff:2:29
+  |
+2 | d.anova(y ~ a * b).p_values("a")
+  |                             ^^^ no term is taken here
+  |
+  = help: without a term these give the whole model's F, its degrees of freedom and its p-value; `estimates()` gives one row for each term of the table

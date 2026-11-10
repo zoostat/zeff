@@ -56,6 +56,7 @@ fn method(body: Body, test: &Rc<TestResult>) -> Value {
 /// A Welch t test with everything a result can carry.
 fn welch() -> Rc<TestResult> {
     Rc::new(TestResult {
+        terms: Vec::new(),
         method: "t_test".to_string(),
         title: "t_test · Welch · lwage by female".to_string(),
         hypotheses: Some(Hypotheses {
@@ -96,6 +97,7 @@ fn welch() -> Rc<TestResult> {
 /// An F test of a restriction, as `test` gives it: two degrees of freedom, no hypotheses.
 fn wald() -> Rc<TestResult> {
     Rc::new(TestResult {
+        terms: Vec::new(),
         method: "test".to_string(),
         title: "test · m · educ == 0".to_string(),
         hypotheses: None,
@@ -122,6 +124,7 @@ fn wald() -> Rc<TestResult> {
 /// An exact test, as `fisher_test` gives it: an odds ratio, no statistic, one-sided.
 fn exact() -> Rc<TestResult> {
     Rc::new(TestResult {
+        terms: Vec::new(),
         method: "fisher_test".to_string(),
         title: "fisher_test · exact · union × female".to_string(),
         hypotheses: Some(Hypotheses {

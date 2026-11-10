@@ -3196,15 +3196,27 @@ impl<'a> Interpreter<'a> {
                 .chain(fit.omitted.iter())
                 .map(String::as_str)
                 .collect(),
-            Value::TestResult(_) => {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0414",
+            Value::TestResult(test) => {
+                let (message, label, help) = if test.terms.is_empty() {
+                    (
                         format!("`{name}` names a term, but a test's result has no terms"),
+                        "a TestResult has no terms",
+                        "a test's result holds one statistic and one p-value; ask for them without naming a term",
                     )
-                    .in_file(self.script)
-                    .primary(span, "a TestResult has no terms")
-                    .help("a test's result holds one statistic and one p-value; ask for them without naming a term"),
+                } else {
+                    (
+                        format!(
+                            "`{name}` names a term, but the methods of a test's result take no term"
+                        ),
+                        "no term is taken here",
+                        "without a term these give the whole model's F, its degrees of freedom and its p-value; `estimates()` gives one row for each term of the table",
+                    )
+                };
+                return Err(fail(
+                    Diagnostic::error("Z0414", message)
+                        .in_file(self.script)
+                        .primary(span, label)
+                        .help(help),
                 ));
             }
             _ => return Ok(()),

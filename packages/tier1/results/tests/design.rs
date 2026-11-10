@@ -836,3 +836,116 @@ fn messages_list_ten_rows_and_count_the_rest() {
         );
     }
 }
+
+/// The terms of a design name their columns, and the sum coding of the factorial `anova` is
+/// taken over the levels the rows used hold: a level no row holds has no column, a category
+/// left with one level is reported, and each coded column sums to zero over a balanced layout.
+#[test]
+fn the_terms_name_their_columns_and_the_sum_coding_follows_the_rows_used() {
+    let t = table(vec![
+        (
+            "y",
+            floats(&[
+                Some(1.0),
+                Some(2.0),
+                Some(3.5),
+                Some(4.0),
+                Some(5.5),
+                Some(6.0),
+                None,
+            ]),
+        ),
+        (
+            "g",
+            categories(
+                &["p", "q", "never"],
+                &[
+                    Some(0),
+                    Some(1),
+                    Some(0),
+                    Some(1),
+                    Some(0),
+                    Some(1),
+                    Some(0),
+                ],
+            ),
+        ),
+        (
+            "h",
+            categories(
+                &["u", "v", "w", "gone"],
+                &[
+                    Some(0),
+                    Some(1),
+                    Some(2),
+                    Some(0),
+                    Some(1),
+                    Some(2),
+                    Some(3),
+                ],
+            ),
+        ),
+        (
+            "x",
+            floats(&[
+                Some(0.5),
+                Some(1.5),
+                Some(-1.0),
+                Some(2.0),
+                Some(0.0),
+                Some(1.0),
+                Some(3.0),
+            ]),
+        ),
+    ]);
+    let (design, _) = build(&t, "y ~ g * h + x", &[]).unwrap();
+    let (design, single) = design.sum_coded();
+    assert!(single.is_empty());
+    // `never` has no row at all and `gone` only the row dropped for the missing outcome.
+    assert_eq!(
+        design.category_levels(),
+        vec![
+            ("g".to_string(), vec!["p".to_string(), "q".to_string()]),
+            (
+                "h".to_string(),
+                vec!["u".to_string(), "v".to_string(), "w".to_string()]
+            ),
+        ]
+    );
+    let terms = design.terms();
+    let shape: Vec<(&str, std::ops::Range<usize>, usize)> = terms
+        .iter()
+        .map(|t| (t.label.as_str(), t.columns.clone(), t.categories))
+        .collect();
+    assert_eq!(
+        shape,
+        vec![
+            ("g", 1..2, 1),
+            ("h", 2..4, 1),
+            ("g:h", 4..6, 2),
+            ("x", 6..7, 0)
+        ]
+    );
+    assert_eq!(design.k(), 7);
+    // The terms stand as the formula wrote them; a term is contained in another by its parts.
+    assert!(terms[0].parts.is_subset(&terms[2].parts));
+    assert!(!terms[3].parts.is_subset(&terms[2].parts));
+    // Deviations from the mean: the base, the first level present, is minus one in every column
+    // of its category, so over this balanced layout every coded column sums to zero.
+    let m = design.matrix();
+    assert_eq!(m.rows(), 6);
+    for c in [1, 2, 3, 4, 5] {
+        let total: f64 = (0..6).map(|r| m.get(r, c)).sum();
+        assert_eq!(total, 0.0, "column {c}");
+    }
+    assert_eq!((m.get(0, 1), m.get(1, 1)), (-1.0, 1.0));
+    assert_eq!((m.get(0, 2), m.get(1, 2), m.get(2, 2)), (-1.0, 1.0, 0.0));
+    // A category whose rows used hold one level is reported by its variable.
+    let one = table(vec![
+        ("y", floats(&[Some(1.0), Some(2.0), None])),
+        ("g", categories(&["p", "q"], &[Some(0), Some(0), Some(1)])),
+    ]);
+    let (design, _) = build(&one, "y ~ g", &[]).unwrap();
+    let (_, single) = design.sum_coded();
+    assert_eq!(single, vec!["g".to_string()]);
+}

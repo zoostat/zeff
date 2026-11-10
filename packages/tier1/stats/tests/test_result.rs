@@ -28,6 +28,7 @@ impl Files for NoFiles {
 /// The two-group `t_test` of section 10.2's example, built by hand with its numbers.
 fn welch() -> TestResult {
     TestResult {
+        terms: Vec::new(),
         method: "t_test".to_string(),
         title: "t_test · Welch two-sample · lwage by female".to_string(),
         hypotheses: Some(Hypotheses {
@@ -97,6 +98,7 @@ fn welch() -> TestResult {
 /// A result without a standard symbolic form, one-sided, kept at a 99% level.
 fn signed_rank() -> TestResult {
     TestResult {
+        terms: Vec::new(),
         method: "wilcoxon_test".to_string(),
         title: "wilcoxon_test · signed rank · gain".to_string(),
         hypotheses: Some(Hypotheses {

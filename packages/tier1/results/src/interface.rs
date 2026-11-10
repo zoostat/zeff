@@ -286,6 +286,56 @@ pub fn estimates(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         // degrees of freedom and the p-value (the estimate's label, or the statistic's name
         // where the test has no estimate: `test`, `compare`, `chi2_test`), and a row for its
         // effect size with its interval where it has one.
+        // A test of several rows (a factorial `anova`): a row per term with its statistic,
+        // degrees of freedom and p-value, then a row per term for its effect size.
+        Receiver::Test(test) if !test.terms.is_empty() => {
+            let mut terms: Vec<Option<String>> = Vec::new();
+            let mut values = Vec::new();
+            let mut statistics = Vec::new();
+            let mut dfs = Vec::new();
+            let mut df2s = Vec::new();
+            let mut p_values = Vec::new();
+            let mut lowers = Vec::new();
+            let mut uppers = Vec::new();
+            for row in &test.terms {
+                terms.push(Some(row.term.clone()));
+                values.push(None);
+                statistics.push(finite(row.statistic.value));
+                dfs.push(row.statistic.df.first().copied());
+                df2s.push(row.statistic.df.get(1).copied());
+                p_values.push(finite(row.p_value));
+                lowers.push(None);
+                uppers.push(None);
+            }
+            for row in &test.terms {
+                let Some(effect) = &row.effect else {
+                    continue;
+                };
+                terms.push(Some(format!("{} ({})", effect.label, row.term)));
+                values.push(finite(effect.value));
+                statistics.push(None);
+                dfs.push(None);
+                df2s.push(None);
+                p_values.push(None);
+                lowers.push(effect.ci.map(|c| c.0));
+                uppers.push(effect.ci.map(|c| c.1));
+            }
+            let rows = terms.len();
+            vec![
+                (
+                    "term".to_string(),
+                    Column::strs(terms.iter().map(|t| t.as_deref())),
+                ),
+                ("estimate".to_string(), floats(values)),
+                ("std_error".to_string(), floats(vec![None; rows])),
+                ("statistic".to_string(), floats(statistics)),
+                ("df".to_string(), floats(dfs)),
+                ("df2".to_string(), floats(df2s)),
+                ("p_value".to_string(), floats(p_values)),
+                ("ci_lower".to_string(), floats(lowers)),
+                ("ci_upper".to_string(), floats(uppers)),
+            ]
+        }
         Receiver::Test(test) => {
             let first = test
                 .estimate
@@ -402,13 +452,14 @@ fn fit_measures_line(fit: &Fit) -> String {
 /// A test's result as a table: its title, its header lines, its table if it has one, and its
 /// statistic line with the lines after it.
 fn test_table(test: &TestResult) -> Table {
-    let (columns, rows, more) = match &test.table {
+    let (columns, rows, more, rules) = match &test.table {
         Some(table) => (
             table.columns.clone(),
             table.rows.clone(),
             table.more.clone(),
+            table.rules.clone(),
         ),
-        None => (Vec::new(), Vec::new(), Vec::new()),
+        None => (Vec::new(), Vec::new(), Vec::new(), Vec::new()),
     };
     Table {
         title: test.title.clone(),
@@ -417,7 +468,7 @@ fn test_table(test: &TestResult) -> Table {
         rows,
         after: test_result_after(test),
         more,
-        rules: Vec::new(),
+        rules,
     }
 }
 

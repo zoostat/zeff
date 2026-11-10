@@ -24,14 +24,15 @@ use crate::testing;
 use crate::testing::Sample;
 
 /// The argument slots, in the order of the registration.
-const VAR: usize = 1;
-const GROUP: usize = 2;
-const EQUAL_VAR: usize = 3;
-const WEIGHTS: usize = 4;
-const WEIGHT_TYPE: usize = 5;
+pub(crate) const VAR: usize = 1;
+pub(crate) const GROUP: usize = 2;
+pub(crate) const EQUAL_VAR: usize = 3;
+pub(crate) const WEIGHTS: usize = 4;
+pub(crate) const WEIGHT_TYPE: usize = 5;
+pub(crate) const TYPE: usize = 6;
 
 /// The level of the decision line: the test has no `level:`, so α is 0.05.
-const LEVEL: f64 = 0.95;
+pub(crate) const LEVEL: f64 = 0.95;
 
 /// One group as the F statistic sees it: its count (the weight sum under frequency weights),
 /// its mean and its sample variance (`NaN` for a group of one).
@@ -88,7 +89,7 @@ fn sums_of_squares(groups: &[GroupSummary]) -> (f64, f64, f64) {
 }
 
 /// The upper tail of F on `df1` and `df2` at `f`.
-fn upper_tail(f: f64, df1: f64, df2: f64) -> f64 {
+pub(crate) fn upper_tail(f: f64, df1: f64, df2: f64) -> f64 {
     if f.is_nan() {
         return f64::NAN;
     }
@@ -220,7 +221,7 @@ fn numeric(ctx: &CallContext<'_>, name: &str, column: &Column, slot: usize) -> R
 
 /// N as a count when whole (the usual case), to one decimal under analytic weights that are
 /// not.
-fn count_text(n: f64) -> String {
+pub(crate) fn count_text(n: f64) -> String {
     if n.fract() == 0.0 {
         count(n as u64)
     } else {
@@ -298,7 +299,8 @@ fn undefined(
     fail(diagnostic.in_file(ctx.script))
 }
 
-/// `data.anova(var, group:, equal_var:, weights:, weight_type:)`, the one-way form.
+/// `data.anova(var, group:, equal_var:, weights:, weight_type:)`, the one-way form, and the
+/// way in to the factorial form, `data.anova(y ~ a * b, type:)`, of `anova_factorial`.
 pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Frame(frame)) = args.get(0) else {
         return Err(testing::internal(
@@ -307,6 +309,22 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ));
     };
     let frame = frame.clone();
+    // A formula in the place of the variable is the factorial form.
+    if let Some(Value::Formula(formula)) = args.get(VAR) {
+        let formula = formula.clone();
+        return crate::anova_factorial::anova(ctx, &args, &frame, &formula);
+    }
+    if args.get(TYPE).is_some() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`type:` belongs to the factorial form of `anova`, which takes a formula",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(TYPE), "not used with a variable and `group:`")
+            .help("write the model as a formula, `anova(y ~ a * b, type: 3)`; the one-way test of a variable has one term and no type of sums of squares"),
+        ));
+    }
     let Some((var, column)) = testing::variable(ctx, &frame, &args, VAR)? else {
         return Err(testing::internal(ctx, "`anova` has no variable"));
     };
@@ -416,6 +434,7 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     };
     let variant = if equal_var { "classical" } else { "Welch" };
     Ok(Value::TestResult(Rc::new(TestResult {
+        terms: Vec::new(),
         method: "anova".to_string(),
         title: format!("anova · {variant} one-way · {var} by {group_name}"),
         hypotheses: Some(Hypotheses {

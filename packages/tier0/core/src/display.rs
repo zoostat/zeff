@@ -339,11 +339,14 @@ pub fn test_result_after(result: &TestResult) -> Vec<String> {
     } else {
         2
     };
-    lines.push(statistic_line_to(
-        &result.statistic,
-        result.p_value,
-        decimals,
-    ));
+    // A test of several rows (a factorial `anova`) prints each statistic in its table.
+    if result.terms.is_empty() {
+        lines.push(statistic_line_to(
+            &result.statistic,
+            result.p_value,
+            decimals,
+        ));
+    }
     if let Some(effect) = &result.effect {
         lines.push(estimate_line(effect, result.level));
     }

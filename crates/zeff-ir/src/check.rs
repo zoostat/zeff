@@ -2768,6 +2768,19 @@ impl Checker<'_> {
                 kind: ExprKind::Binding(id),
             };
         }
+        // Where a parameter takes a variable or a formula (`anova`), a binding holding a formula
+        // stands for the formula; any other name there is a variable of the frame.
+        if let Some(Ty::Union(options)) = expected
+            && options.iter().any(|o| matches!(o, Ty::Formula))
+            && let Some(id) = self.lookup(&text)
+            && matches!(self.bindings[id].ty, Ty::Formula)
+        {
+            return Expr {
+                ty: Ty::Formula,
+                span,
+                kind: ExprKind::Binding(id),
+            };
+        }
         match expected {
             Some(Ty::Var) => {
                 return Expr {

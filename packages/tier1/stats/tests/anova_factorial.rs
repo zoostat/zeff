@@ -1,0 +1,788 @@
+//! `anova`, the factorial form (release 0.7.0, step 17; Language Reference, sections 4, 6, 7.2
+//! and 10.2; open decisions #91 and #98): the reference (`tests/reference/r/anova.json`, key
+//! `factorial`: R 4.6.0's `anova(lm())` for type 1 and car 3.1-5's `Anova()` for types 2 and 3,
+//! on balanced and unbalanced layouts, the terms in both orders, a covariate alone and in an
+//! interaction, three factors, an empty cell, rows with `NA`, frequency and analytic weights)
+//! within a relative 1e-9, figure by figure and again through the function; the properties (the
+//! three types agree on a balanced layout; the type 1 sums of squares add up to the model's;
+//! types 2 and 3 do not depend on the order of the terms; frequency weights repeat rows); the
+//! edge cases (every refusal and every note); and snapshots of every form and every message.
+
+use proptest::prelude::*;
+use serde_json::Value as Json;
+use zeff_columns::{Column, Table as Columns};
+use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness};
+use zeff_core::value::{Frame, TestResult, Value};
+use zeff_diagnostics::{Diagnostic, Span};
+use zeff_numeric::order::WeightKind;
+use zeff_results::design::Design;
+use zeff_stats::anova::anova;
+use zeff_stats::anova_factorial::{Factorial, Kind, Undefined, table_of};
+use zeff_testkit::{formula, root, run};
+
+struct NoFiles;
+
+impl Files for NoFiles {
+    fn read(&self, _: &str, _: Span, _: &str) -> Result<Vec<u8>, Fail> {
+        unreachable!("no file is read")
+    }
+}
+
+/// The slots of `anova`: data, var, group, equal_var, weights, weight_type, type.
+const SLOTS: usize = 7;
+const WEIGHTS: usize = 4;
+const WEIGHT_TYPE: usize = 5;
+const TYPE: usize = 6;
+
+fn with_context<T>(
+    text: &str,
+    body: impl FnOnce(&mut CallContext<'_>) -> Result<T, Fail>,
+) -> Result<T, Fail> {
+    let mut output = String::new();
+    let mut messages: Vec<Diagnostic> = Vec::new();
+    let mut random = Randomness::default();
+    let mut ctx = CallContext {
+        files: &NoFiles,
+        script: "t.zeff",
+        text,
+        columns_used: Vec::new(),
+        frame: None,
+        callee_span: Span::new(2, 7),
+        arg_spans: vec![None; SLOTS],
+        rest_spans: Vec::new(),
+        definition_spans: Vec::new(),
+        output: &mut output,
+        messages: &mut messages,
+        random: &mut random,
+        statement: 1,
+    };
+    body(&mut ctx)
+}
+
+/// The design of `text` on `frame`, its categories coded by deviations, as `anova` builds it.
+fn design(frame: &Frame, text: &str, weights: Option<(&str, WeightKind)>) -> Design {
+    let model = formula(text);
+    let built = with_context(text, |ctx| {
+        let extra: Vec<&str> = weights.iter().map(|(name, _)| *name).collect();
+        let mut design = Design::build(ctx, frame, &model, &extra)?;
+        if let Some((name, kind)) = weights {
+            design = design.weighted(ctx, frame, name, kind)?;
+        }
+        Ok(design.sum_coded().0)
+    });
+    match built {
+        Ok(design) => design,
+        Err(_) => panic!("the design of `{text}` builds"),
+    }
+}
+
+/// `anova` called with a formula and the options given by slot.
+fn call(frame: &Frame, text: &str, slots: Vec<(usize, Value)>) -> Result<TestResult, Fail> {
+    let mut values: Vec<Option<Value>> = vec![None; SLOTS];
+    values[0] = Some(Value::Frame(frame.clone()));
+    values[1] = Some(Value::Formula(formula(text)));
+    for (slot, value) in slots {
+        values[slot] = Some(value);
+    }
+    let args = Args {
+        values,
+        rest: Vec::new(),
+        definitions: Vec::new(),
+    };
+    with_context(text, |ctx| anova(ctx, args)).map(|v| match v {
+        Value::TestResult(r) => (*r).clone(),
+        other => panic!("not a TestResult: {other:?}"),
+    })
+}
+
+fn frame_of(columns: Vec<(&str, Column)>) -> Frame {
+    let table = Columns::new(
+        columns
+            .into_iter()
+            .map(|(n, c)| (n.to_string(), c))
+            .collect(),
+    )
+    .unwrap();
+    Frame::new(table)
+}
+
+/// A category column of `levels`, each row by the position of its level.
+fn category(levels: &[&str], codes: impl Iterator<Item = Option<i32>>) -> Column {
+    Column::categories(levels.iter().map(|l| (*l).to_string()).collect(), codes).unwrap()
+}
+
+fn number(v: &Json) -> Option<f64> {
+    match v {
+        Json::String(s) => match s.as_str() {
+            "NA" => None,
+            s => Some(s.parse().unwrap()),
+        },
+        other => Some(other.as_f64().unwrap()),
+    }
+}
+
+fn text_of(v: &Json) -> Option<String> {
+    match v {
+        Json::String(s) if s == "NA" => None,
+        Json::String(s) => Some(s.clone()),
+        other => Some(other.to_string()),
+    }
+}
+
+fn reference() -> Json {
+    let text = std::fs::read_to_string(root().join("tests/reference/r/anova.json")).unwrap();
+    serde_json::from_str(&text).unwrap()
+}
+
+fn close(got: f64, want: f64, relative: f64) -> bool {
+    (got - want).abs() <= relative * want.abs().max(1e-300)
+}
+
+/// The frame of a reference case: the factors as categories whose levels are the values seen,
+/// in alphabetical order as R's `factor`; frequency weights as whole numbers; the rest as
+/// numbers.
+fn case_frame(case: &Json) -> Frame {
+    let factors: Vec<&str> = case["factors"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    let frequency = case["weight_type"].as_str() == Some("frequency");
+    let weights = text_of(&case["weights"]);
+    let columns = case["columns"].as_object().unwrap();
+    frame_of(
+        columns
+            .iter()
+            .map(|(name, values)| {
+                let values = values.as_array().unwrap();
+                let column = if factors.contains(&name.as_str()) {
+                    let cells: Vec<Option<String>> = values.iter().map(text_of).collect();
+                    let mut levels: Vec<&str> =
+                        cells.iter().flatten().map(String::as_str).collect();
+                    levels.sort_unstable();
+                    levels.dedup();
+                    category(
+                        &levels,
+                        cells.iter().map(|cell| {
+                            cell.as_ref()
+                                .map(|c| levels.iter().position(|l| l == c).unwrap() as i32)
+                        }),
+                    )
+                } else if frequency && weights.as_deref() == Some(name.as_str()) {
+                    Column::ints(values.iter().map(|v| number(v).map(|w| w as i64)))
+                } else {
+                    Column::floats(values.iter().map(number)).0
+                };
+                (name.as_str(), column)
+            })
+            .collect(),
+    )
+}
+
+/// The weights of a reference case, as the design and as the function take them.
+fn case_weights(case: &Json) -> Option<(String, WeightKind)> {
+    let name = text_of(&case["weights"])?;
+    let kind = match case["weight_type"].as_str().unwrap() {
+        "frequency" => WeightKind::Frequency,
+        "analytic" => WeightKind::Analytic,
+        other => panic!("no weight type {other}"),
+    };
+    Some((name, kind))
+}
+
+const KINDS: [(Kind, &str, i64); 3] = [
+    (Kind::Sequential, "type1", 1),
+    (Kind::Marginal, "type2", 2),
+    (Kind::Partial, "type3", 3),
+];
+
+// ----- the reference -----
+
+#[test]
+fn the_three_types_agree_with_anova_lm_and_with_car() {
+    let reference = reference();
+    let cases = reference["factorial"].as_array().unwrap();
+    assert!(cases.len() >= 15, "the reference has its cases");
+    let mut refused = 0;
+    for case in cases {
+        let text = case["formula"].as_str().unwrap();
+        let frame = case_frame(case);
+        let weights = case_weights(case);
+        let built = design(
+            &frame,
+            text,
+            weights.as_ref().map(|(n, k)| (n.as_str(), *k)),
+        );
+        let residual_df = number(&case["residual_df"]).unwrap();
+        let residual_ss = number(&case["residual_ss"]).unwrap();
+        let total_ss = number(&case["total_ss"]).unwrap();
+        let n = number(&case["n"]).unwrap();
+        for (kind, key, type_number) in KINDS {
+            let what = format!("{text}, {key}, weights {:?}", case["weights"]);
+            let mut slots = vec![(TYPE, Value::Int(type_number))];
+            if let Some((name, weight_kind)) = &weights {
+                slots.push((WEIGHTS, Value::Var(name.clone())));
+                let word = match weight_kind {
+                    WeightKind::Frequency => "frequency",
+                    _ => "analytic",
+                };
+                slots.push((WEIGHT_TYPE, Value::Word(word.to_string())));
+            }
+            let Some(rows) = case[key].as_array() else {
+                // car refuses type 3 where a cell is empty, and so does Zeff, by both routes.
+                assert_eq!(case[key].as_str(), Some("NA"), "{what}");
+                assert!(
+                    matches!(table_of(&built, kind), Err(Undefined::Aliased { .. })),
+                    "{what}"
+                );
+                assert!(call(&frame, text, slots).is_err(), "{what}");
+                refused += 1;
+                continue;
+            };
+            // Figure by figure, before any rounding.
+            let table: Factorial = match table_of(&built, kind) {
+                Ok(table) => table,
+                Err(why) => panic!("{what}: {why:?}"),
+            };
+            assert_eq!(table.terms.len(), rows.len(), "{what}");
+            assert!(close(table.residual_df, residual_df, 1e-12), "{what}");
+            assert!(
+                close(table.residual_ss, residual_ss, 1e-9),
+                "{what}: residual SS {} against {residual_ss}",
+                table.residual_ss
+            );
+            assert!(
+                close(table.total_ss, total_ss, 1e-9),
+                "{what}: total SS {} against {total_ss}",
+                table.total_ss
+            );
+            assert_eq!(
+                table.model.df as f64,
+                number(&case["model_df"]).unwrap(),
+                "{what}"
+            );
+            assert!(
+                close(table.model.f, number(&case["model_f"]).unwrap(), 1e-9),
+                "{what}: model F {}",
+                table.model.f
+            );
+            assert!(
+                close(table.model.p, number(&case["model_p"]).unwrap(), 1e-9),
+                "{what}: model p {}",
+                table.model.p
+            );
+            assert!(
+                close(
+                    table.model.ss / table.total_ss,
+                    number(&case["r_squared"]).unwrap(),
+                    1e-9
+                ),
+                "{what}: R squared"
+            );
+            for (row, want) in table.terms.iter().zip(rows) {
+                let term = want["term"].as_str().unwrap();
+                assert_eq!(row.label, term, "{what}");
+                assert_eq!(
+                    row.df as f64,
+                    number(&want["df"]).unwrap(),
+                    "{what}: {term}"
+                );
+                let ss = number(&want["ss"]).unwrap();
+                assert!(
+                    close(row.ss, ss, 1e-9),
+                    "{what}: {term}: SS {} against {ss}",
+                    row.ss
+                );
+                let f = number(&want["f"]).unwrap();
+                assert!(
+                    close(row.f, f, 1e-9),
+                    "{what}: {term}: F {} against {f}",
+                    row.f
+                );
+                let p = number(&want["p"]).unwrap();
+                assert!(
+                    close(row.p, p, 1e-9),
+                    "{what}: {term}: p {} against {p}",
+                    row.p
+                );
+                assert!(
+                    close(row.partial_eta_squared, ss / (ss + residual_ss), 1e-9),
+                    "{what}: {term}: partial eta squared"
+                );
+            }
+            // The same figures through the function, as a script reads them.
+            let result = match call(&frame, text, slots) {
+                Ok(result) => result,
+                Err(_) => panic!("{what}: the function refuses"),
+            };
+            assert_eq!(result.n as f64, n, "{what}");
+            assert_eq!(result.statistic.name, "F");
+            assert!(close(
+                result.statistic.value,
+                number(&case["model_f"]).unwrap(),
+                1e-9
+            ));
+            assert_eq!(result.statistic.df.len(), 2);
+            assert!(close(result.statistic.df[1], residual_df, 1e-12), "{what}");
+            assert!(close(
+                result.p_value,
+                number(&case["model_p"]).unwrap(),
+                1e-9
+            ));
+            assert_eq!(result.terms.len(), rows.len(), "{what}");
+            for (row, want) in result.terms.iter().zip(rows) {
+                assert_eq!(row.term, want["term"].as_str().unwrap(), "{what}");
+                assert!(close(
+                    row.statistic.value,
+                    number(&want["f"]).unwrap(),
+                    1e-9
+                ));
+                assert_eq!(
+                    row.statistic.df,
+                    vec![number(&want["df"]).unwrap(), table.residual_df],
+                    "{what}"
+                );
+                assert!(close(row.p_value, number(&want["p"]).unwrap(), 1e-9));
+                let ss = number(&want["ss"]).unwrap();
+                let effect = row.effect.as_ref().unwrap();
+                assert_eq!(effect.label, "partial eta squared");
+                assert!(close(effect.value, ss / (ss + residual_ss), 1e-9), "{what}");
+            }
+        }
+    }
+    assert_eq!(refused, 1, "one case has an empty cell");
+}
+
+// ----- the properties -----
+
+fn property_cases() -> u32 {
+    std::env::var("property_cases")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1)
+        * 48
+}
+
+const LEVELS: [&str; 4] = ["p", "q", "r", "s"];
+
+/// Rows of an outcome, two category codes, a covariate and a whole weight.
+fn rows() -> impl Strategy<Value = Vec<(f64, i32, i32, f64, i64)>> {
+    prop::collection::vec(
+        (-3.0..3.0f64, 0..3i32, 0..3i32, -2.0..2.0f64, 1..4i64),
+        14..40,
+    )
+}
+
+fn layout(rows: &[(f64, i32, i32, f64, i64)]) -> Frame {
+    frame_of(vec![
+        ("y", Column::floats(rows.iter().map(|r| Some(r.0))).0),
+        ("a", category(&LEVELS, rows.iter().map(|r| Some(r.1)))),
+        ("b", category(&LEVELS, rows.iter().map(|r| Some(r.2)))),
+        ("x", Column::floats(rows.iter().map(|r| Some(r.3))).0),
+        ("w", Column::ints(rows.iter().map(|r| Some(r.4)))),
+    ])
+}
+
+/// Whether each of the two categories has two levels or more among the rows.
+fn two_levels_each(rows: &[(f64, i32, i32, f64, i64)]) -> bool {
+    let distinct = |pick: fn(&(f64, i32, i32, f64, i64)) -> i32| {
+        let mut seen: Vec<i32> = rows.iter().map(pick).collect();
+        seen.sort_unstable();
+        seen.dedup();
+        seen.len() >= 2
+    };
+    distinct(|r| r.1) && distinct(|r| r.2)
+}
+
+fn by_label<'a>(table: &'a Factorial, label: &str) -> &'a zeff_stats::anova_factorial::Row {
+    table
+        .terms
+        .iter()
+        .find(|row| row.label == label)
+        .unwrap_or_else(|| panic!("no row {label}"))
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases()))]
+
+    #[test]
+    fn the_three_types_agree_on_a_balanced_layout(
+        a_levels in 2..4usize,
+        b_levels in 2..4usize,
+        replicates in 2..4usize,
+        values in prop::collection::vec(-3.0..3.0f64, 48),
+    ) {
+        let n = a_levels * b_levels * replicates;
+        let values = &values[..n];
+        prop_assume!(values.iter().any(|v| *v != values[0]));
+        let frame = frame_of(vec![
+            ("y", Column::floats(values.iter().map(|v| Some(*v))).0),
+            ("a", category(&LEVELS, (0..n).map(|i| Some((i % a_levels) as i32)))),
+            ("b", category(&LEVELS, (0..n).map(|i| Some(((i / a_levels) % b_levels) as i32)))),
+        ]);
+        let built = design(&frame, "y ~ a * b", None);
+        let one = table_of(&built, Kind::Sequential);
+        prop_assume!(one.is_ok());
+        let one = one.unwrap();
+        let two = table_of(&built, Kind::Marginal).unwrap();
+        let three = table_of(&built, Kind::Partial).unwrap();
+        let scale = one.total_ss;
+        for ((r1, r2), r3) in one.terms.iter().zip(&two.terms).zip(&three.terms) {
+            prop_assert_eq!(&r1.label, &r2.label);
+            prop_assert_eq!(&r1.label, &r3.label);
+            prop_assert_eq!(r1.df, r2.df);
+            prop_assert_eq!(r1.df, r3.df);
+            prop_assert!((r1.ss - r2.ss).abs() <= 1e-9 * scale, "{} {} {}", r1.label, r1.ss, r2.ss);
+            prop_assert!((r1.ss - r3.ss).abs() <= 1e-9 * scale, "{} {} {}", r1.label, r1.ss, r3.ss);
+        }
+        // On a balanced layout the terms' sums of squares add up to the model's under every type.
+        let sum: f64 = three.terms.iter().map(|r| r.ss).sum();
+        prop_assert!((sum - three.model.ss).abs() <= 1e-9 * scale);
+    }
+
+    #[test]
+    fn the_sums_of_squares_add_up_and_the_marginal_types_ignore_the_order_of_the_terms(
+        rows in rows(),
+    ) {
+        prop_assume!(two_levels_each(&rows));
+        let frame = layout(&rows);
+        let built = design(&frame, "y ~ a * b + x", None);
+        let one = table_of(&built, Kind::Sequential);
+        prop_assume!(one.is_ok());
+        let one = one.unwrap();
+        let scale = one.total_ss;
+        // Type 1: the terms' sums of squares are the model's, and the model's and the residual
+        // are the total.
+        let sum: f64 = one.terms.iter().map(|r| r.ss).sum();
+        prop_assert!((sum - one.model.ss).abs() <= 1e-9 * scale, "{sum} {}", one.model.ss);
+        prop_assert!((one.model.ss + one.residual_ss - one.total_ss).abs() <= 1e-9 * scale);
+        let df: usize = one.terms.iter().map(|r| r.df).sum();
+        prop_assert_eq!(df, one.model.df);
+        prop_assert_eq!(one.model.df + 1, one.rank);
+        // The last term in is adjusted for all the others under every type.
+        let two = table_of(&built, Kind::Marginal).unwrap();
+        prop_assert!((by_label(&one, "a:b").ss - by_label(&two, "a:b").ss).abs() <= 1e-9 * scale);
+        for table in [&one, &two] {
+            for row in table.terms.iter().filter(|row| row.df > 0) {
+                prop_assert!(row.ss >= -1e-9 * scale);
+                prop_assert!(row.f >= -1e-9, "{}", row.f);
+                prop_assert!((0.0..=1.0).contains(&row.p), "{}", row.p);
+                prop_assert!((-1e-9..=1.0).contains(&row.partial_eta_squared));
+            }
+        }
+        // Types 2 and 3 with the terms written in another order.
+        let turned = design(&frame, "y ~ x + b * a", None);
+        let two_turned = table_of(&turned, Kind::Marginal).unwrap();
+        for (label, other) in [("a", "a"), ("b", "b"), ("x", "x"), ("a:b", "b:a")] {
+            let (r, t) = (by_label(&two, label), by_label(&two_turned, other));
+            prop_assert_eq!(r.df, t.df);
+            prop_assert!((r.ss - t.ss).abs() <= 1e-8 * scale, "{label}: {} {}", r.ss, t.ss);
+        }
+        match (table_of(&built, Kind::Partial), table_of(&turned, Kind::Partial)) {
+            (Ok(three), Ok(three_turned)) => {
+                prop_assert_eq!(three.rank, three.columns);
+                for (label, other) in [("a", "a"), ("b", "b"), ("x", "x"), ("a:b", "b:a")] {
+                    let (r, t) = (by_label(&three, label), by_label(&three_turned, other));
+                    prop_assert!((r.ss - t.ss).abs() <= 1e-8 * scale, "{label}: {} {}", r.ss, t.ss);
+                }
+                // Each term's partial test is the last step of some sequence, so no type 3 sum
+                // of squares exceeds what the model explains with the residual.
+                prop_assert!((by_label(&three, "a:b").ss - by_label(&two, "a:b").ss).abs() <= 1e-9 * scale);
+                prop_assert!((by_label(&three, "x").ss - by_label(&two, "x").ss).abs() <= 1e-8 * scale);
+            }
+            (Err(Undefined::Aliased { rank, columns }), Err(Undefined::Aliased { .. })) => {
+                // An empty cell: fewer independent columns than the model writes.
+                prop_assert!(rank < columns);
+                prop_assert!(two.rank < two.columns);
+            }
+            (left, right) => prop_assert!(false, "{left:?} against {right:?}"),
+        }
+    }
+
+    #[test]
+    fn frequency_weights_count_each_row_that_many_times(rows in rows()) {
+        prop_assume!(two_levels_each(&rows));
+        let weighted = design(&layout(&rows), "y ~ a + b + x", Some(("w", WeightKind::Frequency)));
+        let written: Vec<(f64, i32, i32, f64, i64)> = rows
+            .iter()
+            .flat_map(|r| std::iter::repeat_n((r.0, r.1, r.2, r.3, 1), r.4 as usize))
+            .collect();
+        let expanded = design(&layout(&written), "y ~ a + b + x", None);
+        for kind in [Kind::Sequential, Kind::Marginal, Kind::Partial] {
+            match (table_of(&weighted, kind), table_of(&expanded, kind)) {
+                (Ok(w), Ok(e)) => {
+                    let scale = e.total_ss;
+                    prop_assert_eq!(w.residual_df, e.residual_df);
+                    prop_assert!((w.residual_ss - e.residual_ss).abs() <= 1e-9 * scale);
+                    prop_assert!((w.total_ss - e.total_ss).abs() <= 1e-9 * scale);
+                    for (rw, re) in w.terms.iter().zip(&e.terms) {
+                        prop_assert_eq!(rw.df, re.df);
+                        prop_assert!((rw.ss - re.ss).abs() <= 1e-9 * scale, "{} {}", rw.ss, re.ss);
+                    }
+                }
+                (Err(w), Err(e)) => prop_assert_eq!(w, e),
+                (w, e) => prop_assert!(false, "{w:?} against {e:?}"),
+            }
+        }
+    }
+}
+
+// ----- the edge cases -----
+
+fn go(script: &str) -> (i32, String, String) {
+    let outcome = run(script);
+    (
+        outcome.exit_code,
+        outcome.output.stdout,
+        outcome.output.stderr,
+    )
+}
+
+/// A small layout: twelve rows, a of three levels, b and s of two, a covariate and a weight.
+const D: &str = "let d = frame(y = [3.1, 4.2, 5.0, 6.3, 2.2, 7.9, 4.4, 5.1, 6.6, 3.8, 4.9, 7.2], a = [\"p\", \"p\", \"p\", \"p\", \"q\", \"q\", \"q\", \"q\", \"r\", \"r\", \"r\", \"r\"], b = [\"u\", \"v\", \"u\", \"v\", \"u\", \"v\", \"u\", \"v\", \"u\", \"v\", \"u\", \"v\"], x = [1.0, 2.5, 0.3, 4.1, 2.2, 3.3, 1.9, 0.7, 2.8, 3.9, 1.1, 2.0], w = [1, 2, 1, 0, 1, 3, 1, 1, 2, 1, 1, 1], s = [\"k\", \"l\", \"k\", \"l\", \"k\", \"l\", \"k\", \"l\", \"k\", \"l\", \"k\", \"l\"]).add(a = category(a), b = category(b))\n";
+
+fn with_d(line: &str) -> (i32, String, String) {
+    go(&format!("{D}{line}\n"))
+}
+
+#[test]
+fn each_form_keeps_its_own_arguments() {
+    for (line, code, part) in [
+        (
+            "d.anova(y ~ a * b, group: a)",
+            "Z0401",
+            "`group:` belongs to the one-way form",
+        ),
+        (
+            "d.anova(y ~ a * b, equal_var: true)",
+            "Z0401",
+            "`equal_var:` belongs to the one-way form",
+        ),
+        (
+            "d.anova(y, group: a, type: 3)",
+            "Z0401",
+            "`type:` belongs to the factorial form",
+        ),
+        (
+            "d.anova(y ~ a * b, type: 4)",
+            "Z0401",
+            "must be 1, 2 or 3, not 4",
+        ),
+        (
+            "d.anova(y ~ a * b, type: 0)",
+            "Z0401",
+            "must be 1, 2 or 3, not 0",
+        ),
+        ("d.anova(y ~ a * b, type: \"2\")", "Z0401", "must be an Int"),
+        (
+            "d.anova(y ~ a * b - 1)",
+            "Z0401",
+            "the formula removes the intercept",
+        ),
+        ("d.anova(y ~ 1)", "Z0401", "has no term to test"),
+        ("d.anova(~ a * b)", "Z0322", "one-sided formula"),
+        (
+            "d.anova(y ~ a + x, weights: w)",
+            "Z0411",
+            "sampling weights",
+        ),
+        ("d.anova(y ~ a + s)", "Z0401", "`s` is text"),
+        ("d.anova(y ~ a + nosuch)", "Z0101", "no variable `nosuch`"),
+    ] {
+        let (exit, _, stderr) = with_d(line);
+        assert_eq!(exit, 1, "{line}");
+        assert!(
+            stderr.contains(&format!("error[{code}]")),
+            "{line}: {stderr}"
+        );
+        assert!(stderr.contains(part), "{line}: {stderr}");
+    }
+}
+
+#[test]
+fn a_table_that_cannot_be_computed_is_refused_with_the_reason() {
+    for (line, code, part) in [
+        (
+            "d.where(y > 100).anova(y ~ a)",
+            "Z0801",
+            "no row remains for `anova`",
+        ),
+        (
+            "d.where(a == \"p\").anova(y ~ a + b)",
+            "Z0401",
+            "`a` has one level among the rows used",
+        ),
+        (
+            "d.add(k = 2.5).anova(k ~ a + b)",
+            "Z0401",
+            "`k` has the same value in every row used",
+        ),
+        (
+            "d.add(big = y * 1e160).anova(big ~ a)",
+            "Z0803",
+            "an outcome too large to square",
+        ),
+        (
+            "d.add(big = x * 1e160).anova(y ~ a + big)",
+            "Z0803",
+            "a term too large to square",
+        ),
+        (
+            "d.anova(y ~ a * b * x)",
+            "Z0802",
+            "no residual degrees of freedom: 12 observations and 12 estimated columns",
+        ),
+        (
+            "d.add(z = 2 * y + 1).anova(y ~ z)",
+            "Z0802",
+            "reproduces `y` exactly",
+        ),
+        (
+            "d.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b, type: 3)",
+            "Z0401",
+            "`type: 3` cannot adjust each term for every other: 1 of the model's 6 columns is determined by the others",
+        ),
+        (
+            "d.add(x2 = 2 * x).anova(y ~ x + x2, type: 3)",
+            "Z0401",
+            "a term that repeats the others",
+        ),
+    ] {
+        let (exit, _, stderr) = with_d(line);
+        assert_eq!(exit, 1, "{line}");
+        assert!(
+            stderr.contains(&format!("error[{code}]")),
+            "{line}: {stderr}"
+        );
+        assert!(stderr.contains(part), "{line}: {stderr}");
+    }
+}
+
+#[test]
+fn an_empty_cell_a_repeated_term_and_a_model_of_slopes_are_said_in_notes() {
+    // An empty cell: types 1 and 2 give the table, the interaction on the degrees of freedom
+    // the cells leave it.
+    let (exit, stdout, stderr) = with_d("d.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b)");
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.contains("  a:b         1 "), "{stdout}");
+    assert!(stdout.contains("  model       4 "), "{stdout}");
+    assert!(
+        stderr.contains("1 of the model's 6 columns is determined by the others (a combination of levels with no observations, or a term that repeats the others) and carries no degree of freedom"),
+        "{stderr}"
+    );
+    // A variable that repeats another has no test once the other is in the model.
+    let (exit, stdout, stderr) = with_d("d.add(x2 = 2 * x).anova(y ~ x + x2)");
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.contains("  x           0    0.000\n"), "{stdout}");
+    assert!(stdout.contains("  x2          0    0.000\n"), "{stdout}");
+    assert!(
+        stderr.contains("`x` has no degrees of freedom once the other terms are in the model"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains("(a term that repeats the others)"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains("no term of the formula is a category, so each row tests a slope"),
+        "{stderr}"
+    );
+    // Under type 1 the first of the two keeps its degree of freedom.
+    let (exit, stdout, stderr) = with_d("d.add(x2 = 2 * x).anova(y ~ x + x2, type: 1)");
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.contains("  x           1 "), "{stdout}");
+    assert!(stdout.contains("  x2          0 "), "{stdout}");
+    // Rows with NA and rows of zero weight are counted.
+    let (exit, stdout, stderr) = go(
+        "let m = frame(y = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 3.5, 2.0, 6.0], g = [\"a\", \"a\", \"b\", \"b\", NA, \"c\", \"c\", \"b\", \"a\", \"c\"], w = [1, 1, 1, 0, 1, 2, 1, 1, 1, 1])\nm.anova(y ~ category(g), weights: w, weight_type: frequency)\n",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.contains("N = 8, frequency weights w"), "{stdout}");
+    assert!(
+        stderr.contains(
+            "2 rows with NA in a model variable dropped; 1 row with zero weight left out"
+        ),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn one_category_gives_the_classical_one_way_table() {
+    // `anova(y ~ g)` and `anova(y, group: g, equal_var: true)` are the same test.
+    let (exit, stdout, stderr) = with_d(
+        "let f = d.anova(y ~ a)\nlet o = d.anova(y, group: a, equal_var: true)\nf.statistic() - o.statistic()\nf.p_values() - o.p_values()\nf.df()\no.df()",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert!(lines[0].parse::<f64>().unwrap().abs() < 1e-12, "{stdout}");
+    assert!(lines[1].parse::<f64>().unwrap().abs() < 1e-12, "{stdout}");
+    // `df()` prints its two numbers on two lines.
+    assert_eq!(lines.len(), 6, "{stdout}");
+    assert_eq!(lines[2..4], lines[4..6], "{stdout}");
+    assert_eq!(lines[2..4], ["2", "9"], "{stdout}");
+}
+
+#[test]
+fn the_methods_of_the_result_read_the_whole_model_and_estimates_reads_the_terms() {
+    let (exit, stdout, stderr) = with_d(
+        "let t = d.anova(y ~ a * b + x)\nt.statistic()\nt.df()\nt.n_obs()\nt.estimates().n_rows()",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines[1], "6", "{stdout}");
+    assert_eq!(lines[2], "5", "{stdout}");
+    assert_eq!(lines[3], "12", "{stdout}");
+    assert_eq!(lines[4], "8", "{stdout}");
+    for line in [
+        "d.anova(y ~ a * b).p_values(\"a\")",
+        "d.anova(y ~ a * b).p_values(a)",
+    ] {
+        let (exit, _, stderr) = with_d(line);
+        assert_eq!(exit, 1, "{line}");
+        assert!(stderr.contains("error[Z0414]"), "{line}: {stderr}");
+        assert!(
+            stderr.contains("`estimates()` gives one row for each term of the table"),
+            "{line}: {stderr}"
+        );
+    }
+}
+
+// ----- the snapshots -----
+
+#[test]
+fn every_form_and_every_message() {
+    let (exit, stdout, stderr) = go(&format!(
+        "{D}d.anova(y ~ a * b)\nd.anova(y ~ a * b + x, type: 1)\nd.anova(y ~ x + a * b, type: 1)\nd.anova(y ~ a * b + x, type: 3)\nd.anova(y ~ a + category(s))\nd.anova(y ~ a + x, weights: w, weight_type: frequency)\nd.anova(y ~ a + x, weights: w, weight_type: analytic)\nd.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b)\nd.add(x2 = 2 * x).anova(y ~ x + x2)\nd.anova(y ~ x)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage ~ industry * category(female) + educ)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3)\nwages.where(year == 2010).anova(lwage ~ industry + category(union) + educ * exper, type: 1)\nlet t = d.anova(y ~ a * b + x)\nt.statistic()\nt.df()\nt.p_values()\nt.n_obs()\nt.effect_size()\nt.estimates()\nt.ci()\nt.summary()\n"
+    ));
+    assert_eq!(exit, 0, "{stderr}");
+    insta::assert_snapshot!("forms", format!("{stdout}---\n{stderr}"));
+    let mut all = String::new();
+    for line in [
+        "d.anova(y ~ a * b, group: a)",
+        "d.anova(y ~ a * b, equal_var: true)",
+        "d.anova(y, group: a, type: 3)",
+        "d.anova(y ~ a * b, type: 4)",
+        "d.anova(y ~ a * b, type: \"2\")",
+        "d.anova(y ~ a * b - 1)",
+        "d.anova(y ~ 1)",
+        "d.anova(y ~ a + x, weights: w)",
+        "d.where(y > 100).anova(y ~ a)",
+        "d.where(a == \"p\").anova(y ~ a + b)",
+        "d.add(k = 2.5).anova(k ~ a + b)",
+        "d.add(big = y * 1e160).anova(big ~ a)",
+        "d.add(big = x * 1e160).anova(y ~ a + big)",
+        "d.anova(y ~ a * b * x)",
+        "d.add(z = 2 * y + 1).anova(y ~ z)",
+        "d.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b, type: 3)",
+        "d.add(x2 = 2 * x).anova(y ~ x + x2, type: 3)",
+        "d.anova(y ~ a + s)",
+        "d.anova(y ~ a * b).p_values(\"a\")",
+    ] {
+        let (exit, _, stderr) = with_d(line);
+        assert_eq!(exit, 1, "{line}");
+        all.push_str(&stderr);
+        all.push('\n');
+    }
+    insta::assert_snapshot!("messages", all);
+}

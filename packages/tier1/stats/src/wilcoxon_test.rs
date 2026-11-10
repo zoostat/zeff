@@ -967,6 +967,7 @@ fn signed_rank_form(
         ),
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        terms: Vec::new(),
         method: "wilcoxon_test".to_string(),
         title,
         hypotheses: Some(Hypotheses {
@@ -1051,6 +1052,7 @@ fn rank_sum_form(
         fixed(median(&sorted).unwrap_or(f64::NAN), 3)
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        terms: Vec::new(),
         method: "wilcoxon_test".to_string(),
         title: format!("wilcoxon_test · rank sum · {var} by {group_name}"),
         hypotheses: Some(Hypotheses {

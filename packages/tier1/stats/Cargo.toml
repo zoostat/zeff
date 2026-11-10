@@ -14,12 +14,13 @@ zeff-core.workspace = true
 zeff-columns.workspace = true
 zeff-diagnostics.workspace = true
 zeff-dist.workspace = true
+zeff-kernels.workspace = true
 zeff-numeric.workspace = true
 zeff-registry.workspace = true
+zeff-results.workspace = true
 
 [dev-dependencies]
 zeff-testkit.workspace = true
-zeff-results.workspace = true
 insta = "=1.49.0"
 proptest = "=1.12.0"
 serde_json = "=1.0.154"

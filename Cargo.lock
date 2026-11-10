@@ -1606,6 +1606,7 @@ dependencies = [
  "zeff-core",
  "zeff-diagnostics",
  "zeff-dist",
+ "zeff-kernels",
  "zeff-numeric",
  "zeff-registry",
  "zeff-results",

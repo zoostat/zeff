@@ -66,8 +66,25 @@ pub(crate) struct DesignColumn {
 }
 
 /// A term after expansion: the sources of its parts, in order.
-struct ExpandedTerm {
+#[derive(Debug, Clone)]
+pub(crate) struct ExpandedTerm {
     sources: Vec<usize>,
+}
+
+/// A term of the model as the design holds it (Language Reference, section 7.2): what a table
+/// with one row per term, the factorial analysis of variance, reads.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DesignTerm {
+    /// The term as a table names it: its parts joined by `:`, a category by its variable
+    /// (`dose`, `dose:sex`, `log(income)`).
+    pub label: String,
+    /// What the term is made of, one entry per part and in no order: two terms are the same
+    /// when their parts are, and a term contains another when its parts include the other's.
+    pub parts: BTreeSet<String>,
+    /// The term's columns among the design's, the intercept counted.
+    pub columns: std::ops::Range<usize>,
+    /// How many of the parts are categories.
+    pub categories: usize,
 }
 
 /// The largest ratio of a positive weight to the smallest the design accepts: beyond it the rows
@@ -108,6 +125,12 @@ pub struct Design {
     pub unseen: Vec<(String, usize)>,
     pub(crate) columns: Vec<DesignColumn>,
     pub(crate) sources: Vec<Source>,
+    /// The written form each source stands for, by source index.
+    pub(crate) keys: Vec<String>,
+    /// The terms after expansion, in the order of the columns, and how many columns each has;
+    /// empty for a transformed design.
+    pub(crate) terms: Vec<ExpandedTerm>,
+    pub(crate) term_columns: Vec<usize>,
     pub(crate) outcome: Option<usize>,
     /// The outcome's term as written, for messages that name it.
     pub(crate) outcome_text: Option<String>,
@@ -217,7 +240,13 @@ impl Design {
             .map(|name| builder.na_mask(name).map(|m| (name.to_string(), m)))
             .collect::<Result<_, _>>()?;
         let intercept = formula.intercept && !absorbed_intercept;
-        let columns = builder.columns(&terms, intercept || absorbed_intercept);
+        let (columns, term_columns) = term_columns(
+            &builder.sources,
+            &builder.keys,
+            &mut builder.notes,
+            &terms,
+            intercept || absorbed_intercept,
+        );
         let mut names: Vec<String> = Vec::new();
         if intercept {
             names.push("(intercept)".to_string());
@@ -239,6 +268,9 @@ impl Design {
             unseen: builder.unseen,
             columns,
             sources: builder.sources,
+            keys: builder.keys,
+            terms,
+            term_columns,
             outcome,
             outcome_text: formula.outcome.as_ref().map(|t| t.text.clone()),
             block_rows: BLOCK_ROWS,
@@ -425,6 +457,104 @@ impl Design {
             }
         }
         out
+    }
+
+    /// The terms of the model in the order of their columns, the intercept apart: none for a
+    /// transformed design, whose terms are no longer at hand.
+    pub fn terms(&self) -> Vec<DesignTerm> {
+        let mut start = usize::from(self.intercept);
+        self.terms
+            .iter()
+            .zip(&self.term_columns)
+            .map(|(term, &count)| {
+                let columns = start..start + count;
+                start += count;
+                let mut categories = 0;
+                let mut label = Vec::with_capacity(term.sources.len());
+                let mut parts = BTreeSet::new();
+                for &s in &term.sources {
+                    match &self.sources[s] {
+                        Source::Coded { var, .. } => {
+                            categories += 1;
+                            label.push(var.clone());
+                            parts.insert(format!("category:{var}"));
+                        }
+                        Source::Numeric { .. } => {
+                            label.push(self.keys[s].clone());
+                            parts.insert(self.keys[s].clone());
+                        }
+                    }
+                }
+                DesignTerm {
+                    label: label.join(":"),
+                    parts,
+                    columns,
+                    categories,
+                }
+            })
+            .collect()
+    }
+
+    /// The same model with every category coded by deviations from the mean (the `sum`
+    /// contrast) over the levels the rows used hold, whatever contrast the category carries: the
+    /// coding under which dropping a term's columns tests the term averaged over the levels of
+    /// the others (the type 3 sums of squares; open decision #98). A level no row used holds has
+    /// no column, as R drops it; the rule for a category whose margin is absent is unchanged.
+    /// Call it after `weighted`, which leaves out the rows of zero weight. With the design, the
+    /// categories left with one level, which a model cannot tell from the intercept.
+    pub fn sum_coded(mut self) -> (Design, Vec<String>) {
+        debug_assert!(self.dense.is_none(), "a transformed design has no sources");
+        let mut single = Vec::new();
+        for source in &mut self.sources {
+            let Source::Coded {
+                codes,
+                levels,
+                contrast,
+                var,
+            } = source
+            else {
+                continue;
+            };
+            let mut seen = vec![false; levels.len()];
+            for &row in &self.rows {
+                if let Some(code) = codes[row] {
+                    seen[code as usize] = true;
+                }
+            }
+            let mut position = vec![None; levels.len()];
+            let mut kept = Vec::new();
+            for (l, level) in levels.iter().enumerate() {
+                if seen[l] {
+                    position[l] = Some(kept.len() as i32);
+                    kept.push(level.clone());
+                }
+            }
+            for code in codes.iter_mut() {
+                *code = code.and_then(|c| position[c as usize]);
+            }
+            if kept.len() < 2 && !single.contains(var) {
+                single.push(var.clone());
+            }
+            *levels = kept;
+            *contrast = Contrast::Sum;
+        }
+        let mut notes = Vec::new();
+        let (columns, term_columns) = term_columns(
+            &self.sources,
+            &self.keys,
+            &mut notes,
+            &self.terms,
+            self.intercept,
+        );
+        let mut names: Vec<String> = Vec::new();
+        if self.intercept {
+            names.push("(intercept)".to_string());
+        }
+        names.extend(columns.iter().map(|c| c.name.clone()));
+        self.names = names;
+        self.columns = columns;
+        self.term_columns = term_columns;
+        (self, single)
     }
 
     /// The outcome's term as written (`log(wage)`), for messages that name it.
@@ -1320,112 +1450,6 @@ impl Builder<'_, '_> {
             .join(":")
     }
 
-    // ----- the columns -----
-
-    /// The columns of every term (section 7.2, "Intercept" and "Categories"): a numeric part is
-    /// one column; a category is coded by its contrast when the term's margin without it is in
-    /// the model (an empty margin counts), and by every level otherwise; without an intercept,
-    /// the first category met is coded by every level, as R codes it.
-    fn columns(&mut self, terms: &[ExpandedTerm], intercept: bool) -> Vec<DesignColumn> {
-        let sets: Vec<BTreeSet<usize>> = terms
-            .iter()
-            .map(|t| t.sources.iter().copied().collect())
-            .collect();
-        // Without an intercept, the first category with more than one level, scanning the terms
-        // in order and the sources by their order of appearance.
-        let mut fully_coded: Option<(usize, usize)> = None;
-        if !intercept {
-            'terms: for (j, term) in terms.iter().enumerate() {
-                let mut candidates: Vec<usize> = term
-                    .sources
-                    .iter()
-                    .copied()
-                    .filter(|&s| matches!(&self.sources[s], Source::Coded { levels, .. } if levels.len() > 1))
-                    .collect();
-                candidates.sort_unstable();
-                if let Some(&s) = candidates.first() {
-                    fully_coded = Some((j, s));
-                    break 'terms;
-                }
-            }
-        }
-        let mut columns = Vec::new();
-        for (j, term) in terms.iter().enumerate() {
-            // The columns of each part, as (name, part).
-            let mut parts_columns: Vec<Vec<(String, Part)>> = Vec::new();
-            for &s in &term.sources {
-                match &self.sources[s] {
-                    Source::Numeric { .. } => {
-                        parts_columns.push(vec![(self.keys[s].clone(), Part::Numeric(s))]);
-                    }
-                    Source::Coded {
-                        levels,
-                        contrast,
-                        var,
-                        ..
-                    } => {
-                        let mut margin = sets[j].clone();
-                        margin.remove(&s);
-                        let contrasts = fully_coded != Some((j, s))
-                            && (margin.is_empty() || sets.contains(&margin));
-                        let coded = if contrasts {
-                            contrast_columns(var, levels, *contrast)
-                        } else {
-                            full_columns(var, levels)
-                        };
-                        if levels.len() == 1 && contrasts {
-                            self.notes.push(format!(
-                                "`{var}` has one level, {}, and adds no column",
-                                list_levels(levels)
-                            ));
-                        }
-                        parts_columns.push(
-                            coded
-                                .into_iter()
-                                .map(|(name, weights)| {
-                                    (name, Part::Weighted { source: s, weights })
-                                })
-                                .collect(),
-                        );
-                    }
-                }
-            }
-            // The product of the parts' column lists, the first part varying slowest.
-            let mut combos: Vec<(Vec<String>, Vec<usize>)> = vec![(Vec::new(), Vec::new())];
-            for part in &parts_columns {
-                let mut next = Vec::new();
-                for (names, indices) in &combos {
-                    for (i, (name, _)) in part.iter().enumerate() {
-                        let mut names = names.clone();
-                        names.push(name.clone());
-                        let mut indices = indices.clone();
-                        indices.push(i);
-                        next.push((names, indices));
-                    }
-                }
-                combos = next;
-            }
-            for (names, indices) in combos {
-                let parts = indices
-                    .iter()
-                    .enumerate()
-                    .map(|(p, &i)| match &parts_columns[p][i].1 {
-                        Part::Numeric(s) => Part::Numeric(*s),
-                        Part::Weighted { source, weights } => Part::Weighted {
-                            source: *source,
-                            weights: weights.clone(),
-                        },
-                    })
-                    .collect();
-                columns.push(DesignColumn {
-                    name: names.join(":"),
-                    parts,
-                });
-            }
-        }
-        columns
-    }
-
     // ----- rows -----
 
     /// Z0223 (section 4.1): an infinite value in a model variable, with its rows.
@@ -1583,6 +1607,120 @@ impl Builder<'_, '_> {
         }
         (kept, dropped, counts)
     }
+}
+
+/// The columns of every term (section 7.2, "Intercept" and "Categories"): a numeric part is
+/// one column; a category is coded by its contrast when the term's margin without it is in
+/// the model (an empty margin counts), and by every level otherwise; without an intercept,
+/// the first category met is coded by every level, as R codes it. With the columns, how many each
+/// term has.
+fn term_columns(
+    sources: &[Source],
+    keys: &[String],
+    notes: &mut Vec<String>,
+    terms: &[ExpandedTerm],
+    intercept: bool,
+) -> (Vec<DesignColumn>, Vec<usize>) {
+    let sets: Vec<BTreeSet<usize>> = terms
+        .iter()
+        .map(|t| t.sources.iter().copied().collect())
+        .collect();
+    // Without an intercept, the first category with more than one level, scanning the terms
+    // in order and the sources by their order of appearance.
+    let mut fully_coded: Option<(usize, usize)> = None;
+    if !intercept {
+        'terms: for (j, term) in terms.iter().enumerate() {
+            let mut candidates: Vec<usize> = term
+                .sources
+                .iter()
+                .copied()
+                .filter(
+                    |&s| matches!(&sources[s], Source::Coded { levels, .. } if levels.len() > 1),
+                )
+                .collect();
+            candidates.sort_unstable();
+            if let Some(&s) = candidates.first() {
+                fully_coded = Some((j, s));
+                break 'terms;
+            }
+        }
+    }
+    let mut columns = Vec::new();
+    let mut counts = Vec::with_capacity(terms.len());
+    for (j, term) in terms.iter().enumerate() {
+        let before = columns.len();
+        // The columns of each part, as (name, part).
+        let mut parts_columns: Vec<Vec<(String, Part)>> = Vec::new();
+        for &s in &term.sources {
+            match &sources[s] {
+                Source::Numeric { .. } => {
+                    parts_columns.push(vec![(keys[s].clone(), Part::Numeric(s))]);
+                }
+                Source::Coded {
+                    levels,
+                    contrast,
+                    var,
+                    ..
+                } => {
+                    let mut margin = sets[j].clone();
+                    margin.remove(&s);
+                    let contrasts = fully_coded != Some((j, s))
+                        && (margin.is_empty() || sets.contains(&margin));
+                    let coded = if contrasts {
+                        contrast_columns(var, levels, *contrast)
+                    } else {
+                        full_columns(var, levels)
+                    };
+                    if levels.len() == 1 && contrasts {
+                        notes.push(format!(
+                            "`{var}` has one level, {}, and adds no column",
+                            list_levels(levels)
+                        ));
+                    }
+                    parts_columns.push(
+                        coded
+                            .into_iter()
+                            .map(|(name, weights)| (name, Part::Weighted { source: s, weights }))
+                            .collect(),
+                    );
+                }
+            }
+        }
+        // The product of the parts' column lists, the first part varying slowest.
+        let mut combos: Vec<(Vec<String>, Vec<usize>)> = vec![(Vec::new(), Vec::new())];
+        for part in &parts_columns {
+            let mut next = Vec::new();
+            for (names, indices) in &combos {
+                for (i, (name, _)) in part.iter().enumerate() {
+                    let mut names = names.clone();
+                    names.push(name.clone());
+                    let mut indices = indices.clone();
+                    indices.push(i);
+                    next.push((names, indices));
+                }
+            }
+            combos = next;
+        }
+        for (names, indices) in combos {
+            let parts = indices
+                .iter()
+                .enumerate()
+                .map(|(p, &i)| match &parts_columns[p][i].1 {
+                    Part::Numeric(s) => Part::Numeric(*s),
+                    Part::Weighted { source, weights } => Part::Weighted {
+                        source: *source,
+                        weights: weights.clone(),
+                    },
+                })
+                .collect();
+            columns.push(DesignColumn {
+                name: names.join(":"),
+                parts,
+            });
+        }
+        counts.push(columns.len() - before);
+    }
+    (columns, counts)
 }
 
 /// `an Int`, `a Float`.

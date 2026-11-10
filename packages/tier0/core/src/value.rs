@@ -322,6 +322,11 @@ pub struct TestResult {
     pub estimate: Option<Estimate>,
     pub statistic: Statistic,
     pub p_value: f64,
+    /// The rows of a test that reports several, each with its own statistic and p-value (the
+    /// terms of a factorial `anova`; open decision #91, rule R9); empty for every other test.
+    /// A result with rows prints them in its table and no statistic line; `statistic` and
+    /// `p_value` then hold the test of the whole model.
+    pub terms: Vec<TermTest>,
     /// An effect size, printed with its interval after the statistic line.
     pub effect: Option<Estimate>,
     /// The confidence level of the intervals, 0.95 unless `level:` said otherwise.
@@ -335,6 +340,16 @@ pub struct TestResult {
     /// The observations the test rests on (`n_obs`), and the rows dropped for `NA`.
     pub n: usize,
     pub dropped: usize,
+}
+
+/// One row of a test that reports several (open decision #91, rule R9): the term it tests, its
+/// statistic with the degrees of freedom, its p-value and its effect size.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TermTest {
+    pub term: String,
+    pub statistic: Statistic,
+    pub p_value: f64,
+    pub effect: Option<Estimate>,
 }
 
 /// The hypotheses a test prints (open decision #91): each a sentence about the population, and

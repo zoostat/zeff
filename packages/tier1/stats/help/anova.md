@@ -1,36 +1,65 @@
 # anova
 
 ## Summary
-One-way analysis of variance across the groups of a variable
+Analysis of variance: one-way across groups, or factorial from a formula
 
 ## Description
-Whether the population mean of a numeric variable is the same in every group of `group:`.
-Welch's F is the default, as R's `oneway.test`: it does not assume that the groups share a
-variance, and its second degrees of freedom are fractional. `equal_var: true` gives the
-classical F on the pooled within-group variance, as R's `aov` and Stata's `oneway`, with its
-table of sums of squares. Either form prints the hypotheses, a table of the groups with their
+Two forms under one name, chosen by the first argument. With a variable and `group:` it is the
+one-way analysis: whether the population mean of a numeric variable is the same in every group.
+With a formula, `anova(y ~ a * b)`, it is the factorial analysis: a table of sums of squares
+with one row and one F test for each term of a linear model.
+
+The one-way form gives Welch's F by default, as R's `oneway.test`: it does not assume that the
+groups share a variance, and its second degrees of freedom are fractional. `equal_var: true`
+gives the classical F on the pooled within-group variance, as R's `aov` and Stata's `oneway`,
+with its table of sums of squares. Either prints the hypotheses, a table of the groups with their
 counts, means and standard deviations, F with its degrees of freedom and the p-value, eta
-squared, a decision at α = 0.05, and a line saying how F was computed. Rows with `NA` in the
-variable or the grouping variable are dropped and counted in a note. Two groups are allowed;
+squared, a decision at α = 0.05, and a line saying how F was computed. Two groups are allowed;
 with two, Welch's F is the square of Welch's t from `t_test`, with the same p-value.
+
+The factorial form takes the terms of section 7.2 of the Language Reference: categories, their
+interactions (`a * b` is `a + b + a:b`), and numeric covariates, alone or in an interaction, so
+`y ~ a + x` is the analysis of covariance. A term is a category when its variable is a Category
+or is written `category(x)`; an Int, Float or Bool variable enters as a slope, and a text
+variable is refused until it is written `category(x)`. `type:` says how each term is adjusted
+for the others: type 2, the default, as `car::Anova` in R; type 3, as `car::Anova(type = 3)`
+with sum contrasts and as Stata's `anova`; type 1, the sequential table of R's
+`anova(lm(...))` and Stata's `anova, sequential`. The table has a row for the whole model, a
+row for each term with its degrees of freedom, sum of squares, mean square, F, p-value and
+partial eta squared, the residual and the total. The variance is always pooled.
+
+In both forms rows with `NA` in a variable used are dropped and counted in a note.
 
 ## Arguments
 - data: The frame.
-- var: The numeric variable whose means are compared.
-- group: The variable whose groups are compared, a Bool, Int, Str or Category variable; a
-  group's label is its value label where it has one and `var=value` otherwise.
-- equal_var: `false` for Welch's F, `true` for the classical F on the pooled variance.
-- weights: Frequency weights, each row counted that many times, or analytic weights, which
-  scale each group's variance; sampling weights are refused by the shared rule (Z0411).
+- var: The numeric variable whose means are compared; or a formula, `y ~ a * b + x`, which
+  selects the factorial form.
+- group: The variable whose groups are compared in the one-way form, a Bool, Int, Str or
+  Category variable; a group's label is its value label where it has one and `var=value`
+  otherwise. With a formula the groups are its terms, and `group:` is an error.
+- equal_var: `false` for Welch's F, `true` for the classical F on the pooled variance. It
+  belongs to the one-way form; the table of a formula always pools the variance.
+- weights: Frequency weights, each row counted that many times, or analytic weights; sampling
+  weights are refused by the shared rule (Z0411). In the one-way form analytic weights scale
+  each group's variance; in the factorial form they give the weighted least-squares table, the
+  weights scaled to sum to the number of rows.
+- type: The sums of squares of the factorial form: 2, the default, 3 or 1. It belongs to the
+  form that takes a formula.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
-`export`, `report`): the statistic, its two degrees of freedom, the p-value, eta squared as the
-effect size, and the hypotheses. Its own methods `statistic()`, `df()`, `effect_size()`,
-`h0()`, `h1()` and `alternative()` give the figures as values.
+`export`, `report`). In the one-way form: the statistic, its two degrees of freedom, the
+p-value, eta squared as the effect size, and the hypotheses; its own methods `statistic()`,
+`df()`, `effect_size()`, `h0()`, `h1()` and `alternative()` give the figures as values. In the
+factorial form `statistic()`, `df()` and `p_values()` give the F of the whole model, its two
+degrees of freedom and its p-value, and `estimates()` gives a frame with a row for each term
+(its F in `statistic`, its degrees of freedom in `df` and `df2`, its p-value) followed by a row
+for each term's partial eta squared; a table of several terms has no single hypothesis, effect
+size or interval, so `h0()`, `h1()`, `effect_size()` and `ci()` are `NA` and no decision line is
+printed.
 
 ## Details
-With k groups of sizes nᵢ, means mᵢ and variances sᵢ², Welch's F weights each group by
+One-way. With k groups of sizes nᵢ, means mᵢ and variances sᵢ², Welch's F weights each group by
 wᵢ = nᵢ/sᵢ²: F = Σ wᵢ(mᵢ − m̃)² / ((k − 1)(1 + 2(k − 2)Λ)), where m̃ is the weighted grand mean,
 Λ = Σ (1 − wᵢ/Σw)²/(nᵢ − 1) / (k² − 1), and the degrees of freedom are k − 1 and 1/(3Λ). The
 classical F is the mean square between the groups over the mean square within them, on k − 1 and
@@ -42,13 +71,48 @@ values with some variation in every group; the classical test needs more values 
 some variation within them. A grouping variable with fewer than two groups among the rows kept
 is an error.
 
+Factorial. The model is fitted by least squares with an intercept, and each term's sum of
+squares is the fall in the residual sum of squares when the term joins a model that already
+holds the terms it is adjusted for. Under type 1 those are the terms above it in the table, so
+the sums of squares add up to the model's and depend on the order of the terms. Under type 2
+they are all the other terms that do not contain it: a main effect is adjusted for the other
+main effects but not for its own interactions, which respects marginality. Under type 3 they are
+all the other terms, interactions included: a main effect is then the effect averaged over the
+levels of the other factors with equal weight, which has a meaning only when every category is
+coded by deviations from the mean, so `anova` codes every category that way over the levels
+present among the rows used, whatever contrast the variable carries. Types 1 and 2 do not
+depend on the coding. On a balanced design the three types give the same table. The rows stand
+in the order of the terms' degree, main effects before two-way interactions and so on, in the
+written order within a degree, as R orders the terms of a model; under type 1 this is also the
+order of adjustment. Every F is the term's mean square over the residual mean square, on the
+term's and the residual degrees of freedom, and the row of the model tests all the terms
+together. Partial eta squared is SS / (SS + SS residual), without an interval for the reason
+given above. R's `car::Anova(type = 3)` gives the same figures only after
+`options(contrasts = c("contr.sum", "contr.poly"))`, and prints a row for the intercept, which
+`anova` leaves out.
+
+When a combination of levels has no observations, or a term repeats the others, some columns of
+the model are determined by the rest. Types 1 and 2 still give the table: those columns carry
+no degree of freedom, a note says how many, and a term left with none keeps its row without a
+test. Type 3 is refused (Z0401), as car refuses it, since no term can then be adjusted for every
+other. Also refused: a formula without an intercept, since every type adjusts for the grand
+mean; a category with one level among the rows used; an outcome that does not vary; a model
+with as many estimated columns as observations, or one that reproduces the outcome exactly
+(Z0802); a value too large to square (Z0803). A model with no category is allowed, each row
+then testing a slope, with a note that `reg` gives the estimates.
+
 ## References
 Welch (1951), On the comparison of several mean values: an alternative approach, Biometrika 38,
 330–336.
 Fisher (1925), Statistical Methods for Research Workers, Oliver and Boyd, chapter 7.
+Yates (1934), The analysis of multiple classifications with unequal numbers in the different
+classes, Journal of the American Statistical Association 29, 51–66.
+Nelder (1977), A reformulation of linear models, Journal of the Royal Statistical Society A
+140, 48–77.
+Fox and Weisberg (2019), An R Companion to Applied Regression, third edition, Sage.
 
 ## See also
-t_test, kruskal_test, posthoc, p_adjust
+t_test, kruskal_test, reg, tabulate, posthoc, p_adjust
 
 ## Examples
 > let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])
@@ -114,4 +178,78 @@ note: 211 rows with NA in lwage or industry dropped (line 5)
 > wages.anova(lwage, group: industry).effect_size()
 0.0185603
 note: 211 rows with NA in lwage or industry dropped (line 6)
+> let trial = frame(gain = [4.1, 5.3, 4.8, 6.9, 7.4, 6.1, 5.2, 4.4, 8.3, 9.1, 7.7, 5.9, 6.4, 7.0, 9.8, 10.4], dose = ["low", "low", "low", "high", "high", "low", "low", "low", "high", "high", "high", "low", "low", "high", "high", "high"], diet = ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "b", "c", "c", "c", "c", "c"], age = [31, 45, 38, 52, 29, 41, 36, 48, 33, 27, 44, 39, 50, 35, 30, 42]).add(dose = category(dose), diet = category(diet))
+note: `dose` replaced the variable of that name (line 7)
+note: `diet` replaced the variable of that name (line 7)
+> trial.anova(gain ~ dose * diet)
+anova · factorial, type 2 · gain ~ dose * diet
+each row tests H0: the population effect of the term is zero, against H1: it is not
 
+  source      df       SS       MS       F   p value   partial eta squared
+  model        5   44.043    8.809    8.81     0.002                 0.815
+  dose         1   31.592   31.592   31.60    <0.001                 0.760
+  diet         2    6.482    3.241    3.24     0.082                 0.393
+  dose:diet    2    0.351    0.176    0.18     0.842                 0.034
+  residual    10    9.997    1.000
+  ────────────────────────────────────────────────────────────────────────
+  total       15   54.040
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 16
+> trial.anova(gain ~ dose * diet, type: 3)
+anova · factorial, type 3 · gain ~ dose * diet
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source      df       SS       MS       F   p value   partial eta squared
+  model        5   44.043    8.809    8.81     0.002                 0.815
+  dose         1   30.722   30.722   30.73    <0.001                 0.754
+  diet         2    6.669    3.334    3.34     0.078                 0.400
+  dose:diet    2    0.351    0.176    0.18     0.842                 0.034
+  residual    10    9.997    1.000
+  ────────────────────────────────────────────────────────────────────────
+  total       15   54.040
+
+type 3 sums of squares: each term adjusted for every other term, the categories coded by deviations from the mean
+partial eta squared = SS / (SS + SS residual); N = 16
+> trial.anova(gain ~ dose + diet + age, type: 1)
+anova · factorial, type 1 · gain ~ dose + diet + age
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS       MS       F   p value   partial eta squared
+  model       4   43.853   10.963   11.84     0.001                 0.811
+  dose        1   37.210   37.210   40.18    <0.001                 0.785
+  diet        2    6.482    3.241    3.50     0.067                 0.389
+  age         1    0.160    0.160    0.17     0.685                 0.016
+  residual   11   10.187    0.926
+  ───────────────────────────────────────────────────────────────────────
+  total      15   54.040
+
+type 1 sums of squares: each term adjusted for the terms above it, so the order of the terms matters
+partial eta squared = SS / (SS + SS residual); N = 16
+> trial.anova(gain ~ dose * diet).estimates().select([term, estimate, statistic, df, df2, p_value])
+frame · 6 rows × 6 variables
+
+      term                               estimate   statistic   df   df2       p_value
+  1   dose                                     NA     31.6028    1    10   0.000220956
+  2   diet                                     NA     3.24223    2    10     0.0821533
+  3   dose:diet                                NA    0.175571    2    10      0.841509
+  4   partial eta squared (dose)         0.759632          NA   NA    NA            NA
+  5   partial eta squared (diet)         0.393368          NA   NA    NA            NA
+  6   partial eta squared (dose:diet)   0.0339231          NA   NA    NA            NA
+> wages.anova(lwage ~ industry * category(female) + educ)
+anova · factorial, type 2 · lwage ~ industry * category(female) + educ
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source                df         SS        MS         F   p value   partial eta squared
+  model                 24    505.438    21.060    101.47    <0.001                 0.118
+  industry              11     77.856     7.078     34.10    <0.001                 0.020
+  female                 1     88.792    88.792    427.81    <0.001                 0.023
+  educ                   1    329.462   329.462   1587.37    <0.001                 0.080
+  industry:female       11      7.137     0.649      3.13    <0.001                 0.002
+  residual          18,176   3772.468     0.208
+  ───────────────────────────────────────────────────────────────────────────────────────
+  total             18,200   4277.906
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial eta squared = SS / (SS + SS residual); N = 18,201
+note: 211 rows with NA in a model variable dropped (line 12)

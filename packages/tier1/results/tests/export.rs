@@ -158,6 +158,7 @@ fn a_test_result_exports_as_a_table() {
         df: vec![1.0, 18_175.0],
     };
     let plain = TestResult {
+        terms: Vec::new(),
         method: "test".to_string(),
         title: "test · m · educ == exper".to_string(),
         header: Vec::new(),
@@ -203,6 +204,7 @@ fn a_test_result_exports_as_a_table() {
         rules: Vec::new(),
     };
     let compared = TestResult {
+        terms: Vec::new(),
         method: "compare".to_string(),
         title: "compare · m2 against m1".to_string(),
         table: Some(models),

@@ -223,6 +223,8 @@ tests/ks/stdout cd2cf5fb266524ea
 tests/ks/stderr dc91a25639d882b9
 tests/anova_oneway/stdout 6691258f9c01c8f3
 tests/anova_oneway/stderr 2f3cf18788939bc6
+tests/anova_factorial/stdout 351e7c71f401f2f3
+tests/anova_factorial/stderr 176db3609bd09fba
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

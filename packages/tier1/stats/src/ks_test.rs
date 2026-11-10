@@ -483,6 +483,7 @@ pub fn ks_test(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         )
     };
     Ok(Value::TestResult(Rc::new(TestResult {
+        terms: Vec::new(),
         method: "ks_test".to_string(),
         title,
         hypotheses: Some(hypotheses),
