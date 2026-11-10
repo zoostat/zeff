@@ -283,6 +283,24 @@ fn an_expression_that_changes_no_value_draws_what_its_variable_draws() {
 }
 
 #[test]
+fn a_constant_of_core_in_an_expression_is_its_value() {
+    // `PI` and `E` are read as anywhere else; a variable of the frame with the name hides them.
+    let (code, stdout, stderr) = go(
+        "let d = frame(r = [1.0, 2.0, 3.0])\nd.plot(x: r, y: r * PI).points()\nlet h = frame(r = [1.0, 2.0, 3.0], PI = [10, 10, 10])\nh.plot(x: r, y: r * PI).points()\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(stderr, "");
+    assert!(
+        stdout.contains("  y      r * PI   linear   2.82743 to 9.73894   3, 4, 5, 6, 7, 8, 9\n"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("  y      r * PI   linear   9 to 31"),
+        "{stdout}"
+    );
+}
+
+#[test]
 fn a_name_in_an_expression_is_read_where_plot_stands() {
     // A constant of the script is taken with the value it has at the call; a loop variable that
     // holds a variable stands for it, and the plot names the variable.

@@ -191,10 +191,13 @@ pub enum ExprKind {
     Vars(Vec<String>),
     /// A bare name inside a frame method's argument (section 3.7, "Name lookup"): the receiver's
     /// column of that name when the frame has one, else the binding, resolved when the statement
-    /// runs because the frame's columns are not known before.
+    /// runs because the frame's columns are not known before. A name that is neither and is a
+    /// constant of `core` (`PI`, `E`) is that constant, as outside a frame method: `constant`
+    /// holds its call.
     FrameName {
         name: String,
         binding: Option<BindingId>,
+        constant: Option<Box<Expr>>,
     },
     /// A word from a parameter's fixed list.
     Word(String),

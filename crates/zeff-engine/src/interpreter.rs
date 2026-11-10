@@ -1761,9 +1761,15 @@ impl<'a> Interpreter<'a> {
                     .map(|term| self.term_value(term, expr))
                     .collect::<Result<Vec<_>, _>>()?,
             ),
-            ExprKind::FrameName { name, binding } => {
-                self.frame_name(expr, name, *binding, messages)?
-            }
+            ExprKind::FrameName {
+                name,
+                binding,
+                constant,
+            } => match self.frame_lookup(expr, name, *binding, constant.as_deref(), messages)? {
+                Named::Column(column) => Value::Column(column),
+                Named::Binding(id, frame) => self.bound_in_frame(id, &frame, expr)?,
+                Named::Constant(constant) => self.eval(constant, printed, messages)?,
+            },
             ExprKind::Word(word) => Value::Word(word.clone()),
             ExprKind::Term(inner) => match self.eval(inner, printed, messages)? {
                 Value::Str(name) => Value::Term(name),
@@ -2213,31 +2219,18 @@ impl<'a> Interpreter<'a> {
         })
     }
 
-    /// A bare name inside a frame method's argument: the receiver's column of that name, else the
-    /// binding; both at once is the column with a warning (section 3.7, "Name lookup").
-    fn frame_name(
-        &mut self,
-        expr: &Expr,
-        name: &str,
-        binding: Option<zeff_ir::BindingId>,
-        messages: &mut Vec<Diagnostic>,
-    ) -> Result<Value, Fail> {
-        match self.frame_lookup(expr, name, binding, messages)? {
-            Named::Column(column) => Ok(Value::Column(column)),
-            Named::Binding(id, frame) => self.bound_in_frame(id, &frame, expr),
-        }
-    }
-
     /// What a bare name inside a frame method's argument names (section 3.7, "Name lookup"): a
     /// loop variable or a parameter first, a clash with a column being an error; then the
-    /// receiver's column, with a warning when a binding has the name too; then a binding.
-    fn frame_lookup(
+    /// receiver's column, with a warning when a binding has the name too; then a binding; then,
+    /// for a name that is none of these, the constant of `core` of that name (`PI`, `E`).
+    fn frame_lookup<'e>(
         &mut self,
         expr: &Expr,
         name: &str,
         binding: Option<zeff_ir::BindingId>,
+        constant: Option<&'e Expr>,
         messages: &mut Vec<Diagnostic>,
-    ) -> Result<Named, Fail> {
+    ) -> Result<Named<'e>, Fail> {
         let Some(receiver) = self.receivers.last_mut() else {
             return Err(self.internal(expr, "a frame name was read outside a frame method"));
         };
@@ -2280,9 +2273,10 @@ impl<'a> Interpreter<'a> {
             }
             return Ok(Named::Column(column));
         }
-        match binding {
-            Some(id) => Ok(Named::Binding(id, frame)),
-            None => {
+        match (binding, constant) {
+            (Some(id), _) => Ok(Named::Binding(id, frame)),
+            (None, Some(constant)) => Ok(Named::Constant(constant)),
+            (None, None) => {
                 let frame_name = frame.shown_name();
                 let columns: Vec<&str> = frame.table.names().iter().map(String::as_str).collect();
                 Err(fail(zeff_diagnostics::messages::no_variable(
@@ -2314,12 +2308,22 @@ impl<'a> Interpreter<'a> {
             ExprKind::Na => ColumnExpr::Na,
             ExprKind::Word(word) => ColumnExpr::Word(word.clone()),
             ExprKind::TypeName { name, .. } => ColumnExpr::Type(name.clone()),
-            ExprKind::FrameName { name, binding } => {
-                match self.frame_lookup(expr, name, *binding, messages)? {
-                    Named::Column(_) => ColumnExpr::Var(name.clone()),
-                    Named::Binding(id, frame) => self.kept_binding(id, &frame, expr, renamed)?,
+            ExprKind::FrameName {
+                name,
+                binding,
+                constant,
+            } => match self.frame_lookup(expr, name, *binding, constant.as_deref(), messages)? {
+                Named::Column(_) => ColumnExpr::Var(name.clone()),
+                Named::Binding(id, frame) => self.kept_binding(id, &frame, expr, renamed)?,
+                // A constant of `core` is kept as its value; it prints nothing.
+                Named::Constant(constant) => {
+                    match self.eval(constant, &mut String::new(), messages)? {
+                        Value::Float(x) => ColumnExpr::Float(x),
+                        Value::Int(i) => ColumnExpr::Int(i),
+                        _ => return Err(self.internal(expr, "a constant that is not a number")),
+                    }
                 }
-            }
+            },
             ExprKind::List(items) => ColumnExpr::List(
                 items
                     .iter()
@@ -3525,9 +3529,11 @@ fn takes_failed(call: &Call) -> bool {
 
 /// What a bare name inside a frame method's argument names: a column of the receiver, or a
 /// binding of the script, with the frame the name was looked up in.
-enum Named {
+enum Named<'e> {
     Column(zeff_columns::Column),
     Binding(zeff_ir::BindingId, Frame),
+    /// A constant of `core`, as the call the checker made of it.
+    Constant(&'e Expr),
 }
 
 /// Whether a kept expression gives a column: it reads a variable of the frame, through the

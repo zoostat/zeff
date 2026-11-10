@@ -2964,6 +2964,7 @@ impl Checker<'_> {
                     kind: ExprKind::FrameName {
                         name: text,
                         binding: None,
+                        constant: None,
                     },
                 };
             }
@@ -2973,9 +2974,17 @@ impl Checker<'_> {
             // With a binding of the name in scope the value may be either, so its type is not
             // known; without one it is a column; a binding that holds a `Var` (a parameter or a
             // loop variable) stands for the column it names (section 6).
+            // A name that is no binding may still be a constant of `core` (`PI`, `E`), which a
+            // column of the frame hides: column, then binding, then constant, the order of the
+            // lookup outside a frame method with the column put first.
+            let constant = match binding {
+                Some(_) => None,
+                None => self.core_constant(&text, span).map(Box::new),
+            };
             let ty = match binding {
                 Some(id) if self.bindings[id].ty == Ty::Var => Ty::Column(Box::new(Ty::Unknown)),
                 Some(_) => Ty::Unknown,
+                None if constant.is_some() => Ty::Unknown,
                 None => Ty::Column(Box::new(Ty::Unknown)),
             };
             return Expr {
@@ -2984,6 +2993,7 @@ impl Checker<'_> {
                 kind: ExprKind::FrameName {
                     name: text,
                     binding,
+                    constant,
                 },
             };
         }
@@ -3004,31 +3014,8 @@ impl Checker<'_> {
                 },
             };
         }
-        // A constant of `core` (`PI`, `E`) is a bare name that calls a function of no arguments.
-        if let Some(constant) = self.registry.function("core", &text)
-            && constant.row.kind == "constant"
-        {
-            return Expr {
-                ty: Ty::parse(constant.spec.returns).unwrap_or(Ty::Unknown),
-                span,
-                kind: ExprKind::Call(Call {
-                    package: "core".to_string(),
-                    name: text,
-                    callee_span: span,
-                    args: Vec::new(),
-                    rest: Vec::new(),
-                    definitions: Vec::new(),
-                    spreads: Vec::new(),
-                    order: Vec::new(),
-                    lifted: false,
-                    liftable: false,
-                    scalar_params: Vec::new(),
-                    rest_scalar: false,
-                    implicit_receiver: false,
-                    by_slot: None,
-                    returns: constant.spec.returns.to_string(),
-                }),
-            };
+        if let Some(constant) = self.core_constant(&text, span) {
+            return constant;
         }
         if self.record_depth > 0 && self.words.contains(&text) {
             return Expr {
@@ -6817,6 +6804,35 @@ impl Checker<'_> {
         }
     }
 
+    /// A constant of `core` (`PI`, `E`): a bare name that calls a function of no arguments.
+    fn core_constant(&self, name: &str, span: Span) -> Option<Expr> {
+        let constant = self.registry.function("core", name)?;
+        if constant.row.kind != "constant" {
+            return None;
+        }
+        Some(Expr {
+            ty: Ty::parse(constant.spec.returns).unwrap_or(Ty::Unknown),
+            span,
+            kind: ExprKind::Call(Call {
+                package: "core".to_string(),
+                name: name.to_string(),
+                callee_span: span,
+                args: Vec::new(),
+                rest: Vec::new(),
+                definitions: Vec::new(),
+                spreads: Vec::new(),
+                order: Vec::new(),
+                lifted: false,
+                liftable: false,
+                scalar_params: Vec::new(),
+                rest_scalar: false,
+                implicit_receiver: false,
+                by_slot: None,
+                returns: constant.spec.returns.to_string(),
+            }),
+        })
+    }
+
     /// A variable the frame lacks (Z0101, Z0102), as the run-time message says it; a warning
     /// marked from last run when the schema is the last run's record (section 11).
     fn require_column(&mut self, name: &str, span: Span, schema: &FrameSchema, shown: &str) {
@@ -7065,10 +7081,15 @@ impl Checker<'_> {
         vars_too: bool,
     ) {
         match &expr.kind {
-            ExprKind::FrameName { name, binding } => match binding {
+            ExprKind::FrameName {
+                name,
+                binding,
+                constant,
+            } => match binding {
                 Some(id) => self.clash(*id, expr.span, schema, shown),
                 None => {
-                    if !defined.contains(name) {
+                    // A name that is no column may be a constant of `core`.
+                    if !defined.contains(name) && constant.is_none() {
                         self.require_column(name, expr.span, schema, shown);
                     }
                 }

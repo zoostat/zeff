@@ -179,4 +179,6 @@ Step 13 `[function]`: `fisher_test`, exact on a 2 × 2 table with the conditiona
 
 **Next.** The small correction for `PI` and `E` in a frame method. Then step 20c `[engine]`: the other aesthetics. Step 19b waits on #104.
 
+**Added the same day: `PI` and `E` inside a frame method.** `d.add(area = PI * r^2)`, `d.where(r > E)` and `y: r * PI` in a plot now work; each was refused for want of a variable `PI`. A variable of the frame named `PI` or `E` hides the constant, without a warning, which the owner may overturn. Green on the same routine. Next is step 20c `[engine]`.
+
 **For the owner to decide.** New: #107 (due at 0.7.0 before step 25), what an expression in a mapping may call (recommended: as built, the functions of `core` only, widened when the date scale arrives); #108 (due at 0.8.0), whether a numeric function given a text or category column should be refused, as in R and Stata (recommended: yes). Open as before: #106 (due before step 23), #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
