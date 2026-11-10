@@ -204,8 +204,106 @@ F(11, 3,489.4) = 31.60   p < 0.001
 eta squared = 0.019
 decision at α = 0.05: reject H0 (p < 0.001)
 Welch's F over 12 groups, the variances not assumed equal; eta squared = SS between / SS total
+anova · Welch one-way · s by site
+  H0: the population means of s are equal in all 3 groups of site          μ₁ = μ₂ = μ₃
+  H1: at least one group of site has a different population mean of s      not all equal
+
+  group    N    mean      sd
+  site=1   5   2.840   0.288
+  site=2   4   3.225   0.793
+  site=3   5   2.820   0.736
+
+F(2, 5.5) = 0.39   p = 0.693
+omega squared = -0.067
+decision at α = 0.05: fail to reject H0 (p = 0.693)
+Welch's F over 3 groups, the variances not assumed equal; omega squared = (SS between − (k − 1) MS within) / (SS total + MS within)
+anova · classical one-way · s by site
+  H0: the population means of s are equal in all 3 groups of site          μ₁ = μ₂ = μ₃
+  H1: at least one group of site has a different population mean of s      not all equal
+
+  group    N    mean      sd
+  site=1   5   2.840   0.288
+  site=2   4   3.225   0.793
+  site=3   5   2.820   0.736
+
+  source           df      SS      MS
+  between groups    2   0.447   0.223
+  within groups    11   4.388   0.399
+  ───────────────────────────────────
+  total            13   4.834
+
+F(2, 11) = 0.56   p = 0.587
+epsilon squared = -0.073
+decision at α = 0.05: fail to reject H0 (p = 0.587)
+classical F over 3 groups on the pooled within-group variance; epsilon squared = (SS between − (k − 1) MS within) / SS total
+anova · Welch one-way · v by k
+  H0: the population means of v are equal in all 3 groups of k          μ₁ = μ₂ = μ₃
+  H1: at least one group of k has a different population mean of v      not all equal
+
+  group   N    mean      sd
+  a       6   3.500   2.811
+  b       6   4.167   2.563
+  c       7   7.571   2.149
+
+F(2, 10.1) = 5.21   p = 0.028
+omega squared = 0.299
+decision at α = 0.05: reject H0 (p = 0.028)
+Welch's F over 3 groups, the variances not assumed equal; omega squared = (SS between − (k − 1) MS within) / (SS total + MS within)
+anova · Welch one-way · x by g
+  H0: the population means of x are equal in all 2 groups of g          μ₁ = μ₂
+  H1: at least one group of g has a different population mean of x      not all equal
+
+  group   N    mean      sd
+  g=1     3   2.000   1.000
+  g=2     3   2.100   1.153
+
+F(1, 3.9) = 0.01   p = 0.915
+omega squared = -0.197
+decision at α = 0.05: fail to reject H0 (p = 0.915)
+Welch's F over 2 groups, the variances not assumed equal; omega squared = (SS between − (k − 1) MS within) / (SS total + MS within)
+anova · classical one-way · x by g
+  H0: the population means of x are equal in all 2 groups of g          μ₁ = μ₂
+  H1: at least one group of g has a different population mean of x      not all equal
+
+  group   N    mean      sd
+  g=1     3   2.000   1.000
+  g=2     3   2.100   1.153
+
+  source           df      SS      MS
+  between groups    1   0.015   0.015
+  within groups     4   4.660   1.165
+  ───────────────────────────────────
+  total             5   4.675
+
+F(1, 4) = 0.01   p = 0.915
+epsilon squared = -0.246
+decision at α = 0.05: fail to reject H0 (p = 0.915)
+classical F over 2 groups on the pooled within-group variance; epsilon squared = (SS between − (k − 1) MS within) / SS total
+-0.245989
+frame · 2 rows × 9 variables
+
+      term               estimate   std_error   statistic   df       df2    p_value   ci_lower   ci_upper
+  1   F                        NA          NA   0.0128755    1   3.92134   0.915229         NA         NA
+  2   epsilon squared   -0.245989          NA          NA   NA        NA         NA         NA         NA
+anova · Welch one-way · x by g
+  H0: the population means of x are equal in all 2 groups of g          μ₁ = μ₂
+  H1: at least one group of g has a different population mean of x      not all equal
+
+  group   N    mean      sd
+  g=1     3   2.000   1.000
+  g=2     3   2.100   1.153
+
+F(1, 3.9) = 0.01   p = 0.915
+epsilon squared = -0.246
+decision at α = 0.05: fail to reject H0 (p = 0.915)
+Welch's F over 2 groups, the variances not assumed equal; epsilon squared = (SS between − (k − 1) MS within) / SS total
 ---
 note: 2 rows with NA in x or g dropped (line 10)
 note: 211 rows with NA in lwage or industry dropped (line 13)
 note: 6 rows with NA in lwage or industry dropped (line 14)
 note: 211 rows with NA in lwage or industry dropped (line 15)
+note: the classical F of the same sums of squares is 0.560, below 1, so omega squared is negative; read it as no evidence of an effect (line 21)
+note: F is below 1, so epsilon squared is negative; read it as no evidence of an effect (line 22)
+note: the classical F of the same sums of squares is 0.013, below 1, so omega squared is negative; read it as no evidence of an effect (line 25)
+note: F is below 1, so epsilon squared is negative; read it as no evidence of an effect (line 26)
+note: the classical F of the same sums of squares is 0.013, below 1, so epsilon squared is negative; read it as no evidence of an effect (line 27)

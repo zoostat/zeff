@@ -7,6 +7,14 @@
 //! three types agree on a balanced layout; the type 1 sums of squares add up to the model's;
 //! types 2 and 3 do not depend on the order of the terms; frequency weights repeat rows); the
 //! edge cases (every refusal and every note); and snapshots of every form and every message.
+//!
+//! `effect:` (step 17b; open decision #99, question 2): partial omega squared and partial epsilon
+//! squared of every row of the same reference, where they are written out on the three tables
+//! and the whole model's epsilon squared is checked against `summary(lm)$adj.r.squared`; the
+//! properties (partial epsilon squared never exceeds partial eta squared, partial omega squared
+//! lies between 0 and partial epsilon squared, both are negative exactly when the row's F is
+//! below 1, frequency weights repeat rows); and the edge cases (one category gives the measures
+//! of the classical one-way form; the note that names the rows whose estimate is negative).
 
 use proptest::prelude::*;
 use serde_json::Value as Json;
@@ -28,11 +36,12 @@ impl Files for NoFiles {
     }
 }
 
-/// The slots of `anova`: data, var, group, equal_var, weights, weight_type, type.
-const SLOTS: usize = 7;
+/// The slots of `anova`: data, var, group, equal_var, weights, weight_type, type, effect.
+const SLOTS: usize = 8;
 const WEIGHTS: usize = 4;
 const WEIGHT_TYPE: usize = 5;
 const TYPE: usize = 6;
+const EFFECT: usize = 7;
 
 fn with_context<T>(
     text: &str,
@@ -280,6 +289,20 @@ fn the_three_types_agree_with_anova_lm_and_with_car() {
                 ),
                 "{what}: R squared"
             );
+            for (got, key, name) in [
+                (table.model.partial_omega_squared, "model_omega", "omega"),
+                (
+                    table.model.partial_epsilon_squared,
+                    "model_epsilon",
+                    "epsilon",
+                ),
+            ] {
+                let want = number(&case[key]).unwrap();
+                assert!(
+                    close(got, want, 1e-9),
+                    "{what}: the model's {name} squared {got} against {want}"
+                );
+            }
             for (row, want) in table.terms.iter().zip(rows) {
                 let term = want["term"].as_str().unwrap();
                 assert_eq!(row.label, term, "{what}");
@@ -310,8 +333,41 @@ fn the_three_types_agree_with_anova_lm_and_with_car() {
                     close(row.partial_eta_squared, ss / (ss + residual_ss), 1e-9),
                     "{what}: {term}: partial eta squared"
                 );
+                let omega = number(&want["omega"]).unwrap();
+                assert!(
+                    close(row.partial_omega_squared, omega, 1e-9),
+                    "{what}: {term}: partial omega squared {} against {omega}",
+                    row.partial_omega_squared
+                );
+                let epsilon = number(&want["epsilon"]).unwrap();
+                assert!(
+                    close(row.partial_epsilon_squared, epsilon, 1e-9),
+                    "{what}: {term}: partial epsilon squared {} against {epsilon}",
+                    row.partial_epsilon_squared
+                );
             }
             // The same figures through the function, as a script reads them.
+            // Under `effect:` the rows carry the measure asked for, by its name.
+            for word in ["omega", "epsilon"] {
+                let mut asked = slots.clone();
+                asked.push((EFFECT, Value::Word(word.to_string())));
+                let result = match call(&frame, text, asked) {
+                    Ok(result) => result,
+                    Err(_) => panic!("{what}: the function refuses `effect: {word}`"),
+                };
+                assert_eq!(result.terms.len(), rows.len(), "{what}");
+                for (row, want) in result.terms.iter().zip(rows) {
+                    let effect = row.effect.as_ref().unwrap();
+                    assert_eq!(effect.label, format!("partial {word} squared"));
+                    assert!(
+                        close(effect.value, number(&want[word]).unwrap(), 1e-9),
+                        "{what}: {}: partial {word} squared {}",
+                        row.term,
+                        effect.value
+                    );
+                    assert!(effect.ci.is_none());
+                }
+            }
             let result = match call(&frame, text, slots) {
                 Ok(result) => result,
                 Err(_) => panic!("{what}: the function refuses"),
@@ -470,6 +526,40 @@ proptest! {
                 prop_assert!((0.0..=1.0).contains(&row.p), "{}", row.p);
                 prop_assert!((-1e-9..=1.0).contains(&row.partial_eta_squared));
             }
+            // Partial epsilon squared never exceeds partial eta squared; partial omega squared
+            // lies between 0 and partial epsilon squared; both are negative exactly when the
+            // row's F is below 1. The same holds on the row of the whole model.
+            for row in std::iter::once(&table.model)
+                .chain(&table.terms)
+                .filter(|row| row.df > 0)
+            {
+                let (eta, omega, epsilon) = (
+                    row.partial_eta_squared,
+                    row.partial_omega_squared,
+                    row.partial_epsilon_squared,
+                );
+                prop_assert!(epsilon <= eta, "{}: {epsilon} {eta}", row.label);
+                prop_assert!(omega.abs() <= epsilon.abs(), "{}: {omega} {epsilon}", row.label);
+                prop_assert!(omega == 0.0 || (omega < 0.0) == (epsilon < 0.0));
+                prop_assert!(epsilon < 1.0 && omega < 1.0);
+                if row.f < 1.0 - 1e-9 {
+                    prop_assert!(omega < 0.0 && epsilon < 0.0, "{}: F {}", row.label, row.f);
+                }
+                if row.f > 1.0 + 1e-9 {
+                    prop_assert!(omega > 0.0 && epsilon > 0.0, "{}: F {}", row.label, row.f);
+                }
+            }
+            // On the row of the whole model partial eta squared is R² and partial epsilon
+            // squared the adjusted R².
+            let r_squared = table.model.ss / table.total_ss;
+            let n = table.residual_df + table.rank as f64;
+            let adjusted = 1.0 - (1.0 - r_squared) * (n - 1.0) / table.residual_df;
+            prop_assert!((table.model.partial_eta_squared - r_squared).abs() <= 1e-9);
+            prop_assert!(
+                (table.model.partial_epsilon_squared - adjusted).abs() <= 1e-9 * (1.0 + adjusted.abs()),
+                "{} against {adjusted}",
+                table.model.partial_epsilon_squared
+            );
         }
         // Types 2 and 3 with the terms written in another order.
         let turned = design(&frame, "y ~ x + b * a", None);
@@ -519,6 +609,18 @@ proptest! {
                     for (rw, re) in w.terms.iter().zip(&e.terms) {
                         prop_assert_eq!(rw.df, re.df);
                         prop_assert!((rw.ss - re.ss).abs() <= 1e-9 * scale, "{} {}", rw.ss, re.ss);
+                        if rw.df > 0 && re.ss > 1e-6 * scale {
+                            for (got, want) in [
+                                (rw.partial_omega_squared, re.partial_omega_squared),
+                                (rw.partial_epsilon_squared, re.partial_epsilon_squared),
+                            ] {
+                                prop_assert!(
+                                    (got - want).abs() <= 1e-7 * (1.0 + want.abs()),
+                                    "{}: {got} against {want}",
+                                    rw.label
+                                );
+                            }
+                        }
                     }
                 }
                 (Err(w), Err(e)) => prop_assert_eq!(w, e),
@@ -575,6 +677,11 @@ fn each_form_keeps_its_own_arguments() {
             "must be 1, 2 or 3, not 0",
         ),
         ("d.anova(y ~ a * b, type: \"2\")", "Z0401", "must be an Int"),
+        (
+            "d.anova(y ~ a * b, effect: cohen)",
+            "Z0402",
+            "`cohen` is not one of the allowed words",
+        ),
         (
             "d.anova(y ~ a * b - 1)",
             "Z0401",
@@ -724,6 +831,121 @@ fn one_category_gives_the_classical_one_way_table() {
 }
 
 #[test]
+fn one_category_gives_the_measures_of_the_classical_one_way_form() {
+    // `anova(y ~ a, effect:)` and `anova(y, group: a, equal_var: true, effect:)` report the same
+    // omega squared and the same epsilon squared: with one term the partial measure is the plain
+    // one, on the term's row and on the row of the whole model.
+    let y = [
+        3.1, 4.2, 5.0, 6.3, 2.2, 7.9, 4.4, 5.1, 6.6, 3.8, 4.9, 7.2, 9.5,
+    ];
+    let frame = frame_of(vec![
+        ("y", Column::floats(y.iter().map(|v| Some(*v))).0),
+        (
+            "a",
+            category(&["p", "q", "r"], (0..13).map(|i| Some(i * 3 / 13))),
+        ),
+    ]);
+    let table = table_of(&design(&frame, "y ~ a", None), Kind::Marginal).unwrap();
+    for word in ["eta", "omega", "epsilon"] {
+        let asked = Value::Word(word.to_string());
+        let factorial = call(&frame, "y ~ a", vec![(EFFECT, asked.clone())]).unwrap();
+        let mut values: Vec<Option<Value>> = vec![None; SLOTS];
+        values[0] = Some(Value::Frame(frame.clone()));
+        values[1] = Some(Value::Var("y".to_string()));
+        values[2] = Some(Value::Var("a".to_string()));
+        values[3] = Some(Value::Bool(true));
+        values[EFFECT] = Some(asked);
+        let args = Args {
+            values,
+            rest: Vec::new(),
+            definitions: Vec::new(),
+        };
+        let one_way = match with_context("d.anova(y, group: a)", |ctx| anova(ctx, args)) {
+            Ok(Value::TestResult(result)) => (*result).clone(),
+            _ => panic!("the one-way form refuses"),
+        };
+        let plain = one_way.effect.as_ref().unwrap();
+        let partial = factorial.terms[0].effect.as_ref().unwrap();
+        assert_eq!(plain.label, format!("{word} squared"));
+        assert_eq!(partial.label, format!("partial {word} squared"));
+        assert!(
+            (plain.value - partial.value).abs() < 1e-12,
+            "{word}: {} against {}",
+            plain.value,
+            partial.value
+        );
+        let model = match word {
+            "eta" => table.model.partial_eta_squared,
+            "omega" => table.model.partial_omega_squared,
+            _ => table.model.partial_epsilon_squared,
+        };
+        assert!((model - partial.value).abs() < 1e-12, "{word}");
+    }
+}
+
+/// The notes of a run on `d` without the two its own first line raises, where `category`
+/// replaces `a` and `b`.
+fn notes_of(stderr: &str) -> Vec<&str> {
+    stderr
+        .lines()
+        .filter(|l| !l.ends_with("replaced the variable of that name (line 1)"))
+        .collect()
+}
+
+#[test]
+fn the_rows_whose_estimate_is_negative_are_named_in_one_note() {
+    // Partial eta squared cannot be negative, so it has no note.
+    let (exit, stdout, stderr) = with_d("d.anova(y ~ a * b)");
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.contains("partial eta squared"), "{stdout}");
+    assert!(notes_of(&stderr).is_empty(), "{stderr}");
+    // F is 0.94 for the model and 0.35 for a, 1.96 for b and 1.02 for a:b.
+    for word in ["omega", "epsilon"] {
+        let (exit, stdout, stderr) = with_d(&format!("d.anova(y ~ a * b, effect: {word})"));
+        assert_eq!(exit, 0, "{stderr}");
+        assert!(
+            stdout.contains(&format!("p value   partial {word} squared")),
+            "{stdout}"
+        );
+        assert!(!stdout.contains("eta squared"), "{stdout}");
+        assert_eq!(
+            notes_of(&stderr),
+            vec![format!(
+                "note: F is below 1 for the model and `a`, so their partial {word} squared is negative; read each as no evidence of an effect (line 2)"
+            )],
+            "{stderr}"
+        );
+        let lines: Vec<&str> = stdout.lines().collect();
+        let row = |name: &str| -> f64 {
+            let line = lines
+                .iter()
+                .find(|l| l.trim_start().starts_with(&format!("{name} ")))
+                .unwrap_or_else(|| panic!("no row {name}: {stdout}"));
+            line.split_whitespace().last().unwrap().parse().unwrap()
+        };
+        assert!(row("model") < 0.0 && row("a") < 0.0, "{stdout}");
+        assert!(row("b") > 0.0 && row("a:b") > 0.0, "{stdout}");
+    }
+    // One row alone: F is 1.04 for the model, 2.03 for b and 0.05 for x.
+    let (exit, _, stderr) = with_d("d.anova(y ~ b + x, type: 1, effect: omega)");
+    assert_eq!(exit, 0, "{stderr}");
+    assert_eq!(
+        notes_of(&stderr),
+        vec![
+            "note: F is below 1 for `x`, so its partial omega squared is negative; read it as no evidence of an effect (line 2)"
+        ],
+        "{stderr}"
+    );
+    // `estimates()` carries the figure of the table, -0.121, as it is.
+    let (exit, stdout, stderr) = with_d(
+        "d.anova(y ~ a * b, effect: omega).estimates().where(term == \"partial omega squared (a)\")",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.contains("frame · 1 row × 9 variables"), "{stdout}");
+    assert!(stdout.contains("-0.121451"), "{stdout}");
+}
+
+#[test]
 fn the_methods_of_the_result_read_the_whole_model_and_estimates_reads_the_terms() {
     let (exit, stdout, stderr) = with_d(
         "let t = d.anova(y ~ a * b + x)\nt.statistic()\nt.df()\nt.n_obs()\nt.estimates().n_rows()",
@@ -753,7 +975,7 @@ fn the_methods_of_the_result_read_the_whole_model_and_estimates_reads_the_terms(
 #[test]
 fn every_form_and_every_message() {
     let (exit, stdout, stderr) = go(&format!(
-        "{D}d.anova(y ~ a * b)\nd.anova(y ~ a * b + x, type: 1)\nd.anova(y ~ x + a * b, type: 1)\nd.anova(y ~ a * b + x, type: 3)\nd.anova(y ~ a + category(s))\nd.anova(y ~ a + x, weights: w, weight_type: frequency)\nd.anova(y ~ a + x, weights: w, weight_type: analytic)\nd.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b)\nd.add(x2 = 2 * x).anova(y ~ x + x2)\nd.anova(y ~ x)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage ~ industry * category(female) + educ)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3)\nwages.where(year == 2010).anova(lwage ~ industry + category(union) + educ * exper, type: 1)\nlet t = d.anova(y ~ a * b + x)\nt.statistic()\nt.df()\nt.p_values()\nt.n_obs()\nt.effect_size()\nt.estimates()\nt.ci()\nt.summary()\n"
+        "{D}d.anova(y ~ a * b)\nd.anova(y ~ a * b + x, type: 1)\nd.anova(y ~ x + a * b, type: 1)\nd.anova(y ~ a * b + x, type: 3)\nd.anova(y ~ a + category(s))\nd.anova(y ~ a + x, weights: w, weight_type: frequency)\nd.anova(y ~ a + x, weights: w, weight_type: analytic)\nd.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b)\nd.add(x2 = 2 * x).anova(y ~ x + x2)\nd.anova(y ~ x)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage ~ industry * category(female) + educ)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3)\nwages.where(year == 2010).anova(lwage ~ industry + category(union) + educ * exper, type: 1)\nlet t = d.anova(y ~ a * b + x)\nt.statistic()\nt.df()\nt.p_values()\nt.n_obs()\nt.effect_size()\nt.estimates()\nt.ci()\nt.summary()\nd.anova(y ~ a * b, effect: omega)\nd.anova(y ~ a * b + x, type: 3, effect: epsilon)\nd.anova(y ~ a + x, weights: w, weight_type: frequency, effect: omega)\nd.anova(y ~ b, effect: epsilon)\nwages.anova(lwage ~ industry * category(female) + educ, effect: omega)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3, effect: epsilon)\nlet u = d.anova(y ~ a * b + x, effect: epsilon)\nu.estimates()\nu.summary()\n"
     ));
     assert_eq!(exit, 0, "{stderr}");
     insta::assert_snapshot!("forms", format!("{stdout}---\n{stderr}"));
@@ -778,6 +1000,8 @@ fn every_form_and_every_message() {
         "d.add(x2 = 2 * x).anova(y ~ x + x2, type: 3)",
         "d.anova(y ~ a + s)",
         "d.anova(y ~ a * b).p_values(\"a\")",
+        "d.anova(y ~ a * b, effect: cohen)",
+        "d.anova(y ~ a * b, effect: omga)",
     ] {
         let (exit, _, stderr) = with_d(line);
         assert_eq!(exit, 1, "{line}");

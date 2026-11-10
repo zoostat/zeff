@@ -13,8 +13,8 @@ The one-way form gives Welch's F by default, as R's `oneway.test`: it does not a
 groups share a variance, and its second degrees of freedom are fractional. `equal_var: true`
 gives the classical F on the pooled within-group variance, as R's `aov` and Stata's `oneway`,
 with its table of sums of squares. Either prints the hypotheses, a table of the groups with their
-counts, means and standard deviations, F with its degrees of freedom and the p-value, eta
-squared, a decision at α = 0.05, and a line saying how F was computed. Two groups are allowed;
+counts, means and standard deviations, F with its degrees of freedom and the p-value, an effect
+size, a decision at α = 0.05, and a line saying how F was computed. Two groups are allowed;
 with two, Welch's F is the square of Welch's t from `t_test`, with the same p-value.
 
 The factorial form takes the terms of section 7.2 of the Language Reference: categories, their
@@ -26,7 +26,15 @@ for the others: type 2, the default, as `car::Anova` in R; type 3, as `car::Anov
 with sum contrasts and as Stata's `anova`; type 1, the sequential table of R's
 `anova(lm(...))` and Stata's `anova, sequential`. The table has a row for the whole model, a
 row for each term with its degrees of freedom, sum of squares, mean square, F, p-value and
-partial eta squared, the residual and the total. The variance is always pooled.
+partial effect size, the residual and the total. The variance is always pooled.
+
+`effect:` chooses the effect size of either form. Eta squared, the default, is the share of the
+sample's variation that the groups or the term account for; it overstates the share in the
+population, the more so the fewer the observations. `effect: omega` gives omega squared and
+`effect: epsilon` gives epsilon squared, which take the part expected by chance out of it. In
+the factorial form each is the partial measure of its term. R gives the two in
+`effectsize::omega_squared()` and `epsilon_squared()`, Stata in `estat esize, omega` and
+`estat esize, epsilon` after `anova`; Details says where their figures differ from these.
 
 In both forms rows with `NA` in a variable used are dropped and counted in a note.
 
@@ -45,31 +53,44 @@ In both forms rows with `NA` in a variable used are dropped and counted in a not
   weights scaled to sum to the number of rows.
 - type: The sums of squares of the factorial form: 2, the default, 3 or 1. It belongs to the
   form that takes a formula.
+- effect: The effect size reported: `eta`, the default, for eta squared, `omega` for omega
+  squared or `epsilon` for epsilon squared; in the factorial form the partial measure of each
+  term. It belongs to both forms.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
 `export`, `report`). In the one-way form: the statistic, its two degrees of freedom, the
-p-value, eta squared as the effect size, and the hypotheses; its own methods `statistic()`,
+p-value, the effect size `effect:` chose, and the hypotheses; its own methods `statistic()`,
 `df()`, `effect_size()`, `h0()`, `h1()` and `alternative()` give the figures as values. In the
 factorial form `statistic()`, `df()` and `p_values()` give the F of the whole model, its two
 degrees of freedom and its p-value, and `estimates()` gives a frame with a row for each term
 (its F in `statistic`, its degrees of freedom in `df` and `df2`, its p-value) followed by a row
-for each term's partial eta squared; a table of several terms has no single hypothesis, effect
-size or interval, so `h0()`, `h1()`, `effect_size()` and `ci()` are `NA` and no decision line is
-printed.
+for each term's partial effect size, named for the measure, as `partial omega squared (dose)`; a
+table of several terms has no single hypothesis, effect size or interval, so `h0()`, `h1()`,
+`effect_size()` and `ci()` are `NA` and no decision line is printed.
 
 ## Details
 One-way. With k groups of sizes nᵢ, means mᵢ and variances sᵢ², Welch's F weights each group by
 wᵢ = nᵢ/sᵢ²: F = Σ wᵢ(mᵢ − m̃)² / ((k − 1)(1 + 2(k − 2)Λ)), where m̃ is the weighted grand mean,
 Λ = Σ (1 − wᵢ/Σw)²/(nᵢ − 1) / (k² − 1), and the degrees of freedom are k − 1 and 1/(3Λ). The
 classical F is the mean square between the groups over the mean square within them, on k − 1 and
-N − k degrees of freedom. Eta squared is the sum of squares between the groups over the total
-sum of squares in both forms, from the unweighted decomposition; it has no interval, since the
-interval of an F effect size needs the noncentral F distribution, which `dist` does not have yet.
-The p-value is the upper tail of `dist.f`, computed directly. Welch's test needs at least two
+N − k degrees of freedom. The p-value is the upper tail of `dist.f`, computed directly. Welch's
+test needs at least two
 values with some variation in every group; the classical test needs more values than groups and
 some variation within them. A grouping variable with fewer than two groups among the rows kept
 is an error.
+
+Effect sizes, one-way. Eta squared is SS between / SS total, the R² of a regression on the
+groups. Omega squared (Hays 1963) is (SS between − (k − 1) MS within) / (SS total + MS within),
+and epsilon squared (Kelley 1935) is (SS between − (k − 1) MS within) / SS total, the adjusted
+R² of that regression. All three come from the unweighted decomposition under either F, Welch's
+included. The numerator of omega and of epsilon squared is (k − 1) MS within × (F − 1) with the
+classical F, so both are negative exactly when that F is below 1, and epsilon squared is never
+above eta squared nor omega squared farther from zero than epsilon squared. A negative estimate
+is printed as it is, with a note, and `effect_size()` returns it; it is read as no evidence of
+an effect. R's `effectsize::omega_squared()` and `epsilon_squared()` use the same formulas and
+print 0 in its place. No effect size has an interval, since the interval of an F effect size
+needs the noncentral F distribution, which `dist` does not have yet.
 
 Factorial. The model is fitted by least squares with an intercept, and each term's sum of
 squares is the fall in the residual sum of squares when the term joins a model that already
@@ -86,10 +107,25 @@ in the order of the terms' degree, main effects before two-way interactions and 
 written order within a degree, as R orders the terms of a model; under type 1 this is also the
 order of adjustment. Every F is the term's mean square over the residual mean square, on the
 term's and the residual degrees of freedom, and the row of the model tests all the terms
-together. Partial eta squared is SS / (SS + SS residual), without an interval for the reason
-given above. R's `car::Anova(type = 3)` gives the same figures only after
+together. R's `car::Anova(type = 3)` gives the same figures only after
 `options(contrasts = c("contr.sum", "contr.poly"))`, and prints a row for the intercept, which
 `anova` leaves out.
+
+Effect sizes, factorial. With SS and df the sum of squares and the degrees of freedom of a
+term, and N the number of observations, partial eta squared is SS / (SS + SS residual), partial
+omega squared is (SS − df × MS residual) / (SS + (N − df) × MS residual), and partial epsilon
+squared is (SS − df × MS residual) / (SS + SS residual) (Olejnik and Algina 2003). On the row
+of the model they are R², (SS model − df × MS residual) / (SS total + MS residual) and the
+adjusted R². With one category and no other term they are the three measures of the classical
+one-way form. A row whose F is below 1 has a negative partial omega and epsilon squared, printed
+as it is; one note names every such row. None has an interval, for the reason given above. In R,
+`effectsize::eta_squared()`, `omega_squared()` and `epsilon_squared()` on the same table give
+these figures, a negative one printed as 0. In Stata, after `anova` or `regress`, `estat esize`
+gives partial eta squared and `estat esize, epsilon` partial epsilon squared by the same
+formulas. `estat esize, omega`, like R's `effectsize::F_to_omega2()`, computes partial omega
+squared from the F of the term alone, (SS − df × MS residual) / (SS + (df residual + 1) ×
+MS residual): the same figure on the row of the model and where the model has one term, and a
+figure slightly farther from zero for a term of a model with several terms.
 
 When a combination of levels has no observations, or a term repeats the others, some columns of
 the model are determined by the rest. Types 1 and 2 still give the table: those columns carry
@@ -110,6 +146,11 @@ classes, Journal of the American Statistical Association 29, 51–66.
 Nelder (1977), A reformulation of linear models, Journal of the Royal Statistical Society A
 140, 48–77.
 Fox and Weisberg (2019), An R Companion to Applied Regression, third edition, Sage.
+Hays (1963), Statistics for Psychologists, Holt, Rinehart and Winston.
+Kelley (1935), An unbiased correlation ratio measure, Proceedings of the National Academy of
+Sciences 21, 554–559.
+Olejnik and Algina (2003), Generalized eta and omega squared statistics: measures of effect
+size for some common research designs, Psychological Methods 8, 434–447.
 
 ## See also
 t_test, kruskal_test, reg, tabulate, posthoc, p_adjust
@@ -253,3 +294,37 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial eta squared = SS / (SS + SS residual); N = 18,201
 note: 211 rows with NA in a model variable dropped (line 12)
+> g.anova(s, group: site, effect: omega)
+anova · Welch one-way · s by site
+  H0: the population means of s are equal in all 3 groups of site          μ₁ = μ₂ = μ₃
+  H1: at least one group of site has a different population mean of s      not all equal
+
+  group    N    mean      sd
+  site=1   5   2.840   0.288
+  site=2   4   3.225   0.793
+  site=3   5   2.820   0.736
+
+F(2, 5.5) = 0.39   p = 0.693
+omega squared = -0.067
+decision at α = 0.05: fail to reject H0 (p = 0.693)
+Welch's F over 3 groups, the variances not assumed equal; omega squared = (SS between − (k − 1) MS within) / (SS total + MS within)
+note: the classical F of the same sums of squares is 0.560, below 1, so omega squared is negative; read it as no evidence of an effect (line 13)
+> wages.anova(lwage, group: industry, effect: epsilon).effect_size()
+0.0179668
+note: 211 rows with NA in lwage or industry dropped (line 14)
+> trial.anova(gain ~ dose * diet, effect: omega)
+anova · factorial, type 2 · gain ~ dose * diet
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source      df       SS       MS       F   p value   partial omega squared
+  model        5   44.043    8.809    8.81     0.002                   0.709
+  dose         1   31.592   31.592   31.60    <0.001                   0.657
+  diet         2    6.482    3.241    3.24     0.082                   0.219
+  dose:diet    2    0.351    0.176    0.18     0.842                  -0.115
+  residual    10    9.997    1.000
+  ──────────────────────────────────────────────────────────────────────────
+  total       15   54.040
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial omega squared = (SS − df × MS residual) / (SS + (N − df) × MS residual); N = 16
+note: F is below 1 for `dose:diet`, so its partial omega squared is negative; read it as no evidence of an effect (line 15)

@@ -7,6 +7,13 @@
 //! answer does not depend on the order of the rows or on a common shift or scale of the values,
 //! and frequency weights repeat rows); the edge cases of the checklist (a group of one, a group
 //! of zero variance); and snapshots of every form and every message.
+//!
+//! `effect:` (step 17b; open decision #99, question 2): omega squared and epsilon squared against
+//! the same reference, where they are written out on `aov`'s table and epsilon squared is checked
+//! against `summary(lm)$adj.r.squared`; their closed forms in F; the properties (epsilon squared
+//! never exceeds eta squared, omega squared lies between 0 and epsilon squared, both are negative
+//! exactly when the classical F is below 1, and `effect: eta` is the default); and the edge cases
+//! (F below 1 with its note, two groups).
 
 use proptest::prelude::*;
 use serde_json::Value as Json;
@@ -58,9 +65,9 @@ fn with_context<T>(
     body(&mut ctx, args).map(unwrap)
 }
 
-/// The arguments by slot: data, var, group, equal_var, weights, weight_type.
+/// The arguments by slot: data, var, group, equal_var, weights, weight_type, type, effect.
 fn call(frame: &Frame, slots: Vec<(usize, Value)>) -> Result<TestResult, Fail> {
-    let mut values: Vec<Option<Value>> = vec![None; 6];
+    let mut values: Vec<Option<Value>> = vec![None; 8];
     values[0] = Some(Value::Frame(frame.clone()));
     for (slot, value) in slots {
         values[slot] = Some(value);
@@ -88,6 +95,21 @@ fn var(name: &str) -> Value {
 
 fn equal_var() -> (usize, Value) {
     (3, Value::Bool(true))
+}
+
+fn effect(word: &str) -> (usize, Value) {
+    (7, Value::Word(word.to_string()))
+}
+
+/// The effect size of `anova` on `x` by `g` under `effect: word`, after its label is checked.
+fn measure(frame: &Frame, word: &str, form: &[(usize, Value)]) -> f64 {
+    let mut slots = vec![(1, var("x")), (2, var("g")), effect(word)];
+    slots.extend(form.iter().cloned());
+    let result = call(frame, slots).unwrap();
+    let estimate = result.effect.as_ref().unwrap();
+    assert_eq!(estimate.label, format!("{word} squared"));
+    assert!(estimate.ci.is_none());
+    estimate.value
 }
 
 fn number(v: &Json) -> Option<f64> {
@@ -200,6 +222,18 @@ fn both_forms_agree_with_oneway_test_and_aov() {
             result.effect.as_ref().unwrap().value,
             number(&case["eta_squared"]).unwrap(),
         );
+        check(
+            &label,
+            "omega squared",
+            measure(&frame, "omega", &[equal_var()]),
+            number(&case["omega_squared"]).unwrap(),
+        );
+        check(
+            &label,
+            "epsilon squared",
+            measure(&frame, "epsilon", &[equal_var()]),
+            number(&case["epsilon_squared"]).unwrap(),
+        );
         assert_eq!(result.n, n, "{label} n");
         assert_eq!(
             result.table.as_ref().unwrap().rows.len(),
@@ -241,6 +275,18 @@ fn both_forms_agree_with_oneway_test_and_aov() {
                     result.effect.as_ref().unwrap().value,
                     number(&case["eta_squared"]).unwrap(),
                 );
+                check(
+                    &label,
+                    "omega squared",
+                    measure(&frame, "omega", &[]),
+                    number(&case["omega_squared"]).unwrap(),
+                );
+                check(
+                    &label,
+                    "epsilon squared",
+                    measure(&frame, "epsilon", &[]),
+                    number(&case["epsilon_squared"]).unwrap(),
+                );
                 assert!(result.table.as_ref().unwrap().more.is_empty());
                 assert_eq!(result.n, n, "{label} n");
             }
@@ -278,6 +324,26 @@ fn two_groups_give_the_square_of_t_and_the_kernel_refuses_what_it_cannot_compute
     assert_eq!(w.eta_squared, c.eta_squared);
     assert!((0.0..=1.0).contains(&c.eta_squared));
     assert_eq!(c.eta_squared, c.ss_between / (c.ss_between + c.ss_within));
+    // Omega and epsilon squared, written in F: with two groups (F − 1) / (F + N − 1) and
+    // (F − 1) / (F + N − 2); epsilon squared is the adjusted R² of the one-way model. Welch's
+    // form reports the same two, from the same sums of squares.
+    let n = n1 + n2;
+    assert!((c.omega_squared - (c.f - 1.0) / (c.f + n - 1.0)).abs() < 1e-12);
+    assert!((c.epsilon_squared - (c.f - 1.0) / (c.f + n - 2.0)).abs() < 1e-12);
+    let adjusted = 1.0 - (1.0 - c.eta_squared) * (n - 1.0) / (n - 2.0);
+    assert!((c.epsilon_squared - adjusted).abs() < 1e-12);
+    assert_eq!(c.classical_f, c.f);
+    assert_eq!(w.classical_f, c.f);
+    assert_eq!(w.omega_squared, c.omega_squared);
+    assert_eq!(w.epsilon_squared, c.epsilon_squared);
+    assert!(c.f > 1.0 && c.omega_squared > 0.0 && c.omega_squared < c.epsilon_squared);
+    assert!(c.epsilon_squared < c.eta_squared);
+    // Three groups of unequal size: (k − 1)(F − 1) over (k − 1) F + N − k + 1, and + N − k.
+    let three = summaries(&[x.clone(), y.clone(), vec![0.2, 0.9, 1.6, 2.4]]);
+    let c3 = classical(&three).unwrap();
+    let n3 = 19.0;
+    assert!((c3.omega_squared - 2.0 * (c3.f - 1.0) / (2.0 * c3.f + n3 - 2.0)).abs() < 1e-12);
+    assert!((c3.epsilon_squared - 2.0 * (c3.f - 1.0) / (2.0 * c3.f + n3 - 3.0)).abs() < 1e-12);
     // The refusals.
     assert_eq!(welch(&s[..1]), Err(Undefined::TooFewGroups));
     assert_eq!(classical(&[]), Err(Undefined::TooFewGroups));
@@ -296,6 +362,17 @@ fn two_groups_give_the_square_of_t_and_the_kernel_refuses_what_it_cannot_compute
     assert_eq!(classical(&same).unwrap().f, 0.0);
     assert_eq!(classical(&same).unwrap().p, 1.0);
     assert_eq!(welch(&same).unwrap().f, 0.0);
+    // There eta squared is 0 and the two corrected measures are at their lowest: epsilon squared
+    // −(k − 1) / (N − k) = −1/4 and omega squared −(k − 1) / (N − k + 1) = −1/5.
+    let lowest = classical(&same).unwrap();
+    assert_eq!(lowest.eta_squared, 0.0);
+    assert!((lowest.epsilon_squared + 0.25).abs() < 1e-15);
+    assert!((lowest.omega_squared + 0.2).abs() < 1e-15);
+    assert_eq!(
+        welch(&same).unwrap().epsilon_squared,
+        lowest.epsilon_squared
+    );
+    assert_eq!(welch(&same).unwrap().classical_f, 0.0);
 }
 
 // ----- the properties -----
@@ -330,6 +407,10 @@ proptest! {
             ("g", Column::ints(values.iter().map(|(_, g, _)| Some(*g)))),
             ("w", Column::ints(values.iter().map(|(_, _, w)| Some(*w)))),
         ]);
+        let classical_f = call(&frame, vec![(1, var("x")), (2, var("g")), equal_var()])
+            .unwrap()
+            .statistic
+            .value;
         for form in [vec![], vec![equal_var()]] {
             let mut slots = vec![(1, var("x")), (2, var("g"))];
             slots.extend(form.clone());
@@ -338,6 +419,23 @@ proptest! {
             prop_assert!((0.0..=1.0).contains(&plain.p_value));
             let eta = plain.effect.as_ref().unwrap().value;
             prop_assert!((0.0..=1.0).contains(&eta));
+            // `effect: eta` is the default; epsilon squared never exceeds eta squared; omega
+            // squared lies between 0 and epsilon squared; both are negative exactly when the
+            // classical F of the same sums of squares is below 1, whichever form is asked for.
+            prop_assert_eq!(plain.effect.as_ref().unwrap().label.as_str(), "eta squared");
+            prop_assert_eq!(measure(&frame, "eta", &form), eta);
+            let omega = measure(&frame, "omega", &form);
+            let epsilon = measure(&frame, "epsilon", &form);
+            prop_assert!(epsilon <= eta);
+            prop_assert!(omega.abs() <= epsilon.abs());
+            prop_assert!(omega == 0.0 || (omega < 0.0) == (epsilon < 0.0));
+            prop_assert!(epsilon < 1.0 && omega < 1.0);
+            if classical_f < 1.0 - 1e-9 {
+                prop_assert!(omega < 0.0 && epsilon < 0.0);
+            }
+            if classical_f > 1.0 + 1e-9 {
+                prop_assert!(omega > 0.0 && epsilon > 0.0);
+            }
             // A shuffle of the rows.
             let mut order: Vec<usize> = (0..values.len()).collect();
             let mut state = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
@@ -361,6 +459,8 @@ proptest! {
             prop_assert!((other.statistic.value - plain.statistic.value).abs() <= 1e-7 * plain.statistic.value.max(1.0));
             prop_assert!((other.statistic.df[1] - plain.statistic.df[1]).abs() <= 1e-7 * plain.statistic.df[1]);
             prop_assert!((other.effect.as_ref().unwrap().value - eta).abs() <= 1e-7);
+            prop_assert!((measure(&changed, "omega", &form) - omega).abs() <= 1e-7);
+            prop_assert!((measure(&changed, "epsilon", &form) - epsilon).abs() <= 1e-7);
             // Frequency weights against the rows written out.
             let mut weighted_slots = slots.clone();
             weighted_slots.push((4, var("w")));
@@ -377,6 +477,14 @@ proptest! {
                 ("g", Column::ints(long.iter().map(|(_, g)| Some(*g)))),
             ]);
             let written = call(&expanded, slots).unwrap();
+            let mut weighted_form = form.clone();
+            weighted_form.push((4, var("w")));
+            weighted_form.push((5, Value::Word("frequency".to_string())));
+            for word in ["omega", "epsilon"] {
+                let got = measure(&frame, word, &weighted_form);
+                let want = measure(&expanded, word, &form);
+                prop_assert!((got - want).abs() <= 1e-9, "{} squared: {} against {}", word, got, want);
+            }
             prop_assert_eq!(weighted.n, written.n);
             prop_assert!((weighted.statistic.value - written.statistic.value).abs() <= 1e-9 * written.statistic.value.max(1.0));
             prop_assert!((weighted.statistic.df[1] - written.statistic.df[1]).abs() <= 1e-9 * written.statistic.df[1]);
@@ -423,6 +531,79 @@ fn a_group_of_one_and_a_group_without_spread_are_refused_by_welch_and_admitted_b
 }
 
 #[test]
+fn f_below_one_gives_a_negative_estimate_that_is_printed_with_a_note() {
+    let low = "let low = frame(x = [1, 2, 3, 1, 2, 3.3], g = [1, 1, 1, 2, 2, 2])\n";
+    // Eta squared cannot be negative and has no note.
+    let (exit, stdout, stderr) = go(&format!("{low}low.anova(x, group: g, equal_var: true)\n"));
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.contains("eta squared = 0.0"), "{stdout}");
+    assert!(stderr.is_empty(), "{stderr}");
+    // The classical form: the F printed is the F below 1.
+    for word in ["omega", "epsilon"] {
+        let (exit, stdout, stderr) = go(&format!(
+            "{low}low.anova(x, group: g, equal_var: true, effect: {word})\n"
+        ));
+        assert_eq!(exit, 0, "{stderr}");
+        assert!(
+            stdout.contains(&format!("{word} squared = -0.")),
+            "{stdout}"
+        );
+        assert!(!stdout.contains("eta squared"), "{stdout}");
+        assert!(
+            stderr.contains(&format!(
+                "note: F is below 1, so {word} squared is negative; read it as no evidence of an effect"
+            )),
+            "{stderr}"
+        );
+    }
+    // Welch's form prints another F, so the note gives the classical one.
+    let (exit, stdout, stderr) = go(&format!("{low}low.anova(x, group: g, effect: omega)\n"));
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.contains("omega squared = -0."), "{stdout}");
+    assert!(
+        stderr.contains("note: the classical F of the same sums of squares is 0.0")
+            && stderr.contains("below 1, so omega squared is negative"),
+        "{stderr}"
+    );
+    // The accessor returns the figure as it is printed, not 0.
+    let (exit, stdout, stderr) = go(&format!(
+        "{low}let a = low.anova(x, group: g, effect: epsilon)\na.effect_size()\n"
+    ));
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.starts_with("-0."), "{stdout}");
+    // A word that is not a measure is refused before anything runs.
+    let (exit, _, stderr) = go(&format!("{low}low.anova(x, group: g, effect: cohen)\n"));
+    assert_eq!(exit, 1);
+    assert!(stderr.contains("Z0402"), "{stderr}");
+    assert!(stderr.contains("eta, omega, epsilon"), "{stderr}");
+}
+
+#[test]
+fn two_groups_give_the_measures_of_the_pooled_t() {
+    // With two groups the classical F is the pooled t squared, so omega squared is
+    // (t² − 1) / (t² + N − 1) and epsilon squared (t² − 1) / (t² + N − 2).
+    let x = [0.80, 0.83, 1.89, 1.04, 1.45, 1.38, 1.91, 1.64, 0.73, 1.46];
+    let y = [1.15, 0.88, 0.90, 0.74, 1.21];
+    let frame = frame_of(vec![
+        ("x", Column::floats(x.iter().chain(&y).map(|v| Some(*v))).0),
+        ("g", Column::ints((0..15).map(|i| Some(i64::from(i >= 10))))),
+    ]);
+    let s = summaries(&[x.to_vec(), y.to_vec()]);
+    let pooled = (9.0 * s[0].variance + 4.0 * s[1].variance) / 13.0;
+    let t = (s[0].mean - s[1].mean) / (pooled * (1.0 / 10.0 + 1.0 / 5.0)).sqrt();
+    let f = t * t;
+    for form in [vec![], vec![equal_var()]] {
+        let omega = measure(&frame, "omega", &form);
+        let epsilon = measure(&frame, "epsilon", &form);
+        assert!((omega - (f - 1.0) / (f + 14.0)).abs() < 1e-12, "{omega}");
+        assert!(
+            (epsilon - (f - 1.0) / (f + 13.0)).abs() < 1e-12,
+            "{epsilon}"
+        );
+    }
+}
+
+#[test]
 fn category_groups_and_labelled_groups_are_named_in_the_table() {
     let (exit, stdout, stderr) = go(
         "let wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage, group: industry)\nwages.anova(hours, group: female, equal_var: true)\n",
@@ -454,7 +635,7 @@ fn category_groups_and_labelled_groups_are_named_in_the_table() {
 #[test]
 fn every_form_and_every_message() {
     let (exit, stdout, stderr) = go(
-        "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\ng.anova(s, group: site)\ng.anova(s, group: site, equal_var: true)\ng.where(site < 3).anova(s, group: site)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"], w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])\nt.anova(v, group: k)\nt.anova(v, group: k, weights: w, weight_type: frequency)\nt.anova(v, group: k, weights: w, weight_type: analytic, equal_var: true)\nlet m = frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 3.5], g = [1, 1, 2, 2, NA, 3, 3, 2])\nm.anova(x, group: g)\nframe(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g, equal_var: true)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage, group: industry)\nwages.where(year == 2010).anova(lwage, group: industry, equal_var: true)\nlet a = wages.anova(lwage, group: industry)\na.statistic()\na.df()\na.effect_size()\na.estimates()\na.summary()\n",
+        "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0], site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])\ng.anova(s, group: site)\ng.anova(s, group: site, equal_var: true)\ng.where(site < 3).anova(s, group: site)\nlet t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9], k = [\"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\", \"a\", \"b\", \"c\"], w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])\nt.anova(v, group: k)\nt.anova(v, group: k, weights: w, weight_type: frequency)\nt.anova(v, group: k, weights: w, weight_type: analytic, equal_var: true)\nlet m = frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 3.5], g = [1, 1, 2, 2, NA, 3, 3, 2])\nm.anova(x, group: g)\nframe(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g, equal_var: true)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage, group: industry)\nwages.where(year == 2010).anova(lwage, group: industry, equal_var: true)\nlet a = wages.anova(lwage, group: industry)\na.statistic()\na.df()\na.effect_size()\na.estimates()\na.summary()\ng.anova(s, group: site, effect: omega)\ng.anova(s, group: site, equal_var: true, effect: epsilon)\nt.anova(v, group: k, weights: w, weight_type: frequency, effect: omega)\nlet low = frame(x = [1, 2, 3, 1, 2, 3.3], g = [1, 1, 1, 2, 2, 2])\nlow.anova(x, group: g, effect: omega)\nlow.anova(x, group: g, equal_var: true, effect: epsilon)\nlet b = low.anova(x, group: g, effect: epsilon)\nb.effect_size()\nb.estimates()\nb.summary()\n",
     );
     assert_eq!(exit, 0, "{stderr}");
     insta::assert_snapshot!("forms", format!("{stdout}---\n{stderr}"));
@@ -472,6 +653,8 @@ fn every_form_and_every_message() {
         "frame(x = [2, 2, 3, 3], g = [1, 1, 2, 2]).anova(x, group: g, equal_var: true)\n",
         "frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2], w = [1, 1, 2, 1]).anova(x, group: g, weights: w)\n",
         "frame(x = [1, 2, 3, 4], g = [1, 1, 2, 2], w = [1.5, 1, 2, 1]).anova(x, group: g, weights: w, weight_type: frequency)\n",
+        "frame(x = [1, 2, 3, 4.5], g = [1, 1, 2, 2]).anova(x, group: g, effect: cohen)\n",
+        "frame(x = [1, 2, 3, 4.5], g = [1, 1, 2, 2]).anova(x, group: g, effect: 2)\n",
     ] {
         let (exit, _, stderr) = go(script);
         assert_eq!(exit, 1, "{script}");

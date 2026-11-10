@@ -18,6 +18,11 @@
 //! triangular factor with its columns reordered, so no pass over the rows is repeated and no
 //! cross-product matrix is formed. Frequency and analytic weights give the weighted
 //! least-squares table; sampling weights are refused (Z0411).
+//!
+//! `effect:` (step 17b; open decision #99, question 2) puts partial omega squared or partial
+//! epsilon squared in the place of partial eta squared: both take the residual mean square off
+//! the numerator, so both are negative for a term whose F is below 1, which is printed as it is
+//! with a note.
 
 use std::rc::Rc;
 use zeff_core::display::{fixed, p_value_text};
@@ -32,7 +37,8 @@ use zeff_numeric::order::WeightKind;
 use zeff_results::design::{Design, DesignTerm};
 
 use crate::anova::{
-    EQUAL_VAR, GROUP, LEVEL, TYPE, VAR, WEIGHT_TYPE, WEIGHTS, count_text, upper_tail,
+    EQUAL_VAR, Effect, GROUP, LEVEL, TYPE, VAR, WEIGHT_TYPE, WEIGHTS, count_text, effect,
+    upper_tail,
 };
 use crate::testing;
 
@@ -70,7 +76,11 @@ impl Kind {
 }
 
 /// One row of the table: a term, or the whole model. A term without degrees of freedom has
-/// not-a-number for F, p and partial eta squared.
+/// not-a-number for F, p and the three effect sizes. With MS for the residual mean square and
+/// N for the observations, partial eta squared is SS / (SS + SS residual), partial omega
+/// squared (SS − df × MS) / (SS + (N − df) × MS) and partial epsilon squared (SS − df × MS) /
+/// (SS + SS residual); on the row of the whole model the first is R² and the last the adjusted
+/// R².
 #[derive(Debug, Clone, PartialEq)]
 pub struct Row {
     pub label: String,
@@ -79,6 +89,19 @@ pub struct Row {
     pub f: f64,
     pub p: f64,
     pub partial_eta_squared: f64,
+    pub partial_omega_squared: f64,
+    pub partial_epsilon_squared: f64,
+}
+
+impl Row {
+    /// The partial effect size of `which`.
+    pub fn effect(&self, which: Effect) -> f64 {
+        match which {
+            Effect::Eta => self.partial_eta_squared,
+            Effect::Omega => self.partial_omega_squared,
+            Effect::Epsilon => self.partial_epsilon_squared,
+        }
+    }
 }
 
 /// The table: the whole model, each term in the order of its degree (main effects, then
@@ -195,9 +218,12 @@ pub fn factorial(
                 f: f64::NAN,
                 p: f64::NAN,
                 partial_eta_squared: f64::NAN,
+                partial_omega_squared: f64::NAN,
+                partial_epsilon_squared: f64::NAN,
             };
         }
         let f = (ss / df as f64) / residual_ms;
+        let corrected = ss - df as f64 * residual_ms;
         Row {
             label: label.to_string(),
             df,
@@ -205,6 +231,8 @@ pub fn factorial(
             f,
             p: upper_tail(f, df as f64, residual_df),
             partial_eta_squared: ss / (ss + residual_ss),
+            partial_omega_squared: corrected / (ss + (n - df as f64) * residual_ms),
+            partial_epsilon_squared: corrected / (ss + residual_ss),
         }
     };
     let rows: Vec<Row> = ordered
@@ -351,7 +379,16 @@ fn rows_text(n: usize) -> String {
     )
 }
 
-/// `data.anova(y ~ a * b, type:, weights:, weight_type:)`, the factorial form.
+/// `a`, `a and b`, `a, b and c`.
+fn listed(names: &[String]) -> String {
+    match names {
+        [] => String::new(),
+        [one] => one.clone(),
+        [first @ .., last] => format!("{} and {last}", first.join(", ")),
+    }
+}
+
+/// `data.anova(y ~ a * b, type:, effect:, weights:, weight_type:)`, the factorial form.
 pub fn anova(
     ctx: &mut CallContext<'_>,
     args: &Args,
@@ -377,6 +414,13 @@ pub fn anova(
         ));
     }
     let kind = kind(ctx, args)?;
+    let which = effect(ctx, args)?;
+    let measure = format!("partial {}", which.label());
+    let definition = match which {
+        Effect::Eta => "SS / (SS + SS residual)",
+        Effect::Omega => "(SS − df × MS residual) / (SS + (N − df) × MS residual)",
+        Effect::Epsilon => "(SS − df × MS residual) / (SS + SS residual)",
+    };
     let Some(outcome) = &formula.outcome else {
         return Err(misplaced(
             ctx,
@@ -586,6 +630,27 @@ pub fn anova(
             "no term of the formula is a category, so each row tests a slope; `reg` gives the estimates",
         ));
     }
+    // Partial omega and epsilon squared are negative on a row whose F is below 1: printed as
+    // they are (open decision #99, the ruling on negative values), with one note naming the rows.
+    let mut negative: Vec<String> = Vec::new();
+    if table.model.effect(which) < 0.0 {
+        negative.push("the model".to_string());
+    }
+    negative.extend(
+        table
+            .terms
+            .iter()
+            .filter(|row| row.df > 0 && row.effect(which) < 0.0)
+            .map(|row| format!("`{}`", row.label)),
+    );
+    if !negative.is_empty() {
+        ctx.message(Diagnostic::plain_note(format!(
+            "F is below 1 for {}, so {} {measure} is negative; read {} as no evidence of an effect",
+            listed(&negative),
+            if negative.len() == 1 { "its" } else { "their" },
+            if negative.len() == 1 { "it" } else { "each" }
+        )));
+    }
     let residual_ms = table.residual_ss / table.residual_df;
     let line = |row: &Row| -> Vec<String> {
         if row.df == 0 {
@@ -606,7 +671,7 @@ pub fn anova(
             fixed(row.ss / row.df as f64, 3),
             fixed(row.f, 2),
             p_value_text(row.p),
-            fixed(row.partial_eta_squared, 3),
+            fixed(row.effect(which), 3),
         ]
     };
     let mut rows: Vec<Vec<String>> = vec![line(&table.model)];
@@ -660,8 +725,8 @@ pub fn anova(
                 statistic: statistic(row),
                 p_value: row.p,
                 effect: Some(Estimate {
-                    label: "partial eta squared".to_string(),
-                    value: row.partial_eta_squared,
+                    label: measure.clone(),
+                    value: row.effect(which),
                     ci: None,
                     decimals: 3,
                 }),
@@ -685,7 +750,7 @@ pub fn anova(
                 ("MS".to_string(), Align::Right),
                 ("F".to_string(), Align::Right),
                 ("p value".to_string(), Align::Right),
-                ("partial eta squared".to_string(), Align::Right),
+                (measure.clone(), Align::Right),
             ],
             rows,
             after: Vec::new(),
@@ -700,10 +765,7 @@ pub fn anova(
         alpha: None,
         after: vec![
             how.to_string(),
-            format!(
-                "partial eta squared = SS / (SS + SS residual); N = {}{weighting}",
-                count_text(n)
-            ),
+            format!("{measure} = {definition}; N = {}{weighting}", count_text(n)),
         ],
         notes: Vec::new(),
         n: n.round() as usize,

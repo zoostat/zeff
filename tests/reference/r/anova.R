@@ -5,7 +5,14 @@
 # the variable and in the grouping variable; text groups; a large sample; groups far apart, so
 # that the p-value is tiny; and two groups, where Welch's F is the square of Welch's t. The
 # statistics, degrees of freedom, p-values, sums of squares and eta squared are held to a relative
-# 1e-9. Run with `Rscript tests/reference/r/anova.R`.
+# 1e-9. Omega squared and epsilon squared (step 17b; open decision #99, question 2) are the
+# formulas written out on these tables, since the reference library has no package that prints
+# them: omega squared = (SS between - (k - 1) MS within) / (SS total + MS within), and epsilon
+# squared = (SS between - (k - 1) MS within) / SS total, which must equal the adjusted R squared
+# that summary(lm()) reports, and is checked against it here. In the factorial form the partial
+# measures of a term are (SS - df MS residual) / (SS + (N - df) MS residual) and (SS - df MS
+# residual) / (SS + SS residual); for the whole model the second is again the adjusted R squared.
+# Run with `Rscript tests/reference/r/anova.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 options(warn = -1)
 
@@ -17,7 +24,13 @@ one_way <- function(x, g) {
   welch <- tryCatch(oneway.test(xf ~ gf, var.equal = FALSE), error = function(e) NULL)
   # The classical F from aov(), which admits a group of one where oneway.test() does not; where
   # both run they agree to the last digit.
-  a <- anova(lm(xf ~ gf))
+  fit <- lm(xf ~ gf)
+  a <- anova(fit)
+  ss_b <- a[1, "Sum Sq"]; ss_w <- a[2, "Sum Sq"]; ms_w <- a[2, "Mean Sq"]
+  corrected <- ss_b - a[1, "Df"] * ms_w
+  omega <- corrected / (ss_b + ss_w + ms_w)
+  epsilon <- corrected / (ss_b + ss_w)
+  stopifnot(abs(epsilon - summary(fit)$adj.r.squared) <= 1e-12)
   classical <- list(statistic = a[1, "F value"], parameter = c(a[1, "Df"], a[2, "Df"]), p.value = a[1, "Pr(>F)"])
   if (all(table(gf) >= 2)) {
     o <- oneway.test(xf ~ gf, var.equal = TRUE)
@@ -35,6 +48,7 @@ one_way <- function(x, g) {
        p_value = num(classical$p.value),
        ss_between = num(a[1, "Sum Sq"]), ss_within = num(a[2, "Sum Sq"]),
        eta_squared = num(a[1, "Sum Sq"] / sum(a[, "Sum Sq"])),
+       omega_squared = num(omega), epsilon_squared = num(epsilon),
        n = as.integer(sum(ok)), groups = as.integer(nlevels(gf)))
 }
 
@@ -92,14 +106,25 @@ layout <- function(n) {
     stringsAsFactors = FALSE)
 }
 
-table_rows <- function(tab, residual_row) {
+# Partial omega squared and partial epsilon squared of a row with `df` degrees of freedom and the
+# sum of squares `ss`, over a residual of `rdf` and `rss` and `n` observations.
+partial <- function(df, ss, rdf, rss, n) {
+  ms <- rss / rdf
+  list(omega = (ss - df * ms) / (ss + (n - df) * ms),
+       epsilon = (ss - df * ms) / (ss + rss))
+}
+
+table_rows <- function(tab, residual_row, n) {
   keep <- setdiff(rownames(tab), c("(Intercept)", residual_row))
   lapply(keep, function(term) {
+    size <- partial(tab[term, "Df"], tab[term, "Sum Sq"], tab[residual_row, "Df"], tab[residual_row, "Sum Sq"], n)
     list(term = gsub(" ", "", term),
          df = as.integer(tab[term, "Df"]),
          ss = num(tab[term, "Sum Sq"]),
          f = num(tab[term, "F value"]),
-         p = num(tab[term, "Pr(>F)"]))
+         p = num(tab[term, "Pr(>F)"]),
+         omega = num(size$omega),
+         epsilon = num(size$epsilon))
   })
 }
 
@@ -131,6 +156,8 @@ factorial <- function(d, text, factors, weights = NULL, weight_type = NULL, expa
   three <- tryCatch(Anova(m, type = 3), error = function(e) NULL)
   fstat <- summary(m)$fstatistic
   rss <- one["Residuals", "Sum Sq"]
+  whole <- partial(unname(fstat[2]), sum(one[, "Sum Sq"]) - rss, df.residual(m), rss, nobs(m))
+  stopifnot(abs(whole$epsilon - summary(m)$adj.r.squared) <= 1e-12)
   column <- function(name) {
     v <- d[[name]]
     if (is.character(v)) as.list(ifelse(is.na(v), "NA", v)) else as.list(num(v))
@@ -140,9 +167,9 @@ factorial <- function(d, text, factors, weights = NULL, weight_type = NULL, expa
        columns = setNames(lapply(c(vars, weights), column), c(vars, weights)),
        weights = if (is.null(weights)) "NA" else weights,
        weight_type = if (is.null(weight_type)) "NA" else weight_type,
-       type1 = table_rows(one, "Residuals"),
-       type2 = table_rows(two, "Residuals"),
-       type3 = if (is.null(three)) "NA" else table_rows(three, "Residuals"),
+       type1 = table_rows(one, "Residuals", nobs(m)),
+       type2 = table_rows(two, "Residuals", nobs(m)),
+       type3 = if (is.null(three)) "NA" else table_rows(three, "Residuals", nobs(m)),
        residual_df = num(df.residual(m)),
        residual_ss = num(rss),
        total_ss = num(sum(one[, "Sum Sq"])),
@@ -150,6 +177,8 @@ factorial <- function(d, text, factors, weights = NULL, weight_type = NULL, expa
        model_df = as.integer(fstat[2]),
        model_p = num(pf(fstat[1], fstat[2], fstat[3], lower.tail = FALSE)),
        r_squared = num(summary(m)$r.squared),
+       model_omega = num(whole$omega),
+       model_epsilon = num(whole$epsilon),
        n = as.integer(nobs(m)))
 }
 

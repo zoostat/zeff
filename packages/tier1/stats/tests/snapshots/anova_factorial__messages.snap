@@ -48,7 +48,7 @@ error[Z0401]: `type` of `anova` must be an Int, but this is a Str
 2 | d.anova(y ~ a * b, type: "2")
   |                          ^^^ a Str
   |
-  = help: usage: `data.anova(var, group: Var, equal_var: Bool = false, weights: Var, weight_type: frequency | analytic | sampling = sampling, type: Int = 2)`
+  = help: usage: `data.anova(var, group: Var, equal_var: Bool = false, weights: Var, weight_type: frequency | analytic | sampling = sampling, type: Int = 2, effect: eta | omega | epsilon = eta)`
 
 note: `a` replaced the variable of that name (line 1)
 note: `b` replaced the variable of that name (line 1)
@@ -190,3 +190,17 @@ error[Z0414]: `a` names a term, but the methods of a test's result take no term
   |                             ^^^ no term is taken here
   |
   = help: without a term these give the whole model's F, its degrees of freedom and its p-value; `estimates()` gives one row for each term of the table
+
+error[Z0402]: `cohen` is not one of the allowed words
+ --> scripts/main.zeff:2:28
+  |
+2 | d.anova(y ~ a * b, effect: cohen)
+  |                            ^^^^^ expected one of eta, omega, epsilon
+
+error[Z0402]: `omga` is not one of the allowed words
+ --> scripts/main.zeff:2:28
+  |
+2 | d.anova(y ~ a * b, effect: omga)
+  |                            ^^^^ expected one of eta, omega, epsilon
+  |
+  = help: did you mean `omega`?

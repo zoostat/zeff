@@ -218,6 +218,116 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial eta squared = SS / (SS + SS residual); N = 12
+anova · factorial, type 2 · y ~ a * b
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial omega squared
+  model       5   13.794   2.759   0.94     0.516                  -0.025
+  a           2    2.052   1.026   0.35     0.718                  -0.121
+  b           1    5.741   5.741   1.96     0.211                   0.074
+  a:b         2    6.002   3.001   1.02     0.414                   0.004
+  residual    6   17.575   2.929
+  ───────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial omega squared = (SS − df × MS residual) / (SS + (N − df) × MS residual); N = 12
+anova · factorial, type 3 · y ~ a * b + x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial epsilon squared
+  model       6   14.581   2.430   0.72     0.651                    -0.177
+  a           2    1.369   0.684   0.20     0.822                    -0.294
+  b           1    2.011   2.011   0.60     0.474                    -0.072
+  x           1    0.787   0.787   0.23     0.649                    -0.146
+  a:b         2    6.779   3.390   1.01     0.428                     0.003
+  residual    5   16.788   3.358
+  ─────────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 3 sums of squares: each term adjusted for every other term, the categories coded by deviations from the mean
+partial epsilon squared = (SS − df × MS residual) / (SS + SS residual); N = 12
+anova · factorial, type 2 · y ~ a + x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial omega squared
+  model       3   11.619   3.873   1.19     0.357                   0.037
+  a           2    4.466   2.233   0.69     0.523                  -0.043
+  x           1    2.734   2.734   0.84     0.378                  -0.011
+  residual   11   35.721   3.247
+  ───────────────────────────────────────────────────────────────────────
+  total      14   47.340
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial omega squared = (SS − df × MS residual) / (SS + (N − df) × MS residual); N = 15, frequency weights w
+anova · factorial, type 2 · y ~ b
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial epsilon squared
+  model       1    5.741   5.741   2.24     0.165                     0.101
+  b           1    5.741   5.741   2.24     0.165                     0.101
+  residual   10   25.628   2.563
+  ─────────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial epsilon squared = (SS − df × MS residual) / (SS + SS residual); N = 12
+anova · factorial, type 2 · lwage ~ industry * category(female) + educ
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source                df         SS        MS         F   p value   partial omega squared
+  model                 24    505.438    21.060    101.47    <0.001                   0.117
+  industry              11     77.856     7.078     34.10    <0.001                   0.020
+  female                 1     88.792    88.792    427.81    <0.001                   0.023
+  educ                   1    329.462   329.462   1587.37    <0.001                   0.080
+  industry:female       11      7.137     0.649      3.13    <0.001                   0.001
+  residual          18,176   3772.468     0.208
+  ─────────────────────────────────────────────────────────────────────────────────────────
+  total             18,200   4277.906
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial omega squared = (SS − df × MS residual) / (SS + (N − df) × MS residual); N = 18,201
+anova · factorial, type 3 · lwage ~ industry * category(female) + educ
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source                df         SS        MS         F   p value   partial epsilon squared
+  model                 24    505.438    21.060    101.47    <0.001                     0.117
+  industry              11     78.749     7.159     34.49    <0.001                     0.020
+  female                 1     36.528    36.528    176.00    <0.001                     0.010
+  educ                   1    329.462   329.462   1587.37    <0.001                     0.080
+  industry:female       11      7.137     0.649      3.13    <0.001                     0.001
+  residual          18,176   3772.468     0.208
+  ───────────────────────────────────────────────────────────────────────────────────────────
+  total             18,200   4277.906
+
+type 3 sums of squares: each term adjusted for every other term, the categories coded by deviations from the mean
+partial epsilon squared = (SS − df × MS residual) / (SS + SS residual); N = 18,201
+frame · 8 rows × 9 variables
+
+      term                              estimate   std_error   statistic   df   df2    p_value   ci_lower   ci_upper
+  1   a                                       NA          NA     0.28427    2     5   0.763962         NA         NA
+  2   b                                       NA          NA     1.19493    1     5   0.324183         NA         NA
+  3   x                                       NA          NA    0.234325    1     5   0.648793         NA         NA
+  4   a:b                                     NA          NA     1.00953    2     5   0.428279         NA         NA
+  5   partial epsilon squared (a)      -0.257062          NA          NA   NA    NA         NA         NA         NA
+  6   partial epsilon squared (b)      0.0314667          NA          NA   NA    NA         NA         NA         NA
+  7   partial epsilon squared (x)       -0.14628          NA          NA   NA    NA         NA         NA         NA
+  8   partial epsilon squared (a:b)   0.00271611          NA          NA   NA    NA         NA         NA         NA
+anova · factorial, type 2 · y ~ a * b + x
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial epsilon squared
+  model       6   14.581   2.430   0.72     0.651                    -0.177
+  a           2    1.909   0.954   0.28     0.764                    -0.257
+  b           1    4.012   4.012   1.19     0.324                     0.031
+  x           1    0.787   0.787   0.23     0.649                    -0.146
+  a:b         2    6.779   3.390   1.01     0.428                     0.003
+  residual    5   16.788   3.358
+  ─────────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial epsilon squared = (SS − df × MS residual) / (SS + SS residual); N = 12
 ---
 note: `a` replaced the variable of that name (line 1)
 note: `b` replaced the variable of that name (line 1)
@@ -232,3 +342,10 @@ note: no term of the formula is a category, so each row tests a slope; `reg` giv
 note: 211 rows with NA in a model variable dropped (line 13)
 note: 211 rows with NA in a model variable dropped (line 14)
 note: 7 rows with NA in a model variable dropped (line 15)
+note: F is below 1 for the model and `a`, so their partial omega squared is negative; read each as no evidence of an effect (line 25)
+note: F is below 1 for the model, `a`, `b` and `x`, so their partial epsilon squared is negative; read each as no evidence of an effect (line 26)
+note: 1 row with zero weight left out (line 27)
+note: F is below 1 for `a` and `x`, so their partial omega squared is negative; read each as no evidence of an effect (line 27)
+note: 211 rows with NA in a model variable dropped (line 29)
+note: 211 rows with NA in a model variable dropped (line 30)
+note: F is below 1 for the model, `a` and `x`, so their partial epsilon squared is negative; read each as no evidence of an effect (line 31)

@@ -6,7 +6,10 @@
 //! prints the hypotheses, a table of the groups with their counts, means and standard
 //! deviations, F with its two degrees of freedom and the p-value from the upper tail of
 //! `dist.f`, eta squared (the share of the total sum of squares that lies between the groups),
-//! and the decision line. Frequency and analytic weights are taken through the shared sample
+//! and the decision line. `effect:` puts omega squared or epsilon squared in the place of eta
+//! squared (step 17b; open decision #99, question 2): both take the within-group mean square
+//! off the numerator to correct eta squared's upward bias, and both are negative when the
+//! classical F is below 1, which is printed as it is with a note. Frequency and analytic weights are taken through the shared sample
 //! of `testing`; sampling weights are refused (Z0411). Rows with `NA` in the variable or the
 //! grouping variable are dropped and counted in a note. The factorial form of the catalogue
 //! row is step 17.
@@ -30,6 +33,7 @@ pub(crate) const EQUAL_VAR: usize = 3;
 pub(crate) const WEIGHTS: usize = 4;
 pub(crate) const WEIGHT_TYPE: usize = 5;
 pub(crate) const TYPE: usize = 6;
+pub(crate) const EFFECT: usize = 7;
 
 /// The level of the decision line: the test has no `level:`, so α is 0.05.
 pub(crate) const LEVEL: f64 = 0.95;
@@ -43,8 +47,29 @@ pub struct GroupSummary {
     pub variance: f64,
 }
 
+/// The effect size `effect:` names (open decision #99, question 2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Effect {
+    Eta,
+    Omega,
+    Epsilon,
+}
+
+impl Effect {
+    /// The name the result prints: `eta squared`.
+    pub fn label(self) -> &'static str {
+        match self {
+            Effect::Eta => "eta squared",
+            Effect::Omega => "omega squared",
+            Effect::Epsilon => "epsilon squared",
+        }
+    }
+}
+
 /// The one-way analysis: F with its degrees of freedom and p-value, the sums of squares
-/// between and within the groups, and eta squared.
+/// between and within the groups, and the three effect sizes. Omega and epsilon squared come
+/// from the ordinary decomposition whichever F is asked for, as eta squared does, and
+/// `classical_f` is the F of that decomposition: below 1 exactly when the two are negative.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct OneWay {
     pub f: f64,
@@ -54,6 +79,37 @@ pub struct OneWay {
     pub ss_between: f64,
     pub ss_within: f64,
     pub eta_squared: f64,
+    pub omega_squared: f64,
+    pub epsilon_squared: f64,
+    pub classical_f: f64,
+}
+
+impl OneWay {
+    /// The effect size of `which`.
+    pub fn effect(&self, which: Effect) -> f64 {
+        match which {
+            Effect::Eta => self.eta_squared,
+            Effect::Omega => self.omega_squared,
+            Effect::Epsilon => self.epsilon_squared,
+        }
+    }
+}
+
+/// Eta, omega and epsilon squared of a one-way decomposition over `k` groups and `n`
+/// observations, with the classical F: SS between / SS total; (SS between − (k − 1) MS within)
+/// / (SS total + MS within); (SS between − (k − 1) MS within) / SS total, which is the adjusted
+/// R² of the one-way model.
+fn effect_sizes(ss_between: f64, ss_within: f64, k: usize, n: f64) -> (f64, f64, f64, f64) {
+    let total = ss_between + ss_within;
+    let df_between = k as f64 - 1.0;
+    let ms_within = ss_within / (n - k as f64);
+    let corrected = ss_between - df_between * ms_within;
+    (
+        ss_between / total,
+        corrected / (total + ms_within),
+        corrected / total,
+        (ss_between / df_between) / ms_within,
+    )
 }
 
 /// Why the statistic cannot be computed.
@@ -139,7 +195,9 @@ pub fn welch(groups: &[GroupSummary]) -> Result<OneWay, Undefined> {
     let f = numerator / ((kf - 1.0) * (1.0 + 2.0 * (kf - 2.0) * tmp));
     let df1 = kf - 1.0;
     let df2 = 1.0 / (3.0 * tmp);
-    let (ss_between, ss_within, _) = sums_of_squares(groups);
+    let (ss_between, ss_within, n) = sums_of_squares(groups);
+    let (eta_squared, omega_squared, epsilon_squared, classical_f) =
+        effect_sizes(ss_between, ss_within, k, n);
     Ok(OneWay {
         f,
         df1,
@@ -147,7 +205,10 @@ pub fn welch(groups: &[GroupSummary]) -> Result<OneWay, Undefined> {
         p: upper_tail(f, df1, df2),
         ss_between,
         ss_within,
-        eta_squared: ss_between / (ss_between + ss_within),
+        eta_squared,
+        omega_squared,
+        epsilon_squared,
+        classical_f,
     })
 }
 
@@ -167,7 +228,8 @@ pub fn classical(groups: &[GroupSummary]) -> Result<OneWay, Undefined> {
     if ss_within.is_nan() || ss_within <= 0.0 || ss_within.is_infinite() {
         return Err(Undefined::NoPooledVariance);
     }
-    let f = (ss_between / df1) / (ss_within / df2);
+    let (eta_squared, omega_squared, epsilon_squared, f) =
+        effect_sizes(ss_between, ss_within, k, n);
     Ok(OneWay {
         f,
         df1,
@@ -175,7 +237,10 @@ pub fn classical(groups: &[GroupSummary]) -> Result<OneWay, Undefined> {
         p: upper_tail(f, df1, df2),
         ss_between,
         ss_within,
-        eta_squared: ss_between / (ss_between + ss_within),
+        eta_squared,
+        omega_squared,
+        epsilon_squared,
+        classical_f: f,
     })
 }
 
@@ -299,8 +364,23 @@ fn undefined(
     fail(diagnostic.in_file(ctx.script))
 }
 
-/// `data.anova(var, group:, equal_var:, weights:, weight_type:)`, the one-way form, and the
-/// way in to the factorial form, `data.anova(y ~ a * b, type:)`, of `anova_factorial`.
+/// `effect:` of `anova`: eta squared unless omega or epsilon is asked for.
+pub(crate) fn effect(ctx: &CallContext<'_>, args: &Args) -> Result<Effect, Fail> {
+    match args.get(EFFECT) {
+        None | Some(Value::Na) => Ok(Effect::Eta),
+        Some(Value::Word(w)) if w == "eta" => Ok(Effect::Eta),
+        Some(Value::Word(w)) if w == "omega" => Ok(Effect::Omega),
+        Some(Value::Word(w)) if w == "epsilon" => Ok(Effect::Epsilon),
+        Some(_) => Err(testing::internal(
+            ctx,
+            "an effect size that is not one of the three words",
+        )),
+    }
+}
+
+/// `data.anova(var, group:, equal_var:, weights:, weight_type:, effect:)`, the one-way form, and
+/// the way in to the factorial form, `data.anova(y ~ a * b, type:, effect:)`, of
+/// `anova_factorial`.
 pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Frame(frame)) = args.get(0) else {
         return Err(testing::internal(
@@ -341,6 +421,7 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ));
     };
     let equal_var = matches!(args.get(EQUAL_VAR), Some(Value::Bool(true)));
+    let which = effect(ctx, &args)?;
     let weights: Option<Weights> =
         testing::weights(ctx, &frame, &args, WEIGHTS, WEIGHT_TYPE, "anova")?;
     let (rows, dropped) =
@@ -433,6 +514,30 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         Vec::new()
     };
     let variant = if equal_var { "classical" } else { "Welch" };
+    let size = test.effect(which);
+    // Omega and epsilon squared are negative when the classical F is below 1: printed as they
+    // are (open decision #99, the ruling on negative values), with a note saying why.
+    if size < 0.0 {
+        ctx.message(Diagnostic::plain_note(if equal_var {
+            format!(
+                "F is below 1, so {} is negative; read it as no evidence of an effect",
+                which.label()
+            )
+        } else {
+            format!(
+                "the classical F of the same sums of squares is {}, below 1, so {} is negative; read it as no evidence of an effect",
+                fixed(test.classical_f, 3),
+                which.label()
+            )
+        }));
+    }
+    let formula = match which {
+        Effect::Eta => "eta squared = SS between / SS total",
+        Effect::Omega => {
+            "omega squared = (SS between − (k − 1) MS within) / (SS total + MS within)"
+        }
+        Effect::Epsilon => "epsilon squared = (SS between − (k − 1) MS within) / SS total",
+    };
     Ok(Value::TestResult(Rc::new(TestResult {
         terms: Vec::new(),
         method: "anova".to_string(),
@@ -471,8 +576,8 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         },
         p_value: test.p,
         effect: Some(Estimate {
-            label: "eta squared".to_string(),
-            value: test.eta_squared,
+            label: which.label().to_string(),
+            value: size,
             ci: None,
             decimals: 3,
         }),
@@ -480,12 +585,12 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         alpha: Some(testing::alpha(LEVEL)),
         after: vec![if equal_var {
             format!(
-                "classical F over {} groups on the pooled within-group variance; eta squared = SS between / SS total",
+                "classical F over {} groups on the pooled within-group variance; {formula}",
                 count(k as u64)
             )
         } else {
             format!(
-                "Welch's F over {} groups, the variances not assumed equal; eta squared = SS between / SS total",
+                "Welch's F over {} groups, the variances not assumed equal; {formula}",
                 count(k as u64)
             )
         }],
