@@ -60,6 +60,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (10 November 2026, release 0.7.0, after step 16).** The owner asked whether Types I, II and III sums of squares were planned for the factorial `anova`; the text had types 2 and 3 only. Recorded as #98 and decided the same day: the function covers every type R and Stata give, so `type: 1 | 2 | 3 = 2`, built with the factorial form at step 17, whose line in `docs/releases/0.7.0.md` says so; catalogue row 171 is amended at that step.
 
+**Status (10 November 2026, release 0.7.0, the review of #99).** The owner made the sentence of #98 a rule for every function and asked for each to be reviewed. The 278 functions due by 1.0 were held against R (argument lists read from the installed library) and Stata (from its manuals as remembered; Stata is not installed, so nothing was run). About 70 functions lack something R or Stata gives; the gaps are listed in #99 in three classes, each with the option that would close it. Nothing is scheduled yet. Two questions wait on the owner before steps 17 and 19 are built: the reading of the rule, and whether the further methods of `posthoc` and `p_adjust`, the effect sizes and covariates of `anova` and the options of `histogram` and `density` enter release 0.7.0.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -151,6 +153,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 99 | Every function covers the alternatives R and Stata give: the review and its gaps | The rule as read; the routine gaps of `posthoc`, `p_adjust`, `anova` and the plots into the open steps of 0.7.0; the other routine gaps before 1.0 in the release that owns each function; the less common ones at 1.1 unless their function is being built anyway; differences of convention answered in the help pages | 0.7.0 (questions 1 and 2), 0.8.0 (questions 3 and 4) |
 | 98 | `anova` with every type of sums of squares that R and Stata give | `type: 1 \| 2 \| 3 = 2` on the factorial form: the sequential table of R's `aov` and Stata's `sequential` joins types 2 and 3; built at step 17 of 0.7.0, the default unchanged | decided 10 November 2026 |
 | 97 | One function with an option rather than a family of names | The rule for every addition; at 0.8.0 `add_time(d, n, unit:)` replaces `add_days` and `add_months`, `bin(x, n: \| breaks:)` absorbs `quantile_group`, `fill_missing(x, value \| method:)` absorbs `fill_forward`, and `variance_test(var, group:, method: f \| levene \| bartlett)` replaces the two planned variance tests | decided 9 November 2026 |
 | 96 | Computing with a `DateTime`, and a `Date` from its parts | At 0.8.0: `hour`, `minute`, `second`; `time_between(start, end, unit: second \| ... \| year = day)` replacing `days_between` and `months_between`; `min` and `max` on date columns; `datetime(x, epoch:)`; `date(year, month, day)`; `start_of(d, month \| quarter \| ...)` | 0.8.0 |
@@ -1510,3 +1513,158 @@ So a reader of base R cannot reproduce `summary(aov(y ~ a * b))` on unbalanced d
 *Recommendation.* A, at step 17 of 0.7.0: the usage of catalogue row 171 becomes `type: 1 | 2 | 3 = 2` and its description names the sequential table, both amended at the step and logged in `docs/spec_changes.md`; the reference is `anova(lm(...))` with the terms in both orders on unbalanced data, beside `car::Anova`; the property tests add that the type 1 sums of squares add up to the model's and that the three types agree on a balanced design. Deadline: 0.7.0.
 
 **The owner's decision (10 November 2026).** A: "the Zeff function must cover all alternatives provided by R and Stata". `anova` gives types 1, 2 and 3. Whether the same sentence is to be a rule for every catalogued function, with a review of each function's options against R and Stata, was asked of the owner the same day and is not settled by this entry.
+
+**Amended (10 November 2026).** The owner answered the same day: "Yes, review all". The sentence is a rule for every catalogued function: whatever alternative R or Stata gives for a procedure, the Zeff function for that procedure gives too, as a value of an option on the one function (#97) and never as a sibling name. The review of every function due by 1.0 against the rule, and the gaps it found, are #99.
+
+### 99. Every function covers the alternatives R and Stata give: the review and its gaps
+
+Raised on 10 November 2026, the day the owner made the sentence of #98 a rule for every catalogued function and asked for each function to be reviewed against it ("Yes, review all"). The review covers the 278 functions due by 1.0. This entry holds the rule as it was read, what was checked, and every gap found, each with the option that would close it on the existing function (#97) and a proposed release. Nothing here is scheduled until the owner rules; the function-by-function record, including the functions with no gap, is kept outside the repository with the other studies.
+
+**The rule as it was read.** An *alternative* is another way of doing the same procedure that base R, the R package named in the function's `equivalent` column, or official Stata gives: another statistic, another way to the p-value or the interval, another estimator of a variance, another definition, or another form of the same test (one sample or two, one side or two). Not counted: a whole procedure that already has its own catalogue row on the roadmap (`sign_test`, `friedman_test`, `bootstrap`, the `power.` family and the like); arguments that only arrange R's or Stata's own output; and commands that are user-written in Stata (`esttab`, `reghdfe`, `winsor2`, `weakiv`), which are listed where the catalogue itself names them as the equivalent and marked as such. The owner may read the rule more widely or more narrowly; question 1 below asks.
+
+**What was checked, and how far.** R: the argument lists were read from the installed library (R 4.6.0; `car` 3.1.5, `sandwich` 3.1.1, `marginaleffects` 1.0.0, `psych` 2.6.5, `nortest`, `DescTools`, `e1071`, `moments`, `emmeans`, `multcomp`, `lmtest`). The packages `fixest`, `pROC`, `AER`, `ivreg`, `dagitty`, `effectsize` and `modelsummary` are not installed, so what is said of them is from their documentation as remembered. Stata is not installed on this machine: every statement about Stata is from its manuals as remembered and none was confirmed by a run; two are flagged where the version matters. Zeff: each gap on a function already built was confirmed by running the engine and seeing the option refused; functions not yet built were read from their catalogue rows.
+
+**Classes.** A: a method or form that analysts reach for routinely, so that its absence would be noticed in ordinary work. B: given by R or Stata but used less often, or needing a new piece of machinery. C: a difference of convention or a convenience; the proposal is a sentence in the help page saying what R and Stata do, and no option.
+
+**1. Release 0.7.0, steps not yet built (17, 19 and the plot steps 20 to 30).** These are cheapest to settle before the step is built.
+
+| Function | What R and Stata give that Zeff lacks | Proposed on the one function | Class |
+| --- | --- | --- | --- |
+| `posthoc` (step 19) | Stata `pwcompare` and `pwmean`, `mcompare()`: `noadjust`, `bonferroni`, `sidak`, `scheffe`, `tukey`, `snk`, `duncan`, `dunnett`; `oneway` prints Bonferroni, Scheffé and Šidák. R `pairwise.t.test` takes every method of `p.adjust` | `method:` gains `sidak`, `scheffe`, `hochberg`, `hommel`, `bh`, `by`, `none` beside `tukey`, `bonferroni`, `holm`; all rest on `dist.f`, `dist.tukey` and `p_adjust` | A |
+| `posthoc` | Student–Newman–Keuls and Duncan (Stata `snk`, `duncan`): step-down tests on the studentised range over a falling number of means | `method: snk \| duncan`, on `dist.tukey` of step 18 | B |
+| `posthoc` | Dunnett's comparison of every group with one control (Stata `dunnett`; R `multcomp`) | `method: dunnett, control: <level>`; it needs Dunnett's distribution, a two-dimensional integral, as a new [engine] piece | B |
+| `posthoc` | Pooled or separate standard deviations as a choice (R `pool.sd`); today the form of `anova` fixes it | `pooled: Bool`, the default following the `anova` it comes after | B |
+| `posthoc` | Pairwise rank tests after `kruskal_test` (R `pairwise.wilcox.test`) | `posthoc` accepts the result of `kruskal_test` | B |
+| `anova` (steps 16 and 17) | Omega squared and epsilon squared beside eta squared (Stata `estat esize, omega epsilon`; R `effectsize`) | `effect: eta \| omega \| epsilon = eta`, partial in the factorial form | A |
+| `anova` | The interval of the effect size by the noncentral F (Stata `estat esize`) | Printed once `dist.f` takes `ncp:` (section 4 below, and #93) | A |
+| `anova` | A numeric covariate among the terms, the analysis of covariance (R `aov` and `car::Anova` on any linear model; Stata `anova y a c.x`) | The formula of the factorial form accepts numeric terms; settled at step 17 | A |
+| `anova` | The table on a heteroskedasticity-consistent covariance (`car::Anova(white.adjust:)`) | `se:` on the factorial form, with `reg`'s values | B |
+| `anova` | Repeated measures and nested error terms (R `aov(y ~ a + Error(id/a))`; Stata `anova, repeated()` with the Greenhouse–Geisser and Huynh–Feldt corrections) | A within-subject form of its own; too large for 0.7.0, proposed as a roadmap row | B |
+| `anova` | Bartlett's test printed beneath the one-way table (Stata `oneway`) | None; `variance_test(method: bartlett)` of #97 gives it | C |
+| `p_adjust` | `hochberg` and `hommel` (R `p.adjust`), `sidak` (Stata), `none`, and `n:`, the number of comparisons when it exceeds the p-values given (R) | `method:` gains the four words at step 19, which needs them; `n: Int` | A, `n:` B |
+| `histogram`, `p.histogram` | The rule for the number of bins (R: Sturges, Scott, Freedman–Diaconis; Stata: the smaller of √N and 10 log₁₀ N); the vertical scale (Stata `density`, `fraction`, `frequency`, `percent`; R `freq`); where the first bin starts (Stata `start()`) | `bins: Int \| sturges \| scott \| fd`, the default named in the help page; `scale: count \| density \| fraction \| percent = count`; `start: Float` | A |
+| `density`, `p.density` | The kernel (R: seven, Gaussian by default; Stata: eight, Epanechnikov by default) and the bandwidth rule (R `nrd0`, `nrd`, `ucv`, `bcv`, `SJ`) | `kernel: gaussian \| epanechnikov \| rectangular \| triangular \| biweight \| cosine = gaussian`; `bandwidth: Float \| nrd0 \| nrd \| sj` | A, the rules B |
+| `boxplot`, `p.boxplot` | The length of the whiskers (R `range = 1.5`); the quartiles are Tukey's hinges in R's `boxplot`, type 7 in `ggplot2`, and Stata's own percentiles | `whisker: Float = 1.5`; the quartile type stated in the help page | B |
+| `qq_plot` | The plotting positions (R `ppoints`: (i − 3/8)/(n + 1/4) up to ten values, (i − 1/2)/n beyond; Stata i/(N + 1)) and the reference line (R through the quartiles; Stata through the mean and standard deviation) | `line: quartiles \| moments = quartiles`; the positions stated in the help page | B |
+| `scatter` | A smooth fitted curve and the band round a fitted line (R `lowess`; Stata `lowess`, `qfit`, `lfitci`) | `fit: none \| linear \| quadratic \| lowess`, `band: Bool`; `p.smooth` (1.2) already plans `loess` | B |
+
+**2. The tests already built in 0.7.0, and `tabulate`.** Proposed for 0.8.0, beside the merges of #97 and the ruling of #93.
+
+| Function | What R and Stata give that Zeff lacks | Proposed on the one function | Class |
+| --- | --- | --- | --- |
+| `t_test` | Two variables as independent samples (R `t.test(x, y)`; Stata `ttest a == b, unpaired`); today two variables need `paired: true` | `t_test(a, b)` is the unpaired form | A |
+| `t_test` | A hypothesised difference other than 0 with two groups (R `mu`) | `mu:` accepted in the two-group and paired forms | B |
+| `t_test` | Glass's delta (Stata `esize, glass`) | `effect: d \| g \| glass = g` | B |
+| `t_test` | Welch's (1947) degrees of freedom beside Satterthwaite's (Stata `welch`); the test from summary figures alone (Stata `ttesti`) | None; a sentence in the help page | C |
+| `wilcoxon_test` | Zeros in the signed-rank test: R drops them, Stata keeps them and adjusts the variance, so the two p-values differ | `zeros: drop \| keep = drop` | B |
+| `wilcoxon_test` | The probability that a value of one group exceeds a value of the other (Stata `ranksum, porder`) | Given as `effect_size()`, which is `NA` today | B |
+| `wilcoxon_test` | The help page says Stata always approximates; Stata 16 and later are believed to give exact p-values (not confirmed) | The sentence checked and corrected | C |
+| `kruskal_test` | H both with and without the correction for ties (Stata) | None; a sentence in the help page | C |
+| `chi2_test` | The likelihood-ratio chi-squared (Stata `lrchi2`) | `method: pearson \| lr = pearson` | A |
+| `chi2_test` | Cramér's V; gamma and Kendall's tau-b for ordered tables (Stata `V`, `gamma`, `taub`) | V as `effect_size()` and in the print; `measure: v \| gamma \| tau_b` | A for V, B |
+| `chi2_test` | Expected counts and residuals of each cell (R `$expected`, `$residuals`, `$stdres`; Stata `expected`, `cchi2`) | `expected()` and `residuals(type: pearson \| standardized)` on the result | A |
+| `chi2_test` | A p-value by simulation when the counts are small (R `simulate.p.value`) | `simulate: Int`, with `seed:` | B |
+| `fisher_test` | The confidence level and a null odds ratio other than 1 (R `conf.level`, `or`) | `level:` (fixed at 95% today), `or: Float = 1` | A, `or:` B |
+| `fisher_test` | The sample odds ratio with Woolf's or Cornfield's interval (Stata `cc`); a simulated p-value for large tables (R) | `ratio: conditional \| sample`; `simulate: Int` | B |
+| `proportion_test` | The exact binomial test (R `binom.test`; Stata `bitest`); today `ci: exact` changes the interval and leaves the p-value the score test's | `exact: Bool = false`, the p-value and interval both exact | A |
+| `proportion_test` | The Agresti–Coull and Jeffreys intervals (Stata `ci proportions`) | `ci:` gains `agresti` and `jeffreys` | B |
+| `proportion_test` | More than two groups (R `prop.test`) | None; the message Z0412 points to `chi2_test`, which gives the same statistic | C |
+| `correlation` | The interval of Pearson's r and a one-sided alternative (R `cor.test`) | `level:` and `alternative:`, the interval printed with `p_values: true` | A |
+| `correlation` | P-values adjusted over the table (Stata `pwcorr, bonferroni sidak`) | `adjust:`, with the words of `p_adjust` | B |
+| `correlation` | The exact p-value of the rank methods forced or refused, and their continuity correction (R `cor.test(exact:, continuity:)`; today R's own rule chooses); Kendall's tau-a (Stata `ktau`) | `exact: Bool`, `correct: Bool`; tau-a printed beside tau-b | B |
+| `correlation`, `covariance` | Weights (Stata `correlate [aweight \| fweight]`; R `cov.wt`) | `weights:`, by the ruling of #53 | B |
+| `covariance` | A rank-based covariance (R `cov(method:)`); the divisor n (R `cov.wt(method: "ML")`) | None | C |
+| `shapiro_test` | The Shapiro–Francia test (Stata `sfrancia`; R `nortest`) | `method: wilk \| francia = wilk` | B |
+| `ks_test` | The two-sample test (R `ks.test(x, y)`; Stata `ksmirnov, by()`) | `ks_test(var, group:)` | A |
+| `ks_test` | One-sided alternatives (R `alternative`; Stata prints D⁺ and D⁻); the exact p-value forced or refused (R `exact`) | `alternative:`; `exact: Bool` | B |
+| `variance_test` (#97, 0.8.0) | The Fligner–Killeen test (R `fligner.test`); the trimmed mean as the centre (Stata `robvar`, W₁₀) | `method:` gains `fligner`; `center: median \| mean \| trimmed` | B |
+| `tabulate` | Missing values as a category (R `useNA`; Stata `missing`) | `missing: Bool = false` | A |
+| `tabulate` | Row, column and cell percentages together (Stata `row column cell`); weights (Stata); three variables or more (R `table(a, b, c)`) | `percent:` takes a list; `weights:`; a third variable as layers | B |
+
+**3. Functions of earlier releases: data, text and time.** Proposed for 0.8.0, where #97 already reopens `bin` and `fill_missing`.
+
+| Function | What R and Stata give that Zeff lacks | Proposed on the one function | Class |
+| --- | --- | --- | --- |
+| `summary` | The median and quartiles, which R's own `summary` prints, and the figures of Stata's `summarize, detail` and `tabstat`; today `stats:` takes six words | `stats:` accepts the name of any reducer: `median`, `p25`, `p75`, `variance`, `skewness`, `kurtosis`, `sum`, `iqr`, and `se`, `cv` | A |
+| `sort` | Rising on one key and falling on another (Stata `gsort +a -b`; R `order(a, -b)`) | `desc:` takes a list of the keys to reverse | A |
+| `winsorize` | Different lower and upper cut-offs (`DescTools::Winsorize`, the named equivalent, takes any pair) | `at: Float \| [low, high]` | A |
+| `to_long`, `to_wide` | Several stubs or value columns in one call (Stata `reshape long inc ue`; `tidyr`) | `stub:` and `values_from:` take a list | A |
+| `merge` | Which frame each row came from (Stata `_merge`) | `indicator: Str` names a column of `left`, `right`, `both` | A |
+| `merge` | The right join (R `all.y`); every pairing of matching rows (R `merge`, Stata `joinby`) | `join: right`; `relation: many_to_many` | B |
+| `mean` | The trimmed mean (R `trim`); the geometric and harmonic means (Stata `ameans`) | `trim: Float = 0`; `type: arithmetic \| geometric \| harmonic` | B |
+| `rank` | Ties `last` and `random` (R); ranking from the largest (Stata `field`) | `ties:` gains the two words; `desc: Bool = false` | B |
+| `bin` | Equal-width bins by their number (R `cut(x, 4)`), beside the quantile groups of #97; the lowest value kept in the first bin (R `include.lowest`) | With `n:`, `method: quantile \| width`; `include_lowest: Bool` | B |
+| `sample` | Unequal probabilities (R `prob`); sampling within groups (Stata `sample, by()`) | `weights:`; `by:` | B |
+| `diff` | Second and higher differences (R `differences`; Stata `D2.`) | `order: Int = 1` | B |
+| `running_sum`, `running_product` | The running maximum and minimum (R `cummax`, `cummin`) | By #97 one `running(x, stat: sum \| product \| max \| min)`; a fifth merge to add to that entry | B |
+| `row_mean`, `row_sum` | The minimum, maximum, standard deviation, median and count of missing across variables (Stata `egen rowmin` and its family; R `pmin`, `pmax`) | By #97 one `row(vars, stat:)`; a sixth merge | B |
+| `standardize` | Centring without scaling, or scaling by a given mean and standard deviation (R `scale(center:, scale:)`; Stata `egen std(), mean() sd()`) | `center: Bool = true`, `scale: Bool = true` | B |
+| `round` | Rounding to a multiple (Stata `round(x, 0.5)`) | `to: Float` | B |
+| `seq` | A sequence by its length (R `length.out`) | `n: Int`, in place of `step:` | B |
+| `replace` | Only the first match, or the first n (R `sub`; Stata `subinstr(s, a, b, n)`) | `count: Int` | B |
+| `trim` | One side only (R `trimws(which:)`; Stata `strltrim`, `strrtrim`) | `side: both \| left \| right = both` | B |
+| `weekday` | The day the week starts on (`lubridate` `week_start`; Stata `dow()` counts from Sunday = 0) | `start: monday \| sunday = monday` | B |
+| `week` | Weeks counted from 1 January in blocks of seven days (Stata `week()`, `lubridate::week()`), or from the first Sunday or Monday (R `%U`, `%W`) | `type: iso \| jan1 \| sunday \| monday = iso` | B |
+| `quantile`, `iqr` | Nothing: types 1 to 9 include Stata's default (type 2) and its `altdef` (type 6) | A sentence in the help page naming them | C |
+| `mad`, `skewness`, `kurtosis`, `category` | The centre of `mad` (R); the third skewness of `e1071`; Stata's contrast operators, which belong to `contrasts` on the roadmap | None | C |
+
+**4. Distributions.** Proposed for 0.8.0, where #93 falls due.
+
+| Function | What R and Stata give that Zeff lacks | Proposed on the one function | Class |
+| --- | --- | --- | --- |
+| `dist.t`, `dist.chi2`, `dist.f`, `dist.beta` | Noncentrality (R `ncp`; Stata `nt`, `nchi2`, `nF`, `nbeta`); the intervals of d, g and eta squared and the `power.` family of 1.9 all need it | `ncp: Float = 0`, an [engine] piece; it settles #93 for the noncentral interval | A |
+| `quantile` of a distribution | The quantile of the upper tail (R `lower.tail = FALSE`; Stata `invttail`, `invchi2tail`, `invFtail`) | `upper: Bool = false`, as `cdf` has | A |
+| `pdf`, `cdf` | The logarithm of the density and of the probability (R `log`, `log.p`) | `log: Bool = false` | B |
+| `dist.gamma`, `dist.exponential` | The scale in place of the rate (R `scale`; Stata's functions take the scale) | `scale:` as the alternative to `rate:` | B |
+| new families | Cauchy (R, Stata), geometric (R), the signed-rank and rank-sum distributions (R), Laplace, inverse Gaussian and the bivariate normal (Stata) | Whole functions, not options; Cauchy and geometric proposed for 0.10.0 beside the three of #88, the rest declined | B, C |
+
+**5. Regression and its results.** `ivreg` at 0.8.0; the rest proposed for 0.9.0, which brings robust and clustered errors to the variance layer for every model.
+
+| Function | What R and Stata give that Zeff lacks | Proposed on the one function | Class |
+| --- | --- | --- | --- |
+| `predict` | The standard error and the confidence and prediction intervals (R `predict(interval:, se.fit:)`; Stata `stdp`, `stdf`) | `interval: none \| confidence \| prediction = none`, `level:`; from 0.9.0 `type: response \| link` | A |
+| `residuals` | Standardised and studentised residuals, and Pearson, deviance and working residuals for the likelihood models (R `residuals(type:)`, `rstandard`, `rstudent`; Stata `predict`) | `type: response \| standardized \| studentized \| pearson \| deviance \| working = response` | A |
+| `influence` | DFFITS, DFBETAS, the covariance ratio and the standardised residual (R `influence.measures`, the named equivalent; Stata `dfits`, `dfbeta`, `covratio`); Stata's Welsch distance | Four more columns; Welsch declined | A, C |
+| `vif` | The generalised factor of a term with several columns (`car::vif`, the named equivalent) | Printed for categorical and interaction terms | A |
+| `reg` | Clustering on two or more variables (`fixest`, `sandwich::vcovCL`; Stata's `reghdfe`, user-written, and believed official from Stata 18, not confirmed) | `cluster:` takes a list | A |
+| `reg` | `HC0`, and `HC4`, `HC4m`, `HC5` (`sandwich`, `car`); the small-sample cluster corrections CR2 and CR3 (`sandwich`) | `se:` gains `hc0`, `hc4`, `hc4m`, `hc5`; `cluster_type: cr1 \| cr2 \| cr3 = cr1` | `hc0` A, the rest B |
+| `reg` | Newey–West and Driscoll–Kraay errors; bootstrap and jackknife errors (Stata `vce()`) | Already #53 (1.4) and the roadmap rows `bootstrap` and `jackknife`; no change | n/a |
+| `report` | The t statistic, the p-value or the interval beneath the estimate (`esttab` `se \| t \| p \| ci`; `modelsummary` `statistic`); other star cut-offs; more rows of statistics | `below: se \| t \| p \| ci = se`; `stars:` takes a list of cut-offs; `stats:` gains `adj_r_squared`, `f`, `rmse`, `log_likelihood`, `n_clusters` | A, the stars B |
+| `compare` | The likelihood-ratio test (Stata `lrtest`, the named equivalent; R `anova(test: "LRT")`); three models or more (R) | `method: f \| lr`, at 0.9.0 with the likelihood models; a list of fits | A, B |
+| `test` | The chi-squared form of the Wald test (`car::linearHypothesis(test: "Chisq")`); a joint test of nonlinear restrictions (Stata `testnl`) | `statistic: f \| chi2`; nonlinear conditions accepted | B |
+| `ci` | Profile-likelihood intervals for the likelihood models (R `confint`) beside Wald's (Stata) | `method: wald \| profile`, at 0.9.0 | A |
+| `fit_measures` | Stata's count of parameters leaves out the error variance, so its AIC is R's less 2 and its BIC R's less ln N; AICc | None; a sentence in the help page | C |
+| `ivreg` (0.8.0) | Limited-information maximum likelihood and GMM (Stata `ivregress liml \| gmm`) | `method: tsls \| liml \| gmm = tsls` | A |
+| `first_stage` (0.8.0) | The list to hold against Stata's `estat firststage`, `estat overid` and `estat endogenous`: partial and Shea's R², Cragg–Donald with the Stock–Yogo values, Sargan, Basmann and Hansen's J, Durbin and Wu–Hausman | Confirmed item by item when the release is planned | A |
+| `ar_test` (0.8.0) | Moreira's conditional likelihood-ratio test and the K test (`ivmodel`; Stata's `weakiv`, user-written) | `method: ar \| clr \| k = ar` | B |
+| `logistic`, `probit` (0.9.0) | The complementary log-log link (R, Stata `cloglog`); the cauchit and log links (R) | By #97 one function: `logistic(link: logit \| probit \| cloglog \| cauchit \| log = logit)`, `probit` becoming a value of `link:`; a seventh merge | A, B |
+| `logistic` | Odds ratios in place of coefficients (Stata `logistic`, `logit, or`); successes out of a number of trials (R `cbind(s, f) ~ x`; Stata `glm, family(binomial n)`) | `summary(odds_ratios: true)`; `trials: Var` | A, B |
+| `margins` (0.9.0) | Elasticities (Stata `eyex`, `dyex`, `eydx`; `marginaleffects` `slope:`); predictive margins of a factor; margins within groups (Stata `over()`; `marginaleffects` `by:`) | `slope: dydx \| eyex \| eydx \| dyex = dydx`; `margins(vars)` of a factor gives its predictive margins; `by: Vars` | A |
+| `roc` (0.9.0) | The interval of the area (DeLong, bootstrap in `pROC`; Bamber, Hanley in Stata's `roctab`); the comparison of two curves (`pROC::roc.test`; Stata `roccomp`) | `ci: delong \| bootstrap \| hanley`; `roc.compare(other)` | B |
+| `confusion` (0.9.0) | The measures of Stata's `estat classification` and of `caret` | The printed list confirmed when the release is planned | B |
+
+**6. Release 0.10.0.**
+
+| Function | What R and Stata give that Zeff lacks | Proposed on the one function | Class |
+| --- | --- | --- | --- |
+| `mcnemar_test` | The exact p-value and the odds ratio with its interval (Stata `mcc`) | `exact: Bool = false`; the ratio printed | A |
+| `reliability` | The standardised alpha (`psych`, Stata `std`); reverse-scored items (`psych` `check.keys`; Stata `reverse()`); the item statistics and alpha with each item dropped (Stata `item`) | `standardized: Bool`; `reverse: Vars`; the item table printed | A |
+| `reliability` | The interval of alpha (`psych`); listwise in place of pairwise deletion (Stata `casewise`) | `level:`; `missing: pairwise \| listwise` | B |
+| `adjustment_sets`, `implied_independencies` | Canonical sets and the direct effect (`dagitty` `type: "canonical"`, `effect: "direct"`); the kinds of independence listed (`dagitty` `type:`). Stata has no command for graphs | `type:` gains `canonical`; `effect: total \| direct = total`; `type: missing_edge \| basis_set \| all_pairs` | B |
+
+**The count.** Of the 278 functions, about 70 have a gap of class A or B and about 200 have none: the arithmetic, text, date and list functions, the layers of the plot grammar and the result interface do one thing that R and Stata also do in one way. Class A comes to about 40 options, class B to about 55, class C to about a dozen sentences in help pages. As a rough estimate, to be made exact when each release is planned: class A adds two or three steps to each of 0.7.0, 0.8.0, 0.9.0 and 0.10.0 beyond what their functions need anyway; class B adds about as much again, and its three hard pieces are Dunnett's distribution, the repeated-measures form of `anova` and the small-sample cluster corrections.
+
+**What the owner is asked.**
+
+1. *The reading of the rule.* Whether "alternatives" is as read above, or wider (every procedure R or Stata has, whether or not Zeff has the function) or narrower (methods only, leaving out forms and displays).
+2. *Release 0.7.0, before steps 17 to 19 are built.* Whether the class A items of section 1 enter the open steps: for `posthoc`, the seven further words of `method:` and with them the four of `p_adjust`; for `anova`, `effect: eta | omega | epsilon` and numeric covariates; for the plot steps, the bin rule and scale of `histogram` and the kernel of `density`.
+3. *The rest.* Which of the options below.
+4. *The three merges this review adds to #97* (`running`, `row`, and `probit` as a value of `link:`): whether they join the four due at 0.8.0, the third at 0.9.0.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Class A and class B both before 1.0, each in the release its section names; class C answered in the help pages | The rule holds at 1.0, when the names and options freeze; each option is built while its function is open | About twice the added work of B; three hard pieces before 1.0 |
+| B. Class A before 1.0 as sectioned; class B at 1.1, except where a release is building the function anyway (`ivreg`, `logistic`, `margins`, `roc`, `reliability`, the plots); class C in the help pages | The routine methods are all there at 1.0; an option added at 1.1 breaks no script, since defaults do not change | The rule holds at 1.0 for routine work only |
+| C. Everything, class C included, before 1.0 | The rule read to the letter | Options that change nothing an analyst reports (Welch's 1947 degrees of freedom, the Welsch distance); the longest road to 1.0 |
+
+*Recommendation.* The rule as read; the class A items of section 1 into steps 17, 19 and 20 to 30 of 0.7.0 now, each step's checklist line amended as #98 amended step 17; then B. Every option that enters does so by an amendment of its catalogue row at the step that builds it, logged in `docs/spec_changes.md`, with its reference test against the R function or the Stata output named here; no default changes; each "Start release" plan from 0.8.0 on lists the items of this entry that fall to it, and the review is repeated for the functions of each later release when that release is planned. Deadline: 0.7.0 for questions 1 and 2, since steps 17 and 19 wait on them; 0.8.0 for questions 3 and 4.
