@@ -1,0 +1,91 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: printed(&script)
+---
+plot · d · response against dose
+
+  axis   title      scale    limits           breaks
+  x      dose       linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      response   linear   1.755 to 9.345   2, 4, 6, 8
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · response against dose
+
+  axis   title      scale    limits           breaks
+  x      dose       linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      response   linear   1.815 to 8.085   2, 3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · response against dose
+
+  axis   title      scale    limits           breaks
+  x      dose       linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      response   linear   1.815 to 8.085   2, 3, 4, 5, 6, 7, 8
+
+  layer   mark     data            marks   settings
+      1   points   d                   4   size 2, alpha 0.5
+      2   points   its own frame       1   size 9, alpha 1
+plot · d · dose
+
+  axis   title   scale    limits         breaks
+  x      dose    linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · response
+
+  axis   title      scale    limits           breaks
+  y      response   linear   1.755 to 9.345   2, 4, 6, 8
+
+no layer yet: a mark such as `.points()` adds one
+plot · d
+no variable is mapped to `x` or `y`
+no layer yet: a mark such as `.points()` adds one
+plot · d · dose against response
+
+  axis   title      scale    limits           breaks
+  x      response   linear   1.815 to 8.085   2, 3, 4, 5, 6, 7, 8
+  y      dose       linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · b against a
+
+  axis   title   scale    limits          breaks
+  x      a       linear   0.9 to 3.1      1, 1.5, 2, 2.5, 3
+  y      b       linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data        marks   settings
+      1   points   the frame       3   size 4.5, alpha 1
+plot · b against a
+
+  axis   title   scale    limits              breaks
+  x      a       linear   900000 to 3100000   1000000, 1500000, 2000000, 2500000, 3000000
+  y      b       linear   9e-06 to 3.1e-05    1e-05, 1.5e-05, 2e-05, 2.5e-05, 3e-05
+
+  layer   mark     data        marks   settings
+      1   points   the frame       2   size 4.5, alpha 1
+plot · b against a
+
+  axis   title   scale    limits   breaks
+  x      a       linear   1 to 2   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      b       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data        marks   settings
+      1   points   the frame       0   size 4.5, alpha 1
+plot · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      b       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+
+  layer   mark     data        marks   settings
+      1   points   the frame       2   size 4.5, alpha 1
+---
+note: 1 row with NA in dose or response dropped (line 4)
+note: 1 row with NA in dose or response dropped (line 5)
+note: 1 row with NA in response or dose dropped (line 9)
+note: 1 row with NA in a or b dropped (line 12)
+warning[W0204]: division by zero gave Inf (line 13)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row with an infinite value in a or b dropped (line 13)

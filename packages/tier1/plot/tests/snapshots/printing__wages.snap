@@ -1,0 +1,41 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+no layer yet: a mark such as `.points()` adds one
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits                breaks
+  x      Years of schooling   linear   6.96201 to 21.0392    8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.91316 to 159.831   0, 50, 100, 150
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.3, jitter 0.4
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.3
+      2   points   top        26   size 8, alpha 1
+---
+note: 211 rows with NA in educ or wage dropped (line 4)
+note: 211 rows with NA in educ or wage dropped (line 5)
+note: 211 rows dropped where `wage > 100` was NA; `w.where(is_missing(wage))` lists them (line 6)
+note: 211 rows with NA in educ or wage dropped (line 7)

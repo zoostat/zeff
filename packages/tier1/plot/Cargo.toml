@@ -1,0 +1,23 @@
+[package]
+name = "zeff-plot"
+description = "Package plot (tier 1): the layered grammar of plots; at this release the plot value, the linear scale, the points mark and the versioned scene."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-core.workspace = true
+zeff-columns.workspace = true
+zeff-diagnostics.workspace = true
+zeff-numeric.workspace = true
+zeff-registry.workspace = true
+
+[dev-dependencies]
+zeff-testkit.workspace = true
+insta = "=1.49.0"
+proptest = "=1.12.0"
+serde_json = "=1.0.154"

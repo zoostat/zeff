@@ -1513,6 +1513,66 @@ fn export_cases() -> Vec<Line> {
     ]
 }
 
+/// The plots of release 0.7.0 (step 20): the printed scenes of the shipped wages as a script
+/// draws them, without a layer, with points, jittered under a seed, with a second layer of
+/// another frame, of one variable, of very large and very small values, and a refusal; and the
+/// scene itself as JSON, with every limit, break and jittered position to the last bit, so that
+/// the four targets prove a figure's content identical before any renderer draws it.
+fn plot_cases() -> Vec<Line> {
+    use std::path::Path;
+    use std::rc::Rc;
+    use zeff_core::value::{Aesthetic, Frame, Mark, PlotLayer, PlotMapping};
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    use zeff_numeric::random::Stream;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/g/zeff.toml",
+        format!(
+            "[project]\nname = \"g\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    let project = match Project::open(&fs, Path::new("/g")) {
+        Ok(project) => project,
+        Err(_) => return vec![text("plot/points", "the project did not open")],
+    };
+    let script = "seed(20261111)\nlet w = dataset(wages)\nw.plot(x: educ, y: wage)\nw.plot(x: educ, y: wage).points()\nw.plot(x: educ, y: wage).points(alpha: 0.3, jitter: 0.4)\nlet top = w.where(wage > 100)\nw.plot(x: exper, y: hours).points(jitter: 0.25).points(data: top, size: 8)\nw.plot(x: hours)\nframe(a = [1000000, 3000000], b = [0.00001, 0.00003]).plot(x: a, y: b).points()\nw.plot(x: industry, y: wage)\n";
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    let scene = match zeff_datasets::table("wages") {
+        Some(table) => {
+            let frame = Frame {
+                table: Rc::new(table),
+                name: Some("wages".to_string()),
+            };
+            let mapping = |aesthetic, variable: &str| PlotMapping {
+                aesthetic,
+                variable: variable.to_string(),
+            };
+            let plot = zeff_plot::scene::start(
+                frame,
+                vec![mapping(Aesthetic::X, "educ"), mapping(Aesthetic::Y, "wage")],
+            );
+            let layer = PlotLayer {
+                mark: Mark::Points,
+                data: None,
+                alpha: 0.3,
+                size: None,
+                jitter: 0.4,
+                stream: Some(Stream::new(20_261_111, 2, 0)),
+            };
+            zeff_plot::scene::with_layer(&plot, layer).1.to_json()
+        }
+        None => "the wages did not load".to_string(),
+    };
+    vec![
+        text("plot/points/stdout", &outcome.output.stdout),
+        text("plot/points/stderr", &outcome.output.stderr),
+        text("plot/points/scene.json", &scene),
+    ]
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
@@ -1526,6 +1586,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(panel_cases());
     lines.extend(builtin_fixture_cases());
     lines.extend(export_cases());
+    lines.extend(plot_cases());
     lines.extend(kernels_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());

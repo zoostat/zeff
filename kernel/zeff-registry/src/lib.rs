@@ -196,7 +196,11 @@ impl Registry {
                 errors.push(RegistryError::Duplicate { package, name });
                 continue;
             }
-            let Some(row) = catalogue.find(spec.package, spec.name).cloned() else {
+            let receiver = spec.receiver().map(|r| r.name);
+            let Some(row) = catalogue
+                .find_for(spec.package, spec.name, receiver)
+                .cloned()
+            else {
                 errors.push(RegistryError::NotInCatalogue { package, name });
                 continue;
             };

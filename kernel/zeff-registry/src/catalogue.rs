@@ -45,6 +45,13 @@ impl CatalogueRow {
         self.accuracy.replace('_', " ")
     }
 
+    /// The receiver the usage is written on, `data` of `data.reg(…)`, or `None` for a function
+    /// that has none; the first form speaks for a usage of several.
+    pub fn receiver(&self) -> Option<String> {
+        let first = self.usage.split(" or ").next().unwrap_or("");
+        receiver_of(&self.name, first.trim())
+    }
+
     /// The names of the parameters the catalogue's usage lists, receiver included, in order.
     /// `data.reg(formula, fe: Terms, se: classical | robust = classical)` gives
     /// `["data", "formula", "fe", "se"]`.
@@ -63,6 +70,21 @@ impl CatalogueRow {
     }
 }
 
+/// The receiver one form of a usage is written on, if it has one.
+fn receiver_of(function: &str, usage: &str) -> Option<String> {
+    let head = &usage[..usage.find('(')?];
+    // `dist.normal(...)` is a namespaced name, not a method; `data.reg(...)` has a receiver.
+    if head == function {
+        return None;
+    }
+    let (receiver, _) = head.split_once('.')?;
+    let named = !receiver.is_empty()
+        && receiver
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_');
+    named.then(|| receiver.to_string())
+}
+
 /// The parameter names of one form of a usage, receiver included.
 fn form_parameters(function: &str, usage: &str) -> Vec<String> {
     {
@@ -70,16 +92,8 @@ fn form_parameters(function: &str, usage: &str) -> Vec<String> {
         let Some(open) = usage.find('(') else {
             return names;
         };
-        let head = &usage[..open];
-        // `dist.normal(...)` is a namespaced name, not a method; `data.reg(...)` has a receiver.
-        if head != function
-            && let Some((receiver, _)) = head.split_once('.')
-            && !receiver.is_empty()
-            && receiver
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '_')
-        {
-            names.push(receiver.to_string());
+        if let Some(receiver) = receiver_of(function, usage) {
+            names.push(receiver);
         }
         let close = usage.rfind(')').unwrap_or(usage.len());
         // The arrow of a function type, `Fn(Record, ..) -> Record`, is not a bracket.
@@ -283,12 +297,37 @@ impl Catalogue {
         &self.rows
     }
 
-    /// The row of a function in a package; a name may have one row per package (section 8.1,
-    /// rule 6: one home per name per type).
+    /// The row of a function in a package, the first when the package has several of the name
+    /// (section 8.1, rule 6: one home per name per type).
     pub fn find(&self, package: &str, name: &str) -> Option<&CatalogueRow> {
         self.rows
             .iter()
             .find(|r| r.package == package && r.name == name)
+    }
+
+    /// The row of a function in a package for the receiver its usage is written on. A package
+    /// may give a name a home on more than one type (rule 6): `plot` is `data.plot(…)` on a frame
+    /// and `fit.plot()` on a fit, both in the package `plot`. Where a package has one row of the
+    /// name, that row is the one meant; where it has several, the row written on `receiver`.
+    pub fn find_for(
+        &self,
+        package: &str,
+        name: &str,
+        receiver: Option<&str>,
+    ) -> Option<&CatalogueRow> {
+        let rows: Vec<&CatalogueRow> = self
+            .rows
+            .iter()
+            .filter(|r| r.package == package && r.name == name)
+            .collect();
+        match rows.as_slice() {
+            [] => None,
+            [only] => Some(only),
+            several => several
+                .iter()
+                .copied()
+                .find(|r| r.receiver().as_deref() == receiver),
+        }
     }
 
     /// Every row of a name, across packages.

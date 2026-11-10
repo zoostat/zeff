@@ -57,6 +57,47 @@ fn one_name_may_have_one_home_per_type() {
 }
 
 #[test]
+fn a_package_may_give_a_name_a_home_on_two_types() {
+    // `plot` is `fit.plot()` (row 227) and `data.plot(…)` (row 460), both in the package `plot`;
+    // the receiver the usage is written on tells them apart.
+    let catalogue = Catalogue::compiled().unwrap();
+    let on = |receiver: Option<&str>| catalogue.find_for("plot", "plot", receiver).map(|r| r.id);
+    assert_eq!(on(Some("fit")), Some(227));
+    assert_eq!(on(Some("data")), Some(460));
+    assert_eq!(on(Some("p")), None, "no row of `plot` is written on a plot");
+    assert_eq!(on(None), None, "neither row is a plain function");
+    assert_eq!(
+        catalogue.find("plot", "plot").map(|r| r.id),
+        Some(227),
+        "the first"
+    );
+    // A name with one row in its package is found whatever the receiver is called.
+    let points =
+        |receiver: Option<&str>| catalogue.find_for("plot", "points", receiver).map(|r| r.id);
+    assert_eq!(points(Some("p")), Some(461));
+    assert_eq!(points(None), Some(461));
+    assert!(catalogue.find_for("plot", "no_such_mark", None).is_none());
+    let row = |id: u32| catalogue.rows().iter().find(|r| r.id == id).unwrap();
+    assert_eq!(row(460).receiver().as_deref(), Some("data"));
+    assert_eq!(row(461).receiver().as_deref(), Some("p"));
+    assert!(
+        catalogue
+            .find("dist", "dist.normal")
+            .unwrap()
+            .receiver()
+            .is_none(),
+        "a namespaced name is not a receiver"
+    );
+    assert!(
+        catalogue
+            .find("data", "frame")
+            .unwrap()
+            .receiver()
+            .is_none()
+    );
+}
+
+#[test]
 fn statistical_methods_and_accuracy_words() {
     let catalogue = Catalogue::compiled().unwrap();
     let mean = catalogue.find("data", "mean").unwrap();

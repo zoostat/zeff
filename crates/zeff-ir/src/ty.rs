@@ -42,6 +42,8 @@ pub enum Ty {
     DateTime,
     Frame,
     Table,
+    /// A plot (sections 4 and 7.6; `data.plot(x: educ, y: wage)`).
+    Plot,
     /// A probability distribution (section 4; `dist.normal()`).
     Distribution,
     /// A formula value, `y ~ x` (sections 4 and 7.1).
@@ -212,6 +214,7 @@ impl Ty {
             "DateTime" => Ty::DateTime,
             "Frame" => Ty::Frame,
             "Table" => Ty::Table,
+            "Plot" => Ty::Plot,
             "Distribution" => Ty::Distribution,
             "Formula" => Ty::Formula,
             "Terms" => Ty::Terms,
@@ -352,6 +355,7 @@ impl fmt::Display for Ty {
             Ty::DateTime => write!(f, "DateTime"),
             Ty::Frame => write!(f, "Frame"),
             Ty::Table => write!(f, "Table"),
+            Ty::Plot => write!(f, "Plot"),
             Ty::Distribution => write!(f, "Distribution"),
             Ty::Formula => write!(f, "Formula"),
             Ty::Terms => write!(f, "Terms"),
@@ -427,6 +431,7 @@ mod tests {
             "Date",
             "DateTime",
             "Table",
+            "Plot",
             "Nothing",
             "Any",
             "Type",

@@ -38,18 +38,14 @@ error[Z0103]: no function is called `adjustment_sets`
  --> zeff_samples.zeff:218:3
 error[Z0103]: no function is called `implied_independencies`
  --> zeff_samples.zeff:219:3
-error[Z0103]: no function is called `plot`
- --> zeff_samples.zeff:220:3
-error[Z0404]: `export` has no argument called `size`
- --> zeff_samples.zeff:220:39
+error[Z0401]: `export` cannot be called on a Plot
+ --> zeff_samples.zeff:220:1
 error[Z0103]: no function is called `check`
  --> zeff_samples.zeff:224:4
 error[Z0103]: no function is called `scatter`
  --> zeff_samples.zeff:237:7
-error[Z0103]: no function is called `plot`
- --> zeff_samples.zeff:238:1
-error[Z0103]: no function is called `points`
- --> zeff_samples.zeff:239:6
+error[Z0404]: `plot` has no argument called `color`
+ --> zeff_samples.zeff:238:32
 error[Z0103]: no function is called `facet`
  --> zeff_samples.zeff:240:6
 error[Z0103]: no function is called `scale_y`
@@ -60,8 +56,8 @@ error[Z0103]: no function is called `theme`
  --> zeff_samples.zeff:243:6
 error[Z0404]: `export` has no argument called `size`
  --> zeff_samples.zeff:244:37
-error[Z0103]: no function is called `plot`
- --> zeff_samples.zeff:247:1
+error[Z0404]: `plot` has no argument called `color`
+ --> zeff_samples.zeff:247:41
 error[Z0103]: no function is called `bars`
  --> zeff_samples.zeff:248:6
 error[Z0103]: no function is called `errorbars`

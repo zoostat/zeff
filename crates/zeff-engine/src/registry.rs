@@ -23,6 +23,7 @@ pub fn functions() -> Vec<Function> {
     all.extend(zeff_dist::functions());
     all.extend(zeff_results::functions());
     all.extend(zeff_stats::functions());
+    all.extend(zeff_plot::functions());
     all.extend(zeff_regress::functions());
     all
 }
@@ -437,7 +438,8 @@ mod tests {
         assert_eq!(
             registry.packages_shipped(),
             [
-                "core", "time", "text", "data", "dist", "results", "stats", "datasets", "regress"
+                "core", "time", "text", "data", "dist", "results", "stats", "plot", "datasets",
+                "regress",
             ]
         );
         assert_eq!(registry.datasets().len(), 3);

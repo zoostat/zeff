@@ -209,6 +209,7 @@ const TYPE_NAMES: &[&str] = &[
     "Category",
     "Frame",
     "Table",
+    "Plot",
     "Column",
     "List",
     "Record",
@@ -7479,6 +7480,7 @@ fn is_compound(ty: &Ty) -> bool {
             | Ty::Mapping(_, _)
             | Ty::Frame
             | Ty::Table
+            | Ty::Plot
             | Ty::Formula
             | Ty::Terms
             | Ty::Result(_)

@@ -6,6 +6,7 @@ use std::fmt;
 use std::rc::Rc;
 use zeff_columns::{Column, Table as Columns};
 use zeff_numeric::order::WeightKind;
+use zeff_numeric::random::Stream;
 
 /// A frame: named columns of equal length, shared rather than copied, and the name it was bound
 /// to, which its printed form and its messages use (`no variable `incme` in `poll``).
@@ -62,6 +63,91 @@ pub struct Table {
     /// coefficients, section 10.2): a line across the grid when printed, `\midrule` in LaTeX, a
     /// border in Word.
     pub rules: Vec<usize>,
+}
+
+/// A plot as a value (Language Reference, section 7.6): what the script asked for, in the order
+/// written, which is the frame, the mappings of the aesthetics and the layers. Declared here as a
+/// shared type (Engine and Project Specification, section 8.1, rule 4) and implemented by the
+/// `plot` package, which derives the scene from it: the marks in data coordinates with their
+/// scales, guides and layout (section 8.3, point 5). The same plot value always gives the same
+/// scene.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Plot {
+    pub frame: Frame,
+    pub mappings: Vec<PlotMapping>,
+    pub layers: Vec<PlotLayer>,
+    /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
+    /// or extends a plot and `core` prints as it stands (rule 5).
+    pub summary: Table,
+}
+
+impl Plot {
+    /// The variable mapped to `aesthetic`, if one is.
+    pub fn mapped(&self, aesthetic: Aesthetic) -> Option<&str> {
+        self.mappings
+            .iter()
+            .find(|m| m.aesthetic == aesthetic)
+            .map(|m| m.variable.as_str())
+    }
+}
+
+/// What a mark's appearance may be mapped from (section 7.6): the two positions at release 0.7.0,
+/// step 20.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Aesthetic {
+    X,
+    Y,
+}
+
+impl Aesthetic {
+    /// The aesthetic as the language writes it: `x`, `y`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Aesthetic::X => "x",
+            Aesthetic::Y => "y",
+        }
+    }
+}
+
+/// One mapping of a plot: an aesthetic and the variable of the frame it reads.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlotMapping {
+    pub aesthetic: Aesthetic,
+    pub variable: String,
+}
+
+/// The marks a layer draws.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mark {
+    Points,
+}
+
+impl Mark {
+    /// The mark as the method that adds it is called: `points`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Mark::Points => "points",
+        }
+    }
+}
+
+/// One layer of a plot, as written: the mark, the layer's own frame if it names one
+/// (`.points(data: outliers)`) and the mark's options.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlotLayer {
+    pub mark: Mark,
+    /// The layer's own frame, or `None` for the plot's.
+    pub data: Option<Frame>,
+    /// The opacity of a mark, from 0 to 1.
+    pub alpha: f64,
+    /// The size of a mark in points (1/72 inch), or `None` for the default.
+    pub size: Option<f64>,
+    /// How far a mark may be moved at random along each axis, as a share of the smallest gap
+    /// between two values on that axis; 0 for no jitter.
+    pub jitter: f64,
+    /// The seeded stream the jitter draws from, at its start (section 8.3, point 3), kept with
+    /// the layer so that the scene is the same however often it is derived.
+    pub stream: Option<Stream>,
 }
 
 /// A probability distribution as a value (Language Reference, section 4: `dist.t(df: 24)` is a
@@ -461,6 +547,8 @@ pub enum Value {
     Fit(Rc<Fit>),
     /// A test's result, shared rather than copied.
     TestResult(Rc<TestResult>),
+    /// A plot, shared rather than copied.
+    Plot(Rc<Plot>),
     /// A term name given to a parameter of type `Term`, checked against the result it is used
     /// with (section 3.7, "Resolution by parameter type").
     Term(String),
@@ -516,6 +604,7 @@ impl Value {
             Value::Terms(_) => "Terms",
             Value::Fit(fit) => fit.kind,
             Value::TestResult(_) => "TestResult",
+            Value::Plot(_) => "Plot",
             Value::Term(_) | Value::TermExpr { .. } => "Term",
             Value::Failed(_) => "Failed",
             Value::Function(_) => "Fn",

@@ -1,0 +1,169 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+error[Z0401]: `plot` draws `x` on a linear scale, so `industry` must be a Bool, Int or Float variable, but it is a Category
+ --> scripts/main.zeff:2:11
+  |
+2 | w.plot(x: industry, y: wage)
+  |           ^^^^^^^^ not a numeric variable
+  |
+  = help: the scales of categories, text and dates are not in this release yet; `w.describe()` lists the types of the variables
+
+error[Z0101]: no variable `region` in `w`
+ --> scripts/main.zeff:2:20
+  |
+2 | w.plot(x: educ, y: region)
+  |                    ^^^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+error[Z0101]: no variable `wages` in `w`
+ --> scripts/main.zeff:2:20
+  |
+2 | w.plot(x: educ, y: wages)
+  |                    ^^^^^ not a variable of w
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+error[Z0102]: no variable `Educ` in `w`; names are case-sensitive
+ --> scripts/main.zeff:2:11
+  |
+2 | w.plot(x: Educ, y: wage)
+  |           ^^^^ differs only in case from `educ`
+  |
+  = help: write `educ`
+
+error[Z0401]: `points` places each mark by its `x` and its `y`, but the plot maps no variable to `y`
+ --> scripts/main.zeff:2:17
+  |
+2 | w.plot(x: educ).points()
+  |                 ^^^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+error[Z0401]: `points` places each mark by its `x` and its `y`, but the plot maps no variable to `x`
+ --> scripts/main.zeff:2:17
+  |
+2 | w.plot(y: wage).points()
+  |                 ^^^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+error[Z0401]: `points` places each mark by its `x` and its `y`, but the plot maps no variable to `x` or `y`
+ --> scripts/main.zeff:2:10
+  |
+2 | w.plot().points()
+  |          ^^^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+error[Z0401]: `alpha:` of `points` is an opacity between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:2:40
+  |
+2 | w.plot(x: educ, y: wage).points(alpha: 1.5)
+  |                                        ^^^ outside [0, 1]
+  |
+  = help: write 1 for solid points, or a share such as 0.3 so that crowded points show through
+
+error[Z0401]: `alpha:` of `points` is an opacity between 0 and 1, but this is -0.1
+ --> scripts/main.zeff:2:40
+  |
+2 | w.plot(x: educ, y: wage).points(alpha: -0.1)
+  |                                        ^^^^ outside [0, 1]
+  |
+  = help: write 1 for solid points, or a share such as 0.3 so that crowded points show through
+
+error[Z0401]: `size:` of `points` is the diameter of a point in points of 1/72 inch, above 0, but this is 0
+ --> scripts/main.zeff:2:39
+  |
+2 | w.plot(x: educ, y: wage).points(size: 0)
+  |                                       ^ not a size
+  |
+  = help: write a size such as 3 or 6; without `size:` a point is 4.5 across
+
+warning[W0204]: division by zero gave Inf (line 2)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+error[Z0401]: `size:` of `points` is the diameter of a point in points of 1/72 inch, above 0, but this is Inf
+ --> scripts/main.zeff:2:39
+  |
+2 | w.plot(x: educ, y: wage).points(size: 1 / 0)
+  |                                       ^^^^^ not a size
+  |
+  = help: write a size such as 3 or 6; without `size:` a point is 4.5 across
+
+error[Z0401]: `jitter:` of `points` is a share of the smallest gap between two values, 0 or more, but this is -1
+ --> scripts/main.zeff:2:41
+  |
+2 | w.plot(x: educ, y: wage).points(jitter: -1)
+  |                                         ^^ not a share
+  |
+  = help: write 0 for no jitter, or a share such as 0.4, which moves each point by up to 0.4 of the gap either way
+
+warning[W0204]: division by zero gave Inf (line 2)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+error[Z0401]: `jitter:` of `points` is a share of the smallest gap between two values, 0 or more, but this is Inf
+ --> scripts/main.zeff:2:41
+  |
+2 | w.plot(x: educ, y: wage).points(jitter: 1 / 0)
+  |                                         ^^^^^ not a share
+  |
+  = help: write 0 for no jitter, or a share such as 0.4, which moves each point by up to 0.4 of the gap either way
+
+error[Z0101]: no variable `wage` in `d`
+ --> scripts/main.zeff:3:39
+  |
+3 | w.plot(x: educ, y: wage).points(data: d)
+  |                          ------ this layer draws `wage`, which the plot maps to `y`
+  |                                       ^ not a variable of d
+  |
+  = help: the variables of `d` are: educ, pay
+
+error[Z0102]: no variable `wage` in `d`; names are case-sensitive
+ --> scripts/main.zeff:3:39
+  |
+3 | w.plot(x: educ, y: wage).points(data: d)
+  |                          ------ this layer draws `wage`, which the plot maps to `y`
+  |                                       ^ differs only in case from `Wage`
+  |
+  = help: write `Wage`
+
+error[Z0401]: `points` draws `y` on a linear scale, so `wage` of `d` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:3:39
+  |
+3 | w.plot(x: educ, y: wage).points(data: d)
+  |                                       ^ its `wage` is not numeric
+  |
+  = help: the plot maps `wage` to `y`, so the frame of every layer must hold it as a number
+
+error[Z0401]: `points` draws `x` on a linear scale, so `educ` of this frame must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:2:39
+  |
+2 | w.plot(x: educ, y: wage).points(data: frame(educ = ["a"], wage = [1.0]))
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ its `educ` is not numeric
+  |
+  = help: the plot maps `educ` to `x`, so the frame of every layer must hold it as a number
+
+error[Z0401]: `points` cannot be called on a Frame
+ --> scripts/main.zeff:2:8
+  |
+2 | points(w)
+  |        ^ this is a Frame
+  |
+  = help: usage: `p.points(data: Frame, alpha: Float = 1, size: Float, jitter: Float = 0)`
+
+error[Z0401]: `data` of `points` must be a Frame, but this is an Int
+ --> scripts/main.zeff:2:39
+  |
+2 | w.plot(x: educ, y: wage).points(data: 3)
+  |                                       ^ an Int
+  |
+  = help: usage: `p.points(data: Frame, alpha: Float = 1, size: Float, jitter: Float = 0)`
+
+error[Z0404]: `plot` has no argument called `colour`
+ --> scripts/main.zeff:2:26
+  |
+2 | w.plot(x: educ, y: wage, colour: female)
+  |                          ^^^^^^ unknown argument
+  |
+  = help: usage: `data.plot(x: Var, y: Var)`

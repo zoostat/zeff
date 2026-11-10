@@ -1,0 +1,63 @@
+---
+source: packages/tier1/plot/tests/scene.rs
+expression: "format!(\"{}---\\n{}\", x_alone.to_json(), nothing.to_json())"
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "Dose (mg)",
+      "limits": [0.85, 4.15],
+      "breaks": [1, 1.5, 2, 2.5, 3, 3.5, 4],
+      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"]
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": null,
+      "layers": []
+    }
+  ],
+  "notes": []
+}
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [],
+  "guides": {
+    "axes": [],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": null,
+      "y": null,
+      "layers": []
+    }
+  ],
+  "notes": []
+}
