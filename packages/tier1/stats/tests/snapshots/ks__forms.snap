@@ -1,0 +1,107 @@
+---
+source: packages/tier1/stats/tests/ks.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+ks_test · u · uniform distribution · min: 0, max: 1
+  H0: u was drawn from the uniform distribution with min 0 and max 1
+  H1: u was not drawn from the uniform distribution with min 0 and max 1
+
+N = 8
+D = 0.2050   p = 0.827
+decision at α = 0.05: fail to reject H0 (p = 0.827)
+exact p-value from the distribution of D
+ks_test · u · normal distribution · mean: 0.5, sd: 0.3
+  H0: u was drawn from the normal distribution with mean 0.5 and sd 0.3
+  H1: u was not drawn from the normal distribution with mean 0.5 and sd 0.3
+
+N = 8
+D = 0.2301   p = 0.710
+decision at α = 0.05: fail to reject H0 (p = 0.710)
+exact p-value from the distribution of D
+ks_test · x · normal distribution · mean: 2, sd: 1
+  H0: x was drawn from the normal distribution with mean 2 and sd 1
+  H1: x was not drawn from the normal distribution with mean 2 and sd 1
+
+N = 5
+D = 0.3793   p = 0.468
+decision at α = 0.05: fail to reject H0 (p = 0.468)
+asymptotic p-value from the limiting Kolmogorov distribution, with ties present
+ks_test · x · normal family, parameters estimated
+  H0: x was drawn from a normal distribution with unspecified parameters
+  H1: x was not drawn from any normal distribution
+
+N = 7   mean = 2.700   sd = 1.458   (estimated from the data)
+D = 0.1728   p = 0.762
+decision at α = 0.05: fail to reject H0 (p = 0.762)
+p-value by Dallal and Wilkinson's (1986) approximation of Lilliefors' distribution
+ks_test · x · uniform distribution · min: 0, max: 1
+  H0: x was drawn from the uniform distribution with min 0 and max 1
+  H1: x was not drawn from the uniform distribution with min 0 and max 1
+
+N = 1
+D = 0.6000   p = 0.800
+decision at α = 0.05: fail to reject H0 (p = 0.800)
+exact p-value from the distribution of D
+ks_test · x · exponential distribution · rate: 0.25
+  H0: x was drawn from the exponential distribution with rate 0.25
+  H1: x was not drawn from the exponential distribution with rate 0.25
+
+N = 6
+D = 0.3420   p = 0.393
+decision at α = 0.05: fail to reject H0 (p = 0.393)
+exact p-value from the distribution of D
+ks_test · lwage · normal distribution · mean: 3, sd: 0.5
+  H0: lwage was drawn from the normal distribution with mean 3 and sd 0.5
+  H1: lwage was not drawn from the normal distribution with mean 3 and sd 0.5
+
+N = 531
+D = 0.0296   p = 0.742
+decision at α = 0.05: fail to reject H0 (p = 0.742)
+asymptotic p-value from the limiting Kolmogorov distribution, with ties present
+ks_test · lwage · normal family, parameters estimated
+  H0: lwage was drawn from a normal distribution with unspecified parameters
+  H1: lwage was not drawn from any normal distribution
+
+N = 531   mean = 2.987   sd = 0.498   (estimated from the data)
+D = 0.0259   p = 0.523
+decision at α = 0.05: fail to reject H0 (p = 0.523)
+p-value by Dallal and Wilkinson's (1986) approximation of Lilliefors' distribution
+ks_test · lwage · normal distribution · mean: 3, sd: 0.5 · truncated to [1.5, 4.6]
+  H0: lwage was drawn from the normal distribution with mean 3 and sd 0.5 truncated to [1.5, 4.6]
+  H1: lwage was not drawn from the normal distribution with mean 3 and sd 0.5 truncated to [1.5, 4.6]
+
+N = 531
+D = 0.0303   p = 0.714
+decision at α = 0.05: fail to reject H0 (p = 0.714)
+asymptotic p-value from the limiting Kolmogorov distribution, with ties present
+ks_test · educ · poisson distribution · lambda: 12
+  H0: educ was drawn from the poisson distribution with lambda 12
+  H1: educ was not drawn from the poisson distribution with lambda 12
+
+N = 537
+D = 0.3443   p < 0.001
+decision at α = 0.05: reject H0 (p < 0.001)
+asymptotic p-value from the limiting Kolmogorov distribution, with ties present
+0.029581
+0.741529
+---
+warning[W0212]: 2 of the 5 values of `x` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 4)
+  = help: the asymptotic distribution is used; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead
+note: 1 row with NA in x dropped (line 7)
+note: 6 rows with NA in lwage dropped (line 9)
+warning[W0212]: 64 of the 531 values of `lwage` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 9)
+  = help: the asymptotic distribution is used; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead
+note: 6 rows with NA in lwage dropped (line 10)
+warning[W0212]: 64 of the 531 values of `lwage` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 10)
+  = help: Lilliefors' approximation assumes distinct values, so read the p-value as a guide; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead
+note: 6 rows with NA in lwage dropped (line 11)
+warning[W0212]: 64 of the 531 values of `lwage` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 11)
+  = help: the asymptotic distribution is used; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead
+warning[W0212]: 537 of the 537 values of `educ` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 12)
+  = help: the asymptotic distribution is used; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead
+note: 6 rows with NA in lwage dropped (line 13)
+warning[W0212]: 64 of the 531 values of `lwage` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 13)
+  = help: the asymptotic distribution is used; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead
+note: 6 rows with NA in lwage dropped (line 14)
+warning[W0212]: 64 of the 531 values of `lwage` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 14)
+  = help: the asymptotic distribution is used; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead

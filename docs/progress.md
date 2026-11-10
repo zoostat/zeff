@@ -171,3 +171,13 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 **Next.** Step 15 `[engine]`: `ks_test`.
 
 **For the owner to decide.** Nothing new. Rulings recorded in `docs/decisions.md` (step 14): W printed to four decimals; constant data refused only at a range of exactly zero; the rows dropped in the shared note rather than in the header. Still open from earlier steps: the fisher directional wording and question 4 (a).
+
+## 9 November 2026, release 0.7.0, step 15 (`ks_test`)
+
+**Done.** `ks_test` in `stats`: D against any distribution value, the exact distribution of D (Marsaglia, Tsang and Wang) below 100 values without ties and the limiting Kolmogorov distribution otherwise, summed to convergence; `estimated: true` as Lilliefors' test of normality with Dallal and Wilkinson's p-value, refused for any other family with the new code Z0422; tied values warned about with the new code W0212. Both codes have their rows in the Language Reference, section 11, their explained pages and their entry in `docs/spec_changes.md`. The R reference `tests/reference/r/ks.R` (`ks.test` against eleven families and `nortest`'s `lillie.test`, which joins `install.R` and `renv.lock`); the conformance case `tests/ks`; the help page; the catalogue row 177 marked implemented.
+
+**Green.** The step's own test groups and the affected groups of the engine, the CLI and the conformance crate; the full routine and CI follow in this session.
+
+**Next.** Step 16 `[function]`: `anova`, one-way.
+
+**For the owner to decide.** Nothing new. Rulings recorded in `docs/decisions.md` (step 15): the asymptotic p-value summed to convergence rather than to R's tolerance; ties warned in both forms; the phrase that names a distribution in a hypothesis. Still open from earlier steps: the fisher directional wording and question 4 (a).

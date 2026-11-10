@@ -1,0 +1,79 @@
+---
+source: packages/tier1/stats/tests/ks.rs
+expression: all
+---
+error[Z0101]: no variable `y` in `the frame`
+ --> scripts/main.zeff:1:30
+  |
+1 | frame(x = [1, 2, 3]).ks_test(y, dist.normal())
+  |                              ^ not a variable of the frame
+  |
+  = help: did you mean `x`? If you meant a category level, write it in quotes: `"x"`
+
+error[Z0406]: `ks_test` needs `distribution`
+ --> scripts/main.zeff:1:22
+  |
+1 | frame(x = [1, 2, 3]).ks_test(x)
+  |                      ^^^^^^^ `distribution` is missing
+  |
+  = help: usage: `data.ks_test(var, distribution, estimated: Bool = false)`
+
+error[Z0401]: `distribution` of `ks_test` must be a Distribution, but this is an Int
+ --> scripts/main.zeff:1:33
+  |
+1 | frame(x = [1, 2, 3]).ks_test(x, 5)
+  |                                 ^ an Int
+  |
+  = help: usage: `data.ks_test(var, distribution, estimated: Bool = false)`
+
+error[Z0401]: `ks_test` compares a numeric variable with a distribution, so `s` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:1:36
+  |
+1 | frame(s = ["a", "b", "c"]).ks_test(s, dist.normal())
+  |                                    ^ not a numeric variable
+  |
+  = help: a test of a text or category variable's frequencies is `chi2_test`
+
+note: 1 row dropped where `x > 1` was NA; `where(is_missing(x))` lists them (line 1)
+note: no row kept: the result is empty (line 1)
+error[Z0401]: `x` has no value to test
+ --> scripts/main.zeff:1:41
+  |
+1 | frame(x = [1, NA]).where(x > 1).ks_test(x, dist.normal())
+  |                                         ^ 0 after dropping NA
+  |
+  = help: the values are the non-missing rows of the variable
+
+error[Z0401]: `ks_test` with `estimated: true` needs at least 5 values of `x`, but only 4 are present
+ --> scripts/main.zeff:1:33
+  |
+1 | frame(x = [1, 2, 3, 4]).ks_test(x, dist.normal(), estimated: true)
+  |                                 ^ 4 after dropping NA
+  |
+  = help: the values are the non-missing rows of the variable
+
+warning[W0212]: 5 of the 5 values of `x` tie with another; the Kolmogorov–Smirnov test assumes a continuous distribution, so its p-value is approximate (line 1)
+  = help: Lilliefors' approximation assumes distinct values, so read the p-value as a guide; for a discrete variable, `chi2_test` with `p:` compares the frequencies instead
+error[Z0401]: every value of `x` is the same, so no normal distribution can be fitted to it
+ --> scripts/main.zeff:1:36
+  |
+1 | frame(x = [2, 2, 2, 2, 2]).ks_test(x, dist.normal(), estimated: true)
+  |                                    ^ one value throughout
+  |
+  = help: a test needs values that differ between rows
+
+error[Z0422]: `estimated: true` of `ks_test` is defined for the normal distribution alone, but the distribution is the exponential distribution · rate: 1
+ --> scripts/main.zeff:1:70
+  |
+1 | frame(x = [1, 2, 3, 4, 5]).ks_test(x, dist.exponential(), estimated: true)
+  |                                                                      ^^^^ Lilliefors' correction is for the normal family
+  |
+  = help: give the distribution with its parameters and drop `estimated:`; a test of normality with the parameters estimated is also `shapiro_test`
+
+error[Z0422]: `estimated: true` of `ks_test` is defined for the normal distribution alone, but the distribution is the normal distribution · mean: 0, sd: 1 · truncated to [0, 10]
+ --> scripts/main.zeff:1:102
+  |
+1 | frame(x = [1, 2, 3, 4, 5]).ks_test(x, dist.truncated(dist.normal(), lower: 0, upper: 10), estimated: true)
+  |                                                                                                      ^^^^ Lilliefors' correction is for the normal family
+  |
+  = help: give the distribution with its parameters and drop `estimated:`; a test of normality with the parameters estimated is also `shapiro_test`

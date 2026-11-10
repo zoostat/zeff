@@ -365,6 +365,10 @@ An omission corrected while building `chi2_test` (release 0.7.0, step 10). The c
 
 The code open decision #91 announced for `alternative:` on a Fisher table larger than 2 × 2, given at step 13 of release 0.7.0 as the release's ruling on provisional codes says. Z0420, the next free number of its family, refuses `less` or `greater` on such a table, whose exact test has no direction; `two_sided`, the default, is accepted since it is what the larger table computes. The row, the explained page and the catalogue row 174 name it.
 
+## 9 November 2026 — zeff_language_reference.md, section 11 (the table "Codes numbered while the engine was built", new rows Z0422 and W0212)
+
+Two conditions step 15 of release 0.7.0 (`ks_test`) needed numbers for, given by the release's ruling on provisional codes. Question 4 (c) of the release fixed that `estimated: true` applies to the normal distribution alone and is refused for any other with a message saying so, but named no code: Z0422, the next free number of its family. The checklist's step asks for ties "with their warning", as R warns that ties should not be present in the one-sample test, and no warning code covered it: W0212, the next free number of its family. The rows, the explained pages and the catalogue row 177 name them.
+
 ## 9 November 2026 — zeff_language_reference.md, section 11 (the table "Codes numbered while the engine was built", new row Z0421)
 
 The code open decision #91 announced for `shapiro_test` above 5,000 observations, given at step 14 of release 0.7.0 as the release's ruling on provisional codes says. The catalogue row 176 already fixed the behaviour (the values are refused, as R refuses them, with `ks_test` and `qq_plot` suggested) but named no code. Z0421, the next free number of its family, refuses a variable with more than 5,000 non-missing values, the size up to which Royston's (1995) approximation of W's distribution was fitted. The row, the explained page and the catalogue row 176 name it.

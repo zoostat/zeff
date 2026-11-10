@@ -219,6 +219,8 @@ tests/fields/stdout cbf29ce484222325
 tests/fields/stderr 066add1139daf971
 tests/shapiro/stdout bb094c197a0d6c4d
 tests/shapiro/stderr 7e808d36f5cbf368
+tests/ks/stdout cd2cf5fb266524ea
+tests/ks/stderr dc91a25639d882b9
 verbs/save/stdout cbf29ce484222325
 verbs/save/stderr f0b9f97ee401dc01
 verbs/save/sample.csv 3ad16a99ddfbc0aa

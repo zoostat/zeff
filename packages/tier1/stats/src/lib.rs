@@ -6,6 +6,7 @@
 pub mod chi2_test;
 pub mod fisher_test;
 pub mod kruskal_test;
+pub mod ks_test;
 pub mod p_adjust;
 pub mod proportion_test;
 pub mod shapiro_test;
@@ -726,6 +727,45 @@ pub fn functions() -> Vec<Function> {
                 }),
             },
             body: shapiro_test::shapiro_test,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "ks_test",
+                package: "stats",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var"),
+                    ParamSpec::required("distribution", "Distribution"),
+                    ParamSpec::option_with_default("estimated", "Bool", "false"),
+                ],
+                rest: None,
+                returns: "TestResult",
+                diagnostics: vec![
+                    DiagnosticDecl::note("rows with NA in the variable dropped, with the count"),
+                    DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numeric; no value, or fewer than five with estimated: true; every value the same with estimated: true; an infinite value",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0422",
+                        "estimated: true with a distribution that is not the normal family",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0212",
+                        "tied values, with their count, where the test assumes a continuous distribution",
+                    ),
+                ],
+                help: include_str!("../help/ks_test.md"),
+                accuracy: Some(AccuracyRecord {
+                    reference:
+                        "R 4.6.0 ks.test() and nortest 1.0-4 lillie.test() (tests/reference/r/ks.R)"
+                            .to_string(),
+                    last_run: None,
+                }),
+            },
+            body: ks_test::ks_test,
         },
         Function {
             spec: FunctionSpec {

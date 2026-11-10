@@ -43,6 +43,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Note": "a dependency of fixest, installed with it"
+    },
+    "nortest": {
+      "Package": "nortest",
+      "Version": "1.0-4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Note": "installed by tests/reference/r/install.R into tests/reference/r/library (ignored by Git); lillie.test() is the reference for ks_test with estimated: true (release 0.7.0, step 15); GPL-licensed R code used by the harness alone, never linked"
     }
   }
 }

@@ -1321,6 +1321,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | Z0419 | A regular expression that cannot be read: an unclosed group or bracket, a repetition with nothing to repeat, or look-around or a back-reference, which section 3.8 excludes |
 | Z0420 | `alternative: less` or `greater` given to `fisher_test` on a table larger than 2 × 2, whose exact test has no direction (section 6; open decision #91) |
 | Z0421 | More than 5,000 non-missing values given to `shapiro_test`, beyond which Royston's approximation of W's distribution is not defined; R refuses them too (section 6; open decision #91) |
+| Z0422 | `estimated: true` given to `ks_test` with a distribution that is not the normal family; Lilliefors' correction is defined for the normal family alone (section 6; question 4 (c) of release 0.7.0) |
 | Z0111 | `seed` called after a draw, or a second time |
 | W0102 | A name in a frame method's argument that is both a variable of the frame and a binding: the variable is used, with a warning |
 | W0201, W0204 | Missing values skipped by a reducer, with the count; `Inf` and `-Inf` both present, so the result is `NA` |
@@ -1329,6 +1330,7 @@ Zeff reports problems the way Rust does: a code, the location, a marker under th
 | W0209 | A method called on a binding that may hold a `Failed` value, unguarded by `x.is(Failed)` (section 3.7, "Failed values") |
 | W0210 | Values of `bin` outside every interval of its breaks, which are `NA`, with the count (section 4.2) |
 | W0211 | Expected counts below 5 in `chi2_test`, where the chi-squared approximation may be poor, with the count of such cells |
+| W0212 | Tied values in `ks_test`, whose distribution theory assumes a continuous distribution, with their count; the asymptotic p-value is used |
 | Z0225 | A function whose body, or a `return` in it, gives a type other than the declared return type, or no value where one is declared (sections 3.7, "Inference", and 5.3) |
 | Z0323 | A module file that is not one: a statement in a file of `functions/`, or a file whose name is not a name of the language or is a package's (section 5.3, "Modules") |
 | Z0712 to Z0715 | `zeff.toml` is not valid TOML; valid TOML but wrong for Zeff; a script named on the command line that the project lacks; `import` of a project path with no readable file |

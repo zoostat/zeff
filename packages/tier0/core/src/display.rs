@@ -315,9 +315,10 @@ pub fn test_result_after(result: &TestResult) -> Vec<String> {
     if let Some(estimate) = &result.estimate {
         lines.push(estimate_line(estimate, result.level));
     }
-    // The Shapiro–Wilk W lies in (0, 1] and differs from 1 in its third or fourth decimal, so
-    // its line carries four decimals where every other statistic carries two.
-    let decimals = if result.method == "shapiro_test" {
+    // The Shapiro–Wilk W and the Kolmogorov–Smirnov D lie in (0, 1] and carry their meaning in
+    // the third and fourth decimals, so their lines carry four where every other statistic
+    // carries two.
+    let decimals = if matches!(result.method.as_str(), "shapiro_test" | "ks_test") {
         4
     } else {
         2

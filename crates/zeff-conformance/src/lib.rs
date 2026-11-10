@@ -1351,6 +1351,12 @@ fn panel_cases() -> Vec<Line> {
     // wages, the result read as values, and the refusal of the whole dataset.
     let normality = "let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0])\ng.shapiro_test(s)\nframe(x = [1.2, 3.4, 2.2]).shapiro_test(x)\nframe(x = [1, 1, 2]).shapiro_test(x)\nframe(x = [1, 2, 3, 4, 10]).shapiro_test(x)\nframe(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).shapiro_test(x)\nframe(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 40]).shapiro_test(x)\nframe(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 2.0, 3.0, 9.0, 1.0, 2.5]).shapiro_test(x)\nlet wages = dataset(wages).where(year == 2010).add(lwage = log(wage))\nwages.shapiro_test(lwage)\nwages.shapiro_test(educ).statistic()\nwages.shapiro_test(educ).p_values()\ndataset(wages).shapiro_test(educ)\n";
     let normality_outcome = run_script(&fs, &project, "scripts/main.zeff", normality);
+    // `ks_test` (release 0.7.0, step 15): the exact case against the uniform and the normal,
+    // ties, the Lilliefors form, one value, NA, a subset of the shipped wages against a normal, a
+    // truncated normal and the Poisson, the result read as values, and the refusal of
+    // `estimated: true` on another family.
+    let kolmogorov = "let g = frame(u = [0.11, 0.32, 0.45, 0.58, 0.63, 0.77, 0.84, 0.92])\ng.ks_test(u, dist.uniform())\ng.ks_test(u, dist.normal(mean: 0.5, sd: 0.3))\nframe(x = [1.2, 3.4, 2.2, 2.2, 5.1]).ks_test(x, dist.normal(mean: 2, sd: 1))\nframe(x = [1.2, 3.4, 2.2, 0.8, 5.1, 2.9, 3.3]).ks_test(x, dist.normal(), estimated: true)\nframe(x = [0.4]).ks_test(x, dist.uniform())\nframe(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5]).ks_test(x, dist.exponential(rate: 0.25))\nlet wages = dataset(wages).where(year == 2010).add(lwage = log(wage))\nwages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5))\nwages.ks_test(lwage, dist.normal(), estimated: true)\nwages.ks_test(lwage, dist.truncated(dist.normal(mean: 3, sd: 0.5), lower: 1.5, upper: 4.6))\nwages.ks_test(educ, dist.poisson(lambda: 12))\nwages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5)).statistic()\nwages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5)).p_values()\nwages.ks_test(lwage, dist.exponential(), estimated: true)\n";
+    let kolmogorov_outcome = run_script(&fs, &project, "scripts/main.zeff", kolmogorov);
     // `save` (step 15): the sample table of every type as CSV and TSV, with a byte-order mark
     // and with codes, and the refusals; the bytes of the files are part of the report.
     let saved = "let s = frame(id = [1, 2, 3], x = [1.5, -0.0, NA], flag = [true, false, NA], note = [\"plain\", \"with, comma\", \"two\\nlines\"], day = [date(\"2024-01-01\"), date(\"1970-01-01\"), NA], level = [\"low\", \"high\", \"mid\"]).add(level = category(level, levels: [\"low\", \"mid\", \"high\"]))\ns.save(\"sample.csv\")\ns.save(\"output/sample.tsv\")\ns.save(\"output/sample_bom.csv\", bom: true, codes: true)\ns.save(\"output/sample.parquet\")\ns.save(\"output/sample\")\n";
@@ -1400,6 +1406,8 @@ fn panel_cases() -> Vec<Line> {
         text("tests/fields/stderr", &fields_outcome.output.stderr),
         text("tests/shapiro/stdout", &normality_outcome.output.stdout),
         text("tests/shapiro/stderr", &normality_outcome.output.stderr),
+        text("tests/ks/stdout", &kolmogorov_outcome.output.stdout),
+        text("tests/ks/stderr", &kolmogorov_outcome.output.stderr),
         text("verbs/save/stdout", &saved_outcome.output.stdout),
         text("verbs/save/stderr", &saved_outcome.output.stderr),
         bytes("verbs/save/sample.csv", &saved_file("sample.csv")),
