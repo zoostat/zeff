@@ -58,6 +58,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (9 November 2026, release 0.7.0, after step 14).** The owner set the rule that one function with a bare-word option stands where names would differ only by a unit, a statistic or a method, and asked that the four families failing it be recorded. Recorded and decided as #97: the rule applies to every future addition, and the merges of `add_days` and `add_months`, `quantile_group` into `bin`, `fill_forward` into `fill_missing`, and the three variance tests into `variance_test` are due at 0.8.0.
 
+**Status (10 November 2026, release 0.7.0, after step 16).** The owner asked whether Types I, II and III sums of squares were planned for the factorial `anova`; the text had types 2 and 3 only. Recorded as #98 and decided the same day: the function covers every type R and Stata give, so `type: 1 | 2 | 3 = 2`, built with the factorial form at step 17, whose line in `docs/releases/0.7.0.md` says so; catalogue row 171 is amended at that step.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -149,6 +151,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 98 | `anova` with every type of sums of squares that R and Stata give | `type: 1 \| 2 \| 3 = 2` on the factorial form: the sequential table of R's `aov` and Stata's `sequential` joins types 2 and 3; built at step 17 of 0.7.0, the default unchanged | decided 10 November 2026 |
 | 97 | One function with an option rather than a family of names | The rule for every addition; at 0.8.0 `add_time(d, n, unit:)` replaces `add_days` and `add_months`, `bin(x, n: \| breaks:)` absorbs `quantile_group`, `fill_missing(x, value \| method:)` absorbs `fill_forward`, and `variance_test(var, group:, method: f \| levene \| bartlett)` replaces the two planned variance tests | decided 9 November 2026 |
 | 96 | Computing with a `DateTime`, and a `Date` from its parts | At 0.8.0: `hour`, `minute`, `second`; `time_between(start, end, unit: second \| ... \| year = day)` replacing `days_between` and `months_between`; `min` and `max` on date columns; `datetime(x, epoch:)`; `date(year, month, day)`; `start_of(d, month \| quarter \| ...)` | 0.8.0 |
 | 95 | `print` with several plain values on one line | `print` itself prints plain values side by side on one line, separated by `sep:` (a space unless given), and anything larger as its own block; `print("mean =", x)` reads as R's `cat`; built at 0.8.0 | decided 9 November 2026 |
@@ -1481,3 +1484,29 @@ Not merged, with the reason: `running_sum` and `running_product` (a `running(x, 
 *Recommendation.* A, at 0.8.0, in the release that also brings `time_between`, `start_of` and the amendments of #96, so that the date and column vocabulary changes once. Deadline: 0.8.0.
 
 **The owner's decision (9 November 2026).** The rule is adopted and applies to every future addition to the catalogue; the four merges are recorded for 0.8.0 as recommended.
+
+### 98. `anova` with every type of sums of squares that R and Stata give
+
+Raised on 10 November 2026 after step 16 of release 0.7.0, when the owner asked whether Types I, II and III sums of squares were planned for the factorial form of `anova`. Catalogue row 171 gives `data.anova(y ~ a * b, type: 2 | 3 = 2)`, as `car::Anova`, by the decision of #12; the sequential table appears nowhere in the text. What the two reference packages give:
+
+| | Type 1, sequential | Type 2 | Type 3, partial |
+| --- | --- | --- | --- |
+| R, base | `aov()` and `anova(lm)`, the default | not offered directly | `drop1(fit, . ~ ., test = "F")` |
+| R, `car::Anova` | not offered | the default | `type = 3`; the user must set sum contrasts first, and nothing warns when they are not set |
+| Stata `anova` | the option `sequential` | not offered | the default ("partial SS"), whatever the coding of the factors |
+| Zeff, row 171 | absent | the default | `type: 3` |
+
+So a reader of base R cannot reproduce `summary(aov(y ~ a * b))` on unbalanced data, and a reader of Stata cannot reproduce `anova y a##b, sequential`; `compare()` on two nested regressions gives one sequential F at a time, not the table.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. `type: 1 \| 2 \| 3 = 2`, built with the factorial form at step 17 of 0.7.0 | Every table R and Stata print can be reproduced; the sequential sums fall out of the same fit, so the cost is small; base R's `anova(lm)` becomes a reference that needs no added package | A table that depends on the order of the terms, which the printed result must say |
+| B. Types 2 and 3 only, as row 171 has it | Nothing order-dependent in the language | The default table of base R cannot be reproduced on unbalanced data |
+
+**Type 1 as it is defined.** The terms enter in the order of the formula, the main effects in the order written, then the two-way interactions in the order written, and so on, as R's `terms` orders them and `anova(lm)` reports them; each term's sum of squares is the fall in the residual sum of squares when it joins the terms above it, and F is its mean square over the residual mean square of the full model. Stata's `anova, sequential` agrees when its terms are written in that order. Partial eta squared is SS(term) / (SS(term) + SS(residual)) under every type. The line that closes the table names the type and, under type 1, says that each term is adjusted for the terms above it and that the order of the formula matters. On a balanced design the three types agree; with one factor each of them is the classical one-way table. The default stays `type: 2`, as #12 decided.
+
+**Noted for step 17, not part of the ruling.** The catalogue says "type 3 with sum contrasts" without saying who sets them. The reading taken is Stata's: the engine applies sum contrasts itself under `type: 3`, whatever `category(x, contrast:)` says, so that the treatment-coded table `car::Anova` prints without warning cannot be obtained; the step records the reading in `docs/decisions.md`.
+
+*Recommendation.* A, at step 17 of 0.7.0: the usage of catalogue row 171 becomes `type: 1 | 2 | 3 = 2` and its description names the sequential table, both amended at the step and logged in `docs/spec_changes.md`; the reference is `anova(lm(...))` with the terms in both orders on unbalanced data, beside `car::Anova`; the property tests add that the type 1 sums of squares add up to the model's and that the three types agree on a balanced design. Deadline: 0.7.0.
+
+**The owner's decision (10 November 2026).** A: "the Zeff function must cover all alternatives provided by R and Stata". `anova` gives types 1, 2 and 3. Whether the same sentence is to be a rule for every catalogued function, with a review of each function's options against R and Stata, was asked of the owner the same day and is not settled by this entry.
