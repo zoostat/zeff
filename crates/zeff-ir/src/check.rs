@@ -2628,6 +2628,41 @@ impl Checker<'_> {
         if *ty == Ty::Terms {
             return self.terms_argument(value);
         }
+        // An expression over the frame where a variable or an expression is taken (section 7.6:
+        // `y: log(wage)`). A bare name stays a variable and a bare `NA` stays "not given"; any
+        // other expression is lowered with the frame's columns in scope, as a column argument
+        // is (section 3.7, "Name lookup"), and kept for the function to evaluate.
+        if takes_expression(ty) && !plain_name_or_na(value) {
+            if frame_method {
+                self.frame_scope += 1;
+            }
+            let lowered = self.expr(value, None);
+            if frame_method {
+                self.frame_scope -= 1;
+            }
+            if matches!(lowered.kind, ExprKind::Error) {
+                return lowered;
+            }
+            if let Some((span, what)) = not_kept(&lowered) {
+                self.report(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!("an expression mapped to an aesthetic cannot use {what}"),
+                    )
+                    .primary(span, "not kept in a mapping")
+                    .help("a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable"),
+                );
+                return Expr::error(lowered.span);
+            }
+            return Expr {
+                ty: Ty::Expr,
+                span: lowered.span,
+                kind: ExprKind::FrameExpr {
+                    expr: Box::new(lowered),
+                    text: written(value),
+                },
+            };
+        }
         let columns = frame_method && takes_columns(ty);
         if columns {
             self.frame_scope += 1;
@@ -6903,7 +6938,9 @@ impl Checker<'_> {
             ExprKind::FrameName {
                 binding: Some(id), ..
             } => note(*id, out),
-            ExprKind::Unary { operand, .. } => self.var_parameters_in(operand, out),
+            ExprKind::Unary { operand, .. } | ExprKind::FrameExpr { expr: operand, .. } => {
+                self.var_parameters_in(operand, out);
+            }
             ExprKind::Binary { lhs, rhs, .. } => {
                 self.var_parameters_in(lhs, out);
                 self.var_parameters_in(rhs, out);
@@ -7043,6 +7080,9 @@ impl Checker<'_> {
             }
             ExprKind::Unary { operand, .. } => {
                 self.check_frame_names(operand, schema, shown, defined, vars_too);
+            }
+            ExprKind::FrameExpr { expr: inner, .. } => {
+                self.check_frame_names(inner, schema, shown, defined, vars_too);
             }
             ExprKind::Binary { lhs, rhs, .. } => {
                 self.check_frame_names(lhs, schema, shown, defined, vars_too);
@@ -7401,6 +7441,80 @@ fn split_top_level(text: &str) -> (&str, &str) {
         }
     }
     (text.trim(), "")
+}
+
+/// Whether a parameter takes an expression over the frame (`Expr`, or a union with it).
+fn takes_expression(ty: &Ty) -> bool {
+    match ty {
+        Ty::Expr => true,
+        Ty::Union(options) => options.iter().any(takes_expression),
+        _ => false,
+    }
+}
+
+/// A bare name or a bare `NA`, in brackets or not: what a parameter of type `Var | Expr` takes
+/// as a variable, or as nothing given, rather than as an expression.
+fn plain_name_or_na(value: &ast::Expr) -> bool {
+    match &value.kind {
+        ast::ExprKind::Paren(inner) => plain_name_or_na(inner),
+        ast::ExprKind::Name(path) => path.segments.len() == 1,
+        ast::ExprKind::Na => true,
+        _ => false,
+    }
+}
+
+/// The first part of an expression over the frame that a function cannot keep to evaluate
+/// itself, with what it is: a kept expression is made of variables, constants, the operators and
+/// calls of the functions of `core`, which every package may call (Engine and Project
+/// Specification, section 8.1), as a term of a formula is (section 7.2, "Arithmetic").
+fn not_kept(expr: &Expr) -> Option<(Span, String)> {
+    match &expr.kind {
+        ExprKind::Int(_)
+        | ExprKind::Float(_)
+        | ExprKind::Str(_)
+        | ExprKind::Bool(_)
+        | ExprKind::Na
+        | ExprKind::Word(_)
+        | ExprKind::TypeName { .. }
+        | ExprKind::FrameName { .. }
+        | ExprKind::Error => None,
+        ExprKind::List(items) => items.iter().find_map(not_kept),
+        ExprKind::Unary { operand, .. } => not_kept(operand),
+        ExprKind::Binary { op, lhs, rhs } => match op {
+            ast::BinaryOp::Range => Some((expr.span, "a range".to_string())),
+            ast::BinaryOp::Interact => Some((expr.span, "an interaction".to_string())),
+            _ => not_kept(lhs).or_else(|| not_kept(rhs)),
+        },
+        ExprKind::Call(call) => {
+            if call.package != "core" {
+                return Some((
+                    call.callee_span,
+                    format!("`{}`, a function of `{}`", call.name, call.package),
+                ));
+            }
+            if call.implicit_receiver || !call.definitions.is_empty() || !call.spreads.is_empty() {
+                return Some((call.callee_span, format!("`{}` called this way", call.name)));
+            }
+            if call.returns == "Nothing" {
+                return Some((
+                    call.callee_span,
+                    format!("`{}`, which gives no value", call.name),
+                ));
+            }
+            call.args
+                .iter()
+                .flatten()
+                .find_map(not_kept)
+                .or_else(|| call.rest.iter().find_map(not_kept))
+        }
+        ExprKind::CallFn { .. } => Some((expr.span, "a function of the project".to_string())),
+        ExprKind::Case(_) => Some((expr.span, "`case`".to_string())),
+        ExprKind::If { .. } => Some((expr.span, "`if`".to_string())),
+        ExprKind::Index { .. } | ExprKind::Slice { .. } | ExprKind::Field { .. } => {
+            Some((expr.span, "a part taken from another value".to_string()))
+        }
+        _ => Some((expr.span, "this".to_string())),
+    }
 }
 
 fn takes_columns(ty: &Ty) -> bool {

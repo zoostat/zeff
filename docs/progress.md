@@ -168,3 +168,15 @@ Step 13 `[function]`: `fisher_test`, exact on a 2 × 2 table with the conditiona
 
 **For the owner to decide.** Nothing new. Open as before: #106 (due before step 23), #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
 
+
+## 11 November 2026, release 0.7.0, step 20b (expressions in `x:` and `y:`)
+
+**Done.** A position of a plot can be an expression: `w.plot(x: educ, y: log(wage)).points()`, `y: wage / hours`, `x: exper^2`, `y: log(wage, base: 10)`. The expression is computed row by row on the plot's frame, and on the frame of a layer that has its own; the axis is titled by the expression as written; rows where it gives `NA` or an infinite value are dropped and counted in the same notes as for a variable. A script constant may be used (`let weekly = 40`, then `y: wage * weekly`) and is read where `plot` stands, so a later change of the constant does not change the plot. An expression may hold variables, numbers, the operators and the row-by-row functions of `core`; anything else (`mean(wage)`, a function of `time` or `text`, `case`) is refused with advice to compute the variable with `add` first. Checked against R on the `wages` data: `log(wage)` gives 18,201 points, 211 rows dropped and limits 1.07304 to 5.2147. The help pages of `plot` and `points` are reopened. Details in `docs/decisions.md`.
+
+**Two findings, not of this step.** `PI` and `E` inside a frame method are read as variables, so `w.add(z = wage * PI)` fails; a fault of the checker, corrected in its own commit next. A numeric function given a text or category column (`log(industry)`) gives `NA` on every row without a message, where R and Stata refuse; open decision #108.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 241 of 241 with the new case `plot/expression`; the whole suite on CI, read job by job after the push. Step 20a was green on CI in every job.
+
+**Next.** The small correction for `PI` and `E` in a frame method. Then step 20c `[engine]`: the other aesthetics. Step 19b waits on #104.
+
+**For the owner to decide.** New: #107 (due at 0.7.0 before step 25), what an expression in a mapping may call (recommended: as built, the functions of `core` only, widened when the date scale arrives); #108 (due at 0.8.0), whether a numeric function given a text or category column should be refused, as in R and Stata (recommended: yes). Open as before: #106 (due before step 23), #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.

@@ -103,7 +103,10 @@ pub fn expr_uses(expr: &Expr, used: &mut Vec<BindingId>) {
         // A function literal reads the bindings it takes with it, where it is made (section 3.7,
         // "Functions as values"); a named function reads nothing.
         ExprKind::FunctionValue(f) => used.extend(f.captures.iter().copied()),
-        ExprKind::Term(e) | ExprKind::TermExpr(e) | ExprKind::Attempt(e) => expr_uses(e, used),
+        ExprKind::Term(e)
+        | ExprKind::TermExpr(e)
+        | ExprKind::FrameExpr { expr: e, .. }
+        | ExprKind::Attempt(e) => expr_uses(e, used),
         ExprKind::List(items) => {
             for e in items {
                 expr_uses(e, used);

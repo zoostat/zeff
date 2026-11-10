@@ -595,6 +595,7 @@ pub fn has_type(value: &Value, ty: &TypeValue) -> bool {
         "TestResult" => matches!(value, Value::TestResult(_)),
         "Plot" => matches!(value, Value::Plot(_)),
         "Term" => matches!(value, Value::Term(_) | Value::TermExpr { .. }),
+        "Expr" => matches!(value, Value::Expr { .. }),
         "List" => matches!(value, Value::List(_)),
         "Record" => matches!(value, Value::Record(_)),
         "Mapping" => matches!(value, Value::Mapping(_)),
@@ -674,6 +675,7 @@ pub fn type_name(value: &Value) -> String {
         Value::TestResult(_) => "TestResult".to_string(),
         Value::Plot(_) => "Plot".to_string(),
         Value::Term(_) | Value::TermExpr { .. } => "Term".to_string(),
+        Value::Expr { .. } => "Expr".to_string(),
         Value::Failed(_) => "Failed".to_string(),
         Value::Function(_) => "Fn".to_string(),
     }

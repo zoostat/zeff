@@ -6,11 +6,13 @@
 //! with their scales, guides and layout, a versioned format of the engine (section 8.3, point 5)
 //! that the writers of SVG, PDF and PNG and Zemp read, never the plot value itself.
 //!
-//! At release 0.7.0, step 20: `plot` with `x:` and `y:` as variables, the mark `points`, the
-//! linear scale, one panel, and the scene as JSON and as the printed text of a plot.
+//! At release 0.7.0, step 20b: `plot` with `x:` and `y:` as variables or as expressions over the
+//! frame, the mark `points`, the linear scale, one panel, and the scene as JSON and as the
+//! printed text of a plot.
 
 pub mod grammar;
 pub mod json;
+mod mapping;
 pub mod marks;
 pub mod scale;
 pub mod scene;
@@ -30,20 +32,27 @@ pub fn functions() -> Vec<Function> {
                 method: true,
                 params: vec![
                     ParamSpec::required("data", "Frame"),
-                    ParamSpec::option("x", "Var"),
-                    ParamSpec::option("y", "Var"),
+                    ParamSpec::option("x", "Var | Expr"),
+                    ParamSpec::option("y", "Var | Expr"),
                 ],
                 rest: None,
                 returns: "Plot",
                 diagnostics: vec![
-                    DiagnosticDecl::new("Z0101", "no such variable in the frame"),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "no such variable in the frame, mapped or read by an expression",
+                    ),
                     DiagnosticDecl::new(
                         "Z0102",
                         "a variable that differs only in case from the name written",
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable mapped to x: or y: that is not a Bool, an Int or a Float",
+                        "a variable mapped to x: or y: that is not a Bool, an Int or a Float; an expression that does not give one for each row, or that holds what a mapping cannot compute",
                     ),
                 ],
                 help: include_str!("../help/plot.md"),
@@ -71,7 +80,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0101",
-                        "the frame of data: lacks a variable the plot maps",
+                        "the frame of data: lacks a variable the plot maps, or one a mapped expression reads",
                     ),
                     DiagnosticDecl::new(
                         "Z0102",
@@ -79,7 +88,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "the plot maps no variable to x or to y; a mapped variable of data: that is not numeric; alpha: outside [0, 1]; size: not above 0; jitter: below 0",
+                        "the plot maps nothing to x or to y; a mapped variable of data: that is not numeric, or a mapped expression that gives no number for each row of it; alpha: outside [0, 1]; size: not above 0; jitter: below 0",
                     ),
                 ],
                 help: include_str!("../help/points.md"),

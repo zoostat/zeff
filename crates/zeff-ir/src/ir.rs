@@ -206,6 +206,15 @@ pub enum ExprKind {
     /// of `derive`), kept as written: the interpreter hands it to the function as a value, with
     /// its bare names as term references, instead of evaluating it.
     TermExpr(Box<Expr>),
+    /// An expression over the variables of the receiver frame given to a parameter of type
+    /// `Expr` (section 7.6: `y: log(wage)`), lowered with the frame's columns in scope and kept:
+    /// the interpreter resolves its names against the frame where the call stands and hands the
+    /// expression to the function as a value, instead of evaluating it. `text` is the expression
+    /// as written, with canonical spacing: the name it keeps (the title of an axis).
+    FrameExpr {
+        expr: Box<Expr>,
+        text: String,
+    },
     List(Vec<Expr>),
     /// `{a: 1, ..r, b: 2}`: named fields and spreads in the order written; a spread copies the
     /// fields of a record, and a field written out overrides one a spread supplies (section 3.4,

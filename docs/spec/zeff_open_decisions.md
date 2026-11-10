@@ -155,6 +155,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 108 | A numeric function of `core` given a text or category column | Refuse it when the statement runs, as R and Stata do and as the engine already refuses `log("a")` on one value; until decided `log(industry)` in `add` or in a mapping gives `NA` on every row without a message | 0.8.0 |
+| 107 | What an expression mapped to an aesthetic may call | For 0.7.0 the operators and the row-by-row functions of `core` implemented in the engine, as built at step 20b; the reducers of `data` (`wage - mean(wage)`), the functions of `time` and `text`, and `logit`, `inv_logit`, `clamp` and `fill_missing` are refused with advice to compute the variable with `add` first; widening later breaks no script | 0.7.0, before step 25 |
 | 106 | A layer that overrides a mapping of its plot | Each mark takes `x:` and `y:`, and the other aesthetics it draws, for its own layer, as ggplot2's `geom_point(aes())` and Observable Plot's marks do, so that observed points and a fitted line of another variable share one plot; until decided a mark takes the catalogued options only and such an argument is refused as unknown (Z0404) | 0.7.0, before step 23 |
 | 105 | A confidence level on `posthoc`, and intervals for its step-wise methods | `level: Float = 0.95` on `posthoc`, as every other test of `stats` that prints an interval and as R's `TukeyHSD(conf.level = )` and Stata's `pwcompare, level()`; the step-wise methods keep a table without intervals, the help page saying that `emmeans` prints Bonferroni's there; until decided the intervals are at 95% | 0.7.0 |
 | 104 | `posthoc` after a factorial `anova`: which means are compared, and of which term | The estimated marginal means of one term, as R's `emmeans` and Stata's `pwcompare`, the term named by a new option, proposed `term:`, required when the model has several factors; built as step 19b of 0.7.0; until decided `posthoc` after an `anova` given a formula is refused | 0.7.0 |
@@ -1825,3 +1827,42 @@ What it is for. A plot of observed values with a fitted line needs two variables
 | C. The sentence is corrected: a layer may name its own frame, and the mappings are those of the plot | No change to the catalogue; the simplest rule to teach | The overlay of two variables needs a reshaped or renamed frame, where every reference tool does it directly |
 
 *Recommendation.* A, with the mark's own arguments typed as on `plot`, decided before step 23 so that the seven marks of that step are built once; step 20 builds `points` with the catalogued usage, and `points(y: …)` is refused as an unknown argument (Z0404) until then. Deadline: 0.7.0, before step 23.
+
+### 107. What an expression mapped to an aesthetic may call
+
+Raised on 11 November 2026 at step 20b of release 0.7.0, when expressions in `x:` and `y:` of `plot` were built. Section 7.6 of the Language Reference says that "`x` and `y` may be variables or expressions over the frame" and says no more about what such an expression may hold. Section 3.7 ("Columns and scalars") says that every built-in scalar function of `core`, `text` and `time` applies row by row when given a column. Step 20b builds the narrowest reading that draws the examples of the specification (`log(wage)`, `wage / hours`): variables, numbers, logical values, text, `NA`, the operators, script constants, and the functions of `core` that the engine computes row by row. Everything else is refused with Z0401 and the advice "compute anything else with `add` first and map the new variable". The question is how far the reading should be widened, and when.
+
+What is refused today, by kind. (1) The reducers of `data`: `y: wage - mean(wage)`, `y: wage / sd(wage)`, `y: rank(wage)`. (2) The scalar functions of `time` and `text`: `x: year(hired)`, `y: contains(name, "Ltd")`. (3) Four functions of `core` that are written in Zeff and not in the engine: `logit`, `inv_logit`, `clamp`, `fill_missing`; a formula refuses the same four. (4) `case` and `if`, a function of the project, and a part taken from another value (`w["wage"]`).
+
+What the reference tools do. In R with ggplot2, `aes()` takes any R expression and evaluates it in the layer's data: `aes(y = wage - mean(wage))` is computed with the mean of the rows that layer draws (checked with ggplot2 on R 4.6.0), and the axis is titled by the expression. Observable Plot takes a name or a function of the row for each channel, and offers reducers only through its transforms. Stata's `twoway` takes variables only: an expression needs `generate` first.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As built: the operators and the row-by-row functions of `core` in the engine; the rest through `add` | The commonest transformations (`log`, `sqrt`, a ratio, a power) are drawn directly; one rule, short to teach; nothing here has to be withdrawn later; wider than Stata | Narrower than ggplot2; `wage - mean(wage)` and `year(hired)` need a line of `add` |
+| B. A, and everything section 3.7 lifts: the scalar functions of `time` and `text`, the four Zeff-written functions of `core`, and `case` | An expression in a mapping then holds what an argument of `add` holds, less the reducers; `year(hired)` on an axis is common | A result that is text or a date cannot be drawn until its scale exists (step 25 for dates; categories on a position with `bars` at step 24), so most of the gain arrives only then; `plot` comes to depend on `time` and `text` |
+| C. B, and the reducers of `data`, computed on the frame the layer draws | What ggplot2 allows; centring and standardising without a new variable | A layer with its own frame gets its own mean, so two layers of one plot can be centred differently without the script saying so; the rows dropped for `NA` in the other aesthetic are still in the mean, which ggplot2 shares and few users expect |
+
+*Recommendation.* A for the plots of 0.7.0, with B taken up when the date scale is built at step 25, since a date or text result has no scale to be drawn on before then; C left out of 1.0 unless the owner wants it, because of the mean that silently differs between layers. Every widening is an addition: a script accepted under A means the same under B and C. Deadline: 0.7.0, before step 25.
+
+### 108. A numeric function of `core` given a text or category column
+
+Raised on 11 November 2026 at step 20b of release 0.7.0, found while the edge cases of an expression in a mapping were read; the behaviour is that of `core` since the row-by-row functions were built, not of the step. A numeric function of `core` given a single text value is refused when the script is checked: `log("a")` gives Z0401, "`x` of `log` must be a Float, but this is a Str". Given a text or category column, the same function gives `NA` on every row and says nothing:
+
+```
+let d = frame(s = ["a", "b"], n = [1, 2])
+print(d.add(a = log(s), b = abs(s), c = exp(s)))
+```
+
+prints three columns of `NA` with no warning and no note. The same holds for `sqrt` and `round`, and for a category (`log(industry)` on the `wages` data). In a mapping the consequence is a plot of no points, `w.plot(x: educ, y: log(industry)).points()`, with the note "18,412 rows with NA in educ or log(industry) dropped", which reads as a fact about the data and is a mistake of the script. The operators do refuse: `industry + 1` is Z0221, "`+` does not apply to a category".
+
+Section 3.7 ("Columns and scalars") says that a scalar function "applies row by row when given a column and returns a column", and does not say what happens when the column's type is one the function does not take. Section 5.6 lists the counted warnings for a number outside a function's domain (W0204 for the logarithm of zero, W0205 for that of a negative number, and the others); none is for a value of the wrong type.
+
+What the reference tools do. R refuses: `log(c("a", "b"))` is the error "non-numeric argument to mathematical function" and `log()` of a factor is the error "'log' not meaningful for factors" (R 4.6.0). Stata refuses: `generate a = log(industry)` on a string variable is "type mismatch", r(109), from its manual as remembered, Stata not being installed.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Refuse it when the statement runs, with Z0401 worded as for one value and naming the column and its type; the help points to `to(x, Float)` for text that holds numbers and to `to(x, Int)` for the positions of a category's levels | What R and Stata do; the same rule for one value and for a column; a mistake is found where it is made and not three statements later in a mean of `NA` | A script that today runs and gives `NA` stops with an error: a breaking change, to be listed in the release notes |
+| B. Keep `NA` on every row and add a counted warning, in the manner of W0205 | Nothing stops; the mistake is at least announced | A warning is easily missed in a long run, and every later result is `NA`; a new warning code |
+| C. As now | No change | A wrong type passes in silence, against the engine's own rule for one value |
+
+*Recommendation.* A, at 0.8.0, in a step of its own with the snapshot of every numeric function of `core` on a text, a category, a date and a logical column, so that the rule is the same for all of them; the release notes of 0.8.0 list it as a breaking change with the rewrite (`to(x, Float)` or the removal of the call). Deadline: 0.8.0.

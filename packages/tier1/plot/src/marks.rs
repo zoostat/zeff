@@ -2,17 +2,20 @@
 //! the plot back, so that layers chain. At release 0.7.0, step 20: `points`.
 //!
 //! A layer draws the rows of the plot's frame, or of its own (`data:`), which must then hold the
-//! variables the plot maps. Rows with `NA` in a mapped variable are not drawn and are counted in
+//! variables the plot maps and those its mapped expressions read; an expression is computed
+//! again on such a frame, where the layer is added. Rows with `NA` in a mapped variable are not drawn and are counted in
 //! a note, as everywhere else (principle 6); a second layer over the same rows does not repeat
 //! the note of the first.
 
 use std::rc::Rc;
 
+use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Aesthetic, Frame, Mark, Plot, PlotLayer, Value};
 use zeff_diagnostics::Diagnostic;
 
 use crate::grammar::{column, internal, number_option, shown};
+use crate::mapping::{self, variables};
 use crate::scene::{is_numeric, scene, with_layer};
 
 const P: usize = 0;
@@ -21,15 +24,11 @@ const ALPHA: usize = 2;
 const SIZE: usize = 3;
 const JITTER: usize = 4;
 
-/// The variables the plot maps to `x` and `y`, both of which a mark placed by two positions
-/// needs; Z0401 when one is not mapped.
-fn positions<'a>(
-    ctx: &CallContext<'_>,
-    plot: &'a Plot,
-    function: &str,
-) -> Result<(&'a str, &'a str), Fail> {
+/// A mark placed by two positions needs something mapped to `x` and to `y`; Z0401 when one is
+/// not mapped.
+fn positions(ctx: &CallContext<'_>, plot: &Plot, function: &str) -> Result<(), Fail> {
     let lacking = match (plot.mapped(Aesthetic::X), plot.mapped(Aesthetic::Y)) {
-        (Some(x), Some(y)) => return Ok((x, y)),
+        (Some(_), Some(_)) => return Ok(()),
         (Some(_), None) => "`y`",
         (None, Some(_)) => "`x`",
         (None, None) => "`x` or `y`",
@@ -47,16 +46,21 @@ fn positions<'a>(
     ))
 }
 
-/// The layer's own frame, if `data:` names one: it must hold the variables the plot maps, as
-/// numbers.
+/// The values a layer's own frame gives each aesthetic the plot maps from an expression.
+type Computed = Vec<(Aesthetic, Rc<Column>)>;
+
+/// The layer's own frame, if `data:` names one, with the values of the expressions the plot
+/// maps computed on it: it must hold the variables the plot maps, and those its expressions
+/// read, and each mapping must come to a number there.
 fn own_frame(
-    ctx: &CallContext<'_>,
+    ctx: &mut CallContext<'_>,
     args: &Args,
+    plot: &Plot,
     function: &str,
-    mapped: &[(Aesthetic, &str)],
-) -> Result<Option<Frame>, Fail> {
+    aesthetics: &[Aesthetic],
+) -> Result<(Option<Frame>, Computed), Fail> {
     let own = match args.get(DATA) {
-        None | Some(Value::Na) => return Ok(None),
+        None | Some(Value::Na) => return Ok((None, Vec::new())),
         Some(Value::Frame(own)) => own.clone(),
         Some(_) => {
             return Err(internal(
@@ -65,16 +69,38 @@ fn own_frame(
             ));
         }
     };
-    for (aesthetic, name) in mapped {
-        let found = column(ctx, &own, name, ctx.span_of(DATA)).map_err(|refusal| {
-            Box::new((*refusal).secondary(
-                ctx.callee_span,
-                format!(
-                    "this layer draws `{name}`, which the plot maps to `{}`",
-                    aesthetic.name()
-                ),
-            ))
-        })?;
+    let at = ctx.span_of(DATA);
+    let layer = ctx.callee_span;
+    let mut values: Computed = Vec::new();
+    for aesthetic in aesthetics {
+        let Some(mapping) = plot.mapping(*aesthetic) else {
+            continue;
+        };
+        let name = mapping.variable.as_str();
+        let draws = format!(
+            "this layer draws `{name}`, which the plot maps to `{}`",
+            aesthetic.name()
+        );
+        if let Some(computed) = &mapping.computed {
+            for variable in variables(&computed.expr) {
+                column(ctx, &own, variable, at)
+                    .map_err(|refusal| Box::new((*refusal).secondary(layer, draws.clone())))?;
+            }
+            let asked = mapping::Asked {
+                expr: &computed.expr,
+                text: name,
+                aesthetic: *aesthetic,
+                function,
+                span: at,
+                own: true,
+            };
+            let column = mapping::computed(ctx, &own, &asked)
+                .map_err(|refusal| Box::new((*refusal).secondary(layer, draws.clone())))?;
+            values.push((*aesthetic, column));
+            continue;
+        }
+        let found = column(ctx, &own, name, at)
+            .map_err(|refusal| Box::new((*refusal).secondary(layer, draws.clone())))?;
         if !is_numeric(found) {
             let whose = match &own.name {
                 Some(bound) => format!("`{bound}`"),
@@ -90,7 +116,7 @@ fn own_frame(
                     ),
                 )
                 .in_file(ctx.script)
-                .primary(ctx.span_of(DATA), format!("its `{name}` is not numeric"))
+                .primary(at, format!("its `{name}` is not numeric"))
                 .help(format!(
                     "the plot maps `{name}` to `{}`, so the frame of every layer must hold it as a number",
                     aesthetic.name()
@@ -98,7 +124,7 @@ fn own_frame(
             ));
         }
     }
-    Ok(Some(own))
+    Ok((Some(own), values))
 }
 
 /// `p.points(data: Frame, alpha: Float = 1, size: Float, jitter: Float = 0)`.
@@ -107,13 +133,8 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         return Err(internal(ctx, "`points` reached its body without a plot"));
     };
     let plot: Rc<Plot> = plot.clone();
-    let (x, y) = positions(ctx, &plot, "points")?;
-    let data = own_frame(
-        ctx,
-        &args,
-        "points",
-        &[(Aesthetic::X, x), (Aesthetic::Y, y)],
-    )?;
+    positions(ctx, &plot, "points")?;
+    let (data, computed) = own_frame(ctx, &args, &plot, "points", &[Aesthetic::X, Aesthetic::Y])?;
 
     let alpha =
         number_option(ctx, &args, ALPHA, "an `alpha:` that is not a number")?.unwrap_or(1.0);
@@ -182,6 +203,7 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             size,
             jitter,
             stream,
+            computed,
         },
     );
     for note in after.notes {

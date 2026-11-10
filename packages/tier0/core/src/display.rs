@@ -101,7 +101,7 @@ fn inline(value: &Value) -> String {
         Value::Failed(failure) => failure.text(),
         Value::Function(function) => function.signature.clone(),
         Value::Term(name) => name.clone(),
-        Value::TermExpr { text, .. } => text.clone(),
+        Value::TermExpr { text, .. } | Value::Expr { text, .. } => text.clone(),
         Value::List(items) => format!(
             "[{}]",
             items.iter().map(inline).collect::<Vec<_>>().join(", ")

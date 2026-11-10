@@ -12,7 +12,8 @@ use zeff_core::fused;
 use zeff_core::operators::{self, ColumnTrouble, Op, Operand, Trouble};
 use zeff_core::runtime::{Args, CallContext, Fail, Files, Randomness, fail};
 use zeff_core::value::{
-    Failure, Formula as FormulaValue, Frame, FunctionValue, Term as TermValue, TypeValue, Value,
+    ColumnExpr, Failure, Formula as FormulaValue, Frame, FunctionValue, Term as TermValue,
+    TypeValue, Value,
 };
 use zeff_diagnostics::{Diagnostic, Source, Span, did_you_mean};
 use zeff_ir::BindingKind;
@@ -1779,6 +1780,17 @@ impl<'a> Interpreter<'a> {
                     .trim()
                     .to_string(),
             },
+            // An expression over the frame is handed to the function to evaluate itself (section
+            // 7.6: `y: log(wage)`), its names resolved here against the frame where the call
+            // stands, as a column argument's are (section 3.7, "Name lookup").
+            ExprKind::FrameExpr { expr: inner, text } => {
+                let mut renamed = Vec::new();
+                let kept = self.kept_expr(inner, &mut renamed, messages)?;
+                Value::Expr {
+                    expr: kept,
+                    text: rename_words(text, &renamed),
+                }
+            }
             ExprKind::List(items) => {
                 let mut values = Vec::with_capacity(items.len());
                 for item in items {
@@ -2210,6 +2222,22 @@ impl<'a> Interpreter<'a> {
         binding: Option<zeff_ir::BindingId>,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
+        match self.frame_lookup(expr, name, binding, messages)? {
+            Named::Column(column) => Ok(Value::Column(column)),
+            Named::Binding(id, frame) => self.bound_in_frame(id, &frame, expr),
+        }
+    }
+
+    /// What a bare name inside a frame method's argument names (section 3.7, "Name lookup"): a
+    /// loop variable or a parameter first, a clash with a column being an error; then the
+    /// receiver's column, with a warning when a binding has the name too; then a binding.
+    fn frame_lookup(
+        &mut self,
+        expr: &Expr,
+        name: &str,
+        binding: Option<zeff_ir::BindingId>,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<Named, Fail> {
         let Some(receiver) = self.receivers.last_mut() else {
             return Err(self.internal(expr, "a frame name was read outside a frame method"));
         };
@@ -2232,7 +2260,7 @@ impl<'a> Interpreter<'a> {
                     .help("rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently"),
                 ));
             }
-            return self.bound_in_frame(id, &frame, expr);
+            return Ok(Named::Binding(id, frame));
         }
         if let Some(column) = frame.table.column(name) {
             if !receiver.used.iter().any(|u| u == name) {
@@ -2250,10 +2278,10 @@ impl<'a> Interpreter<'a> {
                     .help(format!("rename the binding, or write `{frame_name}[\"{bound}\"]` and the binding apart; inside a frame method a bare name is the frame's variable first")),
                 );
             }
-            return Ok(Value::Column(column));
+            return Ok(Named::Column(column));
         }
         match binding {
-            Some(id) => self.bound_in_frame(id, &frame, expr),
+            Some(id) => Ok(Named::Binding(id, frame)),
             None => {
                 let frame_name = frame.shown_name();
                 let columns: Vec<&str> = frame.table.names().iter().map(String::as_str).collect();
@@ -2265,6 +2293,159 @@ impl<'a> Interpreter<'a> {
                     &columns,
                 )))
             }
+        }
+    }
+
+    /// An expression over the frame as a function keeps it to evaluate itself (section 7.6): a
+    /// name is the frame's variable or, by the lookup of section 3.7, the value a binding holds
+    /// where the call stands, so the function needs nothing of the script. `renamed` collects
+    /// the bindings that stand for a variable, for the expression's text to name the variable.
+    fn kept_expr(
+        &mut self,
+        expr: &Expr,
+        renamed: &mut Vec<(String, String)>,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<ColumnExpr, Fail> {
+        Ok(match &expr.kind {
+            ExprKind::Int(i) => ColumnExpr::Int(*i),
+            ExprKind::Float(x) => ColumnExpr::Float(*x),
+            ExprKind::Str(s) => ColumnExpr::Str(s.clone()),
+            ExprKind::Bool(b) => ColumnExpr::Bool(*b),
+            ExprKind::Na => ColumnExpr::Na,
+            ExprKind::Word(word) => ColumnExpr::Word(word.clone()),
+            ExprKind::TypeName { name, .. } => ColumnExpr::Type(name.clone()),
+            ExprKind::FrameName { name, binding } => {
+                match self.frame_lookup(expr, name, *binding, messages)? {
+                    Named::Column(_) => ColumnExpr::Var(name.clone()),
+                    Named::Binding(id, frame) => self.kept_binding(id, &frame, expr, renamed)?,
+                }
+            }
+            ExprKind::List(items) => ColumnExpr::List(
+                items
+                    .iter()
+                    .map(|item| self.kept_expr(item, renamed, messages))
+                    .collect::<Result<_, _>>()?,
+            ),
+            ExprKind::Unary { op, operand } => ColumnExpr::Unary {
+                negate: *op == UnaryOp::Neg,
+                operand: Box::new(self.kept_expr(operand, renamed, messages)?),
+            },
+            ExprKind::Binary { op, lhs, rhs } => {
+                let lhs = Box::new(self.kept_expr(lhs, renamed, messages)?);
+                let rhs = Box::new(self.kept_expr(rhs, renamed, messages)?);
+                ColumnExpr::Binary {
+                    op: operator(*op),
+                    lhs,
+                    rhs,
+                }
+            }
+            ExprKind::Call(call) => {
+                // A function of `core` written in Zeff runs in the interpreter alone, so the
+                // function that keeps the expression could not compute it: refused here, as a
+                // formula refuses it (open decision #107).
+                let key = (call.package.clone(), call.name.clone());
+                if self.zeff.and_then(|z| z.get(&key)).is_some() {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!("`{}` cannot be computed inside a mapping", call.name),
+                        )
+                        .in_file(self.script)
+                        .primary(call.callee_span, "a call a mapping cannot make")
+                        .help("`clamp`, `logit`, `inv_logit` and `fill_missing` are not computed inside a mapping in this release; compute the value with `add` first and map the new variable"),
+                    ));
+                }
+                let mut args = Vec::with_capacity(call.args.len());
+                for arg in &call.args {
+                    args.push(match arg {
+                        Some(arg) => Some(self.kept_expr(arg, renamed, messages)?),
+                        None => None,
+                    });
+                }
+                let mut rest = Vec::with_capacity(call.rest.len());
+                for arg in &call.rest {
+                    rest.push(self.kept_expr(arg, renamed, messages)?);
+                }
+                // Row by row as the checker marked it, or as the names turned out when a column
+                // of the frame shadows a binding (section 3.7, "Name lookup"; W0102), which the
+                // checker cannot see.
+                let lifted =
+                    call.lifted
+                        || (call.liftable
+                            && (args.iter().zip(&call.scalar_params).any(|(a, scalar)| {
+                                *scalar && a.as_ref().is_some_and(gives_column)
+                            }) || (call.rest_scalar && rest.iter().any(gives_column))));
+                ColumnExpr::Call {
+                    package: call.package.clone(),
+                    name: call.name.clone(),
+                    args,
+                    rest,
+                    lifted,
+                    returns: call.returns.clone(),
+                }
+            }
+            _ => return Err(self.internal(expr, "a kept expression the checker does not admit")),
+        })
+    }
+
+    /// A binding read inside a kept expression: one that holds a `Var` stands for that variable
+    /// of the frame (section 6, "Names inside a frame's methods"); one that holds a number, a
+    /// logical value, text, `NA` or a list of these is that constant.
+    fn kept_binding(
+        &self,
+        id: zeff_ir::BindingId,
+        frame: &Frame,
+        expr: &Expr,
+        renamed: &mut Vec<(String, String)>,
+    ) -> Result<ColumnExpr, Fail> {
+        fn constant(value: &Value) -> Option<ColumnExpr> {
+            Some(match value {
+                Value::Int(i) => ColumnExpr::Int(*i),
+                Value::Float(x) => ColumnExpr::Float(*x),
+                Value::Bool(b) => ColumnExpr::Bool(*b),
+                Value::Str(s) => ColumnExpr::Str(s.clone()),
+                Value::Na => ColumnExpr::Na,
+                Value::List(items) => {
+                    ColumnExpr::List(items.iter().map(constant).collect::<Option<_>>()?)
+                }
+                _ => return None,
+            })
+        }
+        let bound = &self.program.bindings[id].name;
+        match self.env.get(&id) {
+            Some(Value::Var(variable)) => {
+                if frame.table.column(variable).is_none() {
+                    let frame_name = frame.shown_name();
+                    let columns: Vec<&str> =
+                        frame.table.names().iter().map(String::as_str).collect();
+                    return Err(fail(zeff_diagnostics::messages::no_variable(
+                        self.script,
+                        expr.span,
+                        &frame_name,
+                        variable,
+                        &columns,
+                    )));
+                }
+                if !renamed.iter().any(|(from, _)| from == bound) {
+                    renamed.push((bound.clone(), variable.clone()));
+                }
+                Ok(ColumnExpr::Var(variable.clone()))
+            }
+            Some(value) => constant(value).ok_or_else(|| {
+                fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`{bound}` holds {}, which an expression mapped to an aesthetic cannot use",
+                            with_article(&zeff_core::types::type_name(value))
+                        ),
+                    )
+                    .in_file(self.script)
+                    .primary(expr.span, "not a variable of the frame or a constant")
+                    .help("a mapping is computed from the frame's variables and from numbers, logical values and text; put anything else into the frame with `add` first and map the new variable"),
+                )
+            }),
+            None => Err(self.internal(expr, "a binding was read before it was made")),
         }
     }
 
@@ -3340,6 +3521,91 @@ fn takes_failed(call: &Call) -> bool {
             | ("core", "n_missing")
             | ("results", "report")
     )
+}
+
+/// What a bare name inside a frame method's argument names: a column of the receiver, or a
+/// binding of the script, with the frame the name was looked up in.
+enum Named {
+    Column(zeff_columns::Column),
+    Binding(zeff_ir::BindingId, Frame),
+}
+
+/// Whether a kept expression gives a column: it reads a variable of the frame, through the
+/// operators and the calls that apply row by row.
+fn gives_column(expr: &ColumnExpr) -> bool {
+    match expr {
+        ColumnExpr::Var(_) => true,
+        ColumnExpr::Unary { operand, .. } => gives_column(operand),
+        ColumnExpr::Binary { lhs, rhs, .. } => gives_column(lhs) || gives_column(rhs),
+        ColumnExpr::Call { lifted, .. } => *lifted,
+        _ => false,
+    }
+}
+
+/// An expression's text with each binding that stands for a variable written as that variable,
+/// word by word outside text literals, so that `log(v)` in a loop over variables reads
+/// `log(wage)`. The variable is written as a script writes it, in backticks when it is not a
+/// plain name (section 3.6).
+fn rename_words(text: &str, renamed: &[(String, String)]) -> String {
+    if renamed.is_empty() {
+        return text.to_string();
+    }
+    let variable = |word: &str| {
+        let (_, to) = renamed.iter().find(|(from, _)| from == word)?;
+        let plain = to
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+            && to.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+        Some(if plain { to.clone() } else { format!("`{to}`") })
+    };
+    let mut out = String::with_capacity(text.len());
+    let mut word = String::new();
+    // A word before a colon names an argument (`base: 2`), whatever else bears its name.
+    let flush = |word: &mut String, out: &mut String, argument: bool| {
+        match variable(word) {
+            Some(to) if !argument => out.push_str(&to),
+            _ => out.push_str(word),
+        }
+        word.clear();
+    };
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        if c.is_alphanumeric() || c == '_' {
+            word.push(c);
+            continue;
+        }
+        flush(&mut word, &mut out, c == ':');
+        match c {
+            // A text literal is copied as it stands.
+            '"' => {
+                out.push(c);
+                let mut escaped = false;
+                for inner in chars.by_ref() {
+                    out.push(inner);
+                    if inner == '"' && !escaped {
+                        break;
+                    }
+                    escaped = inner == '\\' && !escaped;
+                }
+            }
+            // A name in backticks is one word.
+            '`' => {
+                let name: String = chars.by_ref().take_while(|inner| *inner != '`').collect();
+                match variable(&name) {
+                    Some(to) => out.push_str(&to),
+                    None => {
+                        out.push('`');
+                        out.push_str(&name);
+                        out.push('`');
+                    }
+                }
+            }
+            _ => out.push(c),
+        }
+    }
+    flush(&mut word, &mut out, false);
+    out
 }
 
 pub(crate) fn operator(op: BinaryOp) -> Op {

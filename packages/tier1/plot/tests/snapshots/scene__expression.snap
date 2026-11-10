@@ -1,0 +1,60 @@
+---
+source: packages/tier1/plot/tests/scene.rs
+expression: drawn.to_json()
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "Dose (mg)",
+      "limits": [0.85, 4.15],
+      "breaks": [1, 1.5, 2, 2.5, 3, 3.5, 4],
+      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"]
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "response * 2",
+      "limits": [3.63, 16.169999999999998],
+      "breaks": [4, 6, 8, 10, 12, 14, 16],
+      "labels": ["4", "6", "8", "10", "12", "14", "16"]
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "points",
+          "x": [1, 2, 3, 4],
+          "y": [4.2, 7.8, 12.4, 15.6],
+          "size": 4.5,
+          "alpha": 1
+        }
+      ]
+    }
+  ],
+  "notes": ["1 row with NA in dose or response * 2 dropped"]
+}

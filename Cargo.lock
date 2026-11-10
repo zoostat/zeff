@@ -1399,6 +1399,7 @@ name = "zeff-conformance"
 version = "0.7.0-dev"
 dependencies = [
  "wasm-bindgen",
+ "zeff-columns",
  "zeff-core",
  "zeff-datasets",
  "zeff-dist",

@@ -1549,6 +1549,7 @@ fn plot_cases() -> Vec<Line> {
             let mapping = |aesthetic, variable: &str| PlotMapping {
                 aesthetic,
                 variable: variable.to_string(),
+                computed: None,
             };
             let plot = zeff_plot::scene::start(
                 frame,
@@ -1561,8 +1562,61 @@ fn plot_cases() -> Vec<Line> {
                 size: None,
                 jitter: 0.4,
                 stream: Some(Stream::new(20_261_111, 2, 0)),
+                computed: Vec::new(),
             };
             zeff_plot::scene::with_layer(&plot, layer).1.to_json()
+        }
+        None => "the wages did not load".to_string(),
+    };
+    // Step 20b: positions mapped from expressions, printed as a script draws them, and the scene
+    // of the logarithm of the wage, whose every position is a value of the engine's own `log`.
+    let script = "seed(20261111)\nlet w = dataset(wages)\nw.plot(x: educ, y: log(wage)).points()\nw.plot(x: exper^2, y: wage / hours).points()\nw.plot(x: sqrt(exper), y: exp(educ / 10)).points(jitter: 0.3)\nlet top = w.where(wage > 100)\nw.plot(x: log10(hours), y: log(wage, base: 2)).points(alpha: 0.3).points(data: top, size: 8)\nw.plot(x: educ, y: log(wage - 20)).points()\nw.plot(x: category(educ), y: log(wage))\n";
+    let expression = run_script(&fs, &project, "scripts/main.zeff", script);
+    let logarithm = match zeff_datasets::table("wages") {
+        Some(table) => {
+            use zeff_columns::Column;
+            use zeff_core::value::{ColumnExpr, PlotComputed};
+            let logs: Option<Vec<Option<f64>>> = table
+                .column("wage")
+                .and_then(|wage| wage.as_floats())
+                .map(|wage| wage.map(|v| v.map(zeff_numeric::maths::log)).collect());
+            match logs {
+                Some(logs) => {
+                    let frame = Frame {
+                        table: Rc::new(table),
+                        name: Some("wages".to_string()),
+                    };
+                    let plot = zeff_plot::scene::start(
+                        frame,
+                        vec![
+                            PlotMapping {
+                                aesthetic: Aesthetic::X,
+                                variable: "educ".to_string(),
+                                computed: None,
+                            },
+                            PlotMapping {
+                                aesthetic: Aesthetic::Y,
+                                variable: "log(wage)".to_string(),
+                                computed: Some(PlotComputed {
+                                    expr: ColumnExpr::Var("wage".to_string()),
+                                    values: Rc::new(Column::floats(logs).0),
+                                }),
+                            },
+                        ],
+                    );
+                    let layer = PlotLayer {
+                        mark: Mark::Points,
+                        data: None,
+                        alpha: 1.0,
+                        size: None,
+                        jitter: 0.0,
+                        stream: None,
+                        computed: Vec::new(),
+                    };
+                    zeff_plot::scene::with_layer(&plot, layer).1.to_json()
+                }
+                None => "the wage is not a Float".to_string(),
+            }
         }
         None => "the wages did not load".to_string(),
     };
@@ -1570,6 +1624,9 @@ fn plot_cases() -> Vec<Line> {
         text("plot/points/stdout", &outcome.output.stdout),
         text("plot/points/stderr", &outcome.output.stderr),
         text("plot/points/scene.json", &scene),
+        text("plot/expression/stdout", &expression.output.stdout),
+        text("plot/expression/stderr", &expression.output.stderr),
+        text("plot/expression/scene.json", &logarithm),
     ]
 }
 

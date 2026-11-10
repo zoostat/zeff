@@ -82,12 +82,14 @@ pub struct Plot {
 }
 
 impl Plot {
-    /// The variable mapped to `aesthetic`, if one is.
+    /// What is mapped to `aesthetic`, if anything is.
+    pub fn mapping(&self, aesthetic: Aesthetic) -> Option<&PlotMapping> {
+        self.mappings.iter().find(|m| m.aesthetic == aesthetic)
+    }
+
+    /// The variable mapped to `aesthetic`, or the expression as written, if one is.
     pub fn mapped(&self, aesthetic: Aesthetic) -> Option<&str> {
-        self.mappings
-            .iter()
-            .find(|m| m.aesthetic == aesthetic)
-            .map(|m| m.variable.as_str())
+        self.mapping(aesthetic).map(|m| m.variable.as_str())
     }
 }
 
@@ -109,11 +111,25 @@ impl Aesthetic {
     }
 }
 
-/// One mapping of a plot: an aesthetic and the variable of the frame it reads.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// One mapping of a plot: an aesthetic and what it reads, a variable of the frame or an
+/// expression over the frame's variables (`y: log(wage)`).
+#[derive(Debug, Clone, PartialEq)]
 pub struct PlotMapping {
     pub aesthetic: Aesthetic,
+    /// The variable's name, or the expression as written.
     pub variable: String,
+    /// The expression, when the aesthetic is computed rather than read from one variable.
+    pub computed: Option<PlotComputed>,
+}
+
+/// A mapping from an expression: the expression, which every layer with a frame of its own
+/// evaluates on that frame, and its values on the plot's frame, one for each row. The values are
+/// kept with the plot so that the scene is the same however often it is derived, and so that the
+/// warnings of computing them are raised once, where the plot starts.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlotComputed {
+    pub expr: ColumnExpr,
+    pub values: Rc<Column>,
 }
 
 /// The marks a layer draws.
@@ -148,6 +164,9 @@ pub struct PlotLayer {
     /// The seeded stream the jitter draws from, at its start (section 8.3, point 3), kept with
     /// the layer so that the scene is the same however often it is derived.
     pub stream: Option<Stream>,
+    /// The values, on the layer's own frame, of each aesthetic the plot maps from an expression;
+    /// empty when the layer draws the plot's frame or the plot maps variables only.
+    pub computed: Vec<(Aesthetic, Rc<Column>)>,
 }
 
 /// A probability distribution as a value (Language Reference, section 4: `dist.t(df: 24)` is a
@@ -564,6 +583,14 @@ pub enum Value {
         expr: ColumnExpr,
         text: String,
     },
+    /// An expression over the variables of a frame given to a parameter of type `Expr`
+    /// (section 7.6: `y: log(wage)`), kept for the function to evaluate on that frame and on any
+    /// other it is later given: the expression, its names resolved where the call stands
+    /// (section 3.7, "Name lookup"), and its text as written.
+    Expr {
+        expr: ColumnExpr,
+        text: String,
+    },
 }
 
 impl Value {
@@ -606,6 +633,7 @@ impl Value {
             Value::TestResult(_) => "TestResult",
             Value::Plot(_) => "Plot",
             Value::Term(_) | Value::TermExpr { .. } => "Term",
+            Value::Expr { .. } => "Expr",
             Value::Failed(_) => "Failed",
             Value::Function(_) => "Fn",
         }

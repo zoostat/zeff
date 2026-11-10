@@ -5,7 +5,8 @@ Points, one for each row
 
 ## Description
 Adds a layer of points to a plot, one point for each row at its `x` and its `y`: a scatter
-plot. `w.plot(x: educ, y: wage).points()` draws wage against education.
+plot. `w.plot(x: educ, y: wage).points()` draws wage against education, and
+`w.plot(x: educ, y: log(wage)).points()` draws its logarithm.
 
 `alpha:` makes the points translucent, so that a crowded region shows as a darker one, and
 `size:` sets their diameter. `jitter:` moves each point a little at random, which separates
@@ -18,9 +19,10 @@ In R with ggplot2 this is `geom_point()`, and with `jitter:` it is `geom_jitter(
 is `scatter y x`, with its option `jitter()`.
 
 ## Arguments
-- p: The plot to which the layer is added. It must map a variable to `x` and one to `y`.
+- p: The plot to which the layer is added. It must map a variable or an expression to `x`
+  and one to `y`.
 - data: A frame for this layer alone, in place of the frame of the plot. It must hold the
-  variables the plot maps to `x` and `y`, as numbers.
+  variables the plot maps to `x` and `y`, and those an expression it maps reads, as numbers.
 - alpha: The opacity of a point, from 0, invisible, to 1, solid.
 - size: The diameter of a point, in points of 1/72 inch. Without it a point is 4.5 across.
 - jitter: How far a point may move, as a share of the smallest gap between two values on its
@@ -34,6 +36,12 @@ name can be extended in more than one way.
 Rows not drawn. A row with `NA` in `x` or `y` is not drawn, and a note counts such rows; a row
 with an infinite value is counted in a note of its own. A plot carries each note once: a later
 layer whose note would read the same does not repeat it.
+
+Expressions. When the plot maps an expression, as in `y: log(wage)`, a point is drawn at the
+value the expression gives for its row. A layer on the frame of the plot draws the values
+computed when the plot was started. A layer with `data:` computes the expression again on its
+own frame, with the warnings of that computation, and a row where it gives `NA` or an infinite
+value is not drawn.
 
 Jitter. With `jitter:` j above 0, a point at x is drawn at x + (2u − 1)·j·r, where u is a
 uniform draw on (0, 1) and r is the smallest gap between two different values of `x` among the
@@ -97,3 +105,14 @@ plot · d · response against dose
   layer   mark     data   marks   settings
       1   points   d          4   size 4.5, alpha 1
 note: 1 row with NA in dose or response dropped (line 8)
+> w.plot(x: educ, y: log(wage)).points(alpha: 0.3).points(data: top, size: 8)
+plot · w · log(wage) against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      log(wage)            linear   1.07304 to 5.2147   2, 3, 4, 5
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.3
+      2   points   top        26   size 8, alpha 1
+note: 211 rows with NA in educ or log(wage) dropped (line 9)

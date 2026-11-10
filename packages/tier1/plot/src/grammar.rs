@@ -1,18 +1,19 @@
 //! `plot` (Language Reference, section 7.6, "Grammar"): the start of a layered plot, a frame
 //! and the variables mapped to its aesthetics.
 //!
-//! At release 0.7.0, step 20, the aesthetics are `x` and `y`, each a variable of the frame placed
-//! on a linear scale, so each must be a Bool, an Int or a Float. Expressions and the six other
-//! aesthetics join at steps 20b and 20c, and the scales of categories, text and dates with the
-//! marks that need them.
+//! At release 0.7.0, step 20b, the aesthetics are `x` and `y`, each a variable of the frame or an
+//! expression over it, placed on a linear scale, so each must come to a Bool, an Int or a Float
+//! for each row. The six other aesthetics join at step 20c, and the scales of categories, text
+//! and dates with the marks that need them.
 
 use zeff_columns::Column;
 use zeff_core::display::format_float;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Aesthetic, Frame, PlotMapping, Value};
+use zeff_core::value::{Aesthetic, Frame, PlotComputed, PlotMapping, Value};
 use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, Span};
 
+use crate::mapping::{Asked, computed};
 use crate::scene::{is_numeric, start};
 
 const DATA: usize = 0;
@@ -73,7 +74,7 @@ pub(crate) fn shown(x: f64) -> String {
     format_float(x)
 }
 
-/// `data.plot(x: Var, y: Var)`.
+/// `data.plot(x: Var | Expr, y: Var | Expr)`.
 pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Frame(frame)) = args.get(DATA) else {
         return Err(internal(ctx, "`plot` reached its body without a frame"));
@@ -84,10 +85,31 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         let name = match args.get(slot) {
             None | Some(Value::Na) => continue,
             Some(Value::Var(name)) => name.clone(),
+            // An expression over the frame: computed here, once, row by row.
+            Some(Value::Expr { expr, text }) => {
+                let asked = Asked {
+                    expr,
+                    text,
+                    aesthetic,
+                    function: "plot",
+                    span: ctx.span_of(slot),
+                    own: false,
+                };
+                let values = computed(ctx, &frame, &asked)?;
+                mappings.push(PlotMapping {
+                    aesthetic,
+                    variable: text.clone(),
+                    computed: Some(PlotComputed {
+                        expr: expr.clone(),
+                        values,
+                    }),
+                });
+                continue;
+            }
             Some(_) => {
                 return Err(internal(
                     ctx,
-                    "`plot` was given a mapping that is not a variable",
+                    "`plot` was given a mapping that is not a variable or an expression",
                 ));
             }
         };
@@ -113,6 +135,7 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         mappings.push(PlotMapping {
             aesthetic,
             variable: name,
+            computed: None,
         });
     }
     Ok(Value::Plot(std::rc::Rc::new(start(frame, mappings))))

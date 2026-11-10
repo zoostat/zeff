@@ -1,0 +1,59 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · w · log(wage) against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      log(wage)            linear   1.07304 to 5.2147   2, 3, 4, 5
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+plot · w · wage / hours against educ
+
+  axis   title                scale    limits                 breaks
+  x      Years of schooling   linear   7.4 to 20.6            8, 10, 12, 14, 16, 18, 20
+  y      wage / hours         linear   -0.169223 to 5.72676   0, 1, 2, 3, 4, 5
+
+  layer   mark     data    marks   settings
+      1   points   w      18,167   size 4.5, alpha 1
+plot · w · exper^2 against educ
+
+  axis   title                scale    limits            breaks
+  x      Years of schooling   linear   7.4 to 20.6       8, 10, 12, 14, 16, 18, 20
+  y      exper^2              linear   -64.8 to 1360.8   0, 200, 400, 600, 800, 1000, 1200
+
+  layer   mark     data    marks   settings
+      1   points   w      18,390   size 4.5, alpha 1
+plot · w · log(wage) against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      log(wage)            linear   1.07304 to 5.2147   2, 3, 4, 5
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.3
+      2   points   top        26   size 8, alpha 1
+plot · w · log(wage, base: 10) against log(wage)
+
+  axis   title                 scale    limits                breaks
+  x      log(wage)             linear   1.07304 to 5.2147     2, 3, 4, 5
+  y      log(wage, base: 10)   linear   0.466016 to 2.26472   0.5, 1, 1.5, 2
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+plot · w · wage > 20 against -educ
+
+  axis   title       scale    limits          breaks
+  x      -educ       linear   -20.6 to -7.4   -20, -18, -16, -14, -12, -10, -8
+  y      wage > 20   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+no layer yet: a mark such as `.points()` adds one
+---
+note: 211 rows with NA in educ or log(wage) dropped (line 2)
+note: 245 rows with NA in educ or wage / hours dropped (line 3)
+note: 22 rows with NA in educ or exper^2 dropped (line 4)
+note: 211 rows dropped where `wage > 100` was NA; `w.where(is_missing(wage))` lists them (line 5)
+note: 211 rows with NA in educ or log(wage) dropped (line 6)
+note: 211 rows with NA in log(wage) or log(wage, base: 10) dropped (line 7)

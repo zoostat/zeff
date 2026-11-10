@@ -49,7 +49,7 @@ pub struct Scale {
     /// The name the panels and guides refer to it by: `x`, `y`.
     pub id: &'static str,
     pub kind: ScaleKind,
-    /// The title of its guide: the label of the variable, or its name.
+    /// The title of its guide: the label of the variable, or its name; an expression as written.
     pub title: String,
     /// The two ends of the axis, in data coordinates.
     pub limits: (f64, f64),
@@ -146,20 +146,45 @@ struct Drawn {
     infinite: usize,
 }
 
-/// The points of a layer: one for each row of `frame` with a finite value of both variables, in
-/// the order of the rows. A row with `NA` in either is counted as missing; a row with an
-/// infinite value, which no axis can hold, is counted apart. A frame without one of the
-/// variables, or with one that is not numeric, gives no point; the functions that build a plot
-/// refuse such a frame before it comes to this.
-fn drawn(frame: &Frame, x: &str, y: &str) -> Drawn {
+/// The values a layer draws for an aesthetic: the variable of the layer's frame, which is the
+/// plot's unless the layer has its own, or the values of the mapped expression computed on that
+/// frame. `None` when nothing is mapped, or when the frame has no such variable.
+fn values<'a>(
+    plot: &'a Plot,
+    layer: Option<&'a PlotLayer>,
+    aesthetic: Aesthetic,
+) -> Option<&'a Column> {
+    let mapping = plot.mapping(aesthetic)?;
+    let own = layer.filter(|layer| layer.data.is_some());
+    match (&mapping.computed, own) {
+        (None, _) => {
+            let frame = own
+                .and_then(|layer| layer.data.as_ref())
+                .unwrap_or(&plot.frame);
+            frame.table.column(&mapping.variable)
+        }
+        (Some(_), Some(layer)) => layer
+            .computed
+            .iter()
+            .find(|(of, _)| *of == aesthetic)
+            .map(|(_, column)| &**column),
+        (Some(computed), None) => Some(&computed.values),
+    }
+}
+
+/// The points of a layer: one for each row with a finite value of both positions, in the order
+/// of the rows. A row with `NA` in either is counted as missing; a row with an infinite value,
+/// which no axis can hold, is counted apart. A position that is not there, or is not numeric,
+/// gives no point; the functions that build a plot refuse such a frame before it comes to this.
+fn drawn(cx: Option<&Column>, cy: Option<&Column>) -> Drawn {
     let mut out = Drawn::default();
-    let (Some(cx), Some(cy)) = (frame.table.column(x), frame.table.column(y)) else {
+    let (Some(cx), Some(cy)) = (cx, cy) else {
         return out;
     };
-    if !(is_numeric(cx) && is_numeric(cy)) {
+    if !(is_numeric(cx) && is_numeric(cy)) || cx.len() != cy.len() {
         return out;
     }
-    for row in 0..frame.table.rows() {
+    for row in 0..cx.len() {
         match (number(cx, row), number(cy, row)) {
             (Some(a), Some(b)) if a.is_finite() && b.is_finite() => {
                 out.x.push(a);
@@ -213,7 +238,7 @@ fn jitter(layer: &PlotLayer, points: &mut Drawn) {
     }
 }
 
-/// `educ or wage`, the variables a dropped row may lack.
+/// `educ or wage`, the variables or expressions a dropped row may lack.
 fn either(x: &str, y: &str) -> String {
     if x == y {
         x.to_string()
@@ -246,21 +271,26 @@ fn extent<'a>(values: impl Iterator<Item = &'a f64>) -> Option<(f64, f64)> {
     found
 }
 
-/// The extent of a variable of the plot's frame, for an axis no mark has yet been drawn on.
-fn frame_extent(frame: &Frame, name: &str) -> Option<(f64, f64)> {
-    let column = frame.table.column(name)?;
+/// The extent of what the plot's frame gives an aesthetic, for an axis no mark has yet been
+/// drawn on.
+fn frame_extent(plot: &Plot, aesthetic: Aesthetic) -> Option<(f64, f64)> {
+    let column = values(plot, None, aesthetic)?;
     let values = column.numeric_values()?.values;
     extent(values.iter())
 }
 
-/// The title of an axis: the label of its variable in the plot's frame, or the variable's name.
-fn axis_title(frame: &Frame, name: &str) -> String {
-    frame
+/// The title of an axis: the label of its variable in the plot's frame, or the variable's name;
+/// for an expression, the expression as written.
+fn axis_title(plot: &Plot, mapping: &PlotMapping) -> String {
+    if mapping.computed.is_some() {
+        return mapping.variable.clone();
+    }
+    plot.frame
         .table
-        .column(name)
+        .column(&mapping.variable)
         .and_then(|c| c.metadata().get(MetadataKey::Label))
         .filter(|label| !label.is_empty())
-        .unwrap_or(name)
+        .unwrap_or(&mapping.variable)
         .to_string()
 }
 
@@ -276,10 +306,12 @@ pub fn scene(plot: &Plot) -> Scene {
     };
     let mut layers: Vec<Layer> = Vec::new();
     for layer in &plot.layers {
-        let frame = layer.data.as_ref().unwrap_or(&plot.frame);
         let mut points = match (x, y) {
             (Some(x), Some(y)) => {
-                let points = drawn(frame, x, y);
+                let points = drawn(
+                    values(plot, Some(layer), Aesthetic::X),
+                    values(plot, Some(layer), Aesthetic::Y),
+                );
                 if points.missing > 0 {
                     note(format!(
                         "{} with NA in {} dropped",
@@ -309,24 +341,24 @@ pub fn scene(plot: &Plot) -> Scene {
     }
     let mut scales: Vec<Scale> = Vec::new();
     let mut axes: Vec<Axis> = Vec::new();
-    for (aesthetic, name, position) in [
-        (Aesthetic::X, x, Position::Bottom),
-        (Aesthetic::Y, y, Position::Left),
+    for (aesthetic, position) in [
+        (Aesthetic::X, Position::Bottom),
+        (Aesthetic::Y, Position::Left),
     ] {
-        let Some(name) = name else {
+        let Some(mapping) = plot.mapping(aesthetic) else {
             continue;
         };
         let marks = extent(layers.iter().flat_map(|layer| match aesthetic {
             Aesthetic::X => layer.x.iter(),
             Aesthetic::Y => layer.y.iter(),
         }));
-        let (lo, hi) = scale::limits(marks.or_else(|| frame_extent(&plot.frame, name)));
+        let (lo, hi) = scale::limits(marks.or_else(|| frame_extent(plot, aesthetic)));
         let breaks = scale::breaks(lo, hi);
         let labels = scale::labels(&breaks);
         scales.push(Scale {
             id: aesthetic.name(),
             kind: ScaleKind::Linear,
-            title: axis_title(&plot.frame, name),
+            title: axis_title(plot, mapping),
             limits: (lo, hi),
             breaks,
             labels,

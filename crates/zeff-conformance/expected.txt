@@ -240,6 +240,9 @@ export/sample.tex 79622a8e73235482
 plot/points/stdout 3a6b6d60d4063bdc
 plot/points/stderr f4efa5fd3454f8e9
 plot/points/scene.json b4f5fd2b34a9348d
+plot/expression/stdout 3b9fd5e3b6c515b1
+plot/expression/stderr b079f532d120ae17
+plot/expression/scene.json b9c64a56999b463e
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

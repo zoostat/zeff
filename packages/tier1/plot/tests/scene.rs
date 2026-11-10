@@ -3,13 +3,18 @@
 //! of small plots as JSON, the JSON read back value for value, the edge cases, and the
 //! properties: the same data give the same scene, reordering the rows changes nothing but the
 //! order of the marks, every break and every mark lies within the limits, and jitter moves a
-//! point by no more than its share of the gap.
+//! point by no more than its share of the gap. From step 20b, a position mapped from an
+//! expression: its values are handed to the scene with the plot, so the scene shows them under
+//! the expression as written, and an expression that is one variable gives the scene of that
+//! variable.
 
 use proptest::prelude::*;
 use serde_json::Value as Json;
 use std::rc::Rc;
 use zeff_columns::{Column, MetadataKey, Table};
-use zeff_core::value::{Aesthetic, Frame, Mark, Plot, PlotLayer, PlotMapping};
+use zeff_core::value::{
+    Aesthetic, ColumnExpr, Frame, Mark, Plot, PlotComputed, PlotLayer, PlotMapping,
+};
 use zeff_numeric::random::Stream;
 use zeff_plot::scene::{POINT_SIZE, SCENE_VERSION, Scene, scene, start, with_layer};
 
@@ -42,12 +47,14 @@ fn plot(frame: Frame, x: Option<&str>, y: Option<&str>) -> Plot {
         mappings.push(PlotMapping {
             aesthetic: Aesthetic::X,
             variable: x.to_string(),
+            computed: None,
         });
     }
     if let Some(y) = y {
         mappings.push(PlotMapping {
             aesthetic: Aesthetic::Y,
             variable: y.to_string(),
+            computed: None,
         });
     }
     start(frame, mappings)
@@ -62,6 +69,7 @@ fn points() -> PlotLayer {
         size: None,
         jitter: 0.0,
         stream: None,
+        computed: Vec::new(),
     }
 }
 
@@ -538,6 +546,167 @@ fn jitter_is_the_same_under_one_seed_and_differs_under_another() {
     assert_eq!(still.panels[0].layers[0].x, [1.0, 1.0, 2.0, 2.0, 3.0]);
 }
 
+// ----- a position mapped from an expression -----
+
+/// The mapping of `aesthetic` from an expression written as `text`, with the values it gives on
+/// the plot's frame, as `plot` hands them over.
+fn computed(aesthetic: Aesthetic, text: &str, expr: ColumnExpr, values: Column) -> PlotMapping {
+    PlotMapping {
+        aesthetic,
+        variable: text.to_string(),
+        computed: Some(PlotComputed {
+            expr,
+            values: Rc::new(values),
+        }),
+    }
+}
+
+fn variable(aesthetic: Aesthetic, name: &str) -> PlotMapping {
+    PlotMapping {
+        aesthetic,
+        variable: name.to_string(),
+        computed: None,
+    }
+}
+
+/// `response * 2` as `plot` keeps it.
+fn doubled() -> ColumnExpr {
+    ColumnExpr::Binary {
+        op: zeff_core::operators::Op::Mul,
+        lhs: Box::new(ColumnExpr::Var("response".to_string())),
+        rhs: Box::new(ColumnExpr::Int(2)),
+    }
+}
+
+#[test]
+fn the_scene_of_a_mapped_expression() {
+    let p = start(
+        doses(),
+        vec![
+            variable(Aesthetic::X, "dose"),
+            computed(
+                Aesthetic::Y,
+                "response * 2",
+                doubled(),
+                numbers(&[4.2, 7.8, 12.4, 15.6, 18.0]),
+            ),
+        ],
+    );
+    let (_, drawn) = with_layer(&p, points());
+    // The fifth row has no dose; the limits are 5% of 15.6 - 4.2 beyond the values drawn.
+    assert_eq!(drawn.panels[0].layers[0].y, [4.2, 7.8, 12.4, 15.6]);
+    let y = drawn.scale("y").unwrap();
+    assert_eq!(y.title, "response * 2");
+    assert!((y.limits.0 - 3.63).abs() < 1e-12 && (y.limits.1 - 16.17).abs() < 1e-12);
+    assert_eq!(
+        drawn.notes,
+        ["1 row with NA in dose or response * 2 dropped"]
+    );
+    insta::assert_snapshot!("expression", drawn.to_json());
+}
+
+#[test]
+fn an_expression_is_the_title_of_its_axis_whatever_the_labels() {
+    let p = start(
+        doses(),
+        vec![
+            computed(
+                Aesthetic::X,
+                "dose + 0",
+                ColumnExpr::Var("dose".to_string()),
+                floats(&[Some(1.0), Some(2.0), Some(3.0), Some(4.0), None]),
+            ),
+            variable(Aesthetic::Y, "response"),
+        ],
+    );
+    let before = scene(&p);
+    assert_eq!(before.scale("x").unwrap().title, "dose + 0");
+    // Before any layer the axis shows the values the expression has on the plot's frame.
+    assert_eq!(before.scale("x").unwrap().limits, (0.85, 4.15));
+    assert_eq!(p.summary.title, "plot · d · response against dose + 0");
+}
+
+#[test]
+fn a_layer_with_its_own_frame_draws_the_expression_computed_there() {
+    let p = start(
+        doses(),
+        vec![
+            variable(Aesthetic::X, "dose"),
+            computed(
+                Aesthetic::Y,
+                "response * 2",
+                doubled(),
+                numbers(&[4.2, 7.8, 12.4, 15.6, 18.0]),
+            ),
+        ],
+    );
+    let own = frame(
+        "other",
+        vec![
+            ("dose", numbers(&[10.0, 20.0, 30.0])),
+            ("response", floats(&[Some(-1.0), None, Some(1.0)])),
+        ],
+    );
+    let (_, drawn) = with_layer(
+        &p,
+        PlotLayer {
+            data: Some(own.clone()),
+            computed: vec![(
+                Aesthetic::Y,
+                Rc::new(floats(&[Some(-2.0), None, Some(2.0)])),
+            )],
+            ..points()
+        },
+    );
+    assert_eq!(drawn.panels[0].layers[0].x, [10.0, 30.0]);
+    assert_eq!(drawn.panels[0].layers[0].y, [-2.0, 2.0]);
+    assert_eq!(
+        drawn.notes,
+        ["1 row with NA in dose or response * 2 dropped"]
+    );
+    // A layer handed no values for the expression draws nothing: the mark that adds a layer
+    // computes them, or refuses the frame, before the scene is derived.
+    let (_, empty) = with_layer(
+        &p,
+        PlotLayer {
+            data: Some(own),
+            ..points()
+        },
+    );
+    assert!(empty.panels[0].layers[0].x.is_empty());
+}
+
+#[test]
+fn a_constant_expression_and_one_with_no_value() {
+    let x = variable(Aesthetic::X, "dose");
+    let constant = start(
+        doses(),
+        vec![
+            x.clone(),
+            computed(
+                Aesthetic::Y,
+                "2 + 3",
+                ColumnExpr::Int(5),
+                Column::ints([Some(5); 5]),
+            ),
+        ],
+    );
+    let (_, drawn) = with_layer(&constant, points());
+    assert_eq!(drawn.panels[0].layers[0].y, [5.0; 4]);
+    assert_eq!(drawn.scale("y").unwrap().limits, (4.5, 5.5));
+    let missing = start(
+        doses(),
+        vec![
+            x,
+            computed(Aesthetic::Y, "NA + 1", ColumnExpr::Na, floats(&[None; 5])),
+        ],
+    );
+    let (_, drawn) = with_layer(&missing, points());
+    assert!(drawn.panels[0].layers[0].y.is_empty());
+    assert_eq!(drawn.scale("y").unwrap().limits, (0.0, 1.0));
+    assert_eq!(drawn.notes, ["5 rows with NA in dose or NA + 1 dropped"]);
+}
+
 // ----- the properties -----
 
 fn property_cases(usual: u32) -> u32 {
@@ -708,5 +877,51 @@ proptest! {
             prop_assert!((layer.x[i] - still.x[i]).abs() <= reach_x * (1.0 + 1e-12) + 1e-9);
             prop_assert!((layer.y[i] - still.y[i]).abs() <= reach_y * (1.0 + 1e-12) + 1e-9);
         }
+    }
+
+    /// Step 20b: an expression that is one variable gives the scene of that variable, whatever
+    /// the values (missing and infinite ones among them), under jitter and in a layer that has
+    /// a frame of its own.
+    #[test]
+    fn an_expression_that_is_one_variable_gives_the_scene_of_that_variable(
+        rows in rows(),
+        other in rows(),
+        share in 0.0f64..1.0,
+        seed in 0u64..1000,
+        on_x in any::<bool>(),
+        on_y in any::<bool>(),
+    ) {
+        let (x, y) = columns(&rows);
+        let (own_x, own_y) = columns(&other);
+        let own = || frame("e", vec![("x", floats(&own_x)), ("y", floats(&own_y))]);
+        let layers = |p: &Plot, handed: Vec<(Aesthetic, Rc<Column>)>| {
+            let (p, _) = with_layer(p, points());
+            let (p, _) = with_layer(&p, jittered(share, seed));
+            with_layer(&p, PlotLayer { data: Some(own()), computed: handed, ..points() }).1
+        };
+        let plain = plot(frame("d", vec![("x", floats(&x)), ("y", floats(&y))]), Some("x"), Some("y"));
+        let mapping = |aesthetic, name: &str, values: &[Option<f64>], as_expression: bool| {
+            if as_expression {
+                computed(aesthetic, name, ColumnExpr::Var(name.to_string()), floats(values))
+            } else {
+                variable(aesthetic, name)
+            }
+        };
+        let mapped = start(
+            frame("d", vec![("x", floats(&x)), ("y", floats(&y))]),
+            vec![
+                mapping(Aesthetic::X, "x", &x, on_x),
+                mapping(Aesthetic::Y, "y", &y, on_y),
+            ],
+        );
+        let mut handed = Vec::new();
+        if on_x {
+            handed.push((Aesthetic::X, Rc::new(floats(&own_x))));
+        }
+        if on_y {
+            handed.push((Aesthetic::Y, Rc::new(floats(&own_y))));
+        }
+        prop_assert_eq!(scene(&mapped).to_json(), scene(&plain).to_json());
+        prop_assert_eq!(layers(&mapped, handed).to_json(), layers(&plain, Vec::new()).to_json());
     }
 }

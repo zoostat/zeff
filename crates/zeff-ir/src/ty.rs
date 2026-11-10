@@ -63,6 +63,12 @@ pub enum Ty {
     /// coefficient, never a column or a binding (section 7.2), and the expression is kept as
     /// written for the function to read.
     TermExpr(Box<Ty>),
+    /// An expression over the variables of a frame (section 7.6: `x` and `y` of `plot` "may be
+    /// variables or expressions over the frame"; the catalogue writes `Var | Expr`): lowered with
+    /// the frame's columns in scope, as the column arguments of a frame method are (section 3.7,
+    /// "Name lookup"), and kept for the function to evaluate on the frame and on any other frame
+    /// it later draws.
+    Expr,
     /// A failure kept as a value by `attempt` (section 4, "Failure"): the static type of nothing
     /// the checker sees, since `attempt(e)` has `e`'s type, but a name in `x.is(Failed)`.
     Failed,
@@ -213,6 +219,7 @@ impl Ty {
             "Date" => Ty::Date,
             "DateTime" => Ty::DateTime,
             "Frame" => Ty::Frame,
+            "Expr" => Ty::Expr,
             "Table" => Ty::Table,
             "Plot" => Ty::Plot,
             "Distribution" => Ty::Distribution,
@@ -363,6 +370,7 @@ impl fmt::Display for Ty {
             Ty::Result(Some(kind)) => write!(f, "{}", kind.name()),
             Ty::Term => write!(f, "Term"),
             Ty::TermExpr(inner) => write!(f, "Term<{inner}>"),
+            Ty::Expr => write!(f, "Expr"),
             Ty::Failed => write!(f, "Failed"),
             Ty::Fn(params, dots, ret) => {
                 let mut parts: Vec<String> = params.iter().map(ToString::to_string).collect();

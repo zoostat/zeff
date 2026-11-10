@@ -1,0 +1,329 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+let d = frame(a = [1, 2, 3], b = [0.5, NA, 2.5])
+d.plot(x: a, y: 0).points()
+d.plot(x: a, y: 2 + 3).points()
+d.plot(x: a * 0, y: b).points()
+d.plot(x: a, y: len(b)).points()
+exit code 0
+plot · d · 0 against a
+
+  axis   title   scale    limits        breaks
+  x      a       linear   0.9 to 3.1    1, 1.5, 2, 2.5, 3
+  y      0       linear   -0.5 to 0.5   -0.4, -0.2, 0, 0.2, 0.4
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+plot · d · 2 + 3 against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+  y      2 + 3   linear   4.5 to 5.5   4.6, 4.8, 5, 5.2, 5.4
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+plot · d · b against a * 0
+
+  axis   title   scale    limits        breaks
+  x      a * 0   linear   -0.5 to 0.5   -0.4, -0.2, 0, 0.2, 0.4
+  y      b       linear   0.4 to 2.6    0.5, 1, 1.5, 2, 2.5
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size 4.5, alpha 1
+plot · d · len(b) against a
+
+  axis   title    scale    limits       breaks
+  x      a        linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+  y      len(b)   linear   2.5 to 3.5   2.6, 2.8, 3, 3.2, 3.4
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+---
+note: 1 row with NA in a * 0 or b dropped (line 4)
+
+let d = frame(a = [1, 2, 3], b = [0.5, NA, 2.5])
+d.plot(x: a, y: NA + 1).points()
+d.plot(x: a, y: b * NA).points()
+d.plot(x: a, y: sqrt(-a)).points()
+exit code 0
+plot · d · NA + 1 against a
+
+  axis   title    scale    limits       breaks
+  x      a        linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+  y      NA + 1   linear   0 to 1       0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          0   size 4.5, alpha 1
+plot · d · b * NA against a
+
+  axis   title    scale    limits       breaks
+  x      a        linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+  y      b * NA   linear   0 to 1       0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          0   size 4.5, alpha 1
+plot · d · sqrt(-a) against a
+
+  axis   title      scale    limits       breaks
+  x      a          linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+  y      sqrt(-a)   linear   0 to 1       0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          0   size 4.5, alpha 1
+---
+note: 3 rows with NA in a or NA + 1 dropped (line 2)
+note: 3 rows with NA in a or b * NA dropped (line 3)
+warning[W0205]: sqrt of a negative number gave NA in 3 rows (line 4)
+  = help: a negative number has no real square root; `where(x >= 0)` keeps the rows that have one
+note: 3 rows with NA in a or sqrt(-a) dropped (line 4)
+
+let d = frame(a = [1, 2, 3, 4], b = [0.0, -1.0, 5.0, NA])
+let p = d.plot(x: a, y: log(b))
+p
+p.points()
+d.plot(x: a / (a - 2), y: b).points()
+exit code 0
+plot · d · log(b) against a
+
+  axis   title    scale    limits               breaks
+  x      a        linear   0.85 to 4.15         1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      log(b)   linear   1.10944 to 2.10944   1.2, 1.4, 1.6, 1.8, 2
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · log(b) against a
+
+  axis   title    scale    limits               breaks
+  x      a        linear   2.5 to 3.5           2.6, 2.8, 3, 3.2, 3.4
+  y      log(b)   linear   1.10944 to 2.10944   1.2, 1.4, 1.6, 1.8, 2
+
+  layer   mark     data   marks   settings
+      1   points   d          1   size 4.5, alpha 1
+plot · d · b against a / (a - 2)
+
+  axis   title         scale    limits          breaks
+  x      a / (a - 2)   linear   -1.2 to 3.2     -1, 0, 1, 2, 3
+  y      b             linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size 4.5, alpha 1
+---
+warning[W0204]: log of zero gave -Inf in 1 row (line 2)
+  = help: `log1p(x)` is log(1 + x) and is finite at zero; or keep the rows with `where(x > 0)`
+warning[W0205]: log of a negative number gave NA in 1 row (line 2)
+  = help: a negative number has no real logarithm; `where(x > 0)` keeps the rows that have one
+note: 2 rows with NA in a or log(b) dropped (line 4)
+note: 1 row with an infinite value in a or log(b) dropped (line 4)
+warning[W0204]: division by zero gave Inf or -Inf in 1 row (line 5)
+  = help: `where(b != 0)` keeps the rows with a divisor; the infinities stay otherwise
+note: 1 row with NA in a / (a - 2) or b dropped (line 5)
+note: 1 row with an infinite value in a / (a - 2) or b dropped (line 5)
+
+let d = frame(a = [1, 2, 3], b = [0.5, NA, 2.5]).where(a > 5)
+d.plot(x: a * 2, y: log(b)).points()
+exit code 0
+plot · d · log(b) against a * 2
+
+  axis   title    scale    limits   breaks
+  x      a * 2    linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      log(b)   linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          0   size 4.5, alpha 1
+---
+note: no row kept: the result is empty (line 1)
+
+let d = frame(a = [1, 2, 3], b = [0.5, NA, 2.5])
+d.plot(x: a, y: b > 1).points()
+d.plot(x: a, y: is_missing(b)).points()
+d.plot(x: div(a, 2), y: mod(a, 2)).points()
+exit code 0
+plot · d · b > 1 against a
+
+  axis   title   scale    limits          breaks
+  x      a       linear   0.9 to 3.1      1, 1.5, 2, 2.5, 3
+  y      b > 1   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size 4.5, alpha 1
+plot · d · is_missing(b) against a
+
+  axis   title           scale    limits          breaks
+  x      a               linear   0.9 to 3.1      1, 1.5, 2, 2.5, 3
+  y      is_missing(b)   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+plot · d · mod(a, 2) against div(a, 2)
+
+  axis   title       scale    limits          breaks
+  x      div(a, 2)   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      mod(a, 2)   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+---
+note: 1 row with NA in a or b > 1 dropped (line 2)
+
+let d = import("data/one_row.csv")
+d.plot(x: x * 2, y: -y).points()
+exit code 0
+plot · d · -y against x * 2
+
+  axis   title   scale    limits         breaks
+  x      x * 2   linear   79.8 to 88.2   80, 82, 84, 86, 88
+  y      -y      linear   -4 to -3       -4, -3.8, -3.6, -3.4, -3.2, -3
+
+  layer   mark     data   marks   settings
+      1   points   d          1   size 4.5, alpha 1
+---
+note: data/one_row.csv read as CSV: 1 row × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+seed(5)
+let d = import("data/zero_variance.csv")
+d.plot(x: constant - constant, y: big_constant * 2).points()
+d.plot(x: constant_with_na / constant, y: constant).points(jitter: 0.3)
+exit code 0
+plot · d · big_constant * 2 against constant - constant
+
+  axis   title                 scale    limits                     breaks
+  x      constant - constant   linear   -0.5 to 0.5                -0.4, -0.2, 0, 0.2, 0.4
+  y      big_constant * 2      linear   1900000001 to 2100000001   1950000000, 2000000000, 2050000000, 2100000000
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · constant against constant_with_na / constant
+
+  axis   title                         scale    limits               breaks
+  x      constant_with_na / constant   linear   1.99997 to 2.28919   2, 2.05, 2.1, 2.15, 2.2, 2.25
+  y      constant                      linear   3.11794 to 3.39824   3.15, 3.2, 3.25, 3.3, 3.35
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1, jitter 0.3
+---
+note: data/zero_variance.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 2)
+note: 1 row with NA in constant_with_na / constant or constant dropped (line 4)
+
+let d = import("data/infinities.csv")
+d.plot(x: finite, y: plus - plus).points()
+d.plot(x: abs(both), y: nan_mixed * 0).points()
+exit code 0
+plot · d · plus - plus against finite
+
+  axis   title         scale    limits        breaks
+  x      finite        linear   0.9 to 3.1    1, 1.5, 2, 2.5, 3
+  y      plus - plus   linear   -0.5 to 0.5   -0.4, -0.2, 0, 0.2, 0.4
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size 4.5, alpha 1
+plot · d · nan_mixed * 0 against abs(both)
+
+  axis   title           scale    limits        breaks
+  x      abs(both)       linear   0.5 to 1.5    0.6, 0.8, 1, 1.2, 1.4
+  y      nan_mixed * 0   linear   -0.5 to 0.5   -0.4, -0.2, 0, 0.2, 0.4
+
+  layer   mark     data   marks   settings
+      1   points   d          1   size 4.5, alpha 1
+---
+note: data/infinities.csv read as CSV: 3 rows × 5 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 2 values of nan_mixed read as NA from NaN (line 1)
+warning[W0205]: Inf - Inf gave NA in 1 row (line 2)
+note: 1 row with NA in finite or plus - plus dropped (line 2)
+note: 2 rows with NA in abs(both) or nan_mixed * 0 dropped (line 3)
+
+let d = import("data/magnitudes.csv")
+d.plot(x: offset - 1e9, y: log10(wide)).points()
+d.plot(x: tiny * tiny, y: wide * wide).points()
+exit code 0
+plot · d · log10(wide) against offset - 1e9
+
+  axis   title          scale    limits                  breaks
+  x      offset - 1e9   linear   -0.0454458 to 1.04966   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      log10(wide)    linear   -9.52341 to 8.77353     -5, 0, 5
+
+  layer   mark     data   marks   settings
+      1   points   d        251   size 4.5, alpha 1
+plot · d · wide * wide against tiny * tiny
+
+  axis   title         scale    limits                           breaks
+  x      tiny * tiny   linear   -0.5 to 0.5                      -0.4, -0.2, 0, 0.2, 0.4
+  y      wide * wide   linear   -486426558512872 to 1.0215e+16   0, 2e+15, 4e+15, 6e+15, 8e+15, 1e+16
+
+  layer   mark     data   marks   settings
+      1   points   d        500   size 4.5, alpha 1
+---
+note: data/magnitudes.csv read as CSV: 500 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning[W0205]: log10 of a negative number gave NA in 249 rows (line 2)
+  = help: a negative number has no real logarithm; `where(x > 0)` keeps the rows that have one
+note: 249 rows with NA in offset - 1e9 or log10(wide) dropped (line 2)
+
+let d = import("data/bools.csv")
+d.plot(x: treated && with_na, y: !treated).points()
+exit code 0
+plot · d · !treated against treated && with_na
+
+  axis   title                scale    limits          breaks
+  x      treated && with_na   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      !treated             linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+---
+note: data/bools.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 1 row with NA in treated && with_na or !treated dropped (line 2)
+
+let d = import("data/empty.csv")
+d.plot(x: x + 1, y: log(y)).points()
+exit code 1
+---
+note: data/empty.csv read as CSV: 0 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0215]: `+` does not apply to text
+ --> scripts/main.zeff:2:11
+  |
+2 | d.plot(x: x + 1, y: log(y)).points()
+  |           ^^^^^ the operation, row by row
+  |
+  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+
+let d = import("data/all_na.csv")
+d.plot(x: x + 1, y: log(y)).points()
+exit code 1
+---
+note: data/all_na.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0215]: `+` does not apply to text
+ --> scripts/main.zeff:2:11
+  |
+2 | d.plot(x: x + 1, y: log(y)).points()
+  |           ^^^^^ the operation, row by row
+  |
+  = help: `join` puts texts together and `format` builds text from values (release 0.5.0); a number in text converts with `to(x, Float)`
+
+let d = import("data/awkward_names.csv")
+d.plot(x: `Gross Sales (total)` / 1000, y: sqrt(`日本語`)).points()
+exit code 0
+plot · d · sqrt(`日本語`) against `Gross Sales (total)` / 1000
+
+  axis   title                          scale    limits                breaks
+  x      `Gross Sales (total)` / 1000   linear   0.954262 to 1.52599   1, 1.1, 1.2, 1.3, 1.4, 1.5
+  y      sqrt(`日本語`)                    linear   1.70685 to 2.26127    1.8, 1.9, 2, 2.1, 2.2
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+---
+note: data/awkward_names.csv read as CSV: 3 rows × 7 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/wages_large.csv")
+d.plot(x: educ + hours / 10, y: log(wage)).points()
+exit code 0
+plot · d · log(wage) against educ + hours / 10
+
+  axis   title               scale    limits               breaks
+  x      educ + hours / 10   linear   9.2 to 26.8          10, 15, 20, 25
+  y      log(wage)           linear   1.39911 to 4.75847   1.5, 2, 2.5, 3, 3.5, 4, 4.5
+
+  layer   mark     data   marks   settings
+      1   points   d      1,139   size 4.5, alpha 1
+---
+note: data/wages_large.csv read as CSV: 1,200 rows × 6 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 61 rows with NA in educ + hours / 10 or log(wage) dropped (line 2)
