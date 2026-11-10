@@ -103,6 +103,7 @@ random/philox bfcc0e89d2e2c989
 random/uniform 2be774397b461029
 dist/values 611216e2d82cdc3d
 dist/draws ca2799137318d776
+dist/tukey 9fbedd1d79e23c46
 regress/arithmetic/stdout 689fd989a9774016
 regress/arithmetic/stderr cbf29ce484222325
 regress/categories/stdout 060df2ee936d339a

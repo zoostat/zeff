@@ -224,3 +224,69 @@ proptest! {
         prop_assert_ne!(other.uniform(), draws[0]);
     }
 }
+
+// ----- the studentized range (release 0.7.0, step 18) -----
+
+/// A point of the studentized range, a number of groups and degrees of freedom, each spread
+/// evenly on a logarithmic scale: q from 0.1 to 8, 2 to 60 groups, 1 to 10,000 degrees of
+/// freedom.
+fn studentized() -> impl Strategy<Value = (f64, f64, f64)> {
+    (-1.0..0.903_f64, 0.31..1.78_f64, 0.0..4.0_f64)
+        .prop_map(|(q, groups, df)| (10f64.powf(q), 10f64.powf(groups).floor(), 10f64.powf(df)))
+}
+
+proptest! {
+    // Every value here is an integral summed afresh, so the cases are few.
+    #![proptest_config(ProptestConfig::with_cases(property_cases_maths(24)))]
+
+    /// The smaller tail moves strictly with q, the larger (one minus it) never the wrong way; the
+    /// lower tail falls as groups are added (the range of more values is larger); and the density,
+    /// an integral of its own, is the slope of the tails: a central difference of the smaller
+    /// tail over a step of q / 10,000 gives it within 1e-4.
+    #[test]
+    fn the_studentized_range_is_ordered_and_its_density_is_its_slope((q, groups, df) in studentized()) {
+        use zeff_numeric::tukey::{density, tails};
+        let h = 1e-4 * q;
+        let (below, here, above) = (tails(q - h, groups, df), tails(q, groups, df), tails(q + h, groups, df));
+        prop_assert!((0.0..=1.0).contains(&here.lower) && (0.0..=1.0).contains(&here.upper));
+        prop_assert!(below.lower <= here.lower && here.lower <= above.lower,
+            "the lower tail does not rise: {} {} {}", below.lower, here.lower, above.lower);
+        prop_assert!(below.upper >= here.upper && here.upper >= above.upper,
+            "the upper tail does not fall: {} {} {}", below.upper, here.upper, above.upper);
+        if here.lower <= here.upper {
+            prop_assert!(below.lower < here.lower && here.lower < above.lower,
+                "the lower tail stands still: {} {} {}", below.lower, here.lower, above.lower);
+        } else {
+            prop_assert!(below.upper > here.upper && here.upper > above.upper,
+                "the upper tail stands still: {} {} {}", below.upper, here.upper, above.upper);
+        }
+        let more = tails(q, groups + 1.0, df);
+        prop_assert!(more.lower <= here.lower && more.upper >= here.upper,
+            "more groups, smaller range: {} then {}", here.lower, more.lower);
+        let slope = if here.lower <= here.upper {
+            (above.lower - below.lower) / (2.0 * h)
+        } else {
+            (below.upper - above.upper) / (2.0 * h)
+        };
+        let f = density(q, groups, df);
+        prop_assert!(f > 0.0);
+        prop_assert!((slope - f).abs() <= 1e-4 * f, "density {f} against the slope {slope}");
+    }
+}
+
+proptest! {
+    // A quantile is some twenty integrals, so the cases are fewer still.
+    #![proptest_config(ProptestConfig::with_cases(property_cases_maths(12)))]
+
+    /// The quantile undoes either tail: the probability comes back within the class tolerance.
+    #[test]
+    fn the_studentized_quantile_round_trips(
+        (_, groups, df) in studentized(), p in 1e-12..0.999_f64, upper in any::<bool>()
+    ) {
+        use zeff_numeric::tukey::{quantile, tails};
+        let q = quantile(p, upper, groups, df);
+        prop_assert!(q > 0.0 && q.is_finite());
+        let back = tails(q, groups, df).tail(upper);
+        prop_assert!((back - p).abs() <= 1e-12 * p, "p {p} -> q {q} -> {back}");
+    }
+}

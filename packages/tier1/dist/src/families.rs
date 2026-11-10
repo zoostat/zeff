@@ -1,12 +1,14 @@
-//! The twelve families' density, distribution function, quantile and draw (Engine and Project
+//! The thirteen families' density, distribution function, quantile and draw (Engine and Project
 //! Specification, section 13: tails computed directly; every draw by inverse CDF from the uniform
 //! stream, section 8.3, point 3). This release's families: normal, log-normal, uniform and
-//! exponential (step 7); the rest follow at steps 8 to 10.
+//! exponential (step 7); the rest follow at steps 8 to 10. The thirteenth, the studentized range
+//! (release 0.7.0, step 18), is summed in `zeff_numeric::tukey`.
 
 use zeff_core::value::Distribution;
 use zeff_numeric::maths;
 use zeff_numeric::random::Stream;
 use zeff_numeric::special::{self, Tails};
+use zeff_numeric::tukey;
 
 const LN_SQRT_2PI: f64 = 0.918_938_533_204_672_8;
 
@@ -92,6 +94,7 @@ pub fn pdf(d: &Distribution, x: f64) -> f64 {
                 special::gamma_density(df / 2.0, x / 2.0) / 2.0
             }
         }
+        "tukey" => tukey::density(x, param(params, "groups"), param(params, "df")),
         "f" => {
             let (d1, d2) = (param(params, "df1"), param(params, "df2"));
             if x < 0.0 {
@@ -545,6 +548,7 @@ pub fn cdf(d: &Distribution, x: f64) -> Tails {
             }
         }
         "t" => t_tails(param(params, "df"), x),
+        "tukey" => tukey::tails(x, param(params, "groups"), param(params, "df")),
         "chi2" => {
             if x <= 0.0 {
                 exact(0.0)
@@ -670,6 +674,7 @@ pub fn quantile(d: &Distribution, p: f64) -> f64 {
         }
         "exponential" => -maths::log1p(-p) / param(params, "rate"),
         "t" => t_quantile(param(params, "df"), p),
+        "tukey" => tukey::quantile(p, false, param(params, "groups"), param(params, "df")),
         "chi2" => 2.0 * special::incomplete_gamma_inverse(param(params, "df") / 2.0, p, false),
         "f" => {
             let (d1, d2) = (param(params, "df1"), param(params, "df2"));

@@ -210,6 +210,10 @@ fn the_edges_of_the_supports_and_the_refusals() {
         "dist.normal().cdf(\"x\")\n",
         "dist.t(df: 0)\n",
         "dist.f(df1: 3, df2: -1)\n",
+        "dist.tukey(groups: 1, df: 20)\n",
+        "dist.tukey(groups: 3, df: 0.5)\n",
+        "dist.tukey(groups: 3)\n",
+        "dist.tukey(groups: 2.5, df: 20)\n",
         "dist.gamma(shape: 2, rate: 0)\n",
         "dist.beta(a: 1)\n",
         "dist.binomial(n: 10.5, p: 0.3)\n",
@@ -244,6 +248,23 @@ fn the_families_on_the_incomplete_functions_at_their_edges() {
     assert_eq!(
         stdout,
         "0\n0\n1\nInf\n1\n0\n1\nInf\n0\n-Inf\n4.06764e-05\n2.867e-07\n2.0639\n11.0705\n3.09839\n17.4027\n0.679539\n"
+    );
+}
+
+/// The studentized range (release 0.7.0, step 18): the critical value and the p-value of
+/// Tukey's test as R prints them, a far tail R gets wrong by a factor of two (the exact value is
+/// 4.71352e-06), the closed form for two groups on one degree of freedom (a half at the square
+/// root of two), the range of four normal values for a known standard deviation, the ends of the
+/// support, and a draw.
+#[test]
+fn the_studentized_range_prints_computes_and_draws() {
+    let (code, stdout, stderr) = go(
+        "let q = dist.tukey(groups: 3, df: 20)\nq\nq.quantile(0.95)\nq.cdf(3.2, upper: true)\nq.cdf(3.5)\nq.pdf(2)\ndist.tukey(groups: 10, df: 5).cdf(50, upper: true)\ndist.tukey(groups: 2, df: 1).cdf(sqrt(2))\ndist.tukey(groups: 4, df: 1e40).quantile(0.95)\nq.cdf(0)\nq.cdf(-1, upper: true)\nq.pdf(0)\nq.pdf(-1)\nq.quantile(0)\nq.quantile(1)\nq.cdf(NA)\nq.draw(3, seed: 1)\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(
+        stdout,
+        "tukey distribution · groups: 3, df: 20\n3.57793\n0.0848265\n0.944108\n0.347812\n4.71352e-06\n0.5\n3.63316\n0\n1\n0\n0\n0\nInf\nNA\nColumn<Float> · 3 values\n3.00704\n1.83126\n2.07279\n"
     );
 }
 

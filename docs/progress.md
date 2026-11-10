@@ -66,45 +66,9 @@ Step 3b brought functions as values over lists (`fn(i) i / n` literals with capt
 
 Step 6 `[function]` finished `text` at 13 of 13: `contains`, `replace`, `extract` and `split` on the `regex` crate (1.13.1, pinned and recorded), literal unless `regex: true`, a pattern the engine cannot read being the new Z0419, with the R reference `text_regex.R` and the conformance case `text/patterns`; the bundle grew by 216 kB to 1,927 kB. Open decision #91, the owner's proposal decided the same day: every `TestResult` prints `H0:` and `H1:` under its header and a `decision at α` line beside the p-value, `alternative: two_sided | less | greater` joins the shared arguments of four tests, `shapiro_test` refuses more than 5,000 observations, and a group without value labels prints `female=0`; the catalogue, the Language Reference, the help examples and the testing handbook were changed and logged. Step 7 `[engine]`: `TestResult` carries the hypotheses, the alternative, the estimate and the effect size with their intervals, and `stats` gained the pieces every test shares (`level:`, `alternative:`, the refusal of sampling weights Z0411, the two groups of `group:` Z0412, the complete rows with their note), the result interface answering for a test. Step 8 `[function]`: `tabulate` in `data`, one- and two-way tables with `percent:`, `NA` as its own row and a `Total` row, with its R reference and the conformance case `verbs/tabulate`. Every step green on CI; the rulings the owner may overturn are in `docs/decisions.md` under each step.
 
-## 8 November 2026, release 0.7.0, step 9 (`t_test`)
+## 8 November 2026, steps 9 to 12 of release 0.7.0 (folded)
 
-**Done.** Step 8 needed two more small commits after its push (a CLI test that used `tabulate` as its example of an unshipped function, and the sample script's check snapshots, which no longer report `tabulate` as unknown); from this step the local routine runs the complete test programs of every crate touched plus the whole engine and command-line programs, gated on cargo's exit code. Then `t_test` in `stats`, in Rust (open decision #92 records why not Zeff): the three forms under one name, Welch's test by default, Hedges' g or Cohen's d with the large-sample interval (open decision #93), one-sided alternatives with one-sided intervals, frequency and analytic weights, the hypothesis block and decision line of #91; the checker lets a positional parameter with a default be omitted; `alternative` in the registry's shared table; the R reference within 1e-6 in every form, edge cases, two properties, snapshots, the conformance case `tests/t_test`, the page with running examples, the catalogue row implemented.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, the full test programs of ir, registry, core, results, stats, data, engine, command line and conformance; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 10 `[function]`: `proportion_test` and `chi2_test`.
-
-**For the owner to decide.** Nothing blocking. Two new open decisions for 0.8.0: #92 (a `TestResult` constructor so that tests can be written in Zeff) and #93 (the noncentral t for effect-size intervals). A ruling he may overturn: the one-sample and paired forms print no effect size, as the help example shows.
-
-## 8 November 2026, release 0.7.0, step 10 (`proportion_test` and `chi2_test`)
-
-**Done.** Step 9 needed one more commit after its push (the registry's unit test that lists the shared arguments gained `alternative`; it had not run locally because an earlier program stopped the run, so the routine now runs every program with `--no-fail-fast`). Then the two tests of counts in `stats`, in Rust (open decision #92): one and two proportions with Wilson's, Wald's and the exact interval (Newcombe's for a difference), the z of Stata's `prtest` with Yates's correction on request; independence and goodness of fit by Pearson's chi-squared, the correction on a 2 × 2 only, W0211 (new, logged) when an expected count is below 5; the R reference within 1e-6 in every form, edge cases, properties, snapshots, the conformance case `tests/counts`, both pages with running examples, both catalogue rows implemented. A fault in the kernel's bracketed Newton solver, which sent a concentrated beta's quantile to the wrong end of [0, 1], was found by the exact interval and corrected with a unit test.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line, without stopping at a failure; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 11 `[engine]`: the exact Wilcoxon distributions and `wilcoxon_test`.
-
-**For the owner to decide.** Nothing blocking. Rulings he may overturn: the interval of a proportion names its method in the estimate line (`proportion (Wilson) = …`); `p:` of `chi2_test` must sum to 1 rather than being rescaled as R does on request.
-
-## 8 November 2026, release 0.7.0, step 11 (the exact Wilcoxon distributions and `wilcoxon_test`)
-
-**Done.** Step 10 needed one more commit (a formatting slip after its clippy fixes; the routine now ends with the format check). Then the signed-rank and rank-sum distributions counted in integers in the numeric kernel, with and without tied ranks, and `wilcoxon_test` in `stats` in the three forms, reproducing R 4.6.0's `wilcox.test`: exact p-values below 50 observations, over the tied ranks with ties or zeros, the normal approximation with the continuity correction otherwise, `exact:` and `correct:` as overrides, the Hodges–Lehmann estimate with R's interval; the reference for every n from 2 to 60 and a grid of group sizes agrees to 1e-12 (exact) and to R's root tolerance (approximate intervals); properties, edge cases, snapshots, the conformance case `tests/wilcoxon`, the page with running examples, the catalogue row implemented. The shared weight helper's debug-form error of step 7 now prints sentences.
-
-**Green.** Format (checked last), clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line, without stopping at a failure; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 12 `[function]`: `kruskal_test` and `p_adjust`.
-
-**For the owner to decide.** One ruling to confirm or overturn: question 4 (a) was taken "as R does", but R 4.6.0 (the pinned reference) gives exact p-values below 50 observations even with ties or zeros, from the permutation distribution of the tied ranks, where the recommendation's wording (R before 4.5) switched to the approximation; `wilcoxon_test` follows R 4.6.0, and the older rule is one line to restore (`docs/decisions.md`, step 11).
-
-## 8 November 2026, release 0.7.0, step 12 (`kruskal_test` and `p_adjust`)
-
-**Done.** `kruskal_test` in `stats`: the Kruskal–Wallis test across the groups of `group:` with average ranks and the tie correction, the chi-squared p-value, a table of the groups with counts and medians, frequency weights by repetition; `p_adjust` with Holm, Bonferroni, Benjamini–Hochberg and Benjamini–Yekutieli, `NA` kept in place as R does. Both in Rust (decision recorded; #92 stands). The shared group helper now accepts Category variables in level order, which `anova` will need too. The reference (R 4.6.0's `kruskal.test` and `p.adjust`, with ties and `NA`) agrees to 1e-12; properties, edge cases, snapshots, the conformance case `tests/kruskal`, both pages with running examples, the catalogue rows implemented. Steps 11b to 11d (speed) were added and withdrawn by the owner in another session on the same evening; nothing of them remains in the checklist.
-
-**Green.** Format (checked last), clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line, without stopping at a failure; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 13 `[engine]`: `fisher_test`.
-
-**For the owner to decide.** Nothing new; the ruling on question 4 (a) from step 11 still awaits a word.
+Step 9 `[function]`: `t_test` in `stats`, in Rust (open decision #92 records why not in Zeff), the three forms under one name with Welch's test by default; the one-sample and paired forms print no effect size, as the help example shows. Step 10 `[function]`: `proportion_test` (Wilson's, Wald's and the exact interval, Newcombe's for a difference, the method named in the estimate line) and `chi2_test` (independence and goodness of fit; `p:` must sum to 1 rather than being rescaled). Step 11 `[engine]`: the exact signed-rank and rank-sum distributions counted in integers in the numeric kernel, and `wilcoxon_test` following R 4.6.0, which gives exact p-values below 50 observations even with ties or zeros; the ruling on question 4 (a) that this rests on still awaits the owner's word (`docs/decisions.md`, step 11). Step 12 `[function]`: `kruskal_test` and `p_adjust` (Holm, Bonferroni, Benjamini–Hochberg, Benjamini–Yekutieli, `NA` kept in place). Open decisions #92 (a `TestResult` built in Zeff) and #93 (the noncentral t for effect-size intervals) were raised for 0.8.0. The local routine took its present form over these steps: every test program of the crates touched and of the engine and command line, without stopping at a failure, the format check last. Each step was green locally and on CI.
 
 ## 9 November 2026, release 0.7.0, step 13 (`fisher_test`)
 
@@ -185,3 +149,13 @@ Step 6 `[function]` finished `text` at 13 of 13: `contains`, `replace`, `extract
 **Next.** Step 18 `[engine]`: `dist.tukey`, the studentized range. Before the full routine of every step, count `target/debug/deps` and clear the folder above 10,000 entries.
 
 **For the owner to decide.** Nothing new; decisions #100 and #101 stay open.
+
+## 11 November 2026, release 0.7.0, step 18 (`dist.tukey`)
+
+**Done.** `dist.tukey(groups:, df:)`, the studentized range behind Tukey's honest significant difference, with `pdf`, `cdf` in either tail, `quantile` and `draw`. The values come from a new module of the numeric kernel: two trapezoidal integrals carried in logarithms, refined until three interleaved sums agree, with separate integrals for the upper tail and for the density so that a far tail keeps its digits. The reference is exact: a script in decimal arithmetic at 70 digits over 279 cases, 2 to 200 groups, 1 to a million million degrees of freedom, tails down to 1e-98. Against it the kernel's worst relative error is 8e-15, so the class of 1e-12 holds on a grid wider than the checklist asked. R's `ptukey` and `qtukey` are the second check at their own accuracy, which was measured: `ptukey` is out by up to 5e-3 on 2 degrees of freedom and 2e-6 on a million, `qtukey` holds about four digits and fails to converge for small probabilities on 30 groups. The help page states all of this. A value costs about 5 milliseconds and a quantile about a tenth of a second. `dist` stands at 19 of 19. Details in `docs/decisions.md`.
+
+**Green.** Format (checked last), clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line; `zeff selftest` at 233 of 233 with the new series `dist/tukey`; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 18b `[function]`: `p_adjust` gains `hochberg`, `hommel`, `sidak` and `none`. Then step 19 `[function]`: `posthoc`.
+
+**For the owner to decide.** Open decision #102, due at 0.7.0, new at this step: R's `ptukey` takes `nranges`, the largest of several independent studentized ranges, which Stata does not have and `posthoc` does not need; the proposal is one more parameter, `ranges: Int = 1`, as a small `[engine]` step after step 19, the name being his. A ruling he may overturn: `df:` is accepted from 1, where R and Stata need 2 or more. Decisions #100 and #101 stay open.

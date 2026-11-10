@@ -769,7 +769,27 @@ fn distribution_cases() -> Vec<Line> {
         let mut stream = Stream::new(20_261_019, 2, 0);
         draws.extend((0..8).map(|_| families::draw(&d, &mut stream)));
     }
-    vec![series("dist/values", &values), series("dist/draws", &draws)]
+    // The studentized range (release 0.7.0, step 18) in a series of its own, on a short grid:
+    // every value is a double integral.
+    let mut tukey = Vec::new();
+    for (groups, df) in [(3.0, 20.0), (10.0, 5.0), (40.0, 1e6)] {
+        let d = Distribution::Family {
+            name: "tukey",
+            params: vec![("groups", groups), ("df", df)],
+        };
+        for x in [0.5, 2.0, 3.5, 6.0, 30.0] {
+            let tails = families::cdf(&d, x);
+            tukey.extend([families::pdf(&d, x), tails.lower, tails.upper]);
+        }
+        tukey.extend([families::quantile(&d, 0.05), families::quantile(&d, 0.95)]);
+        let mut stream = Stream::new(20_261_019, 3, 0);
+        tukey.push(families::draw(&d, &mut stream));
+    }
+    vec![
+        series("dist/values", &values),
+        series("dist/draws", &draws),
+        series("dist/tukey", &tukey),
+    ]
 }
 
 /// The linear-algebra kernel (release 0.4.0, step 2): the reduction shape, the blocked QR with

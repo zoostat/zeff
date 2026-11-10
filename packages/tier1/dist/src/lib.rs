@@ -28,6 +28,10 @@ enum Rule {
     Probability,
     /// In (0, 1].
     ProbabilityNotZero,
+    /// A whole number of 2 or more.
+    Several,
+    /// Finite and 1 or more.
+    OneOrMore,
 }
 
 impl Rule {
@@ -38,6 +42,8 @@ impl Rule {
             Rule::Count => value.is_finite() && value >= 0.0 && value.fract() == 0.0,
             Rule::Probability => (0.0..=1.0).contains(&value),
             Rule::ProbabilityNotZero => value > 0.0 && value <= 1.0,
+            Rule::Several => value.is_finite() && value >= 2.0 && value.fract() == 0.0,
+            Rule::OneOrMore => value.is_finite() && value >= 1.0,
         }
     }
 
@@ -48,6 +54,8 @@ impl Rule {
             Rule::Count => "a whole number of 0 or more",
             Rule::Probability => "a probability between 0 and 1",
             Rule::ProbabilityNotZero => "a probability above 0 and at most 1",
+            Rule::Several => "a whole number of 2 or more",
+            Rule::OneOrMore => "a number of 1 or more",
         }
     }
 }
@@ -245,6 +253,25 @@ pub fn t(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
 /// `dist.chi2(df: Float)`.
 pub fn chi2(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     family(ctx, "chi2", &T, &args)
+}
+
+const TUKEY: [Param; 2] = [
+    Param {
+        name: "groups",
+        default: f64::NAN,
+        rule: Rule::Several,
+    },
+    Param {
+        name: "df",
+        default: f64::NAN,
+        rule: Rule::OneOrMore,
+    },
+];
+
+/// `dist.tukey(groups: Int, df: Float)`: the studentized range of `groups` means on `df` degrees
+/// of freedom.
+pub fn tukey(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    family(ctx, "tukey", &TUKEY, &args)
 }
 
 const F: [Param; 2] = [
@@ -782,6 +809,16 @@ pub fn functions() -> Vec<Function> {
             include_str!("../help/dist.f.md"),
             "R 4.6.0 df, pf, qf",
             f,
+        ),
+        constructor(
+            "dist.tukey",
+            vec![
+                ParamSpec::required("groups", "Int"),
+                ParamSpec::required("df", "Float"),
+            ],
+            include_str!("../help/dist.tukey.md"),
+            "an exact decimal reference (tests/reference/tukey.py), with R 4.6.0 ptukey and qtukey as a second check at their own accuracy",
+            tukey,
         ),
         constructor(
             "dist.gamma",

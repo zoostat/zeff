@@ -84,6 +84,38 @@ error[Z0413]: `df2` of `dist.f` must be a positive number, but this is -1
   |
   = help: `zeff help dist.f` gives the domain of every parameter
 
+error[Z0413]: `groups` of `dist.tukey` must be a whole number of 2 or more, but this is 1
+ --> scripts/main.zeff:1:20
+  |
+1 | dist.tukey(groups: 1, df: 20)
+  |                    ^ outside the parameter's domain
+  |
+  = help: `zeff help dist.tukey` gives the domain of every parameter
+
+error[Z0413]: `df` of `dist.tukey` must be a number of 1 or more, but this is 0.5
+ --> scripts/main.zeff:1:27
+  |
+1 | dist.tukey(groups: 3, df: 0.5)
+  |                           ^^^ outside the parameter's domain
+  |
+  = help: `zeff help dist.tukey` gives the domain of every parameter
+
+error[Z0406]: `dist.tukey` needs `df`
+ --> scripts/main.zeff:1:6
+  |
+1 | dist.tukey(groups: 3)
+  |      ^^^^^ `df` is missing
+  |
+  = help: usage: `dist.tukey(groups, df)`
+
+error[Z0401]: `groups` of `dist.tukey` must be an Int, but this is a Float
+ --> scripts/main.zeff:1:20
+  |
+1 | dist.tukey(groups: 2.5, df: 20)
+  |                    ^^^ a Float
+  |
+  = help: usage: `dist.tukey(groups, df)`
+
 error[Z0413]: `rate` of `dist.gamma` must be a positive number, but this is 0
  --> scripts/main.zeff:1:28
   |
