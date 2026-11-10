@@ -145,12 +145,23 @@ fn jitter_is_repeated_by_the_seed_and_changed_by_another() {
     assert_ne!(first, other);
     assert!(first.contains("size 4.5, alpha 1, jitter 0.4"), "{first}");
     // Without a seed the engine chooses one at the layer that draws and says which.
-    let (code, _, stderr) = go(&script(""));
+    let (code, unseeded, stderr) = go(&script(""));
     assert_eq!(code, 0, "{stderr}");
     assert!(
         stderr.starts_with("note: no seed was set, so ")
             && stderr.ends_with("at the top of the script repeats it (line 2)\n"),
         "{stderr}"
+    );
+    // That seed, written at the top as the note advises, repeats the run (step 20a).
+    let chosen: String = stderr["note: no seed was set, so ".len()..]
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect();
+    let (code, repeated, stderr) = go(&script(&format!("seed({chosen})\n")));
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(
+        unseeded, repeated,
+        "seed({chosen}) did not repeat the jitter"
     );
     // A layer without jitter draws nothing from the stream, so no seed is chosen or named.
     let (_, _, stderr) = go(

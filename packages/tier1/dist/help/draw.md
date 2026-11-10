@@ -8,9 +8,9 @@ A column of `n` random draws from the distribution. Without `seed:` the draws co
 stream: the seed set by `seed(n)` at the top of the script, or one chosen for the run at the first
 draw and printed as a note so that `seed(n)` repeats the run exactly; each statement draws from its
 own part of the stream, so two identical statements give different draws, and inserting a statement
-changes the draws after it, as in R and Stata. With `seed:` the draws are a stream of their own,
-the same wherever the call is written. Like R's `r` functions (`rnorm(n)`, …) and Stata's
-`rnormal()` and its kin.
+that draws changes the draws after it, as in R and Stata, while one that draws nothing changes none.
+With `seed:` the draws are a stream of their own, the same wherever the call is written. Like R's
+`r` functions (`rnorm(n)`, …) and Stata's `rnormal()` and its kin.
 
 ## Arguments
 - distribution: The distribution, a `Distribution` value such as `dist.normal()`.
@@ -24,8 +24,8 @@ binomial). `draw(1)` is a column of one value.
 ## Details
 Every draw is the inverse CDF of a uniform number with 53 random bits from the Philox stream
 (Engine and Project Specification, section 8.3, point 3), so the draws are a pure function of the
-seed, the statement's position and the draw's number, identical on every machine and in the
-browser, and never depend on threads or on what was drawn before. The uniform is shifted by half a
+seed, the statement's ordinal among those that draw and the draw's number, identical on every
+machine and in the browser, and never depend on threads. The uniform is shifted by half a
 grid step so that a draw never falls on the quantile's endpoints.
 
 ## See also

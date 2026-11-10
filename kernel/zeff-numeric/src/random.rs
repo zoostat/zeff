@@ -47,7 +47,7 @@ pub struct Stream {
 }
 
 impl Stream {
-    /// The stream of the statement with ordinal `ordinal` (1 for the first statement of a run; 0
+    /// The stream of the statement with ordinal `ordinal` (1 for the first that draws in a run; 0
     /// for a `seed:` given to one call, which has a stream of its own wherever it is written) in
     /// loop pass `pass` (0 outside a loop), under `seed`.
     pub fn new(seed: u64, ordinal: u32, pass: u32) -> Stream {

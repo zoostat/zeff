@@ -160,7 +160,7 @@ control/collections_order/stdout 1d2a72165f78b16d
 control/collections_order/stderr cbf29ce484222325
 control/iterate/stdout 1e578ed47248b4af
 control/iterate/stderr ba2978ce8030cb6b
-control/for_draws/stdout fdb841f515d6951d
+control/for_draws/stdout 5065a1542dedc61b
 control/for_draws/stderr cbf29ce484222325
 control/dates/stdout e38631ee06f041b2
 control/dates/stderr fba4ee72ee6b4829
@@ -237,7 +237,7 @@ functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
 export/sample.tex 79622a8e73235482
-plot/points/stdout 77e550f0156f0727
+plot/points/stdout 3a6b6d60d4063bdc
 plot/points/stderr f4efa5fd3454f8e9
 plot/points/scene.json b4f5fd2b34a9348d
 kernels/reductions 7a3f4eedc240791f
@@ -259,7 +259,7 @@ data_cleaning/stdout 04c6367e4ed6627d
 data_cleaning/stderr e7c4b6fde11ba657
 data_cleaning/exit_code a8c7f832281a39c5
 # data_cleaning/exit_code bits 0000000000000000
-simulation/stdout 178da8a8350c10df
+simulation/stdout f3496c06ceb1594d
 simulation/stderr cbf29ce484222325
 simulation/exit_code a8c7f832281a39c5
 # simulation/exit_code bits 0000000000000000

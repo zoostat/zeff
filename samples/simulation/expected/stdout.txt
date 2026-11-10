@@ -1,51 +1,51 @@
 sim · 400 rows × 4 variables
 
   variable   type    non-missing   missing   example
-  score      Float           400         0   114.657
-  wait       Float           400         0   0.22237
-  visits     Int             400         0   3
-  wage       Float           400         0   18.3213
+  score      Float           400         0   108.091
+  wait       Float           400         0   0.776984
+  visits     Int             400         0   1
+  wage       Float           400         0   18.4364
 summary · sim
 
-  variable     N   missing      mean       sd      min       max
-  score      400         0   100.286   15.754   56.668   142.994
-  wait       400         0     2.067    2.037    0.002    12.266
-  visits     400         0     2.970    1.672    0.000    10.000
-  wage       400         0    17.268    8.006    4.524    63.679
+  variable     N   missing     mean       sd      min       max
+  score      400         0   99.216   14.575   59.152   137.766
+  wait       400         0    2.043    2.044    0.002    10.796
+  visits     400         0    3.087    1.613    0.000     8.000
+  wage       400         0   17.309    9.381    5.473    86.212
 correlation · sim · pearson
 N = 400
 
-           score     wait   visits     wage
-  score    1.000    0.002    0.098    0.021
-  wait     0.002    1.000    0.012   -0.070
-  visits   0.098    0.012    1.000    0.003
-  wage     0.021   -0.070    0.003    1.000
+            score     wait   visits     wage
+  score     1.000   -0.003   -0.081    0.056
+  wait     -0.003    1.000   -0.002   -0.007
+  visits   -0.081   -0.002    1.000   -0.007
+  wage      0.056   -0.007   -0.007    1.000
 
 p-values
 
            score    wait   visits    wage
-  score            0.962    0.049   0.673
-  wait     0.962            0.817   0.163
-  visits   0.049   0.817            0.952
-  wage     0.673   0.163    0.952
+  score            0.954    0.107   0.265
+  wait     0.954            0.973   0.894
+  visits   0.107   0.973            0.895
+  wage     0.265   0.894    0.895
 correlation · sim · spearman
 N = 400
 
           score    wage
-  score   1.000   0.018
-  wage    0.018   1.000
+  score   1.000   0.101
+  wage    0.101   1.000
 covariance · sim
 N = 400
 
-            score    wait
-  score   248.186   0.077
-  wait      0.077   4.150
+            score     wait
+  score   212.421   -0.086
+  wait     -0.086    4.176
 z:
-0.362787
+-1.07582
 one-sided p:
-0.358382
+0.858997
 two-sided p:
-0.716764
+0.282007
 P(Z > 8):
 6.22096e-16
 t 0.975 quantile, 24 df:

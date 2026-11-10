@@ -88,7 +88,9 @@ pub struct Interpreter<'a> {
     receivers: Vec<Receiver>,
     /// The run's randomness: its seed and whether a draw has used it (section 8.3, point 3).
     random: Randomness,
-    /// The ordinal of the statement being run, 1 for the first; every draw's stream is keyed by it.
+    /// The place of the statement being run among all the statements, 1 for the first. The run's
+    /// randomness uses it only to tell one statement from the next: a draw's stream is keyed by the
+    /// statement's ordinal among those that draw, which `Randomness` counts.
     statement: u32,
     /// A `break` or `continue` on its way to the loop it belongs to (section 5.2): set where the
     /// statement runs, read after every statement of every block on the way up, taken by the

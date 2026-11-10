@@ -64,10 +64,17 @@ pub struct Randomness {
     pub chosen: bool,
     /// Whether a statement has drawn from the stream.
     pub used: bool,
+    /// How many statements have drawn from the stream so far: the ordinal of the drawing statement
+    /// within the run, 1 for the first that draws, which keys its draws. A statement that draws
+    /// nothing, `seed(n)` among them, and a call with a `seed:` of its own are not counted, so
+    /// neither moves the draws of the statements after it, and the seed the engine notes, written
+    /// at the top of the script, repeats the run.
+    pub drawing: u32,
     /// The statement and loop pass that drew last and how many calls they have made, so that each
     /// call of one statement in one pass has a stream of its own: the count starts again at each
     /// pass, and the first call of a statement in every pass keeps the stream (seed, ordinal,
-    /// pass, 0).
+    /// pass, 0). `last_statement` is the statement's place among all the statements of the run,
+    /// kept only to tell one statement from the next.
     pub last_statement: u32,
     pub last_pass: u32,
     pub calls_in_statement: u32,
@@ -78,10 +85,13 @@ pub struct Randomness {
 }
 
 impl Randomness {
-    /// The stream for a draw in the statement with ordinal `statement`: under `explicit` (a
-    /// `seed:` given to the call) a stream of its own, the same wherever the call is written;
-    /// otherwise the run's seed, chosen from the system at the first draw and reported back as a
-    /// note so that the run can be repeated with `seed(n)`.
+    /// The stream for a draw in the statement that stands at place `statement` among all the
+    /// statements of the run: under `explicit` (a `seed:` given to the call) a stream of its own,
+    /// the same wherever the call is written; otherwise the run's seed, chosen from the system at
+    /// the first draw and reported back as a note so that the run can be repeated with `seed(n)`.
+    /// The run's stream is keyed by the statement's ordinal among those that draw from it (Engine
+    /// and Project Specification, section 8.3, point 3: "the ordinal of the drawing statement
+    /// within the run"), never by `statement` itself.
     pub fn stream(
         &mut self,
         explicit: Option<i64>,
@@ -103,16 +113,20 @@ impl Randomness {
                 seed
             }
         };
-        self.used = true;
-        if self.last_statement != statement || self.last_pass != self.pass {
+        if !self.used || self.last_statement != statement {
+            self.drawing += 1;
             self.last_statement = statement;
             self.last_pass = self.pass;
             self.calls_in_statement = 0;
+        } else if self.last_pass != self.pass {
+            self.last_pass = self.pass;
+            self.calls_in_statement = 0;
         }
+        self.used = true;
         let call = self.calls_in_statement;
         self.calls_in_statement += 1;
         (
-            Stream::for_call(seed as u64, statement, self.pass, call),
+            Stream::for_call(seed as u64, self.drawing, self.pass, call),
             note,
         )
     }
@@ -153,7 +167,7 @@ pub struct CallContext<'a> {
     pub messages: &'a mut Vec<Diagnostic>,
     /// The run's randomness, shared by every statement.
     pub random: &'a mut Randomness,
-    /// The ordinal of the statement within the run, 1 for the first.
+    /// The place of the statement among all the statements of the run, 1 for the first.
     pub statement: u32,
 }
 
@@ -255,5 +269,77 @@ mod tests {
         assert!(note.is_none() && !scripted.chosen && scripted.used);
         let mut same = zeff_numeric::random::Stream::new(20_261_019, 1, 0);
         assert_eq!(s.uniform(), same.uniform());
+    }
+
+    /// The draws a run makes: one uniform from each call, the calls given as (place of the
+    /// statement among all the statements, loop pass, a `seed:` of the call's own).
+    fn draws(seed: i64, calls: &[(u32, u32, Option<i64>)]) -> Vec<u64> {
+        let mut random = Randomness {
+            seed: Some(seed),
+            ..Randomness::default()
+        };
+        calls
+            .iter()
+            .map(|&(statement, pass, explicit)| {
+                random.pass = pass;
+                random.stream(explicit, statement).0.uniform().to_bits()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_draw_is_keyed_by_the_ordinal_of_its_statement_among_those_that_draw() {
+        // Two statements that draw, at places 1 and 2 of the run.
+        let plain = draws(7, &[(1, 0, None), (2, 0, None)]);
+        assert_ne!(plain[0], plain[1], "two identical statements draw apart");
+        // The same two after `seed(7)` at place 1, and with statements that draw nothing between
+        // them: the same draws, so the seed noted for a run, written at its top, repeats it.
+        assert_eq!(draws(7, &[(2, 0, None), (3, 0, None)]), plain);
+        assert_eq!(draws(7, &[(4, 0, None), (9, 0, None)]), plain);
+        // A place of 0, as a function called outside a run has, counts like any other.
+        assert_eq!(draws(7, &[(0, 0, None), (1, 0, None)]), plain);
+        // The first that draws has ordinal 1, the second 2.
+        let mut first = zeff_numeric::random::Stream::new(7, 1, 0);
+        let mut second = zeff_numeric::random::Stream::new(7, 2, 0);
+        assert_eq!(
+            plain,
+            [first.uniform().to_bits(), second.uniform().to_bits()]
+        );
+        // A statement that draws, put between them, takes the second's draws and moves it to the
+        // third's, as in R and Stata.
+        let moved = draws(7, &[(1, 0, None), (2, 0, None), (3, 0, None)]);
+        assert_eq!(moved[0], plain[0]);
+        assert_eq!(moved[1], plain[1]);
+        assert_ne!(moved[2], plain[1]);
+        // A call with a `seed:` of its own is not counted, wherever it stands.
+        let with_own = draws(
+            7,
+            &[(1, 0, Some(3)), (2, 0, None), (3, 0, Some(3)), (4, 0, None)],
+        );
+        assert_eq!([with_own[1], with_own[3]], [plain[0], plain[1]]);
+        assert_eq!(with_own[0], with_own[2]);
+        // Two calls of one statement draw apart, and the second is not the next statement's.
+        let two_calls = draws(7, &[(1, 0, None), (1, 0, None), (2, 0, None)]);
+        assert_eq!(two_calls[0], plain[0]);
+        assert_ne!(two_calls[1], plain[0]);
+        assert_ne!(two_calls[1], plain[1]);
+        assert_eq!(two_calls[2], plain[1]);
+        // The passes of a loop draw apart, each pass counting its calls afresh, and the loop is
+        // one statement: the statement after it has ordinal 2.
+        let looped = draws(
+            7,
+            &[
+                (1, 1, None),
+                (1, 1, None),
+                (1, 2, None),
+                (1, 2, None),
+                (2, 0, None),
+            ],
+        );
+        let mut pass_two = zeff_numeric::random::Stream::for_call(7, 1, 2, 1);
+        assert_ne!(looped[0], looped[2]);
+        assert_ne!(looped[1], looped[3]);
+        assert_eq!(looped[3], pass_two.uniform().to_bits());
+        assert_eq!(looped[4], plain[1]);
     }
 }

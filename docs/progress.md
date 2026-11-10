@@ -155,3 +155,16 @@ Step 13 `[function]`: `fisher_test`, exact on a 2 × 2 table with the conditiona
 **Next.** Step 20a `[engine]`: the seed noted for a run repeats it. Then 20b `[engine]` and 20c `[engine]`. Step 19b waits on #104.
 
 **For the owner to decide.** New, due at 0.7.0 before step 23: #106, whether a layer may override a mapping of its plot, for instance `.lines(y: fitted)` over points of `wage` (section 7.6 says it may, no mark of the catalogue has the option; recommended: yes, each mark takes `x:`, `y:` and the aesthetics it draws). Rulings he may overturn, in `docs/decisions.md`: the printed layout of a plot; the 5% margin and about five steps between breaks; `jitter:` as a share of the smallest gap between values; a point 4.5 points across by default. Still open: #100, #101, #102, #104, #105 and the permission for `emmeans` 2.0.4.
+
+## 11 November 2026, release 0.7.0, step 20a (the seed noted for a run repeats it)
+
+**Done.** The fault found at step 20 is corrected. A random draw is now numbered by the place of its statement among the statements that draw, not among all the statements of the script. So the seed the engine prints for a run without one, written at the top as `seed(N)`, repeats that run exactly; a line that draws nothing never changes a draw; a line that draws changes the draws after it, as in R and Stata. The help pages of `seed` and `draw` say so. A draw with its own `seed:` is unchanged.
+
+**The consequence, for the release notes.** Every figure drawn under a script-wide `seed(n)` is a different, equally valid draw from before. Renewed and read one by one: the help examples of `seed` and `points`, the stored output of the `simulation` sample (checked against the true means and standard deviations), two printed-plot snapshots, one test figure, and three conformance digests out of 238.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 238 of 238; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 20b `[engine]`: expressions in `x:` and `y:`. Then 20c `[engine]`. Step 19b waits on #104.
+
+**For the owner to decide.** Nothing new. Open as before: #106 (due before step 23), #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
+

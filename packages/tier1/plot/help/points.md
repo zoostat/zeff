@@ -66,9 +66,9 @@ note: 211 rows with NA in educ or wage dropped (line 3)
 > w.plot(x: educ, y: wage).points(alpha: 0.3, jitter: 0.4)
 plot · w · wage against educ
 
-  axis   title                scale    limits               breaks
-  x      Years of schooling   linear   6.9619 to 21.0316    8, 10, 12, 14, 16, 18, 20
-  y      Hourly wage          linear   -3.9144 to 159.834   0, 50, 100, 150
+  axis   title                scale    limits                breaks
+  x      Years of schooling   linear   6.9615 to 21.0396     8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.91305 to 159.833   0, 50, 100, 150
 
   layer   mark     data    marks   settings
       1   points   w      18,201   size 4.5, alpha 0.3, jitter 0.4
