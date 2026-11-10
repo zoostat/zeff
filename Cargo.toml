@@ -79,3 +79,9 @@ debug-assertions = false
 
 [profile.dev]
 overflow-checks = true
+# No debugging information in development and test builds. On a Mac the compiler keeps
+# every object file beside the build to serve a debugger and never removes the old ones,
+# so the build folder grew to 1.3 million files and every compiler start spent over a
+# minute reading it (docs/decisions.md, 10 November 2026). The file and line of a failed
+# assertion are still printed.
+debug = false

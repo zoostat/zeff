@@ -175,3 +175,13 @@ Step 6 `[function]` finished `text` at 13 of 13: `contains`, `replace`, `extract
 **Next.** Step 18 `[engine]`: `dist.tukey`, the studentized range.
 
 **For the owner to decide.** Open decision #101, due at 0.7.0, new at this step: Stata's `estat esize, omega` and R's `effectsize::F_to_omega2()` compute partial omega squared from the F of the term alone, which differs slightly from the ruled formula for a term of a model with several terms (Stata's manual example: 0.0716 and 0.0806 against 0.0709 and 0.0802); the recommendation is one more word on `effect:`, proposed `omega_f`, the word the owner's to choose. To confirm: R's `effectsize` prints a negative omega or epsilon squared as 0 where Zeff prints it as it is, by the ruling; the help page says so. Still open: decision #100 (a term's name on `p_values` and its kin of a factorial result). Noticed and not changed: a number given where a word is expected reads "must be a eta | omega | epsilon", the engine's wording for every option of words.
+
+## 10 November 2026, the build folder (between steps 17b and 18)
+
+**Done.** The debug build folder had grown to 1.34 million files and about 110 GB since 18 October, and every start of the compiler spent over a minute reading it; that, not the tests, is why the local routine took hours. The folder was cleared (`cargo clean --profile dev`, 111 GB freed) and the development profile now carries no debugging information (`debug = false`), the setting under which a rebuild leaves nothing behind (measured against three others; `docs/decisions.md`).
+
+**Green.** The full local routine, in 5 minutes 16 seconds from an empty folder (it had taken over four hours). CI follows the push.
+
+**Next.** Step 18 `[engine]`: `dist.tukey`, the studentized range. Before the full routine of every step, count `target/debug/deps` and clear the folder above 10,000 entries.
+
+**For the owner to decide.** Nothing new; decisions #100 and #101 stay open.
