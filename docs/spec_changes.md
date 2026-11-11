@@ -434,3 +434,7 @@ Section 13 gains a paragraph on what is counted about downloads and visits, what
 ## 11 November 2026 — zemp_specification.md, sections 5 and 10; zeff_open_decisions.md, entry #117
 
 Section 5's welcome screen gains **Open a replication package…** with **Verify**, in both editions, from 0.11.0; section 10 says where Zemp web's projects are stored, that the storage can be lost, and that Zemp web asks for persistent storage and reminds the user to export. The reason: the owner's decision on open decision #117, option A. The matching change to `import` (`file:`) in section 6 of the Language Reference and its catalogue row is made at the step of 0.11.0 that builds it.
+
+## 11 November 2026 — Language Reference, section 7.3; Zemp Specification, sections 5 and 6; zeff_functions.csv, row 501; zeff_open_decisions.md, entry #121
+
+The owner adopted option A of open decision #121. The text made the layout of a causal graph view state, kept in `.zemp/views.json`, which a replication package omits, so a figure exported from dragged positions could not be reproduced from the script. Section 7.3 now gives `g.plot()` the options `direction:`, `layout:`, `at:`, `same_rank:` and `spacing:` and says an export uses only the positions the script holds; the Zemp Specification says dragged positions stay view state until **Add to script** writes them as `layout:` or `at:`, and that the viewer says when they differ; the catalogue row says the same.
