@@ -155,6 +155,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 125 | Zemp Lite only, with Zemp Studio later | Build and release Zemp Lite alone; start Zemp Studio after Zeff 2.0.0, or decide that at a review at the close of 1.5; Zemp in a private repository from its first commit, Lite free of charge; the Document settings dialog of #124 in Lite; the Studio menu plan of 12 November kept for when Studio starts | Zeff 0.8.0, with Zemp's 0.2 alpha; question 2 before Zemp's first commit |
 | 124 | The report document: a Typst file with a settings file, simple chunks, dialogs, and a Quarto-like default | The report is plain Typst text with a YAML settings file beside it, plain ``` chunks and `` `= value` `` inline values; Zemp Studio writes the settings through a nine-tab dialog and tables through a table builder, with no Insert menu; the default template looks like a Quarto PDF; nine enhancements (live numbers, notes from the fits, method citations and others); amends the report-document part of #73 | decided 12 November 2026 (option A without the table builder); built with the report document of #73 |
 | 123 | No third-party packages before 2.0.0 | No package of either kind, no registry and no package commands before 2.0.0, the release that ships them set when 2.0.0 is planned; a project's own functions in `functions/` unaffected; how packages keep Zeff's principles (names, shared arguments, reporting, duplicates) settled then | decided 11 November 2026 |
 | 122 | Placing the graphics and diagram proposals on the releases of #113 | The capabilities of the two proposals become the plan, each placed by the rules of #113 (basic, advanced, research; econometrics first) with its method's release where it is a result plot; the exact release confirmed when each release is planned; catalogue rows added in the documentation step of 0.8.0 | decided 11 November 2026 (option A); catalogue rows at the documentation step of 0.8.0 |
@@ -2334,3 +2335,47 @@ Raised on 11 and 12 November 2026 by the owner, after reviewing a mockup of a Ty
 *Recommendation.* A, with the report document's release as #73 settles it (the 0.8.0 slice proves the chunk model; the document at Zemp 1.11 under section 15, or earlier by a logged change). `fit.equation()`, the new `report()` options and `RichText` follow at 1.2, with basic econometrics (#113). Two settings for the owner: US Letter as Quarto's default paper or A4; stars off by default. Deadline: 0.8.0, with #73.
 
 **The owner's decision (12 November 2026).** "A except table builder." Option A is adopted for items 1 to 4, 6 and 7: the `.typ` document with its settings file beside it, plain ```` ``` ```` chunks and `` `= value` `` inline values, the Article template as the default with the other templates, the nine-tab Document settings dialog, the nine enhancements and the outputs. Item 5, the table builder, is not adopted. A table is a `report()` statement in a script, used in the document by name, and its look across the document is set in the Tables tab of Document settings; the Tables tab has no button for a builder, and a double-click on a table in the preview opens the `report()` statement it comes from, as for any other result. The seven `report()` options and four statistics proposed for the builder are not adopted with it; any of them may be proposed on its own later. The two settings stand as written in option A: US Letter, as Quarto's default, and stars off. With this entry the syntax of the `RichText` type that #119 reserves is Typst markup, and `fit.equation()` is planned for 1.2. The report-document part of #73 is read with this entry; #73 itself stays open for its deadline at 0.8.0, and the Zemp Specification, section 8, gains the design when the report document's release is planned, logged in `docs/spec_changes.md`.
+
+### 125. Zemp Lite only, with Zemp Studio later
+
+Raised on 12 November 2026 by the owner: "Can I go with Zemp Lite only and start working on Zemp Studio after 2.0?" The Zemp Specification builds two editions from one codebase (section 2). Zemp Lite is code-first and leaves out the modules that write Zeff for the user: the Methods panel, dialogs, guides, builders and question-first menus. Zemp Studio has them, and is the edition planned as paid. Section 15 ships Zemp Lite 1.0 with Zeff 1.0.0 and Zemp Studio 1.0 once its dialogs cover every 1.0 method, then adds dialogs and guides at each release. Lite's parts (workspace, editor with the language server, viewers, plot renderer) all exist by Zeff 0.7.0 and 0.8.0; the dialogs are the slowest part to build.
+
+**For and against Lite only.** For:
+
+- the work of every release goes to the engine and its methods, with no dialogs, guides or builders to add at each of the 28 releases from 1.1 to 1.29;
+- the questions that only Studio raises wait: the menu plan, the dialogs, the causal-graph and SEM model builders, and Studio's licence (#25).
+
+Against:
+
+- researchers who will not write code, a stated audience (section 1), have nothing until Studio exists; #123 puts 2.0.0 about seven years after 1.0 if it follows 1.29;
+- the edition planned as paid does not exist, so revenue comes from services or from paid features of Lite, which #39 leaves for after 1.0;
+- features adopted as Studio's wait: the Document settings dialog of #124 and the diagram builders of #121.
+
+**Question 1. When Zemp Studio starts.**
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. After Zeff 2.0.0 | The clearest focus; Studio arrives with packages (#123) and a stable 1.x catalogue | The longest wait for non-coders and for revenue; fixed now for about seven years |
+| B. Lite only for now, with the start of Studio decided at a review at the close of 1.5, the end of #113's basic phase, which may confirm 2.0.0 | By then Zeff has its basic methods and Lite its first users, so the decision rests on evidence; nothing is lost if the review keeps A | One more decision later |
+
+In both, the one-codebase design of section 2 is kept, with the shared modules never depending on Studio's, so Studio can start from the same code at any time.
+
+**Question 2. The repository.** No Zemp repository exists yet; Zeff's is public under Apache 2.0.
+
+- *Recommended:* Zemp is created as a private repository under the owner's account from its first commit, holding the whole codebase. Zemp Lite is free of charge but not open source, at least until 1.0. Starting private keeps every choice open: opening later takes one setting, while code once published cannot be withdrawn. Every Zemp analysis is Zeff code, re-run by the open engine, so replication is unaffected.
+- Section 16 of the Zemp Specification, which calls Lite "the free, open part", and #25, which recommends Apache 2.0 for all of Zemp, are amended with this question.
+- The browser edition's code is downloaded by every visitor, so its licence protects it more than secrecy does.
+- GitHub's free plan gives a private repository 2,000 build minutes a month, macOS minutes counting ten times and Windows twice, so the desktop builds may need a paid plan or self-hosted builders when they begin.
+- The alternative is a public repository for Lite, open to contributors from the start, with any Studio code kept private later.
+
+**Question 3. What of Studio's comes into Lite.** The Document settings dialog of #124 writes the settings file of a report, not Zeff code, so it does not break Lite's rule that nothing writes a statement for the user. Recommended: it is part of Zemp Lite. Nothing else of Studio's moves.
+
+**Kept on file for when Studio starts: the menu plan of 12 November 2026.** Not decided here.
+
+- Menus list one entry per function, about 220 dialogs against 705 rows of #113's table, with a function's methods and variants as choices inside its dialog and research-grade choices under "More methods".
+- The method menus are modules: Statistics always on; Econometrics, Causal inference, Psychometrics, Multivariate, Machine learning, Bayesian, Meta-analysis and Operations switched on in View › Modules or by a flavour chosen at first start ("Zemp for Econometrics"), all builds of the one Studio.
+- One Results menu holds every after-estimation step and shows only what applies to the selected result.
+- The research goals of section 11 remain a second way to browse the Methods panel.
+- Separate programs per discipline, or per research question, were considered and not recommended: they share one engine, a mixed project would need two of them, and each adds an installer, a release train and documentation.
+
+*Recommendation.* Question 1, B; question 2, the private repository; question 3, the settings dialog in Lite. On adoption, section 15 of the Zemp Specification becomes a release plan for Lite, Studio's rows move to "later (#125)", and sections 2, 6 and 16 say Studio is deferred, all logged in `docs/spec_changes.md`. Deadline: Zeff 0.8.0, with Zemp's 0.2 alpha; question 2 before Zemp's first commit.
