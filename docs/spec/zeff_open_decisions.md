@@ -155,6 +155,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 111 | `p_adjust` inside `add`: adjusted p-values as a column, and families with `by:` | `p_adjust` given a column of a frame returns a column, as `rank` does, so that `t.add(p_holm = p_adjust(p))` works and `by:` adjusts each family on its own; given a list it returns a list as now | 0.7.0 |
 | 109 | The colours of a plot: more categories than the palette has colours, a level with no row, and the names of colours | As built at step 20c: (1) the eight colours repeat from the ninth category and a note says so; (2) a level with no row among the marks drawn has no colour and no legend entry; (3) a colour is one of the 148 names of CSS or `#` and hexadecimal digits, R's own names not being accepted | 0.7.0, before step 25 |
 | 108 | A numeric function of `core` given a text or category column | Refuse it when the statement runs, as R and Stata do and as the engine already refuses `log("a")` on one value; until decided `log(industry)` in `add` or in a mapping gives `NA` on every row without a message | 0.8.0 |
 | 107 | What an expression mapped to an aesthetic may call | For 0.7.0 the operators and the row-by-row functions of `core` implemented in the engine, as built at step 20b; the reducers of `data` (`wage - mean(wage)`), the functions of `time` and `text`, and `logit`, `inv_logit`, `clamp` and `fill_missing` are refused with advice to compute the variable with `add` first; widening later breaks no script | 0.7.0, before step 25 |
@@ -1901,3 +1902,17 @@ Raised on 11 November 2026 at step 20c of release 0.7.0, where `color:` and `fil
 *Recommendation.* A.
 
 Deadline: 0.7.0, before step 25.
+
+### 111. `p_adjust` inside `add`: adjusted p-values as a column, and families with `by:`
+
+Raised on 11 November 2026 by the owner, after samples of step 18b of release 0.7.0 (four methods added to `p_adjust`). A frame of tests with their p-values is the usual starting point, and the natural statement is `t.add(p_holm = p_adjust(p))`. As built at commit 19250e1 it is refused: `p_adjust` returns a `List<Float>` and `add` defines columns only from a column or a single value (Z0401). The workaround is to build a new frame from lists, `frame(p = p, holm = p_adjust(p))`, which loses the other variables of the frame. `p_adjust(t["p"])` accepts a column but still returns a list.
+
+The data functions of the same kind already work in `add`: `t.add(r = rank(p))` gives a column, and `t.add(r = rank(p), by: outcome)` ranks within each group. For multiple testing the grouped form matters in its own right: a study often adjusts within each family of hypotheses (each outcome, each contrast set) and not across all of them, as `group_by(family) |> mutate(p.adjust(p))` does in R. Stata's `mtest()` adjusts within one `test` command and has no command that adjusts a variable of p-values; `qqvalue`, a user-written command, does.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. `p_adjust` behaves like `rank`: given a column inside `add` it returns a column of the same length; with `by:` each group is a family adjusted on its own, its count n taken within the group; an `NA` keeps its row and is not counted, as now; given a list it returns a list as now | The statement a user writes first works; families by `by:` with no new argument and no new function (#97); the same rule as the other column functions | `p_adjust` moves from a function on lists to one on columns as well, so its help page and usage gain a second form |
+| B. `add` accepts any list whose length equals the number of rows | One rule for every function that returns a list | A list carries no rows, so after a `where` or a sort it is joined to the wrong rows without a word, against "nothing disappears silently"; no `by:`; reaches far beyond `p_adjust` |
+| C. Leave it as built; the help page shows the frame built from lists | Nothing to build | The commonest use is refused; adjustment within families must be done by hand, one `where` per family |
+
+*Recommendation.* A, as a small `[function]` step of 0.7.0, because `p_adjust` first ships in 0.7.0 and changing what it returns after the release would break scripts. `posthoc` (step 19) is unaffected: it calls the adjustment internally. Deadline: 0.7.0.
