@@ -15,15 +15,22 @@ a colour of its own, and `color: hours` shades the marks along a ramp from the s
 the largest. A string sets one colour for every mark instead, as in `color: "steelblue"`.
 `fill:` is the colour of the inside of a mark that has one.
 
+`size:` shows a variable that is an amount by the area of the marks, as in `size: hours`, and a
+number sets one size for every mark, as in `size: 6`. `shape:` gives each category of a
+variable a shape of its own, as in `shape: union`, and a string sets one shape for every mark,
+as in `shape: "square"`. `group:` names the variable whose values gather the rows into groups,
+and `label:` the variable whose values are written as text. Both are kept for the marks that
+read them.
+
 A plot is a value. It can be bound with `let`, extended later and printed. Printed, it reads as
 the text of its scene: a row for each axis, with its title, its limits and its breaks, a row
-for each colour, with its values and its colours in words, and a row for each layer, with the
-number of marks it draws.
+for each colour, size and shape, with its values and what they are shown as, and a row for each
+layer, with the number of marks it draws.
 
 Each variable mapped to an axis is placed on a linear scale, so it must be a Float, an Int, or
 a Bool, which is read as 0 and 1, and an expression must give one of these for each row. The
-title of an axis or of a colour is the label of its variable, or the name of the variable when
-it has no label; the title of an expression is the expression as it is written.
+title of an axis and of every other scale is the label of its variable, or the name of the
+variable when it has no label; the title of an expression is the expression as it is written.
 
 In R with ggplot2 this is `ggplot(w, aes(x = educ, y = wage, colour = female))`, where
 `aes(y = log(wage))` maps an expression in the same way, and in Stata it is the start of a
@@ -31,7 +38,11 @@ In R with ggplot2 this is `ggplot(w, aes(x = educ, y = wage, colour = female))`,
 `scatter` of its own. The defaults of the scales follow Observable Plot. The default colours
 are not those of ggplot2: the categories take the colours of `palette.colors(palette =
 "Okabe-Ito")` in R, with black moved to the last place, and a continuous scale takes those of
-`scale_colour_viridis_c()`.
+`scale_colour_viridis_c()`. A size follows `scale_size_area()` of ggplot2 and the weighted
+markers of Stata, as in `scatter wage educ [aweight = hours]`, in which a value of 0 has no
+size. It does not follow the default `scale_size()` of ggplot2, which gives the smallest value
+a size above 0. The first three shapes, a circle, a triangle and a square, are the first three
+of ggplot2.
 
 ## Arguments
 - data: The frame whose rows are drawn. A layer may name a frame of its own with `data:`.
@@ -45,11 +56,24 @@ are not those of ggplot2: the categories take the colours of `palette.colors(pal
   have the colour of the theme.
 - fill: The colour of the inside of the marks that have one, given as `color:` is given. A
   point has no inside and takes its colour from `color:`.
+- size: The size of the marks. A variable of the frame, written as a bare name, is shown by the
+  area of each mark; it must be an Int or a Float without value labels. A number sets the
+  diameter of every mark in points of 1/72 inch and must be above 0. Without it a point is 4.5
+  across.
+- shape: The shape of the marks. A variable of the frame, written as a bare name, gives each of
+  its categories a shape. A string sets one shape for every mark: `"circle"`, `"triangle"`,
+  `"square"`, `"diamond"`, `"plus"`, `"cross"` or `"asterisk"`, and the first four also as an
+  outline, as in `"circle_open"`. Without it a mark is a circle.
+- group: The variable whose values gather the rows into groups, for the marks that draw one
+  thing through several rows. A point is drawn row by row and does not read it.
+- label: The variable whose values are the text of the marks that write one. A point writes
+  none.
 
 ## Value
 A `Plot`, to which marks are added as methods, each call giving a new plot with one more layer.
 Printed, it shows the frame and the mapped variables, then the axes with their scales, then the
-colours, then the layers in the order in which they are drawn.
+colours, the sizes, the shapes, the group and the label, then the layers in the order in which
+they are drawn.
 
 ## Details
 Scales. The limits of an axis lie 5% of the range beyond the smallest and the largest value
@@ -97,7 +121,38 @@ written where it is used.
 What a colour cannot hold. An expression is not mapped to a colour: compute the variable with
 `add` first. A Date and a DateTime have no colour scale. When a layer has a frame of its own,
 the variable must be of the same kind there, categories or a number without value labels, and
-categories that only that frame holds come after those of the frame of the plot.
+categories that only that frame holds come after those of the frame of the plot. The same holds
+for a size and for a shape.
+
+Size. A variable mapped to `size:` is an amount: an Int or a Float without value labels. The
+area of a mark is in proportion to its value, so a value four times another is drawn twice as
+wide. The scale starts at 0, where a mark has no size, and the largest value drawn is 18 points
+across, four times the size of a point without `size:`. A value v is drawn 18 × √(v / m)
+across, where m is the largest value drawn. The legend shows the breaks above 0. A row with
+`NA` or an infinite value of the variable is not drawn, and neither is a row with a value below
+0, for which there is no area. A row with a value of 0 is kept as a mark that cannot be seen.
+Each layer counts such rows in its notes.
+
+One size for every mark. A number given to `size:` is the diameter of every mark and needs no
+scale and no legend. A number bound to a name is not read here, because a bare name is always a
+variable of the frame, so the number is written where it is used. A `size:` given to a layer
+comes before what the plot says, for that layer alone.
+
+Shape. A variable mapped to `shape:` must be one that is shown as categories: a Category, a
+Str, a Bool, or an Int or a Float with value labels. The categories come in the order
+described under colour and take in turn a circle, a triangle, a square, a diamond, a plus and a
+cross. With more than six categories the shapes repeat from the seventh, and a note says so.
+`NA` is a category of its own, which comes last and is drawn as an asterisk.
+
+One shape for every mark. A string names the shape of every mark. A circle, a triangle, a
+square and a diamond are drawn solid, and with `_open` after the name, as in `"square_open"`,
+as an outline. A plus, a cross and an asterisk are made of lines.
+
+One legend for a variable. A variable mapped to more than one of `color:`, `size:` and
+`shape:`, as in `color: union, shape: union`, has one legend, whose keys show all of them.
+
+Group and label. `group:` and `label:` take a variable of any type and need no scale. A printed
+plot lists them, and says so when no layer draws them.
 
 Expressions. An expression mapped to an axis is computed for each row as `add` computes it,
 from the variables of the frame, numbers, the operators and the functions of `core`:
@@ -114,9 +169,9 @@ mapping, and neither are `clamp`, `logit`, `inv_logit` and `fill_missing`. Compu
 value with `add` first and map the new variable.
 
 The scene. A plot is kept as a scene: the marks in the units of the data, with the scales, the
-axes, the legends and the layout. It has one legend for each colour scale that a layer reads. It
-holds no size in pixels and no fonts, which belong to the program that draws it, so the same data
-give the same scene on every computer.
+axes, the legends and the layout. It has one legend for each variable that a layer shows by a
+colour, a size or a shape. It holds no size in pixels and no fonts, which belong to the program
+that draws it, so the same data give the same scene on every computer.
 
 Either `x:` or `y:` may be left out. A mark then says which of the two it needs.
 
@@ -188,7 +243,7 @@ plot · w · wage against educ
   x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
   y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
 
-  aesthetic   title   scale      values         colours
+  aesthetic   title   scale      values         shown as
   color       Sex     category   male, female   orange, sky blue
 
   layer   mark     data    marks   settings
@@ -201,7 +256,7 @@ plot · w · wage against educ
   x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
   y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
 
-  aesthetic   title          scale    values      colours
+  aesthetic   title          scale    values      shown as
   color       Hours worked   linear   7 to 69.2   viridis, dark purple to yellow
 
   layer   mark     data    marks   settings
@@ -214,9 +269,63 @@ plot · w · wage against educ
   x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
   y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
 
-  aesthetic   title   scale      values       colours
+  aesthetic   title   scale      values       shown as
   color               constant   every mark   steelblue
 
   layer   mark     data    marks   settings
       1   points   w      18,201   size 4.5, alpha 1
 note: 211 rows with NA in educ or wage dropped (line 11)
+> w.plot(x: educ, y: wage, size: hours).points(alpha: 0.3)
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale   values      shown as
+  size        Hours worked   sqrt    0 to 69.2   by area, up to 18 across
+
+  layer   mark     data    marks   settings
+      1   points   w      18,167   size by hours, alpha 0.3
+note: 245 rows with NA in educ, wage or hours dropped (line 12)
+> w.plot(x: educ, y: wage, color: union, shape: union).points()
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   orange, sky blue
+  shape       Union member   category   no, yes   circle, triangle
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, shape by union, alpha 1
+note: 211 rows with NA in educ or wage dropped (line 13)
+> w.plot(x: educ, y: wage, size: 3, shape: "cross").points()
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title   scale      values       shown as
+  size                constant   every mark   3
+  shape               constant   every mark   cross
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 3, shape cross, alpha 1
+note: 211 rows with NA in educ or wage dropped (line 14)
+> w.plot(x: educ, y: wage, group: worker, label: firm)
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title               scale   values               shown as
+  group       Worker identifier           each value a group
+  label       Firm identifier             the text of a mark
+
+no layer yet: a mark such as `.points()` adds one
+

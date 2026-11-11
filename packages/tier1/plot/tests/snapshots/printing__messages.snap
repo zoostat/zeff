@@ -80,7 +80,7 @@ error[Z0401]: `size:` of `points` is the diameter of a point in points of 1/72 i
 2 | w.plot(x: educ, y: wage).points(size: 0)
   |                                       ^ not a size
   |
-  = help: write a size such as 3 or 6; without `size:` a point is 4.5 across
+  = help: write a size such as 3 or 6; without `size:` a point takes the size the plot gives, or is 4.5 across
 
 warning[W0204]: division by zero gave Inf (line 2)
   = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
@@ -90,7 +90,7 @@ error[Z0401]: `size:` of `points` is the diameter of a point in points of 1/72 i
 2 | w.plot(x: educ, y: wage).points(size: 1 / 0)
   |                                       ^^^^^ not a size
   |
-  = help: write a size such as 3 or 6; without `size:` a point is 4.5 across
+  = help: write a size such as 3 or 6; without `size:` a point takes the size the plot gives, or is 4.5 across
 
 error[Z0401]: `jitter:` of `points` is a share of the smallest gap between two values, 0 or more, but this is -1
  --> scripts/main.zeff:2:41

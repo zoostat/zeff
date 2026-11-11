@@ -1,0 +1,931 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+d.plot(x: a, y: b, size: z)
+d.plot(x: a, y: b, size: z).points()
+d.plot(x: a, y: b, size: k).points()
+d.plot(x: a, y: b, size: n)
+d.plot(x: a, y: b, size: n).points()
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values     shown as
+  size        z       sqrt    0 to 2.5   by area, up to 18 across
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values     shown as
+  size        z       sqrt    0 to 2.5   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size by z, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values   shown as
+  size        k       sqrt    0 to 3   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size by k, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values   shown as
+  size        n       sqrt    0 to 2   by area, up to 18 across
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values   shown as
+  size        n       sqrt    0 to 2   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size by n, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row with NA in a, b or z dropped (line 3)
+note: 1 row with an infinite value in a, b or z dropped (line 3)
+note: 1 row with n below 0 dropped: `size` shows amounts of 0 or more (line 6)
+note: 2 rows with n of 0 are drawn with no size (line 6)
+
+let d = frame(a = [1, 2], s = [0, 0], m = [-1.5, -2.5])
+d.plot(x: a, y: a, size: s).points()
+d.plot(x: a, y: a, size: m).points()
+d.where(a == 1).plot(x: a, y: a, size: s).points()
+exit code 0
+plot · d · a against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      a       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+
+  aesthetic   title   scale   values   shown as
+  size        s       sqrt    0 to 1   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size by s, alpha 1
+plot · d · a against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      a       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+
+  aesthetic   title   scale   values   shown as
+  size        m       sqrt    0 to 1   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          0   size by m, alpha 1
+plot · a against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+  y      a       linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+
+  aesthetic   title   scale   values   shown as
+  size        s       sqrt    0 to 1   by area, up to 18 across
+
+  layer   mark     data        marks   settings
+      1   points   the frame       1   size by s, alpha 1
+---
+note: 2 rows with s of 0 are drawn with no size (line 2)
+note: 2 rows with m below 0 dropped: `size` shows amounts of 0 or more (line 3)
+note: 1 row with s of 0 is drawn with no size (line 4)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+d.plot(x: a, y: b, shape: g)
+d.plot(x: a, y: b, shape: g).points()
+d.plot(x: a, y: b, shape: t).points()
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     shown as
+  shape       g       category   a, b, NA   circle, triangle, asterisk
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     shown as
+  shape       g       category   a, b, NA   circle, triangle, asterisk
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, shape by g, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values            shown as
+  shape       t       category   false, true, NA   circle, triangle, asterisk
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, shape by t, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+let e = d.where(a > 9)
+e.plot(x: a, y: b, size: z, shape: g).points()
+let n = d.where(a == 2)
+n.plot(x: a, y: b, size: z, shape: g)
+n.plot(x: a, y: b, size: z, shape: g).points()
+exit code 0
+plot · e · b against a
+
+  axis   title   scale    limits   breaks
+  x      a       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      b       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  aesthetic   title   scale      values   shown as
+  size        z       sqrt       0 to 1   by area, up to 18 across
+  shape       g       category
+
+  layer   mark     data   marks   settings
+      1   points   e          0   size by z, shape by g, alpha 1
+plot · n · b against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+  y      b       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+
+  aesthetic   title   scale      values   shown as
+  size        z       sqrt       0 to 1   by area, up to 18 across
+  shape       g       category   NA       asterisk
+
+no layer yet: a mark such as `.points()` adds one
+plot · n · b against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+  y      b       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+
+  aesthetic   title   scale      values   shown as
+  size        z       sqrt       0 to 1   by area, up to 18 across
+  shape       g       category   NA       asterisk
+
+  layer   mark     data   marks   settings
+      1   points   n          0   size by z, shape by g, alpha 1
+---
+warning[W0101]: `n` hides the function `data::n`
+ --> scripts/main.zeff:4:5
+  |
+4 | let n = d.where(a == 2)
+  |     ^ a binding with a built-in name
+  |
+  = help: the function is still reachable as `data::n`; a different name avoids the confusion
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: no row kept: the result is empty (line 2)
+note: 1 row with NA in a, b or z dropped (line 6)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+let c = d.add(c = category(g))
+c.plot(x: a, y: b, shape: c).points()
+c.where(g != "a").plot(x: a, y: b, shape: c).points()
+exit code 0
+plot · c · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     shown as
+  shape       c       category   a, b, NA   circle, triangle, asterisk
+
+  layer   mark     data   marks   settings
+      1   points   c          4   size 4.5, shape by c, alpha 1
+plot · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values   shown as
+  shape       c       category   b        circle
+
+  layer   mark     data        marks   settings
+      1   points   the frame       2   size 4.5, shape by c, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row dropped where `g != "a"` was NA; `c.where(is_missing(g))` lists them (line 4)
+
+let d = frame(a = [1, 2, 3, 4, 5, 6, 7, 8], g = ["a", "b", "c", "d", "e", "f", "g", NA])
+d.where(a < 7).plot(x: a, y: a, shape: g).points()
+d.where(a < 8).plot(x: a, y: a, shape: g).points()
+d.where(a != 7).plot(x: a, y: a, shape: g).points()
+d.plot(x: a, y: a, shape: g)
+d.plot(x: a, y: a, shape: g).points()
+exit code 0
+plot · a against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
+  y      a       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
+
+  aesthetic   title   scale      values             shown as
+  shape       g       category   a, b, c, d, e, f   circle, triangle, square, diamond, plus, cross
+
+  layer   mark     data        marks   settings
+      1   points   the frame       6   size 4.5, shape by g, alpha 1
+plot · a against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.7 to 7.3   1, 2, 3, 4, 5, 6, 7
+  y      a       linear   0.7 to 7.3   1, 2, 3, 4, 5, 6, 7
+
+  aesthetic   title   scale      values                     shown as
+  shape       g       category   a, b, c, d, e and 2 more   circle, triangle, square, diamond, plus and 2 more
+
+  layer   mark     data        marks   settings
+      1   points   the frame       7   size 4.5, shape by g, alpha 1
+plot · a against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.65 to 8.35   2, 4, 6, 8
+  y      a       linear   0.65 to 8.35   2, 4, 6, 8
+
+  aesthetic   title   scale      values                     shown as
+  shape       g       category   a, b, c, d, e and 2 more   circle, triangle, square, diamond, plus and 2 more
+
+  layer   mark     data        marks   settings
+      1   points   the frame       7   size 4.5, shape by g, alpha 1
+plot · d · a against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.65 to 8.35   2, 4, 6, 8
+  y      a       linear   0.65 to 8.35   2, 4, 6, 8
+
+  aesthetic   title   scale      values                     shown as
+  shape       g       category   a, b, c, d, e and 3 more   circle, triangle, square, diamond, plus and 3 more
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · a against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.65 to 8.35   2, 4, 6, 8
+  y      a       linear   0.65 to 8.35   2, 4, 6, 8
+
+  aesthetic   title   scale      values                     shown as
+  shape       g       category   a, b, c, d, e and 3 more   circle, triangle, square, diamond, plus and 3 more
+
+  layer   mark     data   marks   settings
+      1   points   d          8   size 4.5, shape by g, alpha 1
+---
+note: `g` has 7 categories and there are 6 shapes, so the shapes repeat from the seventh category (line 3)
+note: `g` has 7 categories and there are 6 shapes, so the shapes repeat from the seventh category (line 6)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+let o = frame(a = [5, 6, 7], b = [0.5, 1.5, 2.5], g = ["zz", "b", NA], z = [10, 0, 2])
+d.plot(x: a, y: b, size: z, shape: g).points(data: o)
+d.plot(x: a, y: b, size: z, shape: g).points().points(data: o)
+let bare = frame(a = [5, 6], b = [0.5, 1.5])
+d.plot(x: a, y: b, size: 7, shape: "diamond_open", group: g, label: t).points(data: bare)
+d.plot(x: a, y: b, size: z).points(data: bare, size: 2)
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   4.9 to 7.1   5, 5.5, 6, 6.5, 7
+  y      b       linear   0.4 to 2.6   0.5, 1, 1.5, 2, 2.5
+
+  aesthetic   title   scale      values      shown as
+  size        z       sqrt       0 to 10     by area, up to 18 across
+  shape       g       category   b, zz, NA   circle, triangle, asterisk
+
+  layer   mark     data   marks   settings
+      1   points   o          3   size by z, shape by g, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits           breaks
+  x      a       linear   0.7 to 7.3       1, 2, 3, 4, 5, 6, 7
+  y      b       linear   0.325 to 4.175   1, 2, 3, 4
+
+  aesthetic   title   scale      values      shown as
+  size        z       sqrt       0 to 10     by area, up to 18 across
+  shape       g       category   b, zz, NA   circle, triangle, asterisk
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size by z, shape by g, alpha 1
+      2   points   o          3   size by z, shape by g, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   4.95 to 6.05   5, 5.2, 5.4, 5.6, 5.8, 6
+  y      b       linear   0.45 to 1.55   0.6, 0.8, 1, 1.2, 1.4
+
+  aesthetic   title   scale      values               shown as
+  size                constant   every mark           7
+  shape               constant   every mark           diamond_open
+  group       g                  each value a group
+  label       t                  the text of a mark
+
+no layer draws `group`: `points` draws each row by itself
+no layer draws `label`: `points` writes no text
+
+  layer   mark     data   marks   settings
+      1   points   bare       2   size 7, shape diamond_open, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   4.95 to 6.05   5, 5.2, 5.4, 5.6, 5.8, 6
+  y      b       linear   0.45 to 1.55   0.6, 0.8, 1, 1.2, 1.4
+
+  aesthetic   title   scale   values     shown as
+  size        z       sqrt    0 to 2.5   by area, up to 18 across
+
+no layer draws `size`: every layer sets a `size:` of its own
+
+  layer   mark     data   marks   settings
+      1   points   bare       2   size 2, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row with z of 0 is drawn with no size (line 3)
+note: 1 row with NA in a, b or z dropped (line 4)
+note: 1 row with an infinite value in a, b or z dropped (line 4)
+note: 1 row with z of 0 is drawn with no size (line 4)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+d.plot(x: a, y: b, size: 6, shape: g).points()
+d.plot(x: a, y: b, size: z, shape: "square", color: "tomato").points()
+d.plot(x: a, y: b, size: 6).points(size: 2)
+d.plot(x: a, y: b, size: z).points(size: 2)
+d.plot(x: a, y: b, size: z).points(size: 2).points()
+d.plot(x: a, y: b, size: 0.5, shape: "circle").points(alpha: 0.5, jitter: 0)
+d.plot(x: a, y: b, size: 2.25, shape: "asterisk")
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       shown as
+  size                constant   every mark   6
+  shape       g       category   a, b, NA     circle, triangle, asterisk
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 6, shape by g, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       shown as
+  color               constant   every mark   tomato
+  size        z       sqrt       0 to 2.5     by area, up to 18 across
+  shape               constant   every mark   square
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size by z, shape square, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       shown as
+  size                constant   every mark   6
+
+no layer draws `size`: every layer sets a `size:` of its own
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 2, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values     shown as
+  size        z       sqrt    0 to 2.5   by area, up to 18 across
+
+no layer draws `size`: every layer sets a `size:` of its own
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 2, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values     shown as
+  size        z       sqrt    0 to 2.5   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 2, alpha 1
+      2   points   d          2   size by z, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       shown as
+  size                constant   every mark   0.5
+  shape               constant   every mark   circle
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 0.5, alpha 0.5
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       shown as
+  size                constant   every mark   2.25
+  shape               constant   every mark   asterisk
+
+no layer yet: a mark such as `.points()` adds one
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row with NA in a, b or z dropped (line 3)
+note: 1 row with an infinite value in a, b or z dropped (line 3)
+note: 1 row with NA in a, b or z dropped (line 6)
+note: 1 row with an infinite value in a, b or z dropped (line 6)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+d.plot(x: a, y: b, size: NA, shape: NA, group: NA, label: NA).points()
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+d.plot(x: a, y: b, color: g, shape: g).points()
+d.plot(x: a, y: b, color: k, size: k).points()
+d.plot(x: a, y: b, fill: g, shape: g).points()
+d.plot(x: a, y: b, color: t, fill: "grey", size: n, shape: g, group: g, label: a).points()
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     shown as
+  color       g       category   a, b, NA   orange, sky blue, grey
+  shape       g       category   a, b, NA   circle, triangle, asterisk
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, shape by g, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale    values       shown as
+  color       k       linear   2.5 to 3.5   viridis, dark purple to yellow
+  size        k       sqrt     0 to 3       by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size by k, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     shown as
+  fill        g       category   a, b, NA   orange, sky blue, grey
+  shape       g       category   a, b, NA   circle, triangle, asterisk
+
+no layer draws `fill`: `points` takes its colour from `color`
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, shape by g, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values               shown as
+  color       t       category   true, NA             orange, grey
+  fill                constant   every mark           grey
+  size        n       sqrt       0 to 2               by area, up to 18 across
+  shape       g       category   a, b                 circle, triangle
+  group       g                  each value a group
+  label       a                  the text of a mark
+
+no layer draws `fill`: `points` takes its colour from `color`
+no layer draws `group`: `points` draws each row by itself
+no layer draws `label`: `points` writes no text
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size by n, shape by g, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row with n below 0 dropped: `size` shows amounts of 0 or more (line 5)
+note: 2 rows with n of 0 are drawn with no size (line 5)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
+d.plot(group: g)
+d.plot(x: a, label: z)
+d.plot(x: a, y: b, group: z, label: g).points()
+d.plot(size: k, shape: t)
+d.plot(size: 3, shape: "plus")
+exit code 0
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale   values               shown as
+  group       g               each value a group
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values               shown as
+  label       z               the text of a mark
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale   values               shown as
+  group       z               each value a group
+  label       g               the text of a mark
+
+no layer draws `group`: `points` draws each row by itself
+no layer draws `label`: `points` writes no text
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values            shown as
+  size        k       sqrt       0 to 3            by area, up to 18 across
+  shape       t       category   false, true, NA   circle, triangle, asterisk
+
+no layer yet: a mark such as `.points()` adds one
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values       shown as
+  size                constant   every mark   3
+  shape               constant   every mark   plus
+
+no layer yet: a mark such as `.points()` adds one
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+
+let d = frame(a = [1, 2, 3], b = [3, 0, 12]).label(a, [1 => "low", 2 => "middle", 3 => "high"])
+d.plot(x: a, y: b, size: b, shape: a).points()
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.9 to 3.1     1, 1.5, 2, 2.5, 3
+  y      b       linear   -0.6 to 12.6   0, 2, 4, 6, 8, 10, 12
+
+  aesthetic   title   scale      values              shown as
+  size        b       sqrt       0 to 12             by area, up to 18 across
+  shape       a       category   low, middle, high   circle, triangle, square
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size by b, shape by a, alpha 1
+---
+note: 1 row with b of 0 is drawn with no size (line 2)
+
+let d = import("data/one_row.csv")
+d.plot(x: x, y: y, size: x).points()
+exit code 0
+plot · d · y against x
+
+  axis   title   scale    limits         breaks
+  x      x       linear   39.9 to 44.1   40, 41, 42, 43, 44
+  y      y       linear   3 to 4         3, 3.2, 3.4, 3.6, 3.8, 4
+
+  aesthetic   title   scale   values    shown as
+  size        x       sqrt    0 to 42   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          1   size by x, alpha 1
+---
+note: data/one_row.csv read as CSV: 1 row × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/zero_variance.csv")
+d.plot(x: constant, y: big_constant, size: constant_with_na).points()
+d.plot(x: constant, y: constant, size: big_constant).points()
+exit code 0
+plot · d · big_constant against constant
+
+  axis   title          scale    limits                    breaks
+  x      constant       linear   2.75 to 3.75              2.8, 3, 3.2, 3.4, 3.6
+  y      big_constant   linear   950000000 to 1050000001   960000000, 980000000, 1000000000, 1020000000, 1040000000
+
+  aesthetic   title              scale   values   shown as
+  size        constant_with_na   sqrt    0 to 7   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size by constant_with_na, alpha 1
+plot · d · constant against constant
+
+  axis   title      scale    limits         breaks
+  x      constant   linear   2.75 to 3.75   2.8, 3, 3.2, 3.4, 3.6
+  y      constant   linear   2.75 to 3.75   2.8, 3, 3.2, 3.4, 3.6
+
+  aesthetic   title          scale   values            shown as
+  size        big_constant   sqrt    0 to 1000000000   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size by big_constant, alpha 1
+---
+note: data/zero_variance.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 1 row with NA in constant, big_constant or constant_with_na dropped (line 2)
+
+let d = import("data/infinities.csv")
+d.plot(x: finite, y: finite, size: plus).points()
+d.plot(x: finite, y: finite, size: both).points()
+d.plot(x: finite, y: finite, size: nan_mixed).points()
+exit code 0
+plot · d · finite against finite
+
+  axis   title    scale    limits       breaks
+  x      finite   linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+  y      finite   linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale   values   shown as
+  size        plus    sqrt    0 to 2   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size by plus, alpha 1
+plot · d · finite against finite
+
+  axis   title    scale    limits       breaks
+  x      finite   linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+  y      finite   linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+
+  aesthetic   title   scale   values   shown as
+  size        both    sqrt    0 to 1   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          1   size by both, alpha 1
+plot · d · finite against finite
+
+  axis   title    scale    limits       breaks
+  x      finite   linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+  y      finite   linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+
+  aesthetic   title       scale   values     shown as
+  size        nan_mixed   sqrt    0 to 1.5   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d          1   size by nan_mixed, alpha 1
+---
+note: data/infinities.csv read as CSV: 3 rows × 5 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 2 values of nan_mixed read as NA from NaN (line 1)
+note: 1 row with an infinite value in finite or plus dropped (line 2)
+note: 2 rows with an infinite value in finite or both dropped (line 3)
+note: 2 rows with NA in finite or nan_mixed dropped (line 4)
+
+let d = import("data/magnitudes.csv")
+d.plot(x: offset, y: tiny, size: wide).points()
+d.plot(x: offset, y: wide, size: tiny).points()
+exit code 0
+plot · d · tiny against offset
+
+  axis   title    scale    limits
+  x      offset   linear   1000000000 to 1000000001
+  y      tiny     linear   -3.20128e-302 to 1.03806e-300
+
+  breaks
+  1000000000, 1000000000.2, 1000000000.4, 1000000000.6, 1000000000.8, 1000000001
+  0, 2e-301, 4e-301, 6e-301, 8e-301, 1e-300
+
+  aesthetic   title   scale   values          shown as
+  size        wide    sqrt    0 to 87468242   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d        251   size by wide, alpha 1
+plot · d · wide against offset
+
+  axis   title    scale    limits
+  x      offset   linear   1000000000 to 1000000001
+  y      wide     linear   -107938395 to 96773320
+
+  breaks
+  1000000000, 1000000000.2, 1000000000.4, 1000000000.6, 1000000000.8, 1000000001
+  -100000000, -50000000, 0, 50000000
+
+  aesthetic   title   scale   values             shown as
+  size        tiny    sqrt    0 to 9.9916e-301   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   d        500   size by tiny, alpha 1
+---
+note: data/magnitudes.csv read as CSV: 500 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 249 rows with wide below 0 dropped: `size` shows amounts of 0 or more (line 2)
+
+let d = import("data/bools.csv")
+d.plot(x: treated, y: treated, shape: with_na).points()
+exit code 0
+plot · d · treated against treated
+
+  axis   title     scale    limits          breaks
+  x      treated   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      treated   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  aesthetic   title     scale      values            shown as
+  shape       with_na   category   false, true, NA   circle, triangle, asterisk
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, shape by with_na, alpha 1
+---
+note: data/bools.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/empty.csv")
+d.plot(shape: x)
+d.plot(group: x, label: y)
+d.plot(size: x)
+exit code 1
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values   shown as
+  shape       x       category
+
+no layer yet: a mark such as `.points()` adds one
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale   values               shown as
+  group       x               each value a group
+  label       y               the text of a mark
+
+no layer yet: a mark such as `.points()` adds one
+---
+note: data/empty.csv read as CSV: 0 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0401]: `plot` shows `size` by area, so `x` must be an Int or Float variable without value labels, but it is a Str
+ --> scripts/main.zeff:4:14
+  |
+4 | d.plot(size: x)
+  |              ^ not an amount
+  |
+  = help: a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`
+
+let d = import("data/all_na.csv")
+d.plot(shape: x)
+d.plot(group: x, label: y)
+d.plot(size: x)
+exit code 1
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values   shown as
+  shape       x       category   NA       asterisk
+
+no layer yet: a mark such as `.points()` adds one
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale   values               shown as
+  group       x               each value a group
+  label       y               the text of a mark
+
+no layer yet: a mark such as `.points()` adds one
+---
+note: data/all_na.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0401]: `plot` shows `size` by area, so `x` must be an Int or Float variable without value labels, but it is a Str
+ --> scripts/main.zeff:4:14
+  |
+4 | d.plot(size: x)
+  |              ^ not an amount
+  |
+  = help: a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`
+
+let d = import("data/awkward_names.csv")
+d.plot(x: `Gross Sales (total)`, y: `日本語`, size: `Gross Sales (total)`, label: `日本語`).points()
+exit code 0
+plot · d · 日本語 against Gross Sales (total)
+
+  axis   title                 scale    limits               breaks
+  x      Gross Sales (total)   linear   954.263 to 1525.99   1000, 1100, 1200, 1300, 1400, 1500
+  y      日本語                   linear   2.9 to 5.1           3, 3.5, 4, 4.5, 5
+
+  aesthetic   title                 scale   values               shown as
+  size        Gross Sales (total)   sqrt    0 to 1500            by area, up to 18 across
+  label       日本語                           the text of a mark
+
+no layer draws `label`: `points` writes no text
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size by Gross Sales (total), alpha 1
+---
+note: data/awkward_names.csv read as CSV: 3 rows × 7 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/unicode_labels.csv")
+d.plot(x: n, y: n, size: n, shape: city, label: city).points()
+exit code 0
+plot · d · n against n
+
+  axis   title   scale    limits         breaks
+  x      n       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      n       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values                    shown as
+  size        n       sqrt       0 to 4                    by area, up to 18 across
+  shape       city    category   Zürich, café, café, 東京   circle, triangle, square, diamond
+  label       city               the text of a mark
+
+no layer draws `label`: `points` writes no text
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size by n, shape by city, alpha 1
+---
+note: data/unicode_labels.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning[W0601]: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
+
+let d = import("data/level_symbols.csv")
+d.plot(x: n, y: y, shape: grp, group: grp).points()
+exit code 0
+plot · d · y against n
+
+  axis   title   scale    limits       breaks
+  x      n       linear   0.8 to 5.2   1, 2, 3, 4, 5
+  y      y       linear   1.3 to 5.7   2, 3, 4, 5
+
+  aesthetic   title   scale      values                 shown as
+  shape       grp     category   a=b, c:d, e+f, q "x"   circle, triangle, square, diamond
+  group       grp                each value a group
+
+no layer draws `group`: `points` draws each row by itself
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, shape by grp, alpha 1
+---
+note: data/level_symbols.csv read as CSV: 5 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/wages_large.csv")
+d.plot(x: educ, y: wage, size: hours, shape: region).points()
+exit code 0
+plot · d · wage against educ
+
+  axis   title   scale    limits              breaks
+  x      educ    linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      wage    linear   -0.047 to 104.827   0, 20, 40, 60, 80, 100
+
+  aesthetic   title    scale      values                                shown as
+  size        hours    sqrt       0 to 60                               by area, up to 18 across
+  shape       region   category   Québec, São Paulo, Zürich, Łódź, 東京   circle, triangle, square, diamond, plus
+
+  layer   mark     data   marks   settings
+      1   points   d      1,139   size by hours, shape by region, alpha 1
+---
+note: data/wages_large.csv read as CSV: 1,200 rows × 6 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 61 rows with NA in educ, wage or hours dropped (line 2)

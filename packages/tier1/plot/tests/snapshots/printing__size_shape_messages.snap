@@ -1,0 +1,461 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: "Circle")
+error[Z0401]: `shape:` of `plot` is "Circle", which is not the name of a shape
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: "Circle")
+  |                                 ^^^^^^^^ not a shape
+  |
+  = help: the names of shapes are in small letters: write "circle"
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: "triangel")
+error[Z0401]: `shape:` of `plot` is "triangel", which is not the name of a shape
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: "triangel")
+  |                                 ^^^^^^^^^^ not a shape
+  |
+  = help: did you mean "triangle"?
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: "circle open")
+error[Z0401]: `shape:` of `plot` is "circle open", which is not the name of a shape
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: "circle open")
+  |                                 ^^^^^^^^^^^^^ not a shape
+  |
+  = help: did you mean "circle_open"?
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: "union")
+error[Z0401]: `shape:` of `plot` is "union", which is not the name of a shape
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: "union")
+  |                                 ^^^^^^^ not a shape
+  |
+  = help: a string sets one shape for every mark; to give each category of `union` a shape, write it without quotation marks, `shape: union`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: "a shape of my own")
+error[Z0401]: `shape:` of `plot` is "a shape of my own", which is not the name of a shape
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: "a shape of my own")
+  |                                 ^^^^^^^^^^^^^^^^^^^ not a shape
+  |
+  = help: a shape is one of asterisk, circle, circle_open, cross, diamond, diamond_open, plus, square, square_open, triangle and triangle_open
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: "")
+error[Z0401]: `shape:` of `plot` is "", which is not the name of a shape
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: "")
+  |                                 ^^ not a shape
+  |
+  = help: a shape is one of asterisk, circle, circle_open, cross, diamond, diamond_open, plus, square, square_open, triangle and triangle_open
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: 3)
+error[Z0401]: `shape` of `plot` must be a Var or Str, but this is an Int
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: 3)
+  |                                 ^ an Int
+  |
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str, size: Var | Float, shape: Var | Str, group: Var, label: Var)`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: ["circle", "cross"])
+error[Z0401]: `shape` of `plot` must be a Var or Str, but this is a List<Str>
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: ["circle", "cross"])
+  |                                 ^^^^^^^^^^^^^^^^^^^ a List<Str>
+  |
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str, size: Var | Float, shape: Var | Str, group: Var, label: Var)`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: 0)
+error[Z0401]: `size:` of `plot` is the diameter of every mark in points of 1/72 inch, above 0, but this is 0
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: 0)
+  |                                ^ not a size
+  |
+  = help: write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point is 4.5 across
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: -2.5)
+error[Z0401]: `size:` of `plot` is the diameter of every mark in points of 1/72 inch, above 0, but this is -2.5
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: -2.5)
+  |                                ^^^^ not a size
+  |
+  = help: write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point is 4.5 across
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: 1 / 0)
+warning[W0204]: division by zero gave Inf (line 2)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+error[Z0401]: `size:` of `plot` is the diameter of every mark in points of 1/72 inch, above 0, but this is Inf
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: 1 / 0)
+  |                                ^^^^^ not a size
+  |
+  = help: write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point is 4.5 across
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: "large")
+error[Z0401]: `size` of `plot` must be a Var or Float, but this is a Str
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: "large")
+  |                                ^^^^^^^ a Str
+  |
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str, size: Var | Float, shape: Var | Str, group: Var, label: Var)`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: [1, 2])
+error[Z0401]: `size` of `plot` must be a Var or Float, but this is a List<Int>
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: [1, 2])
+  |                                ^^^^^^ a List<Int>
+  |
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str, size: Var | Float, shape: Var | Str, group: Var, label: Var)`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: sqrt(hours))
+error[Z0101]: nothing is called `hours` here
+ --> scripts/main.zeff:2:37
+  |
+2 | w.plot(x: educ, y: wage, size: sqrt(hours))
+  |                                     ^^^^^ not a binding
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: female)
+error[Z0401]: `plot` shows `size` by area, so `female` must be an Int or Float variable without value labels, but it is an Int with value labels
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: female)
+  |                                ^^^^^^ not an amount
+  |
+  = help: a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: industry)
+error[Z0401]: `plot` shows `size` by area, so `industry` must be an Int or Float variable without value labels, but it is a Category
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: industry)
+  |                                ^^^^^^^^ not an amount
+  |
+  = help: a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`
+
+let d = frame(a = [1, 2], b = [1.0, 2.0], s = ["u", "v"], t = [true, false])
+d.plot(x: a, y: b, size: s)
+error[Z0401]: `plot` shows `size` by area, so `s` must be an Int or Float variable without value labels, but it is a Str
+ --> scripts/main.zeff:2:26
+  |
+2 | d.plot(x: a, y: b, size: s)
+  |                          ^ not an amount
+  |
+  = help: a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`
+
+let d = frame(a = [1, 2], b = [1.0, 2.0], s = ["u", "v"], t = [true, false])
+d.plot(x: a, y: b, size: t)
+error[Z0401]: `plot` shows `size` by area, so `t` must be an Int or Float variable without value labels, but it is a Bool
+ --> scripts/main.zeff:2:26
+  |
+2 | d.plot(x: a, y: b, size: t)
+  |                          ^ not an amount
+  |
+  = help: a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`
+
+let d = frame(a = [1, 2], b = [1.0, 2.0], s = ["2026-01-01", "2026-06-01"]).add(when = date(s))
+d.plot(x: a, y: b, size: when)
+error[Z0401]: `plot` shows `size` by area, so `when` must be an Int or Float variable without value labels, but it is a Date
+ --> scripts/main.zeff:2:26
+  |
+2 | d.plot(x: a, y: b, size: when)
+  |                          ^^^^ not an amount
+  |
+  = help: a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: hours)
+error[Z0401]: `plot` gives each category a shape, so `hours` must be a Bool, Str or Category variable, or a number with value labels, but it is a Float without value labels
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: hours)
+  |                                 ^^^^^ not categories
+  |
+  = help: a shape shows a category; a number is shown by `color:` or `size:`, or made categories first, as in `w.add(hours = category(hours))`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: educ)
+error[Z0401]: `plot` gives each category a shape, so `educ` must be a Bool, Str or Category variable, or a number with value labels, but it is an Int without value labels
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: educ)
+  |                                 ^^^^ not categories
+  |
+  = help: a shape shows a category; a number is shown by `color:` or `size:`, or made categories first, as in `w.add(educ = category(educ))`
+
+let d = frame(a = [1, 2], b = [1.0, 2.0], s = ["2026-01-01", "2026-06-01"]).add(when = date(s))
+d.plot(x: a, y: b, shape: when)
+error[Z0401]: `plot` gives each category a shape, so `when` must be a Bool, Str or Category variable, or a number with value labels, but it is a Date
+ --> scripts/main.zeff:2:27
+  |
+2 | d.plot(x: a, y: b, shape: when)
+  |                           ^^^^ not categories
+  |
+  = help: `d.describe()` lists the types of the variables
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: Hours)
+error[Z0102]: no variable `Hours` in `w`; names are case-sensitive
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: Hours)
+  |                                ^^^^^ differs only in case from `hours`
+  |
+  = help: write `hours`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, shape: sex)
+error[Z0101]: no variable `sex` in `w`
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: sex)
+  |                                 ^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, group: person)
+error[Z0101]: no variable `person` in `w`
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, group: person)
+  |                                 ^^^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, label: Firm)
+error[Z0102]: no variable `Firm` in `w`; names are case-sensitive
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, label: Firm)
+  |                                 ^^^^ differs only in case from `firm`
+  |
+  = help: write `firm`
+
+let w = dataset(wages)
+let s = 6
+w.plot(x: educ, y: wage, size: s)
+error[Z0101]: no variable `s` in `w`
+ --> scripts/main.zeff:3:32
+  |
+3 | w.plot(x: educ, y: wage, size: s)
+  |                                ^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+let w = dataset(wages)
+let mark = "cross"
+w.plot(x: educ, y: wage, shape: mark)
+error[Z0101]: no variable `mark` in `w`
+ --> scripts/main.zeff:3:33
+  |
+3 | w.plot(x: educ, y: wage, shape: mark)
+  |                                 ^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, group: "worker")
+error[Z0401]: `group` of `plot` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, group: "worker")
+  |                                 ^^^^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, label: 3)
+error[Z0401]: `label` of `plot` must be a Var, but this is an Int
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, label: 3)
+  |                                 ^ an Int
+  |
+  = help: name a variable of the frame, without quotes
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, group: floor(exper / 10))
+error[Z0401]: `group` of `plot` must be a Var, but this is a Float
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, group: floor(exper / 10))
+  |                                 ^^^^^^^^^^^^^^^^^ a Float
+  |
+  = help: name a variable of the frame, without quotes
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+p.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))
+error[Z0101]: no variable `hours` in `the frame`
+ --> scripts/main.zeff:4:16
+  |
+4 | p.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))
+  |   ------ this layer draws `hours`, which the plot maps to `size`
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: educ, wage
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], Hours = [1, 2])
+p.points(data: o)
+error[Z0102]: no variable `hours` in `o`; names are case-sensitive
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `hours`, which the plot maps to `size`
+  |                ^ differs only in case from `Hours`
+  |
+  = help: write `Hours`
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], hours = ["a", "b"])
+p.points(data: o)
+error[Z0401]: the plot shows `hours` by area for `size`, but `hours` of `o` is a Str, which is categories and not an amount
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `hours`, which the plot maps to `size`
+  |                ^ its `hours` is of another kind
+  |
+  = help: the layers of a plot share one scale of size, so `hours` must be a number without value labels in every frame
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+let o = w.where(wage > 100).select(vars(educ, wage, female)).rename(hours = female)
+p.points(data: o)
+note: 211 rows dropped where `wage > 100` was NA; `w.where(is_missing(wage))` lists them (line 4)
+note: the panel declaration `worker × year` dropped: `select` left out `worker` (line 4)
+error[Z0401]: the plot shows `hours` by area for `size`, but `hours` of `o` is an Int with value labels, which is categories and not an amount
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `hours`, which the plot maps to `size`
+  |                ^ its `hours` is of another kind
+  |
+  = help: the layers of a plot share one scale of size, so `hours` must be a number without value labels in every frame
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], s = ["2026-01-01", "2026-06-01"]).add(hours = date(s))
+p.points(data: o)
+error[Z0401]: the plot shows `hours` by area for `size`, but `hours` of `o` is a Date, which is not an amount
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `hours`, which the plot maps to `size`
+  |                ^ its `hours` is of another kind
+  |
+  = help: the layers of a plot share one scale of size, so `hours` must be a number without value labels in every frame
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+q.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))
+error[Z0101]: no variable `union` in `the frame`
+ --> scripts/main.zeff:4:16
+  |
+4 | q.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))
+  |   ------ this layer draws `union`, which the plot maps to `shape`
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: educ, wage
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], union = [0, 1])
+q.points(data: o)
+error[Z0401]: the plot shows `union` as categories for `shape`, but `union` of `o` is an Int without value labels, which is a number and not categories
+ --> scripts/main.zeff:5:16
+  |
+5 | q.points(data: o)
+  |   ------ this layer draws `union`, which the plot maps to `shape`
+  |                ^ its `union` is of another kind
+  |
+  = help: the layers of a plot share one scale of shape, so `union` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels)
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], union = [0.5, 1.5])
+q.points(data: o, size: 3)
+error[Z0401]: the plot shows `union` as categories for `shape`, but `union` of `o` is a Float without value labels, which is a number and not categories
+ --> scripts/main.zeff:5:16
+  |
+5 | q.points(data: o, size: 3)
+  |   ------ this layer draws `union`, which the plot maps to `shape`
+  |                ^ its `union` is of another kind
+  |
+  = help: the layers of a plot share one scale of shape, so `union` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels)
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+p.points(size: 0)
+error[Z0401]: `size:` of `points` is the diameter of a point in points of 1/72 inch, above 0, but this is 0
+ --> scripts/main.zeff:4:16
+  |
+4 | p.points(size: 0)
+  |                ^ not a size
+  |
+  = help: write a size such as 3 or 6; without `size:` a point takes the size the plot gives, or is 4.5 across
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+q.points(shape: "cross")
+error[Z0404]: `points` has no argument called `shape`
+ --> scripts/main.zeff:4:10
+  |
+4 | q.points(shape: "cross")
+  |          ^^^^^ unknown argument
+  |
+  = help: usage: `p.points(data: Frame, alpha: Float = 1, size: Float, jitter: Float = 0)`
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, size: hours)
+let q = w.plot(x: educ, y: wage, shape: union)
+p.points(size: hours)
+error[Z0101]: nothing is called `hours` here
+ --> scripts/main.zeff:4:16
+  |
+4 | p.points(size: hours)
+  |                ^^^^^ not a binding

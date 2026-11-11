@@ -17,18 +17,22 @@ over the full data.
 
 A point takes its colour from `color:` of the plot: the colour of its category, its place on
 the ramp, or the one colour set for every mark. Without `color:` it has the colour of the theme.
+In the same way it takes its size from `size:` of the plot, unless the layer has a `size:` of
+its own, and its shape from `shape:` of the plot. Without them it is a circle 4.5 across.
 
 In R with ggplot2 this is `geom_point()`, and with `jitter:` it is `geom_jitter()`. In Stata it
-is `scatter y x`, with its options `jitter()` and `mcolor()`.
+is `scatter y x`, with its options `jitter()`, `mcolor()`, `msize()` and `msymbol()`.
 
 ## Arguments
 - p: The plot to which the layer is added. It must map a variable or an expression to `x`
   and one to `y`.
 - data: A frame for this layer alone, in place of the frame of the plot. It must hold the
   variables the plot maps to `x` and `y`, and those an expression it maps reads, as numbers,
-  and the variable the plot maps to `color:`, of the same kind as in the frame of the plot.
+  and the variables the plot maps to `color:`, `size:` and `shape:`, each of the same kind as
+  in the frame of the plot.
 - alpha: The opacity of a point, from 0, invisible, to 1, solid.
-- size: The diameter of a point, in points of 1/72 inch. Without it a point is 4.5 across.
+- size: The diameter of every point of this layer, in points of 1/72 inch, above 0. It comes
+  before `size:` of the plot. Without either a point is 4.5 across.
 - jitter: How far a point may move, as a share of the smallest gap between two values on its
   axis: 0 for none, and 0.4 for up to 0.4 of the gap either way.
 
@@ -46,6 +50,21 @@ with `NA` in a variable shown as categories is drawn in the grey of the category
 with `NA` or an infinite value of a variable shown on a continuous scale is not drawn, and the
 notes count it with the rows that lack `x` or `y`. A point has no inside of its own, so `fill:`
 of the plot does not change it, and no row is left out for a missing `fill`.
+
+Size. When the plot maps a variable to `size:`, the area of each point is in proportion to the
+value of its row, and the largest value drawn is 18 across. A row with `NA` or an infinite
+value of that variable is not drawn, and neither is a row with a value below 0. A row with a
+value of 0 is kept as a point that cannot be seen. The notes count each kind. A layer with a
+`size:` of its own draws every point at that size and does not read the variable: no row is
+left out for it, and a frame given with `data:` need not hold it.
+
+Shape. When the plot maps a variable to `shape:`, each point has the shape of its category, and
+a row with `NA` is drawn as an asterisk. A string given to `shape:` of the plot is the shape of
+every point. A plus, a cross and an asterisk are made of lines; the other shapes are solid, or
+an outline when the name ends in `_open`.
+
+Group and label. A point is drawn row by row and writes no text, so `group:` and `label:` of the
+plot do not change it, and a frame given with `data:` need not hold them.
 
 Expressions. When the plot maps an expression, as in `y: log(wage)`, a point is drawn at the
 value the expression gives for its row. A layer on the frame of the plot draws the values
@@ -133,7 +152,7 @@ plot · w · wage against educ
   x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
   y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
 
-  aesthetic   title          scale      values    colours
+  aesthetic   title          scale      values    shown as
   color       Union member   category   no, yes   orange, sky blue
 
   layer   mark     data    marks   settings
@@ -147,8 +166,36 @@ plot · w · wage against educ
   x      Years of schooling   linear   10.6 to 19.4        12, 14, 16, 18
   y      Hourly wage          linear   97.874 to 154.986   100, 110, 120, 130, 140, 150
 
-  aesthetic   title   scale      values         colours
+  aesthetic   title   scale      values         shown as
   color       Sex     category   male, female   orange, sky blue
 
   layer   mark     data   marks   settings
       1   points   top       26   size 4.5, alpha 1
+> w.plot(x: educ, y: wage, size: hours, shape: union).points(alpha: 0.2).points(data: top, size: 8)
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale      values      shown as
+  size        Hours worked   sqrt       0 to 69.2   by area, up to 18 across
+  shape       Union member   category   no, yes     circle, triangle
+
+  layer   mark     data    marks   settings
+      1   points   w      18,167   size by hours, shape by union, alpha 0.2
+      2   points   top        26   size 8, shape by union, alpha 1
+note: 245 rows with NA in educ, wage or hours dropped (line 12)
+> w.plot(x: educ, y: wage, size: hours).points(data: top)
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   10.6 to 19.4        12, 14, 16, 18
+  y      Hourly wage          linear   97.874 to 154.986   100, 110, 120, 130, 140, 150
+
+  aesthetic   title          scale   values      shown as
+  size        Hours worked   sqrt    0 to 59.5   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   points   top       26   size by hours, alpha 1
+

@@ -1681,6 +1681,51 @@ fn plot_cases() -> Vec<Line> {
         }
         None => "the wages did not load".to_string(),
     };
+    // Step 20d: a size by area, a shape by categories, the constants of both, a group and a
+    // label, printed as a script draws them, and the scene with its size and shape scales, its
+    // one legend for a variable shown twice and a second layer of a size of its own.
+    let script = "let w = dataset(wages)\nw.plot(x: educ, y: wage, size: exper).points(alpha: 0.3)\nw.plot(x: educ, y: wage, shape: industry).points()\nlet top = w.where(wage > 100)\nw.plot(x: educ, y: wage, color: union, size: hours, shape: union).points(alpha: 0.2).points(data: top, size: 8)\nw.plot(x: educ, y: wage, size: 3, shape: \"diamond_open\", group: worker, label: firm).points()\nw.plot(x: educ, y: wage, shape: \"circle open\")\n";
+    let size_shape = run_script(&fs, &project, "scripts/main.zeff", script);
+    let sized = match zeff_datasets::table("wages") {
+        Some(table) => {
+            let frame = Frame {
+                table: Rc::new(table),
+                name: Some("wages".to_string()),
+            };
+            let mapping = |aesthetic, variable: &str| PlotMapping {
+                aesthetic,
+                variable: variable.to_string(),
+                computed: None,
+            };
+            let layer = |size| PlotLayer {
+                mark: Mark::Points,
+                data: None,
+                alpha: 1.0,
+                size,
+                jitter: 0.0,
+                stream: None,
+                computed: Vec::new(),
+            };
+            let plot = zeff_plot::scene::start(
+                frame,
+                vec![
+                    mapping(Aesthetic::X, "educ"),
+                    mapping(Aesthetic::Y, "wage"),
+                    mapping(Aesthetic::Color, "union"),
+                    mapping(Aesthetic::Size, "exper"),
+                    mapping(Aesthetic::Shape, "union"),
+                    mapping(Aesthetic::Group, "worker"),
+                    mapping(Aesthetic::Label, "firm"),
+                ],
+                Vec::new(),
+            );
+            let plot = zeff_plot::scene::with_layer(&plot, layer(None)).0;
+            zeff_plot::scene::with_layer(&plot, layer(Some(8.0)))
+                .1
+                .to_json()
+        }
+        None => "the wages did not load".to_string(),
+    };
     vec![
         text("plot/points/stdout", &outcome.output.stdout),
         text("plot/points/stderr", &outcome.output.stderr),
@@ -1691,6 +1736,9 @@ fn plot_cases() -> Vec<Line> {
         text("plot/colour/stdout", &colour.output.stdout),
         text("plot/colour/stderr", &colour.output.stderr),
         text("plot/colour/scene.json", &coloured),
+        text("plot/size_shape/stdout", &size_shape.output.stdout),
+        text("plot/size_shape/stderr", &size_shape.output.stderr),
+        text("plot/size_shape/scene.json", &sized),
     ]
 }
 

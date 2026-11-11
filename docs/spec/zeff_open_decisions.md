@@ -170,6 +170,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 113 | The plan of releases after 1.0, every model placed by level, and the names of the model functions | Replace the after-1.0 table of section 14 by 29 releases: basic models first (1.1–1.5), then advanced (1.6–1.17), then research grade (1.18–1.29), and within each level econometrics, psychometrics, machine learning, then the rest; outputs matched against R or Mplus only, with Stata-only methods held in 1.29; one function per kind of model, with about 25 roadmap names merged | decided 11 November 2026 (option A); catalogue and section 14 amended as the first step of 0.8.0 |
 | 112 | The names of the binary models and of the ROC curve before the 1.0 freeze: `glm` and `curve` | At 0.9.0, `glm(y ~ x, family: binomial, link: logit \| probit)` in place of `logistic` and `probit`, and `fit.curve(type: roc)` in place of `fit.roc()`; the work is unchanged, other families, links and curves arrive later as words; answers question 4 of #99 with another name, and leaves its question 3 to the owner | decided 11 November 2026 (option A); applied as the first step of 0.9.0 |
 | 111 | `p_adjust` inside `add`: adjusted p-values as a column, and families with `by:` | `p_adjust` given a column of a frame returns a column, as `rank` does, so that `t.add(p_holm = p_adjust(p))` works and `by:` adjusts each family on its own; given a list it returns a list as now | decided 11 November 2026 (option A); built at step 18c of 0.7.0 |
+| 110 | The sizes and shapes of a plot: where a size starts, the six shapes and their names, sizes of 0 and below, `group` and `label` before a mark reads them, and shapes of equal area | As built at step 20d: (1) a size is laid out by area from 0, the largest value 18 points across; (2) six shapes in a fixed order, `asterisk` for `NA`, names with `_open`, repeating from the seventh category with a note, where F9 of #118 asks for eight (recommended: two more after the six, chosen by the owner, before step 21); (3) a size below 0 is dropped with a note and a size of 0 is kept and drawn with no size, with a note; (4) `group` and `label` are held and printed, and the plot says no layer draws them; (5) from step 21 the shapes of one size are drawn with equal area | 0.7.0, before step 25 |
 | 109 | The colours of a plot: more categories than the palette has colours, a level with no row, and the names of colours | As built at step 20c: (1) the eight colours repeat from the ninth category and a note says so; (2) a level with no row among the marks drawn has no colour and no legend entry; (3) a colour is one of the 148 names of CSS or `#` and hexadecimal digits, R's own names not being accepted | 0.7.0, before step 25 |
 | 108 | A numeric function of `core` given a text or category column | Refuse it when the statement runs, as R and Stata do and as the engine already refuses `log("a")` on one value; until decided `log(industry)` in `add` or in a mapping gives `NA` on every row without a message | 0.8.0 |
 | 107 | What an expression mapped to an aesthetic may call | For 0.7.0 the operators and the row-by-row functions of `core` implemented in the engine, as built at step 20b; the reducers of `data` (`wage - mean(wage)`), the functions of `time` and `text`, and `logit`, `inv_logit`, `clamp` and `fill_missing` are refused with advice to compute the variable with `add` first; widening later breaks no script | decided 11 November 2026 (option A); widening put to the owner again at step 25 |
@@ -1938,6 +1939,61 @@ Raised on 11 November 2026 at step 20c of release 0.7.0, where `color:` and `fil
 | B. Also the 657 names of R's `colors()` | R scripts carry over | Four names differ between the two lists: `gray` and `grey` (`#BEBEBE` in R, `#808080` in CSS), `green` (`#00FF00` and `#008000`), `maroon` (`#B03060` and `#800000`) and `purple` (`#A020F0` and `#800080`); one list must win and the other reader is silently given another colour |
 
 *Recommendation.* A.
+
+Deadline: 0.7.0, before step 25.
+
+### 110. The sizes and shapes of a plot: where a size starts, the shapes and their names, sizes of 0 and below, `group` and `label`, and shapes of equal area
+
+Raised on 11 November 2026 at step 20d of release 0.7.0, where `size:`, `shape:`, `group:` and `label:` of `data.plot(…)` were built. Section 7.6 of the Language Reference names the four aesthetics and the function `scale(color:, fill:, size:, shape:)`; it fixes the default colours and says nothing of the default sizes and shapes. Five things it does not say were met while coding. Each is built in the way recommended below, but for the number of shapes in question 2, and each can be changed before step 25, where the legend is drawn and `scale` is built, without breaking a released script.
+
+**Question 1. Where a scale of sizes starts.** `w.plot(x: educ, y: wage, size: hours)`: `hours` runs from 7 to 69.2.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. From 0, by true area, as built: a mark's area is in proportion to its value, the largest value is 18 points across and a value of 0 has no size | The picture is honest: twice the hours is twice the ink; the rule of ggplot2's `scale_size_area()`, of Stata's weighted markers and of Observable Plot's radius scale | A variable far from 0 (years 1990 to 2020, a temperature in kelvin) gives marks of almost one size; a size of 0 is not seen |
+| B. From the smallest value to the largest, as ggplot2's default `scale_size()`: the smallest value 1 mm across, the largest 6 mm | Differences show whatever the level of the variable | Area no longer means amount: a value twice another may be drawn twenty times as large, which is the distortion a bar chart avoids by starting at zero (section 7.6 fixes that for `bars`) |
+| C. A, with B offered at step 25 as an option of `scale(size:)` | Honest by default, and the other reading is one argument away | One more option to document |
+
+*Recommendation.* C: keep A as the default now and take up the option with `scale` at step 25. The largest size, 18 points, is four times the default point, so the largest mark has sixteen times its area; that figure is the owner's to change.
+
+**Question 2. The shapes, their order and their names.** As built, categories are given circle, triangle, square, diamond, plus and cross in that order; `NA` is an asterisk; a constant is one of those seven names or `circle_open`, `triangle_open`, `square_open`, `diamond_open`. With more than six categories the shapes repeat from the seventh and a note says so. The owner's proposal on graphics capabilities asks at F9 for a fixed order of eight shapes that can be told apart in greyscale; F9 was adopted with open decision #118 on 11 November 2026, which leaves the shapes themselves to this question.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As built | The four shapes with an inside come first, the easiest to tell apart when small; six is what ggplot2 offers too; repeating with a note is the ruling asked for colours in #109, so the two aesthetics behave alike | Beyond six categories two share a shape |
+| B. ggplot2's order (circle, triangle, square, plus, a crossed square, an asterisk) and its names with a space (`"circle open"`) | R users know them | The crossed square is hard to read at 4.5 points; a name of two words in a string is easy to mistype, and Stata writes `circle_hollow`, so no spelling is shared anyway |
+| C. Refuse more than six categories, or drop the categories beyond the sixth with a warning as ggplot2 does | No two categories share a shape | A first look at the data stops, or silently loses rows, for a reason of appearance |
+| D. Eight shapes, as F9 proposes: the six as built in their order, then two more, proposed a triangle on its point (`triangle_down`) and a five-pointed star (`star`) | One shape for each of the eight colours of the palette, so that the redundant encoding the proposal plans (each colour group a shape as well) pairs them one to one; the first six do not change, so nothing built so far changes but the count in the note | The seventh and eighth are the hardest to tell apart at 4.5 points: a triangle on its point from a triangle on its base, a star from an asterisk; the two shapes and their names are still to be chosen |
+
+*Recommendation.* D, because F9 is adopted and asks for eight: the six shapes as built stay the first six, and the two further shapes and their names are the owner's to choose. It is a small `[engine]` step before step 21, which is the first to draw a shape. If the owner prefers six, A stands as built and nothing changes.
+
+**Question 3. A size below 0 and a size of 0.** An area cannot be negative, and an area of 0 cannot be seen.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As built: a row with a size below 0 is dropped and counted in a note ("N rows with `v` below 0 dropped: `size` shows amounts of 0 or more"); a row with 0 is kept, drawn with no size, and counted in a note ("N rows with `v` of 0 are drawn with no size") | Nothing is hidden: the count of points and the notes account for every row; 0 is a true amount and stays in the data of the layer, where a later mark (a label) may still show it | A reader must read the notes to know why a point is not seen |
+| B. Refuse a variable with a negative value for `size` | Says at once that the variable is not an amount | One wrong row stops the plot; a balance or a change is often negative for a few rows only |
+| C. Size by the absolute value | Every row is seen | A loss of 5 looks like a gain of 5, with nothing in the picture to say so |
+
+*Recommendation.* A.
+
+**Question 4. `group` and `label` before a mark reads them.** No mark built so far reads either: `lines` (step 23) reads `group` and `text` (step 24) reads `label`.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As built: each is accepted, checked to be a variable of the frame, held in the plot and printed in the table ("each value a group", "the text of a mark"), with a line saying that no layer draws it; it drops no row and changes nothing in the scene | A plot written today works unchanged when lines and text arrive; the printed plot says plainly what has no effect yet; ggplot2 likewise accepts an aesthetic no layer uses | An argument is accepted that does nothing until step 23 or 24 |
+| B. Refuse them until a mark reads them | Nothing is accepted without effect | The catalogue's row 460 could not be `implemented` as written before step 24, and scripts written between the steps would break |
+
+*Recommendation.* A. The wording of the two lines can be settled when `lines` and `text` are built.
+
+**Question 5. How large a triangle of size 6 is.** A size is the diameter of a circle. For the other shapes the writers of step 21 need a rule.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Equal area, as the comment of the shape module states for step 21: a triangle, a square and a diamond of size s have the area of the circle s points across, and a plus, a cross and an asterisk are s points across | The shapes of one size weigh the same to the eye, so a shape does not suggest an amount, and sizing by area (question 1) holds for every shape; D3 and Observable Plot do this | A triangle of size 6 is wider than 6 points |
+| B. Equal width: every shape fits the square s points across, as R's base graphics nearly do | Simple to state | A square has 27% more ink than a circle of the same size and a triangle much less, so shape and size are confused |
+
+*Recommendation.* A. Nothing is drawn before step 21, so this one must be settled by then or built as A.
 
 Deadline: 0.7.0, before step 25.
 

@@ -1,14 +1,17 @@
 //! `plot` (Language Reference, section 7.6, "Grammar"): the start of a layered plot, a frame
 //! and the variables mapped to its aesthetics.
 //!
-//! At release 0.7.0, step 20c, the aesthetics are the positions `x` and `y` and the colours
-//! `color` and `fill`. A position is a variable of the frame or an expression over it, placed on
-//! a linear scale, so it must come to a Bool, an Int or a Float for each row. A colour is a
-//! variable of the frame, shown as categories or on a continuous scale by its type
+//! A position, `x` or `y`, is a variable of the frame or an expression over it, placed on a
+//! linear scale, so it must come to a Bool, an Int or a Float for each row. A colour, `color` or
+//! `fill`, is a variable of the frame, shown as categories or on a continuous scale by its type
 //! ([`crate::scene::shading`]), or a string naming one colour for every mark
-//! ([`crate::colour::parse`]): a bare name is always a variable, and a string always a constant
-//! (section 3.7, "Resolution by parameter type"). The four other aesthetics join at step 20d,
-//! and the position scales of categories, text and dates with the marks that need them.
+//! ([`crate::colour::parse`]). A `size` is a variable that is an amount, an Int or a Float
+//! without value labels, shown by the area of the mark, or a number, the diameter of every
+//! mark. A `shape` is a variable shown as categories, each with a shape of its own, or a string
+//! naming one shape for every mark ([`crate::shape::parse`]). A bare name is always a variable,
+//! and a string or a number always a constant (section 3.7, "Resolution by parameter type").
+//! `group` and `label` are variables of the frame of any type, held for the marks that read
+//! them. The position scales of categories, text and dates join with the marks that need them.
 
 use zeff_columns::Column;
 use zeff_core::display::format_float;
@@ -21,13 +24,18 @@ use zeff_diagnostics::{Diagnostic, Span};
 
 use crate::colour::{self, NotAColour};
 use crate::mapping::{Asked, computed};
-use crate::scene::{is_numeric, shading, start};
+use crate::scene::{Shading, is_numeric, shading, start};
+use crate::shape;
 
 const DATA: usize = 0;
 const X: usize = 1;
 const Y: usize = 2;
 const COLOR: usize = 3;
 const FILL: usize = 4;
+const SIZE: usize = 5;
+const SHAPE: usize = 6;
+const GROUP: usize = 7;
+const LABEL: usize = 8;
 
 /// Z9001: a body reached in a state the checker rules out.
 pub(crate) fn internal(ctx: &CallContext<'_>, what: &str) -> Fail {
@@ -140,7 +148,51 @@ fn not_a_colour(
     )
 }
 
-/// `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str)`.
+/// Whether a variable carries value labels, which make a number a set of names.
+fn labelled(column: &Column) -> bool {
+    column
+        .metadata()
+        .value_labels()
+        .is_some_and(|labels| !labels.is_empty())
+}
+
+/// Z0401 for a string given to `shape:` that names no shape.
+fn not_a_shape(
+    ctx: &CallContext<'_>,
+    frame: &Frame,
+    written: &str,
+    near: Option<&'static str>,
+) -> Fail {
+    // The string may be the variable the script meant to give shapes by.
+    let help = if frame.table.column(written).is_some() {
+        format!(
+            "a string sets one shape for every mark; to give each category of `{written}` a shape, write it without quotation marks, `shape: {written}`"
+        )
+    } else {
+        match near {
+            Some(near) if near.eq_ignore_ascii_case(written) => {
+                format!("the names of shapes are in small letters: write \"{near}\"")
+            }
+            Some(near) => format!("did you mean \"{near}\"?"),
+            None => {
+                let (last, others) = shape::NAMED.split_last().unwrap_or((&"", &[]));
+                format!("a shape is one of {} and {last}", others.join(", "))
+            }
+        }
+    };
+    fail(
+        Diagnostic::error(
+            "Z0401",
+            format!("`shape:` of `plot` is \"{written}\", which is not the name of a shape"),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.span_of(SHAPE), "not a shape")
+        .help(help),
+    )
+}
+
+/// `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str,
+/// size: Var | Float, shape: Var | Str, group: Var, label: Var)`.
 pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Frame(frame)) = args.get(DATA) else {
         return Err(internal(ctx, "`plot` reached its body without a frame"));
@@ -252,6 +304,140 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 return Err(internal(
                     ctx,
                     "`plot` was given a colour that is not a variable or a string",
+                ));
+            }
+        }
+    }
+    match args.get(SIZE) {
+        None | Some(Value::Na) => {}
+        // A bare name: the variable whose amounts the areas of the marks show.
+        Some(Value::Var(name)) => {
+            let found = column(ctx, &frame, name, ctx.span_of(SIZE))?;
+            if shading(found) != Some(Shading::Ramp) {
+                let with_labels = if is_numeric(found) && labelled(found) {
+                    " with value labels"
+                } else {
+                    ""
+                };
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`plot` shows `size` by area, so `{name}` must be an Int or Float variable without value labels, but it is {}{with_labels}",
+                            a_type(found)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(SIZE), "not an amount")
+                    .help("a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`"),
+                ));
+            }
+            mappings.push(PlotMapping {
+                aesthetic: Aesthetic::Size,
+                variable: name.clone(),
+                computed: None,
+            });
+        }
+        // A number: the diameter of every mark.
+        Some(Value::Int(_) | Value::Float(_)) => {
+            let Some(across) = number_option(ctx, &args, SIZE, "a `size:` that is not a number")?
+            else {
+                return Err(internal(ctx, "a `size:` that is a number and is not"));
+            };
+            if !(across > 0.0 && across.is_finite()) {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`size:` of `plot` is the diameter of every mark in points of 1/72 inch, above 0, but this is {}",
+                            shown(across)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(SIZE), "not a size")
+                    .help("write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point is 4.5 across"),
+                ));
+            }
+            constants.push(PlotConstant {
+                aesthetic: Aesthetic::Size,
+                value: PlotSetting::Size(across),
+            });
+        }
+        Some(_) => {
+            return Err(internal(
+                ctx,
+                "`plot` was given a size that is not a variable or a number",
+            ));
+        }
+    }
+    match args.get(SHAPE) {
+        None | Some(Value::Na) => {}
+        // A bare name: the variable whose categories the shapes show.
+        Some(Value::Var(name)) => {
+            let found = column(ctx, &frame, name, ctx.span_of(SHAPE))?;
+            if shading(found) != Some(Shading::Categories) {
+                let number = shading(found) == Some(Shading::Ramp);
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`plot` gives each category a shape, so `{name}` must be a Bool, Str or Category variable, or a number with value labels, but it is {}{}",
+                            a_type(found),
+                            if number { " without value labels" } else { "" }
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(SHAPE), "not categories")
+                    .help(if number {
+                        format!(
+                            "a shape shows a category; a number is shown by `color:` or `size:`, or made categories first, as in `{}.add({name} = category({name}))`",
+                            frame.shown_name()
+                        )
+                    } else {
+                        format!(
+                            "`{}.describe()` lists the types of the variables",
+                            frame.shown_name()
+                        )
+                    }),
+                ));
+            }
+            mappings.push(PlotMapping {
+                aesthetic: Aesthetic::Shape,
+                variable: name.clone(),
+                computed: None,
+            });
+        }
+        // A string: one shape for every mark.
+        Some(Value::Str(written)) => match shape::parse(written) {
+            Ok(name) => constants.push(PlotConstant {
+                aesthetic: Aesthetic::Shape,
+                value: PlotSetting::Shape(name),
+            }),
+            Err(near) => return Err(not_a_shape(ctx, &frame, written, near)),
+        },
+        Some(_) => {
+            return Err(internal(
+                ctx,
+                "`plot` was given a shape that is not a variable or a string",
+            ));
+        }
+    }
+    // The variables held for the marks that read them: any type will do.
+    for (slot, aesthetic) in [(GROUP, Aesthetic::Group), (LABEL, Aesthetic::Label)] {
+        match args.get(slot) {
+            None | Some(Value::Na) => {}
+            Some(Value::Var(name)) => {
+                column(ctx, &frame, name, ctx.span_of(slot))?;
+                mappings.push(PlotMapping {
+                    aesthetic,
+                    variable: name.clone(),
+                    computed: None,
+                });
+            }
+            Some(_) => {
+                return Err(internal(
+                    ctx,
+                    "`plot` was given a group or a label that is not a variable",
                 ));
             }
         }

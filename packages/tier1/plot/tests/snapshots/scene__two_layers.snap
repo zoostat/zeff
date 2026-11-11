@@ -54,6 +54,7 @@ expression: drawn.to_json()
           "y": [2.0888713839775077, 2.4598464708694134, 3.8410198732472525, 4.405042282329406, 6.169230673303739, 5.841320443383915],
           "color": null,
           "size": 4.5,
+          "shape": "circle",
           "alpha": 1
         },
         {
@@ -62,6 +63,7 @@ expression: drawn.to_json()
           "y": [2.25, 4.15, 6],
           "color": null,
           "size": 8,
+          "shape": "circle",
           "alpha": 0.5
         }
       ]

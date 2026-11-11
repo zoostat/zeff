@@ -54,6 +54,7 @@ expression: drawn.to_json()
           "y": [4.2, 7.8, 12.4, 15.6],
           "color": null,
           "size": 4.5,
+          "shape": "circle",
           "alpha": 1
         }
       ]

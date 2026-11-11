@@ -90,7 +90,7 @@ error[Z0401]: `color` of `plot` must be a Var or Str, but this is an Int
 2 | w.plot(x: educ, y: wage, color: 3)
   |                                 ^ an Int
   |
-  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str)`
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str, size: Var | Float, shape: Var | Str, group: Var, label: Var)`
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage, color: log(exper))
@@ -100,7 +100,7 @@ error[Z0401]: `color` of `plot` must be a Var or Str, but this is a Float
 2 | w.plot(x: educ, y: wage, color: log(exper))
   |                                 ^^^^^^^^^^ a Float
   |
-  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str)`
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str, size: Var | Float, shape: Var | Str, group: Var, label: Var)`
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage, fill: ["red", "blue"])
@@ -110,7 +110,7 @@ error[Z0401]: `fill` of `plot` must be a Var or Str, but this is a List<Str>
 2 | w.plot(x: educ, y: wage, fill: ["red", "blue"])
   |                                ^^^^^^^^^^^^^^^ a List<Str>
   |
-  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str)`
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str, size: Var | Float, shape: Var | Str, group: Var, label: Var)`
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage, color: sex)

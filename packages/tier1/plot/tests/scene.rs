@@ -6,7 +6,9 @@
 //! point by no more than its share of the gap. From step 20b, a position mapped from an
 //! expression: its values are handed to the scene with the plot, so the scene shows them under
 //! the expression as written, and an expression that is one variable gives the scene of that
-//! variable.
+//! variable. From step 20d, the scales of size and shape: a size laid out by area from 0, a
+//! shape for each category, a constant beside a mapping, one legend for a variable, and the
+//! properties that every size and every shape lies on its scale and travels with its mark.
 
 use proptest::prelude::*;
 use serde_json::Value as Json;
@@ -19,9 +21,10 @@ use zeff_core::value::{
 use zeff_numeric::random::Stream;
 use zeff_plot::colour::{NA_COLOUR, OKABE_ITO, parse, ramp_entry};
 use zeff_plot::scene::{
-    POINT_SIZE, Paint, Range, SCENE_VERSION, ScaleKind, Scene, Shading, reads, scene, shading,
-    start, with_layer,
+    LARGEST_SIZE, POINT_SIZE, Paint, Range, SCENE_VERSION, ScaleKind, Scene, Shading, Shaping,
+    Sizing, diameter, layer_reads, reads, scene, shading, start, with_layer,
 };
+use zeff_plot::shape;
 
 fn floats(values: &[Option<f64>]) -> Column {
     Column::floats(values.iter().copied()).0
@@ -512,7 +515,8 @@ fn the_largest_numbers_still_give_finite_axes() {
 fn size_and_alpha_are_carried_to_the_layer() {
     let p = plot(doses(), Some("dose"), Some("response"));
     let (_, plain) = with_layer(&p, points());
-    assert_eq!(plain.panels[0].layers[0].size, POINT_SIZE);
+    assert_eq!(plain.panels[0].layers[0].size, Sizing::Constant(POINT_SIZE));
+    assert_eq!(plain.panels[0].layers[0].shape, Shaping::Constant("circle"));
     assert_eq!(plain.panels[0].layers[0].alpha, 1.0);
     let (_, set) = with_layer(
         &p,
@@ -522,7 +526,7 @@ fn size_and_alpha_are_carried_to_the_layer() {
             ..points()
         },
     );
-    assert_eq!(set.panels[0].layers[0].size, 9.0);
+    assert_eq!(set.panels[0].layers[0].size, Sizing::Constant(9.0));
     assert_eq!(set.panels[0].layers[0].alpha, 0.25);
 }
 
@@ -794,7 +798,7 @@ fn shades(drawn: &Scene, layer: usize) -> &[f64] {
 fn colours<'a>(drawn: &'a Scene, id: &str) -> &'a [&'static str] {
     match &drawn.scale(id).unwrap().range {
         Range::Colours(colours) => colours,
-        Range::Position => panic!("`{id}` is a position"),
+        other => panic!("`{id}` is not a scale of colours: {other:?}"),
     }
 }
 
@@ -1347,6 +1351,761 @@ fn how_each_type_is_shown_as_a_colour() {
     assert!(!reads(Mark::Points, Aesthetic::Fill));
 }
 
+// ----- size, shape, group and label (step 20d) -----
+
+/// `size` set to one diameter for every mark, as `plot` hands it over.
+fn all_sized(across: f64) -> PlotConstant {
+    PlotConstant {
+        aesthetic: Aesthetic::Size,
+        value: PlotSetting::Size(across),
+    }
+}
+
+/// `shape` set to one shape for every mark, as `plot` hands it over.
+fn all_shaped(name: &str) -> PlotConstant {
+    PlotConstant {
+        aesthetic: Aesthetic::Shape,
+        value: PlotSetting::Shape(shape::parse(name).unwrap()),
+    }
+}
+
+/// A frame of `x`, `y`, the text `g` and the number `z`.
+fn with_g_and_z(name: &str, g: &[Option<&str>], z: &[Option<f64>]) -> Frame {
+    let mut columns = positions(g.len());
+    columns.push(("g", texts(g)));
+    columns.push(("z", floats(z)));
+    frame(name, columns)
+}
+
+/// A plot of `frame` with `x` and `y` mapped to its variables of those names, and each of these
+/// aesthetics to the variable named beside it.
+fn plot_of(frame: Frame, more: &[(Aesthetic, &str)], constants: Vec<PlotConstant>) -> Plot {
+    let mut mappings = vec![variable(Aesthetic::X, "x"), variable(Aesthetic::Y, "y")];
+    mappings.extend(
+        more.iter()
+            .map(|(aesthetic, name)| variable(*aesthetic, name)),
+    );
+    start(frame, mappings, constants)
+}
+
+/// A plot of `d`, with `x`, `y`, a `g` of one category and `z`, sized by `z`.
+fn sized_by_z(z: &[Option<f64>]) -> Plot {
+    let g = vec![Some("a"); z.len()];
+    plot_of(
+        with_g_and_z("d", &g, z),
+        &[(Aesthetic::Size, "z")],
+        Vec::new(),
+    )
+}
+
+/// The points of that plot.
+fn by_z(z: &[Option<f64>]) -> Scene {
+    with_layer(&sized_by_z(z), points()).1
+}
+
+/// A plot of `d`, with `x`, `y`, `g` and a `z` of 1 in every row, shaped by `g`.
+fn shaped_by_g(g: &[Option<&str>]) -> Plot {
+    let z = vec![Some(1.0); g.len()];
+    plot_of(
+        with_g_and_z("d", g, &z),
+        &[(Aesthetic::Shape, "g")],
+        Vec::new(),
+    )
+}
+
+/// The value of each mark of a layer on the scale `size`.
+fn sizes(drawn: &Scene, layer: usize) -> &[f64] {
+    match &drawn.panels[0].layers[layer].size {
+        Sizing::Scaled(values) => values,
+        other => panic!("the layer is not sized from a scale: {other:?}"),
+    }
+}
+
+/// The place of each mark of a layer on the scale `shape`.
+fn places(drawn: &Scene, layer: usize) -> &[f64] {
+    match &drawn.panels[0].layers[layer].shape {
+        Shaping::Scaled(values) => values,
+        other => panic!("the layer is not shaped from a scale: {other:?}"),
+    }
+}
+
+/// The shapes of the scale `shape`.
+fn shapes(drawn: &Scene) -> &[&'static str] {
+    match &drawn.scale("shape").unwrap().range {
+        Range::Shapes(names) => names,
+        other => panic!("`shape` is not a scale of shapes: {other:?}"),
+    }
+}
+
+/// A layer of points with a `size:` of its own.
+fn points_of_size(across: f64) -> PlotLayer {
+    PlotLayer {
+        size: Some(across),
+        ..points()
+    }
+}
+
+#[test]
+fn a_size_is_laid_out_by_area() {
+    let range = (0.0, LARGEST_SIZE);
+    let limits = (0.0, 16.0);
+    // The ends of the scale are the ends of the range.
+    assert_eq!(diameter(0.0, limits, range), 0.0);
+    assert_eq!(diameter(16.0, limits, range), 18.0);
+    // A quarter of the value is a quarter of the area, which is half the width, and four times
+    // a value is twice its width.
+    assert_eq!(diameter(4.0, limits, range), 9.0);
+    assert_eq!(diameter(1.0, limits, range), 4.5);
+    assert_eq!(
+        diameter(4.0, limits, range),
+        2.0 * diameter(1.0, limits, range)
+    );
+    // A value outside the limits takes the diameter of the nearer one.
+    assert_eq!(diameter(-3.0, limits, range), 0.0);
+    assert_eq!(diameter(40.0, limits, range), 18.0);
+    // A range that does not begin at 0 is laid out in the same way.
+    assert_eq!(diameter(4.0, limits, (2.0, 10.0)), 6.0);
+    // Limits of one value, limits the wrong way round and a value that is not a number give
+    // the lower end of the range.
+    assert_eq!(diameter(5.0, (5.0, 5.0), (2.0, 10.0)), 2.0);
+    assert_eq!(diameter(5.0, (9.0, 1.0), (2.0, 10.0)), 2.0);
+    assert_eq!(diameter(f64::NAN, limits, (2.0, 10.0)), 2.0);
+    // The largest and the smallest numbers have their place.
+    assert_eq!(diameter(f64::MAX, (0.0, f64::MAX), range), 18.0);
+    assert_eq!(diameter(5e-324, (0.0, 5e-324), range), 18.0);
+    assert_eq!(diameter(-0.0, limits, range).to_bits(), 0.0_f64.to_bits());
+    // The largest mark is four times the default across.
+    assert_eq!(LARGEST_SIZE, 4.0 * POINT_SIZE);
+}
+
+#[test]
+fn the_scene_of_points_sized_by_a_number() {
+    let drawn = by_z(&[
+        Some(4.0),
+        Some(0.0),
+        None,
+        Some(16.0),
+        Some(-1.0),
+        Some(9.0),
+    ]);
+    insta::assert_snapshot!("size_number", drawn.to_json());
+}
+
+#[test]
+fn the_scene_of_points_shaped_by_category() {
+    let p = shaped_by_g(&[Some("b"), Some("a"), None, Some("b"), Some("a")]);
+    insta::assert_snapshot!("shape_category", with_layer(&p, points()).1.to_json());
+}
+
+#[test]
+fn the_scene_of_a_constant_size_and_shape_with_a_group_and_a_label() {
+    let p = plot_of(
+        with_g_and_z(
+            "d",
+            &[Some("b"), Some("a"), None],
+            &[Some(1.0), None, Some(3.0)],
+        ),
+        &[(Aesthetic::Group, "g"), (Aesthetic::Label, "z")],
+        vec![all_sized(6.0), all_shaped("triangle_open")],
+    );
+    insta::assert_snapshot!("size_shape_constant", with_layer(&p, points()).1.to_json());
+}
+
+#[test]
+fn the_scene_of_one_variable_as_colour_and_shape_beside_a_size() {
+    let p = plot_of(
+        with_g_and_z(
+            "d",
+            &[Some("b"), Some("a"), None, Some("b")],
+            &[Some(2.0), Some(8.0), Some(5.0), Some(0.5)],
+        ),
+        &[
+            (Aesthetic::Color, "g"),
+            (Aesthetic::Size, "z"),
+            (Aesthetic::Shape, "g"),
+        ],
+        Vec::new(),
+    );
+    insta::assert_snapshot!("one_legend", with_layer(&p, points()).1.to_json());
+}
+
+#[test]
+fn the_scene_of_a_sized_and_shaped_plot_before_any_layer() {
+    let p = plot_of(
+        with_g_and_z(
+            "d",
+            &[Some("b"), Some("a"), None],
+            &[Some(2.0), None, Some(40.0)],
+        ),
+        &[(Aesthetic::Size, "z"), (Aesthetic::Shape, "g")],
+        Vec::new(),
+    );
+    insta::assert_snapshot!("size_shape_no_layer", scene(&p).to_json());
+}
+
+#[test]
+fn the_json_of_a_sized_and_shaped_scene_reads_back() {
+    let p = plot_of(
+        with_g_and_z(
+            "d",
+            &[Some("b"), Some("a"), None],
+            &[Some(2.0), Some(8.0), Some(5.0)],
+        ),
+        &[(Aesthetic::Size, "z"), (Aesthetic::Shape, "g")],
+        Vec::new(),
+    );
+    let text = with_layer(&p, points()).1.to_json();
+    let json: Json = serde_json::from_str(&text).expect("the scene is JSON");
+    assert_eq!(json["zeff_scene"].as_u64(), Some(u64::from(SCENE_VERSION)));
+    let read = |value: &Json| -> Vec<String> {
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item.as_str().unwrap().to_string())
+            .collect()
+    };
+    // A scale of sizes: the square-root kind, and as its range the two diameters.
+    let size = &json["scales"][2];
+    assert_eq!(size["id"].as_str(), Some("size"));
+    assert_eq!(size["kind"].as_str(), Some("sqrt"));
+    assert_eq!(size["title"].as_str(), Some("z"));
+    assert_eq!(bits(&list(&text, "limits", 2)), bits(&[0.0, 8.0]));
+    assert_eq!(bits(&list(&text, "breaks", 2)), bits(&[2.0, 4.0, 6.0, 8.0]));
+    assert_eq!(read(&size["labels"]), ["2", "4", "6", "8"]);
+    assert_eq!(bits(&list(&text, "range", 0)), bits(&[0.0, 18.0]));
+    // A scale of shapes: one name for each break.
+    let shape = &json["scales"][3];
+    assert_eq!(shape["id"].as_str(), Some("shape"));
+    assert_eq!(shape["kind"].as_str(), Some("category"));
+    assert_eq!(read(&shape["labels"]), ["a", "b", "NA"]);
+    assert_eq!(read(&shape["range"]), ["circle", "triangle", "asterisk"]);
+    // Two variables, two legends.
+    let legends = json["guides"]["legends"].as_array().unwrap();
+    assert_eq!(legends.len(), 2);
+    assert_eq!(read(&legends[0]["scales"]), ["size"]);
+    assert_eq!(read(&legends[1]["scales"]), ["shape"]);
+    // Each mark has its value on each scale.
+    assert_eq!(bits(&list(&text, "size", 0)), bits(&[2.0, 8.0, 5.0]));
+    assert_eq!(bits(&list(&text, "shape", 0)), bits(&[2.0, 1.0, 3.0]));
+    // A constant is the diameter and the name themselves.
+    let p = plot_of(
+        with_g_and_z("d", &[Some("a")], &[Some(1.0)]),
+        &[],
+        vec![all_sized(7.5), all_shaped("square")],
+    );
+    let constant: Json = serde_json::from_str(&with_layer(&p, points()).1.to_json()).unwrap();
+    let layer = &constant["panels"][0]["layers"][0];
+    assert_eq!(layer["size"].as_f64(), Some(7.5));
+    assert_eq!(layer["shape"].as_str(), Some("square"));
+    assert_eq!(constant["scales"].as_array().map(Vec::len), Some(2));
+}
+
+#[test]
+fn the_scale_of_sizes_runs_from_0_to_the_largest_value_drawn() {
+    let drawn = by_z(&[Some(2.0), Some(8.0), Some(5.0)]);
+    let scale = drawn.scale("size").unwrap();
+    assert_eq!(scale.kind, ScaleKind::Sqrt);
+    assert_eq!(scale.kind.name(), "sqrt");
+    assert_eq!(scale.title, "z");
+    assert_eq!(scale.limits, (0.0, 8.0));
+    // A key of no size would show nothing, so the breaks begin above 0.
+    assert_eq!(scale.breaks, [2.0, 4.0, 6.0, 8.0]);
+    assert_eq!(scale.labels, ["2", "4", "6", "8"]);
+    assert_eq!(scale.range, Range::Sizes(0.0, LARGEST_SIZE));
+    assert_eq!(sizes(&drawn, 0), [2.0, 8.0, 5.0]);
+    assert!(drawn.notes.is_empty());
+    assert_eq!(drawn.legends.len(), 1);
+    assert_eq!(drawn.legends[0].title, "z");
+    assert_eq!(drawn.legends[0].scales, ["size"]);
+    assert_eq!(drawn.legends[0].marks, [Mark::Points]);
+    // The smallest value does not move the lower limit: a mark of 5 is drawn with five eighths
+    // of the area of the largest, wherever the values begin.
+    let drawn = by_z(&[Some(5.0), Some(8.0), Some(6.0)]);
+    assert_eq!(drawn.scale("size").unwrap().limits, (0.0, 8.0));
+    // The largest value of a row that is not drawn is not on the scale. Row 2 has no `x`.
+    let mut columns = vec![
+        ("x", floats(&[Some(1.0), None, Some(3.0)])),
+        ("y", numbers(&[1.0, 2.0, 3.0])),
+    ];
+    columns.push(("z", numbers(&[2.0, 800.0, 5.0])));
+    let p = plot_of(frame("d", columns), &[(Aesthetic::Size, "z")], Vec::new());
+    let (_, drawn) = with_layer(&p, points());
+    assert_eq!(drawn.scale("size").unwrap().limits, (0.0, 5.0));
+    assert_eq!(sizes(&drawn, 0), [2.0, 5.0]);
+    assert_eq!(drawn.notes, ["1 row with NA in x, y or z dropped"]);
+    // The label of the variable is the title of the scale and of its legend.
+    let mut columns = positions(2);
+    columns.push((
+        "z",
+        numbers(&[1.0, 2.0]).with_entry(MetadataKey::Label, "Hours a week"),
+    ));
+    let p = plot_of(frame("d", columns), &[(Aesthetic::Size, "z")], Vec::new());
+    let (_, drawn) = with_layer(&p, points());
+    assert_eq!(drawn.scale("size").unwrap().title, "Hours a week");
+    assert_eq!(drawn.legends[0].title, "Hours a week");
+    // Whole numbers are sized as numbers.
+    let mut columns = positions(3);
+    columns.push(("z", Column::ints([Some(3), Some(0), Some(12)])));
+    let p = plot_of(frame("d", columns), &[(Aesthetic::Size, "z")], Vec::new());
+    let (_, drawn) = with_layer(&p, points());
+    assert_eq!(sizes(&drawn, 0), [3.0, 0.0, 12.0]);
+    assert_eq!(drawn.scale("size").unwrap().limits, (0.0, 12.0));
+}
+
+#[test]
+fn a_size_of_zero_is_drawn_and_said() {
+    let drawn = by_z(&[Some(0.0), Some(4.0), Some(0.0)]);
+    assert_eq!(drawn.panels[0].layers[0].x.len(), 3);
+    assert_eq!(sizes(&drawn, 0), [0.0, 4.0, 0.0]);
+    assert_eq!(drawn.notes, ["2 rows with z of 0 are drawn with no size"]);
+    assert_eq!(
+        by_z(&[Some(0.0), Some(4.0)]).notes,
+        ["1 row with z of 0 is drawn with no size"]
+    );
+    // A second layer over the same rows does not say it twice.
+    let (p, _) = with_layer(&sized_by_z(&[Some(0.0), Some(4.0)]), points());
+    let (_, twice) = with_layer(&p, points());
+    assert_eq!(twice.notes, ["1 row with z of 0 is drawn with no size"]);
+    // The zero written with a minus sign is the same zero.
+    let drawn = by_z(&[Some(-0.0), Some(4.0)]);
+    assert_eq!(drawn.panels[0].layers[0].x.len(), 2);
+    assert_eq!(drawn.notes, ["1 row with z of 0 is drawn with no size"]);
+}
+
+#[test]
+fn nothing_above_zero_to_size_gives_the_scale_from_0_to_1() {
+    // Every size 0: the marks are there, and none is seen.
+    let drawn = by_z(&[Some(0.0), Some(0.0)]);
+    let scale = drawn.scale("size").unwrap();
+    assert_eq!(scale.limits, (0.0, 1.0));
+    assert_eq!(scale.breaks, [0.2, 0.4, 0.6, 0.8, 1.0]);
+    assert_eq!(sizes(&drawn, 0), [0.0, 0.0]);
+    assert_eq!(drawn.notes, ["2 rows with z of 0 are drawn with no size"]);
+    // No size at all.
+    let drawn = by_z(&[None, None]);
+    assert_eq!(drawn.scale("size").unwrap().limits, (0.0, 1.0));
+    assert!(sizes(&drawn, 0).is_empty());
+    assert_eq!(drawn.notes, ["2 rows with NA in x, y or z dropped"]);
+    // No row.
+    let drawn = by_z(&[]);
+    assert_eq!(drawn.scale("size").unwrap().limits, (0.0, 1.0));
+    assert!(drawn.notes.is_empty());
+    // Every size below 0.
+    let drawn = by_z(&[Some(-2.0), Some(-1.0)]);
+    assert_eq!(drawn.scale("size").unwrap().limits, (0.0, 1.0));
+    assert!(sizes(&drawn, 0).is_empty());
+    // One value: the scale still begins at 0, so the one mark is the largest.
+    let drawn = by_z(&[Some(3.0)]);
+    let scale = drawn.scale("size").unwrap();
+    assert_eq!(scale.limits, (0.0, 3.0));
+    assert_eq!(
+        diameter(3.0, scale.limits, (0.0, LARGEST_SIZE)),
+        LARGEST_SIZE
+    );
+}
+
+#[test]
+fn a_row_without_a_size_or_with_one_below_0_is_not_drawn_and_is_counted() {
+    let drawn = by_z(&[
+        Some(4.0),
+        None,
+        Some(f64::INFINITY),
+        Some(-1.0),
+        Some(-0.5),
+        Some(9.0),
+        Some(f64::NEG_INFINITY),
+    ]);
+    let layer = &drawn.panels[0].layers[0];
+    assert_eq!(layer.x, [1.0, 6.0]);
+    assert_eq!(layer.y, [10.0, 15.0]);
+    assert_eq!(sizes(&drawn, 0), [4.0, 9.0]);
+    assert_eq!(
+        drawn.notes,
+        [
+            "1 row with NA in x, y or z dropped",
+            "2 rows with an infinite value in x, y or z dropped",
+            "2 rows with z below 0 dropped: `size` shows amounts of 0 or more",
+        ]
+    );
+    assert_eq!(drawn.scale("size").unwrap().limits, (0.0, 9.0));
+    // The axes show the marks that are drawn.
+    assert_eq!(drawn.scale("x").unwrap().limits, (0.75, 6.25));
+    // Before a layer reads the sizes no row is dropped, and the scale shows what the frame
+    // holds.
+    let before = scene(&sized_by_z(&[Some(4.0), None, Some(-1.0), Some(9.0)]));
+    assert!(before.notes.is_empty());
+    assert!(before.legends.is_empty());
+    assert_eq!(before.scale("size").unwrap().limits, (0.0, 9.0));
+}
+
+#[test]
+fn more_categories_than_shapes_repeat_them_and_say_so() {
+    let names: Vec<String> = (0..8).map(|i| format!("k{i}")).collect();
+    let cells: Vec<Option<&str>> = names.iter().map(|n| Some(n.as_str())).collect();
+    let p = shaped_by_g(&cells);
+    // Before a layer reads the shapes there is nothing to say of them.
+    let before = scene(&p);
+    assert_eq!(before.scale("shape").unwrap().labels.len(), 8);
+    assert!(before.notes.is_empty());
+    let (_, drawn) = with_layer(&p, points());
+    assert_eq!(
+        shapes(&drawn),
+        [
+            "circle", "triangle", "square", "diamond", "plus", "cross", "circle", "triangle"
+        ]
+    );
+    assert_eq!(places(&drawn, 0), [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+    assert_eq!(
+        drawn.notes,
+        [
+            "`g` has 8 categories and there are 6 shapes, so the shapes repeat from the seventh category"
+        ]
+    );
+    // A second layer does not say it twice.
+    let (_, twice) = with_layer(&with_layer(&p, points()).0, points());
+    assert_eq!(twice.notes, drawn.notes);
+    // Six categories and `NA` need no shape twice: `NA` has its own, which comes last.
+    let mut six: Vec<Option<&str>> = cells[..6].to_vec();
+    six.insert(2, None);
+    let (_, drawn) = with_layer(&shaped_by_g(&six), points());
+    assert_eq!(
+        shapes(&drawn),
+        [
+            "circle", "triangle", "square", "diamond", "plus", "cross", "asterisk"
+        ]
+    );
+    assert_eq!(drawn.scale("shape").unwrap().labels[6], "NA");
+    assert_eq!(places(&drawn, 0), [1.0, 2.0, 7.0, 3.0, 4.0, 5.0, 6.0]);
+    // No row is dropped for having no category.
+    assert_eq!(drawn.panels[0].layers[0].x.len(), 7);
+    assert!(drawn.notes.is_empty());
+}
+
+#[test]
+fn a_shape_is_given_to_each_kind_of_category() {
+    // Text in the order of its values, a Category in the order of its levels with the levels
+    // that have no row left out, truth values false first, and labelled numbers by their labels.
+    let shaped = |g: Column| {
+        let p = plot_of(with_g(g), &[(Aesthetic::Shape, "g")], Vec::new());
+        with_layer(&p, points()).1
+    };
+    let drawn = shaped(texts(&[Some("pear"), Some("apple"), Some("pear")]));
+    let scale = drawn.scale("shape").unwrap();
+    assert_eq!(scale.kind, ScaleKind::Category);
+    assert_eq!(scale.labels, ["apple", "pear"]);
+    assert_eq!(scale.limits, (1.0, 2.0));
+    assert_eq!(scale.breaks, [1.0, 2.0]);
+    assert_eq!(shapes(&drawn), ["circle", "triangle"]);
+    assert_eq!(places(&drawn, 0), [2.0, 1.0, 2.0]);
+    let drawn = shaped(levels(
+        &["low", "middle", "high"],
+        &[Some(2), Some(0), Some(2)],
+    ));
+    assert_eq!(drawn.scale("shape").unwrap().labels, ["low", "high"]);
+    assert_eq!(shapes(&drawn), ["circle", "triangle"]);
+    let drawn = shaped(Column::bools([Some(true), Some(false), None]));
+    assert_eq!(
+        drawn.scale("shape").unwrap().labels,
+        ["false", "true", "NA"]
+    );
+    assert_eq!(shapes(&drawn), ["circle", "triangle", "asterisk"]);
+    assert_eq!(places(&drawn, 0), [2.0, 1.0, 3.0]);
+    let drawn = shaped(labelled(
+        &[Some(1), Some(0), Some(1)],
+        &[("0", "no"), ("1", "yes")],
+    ));
+    assert_eq!(drawn.scale("shape").unwrap().labels, ["no", "yes"]);
+    assert_eq!(places(&drawn, 0), [2.0, 1.0, 2.0]);
+    assert_eq!(drawn.legends.len(), 1);
+    assert_eq!(drawn.legends[0].scales, ["shape"]);
+}
+
+#[test]
+fn a_constant_stands_beside_a_mapping() {
+    let g = [Some("b"), Some("a"), Some("b")];
+    let z = [Some(2.0), Some(8.0), Some(5.0)];
+    // One size for every mark, and a shape for each category.
+    let p = plot_of(
+        with_g_and_z("d", &g, &z),
+        &[(Aesthetic::Shape, "g")],
+        vec![all_sized(6.0)],
+    );
+    let (_, drawn) = with_layer(&p, points());
+    assert_eq!(drawn.panels[0].layers[0].size, Sizing::Constant(6.0));
+    assert_eq!(places(&drawn, 0), [2.0, 1.0, 2.0]);
+    assert!(drawn.scale("size").is_none());
+    assert_eq!(drawn.legends.len(), 1);
+    // One shape for every mark, a size for each value, and one colour.
+    let p = plot_of(
+        with_g_and_z("d", &g, &z),
+        &[(Aesthetic::Size, "z")],
+        vec![all_shaped("diamond_open"), set(Aesthetic::Color, "tomato")],
+    );
+    let (_, drawn) = with_layer(&p, points());
+    let layer = &drawn.panels[0].layers[0];
+    assert_eq!(layer.shape, Shaping::Constant("diamond_open"));
+    assert_eq!(layer.color, Paint::Constant("#FF6347".to_string()));
+    assert_eq!(sizes(&drawn, 0), [2.0, 8.0, 5.0]);
+    assert!(drawn.scale("shape").is_none());
+    assert_eq!(drawn.legends.len(), 1);
+    assert_eq!(drawn.legends[0].scales, ["size"]);
+    // Both constants: no scale but the positions, and no legend.
+    let p = plot_of(
+        with_g_and_z("d", &g, &z),
+        &[],
+        vec![all_sized(2.0), all_shaped("plus")],
+    );
+    let (_, drawn) = with_layer(&p, points());
+    let layer = &drawn.panels[0].layers[0];
+    assert_eq!(layer.size, Sizing::Constant(2.0));
+    assert_eq!(layer.shape, Shaping::Constant("plus"));
+    assert_eq!(drawn.scales.len(), 2);
+    assert!(drawn.legends.is_empty());
+    // Without either, a point is the default across and a circle.
+    let (_, drawn) = with_layer(
+        &plot_of(with_g_and_z("d", &g, &z), &[], Vec::new()),
+        points(),
+    );
+    let layer = &drawn.panels[0].layers[0];
+    assert_eq!(layer.size, Sizing::Constant(POINT_SIZE));
+    assert_eq!(layer.shape, Shaping::Constant("circle"));
+}
+
+#[test]
+fn the_size_of_a_layer_takes_the_place_of_the_size_of_the_plot() {
+    // Over a constant.
+    let g = [Some("a"), Some("a"), Some("a"), Some("a")];
+    let z = [Some(4.0), None, Some(-1.0), Some(0.0)];
+    let p = plot_of(with_g_and_z("d", &g, &z), &[], vec![all_sized(6.0)]);
+    let (_, drawn) = with_layer(&p, points_of_size(3.0));
+    assert_eq!(drawn.panels[0].layers[0].size, Sizing::Constant(3.0));
+    // Over a mapping: the layer does not read the sizes, so no row is dropped for its size,
+    // nothing is said of them and there is no legend; the scale shows what the frame holds.
+    let p = sized_by_z(&z);
+    let (with_own, drawn) = with_layer(&p, points_of_size(3.0));
+    let layer = &drawn.panels[0].layers[0];
+    assert_eq!(layer.size, Sizing::Constant(3.0));
+    assert_eq!(layer.x.len(), 4);
+    assert!(drawn.notes.is_empty());
+    assert!(drawn.legends.is_empty());
+    assert_eq!(drawn.scale("size").unwrap().limits, (0.0, 4.0));
+    // A second layer without a size of its own reads them, and has the legend to itself.
+    let (_, both) = with_layer(&with_own, points());
+    assert_eq!(both.panels[0].layers[0].size, Sizing::Constant(3.0));
+    assert_eq!(both.panels[0].layers[0].x.len(), 4);
+    assert_eq!(sizes(&both, 1), [4.0, 0.0]);
+    assert_eq!(both.legends.len(), 1);
+    assert_eq!(both.legends[0].marks, [Mark::Points]);
+    assert_eq!(
+        both.notes,
+        [
+            "1 row with NA in x, y or z dropped",
+            "1 row with z below 0 dropped: `size` shows amounts of 0 or more",
+            "1 row with z of 0 is drawn with no size",
+        ]
+    );
+    // What a layer reads of the plot.
+    assert!(reads(Mark::Points, Aesthetic::Size));
+    assert!(reads(Mark::Points, Aesthetic::Shape));
+    assert!(!reads(Mark::Points, Aesthetic::Group));
+    assert!(!reads(Mark::Points, Aesthetic::Label));
+    assert!(layer_reads(&points(), Aesthetic::Size));
+    assert!(!layer_reads(&points_of_size(3.0), Aesthetic::Size));
+    assert!(layer_reads(&points_of_size(3.0), Aesthetic::Shape));
+    assert!(layer_reads(&points_of_size(3.0), Aesthetic::Color));
+    assert!(!layer_reads(&points(), Aesthetic::Fill));
+    assert!(!layer_reads(&points(), Aesthetic::Group));
+    assert!(!layer_reads(&points(), Aesthetic::Label));
+}
+
+#[test]
+fn a_layer_with_its_own_frame_is_sized_and_shaped_on_the_scales_of_the_plot() {
+    let p = plot_of(
+        with_g_and_z(
+            "d",
+            &[Some("b"), Some("a"), Some("b")],
+            &[Some(2.0), Some(8.0), Some(5.0)],
+        ),
+        &[(Aesthetic::Size, "z"), (Aesthetic::Shape, "g")],
+        Vec::new(),
+    );
+    let (p, _) = with_layer(&p, points());
+    let other = with_g_and_z(
+        "e",
+        &[Some("c"), None, Some("a")],
+        &[Some(100.0), Some(1.0), Some(0.0)],
+    );
+    let (_, drawn) = with_layer(&p, own(other));
+    // One scale of sizes for both layers, to the largest value either draws.
+    let size = drawn.scale("size").unwrap();
+    assert_eq!(size.limits, (0.0, 100.0));
+    assert_eq!(size.breaks, [20.0, 40.0, 60.0, 80.0, 100.0]);
+    assert_eq!(sizes(&drawn, 0), [2.0, 8.0, 5.0]);
+    assert_eq!(sizes(&drawn, 1), [100.0, 1.0, 0.0]);
+    // The categories of the plot's frame first, then the one only the layer's frame has, and
+    // `NA` last.
+    assert_eq!(drawn.scale("shape").unwrap().labels, ["a", "b", "c", "NA"]);
+    assert_eq!(shapes(&drawn), ["circle", "triangle", "square", "asterisk"]);
+    assert_eq!(places(&drawn, 0), [2.0, 1.0, 2.0]);
+    assert_eq!(places(&drawn, 1), [3.0, 4.0, 1.0]);
+    assert_eq!(drawn.notes, ["1 row with z of 0 is drawn with no size"]);
+    assert_eq!(drawn.legends.len(), 2);
+}
+
+#[test]
+fn a_size_by_categories_and_a_shape_by_numbers_give_no_scale() {
+    // `plot` refuses both; a plot built without it draws the marks as if nothing were said.
+    let p = plot_of(
+        with_g_and_z(
+            "d",
+            &[Some("b"), None, Some("a")],
+            &[Some(2.0), Some(-8.0), None],
+        ),
+        &[(Aesthetic::Size, "g"), (Aesthetic::Shape, "z")],
+        Vec::new(),
+    );
+    let (_, drawn) = with_layer(&p, points());
+    assert_eq!(drawn.scales.len(), 2);
+    assert!(drawn.legends.is_empty());
+    assert!(drawn.notes.is_empty());
+    let layer = &drawn.panels[0].layers[0];
+    assert_eq!(layer.x.len(), 3);
+    assert_eq!(layer.size, Sizing::Constant(POINT_SIZE));
+    assert_eq!(layer.shape, Shaping::Constant("circle"));
+    // A date is neither an amount nor a category.
+    let mut columns = positions(2);
+    columns.push(("g", Column::dates([Some(0), Some(1)])));
+    let p = plot_of(
+        frame("d", columns),
+        &[(Aesthetic::Size, "g"), (Aesthetic::Shape, "g")],
+        Vec::new(),
+    );
+    assert_eq!(with_layer(&p, points()).1.scales.len(), 2);
+}
+
+#[test]
+fn one_variable_has_one_legend() {
+    let frame = || {
+        with_g_and_z(
+            "d",
+            &[Some("b"), Some("a"), None, Some("b")],
+            &[Some(2.0), Some(8.0), Some(5.0), Some(0.5)],
+        )
+    };
+    let legends = |more: &[(Aesthetic, &str)]| {
+        let (_, drawn) = with_layer(&plot_of(frame(), more, Vec::new()), points());
+        drawn
+            .legends
+            .iter()
+            .map(|legend| (legend.title.clone(), legend.scales.clone()))
+            .collect::<Vec<_>>()
+    };
+    // The colour and the shape of one variable are read from one legend, whatever the order
+    // they are written in: the scales keep the order color, fill, size, shape.
+    assert_eq!(
+        legends(&[(Aesthetic::Shape, "g"), (Aesthetic::Color, "g")]),
+        [("g".to_string(), vec!["color", "shape"])]
+    );
+    // And so are the colour and the size of one number.
+    assert_eq!(
+        legends(&[(Aesthetic::Color, "z"), (Aesthetic::Size, "z")]),
+        [("z".to_string(), vec!["color", "size"])]
+    );
+    // Two variables, two legends, in the order of their first scale.
+    assert_eq!(
+        legends(&[
+            (Aesthetic::Shape, "g"),
+            (Aesthetic::Size, "z"),
+            (Aesthetic::Color, "g"),
+        ]),
+        [
+            ("g".to_string(), vec!["color", "shape"]),
+            ("z".to_string(), vec!["size"]),
+        ]
+    );
+    assert_eq!(
+        legends(&[(Aesthetic::Color, "z"), (Aesthetic::Shape, "g")]),
+        [
+            ("z".to_string(), vec!["color"]),
+            ("g".to_string(), vec!["shape"]),
+        ]
+    );
+    // A scale no layer reads is in no legend: the fill of `g` is not shown beside its shape.
+    assert_eq!(
+        legends(&[(Aesthetic::Fill, "g"), (Aesthetic::Shape, "g")]),
+        [("g".to_string(), vec!["shape"])]
+    );
+    // The scales are in one order whatever the order they are written in.
+    let (_, drawn) = with_layer(
+        &plot_of(
+            frame(),
+            &[
+                (Aesthetic::Shape, "g"),
+                (Aesthetic::Size, "z"),
+                (Aesthetic::Fill, "g"),
+                (Aesthetic::Color, "z"),
+            ],
+            Vec::new(),
+        ),
+        points(),
+    );
+    let ids: Vec<&str> = drawn.scales.iter().map(|s| s.id).collect();
+    assert_eq!(ids, ["x", "y", "color", "fill", "size", "shape"]);
+    // A layer with a size of its own leaves the legend of `z` to its colour.
+    let p = plot_of(
+        frame(),
+        &[(Aesthetic::Color, "z"), (Aesthetic::Size, "z")],
+        Vec::new(),
+    );
+    let (_, drawn) = with_layer(&p, points_of_size(3.0));
+    assert_eq!(drawn.legends.len(), 1);
+    assert_eq!(drawn.legends[0].scales, ["color"]);
+}
+
+#[test]
+fn group_and_label_are_kept_with_the_plot_and_no_point_reads_them() {
+    let g = [Some("b"), None, Some("a")];
+    let z = [Some(2.0), None, Some(f64::INFINITY)];
+    let p = plot_of(
+        with_g_and_z("d", &g, &z),
+        &[(Aesthetic::Group, "z"), (Aesthetic::Label, "g")],
+        Vec::new(),
+    );
+    assert_eq!(p.mapped(Aesthetic::Group), Some("z"));
+    assert_eq!(p.mapped(Aesthetic::Label), Some("g"));
+    let (_, drawn) = with_layer(&p, points());
+    let (_, plain) = with_layer(
+        &plot_of(with_g_and_z("d", &g, &z), &[], Vec::new()),
+        points(),
+    );
+    // No scale, no legend, and no row dropped for a group or a label that is not there: the
+    // scene is the one of the plot without them.
+    assert_eq!(drawn, plain);
+    assert_eq!(drawn.panels[0].layers[0].x.len(), 3);
+    assert!(drawn.notes.is_empty());
+}
+
+#[test]
+fn jitter_moves_the_points_and_leaves_their_sizes_and_shapes() {
+    let p = plot_of(
+        with_g_and_z(
+            "d",
+            &[Some("b"), Some("a"), None, Some("b")],
+            &[Some(2.0), Some(8.0), Some(5.0), Some(0.5)],
+        ),
+        &[(Aesthetic::Size, "z"), (Aesthetic::Shape, "g")],
+        Vec::new(),
+    );
+    let (_, still) = with_layer(&p, points());
+    let (_, moved) = with_layer(&p, jittered(0.4, 11));
+    assert_ne!(moved.panels[0].layers[0].x, still.panels[0].layers[0].x);
+    assert_eq!(sizes(&moved, 0), sizes(&still, 0));
+    assert_eq!(places(&moved, 0), places(&still, 0));
+    assert_eq!(moved.scale("size"), still.scale("size"));
+    assert_eq!(moved.scale("shape"), still.scale("shape"));
+}
+
 // ----- the properties -----
 
 fn property_cases(usual: u32) -> u32 {
@@ -1590,6 +2349,178 @@ proptest! {
             prop_assert_eq!(ramp_entry(least, lo, hi, 256), 0);
             prop_assert_eq!(ramp_entry(most, lo, hi, 256), 255);
         }
+    }
+
+    /// Step 20d: a sized and shaped plot gives the same scene however often it is derived, the
+    /// scene is JSON, and jitter leaves the size and the shape of a point.
+    #[test]
+    fn the_same_data_give_the_same_sized_and_shaped_scene(
+        rows in painted_rows(), share in 0.0f64..1.0, seed in 0u64..1000
+    ) {
+        let build = || {
+            let p = plot_of(
+                painted_frame(&rows),
+                &[(Aesthetic::Size, "z"), (Aesthetic::Shape, "g")],
+                Vec::new(),
+            );
+            let (p, _) = with_layer(&p, points());
+            with_layer(&p, jittered(share, seed))
+        };
+        let (first_plot, first) = build();
+        let (_, second) = build();
+        prop_assert_eq!(first.to_json(), second.to_json());
+        prop_assert_eq!(scene(&first_plot).to_json(), first.to_json());
+        let read: Result<Json, _> = serde_json::from_str(&first.to_json());
+        prop_assert!(read.is_ok(), "{}", first.to_json());
+        prop_assert_eq!(bits(sizes(&first, 0)), bits(sizes(&first, 1)));
+        prop_assert_eq!(places(&first, 0), places(&first, 1));
+    }
+
+    /// Step 20d: reordering the rows reorders the marks, each with its size and its shape, and
+    /// changes nothing else: neither scale depends on which row comes first.
+    #[test]
+    fn reordering_the_rows_carries_each_size_and_shape_with_its_mark(
+        (rows, shuffled) in painted_rows()
+            .prop_flat_map(|rows| (Just(rows.clone()), Just(rows).prop_shuffle())),
+    ) {
+        let build = |rows: &[Painted]| {
+            plot_of(
+                painted_frame(rows),
+                &[(Aesthetic::Size, "z"), (Aesthetic::Shape, "g")],
+                Vec::new(),
+            )
+        };
+        let a = with_layer(&build(&rows), points()).1;
+        let b = with_layer(&build(&shuffled), points()).1;
+        prop_assert_eq!(&a.scales, &b.scales);
+        prop_assert_eq!(&a.legends, &b.legends);
+        prop_assert_eq!(&a.notes, &b.notes);
+        let marks = |s: &Scene| {
+            let l = &s.panels[0].layers[0];
+            let (size, place) = (sizes(s, 0), places(s, 0));
+            assert_eq!((size.len(), place.len()), (l.x.len(), l.x.len()));
+            let mut all: Vec<(u64, u64, u64, u64)> = (0..l.x.len())
+                .map(|i| (l.x[i].to_bits(), l.y[i].to_bits(), size[i].to_bits(), place[i].to_bits()))
+                .collect();
+            all.sort_unstable();
+            all
+        };
+        prop_assert_eq!(marks(&a), marks(&b));
+        // Everything of the scene but the lists of marks is the same text.
+        let without_marks = |s: &Scene| -> String {
+            s.to_json()
+                .lines()
+                .filter(|l| {
+                    let l = l.trim_start();
+                    !["\"x\": [", "\"y\": [", "\"size\": [", "\"shape\": ["]
+                        .iter()
+                        .any(|opening| l.starts_with(opening))
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        prop_assert_eq!(without_marks(&a), without_marks(&b));
+        // And before any layer the scene is the same text.
+        prop_assert_eq!(scene(&build(&rows)).to_json(), scene(&build(&shuffled)).to_json());
+    }
+
+    /// Step 20d: every mark has a size on the scale of sizes, which runs from 0 to the largest
+    /// value drawn, and is given a diameter from 0 to the largest; a row is dropped for its size
+    /// when that is `NA`, infinite or below 0. And every mark has a place on the scale of
+    /// shapes, with the shape of its category; no row is dropped for its category.
+    #[test]
+    fn every_size_and_every_shape_lies_on_its_scale(rows in painted_rows()) {
+        let complete = |r: &Painted| matches!((r.0, r.1), (Some(a), Some(b)) if a.is_finite() && b.is_finite());
+        // Sizes.
+        let p = plot_of(painted_frame(&rows), &[(Aesthetic::Size, "z")], Vec::new());
+        let drawn = with_layer(&p, points()).1;
+        let s = drawn.scale("size").unwrap();
+        let (lo, hi) = s.limits;
+        prop_assert_eq!(s.kind, ScaleKind::Sqrt);
+        prop_assert_eq!(&s.range, &Range::Sizes(0.0, LARGEST_SIZE));
+        prop_assert!(lo.to_bits() == 0.0_f64.to_bits() && hi.is_finite() && hi > 0.0, "{:?}", s);
+        prop_assert!(!s.breaks.is_empty() && s.breaks.len() <= 50, "{:?}", s);
+        prop_assert!(s.breaks.iter().all(|b| 0.0 < *b && *b <= hi), "{:?}", s);
+        prop_assert!(s.breaks.windows(2).all(|w| w[0] < w[1]), "{:?}", s);
+        prop_assert_eq!(s.labels.len(), s.breaks.len());
+        let kept: Vec<f64> = rows
+            .iter()
+            .filter(|r| complete(r))
+            .filter_map(|r| r.3.filter(|z| z.is_finite() && *z >= 0.0))
+            .collect();
+        prop_assert_eq!(bits(sizes(&drawn, 0)), bits(&kept));
+        prop_assert_eq!(drawn.panels[0].layers[0].x.len(), kept.len());
+        let most = kept.iter().copied().fold(0.0, f64::max);
+        if most > 0.0 {
+            prop_assert_eq!(hi, most);
+        } else if !kept.is_empty() {
+            prop_assert_eq!(hi, 1.0);
+        }
+        for z in &kept {
+            let across = diameter(*z, s.limits, (0.0, LARGEST_SIZE));
+            prop_assert!((0.0..=LARGEST_SIZE).contains(&across), "{z} is {across} across: {:?}", s);
+            // A value of 0 has no size; a value so far below the largest that its share cannot
+            // be told from 0 has none either.
+            prop_assert!(*z != 0.0 || across == 0.0, "{z} is {across} across: {:?}", s);
+            prop_assert!(across > 0.0 || z / hi < 1e-300, "{z} is {across} across: {:?}", s);
+            // The area is in proportion to the value, to within the rounding of the root.
+            let share = (across / LARGEST_SIZE) * (across / LARGEST_SIZE);
+            prop_assert!((share - z / hi).abs() <= 1e-12, "{z} has the share {share}: {:?}", s);
+        }
+        if most > 0.0 {
+            prop_assert_eq!(diameter(most, s.limits, (0.0, LARGEST_SIZE)), LARGEST_SIZE);
+        }
+        // A larger value is never drawn smaller.
+        let mut sorted = kept.clone();
+        sorted.sort_by(f64::total_cmp);
+        let across = |z: f64| diameter(z, s.limits, (0.0, LARGEST_SIZE));
+        let in_order = sorted.windows(2).all(|w| across(w[0]) <= across(w[1]));
+        prop_assert!(in_order, "a larger value is drawn smaller: {:?}", s);
+        // The rows counted in the notes and the marks drawn are all the rows.
+        let counted = |text: &str| -> usize {
+            drawn
+                .notes
+                .iter()
+                .filter(|note| note.contains(text))
+                .map(|note| note.split(' ').next().unwrap().replace(',', "").parse::<usize>().unwrap())
+                .sum()
+        };
+        prop_assert_eq!(
+            kept.len() + counted("with NA in") + counted("with an infinite value in") + counted("below 0 dropped"),
+            rows.len()
+        );
+        prop_assert_eq!(counted("drawn with no size"), kept.iter().filter(|z| **z == 0.0).count());
+        // Shapes.
+        let p = plot_of(painted_frame(&rows), &[(Aesthetic::Shape, "g")], Vec::new());
+        let drawn = with_layer(&p, points()).1;
+        let s = drawn.scale("shape").unwrap();
+        let total = s.breaks.len();
+        prop_assert_eq!(s.kind, ScaleKind::Category);
+        prop_assert_eq!(s.labels.len(), total);
+        prop_assert_eq!(shapes(&drawn).len(), total);
+        prop_assert_eq!(s.limits, (1.0, total.max(1) as f64));
+        prop_assert!(s.breaks.iter().enumerate().all(|(i, b)| *b == (i + 1) as f64), "{:?}", s);
+        let kept: Vec<&Painted> = rows.iter().filter(|r| complete(r)).collect();
+        let place = places(&drawn, 0);
+        prop_assert_eq!(place.len(), kept.len());
+        prop_assert_eq!(drawn.panels[0].layers[0].x.len(), kept.len());
+        for (value, row) in place.iter().zip(&kept) {
+            let at = *value as usize;
+            prop_assert!(at >= 1 && at <= total && at as f64 == *value, "{value} {:?}", s);
+            let label = row.2.map_or("NA".to_string(), |k| format!("k{k:02}"));
+            prop_assert_eq!(&s.labels[at - 1], &label);
+            let expected = if row.2.is_some() { shape::PALETTE[(at - 1) % 6] } else { shape::NA_SHAPE };
+            prop_assert_eq!(shapes(&drawn)[at - 1], expected);
+        }
+        if !kept.is_empty() {
+            for at in 1..=total {
+                prop_assert!(place.contains(&(at as f64)), "no mark at {at}: {:?}", s);
+            }
+        }
+        prop_assert!(s.labels.iter().enumerate().all(|(i, l)| !s.labels[..i].contains(l)), "{:?}", s);
+        // The shapes repeat, and the scene says so, when there are more than six categories.
+        let named = total - usize::from(s.labels.last().is_some_and(|l| l == "NA"));
+        prop_assert_eq!(drawn.notes.iter().any(|note| note.contains("shapes repeat")), named > 6);
     }
 
     #[test]

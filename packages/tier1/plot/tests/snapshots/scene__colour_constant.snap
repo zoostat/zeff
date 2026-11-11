@@ -63,6 +63,7 @@ expression: drawn.to_json()
           "y": [10, 11, 12],
           "color": "#4682B4",
           "size": 4.5,
+          "shape": "circle",
           "alpha": 1
         }
       ]

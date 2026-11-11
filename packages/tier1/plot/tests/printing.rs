@@ -3,7 +3,9 @@
 //! notes of the rows not drawn and of the seed; jitter repeated under a seed; and a snapshot of
 //! every message. From step 20b, a position mapped from an expression (`y: log(wage)`): what it
 //! prints against R's values, the names it reads, the layers that compute it on their own
-//! frame, its edge cases and its messages.
+//! frame, its edge cases and its messages. From step 20c, colour and fill; from step 20d, size,
+//! shape, group and label: what a sized and shaped plot prints against R's counts, the edge
+//! cases, and a snapshot of every message.
 
 use zeff_testkit::run;
 
@@ -476,7 +478,7 @@ fn a_coloured_plot_reads_sensibly_as_text() {
         "  color               constant   every mark   steelblue\n",
         "  color       Potential labour-market experience: age less schooling less six   linear     0 to 36\n",
         "  fill                                                                          constant   every mark\n",
-        "  colours\n  viridis, dark purple to yellow\n  #48b\n",
+        "  shown as\n  viridis, dark purple to yellow\n  #48b\n",
         "no layer draws `fill`: `points` takes its colour from `color`\n",
         "      1   points   w      18,179   size 4.5, alpha 0.3\n",
         "note: 233 rows with NA in educ, wage or exper dropped (line 5)\n",
@@ -590,4 +592,213 @@ fn a_layer_is_asked_only_for_what_its_mark_reads() {
         "{stdout}"
     );
     assert_eq!(stderr, "");
+}
+
+// ----- size, shape, group and label (step 20d) -----
+
+#[test]
+fn a_sized_and_shaped_plot_reads_sensibly_as_text() {
+    let text = printed(
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, size: hours)\nw.plot(x: educ, y: wage, size: hours).points()\nw.plot(x: educ, y: wage, size: exper).points(alpha: 0.3)\nw.plot(x: educ, y: wage, size: 3, shape: \"cross\").points()\nw.plot(x: educ, y: wage, shape: union).points()\nw.plot(x: educ, y: wage, color: union, size: hours, shape: union).points(alpha: 0.5)\nw.plot(x: educ, y: wage, shape: industry).points()\nlet top = w.where(wage > 100)\nw.plot(x: educ, y: wage, size: hours, shape: union).points(alpha: 0.2).points(data: top, size: 8)\nw.plot(x: educ, y: wage, size: hours, shape: union).points(data: top)\nw.plot(x: educ, y: wage, group: worker, label: firm).points()\n",
+    );
+    // The reference, from R on the shipped file: of the 18,412 rows, 18,201 are complete in
+    // educ and wage; 18,167 of them in hours as well (245 dropped), where hours runs from 7 to
+    // 69.2 and is never 0; and 18,179 in exper (233 dropped), where exper runs from 0 to 36 and
+    // is 0 in 340 rows. Union membership has two categories and industry twelve. The 26 rows
+    // with a wage above 100 all have their hours, the largest 59.5.
+    for line in [
+        "  size        Hours worked   sqrt    0 to 69.2   by area, up to 18 across\n",
+        "no layer yet: a mark such as `.points()` adds one\n",
+        "      1   points   w      18,167   size by hours, alpha 1\n",
+        "note: 245 rows with NA in educ, wage or hours dropped (line 3)\n",
+        "  size        Potential labour-market experience: age less schooling less six   sqrt    0 to 36\n",
+        "  shown as\n  by area, up to 18 across\n",
+        "      1   points   w      18,179   size by exper, alpha 0.3\n",
+        "note: 233 rows with NA in educ, wage or exper dropped (line 4)\n",
+        "note: 340 rows with exper of 0 are drawn with no size (line 4)\n",
+        "  size                constant   every mark   3\n",
+        "  shape               constant   every mark   cross\n",
+        "      1   points   w      18,201   size 3, shape cross, alpha 1\n",
+        "  shape       Union member   category   no, yes   circle, triangle\n",
+        "      1   points   w      18,201   size 4.5, shape by union, alpha 1\n",
+        "  color       Union member   category   no, yes     orange, sky blue\n",
+        "      1   points   w      18,167   size by hours, shape by union, alpha 0.5\n",
+        "Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more",
+        "  circle, triangle, square, diamond, plus and 7 more\n",
+        "note: `industry` has 12 categories and there are 6 shapes, so the shapes repeat from the seventh category (line 8)\n",
+        "      2   points   top        26   size 8, shape by union, alpha 1\n",
+        "  size        Hours worked   sqrt       0 to 59.5   by area, up to 18 across\n",
+        "      1   points   top       26   size by hours, shape by union, alpha 1\n",
+        "  group       Worker identifier           each value a group\n",
+        "  label       Firm identifier             the text of a mark\n",
+        "no layer draws `group`: `points` draws each row by itself\n",
+        "no layer draws `label`: `points` writes no text\n",
+        "note: 211 rows with NA in educ or wage dropped (line 12)\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    // Sizing by a variable whose largest rows are dropped says so once for each statement.
+    assert_eq!(
+        text.matches("with NA in educ, wage or hours dropped")
+            .count(),
+        3
+    );
+    insta::assert_snapshot!("size_shape", text);
+}
+
+#[test]
+fn the_edge_cases_of_a_size_and_a_shape() {
+    const D: &str = "let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = [\"b\", NA, \"a\", \"b\"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])\n";
+    let mut all = String::new();
+    for script in [
+        // A size: the rows without a finite value of it are dropped and counted, before a layer
+        // nothing is; one value; whole numbers with zeros and one below 0.
+        format!("{D}d.plot(x: a, y: b, size: z)\nd.plot(x: a, y: b, size: z).points()\nd.plot(x: a, y: b, size: k).points()\nd.plot(x: a, y: b, size: n)\nd.plot(x: a, y: b, size: n).points()\n"),
+        // Nothing above 0 to size: every size 0, every size below 0, one row of 0.
+        "let d = frame(a = [1, 2], s = [0, 0], m = [-1.5, -2.5])\nd.plot(x: a, y: a, size: s).points()\nd.plot(x: a, y: a, size: m).points()\nd.where(a == 1).plot(x: a, y: a, size: s).points()\n".to_string(),
+        // A shape: text and truth values with `NA`, before a layer and under one.
+        format!("{D}d.plot(x: a, y: b, shape: g)\nd.plot(x: a, y: b, shape: g).points()\nd.plot(x: a, y: b, shape: t).points()\n"),
+        // A frame with no rows, and variables of nothing but `NA`.
+        format!("{D}let e = d.where(a > 9)\ne.plot(x: a, y: b, size: z, shape: g).points()\nlet n = d.where(a == 2)\nn.plot(x: a, y: b, size: z, shape: g)\nn.plot(x: a, y: b, size: z, shape: g).points()\n"),
+        // A category keeps the order of its levels; a level with no row is left out.
+        format!("{D}let c = d.add(c = category(g))\nc.plot(x: a, y: b, shape: c).points()\nc.where(g != \"a\").plot(x: a, y: b, shape: c).points()\n"),
+        // Six categories have a shape each; seven repeat the shapes, and a layer says so.
+        "let d = frame(a = [1, 2, 3, 4, 5, 6, 7, 8], g = [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"g\", NA])\nd.where(a < 7).plot(x: a, y: a, shape: g).points()\nd.where(a < 8).plot(x: a, y: a, shape: g).points()\nd.where(a != 7).plot(x: a, y: a, shape: g).points()\nd.plot(x: a, y: a, shape: g)\nd.plot(x: a, y: a, shape: g).points()\n".to_string(),
+        // A layer with its own frame: its sizes and its categories join the scales of the
+        // plot; a constant asks nothing of that frame, and neither do `group` and `label`.
+        format!("{D}let o = frame(a = [5, 6, 7], b = [0.5, 1.5, 2.5], g = [\"zz\", \"b\", NA], z = [10, 0, 2])\nd.plot(x: a, y: b, size: z, shape: g).points(data: o)\nd.plot(x: a, y: b, size: z, shape: g).points().points(data: o)\nlet bare = frame(a = [5, 6], b = [0.5, 1.5])\nd.plot(x: a, y: b, size: 7, shape: \"diamond_open\", group: g, label: t).points(data: bare)\nd.plot(x: a, y: b, size: z).points(data: bare, size: 2)\n"),
+        // A constant beside a mapping, and every way a layer's own size meets the plot's.
+        format!("{D}d.plot(x: a, y: b, size: 6, shape: g).points()\nd.plot(x: a, y: b, size: z, shape: \"square\", color: \"tomato\").points()\nd.plot(x: a, y: b, size: 6).points(size: 2)\nd.plot(x: a, y: b, size: z).points(size: 2)\nd.plot(x: a, y: b, size: z).points(size: 2).points()\nd.plot(x: a, y: b, size: 0.5, shape: \"circle\").points(alpha: 0.5, jitter: 0)\nd.plot(x: a, y: b, size: 2.25, shape: \"asterisk\")\n"),
+        // `NA` for an aesthetic is the aesthetic left out.
+        format!("{D}d.plot(x: a, y: b, size: NA, shape: NA, group: NA, label: NA).points()\n"),
+        // One variable on two scales, which one legend shows; two variables.
+        format!("{D}d.plot(x: a, y: b, color: g, shape: g).points()\nd.plot(x: a, y: b, color: k, size: k).points()\nd.plot(x: a, y: b, fill: g, shape: g).points()\nd.plot(x: a, y: b, color: t, fill: \"grey\", size: n, shape: g, group: g, label: a).points()\n"),
+        // Group and label by themselves, and with one position or none.
+        format!("{D}d.plot(group: g)\nd.plot(x: a, label: z)\nd.plot(x: a, y: b, group: z, label: g).points()\nd.plot(size: k, shape: t)\nd.plot(size: 3, shape: \"plus\")\n"),
+        // A whole number is a size; with value labels it is a shape.
+        "let d = frame(a = [1, 2, 3], b = [3, 0, 12]).label(a, [1 => \"low\", 2 => \"middle\", 3 => \"high\"])\nd.plot(x: a, y: b, size: b, shape: a).points()\n".to_string(),
+        // The edge-case datasets of the testing handbook, section 1.2.
+        "let d = import(\"data/one_row.csv\")\nd.plot(x: x, y: y, size: x).points()\n".to_string(),
+        "let d = import(\"data/zero_variance.csv\")\nd.plot(x: constant, y: big_constant, size: constant_with_na).points()\nd.plot(x: constant, y: constant, size: big_constant).points()\n".to_string(),
+        "let d = import(\"data/infinities.csv\")\nd.plot(x: finite, y: finite, size: plus).points()\nd.plot(x: finite, y: finite, size: both).points()\nd.plot(x: finite, y: finite, size: nan_mixed).points()\n".to_string(),
+        "let d = import(\"data/magnitudes.csv\")\nd.plot(x: offset, y: tiny, size: wide).points()\nd.plot(x: offset, y: wide, size: tiny).points()\n".to_string(),
+        "let d = import(\"data/bools.csv\")\nd.plot(x: treated, y: treated, shape: with_na).points()\n".to_string(),
+        "let d = import(\"data/empty.csv\")\nd.plot(shape: x)\nd.plot(group: x, label: y)\nd.plot(size: x)\n".to_string(),
+        "let d = import(\"data/all_na.csv\")\nd.plot(shape: x)\nd.plot(group: x, label: y)\nd.plot(size: x)\n".to_string(),
+        "let d = import(\"data/awkward_names.csv\")\nd.plot(x: `Gross Sales (total)`, y: `日本語`, size: `Gross Sales (total)`, label: `日本語`).points()\n".to_string(),
+        "let d = import(\"data/unicode_labels.csv\")\nd.plot(x: n, y: n, size: n, shape: city, label: city).points()\n".to_string(),
+        "let d = import(\"data/level_symbols.csv\")\nd.plot(x: n, y: y, shape: grp, group: grp).points()\n".to_string(),
+        "let d = import(\"data/wages_large.csv\")\nd.plot(x: educ, y: wage, size: hours, shape: region).points()\n".to_string(),
+    ] {
+        let (code, stdout, stderr) = go(&script);
+        all.push_str(&format!(
+            "{script}exit code {code}\n{stdout}---\n{stderr}\n"
+        ));
+    }
+    insta::assert_snapshot!("size_shape_edges", all);
+}
+
+#[test]
+fn every_message_of_a_size_and_a_shape() {
+    const W: &str = "let w = dataset(wages)\n";
+    const O: &str = "let w = dataset(wages)\nlet p = w.plot(x: educ, y: wage, size: hours)\nlet q = w.plot(x: educ, y: wage, shape: union)\n";
+    let mut all = String::new();
+    for script in [
+        // A string that is not the name of a shape.
+        format!("{W}w.plot(x: educ, y: wage, shape: \"Circle\")\n"),
+        format!("{W}w.plot(x: educ, y: wage, shape: \"triangel\")\n"),
+        format!("{W}w.plot(x: educ, y: wage, shape: \"circle open\")\n"),
+        format!("{W}w.plot(x: educ, y: wage, shape: \"union\")\n"),
+        format!("{W}w.plot(x: educ, y: wage, shape: \"a shape of my own\")\n"),
+        format!("{W}w.plot(x: educ, y: wage, shape: \"\")\n"),
+        // What is neither a variable nor a string.
+        format!("{W}w.plot(x: educ, y: wage, shape: 3)\n"),
+        format!("{W}w.plot(x: educ, y: wage, shape: [\"circle\", \"cross\"])\n"),
+        // A size that is not above 0, or is not a number.
+        format!("{W}w.plot(x: educ, y: wage, size: 0)\n"),
+        format!("{W}w.plot(x: educ, y: wage, size: -2.5)\n"),
+        format!("{W}w.plot(x: educ, y: wage, size: 1 / 0)\n"),
+        format!("{W}w.plot(x: educ, y: wage, size: \"large\")\n"),
+        format!("{W}w.plot(x: educ, y: wage, size: [1, 2])\n"),
+        format!("{W}w.plot(x: educ, y: wage, size: sqrt(hours))\n"),
+        // A variable that is not an amount, for a size.
+        format!("{W}w.plot(x: educ, y: wage, size: female)\n"),
+        format!("{W}w.plot(x: educ, y: wage, size: industry)\n"),
+        "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"u\", \"v\"], t = [true, false])\nd.plot(x: a, y: b, size: s)\n".to_string(),
+        "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"u\", \"v\"], t = [true, false])\nd.plot(x: a, y: b, size: t)\n".to_string(),
+        "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: b, size: when)\n".to_string(),
+        // A variable that is not categories, for a shape.
+        format!("{W}w.plot(x: educ, y: wage, shape: hours)\n"),
+        format!("{W}w.plot(x: educ, y: wage, shape: educ)\n"),
+        "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: b, shape: when)\n".to_string(),
+        // The names: a variable the frame lacks, and a binding, which a bare name never reads.
+        format!("{W}w.plot(x: educ, y: wage, size: Hours)\n"),
+        format!("{W}w.plot(x: educ, y: wage, shape: sex)\n"),
+        format!("{W}w.plot(x: educ, y: wage, group: person)\n"),
+        format!("{W}w.plot(x: educ, y: wage, label: Firm)\n"),
+        format!("{W}let s = 6\nw.plot(x: educ, y: wage, size: s)\n"),
+        format!("{W}let mark = \"cross\"\nw.plot(x: educ, y: wage, shape: mark)\n"),
+        // A group and a label are variables.
+        format!("{W}w.plot(x: educ, y: wage, group: \"worker\")\n"),
+        format!("{W}w.plot(x: educ, y: wage, label: 3)\n"),
+        format!("{W}w.plot(x: educ, y: wage, group: floor(exper / 10))\n"),
+        // A layer whose frame cannot give the size or the shape.
+        format!("{O}p.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], Hours = [1, 2])\np.points(data: o)\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], hours = [\"a\", \"b\"])\np.points(data: o)\n"),
+        format!("{O}let o = w.where(wage > 100).select(vars(educ, wage, female)).rename(hours = female)\np.points(data: o)\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(hours = date(s))\np.points(data: o)\n"),
+        format!("{O}q.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], union = [0, 1])\nq.points(data: o)\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], union = [0.5, 1.5])\nq.points(data: o, size: 3)\n"),
+        // The options of `points`: a size that is not above 0, and a shape, which it has not.
+        format!("{O}p.points(size: 0)\n"),
+        format!("{O}q.points(shape: \"cross\")\n"),
+        format!("{O}p.points(size: hours)\n"),
+    ] {
+        let (code, stdout, stderr) = go(&script);
+        assert_eq!(code, 1, "{script}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{script}");
+        all.push_str(&script);
+        all.push_str(&stderr);
+        all.push('\n');
+    }
+    insta::assert_snapshot!("size_shape_messages", all);
+}
+
+/// A layer is asked for a size only when it reads the plot's: one with a `size:` of its own is
+/// drawn from a frame that lacks the variable, and no layer is asked for a group or a label.
+#[test]
+fn a_layer_with_its_own_size_is_not_asked_for_the_size_of_the_plot() {
+    let (code, stdout, stderr) = go(
+        "let w = dataset(wages)\nlet o = frame(educ = [10, 12], wage = [30.0, 40.0])\nw.plot(x: educ, y: wage, size: hours, group: worker, label: firm).points(data: o, size: 3)\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert!(
+        stdout.contains("      1   points   o          2   size 3, alpha 1\n"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("no layer draws `size`: every layer sets a `size:` of its own\n"),
+        "{stdout}"
+    );
+    assert_eq!(stderr, "");
+}
+
+/// A number bound to a name is not a size: a bare name is a variable of the frame, and a
+/// constant is a constant only where it is written.
+#[test]
+fn a_bare_name_for_a_size_is_a_variable_whatever_is_bound_to_it() {
+    let (code, stdout, stderr) = go(
+        "let d = frame(a = [1, 2, 3], b = [1.0, 2.0, 3.0], s = [10, 20, 40])\nlet s = 6\nd.plot(x: a, y: b, size: s).points()\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert!(
+        stdout.contains("  size        s       sqrt    0 to 40   by area, up to 18 across\n"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("      1   points   d          3   size by s, alpha 1\n"),
+        "{stdout}"
+    );
 }

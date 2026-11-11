@@ -1,0 +1,79 @@
+---
+source: packages/tier1/plot/tests/scene.rs
+expression: "with_layer(&p, points()).1.to_json()"
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "x",
+      "limits": [0.8, 5.2],
+      "breaks": [1, 2, 3, 4, 5],
+      "labels": ["1", "2", "3", "4", "5"],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "y",
+      "limits": [9.8, 14.2],
+      "breaks": [10, 11, 12, 13, 14],
+      "labels": ["10", "11", "12", "13", "14"],
+      "range": null
+    },
+    {
+      "id": "shape",
+      "kind": "category",
+      "title": "g",
+      "limits": [1, 3],
+      "breaks": [1, 2, 3],
+      "labels": ["a", "b", "NA"],
+      "range": ["circle", "triangle", "asterisk"]
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": [
+      {
+        "title": "g",
+        "scales": ["shape"],
+        "marks": ["points"]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "points",
+          "x": [1, 2, 3, 4, 5],
+          "y": [10, 11, 12, 13, 14],
+          "color": null,
+          "size": 4.5,
+          "shape": [2, 1, 3, 2, 1],
+          "alpha": 1
+        }
+      ]
+    }
+  ],
+  "notes": []
+}

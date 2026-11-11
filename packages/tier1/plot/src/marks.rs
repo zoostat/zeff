@@ -1,13 +1,15 @@
 //! The marks (Language Reference, section 7.6, "Marks"): each adds a layer to a plot and gives
-//! the plot back, so that layers chain. At release 0.7.0, step 20c: `points`.
+//! the plot back, so that layers chain. At release 0.7.0, step 20d: `points`.
 //!
 //! A layer draws the rows of the plot's frame, or of its own (`data:`), which must then hold the
-//! variables the plot maps to the aesthetics its mark reads and those its mapped expressions
+//! variables the plot maps to the aesthetics the layer reads and those its mapped expressions
 //! read; an expression is computed again on such a frame, where the layer is added, and a
-//! variable mapped to a colour must be of the same kind there, categories or a number, because
-//! the layers share one colour scale. Rows with `NA` in a mapped position, or in a variable shown
-//! on a continuous colour scale, are not drawn and are counted in a note, as everywhere else
-//! (principle 6); a second layer over the same rows does not repeat the note of the first.
+//! variable mapped to a colour, to the size or to the shape must be of the same kind there,
+//! categories or a number, because the layers share one scale of each. A layer with a `size:` of
+//! its own does not read the size the plot gives. Rows with `NA` in a mapped position, in a
+//! variable shown on a continuous colour scale or in the variable the marks are sized by are not
+//! drawn and are counted in a note, as everywhere else (principle 6); a second layer over the
+//! same rows does not repeat the note of the first.
 
 use std::rc::Rc;
 
@@ -107,38 +109,71 @@ fn own_frame(
             Some(bound) => format!("`{bound}`"),
             None => "this frame".to_string(),
         };
-        // A colour: the variable must be shown the same way as in the plot's frame, as
-        // categories or on a continuous scale, since the layers share one scale.
-        if matches!(aesthetic, Aesthetic::Color | Aesthetic::Fill) {
+        // A colour, a size, a shape: the variable must be shown the same way as in the plot's
+        // frame, as categories or as a number, since the layers share one scale.
+        if matches!(
+            aesthetic,
+            Aesthetic::Color | Aesthetic::Fill | Aesthetic::Size | Aesthetic::Shape
+        ) {
             let theirs = plot.frame.table.column(name).and_then(shading);
             if shading(found) == theirs {
                 continue;
             }
-            let kind = |shading: Option<Shading>| match shading {
-                Some(Shading::Categories) => "as categories",
-                Some(Shading::Ramp) => "on a continuous scale",
-                None => "on no scale",
-            };
             let labelled = found
                 .metadata()
                 .value_labels()
                 .is_some_and(|labels| !labels.is_empty());
-            let what = match (shading(found), labelled) {
-                (Some(Shading::Categories), true) => {
-                    " with value labels, which is shown as categories"
-                }
-                (Some(Shading::Categories), false) => ", which is shown as categories",
-                (Some(Shading::Ramp), _) => {
-                    " without value labels, which is shown on a continuous scale"
-                }
-                (None, _) => ", which has no colour scale yet",
+            let (kind, what, scale, must) = match aesthetic {
+                Aesthetic::Size => (
+                    "by area",
+                    match (shading(found), labelled) {
+                        (Some(Shading::Categories), true) => {
+                            " with value labels, which is categories and not an amount"
+                        }
+                        (Some(Shading::Categories), false) => {
+                            ", which is categories and not an amount"
+                        }
+                        _ => ", which is not an amount",
+                    },
+                    "size",
+                    "a number without value labels in every frame",
+                ),
+                Aesthetic::Shape => (
+                    "as categories",
+                    match shading(found) {
+                        Some(Shading::Ramp) => {
+                            " without value labels, which is a number and not categories"
+                        }
+                        _ => ", which is not categories",
+                    },
+                    "shape",
+                    "categories in every frame (a Category, a Str, a Bool or a variable with value labels)",
+                ),
+                _ => (
+                    match theirs {
+                        Some(Shading::Categories) => "as categories",
+                        Some(Shading::Ramp) => "on a continuous scale",
+                        None => "on no scale",
+                    },
+                    match (shading(found), labelled) {
+                        (Some(Shading::Categories), true) => {
+                            " with value labels, which is shown as categories"
+                        }
+                        (Some(Shading::Categories), false) => ", which is shown as categories",
+                        (Some(Shading::Ramp), _) => {
+                            " without value labels, which is shown on a continuous scale"
+                        }
+                        (None, _) => ", which has no colour scale yet",
+                    },
+                    "colour",
+                    "categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame",
+                ),
             };
             return Err(fail(
                 Diagnostic::error(
                     "Z0401",
                     format!(
-                        "the plot shows `{name}` {} for `{}`, but `{name}` of {whose} is {}{what}",
-                        kind(theirs),
+                        "the plot shows `{name}` {kind} for `{}`, but `{name}` of {whose} is {}{what}",
                         aesthetic.name(),
                         a_type(found)
                     ),
@@ -147,7 +182,7 @@ fn own_frame(
                 .primary(at, format!("its `{name}` is of another kind"))
                 .secondary(layer, draws)
                 .help(format!(
-                    "the layers of a plot share one scale of colour, so `{name}` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame"
+                    "the layers of a plot share one scale of {scale}, so `{name}` must be {must}"
                 )),
             ));
         }
@@ -180,13 +215,18 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     };
     let plot: Rc<Plot> = plot.clone();
     positions(ctx, &plot, "points")?;
-    let (data, computed) = own_frame(
-        ctx,
-        &args,
-        &plot,
-        "points",
-        &[Aesthetic::X, Aesthetic::Y, Aesthetic::Color],
-    )?;
+    let size = number_option(ctx, &args, SIZE, "a `size:` that is not a number")?;
+    // What the layer reads from the plot: with a `size:` of its own, not the plot's size.
+    let mut read = vec![
+        Aesthetic::X,
+        Aesthetic::Y,
+        Aesthetic::Color,
+        Aesthetic::Shape,
+    ];
+    if size.is_none() {
+        read.push(Aesthetic::Size);
+    }
+    let (data, computed) = own_frame(ctx, &args, &plot, "points", &read)?;
 
     let alpha =
         number_option(ctx, &args, ALPHA, "an `alpha:` that is not a number")?.unwrap_or(1.0);
@@ -204,7 +244,6 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("write 1 for solid points, or a share such as 0.3 so that crowded points show through"),
         ));
     }
-    let size = number_option(ctx, &args, SIZE, "a `size:` that is not a number")?;
     if let Some(given) = size
         && !(given > 0.0 && given.is_finite())
     {
@@ -218,7 +257,7 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             )
             .in_file(ctx.script)
             .primary(ctx.span_of(SIZE), "not a size")
-            .help("write a size such as 3 or 6; without `size:` a point is 4.5 across"),
+            .help("write a size such as 3 or 6; without `size:` a point takes the size the plot gives, or is 4.5 across"),
         ));
     }
     let jitter =

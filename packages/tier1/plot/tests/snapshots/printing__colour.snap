@@ -8,7 +8,7 @@ plot · w · wage against educ
   x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
   y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
 
-  aesthetic   title   scale      values         colours
+  aesthetic   title   scale      values         shown as
   color       Sex     category   male, female   orange, sky blue
 
 no layer yet: a mark such as `.points()` adds one
@@ -18,7 +18,7 @@ plot · w · wage against educ
   x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
   y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
 
-  aesthetic   title   scale      values         colours
+  aesthetic   title   scale      values         shown as
   color       Sex     category   male, female   orange, sky blue
 
   layer   mark     data    marks   settings
@@ -29,7 +29,7 @@ plot · w · wage against educ
   x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
   y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
 
-  aesthetic   title   scale      values       colours
+  aesthetic   title   scale      values       shown as
   color               constant   every mark   steelblue
 
   layer   mark     data    marks   settings
@@ -44,7 +44,7 @@ plot · w · wage against educ
   color       Potential labour-market experience: age less schooling less six   linear     0 to 36
   fill                                                                          constant   every mark
 
-  colours
+  shown as
   viridis, dark purple to yellow
   #48b
 
@@ -61,7 +61,7 @@ plot · w · wage against educ
   aesthetic   title      scale      values
   color       Industry   category   Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
 
-  colours
+  shown as
   orange, sky blue, bluish green, yellow, blue and 7 more
 
   layer   mark     data    marks   settings
@@ -75,7 +75,7 @@ plot · w · wage against educ
   aesthetic   title      scale      values
   color       Industry   category   Construction, Manufacturing, Retail, Finance, Services and 3 more
 
-  colours
+  shown as
   orange, sky blue, bluish green, yellow, blue and 3 more
 
   layer   mark     data   marks   settings
@@ -89,7 +89,7 @@ plot · w · wage against educ
   aesthetic   title                                                             scale    values
   color       Potential labour-market experience: age less schooling less six   linear   8 to 30
 
-  colours
+  shown as
   viridis, dark purple to yellow
 
   layer   mark     data   marks   settings
@@ -100,7 +100,7 @@ plot · w · wage against educ
   x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
   y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
 
-  aesthetic   title          scale      values         colours
+  aesthetic   title          scale      values         shown as
   color       Union member   category   no, yes        orange, sky blue
   fill        Sex            category   male, female   orange, sky blue
 

@@ -1,0 +1,141 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale   values      shown as
+  size        Hours worked   sqrt    0 to 69.2   by area, up to 18 across
+
+no layer yet: a mark such as `.points()` adds one
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale   values      shown as
+  size        Hours worked   sqrt    0 to 69.2   by area, up to 18 across
+
+  layer   mark     data    marks   settings
+      1   points   w      18,167   size by hours, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title                                                             scale   values
+  size        Potential labour-market experience: age less schooling less six   sqrt    0 to 36
+
+  shown as
+  by area, up to 18 across
+
+  layer   mark     data    marks   settings
+      1   points   w      18,179   size by exper, alpha 0.3
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title   scale      values       shown as
+  size                constant   every mark   3
+  shape               constant   every mark   cross
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 3, shape cross, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale      values    shown as
+  shape       Union member   category   no, yes   circle, triangle
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, shape by union, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale      values      shown as
+  color       Union member   category   no, yes     orange, sky blue
+  size        Hours worked   sqrt       0 to 69.2   by area, up to 18 across
+  shape       Union member   category   no, yes     circle, triangle
+
+  layer   mark     data    marks   settings
+      1   points   w      18,167   size by hours, shape by union, alpha 0.5
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title      scale      values
+  shape       Industry   category   Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+
+  shown as
+  circle, triangle, square, diamond, plus and 7 more
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, shape by industry, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale      values      shown as
+  size        Hours worked   sqrt       0 to 69.2   by area, up to 18 across
+  shape       Union member   category   no, yes     circle, triangle
+
+  layer   mark     data    marks   settings
+      1   points   w      18,167   size by hours, shape by union, alpha 0.2
+      2   points   top        26   size 8, shape by union, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   10.6 to 19.4        12, 14, 16, 18
+  y      Hourly wage          linear   97.874 to 154.986   100, 110, 120, 130, 140, 150
+
+  aesthetic   title          scale      values      shown as
+  size        Hours worked   sqrt       0 to 59.5   by area, up to 18 across
+  shape       Union member   category   no, yes     circle, triangle
+
+  layer   mark     data   marks   settings
+      1   points   top       26   size by hours, shape by union, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title               scale   values               shown as
+  group       Worker identifier           each value a group
+  label       Firm identifier             the text of a mark
+
+no layer draws `group`: `points` draws each row by itself
+no layer draws `label`: `points` writes no text
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+---
+note: 245 rows with NA in educ, wage or hours dropped (line 3)
+note: 233 rows with NA in educ, wage or exper dropped (line 4)
+note: 340 rows with exper of 0 are drawn with no size (line 4)
+note: 211 rows with NA in educ or wage dropped (line 5)
+note: 211 rows with NA in educ or wage dropped (line 6)
+note: 245 rows with NA in educ, wage or hours dropped (line 7)
+note: 211 rows with NA in educ or wage dropped (line 8)
+note: `industry` has 12 categories and there are 6 shapes, so the shapes repeat from the seventh category (line 8)
+note: 211 rows dropped where `wage > 100` was NA; `w.where(is_missing(wage))` lists them (line 9)
+note: 245 rows with NA in educ, wage or hours dropped (line 10)
+note: 211 rows with NA in educ or wage dropped (line 12)

@@ -7,14 +7,15 @@
 //! read the scene alone, never the plot value, so everything that decides what is drawn is
 //! settled here: which rows are drawn and which are dropped and counted, where the jitter moves
 //! each point, the limits and breaks of each axis and the title it carries, the categories of a
-//! colour scale, their order and the colour of each.
+//! colour scale, their order and the colour of each, the size of each mark and its shape.
 //!
 //! A scene has no size. It is drawn at the size of the pane or of the exported figure, and the
 //! theme of the writer gives it its fonts, its margins and the colour of a mark that has none of
 //! its own.
 //!
 //! Version 1 holds one panel, the scales `x` and `y` with their axes, the colour scales `color`
-//! and `fill` with the legends that show them, and layers of points.
+//! and `fill` and the scales `size` and `shape` with the legends that show them, and layers of
+//! points.
 //!
 //! **Colour.** A mark's colour is kept as the positions are, in the units of the data, and the
 //! scale `color` says what each value is drawn as. On a scale of kind `category` the value is
@@ -26,6 +27,20 @@
 //! last ([`crate::colour::ramp_entry`]). The `color` of a layer is `null` for the colour of the
 //! theme, one colour for a constant, or a list with a value on the scale `color` for each mark.
 //! A colour is `#` and six hexadecimal digits in capitals.
+//!
+//! **Size.** The `size` of a layer is one number, the diameter of every mark in points of 1/72
+//! inch, or a list with the value of the mapped variable for each mark, which the scale `size`
+//! turns into a diameter. That scale is of kind `sqrt`: its limits are 0 and the largest value
+//! drawn, its `range` the diameters at the two limits, and a value `v` is drawn
+//! `range[0] + (range[1] − range[0]) × √((v − lo) / (hi − lo))` across ([`diameter`]), so that
+//! the area of a mark is in proportion to its value and a value of 0 has no size.
+//!
+//! **Shape.** The `shape` of a layer is one name ([`crate::shape`]) or a list with the place of
+//! each mark's category on the scale `shape`, which is of kind `category` and whose `range`
+//! holds one name for each break.
+//!
+//! **Legends.** A legend is the guide of every scale that shows one variable: with `color` and
+//! `shape` mapped to one variable there is one legend, whose keys carry both.
 
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
@@ -37,6 +52,7 @@ use zeff_diagnostics::count;
 use crate::colour;
 use crate::json::Json;
 use crate::scale;
+use crate::shape;
 
 /// The version of the scene format, the value of `zeff_scene` in its JSON. It rises when a
 /// reader of the earlier version would misread the new one.
@@ -45,6 +61,24 @@ pub const SCENE_VERSION: u32 = 1;
 /// The diameter of a point when `size:` is not given, in points of 1/72 inch: the default of
 /// Observable Plot, a radius of 3 pixels at 96 to the inch.
 pub const POINT_SIZE: f64 = 4.5;
+
+/// The diameter of the mark of the largest value on a scale of sizes, in points of 1/72 inch:
+/// four times the default, the share ggplot2 has between its largest size, 6, and its default,
+/// 1.5.
+pub const LARGEST_SIZE: f64 = 18.0;
+
+/// The diameter the scale of sizes with these limits and this range gives the value `v`: the
+/// share of the way from the lower limit to the upper, its square root taken, laid on the range.
+/// A value outside the limits takes the diameter of the nearer one, and where the limits are
+/// one value, or the share cannot be computed, the lower end of the range.
+pub fn diameter(v: f64, limits: (f64, f64), range: (f64, f64)) -> f64 {
+    let (lo, hi) = limits;
+    let share = (v - lo) / (hi - lo);
+    if !(hi > lo && share.is_finite()) {
+        return range.0;
+    }
+    range.0 + (range.1 - range.0) * share.clamp(0.0, 1.0).sqrt()
+}
 
 /// A plot as it is drawn.
 #[derive(Debug, Clone, PartialEq)]
@@ -63,11 +97,11 @@ pub struct Scene {
     pub notes: Vec<String>,
 }
 
-/// A scale: how the values of an aesthetic are placed or coloured, with the breaks a guide
-/// marks.
+/// A scale: how the values of an aesthetic are placed, coloured, sized or shaped, with the
+/// breaks a guide marks.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Scale {
-    /// The name the panels and guides refer to it by: `x`, `y`, `color`, `fill`.
+    /// The name the panels and guides refer to it by: `x`, `y`, `color`, `fill`, `size`, `shape`.
     pub id: &'static str,
     pub kind: ScaleKind,
     /// The title of its guide: the label of the variable, or its name; an expression as written.
@@ -89,6 +123,9 @@ pub enum ScaleKind {
     Linear,
     /// Categories, each at its place in their order, counted from 1.
     Category,
+    /// Numbers of 0 or more, drawn in proportion to the square root of their value: the scale
+    /// of sizes, on which the area of a mark is in proportion to the value.
+    Sqrt,
 }
 
 impl ScaleKind {
@@ -96,18 +133,24 @@ impl ScaleKind {
         match self {
             ScaleKind::Linear => "linear",
             ScaleKind::Category => "category",
+            ScaleKind::Sqrt => "sqrt",
         }
     }
 }
 
 /// What a scale draws its values as.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Range {
     /// A position, along the side of the panel that the writer gives the scale.
     Position,
     /// Colours: on a scale of categories one for each break, on a linear scale a ramp laid
     /// evenly from the lower limit to the upper.
     Colours(Vec<&'static str>),
+    /// Sizes: the diameter of a mark at the lower limit and at the upper, in points of 1/72
+    /// inch.
+    Sizes(f64, f64),
+    /// Shapes, by name: one for each break.
+    Shapes(Vec<&'static str>),
 }
 
 /// What a legend shows: its title, the scales it is the guide of, which are those of one
@@ -160,8 +203,8 @@ pub struct Layer {
     pub x: Vec<f64>,
     pub y: Vec<f64>,
     pub color: Paint,
-    /// The diameter of a point, in points of 1/72 inch.
-    pub size: f64,
+    pub size: Sizing,
+    pub shape: Shaping,
     /// The opacity, from 0 to 1.
     pub alpha: f64,
 }
@@ -177,26 +220,57 @@ pub enum Paint {
     Scaled(Vec<f64>),
 }
 
-/// Whether a mark reads an aesthetic. A point is placed by `x` and `y` and coloured by `color`;
-/// `fill` is the colour of the inside of the marks that have one, which come at later steps.
+/// The size of the marks of a layer.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Sizing {
+    /// One diameter for every mark, in points of 1/72 inch.
+    Constant(f64),
+    /// A value on the scale `size` for each mark, in data coordinates.
+    Scaled(Vec<f64>),
+}
+
+/// The shape of the marks of a layer.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Shaping {
+    /// One shape for every mark, by its name.
+    Constant(&'static str),
+    /// The place of each mark's category on the scale `shape`, counted from 1.
+    Scaled(Vec<f64>),
+}
+
+/// Whether a mark reads an aesthetic. A point is placed by `x` and `y`, coloured by `color`,
+/// sized by `size` and shaped by `shape`. `fill` is the colour of the inside of the marks that
+/// have one, `group` gathers the rows of the marks drawn through several, and `label` is the
+/// text of the marks that write one; those marks come at later steps.
 pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
     match mark {
-        Mark::Points => matches!(aesthetic, Aesthetic::X | Aesthetic::Y | Aesthetic::Color),
+        Mark::Points => matches!(
+            aesthetic,
+            Aesthetic::X | Aesthetic::Y | Aesthetic::Color | Aesthetic::Size | Aesthetic::Shape
+        ),
     }
 }
 
-/// How a variable mapped to a colour is shown.
+/// Whether a layer takes an aesthetic from the plot: its mark reads it, and the layer does not
+/// say otherwise. A layer with a `size:` of its own does not read the plot's.
+pub fn layer_reads(layer: &PlotLayer, aesthetic: Aesthetic) -> bool {
+    reads(layer.mark, aesthetic) && !(aesthetic == Aesthetic::Size && layer.size.is_some())
+}
+
+/// How a variable mapped to a colour, a size or a shape is shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Shading {
-    /// Each category in a colour of its own.
+    /// Each category in a colour, or a shape, of its own.
     Categories,
-    /// Each value in the colour of its place between the smallest and the largest.
+    /// Each value in the colour of its place between the smallest and the largest, or in the
+    /// size of its amount.
     Ramp,
 }
 
 /// How a variable is shown when it is mapped to a colour: a Category, a Str or a Bool as
 /// categories, and so is a variable with value labels, whose values are names; any other Int or
-/// Float on a ramp. `None` for the types that have no colour scale yet.
+/// Float on a ramp. `None` for the types that have no colour scale yet. A shape is given to
+/// what is shown as categories and a size to what is shown on a ramp, and to nothing else.
 pub fn shading(column: &Column) -> Option<Shading> {
     match column.ty() {
         ColumnType::Category | ColumnType::Str | ColumnType::Bool => Some(Shading::Categories),
@@ -307,6 +381,8 @@ struct Drawn {
     rows: Vec<usize>,
     missing: usize,
     infinite: usize,
+    /// The rows with a size below 0.
+    negative: usize,
 }
 
 /// The values a layer draws for an aesthetic: the variable of the layer's frame, which is the
@@ -335,12 +411,19 @@ fn values<'a>(
     }
 }
 
-/// The points of a layer: one for each row with a finite value of both positions and of each
-/// variable in `ramps`, those the layer shows on a ramp of colours, in the order of the rows. A
-/// row with `NA` in any of them is counted as missing; a row with an infinite value, which no
-/// scale can hold, is counted apart. A position that is not there, or is not numeric, gives no
-/// point; the functions that build a plot refuse such a frame before it comes to this.
-fn drawn(cx: Option<&Column>, cy: Option<&Column>, ramps: &[&Column]) -> Drawn {
+/// The points of a layer: one for each row with a finite value of both positions, of each
+/// variable in `ramps`, those the layer shows on a ramp of colours, and of `size`, the variable
+/// it is sized by, which must not be below 0 either; in the order of the rows. A row with `NA`
+/// in any of them is counted as missing; a row with an infinite value, which no scale can hold,
+/// is counted apart, and so is a row with a size below 0, which has no area to be drawn with. A
+/// position that is not there, or is not numeric, gives no point; the functions that build a
+/// plot refuse such a frame before it comes to this.
+fn drawn(
+    cx: Option<&Column>,
+    cy: Option<&Column>,
+    ramps: &[&Column],
+    size: Option<&Column>,
+) -> Drawn {
     let mut out = Drawn::default();
     let (Some(cx), Some(cy)) = (cx, cy) else {
         return out;
@@ -348,7 +431,7 @@ fn drawn(cx: Option<&Column>, cy: Option<&Column>, ramps: &[&Column]) -> Drawn {
     if !(is_numeric(cx) && is_numeric(cy)) || cx.len() != cy.len() {
         return out;
     }
-    if ramps.iter().any(|ramp| ramp.len() != cx.len()) {
+    if ramps.iter().chain(size.iter()).any(|c| c.len() != cx.len()) {
         return out;
     }
     for row in 0..cx.len() {
@@ -368,10 +451,13 @@ fn drawn(cx: Option<&Column>, cy: Option<&Column>, ramps: &[&Column]) -> Drawn {
         for ramp in ramps {
             read(ramp);
         }
+        let amount = size.map(&mut read);
         if missing {
             out.missing += 1;
         } else if infinite {
             out.infinite += 1;
+        } else if amount.is_some_and(|amount| amount < 0.0) {
+            out.negative += 1;
         } else {
             out.x.push(a);
             out.y.push(b);
@@ -485,31 +571,36 @@ fn axis_title(plot: &Plot, mapping: &PlotMapping) -> String {
         .to_string()
 }
 
-/// A colour aesthetic that a variable is mapped to: how the variable is shown, and which layers
-/// take their colour from it.
+/// An aesthetic with a scale of its own that a variable is mapped to, a colour, the size or the
+/// shape: how the variable is shown, and which layers take the aesthetic from it.
 struct Colouring<'a> {
     aesthetic: Aesthetic,
     mapping: &'a PlotMapping,
     /// The variable in the plot's frame.
     base: &'a Column,
     kind: Shading,
-    /// For each layer the variable its marks are coloured by, in the layer's frame; `None` for
-    /// a layer whose mark does not read the aesthetic.
+    /// For each layer the variable its marks are coloured, sized or shaped by, in the layer's
+    /// frame; `None` for a layer that does not read the aesthetic.
     readers: Vec<Option<&'a Column>>,
 }
 
-/// The colouring of `aesthetic`, if a variable is mapped to it. A layer whose own frame holds
-/// the variable as another kind of scale than the plot's is not coloured; the marks refuse such
-/// a frame before it comes to this.
+/// The colouring of `aesthetic`, if a variable is mapped to it: a size only by a variable shown
+/// on a ramp and a shape only by one shown as categories, which `plot` sees to. A layer whose
+/// own frame holds the variable as another kind of scale than the plot's is not coloured; the
+/// marks refuse such a frame before it comes to this.
 fn colouring(plot: &Plot, aesthetic: Aesthetic) -> Option<Colouring<'_>> {
     let mapping = plot.mapping(aesthetic)?;
     let base = values(plot, None, aesthetic)?;
     let kind = shading(base)?;
+    match (aesthetic, kind) {
+        (Aesthetic::Size, Shading::Categories) | (Aesthetic::Shape, Shading::Ramp) => return None,
+        _ => {}
+    }
     let readers = plot
         .layers
         .iter()
         .map(|layer| {
-            if !reads(layer.mark, aesthetic) {
+            if !layer_reads(layer, aesthetic) {
                 return None;
             }
             values(plot, Some(layer), aesthetic).filter(|column| shading(column) == Some(kind))
@@ -524,8 +615,9 @@ fn colouring(plot: &Plot, aesthetic: Aesthetic) -> Option<Colouring<'_>> {
     })
 }
 
-/// A colour scale as the scene holds it: the scale, for each layer the value of each of its
-/// marks on it (`None` for a layer that does not read it), and what there is to say about it.
+/// A scale of colours, of sizes or of shapes as the scene holds it: the scale, for each layer
+/// the value of each of its marks on it (`None` for a layer that does not read it), and what
+/// there is to say about it.
 struct Shaded {
     scale: Scale,
     values: Vec<Option<Vec<f64>>>,
@@ -548,6 +640,33 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                 .collect();
             let found = extent(values.iter().flatten().flatten())
                 .or_else(|| frame_extent(plot, colouring.aesthetic));
+            if colouring.aesthetic == Aesthetic::Size {
+                // The sizes run from 0, where a mark has no area, to the largest value drawn,
+                // with no margin; with nothing above 0 to draw, to 1.
+                let hi = found
+                    .map(|(_, hi)| hi + 0.0)
+                    .filter(|hi| *hi > 0.0)
+                    .unwrap_or(1.0);
+                // A key of no size shows nothing, so the breaks begin above 0.
+                let breaks: Vec<f64> = scale::breaks(0.0, hi)
+                    .into_iter()
+                    .filter(|b| *b > 0.0)
+                    .collect();
+                let labels = scale::labels(&breaks);
+                return Shaded {
+                    scale: Scale {
+                        id,
+                        kind: ScaleKind::Sqrt,
+                        title,
+                        limits: (0.0, hi),
+                        breaks,
+                        labels,
+                        range: Range::Sizes(0.0, LARGEST_SIZE),
+                    },
+                    values,
+                    note: None,
+                };
+            }
             // The ramp runs from the smallest value to the largest, with no margin: a colour
             // beyond the data would never be seen.
             let (lo, hi) = match found {
@@ -633,19 +752,28 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                 }
             }
             // The place of each category that is there, counted from 1; `NA` is the last.
+            let shapes = colouring.aesthetic == Aesthetic::Shape;
             let mut position = vec![0_usize; labels.len()];
             let mut shown: Vec<String> = Vec::new();
             let mut colours: Vec<&'static str> = Vec::new();
             for (place, label) in labels.iter().enumerate() {
                 if used[place] {
-                    colours.push(colour::category(shown.len()).0);
+                    colours.push(if shapes {
+                        shape::category(shown.len())
+                    } else {
+                        colour::category(shown.len()).0
+                    });
                     shown.push(label.clone());
                     position[place] = shown.len();
                 }
             }
             let named = shown.len();
             if na {
-                colours.push(colour::NA_COLOUR.0);
+                colours.push(if shapes {
+                    shape::NA_SHAPE
+                } else {
+                    colour::NA_COLOUR.0
+                });
                 shown.push("NA".to_string());
             }
             let total = shown.len();
@@ -661,13 +789,22 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                 })
                 .collect();
             let read = colouring.readers.iter().any(Option::is_some);
-            let palette = colour::OKABE_ITO.len();
+            let palette = if shapes {
+                shape::PALETTE.len()
+            } else {
+                colour::OKABE_ITO.len()
+            };
             let note = (read && named > palette).then(|| {
-                format!(
-                    "`{}` has {} categories and the palette {palette} colours, so the colours repeat from the ninth category",
-                    colouring.mapping.variable,
-                    count(named as u64)
-                )
+                let (variable, named) = (&colouring.mapping.variable, count(named as u64));
+                if shapes {
+                    format!(
+                        "`{variable}` has {named} categories and there are {palette} shapes, so the shapes repeat from the seventh category"
+                    )
+                } else {
+                    format!(
+                        "`{variable}` has {named} categories and the palette {palette} colours, so the colours repeat from the ninth category"
+                    )
+                }
             });
             Shaded {
                 scale: Scale {
@@ -677,7 +814,11 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                     limits: (1.0, total.max(1) as f64),
                     breaks: (1..=total).map(|place| place as f64).collect(),
                     labels: shown,
-                    range: Range::Colours(colours),
+                    range: if shapes {
+                        Range::Shapes(colours)
+                    } else {
+                        Range::Colours(colours)
+                    },
                 },
                 values,
                 note,
@@ -687,13 +828,18 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
 }
 
 /// The scene of a plot.
-pub fn scene(plot: &Plot) -> Scene {
+pub fn scene<'a>(plot: &'a Plot) -> Scene {
     let x = plot.mapped(Aesthetic::X);
     let y = plot.mapped(Aesthetic::Y);
-    let colourings: Vec<Colouring<'_>> = [Aesthetic::Color, Aesthetic::Fill]
-        .into_iter()
-        .filter_map(|aesthetic| colouring(plot, aesthetic))
-        .collect();
+    let colourings: Vec<Colouring<'_>> = [
+        Aesthetic::Color,
+        Aesthetic::Fill,
+        Aesthetic::Size,
+        Aesthetic::Shape,
+    ]
+    .into_iter()
+    .filter_map(|aesthetic| colouring(plot, aesthetic))
+    .collect();
     let mut notes: Vec<String> = Vec::new();
     let mut note = |text: String| {
         if !notes.contains(&text) {
@@ -708,22 +854,32 @@ pub fn scene(plot: &Plot) -> Scene {
             (Some(x), Some(y)) => {
                 // A value on a ramp of colours must be there and finite, as a position must; a
                 // row without a category is drawn, in the colour of `NA`.
+                let read = |colouring: &Colouring<'a>| {
+                    colouring.readers[at]
+                        .map(|column| (colouring.mapping.variable.as_str(), column))
+                };
                 let ramps: Vec<(&str, &Column)> = colourings
                     .iter()
-                    .filter(|colouring| colouring.kind == Shading::Ramp)
-                    .filter_map(|colouring| {
-                        colouring.readers[at]
-                            .map(|column| (colouring.mapping.variable.as_str(), column))
+                    .filter(|colouring| {
+                        colouring.kind == Shading::Ramp && colouring.aesthetic != Aesthetic::Size
                     })
+                    .filter_map(read)
                     .collect();
+                // A size must be there and finite as well, and not below 0.
+                let sized = colourings
+                    .iter()
+                    .filter(|colouring| colouring.aesthetic == Aesthetic::Size)
+                    .find_map(read);
                 let columns: Vec<&Column> = ramps.iter().map(|(_, column)| *column).collect();
                 let points = drawn(
                     values(plot, Some(layer), Aesthetic::X),
                     values(plot, Some(layer), Aesthetic::Y),
                     &columns,
+                    sized.map(|(_, column)| column),
                 );
                 let mut names = vec![x, y];
                 names.extend(ramps.iter().map(|(name, _)| *name));
+                names.extend(sized.map(|(name, _)| name));
                 if points.missing > 0 {
                     note(format!(
                         "{} with NA in {} dropped",
@@ -738,6 +894,27 @@ pub fn scene(plot: &Plot) -> Scene {
                         either(&names)
                     ));
                 }
+                if let Some((name, column)) = sized {
+                    if points.negative > 0 {
+                        note(format!(
+                            "{} with {name} below 0 dropped: `size` shows amounts of 0 or more",
+                            rows_text(points.negative)
+                        ));
+                    }
+                    // A mark of no size is drawn, and not seen.
+                    let nothing = points
+                        .rows
+                        .iter()
+                        .filter(|&&row| number(column, row) == Some(0.0))
+                        .count();
+                    if nothing > 0 {
+                        note(format!(
+                            "{} with {name} of 0 {} drawn with no size",
+                            rows_text(nothing),
+                            if nothing == 1 { "is" } else { "are" }
+                        ));
+                    }
+                }
                 points
             }
             _ => Drawn::default(),
@@ -751,12 +928,24 @@ pub fn scene(plot: &Plot) -> Scene {
             }
             _ => Paint::Theme,
         };
+        // The layer's own size comes before the plot's; a mapped size and a mapped shape take
+        // their place below, as a mapped colour does.
+        let size = match (layer.size, plot.constant(Aesthetic::Size)) {
+            (Some(own), _) => own,
+            (None, Some(PlotSetting::Size(all))) if reads(layer.mark, Aesthetic::Size) => *all,
+            _ => POINT_SIZE,
+        };
+        let outline = match plot.constant(Aesthetic::Shape) {
+            Some(PlotSetting::Shape(name)) if reads(layer.mark, Aesthetic::Shape) => *name,
+            _ => shape::DEFAULT,
+        };
         layers.push(Layer {
             mark: layer.mark,
             x: points.x,
             y: points.y,
             color,
-            size: layer.size.unwrap_or(POINT_SIZE),
+            size: Sizing::Constant(size),
+            shape: Shaping::Constant(outline),
             alpha: layer.alpha,
         });
         kept.push(points.rows);
@@ -795,6 +984,8 @@ pub fn scene(plot: &Plot) -> Scene {
         });
     }
     let mut legends: Vec<Legend> = Vec::new();
+    // The variable each legend shows: one legend for all the scales of one variable.
+    let mut legend_of: Vec<&str> = Vec::new();
     for colouring in &colourings {
         let Shaded {
             scale,
@@ -808,18 +999,36 @@ pub fn scene(plot: &Plot) -> Scene {
                 marks.push(layer.mark);
             }
         }
-        if !marks.is_empty() {
-            legends.push(Legend {
-                title: scale.title.clone(),
-                scales: vec![scale.id],
-                marks,
-            });
-        }
-        if colouring.aesthetic == Aesthetic::Color {
-            for (layer, values) in layers.iter_mut().zip(values) {
-                if let Some(values) = values {
-                    layer.color = Paint::Scaled(values);
+        let variable = colouring.mapping.variable.as_str();
+        match legend_of.iter().position(|shown| *shown == variable) {
+            _ if marks.is_empty() => {}
+            Some(at) => {
+                let legend = &mut legends[at];
+                legend.scales.push(scale.id);
+                for mark in marks {
+                    if !legend.marks.contains(&mark) {
+                        legend.marks.push(mark);
+                    }
                 }
+            }
+            None => {
+                legend_of.push(variable);
+                legends.push(Legend {
+                    title: scale.title.clone(),
+                    scales: vec![scale.id],
+                    marks,
+                });
+            }
+        }
+        for (layer, values) in layers.iter_mut().zip(values) {
+            let Some(values) = values else {
+                continue;
+            };
+            match colouring.aesthetic {
+                Aesthetic::Color => layer.color = Paint::Scaled(values),
+                Aesthetic::Size => layer.size = Sizing::Scaled(values),
+                Aesthetic::Shape => layer.shape = Shaping::Scaled(values),
+                _ => {}
             }
         }
         if let Some(said) = said {
@@ -879,9 +1088,12 @@ impl Scene {
                                     "range",
                                     match &s.range {
                                         Range::Position => Json::Null,
-                                        Range::Colours(colours) => Json::List(
-                                            colours.iter().map(|c| Json::text(*c)).collect(),
+                                        Range::Colours(names) | Range::Shapes(names) => Json::List(
+                                            names.iter().map(|c| Json::text(*c)).collect(),
                                         ),
+                                        Range::Sizes(least, largest) => {
+                                            Json::numbers(&[*least, *largest])
+                                        }
                                     },
                                 ),
                             ])
@@ -969,7 +1181,28 @@ impl Scene {
                                                             }
                                                         },
                                                     ),
-                                                    ("size", Json::Number(l.size)),
+                                                    (
+                                                        "size",
+                                                        match &l.size {
+                                                            Sizing::Constant(across) => {
+                                                                Json::Number(*across)
+                                                            }
+                                                            Sizing::Scaled(values) => {
+                                                                Json::numbers(values)
+                                                            }
+                                                        },
+                                                    ),
+                                                    (
+                                                        "shape",
+                                                        match &l.shape {
+                                                            Shaping::Constant(name) => {
+                                                                Json::text(*name)
+                                                            }
+                                                            Shaping::Scaled(values) => {
+                                                                Json::numbers(values)
+                                                            }
+                                                        },
+                                                    ),
                                                     ("alpha", Json::Number(l.alpha)),
                                                 ])
                                             })
@@ -1019,7 +1252,7 @@ fn part(columns: Vec<(String, Align)>, rows: Vec<Vec<String>>) -> Table {
 }
 
 /// The scene read as text, the printed form of a plot: a line for each axis with its title, its
-/// limits and its breaks, a line for each colour with what it shows and in which colours, then
+/// limits and its breaks, a line for each other aesthetic with what it shows and as what, then
 /// a line for each layer with the number of marks it draws.
 pub fn summary(plot: &Plot, scene: &Scene) -> Table {
     // The frame is named when the script named it; a frame written in place has no name to give.
@@ -1070,18 +1303,34 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
     }
     let layers: Vec<&Layer> = scene.panels.iter().flat_map(|p| p.layers.iter()).collect();
 
-    // The colours: a line for each aesthetic that a variable is mapped to or a colour is given.
-    let mut colours: Vec<Vec<String>> = Vec::new();
+    // The aesthetics other than the positions: a line for each that a variable is mapped to or
+    // that is set to one value for every mark.
+    let limits = |s: &Scale| {
+        format!(
+            "{} to {}",
+            format_float(s.limits.0),
+            format_float(s.limits.1)
+        )
+    };
+    let mut lines: Vec<Vec<String>> = Vec::new();
     let mut unread: Vec<String> = Vec::new();
-    for aesthetic in [Aesthetic::Color, Aesthetic::Fill] {
+    for aesthetic in [
+        Aesthetic::Color,
+        Aesthetic::Fill,
+        Aesthetic::Size,
+        Aesthetic::Shape,
+        Aesthetic::Group,
+        Aesthetic::Label,
+    ] {
         let id = aesthetic.name();
-        let line = match (scene.scale(id), plot.constant(aesthetic)) {
-            (Some(s), _) => {
-                let Range::Colours(range) = &s.range else {
-                    continue;
-                };
-                let (values, drawn_as) = match s.kind {
-                    ScaleKind::Category => (
+        let line = match (
+            scene.scale(id),
+            plot.constant(aesthetic),
+            plot.mapping(aesthetic),
+        ) {
+            (Some(s), _, _) => {
+                let (values, shown_as) = match (&s.range, s.kind) {
+                    (Range::Colours(range), ScaleKind::Category) => (
                         listed(&s.labels),
                         listed(
                             &range
@@ -1090,52 +1339,91 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                                 .collect::<Vec<String>>(),
                         ),
                     ),
-                    ScaleKind::Linear => (
-                        format!(
-                            "{} to {}",
-                            format_float(s.limits.0),
-                            format_float(s.limits.1)
-                        ),
-                        "viridis, dark purple to yellow".to_string(),
+                    (Range::Colours(_), _) => {
+                        (limits(s), "viridis, dark purple to yellow".to_string())
+                    }
+                    (Range::Sizes(_, largest), _) => (
+                        limits(s),
+                        format!("by area, up to {} across", format_float(*largest)),
                     ),
+                    (Range::Shapes(range), _) => (
+                        listed(&s.labels),
+                        listed(
+                            &range
+                                .iter()
+                                .map(|name| name.to_string())
+                                .collect::<Vec<String>>(),
+                        ),
+                    ),
+                    (Range::Position, _) => continue,
                 };
                 vec![
                     id.to_string(),
                     s.title.clone(),
                     s.kind.name().to_string(),
                     values,
-                    drawn_as,
+                    shown_as,
                 ]
             }
-            (None, Some(PlotSetting::Colour { written, .. })) => vec![
+            (None, Some(setting), _) => vec![
                 id.to_string(),
                 String::new(),
                 "constant".to_string(),
                 "every mark".to_string(),
-                written.clone(),
+                match setting {
+                    PlotSetting::Colour { written, .. } => written.clone(),
+                    PlotSetting::Size(across) => format_float(*across),
+                    PlotSetting::Shape(name) => name.to_string(),
+                },
             ],
-            (None, None) => continue,
+            // A group and a label have no scale: the values themselves are what a mark reads.
+            (None, None, Some(mapping)) if aesthetic == Aesthetic::Group => vec![
+                id.to_string(),
+                axis_title(plot, mapping),
+                String::new(),
+                "each value a group".to_string(),
+                String::new(),
+            ],
+            (None, None, Some(mapping)) if aesthetic == Aesthetic::Label => vec![
+                id.to_string(),
+                axis_title(plot, mapping),
+                String::new(),
+                "the text of a mark".to_string(),
+                String::new(),
+            ],
+            _ => continue,
         };
-        colours.push(line);
-        if !layers.is_empty() && !plot.layers.iter().any(|l| reads(l.mark, aesthetic)) {
-            unread.push(format!(
-                "no layer draws `{id}`: `points` takes its colour from `color`"
-            ));
+        lines.push(line);
+        if !layers.is_empty() && !plot.layers.iter().any(|l| layer_reads(l, aesthetic)) {
+            unread.push(
+                match aesthetic {
+                    Aesthetic::Fill => {
+                        "no layer draws `fill`: `points` takes its colour from `color`"
+                    }
+                    Aesthetic::Size => {
+                        "no layer draws `size`: every layer sets a `size:` of its own"
+                    }
+                    Aesthetic::Group => "no layer draws `group`: `points` draws each row by itself",
+                    Aesthetic::Label => "no layer draws `label`: `points` writes no text",
+                    _ => continue,
+                }
+                .to_string(),
+            );
         }
     }
-    if !colours.is_empty() {
-        let mut shades = part(
+    if !lines.is_empty() {
+        let mut shown_as = part(
             vec![
                 left("aesthetic"),
                 left("title"),
                 left("scale"),
                 left("values"),
-                left("colours"),
+                left("shown as"),
             ],
-            colours,
+            lines,
         );
-        shades.after = unread;
-        table.more.push(shades);
+        shown_as.after = unread;
+        table.more.push(shown_as);
     }
 
     if layers.is_empty() {
@@ -1157,11 +1445,20 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 .unwrap_or_else(|| "its own frame".to_string()),
             None => shown.clone(),
         };
-        let mut settings = format!(
-            "size {}, alpha {}",
-            format_float(layer.size),
-            format_float(layer.alpha)
-        );
+        let by = |aesthetic: Aesthetic| plot.mapped(aesthetic).unwrap_or(aesthetic.name());
+        let mut settings = match &layer.size {
+            Sizing::Constant(across) => format!("size {}", format_float(*across)),
+            Sizing::Scaled(_) => format!("size by {}", by(Aesthetic::Size)),
+        };
+        // The shape is told where it is not the circle every plot begins with.
+        match &layer.shape {
+            Shaping::Constant(name) if *name == shape::DEFAULT => {}
+            Shaping::Constant(name) => settings.push_str(&format!(", shape {name}")),
+            Shaping::Scaled(_) => {
+                settings.push_str(&format!(", shape by {}", by(Aesthetic::Shape)));
+            }
+        }
+        settings.push_str(&format!(", alpha {}", format_float(layer.alpha)));
         if let Some(share) = written.map(|l| l.jitter).filter(|j| *j > 0.0) {
             settings.push_str(&format!(", jitter {}", format_float(share)));
         }

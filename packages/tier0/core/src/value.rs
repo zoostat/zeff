@@ -103,24 +103,34 @@ impl Plot {
     }
 }
 
-/// What a mark's appearance may be mapped from (section 7.6): the two positions and the two
-/// colours at release 0.7.0, step 20c.
+/// What a mark's appearance may be mapped from (section 7.6): the two positions, the two
+/// colours, the size and the shape of a mark, the variable whose values gather the rows into
+/// groups, and the variable whose values are the text of a mark.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Aesthetic {
     X,
     Y,
     Color,
     Fill,
+    Size,
+    Shape,
+    Group,
+    Label,
 }
 
 impl Aesthetic {
-    /// The aesthetic as the language writes it: `x`, `y`, `color`, `fill`.
+    /// The aesthetic as the language writes it: `x`, `y`, `color`, `fill`, `size`, `shape`,
+    /// `group`, `label`.
     pub fn name(self) -> &'static str {
         match self {
             Aesthetic::X => "x",
             Aesthetic::Y => "y",
             Aesthetic::Color => "color",
             Aesthetic::Fill => "fill",
+            Aesthetic::Size => "size",
+            Aesthetic::Shape => "shape",
+            Aesthetic::Group => "group",
+            Aesthetic::Label => "label",
         }
     }
 }
@@ -139,6 +149,10 @@ pub enum PlotSetting {
     /// A colour, as six hexadecimal digits after `#`, in capitals: `#4682B4`. `written` is the
     /// colour as the script wrote it, `steelblue`.
     Colour { hex: String, written: String },
+    /// A size: the diameter of a mark in points of 1/72 inch, above 0.
+    Size(f64),
+    /// A shape, by its name: `square`.
+    Shape(&'static str),
 }
 
 /// One mapping of a plot: an aesthetic and what it reads, a variable of the frame or an
@@ -186,7 +200,8 @@ pub struct PlotLayer {
     pub data: Option<Frame>,
     /// The opacity of a mark, from 0 to 1.
     pub alpha: f64,
-    /// The size of a mark in points (1/72 inch), or `None` for the default.
+    /// The size of a mark in points (1/72 inch), which takes the place of whatever the plot says
+    /// of `size`, or `None` when the layer says nothing.
     pub size: Option<f64>,
     /// How far a mark may be moved at random along each axis, as a share of the smallest gap
     /// between two values on that axis; 0 for no jitter.
