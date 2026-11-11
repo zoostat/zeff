@@ -106,7 +106,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 36 | Student verification for free Pro | Institutional email, with a manual route for institutions without one | Zemp Pro |
 | 37 | Trademark filing for Zeff and Zemp | File in the home jurisdiction before the public alpha; Apache 2.0 gives others no right to the names | Zemp 0.2 alpha |
 | 38 | Setup files for Zeff, Zemp Lite and Zemp Studio | None until #23 is decided: `zeff app install` and the package managers cover the desktop apps; plan setup files with #23 | 0.11.0 |
-| 39 | Zemp Lite: paid features and AI in Lite; the web address; a desktop preview before 0.5 | Free-tier only through 1.0, revisited with #27 and #28; Lite web at a path on Zemp Studio web's origin; no earlier desktop preview | Zemp 0.2 alpha (the address); the rest with #27 and #28 |
+| 39 | Zemp Lite: paid features and AI in Lite; the web address; a desktop preview before 0.5 | Free-tier only through 1.0, revisited with #27 and #28; Lite web at a path on Zemp Studio web's origin; no earlier desktop preview | decided 11 November 2026 (as recommended) |
 | 40 | A specification freeze while 0.1.0 to 0.3.0 are built | Freeze the normative text except for bugs found while coding; record further design work here with a deadline release (risk register, R12) | decided 18 October 2026; ended 22 October 2026 |
 | 41 | Diagnostic codes for three syntax conditions the specification does not number | Z0301 something the grammar does not allow at that place (an unexpected character, an unclosed quoted name, an unexpected token); Z0303 an unmatched closing bracket; Z0304 a construct the grammar has but this release does not run | decided 18 October 2026 |
 | 42 | Diagnostic codes for two conditions of the project file | Z0712 `zeff.toml` is not valid TOML; Z0713 `zeff.toml` has an unknown key, a missing key or a value of the wrong kind | decided 18 October 2026 |
@@ -549,6 +549,8 @@ Three questions left open when Zemp Lite was decided (Zemp Specification, sectio
 | A Lite desktop preview before 0.5 | None · A preview at the 0.2 alpha | None: it would need the Tauri packaging and `zeff app install` of 0.11.0 three releases early, and the Lite web preview at 0.2 serves the same purpose |
 
 *Recommendation.* As the table says; decide the address before the 0.2 alpha, the rest with #27 and #28.
+
+**The owner's decision (11 November 2026).** "Yes, as recommended." (1) Zemp Lite is free-tier only through 1.0; whether it gains AI assistance or the paid tiers' features is decided with #27 and #28, preferring the same features in both editions if any. (2) Zemp Lite web lives at a path on Zemp Studio web's origin (`…/lite`), installable as its own offline app with its own manifest scope, so that both editions share the browser's private file system and **Open in Zemp** moves a project across; the domain itself waits on #27 (hosting) and #37 (trademarks). (3) No Lite desktop preview before the 0.5 desktop beta; the Lite web preview of the 0.2 alpha serves. The Zemp Specification's sections 2, 10 and 17 are amended accordingly, logged in `docs/spec_changes.md`.
 
 ### 40. A specification freeze while 0.1.0 to 0.3.0 are built
 

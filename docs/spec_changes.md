@@ -422,3 +422,7 @@ Section 3 names the interface framework, Svelte 5 bundled by Vite, where it read
 ## 11 November 2026 — zemp_specification.md, sections 5 and 17; zeff_open_decisions.md, entry #33
 
 Section 5 gains a paragraph on density, icons, desktop menus and screen size, after "The look"; section 17 moves the four decisions of the interface revamp to the decided list. The reason: the owner's decision on open decision #33, "as recommended".
+
+## 11 November 2026 — zemp_specification.md, sections 2, 10, 12 and 17; zeff_open_decisions.md, entry #39
+
+Section 2's table of parts and section 12 say AI assistance is not offered in Zemp Lite through 1.0, and is decided with #27 and #28, where they left it open; section 10 fixes Zemp Lite web at a path (`…/lite`) on Zemp Studio web's origin with its own manifest scope, the domain waiting on #27 and #37; section 17 moves the item to the decided list. The reason: the owner's decision on open decision #39, as recommended.

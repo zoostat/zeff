@@ -44,7 +44,7 @@ Two editions, each in two forms, plus the command line. Every product runs the s
 | Formula, graph, model, plot-layer and recipe builders | Yes | No; written as Zeff |
 | Controls that write a statement: drag a data file into the editor, drag a frame onto a method, **Add to script** in the viewers, edits in the variable view, the import dialog | Yes | No; the variable view and the import preview are read-only |
 | **Copy as Zeff** in the data, plot and variable viewers: the statement equivalent to a sort, a filter or a change of type, label or contrast, put on the clipboard; never a selection of rows (zeff_open_decisions.md, #114) | No; **Add to script** writes the statement instead | Yes; the script changes only when the user pastes it |
-| AI assistance (from 1.11, section 12) | Yes | Open (section 17) |
+| AI assistance (from 1.11, section 12) | Yes | Not through 1.0; decided with zeff_open_decisions.md #27 and #28, the same features in both editions if any (#39) |
 
 | Rule | What it means |
 | --- | --- |
@@ -308,7 +308,7 @@ Updates download in the background, apply at the next restart, and keep the prev
 
 **Zemp Studio web.** Runs entirely in the browser: the engine is WebAssembly in a Web Worker, projects live in the browser's private file system (Origin Private File System) and can be exported or synced to a folder. It installs as an offline app. From Zeff 1.1, hosting sends the cross-origin isolation headers threads need. Data never leaves the machine; a "re-run" link carries the scripts and engine version, not the data, and asks the viewer for the data files.
 
-**Zemp Lite web.** The Lite build of the same web app, at its own path on Zemp Studio web's origin (the address is an open decision, section 17) and installable as its own offline app, with everything above. Both web editions on one origin share the browser's private file system, which is kept per origin, so a project made in one opens in the other; **Open in Zemp** moves the current project across without exporting it.
+**Zemp Lite web.** The Lite build of the same web app, at its own path on Zemp Studio web's origin (`…/lite`; the domain waits on hosting, zeff_open_decisions.md #27, and the trademarks, #37) and installable as its own offline app with its own manifest scope, with everything above. Both web editions on one origin share the browser's private file system, which is kept per origin, so a project made in one opens in the other; **Open in Zemp** moves the current project across without exporting it.
 
 **Command line.** `zeff new`, `zeff run`, `zeff check`, `zeff fmt`, `zeff test`, `zeff lsp`, `zeff help`, `zeff version`, `zeff fix --edition`, `zeff explain`, `zeff report-bug`, `zeff audit`, `zeff repl`, `zeff eval`, `zeff selftest`, `zeff engine`, `zeff runs`, `zeff export replication`, `zeff verify`, `zeff doctor`, `zeff app`, `zeff dataset fetch`, `zeff self` and `zeff completions`, as in the Zeff Specification (section 2.1), installed by the installer script, Homebrew, winget, Scoop, an archive, the offline bundle, the container image, or Zemp desktop's Install command-line tool. A project made in either edition runs unchanged from the command line; `zeff verify` is how a replication package is checked, and `zeff repl` is the console without the window.
 
@@ -340,7 +340,7 @@ Scale: 272 functions in Zeff 1.0 (180 of them infrastructure tagged only `genera
 
 ## 12. AI assistance (later version)
 
-AI assistance is planned for Zemp 1.11 (section 15), under three rules that keep Zemp's principles intact. Whether Zemp also sells metered access to a model of its own, as the business model's Pro tier proposes, or only connects the user's own key or a local model, is open (section 17; zeff_open_decisions.md, #28); so is whether Zemp Lite offers it (section 17; #39).
+AI assistance is planned for Zemp 1.11 (section 15), under three rules that keep Zemp's principles intact. Whether Zemp also sells metered access to a model of its own, as the business model's Pro tier proposes, or only connects the user's own key or a local model, is open (section 17; zeff_open_decisions.md, #28). Zemp Lite does not offer it through 1.0; whether it does later is decided with #28 (#39).
 
 1. **It writes Zeff, never results.** The assistant proposes Zeff statements; they appear in the editor or a dialog and run only when the user runs them, through the same checked path as any code.
 2. **It explains, with sources in the output.** It can explain an error, a warning or a result by pointing to the printed numbers and the function's help.
@@ -423,10 +423,10 @@ Zeff (language and engine) is Apache 2.0. Zemp's licence is decided separately, 
 - [ ] How students are verified for the free Pro tier (zeff_open_decisions.md, #36)
 - [ ] When to file the Zeff and Zemp trademarks (zeff_open_decisions.md, #37)
 - [ ] Setup files for the desktop apps and for Zeff (Windows `.exe`/`.msi`, macOS `.dmg`/`.pkg`, Linux `.deb`, `.rpm`, AppImage): deferred on 17 October 2026, when installation was kept to the command line; to be planned with the code-signing decision (Zeff Specification, section 15; zeff_open_decisions.md, #38), since unsigned setup files meet Windows SmartScreen and macOS Gatekeeper warnings
-- [ ] Zemp Lite: whether AI assistance and the paid tiers' features (cloud sync, version history) are offered in Lite as well as in Zemp Studio, or Lite stays free-tier only; the address of Zemp Lite web (a path on Zemp Studio web's origin is recommended, since the browser's private file system the two editions share is per origin); and whether a Lite desktop preview ships before the 0.5 desktop beta, which would need the desktop packaging and signing of that release earlier (zeff_open_decisions.md, #39)
 
 **Decided**
 
+- [x] Zemp Lite's paid features, web address and desktop preview (11 November 2026; sections 2 and 10): free-tier only through 1.0, the rest with #27 and #28; Zemp Lite web at a path on Zemp Studio web's origin; no Lite desktop preview before the 0.5 desktop beta (zeff_open_decisions.md, #39)
 - [x] Density, icons, desktop menus, tablet and phone (11 November 2026; section 5): one density with a Larger type setting, no icons in 1.0, native desktop menus mirroring the command palette, no tablet or phone layout in 1.0 (zeff_open_decisions.md, #33)
 - [x] Interface framework (11 November 2026; section 3): Svelte 5 with TypeScript, bundled by Vite, without the spike against SolidJS once planned (zeff_open_decisions.md, #24); the look in section 5 (#115)
 - [x] Zemp Studio (1 November 2026; section 2): the full edition's name, beside Zemp Lite; Zemp alone names the application and the product line; the installer identifiers follow (`zeff app install studio`, `zemp-studio`)
