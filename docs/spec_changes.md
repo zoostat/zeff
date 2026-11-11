@@ -410,3 +410,7 @@ No normative text changes at step 20b of release 0.7.0: expressions in `x:` and 
 ## 11 November 2026 — zeff_open_decisions.md, new entry #109
 
 No normative text changes at step 20c of release 0.7.0: `color:` and `fill:` of `data.plot(…)` are built as the catalogue's row 460 types them (`Var | Str`) and with the defaults section 7.6 fixes, the palette of Okabe and Ito for categories and viridis for a continuous scale; row 460 stays `planned` until step 20d, the checklist's step 20c having been split (size, shape, group and label are step 20d). Three questions met while coding are recorded as open decision #109 with its summary row, deadline 0.7.0 before step 25, rather than settled here: what a plot does with more categories than the palette has colours, whether a level with no row among the marks drawn keeps a colour, and which names of colours a string may hold. Section 7.6 is silent on each, and each is built in the way the entry recommends.
+
+## 11 November 2026 — zemp_specification.md, sections 2 and 5; zeff_open_decisions.md, entry #114
+
+The table of parts in section 2 gains a row for **Copy as Zeff** in Zemp Lite's data, plot and variable viewers, and section 5's paragraph on Zemp Lite names it. The reason: the owner's decision on open decision #114 (option C); the specification did not say whether a control that only puts a statement on the clipboard counts as one that writes a statement, which section 2 leaves out of Lite.
