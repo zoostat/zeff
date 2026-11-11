@@ -90,7 +90,7 @@ Bit-identity CI needs ARM64 runners and a second x86-64 machine of a different S
 
 ### R10 · Adoption
 
-Researchers rarely leave R or Stata; third-party packages arrive only at 1.11.
+Researchers rarely leave R or Stata; no third-party package arrives before 2.0.0 (zeff_open_decisions.md, #123), so every method a user needs before then must be built in.
 
 - **Early warning:** the Zemp Lite web preview (with Zemp 0.2, Zeff 0.8.0) draws few repeat users.
 - **Mitigation:** lead with what R and Stata lack (causal-graph checks, bit-identical replication, `zeff verify`, a free app); the reader test of Zeff syntax at the 0.2 alpha; interoperability through Parquet so Zeff can sit beside R and Stata rather than replace them.

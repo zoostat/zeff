@@ -75,9 +75,9 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 5 | Structural equality | Add `equal(a, b)` to `core` at 0.5.0 | decided 30 October 2026 |
 | 6 | Locale collation, time zones | Opt-in `collation:` with a pinned CLDR version; `to_timezone` with a pinned tz database; after 1.0 | 1.x |
 | 7 | Grapheme-aware text | `unit: graphemes` argument; default stays code points | 1.x |
-| 8 | Zeff-source packages before 1.11 | Yes, in 1.6 with the manifest and lockfile; components at 1.11 | 1.3 |
-| 9 | Registry hosting | GitHub Pages and Releases with a signed index, mirrored on Codeberg | 1.5 |
-| 10 | `synthesize` | A package through the registry, not the engine | after 1.11 |
+| 8 | Zeff-source packages before 1.11 | Yes, in 1.6 with the manifest and lockfile; components at 1.11 | decided 11 November 2026: none before 2.0.0 (#123) |
+| 9 | Registry hosting | GitHub Pages and Releases with a signed index, mirrored on Codeberg | when 2.0.0 is planned (#123) |
+| 10 | `synthesize` | A package through the registry, not the engine | when 2.0.0 is planned (#123) |
 | 11 | Split the specification | Yes, now, before coding starts | now |
 | 12 | `posthoc` and factorial `anova(type:)` | Adopt, 0.7.0 | decided 16 October 2026 |
 | 13 | `iterate` | Adopt, 0.5.0 | decided 30 October 2026 |
@@ -155,6 +155,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 123 | No third-party packages before 2.0.0 | No package of either kind, no registry and no package commands before 2.0.0, the release that ships them set when 2.0.0 is planned; a project's own functions in `functions/` unaffected; how packages keep Zeff's principles (names, shared arguments, reporting, duplicates) settled then | decided 11 November 2026 |
 | 122 | Placing the graphics and diagram proposals on the releases of #113 | The capabilities of the two proposals become the plan, each placed by the rules of #113 (basic, advanced, research; econometrics first) with its method's release where it is a result plot; the exact release confirmed when each release is planned; catalogue rows added in the documentation step of 0.8.0 | decided 11 November 2026 (option A); catalogue rows at the documentation step of 0.8.0 |
 | 121 | Diagrams: one layout engine, positions in the script for export, SEM path diagrams and the model builder | Zeff's own deterministic layered layout engine at 0.10.0 for `g.plot()` (no Graphviz or ELK); dragged positions are view state and exports use only positions the script holds; `m.plot()` and `fit.path_plot()` with SEM at 1.12; identification checks at check time; `diagram { }`, `sample_flow` and `reason:` at 1.2; `zeff graph` at 1.1; one canvas for every builder in Zemp | decided 11 November 2026 (option A); the positions rule written into the Language Reference, section 7.3, and the Zemp Specification, sections 5 and 6, the same day; the layout engine at 0.10.0 |
 | 120 | Result plots: one `_plot` method per kind with a `kind:` option, and no further plots in 1.0 | Derived plots are `_plot` methods on results, one per kind of figure, each with a `kind:` option (`residual_plot(kind: fitted \| qq \| scale_location)`), as rule 6 and #97 together require; the proposal's four 1.0 candidates wait for 1.2, the ROC curve being `fit.curve(type: roc).plot()` (#112) | decided 11 November 2026 (option A); the convention fixed at step 30 of 0.7.0, the table of #113 renamed at 0.8.0 |
@@ -280,6 +281,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 *Recommendation.* A, 1.6; decide by 1.3 so the manifest is designed with the latent package's types in view.
 
+**Settled by #123 (11 November 2026).** The owner decided that no third-party package of either kind ships before 2.0.0, so Zeff-source packages do not come at 1.6, 1.1 or 1.11.
+
 ### 9. Registry hosting
 
 | Option | For | Against |
@@ -290,6 +293,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | D. A on GitHub with a Codeberg mirror; the index signed, so the host is never trusted | Free, no single point of failure, trust comes from the signature | Two places to publish |
 
 *Recommendation.* D.
+
+**Deadline moved by #123 (11 November 2026).** With no third-party packages before 2.0.0, the host is chosen when 2.0.0 is planned.
 
 ### 10. `synthesize`
 
@@ -2244,3 +2249,29 @@ Raised on 11 November 2026 by the owner's proposals on graphics (`docs/proposals
 *Recommendation.* A. Deadline: 0.8.0, with the documentation step of #113.
 
 **The owner's decision (11 November 2026).** "Option A." The placement in the table is adopted, with P7, P9, P10 and P11 as stated. The documentation step of 0.8.0 that amends the catalogue, section 14 and the Zemp release table for #113 also adds the rows of the two proposals, `docs/proposals/zeff_graphics_capabilities.md` and `docs/proposals/zeff_diagrams.md`, at these releases, with the result plots named as #120 decides. Each release's contents are confirmed when that release is planned; if release 1.2 proves too large then, composition and the further export formats move to 1.5. The items of section 13 of the graphics proposal are not planned. Nothing in either proposal enters a release before 1.0 beyond what #118 to #121 decided.
+
+### 123. No third-party packages before 2.0.0
+
+Raised on 11 November 2026 by the owner, after a review of the package plan of section 8.4 against the principles of section 1.2. The owner does not want Zeff's methods spread over many overlapping packages of uneven design, as R's are. The plan before this entry placed third-party packages at 1.11, which #113 moved to 1.15, and #8 recommended Zeff-source packages earlier, at 1.6.
+
+**The owner's decision (11 November 2026).** "No third party package before release 2.0.0." No package of either kind of section 8.4, Zeff-source or component, ships before 2.0.0, and neither do the registry, the validated badge or the commands `zeff add`, `zeff update`, `zeff remove`, `zeff packages`, `zeff vendor` and `zeff publish`. Release 2.0.0 is a major release under the semantic versioning of section 15. The plan of #113 runs to 1.29 and places no 2.0.0, so the release that ships packages is set when 2.0.0 is planned; if 2.0.0 follows 1.29, that is about seven years after 1.0. No options were put: the owner stated the decision.
+
+**What stays as it is.**
+
+- A project's own functions in `functions/`, brought in with `use functions::<name>` (tier 4 of section 8.1), are unaffected. They are how a researcher writes a method of their own before 2.0.0.
+- The format of section 8.4, rule 9 of section 8.1 and point 6 of section 8.3 stay in the specification as the plan, so the built-in packages are still built to the same interfaces and a project's `zeff.toml` needs no change when packages arrive. Until then a `[packages]` table in `zeff.toml` is refused (Z0713), and `use` of a package that is not built in is refused (Z0304).
+- User-defined types stay at 1.15, where #113 places them; they serve a project's own functions as well as packages.
+
+**What changes.**
+
+- #8 is settled: no Zeff-source packages before 2.0.0, so neither its option A (1.6) nor its option C (1.1) is taken.
+- #9, the registry's host, and #10, `synthesize` as a registry package, wait until 2.0.0 is planned.
+- Amended on the same day and logged in `docs/spec_changes.md`: in the Engine Specification, section 1.3, the project files and command table of section 2, section 8.1 (the tier diagram, rule 9 and tier 4), point 6 of section 8.3, section 8.4 and the list of section 15; the glossary of the Language Reference (section 16); sections 3, 4, 5 and 13 of the Zemp Specification; and risk R10 of the risk register.
+- Left to the documentation step of 0.8.0 that amends section 14 and the Zemp release table for #113: both tables are written without third-party packages, so release 1.15 holds user-defined types but no packages. The same step corrects the engine's messages, with their snapshot tests: the label of Z0304 for `use` of a package says "arrives with Zeff 1.11", already out of date since #113, and the help of Z0304 and Z0713 says "after 1.0"; all three are to name 2.0.
+
+**Left open, to settle when 2.0.0 is planned.** Raised in the same review, on how packages keep Zeff's principles once they arrive:
+
+1. Whether a package's names must follow the rule of #97 and the naming conventions of section 3 of the Language Reference, refused at `zeff publish` rather than warned.
+2. Whether the shared arguments of principle 8 (`by:`, `cluster:`, `weights:`, `se:`, `fe:`, `re:`) must mean in a package function exactly what they mean in a built-in.
+3. Whether a package function must report dropped rows, skipped missing values and coercions with counts, as principle 6 requires of every built-in, and how the registry checks it.
+4. Whether the registry refuses or flags a function that duplicates a built-in or another package's method; whether a reviewed set of packages carries a second badge beside *validated*; and whether a widely used validated package is taken into the built-in catalogue in a later release.

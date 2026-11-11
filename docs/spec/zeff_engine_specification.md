@@ -35,7 +35,7 @@ Every design decision must pass these eight rules; when two conflict, the earlie
 
 ### 1.3 Not goals
 
-Zeff is not a general-purpose language (no web servers or arbitrary programs), does not copy R or Stata source syntax, has no third-party packages before 1.0 (every built-in method is validated by the project), and is not a data-engineering tool.
+Zeff is not a general-purpose language (no web servers or arbitrary programs), does not copy R or Stata source syntax, has no third-party packages before 2.0 (every built-in method is validated by the project; zeff_open_decisions.md, #123), and is not a data-engineering tool.
 
 ### 1.4 Licence and technical constraints
 
@@ -63,7 +63,7 @@ Zeff code runs only inside a project: a folder whose `zeff.toml` pins the engine
 ```
 schooling/
     zeff.toml          project name, engine version and data roots
-    zeff.lock          exact versions and hashes of third-party packages (after 1.0)
+    zeff.lock          exact versions and hashes of third-party packages (not before 2.0)
     scripts/main.zeff  the script `zeff run` starts from
     functions/         the project's own functions, brought in with `use`
     data/              input files
@@ -71,7 +71,7 @@ schooling/
     .zeff/runs/        recorded seeds, warnings, file hashes and outputs of each run
     .zeff/schemas/     cached column names and types of each data file
     .zeff/cache/       results of earlier runs, and Arrow copies of imported files, reused while code and inputs are unchanged (section 8.7)
-    .zeff/packages/    vendored copies of third-party packages, so a replication package needs no network (after 1.0)
+    .zeff/packages/    vendored copies of third-party packages, so a replication package needs no network (not before 2.0)
 ```
 
 ```toml
@@ -85,7 +85,7 @@ network = false       # true lets `fetch` reach the network (section 8.6)
 [data]
 lfs = { path = "D:/surveys/lfs" }        # always read-only
 
-[packages]            # after 1.0: third-party packages by version requirement; zeff.lock records what was resolved
+[packages]            # not before 2.0: third-party packages by version requirement; zeff.lock records what was resolved
 survival = "^1.2"
 ```
 
@@ -97,7 +97,7 @@ survival = "^1.2"
 | Editions | An edition is a named set of lexical and grammatical rules, reserved words, diagnostic codes, term names and printed layouts (section 3.7 of the Language Reference), as Rust's editions are. It never changes a number: results depend on the pinned engine version alone, so two editions of one script on one engine print the same estimates. All files of a project share its edition. `edition` is required; before 1.0.0 the only value is `"preview"`, which may change between minor releases, and 1.0.0 declares `"2027"`. An engine runs every edition from 2027 on; an edition it does not know is an error (Z0706) naming the engine version needed. `zeff fix --edition` rewrites a project to a newer edition and shows each changed line (section 8.3) |
 | Writes | `save` and `export` write only under the project folder (`output/` by default); a path in a data root or outside the project is an error (Z0707) |
 | Scripts | Each file in `scripts/` is a complete program with its own bindings; scripts do not include one another, and code shared between them lives in `functions/` (section 5.3 of the Language Reference) |
-| Locked packages | After 1.0, `zeff.lock` records the exact version and content hash of every third-party package the project uses; a run uses the lock, never the requirement in `zeff.toml`, and refuses to start when an installed package differs from it (Z0703). The lock is part of the project and of every replication package (section 8.1, rule 9) |
+| Locked packages | Once third-party packages arrive (not before 2.0), `zeff.lock` records the exact version and content hash of every third-party package the project uses; a run uses the lock, never the requirement in `zeff.toml`, and refuses to start when an installed package differs from it (Z0703). The lock is part of the project and of every replication package (section 8.1, rule 9) |
 | Recorded runs | Each run stores its seeds, warnings, file hashes, engine version, package versions and outputs in `.zeff/runs/` |
 | One project per window | A window holds one project, fully isolated; nothing is shared between windows |
 | No duplicate opening | A project open in one window cannot be opened in a second; a lock file in `.zeff/` enforces this. Data-root files are opened read-only with shared read access, so several projects can read the same files at once on every system |
@@ -132,8 +132,8 @@ survival = "^1.2"
 | `zeff self update \| uninstall \| install \| path` | Update or remove the launcher; register an unpacked archive; print the PATH line (section 2.1) |
 | `zeff completions <shell>` | Completions for bash, zsh, fish and PowerShell: commands, flags, function names, diagnostic codes and engine versions |
 | `zeff dataset fetch <name> \| --all` | Pre-fetch datasets larger than a megabyte for a machine without network (section 8.5) |
-| `zeff add <package>` | After 1.0: add a third-party package to `zeff.toml` and record the version and hash resolved in `zeff.lock` (section 8.1, rule 9) |
-| `zeff update [package]` | After 1.0: move third-party packages to the newest versions their requirements allow, rewrite `zeff.lock` and show what changed |
+| `zeff add <package>` | Not before 2.0: add a third-party package to `zeff.toml` and record the version and hash resolved in `zeff.lock` (section 8.1, rule 9) |
+| `zeff update [package]` | Not before 2.0: move third-party packages to the newest versions their requirements allow, rewrite `zeff.lock` and show what changed |
 | `zeff remove <package>` | After 1.0: remove a package from `zeff.toml` and the lock; `zeff check` then reports every call that used it |
 | `zeff packages` | After 1.0: list the project's packages with version, licence, validated badge and functions (section 8.4) |
 | `zeff vendor` | After 1.0: copy the packages a project uses into `.zeff/packages/` for a self-contained replication package |
@@ -148,7 +148,7 @@ survival = "^1.2"
     bin/zeff               the launcher, on PATH
     engines/0.11.0/        one self-contained folder per engine version: the language,
     engines/0.11.1/        every first-party package, the help pages, the small datasets
-    packages/              third-party packages (section 8.4, after 1.0)
+    packages/              third-party packages (section 8.4, not before 2.0)
     datasets/              datasets fetched on first use (section 8.5)
     config.toml            user settings: external interpreters, colour, mirror, proxy
     secrets.toml           keys for fetch (section 8.6); never in a project
@@ -250,7 +250,7 @@ ascii = false
 Zeff's functions live in 31 packages on four tiers around a centre, `core`. Packages are grouped by method family, not by research question, because most methods serve several questions; every function also carries `purpose` tags (one or more of the 13 research goals of the Zemp Specification, section 11, or `general` for infrastructure), which Zemp uses to build question-first menus.
 
 ```
-Tier 4  extensions   project functions/ · third-party packages after 1.0
+Tier 4  extensions   project functions/ · third-party packages not before 2.0
 Tier 3  designs      identify → experiment → quasi → adjust → mediate →
                      hetero → structural → decide → meta
 Tier 2  models       regress → glm → multilevel → explore → series → latent →
@@ -271,7 +271,7 @@ Tier 0  centre       core
 6. **One home per name per type.** A name may be defined for several types of first argument, once per type, and the type of the first argument chooses the definition when the script is checked: `summary` (frames in `data`, results in `results`), `quantile` (columns in `data`, distributions in `dist`), `append` (lists in `core`, frames in `data`), `min` and `max` (several values row by row in `core`; one column in `data`), `plot` (frames and results in `plot`, causal graphs in `identify`), `histogram`, `density` and `boxplot` (frames as shorthands, plots as layers, both in `plot`), `aggregate` (frames in `data`, plots in `plot` from 1.2), and the recipe steps `impute`, `pca`, `standardize`, `center`, `bin`, `winsorize` and `add` (recipes in `learn`; frames or columns in `data` and `explore`). Two definitions whose types overlap, such as one for every `Result` and one for `IvFit`, are not allowed, which is why the instrument check is `exclusion_check` rather than a second `check`. A project function that reuses a built-in name is written in full, as `functions::name`. A package is never named after a frame verb or one of the shared arguments of section 6 of the Language Reference (`by:`, `group:`, `cluster:`, `fe:`, `re:`, `se:`, `weights:` and the rest), so `cluster:` and `panel()` keep their one meaning each; an ordinary argument such as `time:`, `data:` or `text:` may share a package's name, since an argument name means something only before a colon.
 7. **Packages ship with the engine and load on use.** All packages are available without imports; pinning the engine version in `zeff.toml` pins every function. The browser loads `core`, `text`, `time` and `data` at start and fetches the rest on first use, and bundles only packages that have shipped a function. `zeff help` and Zemp's menus list a package, and a research goal, only once at least one of its functions has shipped; the rest appear in a roadmap view with their planned release, so an empty package is never a menu entry.
 8. **The engine kernel is not a package.** It is Rust code every package uses and scripts cannot call. Its modules are fixed here, and adding one is a change to this specification, so the kernel cannot grow silently as the escape from rule 3: column store and selection vectors · NA rules · date parsing · compensated sums · linear algebra (`zeff-kernels`) · special functions · random streams (Philox) · resampling · design-based variance · the likelihood optimiser · thread pool (from 1.1) · display registry · function registry.
-9. **Third-party packages (after 1.0) are qualified, declared and locked.** A third-party package is a WebAssembly component (section 8.3, point 6) with a manifest: name, version, tier (at or above every package it calls), purpose tags, and for every function its accuracy class and reference test. Its functions are always written qualified, `pkg::fn`, unless `use pkg` brings them in, and `use` refuses a name that collides with a built-in or with another imported package (Z0107), so no third-party function ever shadows a built-in and rule 6 holds across the whole namespace. `zeff.toml` names each package with a version requirement; `zeff.lock` records the exact version and content hash resolved, and a project runs from the lock, never from the requirement (Z0703 when an installed package differs from it). A package earns a *validated* badge only when its reference tests pass in Zeff's own continuous integration; Zemp shows the badge beside the package and marks results from unvalidated packages in the run record.
+9. **Third-party packages (not before 2.0) are qualified, declared and locked.** A third-party package is a WebAssembly component (section 8.3, point 6) with a manifest: name, version, tier (at or above every package it calls), purpose tags, and for every function its accuracy class and reference test. Its functions are always written qualified, `pkg::fn`, unless `use pkg` brings them in, and `use` refuses a name that collides with a built-in or with another imported package (Z0107), so no third-party function ever shadows a built-in and rule 6 holds across the whole namespace. `zeff.toml` names each package with a version requirement; `zeff.lock` records the exact version and content hash resolved, and a project runs from the lock, never from the requirement (Z0703 when an installed package differs from it). A package earns a *validated* badge only when its reference tests pass in Zeff's own continuous integration; Zemp shows the badge beside the package and marks results from unvalidated packages in the run record.
 
 ### 8.2 The packages
 
@@ -328,7 +328,7 @@ Counts are functions in 1.0 / proposed for 1.0 (none since 16 October 2026) / on
 | 8 | `decide` | What should be done | Policy learning, treatment regimes, bandits, operational decisions | 0 / 0 / 8 |
 | 9 | `meta` | What the evidence says | Meta-analysis, publication bias, specification curves | 0 / 0 / 13 |
 
-**Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, after 1.0, third-party packages under rule 9.
+**Tier 4: extensions.** The project's own functions in `functions/` (they may call every package) and, from 2.0 at the earliest, third-party packages under rule 9.
 
 Totals: 272 functions in 1.0 (75 in tier 0, 177 in tier 1, 14 in tier 2, 6 in tier 3), of which 250 are written in Rust and 22 in Zeff; none remain proposed, and 266 are on the roadmap, 538 in all (eight functions joined 1.0 on 7 November 2026, five of them from the roadmap; zeff_open_decisions.md, #88). Eighteen packages have no function in 1.0 (four in tier 1, six in tier 2 and every tier-3 package but `identify`): they give the roadmap its structure and stay out of menus until they ship (rule 7). Most 1.0 functions are small; what limits the schedule is the seven hard engine pieces listed in section 14.
 
@@ -374,7 +374,7 @@ Standard errors are computed by one variance layer from `scores` and `bread`: cl
 
 **5. Stable formats.** Everything that leaves the engine has a versioned schema: frames as Arrow IPC, whose fields carry each column type's extension name and version and the column's metadata (section 4.3 of the Language Reference), results as Arrow tables plus a JSON description of their type, plot scenes as a JSON description of marks, scales and layout (section 7.6 of the Language Reference), and run records in `.zeff/runs/`; what `save` writes as Parquet follows the Zeff Parquet profile (section 8.7), a public page that names every key and type the file carries. Zemp, exports and other tools read these formats, never engine internals, so the engine can change freely behind them. Syntax changes after 1.0 come only with a new edition (section 2), and anything removed is deprecated with a warning for at least one edition first.
 
-**6. Extension boundary.** After 1.0, third-party packages will be WebAssembly components that run sandboxed: no network or file access, only the frames and arguments passed to them, and the same estimator, variance and result interfaces as built-in packages. First-party packages are built against these interfaces from the start, so a built-in package is simply a package that ships with the engine, and the privacy promise of section 1.4 covers extensions too. Each component carries the manifest of section 8.1, rule 9 (name, version, tier, purpose tags, and the accuracy class and reference test of every function); `zeff.toml` names the packages a project uses and `zeff.lock` the exact versions resolved, so a replication package pins its extensions as exactly as its engine.
+**6. Extension boundary.** When they arrive, not before 2.0, third-party packages will be WebAssembly components that run sandboxed: no network or file access, only the frames and arguments passed to them, and the same estimator, variance and result interfaces as built-in packages. First-party packages are built against these interfaces from the start, so a built-in package is simply a package that ships with the engine, and the privacy promise of section 1.4 covers extensions too. Each component carries the manifest of section 8.1, rule 9 (name, version, tier, purpose tags, and the accuracy class and reference test of every function); `zeff.toml` names the packages a project uses and `zeff.lock` the exact versions resolved, so a replication package pins its extensions as exactly as its engine.
 
 **7. Resource governance.** The engine runs in its own worker (a Web Worker in the browser, a thread natively), so the interface never freezes. Long operations report progress and can be cancelled between steps. Each window has a memory budget. In the browser the default is the smaller of 3.5 GB and half the memory the device reports; a project can set its own with `memory = "3.8GB"` under `[project]` in `zeff.toml`, up to what WebAssembly allows, so a collaborator on a smaller machine gets the same limit and a clear error rather than a crash. The desktop app uses available memory minus a safety margin. The setting is a budget, not the WebAssembly limit, so it carries over unchanged when 64-bit WebAssembly lifts the 4 GB ceiling. A step whose estimated memory would exceed the budget stops before it starts, with an error that gives the estimate and suggests the desktop app or a narrower `select`. The result cache lives on disk (the project folder, or the browser's private file system) and never in the memory budget; when space runs short, the least recently used results are removed first. A memory-mapped file (section 8.7) counts by the pages a step has touched, never by its size, so a 10 GB file is not refused by a script that reads three of its columns. The estimate is a step's peak allocation, not its steady state, because WebAssembly memory grows in pages and never shrinks; the engine worker is restarted when a project closes, which returns its memory to the browser.
 
@@ -406,9 +406,9 @@ Standard errors are computed by one variance layer from `scores` and `bread`: cl
 
 Determinism has a price: fixed blocking and no system BLAS cost about 20–40% on the largest matrix products. The measures above recover far more, because they remove work rather than speed it up.
 
-### 8.4 Packages from outside: format, registry, installing and publishing (after 1.0)
+### 8.4 Packages from outside: format, registry, installing and publishing (not before 2.0)
 
-Rule 9 of section 8.1 fixes how a third-party function is named and locked. This section fixes what a package is, where it comes from and how it is trusted. Packages ship in 1.11 (section 14); the format is fixed now so that the first-party packages are built to it and a project's `zeff.toml` needs no change later.
+Rule 9 of section 8.1 fixes how a third-party function is named and locked. This section fixes what a package is, where it comes from and how it is trusted. No third-party package ships before 2.0.0; the release that ships them is set when 2.0.0 is planned (zeff_open_decisions.md, #123). The format is fixed now so that the first-party packages are built to it and a project's `zeff.toml` needs no change later.
 
 **Two kinds of package, one contract.**
 
@@ -965,8 +965,8 @@ Everything above is the current design; these items still need a decision.
 - [ ] A structural equality function for lists, records and frames (`==` on them is an error, section 3.7 of the Language Reference)
 - [ ] Locale-aware text collation and time zones after 1.0 (section 3.8 of the Language Reference fixes code-point order and zone-free DateTimes for 1.0)
 - [ ] Grapheme-aware text functions (`len` and `slice` count code points in 1.0, so a combining accent counts separately)
-- [ ] Zeff-source packages before 1.11: they need only the loader and the manifest, not the component sandbox, so they could ship in 1.6 or 1.7 and let others write methods while the first-party releases continue; component packages stay at 1.11
-- [ ] Where the package registry's static index and archives are hosted (a public repository host costs nothing and is the default)
+- [x] Third-party packages (11 November 2026): none of either kind, Zeff-source or component, before 2.0.0, and with them the registry and the package commands; the release that ships them is set when 2.0.0 is planned, and a project's own functions in `functions/` are unaffected (zeff_open_decisions.md, #123)
+- [ ] Where the package registry's static index and archives are hosted (a public repository host costs nothing and is the default), when 2.0.0 is planned
 - [ ] Synthetic copies of a user's own data for sharing (a `synthesize` function), after 1.0
 - [ ] A file holding several frames and fitted results together, for the heavy models of 1.5: a zip of Arrow files and JSON result descriptions in the versioned form of section 8.3, point 5, never a binary format of Zeff's own; in 1.0 `save` writes one frame and the result cache reproduces every fit (section 8.7); decide by 1.5 (zeff_open_decisions.md, #32)
 

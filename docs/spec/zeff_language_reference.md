@@ -1501,7 +1501,7 @@ Zeff separates three kinds of problem: the script is wrong (Z01xx to Z08xx), the
 | Module | One file in `functions/`, brought into a script with `use` |
 | Opaque column | A column of a type the engine stores, hashes, prints and carries through row verbs but does not yet compute on (section 4.3) |
 | Option | `name: value` in a call; one meaning per name everywhere (principle 8) |
-| Package | A group of functions that ships with the engine, on a tier; also a third-party WebAssembly component after 1.0 |
+| Package | A group of functions that ships with the engine, on a tier; also a third-party WebAssembly component, not before 2.0 |
 | Pass | One iteration of a `for` loop or of `iterate`; passes get their own seeds and may run in parallel |
 | Period | A reserved column type for a unit of time with a frequency (year, quarter, month, week, day; fiscal years), so that panels and series know what a gap is (section 4.3) |
 | Project | A folder with `zeff.toml`, scripts, functions, data and run records; the only place Zeff code runs |
