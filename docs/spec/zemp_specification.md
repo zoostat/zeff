@@ -2,7 +2,7 @@
 
 Version of this document: 17 October 2026 · Engine today: none; Zeff's code starts afresh at 0.1.0 (Zeff Specification, section 14)
 
-Zemp is a statistical application for empirical and causal research, built on the Zeff language. It aims at the analytical power of R and Stata with point-and-click and drag-and-drop on top. It comes in two editions from one codebase, each on the web and the desktop: **Zemp Studio**, the full application, and **Zemp Lite**, a code-first edition without point-and-click for users who prefer to write Zeff, as RStudio is to R; the `zeff` command line completes the line (section 2). Every action in Zemp writes a Zeff statement, shows it, and runs it, so clicking and typing always give the same result and every session leaves a script that re-runs. This document specifies the product: principles, product line, architecture, projects, the workspace, dialogs, plots, reporting, the desktop and web versions, updates, security, scope by research question, and the release plan. The companion files are the two volumes of the **Zeff Specification** (zeff_language_reference.md and zeff_engine_specification.md, with their section numbers shared), **zeff_functions.csv** (every function), the testing handbook (zeff_testing.md), the open decisions (zeff_open_decisions.md), the business model (zemp_business_model.md) and the risk register (zeff_risk_register.md).
+Zemp is a statistical application for empirical and causal research, built on the Zeff language. It aims at the analytical power of R and Stata with point-and-click and drag-and-drop on top. It comes in two editions from one codebase, each on the web and the desktop: **Zemp Studio**, the full application, and **Zemp Lite**, a code-first edition without point-and-click for users who prefer to write Zeff, as RStudio is to R; the `zeff` command line completes the line (section 2). Zemp Lite is built and released first and alone; Zemp Studio's work starts when a review at the close of Zeff 1.5 decides (zeff_open_decisions.md, #125), and what this document says of Studio describes it for that time. Every action in Zemp writes a Zeff statement, shows it, and runs it, so clicking and typing always give the same result and every session leaves a script that re-runs. This document specifies the product: principles, product line, architecture, projects, the workspace, dialogs, plots, reporting, the desktop and web versions, updates, security, scope by research question, and the release plan. The companion files are the two volumes of the **Zeff Specification** (zeff_language_reference.md and zeff_engine_specification.md, with their section numbers shared), **zeff_functions.csv** (every function), the testing handbook (zeff_testing.md), the open decisions (zeff_open_decisions.md), the business model (zemp_business_model.md) and the risk register (zeff_risk_register.md).
 
 ---
 
@@ -35,6 +35,8 @@ Two editions, each in two forms, plus the command line. Every product runs the s
 
 **The two editions.** Zemp Lite is the Zemp interface built without the modules that write Zeff for the user; everything that shows, runs or exports is the same. The names: **Zemp** alone is the application and the product line, which both editions share; **Zemp Studio** and **Zemp Lite** are its two editions, named where the two are told apart (decided 1 November 2026).
 
+**Lite first (decided 12 November 2026, zeff_open_decisions.md, #125).** Zemp Lite is built and released alone. Zemp Studio's work starts when a review at the close of Zeff 1.5 decides, which may set it after Zeff 2.0.0; until then everything below marked for Zemp Studio is planned for that time. The one-codebase rule is kept, the shared modules never depending on Studio's, so that Studio can start from the same code. Zemp Lite also has the Document settings dialog of a report (#124), since it writes the report's settings file and no Zeff.
+
 | Part | Zemp Studio | Zemp Lite |
 | --- | --- | --- |
 | Project panel, editor with the language server, console, log, objects | Yes | Yes |
@@ -53,7 +55,7 @@ Two editions, each in two forms, plus the command line. Every product runs the s
 | Layouts | Two layouts of the same panels, in both editions: **Inline**, one column in which each statement's output appears directly under it in the editor, and **Panes**, the workspace of section 5. Zemp Lite opens in Inline and Zemp Studio in Panes; either switches with one click, and the choice is view state saved per project in `.zemp/views.json`. The script is a plain `.zeff` file in both: inline output is never written into it |
 | Moving up | Zemp Lite offers **Open in Zemp Studio** for the current project; Zemp Studio has no "Lite mode", since a user who wants no dialogs simply ignores them or uses Lite |
 | Same engine store | On a desktop, Zemp Lite, Zemp Studio and the `zeff` command line share one engine store (`~/.zeff/engines/`), so an engine downloaded by any of them serves all three |
-| Free | Zemp Lite is in the free tier with no limits (zemp_business_model.md) |
+| Free | Zemp Lite is in the free tier with no limits (zemp_business_model.md); it is free of charge but not open source, at least until 1.0 (section 16) |
 
 The web and desktop interfaces are the same code in both editions. Desktop adds real project folders, native speed, background jobs, the updater and, from 1.1, the opt-in `external` step for R and Python scripts.
 
@@ -202,7 +204,7 @@ Type is IBM Plex Sans for the interface and IBM Plex Mono for code, the family t
 
 ## 6. Point-and-click: dialogs that write Zeff
 
-Dialogs, guides and builders are part of Zemp Studio only; Zemp Lite leaves this section out (section 2).
+Dialogs, guides and builders are part of Zemp Studio only; Zemp Lite leaves this section out (section 2). Zemp Studio is deferred (zeff_open_decisions.md, #125), so this section describes it for when its work starts; the menu plan recorded with #125 (one entry per function with its variants inside the dialog, method menus as modules, one Results menu) is weighed then.
 
 Every dialog is generated from the function's signature and help, so each of the functions in zeff_functions.csv has a dialog the day it ships, and a project's own `fn` functions get one too.
 
@@ -383,37 +385,34 @@ The rules of this section apply to both editions.
 
 ## 15. Release plan
 
-Zemp has version numbers of its own (major.minor.patch, as Zeff's; Zeff Specification, section 14). Zemp Lite carries the same version numbers as Zemp, since both are builds of one codebase; a Lite release is the same release without the point-and-click modules. Each Zemp release names the Zeff engine versions it supports, and a Zemp fix never needs an engine release. After 1.0, by convention rather than by rule, Zemp's minor number follows the Zeff release whose methods it adds dialogs for, so Zemp 1.3 adds the dialogs for Zeff 1.3. Zeff 1.0.0 does not wait for Zemp: the language's name freeze depends on the engine, the command line, the language server and the validation suite, not on the desktop app, installers or code signing.
+Zemp has version numbers of its own (major.minor.patch, as Zeff's; Zeff Specification, section 14). Zemp Lite carries the same version numbers as Zemp, since both are builds of one codebase; a Lite release is the same release without the point-and-click modules. Each Zemp release names the Zeff engine versions it supports, and a Zemp fix never needs an engine release. After 1.0, by convention rather than by rule, Zemp's minor number follows the Zeff release it supports, so Zemp 1.3 runs the methods of Zeff 1.3. Zeff 1.0.0 does not wait for Zemp: the language's name freeze depends on the engine, the command line, the language server and the validation suite, not on the desktop app, installers or code signing.
 
-Zemp Lite needs no dialogs, so it is usable earlier than Zemp Studio: its parts (the workspace, the editor with the language server, the viewers and the plot renderer) all exist by Zeff 0.7.0 and 0.8.0, while the dialogs that Zemp Studio needs are the slowest part to build.
+Zemp Lite needs no dialogs, so it is usable earlier than Zemp Studio: its parts (the workspace, the editor with the language server, the viewers and the plot renderer) all exist by Zeff 0.7.0 and 0.8.0, while the dialogs that Zemp Studio needs are the slowest part to build. Zemp Lite is therefore the only edition in this plan (decided 12 November 2026, zeff_open_decisions.md, #125); Zemp Studio's work starts when a review at the close of Zeff 1.5 decides, possibly after Zeff 2.0.0, and its row at the foot of the table holds what it adds. The release numbers after 1.0 are amended for #113 and #123 in the documentation step of Zeff 0.8.0.
 
 | Zemp | Zeff engine | What it adds |
 | --- | --- | --- |
 | — | 0.1.0 to 0.6.0 | Engine only, used from the `zeff` command line |
 | 0.1 prototype | 0.7.0 | Framework chosen; workspace and plot viewer prototyped on the new plot renderer |
-| 0.2 alpha | 0.8.0 | Workspace, editor with the language server, data viewer, plot viewer, dialogs for data, statistics, regression with `fe:`, IV with `instruments:` and two-period DiD; "Report a problem"; the reader test of Zeff syntax runs on this alpha. **Zemp Lite web preview**: the same release without dialogs, the first public way to write Zeff in an IDE |
-| 0.3 | 0.9.0 | Dialogs for logistic and probit regression |
-| 0.4 | 0.10.0 | Graph builder for causal graphs; reliability dialog; every 1.0 method checked for identical results from dialog and code |
-| 0.5 desktop beta | 0.11.0 | Native engine packaged with Tauri, part-by-part updater, `zeff app install` and the offline bundle; import dialog for Excel, Stata and Parquet; Install command-line tool; code signing decided by this release (Zeff Specification, section 15). **Zemp Lite desktop beta**, installed with `zeff app install lite` |
-| 1.0 | 1.0.0 | Zemp Lite 1.0, web and desktop, ships with Zeff 1.0.0, since it needs no dialogs; Zemp Studio 1.0 web and desktop follows once its dialogs cover every 1.0 method, and never holds Zeff back |
-| 1.1 | 1.1 | Faster runs on all cores; bootstrap standard errors in every model dialog; `external` on the desktop; quick fixes, navigation, rename and inlay hints in the editor; the Git panel on the desktop (both editions) |
-| 1.2 | 1.2 | Staggered DiD and event-study dialogs and guides; PPML |
-| 1.3 to 1.10 | 1.3 to 1.10 | Dialogs and guides as each Zeff release lands: CFA and SEM with the model builder (1.3), mixed models with `re:` (1.4), double lasso, causal forests, and leakage-safe prediction with splits, recipes and tuning (1.5), WLSMV and ESEM (1.6), latent classes and streaming (1.7), user likelihoods with automatic differentiation (1.8), the Design menu with power, randomisation and survey designs (1.9), Bayesian estimation (1.10); Zemp Lite gains each release's methods through the engine, with nothing of its own to add |
-| Later | 1.11 | Remaining roadmap packages by research goal; reports; AI assistance; third-party packages with their validated badge |
+| 0.2 alpha | 0.8.0 | **Zemp Lite web preview**, the first public way to write Zeff in an IDE: workspace, editor with the language server, data viewer, plot viewer; "Report a problem"; the reader test of Zeff syntax runs on this alpha |
+| 0.3, 0.4 | 0.9.0, 0.10.0 | The preview gains each release's methods through the engine, with nothing of its own to add |
+| 0.5 desktop beta | 0.11.0 | **Zemp Lite desktop beta**, installed with `zeff app install lite`: native engine packaged with Tauri, part-by-part updater, `zeff app install` and the offline bundle; the read-only import preview for Excel, Stata and Parquet; Install command-line tool; code signing decided by this release (Zeff Specification, section 15) |
+| 1.0 | 1.0.0 | Zemp Lite 1.0, web and desktop, ships with Zeff 1.0.0 |
+| 1.1 | 1.1 | Faster runs on all cores; `external` on the desktop; quick fixes, navigation, rename and inlay hints in the editor; the Git panel on the desktop |
+| 1.2 onward | 1.2 onward | Each Zeff release's methods through the engine; the report document with its Document settings dialog when #73 and #124 schedule it; AI assistance only as #27, #28 and #39 decide |
+| Zemp Studio | At the review at the close of 1.5 (#125), possibly after 2.0.0 | The Methods panel, dialogs and guides for every method then shipped, each checked for identical results from dialog and code; the formula, graph, model, plot-layer and recipe builders; the import dialog and the controls that write a statement (section 2); the menu plan recorded with #125 |
 
-After 1.11, Zemp follows the future plan of the Zeff Specification (section 14.1): dialogs and guides for each new method family, and the browser's memory ceiling lifted by 64-bit WebAssembly.
+After 1.11, Zemp follows the future plan of the Zeff Specification (section 14.1): the browser's memory ceiling lifted by 64-bit WebAssembly, and, once Zemp Studio has started, dialogs and guides for each new method family.
 
 ---
 
 ## 16. Licensing
 
-Zeff (language and engine) is Apache 2.0. Zemp's licence is decided separately, which keeps a commercial option open: the business model assumes open core (a free app under an open licence, paid modules under their own), while decision #25 of zeff_open_decisions.md recommends Apache 2.0 for all of Zemp with revenue from services alone; the two are reconciled when #25 is decided. Zemp Lite is built from the free, open part of the codebase under either outcome, since it contains no paid module. All dependencies use permissive licences (MIT, Apache 2.0, BSD); no GPL code is linked into the engine. This is general information, not legal advice.
+Zeff (language and engine) is Apache 2.0. Zemp is developed in a private repository from its first commit (decided 12 November 2026, zeff_open_decisions.md, #125, which settles #25): Zemp Lite is free of charge but not open source, at least until 1.0, and Zemp Studio, the paid edition once its work starts, has a proprietary licence. Opening Lite's code later stays possible, while code once published cannot be withdrawn. Every Zemp analysis is Zeff code run by the open engine, so replication never depends on Zemp's licence; and since the browser edition's code reaches every visitor, its licence protects it rather than secrecy. All dependencies use permissive licences (MIT, Apache 2.0, BSD), whose notices ship with the apps; no GPL code is linked into the engine or the apps. This is general information, not legal advice.
 
 ---
 
 ## 17. Open decisions
 
-- [ ] Zemp's licence
 - [ ] Start Zemp's interface at Zeff 0.7.0 rather than alongside the engine from the start
 - [ ] Where Zemp web is hosted, and whether optional sync between web and desktop projects is offered; with it, whether Zemp runs servers at all (paid cloud sync, server compute, a self-hosted server), as the business model proposes against section 13 (zeff_open_decisions.md, #27)
 - [ ] Which remote or local model powers AI assistance, and its data-sharing defaults; whether Zemp sells metered access to a model of its own (zeff_open_decisions.md, #28)
@@ -427,6 +426,7 @@ Zeff (language and engine) is Apache 2.0. Zemp's licence is decided separately, 
 
 **Decided**
 
+- [x] Zemp Lite only, Zemp Studio later, and Zemp's repository and licence (12 November 2026; sections 2, 6, 15 and 16): Zemp Lite built and released alone; Zemp Studio's start decided at a review at the close of Zeff 1.5, possibly after 2.0.0; Zemp in a private repository from its first commit, Lite free of charge and not open source at least until 1.0, Studio proprietary; the Document settings dialog of a report in Lite (zeff_open_decisions.md, #125, settling #25)
 - [x] Zemp Lite's paid features, web address and desktop preview (11 November 2026; sections 2 and 10): free-tier only through 1.0, the rest with #27 and #28; Zemp Lite web at a path on Zemp Studio web's origin; no Lite desktop preview before the 0.5 desktop beta (zeff_open_decisions.md, #39)
 - [x] Density, icons, desktop menus, tablet and phone (11 November 2026; section 5): one density with a Larger type setting, no icons in 1.0, native desktop menus mirroring the command palette, no tablet or phone layout in 1.0 (zeff_open_decisions.md, #33)
 - [x] Interface framework (11 November 2026; section 3): Svelte 5 with TypeScript, bundled by Vite, without the spike against SolidJS once planned (zeff_open_decisions.md, #24); the look in section 5 (#115)
