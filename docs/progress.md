@@ -182,3 +182,15 @@ Step 13 `[function]`: `fisher_test`, exact on a 2 × 2 table with the conditiona
 **Added the same day: `PI` and `E` inside a frame method.** `d.add(area = PI * r^2)`, `d.where(r > E)` and `y: r * PI` in a plot now work; each was refused for want of a variable `PI`. A variable of the frame named `PI` or `E` hides the constant, without a warning, which the owner may overturn. Green on the same routine. Next is step 20c `[engine]`.
 
 **For the owner to decide.** New: #107 (due at 0.7.0 before step 25), what an expression in a mapping may call (recommended: as built, the functions of `core` only, widened when the date scale arrives); #108 (due at 0.8.0), whether a numeric function given a text or category column should be refused, as in R and Stata (recommended: yes). Open as before: #106 (due before step 23), #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
+
+
+## 11 November 2026, release 0.7.0, step 20c (colour and fill)
+
+**Done.** A plot can be coloured: `w.plot(x: educ, y: wage, color: female).points()`. A Category, a Str, a Bool and a number with value labels are shown as categories in the eight colours of Okabe and Ito (orange, sky blue, bluish green, yellow, blue, vermilion, reddish purple, black); `NA` is a category of its own, last and grey. A number without value labels is shown on the viridis ramp from its smallest value drawn to its largest, and a row without a finite value of it is dropped and counted. A string sets one colour for every mark, a CSS name or `#` and hexadecimal digits. `fill:` is accepted and kept for the marks with an inside; a point has none. The printed plot has a new table of the colours. The step was split: size, shape, group and label are step 20d. Checked against R on the `wages` data. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 244 of 244 with the new case `plot/colour`; the whole suite on CI, read job by job after the push.
+
+**Next.** Step 20d `[engine]`: size, shape, group and label. Then step 21 `[engine]`. Step 19b waits on #104.
+
+**For the owner to decide.** New, due at 0.7.0 before step 25: #109, three questions on colours (more than eight categories: recommended, repeat the colours with a note; a level with no row: recommended, left out of the legend; names of colours: recommended, the 148 of CSS and not R's). Rulings he may overturn: black last in the palette; grey for `NA`; the layout of the table of colours; a constant colour only as a string where it is used. Open as before: #107, #108, #106, #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
+

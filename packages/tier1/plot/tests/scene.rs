@@ -11,12 +11,17 @@
 use proptest::prelude::*;
 use serde_json::Value as Json;
 use std::rc::Rc;
-use zeff_columns::{Column, MetadataKey, Table};
+use zeff_columns::{Column, MetadataKey, Table, format_value_labels};
 use zeff_core::value::{
-    Aesthetic, ColumnExpr, Frame, Mark, Plot, PlotComputed, PlotLayer, PlotMapping,
+    Aesthetic, ColumnExpr, Frame, Mark, Plot, PlotComputed, PlotConstant, PlotLayer, PlotMapping,
+    PlotSetting,
 };
 use zeff_numeric::random::Stream;
-use zeff_plot::scene::{POINT_SIZE, SCENE_VERSION, Scene, scene, start, with_layer};
+use zeff_plot::colour::{NA_COLOUR, OKABE_ITO, parse, ramp_entry};
+use zeff_plot::scene::{
+    POINT_SIZE, Paint, Range, SCENE_VERSION, ScaleKind, Scene, Shading, reads, scene, shading,
+    start, with_layer,
+};
 
 fn floats(values: &[Option<f64>]) -> Column {
     Column::floats(values.iter().copied()).0
@@ -57,7 +62,7 @@ fn plot(frame: Frame, x: Option<&str>, y: Option<&str>) -> Plot {
             computed: None,
         });
     }
-    start(frame, mappings)
+    start(frame, mappings, Vec::new())
 }
 
 /// A layer of points as `.points()` writes it.
@@ -591,6 +596,7 @@ fn the_scene_of_a_mapped_expression() {
                 numbers(&[4.2, 7.8, 12.4, 15.6, 18.0]),
             ),
         ],
+        Vec::new(),
     );
     let (_, drawn) = with_layer(&p, points());
     // The fifth row has no dose; the limits are 5% of 15.6 - 4.2 beyond the values drawn.
@@ -618,6 +624,7 @@ fn an_expression_is_the_title_of_its_axis_whatever_the_labels() {
             ),
             variable(Aesthetic::Y, "response"),
         ],
+        Vec::new(),
     );
     let before = scene(&p);
     assert_eq!(before.scale("x").unwrap().title, "dose + 0");
@@ -639,6 +646,7 @@ fn a_layer_with_its_own_frame_draws_the_expression_computed_there() {
                 numbers(&[4.2, 7.8, 12.4, 15.6, 18.0]),
             ),
         ],
+        Vec::new(),
     );
     let own = frame(
         "other",
@@ -690,6 +698,7 @@ fn a_constant_expression_and_one_with_no_value() {
                 Column::ints([Some(5); 5]),
             ),
         ],
+        Vec::new(),
     );
     let (_, drawn) = with_layer(&constant, points());
     assert_eq!(drawn.panels[0].layers[0].y, [5.0; 4]);
@@ -700,11 +709,642 @@ fn a_constant_expression_and_one_with_no_value() {
             x,
             computed(Aesthetic::Y, "NA + 1", ColumnExpr::Na, floats(&[None; 5])),
         ],
+        Vec::new(),
     );
     let (_, drawn) = with_layer(&missing, points());
     assert!(drawn.panels[0].layers[0].y.is_empty());
     assert_eq!(drawn.scale("y").unwrap().limits, (0.0, 1.0));
     assert_eq!(drawn.notes, ["5 rows with NA in dose or NA + 1 dropped"]);
+}
+
+// ----- colour and fill (step 20c) -----
+
+fn texts(values: &[Option<&str>]) -> Column {
+    Column::strs(values.iter().copied())
+}
+
+/// A Category variable with these levels, each row by the place of its level counted from 0.
+fn levels(levels: &[&str], codes: &[Option<i32>]) -> Column {
+    Column::categories(
+        levels.iter().map(|level| (*level).to_string()).collect(),
+        codes.iter().copied(),
+    )
+    .unwrap()
+}
+
+/// A whole-number variable with value labels.
+fn labelled(values: &[Option<i64>], labels: &[(&str, &str)]) -> Column {
+    Column::ints(values.iter().copied())
+        .with_entry(MetadataKey::ValueLabels, format_value_labels(labels))
+}
+
+/// The variables `x` and `y`, the numbers from 1 on and from 10 on, for `n` rows.
+fn positions(n: usize) -> Vec<(&'static str, Column)> {
+    let x: Vec<f64> = (0..n).map(|i| (i + 1) as f64).collect();
+    let y: Vec<f64> = (0..n).map(|i| (i + 10) as f64).collect();
+    vec![("x", numbers(&x)), ("y", numbers(&y))]
+}
+
+/// A frame called `d` of `x`, `y` and one variable more, `g`.
+fn with_g(g: Column) -> Frame {
+    let mut columns = positions(g.len());
+    columns.push(("g", g));
+    frame("d", columns)
+}
+
+/// A plot of `frame` with `x` and `y` mapped to its variables of those names and `color` to
+/// the variable named.
+fn coloured(frame: Frame, color: &str) -> Plot {
+    start(
+        frame,
+        vec![
+            variable(Aesthetic::X, "x"),
+            variable(Aesthetic::Y, "y"),
+            variable(Aesthetic::Color, color),
+        ],
+        Vec::new(),
+    )
+}
+
+/// The points of `d` with `x`, `y` and `g`, coloured by `g`.
+fn by_g(g: Column) -> Scene {
+    with_layer(&coloured(with_g(g), "g"), points()).1
+}
+
+/// An aesthetic set to one colour, as `plot` hands it over.
+fn set(aesthetic: Aesthetic, written: &str) -> PlotConstant {
+    PlotConstant {
+        aesthetic,
+        value: PlotSetting::Colour {
+            hex: parse(written).unwrap(),
+            written: written.to_string(),
+        },
+    }
+}
+
+/// The value of each mark of a layer on the scale `color`.
+fn shades(drawn: &Scene, layer: usize) -> &[f64] {
+    match &drawn.panels[0].layers[layer].color {
+        Paint::Scaled(values) => values,
+        other => panic!("the layer is not coloured from a scale: {other:?}"),
+    }
+}
+
+/// The colours of a scale.
+fn colours<'a>(drawn: &'a Scene, id: &str) -> &'a [&'static str] {
+    match &drawn.scale(id).unwrap().range {
+        Range::Colours(colours) => colours,
+        Range::Position => panic!("`{id}` is a position"),
+    }
+}
+
+fn own(data: Frame) -> PlotLayer {
+    PlotLayer {
+        data: Some(data),
+        ..points()
+    }
+}
+
+#[test]
+fn the_scene_of_points_coloured_by_category() {
+    let drawn = by_g(texts(&[Some("b"), Some("a"), None, Some("b"), Some("a")]));
+    insta::assert_snapshot!("colour_category", drawn.to_json());
+}
+
+#[test]
+fn the_scene_of_points_coloured_on_a_continuous_scale() {
+    let drawn = by_g(floats(&[Some(0.5), Some(2.0), None, Some(8.0), Some(3.5)]));
+    insta::assert_snapshot!("colour_ramp", drawn.to_json());
+}
+
+#[test]
+fn the_scene_of_a_constant_colour_beside_a_mapped_fill() {
+    let p = start(
+        with_g(texts(&[Some("b"), Some("a"), None])),
+        vec![
+            variable(Aesthetic::X, "x"),
+            variable(Aesthetic::Y, "y"),
+            variable(Aesthetic::Fill, "g"),
+        ],
+        vec![set(Aesthetic::Color, "steelblue")],
+    );
+    let (_, drawn) = with_layer(&p, points());
+    insta::assert_snapshot!("colour_constant", drawn.to_json());
+}
+
+#[test]
+fn the_scene_of_a_coloured_plot_before_any_layer() {
+    let p = coloured(
+        with_g(levels(
+            &["low", "middle", "high"],
+            &[Some(2), Some(0), None, Some(2)],
+        )),
+        "g",
+    );
+    insta::assert_snapshot!("colour_no_layer", scene(&p).to_json());
+}
+
+#[test]
+fn the_json_of_a_coloured_scene_reads_back() {
+    let drawn = by_g(texts(&[Some("b"), Some("a"), None, Some("b"), Some("a")]));
+    let text = drawn.to_json();
+    let json: Json = serde_json::from_str(&text).expect("the scene is JSON");
+    // A position has no range; a colour scale has one colour for each break.
+    assert!(json["scales"][0]["range"].is_null());
+    assert!(json["scales"][1]["range"].is_null());
+    let scale = &json["scales"][2];
+    assert_eq!(scale["id"].as_str(), Some("color"));
+    assert_eq!(scale["kind"].as_str(), Some("category"));
+    assert_eq!(scale["title"].as_str(), Some("g"));
+    assert_eq!(bits(&list(&text, "limits", 2)), bits(&[1.0, 3.0]));
+    assert_eq!(bits(&list(&text, "breaks", 2)), bits(&[1.0, 2.0, 3.0]));
+    let read = |value: &Json| -> Vec<String> {
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item.as_str().unwrap().to_string())
+            .collect()
+    };
+    assert_eq!(read(&scale["labels"]), ["a", "b", "NA"]);
+    assert_eq!(read(&scale["range"]), ["#E69F00", "#56B4E9", "#999999"]);
+    let legends = json["guides"]["legends"].as_array().unwrap();
+    assert_eq!(legends.len(), 1);
+    assert_eq!(legends[0]["title"].as_str(), Some("g"));
+    assert_eq!(read(&legends[0]["scales"]), ["color"]);
+    assert_eq!(read(&legends[0]["marks"]), ["points"]);
+    let layer = &json["panels"][0]["layers"][0];
+    assert_eq!(
+        bits(&list(&text, "color", 0)),
+        bits(&[2.0, 1.0, 3.0, 2.0, 1.0])
+    );
+    assert_eq!(layer["color"].as_array().map(Vec::len), Some(5));
+    // A constant is the colour itself, and a plot without a colour leaves it to the theme.
+    let p = start(
+        with_g(numbers(&[1.0, 2.0])),
+        vec![variable(Aesthetic::X, "x"), variable(Aesthetic::Y, "y")],
+        vec![set(Aesthetic::Color, "#48b")],
+    );
+    let constant: Json = serde_json::from_str(&with_layer(&p, points()).1.to_json()).unwrap();
+    assert_eq!(
+        constant["panels"][0]["layers"][0]["color"].as_str(),
+        Some("#4488BB")
+    );
+    assert_eq!(constant["scales"].as_array().map(Vec::len), Some(2));
+    assert_eq!(
+        constant["guides"]["legends"].as_array().map(Vec::len),
+        Some(0)
+    );
+    let plain: Json =
+        serde_json::from_str(&scatter(&some(&[1.0, 2.0]), &some(&[1.0, 2.0])).to_json()).unwrap();
+    assert!(plain["panels"][0]["layers"][0]["color"].is_null());
+}
+
+#[test]
+fn text_is_shown_as_categories_in_the_order_of_its_values() {
+    let drawn = by_g(texts(&[
+        Some("b"),
+        Some("a"),
+        Some("B"),
+        Some("b"),
+        Some("é"),
+    ]));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.kind, ScaleKind::Category);
+    // Text is ordered by code point (section 3.7).
+    assert_eq!(scale.labels, ["B", "a", "b", "é"]);
+    assert_eq!(scale.limits, (1.0, 4.0));
+    assert_eq!(scale.breaks, [1.0, 2.0, 3.0, 4.0]);
+    assert_eq!(
+        colours(&drawn, "color"),
+        ["#E69F00", "#56B4E9", "#009E73", "#F0E442"]
+    );
+    assert_eq!(shades(&drawn, 0), [3.0, 2.0, 1.0, 3.0, 4.0]);
+    assert!(drawn.notes.is_empty());
+}
+
+#[test]
+fn a_category_keeps_the_order_of_its_levels_and_a_level_with_no_row_is_left_out() {
+    let drawn = by_g(levels(
+        &["low", "middle", "high", "top"],
+        &[Some(2), Some(0), Some(2), Some(0)],
+    ));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.labels, ["low", "high"]);
+    assert_eq!(scale.limits, (1.0, 2.0));
+    assert_eq!(colours(&drawn, "color"), ["#E69F00", "#56B4E9"]);
+    assert_eq!(shades(&drawn, 0), [2.0, 1.0, 2.0, 1.0]);
+    // The levels are not sorted: the order is the variable's own.
+    let drawn = by_g(levels(&["z", "m", "a"], &[Some(2), Some(1), Some(0)]));
+    assert_eq!(drawn.scale("color").unwrap().labels, ["z", "m", "a"]);
+    assert_eq!(shades(&drawn, 0), [3.0, 2.0, 1.0]);
+}
+
+#[test]
+fn a_row_without_a_category_is_drawn_in_the_grey_of_na_which_comes_last() {
+    let drawn = by_g(texts(&[None, Some("b"), Some("a"), None]));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.labels, ["a", "b", "NA"]);
+    assert_eq!(colours(&drawn, "color"), ["#E69F00", "#56B4E9", "#999999"]);
+    // No row is dropped for it, so there is nothing to note.
+    assert_eq!(drawn.panels[0].layers[0].x, [1.0, 2.0, 3.0, 4.0]);
+    assert_eq!(shades(&drawn, 0), [3.0, 2.0, 1.0, 3.0]);
+    assert!(drawn.notes.is_empty());
+    // A variable of nothing but `NA` has that one category.
+    let drawn = by_g(texts(&[None, None]));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.labels, ["NA"]);
+    assert_eq!(scale.limits, (1.0, 1.0));
+    assert_eq!(colours(&drawn, "color"), ["#999999"]);
+    assert_eq!(shades(&drawn, 0), [1.0, 1.0]);
+    // The grey is not handed out while a row lacks its category but is not drawn.
+    let mut columns = vec![
+        ("x", floats(&[Some(1.0), None, Some(3.0)])),
+        ("y", numbers(&[1.0, 2.0, 3.0])),
+    ];
+    columns.push(("g", texts(&[Some("a"), None, Some("b")])));
+    let drawn = with_layer(&coloured(frame("d", columns), "g"), points()).1;
+    assert_eq!(drawn.scale("color").unwrap().labels, ["a", "b"]);
+    assert_eq!(shades(&drawn, 0), [1.0, 2.0]);
+    assert_eq!(drawn.notes, ["1 row with NA in x or y dropped"]);
+}
+
+#[test]
+fn truth_values_are_two_categories_false_first() {
+    let drawn = by_g(Column::bools([Some(true), Some(false), None, Some(true)]));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.kind, ScaleKind::Category);
+    assert_eq!(scale.labels, ["false", "true", "NA"]);
+    assert_eq!(shades(&drawn, 0), [2.0, 1.0, 3.0, 2.0]);
+}
+
+#[test]
+fn a_number_with_value_labels_is_shown_by_its_labels_in_the_order_of_its_values() {
+    let drawn = by_g(
+        labelled(
+            &[Some(1), Some(0), Some(7), Some(1), None, Some(-3)],
+            &[("1", "female"), ("0", "male")],
+        )
+        .with_entry(MetadataKey::Label, "Sex"),
+    );
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.kind, ScaleKind::Category);
+    assert_eq!(scale.title, "Sex");
+    // By value, not by label and not in the order the labels were written; a value without a
+    // label is shown as it prints.
+    assert_eq!(scale.labels, ["-3", "male", "female", "7", "NA"]);
+    assert_eq!(shades(&drawn, 0), [3.0, 2.0, 4.0, 3.0, 5.0, 1.0]);
+    assert_eq!(drawn.legends[0].title, "Sex");
+    // Two values with one label are one category, at the place of the smaller.
+    let drawn = by_g(labelled(
+        &[Some(3), Some(2), Some(1), Some(2)],
+        &[("1", "low"), ("2", "high"), ("3", "low")],
+    ));
+    assert_eq!(drawn.scale("color").unwrap().labels, ["low", "high"]);
+    assert_eq!(shades(&drawn, 0), [1.0, 2.0, 1.0, 2.0]);
+    // A Float with value labels too, the two zeros as one value.
+    let drawn = by_g(
+        floats(&[Some(0.0), Some(-0.0), Some(1.5), Some(f64::INFINITY)]).with_entry(
+            MetadataKey::ValueLabels,
+            format_value_labels(&[("0", "none")]),
+        ),
+    );
+    assert_eq!(drawn.scale("color").unwrap().labels.len(), 3);
+    assert_eq!(drawn.scale("color").unwrap().labels[0], "none");
+    assert_eq!(shades(&drawn, 0), [1.0, 1.0, 2.0, 3.0]);
+    // Labels that label nothing make no categories of numbers.
+    let drawn = by_g(Column::ints([Some(1), Some(2)]).with_entry(
+        MetadataKey::ValueLabels,
+        format_value_labels::<&str, &str>(&[]),
+    ));
+    assert_eq!(drawn.scale("color").unwrap().kind, ScaleKind::Linear);
+}
+
+#[test]
+fn more_categories_than_colours_repeat_the_palette_and_say_so() {
+    let names: Vec<String> = (0..10).map(|i| format!("k{i}")).collect();
+    let cells: Vec<Option<&str>> = names.iter().map(|n| Some(n.as_str())).collect();
+    let p = coloured(with_g(texts(&cells)), "g");
+    // Before a layer reads the colours there is nothing to say of them.
+    let before = scene(&p);
+    assert_eq!(before.scale("color").unwrap().labels.len(), 10);
+    assert!(before.notes.is_empty());
+    let (_, drawn) = with_layer(&p, points());
+    let range = colours(&drawn, "color");
+    assert_eq!(range.len(), 10);
+    assert_eq!(
+        range[..8],
+        [
+            "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000"
+        ]
+    );
+    assert_eq!(range[8..], ["#E69F00", "#56B4E9"]);
+    assert_eq!(
+        shades(&drawn, 0),
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+    );
+    assert_eq!(
+        drawn.notes,
+        [
+            "`g` has 10 categories and the palette 8 colours, so the colours repeat from the ninth category"
+        ]
+    );
+    // A second layer does not say it twice.
+    let (_, twice) = with_layer(&with_layer(&p, points()).0, points());
+    assert_eq!(twice.notes, drawn.notes);
+    // Eight categories and `NA` need no colour twice: `NA` has its own.
+    let mut eight: Vec<Option<&str>> = cells[..8].to_vec();
+    eight.push(None);
+    let drawn = by_g(texts(&eight));
+    assert_eq!(colours(&drawn, "color").len(), 9);
+    assert_eq!(colours(&drawn, "color")[8], "#999999");
+    assert!(drawn.notes.is_empty());
+}
+
+#[test]
+fn the_colour_scale_shows_the_categories_drawn() {
+    let p = coloured(with_g(texts(&[Some("a"), Some("b"), Some("c")])), "g");
+    let other = || {
+        let mut columns = positions(3);
+        columns.push(("g", texts(&[Some("c"), Some("zz"), None])));
+        frame("other", columns)
+    };
+    // The layer's own frame alone: `c` of the plot's frame, then its own `zz`, then `NA`; the
+    // categories `a` and `b`, which no mark has, are not there.
+    let (_, drawn) = with_layer(&p, own(other()));
+    assert_eq!(drawn.scale("color").unwrap().labels, ["c", "zz", "NA"]);
+    assert_eq!(colours(&drawn, "color"), ["#E69F00", "#56B4E9", "#999999"]);
+    assert_eq!(shades(&drawn, 0), [1.0, 2.0, 3.0]);
+    // With a layer of the plot's frame under it, the frame's categories come first, in their
+    // order, and what only the other frame has follows.
+    let (both, _) = with_layer(&p, points());
+    let (_, drawn) = with_layer(&both, own(other()));
+    assert_eq!(
+        drawn.scale("color").unwrap().labels,
+        ["a", "b", "c", "zz", "NA"]
+    );
+    assert_eq!(shades(&drawn, 0), [1.0, 2.0, 3.0]);
+    assert_eq!(shades(&drawn, 1), [3.0, 4.0, 5.0]);
+    // One legend, whatever the number of layers.
+    assert_eq!(drawn.legends.len(), 1);
+    assert_eq!(drawn.legends[0].scales, ["color"]);
+    assert_eq!(drawn.legends[0].marks, [Mark::Points]);
+}
+
+#[test]
+fn a_layer_whose_frame_holds_the_colour_as_another_kind_is_left_to_the_theme() {
+    // `points` refuses such a frame; the scene, given one, colours the other layers and leaves
+    // this one alone.
+    let p = coloured(with_g(texts(&[Some("a"), Some("b")])), "g");
+    let (p, _) = with_layer(&p, points());
+    let mut columns = positions(2);
+    columns.push(("g", numbers(&[1.0, 2.0])));
+    let (_, drawn) = with_layer(&p, own(frame("other", columns)));
+    assert_eq!(shades(&drawn, 0), [1.0, 2.0]);
+    assert_eq!(drawn.panels[0].layers[1].color, Paint::Theme);
+    assert_eq!(drawn.panels[0].layers[1].x, [1.0, 2.0]);
+    assert_eq!(drawn.scale("color").unwrap().labels, ["a", "b"]);
+}
+
+#[test]
+fn a_number_is_shown_on_a_ramp_from_its_smallest_value_drawn_to_its_largest() {
+    let drawn = by_g(Column::ints([Some(30), Some(12), Some(47), Some(20)]));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.kind, ScaleKind::Linear);
+    // No margin: a colour beyond the data would never be seen.
+    assert_eq!(scale.limits, (12.0, 47.0));
+    assert_eq!(scale.breaks, [15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0]);
+    assert_eq!(scale.labels, ["15", "20", "25", "30", "35", "40", "45"]);
+    let range = colours(&drawn, "color");
+    assert_eq!(range.len(), 256);
+    assert_eq!(range[0], "#440154");
+    assert_eq!(range[255], "#FDE725");
+    assert_eq!(shades(&drawn, 0), [30.0, 12.0, 47.0, 20.0]);
+    assert_eq!(drawn.legends[0].scales, ["color"]);
+    // The ends take the ends of the ramp, by the rule the writers follow.
+    assert_eq!(ramp_entry(12.0, scale.limits.0, scale.limits.1, 256), 0);
+    assert_eq!(ramp_entry(47.0, scale.limits.0, scale.limits.1, 256), 255);
+}
+
+#[test]
+fn a_row_without_a_finite_value_on_the_ramp_is_not_drawn_and_is_counted() {
+    let mut columns = vec![
+        (
+            "x",
+            floats(&[Some(1.0), None, Some(3.0), Some(4.0), Some(5.0), Some(6.0)]),
+        ),
+        ("y", numbers(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0])),
+    ];
+    columns.push((
+        "g",
+        floats(&[
+            Some(10.0),
+            Some(1000.0),
+            None,
+            Some(f64::NEG_INFINITY),
+            Some(-2.5),
+            Some(4.0),
+        ]),
+    ));
+    let drawn = with_layer(&coloured(frame("d", columns), "g"), points()).1;
+    assert_eq!(drawn.panels[0].layers[0].x, [1.0, 5.0, 6.0]);
+    assert_eq!(shades(&drawn, 0), [10.0, -2.5, 4.0]);
+    assert_eq!(
+        drawn.notes,
+        [
+            "2 rows with NA in x, y or g dropped",
+            "1 row with an infinite value in x, y or g dropped"
+        ]
+    );
+    // The value of a row that is not drawn does not stretch the ramp.
+    assert_eq!(drawn.scale("color").unwrap().limits, (-2.5, 10.0));
+    // A variable that is a position too is named once.
+    let p = coloured(with_g(numbers(&[1.0, 2.0])), "x");
+    let (_, drawn) = with_layer(
+        &Plot {
+            frame: frame(
+                "d",
+                vec![
+                    ("x", floats(&[Some(1.0), None, Some(3.0)])),
+                    ("y", numbers(&[1.0, 2.0, 3.0])),
+                ],
+            ),
+            ..p
+        },
+        points(),
+    );
+    assert_eq!(drawn.notes, ["1 row with NA in x or y dropped"]);
+    assert_eq!(shades(&drawn, 0), drawn.panels[0].layers[0].x);
+}
+
+#[test]
+fn a_ramp_of_one_value_and_of_none() {
+    // One value: half a unit on each side, as a position has, and the value in the middle.
+    let drawn = by_g(numbers(&[3.0, 3.0]));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.limits, (2.5, 3.5));
+    assert_eq!(ramp_entry(3.0, 2.5, 3.5, 256), 128);
+    // No value: the unit scale, and nothing drawn.
+    let drawn = by_g(floats(&[None, None]));
+    assert_eq!(drawn.scale("color").unwrap().limits, (0.0, 1.0));
+    assert!(drawn.panels[0].layers[0].x.is_empty());
+    assert_eq!(shades(&drawn, 0), [0.0_f64; 0]);
+    assert_eq!(drawn.notes, ["2 rows with NA in x, y or g dropped"]);
+    // An empty frame: the unit ramp, and categories of nothing.
+    let drawn = by_g(floats(&[]));
+    assert_eq!(drawn.scale("color").unwrap().limits, (0.0, 1.0));
+    assert!(drawn.notes.is_empty());
+    let drawn = by_g(texts(&[]));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.kind, ScaleKind::Category);
+    assert_eq!(scale.limits, (1.0, 1.0));
+    assert!(scale.breaks.is_empty() && scale.labels.is_empty());
+    assert!(colours(&drawn, "color").is_empty());
+    assert_eq!(shades(&drawn, 0), [0.0_f64; 0]);
+    // The two zeros are one value: the ramp is the same text whichever comes first.
+    let one = by_g(numbers(&[-0.0, 0.0, 1.0]));
+    let other = by_g(numbers(&[0.0, -0.0, 1.0]));
+    assert_eq!(
+        one.to_json()
+            .lines()
+            .filter(|l| l.contains("limits"))
+            .collect::<Vec<_>>(),
+        other
+            .to_json()
+            .lines()
+            .filter(|l| l.contains("limits"))
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(bits(&[one.scale("color").unwrap().limits.0]), bits(&[0.0]));
+    let drawn = by_g(numbers(&[-f64::MAX, f64::MAX, 0.0]));
+    let scale = drawn.scale("color").unwrap();
+    assert_eq!(scale.limits, (-f64::MAX, f64::MAX));
+    assert!(scale.breaks.iter().all(|b| b.is_finite()));
+}
+
+#[test]
+fn before_any_layer_a_colour_scale_shows_what_the_frame_holds_and_has_no_legend() {
+    let p = coloured(with_g(texts(&[Some("b"), None, Some("a")])), "g");
+    let before = scene(&p);
+    assert_eq!(before.scale("color").unwrap().labels, ["a", "b", "NA"]);
+    assert!(before.legends.is_empty());
+    assert!(before.panels[0].layers.is_empty());
+    let p = coloured(with_g(floats(&[Some(4.0), None, Some(-1.0)])), "g");
+    let before = scene(&p);
+    assert_eq!(before.scale("color").unwrap().limits, (-1.0, 4.0));
+    assert!(before.legends.is_empty());
+    assert!(before.notes.is_empty());
+    // A layer of rows that cannot be drawn leaves the scale as the frame has it.
+    let mut columns = vec![("x", floats(&[None, None])), ("y", numbers(&[1.0, 2.0]))];
+    columns.push(("g", texts(&[Some("a"), Some("b")])));
+    let drawn = with_layer(&coloured(frame("d", columns), "g"), points()).1;
+    assert_eq!(drawn.scale("color").unwrap().labels, ["a", "b"]);
+    assert_eq!(drawn.legends.len(), 1);
+}
+
+#[test]
+fn fill_has_its_scale_but_no_point_reads_it() {
+    let mut columns = positions(4);
+    columns.push(("g", texts(&[Some("a"), Some("b"), None, Some("a")])));
+    columns.push((
+        "z",
+        floats(&[Some(1.0), None, Some(f64::INFINITY), Some(9.0)]),
+    ));
+    let build = |fill: &str, constants: Vec<PlotConstant>| {
+        let p = start(
+            frame("d", columns.clone()),
+            vec![
+                variable(Aesthetic::X, "x"),
+                variable(Aesthetic::Y, "y"),
+                variable(Aesthetic::Fill, fill),
+            ],
+            constants,
+        );
+        with_layer(&p, points()).1
+    };
+    let drawn = build("g", Vec::new());
+    let scale = drawn.scale("fill").unwrap();
+    assert_eq!(scale.kind, ScaleKind::Category);
+    assert_eq!(scale.labels, ["a", "b", "NA"]);
+    assert!(drawn.scale("color").is_none());
+    // No mark reads it: no legend, the colour of the theme, and no row dropped for it.
+    assert!(drawn.legends.is_empty());
+    assert_eq!(drawn.panels[0].layers[0].color, Paint::Theme);
+    let drawn = build("z", vec![set(Aesthetic::Color, "tomato")]);
+    assert_eq!(drawn.scale("fill").unwrap().limits, (1.0, 9.0));
+    assert_eq!(drawn.panels[0].layers[0].x.len(), 4);
+    assert!(drawn.notes.is_empty());
+    assert!(drawn.legends.is_empty());
+    assert_eq!(
+        drawn.panels[0].layers[0].color,
+        Paint::Constant("#FF6347".to_string())
+    );
+    // A constant fill is kept with the plot and changes nothing a point draws.
+    let p = start(
+        frame("d", columns.clone()),
+        vec![variable(Aesthetic::X, "x"), variable(Aesthetic::Y, "y")],
+        vec![set(Aesthetic::Fill, "tomato")],
+    );
+    let (_, drawn) = with_layer(&p, points());
+    assert_eq!(drawn.panels[0].layers[0].color, Paint::Theme);
+    assert_eq!(drawn.scales.len(), 2);
+}
+
+#[test]
+fn color_and_fill_of_one_variable_are_two_scales() {
+    let mut columns = positions(3);
+    columns.push(("g", texts(&[Some("a"), Some("b"), Some("a")])));
+    let p = start(
+        frame("d", columns),
+        vec![
+            variable(Aesthetic::X, "x"),
+            variable(Aesthetic::Y, "y"),
+            variable(Aesthetic::Color, "g"),
+            variable(Aesthetic::Fill, "g"),
+        ],
+        Vec::new(),
+    );
+    let (_, drawn) = with_layer(&p, points());
+    let ids: Vec<&str> = drawn.scales.iter().map(|s| s.id).collect();
+    assert_eq!(ids, ["x", "y", "color", "fill"]);
+    assert_eq!(colours(&drawn, "color"), colours(&drawn, "fill"));
+    assert_eq!(drawn.legends.len(), 1);
+    assert_eq!(drawn.legends[0].scales, ["color"]);
+}
+
+#[test]
+fn jitter_moves_the_points_and_leaves_their_colours() {
+    let g = texts(&[Some("b"), Some("a"), None, Some("b")]);
+    let p = coloured(with_g(g), "g");
+    let (_, still) = with_layer(&p, points());
+    let (_, moved) = with_layer(&p, jittered(0.4, 11));
+    assert_ne!(moved.panels[0].layers[0].x, still.panels[0].layers[0].x);
+    assert_eq!(shades(&moved, 0), shades(&still, 0));
+    assert_eq!(moved.scale("color"), still.scale("color"));
+}
+
+#[test]
+fn how_each_type_is_shown_as_a_colour() {
+    assert_eq!(shading(&texts(&[Some("a")])), Some(Shading::Categories));
+    assert_eq!(
+        shading(&Column::bools([Some(true)])),
+        Some(Shading::Categories)
+    );
+    assert_eq!(
+        shading(&levels(&["a"], &[Some(0)])),
+        Some(Shading::Categories)
+    );
+    assert_eq!(
+        shading(&labelled(&[Some(1)], &[("1", "one")])),
+        Some(Shading::Categories)
+    );
+    assert_eq!(shading(&Column::ints([Some(1)])), Some(Shading::Ramp));
+    assert_eq!(shading(&numbers(&[1.0])), Some(Shading::Ramp));
+    assert_eq!(shading(&Column::dates([Some(0)])), None);
+    assert_eq!(shading(&Column::datetimes([Some(0)])), None);
+    // Every point reads `color`, and none `fill`.
+    assert!(reads(Mark::Points, Aesthetic::Color));
+    assert!(!reads(Mark::Points, Aesthetic::Fill));
 }
 
 // ----- the properties -----
@@ -783,8 +1423,174 @@ fn smallest_gap(values: &[f64]) -> f64 {
         .unwrap_or(1.0)
 }
 
+/// A row of a coloured plot: the two positions, one of twelve categories or none, and a number
+/// for a ramp.
+type Painted = (Option<f64>, Option<f64>, Option<u8>, Option<f64>);
+
+fn painted_rows() -> impl Strategy<Value = Vec<Painted>> {
+    prop::collection::vec(
+        (
+            cell(),
+            cell(),
+            prop::option::weighted(0.85, 0u8..12),
+            cell(),
+        ),
+        0..40,
+    )
+}
+
+/// The frame `d` of such rows: `x`, `y`, the category `g` as text and the number `z`.
+fn painted_frame(rows: &[Painted]) -> Frame {
+    let x: Vec<Option<f64>> = rows.iter().map(|r| r.0).collect();
+    let y: Vec<Option<f64>> = rows.iter().map(|r| r.1).collect();
+    let g: Vec<Option<String>> = rows
+        .iter()
+        .map(|r| r.2.map(|k| format!("k{k:02}")))
+        .collect();
+    let z: Vec<Option<f64>> = rows.iter().map(|r| r.3).collect();
+    frame(
+        "d",
+        vec![
+            ("x", floats(&x)),
+            ("y", floats(&y)),
+            ("g", Column::strs(g)),
+            ("z", floats(&z)),
+        ],
+    )
+}
+
+/// The marks of a layer with their colours as bit patterns, sorted: the marks whatever their
+/// order.
+fn painted_marks(drawn: &Scene, layer: usize) -> Vec<(u64, u64, u64)> {
+    let l = &drawn.panels[0].layers[layer];
+    let shade = shades(drawn, layer);
+    assert_eq!(shade.len(), l.x.len());
+    let mut all: Vec<(u64, u64, u64)> = (0..l.x.len())
+        .map(|i| (l.x[i].to_bits(), l.y[i].to_bits(), shade[i].to_bits()))
+        .collect();
+    all.sort_unstable();
+    all
+}
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(property_cases(200)))]
+
+    /// Step 20c: a coloured plot gives the same scene however often it is derived, and the
+    /// scene is JSON.
+    #[test]
+    fn the_same_data_give_the_same_coloured_scene(
+        rows in painted_rows(), share in 0.0f64..1.0, seed in 0u64..1000, ramp in any::<bool>()
+    ) {
+        let build = || {
+            let p = coloured(painted_frame(&rows), if ramp { "z" } else { "g" });
+            let (p, _) = with_layer(&p, points());
+            with_layer(&p, jittered(share, seed))
+        };
+        let (first_plot, first) = build();
+        let (_, second) = build();
+        prop_assert_eq!(first.to_json(), second.to_json());
+        prop_assert_eq!(scene(&first_plot).to_json(), first.to_json());
+        let read: Result<Json, _> = serde_json::from_str(&first.to_json());
+        prop_assert!(read.is_ok(), "{}", first.to_json());
+        // Jitter moves a point and leaves its colour.
+        prop_assert_eq!(shades(&first, 0), shades(&first, 1));
+    }
+
+    /// Step 20c: reordering the rows reorders the marks, each with its colour, and changes
+    /// nothing else: the scale of colours does not depend on which row comes first.
+    #[test]
+    fn reordering_the_rows_carries_each_colour_with_its_mark(
+        (rows, shuffled) in painted_rows()
+            .prop_flat_map(|rows| (Just(rows.clone()), Just(rows).prop_shuffle())),
+        ramp in any::<bool>(),
+    ) {
+        let by = if ramp { "z" } else { "g" };
+        let a = with_layer(&coloured(painted_frame(&rows), by), points()).1;
+        let b = with_layer(&coloured(painted_frame(&shuffled), by), points()).1;
+        prop_assert_eq!(&a.scales, &b.scales);
+        prop_assert_eq!(&a.legends, &b.legends);
+        prop_assert_eq!(&a.notes, &b.notes);
+        prop_assert_eq!(painted_marks(&a, 0), painted_marks(&b, 0));
+        // Everything of the scene but the lists of marks is the same text.
+        let without_marks = |s: &Scene| -> String {
+            s.to_json()
+                .lines()
+                .filter(|l| {
+                    let l = l.trim_start();
+                    !(l.starts_with("\"x\": [") || l.starts_with("\"y\": [") || l.starts_with("\"color\": ["))
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        prop_assert_eq!(without_marks(&a), without_marks(&b));
+        // And before any layer the scene is the same text.
+        prop_assert_eq!(
+            scene(&coloured(painted_frame(&rows), by)).to_json(),
+            scene(&coloured(painted_frame(&shuffled), by)).to_json()
+        );
+    }
+
+    /// Step 20c: every mark has a colour on the scale. On a scale of categories it is the place
+    /// of a break, every break is the colour of some mark, a category has one place and two
+    /// categories two; on a ramp it lies within the limits. No row is dropped for its category,
+    /// and a row is dropped for its place on a ramp when that is `NA` or infinite.
+    #[test]
+    fn every_colour_lies_on_its_scale(rows in painted_rows()) {
+        let complete = |r: &Painted| matches!((r.0, r.1), (Some(a), Some(b)) if a.is_finite() && b.is_finite());
+        // Categories.
+        let drawn = with_layer(&coloured(painted_frame(&rows), "g"), points()).1;
+        let s = drawn.scale("color").unwrap();
+        let total = s.breaks.len();
+        prop_assert_eq!(s.kind, ScaleKind::Category);
+        prop_assert_eq!(s.labels.len(), total);
+        prop_assert_eq!(colours(&drawn, "color").len(), total);
+        prop_assert_eq!(s.limits, (1.0, total.max(1) as f64));
+        prop_assert!(s.breaks.iter().enumerate().all(|(i, b)| *b == (i + 1) as f64), "{:?}", s);
+        let kept: Vec<&Painted> = rows.iter().filter(|r| complete(r)).collect();
+        let shade = shades(&drawn, 0);
+        prop_assert_eq!(shade.len(), kept.len());
+        prop_assert_eq!(drawn.panels[0].layers[0].x.len(), kept.len());
+        for (value, row) in shade.iter().zip(&kept) {
+            let place = *value as usize;
+            prop_assert!(place >= 1 && place <= total && place as f64 == *value, "{value} {:?}", s);
+            let label = row.2.map_or("NA".to_string(), |k| format!("k{k:02}"));
+            prop_assert_eq!(&s.labels[place - 1], &label);
+            let expected = if row.2.is_some() { OKABE_ITO[(place - 1) % 8].0 } else { NA_COLOUR.0 };
+            prop_assert_eq!(colours(&drawn, "color")[place - 1], expected);
+        }
+        if !kept.is_empty() {
+            for place in 1..=total {
+                prop_assert!(shade.contains(&(place as f64)), "no mark at {place}: {:?}", s);
+            }
+        }
+        prop_assert!(s.labels.iter().enumerate().all(|(i, l)| !s.labels[..i].contains(l)), "{:?}", s);
+        // A ramp.
+        let drawn = with_layer(&coloured(painted_frame(&rows), "z"), points()).1;
+        let s = drawn.scale("color").unwrap();
+        let (lo, hi) = s.limits;
+        prop_assert_eq!(s.kind, ScaleKind::Linear);
+        prop_assert!(lo.is_finite() && hi.is_finite() && lo < hi, "{:?}", s);
+        prop_assert!(s.breaks.iter().all(|b| lo <= *b && *b <= hi), "{:?}", s);
+        prop_assert_eq!(s.labels.len(), s.breaks.len());
+        prop_assert_eq!(colours(&drawn, "color").len(), 256);
+        let kept: Vec<f64> = rows
+            .iter()
+            .filter(|r| complete(r))
+            .filter_map(|r| r.3.filter(|z| z.is_finite()))
+            .collect();
+        prop_assert_eq!(bits(shades(&drawn, 0)), bits(&kept));
+        prop_assert_eq!(drawn.panels[0].layers[0].x.len(), kept.len());
+        prop_assert!(kept.iter().all(|z| lo <= *z && *z <= hi), "{:?}", s);
+        prop_assert!(kept.iter().all(|z| ramp_entry(*z, lo, hi, 256) < 256));
+        // With two values or more the ramp runs exactly from the smallest to the largest.
+        let least = kept.iter().copied().fold(f64::INFINITY, f64::min);
+        let most = kept.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        if least < most {
+            prop_assert_eq!((lo, hi), (least, most));
+            prop_assert_eq!(ramp_entry(least, lo, hi, 256), 0);
+            prop_assert_eq!(ramp_entry(most, lo, hi, 256), 255);
+        }
+    }
 
     #[test]
     fn the_same_data_give_the_same_scene(rows in rows(), share in 0.0f64..1.0, seed in 0u64..1000) {
@@ -913,6 +1719,7 @@ proptest! {
                 mapping(Aesthetic::X, "x", &x, on_x),
                 mapping(Aesthetic::Y, "y", &y, on_y),
             ],
+            Vec::new(),
         );
         let mut handed = Vec::new();
         if on_x {

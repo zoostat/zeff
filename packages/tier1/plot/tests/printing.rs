@@ -457,3 +457,137 @@ fn every_message_of_an_expression() {
     }
     insta::assert_snapshot!("expression_messages", all);
 }
+
+// ----- colour and fill (step 20c) -----
+
+#[test]
+fn a_coloured_plot_reads_sensibly_as_text() {
+    let text = printed(
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: female)\nw.plot(x: educ, y: wage, color: female).points()\nw.plot(x: educ, y: wage, color: \"steelblue\").points()\nw.plot(x: educ, y: wage, color: exper, fill: \"#48b\").points(alpha: 0.3)\nw.plot(x: educ, y: wage, color: industry).points()\nlet top = w.where(wage > 100)\nw.plot(x: educ, y: wage, color: industry).points(data: top)\nw.plot(x: educ, y: wage, color: exper).points(data: top)\nw.plot(x: educ, y: wage, color: union, fill: female).points().points(data: top, size: 8)\n",
+    );
+    // The reference, from R on the shipped file: of the 18,412 rows, 18,201 are complete in
+    // educ and wage, 9,375 of them men and 8,826 women, and 18,179 in exper as well, where
+    // exper runs from 0 to 36; they hold all 12 industries. The 26 rows with a wage above 100
+    // hold 8 industries (Construction, Manufacturing, Retail, Finance, Services and three more,
+    // in the order of the levels) and exper from 8 to 30. A table wider than the page is
+    // continued below itself, as every table is.
+    for line in [
+        "  color       Sex     category   male, female   orange, sky blue\n",
+        "  color               constant   every mark   steelblue\n",
+        "  color       Potential labour-market experience: age less schooling less six   linear     0 to 36\n",
+        "  fill                                                                          constant   every mark\n",
+        "  colours\n  viridis, dark purple to yellow\n  #48b\n",
+        "no layer draws `fill`: `points` takes its colour from `color`\n",
+        "      1   points   w      18,179   size 4.5, alpha 0.3\n",
+        "note: 233 rows with NA in educ, wage or exper dropped (line 5)\n",
+        "Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more",
+        "orange, sky blue, bluish green, yellow, blue and 7 more",
+        "note: `industry` has 12 categories and the palette 8 colours, so the colours repeat from the ninth category (line 6)\n",
+        "Construction, Manufacturing, Retail, Finance, Services and 3 more",
+        "  color       Potential labour-market experience: age less schooling less six   linear   8 to 30\n",
+        "      2   points   top        26   size 8, alpha 1\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("colour", text);
+}
+
+#[test]
+fn the_edge_cases_of_a_colour() {
+    const D: &str = "let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = [\"b\", NA, \"a\", \"b\"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3])\n";
+    let mut all = String::new();
+    for script in [
+        // Text and truth values with `NA`, before a layer and under one.
+        format!("{D}d.plot(x: a, y: b, color: g)\nd.plot(x: a, y: b, color: g).points()\nd.plot(x: a, y: b, color: t).points()\n"),
+        // A number: the rows without a finite value of it are dropped and counted; one value.
+        format!("{D}d.plot(x: a, y: b, color: z)\nd.plot(x: a, y: b, color: z).points()\nd.plot(x: a, y: b, color: k).points()\nd.plot(x: a, y: b, color: a).points()\n"),
+        // A frame with no rows, and a variable of nothing but `NA`.
+        format!("{D}let e = d.where(a > 9)\ne.plot(x: a, y: b, color: g).points()\ne.plot(x: a, y: b, color: z).points()\nlet n = d.where(a == 2)\nn.plot(x: a, y: b, color: g).points()\nn.plot(x: a, y: b, color: z).points()\n"),
+        // A category keeps the order of its levels; a level with no row is left out.
+        format!("{D}let c = d.add(c = category(g))\nc.plot(x: a, y: b, color: c).points()\nc.where(g != \"a\").plot(x: a, y: b, color: c).points()\n"),
+        // Six categories are listed whole, seven are shortened; nine repeat the palette.
+        "let d = frame(a = [1, 2, 3, 4, 5, 6, 7, 8, 9], g = [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"g\", \"h\", \"i\"])\nd.where(a < 7).plot(x: a, y: a, color: g).points()\nd.where(a < 8).plot(x: a, y: a, color: g).points()\nd.where(a < 9).plot(x: a, y: a, color: g).points()\nd.plot(x: a, y: a, color: g)\nd.plot(x: a, y: a, color: g).points()\n".to_string(),
+        // A layer with its own frame: its categories join the scale after the plot's own; a
+        // constant colour asks nothing of that frame.
+        format!("{D}let o = frame(a = [5, 6, 7], b = [0.5, 1.5, 2.5], g = [\"zz\", \"b\", NA])\nd.plot(x: a, y: b, color: g).points(data: o)\nd.plot(x: a, y: b, color: g).points().points(data: o)\nlet bare = frame(a = [5, 6], b = [0.5, 1.5])\nd.plot(x: a, y: b, color: \"tomato\", fill: \"#000\").points(data: bare)\nd.plot(x: a, y: b, fill: g).points(data: bare)\n"),
+        // Colour and fill of one variable; fill alone; every form of a constant.
+        format!("{D}d.plot(x: a, y: b, color: g, fill: g).points()\nd.plot(x: a, y: b, fill: z).points()\nd.plot(x: a, y: b, color: \"#4682B4\").points()\nd.plot(x: a, y: b, color: \"#abc\", fill: \"rebeccapurple\")\nd.plot(color: g)\nd.plot(x: a, color: \"grey\")\nd.plot(x: a, y: b, color: NA, fill: NA).points()\n"),
+        // The edge-case datasets of the testing handbook, section 1.2.
+        "let d = import(\"data/one_row.csv\")\nd.plot(x: x, y: y, color: x).points()\n".to_string(),
+        "let d = import(\"data/zero_variance.csv\")\nd.plot(x: constant, y: big_constant, color: constant_with_na).points()\n".to_string(),
+        "let d = import(\"data/infinities.csv\")\nd.plot(x: finite, y: finite, color: plus).points()\nd.plot(x: finite, y: finite, color: nan_mixed).points()\n".to_string(),
+        "let d = import(\"data/magnitudes.csv\")\nd.plot(x: offset, y: tiny, color: wide).points()\n".to_string(),
+        "let d = import(\"data/bools.csv\")\nd.plot(x: treated, y: treated, color: with_na).points()\n".to_string(),
+        "let d = import(\"data/empty.csv\")\nd.plot(color: x)\nd.plot(fill: y)\n".to_string(),
+        "let d = import(\"data/all_na.csv\")\nd.plot(color: x)\nd.plot(fill: y)\n".to_string(),
+        "let d = import(\"data/awkward_names.csv\")\nd.plot(x: `Gross Sales (total)`, y: `日本語`, color: `Gross Sales (total)`).points()\n".to_string(),
+        "let d = import(\"data/unicode_labels.csv\")\nd.plot(x: n, y: n, color: city).points()\n".to_string(),
+        "let d = import(\"data/level_symbols.csv\")\nd.plot(x: n, y: y, color: grp).points()\n".to_string(),
+        "let d = import(\"data/wages_large.csv\")\nd.plot(x: educ, y: wage, color: female).points()\nd.plot(x: educ, y: wage, color: region).points()\n".to_string(),
+    ] {
+        let (code, stdout, stderr) = go(&script);
+        all.push_str(&format!(
+            "{script}exit code {code}\n{stdout}---\n{stderr}\n"
+        ));
+    }
+    insta::assert_snapshot!("colour_edges", all);
+}
+
+#[test]
+fn every_message_of_a_colour() {
+    const O: &str = "let w = dataset(wages)\nlet p = w.plot(x: educ, y: wage, color: exper)\nlet q = w.plot(x: educ, y: wage, fill: female)\n";
+    let mut all = String::new();
+    for script in [
+        // A string that is not a colour.
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: \"steel blue\")\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: \"Red\")\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, fill: \"female\")\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, fill: \"a colour of my own\")\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: \"\")\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: \"#12G\")\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, fill: \"#12345\")\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: \"4682B4\")\n".to_string(),
+        // What is neither a variable nor a string.
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: 3)\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: log(exper))\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, fill: [\"red\", \"blue\"])\n".to_string(),
+        // The names: a variable the frame lacks, and a binding, which a bare name never reads.
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: sex)\n".to_string(),
+        "let w = dataset(wages)\nw.plot(x: educ, y: wage, fill: Female)\n".to_string(),
+        "let w = dataset(wages)\nlet shade = \"red\"\nw.plot(x: educ, y: wage, color: shade)\n".to_string(),
+        // A type with no colour scale yet.
+        "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: b, color: when)\n".to_string(),
+        "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: b, fill: when)\n".to_string(),
+        // A layer whose frame cannot give the colour.
+        format!("{O}p.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], Exper = [1, 2])\np.points(data: o)\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], exper = [\"a\", \"b\"])\np.points(data: o)\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], exper = [true, false])\np.points(data: o)\n"),
+        format!("{O}let o = w.where(wage > 100).select(vars(educ, wage, female)).rename(exper = female)\np.points(data: o)\n"),
+        format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(exper = date(s))\np.points(data: o)\n"),
+        "let w = dataset(wages)\nlet o = frame(educ = [1, 2], wage = [3.0, 4.0], female = [0, 1])\nw.plot(x: educ, y: wage, color: female).points(data: o)\n".to_string(),
+        "let w = dataset(wages)\nlet o = frame(educ = [1, 2], wage = [3.0, 4.0], industry = [0.5, 1.5])\nw.plot(x: educ, y: wage, color: industry).points(data: o)\n".to_string(),
+    ] {
+        let (code, stdout, stderr) = go(&script);
+        assert_eq!(code, 1, "{script}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{script}");
+        all.push_str(&script);
+        all.push_str(&stderr);
+        all.push('\n');
+    }
+    insta::assert_snapshot!("colour_messages", all);
+}
+
+/// A layer drawn from a frame that lacks a mapped fill is not refused: no point reads `fill`.
+#[test]
+fn a_layer_is_asked_only_for_what_its_mark_reads() {
+    let (code, stdout, stderr) = go(
+        "let w = dataset(wages)\nlet o = frame(educ = [10, 12], wage = [30.0, 40.0])\nw.plot(x: educ, y: wage, fill: female).points(data: o)\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert!(
+        stdout.contains("      1   points   o          2   size 4.5, alpha 1\n"),
+        "{stdout}"
+    );
+    assert_eq!(stderr, "");
+}

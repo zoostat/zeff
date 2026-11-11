@@ -1554,6 +1554,7 @@ fn plot_cases() -> Vec<Line> {
             let plot = zeff_plot::scene::start(
                 frame,
                 vec![mapping(Aesthetic::X, "educ"), mapping(Aesthetic::Y, "wage")],
+                Vec::new(),
             );
             let layer = PlotLayer {
                 mark: Mark::Points,
@@ -1603,6 +1604,7 @@ fn plot_cases() -> Vec<Line> {
                                 }),
                             },
                         ],
+                        Vec::new(),
                     );
                     let layer = PlotLayer {
                         mark: Mark::Points,
@@ -1620,6 +1622,65 @@ fn plot_cases() -> Vec<Line> {
         }
         None => "the wages did not load".to_string(),
     };
+    // Step 20c: colour by categories, on the continuous ramp and as one colour for every mark,
+    // printed as a script draws them, and the two scenes with their colour scales and legends.
+    let script = "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: female).points()\nw.plot(x: educ, y: wage, color: exper, fill: \"#48b\").points(alpha: 0.3)\nw.plot(x: educ, y: wage, color: industry).points()\nlet top = w.where(wage > 100)\nw.plot(x: educ, y: wage, color: union, fill: female).points().points(data: top, size: 8)\nw.plot(x: educ, y: wage, color: \"steelblue\").points()\nw.plot(x: educ, y: wage, color: \"steel blue\")\n";
+    let colour = run_script(&fs, &project, "scripts/main.zeff", script);
+    let coloured = match zeff_datasets::table("wages") {
+        Some(table) => {
+            use zeff_core::value::{PlotConstant, PlotSetting};
+            let frame = Frame {
+                table: Rc::new(table),
+                name: Some("wages".to_string()),
+            };
+            let mapping = |aesthetic, variable: &str| PlotMapping {
+                aesthetic,
+                variable: variable.to_string(),
+                computed: None,
+            };
+            let layer = || PlotLayer {
+                mark: Mark::Points,
+                data: None,
+                alpha: 1.0,
+                size: None,
+                jitter: 0.0,
+                stream: None,
+                computed: Vec::new(),
+            };
+            let categories = zeff_plot::scene::start(
+                frame.clone(),
+                vec![
+                    mapping(Aesthetic::X, "educ"),
+                    mapping(Aesthetic::Y, "wage"),
+                    mapping(Aesthetic::Color, "industry"),
+                ],
+                Vec::new(),
+            );
+            let ramp = zeff_plot::scene::start(
+                frame,
+                vec![
+                    mapping(Aesthetic::X, "educ"),
+                    mapping(Aesthetic::Y, "wage"),
+                    mapping(Aesthetic::Color, "exper"),
+                ],
+                vec![PlotConstant {
+                    aesthetic: Aesthetic::Fill,
+                    value: PlotSetting::Colour {
+                        hex: "#4488BB".to_string(),
+                        written: "#48b".to_string(),
+                    },
+                }],
+            );
+            format!(
+                "{}\n{}",
+                zeff_plot::scene::with_layer(&categories, layer())
+                    .1
+                    .to_json(),
+                zeff_plot::scene::with_layer(&ramp, layer()).1.to_json()
+            )
+        }
+        None => "the wages did not load".to_string(),
+    };
     vec![
         text("plot/points/stdout", &outcome.output.stdout),
         text("plot/points/stderr", &outcome.output.stderr),
@@ -1627,6 +1688,9 @@ fn plot_cases() -> Vec<Line> {
         text("plot/expression/stdout", &expression.output.stdout),
         text("plot/expression/stderr", &expression.output.stderr),
         text("plot/expression/scene.json", &logarithm),
+        text("plot/colour/stdout", &colour.output.stdout),
+        text("plot/colour/stderr", &colour.output.stderr),
+        text("plot/colour/scene.json", &coloured),
     ]
 }
 

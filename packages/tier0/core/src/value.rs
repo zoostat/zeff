@@ -75,6 +75,8 @@ pub struct Table {
 pub struct Plot {
     pub frame: Frame,
     pub mappings: Vec<PlotMapping>,
+    /// The aesthetics set to one value for every mark (`color: "steelblue"`).
+    pub constants: Vec<PlotConstant>,
     pub layers: Vec<PlotLayer>,
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
@@ -91,24 +93,52 @@ impl Plot {
     pub fn mapped(&self, aesthetic: Aesthetic) -> Option<&str> {
         self.mapping(aesthetic).map(|m| m.variable.as_str())
     }
+
+    /// The one value `aesthetic` is set to for every mark, if it is set to one.
+    pub fn constant(&self, aesthetic: Aesthetic) -> Option<&PlotSetting> {
+        self.constants
+            .iter()
+            .find(|c| c.aesthetic == aesthetic)
+            .map(|c| &c.value)
+    }
 }
 
-/// What a mark's appearance may be mapped from (section 7.6): the two positions at release 0.7.0,
-/// step 20.
+/// What a mark's appearance may be mapped from (section 7.6): the two positions and the two
+/// colours at release 0.7.0, step 20c.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Aesthetic {
     X,
     Y,
+    Color,
+    Fill,
 }
 
 impl Aesthetic {
-    /// The aesthetic as the language writes it: `x`, `y`.
+    /// The aesthetic as the language writes it: `x`, `y`, `color`, `fill`.
     pub fn name(self) -> &'static str {
         match self {
             Aesthetic::X => "x",
             Aesthetic::Y => "y",
+            Aesthetic::Color => "color",
+            Aesthetic::Fill => "fill",
         }
     }
+}
+
+/// An aesthetic set to one value for every mark, in place of a mapping (section 7.6, "Mappings
+/// and constants").
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlotConstant {
+    pub aesthetic: Aesthetic,
+    pub value: PlotSetting,
+}
+
+/// The value of a constant aesthetic.
+#[derive(Debug, Clone, PartialEq)]
+pub enum PlotSetting {
+    /// A colour, as six hexadecimal digits after `#`, in capitals: `#4682B4`. `written` is the
+    /// colour as the script wrote it, `steelblue`.
+    Colour { hex: String, written: String },
 }
 
 /// One mapping of a plot: an aesthetic and what it reads, a variable of the frame or an

@@ -15,7 +15,8 @@ expression: drawn.to_json()
       "title": "Dose (mg)",
       "limits": [0.85, 4.15],
       "breaks": [1, 1.5, 2, 2.5, 3, 3.5, 4],
-      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"]
+      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"],
+      "range": null
     },
     {
       "id": "y",
@@ -23,7 +24,8 @@ expression: drawn.to_json()
       "title": "response * 2",
       "limits": [3.63, 16.169999999999998],
       "breaks": [4, 6, 8, 10, 12, 14, 16],
-      "labels": ["4", "6", "8", "10", "12", "14", "16"]
+      "labels": ["4", "6", "8", "10", "12", "14", "16"],
+      "range": null
     }
   ],
   "guides": {
@@ -50,6 +52,7 @@ expression: drawn.to_json()
           "mark": "points",
           "x": [1, 2, 3, 4],
           "y": [4.2, 7.8, 12.4, 15.6],
+          "color": null,
           "size": 4.5,
           "alpha": 1
         }

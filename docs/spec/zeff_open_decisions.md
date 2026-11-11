@@ -155,6 +155,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 109 | The colours of a plot: more categories than the palette has colours, a level with no row, and the names of colours | As built at step 20c: (1) the eight colours repeat from the ninth category and a note says so; (2) a level with no row among the marks drawn has no colour and no legend entry; (3) a colour is one of the 148 names of CSS or `#` and hexadecimal digits, R's own names not being accepted | 0.7.0, before step 25 |
 | 108 | A numeric function of `core` given a text or category column | Refuse it when the statement runs, as R and Stata do and as the engine already refuses `log("a")` on one value; until decided `log(industry)` in `add` or in a mapping gives `NA` on every row without a message | 0.8.0 |
 | 107 | What an expression mapped to an aesthetic may call | For 0.7.0 the operators and the row-by-row functions of `core` implemented in the engine, as built at step 20b; the reducers of `data` (`wage - mean(wage)`), the functions of `time` and `text`, and `logit`, `inv_logit`, `clamp` and `fill_missing` are refused with advice to compute the variable with `add` first; widening later breaks no script | 0.7.0, before step 25 |
 | 106 | A layer that overrides a mapping of its plot | Each mark takes `x:` and `y:`, and the other aesthetics it draws, for its own layer, as ggplot2's `geom_point(aes())` and Observable Plot's marks do, so that observed points and a fitted line of another variable share one plot; until decided a mark takes the catalogued options only and such an argument is refused as unknown (Z0404) | 0.7.0, before step 23 |
@@ -1866,3 +1867,37 @@ What the reference tools do. R refuses: `log(c("a", "b"))` is the error "non-num
 | C. As now | No change | A wrong type passes in silence, against the engine's own rule for one value |
 
 *Recommendation.* A, at 0.8.0, in a step of its own with the snapshot of every numeric function of `core` on a text, a category, a date and a logical column, so that the rule is the same for all of them; the release notes of 0.8.0 list it as a breaking change with the rewrite (`to(x, Float)` or the removal of the call). Deadline: 0.8.0.
+
+### 109. The colours of a plot: more categories than colours, a level with no row, and the names of colours
+
+Raised on 11 November 2026 at step 20c of release 0.7.0, where `color:` and `fill:` of `data.plot(…)` were built. Section 7.6 of the Language Reference fixes the defaults, "Okabe–Ito for categories, viridis for continuous scales, never a rainbow", and says that `scale(color: [...])` overrides them. Three things it does not say were met while coding. Each is built in the way recommended below, and each can be changed before step 25, where the legend is drawn and `scale` is built, without breaking a released script.
+
+**Question 1. More categories than the palette has colours.** The palette of Okabe and Ito has eight colours and `industry` of the `wages` data has twelve categories.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Repeat the colours from the ninth category and say so in a note, as built: "`industry` has 12 categories and the palette 8 colours, so the colours repeat from the ninth category" | The plot is drawn, so a first look at the data never stops; the note says exactly what is wrong; D3 and Observable Plot repeat too, and R's `palette.colors(recycle = TRUE)` | Two categories share a colour, and a reader who misses the note may confuse them |
+| B. Refuse the plot with an error that advises `scale(color: [...])` or fewer categories | No plot can mislead; ggplot2's manual scale does this ("Insufficient values in manual scale") | A scatter by industry stops for a reason that is about appearance, not about the data; `scale` does not exist until step 25 |
+| C. Above eight categories, take the colours at equal steps along viridis | Every category has its own colour, however many | Neighbouring colours of a ramp are hard to tell apart beyond about ten, and the ramp suggests an order the categories may not have; the colour of a category changes when a ninth appears |
+
+*Recommendation.* A. With twelve colours no palette lets a reader tell every pair apart, so the honest course is to draw and to say so; `scale(color: [...])` at step 25 gives the remedy.
+
+**Question 2. A level with no row among the marks drawn.** `w.where(wage > 100)` keeps 8 of the 12 industries. Its plot coloured by `industry` could show 8 categories or 12.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Leave the level out, as built: the scale shows the categories of the marks drawn | The legend lists what the reader can see; ggplot2's default (`drop = TRUE`) | A subset is not coloured as the whole is: Construction is the fourth colour in the plot of all workers and the first in the plot of the best paid |
+| B. Keep every level of a Category, with its colour and its legend entry | One industry has one colour in every plot of the same variable, which helps when two plots are compared | A legend with entries for which nothing is drawn; a Str variable has no levels, so the rule would hold for a Category only |
+
+*Recommendation.* A for the default, with an option of `scale` at step 25 to keep every level, as ggplot2's `drop = FALSE`.
+
+**Question 3. The names of colours.** A string for `color:` or `fill:` is read, as built, as one of the 148 names of the W3C's CSS Color Module Level 4 or as `#` and six or three hexadecimal digits.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The CSS names and the hexadecimal forms only, as built | One published list, the same that the SVG the engine writes understands; a name means one colour | A user of R who writes `"gray40"` or `"firebrick3"` is refused, with the help naming the forms accepted |
+| B. Also the 657 names of R's `colors()` | R scripts carry over | Four names differ between the two lists: `gray` and `grey` (`#BEBEBE` in R, `#808080` in CSS), `green` (`#00FF00` and `#008000`), `maroon` (`#B03060` and `#800000`) and `purple` (`#A020F0` and `#800080`); one list must win and the other reader is silently given another colour |
+
+*Recommendation.* A.
+
+Deadline: 0.7.0, before step 25.

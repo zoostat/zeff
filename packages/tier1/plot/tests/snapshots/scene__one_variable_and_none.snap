@@ -15,7 +15,8 @@ expression: "format!(\"{}---\\n{}\", x_alone.to_json(), nothing.to_json())"
       "title": "Dose (mg)",
       "limits": [0.85, 4.15],
       "breaks": [1, 1.5, 2, 2.5, 3, 3.5, 4],
-      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"]
+      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"],
+      "range": null
     }
   ],
   "guides": {

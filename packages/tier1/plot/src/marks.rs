@@ -1,11 +1,13 @@
 //! The marks (Language Reference, section 7.6, "Marks"): each adds a layer to a plot and gives
-//! the plot back, so that layers chain. At release 0.7.0, step 20: `points`.
+//! the plot back, so that layers chain. At release 0.7.0, step 20c: `points`.
 //!
 //! A layer draws the rows of the plot's frame, or of its own (`data:`), which must then hold the
-//! variables the plot maps and those its mapped expressions read; an expression is computed
-//! again on such a frame, where the layer is added. Rows with `NA` in a mapped variable are not drawn and are counted in
-//! a note, as everywhere else (principle 6); a second layer over the same rows does not repeat
-//! the note of the first.
+//! variables the plot maps to the aesthetics its mark reads and those its mapped expressions
+//! read; an expression is computed again on such a frame, where the layer is added, and a
+//! variable mapped to a colour must be of the same kind there, categories or a number, because
+//! the layers share one colour scale. Rows with `NA` in a mapped position, or in a variable shown
+//! on a continuous colour scale, are not drawn and are counted in a note, as everywhere else
+//! (principle 6); a second layer over the same rows does not repeat the note of the first.
 
 use std::rc::Rc;
 
@@ -14,9 +16,9 @@ use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Aesthetic, Frame, Mark, Plot, PlotLayer, Value};
 use zeff_diagnostics::Diagnostic;
 
-use crate::grammar::{column, internal, number_option, shown};
+use crate::grammar::{a_type, column, internal, number_option, shown};
 use crate::mapping::{self, variables};
-use crate::scene::{is_numeric, scene, with_layer};
+use crate::scene::{Shading, is_numeric, scene, shading, with_layer};
 
 const P: usize = 0;
 const DATA: usize = 1;
@@ -101,18 +103,62 @@ fn own_frame(
         }
         let found = column(ctx, &own, name, at)
             .map_err(|refusal| Box::new((*refusal).secondary(layer, draws.clone())))?;
-        if !is_numeric(found) {
-            let whose = match &own.name {
-                Some(bound) => format!("`{bound}`"),
-                None => "this frame".to_string(),
+        let whose = match &own.name {
+            Some(bound) => format!("`{bound}`"),
+            None => "this frame".to_string(),
+        };
+        // A colour: the variable must be shown the same way as in the plot's frame, as
+        // categories or on a continuous scale, since the layers share one scale.
+        if matches!(aesthetic, Aesthetic::Color | Aesthetic::Fill) {
+            let theirs = plot.frame.table.column(name).and_then(shading);
+            if shading(found) == theirs {
+                continue;
+            }
+            let kind = |shading: Option<Shading>| match shading {
+                Some(Shading::Categories) => "as categories",
+                Some(Shading::Ramp) => "on a continuous scale",
+                None => "on no scale",
+            };
+            let labelled = found
+                .metadata()
+                .value_labels()
+                .is_some_and(|labels| !labels.is_empty());
+            let what = match (shading(found), labelled) {
+                (Some(Shading::Categories), true) => {
+                    " with value labels, which is shown as categories"
+                }
+                (Some(Shading::Categories), false) => ", which is shown as categories",
+                (Some(Shading::Ramp), _) => {
+                    " without value labels, which is shown on a continuous scale"
+                }
+                (None, _) => ", which has no colour scale yet",
             };
             return Err(fail(
                 Diagnostic::error(
                     "Z0401",
                     format!(
-                        "`{function}` draws `{}` on a linear scale, so `{name}` of {whose} must be a Bool, Int or Float variable, but it is a {}",
+                        "the plot shows `{name}` {} for `{}`, but `{name}` of {whose} is {}{what}",
+                        kind(theirs),
                         aesthetic.name(),
-                        found.ty().name()
+                        a_type(found)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(at, format!("its `{name}` is of another kind"))
+                .secondary(layer, draws)
+                .help(format!(
+                    "the layers of a plot share one scale of colour, so `{name}` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame"
+                )),
+            ));
+        }
+        if !is_numeric(found) {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{function}` draws `{}` on a linear scale, so `{name}` of {whose} must be a Bool, Int or Float variable, but it is {}",
+                        aesthetic.name(),
+                        a_type(found)
                     ),
                 )
                 .in_file(ctx.script)
@@ -134,7 +180,13 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     };
     let plot: Rc<Plot> = plot.clone();
     positions(ctx, &plot, "points")?;
-    let (data, computed) = own_frame(ctx, &args, &plot, "points", &[Aesthetic::X, Aesthetic::Y])?;
+    let (data, computed) = own_frame(
+        ctx,
+        &args,
+        &plot,
+        "points",
+        &[Aesthetic::X, Aesthetic::Y, Aesthetic::Color],
+    )?;
 
     let alpha =
         number_option(ctx, &args, ALPHA, "an `alpha:` that is not a number")?.unwrap_or(1.0);

@@ -1,0 +1,119 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title   scale      values         colours
+  color       Sex     category   male, female   orange, sky blue
+
+no layer yet: a mark such as `.points()` adds one
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title   scale      values         colours
+  color       Sex     category   male, female   orange, sky blue
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title   scale      values       colours
+  color               constant   every mark   steelblue
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title                                                             scale      values
+  color       Potential labour-market experience: age less schooling less six   linear     0 to 36
+  fill                                                                          constant   every mark
+
+  colours
+  viridis, dark purple to yellow
+  #48b
+
+no layer draws `fill`: `points` takes its colour from `color`
+
+  layer   mark     data    marks   settings
+      1   points   w      18,179   size 4.5, alpha 0.3
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title      scale      values
+  color       Industry   category   Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+
+  colours
+  orange, sky blue, bluish green, yellow, blue and 7 more
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   10.6 to 19.4        12, 14, 16, 18
+  y      Hourly wage          linear   97.874 to 154.986   100, 110, 120, 130, 140, 150
+
+  aesthetic   title      scale      values
+  color       Industry   category   Construction, Manufacturing, Retail, Finance, Services and 3 more
+
+  colours
+  orange, sky blue, bluish green, yellow, blue and 3 more
+
+  layer   mark     data   marks   settings
+      1   points   top       26   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   10.6 to 19.4        12, 14, 16, 18
+  y      Hourly wage          linear   97.874 to 154.986   100, 110, 120, 130, 140, 150
+
+  aesthetic   title                                                             scale    values
+  color       Potential labour-market experience: age less schooling less six   linear   8 to 30
+
+  colours
+  viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   top       26   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale      values         colours
+  color       Union member   category   no, yes        orange, sky blue
+  fill        Sex            category   male, female   orange, sky blue
+
+no layer draws `fill`: `points` takes its colour from `color`
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+      2   points   top        26   size 8, alpha 1
+---
+note: 211 rows with NA in educ or wage dropped (line 3)
+note: 211 rows with NA in educ or wage dropped (line 4)
+note: 233 rows with NA in educ, wage or exper dropped (line 5)
+note: 211 rows with NA in educ or wage dropped (line 6)
+note: `industry` has 12 categories and the palette 8 colours, so the colours repeat from the ninth category (line 6)
+note: 211 rows dropped where `wage > 100` was NA; `w.where(is_missing(wage))` lists them (line 7)
+note: 211 rows with NA in educ or wage dropped (line 10)

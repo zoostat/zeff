@@ -1,0 +1,63 @@
+---
+source: packages/tier1/plot/tests/scene.rs
+expression: scene(&p).to_json()
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "x",
+      "limits": [0.85, 4.15],
+      "breaks": [1, 1.5, 2, 2.5, 3, 3.5, 4],
+      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "y",
+      "limits": [9.85, 13.15],
+      "breaks": [10, 10.5, 11, 11.5, 12, 12.5, 13],
+      "labels": ["10", "10.5", "11", "11.5", "12", "12.5", "13"],
+      "range": null
+    },
+    {
+      "id": "color",
+      "kind": "category",
+      "title": "g",
+      "limits": [1, 3],
+      "breaks": [1, 2, 3],
+      "labels": ["low", "high", "NA"],
+      "range": ["#E69F00", "#56B4E9", "#999999"]
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": []
+    }
+  ],
+  "notes": []
+}

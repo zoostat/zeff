@@ -15,7 +15,8 @@ expression: scene(&p).to_json()
       "title": "Dose (mg)",
       "limits": [0.85, 4.15],
       "breaks": [1, 1.5, 2, 2.5, 3, 3.5, 4],
-      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"]
+      "labels": ["1", "1.5", "2", "2.5", "3", "3.5", "4"],
+      "range": null
     },
     {
       "id": "y",
@@ -23,7 +24,8 @@ expression: scene(&p).to_json()
       "title": "response",
       "limits": [1.7550000000000001, 9.345],
       "breaks": [2, 4, 6, 8],
-      "labels": ["2", "4", "6", "8"]
+      "labels": ["2", "4", "6", "8"],
+      "range": null
     }
   ],
   "guides": {

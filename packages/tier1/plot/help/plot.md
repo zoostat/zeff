@@ -10,18 +10,28 @@ along the two axes. In place of a variable an axis takes an expression of the va
 follows, such as `.points()`, adds a layer on top of those before it, and all the layers share
 the frame, the mapped variables and the scales.
 
+`color:` shows a third variable by the colour of the marks. `color: female` gives each category
+a colour of its own, and `color: hours` shades the marks along a ramp from the smallest value to
+the largest. A string sets one colour for every mark instead, as in `color: "steelblue"`.
+`fill:` is the colour of the inside of a mark that has one.
+
 A plot is a value. It can be bound with `let`, extended later and printed. Printed, it reads as
-the text of its scene: a row for each axis, with its title, its limits and its breaks, and a row
-for each layer, with the number of marks it draws.
+the text of its scene: a row for each axis, with its title, its limits and its breaks, a row
+for each colour, with its values and its colours in words, and a row for each layer, with the
+number of marks it draws.
 
-Each mapped variable is placed on a linear scale, so it must be a Float, an Int, or a Bool,
-which is read as 0 and 1, and an expression must give one of these for each row. The title of
-an axis is the label of its variable, or the name of the variable when it has no label; the
-title of an expression is the expression as it is written.
+Each variable mapped to an axis is placed on a linear scale, so it must be a Float, an Int, or
+a Bool, which is read as 0 and 1, and an expression must give one of these for each row. The
+title of an axis or of a colour is the label of its variable, or the name of the variable when
+it has no label; the title of an expression is the expression as it is written.
 
-In R with ggplot2 this is `ggplot(w, aes(x = educ, y = wage))`, where `aes(y = log(wage))`
-maps an expression in the same way, and in Stata it is the start of a `twoway` command, for
-which the variable is generated first. The defaults of the scales follow Observable Plot.
+In R with ggplot2 this is `ggplot(w, aes(x = educ, y = wage, colour = female))`, where
+`aes(y = log(wage))` maps an expression in the same way, and in Stata it is the start of a
+`twoway` command, for which the variable is generated first and each group is drawn by a
+`scatter` of its own. The defaults of the scales follow Observable Plot. The default colours
+are not those of ggplot2: the categories take the colours of `palette.colors(palette =
+"Okabe-Ito")` in R, with black moved to the last place, and a continuous scale takes those of
+`scale_colour_viridis_c()`.
 
 ## Arguments
 - data: The frame whose rows are drawn. A layer may name a frame of its own with `data:`.
@@ -29,11 +39,17 @@ which the variable is generated first. The defaults of the scales follow Observa
   variables such as `log(wage)` or `wage / hours`.
 - y: The variable placed along the vertical axis, a bare name, or an expression of the
   variables.
+- color: The colour of the marks. A variable of the frame, written as a bare name, is shown on
+  a colour scale. A string sets one colour for every mark: a name in small letters such as
+  `"steelblue"`, or `#` and six hexadecimal digits such as `"#4682B4"`. Without it the marks
+  have the colour of the theme.
+- fill: The colour of the inside of the marks that have one, given as `color:` is given. A
+  point has no inside and takes its colour from `color:`.
 
 ## Value
 A `Plot`, to which marks are added as methods, each call giving a new plot with one more layer.
 Printed, it shows the frame and the mapped variables, then the axes with their scales, then the
-layers in the order in which they are drawn.
+colours, then the layers in the order in which they are drawn.
 
 ## Details
 Scales. The limits of an axis lie 5% of the range beyond the smallest and the largest value
@@ -48,6 +64,40 @@ significant digits.
 
 Missing values. A row with `NA` in a mapped variable cannot be placed and is not drawn, and
 neither is a row with an infinite value. Each layer counts the rows it leaves out in a note.
+
+Colour by categories. A Category, a Str and a Bool variable are shown as categories, and so is
+an Int or a Float that carries value labels. Each category has a colour of its own. The
+categories of a Category come in the order of its levels. Those of another variable come in the
+order of its values, `false` before `true`, numbers by size and text by the code points of its
+characters, and each is named by its value label when it has one. The colours are the eight of
+Okabe and Ito, chosen so that people with the common forms of colour blindness can tell them
+apart, in this order: orange, sky blue, bluish green, yellow, blue, vermilion, reddish purple
+and black. With more than eight categories the colours repeat from the ninth, and a note says
+so. A row with `NA` is drawn: `NA` is a category of its own, which comes last and is grey.
+
+The scale shows the categories of the marks drawn, so a level with no row among them has no
+colour and no place in the legend. Before any layer is added it shows the categories the frame
+holds.
+
+Colour on a continuous scale. An Int or a Float without value labels is shown on the ramp
+viridis, which runs from dark purple through blue and green to yellow. Its lightness grows
+evenly, so it keeps its order when printed in grey and for colour-blind readers. The scale
+runs from the smallest value drawn to the largest, with no margin, and is cut into 256 equal
+parts, each with its colour; a mark takes the colour of the part in which its value lies. A
+row with `NA` or an infinite value of the variable has no place on the ramp: a layer that reads
+the colour does not draw it and counts it in its note. When all the values are one value the
+limits follow the rule of the axes.
+
+One colour for every mark. A string sets the colour of every mark and needs no scale and no
+legend. The names are the 148 of CSS, all in small letters, with both `"grey"` and `"gray"`.
+After `#` come the red, the green and the blue as two hexadecimal digits each, and `"#48B"` is
+short for `"#4488BB"`. A bare name is always read as a variable of the frame, so the string is
+written where it is used.
+
+What a colour cannot hold. An expression is not mapped to a colour: compute the variable with
+`add` first. A Date and a DateTime have no colour scale. When a layer has a frame of its own,
+the variable must be of the same kind there, categories or a number without value labels, and
+categories that only that frame holds come after those of the frame of the plot.
 
 Expressions. An expression mapped to an axis is computed for each row as `add` computes it,
 from the variables of the frame, numbers, the operators and the functions of `core`:
@@ -64,8 +114,9 @@ mapping, and neither are `clamp`, `logit`, `inv_logit` and `fill_missing`. Compu
 value with `add` first and map the new variable.
 
 The scene. A plot is kept as a scene: the marks in the units of the data, with the scales, the
-axes and the layout. It holds no size in pixels and no fonts, which belong to the program that
-draws it, so the same data give the same scene on every computer.
+axes, the legends and the layout. It has one legend for each colour scale that a layer reads. It
+holds no size in pixels and no fonts, which belong to the program that draws it, so the same data
+give the same scene on every computer.
 
 Either `x:` or `y:` may be left out. A mark then says which of the two it needs.
 
@@ -75,6 +126,10 @@ Wickham (2010), A layered grammar of graphics, Journal of Computational and Grap
 Statistics 19, 3–28.
 Bostock, Ogievetsky and Heer (2011), D3: data-driven documents, IEEE Transactions on
 Visualization and Computer Graphics 17, 2301–2309.
+Okabe and Ito (2008), Color Universal Design: how to make figures and presentations that are
+friendly to colorblind people, J*Fly, University of Tokyo.
+Wong (2011), Points of view: color blindness, Nature Methods 8, 441.
+Smith and van der Walt (2015), A better default colormap for Matplotlib, SciPy 2015.
 
 ## See also
 points, describe, label
@@ -126,3 +181,42 @@ plot · w · wage * weekly against exper^2
   y      wage * weekly   linear   -156.52 to 6393.32   0, 1000, 2000, 3000, 4000, 5000, 6000
 
 no layer yet: a mark such as `.points()` adds one
+> w.plot(x: educ, y: wage, color: female).points(alpha: 0.3)
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title   scale      values         colours
+  color       Sex     category   male, female   orange, sky blue
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.3
+note: 211 rows with NA in educ or wage dropped (line 9)
+> w.plot(x: educ, y: wage, color: hours).points()
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale    values      colours
+  color       Hours worked   linear   7 to 69.2   viridis, dark purple to yellow
+
+  layer   mark     data    marks   settings
+      1   points   w      18,167   size 4.5, alpha 1
+note: 245 rows with NA in educ, wage or hours dropped (line 10)
+> w.plot(x: educ, y: wage, color: "steelblue").points()
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title   scale      values       colours
+  color               constant   every mark   steelblue
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 1
+note: 211 rows with NA in educ or wage dropped (line 11)

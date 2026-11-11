@@ -6,10 +6,12 @@
 //! with their scales, guides and layout, a versioned format of the engine (section 8.3, point 5)
 //! that the writers of SVG, PDF and PNG and Zemp read, never the plot value itself.
 //!
-//! At release 0.7.0, step 20b: `plot` with `x:` and `y:` as variables or as expressions over the
-//! frame, the mark `points`, the linear scale, one panel, and the scene as JSON and as the
-//! printed text of a plot.
+//! At release 0.7.0, step 20c: `plot` with `x:` and `y:` as variables or as expressions over the
+//! frame, `color:` and `fill:` as a variable or as one colour for every mark, the mark `points`,
+//! the linear scale, the colour scales of categories and of numbers with their legends
+//! ([`colour`]), one panel, and the scene as JSON and as the printed text of a plot.
 
+pub mod colour;
 pub mod grammar;
 pub mod json;
 mod mapping;
@@ -34,6 +36,8 @@ pub fn functions() -> Vec<Function> {
                     ParamSpec::required("data", "Frame"),
                     ParamSpec::option("x", "Var | Expr"),
                     ParamSpec::option("y", "Var | Expr"),
+                    ParamSpec::option("color", "Var | Str"),
+                    ParamSpec::option("fill", "Var | Str"),
                 ],
                 rest: None,
                 returns: "Plot",
@@ -52,7 +56,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable mapped to x: or y: that is not a Bool, an Int or a Float; an expression that does not give one for each row, or that holds what a mapping cannot compute",
+                        "a variable mapped to x: or y: that is not a Bool, an Int or a Float; an expression that does not give one for each row, or that holds what a mapping cannot compute; a string for color: or fill: that is not a colour; a Date or DateTime variable mapped to color: or fill:",
                     ),
                 ],
                 help: include_str!("../help/plot.md"),
@@ -76,7 +80,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "Plot",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "the rows not drawn for NA, or for an infinite value, in x or y; the seed chosen for jitter: when the script set none",
+                        "the rows not drawn for NA, or for an infinite value, in x, y or a variable shown on a continuous colour scale; more categories than the palette has colours; the seed chosen for jitter: when the script set none",
                     ),
                     DiagnosticDecl::new(
                         "Z0101",
@@ -88,7 +92,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "the plot maps nothing to x or to y; a mapped variable of data: that is not numeric, or a mapped expression that gives no number for each row of it; alpha: outside [0, 1]; size: not above 0; jitter: below 0",
+                        "the plot maps nothing to x or to y; a mapped variable of data: that is not numeric, or a mapped expression that gives no number for each row of it; the variable mapped to color: is of another kind in data: than in the frame of the plot; alpha: outside [0, 1]; size: not above 0; jitter: below 0",
                     ),
                 ],
                 help: include_str!("../help/points.md"),

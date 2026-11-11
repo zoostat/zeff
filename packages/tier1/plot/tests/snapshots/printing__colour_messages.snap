@@ -1,0 +1,273 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: "steel blue")
+error[Z0401]: `color:` of `plot` is "steel blue", which is not the name of a colour
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: "steel blue")
+  |                                 ^^^^^^^^^^^^ not a colour
+  |
+  = help: did you mean "steelblue"?
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: "Red")
+error[Z0401]: `color:` of `plot` is "Red", which is not the name of a colour
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: "Red")
+  |                                 ^^^^^ not a colour
+  |
+  = help: the names of colours are in small letters: write "red"
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, fill: "female")
+error[Z0401]: `fill:` of `plot` is "female", which is not the name of a colour
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, fill: "female")
+  |                                ^^^^^^^^ not a colour
+  |
+  = help: a string sets one colour for every mark; to colour by the variable `female`, write it without quotation marks, `fill: female`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, fill: "a colour of my own")
+error[Z0401]: `fill:` of `plot` is "a colour of my own", which is not the name of a colour
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, fill: "a colour of my own")
+  |                                ^^^^^^^^^^^^^^^^^^^^ not a colour
+  |
+  = help: a colour is one of the 148 names of CSS in small letters, such as "steelblue", or `#` and six hexadecimal digits, such as "#4682B4"
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: "")
+error[Z0401]: `color:` of `plot` is "", which is not the name of a colour
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: "")
+  |                                 ^^ not a colour
+  |
+  = help: a colour is one of the 148 names of CSS in small letters, such as "steelblue", or `#` and six hexadecimal digits, such as "#4682B4"
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: "#12G")
+error[Z0401]: `color:` of `plot` is "#12G", which is not a colour: after `#` come six hexadecimal digits, or three
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: "#12G")
+  |                                 ^^^^^^ not six hexadecimal digits, or three
+  |
+  = help: write the red, the green and the blue as two digits each, as in "#4682B4"; "#48B" is short for "#4488BB"
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, fill: "#12345")
+error[Z0401]: `fill:` of `plot` is "#12345", which is not a colour: after `#` come six hexadecimal digits, or three
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, fill: "#12345")
+  |                                ^^^^^^^^ not six hexadecimal digits, or three
+  |
+  = help: write the red, the green and the blue as two digits each, as in "#4682B4"; "#48B" is short for "#4488BB"
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: "4682B4")
+error[Z0401]: `color:` of `plot` is "4682B4", which is not the name of a colour
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: "4682B4")
+  |                                 ^^^^^^^^ not a colour
+  |
+  = help: a colour is one of the 148 names of CSS in small letters, such as "steelblue", or `#` and six hexadecimal digits, such as "#4682B4"
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: 3)
+error[Z0401]: `color` of `plot` must be a Var or Str, but this is an Int
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: 3)
+  |                                 ^ an Int
+  |
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str)`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: log(exper))
+error[Z0401]: `color` of `plot` must be a Var or Str, but this is a Float
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: log(exper))
+  |                                 ^^^^^^^^^^ a Float
+  |
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str)`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, fill: ["red", "blue"])
+error[Z0401]: `fill` of `plot` must be a Var or Str, but this is a List<Str>
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, fill: ["red", "blue"])
+  |                                ^^^^^^^^^^^^^^^ a List<Str>
+  |
+  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str)`
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: sex)
+error[Z0101]: no variable `sex` in `w`
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: sex)
+  |                                 ^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+let w = dataset(wages)
+w.plot(x: educ, y: wage, fill: Female)
+error[Z0102]: no variable `Female` in `w`; names are case-sensitive
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, fill: Female)
+  |                                ^^^^^^ differs only in case from `female`
+  |
+  = help: write `female`
+
+let w = dataset(wages)
+let shade = "red"
+w.plot(x: educ, y: wage, color: shade)
+error[Z0101]: no variable `shade` in `w`
+ --> scripts/main.zeff:3:33
+  |
+3 | w.plot(x: educ, y: wage, color: shade)
+  |                                 ^^^^^ not a variable of w
+  |
+  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+let d = frame(a = [1, 2], b = [1.0, 2.0], s = ["2026-01-01", "2026-06-01"]).add(when = date(s))
+d.plot(x: a, y: b, color: when)
+error[Z0401]: `plot` shows `color` as categories or on a continuous scale, so `when` must be a Bool, Int, Float, Str or Category variable, but it is a Date
+ --> scripts/main.zeff:2:27
+  |
+2 | d.plot(x: a, y: b, color: when)
+  |                           ^^^^ no colour scale for this type
+  |
+  = help: a colour scale of dates is not in this release yet; `d.describe()` lists the types of the variables
+
+let d = frame(a = [1, 2], b = [1.0, 2.0], s = ["2026-01-01", "2026-06-01"]).add(when = date(s))
+d.plot(x: a, y: b, fill: when)
+error[Z0401]: `plot` shows `fill` as categories or on a continuous scale, so `when` must be a Bool, Int, Float, Str or Category variable, but it is a Date
+ --> scripts/main.zeff:2:26
+  |
+2 | d.plot(x: a, y: b, fill: when)
+  |                          ^^^^ no colour scale for this type
+  |
+  = help: a colour scale of dates is not in this release yet; `d.describe()` lists the types of the variables
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, color: exper)
+let q = w.plot(x: educ, y: wage, fill: female)
+p.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))
+error[Z0101]: no variable `exper` in `the frame`
+ --> scripts/main.zeff:4:16
+  |
+4 | p.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))
+  |   ------ this layer draws `exper`, which the plot maps to `color`
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: educ, wage
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, color: exper)
+let q = w.plot(x: educ, y: wage, fill: female)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], Exper = [1, 2])
+p.points(data: o)
+error[Z0102]: no variable `exper` in `o`; names are case-sensitive
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `exper`, which the plot maps to `color`
+  |                ^ differs only in case from `Exper`
+  |
+  = help: write `Exper`
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, color: exper)
+let q = w.plot(x: educ, y: wage, fill: female)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], exper = ["a", "b"])
+p.points(data: o)
+error[Z0401]: the plot shows `exper` on a continuous scale for `color`, but `exper` of `o` is a Str, which is shown as categories
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `exper`, which the plot maps to `color`
+  |                ^ its `exper` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so `exper` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, color: exper)
+let q = w.plot(x: educ, y: wage, fill: female)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], exper = [true, false])
+p.points(data: o)
+error[Z0401]: the plot shows `exper` on a continuous scale for `color`, but `exper` of `o` is a Bool, which is shown as categories
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `exper`, which the plot maps to `color`
+  |                ^ its `exper` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so `exper` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, color: exper)
+let q = w.plot(x: educ, y: wage, fill: female)
+let o = w.where(wage > 100).select(vars(educ, wage, female)).rename(exper = female)
+p.points(data: o)
+note: 211 rows dropped where `wage > 100` was NA; `w.where(is_missing(wage))` lists them (line 4)
+note: the panel declaration `worker × year` dropped: `select` left out `worker` (line 4)
+error[Z0401]: the plot shows `exper` on a continuous scale for `color`, but `exper` of `o` is an Int with value labels, which is shown as categories
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `exper`, which the plot maps to `color`
+  |                ^ its `exper` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so `exper` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame
+
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, color: exper)
+let q = w.plot(x: educ, y: wage, fill: female)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], s = ["2026-01-01", "2026-06-01"]).add(exper = date(s))
+p.points(data: o)
+error[Z0401]: the plot shows `exper` on a continuous scale for `color`, but `exper` of `o` is a Date, which has no colour scale yet
+ --> scripts/main.zeff:5:16
+  |
+5 | p.points(data: o)
+  |   ------ this layer draws `exper`, which the plot maps to `color`
+  |                ^ its `exper` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so `exper` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame
+
+let w = dataset(wages)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], female = [0, 1])
+w.plot(x: educ, y: wage, color: female).points(data: o)
+error[Z0401]: the plot shows `female` as categories for `color`, but `female` of `o` is an Int without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:3:54
+  |
+3 | w.plot(x: educ, y: wage, color: female).points(data: o)
+  |                                         ------ this layer draws `female`, which the plot maps to `color`
+  |                                                      ^ its `female` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so `female` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame
+
+let w = dataset(wages)
+let o = frame(educ = [1, 2], wage = [3.0, 4.0], industry = [0.5, 1.5])
+w.plot(x: educ, y: wage, color: industry).points(data: o)
+error[Z0401]: the plot shows `industry` as categories for `color`, but `industry` of `o` is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:3:56
+  |
+3 | w.plot(x: educ, y: wage, color: industry).points(data: o)
+  |                                           ------ this layer draws `industry`, which the plot maps to `color`
+  |                                                        ^ its `industry` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so `industry` must be categories in every frame (a Category, a Str, a Bool or a variable with value labels) or a number without value labels in every frame

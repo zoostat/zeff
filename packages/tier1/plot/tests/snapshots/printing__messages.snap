@@ -166,4 +166,4 @@ error[Z0404]: `plot` has no argument called `colour`
 2 | w.plot(x: educ, y: wage, colour: female)
   |                          ^^^^^^ unknown argument
   |
-  = help: usage: `data.plot(x: Var | Expr, y: Var | Expr)`
+  = help: did you mean `color:`?

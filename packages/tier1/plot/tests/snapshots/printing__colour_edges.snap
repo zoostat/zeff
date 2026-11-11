@@ -1,0 +1,637 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3])
+d.plot(x: a, y: b, color: g)
+d.plot(x: a, y: b, color: g).points()
+d.plot(x: a, y: b, color: t).points()
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     colours
+  color       g       category   a, b, NA   orange, sky blue, grey
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     colours
+  color       g       category   a, b, NA   orange, sky blue, grey
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values            colours
+  color       t       category   false, true, NA   orange, sky blue, grey
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3])
+d.plot(x: a, y: b, color: z)
+d.plot(x: a, y: b, color: z).points()
+d.plot(x: a, y: b, color: k).points()
+d.plot(x: a, y: b, color: a).points()
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale    values       colours
+  color       z       linear   0.5 to 2.5   viridis, dark purple to yellow
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale    values       colours
+  color       z       linear   0.5 to 2.5   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale    values       colours
+  color       k       linear   2.5 to 3.5   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale    values   colours
+  color       a       linear   1 to 4   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row with NA in a, b or z dropped (line 3)
+note: 1 row with an infinite value in a, b or z dropped (line 3)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3])
+let e = d.where(a > 9)
+e.plot(x: a, y: b, color: g).points()
+e.plot(x: a, y: b, color: z).points()
+let n = d.where(a == 2)
+n.plot(x: a, y: b, color: g).points()
+n.plot(x: a, y: b, color: z).points()
+exit code 0
+plot · e · b against a
+
+  axis   title   scale    limits   breaks
+  x      a       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      b       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  aesthetic   title   scale      values   colours
+  color       g       category
+
+  layer   mark     data   marks   settings
+      1   points   e          0   size 4.5, alpha 1
+plot · e · b against a
+
+  axis   title   scale    limits   breaks
+  x      a       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      b       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  aesthetic   title   scale    values   colours
+  color       z       linear   0 to 1   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   e          0   size 4.5, alpha 1
+plot · n · b against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+  y      b       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+
+  aesthetic   title   scale      values   colours
+  color       g       category   NA       grey
+
+  layer   mark     data   marks   settings
+      1   points   n          1   size 4.5, alpha 1
+plot · n · b against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+  y      b       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+
+  aesthetic   title   scale    values   colours
+  color       z       linear   0 to 1   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   n          0   size 4.5, alpha 1
+---
+warning[W0101]: `n` hides the function `data::n`
+ --> scripts/main.zeff:5:5
+  |
+5 | let n = d.where(a == 2)
+  |     ^ a binding with a built-in name
+  |
+  = help: the function is still reachable as `data::n`; a different name avoids the confusion
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: no row kept: the result is empty (line 2)
+note: 1 row with NA in a, b or z dropped (line 7)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3])
+let c = d.add(c = category(g))
+c.plot(x: a, y: b, color: c).points()
+c.where(g != "a").plot(x: a, y: b, color: c).points()
+exit code 0
+plot · c · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     colours
+  color       c       category   a, b, NA   orange, sky blue, grey
+
+  layer   mark     data   marks   settings
+      1   points   c          4   size 4.5, alpha 1
+plot · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values   colours
+  color       c       category   b        orange
+
+  layer   mark     data        marks   settings
+      1   points   the frame       2   size 4.5, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row dropped where `g != "a"` was NA; `c.where(is_missing(g))` lists them (line 4)
+
+let d = frame(a = [1, 2, 3, 4, 5, 6, 7, 8, 9], g = ["a", "b", "c", "d", "e", "f", "g", "h", "i"])
+d.where(a < 7).plot(x: a, y: a, color: g).points()
+d.where(a < 8).plot(x: a, y: a, color: g).points()
+d.where(a < 9).plot(x: a, y: a, color: g).points()
+d.plot(x: a, y: a, color: g)
+d.plot(x: a, y: a, color: g).points()
+exit code 0
+plot · a against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
+  y      a       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
+
+  aesthetic   title   scale      values             colours
+  color       g       category   a, b, c, d, e, f   orange, sky blue, bluish green, yellow, blue, vermilion
+
+  layer   mark     data        marks   settings
+      1   points   the frame       6   size 4.5, alpha 1
+plot · a against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.7 to 7.3   1, 2, 3, 4, 5, 6, 7
+  y      a       linear   0.7 to 7.3   1, 2, 3, 4, 5, 6, 7
+
+  aesthetic   title   scale      values                     colours
+  color       g       category   a, b, c, d, e and 2 more   orange, sky blue, bluish green, yellow, blue and 2 more
+
+  layer   mark     data        marks   settings
+      1   points   the frame       7   size 4.5, alpha 1
+plot · a against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.65 to 8.35   2, 4, 6, 8
+  y      a       linear   0.65 to 8.35   2, 4, 6, 8
+
+  aesthetic   title   scale      values                     colours
+  color       g       category   a, b, c, d, e and 3 more   orange, sky blue, bluish green, yellow, blue and 3 more
+
+  layer   mark     data        marks   settings
+      1   points   the frame       8   size 4.5, alpha 1
+plot · d · a against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.6 to 9.4   2, 4, 6, 8
+  y      a       linear   0.6 to 9.4   2, 4, 6, 8
+
+  aesthetic   title   scale      values                     colours
+  color       g       category   a, b, c, d, e and 4 more   orange, sky blue, bluish green, yellow, blue and 4 more
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · a against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.6 to 9.4   2, 4, 6, 8
+  y      a       linear   0.6 to 9.4   2, 4, 6, 8
+
+  aesthetic   title   scale      values                     colours
+  color       g       category   a, b, c, d, e and 4 more   orange, sky blue, bluish green, yellow, blue and 4 more
+
+  layer   mark     data   marks   settings
+      1   points   d          9   size 4.5, alpha 1
+---
+note: `g` has 9 categories and the palette 8 colours, so the colours repeat from the ninth category (line 6)
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3])
+let o = frame(a = [5, 6, 7], b = [0.5, 1.5, 2.5], g = ["zz", "b", NA])
+d.plot(x: a, y: b, color: g).points(data: o)
+d.plot(x: a, y: b, color: g).points().points(data: o)
+let bare = frame(a = [5, 6], b = [0.5, 1.5])
+d.plot(x: a, y: b, color: "tomato", fill: "#000").points(data: bare)
+d.plot(x: a, y: b, fill: g).points(data: bare)
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   4.9 to 7.1   5, 5.5, 6, 6.5, 7
+  y      b       linear   0.4 to 2.6   0.5, 1, 1.5, 2, 2.5
+
+  aesthetic   title   scale      values      colours
+  color       g       category   b, zz, NA   orange, sky blue, grey
+
+  layer   mark     data   marks   settings
+      1   points   o          3   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits           breaks
+  x      a       linear   0.7 to 7.3       1, 2, 3, 4, 5, 6, 7
+  y      b       linear   0.325 to 4.175   1, 2, 3, 4
+
+  aesthetic   title   scale      values         colours
+  color       g       category   a, b, zz, NA   orange, sky blue, bluish green, grey
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+      2   points   o          3   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   4.95 to 6.05   5, 5.2, 5.4, 5.6, 5.8, 6
+  y      b       linear   0.45 to 1.55   0.6, 0.8, 1, 1.2, 1.4
+
+  aesthetic   title   scale      values       colours
+  color               constant   every mark   tomato
+  fill                constant   every mark   #000
+
+no layer draws `fill`: `points` takes its colour from `color`
+
+  layer   mark     data   marks   settings
+      1   points   bare       2   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   4.95 to 6.05   5, 5.2, 5.4, 5.6, 5.8, 6
+  y      b       linear   0.45 to 1.55   0.6, 0.8, 1, 1.2, 1.4
+
+  aesthetic   title   scale      values     colours
+  fill        g       category   a, b, NA   orange, sky blue, grey
+
+no layer draws `fill`: `points` takes its colour from `color`
+
+  layer   mark     data   marks   settings
+      1   points   bare       2   size 4.5, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+
+let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3])
+d.plot(x: a, y: b, color: g, fill: g).points()
+d.plot(x: a, y: b, fill: z).points()
+d.plot(x: a, y: b, color: "#4682B4").points()
+d.plot(x: a, y: b, color: "#abc", fill: "rebeccapurple")
+d.plot(color: g)
+d.plot(x: a, color: "grey")
+d.plot(x: a, y: b, color: NA, fill: NA).points()
+exit code 0
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values     colours
+  color       g       category   a, b, NA   orange, sky blue, grey
+  fill        g       category   a, b, NA   orange, sky blue, grey
+
+no layer draws `fill`: `points` takes its colour from `color`
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale    values       colours
+  fill        z       linear   0.5 to 2.5   viridis, dark purple to yellow
+
+no layer draws `fill`: `points` takes its colour from `color`
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       colours
+  color               constant   every mark   #4682B4
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       colours
+  color               constant   every mark   #abc
+  fill                constant   every mark   rebeccapurple
+
+no layer yet: a mark such as `.points()` adds one
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values     colours
+  color       g       category   a, b, NA   orange, sky blue, grey
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       colours
+  color               constant   every mark   grey
+
+no layer yet: a mark such as `.points()` adds one
+plot · d · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+
+let d = import("data/one_row.csv")
+d.plot(x: x, y: y, color: x).points()
+exit code 0
+plot · d · y against x
+
+  axis   title   scale    limits         breaks
+  x      x       linear   39.9 to 44.1   40, 41, 42, 43, 44
+  y      y       linear   3 to 4         3, 3.2, 3.4, 3.6, 3.8, 4
+
+  aesthetic   title   scale    values         colours
+  color       x       linear   39.9 to 44.1   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          1   size 4.5, alpha 1
+---
+note: data/one_row.csv read as CSV: 1 row × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/zero_variance.csv")
+d.plot(x: constant, y: big_constant, color: constant_with_na).points()
+exit code 0
+plot · d · big_constant against constant
+
+  axis   title          scale    limits                    breaks
+  x      constant       linear   2.75 to 3.75              2.8, 3, 3.2, 3.4, 3.6
+  y      big_constant   linear   950000000 to 1050000001   960000000, 980000000, 1000000000, 1020000000, 1040000000
+
+  aesthetic   title              scale    values       colours
+  color       constant_with_na   linear   6.5 to 7.5   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+---
+note: data/zero_variance.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 1 row with NA in constant, big_constant or constant_with_na dropped (line 2)
+
+let d = import("data/infinities.csv")
+d.plot(x: finite, y: finite, color: plus).points()
+d.plot(x: finite, y: finite, color: nan_mixed).points()
+exit code 0
+plot · d · finite against finite
+
+  axis   title    scale    limits       breaks
+  x      finite   linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+  y      finite   linear   0.9 to 3.1   1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale    values   colours
+  color       plus    linear   1 to 2   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          2   size 4.5, alpha 1
+plot · d · finite against finite
+
+  axis   title    scale    limits       breaks
+  x      finite   linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+  y      finite   linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+
+  aesthetic   title       scale    values   colours
+  color       nan_mixed   linear   1 to 2   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          1   size 4.5, alpha 1
+---
+note: data/infinities.csv read as CSV: 3 rows × 5 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+note: 2 values of nan_mixed read as NA from NaN (line 1)
+note: 1 row with an infinite value in finite or plus dropped (line 2)
+note: 2 rows with NA in finite or nan_mixed dropped (line 3)
+
+let d = import("data/magnitudes.csv")
+d.plot(x: offset, y: tiny, color: wide).points()
+exit code 0
+plot · d · tiny against offset
+
+  axis   title    scale    limits
+  x      offset   linear   1000000000 to 1000000001
+  y      tiny     linear   -4.9958e-302 to 1.04912e-300
+
+  breaks
+  1000000000, 1000000000.2, 1000000000.4, 1000000000.6, 1000000000.8, 1000000001
+  0, 2e-301, 4e-301, 6e-301, 8e-301, 1e-300
+
+  aesthetic   title   scale    values                  colours
+  color       wide    linear   -98633317 to 87468242   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d        500   size 4.5, alpha 1
+---
+note: data/magnitudes.csv read as CSV: 500 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/bools.csv")
+d.plot(x: treated, y: treated, color: with_na).points()
+exit code 0
+plot · d · treated against treated
+
+  axis   title     scale    limits          breaks
+  x      treated   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      treated   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  aesthetic   title     scale      values            colours
+  color       with_na   category   false, true, NA   orange, sky blue, grey
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+---
+note: data/bools.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/empty.csv")
+d.plot(color: x)
+d.plot(fill: y)
+exit code 0
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values   colours
+  color       x       category
+
+no layer yet: a mark such as `.points()` adds one
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values   colours
+  fill        y       category
+
+no layer yet: a mark such as `.points()` adds one
+---
+note: data/empty.csv read as CSV: 0 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/all_na.csv")
+d.plot(color: x)
+d.plot(fill: y)
+exit code 0
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values   colours
+  color       x       category   NA       grey
+
+no layer yet: a mark such as `.points()` adds one
+plot · d
+no variable is mapped to `x` or `y`
+
+  aesthetic   title   scale      values   colours
+  fill        y       category   NA       grey
+
+no layer yet: a mark such as `.points()` adds one
+---
+note: data/all_na.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/awkward_names.csv")
+d.plot(x: `Gross Sales (total)`, y: `日本語`, color: `Gross Sales (total)`).points()
+exit code 0
+plot · d · 日本語 against Gross Sales (total)
+
+  axis   title                 scale    limits               breaks
+  x      Gross Sales (total)   linear   954.263 to 1525.99   1000, 1100, 1200, 1300, 1400, 1500
+  y      日本語                   linear   2.9 to 5.1           3, 3.5, 4, 4.5, 5
+
+  aesthetic   title                 scale    values           colours
+  color       Gross Sales (total)   linear   980.25 to 1500   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          3   size 4.5, alpha 1
+---
+note: data/awkward_names.csv read as CSV: 3 rows × 7 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/unicode_labels.csv")
+d.plot(x: n, y: n, color: city).points()
+exit code 0
+plot · d · n against n
+
+  axis   title   scale    limits         breaks
+  x      n       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      n       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values                    colours
+  color       city    category   Zürich, café, café, 東京   orange, sky blue, bluish green, yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+---
+note: data/unicode_labels.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+warning[W0601]: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
+  = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
+
+let d = import("data/level_symbols.csv")
+d.plot(x: n, y: y, color: grp).points()
+exit code 0
+plot · d · y against n
+
+  axis   title   scale    limits       breaks
+  x      n       linear   0.8 to 5.2   1, 2, 3, 4, 5
+  y      y       linear   1.3 to 5.7   2, 3, 4, 5
+
+  aesthetic   title   scale      values                 colours
+  color       grp     category   a=b, c:d, e+f, q "x"   orange, sky blue, bluish green, yellow
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, alpha 1
+---
+note: data/level_symbols.csv read as CSV: 5 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
+
+let d = import("data/wages_large.csv")
+d.plot(x: educ, y: wage, color: female).points()
+d.plot(x: educ, y: wage, color: region).points()
+exit code 0
+plot · d · wage against educ
+
+  axis   title   scale    limits              breaks
+  x      educ    linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      wage    linear   -0.047 to 104.827   0, 20, 40, 60, 80, 100
+
+  aesthetic   title    scale      values        colours
+  color       female   category   false, true   orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d      1,200   size 4.5, alpha 1
+plot · d · wage against educ
+
+  axis   title   scale    limits              breaks
+  x      educ    linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      wage    linear   -0.047 to 104.827   0, 20, 40, 60, 80, 100
+
+  aesthetic   title    scale      values                                colours
+  color       region   category   Québec, São Paulo, Zürich, Łódź, 東京   orange, sky blue, bluish green, yellow, blue
+
+  layer   mark     data   marks   settings
+      1   points   d      1,200   size 4.5, alpha 1
+---
+note: data/wages_large.csv read as CSV: 1,200 rows × 6 variables, types guessed; CSV carries no labels, value labels or categories (line 1)

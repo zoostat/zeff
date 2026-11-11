@@ -15,14 +15,18 @@ do. The moves are drawn from the seeded stream, so `seed(n)` at the top of the s
 the plot exactly. `data:` gives the layer a frame of its own, for example a subset to be drawn
 over the full data.
 
+A point takes its colour from `color:` of the plot: the colour of its category, its place on
+the ramp, or the one colour set for every mark. Without `color:` it has the colour of the theme.
+
 In R with ggplot2 this is `geom_point()`, and with `jitter:` it is `geom_jitter()`. In Stata it
-is `scatter y x`, with its option `jitter()`.
+is `scatter y x`, with its options `jitter()` and `mcolor()`.
 
 ## Arguments
 - p: The plot to which the layer is added. It must map a variable or an expression to `x`
   and one to `y`.
 - data: A frame for this layer alone, in place of the frame of the plot. It must hold the
-  variables the plot maps to `x` and `y`, and those an expression it maps reads, as numbers.
+  variables the plot maps to `x` and `y`, and those an expression it maps reads, as numbers,
+  and the variable the plot maps to `color:`, of the same kind as in the frame of the plot.
 - alpha: The opacity of a point, from 0, invisible, to 1, solid.
 - size: The diameter of a point, in points of 1/72 inch. Without it a point is 4.5 across.
 - jitter: How far a point may move, as a share of the smallest gap between two values on its
@@ -36,6 +40,12 @@ name can be extended in more than one way.
 Rows not drawn. A row with `NA` in `x` or `y` is not drawn, and a note counts such rows; a row
 with an infinite value is counted in a note of its own. A plot carries each note once: a later
 layer whose note would read the same does not repeat it.
+
+Colour. When the plot maps a variable to `color:`, each point has the colour of its row. A row
+with `NA` in a variable shown as categories is drawn in the grey of the category `NA`. A row
+with `NA` or an infinite value of a variable shown on a continuous scale is not drawn, and the
+notes count it with the rows that lack `x` or `y`. A point has no inside of its own, so `fill:`
+of the plot does not change it, and no row is left out for a missing `fill`.
 
 Expressions. When the plot maps an expression, as in `y: log(wage)`, a point is drawn at the
 value the expression gives for its row. A layer on the frame of the plot draws the values
@@ -116,3 +126,29 @@ plot · w · log(wage) against educ
       1   points   w      18,201   size 4.5, alpha 0.3
       2   points   top        26   size 8, alpha 1
 note: 211 rows with NA in educ or log(wage) dropped (line 9)
+> w.plot(x: educ, y: wage, color: union).points(alpha: 0.3).points(data: top, size: 8)
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale      values    colours
+  color       Union member   category   no, yes   orange, sky blue
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.3
+      2   points   top        26   size 8, alpha 1
+note: 211 rows with NA in educ or wage dropped (line 10)
+> w.plot(x: educ, y: wage, color: female).points(data: top)
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   10.6 to 19.4        12, 14, 16, 18
+  y      Hourly wage          linear   97.874 to 154.986   100, 110, 120, 130, 140, 150
+
+  aesthetic   title   scale      values         colours
+  color       Sex     category   male, female   orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   top       26   size 4.5, alpha 1

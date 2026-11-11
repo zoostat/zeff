@@ -40,8 +40,6 @@ error[Z0103]: no function is called `check`
  --> zeff_samples.zeff:224:4
 error[Z0103]: no function is called `scatter`
  --> zeff_samples.zeff:237:7
-error[Z0404]: `plot` has no argument called `color`
- --> zeff_samples.zeff:238:32
 error[Z0103]: no function is called `facet`
  --> zeff_samples.zeff:240:6
 error[Z0103]: no function is called `scale_y`
@@ -52,8 +50,6 @@ error[Z0103]: no function is called `theme`
  --> zeff_samples.zeff:243:6
 error[Z0404]: `export` has no argument called `size`
  --> zeff_samples.zeff:244:37
-error[Z0404]: `plot` has no argument called `color`
- --> zeff_samples.zeff:247:41
 error[Z0103]: no function is called `bars`
  --> zeff_samples.zeff:248:6
 error[Z0103]: no function is called `errorbars`
