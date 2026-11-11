@@ -418,3 +418,7 @@ The table of parts in section 2 gains a row for **Copy as Zeff** in Zemp Lite's 
 ## 11 November 2026 — zemp_specification.md, sections 3, 5 and 17; zeff_open_decisions.md, entries #24 and #115
 
 Section 3 names the interface framework, Svelte 5 bundled by Vite, where it read "chosen when interface work starts at Zeff 0.7.0"; section 17 moves the item to the decided list; section 5 gains "The look": the colour tokens of both themes, the syntax colours, the contrast rule, type and shapes. The reason: the owner's decisions on open decision #24 (Svelte 5) and #115 (option A), which provided that the look be written into the specification when the framework was chosen.
+
+## 11 November 2026 — zemp_specification.md, sections 5 and 17; zeff_open_decisions.md, entry #33
+
+Section 5 gains a paragraph on density, icons, desktop menus and screen size, after "The look"; section 17 moves the four decisions of the interface revamp to the decided list. The reason: the owner's decision on open decision #33, "as recommended".

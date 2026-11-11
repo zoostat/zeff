@@ -196,6 +196,8 @@ Code is coloured by the semantic tokens of the Zeff language server, the same in
 
 Type is IBM Plex Sans for the interface and IBM Plex Mono for code, the family the plots embed, shipped with the app: interface text 13 to 15 points, code 13 points at a line height of 1.75, tabular figures in tables. Windows have 14-pixel corners and one hairline border, output boxes and cards 10-pixel corners, controls 7-pixel corners; no gradients, and a faint shadow under windows in the light theme only. **Run** is the one filled control of the top bar; the others are outlined words, the Git control included ("main · 2"). The Inline column is at most 760 pixels wide, with line numbers, the code and a 120-pixel margin for timings and states. Output sits in soft boxes under its statement, a warning as a card with its code and one sentence, and stale output dashed and faded with its reason. The plots' own colours are the engine's (section 7.6 of the Language Reference), and exports use the light print theme.
 
+**Density, icons, menus and screen size (decided 11 November 2026, zeff_open_decisions.md, #33).** One density, with a **Larger type** setting that scales the whole interface by 1.15, remembered per user, beside Ctrl + and Ctrl −. No icons in 1.0: every control is a word. On the desktop, native menus mirror the ⌘K command palette one for one. No tablet or phone layout in 1.0; below 1200 pixels of width the browser editions say so.
+
 ---
 
 ## 6. Point-and-click: dialogs that write Zeff
@@ -416,7 +418,6 @@ Zeff (language and engine) is Apache 2.0. Zemp's licence is decided separately, 
 - [ ] Which remote or local model powers AI assistance, and its data-sharing defaults; whether Zemp sells metered access to a model of its own (zeff_open_decisions.md, #28)
 - [ ] Whether Zemp's minor versions keep following Zeff's after 1.0, or go their own way once the interface changes faster than the engine
 - [ ] Performance targets above, once benchmarks exist; candidate stress cases are double lasso on a 2 GB file (1.5) and Callaway–Sant'Anna DiD on 4 million panel rows (1.2)
-- [ ] The remaining four decisions of the interface revamp proposal (zemp_gui_revamp.md, section 4): density, icons, desktop menus, and tablet and phone support; decide before the 0.2 alpha (zeff_open_decisions.md, #33). Its fifth, the dark theme, was decided on 17 October 2026 (below), against the proposal's recommendation of a light theme only
 - [ ] Long-term-support releases for institutions, which the business model offers and the support policy of the Zeff Specification (section 14) does not cover (zeff_open_decisions.md, #34)
 - [ ] Pricing levels and AI usage quotas per tier (zeff_open_decisions.md, #35)
 - [ ] How students are verified for the free Pro tier (zeff_open_decisions.md, #36)
@@ -426,6 +427,7 @@ Zeff (language and engine) is Apache 2.0. Zemp's licence is decided separately, 
 
 **Decided**
 
+- [x] Density, icons, desktop menus, tablet and phone (11 November 2026; section 5): one density with a Larger type setting, no icons in 1.0, native desktop menus mirroring the command palette, no tablet or phone layout in 1.0 (zeff_open_decisions.md, #33)
 - [x] Interface framework (11 November 2026; section 3): Svelte 5 with TypeScript, bundled by Vite, without the spike against SolidJS once planned (zeff_open_decisions.md, #24); the look in section 5 (#115)
 - [x] Zemp Studio (1 November 2026; section 2): the full edition's name, beside Zemp Lite; Zemp alone names the application and the product line; the installer identifiers follow (`zeff app install studio`, `zemp-studio`)
 - [x] Zemp Lite (17 October 2026): a code-first edition for users who do not want point-and-click, on both the web and the desktop, built from the same codebase without the Methods panel, dialogs, guides, builders and statement-writing controls; same projects, engine store and version numbers as Zemp Studio; the desktop app installs from the command line with `zeff app install lite`, setup files later; free; a web preview with the 0.2 alpha, a desktop beta with the 0.5 desktop beta, and 1.0 with Zeff 1.0.0 (sections 1, 2, 5, 9, 10 and 15)
