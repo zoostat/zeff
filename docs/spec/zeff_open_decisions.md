@@ -155,6 +155,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 124 | The report document: a Typst file with a settings file, simple chunks, dialogs, and a Quarto-like default | The report is plain Typst text with a YAML settings file beside it, plain ``` chunks and `` `= value` `` inline values; Zemp Studio writes the settings through a nine-tab dialog and tables through a table builder, with no Insert menu; the default template looks like a Quarto PDF; nine enhancements (live numbers, notes from the fits, method citations and others); amends the report-document part of #73 | 0.8.0, with #73 |
 | 123 | No third-party packages before 2.0.0 | No package of either kind, no registry and no package commands before 2.0.0, the release that ships them set when 2.0.0 is planned; a project's own functions in `functions/` unaffected; how packages keep Zeff's principles (names, shared arguments, reporting, duplicates) settled then | decided 11 November 2026 |
 | 122 | Placing the graphics and diagram proposals on the releases of #113 | The capabilities of the two proposals become the plan, each placed by the rules of #113 (basic, advanced, research; econometrics first) with its method's release where it is a result plot; the exact release confirmed when each release is planned; catalogue rows added in the documentation step of 0.8.0 | decided 11 November 2026 (option A); catalogue rows at the documentation step of 0.8.0 |
 | 121 | Diagrams: one layout engine, positions in the script for export, SEM path diagrams and the model builder | Zeff's own deterministic layered layout engine at 0.10.0 for `g.plot()` (no Graphviz or ELK); dragged positions are view state and exports use only positions the script holds; `m.plot()` and `fit.path_plot()` with SEM at 1.12; identification checks at check time; `diagram { }`, `sample_flow` and `reason:` at 1.2; `zeff graph` at 1.1; one canvas for every builder in Zemp | decided 11 November 2026 (option A); the positions rule written into the Language Reference, section 7.3, and the Zemp Specification, sections 5 and 6, the same day; the layout engine at 0.10.0 |
@@ -2275,3 +2276,59 @@ Raised on 11 November 2026 by the owner, after a review of the package plan of s
 2. Whether the shared arguments of principle 8 (`by:`, `cluster:`, `weights:`, `se:`, `fe:`, `re:`) must mean in a package function exactly what they mean in a built-in.
 3. Whether a package function must report dropped rows, skipped missing values and coercions with counts, as principle 6 requires of every built-in, and how the registry checks it.
 4. Whether the registry refuses or flags a function that duplicates a built-in or another package's method; whether a reviewed set of packages carries a second badge beside *validated*; and whether a widely used validated package is taken into the built-in catalogue in a later release.
+
+### 124. The report document: a Typst file with a settings file, simple chunks, dialogs, and a Quarto-like default
+
+Raised on 11 and 12 November 2026 by the owner, after reviewing a mockup of a Typst report in Zemp Studio (kept outside the repository). Decision #73 recommends Typst as the engine of every PDF and the report document as a `.typ` file with executed Zeff chunks; its example of that file opened with `#import` and `#show` lines and wrote chunks and inline values with the word `zeff` each time. The owner found this hard for researchers who do not write code, and asked for: Typst writing as simple as Quarto's, without Quarto itself; the settings in a separate file beside the document, as `refs.bib` is; chunks as simple as Quarto's; a complete dialog, with tabs, for the settings, fonts included; a table builder for complex tables; and a default document that looks like Quarto's default PDF in font, size and spacing. The owner declined an Insert menu and dialog for values.
+
+**Option A, the design reviewed.**
+
+1. *Files.* A report is `report/<name>.typ`, holding only the writing: headings, text, chunks and values, with no `#import` or `#show` line, since Zeff applies the template. Its settings are in `report/<name>.yml` beside it; Typst reads YAML natively, so the pair stays standard. References are in `refs.bib`, holding the user's own entries only. The scripts named in the settings under `uses:` run first, and the document uses their results by name, never repeating the analysis.
+2. *Chunks and values.* With `chunks: language: zeff` in the settings (the default), a plain ```` ``` ```` block is a Zeff chunk, its options written as `//|` lines (`label:`, `caption:`, `echo:`, `notes:`), as Quarto writes `#|`. An inline value is `` `= m2.coef(educ)` ``. Both are Typst's own syntax for code, so the file remains valid Typst; cross-references (`@tbl-main`) and citations (`@card1995`) are Typst's.
+3. *The default template, Article,* looks like Quarto's default PDF (KOMA-Script article class, page layout DIV=11):
+   - New Computer Modern, the font Typst ships, close to LaTeX's Latin Modern, at 11 pt with single spacing;
+   - bold sans-serif title and unnumbered headings;
+   - no first-line indent, with a small space between paragraphs;
+   - table captions "Table 1: …" centred above tables, figure captions below figures;
+   - Chicago author-date citations, page numbers at the bottom centre, US Letter paper.
+   
+   Further templates: APA 7, an economics journal, a thesis chapter, and a template file of the project.
+4. *Document settings* (Zemp Studio), a dialog of nine tabs that writes the settings file, showing it as it will be written and keeping only what differs from the template:
+   - *Document:* title, subtitle, running head, authors with affiliation, email, ORCID and the corresponding author, date, abstract, keywords and language.
+   - *Template and page:* the template, paper, margins, columns, line spacing, indent, page numbers, title page, and line numbers and anonymity for review.
+   - *Fonts:* body, headings, mathematics and code fonts, size, plots in the body font, and a project font file hashed like any input, each font with its licence and a live sample.
+   - *Numbers:* decimals, p-value style, leading zero, thousands separator, decimal mark and the minus sign.
+   - *Tables:* what sits under each estimate (standard error, interval, t or p), stars (off by default), notes from the fits, style, decimal alignment, column numbers, caption position and text size.
+   - *Figures:* width, shape, theme, greyscale, raster resolution, interval statements and alt text.
+   - *References:* bibliography files, citation style, method citations, software citation and DOI links.
+   - *Outputs:* PDF, Word, HTML and slides, PDF/A, tagged PDF, slide shape and the output folder.
+   - *Analysis:* the scripts run first, chunk defaults, parameters and the seed.
+5. *The table builder* (Zemp Studio), five tabs:
+   - *Columns:* results, headings, group headings, order.
+   - *Rows:* the terms with their labels, each shown as an estimate, a Yes/No row or hidden, and a row for absorbed fixed effects.
+   - *Statistics* at the foot.
+   - *Layout:* under-estimate, stars and decimals, each able to follow the document; column numbers, dependent-variable line, Word, LaTeX and CSV exports.
+   - *Notes and caption:* caption, label, the note written from the fits and the user's own words.
+   
+   It writes one `let tab = report(...)` statement into a script and one chunk naming the table into the document, and opens again on a double-click of the table in the preview or from the Tables tab of Document settings. The `report()` of 1.0 has `stats:`, `digits:`, `stars:` and `labels:`. The builder needs further options, all additions:
+   - `columns:`, `groups:`, `keep:`, `controls:`, `effects:`, `under:` and `note:`;
+   - the statistics `adj_r_squared`, `n_clusters`, `first_stage_f` and `mean_y`.
+6. *The enhancements:*
+   1. numbers in sentences come from the results;
+   2. table and figure notes are written from the fits (standard errors, clusters, instruments, scaling, stars, dropped rows, the run record); on by default, switchable;
+   3. the sources of the methods run are cited automatically, with Zeff and its run record; on by default, switchable;
+   4. plots are set in the document's font;
+   5. rich text in labels uses Typst markup (`rich("ln(_w_)")`, `$R^2$`), which settles the syntax of the `RichText` type #119 reserves;
+   6. `fit.equation()` gives the estimated equation;
+   7. the templates;
+   8. slides from the same report (PDF, 16:9 or 4:3);
+   9. clicking a number or a table in the preview opens the source at its line.
+7. *Outputs.* PDF set by Typst, identical bytes with the fonts embedded; Word written by Zeff from the same document, which needs a writer for the subset of Typst a report uses (headings, paragraphs, emphasis, tables, figures, equations, references), the cost of this option; HTML after.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The design above | The writing reads like plain text; the settings and tables need no code; one engine for PDF; every capability of #73 kept and the nine enhancements added | Zeff writes Word from Typst content itself; the dialogs are Zemp Studio work; seven new `report()` options |
+| B. A Quarto-style Markdown file (`.qmd`) rendered by Zeff, with a Jupyter kernel so Quarto can also run Zeff chunks | Familiar to R users; Word from Markdown is simpler | The owner declined Quarto; a second document format beside Typst |
+| C. #73 as written: chunks and `#import`/`#show` lines inside the `.typ` file | Nothing to add | Hard for researchers who do not write code |
+
+*Recommendation.* A, with the report document's release as #73 settles it (the 0.8.0 slice proves the chunk model; the document at Zemp 1.11 under section 15, or earlier by a logged change). `fit.equation()`, the new `report()` options and `RichText` follow at 1.2, with basic econometrics (#113). Two settings for the owner: US Letter as Quarto's default paper or A4; stars off by default. Deadline: 0.8.0, with #73.
