@@ -414,3 +414,7 @@ No normative text changes at step 20c of release 0.7.0: `color:` and `fill:` of 
 ## 11 November 2026 — zemp_specification.md, sections 2 and 5; zeff_open_decisions.md, entry #114
 
 The table of parts in section 2 gains a row for **Copy as Zeff** in Zemp Lite's data, plot and variable viewers, and section 5's paragraph on Zemp Lite names it. The reason: the owner's decision on open decision #114 (option C); the specification did not say whether a control that only puts a statement on the clipboard counts as one that writes a statement, which section 2 leaves out of Lite.
+
+## 11 November 2026 — zemp_specification.md, sections 3, 5 and 17; zeff_open_decisions.md, entries #24 and #115
+
+Section 3 names the interface framework, Svelte 5 bundled by Vite, where it read "chosen when interface work starts at Zeff 0.7.0"; section 17 moves the item to the decided list; section 5 gains "The look": the colour tokens of both themes, the syntax colours, the contrast rule, type and shapes. The reason: the owner's decisions on open decision #24 (Svelte 5) and #115 (option A), which provided that the look be written into the specification when the framework was chosen.

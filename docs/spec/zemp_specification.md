@@ -80,7 +80,7 @@ The web and desktop interfaces are the same code in both editions. Desktop adds 
 | Part | Choice |
 | --- | --- |
 | Engine | Zeff in Rust; WebAssembly build for the browser, native build for desktop and CLI; bit-identical results on both (Zeff Specification, section 8.3) |
-| Interface | TypeScript with standard web features only, so it renders the same in WebView2 (Windows), WebKit (macOS) and WebKitGTK (Linux); UI framework chosen when interface work starts at Zeff 0.7.0 |
+| Interface | TypeScript with standard web features only, so it renders the same in WebView2 (Windows), WebKit (macOS) and WebKitGTK (Linux); Svelte 5, bundled by Vite (decided 11 November 2026; zeff_open_decisions.md, #24) |
 | Editions | One interface codebase built twice: Zemp Studio with every module, Zemp Lite with the Methods panel, dialogs, guides, builders and statement-writing controls left out by a build flag (section 2); the shared modules never depend on the left-out ones, which a build check enforces |
 | Code editor | CodeMirror 6 with Zeff's tree-sitter grammar and the Zeff language server |
 | Desktop shell | Tauri: a small app bundle, the system web view, signed updates |
@@ -165,6 +165,36 @@ Everything else (export a replication package, update the engine, viewers, help,
 **Analysis state and view state.** Sorting, filtering, zooming, brushing and selecting in the data, results and plot viewers, and the layout of a causal graph, are view state: they change what is shown, never the script or any result, and are saved in `.zemp/views.json`, which a replication package omits. Each viewer offers **Add to script**, which writes the equivalent statement at the cursor and shows it before inserting it. A selection of more than 20 rows is written to `data/selections/<name>.csv` and joined by one statement, `let picked = wages.merge(import("data/selections/outliers.csv"), on: worker, join: inner)`, so the script stays readable and the selection is reproducible.
 
 **Themes and access.** A light theme and a dark theme in both editions, switched from the top bar and remembered per user, not per project. The dark theme changes the interface and the on-screen plots' ground and text; exported tables and plots always use the light print theme, so a figure looks the same in every paper whichever theme drew it on screen. Full keyboard operation, screen-reader labels on every control, adjustable interface text size, and colour-blind-safe plot palettes by default.
+
+**The look (decided 11 November 2026, zeff_open_decisions.md, #115).** Both editions take their colours from one set of tokens; the dark theme is a second set of the same names. Every colour used for text reaches at least 4.5:1 against its ground in both themes (WCAG AA for normal text).
+
+| Token | Use | Light | Dark |
+| --- | --- | --- | --- |
+| page | Behind the windows | #f7f7f5 | #0f1013 |
+| window | Panels, editor, viewers | #ffffff | #16171b |
+| soft | Output boxes, hovered rows | #f9f9f8 | #1b1d22 |
+| line, line strong | Dividers; borders of controls | #ebebe8, #dededa | #24262c, #2e3037 |
+| ink | Main text | #1b1b1f | #e9e9ec |
+| ink 2 | Secondary text | #55555c | #a7a8b0 |
+| ink 3 | Captions, line numbers, timings, margins | #6b6b73 | #8f919c |
+| ink 4 | Decoration only, never text | #b9b9bf | #4d4f57 |
+| accent, accent soft | Focus, the selected row, links | #3d5afe, #eef1ff | #7d8dff, #1f2440 |
+| warning, warning soft | Warnings and the "edited" mark; the warning card | #8a5d00, #fbf6e9 | #e2b552, #272215 |
+
+Code is coloured by the semantic tokens of the Zeff language server, the same in the editor, the console and wherever code is shown; variables and bindings keep the main ink, so colour marks structure, never data.
+
+| Category | Examples | Light | Dark |
+| --- | --- | --- | --- |
+| Keyword | `let`, `fn`, `for`, `in`, `if`, `model` | #7b4fd6 | #c4a7ff |
+| Function or method | `reg`, `where`, `plot` | #1f63c2 | #82b8ff |
+| Option | `se:`, `fe:`, `color:` | #a3367c | #f29ac4 |
+| Operator | `~`, `+`, `*`, `==`, `=`, `->` | #0f7b8a | #6fd3dc |
+| Text in quotes | `"output/table2.docx"` | #2b7a4b | #8fdcab |
+| Number | `2010`, `0.5` | #a8520c | #f4b77e |
+| Comment | `// a note` (italic) | #6b6b73 | #8f919c |
+| Variable or binding | `wage`, `m` | #3a3a42 | #d4d5da |
+
+Type is IBM Plex Sans for the interface and IBM Plex Mono for code, the family the plots embed, shipped with the app: interface text 13 to 15 points, code 13 points at a line height of 1.75, tabular figures in tables. Windows have 14-pixel corners and one hairline border, output boxes and cards 10-pixel corners, controls 7-pixel corners; no gradients, and a faint shadow under windows in the light theme only. **Run** is the one filled control of the top bar; the others are outlined words, the Git control included ("main · 2"). The Inline column is at most 760 pixels wide, with line numbers, the code and a 120-pixel margin for timings and states. Output sits in soft boxes under its statement, a warning as a card with its code and one sentence, and stale output dashed and faded with its reason. The plots' own colours are the engine's (section 7.6 of the Language Reference), and exports use the light print theme.
 
 ---
 
@@ -380,7 +410,6 @@ Zeff (language and engine) is Apache 2.0. Zemp's licence is decided separately, 
 
 ## 17. Open decisions
 
-- [ ] Interface framework for Zemp (chosen when interface work starts at Zeff 0.7.0). Svelte 5 is recommended over SolidJS: its components read as HTML with a script and their own styles, which suits contributors who are researchers rather than front-end engineers; its ecosystem and its path with Tauri are larger; and its runes (`$state`, `$derived`) have fewer silent traps than Solid's props. Solid is often slightly faster in benchmarks, but the difference does not matter here, because the two demanding panes, the 100,000-row data grid and the redraw-to-fit plot viewer, are custom-built in either framework and CodeMirror is framework-independent. A two-week spike of both on those two panes at Zeff 0.6.0 decides (zeff_open_decisions.md, #24). Vite bundles the interface whichever is chosen
 - [ ] Zemp's licence
 - [ ] Start Zemp's interface at Zeff 0.7.0 rather than alongside the engine from the start
 - [ ] Where Zemp web is hosted, and whether optional sync between web and desktop projects is offered; with it, whether Zemp runs servers at all (paid cloud sync, server compute, a self-hosted server), as the business model proposes against section 13 (zeff_open_decisions.md, #27)
@@ -397,6 +426,7 @@ Zeff (language and engine) is Apache 2.0. Zemp's licence is decided separately, 
 
 **Decided**
 
+- [x] Interface framework (11 November 2026; section 3): Svelte 5 with TypeScript, bundled by Vite, without the spike against SolidJS once planned (zeff_open_decisions.md, #24); the look in section 5 (#115)
 - [x] Zemp Studio (1 November 2026; section 2): the full edition's name, beside Zemp Lite; Zemp alone names the application and the product line; the installer identifiers follow (`zeff app install studio`, `zemp-studio`)
 - [x] Zemp Lite (17 October 2026): a code-first edition for users who do not want point-and-click, on both the web and the desktop, built from the same codebase without the Methods panel, dialogs, guides, builders and statement-writing controls; same projects, engine store and version numbers as Zemp Studio; the desktop app installs from the command line with `zeff app install lite`, setup files later; free; a web preview with the 0.2 alpha, a desktop beta with the 0.5 desktop beta, and 1.0 with Zeff 1.0.0 (sections 1, 2, 5, 9, 10 and 15)
 - [x] Zemp Lite's look (17 October 2026; sections 2 and 5): the Inline layout as Lite's default and Panes as Zemp Studio's, both available in both editions; a top bar of word controls (Projects ▾, project and file name, Git status, Dark switch, Check and Run) with everything else in ⌘K; a dark theme beside the light one in both editions, with exports always in the light print theme; a Git panel for any Git remote, on the desktop from 1.1 and in the browser once hosting is decided; a Terminal button and the Zeff console on the bottom line; stale outputs dimmed and labelled until re-run; a welcome screen; output folding and Export script with output planned before Lite 1.0. Mockups: the "Zemp Lite layouts" design canvas and zemp_lite_inline.pdf
