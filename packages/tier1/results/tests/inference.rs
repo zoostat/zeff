@@ -43,6 +43,7 @@ fn call_with(
         text: "m.method()",
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(2, 8),
         arg_spans: spans,
         rest_spans: vec![Span::new(9, 10); rest.len()],

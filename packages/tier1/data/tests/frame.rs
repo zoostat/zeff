@@ -36,6 +36,7 @@ fn build(
         text: "",
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(0, 5),
         arg_spans: Vec::new(),
         rest_spans: Vec::new(),

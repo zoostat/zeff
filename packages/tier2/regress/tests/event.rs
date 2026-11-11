@@ -43,6 +43,7 @@ fn fit_with(
         text: &script,
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(10, 13),
         arg_spans: vec![Some(Span::new(8, 9)), Some(Span::new(14, 14 + text.len()))],
         rest_spans: Vec::new(),

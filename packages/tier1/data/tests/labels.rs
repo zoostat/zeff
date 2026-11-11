@@ -241,6 +241,7 @@ fn label_call(frame: Frame, var: &str, labels: Value) -> Result<Frame, String> {
         text: "",
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(0, 5),
         arg_spans: vec![
             Some(Span::new(0, 1)),

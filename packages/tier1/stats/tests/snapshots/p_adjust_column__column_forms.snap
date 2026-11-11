@@ -1,0 +1,141 @@
+---
+source: packages/tier1/stats/tests/p_adjust_column.rs
+expression: all
+---
+> t.add(p_holm = p_adjust(p))
+frame · 7 rows × 4 variables
+
+      outcome   arm       p   p_holm
+  1   wage        1    0.01     0.05
+  2   wage        2    0.04     0.09
+  3   wage        3    0.03     0.09
+  4   hours       1     0.2      0.2
+  5   hours       2      NA       NA
+  6   hours       3   0.001    0.006
+  7   hours       4    0.02     0.08
+
+> t.add(holm = p_adjust(p), bh = p_adjust(p, method: bh), none = p_adjust(p, method: none))
+frame · 7 rows × 6 variables
+
+      outcome   arm       p    holm      bh    none
+  1   wage        1    0.01    0.05    0.03    0.01
+  2   wage        2    0.04    0.09   0.048    0.04
+  3   wage        3    0.03    0.09   0.045    0.03
+  4   hours       1     0.2     0.2     0.2     0.2
+  5   hours       2      NA      NA      NA      NA
+  6   hours       3   0.001   0.006   0.006   0.001
+  7   hours       4    0.02    0.08    0.04    0.02
+
+> t.add(p_holm = p_adjust(p), by: outcome)
+frame · 7 rows × 4 variables
+
+      outcome   arm       p   p_holm
+  1   wage        1    0.01     0.03
+  2   wage        2    0.04     0.06
+  3   wage        3    0.03     0.06
+  4   hours       1     0.2      0.2
+  5   hours       2      NA       NA
+  6   hours       3   0.001    0.003
+  7   hours       4    0.02     0.04
+
+> t.add(p_by = p_adjust(p, method: by), by: outcome)
+frame · 7 rows × 4 variables
+
+      outcome   arm       p        p_by
+  1   wage        1    0.01       0.055
+  2   wage        2    0.04   0.0733333
+  3   wage        3    0.03   0.0733333
+  4   hours       1     0.2    0.366667
+  5   hours       2      NA          NA
+  6   hours       3   0.001      0.0055
+  7   hours       4    0.02       0.055
+
+> frame(g = [1, 2, 2, 3, 3, NA, NA], p = [0.03, 0.2, 0.004, NA, NA, 0.04, 0.3]).add(h = p_adjust(p), by: g)
+frame · 7 rows × 3 variables
+
+       g       p       h
+  1    1    0.03    0.03
+  2    2     0.2     0.2
+  3    2   0.004   0.008
+  4    3      NA      NA
+  5    3      NA      NA
+  6   NA    0.04    0.08
+  7   NA     0.3     0.3
+
+> t.where(arm < 3).add(p_holm = p_adjust(p))
+frame · 4 rows × 4 variables
+
+      outcome   arm      p   p_holm
+  1   wage        1   0.01     0.03
+  2   wage        2   0.04     0.08
+  3   hours       1    0.2      0.2
+  4   hours       2     NA       NA
+
+> t.where(arm < 3).add(p_holm = p_adjust(p), by: outcome)
+frame · 4 rows × 4 variables
+
+      outcome   arm      p   p_holm
+  1   wage        1   0.01     0.02
+  2   wage        2   0.04     0.04
+  3   hours       1    0.2      0.2
+  4   hours       2     NA       NA
+
+> t.update(p = p_adjust(p, method: bonferroni), by: outcome)
+frame · 7 rows × 3 variables
+
+      outcome   arm       p
+  1   wage        1    0.03
+  2   wage        2    0.12
+  3   wage        3    0.09
+  4   hours       1     0.6
+  5   hours       2      NA
+  6   hours       3   0.003
+  7   hours       4    0.06
+
+> t.add(kept = p_adjust(p) < 0.05, by: outcome)
+frame · 7 rows × 4 variables
+
+      outcome   arm       p   kept
+  1   wage        1    0.01   true
+  2   wage        2    0.04   false
+  3   wage        3    0.03   false
+  4   hours       1     0.2   false
+  5   hours       2      NA   NA
+  6   hours       3   0.001   true
+  7   hours       4    0.02   true
+
+> p_adjust(t["p"], method: hochberg)
+Column<Float> · 7 values
+0.05
+0.08
+0.08
+0.2
+NA
+0.006
+0.08
+
+> frame(p = [1, 0, 1]).add(h = p_adjust(p))
+frame · 3 rows × 2 variables
+
+      p   h
+  1   1   1
+  2   0   0
+  3   1   1
+
+> frame(p = [true, false]).add(h = p_adjust(p))
+frame · 2 rows × 2 variables
+
+      p       h
+  1   true    1
+  2   false   0
+
+> t.where(arm > 9).add(h = p_adjust(p), by: outcome)
+frame · 0 rows × 4 variables
+
+     outcome   arm   p   h
+note: no row kept: the result is empty (line 2)
+
+> p_adjust([0.01, 0.04, 0.03])
+0.03
+0.06
+0.06

@@ -193,6 +193,7 @@ pub fn call_rowwise(
                 text: ctx.text,
                 columns_used: Vec::new(),
                 frame: ctx.frame.clone(),
+                group_rows: ctx.group_rows.clone(),
                 callee_span: ctx.callee_span,
                 arg_spans: ctx.arg_spans.clone(),
                 rest_spans: ctx.rest_spans.clone(),

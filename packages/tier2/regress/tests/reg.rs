@@ -66,6 +66,7 @@ fn fit_with(
         text: &script,
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(10, 13),
         arg_spans: vec![Some(Span::new(8, 9)), Some(Span::new(14, 14 + text.len()))],
         rest_spans: Vec::new(),
@@ -707,7 +708,7 @@ proptest! {
             let mut messages: Vec<Diagnostic> = Vec::new();
             let mut random = Randomness::default();
             let mut ctx = CallContext {
-                files: &NoFiles, script: "t.zeff", text: "", columns_used: Vec::new(), frame: None,
+                files: &NoFiles, script: "t.zeff", text: "", columns_used: Vec::new(), frame: None, group_rows: None,
                 callee_span: Span::new(0, 1), arg_spans: Vec::new(), rest_spans: Vec::new(), definition_spans: Vec::new(),
                 output: &mut output, messages: &mut messages, random: &mut random, statement: 1,
             };
@@ -748,7 +749,7 @@ proptest! {
             let mut messages: Vec<Diagnostic> = Vec::new();
             let mut random = Randomness::default();
             let mut ctx = CallContext {
-                files: &NoFiles, script: "t.zeff", text: "", columns_used: Vec::new(), frame: None,
+                files: &NoFiles, script: "t.zeff", text: "", columns_used: Vec::new(), frame: None, group_rows: None,
                 callee_span: Span::new(0, 1), arg_spans: Vec::new(), rest_spans: Vec::new(), definition_spans: Vec::new(),
                 output: &mut output, messages: &mut messages, random: &mut random, statement: 1,
             };

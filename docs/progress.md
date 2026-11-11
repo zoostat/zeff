@@ -143,3 +143,15 @@ Step 18 `[engine]`: `dist.tukey(groups:, df:)`, the studentized range, exact to 
 **Next.** The first unticked steps in order: 18c `[function]` (`p_adjust` as a column inside `add`), 19b `[engine]` (`posthoc` after a factorial `anova`), 20e `[engine]` (the message for an expression in an aesthetic), then 21 `[engine]` (the SVG writer).
 
 **For the owner to decide.** New: #110, due at 0.7.0 before step 25, five questions on sizes and shapes. The one that needs him before step 21: his proposal F9 asks for eight shapes and six are built; recommended, two more after the six, proposed `triangle_down` and `star`, the choice his. The others are recommended as built: sizes by area from 0; negative sizes dropped and sizes of 0 kept, each with a note; `group` and `label` held and printed; shapes of one size drawn with equal area. Also noticed: a file `Rplots.pdf` of 11 November lies untracked in the repository's folder, left by a run of R that was not part of this step; it is not committed and can be deleted. Open as before: #109, #108, #106 (due before step 23), #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 18c (`p_adjust` as a column, families by `by:`)
+
+**Done.** `tests.add(p_holm = p_adjust(p))` now works: given a variable of a frame, `p_adjust` gives a variable, one adjusted p-value on each row. With `by:` on the verb, as in `tests.add(p_holm = p_adjust(p), by: outcome)`, each group is a family adjusted on its own. A list still gives a list. A value outside 0 to 1 is refused with the row of the frame that holds it, also inside a group. R is the reference: `p.adjust` within each group on seven sets, every method, agreeing to twelve digits; the split form used in the reference was compared once with dplyr's `group_by` and `mutate` and is identical. The help page covers both forms. Details in `docs/decisions.md`.
+
+**A fault of `by:` corrected on the way.** Under `by:` a definition that gave `NA` on every row, or any definition on a frame of no rows, was refused for want of a type where the same definition without `by:` worked. It held for `rank` and plain arithmetic too, since release 0.6.0. Both forms now give the same variable.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247; CI is read job by job after the push.
+
+**Next.** Step 19b `[engine]`: `posthoc` after a factorial `anova`. Then 20e `[engine]` and 21 `[engine]`.
+
+**For the owner to decide.** Nothing new. Noticed and not changed: `p_adjust(p, by: outcome)`, with `by:` written inside the function, is refused by the general message for an unknown argument, which could say that `by:` belongs to `add`; and `add(m = mean(x))` on values that are all `NA` is refused for want of a type. Open as before: #110 (eight shapes, before step 21), #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

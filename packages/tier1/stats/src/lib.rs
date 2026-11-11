@@ -834,10 +834,10 @@ pub fn functions() -> Vec<Function> {
                     ),
                 ],
                 rest: None,
-                returns: "List<Float>",
+                returns: "List<Float> | Column<Float>",
                 diagnostics: vec![DiagnosticDecl::new(
                     "Z0401",
-                    "a p-value outside [0, 1], or a column that is not numeric",
+                    "a p-value outside [0, 1], named by its place in the list or its row of the frame, or a column that is not numeric",
                 )],
                 help: include_str!("../help/p_adjust.md"),
                 accuracy: Some(AccuracyRecord {

@@ -1,8 +1,10 @@
-//! `p_adjust` (release 0.7.0, steps 12 and 18b; Language Reference, section 4): p-values adjusted
+//! `p_adjust` (release 0.7.0, steps 12, 18b and 18c; Language Reference, section 4): p-values adjusted
 //! for multiple testing by Holm, Bonferroni, Hochberg, Hommel, Šidák, Benjamini–Hochberg or
 //! Benjamini–Yekutieli, or returned as they are. The methods R's `p.adjust` has agree with it;
 //! Šidák's is the single-step form of Stata's `mtest(sidak)`. `NA` keeps its place and does not
-//! count among the comparisons.
+//! count among the comparisons. A list gives a list; a column gives a column, so that the
+//! function works inside `add`, where `by:` makes each group a family of its own (open decision
+//! #111).
 
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::Value;
@@ -187,52 +189,66 @@ fn hommel(p: &[f64]) -> Vec<f64> {
 }
 
 /// `p_adjust(p, method: holm | bonferroni | hochberg | hommel | bh | by | sidak | none = holm)`.
+///
+/// A list gives a list. A column gives a column of the same length (open decision #111), so that
+/// `t.add(p_holm = p_adjust(p))` works as `rank` does, and under `by:` each group is a family
+/// adjusted on its own: the enclosing verb hands the function the group's rows, and the number
+/// of comparisons is the count of p-values present among them.
 pub fn p_adjust(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let items: Vec<Value> = match args.get(P) {
-        Some(Value::List(items)) => items.clone(),
-        Some(Value::Column(column)) => {
-            if !matches!(
-                column.ty(),
-                zeff_columns::ColumnType::Bool
-                    | zeff_columns::ColumnType::Int
-                    | zeff_columns::ColumnType::Float
-            ) {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!(
-                            "`p_adjust` adjusts numbers, but the column given is a {}",
-                            column.ty().name()
-                        ),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(P), "not a numeric column")
-                    .help("a p-value is a number between 0 and 1"),
-                ));
-            }
-            (0..column.len())
-                .map(|row| match column.get(row) {
-                    Some(zeff_columns::Value::Float(x)) => Value::Float(x),
-                    Some(zeff_columns::Value::Int(i)) => Value::Int(i),
-                    Some(zeff_columns::Value::Bool(b)) => Value::Int(i64::from(b)),
-                    _ => Value::Na,
-                })
-                .collect()
-        }
+    let (p, column) = match args.get(P) {
+        Some(Value::List(items)) => (list_of_p_values(ctx, items)?, false),
+        Some(Value::Column(column)) => (column_of_p_values(ctx, column)?, true),
         _ => {
             return Err(fail(
                 Diagnostic::error(
                     "Z0401",
-                    "`p_adjust` adjusts a list of p-values, but none was given",
+                    "`p_adjust` adjusts a list or a column of p-values, but none was given",
                 )
                 .in_file(ctx.script)
                 .primary(ctx.callee_span, "no p-values")
                 .help(
-                    "write `p_adjust([0.01, 0.04, 0.03])`, or pass the p-values of several tests",
+                    "write `p_adjust([0.01, 0.04, 0.03])`, or `t.add(p_holm = p_adjust(p))` for a variable `p` of a frame `t`",
                 ),
             ));
         }
     };
+    let method = match args.get(METHOD) {
+        Some(Value::Word(w)) => match Method::from_word(w) {
+            Some(method) => method,
+            None => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`method:` of `p_adjust` is one of {}, not `{w}`",
+                            Method::WORDS.join(", ")
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(METHOD), "not a method")
+                    .help("holm controls the family-wise error rate without Bonferroni's loss of power; bh and by control the false discovery rate"),
+                ));
+            }
+        },
+        _ => Method::Holm,
+    };
+    let adjusted = adjust(&p, method);
+    if column {
+        // Every adjusted value is a number between 0 and 1, so none becomes `NA` on the way in.
+        Ok(Value::Column(zeff_columns::Column::floats(adjusted).0))
+    } else {
+        Ok(Value::List(
+            adjusted
+                .into_iter()
+                .map(|v| v.map_or(Value::Na, Value::Float))
+                .collect(),
+        ))
+    }
+}
+
+/// The p-values of a list, `None` for `NA`; Z0401 for an item that is not a number or lies
+/// outside 0 to 1, named by its place in the list.
+fn list_of_p_values(ctx: &CallContext<'_>, items: &[Value]) -> Result<Vec<Option<f64>>, Fail> {
     let mut p: Vec<Option<f64>> = Vec::with_capacity(items.len());
     for (i, item) in items.iter().enumerate() {
         let value = match item {
@@ -274,30 +290,60 @@ pub fn p_adjust(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
         p.push(value);
     }
-    let method = match args.get(METHOD) {
-        Some(Value::Word(w)) => match Method::from_word(w) {
-            Some(method) => method,
-            None => {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!(
-                            "`method:` of `p_adjust` is one of {}, not `{w}`",
-                            Method::WORDS.join(", ")
-                        ),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(METHOD), "not a method")
-                    .help("holm controls the family-wise error rate without Bonferroni's loss of power; bh and by control the false discovery rate"),
-                ));
-            }
-        },
-        _ => Method::Holm,
-    };
-    Ok(Value::List(
-        adjust(&p, method)
-            .into_iter()
-            .map(|v| v.map_or(Value::Na, Value::Float))
-            .collect(),
-    ))
+    Ok(p)
+}
+
+/// The p-values of a column of numbers, `None` for `NA`; Z0401 for a column of another type and
+/// for a value outside 0 to 1, named by its row of the frame, also under `by:`.
+fn column_of_p_values(
+    ctx: &CallContext<'_>,
+    column: &zeff_columns::Column,
+) -> Result<Vec<Option<f64>>, Fail> {
+    use zeff_columns::ColumnType;
+    if !matches!(
+        column.ty(),
+        ColumnType::Bool | ColumnType::Int | ColumnType::Float
+    ) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`p_adjust` adjusts numbers, but the column given is a {}",
+                    column.ty().name()
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(P), "not a numeric column")
+            .help("a p-value is a number between 0 and 1"),
+        ));
+    }
+    let mut p: Vec<Option<f64>> = Vec::with_capacity(column.len());
+    for k in 0..column.len() {
+        let value = match column.get(k) {
+            Some(zeff_columns::Value::Float(x)) => Some(x),
+            Some(zeff_columns::Value::Int(i)) => Some(i as f64),
+            Some(zeff_columns::Value::Bool(b)) => Some(f64::from(u8::from(b))),
+            _ => None,
+        };
+        if let Some(x) = value
+            && !(0.0..=1.0).contains(&x)
+        {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "a p-value lies between 0 and 1, but `{}` is {} in row {}",
+                        ctx.text_of(P),
+                        zeff_core::display::format_float(x),
+                        count(ctx.frame_row(k) as u64)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(P), "not a p-value")
+                .help("`NA` stands for a p-value that is missing; the row is counted in the frame as the verb receives it, after any `where` or `sort` before it"),
+            ));
+        }
+        p.push(value);
+    }
+    Ok(p)
 }

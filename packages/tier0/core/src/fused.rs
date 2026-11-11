@@ -290,6 +290,7 @@ fn context<'a>(
         text: resources.text,
         columns_used: Vec::new(),
         frame: resources.frame.clone(),
+        group_rows: None,
         callee_span: call.callee_span,
         arg_spans: call.arg_spans.clone(),
         rest_spans: call.rest_spans.clone(),

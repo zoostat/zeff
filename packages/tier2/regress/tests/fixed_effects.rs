@@ -50,6 +50,7 @@ fn with_context<T>(
         text: script,
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(10, 13),
         arg_spans: vec![Some(Span::new(8, 9)), Some(Span::new(14, 20))],
         rest_spans: Vec::new(),

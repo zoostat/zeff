@@ -6159,6 +6159,18 @@ impl Checker<'_> {
             });
             if given_list && !matches!(declared, Ty::List(_) | Ty::Unknown) {
                 Ty::List(Box::new(declared))
+            } else if let Ty::Union(members) = &declared
+                && let [Ty::List(_), Ty::Column(_)] = members.as_slice()
+            {
+                // A function declared to return `List<T> | Column<T>` (`p_adjust`) gives back
+                // what its first argument is: a column for a column, so that it defines a
+                // variable inside `add`, and a list for a list. An argument whose type is not
+                // known here leaves the result to the run.
+                match slots.first().and_then(|s| s.as_ref()).map(|e| &e.ty) {
+                    Some(Ty::Column(_)) => members[1].clone(),
+                    Some(Ty::List(_)) => members[0].clone(),
+                    _ => Ty::Unknown,
+                }
             } else {
                 declared
             }

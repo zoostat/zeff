@@ -130,6 +130,8 @@ struct Receiver {
     in_definition: bool,
     /// Under `by:`, the group whose definition is being evaluated: its rows of `extended`.
     view: Option<Frame>,
+    /// With `view`, the rows of `extended` that the group holds, in order, counted from 0.
+    view_rows: Option<std::rc::Rc<[usize]>>,
     used: Vec<String>,
 }
 
@@ -140,6 +142,15 @@ impl Receiver {
             (Some(view), true) => view,
             (_, true) => &self.extended,
             _ => &self.original,
+        }
+    }
+
+    /// The rows of the group a definition under `by:` is being evaluated on, for a call inside
+    /// it; `None` when the call sees the whole frame.
+    fn group_rows(&self) -> Option<std::rc::Rc<[usize]>> {
+        match (&self.view, self.in_definition) {
+            (Some(_), true) => self.view_rows.clone(),
+            _ => None,
         }
     }
 }
@@ -1630,6 +1641,7 @@ impl<'a> Interpreter<'a> {
             text: self.source.text(),
             columns_used: Vec::new(),
             frame: enclosing,
+            group_rows: self.receivers.last().and_then(Receiver::group_rows),
             callee_span,
             arg_spans,
             rest_spans,
@@ -2533,17 +2545,42 @@ impl<'a> Interpreter<'a> {
 
     /// A definition under `by:`: evaluated once per group on the group's rows, each result (a
     /// column of the group's length or one value for every row of the group) put back in row
-    /// order (section 6: `add(dev = lwage - mean(lwage), by: firm)`).
+    /// order (section 6: `add(dev = lwage - mean(lwage), by: firm)`). `keeps_rows` says that the
+    /// verb keeps the frame's rows (`add`, `update`) and does not reduce each group to one.
     fn eval_by_group(
         &mut self,
         expr: &Expr,
         groups: &zeff_columns::Groups,
+        keeps_rows: bool,
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
         raw: Option<&mut Vec<Diagnostic>>,
     ) -> Result<Value, Fail> {
         let rows = self.receivers.last().map_or(0, |r| r.extended.table.rows());
+        if rows == 0 {
+            // A frame of no rows has no group. A verb that keeps one row for each group
+            // (`aggregate`) then has no row to give and nothing to compute. For `add` and
+            // `update` the definition is evaluated once on those no rows, as it is without `by:`,
+            // so that the new variable has its type: `rank(p)` gives an empty Float column
+            // whether or not the rows are grouped.
+            if !keeps_rows {
+                return Ok(Value::Na);
+            }
+            if let Some(receiver) = self.receivers.last_mut() {
+                receiver.view = Some(Frame {
+                    table: std::rc::Rc::new(receiver.extended.table.take_rows(&[])),
+                    name: receiver.extended.name.clone(),
+                });
+                receiver.view_rows = Some(Vec::new().into());
+            }
+            return match raw {
+                Some(raw) => self.eval(expr, printed, raw),
+                None => self.eval(expr, printed, messages),
+            };
+        }
         let mut per_row: Vec<Value> = vec![Value::Na; rows];
+        // The first column a group gave: its type is the variable's when every row is `NA`.
+        let mut kind: Option<zeff_columns::Column> = None;
         let mut group_messages: Vec<Diagnostic> = Vec::new();
         let mut all_messages: Vec<Diagnostic> = Vec::new();
         for g in 0..groups.len() {
@@ -2553,6 +2590,7 @@ impl<'a> Interpreter<'a> {
                     table: std::rc::Rc::new(receiver.extended.table.take_rows(members)),
                     name: receiver.extended.name.clone(),
                 });
+                receiver.view_rows = Some(members.into());
             }
             let mut these: Vec<Diagnostic> = Vec::new();
             let value = self.eval(expr, printed, &mut these)?;
@@ -2567,6 +2605,9 @@ impl<'a> Interpreter<'a> {
             }
             match &value {
                 Value::Column(c) if c.len() == members.len() => {
+                    if kind.is_none() {
+                        kind = Some(c.clone());
+                    }
                     for (k, &row) in members.iter().enumerate() {
                         per_row[row] = cell_value(c, k);
                     }
@@ -2599,12 +2640,14 @@ impl<'a> Interpreter<'a> {
             Some(raw) => raw.extend(all_messages),
             None => messages.extend(group_messages),
         }
-        if rows == 0 {
-            return Ok(Value::Na);
-        }
         match zeff_core::lift::collect_column(&per_row) {
             Some(column) => Ok(Value::Column(column)),
-            None if per_row.iter().all(|v| matches!(v, Value::Na)) => Ok(Value::Na),
+            // Every row is `NA`. Where the groups gave columns the variable keeps their type, as
+            // it does without `by:`; a definition that gave each group one `NA` has none.
+            None if per_row.iter().all(|v| matches!(v, Value::Na)) => Ok(match kind {
+                Some(column) => Value::Column(column.take_optional(&vec![None; rows])),
+                None => Value::Na,
+            }),
             None => Err(fail(
                 Diagnostic::error(
                     "Z0214",
@@ -2707,6 +2750,7 @@ impl<'a> Interpreter<'a> {
                                 extended: frame.clone(),
                                 in_definition: false,
                                 view: None,
+                                view_rows: None,
                                 used: Vec::new(),
                             });
                             pushed = true;
@@ -2763,6 +2807,7 @@ impl<'a> Interpreter<'a> {
                         (Some(groups), true, raw) => self.eval_by_group(
                             &call.definitions[*i].1,
                             groups,
+                            !merges_warnings,
                             printed,
                             messages,
                             raw,
@@ -2773,6 +2818,7 @@ impl<'a> Interpreter<'a> {
                     if pushed && let Some(receiver) = self.receivers.last_mut() {
                         receiver.in_definition = false;
                         receiver.view = None;
+                        receiver.view_rows = None;
                     }
                     match evaluated {
                         Ok(v) => {
@@ -2918,6 +2964,7 @@ impl<'a> Interpreter<'a> {
             text: self.source.text(),
             columns_used,
             frame: enclosing,
+            group_rows: self.receivers.last().and_then(Receiver::group_rows),
             callee_span: call.callee_span,
             arg_spans,
             rest_spans: call.rest.iter().map(|e| e.span).collect(),

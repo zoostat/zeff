@@ -1,0 +1,97 @@
+---
+source: packages/tier1/stats/tests/p_adjust_column.rs
+expression: all
+---
+error[Z0401]: a p-value lies between 0 and 1, but `p` is 1.2 in row 5
+ --> scripts/main.zeff:2:87
+  |
+2 | frame(g = ["a", "b", "a", "b", "b"], p = [0.01, 0.2, 0.5, 0.3, 1.2]).add(h = p_adjust(p))
+  |                                                                                       ^ not a p-value
+  |
+  = help: `NA` stands for a p-value that is missing; the row is counted in the frame as the verb receives it, after any `where` or `sort` before it
+
+error[Z0401]: a p-value lies between 0 and 1, but `p` is 1.2 in row 5
+ --> scripts/main.zeff:2:87
+  |
+2 | frame(g = ["a", "b", "a", "b", "b"], p = [0.01, 0.2, 0.5, 0.3, 1.2]).add(h = p_adjust(p), by: g)
+  |                                                                                       ^ not a p-value
+  |
+  = help: `NA` stands for a p-value that is missing; the row is counted in the frame as the verb receives it, after any `where` or `sort` before it
+
+error[Z0401]: a p-value lies between 0 and 1, but `p` is -0.5 in row 3
+ --> scripts/main.zeff:2:89
+  |
+2 | frame(g = ["a", "b", "a", "b", "b"], p = [0.01, 0.2, -0.5, 0.3, 0.02]).add(h = p_adjust(p), by: g)
+  |                                                                                         ^ not a p-value
+  |
+  = help: `NA` stands for a p-value that is missing; the row is counted in the frame as the verb receives it, after any `where` or `sort` before it
+
+error[Z0401]: a p-value lies between 0 and 1, but `p` is 1.2 in row 4
+ --> scripts/main.zeff:2:102
+  |
+2 | frame(g = ["a", "b", "a", "b", "b"], p = [0.01, 0.2, 0.5, 0.3, 1.2]).where(p > 0.1).add(h = p_adjust(p))
+  |                                                                                                      ^ not a p-value
+  |
+  = help: `NA` stands for a p-value that is missing; the row is counted in the frame as the verb receives it, after any `where` or `sort` before it
+
+error[Z0401]: a p-value lies between 0 and 1, but `p * 30` is 6 in row 4
+ --> scripts/main.zeff:2:20
+  |
+2 | t.add(h = p_adjust(p * 30), by: outcome)
+  |                    ^^^^^^ not a p-value
+  |
+  = help: `NA` stands for a p-value that is missing; the row is counted in the frame as the verb receives it, after any `where` or `sort` before it
+
+error[Z0401]: `p_adjust` adjusts numbers, but the column given is a Str
+ --> scripts/main.zeff:2:20
+  |
+2 | t.add(h = p_adjust(outcome))
+  |                    ^^^^^^^ not a numeric column
+  |
+  = help: a p-value is a number between 0 and 1
+
+error[Z0404]: `p_adjust` has no argument called `by`
+ --> scripts/main.zeff:2:23
+  |
+2 | t.add(h = p_adjust(p, by: outcome))
+  |                       ^^ unknown argument
+  |
+  = help: usage: `p_adjust(p, method: holm | bonferroni | hochberg | hommel | bh | by | sidak | none = holm)`
+
+error[Z0402]: `tukey` is not one of the allowed words
+ --> scripts/main.zeff:2:31
+  |
+2 | t.add(h = p_adjust(p, method: tukey), by: outcome)
+  |                               ^^^^^ expected one of holm, bonferroni, hochberg, hommel, bh, by, sidak, none
+
+error[Z0401]: `add` defines columns from a Column, Bool, Int, Float, Str, Date or DateTime, but `h` is a List<Float>
+ --> scripts/main.zeff:2:11
+  |
+2 | t.add(h = p_adjust([0.1, 0.2]))
+  |           ^^^^^^^^^^^^^^^^^^^^ a List<Float>
+  |
+  = help: usage: `data.add(by: Vars, name = Column | Bool | Int | Float | Str | Date | DateTime, ...)`
+
+error[Z0401]: `h` of `aggregate` gives a Column<Float>, not one value per group
+ --> scripts/main.zeff:2:17
+  |
+2 | t.aggregate(h = p_adjust(p), by: outcome)
+  |                 ^^^^^^^^^^^ a Column<Float>
+  |
+  = help: a definition reduces the group to one value, as `mean(wage)` or `sd(wage) / sqrt(n())` do; `add` keeps a value per row
+
+error[Z0401]: `p` of `p_adjust` must be a List<Float> or Column<Float>, but this is a Frame
+ --> scripts/main.zeff:2:10
+  |
+2 | p_adjust(t)
+  |          ^ a Frame
+  |
+  = help: usage: `p_adjust(p, method: holm | bonferroni | hochberg | hommel | bh | by | sidak | none = holm)`
+
+error[Z0401]: `p` of `p_adjust` must be a List<Float> or Column<Float>, but this is a Float
+ --> scripts/main.zeff:2:10
+  |
+2 | p_adjust(0.04)
+  |          ^^^^ a Float
+  |
+  = help: usage: `p_adjust(p, method: holm | bonferroni | hochberg | hommel | bh | by | sidak | none = holm)`

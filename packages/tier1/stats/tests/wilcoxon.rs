@@ -46,6 +46,7 @@ fn call(frame: &Frame, slots: Vec<(usize, Value)>) -> Result<TestResult, Fail> {
         text: "d.wilcoxon_test(x)",
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(2, 8),
         arg_spans: vec![None; 12],
         rest_spans: Vec::new(),

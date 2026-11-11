@@ -155,6 +155,10 @@ pub struct CallContext<'a> {
     /// The frame whose method encloses this call, as the call sees it (the group's rows under
     /// `by:`), for the reducers `n()` and `n_distinct(x)` inside `add` and `aggregate`.
     pub frame: Option<crate::value::Frame>,
+    /// Under `by:`, the rows of the enclosing frame that this call sees, in their order there,
+    /// counted from 0; `None` when the call sees the whole frame. A column function that refuses
+    /// a value names its row of the frame by it ([`CallContext::frame_row`]).
+    pub group_rows: Option<std::rc::Rc<[usize]>>,
     /// Where the function's name is written.
     pub callee_span: Span,
     /// Where each argument is written, by parameter position; `None` for an omitted argument.
@@ -172,6 +176,16 @@ pub struct CallContext<'a> {
 }
 
 impl CallContext<'_> {
+    /// The row of the enclosing frame, counted from 1, that holds item `k`, counted from 0, of a
+    /// column this call was given: `k + 1` on the whole frame, and under `by:` the place in the
+    /// frame of the group's row `k`.
+    pub fn frame_row(&self, k: usize) -> usize {
+        match &self.group_rows {
+            Some(rows) => rows.get(k).map_or(k + 1, |row| row + 1),
+            None => k + 1,
+        }
+    }
+
     /// The text of the argument at parameter position `i`, as the script writes it.
     pub fn text_of(&self, i: usize) -> &str {
         let span = self.span_of(i);

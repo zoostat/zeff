@@ -33,6 +33,7 @@ fn try_with(body: Body, values: Vec<Option<Value>>) -> Result<Value, Fail> {
         text: "f(x)",
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(0, 1),
         arg_spans: vec![Some(Span::new(2, 3)); values.len()],
         rest_spans: Vec::new(),

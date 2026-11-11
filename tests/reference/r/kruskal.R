@@ -3,7 +3,8 @@
 # unequal sizes, with ties (rounded values), a group of one observation, NA in the variable and
 # in the grouping variable, and text groups; the adjustments under holm, bonferroni, BH and BY
 # on vectors with ties, zeros, ones and NA, where R takes the count of non-NA p-values as the
-# number of comparisons. Statistics and p-values are held to a relative 1e-12. Run with
+# number of comparisons; from step 18c the same adjustments within the groups of a grouping
+# variable. Statistics and p-values are held to a relative 1e-12. Run with
 # `Rscript tests/reference/r/kruskal.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 options(warn = -1)
@@ -74,5 +75,42 @@ adjust <- list(
   adj(round(abs(cos(1:40)) / 5, 5))
 )
 
-write_json(list(reference = reference_block(), kruskal = kruskal, adjust = adjust),
+# Step 18c: the adjustment as a column, each group a family of its own (open decision #111).
+# Within every group the p-values present are adjusted by the same code as above, which is what
+# `dplyr::group_by(g) |> mutate(p.adjust(p))` computes; base R's split() is used so that the
+# harness needs no further package. A missing group value is a group, as in dplyr. The groups
+# are written as text, "NA" for a missing one, and the Rust test builds the frame from them.
+within <- function(p, g) {
+  key <- ifelse(is.na(g), "NA", as.character(g))
+  out <- list(p = as.list(num(p)), g = as.list(key), text_groups = is.character(g))
+  families <- split(seq_along(p), factor(key, levels = unique(key)))
+  for (m in c("holm", "bonferroni", "hochberg", "hommel", "bh", "by", "sidak", "none")) {
+    column <- rep(NA_real_, length(p))
+    for (rows in families) {
+      one <- adj(p[rows])[[m]]
+      column[rows] <- vapply(one, function(v) if (identical(v, "NA")) NA_real_ else as.numeric(v), 0)
+    }
+    out[[m]] <- as.list(num(column))
+  }
+  out
+}
+grouped <- list(
+  # Two families, an NA among the p-values of each.
+  within(c(0.01, 0.04, 0.03, 0.2, NA, 0.001, 0.02, NA), c("a", "a", "a", "b", "b", "b", "b", "a")),
+  # Rows of three families interleaved, with ties, 0 and 1.
+  within(c(0.02, 0.5, 0.02, 0, 1, 0.5, 0.0001, 0.02, 1, 0.3, 0.02, 0.04),
+         c("x", "y", "z", "x", "y", "z", "x", "y", "z", "x", "y", "z")),
+  # A family of one p-value, a family whose p-values are all NA, and a family of one NA.
+  within(c(0.03, 0.2, NA, NA, 0.004, NA, 0.6, 0.05), c(1, 2, 3, 3, 2, 4, 2, 2)),
+  # A missing group value is a family of its own.
+  within(c(0.01, 0.2, 0.5, 0.3, NA, 0.04, 0.011), c("a", "b", "a", NA, "b", NA, NA)),
+  # One family alone: the column form of the list form.
+  within(c(0.011, 0.012, 0.013, 0.014, 0.6, 0.6), rep("all", 6)),
+  # Every row its own family: nothing is adjusted.
+  within(c(0.3, 0.01, NA, 0.7), c(4, 3, 2, 1)),
+  # Forty p-values in five families of unequal sizes.
+  within(round(abs(cos(1:40)) / 5, 5), c(rep(1:5, length.out = 33), rep(2, 7)))
+)
+
+write_json(list(reference = reference_block(), kruskal = kruskal, adjust = adjust, grouped = grouped),
            file.path(here(), "kruskal.json"))

@@ -192,6 +192,33 @@ levels(binned["b"])
 }
 
 #[test]
+fn a_definition_under_by_keeps_its_type_when_every_row_is_na_or_there_is_no_row() {
+    // Release 0.7.0, step 18c: under `by:` a column function whose result is `NA` in every row,
+    // or a frame of no rows, gave "`r = NA` has no type" where the same definition without `by:`
+    // gave a Float column. Both forms now give the same variable.
+    let t = "let t = frame(g = [\"a\", \"a\", \"b\"], x = [0.5, NA, NA], k = [1, 2, 3])\n";
+    for (rows, kept) in [("k > 1", 2), ("k > 9", 0)] {
+        let script = format!(
+            "{t}t.where({rows}).add(r = rank(x), d = x + 1, by: g).n_rows()\nt.where({rows}).add(r = rank(x), d = x + 1, by: g).describe()\nt.where({rows}).add(r = rank(x), d = x + 1).describe()\n"
+        );
+        let (code, stdout, stderr) = go(&script);
+        assert_eq!(code, 0, "{stderr}");
+        assert!(stdout.starts_with(&format!("{kept}\n")), "{stdout}");
+        // The two descriptions, with and without `by:`, are the same text.
+        let described: Vec<&str> = stdout.split("frame · ").skip(1).collect();
+        assert_eq!(described.len(), 2, "{stdout}");
+        assert_eq!(described[0], described[1], "{stdout}");
+        for variable in ["r", "d"] {
+            let line = described[0]
+                .lines()
+                .find(|l| l.trim_start().starts_with(&format!("{variable} ")))
+                .unwrap();
+            assert!(line.contains("Float"), "{line}");
+        }
+    }
+}
+
+#[test]
 fn every_message() {
     let scripts = [
         "frame(x = [9223372036854775800, 10]).add(s = running_sum(x))\n",

@@ -47,6 +47,7 @@ fn with_context<T>(
         text,
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(2, 8),
         arg_spans: vec![None; slots],
         rest_spans: Vec::new(),

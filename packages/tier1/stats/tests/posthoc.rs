@@ -57,6 +57,7 @@ fn invoke(
             text,
             columns_used: Vec::new(),
             frame: None,
+            group_rows: None,
             callee_span: Span::new(2, 7),
             arg_spans: vec![None; slots],
             rest_spans: Vec::new(),

@@ -33,6 +33,7 @@ fn with_context<T>(f: impl FnOnce(&mut CallContext<'_>) -> T) -> T {
         text: "d.t_test(x)",
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(2, 8),
         arg_spans: vec![None; 12],
         rest_spans: Vec::new(),

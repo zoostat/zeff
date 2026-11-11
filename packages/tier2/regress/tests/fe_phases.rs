@@ -72,6 +72,7 @@ fn the_phases_of_the_two_way_fit() {
         text: script,
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(0, 1),
         arg_spans: vec![],
         rest_spans: Vec::new(),

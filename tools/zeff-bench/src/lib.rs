@@ -138,6 +138,7 @@ fn call_with_definitions(
         text: "d.f()",
         columns_used: Vec::new(),
         frame: None,
+        group_rows: None,
         callee_span: Span::new(2, 3),
         arg_spans: spans,
         rest_spans: Vec::new(),
