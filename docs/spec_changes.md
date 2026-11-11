@@ -430,3 +430,7 @@ Section 2's table of parts and section 12 say AI assistance is not offered in Ze
 ## 11 November 2026 — zemp_specification.md, sections 9 and 13; zeff_open_decisions.md, entry #116
 
 Section 13 gains a paragraph on what is counted about downloads and visits, what is collected only from those who register for wrong-result alerts, and what is never collected, with no login required to download or use; section 9's telemetry row points to it. The reason: the owner's decision on open decision #116, option A.
+
+## 11 November 2026 — zemp_specification.md, sections 5 and 10; zeff_open_decisions.md, entry #117
+
+Section 5's welcome screen gains **Open a replication package…** with **Verify**, in both editions, from 0.11.0; section 10 says where Zemp web's projects are stored, that the storage can be lost, and that Zemp web asks for persistent storage and reminds the user to export. The reason: the owner's decision on open decision #117, option A. The matching change to `import` (`file:`) in section 6 of the Language Reference and its catalogue row is made at the step of 0.11.0 that builds it.
