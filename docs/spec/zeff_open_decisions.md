@@ -155,6 +155,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 115 | Zemp Lite's look: colour scheme, syntax colours, type and the screens of the mockups | One set of colour tokens for the light and dark themes, seven syntax colours, IBM Plex Sans and Mono, every text colour at least 4.5:1 against its ground, and the screens drawn in the owner's mockups (welcome, Inline, Panes, Git panel, data grid, variable view) as the reference for the interface | Zemp 0.2 alpha |
 | 114 | "Copy as Zeff" in Zemp Lite's viewers | Lite's viewers offer **Copy as Zeff**, which puts the statement equivalent to a sort, filter or selection on the clipboard and never touches the script, beside Zemp Studio's **Add to script**; or Lite stays without it, as section 2 of the Zemp Specification reads now | decided 11 November 2026 (option C: sorts, filters and variable changes, no selections) |
 | 113 | The plan of releases after 1.0, every model placed by level, and the names of the model functions | Replace the after-1.0 table of section 14 by 29 releases: basic models first (1.1–1.5), then advanced (1.6–1.17), then research grade (1.18–1.29), and within each level econometrics, psychometrics, machine learning, then the rest; outputs matched against R or Mplus only, with Stata-only methods held in 1.29; one function per kind of model, with about 25 roadmap names merged | decided 11 November 2026 (option A); catalogue and section 14 amended as the first step of 0.8.0 |
 | 112 | The names of the binary models and of the ROC curve before the 1.0 freeze: `glm` and `curve` | At 0.9.0, `glm(y ~ x, family: binomial, link: logit \| probit)` in place of `logistic` and `probit`, and `fit.curve(type: roc)` in place of `fit.roc()`; the work is unchanged, other families, links and curves arrive later as words; answers question 4 of #99 with another name, and leaves its question 3 to the owner | decided 11 November 2026 (option A); applied as the first step of 0.9.0 |
@@ -2020,3 +2021,56 @@ Raised on 11 November 2026 by the owner, from mockups of Zemp Lite's data viewer
 *Recommendation.* C: the sorts, filters and label changes are short statements and copying them keeps Lite code-first, while a selection of many rows needs a file, which a code-first edition should leave to the user's own `save()`. On adoption, the table of parts in section 2 of the Zemp Specification gains the row, logged in `docs/spec_changes.md`. Deadline: Zemp 0.2 alpha, with Zeff 0.8.0, when the Lite web preview first ships its viewers.
 
 **The owner's decision (11 November 2026).** Option C. Zemp Lite's data, plot and variable viewers offer **Copy as Zeff**: the statement equivalent to a sort, a filter or a change of type, label or contrast goes to the clipboard, and the script changes only when the user pastes it. A selection of rows is not copied, since it needs a file under `data/selections/`; a Lite user who wants one writes the `save()` and `merge()` by hand. Zemp Studio keeps **Add to script**. The table of parts in section 2 of the Zemp Specification gains the row, and section 5's paragraph on Zemp Lite names it, both logged in `docs/spec_changes.md` the same day.
+
+### 115. Zemp Lite's look: colour scheme, syntax colours, type and the screens of the mockups
+
+Raised on 11 November 2026 by the owner, after mockups of Zemp Lite drawn from sections 2, 5, 7 and 8 of the Zemp Specification (kept with the owner's working papers, outside this repository). The specification fixes Lite's layout and controls but not its colours, type or the look of its screens; #33 holds the open questions of density, icons, desktop menus and small screens, and the dark theme was decided on 17 October 2026. The plots' own colours are not part of this entry: they are the engine's (Okabe and Ito for categories, viridis for amounts; section 7.6 of the Language Reference), and exported tables and figures always use the light print theme (Zemp Specification, section 5).
+
+**Colour tokens.** One name per role, so that every panel takes its colours from the same few values and the dark theme is a second set of the same names.
+
+| Token | Use | Light | Dark |
+| --- | --- | --- | --- |
+| page | Behind the windows | #f7f7f5 | #0f1013 |
+| window | Panels, editor, viewers | #ffffff | #16171b |
+| soft | Output boxes, hovered rows | #f9f9f8 | #1b1d22 |
+| line, line strong | Dividers; borders of controls | #ebebe8, #dededa | #24262c, #2e3037 |
+| ink | Main text | #1b1b1f | #e9e9ec |
+| ink 2 | Secondary text | #55555c | #a7a8b0 |
+| ink 3 | Captions, line numbers, timings, margins | #6b6b73 | #8f919c |
+| ink 4 | Decoration only, never text: the faded stale plot, inactive dots | #b9b9bf | #4d4f57 |
+| accent, accent soft | Focus, the selected row, links | #3d5afe, #eef1ff | #7d8dff, #1f2440 |
+| warning, warning soft | Warnings and the "edited" mark; the warning card | #8a5d00, #fbf6e9 | #e2b552, #272215 |
+
+The **Run** button is drawn in ink on window (inverted), the one filled control in the top bar; every other control is outlined.
+
+**Syntax colours.** Seven categories, as the Zeff language server reports them (semantic tokens), the same in the editor, the console and every place code is shown:
+
+| Category | Examples | Light | Dark |
+| --- | --- | --- | --- |
+| Keyword | `let`, `fn`, `for`, `in`, `if`, `model` | violet #7b4fd6 | #c4a7ff |
+| Function or method | `reg`, `where`, `plot`, `derive` | blue #1f63c2 | #82b8ff |
+| Option | `se:`, `fe:`, `color:` | rose #a3367c | #f29ac4 |
+| Operator | `~`, `+`, `*`, `==`, `=`, `->` | teal #0f7b8a | #6fd3dc |
+| Text in quotes | `"output/table2.docx"` | green #2b7a4b | #8fdcab |
+| Number | `2010`, `0.5` | amber #a8520c | #f4b77e |
+| Comment | `// Wage gap by sex` | grey italic #6b6b73 | #8f919c |
+
+Variables of a frame and bindings take the main ink (#3a3a42 light, #d4d5da dark); the colours mark structure, never data.
+
+**Contrast.** Every colour used for text reaches at least 4.5:1 against the ground it sits on (the WCAG AA level for normal text), in both themes; measured for the values above against the window and the soft grounds. Three values of the mockups are corrected here for that reason: comments and ink 3 (#9a9aa2 and #8e8e96 in the mockups, 2.8:1 and 3.3:1), the number colour (#b5590f, 4.5:1 on the soft ground) and the warning colour (#9a6a00, 4.4:1 on its card); ink 4 is kept for decoration only.
+
+**Type.** IBM Plex Sans for the interface and IBM Plex Mono for code, the family the engine's plots embed (step 21 of release 0.7.0), shipped with the app so that nothing is fetched at run time; interface text 13 to 15 points, code 13 points with a line height of 1.75, numbers in tables with tabular figures. Ctrl + and Ctrl − change the size (section 5).
+
+**Shapes and space.** Windows with 14-pixel corners and one hairline border, output boxes and cards with 10-pixel corners, controls with 7-pixel corners; no gradients; a faint shadow under windows in the light theme only. The Inline column at most 760 pixels wide, with the line number, the code and a 120-pixel margin for timings and states.
+
+**The screens.** The mockups are the reference for the first build: the welcome screen; the Inline layout, with output in soft boxes under each statement, warnings as an amber card with the code and one sentence, and stale output dashed and faded with its reason ("Out of date · line 5 changed after it ran · ⌘↵ to run again"); the dark theme; the Panes layout with the hover help of a function; the Git control and panel; the data grid, with sorting and filtering as removable pills and "View only · the script is unchanged", and the variable view with its distribution sketches.
+
+**Two points for #33.** The Git control of the mockups carries a small branch icon, where #33 recommends no icons and section 5 says the top bar's controls are all words: this entry draws it as words, the branch and the count of changed files ("main · 2"). The mockups use one density.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Adopt the tokens, syntax colours, type, shapes and screens above as the reference for Zemp Lite and Zemp Studio, the two editions sharing them; a short design section added to the Zemp Specification when the interface framework (#24) is chosen | The first build starts from a settled look; one set of tokens keeps both themes and both editions consistent; the contrast rule is written down before any screen is built | A look fixed before users have tried it; changes after the 0.2 alpha's reader test cost a little rework |
+| B. Adopt the syntax colours and the contrast rule only; the rest settled at the 0.2 alpha from user feedback | The parts that touch code and accessibility are fixed; the rest stays open | The first build starts without a reference for its screens |
+| C. Leave the look to the interface work | Nothing to decide now | Colours chosen piecemeal by component |
+
+*Recommendation.* A, with the corrections for contrast and the Git control in words. Deadline: Zemp 0.2 alpha, with Zeff 0.8.0, when the Lite web preview is built.
