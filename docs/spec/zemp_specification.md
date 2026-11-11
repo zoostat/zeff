@@ -287,7 +287,7 @@ Everything in this section applies to Zemp Studio desktop and Zemp Lite desktop 
 | Engines | Several engine versions installed side by side in the engine store `~/.zeff/engines/`, shared with the `zeff` command and with the other edition, so an engine downloaded by any of them serves all; each project uses the one it pins; Zemp offers to remove engines no project uses |
 | Command-line tool | Settings → Install command-line tool puts the `zeff` launcher on PATH (Zeff Specification, section 2.1); Export replication package and Update engine are `zeff export replication` and `zeff engine use` |
 | Security | Every part signed and checked against a key built into the app; operating-system code signing and macOS notarisation as settled by the 0.5 desktop beta (open decision, Zeff Specification, section 15) |
-| Telemetry | None by default; an opt-in crash report shows exactly what it would send |
+| Telemetry | None by default; an opt-in crash report shows exactly what it would send; what the project counts about downloads and visits, outside the app, is in section 13 |
 
 ### 9.1 Updates
 
@@ -361,6 +361,7 @@ The rules of this section apply to both editions.
 - Scripts write only under their own project folder; `save` and `export` to a data root or elsewhere are refused (Zeff Specification, section 2).
 - After 1.0, third-party packages run as sandboxed WebAssembly components with no network or file access; they are declared in `zeff.toml`, locked in `zeff.lock`, and marked validated only when their reference tests pass in Zeff's own continuous integration (Zeff Specification, section 8.1, rule 9).
 - No telemetry by default; crash reports are opt-in and shown before sending.
+- **What is counted, and what is never collected** (zeff_open_decisions.md, #116). Counted, without any personal data or cookie: downloads by version and platform, from the release host and the package managers' own statistics; engine fetches by version and operating system, at the server the launcher downloads from, without keeping the machine's address (from Zeff 0.8.0); visits to the web editions, installs of their offline apps, countries, browsers and screen sizes, by a cookie-free aggregate counter on the web host (from the Zemp 0.2 alpha). Collected only from those who choose it: the optional **Register for wrong-result alerts** list (from 1.0), an email address with optional institution, role, field and country, used only to say when a known wrong-result bug affects the engine version given, left in one step, under a privacy notice saying where it is kept and for how long. Never collected: the user's data, scripts, results, file names, keystrokes or use of functions, and nothing is sent by the app itself. No login is needed to download or use Zeff, the `zeff` command line, Zemp Lite or Zemp Studio's free tier; an account exists only for paid features, if they are ever offered (#27). Each release from 0.10.0 carries a citation file and a DOI.
 - The Git panel (section 5) sends nothing until the user presses Push or Pull, and then only to the remote the project names; `data/` is ignored by default and the panel warns before a data file is first committed.
 
 ---
