@@ -1544,3 +1544,97 @@ pub fn bars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     Ok(Value::Plot(Rc::new(next)))
 }
+
+// ----- tile (step 24c) -----
+
+const T_FILL: usize = 4;
+const T_ALPHA: usize = 5;
+
+/// `p.tile(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, alpha: Float = 1)`.
+pub fn tile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`tile` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mappings, constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        "tile",
+        &Slots {
+            x: Some(X),
+            y: Some(Y),
+            low: None,
+            high: None,
+            color: None,
+            fill: Some(T_FILL),
+            size: None,
+            shape: None,
+            group: None,
+            label: None,
+            linetype: None,
+        },
+        own_data,
+    )?;
+    positions(ctx, &plot, &mappings, "tile")?;
+    one_axis(ctx, &plot, &frame, &mappings, (X, Y), "tile")?;
+    one_scale(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Fill, T_FILL),
+        "tile",
+    )?;
+    let read: Vec<Aesthetic> = [Aesthetic::X, Aesthetic::Y, Aesthetic::Fill]
+        .into_iter()
+        .filter(|aesthetic| {
+            !mappings.iter().any(|m| m.aesthetic == *aesthetic)
+                && !constants.iter().any(|c| c.aesthetic == *aesthetic)
+        })
+        .collect();
+    let (data, computed) = own_frame(ctx, &args, &plot, "tile", &read)?;
+    let alpha =
+        number_option(ctx, &args, T_ALPHA, "an `alpha:` that is not a number")?.unwrap_or(1.0);
+    if !(0.0..=1.0).contains(&alpha) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`alpha:` of `tile` is an opacity between 0 and 1, but this is {}",
+                    shown(alpha)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(T_ALPHA), "outside [0, 1]")
+            .help("write 1 for solid tiles, or a share such as 0.5 so that what is under them shows through"),
+        ));
+    }
+    let before = scene(&plot).notes;
+    let (next, after) = with_layer(
+        &plot,
+        PlotLayer {
+            mark: Mark::Tile,
+            data,
+            alpha,
+            size: None,
+            jitter: 0.0,
+            width: None,
+            stream: None,
+            computed,
+            mappings,
+            constants,
+        },
+    );
+    for note in after.notes {
+        if !before.contains(&note) {
+            ctx.message(Diagnostic::plain_note(note));
+        }
+    }
+    Ok(Value::Plot(Rc::new(next)))
+}

@@ -489,7 +489,8 @@ fn plan_legend(
                 .collect()
         })
     };
-    let (content, width, height) = match (keys, colours) {
+    // The bar of a ramp is that of the colours, or of the fills where no colour has one.
+    let (content, width, height) = match (keys, colours.or(fills)) {
         (Some(keys), _) => {
             let line = theme.label_size * theme.leading;
             // A key is as tall as its point or its patch, and as wide as its point, its patch
@@ -1091,7 +1092,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 },
             };
             let marks_of = layer.x.len().min(layer.y.len());
-            if matches!(layer.mark, Mark::Bars(_)) {
+            if matches!(layer.mark, Mark::Bars(_) | Mark::Tile) {
                 // A bar: from its lower end to its upper one along `y`, half its width to
                 // either side of its place along `x`, in its own fill.
                 let bars = marks_of.min(layer.low.len()).min(layer.span.len());

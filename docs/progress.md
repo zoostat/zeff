@@ -155,3 +155,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 24c `[function]`: `tile`.
 
 **For the owner to decide.** Nothing waits for him. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 24c (`tile`)
+
+**Done.** `p.tile()` draws a filled rectangle at each row's `x` and `y`, as wide and as high as the gap between two places, on axes of categories or of numbers: a heat map. `fill:` shows a number on the continuous scale, with a bar of the colours for a legend, or categories. Edges and limits match ggplot2's. Catalogue row 468 is brought up to date (logged). `plot` stands at eleven functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 318 of 318; CI is read job by job after the push.
+
+**Next.** Step 24d `[function]`: `text`, which completes step 24.
+
+**For the owner to decide.** Nothing waits for him. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

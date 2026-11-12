@@ -530,3 +530,7 @@ The same decision (#127, option B) touches the sentence of section 7.6 that says
 ## 12 November 2026 — zeff_functions.csv, row 464
 
 Step 24b of release 0.7.0 builds `bars`. Under open decision #106 (option A) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer; a bar draws `fill` and is parted by `group`. The usage line of catalogue row 464 was `p.bars(data: Frame, position: stack | dodge | fill = stack, width: Float)`; it is now `p.bars(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var, position: stack | dodge | fill = stack, width: Float = 0.9, alpha: Float = 1)`: the default of `width:` is written, 0.9 of the gap between two values of `x` as in ggplot2, and `alpha:` is added. Its status is `implemented`.
+
+## 12 November 2026 — zeff_functions.csv, row 468
+
+Step 24c of release 0.7.0 builds `tile`. Under open decision #106 (option A) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer. The usage line of catalogue row 468 was `p.tile(data: Frame, fill: Var)`; it is now `p.tile(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, alpha: Float = 1)`: `fill:` also takes a string for one colour, as on `plot`, and `alpha:` is added. Its status is `implemented`.

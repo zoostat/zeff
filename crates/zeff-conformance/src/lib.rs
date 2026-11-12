@@ -1885,6 +1885,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/bars/{name}"), &data));
     }
+    // Tiles (step 24c): the mean wage of each industry in each year as a heat map on a
+    // continuous scale of fills, and the same cells by a category; what the script prints
+    // and the heat map in the three formats, with the bar of the ramp for its legend.
+    let script = "let w = dataset(wages)\nlet m = w.aggregate(wage = mean(wage), by: [year, industry])\nlet p = m.plot(x: year, y: industry, fill: wage).tile()\np\nm.add(high = wage > 28).plot(x: year, y: industry, fill: high).tile(alpha: 0.8)\nm.plot(x: year, y: wage).tile()\nexport(p, \"tiles.svg\")\nexport(p, \"tiles.pdf\")\nexport(p, \"tiles.png\")\n";
+    let tiled = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/tiles/stdout", &tiled.output.stdout));
+    fills.push(text("plot/tiles/stderr", &tiled.output.stderr));
+    for name in ["tiles.svg", "tiles.pdf", "tiles.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/tiles/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

@@ -3427,3 +3427,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** Language Reference, section 6 (`color:`) and section 7.6; `docs/spec/zeff_samples.zeff`; the rule that the specification wins.
+
+## 12 November 2026: `tile` (release 0.7.0, step 24c)
+
+**Decision.** `p.tile(...)` draws a rectangle at each row's `x` and `y`, as wide and as high as the gap between two neighbouring places: one place on an axis of categories, and on numbers the smallest distance between two values of the rows drawn, taken along each axis by itself (ggplot2's rule for `geom_tile`). In the scene a tile is held as a bar is: its `x`, how far it reaches along `x` (`span`), and its two edges along `y` (`low` and `y`), so the layout draws tiles with the code that draws bars, and the axes are trained on the whole of the outermost tiles. A tile is one row, so its fill may be a number on the continuous scale as well as a category; a row without the number its fill shows is not drawn and is counted, as a point without its colour on a ramp is. The legend of a fill by a number is the bar of the ramp that a colour by a number has (the layout took the bar from the scale of colours alone until now).
+
+**Rulings where the text is silent**, taken under the owner's standing instruction of 12 November 2026. (a) The catalogue gave `tile` `data:` and `fill: Var`; under open decision #106 it takes `x:`, `y:` and `fill:` for its own layer, `fill:` also as a string for one colour. `alpha:` is added, 1 unless given. (b) Every tile of a layer has one size; a missing cell shows the paper, and several rows in one cell are drawn on one another, the help page saying to summarise first. (c) A tile has no outline. (d) Where nothing says anything of `fill`, a tile takes it from `color:` of the plot, as the other filled marks do since step 24b2, a number included. (e) The continuous scale of fills is that of colours: viridis, from the smallest value drawn to the largest.
+
+**Tests.** `packages/tier1/plot/tests/tiles.rs`: the four edges of each tile and the limits of both axes against `geom_tile` of ggplot2 4.0.3, on categories and on numbers; the rectangles on the page in the first and the last colour of viridis, touching, with a bar of the ramp for a legend; a fill by categories with `NA`, and the rows not drawn; a property over 300 frames. `tests/printing.rs`: six plots, with the 144 means by year and industry of the shipped wages against R (19.1973 to 39.4162; limits 2008.9 to 2022.1 and 0.4 to 12.6); seven messages. The help page, its example run. The conformance set gains five cases: what a script of tiles prints and a heat map in SVG, PDF and PNG.
+
+**The specification.** The usage line of catalogue row 468 gains the options (logged in `docs/spec_changes.md`).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 24c; section 7.6 of the Language Reference ("Marks": `tile`; "`heatmap(vars)` computes the correlations and draws `.tile()`"); open decision #106.

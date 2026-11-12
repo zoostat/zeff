@@ -339,6 +339,8 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Fill | Aesthetic::Group
         ),
+        // A tile stands at `x` and `y`, filled in the colour `fill` says for its row.
+        Mark::Tile => matches!(aesthetic, Aesthetic::X | Aesthetic::Y | Aesthetic::Fill),
         // A rug has a tick for each row at its place on the axes of its sides, in its colour.
         Mark::Rug(sides) => match aesthetic {
             Aesthetic::X => sides != Sides::Y,
@@ -399,7 +401,8 @@ fn borrowed_fill<'a>(plot: &'a Plot, layer: &PlotLayer) -> Option<&'a PlotMappin
     let mapping = plot.mapping(Aesthetic::Color)?;
     let frame = layer.data.as_ref().unwrap_or(&plot.frame);
     let column = frame.table.column(&mapping.variable)?;
-    (shading(column) == Some(Shading::Categories)).then_some(mapping)
+    // A tile is one row and has the fill of its row, a category or a place on a ramp.
+    (shading(column) == Some(Shading::Categories) || layer.mark == Mark::Tile).then_some(mapping)
 }
 
 /// What a layer draws an aesthetic from (open decision #106): its own mapping where it names
@@ -2037,6 +2040,23 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 _ => Drawn::default(),
             },
         };
+        // A tile reaches half the gap between two places to each side of its own, along both
+        // axes; on an axis of categories the gap is one place.
+        if layer.mark == Mark::Tile {
+            let wide = match across_categories {
+                Some(_) => 1.0,
+                None => resolution(&points.x),
+            };
+            let high = match up_categories {
+                Some(_) => 1.0,
+                None => resolution(&points.y),
+            };
+            span = vec![wide; points.x.len()];
+            low = points.y.iter().map(|y| y - high / 2.0).collect();
+            for y in &mut points.y {
+                *y += high / 2.0;
+            }
+        }
         jitter(layer, &mut points);
         // A constant colour, for a mark that has one; a mapped colour takes its place below,
         // when its scale is known.
@@ -2528,7 +2548,10 @@ impl Scene {
                                                             // far it reaches along `x`, and
                                                             // its fill.
                                                             .chain(
-                                                                if matches!(l.mark, Mark::Bars(_)) {
+                                                                if matches!(
+                                                                    l.mark,
+                                                                    Mark::Bars(_) | Mark::Tile
+                                                                ) {
                                                                     vec![
                                                                         (
                                                                             "low",
@@ -3041,6 +3064,9 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 if lines == 1 { "line" } else { "lines" }
             ));
             settings
+        } else if layer.mark == Mark::Tile {
+            // A layer of tiles: how far they let through what is under them.
+            format!("alpha {}", format_float(layer.alpha))
         } else if let Mark::Bars(how) = layer.mark {
             // A layer of bars: their width, how they are arranged where it is not on one
             // another, how far they let through what is under them, their groups.

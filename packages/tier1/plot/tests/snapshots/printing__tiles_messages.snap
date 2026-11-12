@@ -1,0 +1,66 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_y
+error[Z0401]: `tile` places each mark by its `x` and its `y`, but the plot maps no variable to `y`
+ --> scripts/main.zeff:2:18
+  |
+2 | g.plot(x: month).tile()
+  |                  ^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+== not_a_colour
+error[Z0401]: `fill:` of `tile` is "blu", which is not the name of a colour
+ --> scripts/main.zeff:2:38
+  |
+2 | g.plot(x: month, y: year).tile(fill: "blu")
+  |                                      ^^^^^ not a colour
+  |
+  = help: did you mean "blue"?
+
+== another_kind_of_fill
+error[Z0401]: the plot shows `kind` as categories for `fill`, but `sales`, which `tile` maps to `fill`, is an Int without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:2:57
+  |
+2 | g.plot(x: month, y: year, fill: kind).tile().tile(fill: sales)
+  |                                                         ^^^^^ `sales` is of another kind
+  |
+  = help: the layers of a plot share one scale of fill, so the variables mapped to `fill` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels
+
+== a_place_of_another_kind
+error[Z0401]: the plot places `year` as categories along `y`, but `sales`, which `tile` maps to `y`, is an Int, which is placed on a linear scale
+ --> scripts/main.zeff:2:42
+  |
+2 | g.plot(x: month, y: year).tile().tile(y: sales)
+  |                                          ^^^^^ `sales` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+
+== alpha_above_one
+error[Z0401]: `alpha:` of `tile` is an opacity between 0 and 1, but this is 2
+ --> scripts/main.zeff:2:39
+  |
+2 | g.plot(x: month, y: year).tile(alpha: 2)
+  |                                       ^ outside [0, 1]
+  |
+  = help: write 1 for solid tiles, or a share such as 0.5 so that what is under them shows through
+
+== no_color_on_tile
+error[Z0404]: `tile` has no argument called `color`
+ --> scripts/main.zeff:2:32
+  |
+2 | g.plot(x: month, y: year).tile(color: kind)
+  |                                ^^^^^ unknown argument
+  |
+  = help: usage: `p.tile(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, alpha: Float = 1)`
+
+== tile_of_a_frame
+error[Z0401]: `tile` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | g.tile()
+  | ^ this is a Frame
+  |
+  = help: `tile` takes a Plot first; `x.tile(...)` is `tile(x, ...)`

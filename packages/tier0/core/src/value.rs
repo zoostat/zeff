@@ -283,6 +283,9 @@ pub enum Mark {
     /// A bar from zero for each value of `x`: as high as `y`, or as the count of rows where
     /// nothing is mapped to `y`.
     Bars(Arrangement),
+    /// A rectangle at each row's `x` and `y`, as wide and as high as the gap between two
+    /// places, in the fill of the row.
+    Tile,
 }
 
 /// How the bars that share a value of `x` are arranged.
@@ -378,7 +381,7 @@ impl Stairs {
 
 impl Mark {
     /// The mark as the method that adds it is called: `points`, `lines`, `step`, `area`,
-    /// `ribbon`, `hline`, `vline`, `rug`, `bars`.
+    /// `ribbon`, `hline`, `vline`, `rug`, `bars`, `tile`.
     pub fn name(self) -> &'static str {
         match self {
             Mark::Points => "points",
@@ -390,6 +393,7 @@ impl Mark {
             Mark::Vline => "vline",
             Mark::Rug(_) => "rug",
             Mark::Bars(_) => "bars",
+            Mark::Tile => "tile",
         }
     }
 
@@ -406,7 +410,7 @@ impl Mark {
 
     /// Whether a mark is a filled shape, whose key in a legend is a patch of its fill.
     pub fn patches(self) -> bool {
-        self.fills() || matches!(self, Mark::Bars(_))
+        self.fills() || matches!(self, Mark::Bars(_) | Mark::Tile)
     }
 
     /// Whether the marks of a layer are the corners of filled shapes, one for each run of rows

@@ -1,0 +1,56 @@
+---
+source: packages/tier1/plot/tests/tiles.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 53.142,7.792 to 53.142,155.253 stroke #E3E3E3 0.35
+[grid] segment 78.784,7.792 to 78.784,155.253 stroke #E3E3E3 0.35
+[grid] segment 104.425,7.792 to 104.425,155.253 stroke #E3E3E3 0.35
+[grid] segment 130.067,7.792 to 130.067,155.253 stroke #E3E3E3 0.35
+[grid] segment 155.708,7.792 to 155.708,155.253 stroke #E3E3E3 0.35
+[grid] segment 181.35,7.792 to 181.35,155.253 stroke #E3E3E3 0.35
+[grid] segment 206.991,7.792 to 206.991,155.253 stroke #E3E3E3 0.35
+[grid] segment 45.45,115.036 to 214.683,115.036 stroke #E3E3E3 0.35
+[grid] segment 45.45,48.009 to 214.683,48.009 stroke #E3E3E3 0.35
+[panel] clip 45.45,7.792 169.233 by 147.461
+  [layer:1] polygon 53.142,148.55 104.425,148.55 104.425,81.522 53.142,81.522 fill #440154 opacity 1
+  [layer:1] polygon 104.425,148.55 155.708,148.55 155.708,81.522 104.425,81.522 fill #2C728E opacity 1
+  [layer:1] polygon 155.708,148.55 206.991,148.55 206.991,81.522 155.708,81.522 fill #28AE80 opacity 1
+  [layer:1] polygon 53.142,81.522 104.425,81.522 104.425,14.495 53.142,14.495 fill #472D7B opacity 1
+  [layer:1] polygon 104.425,81.522 155.708,81.522 155.708,14.495 104.425,14.495 fill #21918C opacity 1
+  [layer:1] polygon 155.708,81.522 206.991,81.522 206.991,14.495 155.708,14.495 fill #FDE725 opacity 1
+[axis:x] segment 45.45,155.253 to 214.683,155.253 stroke #222222 0.5
+[axis:x] segment 53.142,155.253 to 53.142,158.253 stroke #222222 0.5
+[axis:x] text 53.142,166.837 middle "0.5" sans 8 #222222
+[axis:x] segment 78.784,155.253 to 78.784,158.253 stroke #222222 0.5
+[axis:x] text 78.784,166.837 middle "1" sans 8 #222222
+[axis:x] segment 104.425,155.253 to 104.425,158.253 stroke #222222 0.5
+[axis:x] text 104.425,166.837 middle "1.5" sans 8 #222222
+[axis:x] segment 130.067,155.253 to 130.067,158.253 stroke #222222 0.5
+[axis:x] text 130.067,166.837 middle "2" sans 8 #222222
+[axis:x] segment 155.708,155.253 to 155.708,158.253 stroke #222222 0.5
+[axis:x] text 155.708,166.837 middle "2.5" sans 8 #222222
+[axis:x] segment 181.35,155.253 to 181.35,158.253 stroke #222222 0.5
+[axis:x] text 181.35,166.837 middle "3" sans 8 #222222
+[axis:x] segment 206.991,155.253 to 206.991,158.253 stroke #222222 0.5
+[axis:x] text 206.991,166.837 middle "3.5" sans 8 #222222
+[axis:x] text 130.067,180.837 middle "month" sans 9 #222222
+[axis:y] segment 45.45,7.792 to 45.45,155.253 stroke #222222 0.5
+[axis:y] segment 42.45,115.036 to 45.45,115.036 stroke #222222 0.5
+[axis:y] text 39.45,117.828 end "2025" sans 8 #222222
+[axis:y] segment 42.45,48.009 to 45.45,48.009 stroke #222222 0.5
+[axis:y] text 39.45,50.801 end "2026" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "year" sans 9 #222222
+[legend:fill] text 224.683,14 start "sales" sans 9 #222222
+[legend:fill] raster 224.683,22.042 8 by 72 cells 1 by 256 from #FDE725 to #440154
+[legend:fill] segment 232.683,94.042 to 235.683,94.042 stroke #222222 0.5
+[legend:fill] text 238.683,96.834 start "4" sans 8 #222222
+[legend:fill] segment 232.683,76.042 to 235.683,76.042 stroke #222222 0.5
+[legend:fill] text 238.683,78.834 start "6" sans 8 #222222
+[legend:fill] segment 232.683,58.042 to 235.683,58.042 stroke #222222 0.5
+[legend:fill] text 238.683,60.834 start "8" sans 8 #222222
+[legend:fill] segment 232.683,40.042 to 235.683,40.042 stroke #222222 0.5
+[legend:fill] text 238.683,42.834 start "10" sans 8 #222222
+[legend:fill] segment 232.683,22.042 to 235.683,22.042 stroke #222222 0.5
+[legend:fill] text 238.683,24.834 start "12" sans 8 #222222

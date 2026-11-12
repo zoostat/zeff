@@ -2042,3 +2042,75 @@ fn the_bars_of_the_specifications_sample_are_coloured_by_color() {
     assert!(!text.contains("no layer draws `color`"), "{text}");
     insta::assert_snapshot!("fill_from_color", text);
 }
+
+// ----- tile (step 24c) -----
+
+const GRID: &str = "let g = frame(month = [1, 2, 3, 1, 2, 3], year = [\"2025\", \"2025\", \"2025\", \"2026\", \"2026\", \"2026\"], sales = [4, 7, 9, 5, 8, NA], kind = [\"a\", \"b\", \"a\", \"b\", \"a\", NA])\n";
+
+#[test]
+fn tiles_read_sensibly_as_text() {
+    let script = format!(
+        "{GRID}g.plot(x: month, y: year, fill: sales).tile()\n\
+         g.plot(x: month, y: year, fill: kind).tile(alpha: 0.8)\n\
+         g.plot(x: month, y: year).tile(fill: \"steelblue\")\n\
+         g.plot(x: month, y: year, color: kind).tile()\n\
+         g.plot(x: month, y: sales).tile()\n\
+         let w = dataset(wages)\n\
+         let m = w.aggregate(wage = mean(wage), by: [year, industry])\n\
+         m.plot(x: year, y: industry, fill: wage).tile()\n"
+    );
+    let text = printed(&script);
+    // The reference, from ggplot2 4.0.3: `geom_tile` on the grid has the limits 0.35 to 3.65
+    // along the months and 0.4 to 2.6 along the years; on the shipped wages the 144 means by
+    // year and industry run from 19.197273 to 39.416154, with the limits 2008.9 to 2022.1
+    // and 0.4 to 12.6.
+    for line in [
+        "  x      month   linear     0.35 to 3.65   0.5, 1, 1.5, 2, 2.5, 3, 3.5\n",
+        "  y      year    category   0.4 to 2.6     2025, 2026\n",
+        "  fill        sales   linear   4 to 9   viridis, dark purple to yellow\n",
+        "      1   tile   g          5   alpha 1\n",
+        "  fill        kind    category   a, b, NA   orange, sky blue, grey\n",
+        "      1   tile   g          6   fill steelblue, alpha 1\n",
+        "  x      Calendar year   linear     2008.9 to 2022.1\n",
+        "  fill        wage    linear   19.1973 to 39.4162   viridis, dark purple to yellow\n",
+        "      1   tile   m        144   alpha 1\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("tiles", text);
+}
+
+#[test]
+fn every_message_of_tile() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_y", "g.plot(x: month).tile()\n"),
+        (
+            "not_a_colour",
+            "g.plot(x: month, y: year).tile(fill: \"blu\")\n",
+        ),
+        (
+            "another_kind_of_fill",
+            "g.plot(x: month, y: year, fill: kind).tile().tile(fill: sales)\n",
+        ),
+        (
+            "a_place_of_another_kind",
+            "g.plot(x: month, y: year).tile().tile(y: sales)\n",
+        ),
+        (
+            "alpha_above_one",
+            "g.plot(x: month, y: year).tile(alpha: 2)\n",
+        ),
+        (
+            "no_color_on_tile",
+            "g.plot(x: month, y: year).tile(color: kind)\n",
+        ),
+        ("tile_of_a_frame", "g.tile()\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{GRID}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("tiles_messages", all);
+}

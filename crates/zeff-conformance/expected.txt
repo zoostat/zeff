@@ -294,6 +294,11 @@ plot/bars/stderr f3e0bd4902b05360
 plot/bars/bars.svg 3dbaa3679fa18612
 plot/bars/bars.pdf 60e40b887219f6e2
 plot/bars/bars.png ea8e75a3f5fafdbe
+plot/tiles/stdout 1131b11a46dface7
+plot/tiles/stderr 897d8d71ed5d8216
+plot/tiles/tiles.svg e314bc627ca9ca8f
+plot/tiles/tiles.pdf c43ef793c4cdfd62
+plot/tiles/tiles.png a835cdd28713eeec
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

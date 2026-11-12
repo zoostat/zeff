@@ -1,0 +1,74 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · g · year against month
+
+  axis   title   scale      limits         breaks
+  x      month   linear     0.35 to 3.65   0.5, 1, 1.5, 2, 2.5, 3, 3.5
+  y      year    category   0.4 to 2.6     2025, 2026
+
+  aesthetic   title   scale    values   shown as
+  fill        sales   linear   4 to 9   viridis, dark purple to yellow
+
+  layer   mark   data   marks   settings
+      1   tile   g          5   alpha 1
+plot · g · year against month
+
+  axis   title   scale      limits         breaks
+  x      month   linear     0.35 to 3.65   0.5, 1, 1.5, 2, 2.5, 3, 3.5
+  y      year    category   0.4 to 2.6     2025, 2026
+
+  aesthetic   title   scale      values     shown as
+  fill        kind    category   a, b, NA   orange, sky blue, grey
+
+  layer   mark   data   marks   settings
+      1   tile   g          6   alpha 0.8
+plot · g · year against month
+
+  axis   title   scale      limits         breaks
+  x      month   linear     0.35 to 3.65   0.5, 1, 1.5, 2, 2.5, 3, 3.5
+  y      year    category   0.4 to 2.6     2025, 2026
+
+  layer   mark   data   marks   settings
+      1   tile   g          6   fill steelblue, alpha 1
+plot · g · year against month
+
+  axis   title   scale      limits         breaks
+  x      month   linear     0.35 to 3.65   0.5, 1, 1.5, 2, 2.5, 3, 3.5
+  y      year    category   0.4 to 2.6     2025, 2026
+
+  aesthetic   title   scale      values     shown as
+  color       kind    category   a, b, NA   orange, sky blue, grey
+  fill        kind    category   a, b, NA   orange, sky blue, grey
+
+  layer   mark   data   marks   settings
+      1   tile   g          6   alpha 1
+plot · g · sales against month
+
+  axis   title   scale    limits         breaks
+  x      month   linear   0.35 to 3.65   0.5, 1, 1.5, 2, 2.5, 3, 3.5
+  y      sales   linear   3.2 to 9.8     4, 5, 6, 7, 8, 9
+
+  layer   mark   data   marks   settings
+      1   tile   g          5   alpha 1
+plot · m · industry against year
+
+  axis   title           scale      limits
+  x      Calendar year   linear     2008.9 to 2022.1
+  y      Industry        category   0.4 to 12.6
+
+  breaks
+  2010, 2012, 2014, 2016, 2018, 2020, 2022
+  Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+
+  aesthetic   title   scale    values               shown as
+  fill        wage    linear   19.1973 to 39.4162   viridis, dark purple to yellow
+
+  layer   mark   data   marks   settings
+      1   tile   m        144   alpha 1
+---
+note: 1 row with NA in month, year or sales dropped (line 2)
+note: 1 row with NA in month or sales dropped (line 6)
+warning[W0201]: 211 rows with NA in wage were skipped (line 8)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 8)
