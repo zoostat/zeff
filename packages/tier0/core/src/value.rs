@@ -92,6 +92,8 @@ pub struct Plot {
     pub theme: PlotTheme,
     /// The coordinates: cartesian where the script says nothing.
     pub coord: Coord,
+    /// The variables the plot is parted into panels by: none where the script says nothing.
+    pub facet: Option<PlotFacet>,
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
     pub summary: Table,
@@ -113,6 +115,14 @@ pub struct PlotLabels {
     pub y: Option<String>,
     pub color: Option<String>,
     pub caption: Option<String>,
+}
+
+/// The facets of a plot (section 7.6, "Facets": `facet`): the variables whose values part
+/// its rows into panels, one panel for each value, or for each combination of values that is
+/// there.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PlotFacet {
+    pub by: Vec<String>,
 }
 
 /// The coordinates of a plot (section 7.6, "Coordinates": `coord`): how its two scales are

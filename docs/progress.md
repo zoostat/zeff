@@ -162,3 +162,13 @@ Step 26 was split into 26a to 26c. 26a `[function]`: `labels(title:, subtitle:, 
 
 **For the owner to decide.** Nothing new waits for him beyond #132 (pies, a starting angle and a direction for `coord(polar)`, at 0.8.0). Taken on the recommendation at this step, his to overturn: the axis of `y` at the left of the panel, as in ggplot2, and not along a spoke; long labels round the rim broken at a quarter of the room; a rug refused in polar coordinates, as ggplot2 refuses it. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 27d1 (a scene of several panels), and step 27d split in three
+
+**Done.** Step 27d was split into 27d1 (the scene), 27d2 (the layout) and 27d3 (the function). The facets of a plot are held with it, and its scene has a panel for each value of the variable, in the order of its categories, laid in rows, with what is written over each: the value label where the variable has one. Stacks, bars side by side and lines are built within their panel on scales shared by all; a layer whose frame lacks the variable is drawn in every panel; a row without a value has a panel named `NA`. No script reaches it yet: `facet` is not registered until the panels are laid out (27d2) and the function is opened (27d3). A plot without facets is byte for byte as it was.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 403 of 403; CI is read job by job after the push.
+
+**Next.** Step 27d2 `[engine]`: the layout of several panels, each with its strip, the axes shared along the edges.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the panels in one row up to three, two rows up to six, three up to twelve, as ggplot2 lays them; a panel named `NA` for rows without a value; the strips of two variables written with a comma between. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

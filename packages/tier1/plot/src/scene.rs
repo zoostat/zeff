@@ -257,6 +257,10 @@ impl Position {
 pub struct Panel {
     pub row: usize,
     pub column: usize,
+    /// What is written over the panel of a plot parted into panels: the value of the
+    /// variable it holds, by its value label where it has one. `None` where the plot is not
+    /// parted.
+    pub strip: Option<String>,
     pub x: Option<&'static str>,
     pub y: Option<&'static str>,
     pub layers: Vec<Layer>,
@@ -1153,7 +1157,13 @@ fn joined(
 /// without `y`, or more than one row is left out for every group, and the areas are broken
 /// there; with `share`, so is an `x` with a value below zero or a total that is not above it,
 /// where there are no shares to show. A row left with no neighbour draws nothing.
-fn stacked(cx: Option<&Column>, cy: Option<&Column>, keys: &[Categories], share: bool) -> Joined {
+fn stacked(
+    cx: Option<&Column>,
+    cy: Option<&Column>,
+    keys: &[Categories],
+    share: bool,
+    only: Option<(&[usize], usize)>,
+) -> Joined {
     let mut out = Joined::default();
     let (Some(cx), Some(cy)) = (cx, cy) else {
         return out;
@@ -1164,10 +1174,17 @@ fn stacked(cx: Option<&Column>, cy: Option<&Column>, keys: &[Categories], share:
     if keys.iter().any(|key| key.of.len() != cx.len()) {
         return out;
     }
-    // The groups, each with its rows: `x`, `y` where it can be drawn, and the row.
+    if only.is_some_and(|(panels, _)| panels.len() != cx.len()) {
+        return out;
+    }
+    // The groups, each with its rows: `x`, `y` where it can be drawn, and the row. In a plot
+    // parted into panels a stack is built of the rows of one panel.
     type Row = (f64, Option<f64>, usize);
     let mut groups: Vec<(Vec<Option<usize>>, Vec<Row>)> = Vec::new();
     for row in 0..cx.len() {
+        if only.is_some_and(|(panels, panel)| panels[row] != panel) {
+            continue;
+        }
         let x = match number(cx, row) {
             None => {
                 out.points.missing += 1;
@@ -1354,6 +1371,7 @@ fn bars(
     how: Arrangement,
     width: f64,
     alone: f64,
+    panels: Option<&[usize]>,
 ) -> Bars {
     let mut out = Bars::default();
     let Some(cx) = cx else {
@@ -1370,8 +1388,14 @@ fn bars(
     if keys.iter().any(|key| key.of.len() != cx.len()) {
         return out;
     }
-    // The rows that can be drawn, each with its group.
+    if panels.is_some_and(|panels| panels.len() != cx.len()) {
+        return out;
+    }
+    // The rows that can be drawn, each with its panel and its group. In a plot parted into
+    // panels the bars at one place are arranged panel by panel: a stack and a row of bars
+    // side by side are those of one panel.
     struct Item {
+        panel: usize,
         x: f64,
         group: Vec<(bool, usize)>,
         value: f64,
@@ -1393,6 +1417,7 @@ fn bars(
             continue;
         }
         items.push(Item {
+            panel: panels.map_or(0, |panels| panels[row]),
             // Adding zero makes the two zeros one place.
             x: x + 0.0,
             // In the order of the categories, a row without one after the others.
@@ -1404,9 +1429,11 @@ fn bars(
             row,
         });
     }
-    // By place, then by group, then in the order of the frame.
+    // By panel, by place, then by group, then in the order of the frame.
     items.sort_by(|a, b| {
-        a.x.total_cmp(&b.x)
+        a.panel
+            .cmp(&b.panel)
+            .then_with(|| a.x.total_cmp(&b.x))
             .then_with(|| a.group.cmp(&b.group))
             .then(a.row.cmp(&b.row))
     });
@@ -1415,7 +1442,11 @@ fn bars(
         let mut counted: Vec<Item> = Vec::new();
         for item in items {
             match counted.last_mut() {
-                Some(last) if last.x == item.x && last.group == item.group => last.value += 1.0,
+                Some(last)
+                    if last.panel == item.panel && last.x == item.x && last.group == item.group =>
+                {
+                    last.value += 1.0
+                }
                 _ => counted.push(item),
             }
         }
@@ -1426,7 +1457,10 @@ fn bars(
     let mut start = 0;
     while start < items.len() {
         let mut end = start + 1;
-        while end < items.len() && items[end].x == items[start].x {
+        while end < items.len()
+            && items[end].panel == items[start].panel
+            && items[end].x == items[start].x
+        {
             end += 1;
         }
         let here = &items[start..end];
@@ -2077,6 +2111,210 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
     }
 }
 
+/// How the rows of a plot are parted among its panels: what is written over each panel, and
+/// for each layer the panel of each row of its frame. A layer whose frame lacks a variable
+/// of the facets has no panel of its own (`None`), and is drawn in every one.
+struct Parting {
+    strips: Vec<String>,
+    of: Vec<Option<Vec<usize>>>,
+}
+
+/// The parting of a plot with facets: a panel for each value of the variable that the
+/// plot's frame holds, in the order of its categories, or for each combination of values
+/// where there are several variables; then one for each further value that only the frame of
+/// a layer holds. A row without a value has a panel of its own, named `NA`, after the others
+/// of its frame. `None` where the plot has no facets, or its frame lacks a variable of them.
+fn parting(plot: &Plot) -> Option<Parting> {
+    let by = &plot.facet.as_ref()?.by;
+    if by.is_empty() {
+        return None;
+    }
+    // The panels of a frame in their order, each with its strip, and the panel of each row.
+    let parted = |frame: &Frame| -> Option<(Vec<String>, Vec<usize>)> {
+        let keys: Vec<Categories> = by
+            .iter()
+            .map(|name| frame.table.column(name).map(categories))
+            .collect::<Option<_>>()?;
+        let rows = frame.table.rows();
+        // A row without a category comes after those with one.
+        let key = |row: usize| -> Vec<(bool, usize)> {
+            keys.iter()
+                .map(|key| (key.of[row].is_none(), key.of[row].unwrap_or(0)))
+                .collect()
+        };
+        let mut found: Vec<Vec<(bool, usize)>> = (0..rows).map(key).collect();
+        found.sort();
+        found.dedup();
+        let strips: Vec<String> = found
+            .iter()
+            .map(|combination| {
+                combination
+                    .iter()
+                    .zip(&keys)
+                    .map(|((none, place), key)| {
+                        if *none {
+                            "NA".to_string()
+                        } else {
+                            key.labels[*place].clone()
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            })
+            .collect();
+        let of = (0..rows)
+            .map(|row| found.binary_search(&key(row)).unwrap_or(0))
+            .collect();
+        Some((strips, of))
+    };
+    let (mut strips, _) = parted(&plot.frame)?;
+    let mut of: Vec<Option<Vec<usize>>> = Vec::new();
+    for layer in &plot.layers {
+        of.push(parted(frame_of(plot, layer)).map(|(own, rows)| {
+            // The panels of the layer's frame among those of the plot, by what is written
+            // over them: a value the plot has not met yet is a panel more.
+            let place: Vec<usize> = own
+                .iter()
+                .map(
+                    |strip| match strips.iter().position(|known| known == strip) {
+                        Some(place) => place,
+                        None => {
+                            strips.push(strip.clone());
+                            strips.len() - 1
+                        }
+                    },
+                )
+                .collect();
+            rows.into_iter().map(|panel| place[panel]).collect()
+        }));
+    }
+    Some(Parting { strips, of })
+}
+
+/// The layers of a scene of several panels, each with the marks it has in all of them, panel
+/// after panel: what the printed plot counts.
+fn whole_layers(scene: &Scene) -> Vec<Layer> {
+    let Some((first, others)) = scene.panels.split_first() else {
+        return Vec::new();
+    };
+    let mut whole = first.layers.clone();
+    for panel in others {
+        for (all, more) in whole.iter_mut().zip(&panel.layers) {
+            all.x.extend(&more.x);
+            all.y.extend(&more.y);
+            all.rows.extend(&more.rows);
+            all.line.extend(&more.line);
+            all.low.extend(&more.low);
+            all.span.extend(&more.span);
+            all.label.extend(more.label.iter().cloned());
+            if let (Paint::Scaled(all), Paint::Scaled(more)) = (&mut all.color, &more.color) {
+                all.extend(more);
+            }
+            if let (Paint::Scaled(all), Paint::Scaled(more)) = (&mut all.fill, &more.fill) {
+                all.extend(more);
+            }
+            if let (Sizing::Scaled(all), Sizing::Scaled(more)) = (&mut all.size, &more.size) {
+                all.extend(more);
+            }
+            if let (Shaping::Scaled(all), Shaping::Scaled(more)) = (&mut all.shape, &more.shape) {
+                all.extend(more);
+            }
+            if let (Lining::Scaled(all), Lining::Scaled(more)) = (&mut all.linetype, &more.linetype)
+            {
+                all.extend(more);
+            }
+        }
+    }
+    whole
+}
+
+/// The row and the column of each of `n` panels, counted from 1, laid in rows from the top
+/// left: one row for three panels or fewer, two for six, three for twelve, and for more as
+/// many columns as the square root of their number, rounded up, with the rows they fill.
+pub fn rows_and_columns(n: usize) -> Vec<(usize, usize)> {
+    let columns = match n {
+        0..=3 => n.max(1),
+        4..=6 => n.div_ceil(2),
+        7..=12 => n.div_ceil(3),
+        _ => (1..=n).find(|c| c * c >= n).unwrap_or(n),
+    };
+    (0..n).map(|i| (i / columns + 1, i % columns + 1)).collect()
+}
+
+/// The marks of a layer that stand in one panel: the layer with those of its marks, in
+/// their order, whose rows are the panel's. `of` is the panel of each mark.
+fn dealt(layer: &Layer, of: &[usize], panel: usize) -> Layer {
+    let marks = of.len();
+    let pick = |all: &Vec<f64>| -> Vec<f64> {
+        if all.len() == marks {
+            all.iter()
+                .zip(of)
+                .filter(|(_, at)| **at == panel)
+                .map(|(value, _)| *value)
+                .collect()
+        } else {
+            all.clone()
+        }
+    };
+    let pick_places = |all: &Vec<usize>| -> Vec<usize> {
+        if all.len() == marks {
+            all.iter()
+                .zip(of)
+                .filter(|(_, at)| **at == panel)
+                .map(|(value, _)| *value)
+                .collect()
+        } else {
+            all.clone()
+        }
+    };
+    Layer {
+        mark: layer.mark,
+        x: pick(&layer.x),
+        y: pick(&layer.y),
+        color: match &layer.color {
+            Paint::Scaled(values) => Paint::Scaled(pick(values)),
+            other => other.clone(),
+        },
+        size: match &layer.size {
+            Sizing::Scaled(values) => Sizing::Scaled(pick(values)),
+            other => other.clone(),
+        },
+        shape: match &layer.shape {
+            Shaping::Scaled(values) => Shaping::Scaled(pick(values)),
+            other => other.clone(),
+        },
+        alpha: layer.alpha,
+        data: layer.data.clone(),
+        rows: pick_places(&layer.rows),
+        z: layer.z.clone(),
+        raster: layer.raster,
+        line: pick_places(&layer.line),
+        linetype: match &layer.linetype {
+            Lining::Scaled(values) => Lining::Scaled(pick(values)),
+            other => other.clone(),
+        },
+        width: layer.width,
+        low: pick(&layer.low),
+        fill: match &layer.fill {
+            Paint::Scaled(values) => Paint::Scaled(pick(values)),
+            other => other.clone(),
+        },
+        span: pick(&layer.span),
+        label: if layer.label.len() == marks {
+            layer
+                .label
+                .iter()
+                .zip(of)
+                .filter(|(_, at)| **at == panel)
+                .map(|(words, _)| words.clone())
+                .collect()
+        } else {
+            layer.label.clone()
+        },
+        nudge: layer.nudge,
+    }
+}
+
 /// The scene of a plot.
 pub fn scene<'a>(plot: &'a Plot) -> Scene {
     let colourings: Vec<Colouring<'_>> = [
@@ -2121,6 +2359,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         if !notes.contains(&text) {
             notes.push(text);
         }
+    };
+    // The panels of a plot with facets, and the panel of each row of each layer.
+    let parts = parting(plot);
+    let panel_of = |at: usize| -> Option<&[usize]> {
+        parts
+            .as_ref()
+            .and_then(|parts| parts.of.get(at))
+            .and_then(|of| of.as_deref())
     };
     let mut layers: Vec<Layer> = Vec::new();
     // For each layer, the rows its marks are drawn from.
@@ -2207,6 +2453,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         how,
                         layer.width.unwrap_or(BAR_WIDTH),
                         alone(across_dates),
+                        panel_of(at),
                     );
                     let mut needs = vec![x];
                     needs.extend(height);
@@ -2300,20 +2547,59 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                     let keys = parted();
                     let lower = bottom.map(|edge| place(layer, edge));
                     let (across, upper) = (place(layer, Aesthetic::X), place(layer, top));
-                    let lines = match layer.mark {
-                        Mark::Area(Stacking::Stack | Stacking::Share) => stacked(
-                            across.as_deref(),
-                            upper.as_deref(),
-                            &keys,
-                            layer.mark == Mark::Area(Stacking::Share),
-                        ),
-                        _ => joined(
-                            across.as_deref(),
-                            // A band whose lower edge is not there draws nothing.
-                            upper.as_deref().filter(|_| !matches!(lower, Some(None))),
-                            lower.as_ref().and_then(|edge| edge.as_deref()),
-                            &keys,
-                        ),
+                    let share = layer.mark == Mark::Area(Stacking::Share);
+                    let lines = match (layer.mark, panel_of(at), &parts) {
+                        // In a plot parted into panels each panel has its own stacks: they
+                        // are built panel by panel, and their marks follow one another.
+                        (Mark::Area(Stacking::Stack | Stacking::Share), Some(of), Some(parts)) => {
+                            let mut all = Joined::default();
+                            for panel in 0..parts.strips.len() {
+                                let one = stacked(
+                                    across.as_deref(),
+                                    upper.as_deref(),
+                                    &keys,
+                                    share,
+                                    Some((of, panel)),
+                                );
+                                let lines_before = all.line.iter().copied().max().unwrap_or(0);
+                                all.points.x.extend(one.points.x);
+                                all.points.y.extend(one.points.y);
+                                all.points.rows.extend(one.points.rows);
+                                all.points.missing += one.points.missing;
+                                all.points.infinite += one.points.infinite;
+                                all.points.negative += one.points.negative;
+                                all.line
+                                    .extend(one.line.into_iter().map(|line| line + lines_before));
+                                all.low.extend(one.low);
+                                all.breaks += one.breaks;
+                                all.infinite_y |= one.infinite_y;
+                                all.alone += one.alone;
+                                all.left = (all.left.0 + one.left.0, all.left.1 + one.left.1);
+                                all.unfit = (all.unfit.0 + one.unfit.0, all.unfit.1 + one.unfit.1);
+                            }
+                            all
+                        }
+                        (Mark::Area(Stacking::Stack | Stacking::Share), _, _) => {
+                            stacked(across.as_deref(), upper.as_deref(), &keys, share, None)
+                        }
+                        _ => {
+                            // A line, an area and a band stay in their panel: the panel
+                            // parts the rows into groups as a colour does.
+                            let mut keys = keys;
+                            if let (Some(of), Some(parts)) = (panel_of(at), &parts) {
+                                keys.push(Categories {
+                                    labels: parts.strips.clone(),
+                                    of: of.iter().map(|panel| Some(*panel)).collect(),
+                                });
+                            }
+                            joined(
+                                across.as_deref(),
+                                // A band whose lower edge is not there draws nothing.
+                                upper.as_deref().filter(|_| !matches!(lower, Some(None))),
+                                lower.as_ref().and_then(|edge| edge.as_deref()),
+                                &keys,
+                            )
+                        }
                     };
                     // The variables a row needs, and the words for what is drawn.
                     let edge = bottom.and_then(named);
@@ -2932,21 +3218,55 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             .then(|| aesthetic.name())
     };
     let (x, y) = (placed_by(Aesthetic::X), placed_by(Aesthetic::Y));
-    Scene {
-        rows: 1,
-        columns: 1,
-        scales,
-        axes,
-        legends,
-        panels: vec![Panel {
+    // The panels: one, or one for each value of the facets, laid in rows. The marks of a
+    // layer are dealt to the panels by the rows they are drawn from; a layer whose frame
+    // lacks a variable of the facets is drawn whole in every panel.
+    let panels: Vec<Panel> = match &parts {
+        None => vec![Panel {
             row: 1,
             column: 1,
+            strip: None,
             x,
             y,
             layers,
             projection: None,
             crs: None,
         }],
+        Some(parts) => {
+            let of: Vec<Option<Vec<usize>>> = (0..layers.len())
+                .map(|at| panel_of(at).map(|rows| kept[at].iter().map(|row| rows[*row]).collect()))
+                .collect();
+            rows_and_columns(parts.strips.len())
+                .into_iter()
+                .zip(&parts.strips)
+                .enumerate()
+                .map(|(panel, ((row, column), strip))| Panel {
+                    row,
+                    column,
+                    strip: Some(strip.clone()),
+                    x,
+                    y,
+                    layers: layers
+                        .iter()
+                        .zip(&of)
+                        .map(|(layer, of)| match of {
+                            Some(of) => dealt(layer, of, panel),
+                            None => layer.clone(),
+                        })
+                        .collect(),
+                    projection: None,
+                    crs: None,
+                })
+                .collect()
+        }
+    };
+    Scene {
+        rows: panels.iter().map(|panel| panel.row).max().unwrap_or(1),
+        columns: panels.iter().map(|panel| panel.column).max().unwrap_or(1),
+        scales,
+        axes,
+        legends,
+        panels,
         notes,
         legend: plot.legend,
         coord: plot.coord,
@@ -3401,6 +3721,26 @@ impl Scene {
             .chain(
                 (self.coord != Coord::Cartesian).then(|| ("coord", Json::text(self.coord.name()))),
             )
+            // What is written over each panel of a plot parted into panels, in the order
+            // of the panels.
+            .chain(
+                self.panels
+                    .iter()
+                    .any(|panel| panel.strip.is_some())
+                    .then(|| {
+                        (
+                            "strips",
+                            Json::List(
+                                self.panels
+                                    .iter()
+                                    .map(|panel| {
+                                        Json::text(panel.strip.clone().unwrap_or_default())
+                                    })
+                                    .collect(),
+                            ),
+                        )
+                    }),
+            )
             // With fixed coordinates, how many units of `x` are as long as one of `y`.
             .chain(match self.coord {
                 Coord::Fixed(ratio) => Some(("ratio", Json::Number(ratio))),
@@ -3578,7 +3918,18 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             ]);
         }
     }
-    let layers: Vec<&Layer> = scene.panels.iter().flat_map(|p| p.layers.iter()).collect();
+    // The layers as the script wrote them: in a plot parted into panels, each with the marks
+    // of all its panels.
+    let whole: Vec<Layer> = if scene.panels.len() > 1 {
+        whole_layers(scene)
+    } else {
+        Vec::new()
+    };
+    let layers: Vec<&Layer> = if scene.panels.len() > 1 {
+        whole.iter().collect()
+    } else {
+        scene.panels.iter().flat_map(|p| p.layers.iter()).collect()
+    };
 
     // The aesthetics other than the positions: a line for each that a variable is mapped to or
     // that is set to one value for every mark.
@@ -3866,7 +4217,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
                 settings.push_str(&format!(", group by {}", mapping.variable));
             }
-            let lines = layer.line.last().copied().unwrap_or(0);
+            let lines = layer.line.iter().copied().max().unwrap_or(0);
             settings.push_str(&format!(
                 ", {} {}",
                 count(lines as u64),
@@ -3921,7 +4272,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
                 settings.push_str(&format!(", group by {}", mapping.variable));
             }
-            let pieces = layer.line.last().copied().unwrap_or(0);
+            let pieces = layer.line.iter().copied().max().unwrap_or(0);
             let (one, many) = if layer.mark == Mark::Ribbon {
                 ("band", "bands")
             } else {
@@ -4001,6 +4352,14 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         }
     }
     drawn.after.extend(placed.map(str::to_string));
+    // The panels, where the plot is parted into them.
+    if let Some(facet) = plot.facet.as_ref().filter(|_| scene.panels.len() > 1) {
+        drawn.after.push(format!(
+            "panels: {} by {}",
+            count(scene.panels.len() as u64),
+            listed(&facet.by)
+        ));
+    }
     // The coordinates, when they are not cartesian.
     match scene.coord {
         Coord::Cartesian => {}
@@ -4057,6 +4416,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         labels: PlotLabels::default(),
         theme: PlotTheme::default(),
         coord: Coord::Cartesian,
+        facet: None,
         summary: Table {
             title: String::new(),
             before: Vec::new(),
