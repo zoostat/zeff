@@ -41,6 +41,21 @@
 //!
 //! **Legends.** A legend is the guide of every scale that shows one variable: with `color` and
 //! `shape` mapped to one variable there is one legend, whose keys carry both.
+//!
+//! **Where a mark came from** (open decision #118, F2). Each layer names the frame it draws,
+//! `data`, by the binding the script gave it, and holds in `rows` the row of that frame behind
+//! each mark, counted from 1, so that a viewer can show the row under the pointer and select
+//! the rows of the marks brushed. They belong to the viewer's scene alone: a drawing made from
+//! a scene ([`crate::drawing`], from step 21b) has neither, and so no exported figure carries a
+//! row of the data.
+//!
+//! **Reserved for later** (F3 and F4). Version 1 keeps four names for what later releases
+//! draw: `frame` on the scene, the place of a scene in an animation; `z` on a layer, a third
+//! coordinate, with `projection` on its panel; and `crs` on a panel, the coordinate system of a
+//! map. No scene of this release holds one, and their JSON is written only when present. A
+//! reader that meets one it does not draw must refuse the scene and say so, never draw it
+//! without ([`Scene::undrawn`]). A layer also has the flag `raster`, false in this release:
+//! true asks a writer of vector figures to draw that one layer as a grid of pixels.
 
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
@@ -95,6 +110,8 @@ pub struct Scene {
     /// What the reader must be told about the data drawn: the rows dropped and why, each
     /// sentence once.
     pub notes: Vec<String>,
+    /// Reserved: the place of this scene in an animation. `None` in this release.
+    pub frame: Option<usize>,
 }
 
 /// A scale: how the values of an aesthetic are placed, coloured, sized or shaped, with the
@@ -194,6 +211,10 @@ pub struct Panel {
     pub x: Option<&'static str>,
     pub y: Option<&'static str>,
     pub layers: Vec<Layer>,
+    /// Reserved: how a third coordinate is brought to the page. `None` in this release.
+    pub projection: Option<String>,
+    /// Reserved: the coordinate system of a map. `None` in this release.
+    pub crs: Option<String>,
 }
 
 /// One layer of marks, in data coordinates: mark `i` is at (`x[i]`, `y[i]`).
@@ -207,6 +228,16 @@ pub struct Layer {
     pub shape: Shaping,
     /// The opacity, from 0 to 1.
     pub alpha: f64,
+    /// The frame the layer draws, by the binding the script gave it; `None` for a frame
+    /// written in place.
+    pub data: Option<String>,
+    /// The row of that frame behind each mark, counted from 1: mark `i` is row `rows[i]`.
+    pub rows: Vec<usize>,
+    /// Reserved: a third coordinate for each mark. `None` in this release.
+    pub z: Option<Vec<f64>>,
+    /// Whether a writer of vector figures draws this layer as a grid of pixels. False in this
+    /// release.
+    pub raster: bool,
 }
 
 /// The colour of the marks of a layer.
@@ -947,6 +978,10 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             size: Sizing::Constant(size),
             shape: Shaping::Constant(outline),
             alpha: layer.alpha,
+            data: layer.data.as_ref().unwrap_or(&plot.frame).name.clone(),
+            rows: points.rows.iter().map(|row| row + 1).collect(),
+            z: None,
+            raster: false,
         });
         kept.push(points.rows);
     }
@@ -1048,8 +1083,11 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             x: x.map(|_| Aesthetic::X.name()),
             y: y.map(|_| Aesthetic::Y.name()),
             layers,
+            projection: None,
+            crs: None,
         }],
         notes,
+        frame: None,
     }
 }
 
@@ -1062,160 +1100,244 @@ impl Scene {
     /// The scene as its JSON value, the keys in a fixed order.
     pub fn json(&self) -> Json {
         let name = |id: Option<&'static str>| id.map_or(Json::Null, Json::text);
-        Json::Object(vec![
-            ("zeff_scene", Json::Number(f64::from(SCENE_VERSION))),
-            (
-                "layout",
-                Json::Object(vec![
-                    ("rows", Json::whole(self.rows)),
-                    ("columns", Json::whole(self.columns)),
-                ]),
-            ),
-            (
-                "scales",
-                Json::List(
-                    self.scales
-                        .iter()
-                        .map(|s| {
-                            Json::Object(vec![
-                                ("id", Json::text(s.id)),
-                                ("kind", Json::text(s.kind.name())),
-                                ("title", Json::text(s.title.as_str())),
-                                ("limits", Json::numbers(&[s.limits.0, s.limits.1])),
-                                ("breaks", Json::numbers(&s.breaks)),
-                                ("labels", Json::texts(&s.labels)),
-                                (
-                                    "range",
-                                    match &s.range {
-                                        Range::Position => Json::Null,
-                                        Range::Colours(names) | Range::Shapes(names) => Json::List(
-                                            names.iter().map(|c| Json::text(*c)).collect(),
-                                        ),
-                                        Range::Sizes(least, largest) => {
-                                            Json::numbers(&[*least, *largest])
-                                        }
-                                    },
-                                ),
-                            ])
-                        })
-                        .collect(),
+        Json::Object(
+            vec![
+                ("zeff_scene", Json::Number(f64::from(SCENE_VERSION))),
+                (
+                    "layout",
+                    Json::Object(vec![
+                        ("rows", Json::whole(self.rows)),
+                        ("columns", Json::whole(self.columns)),
+                    ]),
                 ),
-            ),
-            (
-                "guides",
-                Json::Object(vec![
-                    (
-                        "axes",
-                        Json::List(
-                            self.axes
-                                .iter()
-                                .map(|a| {
-                                    Json::Object(vec![
-                                        ("scale", Json::text(a.scale)),
-                                        ("position", Json::text(a.position.name())),
-                                    ])
-                                })
-                                .collect(),
-                        ),
+                (
+                    "scales",
+                    Json::List(
+                        self.scales
+                            .iter()
+                            .map(|s| {
+                                Json::Object(vec![
+                                    ("id", Json::text(s.id)),
+                                    ("kind", Json::text(s.kind.name())),
+                                    ("title", Json::text(s.title.as_str())),
+                                    ("limits", Json::numbers(&[s.limits.0, s.limits.1])),
+                                    ("breaks", Json::numbers(&s.breaks)),
+                                    ("labels", Json::texts(&s.labels)),
+                                    (
+                                        "range",
+                                        match &s.range {
+                                            Range::Position => Json::Null,
+                                            Range::Colours(names) | Range::Shapes(names) => {
+                                                Json::List(
+                                                    names.iter().map(|c| Json::text(*c)).collect(),
+                                                )
+                                            }
+                                            Range::Sizes(least, largest) => {
+                                                Json::numbers(&[*least, *largest])
+                                            }
+                                        },
+                                    ),
+                                ])
+                            })
+                            .collect(),
                     ),
-                    (
-                        "legends",
-                        Json::List(
-                            self.legends
-                                .iter()
-                                .map(|l| {
-                                    Json::Object(vec![
-                                        ("title", Json::text(l.title.as_str())),
-                                        (
-                                            "scales",
-                                            Json::List(
-                                                l.scales.iter().map(|s| Json::text(*s)).collect(),
+                ),
+                (
+                    "guides",
+                    Json::Object(vec![
+                        (
+                            "axes",
+                            Json::List(
+                                self.axes
+                                    .iter()
+                                    .map(|a| {
+                                        Json::Object(vec![
+                                            ("scale", Json::text(a.scale)),
+                                            ("position", Json::text(a.position.name())),
+                                        ])
+                                    })
+                                    .collect(),
+                            ),
+                        ),
+                        (
+                            "legends",
+                            Json::List(
+                                self.legends
+                                    .iter()
+                                    .map(|l| {
+                                        Json::Object(vec![
+                                            ("title", Json::text(l.title.as_str())),
+                                            (
+                                                "scales",
+                                                Json::List(
+                                                    l.scales
+                                                        .iter()
+                                                        .map(|s| Json::text(*s))
+                                                        .collect(),
+                                                ),
                                             ),
-                                        ),
+                                            (
+                                                "marks",
+                                                Json::List(
+                                                    l.marks
+                                                        .iter()
+                                                        .map(|m| Json::text(m.name()))
+                                                        .collect(),
+                                                ),
+                                            ),
+                                        ])
+                                    })
+                                    .collect(),
+                            ),
+                        ),
+                    ]),
+                ),
+                (
+                    "panels",
+                    Json::List(
+                        self.panels
+                            .iter()
+                            .map(|p| {
+                                Json::Object(
+                                    vec![
+                                        ("row", Json::whole(p.row)),
+                                        ("column", Json::whole(p.column)),
+                                        ("x", name(p.x)),
+                                        ("y", name(p.y)),
                                         (
-                                            "marks",
+                                            "layers",
                                             Json::List(
-                                                l.marks
+                                                p.layers
                                                     .iter()
-                                                    .map(|m| Json::text(m.name()))
+                                                    .map(|l| {
+                                                        Json::Object(
+                                                            vec![
+                                                                ("mark", Json::text(l.mark.name())),
+                                                                ("x", Json::numbers(&l.x)),
+                                                                ("y", Json::numbers(&l.y)),
+                                                                (
+                                                                    "color",
+                                                                    match &l.color {
+                                                                        Paint::Theme => Json::Null,
+                                                                        Paint::Constant(hex) => {
+                                                                            Json::text(hex.as_str())
+                                                                        }
+                                                                        Paint::Scaled(values) => {
+                                                                            Json::numbers(values)
+                                                                        }
+                                                                    },
+                                                                ),
+                                                                (
+                                                                    "size",
+                                                                    match &l.size {
+                                                                        Sizing::Constant(
+                                                                            across,
+                                                                        ) => Json::Number(*across),
+                                                                        Sizing::Scaled(values) => {
+                                                                            Json::numbers(values)
+                                                                        }
+                                                                    },
+                                                                ),
+                                                                (
+                                                                    "shape",
+                                                                    match &l.shape {
+                                                                        Shaping::Constant(name) => {
+                                                                            Json::text(*name)
+                                                                        }
+                                                                        Shaping::Scaled(values) => {
+                                                                            Json::numbers(values)
+                                                                        }
+                                                                    },
+                                                                ),
+                                                                ("alpha", Json::Number(l.alpha)),
+                                                                (
+                                                                    "data",
+                                                                    match &l.data {
+                                                                        Some(name) => Json::text(
+                                                                            name.as_str(),
+                                                                        ),
+                                                                        None => Json::Null,
+                                                                    },
+                                                                ),
+                                                                (
+                                                                    "rows",
+                                                                    Json::List(
+                                                                        l.rows
+                                                                            .iter()
+                                                                            .map(|row| {
+                                                                                Json::whole(*row)
+                                                                            })
+                                                                            .collect(),
+                                                                    ),
+                                                                ),
+                                                            ]
+                                                            .into_iter()
+                                                            .chain(
+                                                                l.z.as_ref().map(|z| {
+                                                                    ("z", Json::numbers(z))
+                                                                }),
+                                                            )
+                                                            .chain(l.raster.then_some((
+                                                                "raster",
+                                                                Json::Bool(true),
+                                                            )))
+                                                            .collect(),
+                                                        )
+                                                    })
                                                     .collect(),
                                             ),
                                         ),
-                                    ])
-                                })
-                                .collect(),
-                        ),
+                                    ]
+                                    .into_iter()
+                                    .chain(
+                                        p.projection
+                                            .as_ref()
+                                            .map(|how| ("projection", Json::text(how.as_str()))),
+                                    )
+                                    .chain(
+                                        p.crs.as_ref().map(|crs| ("crs", Json::text(crs.as_str()))),
+                                    )
+                                    .collect(),
+                                )
+                            })
+                            .collect(),
                     ),
-                ]),
-            ),
-            (
-                "panels",
-                Json::List(
-                    self.panels
-                        .iter()
-                        .map(|p| {
-                            Json::Object(vec![
-                                ("row", Json::whole(p.row)),
-                                ("column", Json::whole(p.column)),
-                                ("x", name(p.x)),
-                                ("y", name(p.y)),
-                                (
-                                    "layers",
-                                    Json::List(
-                                        p.layers
-                                            .iter()
-                                            .map(|l| {
-                                                Json::Object(vec![
-                                                    ("mark", Json::text(l.mark.name())),
-                                                    ("x", Json::numbers(&l.x)),
-                                                    ("y", Json::numbers(&l.y)),
-                                                    (
-                                                        "color",
-                                                        match &l.color {
-                                                            Paint::Theme => Json::Null,
-                                                            Paint::Constant(hex) => {
-                                                                Json::text(hex.as_str())
-                                                            }
-                                                            Paint::Scaled(values) => {
-                                                                Json::numbers(values)
-                                                            }
-                                                        },
-                                                    ),
-                                                    (
-                                                        "size",
-                                                        match &l.size {
-                                                            Sizing::Constant(across) => {
-                                                                Json::Number(*across)
-                                                            }
-                                                            Sizing::Scaled(values) => {
-                                                                Json::numbers(values)
-                                                            }
-                                                        },
-                                                    ),
-                                                    (
-                                                        "shape",
-                                                        match &l.shape {
-                                                            Shaping::Constant(name) => {
-                                                                Json::text(*name)
-                                                            }
-                                                            Shaping::Scaled(values) => {
-                                                                Json::numbers(values)
-                                                            }
-                                                        },
-                                                    ),
-                                                    ("alpha", Json::Number(l.alpha)),
-                                                ])
-                                            })
-                                            .collect(),
-                                    ),
-                                ),
-                            ])
-                        })
-                        .collect(),
                 ),
-            ),
-            ("notes", Json::texts(&self.notes)),
-        ])
+                ("notes", Json::texts(&self.notes)),
+            ]
+            .into_iter()
+            .chain(self.frame.map(|frame| ("frame", Json::whole(frame))))
+            .collect(),
+        )
+    }
+
+    /// What this scene holds that this version of Zeff does not draw, as a sentence for the
+    /// reader, or `None` when it can be drawn: a name reserved for a later release (`frame`,
+    /// `z`, `projection`, `crs`) with a value. A writer asks before it draws, and refuses.
+    pub fn undrawn(&self) -> Option<String> {
+        let reserved = if self.frame.is_some() {
+            Some(("frame", "the place of a scene in an animation"))
+        } else if self.panels.iter().any(|p| p.crs.is_some()) {
+            Some(("crs", "the coordinate system of a map"))
+        } else if self.panels.iter().any(|p| p.projection.is_some()) {
+            Some((
+                "projection",
+                "how a third coordinate is brought to the page",
+            ))
+        } else if self
+            .panels
+            .iter()
+            .any(|p| p.layers.iter().any(|l| l.z.is_some()))
+        {
+            Some(("z", "a third coordinate"))
+        } else {
+            None
+        };
+        reserved.map(|(name, meaning)| {
+            format!(
+                "this scene holds `{name}`, {meaning}, which this version of Zeff does not draw; it was made by a later version, which can draw it"
+            )
+        })
     }
 
     /// The scene as JSON text, the form the writers and Zemp read.

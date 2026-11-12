@@ -55,7 +55,9 @@ expression: drawn.to_json()
           "color": null,
           "size": 4.5,
           "shape": "circle",
-          "alpha": 1
+          "alpha": 1,
+          "data": "d",
+          "rows": [1, 2, 3, 4, 5, 6]
         },
         {
           "mark": "points",
@@ -64,7 +66,9 @@ expression: drawn.to_json()
           "color": null,
           "size": 8,
           "shape": "circle",
-          "alpha": 0.5
+          "alpha": 0.5,
+          "data": "means",
+          "rows": [1, 2, 3]
         }
       ]
     }

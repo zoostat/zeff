@@ -55,7 +55,9 @@ expression: "with_layer(&p, points()).1.to_json()"
           "color": null,
           "size": 6,
           "shape": "triangle_open",
-          "alpha": 1
+          "alpha": 1,
+          "data": "d",
+          "rows": [1, 2, 3]
         }
       ]
     }

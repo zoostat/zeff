@@ -2299,7 +2299,10 @@ proptest! {
                 .lines()
                 .filter(|l| {
                     let l = l.trim_start();
-                    !(l.starts_with("\"x\": [") || l.starts_with("\"y\": [") || l.starts_with("\"color\": ["))
+                    !(l.starts_with("\"x\": [")
+                        || l.starts_with("\"y\": [")
+                        || l.starts_with("\"color\": [")
+                        || l.starts_with("\"rows\": ["))
                 })
                 .collect::<Vec<_>>()
                 .join("\n")
@@ -2435,7 +2438,7 @@ proptest! {
                 .lines()
                 .filter(|l| {
                     let l = l.trim_start();
-                    !["\"x\": [", "\"y\": [", "\"size\": [", "\"shape\": ["]
+                    !["\"x\": [", "\"y\": [", "\"size\": [", "\"shape\": [", "\"rows\": ["]
                         .iter()
                         .any(|opening| l.starts_with(opening))
                 })
@@ -2581,7 +2584,10 @@ proptest! {
         let without_marks = |s: &Scene| -> String {
             s.to_json()
                 .lines()
-                .filter(|l| !(l.trim_start().starts_with("\"x\": [") || l.trim_start().starts_with("\"y\": [")))
+                .filter(|l| {
+                    let l = l.trim_start();
+                    !(l.starts_with("\"x\": [") || l.starts_with("\"y\": [") || l.starts_with("\"rows\": ["))
+                })
                 .collect::<Vec<_>>()
                 .join("\n")
         };
@@ -2687,5 +2693,188 @@ proptest! {
         }
         prop_assert_eq!(scene(&mapped).to_json(), scene(&plain).to_json());
         prop_assert_eq!(layers(&mapped, handed).to_json(), layers(&plain, Vec::new()).to_json());
+    }
+}
+
+// ----- where a mark came from, and what version 1 reserves (step 21a2; #118, F2 to F4) -----
+
+#[test]
+fn each_mark_knows_the_frame_and_the_row_it_came_from() {
+    // Rows 2 and 5 cannot be drawn: the marks are rows 1, 3, 4 and 6 of the frame `d`.
+    let x = [Some(1.0), None, Some(3.0), Some(4.0), Some(5.0), Some(6.0)];
+    let y = [
+        Some(2.0),
+        Some(1.0),
+        Some(0.5),
+        Some(7.0),
+        Some(f64::INFINITY),
+        Some(9.0),
+    ];
+    let drawn = scatter(&x, &y);
+    let layer = &drawn.panels[0].layers[0];
+    assert_eq!(layer.data.as_deref(), Some("d"));
+    assert_eq!(layer.rows, [1, 3, 4, 6]);
+    assert_eq!(layer.x, [1.0, 3.0, 4.0, 6.0]);
+    // Jitter moves a mark and not the row behind it; a layer with a frame of its own names
+    // that frame and counts its rows; a frame written in place has no name to give.
+    let p = plot(
+        frame("d", vec![("x", floats(&x)), ("y", floats(&y))]),
+        Some("x"),
+        Some("y"),
+    );
+    let (p, _) = with_layer(&p, jittered(0.4, 7));
+    let other = frame(
+        "means",
+        vec![
+            ("x", numbers(&[9.0, f64::NAN, 2.0])),
+            ("y", numbers(&[1.0, 2.0, 3.0])),
+        ],
+    );
+    let (p, _) = with_layer(&p, own(other));
+    let mut unnamed = frame("gone", vec![("x", numbers(&[5.0])), ("y", numbers(&[5.0]))]);
+    unnamed.name = None;
+    let (_, drawn) = with_layer(&p, own(unnamed));
+    let layers = &drawn.panels[0].layers;
+    assert_eq!(layers[0].rows, [1, 3, 4, 6]);
+    assert_eq!(layers[0].data.as_deref(), Some("d"));
+    assert_eq!(layers[1].rows, [1, 3]);
+    assert_eq!(layers[1].data.as_deref(), Some("means"));
+    assert_eq!(layers[2].rows, [1]);
+    assert_eq!(layers[2].data, None);
+    // In the JSON of the scene, which the viewer reads.
+    let json = drawn.to_json();
+    assert!(
+        json.contains("\"data\": \"d\",\n          \"rows\": [1, 3, 4, 6]"),
+        "{json}"
+    );
+    assert!(
+        json.contains("\"data\": \"means\",\n          \"rows\": [1, 3]"),
+        "{json}"
+    );
+    assert!(
+        json.contains("\"data\": null,\n          \"rows\": [1]"),
+        "{json}"
+    );
+    // No layer: nothing to say of rows.
+    assert!(
+        scene(&plot(doses(), Some("dose"), Some("response"))).panels[0]
+            .layers
+            .is_empty()
+    );
+}
+
+#[test]
+fn version_1_reserves_four_names_and_a_scene_that_holds_one_is_not_drawn() {
+    let drawn = scatter(&some(&[1.0, 2.0, 3.0]), &some(&[2.0, 1.0, 4.0]));
+    // A scene of this release holds none of them, in the value or in its JSON.
+    assert_eq!(drawn.undrawn(), None);
+    assert_eq!(drawn.frame, None);
+    assert!(
+        drawn
+            .panels
+            .iter()
+            .all(|p| p.crs.is_none() && p.projection.is_none())
+    );
+    assert!(
+        drawn.panels[0]
+            .layers
+            .iter()
+            .all(|l| l.z.is_none() && !l.raster)
+    );
+    let json = drawn.to_json();
+    for name in ["frame", "\"z\"", "projection", "crs", "raster"] {
+        assert!(!json.contains(name), "{name} in {json}");
+    }
+    // Each, given a value, is written, and the scene says it cannot be drawn here.
+    let mut animated = drawn.clone();
+    animated.frame = Some(3);
+    assert!(
+        animated
+            .to_json()
+            .contains("\"notes\": [],\n  \"frame\": 3\n}"),
+        "{}",
+        animated.to_json()
+    );
+    assert_eq!(
+        animated.undrawn().as_deref(),
+        Some(
+            "this scene holds `frame`, the place of a scene in an animation, which this version of Zeff does not draw; it was made by a later version, which can draw it"
+        )
+    );
+    let mut mapped = drawn.clone();
+    mapped.panels[0].crs = Some("EPSG:4326".to_string());
+    assert!(mapped.to_json().contains("\"crs\": \"EPSG:4326\""));
+    assert!(
+        mapped
+            .undrawn()
+            .unwrap()
+            .starts_with("this scene holds `crs`, the coordinate system of a map,")
+    );
+    let mut solid = drawn.clone();
+    solid.panels[0].projection = Some("perspective".to_string());
+    assert!(solid.to_json().contains("\"projection\": \"perspective\""));
+    assert!(
+        solid
+            .undrawn()
+            .unwrap()
+            .starts_with("this scene holds `projection`,")
+    );
+    let mut deep = drawn.clone();
+    deep.panels[0].layers[0].z = Some(vec![0.5, 1.5, 2.5]);
+    assert!(
+        deep.to_json()
+            .contains("\"rows\": [1, 2, 3],\n          \"z\": [0.5, 1.5, 2.5]"),
+        "{}",
+        deep.to_json()
+    );
+    assert!(
+        deep.undrawn()
+            .unwrap()
+            .starts_with("this scene holds `z`, a third coordinate,")
+    );
+    // The flag of a layer drawn as pixels is written when it is set, and is no refusal: a
+    // writer that cannot rasterise draws the layer as it draws the others.
+    let mut pixels = drawn.clone();
+    pixels.panels[0].layers[0].raster = true;
+    assert!(
+        pixels
+            .to_json()
+            .contains("\"rows\": [1, 2, 3],\n          \"raster\": true"),
+        "{}",
+        pixels.to_json()
+    );
+    assert_eq!(pixels.undrawn(), None);
+    // Every changed scene still reads as JSON.
+    for changed in [&animated, &mapped, &solid, &deep, &pixels] {
+        assert!(serde_json::from_str::<serde_json::Value>(&changed.to_json()).is_ok());
+    }
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(200)))]
+
+    #[test]
+    fn the_rows_of_a_layer_are_those_of_its_marks_in_order(rows in rows(), share in 0.0f64..1.0, seed in 0u64..1000) {
+        let (x, y) = columns(&rows);
+        let p = plot(frame("d", vec![("x", floats(&x)), ("y", floats(&y))]), Some("x"), Some("y"));
+        let (p, plain) = with_layer(&p, points());
+        let (_, moved) = with_layer(&p, jittered(share, seed));
+        let layer = &plain.panels[0].layers[0];
+        // One row for each mark, rising, each a row of the frame that can be drawn; and the
+        // mark is that row's values.
+        prop_assert_eq!(layer.rows.len(), layer.x.len());
+        prop_assert!(layer.rows.windows(2).all(|w| w[0] < w[1]));
+        for (i, &row) in layer.rows.iter().enumerate() {
+            prop_assert!(row >= 1 && row <= x.len());
+            prop_assert_eq!(Some(layer.x[i].to_bits()), x[row - 1].map(f64::to_bits));
+            prop_assert_eq!(Some(layer.y[i].to_bits()), y[row - 1].map(f64::to_bits));
+        }
+        // Every row that can be drawn is there.
+        let drawable = (0..x.len())
+            .filter(|&i| matches!((x[i], y[i]), (Some(a), Some(b)) if a.is_finite() && b.is_finite()))
+            .count();
+        prop_assert_eq!(layer.rows.len(), drawable);
+        // A jittered layer has the same rows.
+        prop_assert_eq!(&moved.panels[0].layers[1].rows, &layer.rows);
     }
 }

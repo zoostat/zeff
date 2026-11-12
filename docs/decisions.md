@@ -2986,3 +2986,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 21a; section 7.6 of the Language Reference ("its own fonts embedded … never the system's"); the determinism rules of section 8.3 of the Engine Specification.
 
+## 12 November 2026: what the scene keeps for the viewer and reserves for later (release 0.7.0, step 21a2)
+
+**The split.** Step 21b (the layout and the journal theme) also held the additions to the scene that open decision #118 asks for. They are a change of their own, with their own snapshots, and were split off as step 21a2, done first.
+
+**F2, where a mark came from.** Each layer of a scene now has `data`, the frame it draws by the binding the script gave it (`null` for a frame written in place), and `rows`, the row of that frame behind each mark, counted from 1 as a reader counts rows. The scene already knew the rows, to carry each colour and size with its mark; it now says them. They are for the viewer: the row under the pointer, the rows brushed. The row is counted in the frame the layer draws, so after `where` it is the row of the frame kept. A drawing (step 21b) is made from a scene without them, and the test that no export holds a row is written with the writer at step 21c.
+
+**F3, names reserved.** Version 1 reserves `frame` on the scene (the place of a scene in an animation), `z` on a layer with `projection` on its panel (a third coordinate and how it is brought to the page), and `crs` on a panel (the coordinate system of a map). The proposal names a frame index, a `z` coordinate "with a projection" and a `crs`; `projection` is reserved with `z` so that the pair can arrive together. No scene of this release sets one, and the JSON writes a name only when it has a value, so every scene written so far is unchanged in this respect. `Scene::undrawn` returns the sentence with which a writer refuses a scene that holds one: "this scene holds `crs`, the coordinate system of a map, which this version of Zeff does not draw; it was made by a later version, which can draw it". The scene version stays 1: nothing is released, and a reader of an earlier form would not misread the new one.
+
+**F4, the raster flag.** A layer has `raster`, false in this release and written only when true. It is no refusal: a writer that cannot draw pixels draws the layer as it draws the others.
+
+**What changed in the files.** Every scene snapshot gained the two lines `data` and `rows` in each layer, and nothing else; the digests of the four conformance cases `scene.json` follow. Three property tests that compare a scene with the scene of the same rows in another order now leave the list of rows out of the comparison, as they leave the other lists that follow the order of the marks.
+
+**The specification.** Section 7.6 of the Language Reference gains the paragraph "What a scene keeps for the viewer and reserves for later", as the owner's decision on #118 says each rule enters the text when its step is built; logged in `docs/spec_changes.md`.
+
+**Dependencies.** None added.
+
+**Reason.** Open decision #118 (F2, F3, F4), adopted 11 November 2026; the checklist's step 21.
+

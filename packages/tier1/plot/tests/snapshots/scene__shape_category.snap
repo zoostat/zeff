@@ -70,7 +70,9 @@ expression: "with_layer(&p, points()).1.to_json()"
           "color": null,
           "size": 4.5,
           "shape": [2, 1, 3, 2, 1],
-          "alpha": 1
+          "alpha": 1,
+          "data": "d",
+          "rows": [1, 2, 3, 4, 5]
         }
       ]
     }

@@ -70,7 +70,9 @@ expression: drawn.to_json()
           "color": null,
           "size": [4, 0, 16, 9],
           "shape": "circle",
-          "alpha": 1
+          "alpha": 1,
+          "data": "d",
+          "rows": [1, 2, 4, 6]
         }
       ]
     }

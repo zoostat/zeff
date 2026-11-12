@@ -158,3 +158,13 @@ Step 20 `[engine]`: the package `plot`; `w.plot(x: educ, y: wage)` starts a plot
 
 **For the owner to decide.** #126, before step 21c: how the text of an SVG is written (recommended: letters drawn as outlines). Rulings he may overturn, read with the figures at step 22: the three faces (Regular for labels, SemiBold for titles, Mono for code and aligned digits); no ligatures. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 21a2 (what the scene keeps and reserves)
+
+**Done.** Split from step 21b, which was too large. Each layer of a plot's scene now names the frame it draws and the row behind each mark, so that the viewer can later show the row under the pointer; no exported figure will carry them. The scene also reserves the names that animation, 3D and maps will need (`frame`, `z` with `projection`, `crs`), and a scene that holds one is refused with a clear sentence. A layer has a flag for being drawn as pixels. Section 7.6 of the Language Reference gained the paragraph, as the decision on #118 asks. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 250 of 250; CI is read job by job after the push.
+
+**Next.** Step 21b `[engine]`: the layout and the journal theme. Then 21c `[engine]`, which waits on open decision #126.
+
+**For the owner to decide.** #126, before step 21c (recommended: letters drawn as outlines). Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

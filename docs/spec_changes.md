@@ -467,3 +467,7 @@ The owner decided question 2 of open decision #110, "Yes, add both": eight shape
 
 Step 21 of release 0.7.0 was opened and split into steps 21a to 21d in `docs/releases/0.7.0.md`. One design question that section 7.6 of the Language Reference does not settle was met before any code: whether the text of an exported SVG is drawn as outlines or written as text with the font embedded, which decides how a figure looks in programs that ignore a font carried in an SVG. It is recorded as open decision #126, with a recommendation and the deadline "0.7.0, before step 21c". No normative text changes until the owner decides.
 
+## 12 November 2026 — Language Reference, section 7.6
+
+Step 21a2 of release 0.7.0 builds three of the fixed points the owner adopted with open decision #118 on 11 November 2026 (F2, F3 and F4), and that decision says section 7.6 gains each rule when its step is built. A paragraph, "What a scene keeps for the viewer and reserves for later", follows "Rendering and export": each layer of a scene names its frame and the row behind each mark, which no exported figure carries; version 1 reserves `frame`, `z` with `projection`, and `crs`, and a reader that does not draw one refuses the scene; a layer may be flagged `raster`. F1 follows at step 21b and F7 at step 21d.
+
