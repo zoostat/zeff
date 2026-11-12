@@ -798,7 +798,7 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                 let (variable, named) = (&colouring.mapping.variable, count(named as u64));
                 if shapes {
                     format!(
-                        "`{variable}` has {named} categories and there are {palette} shapes, so the shapes repeat from the seventh category"
+                        "`{variable}` has {named} categories and there are {palette} shapes, so the shapes repeat from the ninth category"
                     )
                 } else {
                     format!(

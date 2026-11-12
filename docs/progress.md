@@ -82,55 +82,9 @@ Step 16 `[function]`: the one-way `anova`, Welch's F by default and the classica
 
 Step 18 `[engine]`: `dist.tukey(groups:, df:)`, the studentized range, exact to 8e-15 against a reference in decimal arithmetic at 70 digits, R's `ptukey` and `qtukey` being a second check at their own lesser accuracy; `dist` stands at 19 of 19; open decision #102 (R's `nranges`) was raised, and `df:` is accepted from 1. Step 18b `[function]`: `p_adjust` gained `hochberg`, `hommel`, `sidak` and `none`, eight methods in all. Step 19 `[function]`: `posthoc` after a one-way `anova`, ten methods, Tukey's HSD the default, against `TukeyHSD`, `pairwise.t.test`, `DescTools::ScheffeTest` and `emmeans`; a comparison is the first group minus the second; the form after a factorial `anova` was split off as step 19b, and open decisions #104 (decided since, option A) and #105 (`level:` on `posthoc`) were raised, with the permission asked to install `emmeans` 2.0.4 into the project's ignored R library. Each step was green locally and on CI; `zeff selftest` stood at 235 of 235.
 
-## 11 November 2026, release 0.7.0, step 20 (the plot value, the scene and `points`)
+## 11 November 2026, steps 20 to 20c of release 0.7.0 (folded)
 
-**Done.** The package `plot` exists. `w.plot(x: educ, y: wage)` starts a plot, `.points()` adds a layer of points with `alpha:`, `size:`, seeded `jitter:` and a frame of its own (`data:`), and a plot is a value that prints as text: a header, a row for each axis (title, limits, breaks) and a row for each layer (mark, frame, number of points, settings). Behind the text is the scene, the versioned description every writer of figures will read: the points in the units of the data, the linear scales, the axes and the notes, with no pixels or fonts in it, so it is the same on every computer. Limits lie 5% beyond the data; breaks are round numbers about five steps apart, by the rule of Observable Plot. Rows with `NA` are dropped and counted in a note; rows with an infinite value in a note of their own. The wages scatter was checked against R: 18,201 points, 211 rows dropped, limits 7.4 to 20.6 and -3.913 to 159.833. The step was split: expressions in `x:` and `y:` are step 20b and the six other aesthetics step 20c. Details in `docs/decisions.md`.
-
-**A defect found, not of this step.** The seed the engine notes for an unseeded run does not repeat the run when written at the top, as the note advises: the line `seed(N)` itself, like any inserted line, shifts every later draw. The fault dates from 0.3.0 and contradicts section 8.3 and the help page of `seed`. It is step 20a, next. Its correction changes every figure drawn under `seed(n)`, in tests, help examples and conformance digests, and the release notes will say so.
-
-**Green.** Format (checked last), clippy with warnings denied, the tier and message checks, every test program of the crates touched and of the engine and command line; `zeff selftest` at 238 of 238 with the new case `plot/points`; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 20a `[engine]`: the seed noted for a run repeats it. Then 20b `[engine]` and 20c `[engine]`. Step 19b waits on #104.
-
-**For the owner to decide.** New, due at 0.7.0 before step 23: #106, whether a layer may override a mapping of its plot, for instance `.lines(y: fitted)` over points of `wage` (section 7.6 says it may, no mark of the catalogue has the option; recommended: yes, each mark takes `x:`, `y:` and the aesthetics it draws). Rulings he may overturn, in `docs/decisions.md`: the printed layout of a plot; the 5% margin and about five steps between breaks; `jitter:` as a share of the smallest gap between values; a point 4.5 points across by default. Still open: #100, #101, #102, #104, #105 and the permission for `emmeans` 2.0.4.
-
-## 11 November 2026, release 0.7.0, step 20a (the seed noted for a run repeats it)
-
-**Done.** The fault found at step 20 is corrected. A random draw is now numbered by the place of its statement among the statements that draw, not among all the statements of the script. So the seed the engine prints for a run without one, written at the top as `seed(N)`, repeats that run exactly; a line that draws nothing never changes a draw; a line that draws changes the draws after it, as in R and Stata. The help pages of `seed` and `draw` say so. A draw with its own `seed:` is unchanged.
-
-**The consequence, for the release notes.** Every figure drawn under a script-wide `seed(n)` is a different, equally valid draw from before. Renewed and read one by one: the help examples of `seed` and `points`, the stored output of the `simulation` sample (checked against the true means and standard deviations), two printed-plot snapshots, one test figure, and three conformance digests out of 238.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 238 of 238; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 20b `[engine]`: expressions in `x:` and `y:`. Then 20c `[engine]`. Step 19b waits on #104.
-
-**For the owner to decide.** Nothing new. Open as before: #106 (due before step 23), #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
-
-
-## 11 November 2026, release 0.7.0, step 20b (expressions in `x:` and `y:`)
-
-**Done.** A position of a plot can be an expression: `w.plot(x: educ, y: log(wage)).points()`, `y: wage / hours`, `x: exper^2`, `y: log(wage, base: 10)`. The expression is computed row by row on the plot's frame, and on the frame of a layer that has its own; the axis is titled by the expression as written; rows where it gives `NA` or an infinite value are dropped and counted in the same notes as for a variable. A script constant may be used (`let weekly = 40`, then `y: wage * weekly`) and is read where `plot` stands, so a later change of the constant does not change the plot. An expression may hold variables, numbers, the operators and the row-by-row functions of `core`; anything else (`mean(wage)`, a function of `time` or `text`, `case`) is refused with advice to compute the variable with `add` first. Checked against R on the `wages` data: `log(wage)` gives 18,201 points, 211 rows dropped and limits 1.07304 to 5.2147. The help pages of `plot` and `points` are reopened. Details in `docs/decisions.md`.
-
-**Two findings, not of this step.** `PI` and `E` inside a frame method are read as variables, so `w.add(z = wage * PI)` fails; a fault of the checker, corrected in its own commit next. A numeric function given a text or category column (`log(industry)`) gives `NA` on every row without a message, where R and Stata refuse; open decision #108.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 241 of 241 with the new case `plot/expression`; the whole suite on CI, read job by job after the push. Step 20a was green on CI in every job.
-
-**Next.** The small correction for `PI` and `E` in a frame method. Then step 20c `[engine]`: the other aesthetics. Step 19b waits on #104.
-
-**Added the same day: `PI` and `E` inside a frame method.** `d.add(area = PI * r^2)`, `d.where(r > E)` and `y: r * PI` in a plot now work; each was refused for want of a variable `PI`. A variable of the frame named `PI` or `E` hides the constant, without a warning, which the owner may overturn. Green on the same routine. Next is step 20c `[engine]`.
-
-**For the owner to decide.** New: #107 (due at 0.7.0 before step 25), what an expression in a mapping may call (recommended: as built, the functions of `core` only, widened when the date scale arrives); #108 (due at 0.8.0), whether a numeric function given a text or category column should be refused, as in R and Stata (recommended: yes). Open as before: #106 (due before step 23), #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
-
-
-## 11 November 2026, release 0.7.0, step 20c (colour and fill)
-
-**Done.** A plot can be coloured: `w.plot(x: educ, y: wage, color: female).points()`. A Category, a Str, a Bool and a number with value labels are shown as categories in the eight colours of Okabe and Ito (orange, sky blue, bluish green, yellow, blue, vermilion, reddish purple, black); `NA` is a category of its own, last and grey. A number without value labels is shown on the viridis ramp from its smallest value drawn to its largest, and a row without a finite value of it is dropped and counted. A string sets one colour for every mark, a CSS name or `#` and hexadecimal digits. `fill:` is accepted and kept for the marks with an inside; a point has none. The printed plot has a new table of the colours. The step was split: size, shape, group and label are step 20d. Checked against R on the `wages` data. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 244 of 244 with the new case `plot/colour`; the whole suite on CI, read job by job after the push.
-
-**Next.** Step 20d `[engine]`: size, shape, group and label. Then step 21 `[engine]`. Step 19b waits on #104.
-
-**For the owner to decide.** New, due at 0.7.0 before step 25: #109, three questions on colours (more than eight categories: recommended, repeat the colours with a note; a level with no row: recommended, left out of the legend; names of colours: recommended, the 148 of CSS and not R's). Rulings he may overturn: black last in the palette; grey for `NA`; the layout of the table of colours; a constant colour only as a string where it is used. Open as before: #107, #108, #106, #104, #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
+Step 20 `[engine]`: the package `plot`; `w.plot(x: educ, y: wage)` starts a plot, `.points()` adds a layer with `alpha:`, `size:`, seeded `jitter:` and a frame of its own; a plot prints as text, and behind the text is the versioned scene every writer of figures will read; open decision #106 (a layer overriding a mapping, due before step 23) was raised. Step 20a `[engine]`: a fault dating from 0.3.0 was corrected, so that the seed the engine notes for a run, written at the top as `seed(N)`, repeats that run; every figure drawn under a script-wide seed changed to another valid draw, which the release notes must say. Step 20b `[engine]`: an expression as a position (`y: log(wage)`), computed row by row, the axis titled by the expression as written; `PI` and `E` inside a frame method were corrected the same day; open decisions #107 (what such an expression may call, decided as built) and #108 (a numeric function given a text column, due at 0.8.0) were raised. Step 20c `[engine]`: `color:` and `fill:`, categories in the eight colours of Okabe and Ito with grey for `NA`, numbers on the viridis ramp, a string for one colour; open decision #109 (three questions on colours, due before step 25) was raised. `zeff selftest` stood at 244 of 244.
 
 ## 12 November 2026, release 0.7.0, step 20d (size, shape, group and label)
 
@@ -175,4 +129,14 @@ Step 18 `[engine]`: `dist.tukey(groups:, df:)`, the studentized range, exact to 
 **Next.** Step 21 `[engine]`: the SVG writer, fonts and theme, with the fixed points of open decision #118.
 
 **For the owner to decide.** Before step 21: open decision #110, question 2, the eight shapes (six are built; recommended, add `triangle_down` and `star`). A ruling he may overturn: the message says "a string" for `color:`, not "a string naming a colour", because one rule serves every function. Open as before: #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 20f (the seventh and eighth shapes)
+
+**Done.** The owner decided question 2 of open decision #110: "Yes, add both". The categories of `shape:` now take eight shapes, the six as before followed by `triangle_down` and `star`, one for each colour of the palette. Each new shape may also be named for every mark, solid or as an outline (`"star_open"`). With nine categories or more the shapes repeat and a note says so. The step was added to the checklist as 20f, as the open decision asked. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247; CI is read job by job after the push.
+
+**Next.** Step 21 `[engine]`: the SVG writer, fonts and theme, with the fixed points of open decision #118. It is the first step to draw a shape.
+
+**For the owner to decide.** Nothing blocks step 21. Open as before: the other four questions of #110 (recommended as built, due before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

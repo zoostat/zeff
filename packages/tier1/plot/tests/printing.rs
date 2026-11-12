@@ -627,7 +627,7 @@ fn a_sized_and_shaped_plot_reads_sensibly_as_text() {
         "      1   points   w      18,167   size by hours, shape by union, alpha 0.5\n",
         "Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more",
         "  circle, triangle, square, diamond, plus and 7 more\n",
-        "note: `industry` has 12 categories and there are 6 shapes, so the shapes repeat from the seventh category (line 8)\n",
+        "note: `industry` has 12 categories and there are 8 shapes, so the shapes repeat from the ninth category (line 8)\n",
         "      2   points   top        26   size 8, shape by union, alpha 1\n",
         "  size        Hours worked   sqrt       0 to 59.5   by area, up to 18 across\n",
         "      1   points   top       26   size by hours, shape by union, alpha 1\n",
@@ -664,8 +664,8 @@ fn the_edge_cases_of_a_size_and_a_shape() {
         format!("{D}let e = d.where(a > 9)\ne.plot(x: a, y: b, size: z, shape: g).points()\nlet n = d.where(a == 2)\nn.plot(x: a, y: b, size: z, shape: g)\nn.plot(x: a, y: b, size: z, shape: g).points()\n"),
         // A category keeps the order of its levels; a level with no row is left out.
         format!("{D}let c = d.add(c = category(g))\nc.plot(x: a, y: b, shape: c).points()\nc.where(g != \"a\").plot(x: a, y: b, shape: c).points()\n"),
-        // Six categories have a shape each; seven repeat the shapes, and a layer says so.
-        "let d = frame(a = [1, 2, 3, 4, 5, 6, 7, 8], g = [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"g\", NA])\nd.where(a < 7).plot(x: a, y: a, shape: g).points()\nd.where(a < 8).plot(x: a, y: a, shape: g).points()\nd.where(a != 7).plot(x: a, y: a, shape: g).points()\nd.plot(x: a, y: a, shape: g)\nd.plot(x: a, y: a, shape: g).points()\n".to_string(),
+        // Eight categories have a shape each; nine repeat the shapes, and a layer says so.
+        "let d = frame(a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], g = [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"g\", \"h\", \"i\", NA])\nd.where(a < 9).plot(x: a, y: a, shape: g).points()\nd.where(a < 10).plot(x: a, y: a, shape: g).points()\nd.where(a != 9).plot(x: a, y: a, shape: g).points()\nd.plot(x: a, y: a, shape: g)\nd.plot(x: a, y: a, shape: g).points()\n".to_string(),
         // A layer with its own frame: its sizes and its categories join the scales of the
         // plot; a constant asks nothing of that frame, and neither do `group` and `label`.
         format!("{D}let o = frame(a = [5, 6, 7], b = [0.5, 1.5, 2.5], g = [\"zz\", \"b\", NA], z = [10, 0, 2])\nd.plot(x: a, y: b, size: z, shape: g).points(data: o)\nd.plot(x: a, y: b, size: z, shape: g).points().points(data: o)\nlet bare = frame(a = [5, 6], b = [0.5, 1.5])\nd.plot(x: a, y: b, size: 7, shape: \"diamond_open\", group: g, label: t).points(data: bare)\nd.plot(x: a, y: b, size: z).points(data: bare, size: 2)\n"),
@@ -906,4 +906,46 @@ fn no_aesthetic_answers_an_expression_with_a_message_about_bindings() {
         assert_eq!(code, 0, "{statement}\n{stderr}");
         assert!(stdout.starts_with("plot · w · "), "{statement}\n{stdout}");
     }
+}
+
+// ----- the seventh and eighth shapes (open decision #110, question 2) -----
+
+#[test]
+fn the_seventh_and_eighth_shapes_are_given_out_and_may_be_named() {
+    // Eight categories take the eight shapes in their order, and nothing repeats.
+    let (code, stdout, stderr) = go(
+        "let e = frame(a = [1, 2, 3, 4, 5, 6, 7, 8], g = [\"a\", \"b\", \"c\", \"d\", \"e\", \"f\", \"g\", \"h\"])\ne.plot(x: a, y: a, shape: g).points()\ne.where(a > 6).plot(x: a, y: a, shape: g).points()\ne.where(a > 2).add(g = category(g, levels: [\"g\", \"h\", \"c\", \"d\", \"e\", \"f\"])).plot(x: a, y: a, shape: g).points()\n",
+    );
+    assert_eq!(code, 0, "{stderr}");
+    assert!(
+        !stderr.contains("repeat"),
+        "eight categories repeat no shape: {stderr}"
+    );
+    assert!(stdout.contains("a, b, c, d, e and 3 more"), "{stdout}");
+    // A shape goes with the place of a category, not with its name: the first two are a
+    // circle and a triangle whichever they are.
+    assert!(stdout.contains("g, h     circle, triangle\n"), "{stdout}");
+    // Each of the two is a constant shape, solid or as an outline.
+    for name in ["triangle_down", "star", "triangle_down_open", "star_open"] {
+        let (code, stdout, stderr) = go(&format!(
+            "let w = dataset(wages)\nw.plot(x: educ, y: wage, shape: \"{name}\").points()\n"
+        ));
+        assert_eq!(code, 0, "{name}: {stderr}");
+        assert!(
+            stdout.contains(&format!("constant   every mark   {name}\n")),
+            "{name}: {stdout}"
+        );
+        assert!(
+            stdout.contains(&format!("shape {name}, alpha 1")),
+            "{name}: {stdout}"
+        );
+    }
+    // A name written the way of another tool is answered with ours.
+    let (code, _, stderr) =
+        go("let w = dataset(wages)\nw.plot(x: educ, y: wage, shape: \"triangle down\")\n");
+    assert_eq!(code, 1);
+    assert!(
+        stderr.contains("did you mean \"triangle_down\"?"),
+        "{stderr}"
+    );
 }

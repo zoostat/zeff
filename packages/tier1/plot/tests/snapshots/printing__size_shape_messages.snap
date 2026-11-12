@@ -50,7 +50,7 @@ error[Z0401]: `shape:` of `plot` is "a shape of my own", which is not the name o
 2 | w.plot(x: educ, y: wage, shape: "a shape of my own")
   |                                 ^^^^^^^^^^^^^^^^^^^ not a shape
   |
-  = help: a shape is one of asterisk, circle, circle_open, cross, diamond, diamond_open, plus, square, square_open, triangle and triangle_open
+  = help: a shape is one of asterisk, circle, circle_open, cross, diamond, diamond_open, plus, square, square_open, star, star_open, triangle, triangle_down, triangle_down_open and triangle_open
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage, shape: "")
@@ -60,7 +60,7 @@ error[Z0401]: `shape:` of `plot` is "", which is not the name of a shape
 2 | w.plot(x: educ, y: wage, shape: "")
   |                                 ^^ not a shape
   |
-  = help: a shape is one of asterisk, circle, circle_open, cross, diamond, diamond_open, plus, square, square_open, triangle and triangle_open
+  = help: a shape is one of asterisk, circle, circle_open, cross, diamond, diamond_open, plus, square, square_open, star, star_open, triangle, triangle_down, triangle_down_open and triangle_open
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage, shape: 3)

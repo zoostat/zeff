@@ -62,8 +62,9 @@ of ggplot2.
   across.
 - shape: The shape of the marks. A variable of the frame, written as a bare name, gives each of
   its categories a shape. A string sets one shape for every mark: `"circle"`, `"triangle"`,
-  `"square"`, `"diamond"`, `"plus"`, `"cross"` or `"asterisk"`, and the first four also as an
-  outline, as in `"circle_open"`. Without it a mark is a circle.
+  `"square"`, `"diamond"`, `"plus"`, `"cross"`, `"triangle_down"`, `"star"` or `"asterisk"`,
+  and each of those with an inside also as an outline, as in `"circle_open"`. Without it a
+  mark is a circle.
 - group: The variable whose values gather the rows into groups, for the marks that draw one
   thing through several rows. A point is drawn row by row and does not read it.
 - label: The variable whose values are the text of the marks that write one. A point writes
@@ -143,13 +144,17 @@ comes before what the plot says, for that layer alone.
 
 Shape. A variable mapped to `shape:` must be one that is shown as categories: a Category, a
 Str, a Bool, or an Int or a Float with value labels. The categories come in the order
-described under colour and take in turn a circle, a triangle, a square, a diamond, a plus and a
-cross. With more than six categories the shapes repeat from the seventh, and a note says so.
-`NA` is a category of its own, which comes last and is drawn as an asterisk.
+described under colour and take in turn a circle, a triangle, a square, a diamond, a plus, a
+cross, a triangle on its point and a five-pointed star: eight shapes, one for each colour of
+the palette. The two hardest to tell from an earlier shape come last, so that only a seventh
+and an eighth category meet them. With more than eight categories the shapes repeat from the
+ninth, and a note says so. `NA` is a category of its own, which comes last and is drawn as an
+asterisk.
 
 One shape for every mark. A string names the shape of every mark. A circle, a triangle, a
-square and a diamond are drawn solid, and with `_open` after the name, as in `"square_open"`,
-as an outline. A plus, a cross and an asterisk are made of lines.
+square, a diamond, a triangle on its point (`"triangle_down"`) and a star are drawn solid, and
+with `_open` after the name, as in `"square_open"` or `"star_open"`, as an outline. A plus, a
+cross and an asterisk are made of lines.
 
 One legend for a variable. A variable mapped to more than one of `color:`, `size:` and
 `shape:`, as in `color: union, shape: union`, has one legend, whose keys show all of them.

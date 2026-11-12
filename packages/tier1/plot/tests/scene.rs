@@ -1741,44 +1741,67 @@ fn a_row_without_a_size_or_with_one_below_0_is_not_drawn_and_is_counted() {
 
 #[test]
 fn more_categories_than_shapes_repeat_them_and_say_so() {
-    let names: Vec<String> = (0..8).map(|i| format!("k{i}")).collect();
+    let names: Vec<String> = (0..10).map(|i| format!("k{i}")).collect();
     let cells: Vec<Option<&str>> = names.iter().map(|n| Some(n.as_str())).collect();
     let p = shaped_by_g(&cells);
     // Before a layer reads the shapes there is nothing to say of them.
     let before = scene(&p);
-    assert_eq!(before.scale("shape").unwrap().labels.len(), 8);
+    assert_eq!(before.scale("shape").unwrap().labels.len(), 10);
     assert!(before.notes.is_empty());
     let (_, drawn) = with_layer(&p, points());
     assert_eq!(
         shapes(&drawn),
         [
-            "circle", "triangle", "square", "diamond", "plus", "cross", "circle", "triangle"
+            "circle",
+            "triangle",
+            "square",
+            "diamond",
+            "plus",
+            "cross",
+            "triangle_down",
+            "star",
+            "circle",
+            "triangle"
         ]
     );
-    assert_eq!(places(&drawn, 0), [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+    assert_eq!(
+        places(&drawn, 0),
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+    );
     assert_eq!(
         drawn.notes,
         [
-            "`g` has 8 categories and there are 6 shapes, so the shapes repeat from the seventh category"
+            "`g` has 10 categories and there are 8 shapes, so the shapes repeat from the ninth category"
         ]
     );
     // A second layer does not say it twice.
     let (_, twice) = with_layer(&with_layer(&p, points()).0, points());
     assert_eq!(twice.notes, drawn.notes);
-    // Six categories and `NA` need no shape twice: `NA` has its own, which comes last.
-    let mut six: Vec<Option<&str>> = cells[..6].to_vec();
-    six.insert(2, None);
-    let (_, drawn) = with_layer(&shaped_by_g(&six), points());
+    // Eight categories and `NA` need no shape twice: `NA` has its own, which comes last.
+    let mut eight: Vec<Option<&str>> = cells[..8].to_vec();
+    eight.insert(2, None);
+    let (_, drawn) = with_layer(&shaped_by_g(&eight), points());
     assert_eq!(
         shapes(&drawn),
         [
-            "circle", "triangle", "square", "diamond", "plus", "cross", "asterisk"
+            "circle",
+            "triangle",
+            "square",
+            "diamond",
+            "plus",
+            "cross",
+            "triangle_down",
+            "star",
+            "asterisk"
         ]
     );
-    assert_eq!(drawn.scale("shape").unwrap().labels[6], "NA");
-    assert_eq!(places(&drawn, 0), [1.0, 2.0, 7.0, 3.0, 4.0, 5.0, 6.0]);
+    assert_eq!(drawn.scale("shape").unwrap().labels[8], "NA");
+    assert_eq!(
+        places(&drawn, 0),
+        [1.0, 2.0, 9.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
+    );
     // No row is dropped for having no category.
-    assert_eq!(drawn.panels[0].layers[0].x.len(), 7);
+    assert_eq!(drawn.panels[0].layers[0].x.len(), 9);
     assert!(drawn.notes.is_empty());
 }
 
@@ -2509,7 +2532,7 @@ proptest! {
             prop_assert!(at >= 1 && at <= total && at as f64 == *value, "{value} {:?}", s);
             let label = row.2.map_or("NA".to_string(), |k| format!("k{k:02}"));
             prop_assert_eq!(&s.labels[at - 1], &label);
-            let expected = if row.2.is_some() { shape::PALETTE[(at - 1) % 6] } else { shape::NA_SHAPE };
+            let expected = if row.2.is_some() { shape::PALETTE[(at - 1) % shape::PALETTE.len()] } else { shape::NA_SHAPE };
             prop_assert_eq!(shapes(&drawn)[at - 1], expected);
         }
         if !kept.is_empty() {
@@ -2518,9 +2541,12 @@ proptest! {
             }
         }
         prop_assert!(s.labels.iter().enumerate().all(|(i, l)| !s.labels[..i].contains(l)), "{:?}", s);
-        // The shapes repeat, and the scene says so, when there are more than six categories.
+        // The shapes repeat, and the scene says so, when there are more than eight categories.
         let named = total - usize::from(s.labels.last().is_some_and(|l| l == "NA"));
-        prop_assert_eq!(drawn.notes.iter().any(|note| note.contains("shapes repeat")), named > 6);
+        prop_assert_eq!(
+            drawn.notes.iter().any(|note| note.contains("shapes repeat")),
+            named > shape::PALETTE.len()
+        );
     }
 
     #[test]

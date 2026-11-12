@@ -2942,3 +2942,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 20e, a defect the owner reported on 11 November 2026; open decision #107.
 
+## 12 November 2026: the seventh and eighth shapes (release 0.7.0, step 20f)
+
+**Decision.** The owner ruled on question 2 of open decision #110: asked "Add `triangle_down` and `star` as the seventh and eighth point shapes?", he answered "Yes, add both". The shapes given to the categories of `shape:` are now eight, in this order: circle, triangle, square, diamond, plus, cross, `triangle_down`, `star`. The first six keep their places, so no plot of six categories or fewer changes. Eight is the number of colours of the palette, which is what F9 of open decision #118 asks, so that a later redundant encoding can pair each colour with a shape.
+
+**The two shapes.** `triangle_down` is the triangle standing on its point; `star` has five points with one upwards. Both have an inside, so each is drawn with the area of the circle of its size, as the other solid shapes are, and each has an outline form, `"triangle_down_open"` and `"star_open"`. The names a constant shape may take are now fifteen. The two come last in the order because each is the nearest to an earlier shape (the triangle on its base; the asterisk of `NA`), so only a seventh and an eighth category meet them. How a star is drawn (the depth of its notches) belongs to the writer of step 21; a scene holds the name alone.
+
+**What changes for a script.** With seven or eight categories the note that the shapes repeat is no longer raised, and the seventh and eighth categories have shapes of their own; with nine or more the note says "there are 8 shapes, so the shapes repeat from the ninth category". Nothing is released yet, so no released script changes.
+
+**Tests.** The unit tests of `shape` (the eight in order, the first six unchanged, as many shapes as colours, every solid shape with its outline and no outline for a shape of lines, the nearest name for `"triangle down"`); the scene test and the property test of step 20d, which counted six, now count the palette; `printing.rs` gains a test that eight categories repeat nothing and that each new name is accepted as a constant; three snapshots and the stderr digest of the conformance case `plot/size_shape` follow the new note and the longer list of names. The help page of `plot` lists the eight.
+
+**Dependencies.** None added.
+
+**Reason.** The owner's ruling of 12 November 2026 on question 2 of open decision #110; F9 of open decision #118.
+

@@ -241,70 +241,70 @@ warning[W0204]: division by zero gave Inf (line 1)
   = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
 note: 1 row dropped where `g != "a"` was NA; `c.where(is_missing(g))` lists them (line 4)
 
-let d = frame(a = [1, 2, 3, 4, 5, 6, 7, 8], g = ["a", "b", "c", "d", "e", "f", "g", NA])
-d.where(a < 7).plot(x: a, y: a, shape: g).points()
-d.where(a < 8).plot(x: a, y: a, shape: g).points()
-d.where(a != 7).plot(x: a, y: a, shape: g).points()
+let d = frame(a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], g = ["a", "b", "c", "d", "e", "f", "g", "h", "i", NA])
+d.where(a < 9).plot(x: a, y: a, shape: g).points()
+d.where(a < 10).plot(x: a, y: a, shape: g).points()
+d.where(a != 9).plot(x: a, y: a, shape: g).points()
 d.plot(x: a, y: a, shape: g)
 d.plot(x: a, y: a, shape: g).points()
 exit code 0
 plot · a against a
 
   axis   title   scale    limits         breaks
-  x      a       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
-  y      a       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
-
-  aesthetic   title   scale      values             shown as
-  shape       g       category   a, b, c, d, e, f   circle, triangle, square, diamond, plus, cross
-
-  layer   mark     data        marks   settings
-      1   points   the frame       6   size 4.5, shape by g, alpha 1
-plot · a against a
-
-  axis   title   scale    limits       breaks
-  x      a       linear   0.7 to 7.3   1, 2, 3, 4, 5, 6, 7
-  y      a       linear   0.7 to 7.3   1, 2, 3, 4, 5, 6, 7
-
-  aesthetic   title   scale      values                     shown as
-  shape       g       category   a, b, c, d, e and 2 more   circle, triangle, square, diamond, plus and 2 more
-
-  layer   mark     data        marks   settings
-      1   points   the frame       7   size 4.5, shape by g, alpha 1
-plot · a against a
-
-  axis   title   scale    limits         breaks
-  x      a       linear   0.65 to 8.35   2, 4, 6, 8
-  y      a       linear   0.65 to 8.35   2, 4, 6, 8
-
-  aesthetic   title   scale      values                     shown as
-  shape       g       category   a, b, c, d, e and 2 more   circle, triangle, square, diamond, plus and 2 more
-
-  layer   mark     data        marks   settings
-      1   points   the frame       7   size 4.5, shape by g, alpha 1
-plot · d · a against a
-
-  axis   title   scale    limits         breaks
   x      a       linear   0.65 to 8.35   2, 4, 6, 8
   y      a       linear   0.65 to 8.35   2, 4, 6, 8
 
   aesthetic   title   scale      values                     shown as
   shape       g       category   a, b, c, d, e and 3 more   circle, triangle, square, diamond, plus and 3 more
+
+  layer   mark     data        marks   settings
+      1   points   the frame       8   size 4.5, shape by g, alpha 1
+plot · a against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.6 to 9.4   2, 4, 6, 8
+  y      a       linear   0.6 to 9.4   2, 4, 6, 8
+
+  aesthetic   title   scale      values                     shown as
+  shape       g       category   a, b, c, d, e and 4 more   circle, triangle, square, diamond, plus and 4 more
+
+  layer   mark     data        marks   settings
+      1   points   the frame       9   size 4.5, shape by g, alpha 1
+plot · a against a
+
+  axis   title   scale    limits          breaks
+  x      a       linear   0.55 to 10.45   2, 4, 6, 8, 10
+  y      a       linear   0.55 to 10.45   2, 4, 6, 8, 10
+
+  aesthetic   title   scale      values                     shown as
+  shape       g       category   a, b, c, d, e and 4 more   circle, triangle, square, diamond, plus and 4 more
+
+  layer   mark     data        marks   settings
+      1   points   the frame       9   size 4.5, shape by g, alpha 1
+plot · d · a against a
+
+  axis   title   scale    limits          breaks
+  x      a       linear   0.55 to 10.45   2, 4, 6, 8, 10
+  y      a       linear   0.55 to 10.45   2, 4, 6, 8, 10
+
+  aesthetic   title   scale      values                     shown as
+  shape       g       category   a, b, c, d, e and 5 more   circle, triangle, square, diamond, plus and 5 more
 
 no layer yet: a mark such as `.points()` adds one
 plot · d · a against a
 
-  axis   title   scale    limits         breaks
-  x      a       linear   0.65 to 8.35   2, 4, 6, 8
-  y      a       linear   0.65 to 8.35   2, 4, 6, 8
+  axis   title   scale    limits          breaks
+  x      a       linear   0.55 to 10.45   2, 4, 6, 8, 10
+  y      a       linear   0.55 to 10.45   2, 4, 6, 8, 10
 
   aesthetic   title   scale      values                     shown as
-  shape       g       category   a, b, c, d, e and 3 more   circle, triangle, square, diamond, plus and 3 more
+  shape       g       category   a, b, c, d, e and 5 more   circle, triangle, square, diamond, plus and 5 more
 
   layer   mark     data   marks   settings
-      1   points   d          8   size 4.5, shape by g, alpha 1
+      1   points   d         10   size 4.5, shape by g, alpha 1
 ---
-note: `g` has 7 categories and there are 6 shapes, so the shapes repeat from the seventh category (line 3)
-note: `g` has 7 categories and there are 6 shapes, so the shapes repeat from the seventh category (line 6)
+note: `g` has 9 categories and there are 8 shapes, so the shapes repeat from the ninth category (line 3)
+note: `g` has 9 categories and there are 8 shapes, so the shapes repeat from the ninth category (line 6)
 
 let d = frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = ["b", NA, "a", "b"], t = [true, false, NA, true], z = [0.5, NA, 1 / 0, 2.5], k = [3, 3, 3, 3], n = [0, -1, 2, 0])
 let o = frame(a = [5, 6, 7], b = [0.5, 1.5, 2.5], g = ["zz", "b", NA], z = [10, 0, 2])

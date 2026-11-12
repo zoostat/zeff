@@ -247,7 +247,7 @@ plot/colour/stdout a2fd20b2ad32e7f4
 plot/colour/stderr 1f3c27af721c7c68
 plot/colour/scene.json 3f84f3b541460659
 plot/size_shape/stdout baee7e13689bfd62
-plot/size_shape/stderr 39fa8e742ac9a4b0
+plot/size_shape/stderr 3de90dd466d7e82a
 plot/size_shape/scene.json aab4e77e48bffe36
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
