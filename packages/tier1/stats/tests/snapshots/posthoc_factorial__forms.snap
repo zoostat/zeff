@@ -1,0 +1,348 @@
+---
+source: packages/tier1/stats/tests/posthoc_factorial.rs
+expression: "format!(\"{stdout}---\\n{stderr}\")"
+---
+posthoc · Tukey HSD · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.817       0.445     -1.84     0.213   [-2.061, 0.426]
+  low − high       -0.442       0.440     -1.01     0.592   [-1.671, 0.786]
+  mid − high        0.375       0.379      0.99     0.601   [-0.683, 1.433]
+
+Tukey's HSD over 3 comparisons of 3 marginal means: p-values and intervals from the studentized range, family-wise
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Scheffé · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.817       0.445     -1.84     0.239   [-2.117, 0.482]
+  low − high       -0.442       0.440     -1.01     0.620   [-1.726, 0.842]
+  mid − high        0.375       0.379      0.99     0.628   [-0.731, 1.481]
+
+Scheffé over 3 comparisons of 3 marginal means: p-values and intervals from F(2, 9), family-wise over every contrast
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Bonferroni · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.817       0.445     -1.84     0.299   [-2.124, 0.489]
+  low − high       -0.442       0.440     -1.01     1.000   [-1.733, 0.848]
+  mid − high        0.375       0.379      0.99     1.000   [-0.737, 1.487]
+
+Bonferroni over 3 comparisons of 3 marginal means: each p-value multiplied by 3, each interval at the level 1 − 0.05/3
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Šidák · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.817       0.445     -1.84     0.270   [-2.119, 0.485]
+  low − high       -0.442       0.440     -1.01     0.714   [-1.728, 0.844]
+  mid − high        0.375       0.379      0.99     0.723   [-0.733, 1.483]
+
+Šidák over 3 comparisons of 3 marginal means: each p-value 1 − (1 − p)^3, each interval at the level 0.95^(1/3)
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · unadjusted · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.817       0.445     -1.84     0.100   [-1.825, 0.190]
+  low − high       -0.442       0.440     -1.01     0.341   [-1.437, 0.553]
+  mid − high        0.375       0.379      0.99     0.348   [-0.482, 1.233]
+
+3 comparisons of 3 marginal means, each on its own: p-values and intervals not adjusted for the number of comparisons
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Holm · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value
+  low − mid        -0.817       0.445     -1.84     0.299
+  low − high       -0.442       0.440     -1.01     0.682
+  mid − high        0.375       0.379      0.99     0.682
+
+Holm over 3 comparisons of 3 marginal means: p-values adjusted family-wise; step-wise, so no intervals
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Hochberg · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value
+  low − mid        -0.817       0.445     -1.84     0.299
+  low − high       -0.442       0.440     -1.01     0.348
+  mid − high        0.375       0.379      0.99     0.348
+
+Hochberg over 3 comparisons of 3 marginal means: p-values adjusted family-wise; step-wise, so no intervals
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Hommel · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value
+  low − mid        -0.817       0.445     -1.84     0.299
+  low − high       -0.442       0.440     -1.01     0.348
+  mid − high        0.375       0.379      0.99     0.348
+
+Hommel over 3 comparisons of 3 marginal means: p-values adjusted family-wise; step-wise, so no intervals
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Benjamini–Hochberg · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value
+  low − mid        -0.817       0.445     -1.84     0.299
+  low − high       -0.442       0.440     -1.01     0.348
+  mid − high        0.375       0.379      0.99     0.348
+
+Benjamini–Hochberg over 3 comparisons of 3 marginal means: p-values adjusted for the false discovery rate; step-wise, so no intervals
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Benjamini–Yekutieli · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value
+  low − mid        -0.817       0.445     -1.84     0.548
+  low − high       -0.442       0.440     -1.01     0.638
+  mid − high        0.375       0.379      0.99     0.638
+
+Benjamini–Yekutieli over 3 comparisons of 3 marginal means: p-values adjusted for the false discovery rate; step-wise, so no intervals
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Tukey HSD · diet · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  a − b             0.113       0.316      0.36     0.728   [-0.601, 0.827]
+
+Tukey's HSD over 1 comparison of 2 marginal means: p-values and intervals from the studentized range, family-wise
+each mean is the model's prediction for a level of diet, averaged with equal weight over the levels of dose, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Tukey HSD · dose:diet · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value   95% CI
+  low:a − low:b         -0.134       0.630     -0.21     1.000   [-2.370, 2.102]
+  low:a − mid:a         -0.979       0.661     -1.48     0.683   [-3.326, 1.369]
+  low:a − mid:b         -0.790       0.697     -1.13     0.856   [-3.265, 1.685]
+  low:a − high:a        -0.652       0.840     -0.78     0.965   [-3.635, 2.332]
+  low:a − high:b        -0.367       0.569     -0.65     0.984   [-2.387, 1.653]
+  low:b − mid:a         -0.845       0.505     -1.67     0.579   [-2.640, 0.951]
+  low:b − mid:b         -0.656       0.517     -1.27     0.795   [-2.493, 1.181]
+  low:b − high:a        -0.517       0.630     -0.82     0.956   [-2.754, 1.719]
+  low:b − high:b        -0.233       0.536     -0.43     0.997   [-2.139, 1.673]
+  mid:a − mid:b          0.189       0.505      0.37     0.999   [-1.606, 1.984]
+  mid:a − high:a         0.327       0.603      0.54     0.993   [-1.815, 2.470]
+  mid:a − high:b         0.612       0.562      1.09     0.875   [-1.386, 2.609]
+  mid:b − high:a         0.138       0.583      0.24     1.000   [-1.931, 2.208]
+  mid:b − high:b         0.423       0.594      0.71     0.975   [-1.686, 2.533]
+  high:a − high:b        0.285       0.736      0.39     0.998   [-2.331, 2.900]
+
+Tukey's HSD over 15 comparisons of 6 marginal means: p-values and intervals from the studentized range, family-wise
+each mean is the model's prediction for a cell of dose:diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Holm · diet:dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison        difference   std.error   t value   p value
+  a:low − a:mid         -0.979       0.661     -1.48     1.000
+  a:low − a:high        -0.652       0.840     -0.78     1.000
+  a:low − b:low         -0.134       0.630     -0.21     1.000
+  a:low − b:mid         -0.790       0.697     -1.13     1.000
+  a:low − b:high        -0.367       0.569     -0.65     1.000
+  a:mid − a:high         0.327       0.603      0.54     1.000
+  a:mid − b:low          0.845       0.505      1.67     1.000
+  a:mid − b:mid          0.189       0.505      0.37     1.000
+  a:mid − b:high         0.612       0.562      1.09     1.000
+  a:high − b:low         0.517       0.630      0.82     1.000
+  a:high − b:mid        -0.138       0.583     -0.24     1.000
+  a:high − b:high        0.285       0.736      0.39     1.000
+  b:low − b:mid         -0.656       0.517     -1.27     1.000
+  b:low − b:high        -0.233       0.536     -0.43     1.000
+  b:mid − b:high         0.423       0.594      0.71     1.000
+
+Holm over 15 comparisons of 6 marginal means: p-values adjusted family-wise; step-wise, so no intervals
+each mean is the model's prediction for a cell of diet:dose, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+posthoc · Tukey HSD · dose · gain ~ dose + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.751       0.353     -2.13     0.126   [-1.692, 0.191]
+  low − high       -0.371       0.350     -1.06     0.554   [-1.304, 0.562]
+  mid − high        0.379       0.333      1.14     0.510   [-0.509, 1.268]
+
+Tukey's HSD over 3 comparisons of 3 marginal means: p-values and intervals from the studentized range, family-wise
+each mean is the model's prediction for a level of dose, with the numeric variables at their means (age = 5)
+residual variance of the model on 12 degrees of freedom; N = 16
+posthoc · Holm · dose · gain ~ dose * age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value
+  low − mid        -0.701       0.396     -1.77     0.321
+  low − high       -0.415       0.391     -1.06     0.628
+  mid − high        0.287       0.366      0.78     0.628
+
+Holm over 3 comparisons of 3 marginal means: p-values adjusted family-wise; step-wise, so no intervals
+each mean is the model's prediction for a level of dose, with the numeric variables at their means (age = 5)
+residual variance of the model on 10 degrees of freedom; N = 16
+posthoc · Tukey HSD · dose · gain ~ dose * log(age)
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.706       0.391     -1.80     0.217   [-1.778, 0.366]
+  low − high       -0.372       0.393     -0.95     0.625   [-1.449, 0.705]
+  mid − high        0.334       0.356      0.94     0.630   [-0.642, 1.309]
+
+Tukey's HSD over 3 comparisons of 3 marginal means: p-values and intervals from the studentized range, family-wise
+each mean is the model's prediction for a level of dose, with the numeric variables at their means (log(age) = 1.60944)
+residual variance of the model on 10 degrees of freedom; N = 16
+posthoc · unadjusted · lot · gain ~ dose * category(lot)
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison      difference   std.error   t value   p value   95% CI
+  lot=1 − lot=2        0.261       0.286      0.91     0.382   [-0.376, 0.898]
+
+1 comparison of 2 marginal means, each on its own: p-values and intervals not adjusted for the number of comparisons
+each mean is the model's prediction for a level of lot, averaged with equal weight over the levels of dose
+residual variance of the model on 10 degrees of freedom; N = 16
+posthoc · Šidák · dose:lot · gain ~ dose * category(lot)
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison                difference   std.error   t value   p value   95% CI
+  low:lot=1 − low:lot=2          0.600       0.512      1.17     0.991   [-1.354, 2.554]
+  low:lot=1 − mid:lot=1         -0.533       0.458     -1.16     0.991   [-2.281, 1.214]
+  low:lot=1 − mid:lot=2         -0.300       0.458     -0.65     1.000   [-2.048, 1.448]
+  low:lot=1 − high:lot=1        -0.050       0.512     -0.10     1.000   [-2.004, 1.904]
+  low:lot=1 − high:lot=2        -0.100       0.458     -0.22     1.000   [-1.848, 1.648]
+  low:lot=2 − mid:lot=1         -1.133       0.512     -2.21     0.547   [-3.087, 0.821]
+  low:lot=2 − mid:lot=2         -0.900       0.512     -1.76     0.825   [-2.854, 1.054]
+  low:lot=2 − high:lot=1        -0.650       0.561     -1.16     0.992   [-2.790, 1.490]
+  low:lot=2 − high:lot=2        -0.700       0.512     -1.37     0.966   [-2.654, 1.254]
+  mid:lot=1 − mid:lot=2          0.233       0.458      0.51     1.000   [-1.514, 1.981]
+  mid:lot=1 − high:lot=1         0.483       0.512      0.94     0.999   [-1.471, 2.437]
+  mid:lot=1 − high:lot=2         0.433       0.458      0.95     0.999   [-1.314, 2.181]
+  mid:lot=2 − high:lot=1         0.250       0.512      0.49     1.000   [-1.704, 2.204]
+  mid:lot=2 − high:lot=2         0.200       0.458      0.44     1.000   [-1.548, 1.948]
+  high:lot=1 − high:lot=2       -0.050       0.512     -0.10     1.000   [-2.004, 1.904]
+
+Šidák over 15 comparisons of 6 marginal means: each p-value 1 − (1 − p)^15, each interval at the level 0.95^(1/15)
+each mean is the model's prediction for a cell of dose:lot
+residual variance of the model on 10 degrees of freedom; N = 16
+posthoc · Tukey HSD · dose · gain ~ dose * diet
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.558       0.308     -1.81     0.199   [-1.357, 0.242]
+  low − high       -0.275       0.344     -0.80     0.709   [-1.168, 0.618]
+  mid − high        0.283       0.308      0.92     0.637   [-0.517, 1.082]
+
+Tukey's HSD over 3 comparisons of 3 marginal means: p-values and intervals from the studentized range, family-wise
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet
+residual variance of the model on 15 degrees of freedom; N = 21
+posthoc · Bonferroni · diet · gain ~ dose + diet
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  a − b             0.055       0.286      0.19     0.852   [-0.568, 0.677]
+
+Bonferroni over 1 comparison of 2 marginal means: each p-value multiplied by 1, each interval at the level 1 − 0.05/1
+each mean is the model's prediction for a level of diet, averaged with equal weight over the levels of dose
+residual variance of the model on 12 degrees of freedom; N = 16
+posthoc · Bonferroni · dose:diet · gain ~ dose * diet
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison       difference   std.error   t value   p value   95% CI
+  low:a − low:b         0.067       0.572      0.12     1.000   [-2.044, 2.177]
+  low:a − mid:a        -0.733       0.572     -1.28     1.000   [-2.844, 1.377]
+  low:a − mid:b        -0.500       0.572     -0.87     1.000   [-2.610, 1.610]
+  low:a − high:b       -0.300       0.572     -0.52     1.000   [-2.410, 1.810]
+  low:b − mid:a        -0.800       0.512     -1.56     1.000   [-2.688, 1.088]
+  low:b − mid:b        -0.567       0.512     -1.11     1.000   [-2.454, 1.321]
+  low:b − high:b       -0.367       0.512     -0.72     1.000   [-2.254, 1.521]
+  mid:a − mid:b         0.233       0.512      0.46     1.000   [-1.654, 2.121]
+  mid:a − high:b        0.433       0.512      0.85     1.000   [-1.454, 2.321]
+  mid:b − high:b        0.200       0.512      0.39     1.000   [-1.688, 2.088]
+
+Bonferroni over 10 comparisons of 5 marginal means: each p-value multiplied by 10, each interval at the level 1 − 0.05/10
+each mean is the model's prediction for a cell of dose:diet
+residual variance of the model on 9 degrees of freedom; N = 14
+posthoc · Tukey HSD · dose · gain ~ dose * diet
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.650       0.384     -1.69     0.124   [-1.518, 0.218]
+
+Tukey's HSD over 1 comparison of 2 marginal means: p-values and intervals from the studentized range, family-wise
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet
+residual variance of the model on 9 degrees of freedom; N = 14
+frame · 3 rows × 9 variables
+
+      term          estimate   std_error   statistic   df   df2    p_value    ci_lower   ci_upper
+  1   low − mid    -0.817339    0.445409    -1.83503    9    NA   0.299089    -2.12387   0.489191
+  2   low − high   -0.442204    0.439972    -1.00507    9    NA          1    -1.73279   0.848377
+  3   mid − high    0.375134    0.379027     0.98973    9    NA          1   -0.736674    1.48694
+ci · 95%
+
+  term          lower   upper
+  low − mid    -2.124   0.489
+  low − high   -1.733   0.848
+  mid − high   -0.737   1.487
+1.72583
+2
+9
+0.232043
+NA
+posthoc · Bonferroni · dose · gain ~ dose * diet + age
+each row tests H0: the two marginal means of the population are equal, against H1: they differ
+
+  comparison   difference   std.error   t value   p value   95% CI
+  low − mid        -0.817       0.445     -1.84     0.299   [-2.124, 0.489]
+  low − high       -0.442       0.440     -1.01     1.000   [-1.733, 0.848]
+  mid − high        0.375       0.379      0.99     1.000   [-0.737, 1.487]
+
+Bonferroni over 3 comparisons of 3 marginal means: each p-value multiplied by 3, each interval at the level 1 − 0.05/3
+each mean is the model's prediction for a level of dose, averaged with equal weight over the levels of diet, with the numeric variables at their means (age = 5)
+residual variance of the model on 9 degrees of freedom; N = 16
+frame · 15 rows × 9 variables
+
+       term              estimate   std_error   statistic   df   df2   p_value   ci_lower   ci_upper
+   1   low:a − low:b     -0.13414    0.629502   -0.213089    9    NA         1         NA         NA
+   2   low:a − mid:a    -0.978763    0.660917    -1.48092    9    NA         1         NA         NA
+   3   low:a − mid:b    -0.790054    0.696749    -1.13391    9    NA         1         NA         NA
+   4   low:a − high:a   -0.651613    0.839872   -0.775848    9    NA         1         NA         NA
+   5   low:a − high:b   -0.366935    0.568596   -0.645336    9    NA         1         NA         NA
+   6   low:b − mid:a    -0.844624    0.505369     -1.6713    9    NA         1         NA         NA
+   7   low:b − mid:b    -0.655914    0.517262    -1.26805    9    NA         1         NA         NA
+   8   low:b − high:a   -0.517473    0.629502   -0.822036    9    NA         1         NA         NA
+   9   low:b − high:b   -0.232796    0.536497   -0.433918    9    NA         1         NA         NA
+  10   mid:a − mid:b      0.18871    0.505369     0.37341    9    NA         1         NA         NA
+  … and 5 more rows
+NA
+---
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 3)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 4)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 5)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 6)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 7)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 8)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 9)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 10)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 11)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 12)
+note: `diet` is also part of `dose:diet`: its differences are averages over the levels of `dose` and may not be the same at each level (line 13)
+note: `dose` is also part of `dose:age`: its differences are taken at the value of `age` given under the table and change with it (line 17)
+note: `dose` is also part of `dose:log(age)`: its differences are taken at the value of `log(age)` given under the table and change with it (line 18)
+note: `lot` is also part of `dose:lot`: its differences are averages over the levels of `dose` and may not be the same at each level (line 19)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 21)
+note: 1 of the model's 6 columns is determined by the others (a combination of levels with no observations, or a term that repeats the others) and carries no degree of freedom (line 23)
+note: the marginal mean of `high:a` cannot be estimated (no row holds the combination) and is left out; the comparisons are among the other 5 (line 23)
+note: 1 of the model's 6 columns is determined by the others (a combination of levels with no observations, or a term that repeats the others) and carries no degree of freedom (line 24)
+note: the marginal mean of `high` cannot be estimated (a combination with `diet` holds no row, and the model has their interaction) and is left out; the comparisons are among the other 2 (line 24)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 24)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 25)

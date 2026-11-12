@@ -155,3 +155,14 @@ Step 18 `[engine]`: `dist.tukey(groups:, df:)`, the studentized range, exact to 
 **Next.** Step 19b `[engine]`: `posthoc` after a factorial `anova`. Then 20e `[engine]` and 21 `[engine]`.
 
 **For the owner to decide.** Nothing new. Noticed and not changed: `p_adjust(p, by: outcome)`, with `by:` written inside the function, is refused by the general message for an unknown argument, which could say that `by:` belongs to `add`; and `add(m = mean(x))` on values that are all `NA` is refused for want of a type. Open as before: #110 (eight shapes, before step 21), #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 19b (`posthoc` after a factorial `anova`)
+
+**Done.** `d.anova(y ~ a * b + x).posthoc(term: a)` now compares the estimated marginal means of the term named: for each level, what the model predicts averaged with equal weight over the levels of the other categories, each numeric variable at its mean. `term: "a:b"` compares every pair of cells. All ten methods apply, on the residual variance of the model. `term:` may be left out when the formula has one term of categories. A mean that the data cannot determine, because a combination of levels has no row, is left out with a note. R's emmeans is the reference: thirty models, every method, agreeing to nine digits (Tukey's within the accuracy of R's own function); on a balanced table also `TukeyHSD`. The `anova` of a formula now hands its fitted model on, and the arithmetic never forms the covariance matrix. The help page covers both forms. Details and ten rulings in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247, the case `tests/posthoc` extended; `stats` at 13 of 13 and `dist` at 19 of 19; CI is read job by job after the push.
+
+**Next.** Step 20e `[engine]`: the message for an expression mapped to `color:`, `fill:`, `size:`, `shape:`, `group:` or `label:`. Then step 21 `[engine]`, the SVG writer.
+
+**For the owner to decide.** Nothing new is needed to go on. Rulings he may overturn, all in `docs/decisions.md`: `term:` is written after `method:`, so that `posthoc(holm)` keeps its meaning; `term:` must be a term of the formula; a numeric variable is held at its weighted mean under weights, where emmeans uses the unweighted mean; a `Bool` is a number, where emmeans treats it as a factor; a mean that cannot be estimated is left out with a note; no table of the marginal means themselves is printed. Noticed and not changed: three older test files read their number of property cases from a name the nightly run does not set. Open as before: #110 (eight shapes, before step 21), #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

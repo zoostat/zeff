@@ -14,7 +14,7 @@ error[Z0401]: `method` of `posthoc` must be a tukey | bonferroni | holm | hochbe
 2 | d.anova(x, group: g).posthoc(method: 2)
   |                                      ^ an Int
   |
-  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey)`
+  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term)`
 
 error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the result of `kruskal_test`
  --> scripts/main.zeff:2:1
@@ -33,13 +33,13 @@ error[Z0401]: `posthoc` compares the group means of an `anova`, but this is the 
   = help: write `d.anova(y, group: g).posthoc()`; the comparisons rest on the group means and variances of that test
 
 note: no term of the formula is a category, so each row tests a slope; `reg` gives the estimates (line 2)
-error[Z0401]: `posthoc` compares the groups of a one-way `anova`, but this `anova` was given a formula
+error[Z0401]: `posthoc` compares the levels of a category, but no term of `y ~ a + b` is a category or an interaction of categories
  --> scripts/main.zeff:2:1
   |
 2 | d.anova(y ~ a + b).posthoc()
-  | ^^^^^^^^^^^^^^^^^^ the result of a formula
+  | ^^^^^^^^^^^^^^^^^^ no category among the terms
   |
-  = help: the comparisons of one factor are `d.anova(y, group: a).posthoc()`
+  = help: a numeric variable has a slope and no levels; `category(x)` in the formula treats its values as levels
 
 error[Z0401]: `posthoc` cannot be called on a Frame
  --> scripts/main.zeff:2:1
@@ -72,7 +72,7 @@ error[Z0404]: `posthoc` has no argument called `level`
 2 | d.anova(x, group: g).posthoc(level: 0.9)
   |                              ^^^^^ unknown argument
   |
-  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey)`
+  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term)`
 
 error[Z0401]: `ci` of a test's result gives the intervals the test was made at, 95%, not at 90%
  --> scripts/main.zeff:2:54

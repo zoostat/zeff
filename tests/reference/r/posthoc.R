@@ -1,5 +1,5 @@
-# R's answers for posthoc (release 0.7.0, step 19): the pairwise comparisons of the group means
-# after a one-way anova, in R 4.6.0. Each pair is written as the first group minus the second, in
+# R's answers for posthoc (release 0.7.0, steps 19 and 19b). First, step 19: the pairwise
+# comparisons of the group means after a one-way anova, in R 4.6.0. Each pair is written as the first group minus the second, in
 # the order (1, 2), (1, 3), ..., (2, 3), ..., the groups in the order of factor() with its levels
 # sorted by code point.
 #
@@ -21,7 +21,21 @@
 # The cases are those of anova.R: 2 to 6 groups of unequal sizes and variances, ties, a group of
 # one observation (pooled tests only), NA in the variable and in the groups, text groups, a large
 # sample, groups far apart, two groups; and hours by industry on the shipped wages, 12 groups and
-# 66 comparisons. Run with `Rscript tests/reference/r/posthoc.R`.
+# 66 comparisons.
+#
+# Then, step 19b: the comparisons of the estimated marginal means of one term after a factorial
+# anova, which are emmeans' pairs(emmeans(lm(), ~ term)) under each of its adjustments (tukey,
+# scheffe, sidak, bonferroni, holm, hochberg, hommel, BH, BY, none), with confint() for the
+# single-step ones. The means are written in our order, the first factor of the term changing
+# slowest, and a mean that cannot be estimated is left out before the pairs are formed, so the
+# family is the means that remain, as emmeans counts it. The layouts are those of the factorial
+# cases of anova.R: balanced and unbalanced, the terms in both orders, a covariate alone and in
+# an interaction with the factor compared, a covariate inside log(), three factors, an empty
+# cell with and without the interaction, rows with NA, frequency weights against the rows
+# written out and analytic weights. Under analytic weights a covariate is held at its weighted
+# mean, which emmeans is told by `at =`; its own default there is the unweighted mean. On a
+# balanced layout the comparisons of a main effect are also checked against TukeyHSD(aov()).
+# Run with `Rscript tests/reference/r/posthoc.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 options(warn = -1)
 .libPaths(c(file.path(here(), "library"), .libPaths()))
@@ -174,8 +188,154 @@ wages <- read_dataset(file.path(root, "packages", "tier1", "datasets", "data", "
 shipped <- comparisons(wages$hours, wages$industry,
                        data = list(file = "packages/tier1/datasets/data/wages.csv", x = "hours", g = "industry"))
 
+# ----- after a factorial anova (step 19b) -----
+
+# The layout of the factorial cases of anova.R.
+layout <- function(n) {
+  i <- seq_len(n)
+  data.frame(
+    y = round(3 * sin(i * 1.3) + 0.4 + i / 17, 4),
+    a = c("p", "p", "q", "p", "r", "q", "p")[1 + (i - 1) %% 7],
+    b = c("u", "v", "w", "z", "u", "v", "u", "w", "z", "u", "v")[1 + (i - 1) %% 11],
+    c = c("m", "n", "n", "m", "n")[1 + (i - 1) %% 5],
+    x = round(2 * cos(i * 0.7) + i / 20, 4),
+    z = round(sin(i * 0.31) * 3 + (i %% 4), 4),
+    stringsAsFactors = FALSE)
+}
+
+# The comparisons of the marginal means of `term` (its factors, in order) in the model `text`
+# on `d`; `covariates` are the numeric variables of the model, held at their weighted means
+# under analytic weights.
+marginal <- function(d, text, factors, term, covariates = character(0), weights = NULL,
+                     weight_type = NULL, expand = FALSE, hsd = FALSE) {
+  f <- as.formula(text)
+  vars <- all.vars(f)
+  used <- d[complete.cases(d[, vars, drop = FALSE]), ]
+  w <- NULL
+  if (!is.null(weights)) {
+    used <- used[!is.na(used[[weights]]) & used[[weights]] > 0, ]
+    if (expand) {
+      used <- used[rep(seq_len(nrow(used)), used[[weights]]), ]
+    } else {
+      w <- used[[weights]] * nrow(used) / sum(used[[weights]])
+    }
+  }
+  for (name in factors) used[[name]] <- factor(used[[name]])
+  used$.w <- w
+  m <- if (is.null(w)) lm(f, used) else lm(f, used, weights = .w)
+  at <- list()
+  if (!is.null(w)) for (name in covariates) at[[name]] <- weighted.mean(used[[name]], w)
+  em <- suppressMessages(if (length(at) == 0) emmeans(m, term) else emmeans(m, term, at = at))
+  grid <- as.data.frame(em)
+  # Our order: the first factor of the term slowest.
+  position <- lapply(term, function(name) as.integer(grid[[name]]))
+  ours <- do.call(order, position)
+  label <- function(i) paste(sapply(term, function(name) as.character(grid[[name]][i])), collapse = ":")
+  labels <- sapply(ours, label)
+  estimable <- !is.na(grid$emmean[ours])
+  kept <- em[ours[estimable]]
+  k <- sum(estimable)
+  pair <- combn(k, 2)
+  raw <- as.data.frame(pairs(kept, adjust = "none"))
+  stopifnot(nrow(raw) == ncol(pair), all(!is.na(raw$p.value)))
+  p <- function(adjust) as.list(num(as.data.frame(summary(pairs(kept), adjust = adjust))$p.value))
+  limits <- function(adjust) {
+    ci <- as.data.frame(confint(pairs(kept), level = LEVEL, adjust = adjust))
+    list(lower = as.list(num(ci$lower.CL)), upper = as.list(num(ci$upper.CL)))
+  }
+  column <- function(name) {
+    v <- d[[name]]
+    if (is.character(v)) as.list(ifelse(is.na(v), "NA", v)) else as.list(num(v))
+  }
+  out <- list(
+    formula = text, factors = as.list(factors), term = as.list(term),
+    columns = setNames(lapply(c(vars, weights), column), c(vars, weights)),
+    weights = if (is.null(weights)) "NA" else weights,
+    weight_type = if (is.null(weight_type)) "NA" else weight_type,
+    means = as.list(labels), estimable = as.list(estimable),
+    estimates = as.list(ifelse(estimable, num(grid$emmean[ours]), "NA")),
+    first = as.list(labels[estimable][pair[1, ]]), second = as.list(labels[estimable][pair[2, ]]),
+    df = num(df.residual(m)),
+    difference = as.list(num(raw$estimate)), se = as.list(num(raw$SE)), t = as.list(num(raw$t.ratio)),
+    none = p("none"), tukey = p("tukey"), scheffe = p("scheffe"), sidak = p("sidak"),
+    bonferroni = p("bonferroni"), holm = p("holm"), hochberg = p("hochberg"), hommel = p("hommel"),
+    bh = p("BH"), by = p("BY"),
+    ci_none = limits("none"), ci_tukey = limits("tukey"), ci_scheffe = limits("scheffe"),
+    ci_sidak = limits("sidak"), ci_bonferroni = limits("bonferroni"))
+  if (hsd) {
+    # A balanced layout: TukeyHSD of the main effect, whose rows are the second level minus the
+    # first.
+    stopifnot(length(term) == 1, all(estimable))
+    table <- TukeyHSD(aov(f, used), term, conf.level = LEVEL)[[term]]
+    lev <- levels(used[[term]])
+    stopifnot(identical(rownames(table), paste(lev[pair[2, ]], lev[pair[1, ]], sep = "-")))
+    plain <- function(v) as.list(num(unname(v)))
+    out$hsd <- list(difference = plain(-table[, "diff"]), p = plain(table[, "p adj"]),
+                    lower = plain(-table[, "upr"]), upper = plain(-table[, "lwr"]))
+  }
+  out
+}
+
+marginal_cases <- list()
+add <- function(case) marginal_cases[[length(marginal_cases) + 1]] <<- case
+# Balanced: three levels by two, four observations in each of the six cells.
+balanced <- layout(24)
+balanced$a <- rep(c("p", "q", "r"), each = 8)
+balanced$b <- rep(rep(c("u", "v"), each = 4), 3)
+add(marginal(balanced, "y ~ a * b", c("a", "b"), "a", hsd = TRUE))
+add(marginal(balanced, "y ~ a * b", c("a", "b"), "b", hsd = TRUE))
+add(marginal(balanced, "y ~ a * b", c("a", "b"), c("a", "b")))
+# Unbalanced: each main effect and the cells, the terms in both orders, the main effects alone.
+d <- layout(60)
+add(marginal(d, "y ~ a * b", c("a", "b"), "a"))
+add(marginal(d, "y ~ a * b", c("a", "b"), "b"))
+add(marginal(d, "y ~ a * b", c("a", "b"), c("a", "b")))
+add(marginal(d, "y ~ b * a", c("a", "b"), "a"))
+add(marginal(d, "y ~ a + b", c("a", "b"), "a"))
+add(marginal(d, "y ~ a + b", c("a", "b"), "b"))
+# One factor alone, and one factor of two levels: a single comparison.
+add(marginal(d, "y ~ a", "a", "a"))
+add(marginal(d, "y ~ a * c", c("a", "c"), "c"))
+# A covariate beside the factors, and a covariate that interacts with the factor compared.
+add(marginal(d, "y ~ a * b + x", c("a", "b"), "a", covariates = "x"))
+add(marginal(d, "y ~ a * b + x", c("a", "b"), c("a", "b"), covariates = "x"))
+add(marginal(d, "y ~ a * x", "a", "a", covariates = "x"))
+add(marginal(d, "y ~ a * x + b", c("a", "b"), "a", covariates = "x"))
+add(marginal(d, "y ~ a * x + b", c("a", "b"), "b", covariates = "x"))
+# A covariate inside a function: held at the logarithm of its mean, not the mean of its
+# logarithm.
+shifted <- d
+shifted$x <- round(shifted$x + 5, 4)
+add(marginal(shifted, "y ~ a * log(x)", "a", "a", covariates = "x"))
+# Three factors with every interaction: a main effect, a two-way term and the cells.
+big <- layout(180)
+add(marginal(big, "y ~ a * b * c", c("a", "b", "c"), "b"))
+add(marginal(big, "y ~ a * b * c", c("a", "b", "c"), c("a", "c")))
+add(marginal(big, "y ~ a * b * c", c("a", "b", "c"), c("c", "a")))
+add(marginal(big, "y ~ a * b * c", c("a", "b", "c"), c("a", "b", "c")))
+# An empty cell, no row with a = r and b = z: with the interaction the means that meet it
+# cannot be estimated; without it every mean can.
+empty <- d[!(d$a == "r" & d$b == "z"), ]
+add(marginal(empty, "y ~ a * b", c("a", "b"), "a"))
+add(marginal(empty, "y ~ a * b", c("a", "b"), "b"))
+add(marginal(empty, "y ~ a * b", c("a", "b"), c("a", "b")))
+add(marginal(empty, "y ~ a + b", c("a", "b"), "a"))
+# NA in the outcome, in a factor and in the covariate.
+holes <- d
+holes$y[c(4, 17)] <- NA; holes$a[c(9, 17)] <- NA; holes$x[31] <- NA
+add(marginal(holes, "y ~ a * b + x", c("a", "b"), "b", covariates = "x"))
+# Frequency weights, against the rows written out; a zero weight leaves its row out.
+weighted <- layout(40)
+weighted$w <- c(1, 2, 1, 3, 1, 1, 2, 0, 1, 4)[1 + (seq_len(40) - 1) %% 10]
+add(marginal(weighted, "y ~ a * c + x", c("a", "c"), "a", covariates = "x", weights = "w", weight_type = "frequency", expand = TRUE))
+add(marginal(weighted, "y ~ a * x + c", c("a", "c"), "a", covariates = "x", weights = "w", weight_type = "frequency", expand = TRUE))
+# Analytic weights, the covariate at its weighted mean.
+weighted$v <- round(0.5 + (seq_len(40) %% 7) / 3, 4)
+add(marginal(weighted, "y ~ a * c + x", c("a", "c"), c("a", "c"), covariates = "x", weights = "v", weight_type = "analytic"))
+add(marginal(weighted, "y ~ a * x + c", c("a", "c"), "a", covariates = "x", weights = "v", weight_type = "analytic"))
+
 write_json(list(reference = c(reference_block(),
                               list(DescTools = as.character(packageVersion("DescTools")),
                                    emmeans = as.character(packageVersion("emmeans")))),
-                cases = cases, wages = shipped),
+                cases = cases, wages = shipped, marginal = marginal_cases),
            file.path(here(), "posthoc.json"))

@@ -508,6 +508,72 @@ pub enum FollowUp {
         groups: Vec<GroupMean>,
         pooled: bool,
     },
+    /// The factorial `anova` (step 19b): the fitted model, from which `posthoc` reads the
+    /// estimated marginal means of a term and the standard error of each difference.
+    Factorial(ModelFit),
+}
+
+/// A fitted linear model as the call that follows it reads it (release 0.7.0, step 19b): the
+/// coding of its columns and the triangular factor of its design, which between them give the
+/// estimate and the variance of any linear function of the coefficients without the covariance
+/// matrix being formed.
+///
+/// With X the design, each column scaled by its entry of `scales`, and the columns taken in the
+/// order of `order`, the first `rank` of them are the ones estimated and `triangle` holds the
+/// first `rank` rows of the R factor of X, row by row over every column; `effects` is the part
+/// of Qᵀy that belongs to those rows. A linear function L of the coefficients (one weight per
+/// column of the design, unscaled) has the estimate uᵀ·effects and the variance
+/// `residual_ms`·uᵀu, where u solves R₁ᵀu = L scaled, R₁ being the leading square of the
+/// triangle; it can be estimated when the weights of the columns left out are those the triangle
+/// gives for u.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelFit {
+    /// The outcome and the formula as the call wrote them.
+    pub outcome: String,
+    pub formula: String,
+    /// The categories of the model, each with the levels the rows used hold, in the order the
+    /// columns use them.
+    pub factors: Vec<ModelFactor>,
+    /// The numeric parts of the model by their written form (`exper`, `log(income)`), each
+    /// with the value it takes when every numeric variable is held at its mean.
+    pub numbers: Vec<(String, f64)>,
+    /// The terms in the order of the table.
+    pub terms: Vec<ModelTerm>,
+    /// The parts whose product each column of the design is, the intercept having none.
+    pub columns: Vec<Vec<ColumnPart>>,
+    pub scales: Vec<f64>,
+    pub order: Vec<usize>,
+    pub rank: usize,
+    pub triangle: Vec<f64>,
+    pub effects: Vec<f64>,
+    pub residual_df: f64,
+    pub residual_ms: f64,
+    /// The observations: the total of the frequency weights, and the rows used otherwise.
+    pub n: f64,
+}
+
+/// A category of a model and its levels.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelFactor {
+    pub name: String,
+    pub levels: Vec<String>,
+}
+
+/// A term of a model: its name in the table, the categories among its parts by their place in
+/// `ModelFit::factors`, and the numeric parts by their place in `ModelFit::numbers`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelTerm {
+    pub label: String,
+    pub factors: Vec<usize>,
+    pub numbers: Vec<usize>,
+}
+
+/// One part of a column of a design: a number, held at the value given, or a category, with
+/// the weight the column gives each of its levels.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ColumnPart {
+    Number(f64),
+    Level { factor: usize, weights: Vec<f64> },
 }
 
 /// One group of a one-way `anova`: its printed label, its count (the sum of the weights under

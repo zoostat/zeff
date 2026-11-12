@@ -2937,7 +2937,12 @@ impl<'a> Interpreter<'a> {
         if let Some(Some(receiver)) = values.first() {
             for (i, value) in values.iter().enumerate().skip(1) {
                 if let Some(Value::Term(name)) = value {
-                    self.check_term(receiver, name, arg_spans[i].unwrap_or(call.callee_span))?;
+                    self.check_term(
+                        call,
+                        receiver,
+                        name,
+                        arg_spans[i].unwrap_or(call.callee_span),
+                    )?;
                 }
             }
         }
@@ -3327,7 +3332,7 @@ impl<'a> Interpreter<'a> {
             for (i, k) in params.iter().enumerate().skip(1) {
                 if let Some(k) = k
                     && let Some(Value::Term(name)) = value_of(*k)
-                    && let Err(error) = self.check_term(&receiver, &name, spans[i].1)
+                    && let Err(error) = self.check_term(call, &receiver, &name, spans[i].1)
                 {
                     for (_, sub) in built {
                         plan.absorb(sub);
@@ -3419,10 +3424,17 @@ impl<'a> Interpreter<'a> {
 
     fn check_term(
         &self,
+        call: &Call,
         receiver: &Value,
         name: &str,
         span: zeff_diagnostics::Span,
     ) -> Result<(), Fail> {
+        // `posthoc` names a term of the model of an `anova` (`dose`, `dose:diet`), which is not a
+        // column of a model matrix; it checks the name against that model itself (release
+        // 0.7.0, step 19b).
+        if call.package == "stats" && call.name == "posthoc" {
+            return Ok(());
+        }
         let terms: Vec<&str> = match receiver {
             Value::Fit(fit) => fit
                 .terms

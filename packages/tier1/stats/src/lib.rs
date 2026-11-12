@@ -9,6 +9,7 @@ pub mod chi2_test;
 pub mod fisher_test;
 pub mod kruskal_test;
 pub mod ks_test;
+pub mod marginal;
 pub mod p_adjust;
 pub mod posthoc;
 pub mod proportion_test;
@@ -859,6 +860,7 @@ pub fn functions() -> Vec<Function> {
                         "tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none",
                         "tukey",
                     ),
+                    ParamSpec::option("term", "Term"),
                 ],
                 rest: None,
                 returns: "TestResult",
@@ -866,14 +868,25 @@ pub fn functions() -> Vec<Function> {
                     DiagnosticDecl::note(
                         "after Welch's anova, method: tukey or scheffe pools the variances that the anova did not assume equal",
                     ),
+                    DiagnosticDecl::note(
+                        "a marginal mean that cannot be estimated, left out of the comparisons",
+                    ),
+                    DiagnosticDecl::note(
+                        "a term that is also part of a larger term of the model, so that its differences are averages",
+                    ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a receiver that is not the result of an anova, or is the result of an anova of a formula",
+                        "a receiver that is not the result of an anova; term: after the one-way form, left out when the formula has several terms of categories, or naming a term with a numeric part; a formula with no category",
+                    ),
+                    DiagnosticDecl::new("Z0414", "term: naming no term of the model"),
+                    DiagnosticDecl::new(
+                        "Z0802",
+                        "fewer than two marginal means of the term that can be estimated",
                     ),
                 ],
                 help: include_str!("../help/posthoc.md"),
                 accuracy: Some(AccuracyRecord {
-                    reference: "R 4.6.0 TukeyHSD(), pairwise.t.test() and t.test(), DescTools 0.99.60 ScheffeTest(), emmeans 2.0.3 pairs() (tests/reference/r/posthoc.R)"
+                    reference: "R 4.6.0 TukeyHSD(), pairwise.t.test() and t.test(), DescTools 0.99.60 ScheffeTest(), emmeans 2.0.3 emmeans(), pairs() and confint() (tests/reference/r/posthoc.R)"
                         .to_string(),
                     last_run: None,
                 }),

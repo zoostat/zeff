@@ -8,7 +8,8 @@
 //! p-value is below 0.05, `none` after Welch's `anova` is the `t_test` of each pair, the answer
 //! does not depend on the order of the rows, and frequency weights repeat rows); the edge cases
 //! of the checklist (two groups, groups of unequal sizes, a group of one after `equal_var:
-//! true`); the refusals; and snapshots of every form and every message.
+//! true`); the refusals; and snapshots of every form and every message. The form after a
+//! factorial `anova` (step 19b) has its own file, `posthoc_factorial.rs`.
 
 use std::collections::BTreeMap;
 use std::f64::consts::SQRT_2;
@@ -986,15 +987,21 @@ fn what_is_not_a_one_way_anova_is_refused() {
         failed.message,
         "`posthoc` compares the group means of an `anova`, but this is the result of `kruskal_test`"
     );
-    // An `anova` that kept no group means: the factorial form.
-    let mut formula = test.clone();
-    formula.follow_up = None;
-    let failed = follow_with_notes(&formula, None).unwrap_err();
+    // `term:` chooses among the terms of a formula; the one-way form has none to choose.
+    let failed = invoke(
+        posthoc,
+        vec![
+            Some(Value::TestResult(Rc::new(test.clone()))),
+            None,
+            Some(Value::Term("g".to_string())),
+        ],
+        "a.posthoc(term: g)",
+    )
+    .unwrap_err();
     assert_eq!(failed.code, "Z0401");
-    assert!(
-        failed.message.ends_with("this `anova` was given a formula"),
-        "{}",
-        failed.message
+    assert_eq!(
+        failed.message,
+        "`term:` chooses among the terms of a formula, but this `anova` compares the groups of `g` alone"
     );
     // A value that is no result at all.
     let failed = invoke(posthoc, vec![Some(Value::Int(3)), None], "a.posthoc()").unwrap_err();

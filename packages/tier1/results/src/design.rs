@@ -18,7 +18,10 @@ use zeff_core::display::list_levels;
 use zeff_core::lift;
 use zeff_core::operators::{self, Op, Operand};
 use zeff_core::runtime::{Args, CallContext, Fail, Function, fail};
-use zeff_core::value::{ColumnExpr, Formula, Frame, Term, TermKind, TypeValue, Value};
+use zeff_core::value::{
+    ColumnExpr, ColumnPart, Formula, Frame, ModelFactor, ModelTerm, Term, TermKind, TypeValue,
+    Value,
+};
 use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_kernels::Matrix;
@@ -157,6 +160,17 @@ pub struct Block {
     pub start: usize,
     pub x: Matrix,
     pub y: Vec<f64>,
+}
+
+/// A design as the marginal means of its model read it (release 0.7.0, step 19b): the categories
+/// with their levels, the numeric parts with the value each takes when every numeric variable is
+/// held at its mean, the terms, and the parts whose product each column is.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Coding {
+    pub factors: Vec<ModelFactor>,
+    pub numbers: Vec<(String, f64)>,
+    pub terms: Vec<ModelTerm>,
+    pub columns: Vec<Vec<ColumnPart>>,
 }
 
 impl Design {
@@ -493,6 +507,176 @@ impl Design {
                 }
             })
             .collect()
+    }
+
+    /// The coding of the design, for the marginal means of the model fitted on it: `frame` and
+    /// `formula` are the ones the design was built from. A numeric part is held at the value it
+    /// takes when every numeric variable of the formula is at its mean over the rows used, by
+    /// their weights when the design is weighted: `log(income)` at the logarithm of the mean
+    /// income, as R's `emmeans` holds it and as Stata's `margins` holds `c.x#c.x`. A part that
+    /// cannot be computed from means (a logical operation on a `Bool`, whose mean is a share) is
+    /// held at its own mean over the rows.
+    pub fn coding(&self, ctx: &mut CallContext<'_>, frame: &Frame, formula: &Formula) -> Coding {
+        let held = self.held_at_means(ctx, frame, formula);
+        let in_terms: BTreeSet<usize> = self
+            .terms
+            .iter()
+            .flat_map(|t| t.sources.iter().copied())
+            .collect();
+        let mut factors: Vec<ModelFactor> = Vec::new();
+        let mut numbers: Vec<(String, f64)> = Vec::new();
+        // By source, its place among the factors or among the numbers; the outcome and the
+        // weights are sources of no term and have none.
+        let mut place: Vec<usize> = Vec::with_capacity(self.sources.len());
+        for (s, source) in self.sources.iter().enumerate() {
+            if !in_terms.contains(&s) {
+                place.push(usize::MAX);
+                continue;
+            }
+            match source {
+                Source::Coded { levels, var, .. } => {
+                    let known = factors
+                        .iter()
+                        .position(|f| f.name == *var && f.levels == *levels);
+                    place.push(known.unwrap_or_else(|| {
+                        factors.push(ModelFactor {
+                            name: var.clone(),
+                            levels: levels.clone(),
+                        });
+                        factors.len() - 1
+                    }));
+                }
+                Source::Numeric { .. } => {
+                    numbers.push((self.keys[s].clone(), held[s]));
+                    place.push(numbers.len() - 1);
+                }
+            }
+        }
+        let terms = self
+            .terms
+            .iter()
+            .zip(self.terms())
+            .map(|(term, named)| {
+                let of = |coded: bool| -> Vec<usize> {
+                    term.sources
+                        .iter()
+                        .filter(|&&s| matches!(self.sources[s], Source::Coded { .. }) == coded)
+                        .map(|&s| place[s])
+                        .collect()
+                };
+                ModelTerm {
+                    label: named.label,
+                    factors: of(true),
+                    numbers: of(false),
+                }
+            })
+            .collect();
+        let mut columns: Vec<Vec<ColumnPart>> = Vec::with_capacity(self.k());
+        if self.intercept {
+            columns.push(Vec::new());
+        }
+        for column in &self.columns {
+            columns.push(
+                column
+                    .parts
+                    .iter()
+                    .map(|part| match part {
+                        Part::Numeric(source) => ColumnPart::Number(held[*source]),
+                        Part::Weighted { source, weights } => ColumnPart::Level {
+                            factor: place[*source],
+                            weights: weights.clone(),
+                        },
+                    })
+                    .collect(),
+            );
+        }
+        Coding {
+            factors,
+            numbers,
+            terms,
+            columns,
+        }
+    }
+
+    /// The mean of `value` over the rows used, by their weights when the design is weighted.
+    fn mean_over_rows(&self, value: impl Fn(usize) -> f64) -> f64 {
+        let weighted: Vec<f64> = self
+            .rows
+            .iter()
+            .enumerate()
+            .map(|(index, &row)| value(row) * self.weights.as_ref().map_or(1.0, |w| w[index]))
+            .collect();
+        zeff_kernels::sum(&weighted) / self.weight_total()
+    }
+
+    /// By source, the value a numeric part is held at for the marginal means (`NaN` for a
+    /// category): see [`Design::coding`].
+    fn held_at_means(
+        &self,
+        ctx: &mut CallContext<'_>,
+        frame: &Frame,
+        formula: &Formula,
+    ) -> Vec<f64> {
+        let mut held: Vec<f64> = self
+            .sources
+            .iter()
+            .map(|source| match source {
+                Source::Numeric { values, .. } => self.mean_over_rows(|row| values[row]),
+                Source::Coded { .. } => f64::NAN,
+            })
+            .collect();
+        let Some(&first) = self.rows.first() else {
+            return held;
+        };
+        // One row of the frame, its numeric variables replaced by their means: the formula built
+        // on it computes every numeric part at those means. The categories keep the labels of
+        // the row, which no numeric part reads.
+        let mut at_means = frame.table.take_rows(&[first]);
+        for name in formula_variables(formula, &frame.table) {
+            let Some(column) = frame.table.column(&name) else {
+                continue;
+            };
+            let values: Vec<Option<f64>> = match column.ty() {
+                ColumnType::Float => column.as_floats().expect("a Float column").collect(),
+                ColumnType::Int => column
+                    .as_ints()
+                    .expect("an Int column")
+                    .map(|v| v.map(|i| i as f64))
+                    .collect(),
+                ColumnType::Bool => column
+                    .as_bools()
+                    .expect("a Bool column")
+                    .map(|v| v.map(|b| if b { 1.0 } else { 0.0 }))
+                    .collect(),
+                _ => continue,
+            };
+            // A row used has no `NA` in a variable of the model.
+            let mean = self.mean_over_rows(|row| values[row].unwrap_or(f64::NAN));
+            let Ok(replaced) = at_means.with_column(&name, Column::floats([Some(mean)]).0) else {
+                return held;
+            };
+            at_means = replaced;
+        }
+        // Whatever the second pass says was said by the first, on the rows themselves.
+        let said = ctx.messages.len();
+        let plan = self.category_levels();
+        let built = Design::build_with(ctx, &Frame::new(at_means), formula, &[], &plan);
+        ctx.messages.truncate(said);
+        if let Ok(design) = built {
+            for (s, key) in self.keys.iter().enumerate() {
+                let Some(at) = design.keys.iter().position(|k| k == key) else {
+                    continue;
+                };
+                if let (Source::Numeric { .. }, Source::Numeric { values, na }) =
+                    (&self.sources[s], &design.sources[at])
+                    && !na[0]
+                    && values[0].is_finite()
+                {
+                    held[s] = values[0];
+                }
+            }
+        }
+        held
     }
 
     /// The same model with every category coded by deviations from the mean (the `sum`
@@ -1721,6 +1905,62 @@ fn term_columns(
         counts.push(columns.len() - before);
     }
     (columns, counts)
+}
+
+/// The variables of `table` a formula names, the outcome's among them, each once.
+fn formula_variables(formula: &Formula, table: &Table) -> Vec<String> {
+    fn of_expr(expr: &ColumnExpr, out: &mut Vec<String>) {
+        match expr {
+            ColumnExpr::Var(name) => {
+                if !out.contains(name) {
+                    out.push(name.clone());
+                }
+            }
+            ColumnExpr::List(items) => items.iter().for_each(|item| of_expr(item, out)),
+            ColumnExpr::Unary { operand, .. } => of_expr(operand, out),
+            ColumnExpr::Binary { lhs, rhs, .. } => {
+                of_expr(lhs, out);
+                of_expr(rhs, out);
+            }
+            ColumnExpr::Call { args, rest, .. } => {
+                args.iter().flatten().for_each(|arg| of_expr(arg, out));
+                rest.iter().for_each(|arg| of_expr(arg, out));
+            }
+            ColumnExpr::Int(_)
+            | ColumnExpr::Float(_)
+            | ColumnExpr::Str(_)
+            | ColumnExpr::Bool(_)
+            | ColumnExpr::Na
+            | ColumnExpr::Word(_)
+            | ColumnExpr::Type(_) => {}
+        }
+    }
+    fn of_term(term: &Term, table: &Table, out: &mut Vec<String>) {
+        match &term.kind {
+            TermKind::Var(name) => of_expr(&ColumnExpr::Var(name.clone()), out),
+            TermKind::Range(first, last) => {
+                if let (Some(a), Some(b)) = (table.position(first), table.position(last))
+                    && a <= b
+                {
+                    for name in &table.names()[a..=b] {
+                        of_expr(&ColumnExpr::Var(name.clone()), out);
+                    }
+                }
+            }
+            TermKind::Interaction(parts) | TermKind::Product(parts) => {
+                parts.iter().for_each(|part| of_term(part, table, out));
+            }
+            TermKind::Expr(expr) => of_expr(expr, out),
+        }
+    }
+    let mut out = Vec::new();
+    if let Some(outcome) = &formula.outcome {
+        of_term(outcome, table, &mut out);
+    }
+    for term in &formula.terms {
+        of_term(term, table, &mut out);
+    }
+    out
 }
 
 /// `an Int`, `a Float`.

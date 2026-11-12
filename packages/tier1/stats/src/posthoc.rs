@@ -1,16 +1,24 @@
-//! `posthoc` (release 0.7.0, step 19; Language Reference, section 4; open decisions #97 and
-//! #98): the pairwise comparisons of the group means after a one-way `anova`, by any of ten
-//! methods. Each row is one pair of groups, the first minus the second, with its difference, its
-//! standard error, its t statistic and its p-value under the method.
+//! `posthoc` (release 0.7.0, steps 19 and 19b; Language Reference, section 4; open decisions
+//! #97, #98 and #104): the pairwise comparisons that follow an `anova`, by any of ten methods.
+//! Each row is one pair, the first minus the second, with its difference, its standard error,
+//! its t statistic and its p-value under the method.
 //!
-//! `tukey`, the default, and `scheffe` rest on the pooled within-group variance whichever F the
-//! `anova` computed, as R's `TukeyHSD` and DescTools' `ScheffeTest` and Stata's `pwcompare` do:
-//! Tukey's p-value is the upper tail of the studentized range (`dist.tukey`) at |t|·√2, the
-//! Tukey–Kramer form when the groups differ in size; Scheffé's is the upper tail of F on k − 1
-//! and N − k degrees of freedom at t²/(k − 1). The other eight methods adjust the two-sided
-//! p-values of the pairwise t-tests through `p_adjust`: Welch's test of each pair after Welch's
-//! `anova`, the test on the pooled variance after `equal_var: true`, as R's `pairwise.t.test`
-//! with `pool.sd` false and true.
+//! After the one-way form the pairs are of the group means. `tukey`, the default, and
+//! `scheffe` rest on the pooled within-group variance whichever F the `anova` computed, as R's
+//! `TukeyHSD` and DescTools' `ScheffeTest` and Stata's `pwcompare` do: Tukey's p-value is the
+//! upper tail of the studentized range (`dist.tukey`) at |t|·√2, the Tukey–Kramer form when
+//! the groups differ in size; Scheffé's is the upper tail of F on k − 1 and N − k degrees of
+//! freedom at t²/(k − 1). The other eight methods adjust the two-sided p-values of the pairwise
+//! t-tests through `p_adjust`: Welch's test of each pair after Welch's `anova`, the test on the
+//! pooled variance after `equal_var: true`, as R's `pairwise.t.test` with `pool.sd` false and
+//! true.
+//!
+//! After the factorial form (step 19b) the pairs are of the estimated marginal means of the
+//! term that `term:` names (the module `marginal`), as R's `pairs(emmeans(fit, ~ a))` and
+//! Stata's `pwcompare`: every method on the residual variance and the residual degrees of
+//! freedom of the model, family-wise over the pairs of that term, k being the number of means
+//! compared. A mean the rows do not determine is left out with a note, and the family is the
+//! means that remain.
 //!
 //! Intervals come with the single-step methods alone: Tukey's from the quantile of the
 //! studentized range, Scheffé's from the quantile of F, Bonferroni's and Šidák's from the t
@@ -23,19 +31,22 @@ use std::rc::Rc;
 use zeff_core::display::{degrees_text, fixed, format_float, level_text, p_value_text};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Align, Alternative, Distribution, Estimate, FollowUp, Statistic, Table, TermTest, TestResult,
-    Value,
+    Align, Alternative, Distribution, Estimate, FollowUp, GroupMean, ModelFit, Statistic, Table,
+    TermTest, TestResult, Value,
 };
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_dist::families;
 use zeff_numeric::maths::{expm1, log};
 
 use crate::anova::{GroupSummary, LEVEL, Undefined, classical, count_text, upper_tail};
+use crate::marginal::{self, Mean};
 use crate::p_adjust;
 use crate::testing;
 
 const FIT: usize = 0;
 const METHOD: usize = 1;
+// After `method:`, which came first (step 19), so that `fit.posthoc(holm)` keeps its meaning.
+const TERM: usize = 2;
 
 /// The ten methods of the catalogue's usage line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -207,6 +218,20 @@ pub fn compare(
             });
         }
     }
+    finish(rows, k, method, level, pooled.map(|(_, df)| df))
+}
+
+/// The p-value of each of `rows` under `method`, and its interval at `level` where the method
+/// has one: `rows` are the comparisons of `k` means with their differences, standard errors, t
+/// and degrees of freedom; `pooled_df` is the degrees of freedom of the one variance they
+/// share, or `None` when each has its own.
+pub fn finish(
+    mut rows: Vec<Comparison>,
+    k: usize,
+    method: Method,
+    level: f64,
+    pooled_df: Option<f64>,
+) -> Result<Comparisons, Undefined> {
     let m = rows.len() as f64;
     let around = |row: &Comparison, half: f64| {
         Some((
@@ -214,8 +239,8 @@ pub fn compare(
             row.difference + half * row.std_error,
         ))
     };
-    match (method, pooled) {
-        (Method::Tukey, Some((_, df))) => {
+    match (method, pooled_df) {
+        (Method::Tukey, Some(df)) => {
             // q = |difference| / √(MS within/2 · (1/nᵢ + 1/nⱼ)) = |t|·√2.
             let range = Distribution::Family {
                 name: "tukey",
@@ -231,7 +256,7 @@ pub fn compare(
                 row.ci = around(row, half);
             }
         }
-        (Method::Scheffe, Some((_, df))) => {
+        (Method::Scheffe, Some(df)) => {
             let df1 = k as f64 - 1.0;
             let f = Distribution::Family {
                 name: "f",
@@ -282,10 +307,39 @@ pub fn compare(
         // `tukey` and `scheffe` always pool, so `pooled` is `Some` for them.
         (Method::Tukey | Method::Scheffe, None) => return Err(Undefined::NoPooledVariance),
     }
-    Ok(Comparisons {
-        rows,
-        pooled_df: pooled.map(|(_, df)| df),
-    })
+    Ok(Comparisons { rows, pooled_df })
+}
+
+/// The comparisons of every pair of `means`, marginal means of one term of `fit`, under
+/// `method`, with intervals at `level`: each standard error from the fit, every test on the
+/// residual variance and the residual degrees of freedom of the model.
+pub fn compare_marginal(
+    fit: &ModelFit,
+    means: &[Mean],
+    method: Method,
+    level: f64,
+) -> Result<Comparisons, Undefined> {
+    let k = means.len();
+    if k < 2 {
+        return Err(Undefined::TooFewGroups);
+    }
+    let mut rows: Vec<Comparison> = Vec::with_capacity(k * (k - 1) / 2);
+    for (i, a) in means.iter().enumerate() {
+        for (j, b) in means.iter().enumerate().skip(i + 1) {
+            let (difference, std_error) = marginal::difference(fit, a, b);
+            rows.push(Comparison {
+                first: i,
+                second: j,
+                difference,
+                std_error,
+                t: difference / std_error,
+                df: fit.residual_df,
+                p: f64::NAN,
+                ci: None,
+            });
+        }
+    }
+    finish(rows, k, method, level, Some(fit.residual_df))
 }
 
 /// `1 comparison`, `66 comparisons`.
@@ -298,8 +352,8 @@ fn comparisons_text(m: usize) -> String {
 }
 
 /// The line under the table that says what the method does to the p-values and the intervals.
-fn method_line(method: Method, k: usize, m: usize, pooled_df: Option<f64>) -> String {
-    let over = format!("{} of {} groups", comparisons_text(m), count(k as u64));
+fn method_line(method: Method, k: usize, m: usize, pooled_df: Option<f64>, what: &str) -> String {
+    let over = format!("{} of {} {what}", comparisons_text(m), count(k as u64));
     let name = method.name();
     match method {
         Method::Tukey => format!(
@@ -349,7 +403,7 @@ fn not_followed(ctx: &CallContext<'_>, message: String, label: &str, help: &str)
 }
 
 /// `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak |
-/// scheffe | none = tukey)`, after the one-way form of `anova`.
+/// scheffe | none = tukey, term:)`, after either form of `anova`.
 pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let test = match args.get(FIT) {
         Some(Value::TestResult(test)) => Rc::clone(test),
@@ -376,20 +430,6 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             "write `d.anova(y, group: g).posthoc()`; the comparisons rest on the group means and variances of that test",
         ));
     }
-    let Some(follow) = &test.follow_up else {
-        return Err(not_followed(
-            ctx,
-            "`posthoc` compares the groups of a one-way `anova`, but this `anova` was given a formula".to_string(),
-            "the result of a formula",
-            "the comparisons of one factor are `d.anova(y, group: a).posthoc()`",
-        ));
-    };
-    let FollowUp::OneWay {
-        outcome,
-        factor,
-        groups,
-        pooled,
-    } = follow.as_ref();
     let method = match args.get(METHOD) {
         Some(Value::Word(w)) => match Method::from_word(w) {
             Some(method) => method,
@@ -410,34 +450,67 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         },
         _ => Method::Tukey,
     };
-    let summaries: Vec<GroupSummary> = groups
-        .iter()
-        .map(|g| GroupSummary {
-            n: g.n,
-            mean: g.mean,
-            variance: g.variance,
-        })
-        .collect();
-    let result = compare(&summaries, !*pooled, method, LEVEL).map_err(|_| {
-        testing::internal(
+    let term = match args.get(TERM) {
+        Some(Value::Term(name)) => Some(name.clone()),
+        _ => None,
+    };
+    match test.follow_up.as_deref() {
+        Some(FollowUp::OneWay {
+            outcome,
+            factor,
+            groups,
+            pooled,
+        }) => {
+            if term.is_some() {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`term:` chooses among the terms of a formula, but this `anova` compares the groups of `{factor}` alone"
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(TERM), "not used after the one-way form")
+                    .help("leave `term:` out; it is for `d.anova(y ~ a * b).posthoc(term: a)`"),
+                ));
+            }
+            one_way(ctx, &test, method, outcome, factor, groups, *pooled)
+        }
+        Some(FollowUp::Factorial(fit)) => factorial(ctx, &test, method, fit, term.as_deref()),
+        None => Err(testing::internal(
             ctx,
-            "comparisons undefined after an `anova` that was defined",
-        )
-    })?;
-    // After Welch's F, a method that pools assumes what the `anova` did not.
-    if !*pooled && method.pools() {
-        ctx.message(Diagnostic::plain_note(format!(
-            "`{}` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests",
-            if method == Method::Tukey { "tukey" } else { "scheffe" }
-        )));
+            "an `anova` that left nothing for `posthoc`",
+        )),
     }
-    let k = summaries.len();
-    let m = result.rows.len();
-    let n: f64 = summaries.iter().map(|g| g.n).sum();
+}
+
+/// What is printed, once the comparisons are made.
+struct Report<'a> {
+    /// The means compared, by their labels, in the order the comparisons count them.
+    labels: &'a [String],
+    result: &'a Comparisons,
+    title: String,
+    header: &'static str,
+    after: Vec<String>,
+    /// The test of the whole that the comparisons follow.
+    statistic: Statistic,
+    p_value: f64,
+}
+
+/// The result of `posthoc` from its comparisons.
+fn report(test: &TestResult, method: Method, report: Report<'_>) -> Value {
+    let Report {
+        labels,
+        result,
+        title,
+        header,
+        after,
+        statistic,
+        p_value,
+    } = report;
     let welch_pairs = result.pooled_df.is_none();
     let intervals = method.has_intervals();
-    let label =
-        |row: &Comparison| format!("{} − {}", groups[row.first].label, groups[row.second].label);
+    let label = |row: &Comparison| format!("{} − {}", labels[row.first], labels[row.second]);
     let mut columns = vec![
         ("comparison".to_string(), Align::Left),
         ("difference".to_string(), Align::Right),
@@ -478,18 +551,7 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             cells
         })
         .collect();
-    let variance_line = match result.pooled_df {
-        Some(df) => format!(
-            "pooled within-group variance on {} degrees of freedom; N = {}",
-            degrees_text(df),
-            count_text(n)
-        ),
-        None => format!(
-            "Welch's t-test of each pair, the variances not assumed equal; N = {}",
-            count_text(n)
-        ),
-    };
-    Ok(Value::TestResult(Rc::new(TestResult {
+    Value::TestResult(Rc::new(TestResult {
         follow_up: None,
         terms: result
             .rows
@@ -513,13 +575,10 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             })
             .collect(),
         method: "posthoc".to_string(),
-        title: format!("posthoc · {} · {outcome} by {factor}", method.name()),
+        title,
         hypotheses: None,
         alternative: Alternative::TwoSided,
-        header: vec![
-            "each row tests H0: the two population means are equal, against H1: they differ"
-                .to_string(),
-        ],
+        header: vec![header.to_string()],
         table: Some(Table {
             title: String::new(),
             before: Vec::new(),
@@ -530,15 +589,376 @@ pub fn posthoc(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             rules: Vec::new(),
         }),
         estimate: None,
-        // The test of the whole: the F of the `anova` the comparisons follow.
-        statistic: test.statistic.clone(),
-        p_value: test.p_value,
+        statistic,
+        p_value,
         effect: None,
         level: LEVEL,
         alpha: None,
-        after: vec![method_line(method, k, m, result.pooled_df), variance_line],
+        after,
         notes: Vec::new(),
         n: test.n,
         dropped: test.dropped,
-    })))
+    }))
+}
+
+/// The comparisons of the group means after the one-way form.
+fn one_way(
+    ctx: &mut CallContext<'_>,
+    test: &TestResult,
+    method: Method,
+    outcome: &str,
+    factor: &str,
+    groups: &[GroupMean],
+    pooled: bool,
+) -> Result<Value, Fail> {
+    let summaries: Vec<GroupSummary> = groups
+        .iter()
+        .map(|g| GroupSummary {
+            n: g.n,
+            mean: g.mean,
+            variance: g.variance,
+        })
+        .collect();
+    let result = compare(&summaries, !pooled, method, LEVEL).map_err(|_| {
+        testing::internal(
+            ctx,
+            "comparisons undefined after an `anova` that was defined",
+        )
+    })?;
+    // After Welch's F, a method that pools assumes what the `anova` did not.
+    if !pooled && method.pools() {
+        ctx.message(Diagnostic::plain_note(format!(
+            "`{}` pools the variances of the groups, which the `anova` did not assume equal; `method: holm` compares the pairs by Welch's t-tests",
+            if method == Method::Tukey { "tukey" } else { "scheffe" }
+        )));
+    }
+    let k = summaries.len();
+    let m = result.rows.len();
+    let n: f64 = summaries.iter().map(|g| g.n).sum();
+    let variance_line = match result.pooled_df {
+        Some(df) => format!(
+            "pooled within-group variance on {} degrees of freedom; N = {}",
+            degrees_text(df),
+            count_text(n)
+        ),
+        None => format!(
+            "Welch's t-test of each pair, the variances not assumed equal; N = {}",
+            count_text(n)
+        ),
+    };
+    let labels: Vec<String> = groups.iter().map(|g| g.label.clone()).collect();
+    Ok(report(
+        test,
+        method,
+        Report {
+            labels: &labels,
+            result: &result,
+            title: format!("posthoc · {} · {outcome} by {factor}", method.name()),
+            header: "each row tests H0: the two population means are equal, against H1: they differ",
+            after: vec![
+                method_line(method, k, m, result.pooled_df, "groups"),
+                variance_line,
+            ],
+            // The test of the whole: the F of the `anova` the comparisons follow.
+            statistic: test.statistic.clone(),
+            p_value: test.p_value,
+        },
+    ))
+}
+
+/// `a`, `a and b`, `a, b and c`, each in backticks.
+fn listed(names: &[String]) -> String {
+    let quoted: Vec<String> = names.iter().map(|n| format!("`{n}`")).collect();
+    match quoted.as_slice() {
+        [] => String::new(),
+        [one] => one.clone(),
+        [first @ .., last] => format!("{} and {last}", first.join(", ")),
+    }
+}
+
+/// Whether two term names name the same term: the same parts, in any order.
+fn same_term(a: &str, b: &str) -> bool {
+    let parts = |text: &str| {
+        let mut parts: Vec<String> = text.split(':').map(|p| p.trim().to_string()).collect();
+        parts.sort();
+        parts
+    };
+    parts(a) == parts(b)
+}
+
+/// The comparisons of the marginal means of one term after the factorial form.
+fn factorial(
+    ctx: &mut CallContext<'_>,
+    test: &TestResult,
+    method: Method,
+    fit: &ModelFit,
+    term: Option<&str>,
+) -> Result<Value, Fail> {
+    // The terms whose levels can be compared, in the order of the table: those made of
+    // categories alone.
+    let comparable: Vec<String> = test
+        .terms
+        .iter()
+        .filter(|row| {
+            fit.terms
+                .iter()
+                .any(|t| t.label == row.term && t.numbers.is_empty() && !t.factors.is_empty())
+        })
+        .map(|row| row.term.clone())
+        .collect();
+    let formula = &fit.formula;
+    if comparable.is_empty() {
+        return Err(not_followed(
+            ctx,
+            format!(
+                "`posthoc` compares the levels of a category, but no term of `{formula}` is a category or an interaction of categories"
+            ),
+            "no category among the terms",
+            "a numeric variable has a slope and no levels; `category(x)` in the formula treats its values as levels",
+        ));
+    }
+    let example = || {
+        let interaction = comparable.iter().find(|label| label.contains(':'));
+        match interaction {
+            Some(label) => format!(
+                "`term: {}` compares the marginal means of `{}`; `term: \"{label}\"` compares every pair of cells",
+                comparable[0], comparable[0]
+            ),
+            None => format!(
+                "`term: {}` compares the marginal means of `{}`",
+                comparable[0], comparable[0]
+            ),
+        }
+    };
+    let chosen = match term {
+        Some(name) => match fit.terms.iter().find(|t| same_term(&t.label, name)) {
+            Some(found) if found.numbers.is_empty() && !found.factors.is_empty() => found,
+            Some(found) => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        if found.factors.is_empty() {
+                            format!(
+                                "`{}` is numeric, so it has a slope and no levels to compare",
+                                found.label
+                            )
+                        } else {
+                            format!(
+                                "`{}` has the numeric part {}, so it has slopes and no levels to compare",
+                                found.label,
+                                listed(
+                                    &found
+                                        .numbers
+                                        .iter()
+                                        .map(|&at| fit.numbers[at].0.clone())
+                                        .collect::<Vec<String>>()
+                                )
+                            )
+                        },
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(TERM), "not a term of categories alone")
+                    .help(format!(
+                        "the terms of `{formula}` whose levels `posthoc` compares: {}",
+                        listed(&comparable)
+                    )),
+                ));
+            }
+            None => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0414",
+                        format!("`{formula}` has no term `{name}`"),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(TERM), "not a term of the model")
+                    .help(format!(
+                        "the terms whose levels `posthoc` compares: {}; an interaction is written in quotes, `term: \"a:b\"`",
+                        listed(&comparable)
+                    )),
+                ));
+            }
+        },
+        None => match comparable.as_slice() {
+            [only] => fit
+                .terms
+                .iter()
+                .find(|t| t.label == *only)
+                .expect("a term of the table is a term of the fit"),
+            _ => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`posthoc` needs `term:` here: `{formula}` has {} terms whose levels it can compare, {}",
+                            count(comparable.len() as u64),
+                            listed(&comparable)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "which term?")
+                    .help(example()),
+                ));
+            }
+        },
+    };
+    let names = |factors: &[usize]| -> Vec<String> {
+        factors
+            .iter()
+            .map(|&f| fit.factors[f].name.clone())
+            .collect()
+    };
+    // The categories of the term in the order `term:` wrote them, which is the order of the
+    // cells and of their labels: `"diet:dose"` puts diet first whatever the formula wrote.
+    let factors: Vec<usize> = term
+        .map(|name| {
+            name.split(':')
+                .filter_map(|part| {
+                    chosen
+                        .factors
+                        .iter()
+                        .copied()
+                        .find(|&f| fit.factors[f].name == part.trim())
+                })
+                .collect::<Vec<usize>>()
+        })
+        .filter(|written| written.len() == chosen.factors.len())
+        .unwrap_or_else(|| chosen.factors.clone());
+    let shown = names(&factors).join(":");
+    let all = marginal::means(fit, &factors);
+    let (means, undetermined): (Vec<Mean>, Vec<Mean>) =
+        all.into_iter().partition(|mean| mean.estimable);
+    // The other categories of the model, over whose levels each mean is averaged.
+    let others: Vec<usize> = (0..fit.factors.len())
+        .filter(|f| !chosen.factors.contains(f))
+        .collect();
+    if means.len() < 2 {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0802",
+                format!(
+                    "fewer than two marginal means of `{shown}` can be estimated, so there is no pair to compare"
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(TERM), "nothing to compare")
+            .help("with an interaction in the model, a marginal mean needs a row in every combination of its level with the levels of the other category; `tabulate` shows the cells, and the model without the interaction can estimate every mean"),
+        ));
+    }
+    if !undetermined.is_empty() {
+        let labels: Vec<String> = undetermined.iter().map(|m| m.label.clone()).collect();
+        let cause = if others.is_empty() {
+            "no row holds the combination".to_string()
+        } else {
+            format!(
+                "a combination with {} holds no row, and the model has their interaction",
+                listed(&names(&others))
+            )
+        };
+        ctx.message(Diagnostic::plain_note(format!(
+            "the marginal {} of {} cannot be estimated ({cause}) and {} left out; the comparisons are among the other {}",
+            if labels.len() == 1 { "mean" } else { "means" },
+            listed(&labels),
+            if labels.len() == 1 { "is" } else { "are" },
+            count(means.len() as u64)
+        )));
+    }
+    // A larger term that contains the one compared: the differences are then averages over
+    // the levels of its other categories, or hold at the value its numbers are held at.
+    let containing: Vec<String> = fit
+        .terms
+        .iter()
+        .filter(|t| t.label != chosen.label && chosen.factors.iter().all(|f| t.factors.contains(f)))
+        .map(|t| t.label.clone())
+        .collect();
+    if !containing.is_empty() {
+        let inside = |label: &String| fit.terms.iter().find(|t| t.label == *label);
+        // The other categories and the numeric parts of those larger terms.
+        let mut categories: Vec<String> = Vec::new();
+        let mut numbers: Vec<String> = Vec::new();
+        for larger in containing.iter().filter_map(inside) {
+            for name in names(&larger.factors) {
+                if !names(&factors).contains(&name) && !categories.contains(&name) {
+                    categories.push(name);
+                }
+            }
+            for &at in &larger.numbers {
+                if !numbers.contains(&fit.numbers[at].0) {
+                    numbers.push(fit.numbers[at].0.clone());
+                }
+            }
+        }
+        let meaning = match (categories.is_empty(), numbers.is_empty()) {
+            (false, true) => format!(
+                "its differences are averages over the levels of {} and may not be the same at each level",
+                listed(&categories)
+            ),
+            (true, _) => format!(
+                "its differences are taken at the value of {} given under the table and change with it",
+                listed(&numbers)
+            ),
+            (false, false) => format!(
+                "its differences are averages over the levels of {}, taken at the value of {} given under the table, and may not be the same at each level or at another value",
+                listed(&categories),
+                listed(&numbers)
+            ),
+        };
+        ctx.message(Diagnostic::plain_note(format!(
+            "`{shown}` is also part of {}: {meaning}",
+            listed(&containing)
+        )));
+    }
+    let result = compare_marginal(fit, &means, method, LEVEL).map_err(|_| {
+        testing::internal(
+            ctx,
+            "comparisons undefined after an `anova` that was defined",
+        )
+    })?;
+    let k = means.len();
+    let m = result.rows.len();
+    // What a marginal mean is here, in one line.
+    let held: Vec<String> = fit
+        .numbers
+        .iter()
+        .map(|(name, value)| format!("{name} = {}", format_float(*value)))
+        .collect();
+    let unit = if factors.len() > 1 { "cell" } else { "level" };
+    let mut definition = if others.is_empty() {
+        format!("each mean is the model's prediction for a {unit} of {shown}")
+    } else {
+        format!(
+            "each mean is the model's prediction for a {unit} of {shown}, averaged with equal weight over the levels of {}",
+            names(&others).join(", ")
+        )
+    };
+    if !held.is_empty() {
+        definition.push_str(&format!(
+            ", with the numeric variables at their means ({})",
+            held.join(", ")
+        ));
+    }
+    let labels: Vec<String> = means.iter().map(|mean| mean.label.clone()).collect();
+    // The test of the whole: the F of the term in the table of the `anova`.
+    let row = test.terms.iter().find(|row| row.term == chosen.label);
+    Ok(report(
+        test,
+        method,
+        Report {
+            labels: &labels,
+            result: &result,
+            title: format!("posthoc · {} · {shown} · {formula}", method.name()),
+            header: "each row tests H0: the two marginal means of the population are equal, against H1: they differ",
+            after: vec![
+                method_line(method, k, m, result.pooled_df, "marginal means"),
+                definition,
+                format!(
+                    "residual variance of the model on {} degrees of freedom; N = {}",
+                    degrees_text(fit.residual_df),
+                    count_text(fit.n)
+                ),
+            ],
+            statistic: row.map_or_else(|| test.statistic.clone(), |row| row.statistic.clone()),
+            p_value: row.map_or(test.p_value, |row| row.p_value),
+        },
+    ))
 }

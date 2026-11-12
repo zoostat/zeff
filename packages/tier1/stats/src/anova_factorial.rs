@@ -28,10 +28,11 @@ use std::rc::Rc;
 use zeff_core::display::{fixed, p_value_text};
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Align, Alternative, Estimate, Formula, Frame, Statistic, Table, TermTest, TestResult, Value,
+    Align, Alternative, Estimate, FollowUp, Formula, Frame, ModelFit, Statistic, Table, TermTest,
+    TestResult, Value,
 };
 use zeff_diagnostics::{Diagnostic, count};
-use zeff_kernels::qr::{TallSkinnyQr, pivoted_qr};
+use zeff_kernels::qr::{PivotedQr, TallSkinnyQr, pivoted_qr};
 use zeff_kernels::{LaneSum, Matrix, sum_of_squares};
 use zeff_numeric::order::WeightKind;
 use zeff_results::design::{Design, DesignTerm};
@@ -118,6 +119,21 @@ pub struct Factorial {
     /// columns: fewer of the first when a combination of levels has no observation.
     pub rank: usize,
     pub columns: usize,
+    /// The fit itself, for the call that follows (`posthoc`, step 19b).
+    pub solution: Solution,
+}
+
+/// The least-squares fit as its triangular factor: with the columns of the scaled design taken
+/// in the order of `order` (the design's own indices, the ones estimated first), `triangle`
+/// holds the first `rank` rows of the R factor, row by row over all the columns, and `effects`
+/// the entries of Qᵀy that go with those rows. The coefficients are never formed: a linear
+/// function of them is read from the two (see `zeff_core::value::ModelFit`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Solution {
+    pub order: Vec<usize>,
+    pub rank: usize,
+    pub triangle: Vec<f64>,
+    pub effects: Vec<f64>,
 }
 
 /// Why the table cannot be computed.
@@ -142,6 +158,32 @@ struct Sequence {
     /// residual.
     effects: Vec<f64>,
     rank: usize,
+    /// The factor the figures were read from, and the column of X at each of its positions
+    /// before the pivoting.
+    pivoted: PivotedQr,
+    layout: Vec<usize>,
+}
+
+impl Sequence {
+    /// The fit of the columns laid out, as the call that follows the table reads it.
+    fn solution(&self) -> Solution {
+        let columns = self.layout.len();
+        let mut triangle = Vec::with_capacity(self.rank * columns);
+        for row in 0..self.rank {
+            for position in 0..columns {
+                triangle.push(self.pivoted.r.column(position)[row]);
+            }
+        }
+        Solution {
+            order: self.pivoted.order[..columns]
+                .iter()
+                .map(|&position| self.layout[position])
+                .collect(),
+            rank: self.rank,
+            triangle,
+            effects: self.effects[..self.rank].to_vec(),
+        }
+    }
 }
 
 /// The sequential sums of squares of `groups` of columns of X, in that order, from `r`, the
@@ -154,12 +196,14 @@ fn sequence(r: &Matrix, groups: &[Vec<usize>]) -> Sequence {
     let included: usize = groups.iter().map(Vec::len).sum();
     let mut reordered = Matrix::zeros(r.rows(), included + 1);
     let mut owner: Vec<usize> = Vec::with_capacity(included);
+    let mut layout: Vec<usize> = Vec::with_capacity(included);
     for (g, group) in groups.iter().enumerate() {
         for &column in group {
             reordered
                 .column_mut(owner.len())
                 .copy_from_slice(r.column(column));
             owner.push(g);
+            layout.push(column);
         }
     }
     reordered.column_mut(included).copy_from_slice(r.column(y));
@@ -174,6 +218,8 @@ fn sequence(r: &Matrix, groups: &[Vec<usize>]) -> Sequence {
         df: squares.iter().map(Vec::len).collect(),
         effects,
         rank: pivoted.rank,
+        pivoted,
+        layout,
     }
 }
 
@@ -272,13 +318,14 @@ pub fn factorial(
         total_ss: sum_of_squares(&full.effects[1..]),
         rank,
         columns,
+        solution: full.solution(),
     })
 }
 
 /// The triangular factor of `[X y]` of `design`, X scaled column by column to unit norm as the
 /// least-squares fit scales it, by the blocked QR; with it the name of a column too large to
-/// square, when there is one.
-fn factor(design: &Design) -> (Matrix, Option<String>, f64) {
+/// square, when there is one, the largest outcome in size, and the scale of each column.
+fn factor(design: &Design) -> (Matrix, Option<String>, f64, Vec<f64>) {
     let k = design.k();
     let mut accumulators: Vec<LaneSum> = (0..k).map(|_| LaneSum::new()).collect();
     let mut largest_outcome = 0.0_f64;
@@ -318,7 +365,7 @@ fn factor(design: &Design) -> (Matrix, Option<String>, f64) {
             qr.push_rows(&augmented);
         }
     }
-    (qr.finish(), oversized, largest_outcome)
+    (qr.finish(), oversized, largest_outcome, scales)
 }
 
 /// The observations a design counts: the total of its frequency weights, and its rows otherwise.
@@ -332,7 +379,7 @@ fn observations(design: &Design) -> f64 {
 /// The table of a design whose categories are already coded by deviations (`sum_coded`): the
 /// figures `anova` prints, before any rounding, which a test compares with R's one by one.
 pub fn table_of(design: &Design, kind: Kind) -> Result<Factorial, Undefined> {
-    let (r, _, _) = factor(design);
+    let (r, _, _, _) = factor(design);
     factorial(&r, &design.terms(), observations(design), kind)
 }
 
@@ -532,7 +579,7 @@ pub fn anova(
             "an analysis of variance needs an outcome that varies",
         ));
     }
-    let (r, oversized, largest_outcome) = factor(&design);
+    let (r, oversized, largest_outcome, scales) = factor(&design);
     if largest_outcome > OVERSIZED {
         return Err(fail(
             Diagnostic::error(
@@ -716,8 +763,26 @@ pub fn anova(
         (Some(name), Some(_)) => format!(", analytic weights {name}"),
         _ => String::new(),
     };
+    // What `posthoc` reads: the coding of the columns and the fit (step 19b).
+    let coding = design.coding(ctx, frame, formula);
+    let fit = ModelFit {
+        outcome: outcome.clone(),
+        formula: formula.to_string(),
+        factors: coding.factors,
+        numbers: coding.numbers,
+        terms: coding.terms,
+        columns: coding.columns,
+        scales,
+        order: table.solution.order.clone(),
+        rank: table.solution.rank,
+        triangle: table.solution.triangle.clone(),
+        effects: table.solution.effects.clone(),
+        residual_df: table.residual_df,
+        residual_ms,
+        n,
+    };
     Ok(Value::TestResult(Rc::new(TestResult {
-        follow_up: None,
+        follow_up: Some(Rc::new(FollowUp::Factorial(fit))),
         terms: table
             .terms
             .iter()

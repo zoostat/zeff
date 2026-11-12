@@ -454,3 +454,7 @@ The owner adopted the recommendations of open decision #125: Zemp Lite is built 
 ## 12 November 2026 — zeff_functions.csv, row 178
 
 Step 18c of release 0.7.0 builds open decision #111 (option A, decided 11 November 2026): `p_adjust` given a column gives a column, and inside `add` or `update` each `by:` group is a family adjusted on its own. The usage line of row 178 does not change, since `by:` is an option of the verb and not of the function. Its description, which said "a numeric column accepted beside a list", now says what each form returns, and its note records the step. No other normative text changes.
+
+## 12 November 2026 — zeff_functions.csv, row 195
+
+Step 19b of release 0.7.0 builds open decision #104 (option A, decided 11 November 2026): `posthoc` after an `anova` of a formula compares the estimated marginal means of one term. The usage line of row 195 gains `term: Term?`, as the checklist's step says. It is written after `method:` and not before it as the step's sentence has it, because `method:` was the first option since step 19 and an option may be given without its name: `fit.posthoc(holm)` must go on meaning the method. The description gains a clause on the form after a formula, the equivalents name `pairs()` of emmeans, and the note records the step. No other normative text changes.

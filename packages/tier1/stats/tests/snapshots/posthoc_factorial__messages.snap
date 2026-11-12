@@ -1,0 +1,137 @@
+---
+source: packages/tier1/stats/tests/posthoc_factorial.rs
+expression: all
+---
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+error[Z0401]: `posthoc` needs `term:` here: `gain ~ dose * diet + age` has 3 terms whose levels it can compare, `dose`, `diet` and `dose:diet`
+ --> scripts/main.zeff:2:35
+  |
+2 | d.anova(gain ~ dose * diet + age).posthoc()
+  |                                   ^^^^^^^ which term?
+  |
+  = help: `term: dose` compares the marginal means of `dose`; `term: "dose:diet"` compares every pair of cells
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+error[Z0401]: `posthoc` needs `term:` here: `gain ~ dose + diet` has 2 terms whose levels it can compare, `dose` and `diet`
+ --> scripts/main.zeff:2:29
+  |
+2 | d.anova(gain ~ dose + diet).posthoc(method: holm)
+  |                             ^^^^^^^ which term?
+  |
+  = help: `term: dose` compares the marginal means of `dose`
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+error[Z0414]: `gain ~ dose * diet + age` has no term `lot`
+ --> scripts/main.zeff:2:49
+  |
+2 | d.anova(gain ~ dose * diet + age).posthoc(term: lot)
+  |                                                 ^^^ not a term of the model
+  |
+  = help: the terms whose levels `posthoc` compares: `dose`, `diet` and `dose:diet`; an interaction is written in quotes, `term: "a:b"`
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+error[Z0414]: `gain ~ dose * diet + age` has no term `dose:lot`
+ --> scripts/main.zeff:2:49
+  |
+2 | d.anova(gain ~ dose * diet + age).posthoc(term: "dose:lot")
+  |                                                 ^^^^^^^^^^ not a term of the model
+  |
+  = help: the terms whose levels `posthoc` compares: `dose`, `diet` and `dose:diet`; an interaction is written in quotes, `term: "a:b"`
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+error[Z0401]: `age` is numeric, so it has a slope and no levels to compare
+ --> scripts/main.zeff:2:49
+  |
+2 | d.anova(gain ~ dose * diet + age).posthoc(term: age)
+  |                                                 ^^^ not a term of categories alone
+  |
+  = help: the terms of `gain ~ dose * diet + age` whose levels `posthoc` compares: `dose`, `diet` and `dose:diet`
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+error[Z0401]: `dose:age` has the numeric part `age`, so it has slopes and no levels to compare
+ --> scripts/main.zeff:2:42
+  |
+2 | d.anova(gain ~ dose * age).posthoc(term: "dose:age")
+  |                                          ^^^^^^^^^^ not a term of categories alone
+  |
+  = help: the terms of `gain ~ dose * age` whose levels `posthoc` compares: `dose`
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+note: no term of the formula is a category, so each row tests a slope; `reg` gives the estimates (line 2)
+error[Z0401]: `posthoc` compares the levels of a category, but no term of `gain ~ age + lot` is a category or an interaction of categories
+ --> scripts/main.zeff:2:1
+  |
+2 | d.anova(gain ~ age + lot).posthoc()
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^ no category among the terms
+  |
+  = help: a numeric variable has a slope and no levels; `category(x)` in the formula treats its values as levels
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+note: no term of the formula is a category, so each row tests a slope; `reg` gives the estimates (line 2)
+error[Z0401]: `posthoc` compares the levels of a category, but no term of `gain ~ age + lot` is a category or an interaction of categories
+ --> scripts/main.zeff:2:1
+  |
+2 | d.anova(gain ~ age + lot).posthoc(term: age)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^ no category among the terms
+  |
+  = help: a numeric variable has a slope and no levels; `category(x)` in the formula treats its values as levels
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+error[Z0401]: `term:` chooses among the terms of a formula, but this `anova` compares the groups of `dose` alone
+ --> scripts/main.zeff:2:42
+  |
+2 | d.anova(gain, group: dose).posthoc(term: dose)
+  |                                          ^^^^ not used after the one-way form
+  |
+  = help: leave `term:` out; it is for `d.anova(y ~ a * b).posthoc(term: a)`
+
+error[Z0402]: `dunnett` is not one of the allowed words
+ --> scripts/main.zeff:2:57
+  |
+2 | d.anova(gain ~ dose * diet).posthoc(term: dose, method: dunnett)
+  |                                                         ^^^^^^^ expected one of tukey, bonferroni, holm, hochberg, hommel, bh, by, sidak, scheffe, none
+
+error[Z0401]: `term` of `posthoc` must be a Term, but this is an Int
+ --> scripts/main.zeff:2:43
+  |
+2 | d.anova(gain ~ dose * diet).posthoc(term: 3)
+  |                                           ^ an Int
+  |
+  = help: usage: `fit.posthoc(method: tukey | bonferroni | holm | hochberg | hommel | bh | by | sidak | scheffe | none = tukey, term: Term)`
+
+error[Z0402]: `dose` is not one of the allowed words
+ --> scripts/main.zeff:2:37
+  |
+2 | d.anova(gain ~ dose * diet).posthoc(dose)
+  |                                     ^^^^ expected one of tukey, bonferroni, holm, hochberg, hommel, bh, by, sidak, scheffe, none
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+note: 1 of the model's 4 columns is determined by the others (a combination of levels with no observations, or a term that repeats the others) and carries no degree of freedom (line 2)
+note: `dose:diet` has no degrees of freedom once the other terms are in the model, so it has no test (line 2)
+error[Z0802]: fewer than two marginal means of `diet` can be estimated, so there is no pair to compare
+ --> scripts/main.zeff:2:100
+  |
+2 | d.where(!(dose == "high" && diet == "a") && dose != "mid").anova(gain ~ dose * diet).posthoc(term: diet)
+  |                                                                                                    ^^^^ nothing to compare
+  |
+  = help: with an interaction in the model, a marginal mean needs a row in every combination of its level with the levels of the other category; `tabulate` shows the cells, and the model without the interaction can estimate every mean
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+error[Z0414]: `dose` names a term, but the methods of a test's result take no term
+ --> scripts/main.zeff:2:44
+  |
+2 | d.anova(gain ~ dose * diet).p_values(term: dose)
+  |                                            ^^^^ no term is taken here
+  |
+  = help: without a term these give the whole model's F, its degrees of freedom and its p-value; `estimates()` gives one row for each term of the table
