@@ -373,7 +373,7 @@ fn plan_legend(
     // A legend of lines has a piece of line for a key, and a point on it when points read
     // the scale too.
     let pointed = legend.marks.iter().any(|mark| {
-        !mark.joins() && !mark.fills() && !mark.spans() && !matches!(mark, Mark::Rug(_))
+        !mark.joins() && !mark.patches() && !mark.spans() && !matches!(mark, Mark::Rug(_))
     });
     // The ticks of a rug are small lines, and its key a piece of line, unless marks of
     // another kind share the legend: a rug under points changes nothing in their key.
@@ -388,7 +388,7 @@ fn plan_legend(
     let filled = scene.panels.first().and_then(|p| {
         p.layers
             .iter()
-            .find(|l| l.mark.fills() && legend.marks.contains(&l.mark))
+            .find(|l| l.mark.patches() && legend.marks.contains(&l.mark))
     });
     let base_patch = filled.map(|l| {
         (
@@ -1091,6 +1091,40 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 },
             };
             let marks_of = layer.x.len().min(layer.y.len());
+            if matches!(layer.mark, Mark::Bars(_)) {
+                // A bar: from its lower end to its upper one along `y`, half its width to
+                // either side of its place along `x`, in its own fill.
+                let bars = marks_of.min(layer.low.len()).min(layer.span.len());
+                for i in 0..bars {
+                    let (left, right) = (
+                        across(sx, layer.x[i] - layer.span[i] / 2.0),
+                        across(sx, layer.x[i] + layer.span[i] / 2.0),
+                    );
+                    let (bottom, upper) = (down(sy, layer.low[i]), down(sy, layer.y[i]));
+                    let fill = match &layer.fill {
+                        Paint::Theme => theme.mark.to_string(),
+                        Paint::Constant(hex) => hex.clone(),
+                        Paint::Scaled(values) => match (scene.scale("fill"), values.get(i)) {
+                            (Some(scale), Some(value)) => colour_on(scale, *value),
+                            _ => theme.mark.to_string(),
+                        },
+                    };
+                    drawn.push(named(
+                        &name,
+                        Primitive::Polygon {
+                            rings: vec![vec![
+                                (left, bottom),
+                                (right, bottom),
+                                (right, upper),
+                                (left, upper),
+                            ]],
+                            fill: Some(fill),
+                            stroke: None,
+                            opacity: layer.alpha,
+                        },
+                    ));
+                }
+            }
             if layer.mark.fills() {
                 // The shape under each line of the layer: along its upper edge in the order of
                 // the marks and back along its lower edge, in the fill of its first mark.
@@ -1197,7 +1231,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 }
             }
             let one_by_one =
-                !(layer.mark.joins() || layer.mark.fills() || matches!(layer.mark, Mark::Rug(_)));
+                !(layer.mark.joins() || layer.mark.patches() || matches!(layer.mark, Mark::Rug(_)));
             for i in 0..if one_by_one { marks_of } else { 0 } {
                 let colour = colour_of(i);
                 let across_mark = match &layer.size {

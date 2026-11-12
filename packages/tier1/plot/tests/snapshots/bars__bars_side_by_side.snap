@@ -1,0 +1,42 @@
+---
+source: packages/tier1/plot/tests/bars.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 70.263,7.792 to 70.263,155.253 stroke #E3E3E3 0.35
+[grid] segment 127.619,7.792 to 127.619,155.253 stroke #E3E3E3 0.35
+[grid] segment 184.974,7.792 to 184.974,155.253 stroke #E3E3E3 0.35
+[grid] segment 35.85,148.55 to 219.387,148.55 stroke #E3E3E3 0.35
+[grid] segment 35.85,111.312 to 219.387,111.312 stroke #E3E3E3 0.35
+[grid] segment 35.85,74.075 to 219.387,74.075 stroke #E3E3E3 0.35
+[grid] segment 35.85,36.837 to 219.387,36.837 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 183.537 by 147.461
+  [layer:1] polygon 44.453,148.55 96.073,148.55 96.073,36.837 44.453,36.837 fill #56B4E9 opacity 1
+  [layer:1] polygon 101.809,148.55 127.619,148.55 127.619,96.417 101.809,96.417 fill #E69F00 opacity 1
+  [layer:1] polygon 127.619,148.55 153.429,148.55 153.429,59.18 127.619,59.18 fill #56B4E9 opacity 1
+  [layer:1] polygon 159.164,148.55 184.974,148.55 184.974,81.522 159.164,81.522 fill #E69F00 opacity 1
+  [layer:1] polygon 184.974,148.55 210.784,148.55 210.784,14.495 184.974,14.495 fill #56B4E9 opacity 1
+[axis:x] segment 35.85,155.253 to 219.387,155.253 stroke #222222 0.5
+[axis:x] segment 70.263,155.253 to 70.263,158.253 stroke #222222 0.5
+[axis:x] text 70.263,166.837 middle "east" sans 8 #222222
+[axis:x] segment 127.619,155.253 to 127.619,158.253 stroke #222222 0.5
+[axis:x] text 127.619,166.837 middle "north" sans 8 #222222
+[axis:x] segment 184.974,155.253 to 184.974,158.253 stroke #222222 0.5
+[axis:x] text 184.974,166.837 middle "south" sans 8 #222222
+[axis:x] text 127.619,180.837 middle "shop" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,155.253 stroke #222222 0.5
+[axis:y] segment 32.85,148.55 to 35.85,148.55 stroke #222222 0.5
+[axis:y] text 29.85,151.342 end "0" sans 8 #222222
+[axis:y] segment 32.85,111.312 to 35.85,111.312 stroke #222222 0.5
+[axis:y] text 29.85,114.104 end "5" sans 8 #222222
+[axis:y] segment 32.85,74.075 to 35.85,74.075 stroke #222222 0.5
+[axis:y] text 29.85,76.867 end "10" sans 8 #222222
+[axis:y] segment 32.85,36.837 to 35.85,36.837 stroke #222222 0.5
+[axis:y] text 29.85,39.629 end "15" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "units" sans 9 #222222
+[legend:fill] text 229.387,14 start "kind" sans 9 #222222
+[legend:fill] polygon 229.387,20.25 241.387,20.25 241.387,28.25 229.387,28.25 fill #E69F00 opacity 1
+[legend:fill] text 244.387,27.042 start "l" sans 8 #222222
+[legend:fill] polygon 229.387,30.25 241.387,30.25 241.387,38.25 229.387,38.25 fill #56B4E9 opacity 1
+[legend:fill] text 244.387,37.042 start "s" sans 8 #222222

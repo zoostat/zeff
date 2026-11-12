@@ -289,6 +289,11 @@ plot/categories/stderr c4acf2bd34822a80
 plot/categories/categories.svg 50aa051869d10d08
 plot/categories/categories.pdf 072d01f7f070866a
 plot/categories/categories.png 2aa7d0f180980bd0
+plot/bars/stdout 41a91af9a80aceb1
+plot/bars/stderr f3e0bd4902b05360
+plot/bars/bars.svg 3dbaa3679fa18612
+plot/bars/bars.pdf 60e40b887219f6e2
+plot/bars/bars.png ea8e75a3f5fafdbe
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

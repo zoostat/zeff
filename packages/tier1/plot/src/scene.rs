@@ -62,8 +62,8 @@ use std::borrow::Cow;
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Sides,
-    Stacking, Stairs, Table,
+    Aesthetic, Align, Arrangement, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping,
+    PlotSetting, Sides, Stacking, Stairs, Table,
 };
 use zeff_diagnostics::count;
 
@@ -88,6 +88,10 @@ pub const LARGEST_SIZE: f64 = 18.0;
 
 /// The width of a line when its layer says nothing, in points of 1/72 inch.
 pub const LINE_WIDTH: f64 = 1.0;
+
+/// The width of a bar as a share of the gap between two values of `x`, where the layer says
+/// nothing.
+pub const BAR_WIDTH: f64 = 0.9;
 
 /// The length of a tick of a rug, in points of 1/72 inch: the diameter of a point.
 pub const RUG_LENGTH: f64 = 4.5;
@@ -264,6 +268,9 @@ pub struct Layer {
     pub low: Vec<f64>,
     /// The colour a filled mark is filled with.
     pub fill: Paint,
+    /// For a mark that is a bar: how far each reaches along `x`, in data coordinates, half to
+    /// either side of its `x`. Empty for the other marks.
+    pub span: Vec<f64>,
 }
 
 /// The type of the lines of a layer.
@@ -323,6 +330,12 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
         // An area is placed by `x` and `y`, filled in the colour `fill` says, and drawn through
         // the rows of one `group`.
         Mark::Area(_) => matches!(
+            aesthetic,
+            Aesthetic::X | Aesthetic::Y | Aesthetic::Fill | Aesthetic::Group
+        ),
+        // A bar stands at `x`, as high as `y`, filled in the colour `fill` says; the rows of
+        // one `group` are one set of bars.
+        Mark::Bars(_) => matches!(
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Fill | Aesthetic::Group
         ),
@@ -1048,6 +1061,173 @@ fn stacked(cx: Option<&Column>, cy: Option<&Column>, keys: &[Categories], share:
     out
 }
 
+/// The bars of a layer: each with its `x`, its two ends along `y`, how far it reaches along
+/// `x`, and the row it is drawn from, or for a count the first row of those it counts.
+#[derive(Default)]
+struct Bars {
+    points: Drawn,
+    low: Vec<f64>,
+    span: Vec<f64>,
+    /// For bars shown as shares: the bars left out because, at their `x`, a value is below
+    /// zero or the total is not above it, and at how many values of `x`.
+    unfit: (usize, usize),
+}
+
+/// The bars of a layer. Each row with an `x` and a `y` is a bar from zero to its `y`; where
+/// nothing is mapped to `y` (`cy` is `None`) there is a bar for each `x` of each group, as high
+/// as the number of its rows. The rows are parted into groups as for a line, the groups in the
+/// order of their categories, and the bars that share an `x` are arranged as `how` says:
+/// stacked from the last group up, a value below zero downwards from zero, as areas are;
+/// stacked as shares of the total; or side by side, the bars of the groups that are there
+/// sharing the width equally, the first at the left. A bar is `width` of the smallest gap
+/// between two values of `x` wide, and of a place where `x` is categories.
+fn bars(
+    cx: Option<&Column>,
+    cy: Option<Option<&Column>>,
+    keys: &[Categories],
+    how: Arrangement,
+    width: f64,
+) -> Bars {
+    let mut out = Bars::default();
+    let Some(cx) = cx else {
+        return out;
+    };
+    let cy = match cy {
+        Some(None) => return out,
+        Some(Some(cy)) => Some(cy),
+        None => None,
+    };
+    if !is_numeric(cx) || cy.is_some_and(|cy| !is_numeric(cy) || cy.len() != cx.len()) {
+        return out;
+    }
+    if keys.iter().any(|key| key.of.len() != cx.len()) {
+        return out;
+    }
+    // The rows that can be drawn, each with its group.
+    struct Item {
+        x: f64,
+        group: Vec<(bool, usize)>,
+        value: f64,
+        row: usize,
+    }
+    let mut items: Vec<Item> = Vec::new();
+    for row in 0..cx.len() {
+        let x = number(cx, row);
+        let y = match cy {
+            Some(cy) => number(cy, row),
+            None => Some(1.0),
+        };
+        let (Some(x), Some(y)) = (x, y) else {
+            out.points.missing += 1;
+            continue;
+        };
+        if !(x.is_finite() && y.is_finite()) {
+            out.points.infinite += 1;
+            continue;
+        }
+        items.push(Item {
+            // Adding zero makes the two zeros one place.
+            x: x + 0.0,
+            // In the order of the categories, a row without one after the others.
+            group: keys
+                .iter()
+                .map(|key| (key.of[row].is_none(), key.of[row].unwrap_or(0)))
+                .collect(),
+            value: y,
+            row,
+        });
+    }
+    // By place, then by group, then in the order of the frame.
+    items.sort_by(|a, b| {
+        a.x.total_cmp(&b.x)
+            .then_with(|| a.group.cmp(&b.group))
+            .then(a.row.cmp(&b.row))
+    });
+    // A count: one bar for each group at each place, as high as the number of its rows.
+    if cy.is_none() {
+        let mut counted: Vec<Item> = Vec::new();
+        for item in items {
+            match counted.last_mut() {
+                Some(last) if last.x == item.x && last.group == item.group => last.value += 1.0,
+                _ => counted.push(item),
+            }
+        }
+        items = counted;
+    }
+    let places: Vec<f64> = items.iter().map(|item| item.x).collect();
+    let wide = width * resolution(&places);
+    let mut start = 0;
+    while start < items.len() {
+        let mut end = start + 1;
+        while end < items.len() && items[end].x == items[start].x {
+            end += 1;
+        }
+        let here = &items[start..end];
+        let x = here[0].x;
+        let push = |out: &mut Bars, item: &Item, at: f64, low: f64, high: f64, span: f64| {
+            out.points.x.push(at);
+            out.points.y.push(high);
+            out.points.rows.push(item.row);
+            out.low.push(low);
+            out.span.push(span);
+        };
+        match how {
+            Arrangement::Dodge => {
+                // The groups that are here, in their order, share the width.
+                let mut groups: Vec<&Vec<(bool, usize)>> = Vec::new();
+                for item in here {
+                    if groups.last() != Some(&&item.group) {
+                        groups.push(&item.group);
+                    }
+                }
+                let slot = wide / groups.len() as f64;
+                for item in here {
+                    let place = groups
+                        .iter()
+                        .position(|group| **group == item.group)
+                        .unwrap_or(0);
+                    let at = x - wide / 2.0 + (place as f64 + 0.5) * slot;
+                    push(&mut out, item, at, 0.0, item.value, slot);
+                }
+            }
+            Arrangement::Stack | Arrangement::Share => {
+                let share = how == Arrangement::Share;
+                let total: f64 = here.iter().map(|item| item.value).sum();
+                if share && (here.iter().any(|item| item.value < 0.0) || total <= 0.0) {
+                    out.unfit.0 += here.len();
+                    out.unfit.1 += 1;
+                    start = end;
+                    continue;
+                }
+                // From the last bar up, so that the first group is on top.
+                let mut edges = vec![(0.0, 0.0); here.len()];
+                let (mut above, mut below) = (0.0_f64, 0.0_f64);
+                for (i, item) in here.iter().enumerate().rev() {
+                    edges[i] = if item.value < 0.0 {
+                        let low = below;
+                        below += item.value;
+                        (low, below)
+                    } else {
+                        let low = above;
+                        above += item.value;
+                        (low, above)
+                    };
+                }
+                for (item, (low, high)) in here.iter().zip(edges) {
+                    let (low, high) = if share {
+                        (low / total, high / total)
+                    } else {
+                        (low, high)
+                    };
+                    push(&mut out, item, x, low, high, wide);
+                }
+            }
+        }
+        start = end;
+    }
+    out
+}
+
 /// The smallest gap between two different values, the unit of `jitter:`; 1 when there are not
 /// two different values to take a gap between.
 fn resolution(values: &[f64]) -> f64 {
@@ -1496,7 +1676,93 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             }
             lines
         };
-        let mut points = if single.is_none() {
+        // What parts the rows of a layer into groups: the group, and the categories a
+        // colour, a fill or a type of line shows, since one line has one colour and one type
+        // and one filled shape one fill. A filled mark draws no colour of its own, but where
+        // the plot colours by categories that the layer's frame holds, each category has its
+        // own shape, so that an area lies under each line of the plot.
+        let parted = || {
+            let mut keys: Vec<Categories> = Vec::new();
+            if mapping_of(plot, layer, Aesthetic::Group).is_some()
+                && let Some(column) = values(plot, Some(layer), Aesthetic::Group)
+            {
+                keys.push(categories(column));
+            }
+            for colouring in &colourings {
+                if colouring.kind == Shading::Categories
+                    && matches!(
+                        colouring.aesthetic,
+                        Aesthetic::Color | Aesthetic::Linetype | Aesthetic::Fill
+                    )
+                    && let Some(column) = colouring.readers[at]
+                {
+                    keys.push(categories(column));
+                }
+            }
+            if layer.mark.patches()
+                && plot.mapping(Aesthetic::Color).is_some()
+                && let Some(column) = values(plot, Some(layer), Aesthetic::Color)
+                && shading(column) == Some(Shading::Categories)
+            {
+                keys.push(categories(column));
+            }
+            keys
+        };
+        // For bars, how far each reaches along `x`, and whether they count rows.
+        let mut span: Vec<f64> = Vec::new();
+        let mut counted = false;
+        let mut points = if let Mark::Bars(how) = layer.mark {
+            match named(Aesthetic::X) {
+                Some(x) => {
+                    let across = place(layer, Aesthetic::X);
+                    let height = named(Aesthetic::Y);
+                    let upper = place(layer, Aesthetic::Y);
+                    counted = height.is_none();
+                    let drawn = bars(
+                        across.as_deref(),
+                        height.map(|_| upper.as_deref()),
+                        &parted(),
+                        how,
+                        layer.width.unwrap_or(BAR_WIDTH),
+                    );
+                    let mut needs = vec![x];
+                    needs.extend(height);
+                    if drawn.points.missing > 0 {
+                        note(format!(
+                            "{} with NA in {} dropped",
+                            rows_text(drawn.points.missing),
+                            either(&needs)
+                        ));
+                    }
+                    if drawn.points.infinite > 0 {
+                        note(format!(
+                            "{} with an infinite value in {} dropped",
+                            rows_text(drawn.points.infinite),
+                            either(&needs)
+                        ));
+                    }
+                    if drawn.unfit.0 > 0 {
+                        note(format!(
+                            "{} at {} left out: shares need values of 0 or more and a total above 0",
+                            if drawn.unfit.0 == 1 {
+                                "1 bar".to_string()
+                            } else {
+                                format!("{} bars", count(drawn.unfit.0 as u64))
+                            },
+                            if drawn.unfit.1 == 1 {
+                                format!("1 value of {x}")
+                            } else {
+                                format!("{} values of {x}", count(drawn.unfit.1 as u64))
+                            }
+                        ));
+                    }
+                    low = drawn.low;
+                    span = drawn.span;
+                    Some(drawn.points)
+                }
+                None => Some(Drawn::default()),
+            }
+        } else if single.is_none() {
             None
         } else if let Some(PlotSetting::Place(at)) = layer.constant(along) {
             Some(across(Drawn {
@@ -1547,36 +1813,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             Some(lines) => lines,
             None => match (named(Aesthetic::X), named(top)) {
                 (Some(x), Some(y)) if layer.mark.joins() || layer.mark.fills() => {
-                    // The rows are parted into lines by the group, and by the categories a colour,
-                    // a fill or a type of line shows, since one line has one colour and one type
-                    // and one area one fill.
-                    let mut keys: Vec<Categories> = Vec::new();
-                    if mapping_of(plot, layer, Aesthetic::Group).is_some()
-                        && let Some(column) = values(plot, Some(layer), Aesthetic::Group)
-                    {
-                        keys.push(categories(column));
-                    }
-                    for colouring in &colourings {
-                        if colouring.kind == Shading::Categories
-                            && matches!(
-                                colouring.aesthetic,
-                                Aesthetic::Color | Aesthetic::Linetype | Aesthetic::Fill
-                            )
-                            && let Some(column) = colouring.readers[at]
-                        {
-                            keys.push(categories(column));
-                        }
-                    }
-                    // A filled mark draws no colour of its own, but where the plot colours by
-                    // categories that the layer's frame holds, each category has its own area, so
-                    // that an area lies under each line of the plot.
-                    if layer.mark.fills()
-                        && plot.mapping(Aesthetic::Color).is_some()
-                        && let Some(column) = values(plot, Some(layer), Aesthetic::Color)
-                        && shading(column) == Some(Shading::Categories)
-                    {
-                        keys.push(categories(column));
-                    }
+                    let keys = parted();
                     let lower = bottom.map(|edge| place(layer, edge));
                     let (across, upper) = (place(layer, Aesthetic::X), place(layer, top));
                     let lines = match layer.mark {
@@ -1799,14 +2036,26 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             shape: Shaping::Constant(outline),
             alpha: layer.alpha,
             data: layer.data.as_ref().unwrap_or(&plot.frame).name.clone(),
-            rows: points.rows.iter().map(|row| row + 1).collect(),
+            // A bar that counts rows is drawn from no one row.
+            rows: if counted {
+                Vec::new()
+            } else {
+                points.rows.iter().map(|row| row + 1).collect()
+            },
             z: None,
             raster: false,
             line,
             linetype: Lining::Constant(linetype),
-            width: layer.width.unwrap_or(LINE_WIDTH),
+            width: layer
+                .width
+                .unwrap_or(if matches!(layer.mark, Mark::Bars(_)) {
+                    BAR_WIDTH
+                } else {
+                    LINE_WIDTH
+                }),
             low,
             fill,
+            span,
         });
         kept.push(points.rows);
     }
@@ -1816,18 +2065,47 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         (Aesthetic::X, Position::Bottom),
         (Aesthetic::Y, Position::Left),
     ] {
-        let Some((mapping, frame, _)) = first_mapping(plot, aesthetic) else {
-            continue;
+        // Bars that count rows give the plot a `y` axis where nothing is mapped to `y`.
+        let counting = aesthetic == Aesthetic::Y
+            && plot.layers.iter().any(|layer| {
+                matches!(layer.mark, Mark::Bars(_))
+                    && mapping_of(plot, layer, Aesthetic::Y).is_none()
+                    && mapping_of(plot, layer, Aesthetic::X).is_some()
+            });
+        let title = match first_mapping(plot, aesthetic) {
+            Some((mapping, frame, _)) => axis_title(frame, mapping),
+            None if counting => "count".to_string(),
+            None => continue,
         };
-        // Along `y` a filled mark reaches from its lower edge to its upper one.
+        // Along `y` a filled mark reaches from its lower edge to its upper one, and along `x`
+        // a bar half its width to either side of its place.
+        let edges: Vec<f64> = layers
+            .iter()
+            .flat_map(|layer| {
+                layer
+                    .x
+                    .iter()
+                    .zip(&layer.span)
+                    .flat_map(|(x, span)| [x - span / 2.0, x + span / 2.0])
+            })
+            .collect();
         let none: &[f64] = &[];
-        let marks = extent(layers.iter().flat_map(|layer| {
-            if aesthetic == Aesthetic::X {
-                layer.x.iter().chain(none)
-            } else {
-                layer.y.iter().chain(&layer.low)
-            }
-        }));
+        let marks = extent(
+            layers
+                .iter()
+                .flat_map(|layer| {
+                    if aesthetic == Aesthetic::X {
+                        layer.x.iter().chain(none)
+                    } else {
+                        layer.y.iter().chain(&layer.low)
+                    }
+                })
+                .chain(if aesthetic == Aesthetic::X {
+                    &edges[..]
+                } else {
+                    none
+                }),
+        );
         let categories = if aesthetic == Aesthetic::X {
             &across_categories
         } else {
@@ -1840,7 +2118,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             scales.push(Scale {
                 id: aesthetic.name(),
                 kind: ScaleKind::Category,
-                title: axis_title(frame, mapping),
+                title,
                 limits: (0.4, places as f64 + 0.6),
                 breaks: (1..=labels.len()).map(|place| place as f64).collect(),
                 labels: labels.clone(),
@@ -1858,7 +2136,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         scales.push(Scale {
             id: aesthetic.name(),
             kind: ScaleKind::Linear,
-            title: axis_title(frame, mapping),
+            title,
             limits: (lo, hi),
             breaks,
             labels,
@@ -2189,6 +2467,44 @@ impl Scene {
                                                                     None
                                                                 },
                                                             )
+                                                            // A layer of bars says the two
+                                                            // ends of each along `y`, how
+                                                            // far it reaches along `x`, and
+                                                            // its fill.
+                                                            .chain(
+                                                                if matches!(l.mark, Mark::Bars(_)) {
+                                                                    vec![
+                                                                        (
+                                                                            "low",
+                                                                            Json::numbers(&l.low),
+                                                                        ),
+                                                                        (
+                                                                            "span",
+                                                                            Json::numbers(&l.span),
+                                                                        ),
+                                                                        (
+                                                                            "fill",
+                                                                            match &l.fill {
+                                                                                Paint::Theme => {
+                                                                                    Json::Null
+                                                                                }
+                                                                                Paint::Constant(
+                                                                                    hex,
+                                                                                ) => Json::text(
+                                                                                    hex.as_str(),
+                                                                                ),
+                                                                                Paint::Scaled(
+                                                                                    values,
+                                                                                ) => Json::numbers(
+                                                                                    values,
+                                                                                ),
+                                                                            },
+                                                                        ),
+                                                                    ]
+                                                                } else {
+                                                                    Vec::new()
+                                                                },
+                                                            )
                                                             .chain(if l.mark.spans() {
                                                                 vec![
                                                                     (
@@ -2267,6 +2583,10 @@ impl Scene {
                                                                 Mark::Rug(sides) => Some((
                                                                     "sides",
                                                                     Json::text(sides.name()),
+                                                                )),
+                                                                Mark::Bars(how) => Some((
+                                                                    "position",
+                                                                    Json::text(how.name()),
                                                                 )),
                                                                 _ => None,
                                                             })
@@ -2655,6 +2975,18 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 count(lines as u64),
                 if lines == 1 { "line" } else { "lines" }
             ));
+            settings
+        } else if let Mark::Bars(how) = layer.mark {
+            // A layer of bars: their width, how they are arranged where it is not on one
+            // another, how far they let through what is under them, their groups.
+            let mut settings = format!("width {}", format_float(layer.width));
+            if how != Arrangement::Stack {
+                settings.push_str(&format!(", position {}", how.name()));
+            }
+            settings.push_str(&format!(", alpha {}", format_float(layer.alpha)));
+            if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
+                settings.push_str(&format!(", group by {}", mapping.variable));
+            }
             settings
         } else if layer.mark.fills() {
             // A filled layer: how far it lets through what is under it, its groups, how many.

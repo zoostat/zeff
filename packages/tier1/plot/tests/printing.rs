@@ -1930,3 +1930,92 @@ fn every_message_of_an_axis_of_categories() {
     }
     insta::assert_snapshot!("categories_messages", all);
 }
+
+// ----- bars (step 24b) -----
+
+const SALES: &str = "let d = frame(shop = [\"north\", \"south\", \"east\", \"north\", \"south\", NA], units = [12, 18, 15, 7, 9, 3], kind = [\"s\", \"s\", \"s\", \"l\", \"l\", \"l\"])\n";
+
+#[test]
+fn bars_read_sensibly_as_text() {
+    let script = format!(
+        "{SALES}d.plot(x: shop).bars()\n\
+         d.plot(x: shop, y: units).bars()\n\
+         d.plot(x: shop, y: units, fill: kind).bars(position: dodge)\n\
+         d.plot(x: shop, y: units, fill: kind).bars(position: fill, alpha: 0.8)\n\
+         d.plot(x: units).bars(width: 0.5, fill: \"steelblue\")\n\
+         d.plot(x: shop).bars(group: kind, position: dodge)\n\
+         d.plot(x: shop, y: units).bars(y: units - 10)\n\
+         d.plot(x: shop).bars().hline(at: 1)\n\
+         let w = dataset(wages)\n\
+         w.plot(x: industry).bars()\n\
+         w.plot(x: industry, fill: union).bars()\n\
+         w.aggregate(wage = mean(wage), by: union).plot(x: union, y: wage).bars()\n"
+    );
+    let text = printed(&script);
+    // The reference, from ggplot2 4.0.3: `geom_bar` on the five shops has the limits -0.1 to
+    // 2.1; `geom_col` stacked -1.35 to 28.35, side by side -0.9 to 18.9, as shares -0.05 to
+    // 1.05; bars at the five numbers 5.46 to 19.54. On the shipped wages the twelve
+    // industries have between 200 and 2,871 rows, so the limits are -143.55 to 3014.55,
+    // stacked by union membership too.
+    for line in [
+        "  y      count   linear     -0.1 to 2.1   0, 0.5, 1, 1.5, 2\n",
+        "      1   bars   d          3   width 0.9, alpha 1\n",
+        "  y      units   linear     -1.35 to 28.35   0, 5, 10, 15, 20, 25\n",
+        "  y      units   linear     -0.9 to 18.9   0, 5, 10, 15\n",
+        "      1   bars   d          5   width 0.9, position dodge, alpha 1\n",
+        "  y      units   linear     -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1\n",
+        "      1   bars   d          5   width 0.9, position fill, alpha 0.8\n",
+        "      1   bars   d          6   fill steelblue, width 0.5, alpha 1\n",
+        "  y      count      linear     -143.55 to 3014.55\n",
+        "      1   bars   w         12   width 0.9, alpha 1\n",
+        "      1   bars   w         24   width 0.9, alpha 1\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("bars", text);
+}
+
+#[test]
+fn every_message_of_bars() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_x", "d.plot(y: units).bars()\n"),
+        (
+            "a_height_of_categories",
+            "d.plot(x: units, y: shop).bars()\n",
+        ),
+        (
+            "a_height_of_its_own_categories",
+            "d.plot(x: shop).bars(y: kind)\n",
+        ),
+        (
+            "a_place_of_another_kind",
+            "d.plot(x: shop, y: units).points().bars(x: units)\n",
+        ),
+        ("a_fill_by_a_number", "d.plot(x: shop).bars(fill: units)\n"),
+        ("not_a_colour", "d.plot(x: shop).bars(fill: \"blu\")\n"),
+        (
+            "not_a_position",
+            "d.plot(x: shop).bars(position: overlay)\n",
+        ),
+        (
+            "a_position_in_quotes",
+            "d.plot(x: shop).bars(position: \"dodge\")\n",
+        ),
+        ("no_width", "d.plot(x: shop).bars(width: 0)\n"),
+        ("a_width_above_one", "d.plot(x: shop).bars(width: 1.5)\n"),
+        ("alpha_above_one", "d.plot(x: shop).bars(alpha: 3)\n"),
+        ("no_color_on_bars", "d.plot(x: shop).bars(color: kind)\n"),
+        (
+            "a_frame_without_the_place",
+            "d.plot(x: shop).bars(data: frame(units = [1, 2]))\n",
+        ),
+        ("bars_of_a_frame", "d.bars()\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SALES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("bars_messages", all);
+}

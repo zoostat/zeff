@@ -133,3 +133,15 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 24b `[function]`: `bars`.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation, his to overturn: #128 option C; a row without a category is dropped and counted; an axis shows every category of its variable. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 24b (`bars`)
+
+**Done.** `p.bars()` draws a bar from zero at each value of `x`, as high as `y` or, where nothing is mapped to `y`, as the count of rows; `position:` stacks the bars of several groups, sets them side by side or shows them as shares; `width:`, `fill:`, `group:` and `alpha:`. On an axis of categories or of numbers. Every bar's edges and the limits match ggplot2's. Catalogue row 464 is brought up to date (logged). `plot` stands at ten functions built. The specification's sample script, which draws bars, has one function fewer to wait for.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 313 of 313; CI is read job by job after the push.
+
+**Known, for later steps.** Bars by a labelled number (`union`) stand on a linear axis that reads as numbers until step 25 gives a labelled variable its breaks (#128). An axis of many long categories writes only the labels that fit until step 26 wraps them.
+
+**Next.** Step 24c `[function]`: `tile`.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: a bar is 0.9 of the gap wide and at most the gap; side by side, missing groups make the others wider, as R; no bars up to a category. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

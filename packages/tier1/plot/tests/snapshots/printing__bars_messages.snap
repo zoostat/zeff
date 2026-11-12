@@ -1,0 +1,129 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_x
+error[Z0401]: `bars` stands a bar at each value of `x`, but neither the plot nor this layer maps a variable to `x`
+ --> scripts/main.zeff:2:18
+  |
+2 | d.plot(y: units).bars()
+  |                  ^^^^ needs `x`
+  |
+  = help: map it where the plot starts, as in `plot(x: industry)` for a bar of the count of each industry, or `plot(x: industry, y: wage)` for a bar as high as `wage`
+
+== a_height_of_categories
+error[Z0401]: `bars` draws each bar from zero to its `y`, but the `y` axis of this plot holds the categories of `shop`
+ --> scripts/main.zeff:2:27
+  |
+2 | d.plot(x: units, y: shop).bars()
+  |                           ^^^^ needs numbers along `y`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `bars` needs a number along `y`
+
+== a_height_of_its_own_categories
+error[Z0401]: `bars` draws each bar from zero to its `y`, so `y` must be numbers, but `kind` is a Str, which is placed as categories
+ --> scripts/main.zeff:2:25
+  |
+2 | d.plot(x: shop).bars(y: kind)
+  |                         ^^^^ categories
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `bars` needs a number along `y`
+
+== a_place_of_another_kind
+note: 1 row with NA in shop or units dropped (line 2)
+error[Z0401]: the plot places `shop` as categories along `x`, but `units`, which `bars` maps to `x`, is an Int, which is placed on a linear scale
+ --> scripts/main.zeff:2:44
+  |
+2 | d.plot(x: shop, y: units).points().bars(x: units)
+  |                                            ^^^^^ `units` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+
+== a_fill_by_a_number
+error[Z0401]: `bars` fills each bar in one colour, so `fill` must show categories, but `units` is an Int without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:2:28
+  |
+2 | d.plot(x: shop).bars(fill: units)
+  |                            ^^^^^ a colour for each row, not for each bar
+  |
+  = help: fill by a variable of categories, as in `bars(fill: union)`, or set one fill for this layer, as in `bars(fill: "steelblue")`
+
+== not_a_colour
+error[Z0401]: `fill:` of `bars` is "blu", which is not the name of a colour
+ --> scripts/main.zeff:2:28
+  |
+2 | d.plot(x: shop).bars(fill: "blu")
+  |                            ^^^^^ not a colour
+  |
+  = help: did you mean "blue"?
+
+== not_a_position
+error[Z0402]: `overlay` is not one of the allowed words
+ --> scripts/main.zeff:2:32
+  |
+2 | d.plot(x: shop).bars(position: overlay)
+  |                                ^^^^^^^ expected one of stack, dodge, fill
+
+== a_position_in_quotes
+error[Z0403]: expected one of stack, dodge, fill, found text
+ --> scripts/main.zeff:2:32
+  |
+2 | d.plot(x: shop).bars(position: "dodge")
+  |                                ^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `dodge`
+
+== no_width
+error[Z0401]: `width:` of `bars` is the width of a bar as a share of the gap between two values of `x`, above 0 and at most 1, but this is 0
+ --> scripts/main.zeff:2:29
+  |
+2 | d.plot(x: shop).bars(width: 0)
+  |                             ^ not a share
+  |
+  = help: write 1 for bars that touch, or a share such as 0.5 for bars half as wide as the gap; without `width:` a bar is 0.9 of the gap
+
+== a_width_above_one
+error[Z0401]: `width:` of `bars` is the width of a bar as a share of the gap between two values of `x`, above 0 and at most 1, but this is 1.5
+ --> scripts/main.zeff:2:29
+  |
+2 | d.plot(x: shop).bars(width: 1.5)
+  |                             ^^^ not a share
+  |
+  = help: write 1 for bars that touch, or a share such as 0.5 for bars half as wide as the gap; without `width:` a bar is 0.9 of the gap
+
+== alpha_above_one
+error[Z0401]: `alpha:` of `bars` is an opacity between 0 and 1, but this is 3
+ --> scripts/main.zeff:2:29
+  |
+2 | d.plot(x: shop).bars(alpha: 3)
+  |                             ^ outside [0, 1]
+  |
+  = help: write 1 for solid bars, or a share such as 0.5 so that what is under them shows through
+
+== no_color_on_bars
+error[Z0404]: `bars` has no argument called `color`
+ --> scripts/main.zeff:2:22
+  |
+2 | d.plot(x: shop).bars(color: kind)
+  |                      ^^^^^ unknown argument
+  |
+  = help: usage: `p.bars(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var, position: stack | dodge | fill = stack, width: Float = 0.9, alpha: Float = 1)`
+
+== a_frame_without_the_place
+error[Z0101]: no variable `shop` in `the frame`
+ --> scripts/main.zeff:2:28
+  |
+2 | d.plot(x: shop).bars(data: frame(units = [1, 2]))
+  |                 ---- this layer draws `shop`, which the plot maps to `x`
+  |                            ^^^^^^^^^^^^^^^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: units
+
+== bars_of_a_frame
+error[Z0401]: `bars` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | d.bars()
+  | ^ this is a Frame
+  |
+  = help: `bars` takes a Plot first; `x.bars(...)` is `bars(x, ...)`

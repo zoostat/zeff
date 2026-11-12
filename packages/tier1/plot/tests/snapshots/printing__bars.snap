@@ -1,0 +1,120 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · shop
+
+  axis   title   scale      limits        breaks
+  x      shop    category   0.4 to 3.6    east, north, south
+  y      count   linear     -0.1 to 2.1   0, 0.5, 1, 1.5, 2
+
+  layer   mark   data   marks   settings
+      1   bars   d          3   width 0.9, alpha 1
+plot · d · units against shop
+
+  axis   title   scale      limits           breaks
+  x      shop    category   0.4 to 3.6       east, north, south
+  y      units   linear     -1.35 to 28.35   0, 5, 10, 15, 20, 25
+
+  layer   mark   data   marks   settings
+      1   bars   d          5   width 0.9, alpha 1
+plot · d · units against shop
+
+  axis   title   scale      limits         breaks
+  x      shop    category   0.4 to 3.6     east, north, south
+  y      units   linear     -0.9 to 18.9   0, 5, 10, 15
+
+  aesthetic   title   scale      values   shown as
+  fill        kind    category   l, s     orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   bars   d          5   width 0.9, position dodge, alpha 1
+plot · d · units against shop
+
+  axis   title   scale      limits          breaks
+  x      shop    category   0.4 to 3.6      east, north, south
+  y      units   linear     -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  aesthetic   title   scale      values   shown as
+  fill        kind    category   l, s     orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   bars   d          5   width 0.9, position fill, alpha 0.8
+plot · d · units
+
+  axis   title   scale    limits          breaks
+  x      units   linear   1.7 to 19.3     5, 10, 15
+  y      count   linear   -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark   data   marks   settings
+      1   bars   d          6   fill steelblue, width 0.5, alpha 1
+plot · d · shop
+
+  axis   title   scale      limits          breaks
+  x      shop    category   0.4 to 3.6      east, north, south
+  y      count   linear     -0.05 to 1.05   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark   data   marks   settings
+      1   bars   d          5   width 0.9, position dodge, alpha 1, group by kind
+plot · d · units against shop
+
+  axis   title   scale      limits          breaks
+  x      shop    category   0.4 to 3.6      east, north, south
+  y      units   linear     -3.55 to 8.55   -2, 0, 2, 4, 6, 8
+
+  layer   mark   data   marks   settings
+      1   bars   d          5   y units - 10, width 0.9, alpha 1
+plot · d · shop
+
+  axis   title   scale      limits        breaks
+  x      shop    category   0.4 to 3.6    east, north, south
+  y      count   linear     -0.1 to 2.1   0, 0.5, 1, 1.5, 2
+
+  layer   mark    data   marks   settings
+      1   bars    d          3   width 0.9, alpha 1
+      2   hline   d          1   at 1, width 0.5, style dashed
+plot · w · industry
+
+  axis   title      scale      limits
+  x      Industry   category   0.4 to 12.6
+  y      count      linear     -143.55 to 3014.55
+
+  breaks
+  Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+  0, 500, 1000, 1500, 2000, 2500, 3000
+
+  layer   mark   data   marks   settings
+      1   bars   w         12   width 0.9, alpha 1
+plot · w · industry
+
+  axis   title      scale      limits
+  x      Industry   category   0.4 to 12.6
+  y      count      linear     -143.55 to 3014.55
+
+  breaks
+  Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+  0, 500, 1000, 1500, 2000, 2500, 3000
+
+  aesthetic   title          scale      values    shown as
+  fill        Union member   category   no, yes   orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   bars   w         24   width 0.9, alpha 1
+plot · wage against union
+
+  axis   title          scale    limits                breaks
+  x      Union member   linear   -0.545 to 1.545       -0.5, 0, 0.5, 1, 1.5
+  y      wage           linear   -1.46569 to 30.7795   0, 5, 10, 15, 20, 25, 30
+
+  layer   mark   data        marks   settings
+      1   bars   the frame       2   width 0.9, alpha 1
+---
+note: 1 row with NA in shop dropped (line 2)
+note: 1 row with NA in shop or units dropped (line 3)
+note: 1 row with NA in shop or units dropped (line 4)
+note: 1 row with NA in shop or units dropped (line 5)
+note: 1 row with NA in shop dropped (line 7)
+note: 1 row with NA in shop or units - 10 dropped (line 8)
+note: 1 row with NA in shop dropped (line 9)
+warning[W0201]: 211 rows with NA in wage were skipped (line 13)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 13)

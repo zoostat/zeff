@@ -18,8 +18,8 @@ use std::rc::Rc;
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Sides,
-    Stacking, Stairs, Value,
+    Aesthetic, Arrangement, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting,
+    Sides, Stacking, Stairs, Value,
 };
 use zeff_diagnostics::Diagnostic;
 
@@ -811,7 +811,11 @@ fn one_fill_to_an_area(
     } else {
         ctx.callee_span
     };
-    let what = if function == "ribbon" { "band" } else { "area" };
+    let what = match function {
+        "ribbon" => "band",
+        "bars" => "bar",
+        _ => "area",
+    };
     Err(fail(
         Diagnostic::error(
             "Z0401",
@@ -1376,6 +1380,157 @@ pub fn rug(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             size: None,
             jitter: 0.0,
             width: Some(0.5),
+            stream: None,
+            computed,
+            mappings,
+            constants,
+        },
+    );
+    for note in after.notes {
+        if !before.contains(&note) {
+            ctx.message(Diagnostic::plain_note(note));
+        }
+    }
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+// ----- bars (step 24b) -----
+
+const B_FILL: usize = 4;
+const B_GROUP: usize = 5;
+const B_POSITION: usize = 6;
+const B_WIDTH: usize = 7;
+const B_ALPHA: usize = 8;
+
+/// `p.bars(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var,
+/// position: stack | dodge | fill = stack, width: Float = 0.9, alpha: Float = 1)`.
+pub fn bars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`bars` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let how = match args.get(B_POSITION) {
+        None | Some(Value::Na) => Arrangement::Stack,
+        Some(Value::Word(word)) => match word.as_str() {
+            "stack" => Arrangement::Stack,
+            "dodge" => Arrangement::Dodge,
+            "fill" => Arrangement::Share,
+            _ => return Err(internal(ctx, "a `position:` that is none of the three")),
+        },
+        Some(_) => return Err(internal(ctx, "a `position:` that is not a word")),
+    };
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mappings, constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        "bars",
+        &Slots {
+            x: Some(X),
+            y: Some(Y),
+            low: None,
+            high: None,
+            color: None,
+            fill: Some(B_FILL),
+            size: None,
+            shape: None,
+            group: Some(B_GROUP),
+            label: None,
+            linetype: None,
+        },
+        own_data,
+    )?;
+    // A bar stands at its `x`; without `y` it counts the rows there.
+    if plot.mapping(Aesthetic::X).is_none() && !mappings.iter().any(|m| m.aesthetic == Aesthetic::X)
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`bars` stands a bar at each value of `x`, but neither the plot nor this layer maps a variable to `x`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "needs `x`")
+            .help("map it where the plot starts, as in `plot(x: industry)` for a bar of the count of each industry, or `plot(x: industry, y: wage)` for a bar as high as `wage`"),
+        ));
+    }
+    numbers_along(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Y, Some(Y)),
+        ("bars", "draws each bar from zero to its `y`"),
+    )?;
+    one_axis(ctx, &plot, &frame, &mappings, (X, Y), "bars")?;
+    one_scale(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Fill, B_FILL),
+        "bars",
+    )?;
+    let read: Vec<Aesthetic> = [
+        Aesthetic::X,
+        Aesthetic::Y,
+        Aesthetic::Fill,
+        Aesthetic::Group,
+    ]
+    .into_iter()
+    .filter(|aesthetic| {
+        !mappings.iter().any(|m| m.aesthetic == *aesthetic)
+            && !constants.iter().any(|c| c.aesthetic == *aesthetic)
+    })
+    .collect();
+    let (data, computed) = own_frame(ctx, &args, &plot, "bars", &read)?;
+    let set = constants.iter().any(|c| c.aesthetic == Aesthetic::Fill);
+    one_fill_to_an_area(ctx, &plot, &frame, &mappings, (set, B_FILL), "bars")?;
+    let width =
+        number_option(ctx, &args, B_WIDTH, "a `width:` that is not a number")?.unwrap_or(0.9);
+    if !(width > 0.0 && width <= 1.0) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`width:` of `bars` is the width of a bar as a share of the gap between two values of `x`, above 0 and at most 1, but this is {}",
+                    shown(width)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(B_WIDTH), "not a share")
+            .help("write 1 for bars that touch, or a share such as 0.5 for bars half as wide as the gap; without `width:` a bar is 0.9 of the gap"),
+        ));
+    }
+    let alpha =
+        number_option(ctx, &args, B_ALPHA, "an `alpha:` that is not a number")?.unwrap_or(1.0);
+    if !(0.0..=1.0).contains(&alpha) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`alpha:` of `bars` is an opacity between 0 and 1, but this is {}",
+                    shown(alpha)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(B_ALPHA), "outside [0, 1]")
+            .help("write 1 for solid bars, or a share such as 0.5 so that what is under them shows through"),
+        ));
+    }
+    let before = scene(&plot).notes;
+    let (next, after) = with_layer(
+        &plot,
+        PlotLayer {
+            mark: Mark::Bars(how),
+            data,
+            alpha,
+            size: None,
+            jitter: 0.0,
+            width: Some(width),
             stream: None,
             computed,
             mappings,

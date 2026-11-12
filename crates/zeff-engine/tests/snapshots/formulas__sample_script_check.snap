@@ -46,8 +46,6 @@ error[Z0103]: no function is called `labels`
  --> zeff_samples.zeff:242:6
 error[Z0103]: no function is called `theme`
  --> zeff_samples.zeff:243:6
-error[Z0103]: no function is called `bars`
- --> zeff_samples.zeff:248:6
 error[Z0103]: no function is called `errorbars`
  --> zeff_samples.zeff:249:6
 error[Z0103]: no function is called `legend`

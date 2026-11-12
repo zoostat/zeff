@@ -280,6 +280,32 @@ pub enum Mark {
     Vline,
     /// A tick at the margin of the panel for each row, along one axis or both.
     Rug(Sides),
+    /// A bar from zero for each value of `x`: as high as `y`, or as the count of rows where
+    /// nothing is mapped to `y`.
+    Bars(Arrangement),
+}
+
+/// How the bars that share a value of `x` are arranged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Arrangement {
+    /// On one another.
+    #[default]
+    Stack,
+    /// Side by side.
+    Dodge,
+    /// On one another, as shares of the total at each `x`.
+    Share,
+}
+
+impl Arrangement {
+    /// The arrangement as it is written: `stack`, `dodge`, `fill`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Arrangement::Stack => "stack",
+            Arrangement::Dodge => "dodge",
+            Arrangement::Share => "fill",
+        }
+    }
 }
 
 /// The axes along which a rug has its ticks.
@@ -352,7 +378,7 @@ impl Stairs {
 
 impl Mark {
     /// The mark as the method that adds it is called: `points`, `lines`, `step`, `area`,
-    /// `ribbon`, `hline`, `vline`, `rug`.
+    /// `ribbon`, `hline`, `vline`, `rug`, `bars`.
     pub fn name(self) -> &'static str {
         match self {
             Mark::Points => "points",
@@ -363,6 +389,7 @@ impl Mark {
             Mark::Hline => "hline",
             Mark::Vline => "vline",
             Mark::Rug(_) => "rug",
+            Mark::Bars(_) => "bars",
         }
     }
 
@@ -375,6 +402,11 @@ impl Mark {
     /// other. Such a layer takes nothing from the plot but its axes.
     pub fn spans(self) -> bool {
         matches!(self, Mark::Hline | Mark::Vline)
+    }
+
+    /// Whether a mark is a filled shape, whose key in a legend is a patch of its fill.
+    pub fn patches(self) -> bool {
+        self.fills() || matches!(self, Mark::Bars(_))
     }
 
     /// Whether the marks of a layer are the corners of filled shapes, one for each run of rows
@@ -399,8 +431,9 @@ pub struct PlotLayer {
     /// How far a mark may be moved at random along each axis, as a share of the smallest gap
     /// between two values on that axis; 0 for no jitter.
     pub jitter: f64,
-    /// The width of a line in points (1/72 inch), for the marks that are lines; `None` for the
-    /// width a line has when the layer says nothing, and for the marks that are not lines.
+    /// The width of a line in points (1/72 inch), for the marks that are lines, and for bars
+    /// their width as a share of the gap between two values of `x`; `None` for the width the
+    /// mark has when the layer says nothing, and for the marks that have none.
     pub width: Option<f64>,
     /// The seeded stream the jitter draws from, at its start (section 8.3, point 3), kept with
     /// the layer so that the scene is the same however often it is derived.

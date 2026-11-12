@@ -526,3 +526,7 @@ Open decision #127 (option B, taken on 12 November 2026 on the recommendation un
 ## 12 November 2026 — Language Reference, section 7.6 ("Mappings and constants")
 
 The same decision (#127, option B) touches the sentence of section 7.6 that says a bare name maps a variable and a string sets a constant. It gains the sentence: "A bare name that is no variable of the frame and is bound to a string, or for `size:` to a number, is that value (section 3.7, "Resolution by parameter type")." Until step 23f of release 0.7.0 such a name was refused (Z0101), which steps 20c and 20d had tested on purpose; those tests now hold a binding of another type, which is still refused.
+
+## 12 November 2026 — zeff_functions.csv, row 464
+
+Step 24b of release 0.7.0 builds `bars`. Under open decision #106 (option A) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer; a bar draws `fill` and is parted by `group`. The usage line of catalogue row 464 was `p.bars(data: Frame, position: stack | dodge | fill = stack, width: Float)`; it is now `p.bars(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var, position: stack | dodge | fill = stack, width: Float = 0.9, alpha: Float = 1)`: the default of `width:` is written, 0.9 of the gap between two values of `x` as in ggplot2, and `alpha:` is added. Its status is `implemented`.

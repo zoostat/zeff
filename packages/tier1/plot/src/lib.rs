@@ -433,5 +433,49 @@ pub fn functions() -> Vec<Function> {
             },
             body: marks::rug,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "bars",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("x", "Var | Expr"),
+                    ParamSpec::option("y", "Var | Expr"),
+                    ParamSpec::option("fill", "Var | Str"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option_with_default("position", "stack | dodge | fill", "stack"),
+                    ParamSpec::option_with_default("width", "Float", "0.9"),
+                    ParamSpec::option_with_default("alpha", "Float", "1"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in x or y; with position: fill, the bars at a value of x where a value is below 0 or the total is not above 0; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name the layer maps, or one in an expression it maps, is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the frame the layer draws lacks a variable the layer names, or one an expression it maps reads; the frame of data: lacks a variable the plot maps, or one a mapped expression reads",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "the frame the layer draws, or the frame of data:, has the variable in another case",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "neither the plot nor the layer maps anything to x; a y that is categories, where a bar is drawn from zero; a variable the layer names for x: or y: of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for fill: that is not a colour; a fill by a number without value labels, where a bar has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; width: not above 0 or above 1; alpha: outside [0, 1]",
+                    ),
+                ],
+                help: include_str!("../help/bars.md"),
+                accuracy: None,
+            },
+            body: marks::bars,
+        },
     ]
 }
