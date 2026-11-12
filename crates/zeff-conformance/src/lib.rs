@@ -1850,6 +1850,17 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/rules/{name}"), &data));
     }
+    // A rug (step 23e2): on both sides under the points, coloured as they are, and along one
+    // axis by itself; what the script prints and the first figure in the three formats.
+    let script = "let w = dataset(wages).where(worker <= 60)\nlet p = w.plot(x: educ, y: wage, color: union).points(alpha: 0.5).rug(sides: both, alpha: 0.4)\np\nw.plot(x: wage).rug(alpha: 0.3)\nw.plot(x: educ, y: wage).rug(sides: y, color: \"firebrick\")\nexport(p, \"rug.svg\")\nexport(p, \"rug.pdf\")\nexport(p, \"rug.png\")\n";
+    let rugged = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/rug/stdout", &rugged.output.stdout));
+    fills.push(text("plot/rug/stderr", &rugged.output.stderr));
+    for name in ["rug.svg", "rug.pdf", "rug.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/rug/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

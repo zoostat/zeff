@@ -1,0 +1,110 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== the_plot_maps_no_x
+error[Z0401]: `rug` draws a tick for each value of `x`, but neither the plot nor this layer maps a variable to `x`
+ --> scripts/main.zeff:3:19
+  |
+3 | d.plot(y: change).rug()
+  |                   ^^^ needs `x`
+  |
+  = help: map it where the plot starts, as in `plot(x: wage)`, or name it in the layer, as in `rug(x: wage)`; a rug along the other axis is `sides: y`
+
+== no_y_for_the_side
+error[Z0401]: `rug` draws a tick for each value of `y`, but neither the plot nor this layer maps a variable to `y`
+ --> scripts/main.zeff:3:28
+  |
+3 | d.plot(x: dose).rug(sides: y)
+  |                            ^ needs `y`
+  |
+  = help: map it where the plot starts, as in `plot(y: wage)`, or name it in the layer, as in `rug(y: wage)`; a rug along the other axis is `sides: x`
+
+== no_y_for_both_sides
+error[Z0401]: `rug` draws a tick for each value of `y`, but neither the plot nor this layer maps a variable to `y`
+ --> scripts/main.zeff:3:28
+  |
+3 | d.plot(x: dose).rug(sides: both)
+  |                            ^^^^ needs `y`
+  |
+  = help: map it where the plot starts, as in `plot(y: wage)`, or name it in the layer, as in `rug(y: wage)`; a rug along the other axis is `sides: x`
+
+== not_a_side
+error[Z0402]: `top` is not one of the allowed words
+ --> scripts/main.zeff:3:39
+  |
+3 | d.plot(x: dose, y: change).rug(sides: top)
+  |                                       ^^^ expected one of x, y, both
+
+== a_side_in_quotes
+error[Z0403]: expected one of x, y, both, found text
+ --> scripts/main.zeff:3:39
+  |
+3 | d.plot(x: dose, y: change).rug(sides: "x")
+  |                                       ^^^ a word, not a string
+  |
+  = help: write the word without quotes: `x`
+
+== a_position_that_is_text
+error[Z0401]: `rug` draws `x` on a linear scale, so `arm` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:3:35
+  |
+3 | d.plot(x: dose, y: change).rug(x: arm)
+  |                                   ^^^ not a numeric variable
+  |
+  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+
+== not_a_colour
+error[Z0401]: `color:` of `rug` is "blu", which is not the name of a colour
+ --> scripts/main.zeff:3:39
+  |
+3 | d.plot(x: dose, y: change).rug(color: "blu")
+  |                                       ^^^^^ not a colour
+  |
+  = help: did you mean "blue"?
+
+== another_kind_of_colour
+error[Z0401]: the plot shows `arm` as categories for `color`, but `change`, which `rug` maps to `color`, is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:3:60
+  |
+3 | d.plot(x: dose, y: change, color: arm).points().rug(color: change)
+  |                                                            ^^^^^^ `change` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so the variables mapped to `color` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels
+
+== alpha_above_one
+error[Z0401]: `alpha:` of `rug` is an opacity between 0 and 1, but this is 2
+ --> scripts/main.zeff:3:39
+  |
+3 | d.plot(x: dose, y: change).rug(alpha: 2)
+  |                                       ^ outside [0, 1]
+  |
+  = help: write 1 for solid ticks, or a share such as 0.2 so that ticks on one another show how many there are
+
+== no_size_on_rug
+error[Z0404]: `rug` has no argument called `size`
+ --> scripts/main.zeff:3:32
+  |
+3 | d.plot(x: dose, y: change).rug(size: 3)
+  |                                ^^^^ unknown argument
+  |
+  = help: usage: `p.rug(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, sides: x | y | both = x, alpha: Float = 1)`
+
+== a_frame_without_the_position
+error[Z0101]: no variable `dose` in `limits`
+ --> scripts/main.zeff:3:38
+  |
+3 | d.plot(x: dose, y: change).rug(data: limits)
+  |                            --- this layer draws `dose`, which the plot maps to `x`
+  |                                      ^^^^^^ not a variable of limits
+  |
+  = help: the variables of `limits` are: level, kind
+
+== rug_of_a_frame
+error[Z0401]: `rug` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | d.rug()
+  | ^ this is a Frame
+  |
+  = help: `rug` takes a Plot first; `x.rug(...)` is `rug(x, ...)`

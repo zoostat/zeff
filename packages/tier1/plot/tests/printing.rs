@@ -1735,3 +1735,87 @@ fn every_message_of_hline_and_vline() {
     }
     insta::assert_snapshot!("reference_lines_messages", all);
 }
+
+// ----- rug (step 23e2) -----
+
+#[test]
+fn rugs_read_sensibly_as_text() {
+    let script = format!(
+        "{CHANGES}d.plot(x: dose, y: change).points().rug()\n\
+         d.plot(x: dose, y: change, color: arm).points().rug(sides: both, alpha: 0.5)\n\
+         d.plot(x: change).rug()\n\
+         d.plot(x: dose, y: change).rug(sides: y, color: \"firebrick\")\n\
+         d.plot(x: dose).rug(x: change * 2, color: arm)\n\
+         let w = dataset(wages)\n\
+         w.plot(x: educ, y: wage).points(alpha: 0.2).rug(sides: both, alpha: 0.1)\n\
+         w.plot(x: wage).rug(alpha: 0.1)\n\
+         w.plot(x: educ, y: wage).rug(sides: y)\n"
+    );
+    let text = printed(&script);
+    // The reference, from R on the shipped file: 18,412 rows, all with `educ`, 18,201 with
+    // `wage` and so 18,201 with both; with `geom_point` and `geom_rug` ggplot2 4.0.3 has the
+    // limits of the scatter, 7.4 to 20.6 and -3.913 to 159.833, and a rug of the wages alone
+    // the second pair along `x`.
+    for line in [
+        "      2   rug      d          4   sides x, alpha 1\n",
+        "      2   rug      d          4   sides both, alpha 0.5\n",
+        "  x      change   linear   -1.375 to 2.475   -1, 0, 1, 2\n",
+        "      1   rug    d          4   color firebrick, sides y, alpha 1\n",
+        "      1   rug    d          4   x change * 2, color by arm, sides x, alpha 1\n",
+        "  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20\n",
+        "  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150\n",
+        "      2   rug      w      18,201   sides both, alpha 0.1\n",
+        "  x      Hourly wage   linear   -3.913 to 159.833   0, 50, 100, 150\n",
+        "      1   rug    w      18,201   sides x, alpha 0.1\n",
+        "      1   rug    w      18,201   sides y, alpha 1\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("rug", text);
+}
+
+#[test]
+fn every_message_of_rug() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("the_plot_maps_no_x", "d.plot(y: change).rug()\n"),
+        ("no_y_for_the_side", "d.plot(x: dose).rug(sides: y)\n"),
+        ("no_y_for_both_sides", "d.plot(x: dose).rug(sides: both)\n"),
+        ("not_a_side", "d.plot(x: dose, y: change).rug(sides: top)\n"),
+        (
+            "a_side_in_quotes",
+            "d.plot(x: dose, y: change).rug(sides: \"x\")\n",
+        ),
+        (
+            "a_position_that_is_text",
+            "d.plot(x: dose, y: change).rug(x: arm)\n",
+        ),
+        (
+            "not_a_colour",
+            "d.plot(x: dose, y: change).rug(color: \"blu\")\n",
+        ),
+        (
+            "another_kind_of_colour",
+            "d.plot(x: dose, y: change, color: arm).points().rug(color: change)\n",
+        ),
+        (
+            "alpha_above_one",
+            "d.plot(x: dose, y: change).rug(alpha: 2)\n",
+        ),
+        (
+            "no_size_on_rug",
+            "d.plot(x: dose, y: change).rug(size: 3)\n",
+        ),
+        (
+            "a_frame_without_the_position",
+            "d.plot(x: dose, y: change).rug(data: limits)\n",
+        ),
+        ("rug_of_a_frame", "d.rug()\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{CHANGES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("rug_messages", all);
+}

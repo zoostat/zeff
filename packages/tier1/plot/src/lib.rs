@@ -383,5 +383,47 @@ pub fn functions() -> Vec<Function> {
             },
             body: marks::vline,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "rug",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("x", "Var | Expr"),
+                    ParamSpec::option("y", "Var | Expr"),
+                    ParamSpec::option("color", "Var | Str"),
+                    ParamSpec::option_with_default("sides", "x | y | both", "x"),
+                    ParamSpec::option_with_default("alpha", "Float", "1"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in the position of a side or a variable shown on a continuous colour scale; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression the layer maps is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the frame the layer draws lacks a variable the layer names, or one an expression it maps reads; the frame of data: lacks a variable the plot maps, or one a mapped expression reads",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "the frame the layer draws, or the frame of data:, has the variable in another case",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "neither the plot nor the layer maps anything to the position of a side; a variable the layer names for x: or y:, or a mapped variable of data:, that is not numeric, or an expression that gives no number for each row; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows; an expression given to color:, which takes a variable by its name; alpha: outside [0, 1]",
+                    ),
+                ],
+                help: include_str!("../help/rug.md"),
+                accuracy: None,
+            },
+            body: marks::rug,
+        },
     ]
 }

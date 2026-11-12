@@ -279,6 +279,11 @@ plot/rules/stderr 689ddad8ceaf17f2
 plot/rules/rules.svg b7cda11aa7550e3a
 plot/rules/rules.pdf 5295644743137e94
 plot/rules/rules.png 9d20d3545a11e1d6
+plot/rug/stdout 18fbe0cfc04e6990
+plot/rug/stderr 72a23d109d8971c1
+plot/rug/rug.svg 1070d339b95c406a
+plot/rug/rug.pdf 8ee75404e856e04d
+plot/rug/rug.png 719c754e4b71575e
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

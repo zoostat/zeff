@@ -1,6 +1,7 @@
 //! The marks (Language Reference, section 7.6, "Marks"): each adds a layer to a plot and gives
 //! the plot back, so that layers chain. At release 0.7.0: `points` (step 20d), `lines` and `step`
-//! (step 23c), `area` and `ribbon` (step 23d), `hline` and `vline` (step 23e).
+//! (step 23c), `area` and `ribbon` (step 23d), `hline`, `vline` and `rug`
+//! (step 23e).
 //!
 //! A layer draws the rows of the plot's frame, or of its own (`data:`), which must then hold the
 //! variables the plot maps to the aesthetics the layer reads and those its mapped expressions
@@ -17,8 +18,8 @@ use std::rc::Rc;
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Stacking,
-    Stairs, Value,
+    Aesthetic, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Sides,
+    Stacking, Stairs, Value,
 };
 use zeff_diagnostics::Diagnostic;
 
@@ -1061,6 +1062,148 @@ fn spanning(
             size: None,
             jitter: 0.0,
             width: Some(width),
+            stream: None,
+            computed,
+            mappings,
+            constants,
+        },
+    );
+    for note in after.notes {
+        if !before.contains(&note) {
+            ctx.message(Diagnostic::plain_note(note));
+        }
+    }
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+// ----- rug (step 23e2) -----
+
+const G_COLOR: usize = 4;
+const G_SIDES: usize = 5;
+const G_ALPHA: usize = 6;
+
+/// `p.rug(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str,
+/// sides: x | y | both = x, alpha: Float = 1)`.
+pub fn rug(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`rug` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let sides = match args.get(G_SIDES) {
+        None | Some(Value::Na) => Sides::X,
+        Some(Value::Word(word)) => match word.as_str() {
+            "x" => Sides::X,
+            "y" => Sides::Y,
+            "both" => Sides::Both,
+            _ => return Err(internal(ctx, "a `sides:` that is none of the three")),
+        },
+        Some(_) => return Err(internal(ctx, "a `sides:` that is not a word")),
+    };
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mappings, constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        "rug",
+        &Slots {
+            x: Some(X),
+            y: Some(Y),
+            low: None,
+            high: None,
+            color: Some(G_COLOR),
+            fill: None,
+            size: None,
+            shape: None,
+            group: None,
+            label: None,
+            linetype: None,
+        },
+        own_data,
+    )?;
+    // A rug needs the position of each of its sides, from the plot or from the layer.
+    let along: &[Aesthetic] = match sides {
+        Sides::X => &[Aesthetic::X],
+        Sides::Y => &[Aesthetic::Y],
+        Sides::Both => &[Aesthetic::X, Aesthetic::Y],
+    };
+    for aesthetic in along {
+        let mapped = plot.mapping(*aesthetic).is_some()
+            || mappings.iter().any(|m| m.aesthetic == *aesthetic);
+        if mapped {
+            continue;
+        }
+        let axis = aesthetic.name();
+        let other = if *aesthetic == Aesthetic::X { "y" } else { "x" };
+        // The side asked for by name is pointed at; the usual one is not written.
+        let at = if matches!(args.get(G_SIDES), None | Some(Value::Na)) {
+            ctx.callee_span
+        } else {
+            ctx.span_of(G_SIDES)
+        };
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`rug` draws a tick for each value of `{axis}`, but neither the plot nor this layer maps a variable to `{axis}`"
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(at, format!("needs `{axis}`"))
+            .help(format!(
+                "map it where the plot starts, as in `plot({axis}: wage)`, or name it in the layer, as in `rug({axis}: wage)`; a rug along the other axis is `sides: {other}`"
+            )),
+        ));
+    }
+    one_scale(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Color, G_COLOR),
+        "rug",
+    )?;
+    // What the layer reads from the plot: the positions of its sides and the colour, where it
+    // neither names nor sets them.
+    let read: Vec<Aesthetic> = along
+        .iter()
+        .copied()
+        .chain([Aesthetic::Color])
+        .filter(|aesthetic| {
+            !mappings.iter().any(|m| m.aesthetic == *aesthetic)
+                && !constants.iter().any(|c| c.aesthetic == *aesthetic)
+        })
+        .collect();
+    let (data, computed) = own_frame(ctx, &args, &plot, "rug", &read)?;
+    let alpha =
+        number_option(ctx, &args, G_ALPHA, "an `alpha:` that is not a number")?.unwrap_or(1.0);
+    if !(0.0..=1.0).contains(&alpha) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`alpha:` of `rug` is an opacity between 0 and 1, but this is {}",
+                    shown(alpha)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(G_ALPHA), "outside [0, 1]")
+            .help("write 1 for solid ticks, or a share such as 0.2 so that ticks on one another show how many there are"),
+        ));
+    }
+    let before = scene(&plot).notes;
+    let (next, after) = with_layer(
+        &plot,
+        PlotLayer {
+            mark: Mark::Rug(sides),
+            data,
+            alpha,
+            size: None,
+            jitter: 0.0,
+            width: Some(0.5),
             stream: None,
             computed,
             mappings,

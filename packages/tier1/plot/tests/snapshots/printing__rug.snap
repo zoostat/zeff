@@ -1,0 +1,78 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · change against dose
+
+  axis   title    scale    limits            breaks
+  x      dose     linear   0.85 to 4.15      1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   -1.375 to 2.475   -1, 0, 1, 2
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+      2   rug      d          4   sides x, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits            breaks
+  x      dose     linear   0.85 to 4.15      1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   -1.375 to 2.475   -1, 0, 1, 2
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+      2   rug      d          4   sides both, alpha 0.5
+plot · d · change
+
+  axis   title    scale    limits            breaks
+  x      change   linear   -1.375 to 2.475   -1, 0, 1, 2
+
+  layer   mark   data   marks   settings
+      1   rug    d          4   sides x, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits            breaks
+  x      dose     linear   0.85 to 4.15      1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   -1.375 to 2.475   -1, 0, 1, 2
+
+  layer   mark   data   marks   settings
+      1   rug    d          4   color firebrick, sides y, alpha 1
+plot · d · dose
+
+  axis   title   scale    limits          breaks
+  x      dose    linear   -2.75 to 4.95   -2, 0, 2, 4
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   rug    d          4   x change * 2, color by arm, sides x, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.2
+      2   rug      w      18,201   sides both, alpha 0.1
+plot · w · wage
+
+  axis   title         scale    limits              breaks
+  x      Hourly wage   linear   -3.913 to 159.833   0, 50, 100, 150
+
+  layer   mark   data    marks   settings
+      1   rug    w      18,201   sides x, alpha 0.1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  layer   mark   data    marks   settings
+      1   rug    w      18,201   sides y, alpha 1
+---
+note: 211 rows with NA in educ or wage dropped (line 9)
+note: 211 rows with NA in wage dropped (line 10)
+note: 211 rows with NA in wage dropped (line 11)

@@ -3337,3 +3337,19 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 23e; section 7.6 of the Language Reference ("Marks": "`hline` and `vline` take a value or a variable"); open decisions #106 and #127; decision #118, F9.
+
+## 12 November 2026: `rug` (release 0.7.0, step 23e2), and step 23 complete
+
+**Decision.** `p.rug(...)` adds a tick at the margin of the panel for each row. The mark carries its sides (`Mark::Rug(Sides)`, written `x`, `y`, `both`). In the scene a rug along one axis has a value for each mark on that axis and none on the other, as a reference line has, and a rug on both has both; its JSON says `sides`, the length of a tick as `size` (`RUG_LENGTH`, 4.5 points) and its `width` (0.5). The layout draws a tick from the edge of the panel inwards, at the bottom for a place on `x` and at the left for one on `y`, as a path of one piece so that it has the opacity of the layer; with one axis alone the ticks along it are still drawn, so `w.plot(x: wage).rug()` is a plot by itself.
+
+**Rulings where the text is silent**, taken under the owner's standing instruction of 12 November 2026. (a) The catalogue gave `rug` no option but `data:` and `sides:`; under open decision #106 it takes `x:`, `y:` and `color:` for its own layer, and it inherits the plot's as `points` does. (b) `alpha:` is added, with 1 as its default: a rug of thousands of rows is a black bar without it, and R's `geom_rug` has it. (c) A rug along one axis draws every row with a finite value there, whatever the row holds on the other axis; a rug on both sides draws the rows that have both, which are the rows `points` draws, so that the two rugs under a scatter are its two margins. (d) A tick is 4.5 points long, the diameter of a point, and not a share of the panel as ggplot2's 3% is: every mark of the engine is sized in points, and a figure keeps its ticks when it is made larger. It is 0.5 wide. Neither is an option. (e) The sides are the bottom and the left; the top and the right, which ggplot2 also offers, are not: the catalogue's three words stand. (f) The key of a legend of rugs alone is a piece of line; where points share the legend the key stays a point.
+
+**Tests.** `packages/tier1/plot/tests/rug.rs`: the rows drawn for each of the three sides, with `NA` and an infinite value, and the same rows as `points` for both; the ticks on the page, from the axes inwards, at their places, with ggplot2's limits; a rug along one axis by itself, coloured, with its legend; a variable of its own and a colour on the continuous scale; a property over 300 frames. `tests/printing.rs`: eight plots, with the counts and limits of the shipped wages against R (18,412 rows, 18,201 with a wage; 7.4 to 20.6 and -3.913 to 159.833); twelve messages. The help page, its examples run. The conformance set gains five cases: what a script of rugs prints and a figure in SVG, PDF and PNG.
+
+**Step 23.** The seven marks of step 23, `lines`, `step`, `area`, `ribbon`, `hline`, `vline` and `rug`, are built with their pages; the step is ticked. `plot` stands at nine functions.
+
+**The specification.** The usage line of catalogue row 469 gains the options (logged in `docs/spec_changes.md`).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's steps 23e and 23e2; section 7.6 of the Language Reference ("Marks": `rug`); open decision #106.

@@ -60,7 +60,7 @@
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting,
+    Aesthetic, Align, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Sides,
     Stacking, Stairs, Table,
 };
 use zeff_diagnostics::count;
@@ -86,6 +86,9 @@ pub const LARGEST_SIZE: f64 = 18.0;
 
 /// The width of a line when its layer says nothing, in points of 1/72 inch.
 pub const LINE_WIDTH: f64 = 1.0;
+
+/// The length of a tick of a rug, in points of 1/72 inch: the diameter of a point.
+pub const RUG_LENGTH: f64 = 4.5;
 
 /// The diameter the scale of sizes with these limits and this range gives the value `v`: the
 /// share of the way from the lower limit to the upper, its square root taken, laid on the range.
@@ -321,6 +324,13 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Fill | Aesthetic::Group
         ),
+        // A rug has a tick for each row at its place on the axes of its sides, in its colour.
+        Mark::Rug(sides) => match aesthetic {
+            Aesthetic::X => sides != Sides::Y,
+            Aesthetic::Y => sides != Sides::X,
+            Aesthetic::Color => true,
+            _ => false,
+        },
         // A reference line stands at a place on one axis, in a colour and a type of its own.
         Mark::Hline => matches!(
             aesthetic,
@@ -1367,11 +1377,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         // A reference line: one at the place the layer sets, or one at each value of the
         // variable it names, which must be there and finite, as must a value it is coloured
         // by on a ramp.
-        let along = if layer.mark == Mark::Hline {
-            Aesthetic::Y
-        } else {
-            Aesthetic::X
+        // A rug along one axis is placed the same way: a mark for each row with a value on
+        // that axis, whatever the row holds on the other.
+        let single = match layer.mark {
+            Mark::Hline | Mark::Rug(Sides::Y) => Some(Aesthetic::Y),
+            Mark::Vline | Mark::Rug(Sides::X) => Some(Aesthetic::X),
+            _ => None,
         };
+        let along = single.unwrap_or(Aesthetic::X);
         let across = |mut lines: Drawn| {
             if along == Aesthetic::Y {
                 lines.x.clear();
@@ -1380,7 +1393,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             }
             lines
         };
-        let mut points = if !layer.mark.spans() {
+        let mut points = if single.is_none() {
             None
         } else if let Some(PlotSetting::Place(at)) = layer.constant(along) {
             Some(across(Drawn {
@@ -1388,7 +1401,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 y: vec![*at],
                 ..Drawn::default()
             }))
-        } else if let Some(mapping) = layer.mapping(along) {
+        } else if let Some(variable) = named(along) {
             let ramps: Vec<(&str, &Column)> = colourings
                 .iter()
                 .filter(|colouring| {
@@ -1407,7 +1420,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             let columns: Vec<&Column> = ramps.iter().map(|(_, column)| *column).collect();
             let places = values(plot, Some(layer), along);
             let lines = drawn(places, places, &columns, None);
-            let mut names = vec![mapping.variable.as_str()];
+            let mut names = vec![variable];
             names.extend(ramps.iter().map(|(name, _)| *name));
             if lines.missing > 0 {
                 note(format!(
@@ -1672,7 +1685,12 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             x: points.x,
             y: points.y,
             color,
-            size: Sizing::Constant(size),
+            // The size of a rug is the length of its ticks.
+            size: Sizing::Constant(if matches!(layer.mark, Mark::Rug(_)) {
+                RUG_LENGTH
+            } else {
+                size
+            }),
             shape: Shaping::Constant(outline),
             alpha: layer.alpha,
             data: layer.data.as_ref().unwrap_or(&plot.frame).name.clone(),
@@ -2032,6 +2050,16 @@ impl Scene {
                                                             })
                                                             // A layer of reference lines
                                                             // says their type and width.
+                                                            .chain(
+                                                                if matches!(l.mark, Mark::Rug(_)) {
+                                                                    Some((
+                                                                        "width",
+                                                                        Json::Number(l.width),
+                                                                    ))
+                                                                } else {
+                                                                    None
+                                                                },
+                                                            )
                                                             .chain(if l.mark.spans() {
                                                                 vec![
                                                                     (
@@ -2106,6 +2134,10 @@ impl Scene {
                                                                 Mark::Area(placed) => Some((
                                                                     "position",
                                                                     Json::text(placed.name()),
+                                                                )),
+                                                                Mark::Rug(sides) => Some((
+                                                                    "sides",
+                                                                    Json::text(sides.name()),
                                                                 )),
                                                                 _ => None,
                                                             })
@@ -2450,7 +2482,14 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 }
             }
         }
-        let mut settings = if layer.mark.spans() {
+        let mut settings = if let Mark::Rug(sides) = layer.mark {
+            // A rug: its sides, and how far its ticks let through what is under them.
+            format!(
+                "sides {}, alpha {}",
+                sides.name(),
+                format_float(layer.alpha)
+            )
+        } else if layer.mark.spans() {
             // A layer of reference lines: their width and their type.
             let style = match &layer.linetype {
                 Lining::Constant(name) => name,

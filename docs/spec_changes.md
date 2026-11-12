@@ -514,3 +514,7 @@ Step 23d2 of release 0.7.0 gives `area` the three ways R's `geom_area` places th
 ## 12 November 2026 — zeff_functions.csv, rows 470 and 471
 
 Step 23e1 of release 0.7.0 builds `hline` and `vline`. Under open decision #106 (option A) a mark takes each aesthetic it draws for its own layer, and decision #118, F9, gives a line one of six types. The usage line of catalogue row 470 was `p.hline(data: Frame, at: Float | Var, style: solid | dashed | dotted = dashed)`; it is now `p.hline(data: Frame, at: Float | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`, and row 471 (`vline`) is changed in the same way. `style:` keeps its name and its default and gains the three further types of line that `lines` has. The status of both is `implemented`.
+
+## 12 November 2026 — zeff_functions.csv, row 469
+
+Step 23e2 of release 0.7.0 builds `rug`. Under open decision #106 (option A) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer. The usage line of catalogue row 469 was `p.rug(data: Frame, sides: x | y | both = x)`; it is now `p.rug(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, sides: x | y | both = x, alpha: Float = 1)`, and its status is `implemented`.

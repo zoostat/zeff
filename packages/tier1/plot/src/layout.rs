@@ -372,15 +372,18 @@ fn plan_legend(
     };
     // A legend of lines has a piece of line for a key, and a point on it when points read
     // the scale too.
-    let lined = scene.panels.first().and_then(|p| {
-        p.layers
-            .iter()
-            .find(|l| (l.mark.joins() || l.mark.spans()) && legend.marks.contains(&l.mark))
+    let pointed = legend.marks.iter().any(|mark| {
+        !mark.joins() && !mark.fills() && !mark.spans() && !matches!(mark, Mark::Rug(_))
     });
-    let pointed = legend
-        .marks
-        .iter()
-        .any(|mark| !mark.joins() && !mark.fills() && !mark.spans());
+    // The ticks of a rug are small lines, and its key a piece of line, unless marks of
+    // another kind share the legend: a rug under points changes nothing in their key.
+    let rug_alone = legend.marks.iter().all(|mark| matches!(mark, Mark::Rug(_)));
+    let lined = scene.panels.first().and_then(|p| {
+        p.layers.iter().find(|l| {
+            (l.mark.joins() || l.mark.spans() || (rug_alone && matches!(l.mark, Mark::Rug(_))))
+                && legend.marks.contains(&l.mark)
+        })
+    });
     // A legend of filled marks has a patch of the fill for a key, as see-through as the marks.
     let filled = scene.panels.first().and_then(|p| {
         p.layers
@@ -1010,11 +1013,62 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             })
             .collect()
     };
-    // With one axis alone, the reference lines across it are all that can be placed.
+    // A rug has a tick for each mark, from the edge of the panel inwards: at the bottom for a
+    // place on `x`, at the left for one on `y`.
+    let ticks = |layer: &crate::scene::Layer, name: &str| -> Vec<Item> {
+        let long = match &layer.size {
+            Sizing::Constant(points) => *points,
+            Sizing::Scaled(_) => theme.key_size,
+        };
+        let tick = |i: usize, from: (f64, f64), to: (f64, f64)| {
+            let colour = match &layer.color {
+                Paint::Theme => theme.mark.to_string(),
+                Paint::Constant(hex) => hex.clone(),
+                Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
+                    (Some(scale), Some(value)) => colour_on(scale, *value),
+                    _ => theme.mark.to_string(),
+                },
+            };
+            named(
+                name,
+                Primitive::Path {
+                    steps: vec![Step::Move(from), Step::Line(to)],
+                    stroke: Some(Stroke {
+                        colour,
+                        width: layer.width,
+                        dash: LineType::Solid,
+                    }),
+                    fill: None,
+                    opacity: layer.alpha,
+                },
+            )
+        };
+        let mut drawn: Vec<Item> = Vec::new();
+        if let Some(scale) = xs {
+            let base = top + panel_height;
+            for (i, value) in layer.x.iter().enumerate() {
+                let x = across(scale, *value);
+                drawn.push(tick(i, (x, base), (x, base - long)));
+            }
+        }
+        if let Some(scale) = ys {
+            for (i, value) in layer.y.iter().enumerate() {
+                let y = down(scale, *value);
+                drawn.push(tick(i, (left, y), (left + long, y)));
+            }
+        }
+        drawn
+    };
+    // With one axis alone, the reference lines across it and the rugs along it are all that
+    // can be placed.
     if let (Some(p), true) = (panel, xs.is_none() || ys.is_none()) {
         for (at, layer) in p.layers.iter().enumerate() {
+            let name = format!("layer:{}", at + 1);
             if layer.mark.spans() {
-                marks.extend(reference(layer, &format!("layer:{}", at + 1)));
+                marks.extend(reference(layer, &name));
+            }
+            if matches!(layer.mark, Mark::Rug(_)) {
+                marks.extend(ticks(layer, &name));
             }
         }
     }
@@ -1024,6 +1078,9 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             let mut drawn: Vec<Item> = Vec::new();
             if layer.mark.spans() {
                 drawn.extend(reference(layer, &name));
+            }
+            if matches!(layer.mark, Mark::Rug(_)) {
+                drawn.extend(ticks(layer, &name));
             }
             let colour_of = |i: usize| match &layer.color {
                 Paint::Theme => theme.mark.to_string(),
@@ -1139,7 +1196,8 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     start = end;
                 }
             }
-            let one_by_one = !(layer.mark.joins() || layer.mark.fills());
+            let one_by_one =
+                !(layer.mark.joins() || layer.mark.fills() || matches!(layer.mark, Mark::Rug(_)));
             for i in 0..if one_by_one { marks_of } else { 0 } {
                 let colour = colour_of(i);
                 let across_mark = match &layer.size {

@@ -278,6 +278,30 @@ pub enum Mark {
     Hline,
     /// An upright reference line, at a place on the `x` axis.
     Vline,
+    /// A tick at the margin of the panel for each row, along one axis or both.
+    Rug(Sides),
+}
+
+/// The axes along which a rug has its ticks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Sides {
+    /// Along the `x` axis, at the bottom of the panel.
+    #[default]
+    X,
+    /// Along the `y` axis, at the left of the panel.
+    Y,
+    Both,
+}
+
+impl Sides {
+    /// The sides as they are written: `x`, `y`, `both`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Sides::X => "x",
+            Sides::Y => "y",
+            Sides::Both => "both",
+        }
+    }
 }
 
 /// How the areas of the groups of one layer are placed along `y`.
@@ -328,7 +352,7 @@ impl Stairs {
 
 impl Mark {
     /// The mark as the method that adds it is called: `points`, `lines`, `step`, `area`,
-    /// `ribbon`, `hline`, `vline`.
+    /// `ribbon`, `hline`, `vline`, `rug`.
     pub fn name(self) -> &'static str {
         match self {
             Mark::Points => "points",
@@ -338,6 +362,7 @@ impl Mark {
             Mark::Ribbon => "ribbon",
             Mark::Hline => "hline",
             Mark::Vline => "vline",
+            Mark::Rug(_) => "rug",
         }
     }
 
