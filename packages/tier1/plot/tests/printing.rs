@@ -180,9 +180,8 @@ fn jitter_is_repeated_by_the_seed_and_changed_by_another() {
 fn every_message() {
     let mut all = String::new();
     for script in [
-        // A date has no axis yet (a Str and a Category have one, of categories, from step 24a).
-        "let d = frame(a = [1, 2], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: when, y: a)\n",
-        "let d = frame(a = [1, 2], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: when)\n",
+        // Every type a script can make has an axis: numbers a linear one, a Str and a Category
+        // one of categories (step 24a), a Date and a DateTime one of dates (step 25c1).
         "let w = dataset(wages)\nw.plot(x: educ, y: wages)\n",
         "let w = dataset(wages)\nw.plot(x: Educ, y: wage)\n",
         "let w = dataset(wages)\nw.plot(x: educ).points()\n",
@@ -1913,11 +1912,7 @@ fn every_message_of_an_axis_of_categories() {
             "an_upright_line_on_categories",
             "d.plot(x: shop, y: units).points().vline(at: units)\n",
         ),
-        // A type with no axis yet, and the edge of a band that is text.
-        (
-            "a_date_on_an_axis",
-            "d.add(when = date(\"2026-01-01\")).plot(x: when, y: units)\n",
-        ),
+        // The edge of a band that is text (a date has its axis from step 25c1).
         (
             "an_edge_that_is_text",
             "d.plot(x: units).ribbon(low: shop, high: units)\n",
@@ -2337,4 +2332,125 @@ fn every_message_of_scale_x_and_scale_y() {
         all.push_str(&format!("== {name}\n{stderr}\n"));
     }
     insta::assert_snapshot!("axis_scales_messages", all);
+}
+
+// ----- an axis of dates (step 25c1) -----
+
+const READINGS: &str = "let r = frame(read = [\"2024-01-15\", \"2024-02-29\", NA, \"2024-04-01\", \"2024-06-20\"], level = [3, 5, 4, 8, 6], site = [\"a\", \"a\", \"b\", \"b\", \"b\"]).add(day = date(read))\nlet events = frame(read = [\"2024-03-10\", \"2024-05-01\"]).add(day = date(read))\nlet t = frame(read = [\"2024-03-05 09:30:00\", \"2024-03-05 12:00:00\", \"2024-03-05 16:45:00\"], level = [1, 4, 2]).add(when = datetime(read))\n";
+
+#[test]
+fn an_axis_of_dates_reads_sensibly_as_text() {
+    let script = format!(
+        "{READINGS}r.plot(x: day, y: level)\n\
+         r.plot(x: day, y: level).lines().points()\n\
+         t.plot(x: when, y: level).step()\n\
+         r.plot(x: day, y: level, color: site).points().vline(data: events, at: day)\n\
+         r.plot(x: level, y: day).points()\n\
+         r.plot(x: day).bars()\n\
+         r.plot(x: day, y: level).area()\n\
+         r.plot(x: day, y: site, fill: level).tile()\n\
+         r.plot(x: day, y: level).text(label: site).rug()\n\
+         r.where(level == 8).plot(x: day, y: level).points()\n\
+         let f = dataset(firms)\n\
+         f.plot(x: founded, y: size).points(alpha: 0.4)\n"
+    );
+    let text = printed(&script);
+    // The reference, from ggplot2 4.0.3 on R 4.6.0. On the shipped firms `founded` runs from
+    // 1950-01-15 to 2009-11-26, 21,865 days, and the limits of `geom_point` are -8384.25 and
+    // 15667.25 days, which fall on 1947-01-17 and 2012-11-23; ggplot2 marks 1960, 1980 and
+    // 2000 where Zeff marks every decade. On the four readings its limits are 19729.15 and
+    // 19901.85 days, 2024-01-07 and 2024-06-27, and its breaks the first of February to the
+    // first of June, written `Feb` to `Jun` where Zeff writes `2024-02` to `2024-06`.
+    for line in [
+        "  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06\n",
+        "  x      when    date     2024-03-05 09:08:15 to 2024-03-05 17:06:45\n",
+        "  10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00\n",
+        "      2   vline    events       2   at day, width 0.5, style dashed\n",
+        "  y      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06\n",
+        "  x      day     date     2024-03-31 to 2024-04-02   2024-03-31, 2024-04-01, 2024-04-02\n",
+        "  x      Date founded                date     1947-01-17 to 2012-11-23   1950, 1960, 1970, 1980, 1990, 2000, 2010\n",
+        "note: 1 row with NA in day or level dropped (line 5)\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("date_axes", text);
+}
+
+#[test]
+fn every_message_of_an_axis_of_dates() {
+    let mut all = String::new();
+    for (name, script) in [
+        // A scale of numbers has no place for dates.
+        (
+            "a_log_scale_on_dates",
+            "r.plot(x: day, y: level).points().scale_x(log)\n",
+        ),
+        (
+            "dates_added_to_a_square_root_scale",
+            "r.plot(x: day, y: level).scale_x(sqrt).points()\n",
+        ),
+        // What an axis of dates cannot yet be told.
+        (
+            "limits_of_an_axis_of_dates",
+            "r.plot(x: day, y: level).scale_x(limits: [0, 1])\n",
+        ),
+        ("the_kind_date", "r.plot(x: day, y: level).scale_x(date)\n"),
+        // The marks that measure from zero.
+        ("an_area_up_to_dates", "r.plot(x: level, y: day).area()\n"),
+        ("bars_up_to_dates", "r.plot(x: level, y: day).bars()\n"),
+        ("bars_given_dates", "r.plot(x: level).bars(y: day)\n"),
+        (
+            "a_band_of_dates",
+            "r.plot(x: level, y: day).ribbon(low: level, high: level)\n",
+        ),
+        (
+            "edges_that_are_dates",
+            "r.plot(x: day, y: level).ribbon(low: day, high: day)\n",
+        ),
+        // The layers share the axis.
+        (
+            "numbers_on_an_axis_of_dates",
+            "r.plot(x: day, y: level).points().points(x: level)\n",
+        ),
+        (
+            "dates_on_an_axis_of_numbers",
+            "r.plot(x: level, y: level).points().points(x: day)\n",
+        ),
+        (
+            "dates_on_an_axis_of_categories",
+            "r.plot(x: site, y: level).points().points(x: day)\n",
+        ),
+        (
+            "a_frame_that_holds_the_dates_as_numbers",
+            "r.plot(x: day, y: level).points(data: frame(day = [1, 2], level = [1, 2]))\n",
+        ),
+        // Reference lines.
+        (
+            "a_line_at_a_number_on_dates",
+            "r.plot(x: day, y: level).points().vline(at: 3)\n",
+        ),
+        (
+            "a_line_at_dates_on_numbers",
+            "r.plot(x: level, y: level).points().vline(data: events, at: day)\n",
+        ),
+        (
+            "a_line_across_at_dates",
+            "r.plot(x: day, y: level).points().hline(at: day)\n",
+        ),
+        (
+            "a_line_at_text",
+            "r.plot(x: day, y: level).vline(at: site)\n",
+        ),
+        // Other aesthetics.
+        (
+            "a_colour_by_dates",
+            "r.plot(x: day, y: level, color: day).points()\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{READINGS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("date_axes_messages", all);
 }

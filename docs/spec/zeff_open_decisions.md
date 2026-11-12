@@ -2509,3 +2509,19 @@ What the reference tools do. In R with ggplot2 a number is continuous on an axis
 *Recommendation.* C in two parts: the axis of categories for a Str and a Category at step 24a, where `bars` needs it, with the rule A; and the breaks of a labelled variable on a linear axis at step 25, with the scales. A variable is made categories on an axis by `category()`, as it is for a shape. Deadline: 0.7.0, before step 24a.
 
 **The decision (12 November 2026).** Option C, taken on the recommendation under the owner's standing instruction of that day ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A is built at step 24a and the labelled breaks at step 25.
+
+### 129. How an axis of dates chooses its breaks and writes them
+
+Raised on 12 November 2026 when step 25c1 of release 0.7.0 built the axis of dates. Section 7.6 of the Language Reference names `date` among the kinds of scale and says no more: not where the breaks of an axis of dates fall, nor how they are written. Section 3.8 has dates printed in tables in the ISO 8601 form, `2024-03-05`, and section 7.6 has the numbers of an axis "format as in tables".
+
+What the reference tools do. In R with ggplot2 4.0.3 a Date is placed by its count of days and a date-time by its seconds; the breaks are chosen by the range, and the labels by the step, in English: `Feb`, `Mar` for months within a year (the year appears nowhere on the axis), `2020`, `2021` for years, `Mar 05` for days. Stata's `tsline` writes `01jan2024` in the display format of the variable. Observable Plot writes the part that changes and adds the year under the first break of each year, on a second line.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The ISO form of tables, cut to the part the breaks differ in: `2024` where every break starts a year, `2024-03` where every break starts a month, `2024-03-05` for days, the time of the clock as `14:30`, with the day before it where the breaks fall on more than one day | One form in tables and on axes; no language in the figure; the year is always on the axis where the breaks are days or months; nothing to learn | Longer than `Mar`, so every second label is written where five would touch; `2024-03` is less familiar in print than `Mar 2024` |
+| B. Month names in English, as ggplot2 writes them: `Feb`, `Mar 05`, `2024` | Shorter; what many journals print | English in every figure; the year is lost from an axis of months or days within one year; a second form of date to explain |
+| C. Two lines, the part that changes above and the year under the first break of each year | Short and complete | A second line of labels under the axis is a change to the layout and its theme, frozen at step 22 |
+
+*Recommendation.* A as the default, with `labels:` of `scale_x` and `scale_y` taking a pattern at step 25c2, so that `labels: "%b %Y"` writes `Mar 2024` where a journal asks for it. The places of the breaks are a matter of engineering and are in `docs/decisions.md`: the start of a year (or of every second, fifth, tenth year), of a half-year, a quarter or a month, a Monday, a day, or a round time of the clock, whichever is nearest to a fifth of the range. Deadline: 0.7.0, at step 25c1.
+
+**The decision (12 November 2026).** Option A, taken on the recommendation under the owner's standing instruction of that day ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn; the pattern for `labels:` follows at step 25c2.

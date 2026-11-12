@@ -200,7 +200,8 @@ pub fn sqrt_limits(extent: Option<(f64, f64)>) -> (f64, f64) {
 
 /// Where a value stands between the limits of an axis, as a share of the way from the lower
 /// to the upper: in proportion to the value on a linear axis and on one of categories, to its
-/// logarithm on a log axis, and to its square root on a square-root axis. A value that has no
+/// logarithm on a log axis, and to its square root on a square-root axis; on an axis of dates
+/// in proportion to the time. A value that has no
 /// place on the axis, zero on a log axis, is not a number.
 pub fn share(kind: crate::scene::ScaleKind, limits: (f64, f64), v: f64) -> f64 {
     use crate::scene::ScaleKind;
@@ -217,7 +218,7 @@ pub fn share(kind: crate::scene::ScaleKind, limits: (f64, f64), v: f64) -> f64 {
             let (a, b) = (lo.sqrt(), hi.sqrt());
             (v.sqrt() - a) / (b - a)
         }
-        ScaleKind::Linear | ScaleKind::Category => (v - lo) / (hi - lo),
+        ScaleKind::Linear | ScaleKind::Category | ScaleKind::Date => (v - lo) / (hi - lo),
     }
 }
 

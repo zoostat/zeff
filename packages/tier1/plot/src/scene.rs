@@ -17,6 +17,11 @@
 //! and `fill` and the scales `size` and `shape` with the legends that show them, and layers of
 //! points.
 //!
+//! **Position.** The scale of an axis is of kind `linear`, `log` or `sqrt` for numbers, whose
+//! places are the numbers themselves; of kind `category`, whose places are 1, 2, 3 in the order
+//! of the categories; or of kind `date`, whose places are microseconds since 1970-01-01
+//! 00:00:00 UTC, a day standing at the midnight that starts it.
+//!
 //! **Colour.** A mark's colour is kept as the positions are, in the units of the data, and the
 //! scale `color` says what each value is drawn as. On a scale of kind `category` the value is
 //! the place of the category, counted from 1; the breaks are the places, the labels the
@@ -68,6 +73,7 @@ use zeff_core::value::{
 use zeff_diagnostics::count;
 
 use crate::colour;
+use crate::dates;
 use crate::drawing::LineType;
 use crate::json::Json;
 use crate::scale;
@@ -164,6 +170,9 @@ pub enum ScaleKind {
     Sqrt,
     /// Numbers above 0, placed in proportion to their logarithm.
     Log,
+    /// Dates and times, as microseconds since 1970-01-01 00:00:00 UTC, a day at the midnight
+    /// that starts it: placed in proportion to the time, with breaks on the calendar.
+    Date,
 }
 
 impl ScaleKind {
@@ -173,6 +182,7 @@ impl ScaleKind {
             ScaleKind::Category => "category",
             ScaleKind::Sqrt => "sqrt",
             ScaleKind::Log => "log",
+            ScaleKind::Date => "date",
         }
     }
 }
@@ -606,6 +616,12 @@ pub fn on_categories(column: &Column) -> bool {
     matches!(column.ty(), ColumnType::Category | ColumnType::Str)
 }
 
+/// Whether a variable makes an axis of dates when it is mapped to a position: a Date or a
+/// DateTime.
+pub fn on_dates(column: &Column) -> bool {
+    matches!(column.ty(), ColumnType::Date | ColumnType::DateTime)
+}
+
 /// How an axis places its variable.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Placing {
@@ -613,16 +629,35 @@ pub enum Placing {
     Linear,
     /// Each category at a place of its own, 1, 2, 3 in their order.
     Categories,
+    /// On the scale of dates: in proportion to the time.
+    Dates,
 }
 
-/// How a variable is placed on an axis, `None` for the types no axis holds yet.
+/// How a variable is placed on an axis, `None` for the types no axis holds.
 pub fn placing(column: &Column) -> Option<Placing> {
     if is_numeric(column) {
         Some(Placing::Linear)
     } else if on_categories(column) {
         Some(Placing::Categories)
+    } else if on_dates(column) {
+        Some(Placing::Dates)
     } else {
         None
+    }
+}
+
+/// Whether the axis of `aesthetic` is one of dates.
+fn dated(plot: &Plot, aesthetic: Aesthetic) -> bool {
+    placing_of(plot, aesthetic).is_some_and(|(placing, _)| placing == Placing::Dates)
+}
+
+/// A cell of a Date or a DateTime column as its place on the scale of dates, the
+/// microseconds since 1970-01-01 00:00:00 UTC; `None` where it is `NA`.
+fn instant(column: &Column, row: usize) -> Option<f64> {
+    match column.get(row) {
+        Some(Cell::Date(days)) => Some(f64::from(days) * dates::DAY as f64),
+        Some(Cell::DateTime(micros)) => Some(micros as f64),
+        _ => None,
     }
 }
 
@@ -671,12 +706,23 @@ fn axis_categories(plot: &Plot, aesthetic: Aesthetic) -> Option<Vec<String>> {
 /// On a log axis a value at or below zero has no place, nor has a value below zero on a
 /// square-root axis: such a row is given none here. The functions that add a layer or set a
 /// scale refuse a plot with such a row ([`axis_fault`]) before it comes to this.
+///
+/// On an axis of dates, `dates`, a Date or a DateTime is placed at its instant, and a
+/// variable of another type gives nothing.
 fn placed<'a>(
     column: Option<&'a Column>,
     on: Option<&[String]>,
     kind: AxisKind,
+    dates: bool,
 ) -> Option<Cow<'a, Column>> {
     let column = column?;
+    if dates {
+        if !on_dates(column) {
+            return None;
+        }
+        let places = (0..column.len()).map(|row| instant(column, row));
+        return Some(Cow::Owned(Column::floats(places).0));
+    }
     let Some(labels) = on else {
         if kind == AxisKind::Linear || !is_numeric(column) {
             return Some(Cow::Borrowed(column));
@@ -731,6 +777,8 @@ pub enum Misplaced {
     Zero(&'static str),
     /// The axis is of categories, which have no kind of scale but their own.
     Categories(String),
+    /// The axis is of dates, which have no logarithm and no square root.
+    Dates(String),
 }
 
 /// The first thing in a plot that has no place on the scale the script asks of an axis, or
@@ -744,8 +792,14 @@ pub fn axis_fault(plot: &Plot) -> Option<AxisFault> {
         }
         let axis = aesthetic.name();
         let fault = |what: Misplaced| Some(AxisFault { axis, kind, what });
-        if let Some((Placing::Categories, variable)) = placing_of(plot, aesthetic) {
-            return fault(Misplaced::Categories(variable.to_string()));
+        match placing_of(plot, aesthetic) {
+            Some((Placing::Categories, variable)) => {
+                return fault(Misplaced::Categories(variable.to_string()));
+            }
+            Some((Placing::Dates, variable)) => {
+                return fault(Misplaced::Dates(variable.to_string()));
+            }
+            _ => {}
         }
         let held = |v: f64| match kind {
             AxisKind::Log => v > 0.0,
@@ -1272,6 +1326,7 @@ fn bars(
     keys: &[Categories],
     how: Arrangement,
     width: f64,
+    alone: f64,
 ) -> Bars {
     let mut out = Bars::default();
     let Some(cx) = cx else {
@@ -1340,7 +1395,7 @@ fn bars(
         items = counted;
     }
     let places: Vec<f64> = items.iter().map(|item| item.x).collect();
-    let wide = width * resolution(&places);
+    let wide = width * resolution(&places, alone);
     let mut start = 0;
     while start < items.len() {
         let mut end = start + 1;
@@ -1413,9 +1468,10 @@ fn bars(
     out
 }
 
-/// The smallest gap between two different values, the unit of `jitter:`; 1 when there are not
-/// two different values to take a gap between.
-fn resolution(values: &[f64]) -> f64 {
+/// The smallest gap between two different values, the unit of `jitter:`; `alone` when there
+/// are not two different values to take a gap between, which is 1 on an axis of numbers and a
+/// day on one of dates ([`alone`]).
+fn resolution(values: &[f64], alone: f64) -> f64 {
     let mut sorted = values.to_vec();
     sorted.sort_by(f64::total_cmp);
     let mut smallest: Option<f64> = None;
@@ -1425,14 +1481,20 @@ fn resolution(values: &[f64]) -> f64 {
             smallest = Some(gap);
         }
     }
-    smallest.unwrap_or(1.0)
+    smallest.unwrap_or(alone)
+}
+
+/// The gap a single value is given on an axis: 1 on an axis of numbers, a day on one of
+/// dates, so that one bar or one tile at a date is a day wide.
+fn alone(dates: bool) -> f64 {
+    if dates { dates::DAY as f64 } else { 1.0 }
 }
 
 /// Move each point by a uniform draw on each axis, at most `share` of the axis's resolution
 /// either way: one draw for `x` and then one for `y`, point by point in the order drawn, from the
 /// layer's stream at its start. A point that the move would take beyond the doubles stays where
 /// it is.
-fn jitter(layer: &PlotLayer, points: &mut Drawn) {
+fn jitter(layer: &PlotLayer, points: &mut Drawn, alone: (f64, f64)) {
     let Some(stream) = &layer.stream else {
         return;
     };
@@ -1440,8 +1502,8 @@ fn jitter(layer: &PlotLayer, points: &mut Drawn) {
         return;
     }
     let mut stream = stream.clone();
-    let reach_x = layer.jitter * resolution(&points.x);
-    let reach_y = layer.jitter * resolution(&points.y);
+    let reach_x = layer.jitter * resolution(&points.x, alone.0);
+    let reach_y = layer.jitter * resolution(&points.y, alone.1);
     for i in 0..points.x.len() {
         let moved = points.x[i] + (2.0 * stream.uniform() - 1.0) * reach_x;
         if moved.is_finite() {
@@ -1499,6 +1561,12 @@ fn extent<'a>(values: impl Iterator<Item = &'a f64>) -> Option<(f64, f64)> {
 fn frame_extent(plot: &Plot, aesthetic: Aesthetic) -> Option<(f64, f64)> {
     let (mapping, _, layer) = first_mapping(plot, aesthetic)?;
     let column = values(plot, layer, mapping.aesthetic)?;
+    if on_dates(column) {
+        let places: Vec<f64> = (0..column.len())
+            .filter_map(|row| instant(column, row))
+            .collect();
+        return extent(places.iter());
+    }
     let values = column.numeric_values()?.values;
     extent(values.iter())
 }
@@ -1811,18 +1879,29 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     // The axes of categories, and what each layer is placed by on its two axes.
     let across_categories = axis_categories(plot, Aesthetic::X);
     let up_categories = axis_categories(plot, Aesthetic::Y);
+    let (across_dates, up_dates) = (dated(plot, Aesthetic::X), dated(plot, Aesthetic::Y));
     let place = |layer: &'a PlotLayer, aesthetic: Aesthetic| -> Option<Cow<'a, Column>> {
         let on = if aesthetic == Aesthetic::X {
             across_categories.as_deref()
         } else {
             up_categories.as_deref()
         };
-        let kind = plot.axis(if aesthetic == Aesthetic::X {
+        let axis = if aesthetic == Aesthetic::X {
             Aesthetic::X
         } else {
             Aesthetic::Y
-        });
-        placed(values(plot, Some(layer), aesthetic), on, kind)
+        };
+        let dates = if axis == Aesthetic::X {
+            across_dates
+        } else {
+            up_dates
+        };
+        placed(
+            values(plot, Some(layer), aesthetic),
+            on,
+            plot.axis(axis),
+            dates,
+        )
     };
     let mut notes: Vec<String> = Vec::new();
     let mut note = |text: String| {
@@ -1914,6 +1993,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         &parted(),
                         how,
                         layer.width.unwrap_or(BAR_WIDTH),
+                        alone(across_dates),
                     );
                     let mut needs = vec![x];
                     needs.extend(height);
@@ -2208,11 +2288,11 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         if layer.mark == Mark::Tile {
             let wide = match across_categories {
                 Some(_) => 1.0,
-                None => resolution(&points.x),
+                None => resolution(&points.x, alone(across_dates)),
             };
             let high = match up_categories {
                 Some(_) => 1.0,
-                None => resolution(&points.y),
+                None => resolution(&points.y, alone(up_dates)),
             };
             span = vec![wide; points.x.len()];
             low = points.y.iter().map(|y| y - high / 2.0).collect();
@@ -2220,7 +2300,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 *y += high / 2.0;
             }
         }
-        jitter(layer, &mut points);
+        jitter(layer, &mut points, (alone(across_dates), alone(up_dates)));
         // A constant colour, for a mark that has one; a mapped colour takes its place below,
         // when its scale is known.
         // What the layer says of an aesthetic comes before what the plot says of it.
@@ -2394,10 +2474,38 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             });
             continue;
         }
+        let found = marks.or_else(|| frame_extent(plot, aesthetic));
+        // An axis of dates: the limits with the margin of a linear axis, and the breaks on
+        // the calendar. An axis of whole days, one named by a Date, has none within a day.
+        if if aesthetic == Aesthetic::X {
+            across_dates
+        } else {
+            up_dates
+        } {
+            let whole_days = first_mapping(plot, aesthetic)
+                .and_then(|(mapping, _, layer)| values(plot, layer, mapping.aesthetic))
+                .is_some_and(|column| column.ty() == ColumnType::Date);
+            let (lo, hi) = dates::limits(found, whole_days);
+            let breaks = dates::breaks(lo, hi, whole_days);
+            let labels = dates::labels(&breaks);
+            scales.push(Scale {
+                id: aesthetic.name(),
+                kind: ScaleKind::Date,
+                title,
+                limits: (lo, hi),
+                breaks,
+                labels,
+                range: Range::Position,
+            });
+            axes.push(Axis {
+                scale: aesthetic.name(),
+                position,
+            });
+            continue;
+        }
         // The kind of scale the script asks of the axis: its limits, with their margin, and
         // its breaks are taken as that kind places its values.
         let asked = plot.axis(aesthetic);
-        let found = marks.or_else(|| frame_extent(plot, aesthetic));
         let (kind, (lo, hi)) = match asked {
             AxisKind::Linear => (ScaleKind::Linear, scale::limits(found)),
             AxisKind::Log => (
@@ -3106,11 +3214,21 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 s.id.to_string(),
                 s.title.clone(),
                 s.kind.name().to_string(),
-                format!(
-                    "{} to {}",
-                    format_float(s.limits.0),
-                    format_float(s.limits.1)
-                ),
+                if s.kind == ScaleKind::Date {
+                    // Days, and under two days the time of the clock with them.
+                    let timed = s.limits.1 - s.limits.0 < 2.0 * dates::DAY as f64;
+                    format!(
+                        "{} to {}",
+                        dates::shown(s.limits.0, timed),
+                        dates::shown(s.limits.1, timed)
+                    )
+                } else {
+                    format!(
+                        "{} to {}",
+                        format_float(s.limits.0),
+                        format_float(s.limits.1)
+                    )
+                },
                 // The categories of an axis are listed as those of a colour are.
                 if s.kind == ScaleKind::Category {
                     listed(&s.labels)

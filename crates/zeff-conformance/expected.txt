@@ -310,6 +310,11 @@ plot/scales/stderr 42d6cbad6effa482
 plot/scales/scales.svg 960ab529ee7b4e23
 plot/scales/scales.pdf 1d8d4382d1b58ab9
 plot/scales/scales.png 142e0ab4414d0615
+plot/dates/stdout 88524c60c1a8252e
+plot/dates/stderr cbf29ce484222325
+plot/dates/dates.svg ff653bf09d234476
+plot/dates/dates.pdf 907b6ac7982d5e4e
+plot/dates/dates.png 7262c116663a69f0
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

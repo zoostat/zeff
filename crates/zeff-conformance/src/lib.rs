@@ -1976,6 +1976,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/scales/{name}"), &data));
     }
+    // An axis of dates (step 25c1): the firms against the day each was founded, the count
+    // of firms founded in each year as bars at the first day of the year, and a series of
+    // times within one day; what the script prints and the first figure in the three formats.
+    let script = "let f = dataset(firms)\nlet p = f.plot(x: founded, y: size).points(alpha: 0.4)\np\nlet c = f.add(y = year(founded)).aggregate(by: y, firms = n()).add(start = add_months(date(\"1970-01-01\"), (y - 1970) * 12))\nc.plot(x: start, y: firms).bars()\nlet t = frame(read = [\"2024-03-05 09:30:00\", \"2024-03-05 12:00:00\", \"2024-03-05 16:45:00\"], level = [1, 4, 2]).add(when = datetime(read))\nt.plot(x: when, y: level).step().points()\nlet e = frame(read = [\"1973-10-17\", \"2008-09-15\"]).add(day = date(read))\nf.plot(x: founded, y: size).points(alpha: 0.4).vline(data: e, at: day)\nexport(p, \"dates.svg\")\nexport(p, \"dates.pdf\")\nexport(p, \"dates.png\")\n";
+    let dated = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/dates/stdout", &dated.output.stdout));
+    fills.push(text("plot/dates/stderr", &dated.output.stderr));
+    for name in ["dates.svg", "dates.pdf", "dates.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/dates/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

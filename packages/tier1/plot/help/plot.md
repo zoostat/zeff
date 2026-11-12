@@ -31,7 +31,8 @@ layer, with the number of marks it draws.
 
 A number mapped to an axis is placed on a linear scale: a Float, an Int, or a Bool, which is
 read as 0 and 1, and an expression must give one of these for each row. A Str or a Category
-variable makes an axis of categories, each at a place of its own. The title of an axis and of
+variable makes an axis of categories, each at a place of its own. A Date or a DateTime
+variable makes an axis of dates, placed in proportion to the time. The title of an axis and of
 every other scale is the label of its variable, or the name of the variable when it has no
 label; the title of an expression is the expression as it is written.
 
@@ -51,7 +52,7 @@ of ggplot2.
 - data: The frame whose rows are drawn. A layer may name a frame of its own with `data:`.
 - x: The variable placed along the horizontal axis, a bare name, or an expression of the
   variables such as `log(wage)` or `wage / hours`. A number is placed on a linear scale, a
-  Str or a Category as categories.
+  Str or a Category as categories, a Date or a DateTime on a scale of dates.
 - y: The variable placed along the vertical axis, a bare name, or an expression of the
   variables.
 - color: The colour of the marks. A variable of the frame, written as a bare name, is shown on
@@ -105,6 +106,23 @@ plot share its axes: what a layer maps to `x` must be categories where the axis 
 categories and numbers where it is linear, and a category that only a layer's own frame holds
 takes the place after the others. `points`, `lines`, `step` and `rug` are placed on an axis of
 categories; `area`, `ribbon`, `hline` and `vline` stand at numbers and are not.
+
+An axis of dates. A Date or a DateTime variable mapped to `x` or to `y` is placed in
+proportion to the time: equal spans of time are equal distances on the page. The axis runs 5%
+of its range beyond the first and the last date drawn. Its breaks fall on the calendar: the
+start of a year, of a half-year, a quarter or a month, a Monday, a day, or a round time of the
+clock, whichever gives about five intervals. A break is written in the form tables use, cut
+to the part the breaks differ in: `2024` where each starts a year, `2024-03` where each starts
+a month, `2024-03-05` for days, and the time, as `14:30`, with the day before it where the
+breaks fall on more than one day. Labels that would touch are thinned, every second or third
+being written. A row with `NA` there is not drawn, and a note counts such rows. The layers
+share the axis: what a layer maps to it must be a Date or a DateTime too. The two may be
+mixed, a Date standing at the midnight that starts it. Every mark is placed along an axis of
+dates; a bar and a tile are as wide as the smallest gap between two dates, a day where there
+is one date. `area`, `ribbon` and `bars` measure from zero along `y`, so their `y` stays a
+number. `hline` and `vline` stand at each date of a variable. A log or a square-root scale has
+no place for dates. The printed plot shows the limits as days, and to the second where the
+axis covers less than two days.
 
 Colour by categories. A Category, a Str and a Bool variable are shown as categories, and so is
 an Int or a Float that carries value labels. Each category has a colour of its own. The
@@ -381,3 +399,15 @@ plot · sales · units against shop
 
   layer   mark     data    marks   settings
       1   points   sales       4   size 4.5, alpha 1
+> let v = frame(read = ["2024-01-15", "2024-02-29", "2024-06-20"], level = [3, 5, 6])
+> let visits = v.add(day = date(read))
+> visits.plot(x: day, y: level).lines().points()
+plot · visits · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.85 to 6.15               3, 3.5, 4, 4.5, 5, 5.5, 6
+
+  layer   mark     data     marks   settings
+      1   lines    visits       3   width 1, 1 line
+      2   points   visits       3   size 4.5, alpha 1

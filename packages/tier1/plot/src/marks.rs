@@ -187,6 +187,10 @@ fn one_axis(
                     Placing::Categories,
                     format!("{}, which is placed as categories", a_type(found)),
                 ),
+                Some(Placing::Dates) => (
+                    Placing::Dates,
+                    format!("{}, which is placed on a scale of dates", a_type(found)),
+                ),
                 None => continue,
             },
             (None, None) => continue,
@@ -198,6 +202,7 @@ fn one_axis(
         let placed = match theirs {
             Placing::Linear => "on a linear scale",
             Placing::Categories => "as categories",
+            Placing::Dates => "on a scale of dates",
         };
         return Err(fail(
             Diagnostic::error(
@@ -209,7 +214,7 @@ fn one_axis(
             .in_file(ctx.script)
             .primary(ctx.span_of(slot), format!("`{name}` is of another kind"))
             .help(format!(
-                "the layers of a plot share one axis, so what is mapped to `{axis}` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number"
+                "the layers of a plot share one axis, so what is mapped to `{axis}` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number"
             )),
         ));
     }
@@ -219,22 +224,42 @@ fn one_axis(
 /// A mark that stands at numbers along an axis, an area down to zero, the edges of a band, a
 /// reference line, cannot be placed on an axis of categories. Z0401 when the axis of
 /// `aesthetic` is one, as the plot stands or as the layer's own mapping would make it; `why`
-/// says what the mark does with its numbers.
+/// says what the mark does with its numbers. A mark that measures from zero cannot be placed
+/// on a scale of dates either, which has no zero: `dates` says whether dates will do.
 fn numbers_along(
     ctx: &CallContext<'_>,
     plot: &Plot,
     frame: &Frame,
     own: &[PlotMapping],
     (aesthetic, slot): (Aesthetic, Option<usize>),
-    (function, why): (&str, &str),
+    (function, why, dates): (&str, &str, bool),
 ) -> Result<(), Fail> {
     let axis = aesthetic.name();
+    let no_dates = |ctx: &CallContext<'_>, what: String, label: String| {
+        fail(
+            Diagnostic::error("Z0401", what)
+                .in_file(ctx.script)
+                .primary(slot.map_or(ctx.callee_span, |slot| ctx.span_of(slot)), label)
+                .help(format!("`points`, `lines` and `step` are placed on a scale of dates; `{function}` needs a number along `{axis}`, and may have dates along the other axis")),
+        )
+    };
     // The layer's own variable for the axis, where it names one.
     let named = own
         .iter()
         .find(|m| m.aesthetic == aesthetic && m.computed.is_none())
         .and_then(|m| frame.table.column(&m.variable).map(|found| (m, found)));
     if let Some((mapping, found)) = named {
+        if placing(found) == Some(Placing::Dates) && !dates {
+            return Err(no_dates(
+                ctx,
+                format!(
+                    "`{function}` {why}, so `{axis}` must be numbers, but `{}` is {}, which is placed on a scale of dates",
+                    mapping.variable,
+                    a_type(found)
+                ),
+                "dates".to_string(),
+            ));
+        }
         if placing(found) != Some(Placing::Categories) {
             return Ok(());
         }
@@ -263,6 +288,13 @@ fn numbers_along(
             .in_file(ctx.script)
             .primary(ctx.callee_span, format!("needs numbers along `{axis}`"))
             .help(format!("`points` and `lines` are placed on an axis of categories; `{function}` needs a number along `{axis}`")),
+        )),
+        Some((Placing::Dates, variable)) if !dates => Err(no_dates(
+            ctx,
+            format!(
+                "`{function}` {why}, but the `{axis}` axis of this plot holds the dates of `{variable}`"
+            ),
+            format!("needs numbers along `{axis}`"),
         )),
         _ => Ok(()),
     }
@@ -430,6 +462,24 @@ fn own_frame(
                 .primary(at, format!("its `{name}` is not categories"))
                 .help(format!(
                     "the plot maps `{name}` to `{}` as categories, so the frame of every layer must hold it as categories; `category({name})` makes categories of a number",
+                    aesthetic.name()
+                )),
+            ));
+        }
+        if theirs == Placing::Dates && placing(found) != Some(Placing::Dates) {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{function}` places `{}` on a scale of dates, so `{name}` of {whose} must be a Date or DateTime variable, but it is {}",
+                        aesthetic.name(),
+                        a_type(found)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(at, format!("its `{name}` is not dates"))
+                .help(format!(
+                    "the plot maps `{name}` to `{}` as dates, so the frame of every layer must hold it as a Date or a DateTime; `date({name})` reads dates from text",
                     aesthetic.name()
                 )),
             ));
@@ -922,7 +972,7 @@ fn filled(
             &frame,
             &mappings,
             (Aesthetic::Y, None),
-            (function, "places its two edges on a linear scale"),
+            (function, "places its two edges on a linear scale", false),
         )?;
     } else {
         positions(ctx, &plot, &mappings, function)?;
@@ -932,7 +982,7 @@ fn filled(
             &frame,
             &mappings,
             (Aesthetic::Y, Some(Y)),
-            (function, "fills from its line down to zero"),
+            (function, "fills from its line down to zero", false),
         )?;
     }
     one_axis(ctx, &plot, &frame, &mappings, (X, Y), function)?;
@@ -1076,19 +1126,19 @@ fn spanning(
         }
         Some(Value::Var(name)) => {
             let found = column(ctx, &frame, name, ctx.span_of(H_AT))?;
-            if !is_numeric(found) {
+            if !is_numeric(found) && placing(found) != Some(Placing::Dates) {
                 return Err(fail(
                     Diagnostic::error(
                         "Z0401",
                         format!(
-                            "`{function}` draws a line at each value of `at:` on the `{axis}` axis, which is a linear scale, so `{name}` must be a Bool, Int or Float variable, but it is {}",
+                            "`{function}` draws a line at each value of `at:` on the `{axis}` axis, so `{name}` must be a Bool, Int, Float, Date or DateTime variable, but it is {}",
                             a_type(found)
                         ),
                     )
                     .in_file(ctx.script)
-                    .primary(ctx.span_of(H_AT), "not a numeric variable")
+                    .primary(ctx.span_of(H_AT), "not a number or a date")
                     .help(format!(
-                        "the scales of categories, text and dates are not in this release yet; `{}.describe()` lists the types of the variables",
+                        "a reference line stands at a number or at a date; `{}.describe()` lists the types of the variables",
                         frame.shown_name()
                     )),
                 ));
@@ -1135,6 +1185,23 @@ fn spanning(
                     )),
                 ));
             }
+            // On an axis of dates a place is a date, and a number is none.
+            if let Some((Placing::Dates, variable)) = placing_of(&plot, along) {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`at:` of `{function}` is the number {}, but the `{axis}` axis of this plot holds the dates of `{variable}`",
+                            shown(at)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(H_AT), "a number on an axis of dates")
+                    .help(format!(
+                        "draw the line at each date of a variable, as in `{function}(data: events, at: day)`"
+                    )),
+                ));
+            }
             // The line is drawn across an axis that something else gives the plot.
             if scene(&plot).scale(axis).is_none() {
                 return Err(fail(
@@ -1173,8 +1240,11 @@ fn spanning(
         &frame,
         &[],
         (along, None),
-        (function, "stands at a number on its axis"),
+        (function, "stands at a number on its axis", true),
     )?;
+    // The variable of `at:` is placed as the axis places its own: numbers with numbers, dates
+    // with dates.
+    one_axis(ctx, &plot, &frame, &mappings, (H_AT, H_AT), function)?;
     one_scale(
         ctx,
         &plot,
@@ -1439,7 +1509,7 @@ pub fn bars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         &frame,
         &mappings,
         (Aesthetic::Y, Some(Y)),
-        ("bars", "draws each bar from zero to its `y`"),
+        ("bars", "draws each bar from zero to its `y`", false),
     )?;
     one_axis(ctx, &plot, &frame, &mappings, (X, Y), "bars")?;
     one_scale(
@@ -1833,6 +1903,14 @@ pub(crate) fn misplaced(ctx: &CallContext<'_>, fault: &AxisFault, at: Span) -> F
             "Z0401",
             format!(
                 "the `{axis}` axis holds the categories of `{variable}`, which have their places and no other scale"
+            ),
+        )
+        .primary(at, format!("{scale} is for numbers"))
+        .help("a log or a square-root scale is set on an axis of numbers"),
+        Misplaced::Dates(variable) => Diagnostic::error(
+            "Z0401",
+            format!(
+                "the `{axis}` axis holds the dates of `{variable}`, which are placed in proportion to the time and on no other scale"
             ),
         )
         .primary(at, format!("{scale} is for numbers"))

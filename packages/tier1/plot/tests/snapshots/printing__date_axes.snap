@@ -1,0 +1,113 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+no layer yet: a mark such as `.points()` adds one
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   lines    r          4   width 1, 1 line
+      2   points   r          4   size 4.5, alpha 1
+plot · t · level against when
+
+  axis   title   scale    limits
+  x      when    date     2024-03-05 09:08:15 to 2024-03-05 17:06:45
+  y      level   linear   0.85 to 4.15
+
+  breaks
+  10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00
+  1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark   data   marks   settings
+      1   step   t          3   width 1, 1 line
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  aesthetic   title   scale      values   shown as
+  color       site    category   a, b     orange, sky blue
+
+  layer   mark     data     marks   settings
+      1   points   r            4   size 4.5, alpha 1
+      2   vline    events       2   at day, width 0.5, style dashed
+plot · r · day against level
+
+  axis   title   scale    limits                     breaks
+  x      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+  y      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+plot · r · day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2023-12-22 to 2024-07-13   2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07
+  y      count   linear   -0.05 to 1.05              0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark   data   marks   settings
+      1   bars   r          4   width 0.9, alpha 1
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   -0.4 to 8.4                0, 2, 4, 6, 8
+
+  layer   mark   data   marks   settings
+      1   area   r          4   alpha 0.6, 1 area
+plot · r · site against day
+
+  axis   title   scale      limits                     breaks
+  x      day     date       2023-12-20 to 2024-07-15   2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07
+  y      site    category   0.4 to 2.6                 a, b
+
+  aesthetic   title   scale    values   shown as
+  fill        level   linear   3 to 8   viridis, dark purple to yellow
+
+  layer   mark   data   marks   settings
+      1   tile   r          4   alpha 1
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark   data   marks   settings
+      1   text   r          4   label site, size 8
+      2   rug    r          4   sides x, alpha 1
+plot · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-03-31 to 2024-04-02   2024-03-31, 2024-04-01, 2024-04-02
+  y      level   linear   7.5 to 8.5                 7.6, 7.8, 8, 8.2, 8.4
+
+  layer   mark     data        marks   settings
+      1   points   the frame       1   size 4.5, alpha 1
+plot · f · size against founded
+
+  axis   title                       scale    limits                     breaks
+  x      Date founded                date     1947-01-17 to 2012-11-23   1950, 1960, 1970, 1980, 1990, 2000, 2010
+  y      Workers observed in wages   linear   -1.95 to 40.95             0, 10, 20, 30, 40
+
+  layer   mark     data   marks   settings
+      1   points   f        400   size 4.5, alpha 0.4
+---
+note: 1 row with NA in day or level dropped (line 5)
+note: 1 row with NA in day or level dropped (line 7)
+note: 1 row with NA in level or day dropped (line 8)
+note: 1 row with NA in day dropped (line 9)
+note: 1 row with NA in day or level dropped (line 10)
+note: 1 row with NA in day, site or level dropped (line 11)
+note: 1 row with NA in day or level dropped (line 12)
+note: 1 row with NA in day dropped (line 12)

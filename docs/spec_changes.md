@@ -542,3 +542,7 @@ Step 24d of release 0.7.0 builds `text`. Under open decision #106 (option A) a m
 ## 12 November 2026 — Language Reference, section 7.6 (the row "Scales" of the grammar table)
 
 Three rules decided earlier are written into the section at the step that builds them, step 25b of release 0.7.0. (1) Decision #118, F5, adopted by the owner on 11 November 2026: "`limits:` sets the visible range only: marks outside are clipped and counted in a note, statistical layers use every row, and removing rows is `where`". (2) and (3) Open decision #128, option C, taken on 12 November 2026: "a Str or a Category variable makes an axis of categories, and a number with value labels a linear axis with its breaks at the labelled values, written as their labels". The catalogue rows 476 and 477 keep their usage lines and are marked `implemented`; `date` and a pattern for `labels:` are refused until step 25c builds the axis of dates.
+
+## 12 November 2026 — Language Reference, section 7.6 (the row "Scales" of the grammar table)
+
+Step 25c1 of release 0.7.0 builds the axis of dates, of which the section named only the kind `date`. Under open decision #129 (option A, taken on 12 November 2026) the row gains, after the rule of the axis of categories: "a Date or a DateTime variable makes an axis of dates, placed in proportion to the time, with its breaks on the calendar, written in the ISO form of tables cut to the part they differ in". Nothing else in the row changes; `scale_x(date)` with its limits, breaks and labels is built at step 25c2.

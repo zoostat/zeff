@@ -17,7 +17,8 @@ own, with a key for each.
 
 `x` and `y` may each be categories, a Str or a Category, or numbers. On an axis of categories
 a tile is one place wide. On numbers it is as wide as the smallest distance between two
-values, so the tiles of a regular grid touch.
+values, so the tiles of a regular grid touch. Dates are placed as numbers are: on an axis of
+dates a tile is as wide as the smallest gap between two dates.
 
 A tile is one row. Where a frame has several rows for one cell, summarise them first with
 `aggregate`, or the tiles of the cell are drawn on one another and the last is seen.

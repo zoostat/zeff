@@ -29,7 +29,8 @@ In R with ggplot2 this is `geom_vline(xintercept = )`. In Stata it is the option
 - data: A frame for this layer alone, in place of the frame of the plot: the frame whose
   variable `at:` names. It needs none of the variables the plot maps.
 - at: Where the lines stand on the `x` axis. A number draws one line at that place. A
-  bare name draws a line at each value of that variable, which must be numeric.
+  bare name draws a line at each value of that variable: a number, or on an axis of dates a
+  Date or a DateTime.
 - color: A string sets one colour for every line of the layer. A bare name colours each line
   by the value of a variable in its row, which needs `at:` to name a variable too.
 - style: The type of the lines: `solid`, `dashed`, `dotted`, `dash_dot`, `long_dash` or
@@ -53,6 +54,10 @@ note counts such rows. Two rows with one value draw two lines in one place.
 The axis. The values of `at:` count for the limits of the `x` axis as the marks do: a
 line at 0 on a plot whose marks start at 5 brings 0 onto the axis. Where the plot maps nothing
 to `x` and `at:` names a variable, the axis is that variable's, with its name for a title.
+
+Dates. On an axis of dates the lines stand at the dates of a variable, a Date or a DateTime,
+as in `vline(data: events, at: day)`. A number has no place on such an axis, and a date none
+on an axis of numbers.
 
 Colour. Without `color:` a reference line is drawn in the dark grey of the theme's marks.
 With a variable of categories each line has the colour of its category, and the legend shows
@@ -89,3 +94,16 @@ plot · d · change against dose
   layer   mark     data   marks   settings
       1   points   d          4   size 4.5, alpha 1
       2   vline    cuts       2   at dose, width 0.25, style solid
+> let v = frame(read = ["2024-01-15", "2024-02-29", "2024-06-20"], level = [3, 5, 6])
+> let visits = v.add(day = date(read))
+> let events = frame(read = ["2024-03-10"]).add(day = date(read))
+> visits.plot(x: day, y: level).lines().vline(data: events, at: day)
+plot · visits · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.85 to 6.15               3, 3.5, 4, 4.5, 5, 5.5, 6
+
+  layer   mark    data     marks   settings
+      1   lines   visits       3   width 1, 1 line
+      2   vline   events       1   at day, width 0.5, style dashed

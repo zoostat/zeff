@@ -1909,6 +1909,7 @@ dependencies = [
  "zeff-columns",
  "zeff-core",
  "zeff-datasets",
+ "zeff-dates",
  "zeff-diagnostics",
  "zeff-hash",
  "zeff-numeric",

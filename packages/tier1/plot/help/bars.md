@@ -41,7 +41,8 @@ with the same three positions. In Stata it is `graph bar (asis) y, over(x)` for 
 - position: What the bars that share a value of `x` do. `stack`: on one another. `dodge`:
   side by side. `fill`: on one another, as shares of the total at that `x`.
 - width: The width of a bar, as a share of the gap between two neighbouring values of `x`,
-  above 0 and at most 1. On an axis of categories the gap is one place.
+  above 0 and at most 1. On an axis of categories the gap is one place, and on an axis of
+  dates the smallest gap between two dates.
 - alpha: The opacity of the bars, from 0, which shows nothing, to 1, which is solid.
 
 ## Value

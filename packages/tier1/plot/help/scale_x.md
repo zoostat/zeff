@@ -27,7 +27,8 @@ In R with ggplot2 this is `scale_x_continuous()` with its `transform`, `breaks` 
 `xscale(log range(...))` with `xlabel(...)`.
 
 ## Arguments
-- p: The plot whose `x` axis is set. The axis must be one of numbers, not of categories.
+- p: The plot whose `x` axis is set. The axis must be one of numbers, not of categories or
+  of dates.
 - type: The kind of scale: `linear`, `log` or `sqrt`. `date` is for an axis of dates.
 - limits: A list of two numbers, where the axis starts and where it ends. `NA` in the place
   of one leaves that end to the values drawn, as in `limits: [0, NA]`.
@@ -67,6 +68,10 @@ variable coded 0 and 1 reads `no` and `yes`.
 
 Categories. An axis of categories, of a Str or a Category variable, has a place for each
 category and no other scale: `scale_x` is refused on it.
+
+Dates. An axis of dates, of a Date or a DateTime variable, is placed in proportion to the
+time and chooses its limits and its breaks from the dates drawn. A log or a square-root scale
+is refused on it, and so, in this build, are `limits:`, `breaks:` and `labels:`.
 
 ## See also
 scale_y, plot, points, where

@@ -169,3 +169,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25c `[engine]`: the date scale, and the widening of an expression in a mapping (#107, option B).
 
 **For the owner to decide.** Nothing waits for him. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25c1 (an axis of dates)
+
+**Done.** Step 25c was split into 25c1 (the axis of dates), 25c2 (`scale_x(date)`, limits, breaks and a pattern for the labels, a line at one date) and 25c3 (the widening of mapping expressions, #107 B). 25c1 is built: a Date or a DateTime variable on `x` or `y` is placed in proportion to the time, the breaks fall on the calendar (years, half-years, quarters, months, Mondays, days, round times of the clock) and are written in the ISO form of tables; every mark stands on such an axis, and `vline(data: events, at: day)` draws lines at dates. The limits match ggplot2's to the day.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 334 of 334; CI is read job by job after the push.
+
+**Next.** Step 25c2 `[engine]`: `scale_x(date)` and `scale_y(date)` with `limits:`, `breaks:` and `labels:` as a pattern, and a reference line at one date.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: open decision #129, option A (dates on an axis in the ISO form of tables, `2024-03`, where ggplot2 writes `Mar`); a break at every decade where ggplot2 marks every second one. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

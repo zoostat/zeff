@@ -1,0 +1,47 @@
+---
+source: packages/tier1/plot/tests/dates.rs
+expression: written
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 60.006,7.792 to 60.006,155.253 stroke #E3E3E3 0.35
+[grid] segment 93.798,7.792 to 93.798,155.253 stroke #E3E3E3 0.35
+[grid] segment 129.921,7.792 to 129.921,155.253 stroke #E3E3E3 0.35
+[grid] segment 164.878,7.792 to 164.878,155.253 stroke #E3E3E3 0.35
+[grid] segment 201.001,7.792 to 201.001,155.253 stroke #E3E3E3 0.35
+[grid] segment 31.05,148.55 to 232.287,148.55 stroke #E3E3E3 0.35
+[grid] segment 31.05,121.739 to 232.287,121.739 stroke #E3E3E3 0.35
+[grid] segment 31.05,94.928 to 232.287,94.928 stroke #E3E3E3 0.35
+[grid] segment 31.05,68.117 to 232.287,68.117 stroke #E3E3E3 0.35
+[grid] segment 31.05,41.306 to 232.287,41.306 stroke #E3E3E3 0.35
+[grid] segment 31.05,14.495 to 232.287,14.495 stroke #E3E3E3 0.35
+[panel] clip 31.05,7.792 201.237 by 147.461
+  [layer:1] point 40.197,148.55 circle 4.5 #222222 opacity 1
+  [layer:1] point 92.633,94.928 circle 4.5 #222222 opacity 1
+  [layer:1] point 129.921,14.495 circle 4.5 #222222 opacity 1
+  [layer:1] point 223.14,68.117 circle 4.5 #222222 opacity 1
+[axis:x] segment 31.05,155.253 to 232.287,155.253 stroke #222222 0.5
+[axis:x] segment 60.006,155.253 to 60.006,158.253 stroke #222222 0.5
+[axis:x] text 60.006,166.837 middle "2024-02" sans 8 #222222
+[axis:x] segment 93.798,155.253 to 93.798,158.253 stroke #222222 0.5
+[axis:x] segment 129.921,155.253 to 129.921,158.253 stroke #222222 0.5
+[axis:x] text 129.921,166.837 middle "2024-04" sans 8 #222222
+[axis:x] segment 164.878,155.253 to 164.878,158.253 stroke #222222 0.5
+[axis:x] segment 201.001,155.253 to 201.001,158.253 stroke #222222 0.5
+[axis:x] text 201.001,166.837 middle "2024-06" sans 8 #222222
+[axis:x] text 131.669,180.837 middle "day" sans 9 #222222
+[axis:y] segment 31.05,7.792 to 31.05,155.253 stroke #222222 0.5
+[axis:y] segment 28.05,148.55 to 31.05,148.55 stroke #222222 0.5
+[axis:y] text 25.05,151.342 end "3" sans 8 #222222
+[axis:y] segment 28.05,121.739 to 31.05,121.739 stroke #222222 0.5
+[axis:y] text 25.05,124.531 end "4" sans 8 #222222
+[axis:y] segment 28.05,94.928 to 31.05,94.928 stroke #222222 0.5
+[axis:y] text 25.05,97.72 end "5" sans 8 #222222
+[axis:y] segment 28.05,68.117 to 31.05,68.117 stroke #222222 0.5
+[axis:y] text 25.05,70.909 end "6" sans 8 #222222
+[axis:y] segment 28.05,41.306 to 31.05,41.306 stroke #222222 0.5
+[axis:y] text 25.05,44.098 end "7" sans 8 #222222
+[axis:y] segment 28.05,14.495 to 31.05,14.495 stroke #222222 0.5
+[axis:y] text 25.05,17.287 end "8" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "level" sans 9 #222222
+note: 1 row with NA in day or level dropped

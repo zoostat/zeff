@@ -36,7 +36,7 @@ error[Z0401]: the plot places `wage` on a linear scale along `y`, but `industry`
 4 | w.plot(x: year, y: wage).lines(y: industry)
   |                                   ^^^^^^^^ `industry` is of another kind
   |
-  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
 
 == no_such_group
 error[Z0101]: no variable `unionn` in `u`

@@ -29,7 +29,8 @@ In R with ggplot2 this is `geom_hline(yintercept = )`. In Stata it is the option
 - data: A frame for this layer alone, in place of the frame of the plot: the frame whose
   variable `at:` names. It needs none of the variables the plot maps.
 - at: Where the lines stand on the `y` axis. A number draws one line at that place. A
-  bare name draws a line at each value of that variable, which must be numeric.
+  bare name draws a line at each value of that variable: a number, or on an axis of dates a
+  Date or a DateTime.
 - color: A string sets one colour for every line of the layer. A bare name colours each line
   by the value of a variable in its row, which needs `at:` to name a variable too.
 - style: The type of the lines: `solid`, `dashed`, `dotted`, `dash_dot`, `long_dash` or
@@ -53,6 +54,10 @@ note counts such rows. Two rows with one value draw two lines in one place.
 The axis. The values of `at:` count for the limits of the `y` axis as the marks do: a
 line at 0 on a plot whose marks start at 5 brings 0 onto the axis. Where the plot maps nothing
 to `y` and `at:` names a variable, the axis is that variable's, with its name for a title.
+
+Dates. On an axis of dates the lines stand at the dates of a variable, a Date or a DateTime,
+as in `hline(data: events, at: day)`. A number has no place on such an axis, and a date none
+on an axis of numbers.
 
 Colour. Without `color:` a reference line is drawn in the dark grey of the theme's marks.
 With a variable of categories each line has the colour of its category, and the legend shows

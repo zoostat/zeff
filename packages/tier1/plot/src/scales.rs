@@ -95,6 +95,23 @@ fn axis(
             )),
         ));
     }
+    // An axis of dates is placed in proportion to the time; what else may be said of it,
+    // its limits, its breaks and their labels, is said with `date`.
+    if kind == AxisKind::Linear
+        && let Some((Placing::Dates, variable)) = placing_of(&plot, aesthetic)
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "the `{name}` axis holds the dates of `{variable}`: the limits, the breaks and the labels of an axis of dates are set with `{function}(date)`, which is not built yet"
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "not in this build")
+            .help("an axis of dates chooses its limits and its breaks from the dates drawn; `where` keeps the rows of a range of dates"),
+        ));
+    }
     let holds = |v: f64| match kind {
         AxisKind::Log => v > 0.0,
         AxisKind::Sqrt => v >= 0.0,

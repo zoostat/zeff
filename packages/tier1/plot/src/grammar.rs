@@ -25,7 +25,7 @@ use zeff_diagnostics::{Diagnostic, Span};
 use crate::colour::{self, NotAColour};
 use crate::drawing::LineType;
 use crate::mapping::{Asked, computed};
-use crate::scene::{Shading, is_numeric, on_categories, shading, start};
+use crate::scene::{Shading, is_numeric, on_categories, on_dates, shading, start};
 use crate::shape;
 
 const DATA: usize = 0;
@@ -267,15 +267,16 @@ pub(crate) fn aesthetics(
             }
         };
         let found = column(ctx, frame, &name, ctx.span_of(slot))?;
-        // A position is a number, on a linear scale, or a Str or a Category, on an axis of
-        // categories (open decision #128); the edges of a band are numbers.
+        // A position is a number, on a linear scale, a Str or a Category, on an axis of
+        // categories (open decision #128), or a Date or a DateTime, on a scale of dates; the
+        // edges of a band are numbers.
         let position = matches!(aesthetic, Aesthetic::X | Aesthetic::Y);
-        if position && !is_numeric(found) && !on_categories(found) {
+        if position && !is_numeric(found) && !on_categories(found) && !on_dates(found) {
             return Err(fail(
                 Diagnostic::error(
                     "Z0401",
                     format!(
-                        "`{function}` places `{}` on a linear scale or on an axis of categories, so `{name}` must be a Bool, Int, Float, Str or Category variable, but it is {}",
+                        "`{function}` places `{}` on a linear scale, on an axis of categories or on a scale of dates, so `{name}` must be a Bool, Int, Float, Str, Category, Date or DateTime variable, but it is {}",
                         aesthetic.name(),
                         a_type(found)
                     ),
@@ -283,7 +284,7 @@ pub(crate) fn aesthetics(
                 .in_file(ctx.script)
                 .primary(ctx.span_of(slot), "no axis for this type")
                 .help(format!(
-                    "an axis of dates is not in this release yet; `{}.describe()` lists the types of the variables",
+                    "`{}.describe()` lists the types of the variables",
                     frame.shown_name()
                 )),
             ));

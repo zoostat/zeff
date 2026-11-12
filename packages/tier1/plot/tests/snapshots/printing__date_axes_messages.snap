@@ -1,0 +1,169 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_log_scale_on_dates
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the `x` axis holds the dates of `day`, which are placed in proportion to the time and on no other scale
+ --> scripts/main.zeff:4:43
+  |
+4 | r.plot(x: day, y: level).points().scale_x(log)
+  |                                           ^^^ a log scale is for numbers
+  |
+  = help: a log or a square-root scale is set on an axis of numbers
+
+== dates_added_to_a_square_root_scale
+error[Z0401]: the `x` axis holds the dates of `day`, which are placed in proportion to the time and on no other scale
+ --> scripts/main.zeff:4:34
+  |
+4 | r.plot(x: day, y: level).scale_x(sqrt).points()
+  |                                  ^^^^ a square-root scale is for numbers
+  |
+  = help: a log or a square-root scale is set on an axis of numbers
+
+== limits_of_an_axis_of_dates
+error[Z0401]: the `x` axis holds the dates of `day`: the limits, the breaks and the labels of an axis of dates are set with `scale_x(date)`, which is not built yet
+ --> scripts/main.zeff:4:26
+  |
+4 | r.plot(x: day, y: level).scale_x(limits: [0, 1])
+  |                          ^^^^^^^ not in this build
+  |
+  = help: an axis of dates chooses its limits and its breaks from the dates drawn; `where` keeps the rows of a range of dates
+
+== the_kind_date
+error[Z0401]: `scale_x(date)` is not built yet: an axis of dates comes with the next step of this release
+ --> scripts/main.zeff:4:34
+  |
+4 | r.plot(x: day, y: level).scale_x(date)
+  |                                  ^^^^ not in this build
+  |
+  = help: the kinds of scale built so far are `linear`, `log` and `sqrt`
+
+== an_area_up_to_dates
+error[Z0401]: `area` fills from its line down to zero, but the `y` axis of this plot holds the dates of `day`
+ --> scripts/main.zeff:4:26
+  |
+4 | r.plot(x: level, y: day).area()
+  |                          ^^^^ needs numbers along `y`
+  |
+  = help: `points`, `lines` and `step` are placed on a scale of dates; `area` needs a number along `y`, and may have dates along the other axis
+
+== bars_up_to_dates
+error[Z0401]: `bars` draws each bar from zero to its `y`, but the `y` axis of this plot holds the dates of `day`
+ --> scripts/main.zeff:4:26
+  |
+4 | r.plot(x: level, y: day).bars()
+  |                          ^^^^ needs numbers along `y`
+  |
+  = help: `points`, `lines` and `step` are placed on a scale of dates; `bars` needs a number along `y`, and may have dates along the other axis
+
+== bars_given_dates
+error[Z0401]: `bars` draws each bar from zero to its `y`, so `y` must be numbers, but `day` is a Date, which is placed on a scale of dates
+ --> scripts/main.zeff:4:26
+  |
+4 | r.plot(x: level).bars(y: day)
+  |                          ^^^ dates
+  |
+  = help: `points`, `lines` and `step` are placed on a scale of dates; `bars` needs a number along `y`, and may have dates along the other axis
+
+== a_band_of_dates
+error[Z0401]: `ribbon` places its two edges on a linear scale, but the `y` axis of this plot holds the dates of `day`
+ --> scripts/main.zeff:4:26
+  |
+4 | r.plot(x: level, y: day).ribbon(low: level, high: level)
+  |                          ^^^^^^ needs numbers along `y`
+  |
+  = help: `points`, `lines` and `step` are placed on a scale of dates; `ribbon` needs a number along `y`, and may have dates along the other axis
+
+== edges_that_are_dates
+error[Z0401]: `ribbon` draws `low` on a linear scale, so `day` must be a Bool, Int or Float variable, but it is a Date
+ --> scripts/main.zeff:4:38
+  |
+4 | r.plot(x: day, y: level).ribbon(low: day, high: day)
+  |                                      ^^^ not a numeric variable
+  |
+  = help: the edges of a band are numbers; `r.describe()` lists the types of the variables
+
+== numbers_on_an_axis_of_dates
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the plot places `day` on a scale of dates along `x`, but `level`, which `points` maps to `x`, is an Int, which is placed on a linear scale
+ --> scripts/main.zeff:4:45
+  |
+4 | r.plot(x: day, y: level).points().points(x: level)
+  |                                             ^^^^^ `level` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
+
+== dates_on_an_axis_of_numbers
+error[Z0401]: the plot places `level` on a linear scale along `x`, but `day`, which `points` maps to `x`, is a Date, which is placed on a scale of dates
+ --> scripts/main.zeff:4:47
+  |
+4 | r.plot(x: level, y: level).points().points(x: day)
+  |                                               ^^^ `day` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
+
+== dates_on_an_axis_of_categories
+error[Z0401]: the plot places `site` as categories along `x`, but `day`, which `points` maps to `x`, is a Date, which is placed on a scale of dates
+ --> scripts/main.zeff:4:46
+  |
+4 | r.plot(x: site, y: level).points().points(x: day)
+  |                                              ^^^ `day` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
+
+== a_frame_that_holds_the_dates_as_numbers
+error[Z0401]: `points` places `x` on a scale of dates, so `day` of this frame must be a Date or DateTime variable, but it is an Int
+ --> scripts/main.zeff:4:39
+  |
+4 | r.plot(x: day, y: level).points(data: frame(day = [1, 2], level = [1, 2]))
+  |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ its `day` is not dates
+  |
+  = help: the plot maps `day` to `x` as dates, so the frame of every layer must hold it as a Date or a DateTime; `date(day)` reads dates from text
+
+== a_line_at_a_number_on_dates
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `at:` of `vline` is the number 3, but the `x` axis of this plot holds the dates of `day`
+ --> scripts/main.zeff:4:45
+  |
+4 | r.plot(x: day, y: level).points().vline(at: 3)
+  |                                             ^ a number on an axis of dates
+  |
+  = help: draw the line at each date of a variable, as in `vline(data: events, at: day)`
+
+== a_line_at_dates_on_numbers
+error[Z0401]: the plot places `level` on a linear scale along `x`, but `day`, which `vline` maps to `x`, is a Date, which is placed on a scale of dates
+ --> scripts/main.zeff:4:61
+  |
+4 | r.plot(x: level, y: level).points().vline(data: events, at: day)
+  |                                                             ^^^ `day` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
+
+== a_line_across_at_dates
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the plot places `level` on a linear scale along `y`, but `day`, which `hline` maps to `y`, is a Date, which is placed on a scale of dates
+ --> scripts/main.zeff:4:45
+  |
+4 | r.plot(x: day, y: level).points().hline(at: day)
+  |                                             ^^^ `day` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
+
+== a_line_at_text
+error[Z0401]: `vline` draws a line at each value of `at:` on the `x` axis, so `site` must be a Bool, Int, Float, Date or DateTime variable, but it is a Str
+ --> scripts/main.zeff:4:36
+  |
+4 | r.plot(x: day, y: level).vline(at: site)
+  |                                    ^^^^ not a number or a date
+  |
+  = help: a reference line stands at a number or at a date; `r.describe()` lists the types of the variables
+
+== a_colour_by_dates
+error[Z0401]: `plot` shows `color` as categories or on a continuous scale, so `day` must be a Bool, Int, Float, Str or Category variable, but it is a Date
+ --> scripts/main.zeff:4:33
+  |
+4 | r.plot(x: day, y: level, color: day).points()
+  |                                 ^^^ no colour scale for this type
+  |
+  = help: a colour scale of dates is not in this release yet; `r.describe()` lists the types of the variables

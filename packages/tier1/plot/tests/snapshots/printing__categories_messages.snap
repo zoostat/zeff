@@ -10,7 +10,7 @@ error[Z0401]: the plot places `shop` as categories along `x`, but `units`, which
 2 | d.plot(x: shop, y: units).points().points(x: units)
   |                                              ^^^^^ `units` is of another kind
   |
-  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
 
 == categories_on_a_linear_axis
 error[Z0401]: the plot places `units` on a linear scale along `y`, but `shop`, which `lines` maps to `y`, is a Str, which is placed as categories
@@ -19,7 +19,7 @@ error[Z0401]: the plot places `units` on a linear scale along `y`, but `shop`, w
 2 | d.plot(x: units, y: units).points().lines(y: shop)
   |                                              ^^^^ `shop` is of another kind
   |
-  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
 
 == an_expression_on_an_axis_of_categories
 note: 1 row with NA in shop or units dropped (line 2)
@@ -29,7 +29,7 @@ error[Z0401]: the plot places `shop` as categories along `x`, but `units * 2`, w
 2 | d.plot(x: shop, y: units).points().points(x: units * 2)
   |                                              ^^^^^^^^^ `units * 2` is of another kind
   |
-  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
 
 == a_frame_that_holds_the_category_as_a_number
 error[Z0401]: `points` places `x` as categories, so `shop` of this frame must be a Str or Category variable, but it is an Int
@@ -96,15 +96,6 @@ error[Z0401]: `vline` stands at a number on its axis, but the `x` axis of this p
   |                                    ^^^^^ needs numbers along `x`
   |
   = help: `points` and `lines` are placed on an axis of categories; `vline` needs a number along `x`
-
-== a_date_on_an_axis
-error[Z0401]: `plot` places `x` on a linear scale or on an axis of categories, so `when` must be a Bool, Int, Float, Str or Category variable, but it is a Date
- --> scripts/main.zeff:2:42
-  |
-2 | d.add(when = date("2026-01-01")).plot(x: when, y: units)
-  |                                          ^^^^ no axis for this type
-  |
-  = help: an axis of dates is not in this release yet; `the frame.describe()` lists the types of the variables
 
 == an_edge_that_is_text
 error[Z0401]: `ribbon` draws `low` on a linear scale, so `shop` must be a Bool, Int or Float variable, but it is a Str

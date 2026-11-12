@@ -12,13 +12,13 @@ error[Z0406]: `hline` needs `at`
   = help: a reference line stands at a number on the `y` axis, as in `hline(at: 0)`, or at each value of a variable, as in `hline(at: wage)`
 
 == a_place_that_is_text
-error[Z0401]: `vline` draws a line at each value of `at:` on the `x` axis, which is a linear scale, so `arm` must be a Bool, Int or Float variable, but it is a Str
+error[Z0401]: `vline` draws a line at each value of `at:` on the `x` axis, so `arm` must be a Bool, Int, Float, Date or DateTime variable, but it is a Str
  --> scripts/main.zeff:3:38
   |
 3 | d.plot(x: dose, y: change).vline(at: arm)
-  |                                      ^^^ not a numeric variable
+  |                                      ^^^ not a number or a date
   |
-  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+  = help: a reference line stands at a number or at a date; `d.describe()` lists the types of the variables
 
 == a_place_in_quotes
 error[Z0401]: `at` of `hline` must be a Float or Var, but this is a Str
