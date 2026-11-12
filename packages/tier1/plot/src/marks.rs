@@ -17,7 +17,7 @@ use std::rc::Rc;
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, Frame, Mark, Plot, PlotLayer, PlotMapping, PlotSetting, Stairs, Value,
+    Aesthetic, Frame, Mark, Plot, PlotLayer, PlotMapping, PlotSetting, Stacking, Stairs, Value,
 };
 use zeff_diagnostics::Diagnostic;
 
@@ -624,6 +624,7 @@ fn joined(
 const A_FILL: usize = 4;
 const A_GROUP: usize = 5;
 const A_ALPHA: usize = 6;
+const A_POSITION: usize = 7;
 const R_LOW: usize = 3;
 const R_HIGH: usize = 4;
 const R_FILL: usize = 5;
@@ -680,9 +681,19 @@ fn one_fill_to_an_area(
 }
 
 /// `p.area(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var,
-/// alpha: Float = 0.6)`.
+/// alpha: Float = 0.6, position: overlay | stack | fill = overlay)`.
 pub fn area(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    filled(ctx, args, "area", Mark::Area)
+    let placed = match args.get(A_POSITION) {
+        None | Some(Value::Na) => Stacking::Overlay,
+        Some(Value::Word(word)) => match word.as_str() {
+            "overlay" => Stacking::Overlay,
+            "stack" => Stacking::Stack,
+            "fill" => Stacking::Share,
+            _ => return Err(internal(ctx, "a `position:` that is none of the three")),
+        },
+        Some(_) => return Err(internal(ctx, "a `position:` that is not a word")),
+    };
+    filled(ctx, args, "area", Mark::Area(placed))
 }
 
 /// `p.ribbon(data: Frame, x: Var | Expr, low: Var | Expr, high: Var | Expr, fill: Var | Str,

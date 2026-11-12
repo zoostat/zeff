@@ -266,11 +266,35 @@ pub enum Mark {
     /// A line through the rows of each group that goes level and upright by turns, as stairs
     /// do.
     Step(Stairs),
-    /// The area between the line through the rows of each group and zero, filled.
-    Area,
+    /// The area between the line through the rows of each group and zero, filled; or, stacked,
+    /// between that line and the areas under it.
+    Area(Stacking),
     /// The band between two variables, `low` and `high`, through the rows of each group,
     /// filled.
     Ribbon,
+}
+
+/// How the areas of the groups of one layer are placed along `y`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Stacking {
+    /// Each down to zero by itself, one over another.
+    #[default]
+    Overlay,
+    /// Each on top of the ones before it, at each `x`.
+    Stack,
+    /// Stacked, as shares of the total at each `x`.
+    Share,
+}
+
+impl Stacking {
+    /// The way as it is written: `overlay`, `stack`, `fill`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Stacking::Overlay => "overlay",
+            Stacking::Stack => "stack",
+            Stacking::Share => "fill",
+        }
+    }
 }
 
 /// The way a line of steps goes from one row to the next.
@@ -304,7 +328,7 @@ impl Mark {
             Mark::Points => "points",
             Mark::Lines => "lines",
             Mark::Step(_) => "step",
-            Mark::Area => "area",
+            Mark::Area(_) => "area",
             Mark::Ribbon => "ribbon",
         }
     }
@@ -317,7 +341,7 @@ impl Mark {
     /// Whether the marks of a layer are the corners of filled shapes, one for each run of rows
     /// that a line would join.
     pub fn fills(self) -> bool {
-        matches!(self, Mark::Area | Mark::Ribbon)
+        matches!(self, Mark::Area(_) | Mark::Ribbon)
     }
 }
 

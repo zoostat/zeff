@@ -165,3 +165,13 @@ Step 22: the owner read the six figures and said "Yes, freeze it"; the journal t
 **Next.** Step 23d2 `[function]`: `position: overlay | stack | fill` on `area`.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn (all in `docs/decisions.md`): areas overlay by default and stacking is an option; no `color:` on a filled mark; a band does not read `y`; the rows are parted by the plot's colour as well. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 23d2 (stacked areas), and step 23d complete
+
+**Done.** `area` takes `position: overlay | stack | fill`: each area down to zero (the default), each on the ones before it, or stacked as shares of the total. The first group is on top, values below zero stack downwards, and the edges match ggplot2's row for row where every group has every `x`. Where a group lacks a value the stack is not built and a note says so; nothing is interpolated. Catalogue row 465 gains the option (logged).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 293 of 293; CI is read job by job after the push.
+
+**Next.** Step 23e `[function]`: `hline`, `vline` and `rug`, which completes step 23.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: the word `overlay`; no interpolation where the groups have different `x`, where R interpolates; no shares where a value is below zero. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

@@ -15,13 +15,20 @@ area has one colour: `fill: union` fills an area for each category of `union`, e
 colour, with a legend. The areas lie one over another in the order of the groups, and `alpha:`
 lets the ones underneath show through.
 
-An area has no outline. `p.area().lines()` draws the line along its upper edge.
+`position:` says how the areas of several groups are placed. With `overlay`, the usual way,
+each reaches down to zero by itself. With `stack` each lies on the ones before it, so that the
+upper edge of the whole is the total at each `x` and the thickness of an area is its part of
+it. With `fill` the stack is shown as shares of the total, from 0 to 1.
+
+An area has no outline. `p.area().lines()` draws the line along the upper edge of an area
+that reaches down to zero.
 
 `x:`, `y:`, `fill:` and `group:` of `area` take the place, for this layer alone, of what the
 plot says of them.
 
-In R with ggplot2 this is `geom_area(position = "identity")`; without that option R puts the
-areas of the groups on top of one another. In Stata it is `twoway area y x, sort`.
+In R with ggplot2 this is `geom_area()`, whose `position` is `"identity"` for `overlay`,
+`"stack"`, which is R's usual way, and `"fill"`. In Stata `twoway area y x, sort` overlays, and
+a stack is built by summing the variables first.
 
 ## Arguments
 - p: The plot to which the layer is added. Between them, the plot and the layer must map a
@@ -38,6 +45,9 @@ areas of the groups on top of one another. In Stata it is `twoway area y x, sort
   `group:` of the plot. Any type will do.
 - alpha: The opacity of the fill, from 0, which shows nothing, to 1, which hides what is under
   the area.
+- position: How the areas of several groups are placed along `y`. `overlay`: each down to
+  zero, one over another. `stack`: each on top of the ones before it. `fill`: stacked, as
+  shares of the total at each `x`.
 
 ## Value
 The `Plot` with the layer of areas on top. The plot given is not changed, so a plot bound to a
@@ -60,6 +70,16 @@ Groups. The rows are parted by every variable that `group:` and `fill:` name, to
 the plot maps a variable of categories to `color`, and the frame of the layer holds it, the
 rows are parted by it as well, so that `plot(x: year, y: wage, color: union).area().lines()`
 fills an area under each line; the areas take their colour from `fill`, not from `color`.
+
+Stacking. The groups are stacked in the order of their categories with the first on top, so
+that the areas read from top to bottom as the keys of the legend do. A value below zero is
+stacked downwards from zero, apart from the values above it. A stack needs one value of each
+group at an `x`: an `x` at which a group has no row, a row without `y`, or more than one row
+is left out for every group, the areas are broken there, and a note counts the rows and the
+values of `x`. Nothing is interpolated; to stack groups observed at different `x`, bring them
+to common values first. With `fill`, an `x` with a value below zero, or a total that is not
+above zero, has no shares to show and is left out in the same way. With one group, `stack`
+draws what `overlay` draws.
 
 The fill. Without `fill:` an area is filled in the dark grey of the theme's marks. With the
 usual `alpha:` of 0.6 the gridlines and the areas underneath show through. The key of a legend
@@ -93,3 +113,15 @@ plot · shops · units against month
 
   layer   mark   data    marks   settings
       1   area   shops       6   alpha 0.4, 2 areas
+> shops.plot(x: month, y: units, fill: shop).area(position: stack)
+plot · shops · units against month
+
+  axis   title   scale    limits           breaks
+  x      month   linear   0.9 to 3.1       1, 1.5, 2, 2.5, 3
+  y      units   linear   -1.45 to 30.45   0, 5, 10, 15, 20, 25, 30
+
+  aesthetic   title   scale      values         shown as
+  fill        shop    category   north, south   orange, sky blue
+
+  layer   mark   data    marks   settings
+      1   area   shops       6   alpha 0.6, position stack, 2 areas

@@ -506,3 +506,7 @@ Step 23c2 of release 0.7.0 builds `step`. The usage line of catalogue row 463 wa
 ## 12 November 2026 — zeff_functions.csv, rows 465 and 466
 
 Step 23d1 of release 0.7.0 builds `area` and `ribbon`. Under open decision #106 (option A, taken on 12 November 2026) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer; a filled mark draws `fill` and is parted by `group`. The usage line of catalogue row 465 was `p.area(data: Frame, alpha: Float = 0.6)`; it is now `p.area(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var, alpha: Float = 0.6)`. That of row 466 was `p.ribbon(data: Frame, low: Var | Expr, high: Var | Expr, alpha: Float = 0.3)`; it is now `p.ribbon(data: Frame, x: Var | Expr, low: Var | Expr, high: Var | Expr, fill: Var | Str, group: Var, alpha: Float = 0.3)`, without `y:`, which a band does not read. The status of both is `implemented`.
+
+## 12 November 2026 — zeff_functions.csv, row 465
+
+Step 23d2 of release 0.7.0 gives `area` the three ways R's `geom_area` places the areas of several groups, under the owner's rule of open decisions #98 and #99 that what R or Stata offers for a procedure is an option. The usage line of catalogue row 465 gains `position: overlay | stack | fill = overlay` after `alpha:`, in the words of `position:` of `bars` (row 464) with `overlay` for the areas that each reach down to zero.

@@ -137,7 +137,7 @@ error[Z0404]: `area` has no argument called `color`
 2 | d.plot(x: t, y: v).area(color: g)
   |                         ^^^^^ unknown argument
   |
-  = help: usage: `p.area(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var, alpha: Float = 0.6)`
+  = help: usage: `p.area(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var, alpha: Float = 0.6, position: overlay | stack | fill = overlay)`
 
 == no_y_on_ribbon
 error[Z0404]: `ribbon` has no argument called `y`

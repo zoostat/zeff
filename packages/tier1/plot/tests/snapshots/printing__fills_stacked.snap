@@ -1,0 +1,74 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · u · wage against year
+
+  axis   title           scale    limits                breaks
+  x      Calendar year   linear   2009.45 to 2021.55    2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   -3.35374 to 70.4286   0, 20, 40, 60
+
+  aesthetic   title          scale      values    shown as
+  fill        Union member   category   no, yes   orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   area   u         24   alpha 0.6, position stack, 2 areas
+plot · u · wage against year
+
+  axis   title           scale    limits               breaks
+  x      Calendar year   linear   2009.45 to 2021.55   2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   -0.05 to 1.05        0, 0.2, 0.4, 0.6, 0.8, 1
+
+  aesthetic   title          scale      values    shown as
+  fill        Union member   category   no, yes   orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   area   u         24   alpha 1, position fill, 2 areas
+plot · u · wage against year
+
+  axis   title           scale    limits                breaks
+  x      Calendar year   linear   2009.45 to 2021.55    2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   -3.35374 to 70.4286   0, 20, 40, 60
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   orange, sky blue
+
+  layer   mark    data   marks   settings
+      1   area    u         24   alpha 0.6, position stack, group by union, 2 areas
+      2   lines   u         24   color by union, width 1, 2 lines
+plot · wage against year
+
+  axis   title           scale    limits                breaks
+  x      Calendar year   linear   2009.45 to 2021.55    2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   -3.35374 to 70.4286   0, 20, 40, 60
+
+  aesthetic   title          scale      values    shown as
+  fill        Union member   category   no, yes   orange, sky blue
+
+  layer   mark   data        marks   settings
+      1   area   the frame      22   alpha 0.6, position stack, 4 areas
+plot · m · wage against year
+
+  axis   title           scale    limits                breaks
+  x      Calendar year   linear   2009.45 to 2021.55    2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   -1.62215 to 34.0652   0, 10, 20, 30
+
+  layer   mark   data   marks   settings
+      1   area   m         12   alpha 0.6, position stack, 1 area
+plot · u · wage - 26 against year
+
+  axis   title           scale    limits             breaks
+  x      Calendar year   linear   2014.7 to 2021.3   2015, 2016, 2017, 2018, 2019, 2020, 2021
+  y      wage - 26       linear   -0.05 to 1.05      0, 0.2, 0.4, 0.6, 0.8, 1
+
+  aesthetic   title          scale      values    shown as
+  fill        Union member   category   no, yes   orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   area   u         14   alpha 0.6, position fill, 2 areas
+---
+note: 211 rows with NA in wage dropped (line 1)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 2)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 3)
+note: 1 row at 1 value of year left out of the stack: not every area has one value there (line 7)
+note: 10 rows at 5 values of year left out of the stack: shares need values of 0 or more and a total above 0 (line 9)

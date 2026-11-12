@@ -1563,3 +1563,60 @@ fn every_message_of_area_and_ribbon() {
     }
     insta::assert_snapshot!("fills_messages", all);
 }
+
+// ----- stacked areas (step 23d2) -----
+
+#[test]
+fn stacked_areas_read_sensibly_as_text() {
+    let script = format!(
+        "{BANDS}u.plot(x: year, y: wage, fill: union).area(position: stack)\n\
+         u.plot(x: year, y: wage, fill: union).area(position: fill, alpha: 1)\n\
+         u.plot(x: year, y: wage).area(group: union, position: stack).lines(color: union)\n\
+         u.where(year != 2015 || union == 1).plot(x: year, y: wage, fill: union).area(position: stack)\n\
+         m.plot(x: year, y: wage).area(position: stack)\n\
+         u.plot(x: year, y: wage - 26, fill: union).area(position: fill)\n"
+    );
+    let text = printed(&script);
+    // The reference, from ggplot2 4.0.3 on the shipped file: `geom_area()` on the 24 means by
+    // union membership, which stacks them, has limits -3.353744987 and 70.428644725, and
+    // `position = "fill"` has -0.05 and 1.05.
+    for line in [
+        "  y      wage            linear   -3.35374 to 70.4286   0, 20, 40, 60\n",
+        "      1   area   u         24   alpha 0.6, position stack, 2 areas\n",
+        "  y      wage            linear   -0.05 to 1.05        0, 0.2, 0.4, 0.6, 0.8, 1\n",
+        "      1   area   u         24   alpha 1, position fill, 2 areas\n",
+        "      1   area    u         24   alpha 0.6, position stack, group by union, 2 areas\n",
+        "      1   area   the frame      22   alpha 0.6, position stack, 4 areas\n",
+        "note: 1 row at 1 value of year left out of the stack: not every area has one value there (line 7)\n",
+        "      1   area   m         12   alpha 0.6, position stack, 1 area\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("fills_stacked", text);
+}
+
+#[test]
+fn every_message_of_a_position() {
+    let mut all = String::new();
+    for (name, script) in [
+        (
+            "not_a_position",
+            "d.plot(x: t, y: v).area(position: dodge)\n",
+        ),
+        (
+            "a_position_in_quotes",
+            "d.plot(x: t, y: v).area(position: \"stack\")\n",
+        ),
+        (
+            "no_position_on_ribbon",
+            "d.plot(x: t).ribbon(low: lo, high: hi, position: stack)\n",
+        ),
+    ] {
+        let frame = GAPS.replace("1 / 0", "9.0");
+        let (code, stdout, stderr) = go(&format!("{frame}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("fills_position_messages", all);
+}

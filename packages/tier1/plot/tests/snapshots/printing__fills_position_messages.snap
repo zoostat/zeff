@@ -1,0 +1,28 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== not_a_position
+error[Z0402]: `dodge` is not one of the allowed words
+ --> scripts/main.zeff:2:35
+  |
+2 | d.plot(x: t, y: v).area(position: dodge)
+  |                                   ^^^^^ expected one of overlay, stack, fill
+
+== a_position_in_quotes
+error[Z0403]: expected one of overlay, stack, fill, found text
+ --> scripts/main.zeff:2:35
+  |
+2 | d.plot(x: t, y: v).area(position: "stack")
+  |                                   ^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `stack`
+
+== no_position_on_ribbon
+error[Z0404]: `ribbon` has no argument called `position`
+ --> scripts/main.zeff:2:40
+  |
+2 | d.plot(x: t).ribbon(low: lo, high: hi, position: stack)
+  |                                        ^^^^^^^^ unknown argument
+  |
+  = help: usage: `p.ribbon(data: Frame, x: Var | Expr, low: Var | Expr, high: Var | Expr, fill: Var | Str, group: Var, alpha: Float = 0.3)`

@@ -266,8 +266,8 @@ plot/lines/png e246a4c14ffa9c6e
 plot/fonts/metrics bebed91423abec50
 plot/fonts/texts 1ef6df97a647e193
 plot/fonts/outlines 2d1b1d03228c837c
-plot/fills/stdout e73ec86f67ea405c
-plot/fills/stderr 0c3794162893a905
+plot/fills/stdout a36158679d30985a
+plot/fills/stderr 18dd155e800057b8
 plot/fills/band.svg 88480f9f67899f3e
 plot/fills/band.pdf 6b618e3247833c0b
 plot/fills/band.png 0327059f27fb4147

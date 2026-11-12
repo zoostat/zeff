@@ -8,7 +8,7 @@ mod common;
 
 use common::*;
 use proptest::prelude::*;
-use zeff_core::value::{Aesthetic, Mark, PlotConstant, PlotLayer, PlotSetting};
+use zeff_core::value::{Aesthetic, Mark, PlotConstant, PlotLayer, PlotSetting, Stacking};
 use zeff_plot::drawing::Primitive;
 use zeff_plot::layout::{JOURNAL, Size, layout};
 use zeff_plot::scene::{Paint, Scene, start, with_layer};
@@ -16,7 +16,7 @@ use zeff_plot::scene::{Paint, Scene, start, with_layer};
 /// A layer of areas that says nothing of its own.
 fn area() -> PlotLayer {
     PlotLayer {
-        mark: Mark::Area,
+        mark: Mark::Area(Stacking::Overlay),
         ..points(0.6)
     }
 }
@@ -111,7 +111,7 @@ fn an_area_reaches_from_its_line_to_zero_as_ggplot2_has_it() {
     ];
     let scene = filled(&rows, area());
     let layer = &scene.panels[0].layers[0];
-    assert_eq!(layer.mark, Mark::Area);
+    assert_eq!(layer.mark, Mark::Area(Stacking::Overlay));
     assert_eq!(layer.x, [1.0, 2.0, 3.0, 4.0, 5.0]);
     assert_eq!(layer.y, [2.0, 4.0, 3.0, 1.0, 5.0]);
     assert_eq!(layer.low, [0.0; 5]);
@@ -643,5 +643,261 @@ proptest! {
         prop_assert_eq!(shapes.len(), seen);
         let corners: usize = shapes.iter().map(|shape| shape.0.len()).sum();
         prop_assert_eq!(corners, 2 * drawn.x.len());
+    }
+}
+
+// ----- stacked areas (step 23d2) -----
+
+fn stack(placed: Stacking) -> PlotLayer {
+    PlotLayer {
+        mark: Mark::Area(placed),
+        mappings: vec![mapped(Aesthetic::Fill, "g")],
+        ..points(0.6)
+    }
+}
+
+/// The two edges of each mark of the first layer, by its row: (lower, upper).
+fn edges_of(scene: &Scene) -> Vec<(usize, f64, f64)> {
+    let layer = &scene.panels[0].layers[0];
+    let mut all: Vec<(usize, f64, f64)> = layer
+        .rows
+        .iter()
+        .zip(layer.low.iter().zip(&layer.y))
+        .map(|(row, (low, high))| (*row, *low, *high))
+        .collect();
+    all.sort_by_key(|mark| mark.0);
+    all
+}
+
+#[test]
+fn areas_are_stacked_from_the_last_group_up_as_ggplot2_stacks_them() {
+    // Three groups at four values of `x`. The reference is ggplot2 4.0.3,
+    // `geom_area(position = "stack")` and `position = "fill"` on the same twelve rows: `ymin`
+    // and `ymax` of each row, and the limits of the `y` axis.
+    let cell = |x: f64, y: f64, g: u8| (Some(x), Some(y), Some(g), None);
+    let values = [
+        [2.0, 4.0, 3.0, 1.0],
+        [1.0, 1.0, 2.0, 2.0],
+        [3.0, 0.0, 1.0, 5.0],
+    ];
+    let mut rows: Vec<Row> = Vec::new();
+    for (g, of_group) in values.iter().enumerate() {
+        for (i, v) in of_group.iter().enumerate() {
+            rows.push(cell((i + 1) as f64, *v, g as u8));
+        }
+    }
+    let scene = filled(&rows, stack(Stacking::Stack));
+    let layer = &scene.panels[0].layers[0];
+    assert_eq!(layer.mark, Mark::Area(Stacking::Stack));
+    assert_eq!(layer.line, [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]);
+    assert_eq!(layer.rows, (1..=12).collect::<Vec<usize>>());
+    let theirs = [
+        (4.0, 6.0),
+        (1.0, 5.0),
+        (3.0, 6.0),
+        (7.0, 8.0),
+        (3.0, 4.0),
+        (0.0, 1.0),
+        (1.0, 3.0),
+        (5.0, 7.0),
+        (0.0, 3.0),
+        (0.0, 0.0),
+        (0.0, 1.0),
+        (0.0, 5.0),
+    ];
+    for (ours, theirs) in edges_of(&scene).iter().zip(theirs) {
+        assert_eq!((ours.1, ours.2), theirs, "row {}", ours.0);
+    }
+    assert_eq!(scene.scale("y").unwrap().limits, (-0.4, 8.4));
+    assert!(scene.notes.is_empty());
+    // On the page the first group is on top, and each area stands on the one under it.
+    let shapes = shapes_of(&scene);
+    assert_eq!(shapes.len(), 3);
+    close(
+        &shapes[0].0,
+        &[
+            (1.0, 6.0),
+            (2.0, 5.0),
+            (3.0, 6.0),
+            (4.0, 8.0),
+            (4.0, 7.0),
+            (3.0, 3.0),
+            (2.0, 1.0),
+            (1.0, 4.0),
+        ],
+    );
+    assert_eq!(shapes[0].1, "#E69F00");
+
+    // As shares of the total at each `x`.
+    let scene = filled(&rows, stack(Stacking::Share));
+    let theirs = [
+        (2.0 / 3.0, 1.0),
+        (0.2, 1.0),
+        (0.5, 1.0),
+        (0.875, 1.0),
+        (0.5, 2.0 / 3.0),
+        (0.0, 0.2),
+        (1.0 / 6.0, 0.5),
+        (0.625, 0.875),
+        (0.0, 0.5),
+        (0.0, 0.0),
+        (0.0, 1.0 / 6.0),
+        (0.0, 0.625),
+    ];
+    for (ours, theirs) in edges_of(&scene).iter().zip(theirs) {
+        assert!(
+            (ours.1 - theirs.0).abs() < 1e-15 && (ours.2 - theirs.1).abs() < 1e-15,
+            "row {}: {ours:?} is not {theirs:?}",
+            ours.0
+        );
+    }
+    assert_eq!(scene.scale("y").unwrap().limits, (-0.05, 1.05));
+    let json = scene.json().write();
+    assert!(json.contains("\"position\": \"fill\""), "{json}");
+    // An area that is not stacked says so too.
+    let json = filled(&rows, area()).json().write();
+    assert!(json.contains("\"position\": \"overlay\""), "{json}");
+}
+
+#[test]
+fn values_below_zero_are_stacked_downwards_apart_from_those_above() {
+    // The reference is `geom_area(stat = "identity", position = "stack")` of ggplot2 4.0.3.
+    let cell = |x: f64, y: f64, g: u8| (Some(x), Some(y), Some(g), None);
+    let rows: Vec<Row> = vec![
+        cell(1.0, 2.0, 0),
+        cell(2.0, -1.0, 0),
+        cell(3.0, 3.0, 0),
+        cell(1.0, 1.0, 1),
+        cell(2.0, -2.0, 1),
+        cell(3.0, -1.0, 1),
+    ];
+    let scene = filled(&rows, stack(Stacking::Stack));
+    let edges: Vec<(f64, f64)> = edges_of(&scene).iter().map(|m| (m.1, m.2)).collect();
+    assert_eq!(
+        edges,
+        [
+            (1.0, 3.0),
+            (-2.0, -3.0),
+            (0.0, 3.0),
+            (0.0, 1.0),
+            (0.0, -2.0),
+            (0.0, -1.0)
+        ]
+    );
+    assert!(scene.notes.is_empty());
+    // Shares need amounts: the places with a value below zero are left out, and the one
+    // that is left has no neighbour.
+    let scene = filled(&rows, stack(Stacking::Share));
+    assert!(scene.panels[0].layers[0].x.is_empty());
+    assert_eq!(
+        scene.notes,
+        [
+            "4 rows at 2 values of x left out of the stack: shares need values of 0 or more and a total above 0",
+            "2 rows with no neighbour to be joined to draw no area",
+        ]
+    );
+}
+
+#[test]
+fn a_stack_is_built_only_where_every_area_has_one_value() {
+    let cell = |x: f64, y: f64, g: u8| (Some(x), Some(y), Some(g), None);
+    let rows: Vec<Row> = vec![
+        cell(1.0, 1.0, 0),
+        cell(2.0, 1.0, 0),
+        cell(3.0, 1.0, 0),
+        cell(4.0, 1.0, 0),
+        cell(5.0, 1.0, 0),
+        cell(6.0, 1.0, 0),
+        cell(7.0, 1.0, 0),
+        cell(1.0, 2.0, 1),
+        cell(2.0, 2.0, 1),
+        // No row of the second group at 3; no value at 4; two rows at 7.
+        (Some(4.0), None, Some(1), None),
+        cell(5.0, 2.0, 1),
+        cell(6.0, 2.0, 1),
+        cell(7.0, 2.0, 1),
+        cell(7.0, 9.0, 1),
+    ];
+    let scene = filled(&rows, stack(Stacking::Stack));
+    let layer = &scene.panels[0].layers[0];
+    // Two runs, 1 to 2 and 5 to 6, for each of the two groups.
+    assert_eq!(layer.x, [1.0, 2.0, 5.0, 6.0, 1.0, 2.0, 5.0, 6.0]);
+    assert_eq!(layer.line, [1, 1, 2, 2, 3, 3, 4, 4]);
+    assert_eq!(layer.low, [2.0, 2.0, 2.0, 2.0, 0.0, 0.0, 0.0, 0.0]);
+    assert_eq!(layer.y, [3.0, 3.0, 3.0, 3.0, 2.0, 2.0, 2.0, 2.0]);
+    assert_eq!(
+        scene.notes,
+        [
+            "1 row with NA in x or y dropped",
+            "5 rows at 3 values of x left out of the stack: not every area has one value there",
+        ]
+    );
+    // One group: a stack is the area itself.
+    let one: Vec<Row> = rows.iter().take(7).copied().collect();
+    let stacked = filled(&one, stack(Stacking::Stack));
+    let plain = filled(
+        &one,
+        PlotLayer {
+            mappings: vec![mapped(Aesthetic::Fill, "g")],
+            ..area()
+        },
+    );
+    let (a, b) = (&stacked.panels[0].layers[0], &plain.panels[0].layers[0]);
+    assert_eq!((&a.x, &a.y, &a.low, &a.line), (&b.x, &b.y, &b.low, &b.line));
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(300)))]
+
+    #[test]
+    fn stacked_heights_sum_to_the_totals_and_each_area_stands_on_the_one_under_it(
+        table in prop::collection::vec(prop::collection::vec(0.0..50.0f64, 4), 1..5),
+        holes in prop::collection::vec((0usize..5, 0usize..4), 0..3),
+        share in any::<bool>(),
+    ) {
+        // A value for each group at each of four places, less a few holes.
+        let mut rows: Vec<Row> = Vec::new();
+        for (g, of_group) in table.iter().enumerate() {
+            for (i, v) in of_group.iter().enumerate() {
+                if !holes.contains(&(g, i)) {
+                    rows.push((Some(i as f64), Some(*v), Some(g as u8), None));
+                }
+            }
+        }
+        let placed = if share { Stacking::Share } else { Stacking::Stack };
+        let scene = filled(&rows, stack(placed));
+        let layer = &scene.panels[0].layers[0];
+        let groups = table.len();
+        for place in 0..4 {
+            // The marks at this place, from the top group down.
+            let marks: Vec<usize> = (0..layer.x.len())
+                .filter(|i| layer.x[*i] == place as f64)
+                .collect();
+            let whole = (0..groups).all(|g| !holes.contains(&(g, place)));
+            let total: f64 = table.iter().map(|of_group| of_group[place]).sum();
+            if !whole || (share && total <= 0.0) {
+                prop_assert!(marks.is_empty(), "a place that cannot be stacked is drawn");
+                continue;
+            }
+            // Drawn, unless the place is left with no neighbour.
+            if marks.is_empty() {
+                continue;
+            }
+            prop_assert_eq!(marks.len(), groups);
+            // The last group stands on zero, each other on the one after it, and the top of
+            // the first is the total, or 1.
+            let top = if share { 1.0 } else { total };
+            let slack = 1e-9 * top.max(1.0);
+            prop_assert_eq!(layer.low[marks[groups - 1]], 0.0);
+            for pair in marks.windows(2) {
+                prop_assert_eq!(layer.low[pair[0]], layer.y[pair[1]]);
+            }
+            prop_assert!((layer.y[marks[0]] - top).abs() <= slack);
+            // The thickness of each area is its value, or its share.
+            for (g, mark) in marks.iter().enumerate() {
+                let value = table[g][place] / if share { total } else { 1.0 };
+                prop_assert!((layer.y[*mark] - layer.low[*mark] - value).abs() <= slack);
+            }
+        }
     }
 }

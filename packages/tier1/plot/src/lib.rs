@@ -225,12 +225,13 @@ pub fn functions() -> Vec<Function> {
                     ParamSpec::option("fill", "Var | Str"),
                     ParamSpec::option("group", "Var"),
                     ParamSpec::option_with_default("alpha", "Float", "0.6"),
+                    ParamSpec::option_with_default("position", "overlay | stack | fill", "overlay"),
                 ],
                 rest: None,
                 returns: "Plot",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "the rows not drawn for NA, or for an infinite value, in x or y; the places where an area is broken because y is NA; the rows with no neighbour to be joined to; more categories than the palette has colours",
+                        "the rows not drawn for NA, or for an infinite value, in x or y; the places where an area is broken because y is NA; the rows with no neighbour to be joined to; with position: stack or fill, the rows at a value of x where not every area has one value, and with fill those where a value is below 0 or the total is not above 0; more categories than the palette has colours",
                     ),
                     DiagnosticDecl::new(
                         "W0102",

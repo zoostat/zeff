@@ -60,8 +60,8 @@
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Stairs,
-    Table,
+    Aesthetic, Align, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting,
+    Stacking, Stairs, Table,
 };
 use zeff_diagnostics::count;
 
@@ -317,7 +317,7 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
         ),
         // An area is placed by `x` and `y`, filled in the colour `fill` says, and drawn through
         // the rows of one `group`.
-        Mark::Area => matches!(
+        Mark::Area(_) => matches!(
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Fill | Aesthetic::Group
         ),
@@ -630,6 +630,12 @@ struct Joined {
     infinite_y: bool,
     /// The rows that have no neighbour to be joined to.
     alone: usize,
+    /// For stacked areas: the rows left out because, at their `x`, not every area has one
+    /// value, and at how many values of `x`.
+    left: (usize, usize),
+    /// For areas stacked as shares: the rows left out because, at their `x`, a value is below
+    /// zero or the total is not above it, and at how many values of `x`.
+    unfit: (usize, usize),
 }
 
 /// The lines of a layer. The rows are parted into groups by the categories of `keys`, row by
@@ -738,6 +744,190 @@ fn joined(
             }
         }
         finish(&mut run, &mut out);
+    }
+    out
+}
+
+/// The areas of a layer, stacked. The rows are parted into groups as for a line, and the groups
+/// put in the order of their categories, `NA` last. At each `x` the areas are put on one
+/// another from the last group up, so that the first is on top as it is first in a legend; a
+/// value below zero is stacked downwards from zero, apart from those above. With `share`, each
+/// height is divided by the total at its `x`.
+///
+/// Stacking needs one value of each area at an `x`. An `x` at which a group has no row, a row
+/// without `y`, or more than one row is left out for every group, and the areas are broken
+/// there; with `share`, so is an `x` with a value below zero or a total that is not above it,
+/// where there are no shares to show. A row left with no neighbour draws nothing.
+fn stacked(cx: Option<&Column>, cy: Option<&Column>, keys: &[Categories], share: bool) -> Joined {
+    let mut out = Joined::default();
+    let (Some(cx), Some(cy)) = (cx, cy) else {
+        return out;
+    };
+    if !(is_numeric(cx) && is_numeric(cy)) || cx.len() != cy.len() {
+        return out;
+    }
+    if keys.iter().any(|key| key.of.len() != cx.len()) {
+        return out;
+    }
+    // The groups, each with its rows: `x`, `y` where it can be drawn, and the row.
+    type Row = (f64, Option<f64>, usize);
+    let mut groups: Vec<(Vec<Option<usize>>, Vec<Row>)> = Vec::new();
+    for row in 0..cx.len() {
+        let x = match number(cx, row) {
+            None => {
+                out.points.missing += 1;
+                continue;
+            }
+            Some(x) if !x.is_finite() => {
+                out.points.infinite += 1;
+                continue;
+            }
+            // Adding zero makes the two zeros one place.
+            Some(x) => x + 0.0,
+        };
+        let y = match number(cy, row) {
+            None => {
+                out.points.missing += 1;
+                None
+            }
+            Some(y) if !y.is_finite() => {
+                out.points.infinite += 1;
+                out.infinite_y = true;
+                None
+            }
+            Some(y) => Some(y),
+        };
+        let key: Vec<Option<usize>> = keys.iter().map(|key| key.of[row]).collect();
+        match groups.iter_mut().find(|(known, _)| *known == key) {
+            Some((_, rows)) => rows.push((x, y, row)),
+            None => groups.push((key, vec![(x, y, row)])),
+        }
+    }
+    // In the order of the categories, a row without one after the others.
+    let placed = |key: &[Option<usize>]| -> Vec<(bool, usize)> {
+        key.iter()
+            .map(|place| (place.is_none(), place.unwrap_or(0)))
+            .collect()
+    };
+    groups.sort_by_key(|group| placed(&group.0));
+    // Every `x` at which a row stands, in order.
+    let mut places: Vec<f64> = groups
+        .iter()
+        .flat_map(|(_, rows)| rows.iter().map(|row| row.0))
+        .collect();
+    places.sort_by(f64::total_cmp);
+    places.dedup();
+    // For each group, what it has at each place: nothing, one value, or what cannot be
+    // stacked (more than one row, or a row without `y`), with the rows that have a value.
+    #[derive(Clone, Copy, PartialEq)]
+    enum Cell {
+        Empty,
+        One(f64, usize),
+        Not,
+    }
+    let mut cells: Vec<Vec<Cell>> = Vec::with_capacity(groups.len());
+    let mut valid = vec![0_usize; places.len()];
+    for (_, rows) in &groups {
+        let mut of_group = vec![Cell::Empty; places.len()];
+        for &(x, y, row) in rows {
+            let Ok(at) = places.binary_search_by(|place| place.total_cmp(&x)) else {
+                continue;
+            };
+            if y.is_some() {
+                valid[at] += 1;
+            }
+            of_group[at] = match (of_group[at], y) {
+                (Cell::Empty, Some(y)) => Cell::One(y, row),
+                _ => Cell::Not,
+            };
+        }
+        cells.push(of_group);
+    }
+    // The places that are stacked.
+    let mut whole = vec![false; places.len()];
+    for at in 0..places.len() {
+        let values: Option<Vec<f64>> = cells
+            .iter()
+            .map(|of_group| match of_group[at] {
+                Cell::One(y, _) => Some(y),
+                _ => None,
+            })
+            .collect();
+        let Some(values) = values else {
+            if valid[at] > 0 {
+                out.left.0 += valid[at];
+                out.left.1 += 1;
+            }
+            continue;
+        };
+        if share && (values.iter().any(|y| *y < 0.0) || values.iter().sum::<f64>() <= 0.0) {
+            out.unfit.0 += valid[at];
+            out.unfit.1 += 1;
+            continue;
+        }
+        whole[at] = true;
+    }
+    // The two edges of each area at each stacked place: from the last group up.
+    let mut edges: Vec<Vec<(f64, f64)>> = vec![vec![(0.0, 0.0); places.len()]; groups.len()];
+    for at in (0..places.len()).filter(|at| whole[*at]) {
+        let (mut above, mut below) = (0.0_f64, 0.0_f64);
+        for group in (0..groups.len()).rev() {
+            let Cell::One(y, _) = cells[group][at] else {
+                continue;
+            };
+            edges[group][at] = if y < 0.0 {
+                let low = below;
+                below += y;
+                (low, below)
+            } else {
+                let low = above;
+                above += y;
+                (low, above)
+            };
+        }
+        if share {
+            // No value is below zero here, and the total is above it.
+            let total = above;
+            for of_group in &mut edges {
+                of_group[at] = (of_group[at].0 / total, of_group[at].1 / total);
+            }
+        }
+    }
+    // The runs of stacked places side by side, the same for every group.
+    let mut runs: Vec<(usize, usize)> = Vec::new();
+    let mut at = 0;
+    while at < places.len() {
+        if !whole[at] {
+            at += 1;
+            continue;
+        }
+        let mut end = at + 1;
+        while end < places.len() && whole[end] {
+            end += 1;
+        }
+        runs.push((at, end));
+        at = end;
+    }
+    let mut lines = 0;
+    for (group, of_group) in cells.iter().enumerate() {
+        for &(from, to) in &runs {
+            if to - from < 2 {
+                out.alone += 1;
+                continue;
+            }
+            lines += 1;
+            for at in from..to {
+                let Cell::One(_, row) = of_group[at] else {
+                    continue;
+                };
+                let (low, high) = edges[group][at];
+                out.points.x.push(places[at]);
+                out.points.y.push(high);
+                out.points.rows.push(row);
+                out.line.push(lines);
+                out.low.push(low);
+            }
+        }
     }
     out
 }
@@ -1193,13 +1383,21 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                     keys.push(categories(column));
                 }
                 let lower = bottom.map(|edge| values(plot, Some(layer), edge));
-                let lines = joined(
-                    values(plot, Some(layer), Aesthetic::X),
-                    // A band whose lower edge is not there draws nothing.
-                    values(plot, Some(layer), top).filter(|_| lower != Some(None)),
-                    lower.flatten(),
-                    &keys,
-                );
+                let lines = match layer.mark {
+                    Mark::Area(Stacking::Stack | Stacking::Share) => stacked(
+                        values(plot, Some(layer), Aesthetic::X),
+                        values(plot, Some(layer), Aesthetic::Y),
+                        &keys,
+                        layer.mark == Mark::Area(Stacking::Share),
+                    ),
+                    _ => joined(
+                        values(plot, Some(layer), Aesthetic::X),
+                        // A band whose lower edge is not there draws nothing.
+                        values(plot, Some(layer), top).filter(|_| lower != Some(None)),
+                        lower.flatten(),
+                        &keys,
+                    ),
+                };
                 // The variables a row needs, and the words for what is drawn.
                 let edge = bottom.and_then(named);
                 let mut needs = vec![x];
@@ -1210,7 +1408,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                     None => y.to_string(),
                 };
                 let (one, many, none) = match layer.mark {
-                    Mark::Area => ("an area", "the areas", "area"),
+                    Mark::Area(_) => ("an area", "the areas", "area"),
                     Mark::Ribbon => ("a band", "the bands", "band"),
                     _ => ("a line", "the lines", "line"),
                 };
@@ -1242,6 +1440,28 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                             count(lines.breaks as u64)
                         )
                     });
+                }
+                // What a stack leaves out: the places where it cannot be built.
+                let places = |n: usize| {
+                    if n == 1 {
+                        format!("1 value of {x}")
+                    } else {
+                        format!("{} values of {x}", count(n as u64))
+                    }
+                };
+                if lines.left.0 > 0 {
+                    note(format!(
+                        "{} at {} left out of the stack: not every area has one value there",
+                        rows_text(lines.left.0),
+                        places(lines.left.1)
+                    ));
+                }
+                if lines.unfit.0 > 0 {
+                    note(format!(
+                        "{} at {} left out of the stack: shares need values of 0 or more and a total above 0",
+                        rows_text(lines.unfit.0),
+                        places(lines.unfit.1)
+                    ));
                 }
                 if lines.alone > 0 {
                     note(format!(
@@ -1769,11 +1989,16 @@ impl Scene {
                                                                 Vec::new()
                                                             })
                                                             // And a layer of steps the way
-                                                            // they go.
+                                                            // they go, a layer of areas how
+                                                            // they are placed.
                                                             .chain(match l.mark {
                                                                 Mark::Step(way) => Some((
                                                                     "direction",
                                                                     Json::text(way.name()),
+                                                                )),
+                                                                Mark::Area(placed) => Some((
+                                                                    "position",
+                                                                    Json::text(placed.name()),
                                                                 )),
                                                                 _ => None,
                                                             })
@@ -2138,6 +2363,11 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         } else if layer.mark.fills() {
             // A filled layer: how far it lets through what is under it, its groups, how many.
             let mut settings = format!("alpha {}", format_float(layer.alpha));
+            if let Mark::Area(placed) = layer.mark
+                && placed != Stacking::Overlay
+            {
+                settings.push_str(&format!(", position {}", placed.name()));
+            }
             if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
                 settings.push_str(&format!(", group by {}", mapping.variable));
             }
