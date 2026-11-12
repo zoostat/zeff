@@ -208,6 +208,10 @@ pub enum LayoutError {
     /// The page leaves the panel less than [`SMALLEST_PANEL`] each way: what it leaves, in
     /// points.
     TooSmall { panel: (f64, f64) },
+    /// Fixed coordinates give the panel a shape that is less than [`SMALLEST_PANEL`] one
+    /// way in the room the page leaves it: the panel, in points, and the ratio at which it
+    /// would fill that room.
+    TooThin { panel: (f64, f64), filling: f64 },
 }
 
 /// Measures text and remembers the characters no face has.
@@ -1380,9 +1384,31 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let titled = |scale: Option<&Scale>| scale.is_some_and(|s| !s.title.trim().is_empty());
     let mut x_title: Vec<String> = Vec::new();
     let mut y_title: Vec<String> = Vec::new();
+    // The shape fixed coordinates give the panel, its height for a width of one: a unit of
+    // `y` is as long as `ratio` units of `x`, so the height is to the width as the units
+    // `y` runs over, times the ratio, are to the units `x` runs over.
+    let upright: Option<f64> = match (scene.coord, xs, ys) {
+        (Coord::Fixed(ratio), Some(x), Some(y)) => {
+            let shape = ratio * scale::units(y.kind, y.limits) / scale::units(x.kind, x.limits);
+            (shape > 0.0 && shape.is_finite()).then_some(shape)
+        }
+        _ => None,
+    };
+    let shaped = |wide: f64, high: f64| -> (f64, f64) {
+        match upright {
+            Some(shape) if wide > 0.0 && high > 0.0 => {
+                if high / wide > shape {
+                    (wide, wide * shape)
+                } else {
+                    (high / shape, high)
+                }
+            }
+            _ => (wide, high),
+        }
+    };
     let (mut left, mut bottom) = sides(usize::from(titled(xs)), usize::from(titled(ys)), 1);
     for _ in 0..2 {
-        let (panel_width, panel_height) = (width - left - right, height - top - bottom);
+        let (panel_width, panel_height) = shaped(width - left - right, height - top - bottom);
         // On an axis of categories a label wider than its place is broken between words,
         // into three lines at most, a word longer than the place standing alone on its
         // line. The labels are written so where every one of them can then be written
@@ -1452,12 +1478,32 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         }
         (left, bottom) = sides(x_title.len(), y_title.len(), x_rows);
     }
-    let (panel_width, panel_height) = (width - left - right, height - top - bottom);
-    if !(panel_width >= SMALLEST_PANEL && panel_height >= SMALLEST_PANEL) {
+    let (room_width, room_height) = (width - left - right, height - top - bottom);
+    if !(room_width >= SMALLEST_PANEL && room_height >= SMALLEST_PANEL) {
         return Err(LayoutError::TooSmall {
-            panel: (panel_width, panel_height),
+            panel: (room_width, room_height),
         });
     }
+    // With fixed coordinates the panel is the largest of its shape that the room holds,
+    // in the middle of that room: the axes go with it, and a legend at its right.
+    let (panel_width, panel_height) = shaped(room_width, room_height);
+    if !(panel_width >= SMALLEST_PANEL && panel_height >= SMALLEST_PANEL) {
+        let filling = match (scene.coord, upright) {
+            (Coord::Fixed(ratio), Some(upright)) => ratio * (room_height / room_width) / upright,
+            _ => f64::NAN,
+        };
+        return Err(LayoutError::TooThin {
+            panel: (panel_width, panel_height),
+            filling,
+        });
+    }
+    // How far the panel, and all that goes with it, is moved from the left and from the top
+    // to stand in the middle of its room: nothing, unless the coordinates are fixed.
+    let (moved_across, moved_down) = (
+        (room_width - panel_width) / 2.0,
+        (room_height - panel_height) / 2.0,
+    );
+    let (left, top) = (left + moved_across, top + moved_down);
     // A value is placed by the share of the way it stands between the limits of its axis, as
     // the kind of the axis has it: linear, log or square root.
     let across = |s: &Scale, v: f64| left + scale::share(s.kind, s.limits, v) * panel_width;
@@ -2038,7 +2084,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         // Turned to read upwards, a line's letters rise towards the left: the first line is
         // the leftmost.
         for (i, words) in y_title.iter().enumerate() {
-            let x = theme.margin + (i + 1) as f64 * title_line
+            let x = theme.margin + moved_across + (i + 1) as f64 * title_line
                 - theme.title_size * (theme.leading - 1.0);
             items.push(named(
                 &up,
@@ -2079,9 +2125,10 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // The legends above or under the panel: each band from the left edge of the panel.
     if banded {
         let mut y = if place == LegendPlace::Top {
-            theme.margin + heading_room
+            theme.margin + heading_room + moved_down
         } else {
             height - theme.margin - noted_room - caption_room - bands_height + theme.legend_gap
+                - moved_down
         };
         for (tallest, members) in &bands {
             let mut x = left;
@@ -2093,7 +2140,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         }
     }
     // The legends at the right, each column from the top of the panel down.
-    let mut x = width - theme.margin - legends_width;
+    let mut x = width - theme.margin - legends_width - moved_across;
     for (widest, members) in &legend_columns {
         let mut y = top - half_capital;
         for &at in members {

@@ -371,6 +371,12 @@ plot/coord/flipped.svg de53afe76b584359
 plot/coord/flipped.pdf 12d9ecff1011f3d6
 plot/coord/flipped.png cec11250ff4ee1d6
 plot/coord/turned.svg 9fca1d730a38c904
+plot/fixed/stdout 231e8e05bece1ac2
+plot/fixed/stderr 049fd65dd2880042
+plot/fixed/fixed.svg a22a1250fb3c3ec5
+plot/fixed/fixed.pdf 841dccbeb59d70b2
+plot/fixed/fixed.png 852f48ffed3b2859
+plot/fixed/fixed_wide.svg 31b3886b373a0da2
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

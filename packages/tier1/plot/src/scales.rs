@@ -823,22 +823,58 @@ pub fn coord(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             )
             .in_file(ctx.script)
             .primary(ctx.span_of(slot), "not in this build")
-            .help("the coordinates built so far are `cartesian` and `flip`"),
+            .help("the coordinates built so far are `cartesian`, `flip` and `fixed`"),
         )
+    };
+    // `ratio:` belongs to `fixed`: how many units of `x` are as long as one unit of `y`.
+    let ratio = match args.get(C_RATIO) {
+        None | Some(Value::Na) => None,
+        Some(value) => {
+            let ratio = match number(value) {
+                Ok(Some(ratio)) => ratio,
+                _ => return Err(internal(ctx, "a ratio that is not a number")),
+            };
+            if !(ratio > 0.0 && ratio.is_finite()) {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`ratio:` of `coord` is how many units of `x` are as long as one unit of `y`, and must be above 0, but this is {}",
+                            shown(ratio)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(C_RATIO), "not a ratio")
+                    .help("`coord(fixed)` gives a unit of `y` the length of a unit of `x`; `coord(fixed, ratio: 2)` makes a unit of `y` twice as long, and `ratio: 0.5` half as long"),
+                ));
+            }
+            Some(ratio)
+        }
     };
     let coord = match args.get(C_TYPE) {
         None | Some(Value::Na) => Coord::Cartesian,
         Some(Value::Word(word)) => match word.as_str() {
             "cartesian" => Coord::Cartesian,
             "flip" => Coord::Flip,
+            "fixed" => Coord::Fixed(ratio.unwrap_or(1.0)),
             "polar" => return Err(not_yet(ctx, C_TYPE, "`coord(polar)`")),
-            "fixed" => return Err(not_yet(ctx, C_TYPE, "`coord(fixed)`")),
             _ => return Err(internal(ctx, "coordinates that are none of the four")),
         },
         Some(_) => return Err(internal(ctx, "coordinates that are not a word")),
     };
-    if !matches!(args.get(C_RATIO), None | Some(Value::Na)) {
-        return Err(not_yet(ctx, C_RATIO, "`ratio:` of `coord`"));
+    if ratio.is_some() && !matches!(coord, Coord::Fixed(_)) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`ratio:` of `coord` goes with `fixed`, but the coordinates are `{}`",
+                    coord.name()
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(C_RATIO), "a ratio without `fixed`")
+            .help("write `coord(fixed, ratio: 2)` for a panel in which a unit of `y` is as long as two units of `x`; the other coordinates take the shape of the page"),
+        ));
     }
     let mut next = (**plot).clone();
     next.coord = coord;

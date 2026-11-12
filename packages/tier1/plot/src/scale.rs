@@ -222,6 +222,21 @@ pub fn share(kind: crate::scene::ScaleKind, limits: (f64, f64), v: f64) -> f64 {
     }
 }
 
+/// How many units an axis runs over between its limits, the units that fixed coordinates
+/// give one length on the page: a number on a linear axis, a place on an axis of
+/// categories, a power of ten on a log axis, a unit of the square root on a square-root
+/// axis, and a day on an axis of dates.
+pub fn units(kind: crate::scene::ScaleKind, limits: (f64, f64)) -> f64 {
+    use crate::scene::ScaleKind;
+    let (lo, hi) = limits;
+    match kind {
+        ScaleKind::Log => zeff_numeric::maths::log10(hi) - zeff_numeric::maths::log10(lo),
+        ScaleKind::Sqrt => hi.sqrt() - lo.sqrt(),
+        ScaleKind::Date => (hi - lo) / crate::dates::DAY as f64,
+        ScaleKind::Linear | ScaleKind::Category => hi - lo,
+    }
+}
+
 /// The labels of the breaks: each number as a table prints it, with six significant digits
 /// (section 3.8). Where that would give two neighbouring breaks one label, every label is the
 /// number in full.

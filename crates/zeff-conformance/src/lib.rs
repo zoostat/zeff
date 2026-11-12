@@ -2124,6 +2124,19 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/coord/{name}"), &data));
     }
+    // Fixed coordinates (step 27b): the hours of work against the age of each worker with
+    // a unit of each the same length, and with a unit of `y` twice as long; a log axis,
+    // where a power of ten is a unit; what the script prints, the first figure in the three
+    // formats and the one with a legend above it as a figure of two columns.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet p = w.plot(x: age, y: hours, color: union).points(alpha: 0.4).coord(fixed)\np\nlet q = p.coord(fixed, ratio: 2).legend(top)\nq\nw.plot(x: wage, y: educ).points().scale_x(log).coord(fixed, ratio: 0.1)\nexport(p, \"fixed.svg\")\nexport(p, \"fixed.pdf\")\nexport(p, \"fixed.png\")\nexport(q, \"fixed_wide.svg\", size: two_column)\n";
+    let fixed = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/fixed/stdout", &fixed.output.stdout));
+    fills.push(text("plot/fixed/stderr", &fixed.output.stderr));
+    for name in ["fixed.svg", "fixed.pdf", "fixed.png", "fixed_wide.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/fixed/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

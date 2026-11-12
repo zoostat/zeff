@@ -2625,7 +2625,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     let mut axes: Vec<Axis> = Vec::new();
     // Flipped, `x` runs up the side of the panel and `y` along its foot.
     let sides = match plot.coord {
-        Coord::Cartesian => (Position::Bottom, Position::Left),
+        Coord::Cartesian | Coord::Fixed(_) => (Position::Bottom, Position::Left),
         Coord::Flip => (Position::Left, Position::Bottom),
     };
     for (aesthetic, position) in [(Aesthetic::X, sides.0), (Aesthetic::Y, sides.1)] {
@@ -3370,6 +3370,11 @@ impl Scene {
             .chain(
                 (self.coord != Coord::Cartesian).then(|| ("coord", Json::text(self.coord.name()))),
             )
+            // With fixed coordinates, how many units of `x` are as long as one of `y`.
+            .chain(match self.coord {
+                Coord::Fixed(ratio) => Some(("ratio", Json::Number(ratio))),
+                _ => None,
+            })
             // The theme, when the script names one or gives a size: `journal` at its own
             // size is not written.
             .chain((self.theme != PlotTheme::default()).then(|| {
@@ -3966,10 +3971,19 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
     }
     drawn.after.extend(placed.map(str::to_string));
     // The coordinates, when they are not cartesian.
-    if scene.coord == Coord::Flip {
-        drawn
+    match scene.coord {
+        Coord::Cartesian => {}
+        Coord::Flip => drawn
             .after
-            .push("coordinates: flipped, `x` up the side and `y` along the foot".to_string());
+            .push("coordinates: flipped, `x` up the side and `y` along the foot".to_string()),
+        Coord::Fixed(ratio) => drawn.after.push(if ratio == 1.0 {
+            "coordinates: fixed, one unit of `y` as long as one of `x`".to_string()
+        } else {
+            format!(
+                "coordinates: fixed, one unit of `y` as long as {} of `x`",
+                format_float(ratio)
+            )
+        }),
     }
     // The theme, when it is not `journal` at its own size.
     if scene.theme != PlotTheme::default() {

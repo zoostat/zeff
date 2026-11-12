@@ -14,7 +14,7 @@ use zeff_core::value::{
     PlotConstant, PlotLayer, PlotSetting, Sides, Stacking, Stairs,
 };
 use zeff_plot::drawing::{Drawing, Primitive, Step};
-use zeff_plot::layout::{JOURNAL, Size, layout};
+use zeff_plot::layout::{JOURNAL, LayoutError, SMALLEST_PANEL, Size, layout};
 use zeff_plot::scale::share;
 use zeff_plot::scene::{Position, RUG_LENGTH, Scene, start, with_layer};
 
@@ -460,6 +460,299 @@ proptest! {
             let up_flipped = (panel_b.1 + height_b - flipped.1) / height_b;
             prop_assert!((across - up_flipped).abs() < 1e-9, "{} against {}", across, up_flipped);
             prop_assert!((up - across_flipped).abs() < 1e-9, "{} against {}", up, across_flipped);
+        }
+    }
+}
+
+// ----- fixed coordinates (step 27b) -----
+
+/// How long one unit of each axis is on the page, in points: the panel's width over the
+/// units `x` runs over, and its height over the units `y` runs over.
+fn lengths_of_a_unit(scene: &Scene, drawing: &Drawing) -> (f64, f64) {
+    let (_, width, height, _) = panel_of(drawing);
+    let (x, y) = (scene.scale("x").unwrap(), scene.scale("y").unwrap());
+    (
+        width / zeff_plot::scale::units(x.kind, x.limits),
+        height / zeff_plot::scale::units(y.kind, y.limits),
+    )
+}
+
+/// A frame of two numbers, `x` and `y`.
+fn pairs(x: &[f64], y: &[f64]) -> Frame {
+    frame("d", vec![("x", numbers(x)), ("y", numbers(y))])
+}
+
+#[test]
+fn the_scene_carries_the_ratio_and_is_otherwise_the_cartesian_scene() {
+    let plain = with(
+        &plot_of(small("d"), "dose", "response", Coord::Cartesian),
+        Mark::Points,
+    );
+    let fixed = with(
+        &plot_of(small("d"), "dose", "response", Coord::Fixed(2.0)),
+        Mark::Points,
+    );
+    assert_eq!(fixed.coord, Coord::Fixed(2.0));
+    assert_eq!(
+        (&fixed.scales, &fixed.axes, &fixed.panels),
+        (&plain.scales, &plain.axes, &plain.panels)
+    );
+    let json = fixed.json().write();
+    assert!(json.contains("\"coord\": \"fixed\""), "{json}");
+    assert!(json.contains("\"ratio\": 2"), "{json}");
+    assert!(!plain.json().write().contains("\"ratio\""));
+}
+
+#[test]
+fn a_square_of_the_data_is_a_square_on_the_page() {
+    // A unit square: both axes run over the same units, so the panel is as high as it is
+    // wide, and the four corners of the square are the corners of a square on the page.
+    let square = pairs(&[0.0, 1.0, 1.0, 0.0], &[0.0, 0.0, 1.0, 1.0]);
+    let scene = with(
+        &plot_of(square.clone(), "x", "y", Coord::Fixed(1.0)),
+        Mark::Points,
+    );
+    let drawing = drawn(&scene);
+    let (_, width, height, _) = panel_of(&drawing);
+    assert!((width - height).abs() < 1e-9, "{width} by {height}");
+    let at = centres(&drawing);
+    let (across, up) = (at[1].0 - at[0].0, at[1].1 - at[2].1);
+    assert!(
+        across > 0.0 && (across - up).abs() < 1e-9,
+        "{across} and {up}"
+    );
+    // At a ratio of 2 a unit of `y` is twice as long as a unit of `x`, and at a half, half
+    // as long: the square is a rectangle twice as high, or twice as wide.
+    for ratio in [2.0, 0.5, 3.0, 0.2] {
+        let scene = with(
+            &plot_of(square.clone(), "x", "y", Coord::Fixed(ratio)),
+            Mark::Points,
+        );
+        let drawing = drawn(&scene);
+        let (x, y) = lengths_of_a_unit(&scene, &drawing);
+        assert!((y / x - ratio).abs() < 1e-9, "{ratio}: {y} against {x}");
+        let at = centres(&drawing);
+        let (across, up) = (at[1].0 - at[0].0, at[1].1 - at[2].1);
+        assert!((up / across - ratio).abs() < 1e-9, "{ratio}");
+    }
+    insta::assert_snapshot!("a_square_of_the_data", drawn(&scene).describe());
+}
+
+#[test]
+fn the_fixed_panel_stands_in_the_middle_of_its_room_with_all_that_goes_with_it() {
+    // The room is the panel the same plot has without fixed coordinates. Twice as many
+    // units along `y` as along `x`: the panel keeps the height of its room and stands in
+    // the middle of its width; half as many, and it keeps the width.
+    let colours = |coord: Coord, y: &[f64]| {
+        let frame = frame(
+            "d",
+            vec![
+                ("x", numbers(&[0.0, 1.0, 2.0, 3.0])),
+                ("y", numbers(y)),
+                ("g", Column::strs(["a", "b", "a", "b"].map(Some))),
+            ],
+        );
+        let mut plot: Plot = start(
+            frame,
+            vec![
+                mapped(Aesthetic::X, "x"),
+                mapped(Aesthetic::Y, "y"),
+                mapped(Aesthetic::Color, "g"),
+            ],
+            Vec::new(),
+        );
+        plot.coord = coord;
+        drawn(&with(&plot, Mark::Points))
+    };
+    // What goes with the panel: the title of `y` at its left, and the legend at its right.
+    let beside = |drawing: &Drawing| {
+        let (panel, width, _, _) = panel_of(drawing);
+        let mut offsets: Vec<f64> = Vec::new();
+        for item in &drawing.items {
+            let name = item.name.as_deref().unwrap_or("");
+            let edge = if name == "axis:y" {
+                panel.0
+            } else if name.starts_with("legend") {
+                panel.0 + width
+            } else {
+                continue;
+            };
+            match &item.primitive {
+                Primitive::Text { at, .. } | Primitive::Point { at, .. } => {
+                    offsets.push(at.0 - edge);
+                }
+                Primitive::Segment { from, .. } => offsets.push(from.0 - edge),
+                _ => {}
+            }
+        }
+        offsets
+    };
+    for (y, tall) in [
+        (&[0.0, 2.0, 4.0, 6.0][..], true),
+        (&[0.0, 0.5, 1.0, 1.5][..], false),
+    ] {
+        let (room, fixed) = (colours(Coord::Cartesian, y), colours(Coord::Fixed(1.0), y));
+        let (at, wide, high, _) = panel_of(&room);
+        let (to, width, height, _) = panel_of(&fixed);
+        if tall {
+            assert!((height - high).abs() < 1e-9 && width < wide);
+        } else {
+            assert!((width - wide).abs() < 1e-9 && height < high);
+        }
+        assert!((at.0 + wide / 2.0 - (to.0 + width / 2.0)).abs() < 1e-9);
+        assert!((at.1 + high / 2.0 - (to.1 + height / 2.0)).abs() < 1e-9);
+        // The labels and the title of `y`, and the legend, are as far from the panel as
+        // they were.
+        let (was, is) = (beside(&room), beside(&fixed));
+        assert!(was.len() > 6 && was.len() == is.len());
+        for (a, b) in was.iter().zip(&is) {
+            assert!((a - b).abs() < 1e-9, "{a} against {b}");
+        }
+    }
+}
+
+#[test]
+fn a_unit_is_a_place_a_power_of_ten_a_square_root_or_a_day() {
+    // Categories: a place of `x` is as long as a unit of `y`.
+    let scene = with(
+        &plot_of(small("d"), "arm", "dose", Coord::Fixed(1.0)),
+        Mark::Points,
+    );
+    let drawing = drawn(&scene);
+    let at = centres(&drawing);
+    // Row 1 is `placebo` at a dose of 1 and row 2 `drug` at a dose of 2: one place apart
+    // and one unit apart.
+    let (across, up) = ((at[0].0 - at[1].0).abs(), (at[0].1 - at[1].1).abs());
+    assert!(
+        across > 0.0 && (across - up).abs() < 1e-9,
+        "{across} and {up}"
+    );
+    // A log axis: from 1 to 10 and from 10 to 100 are each as long as a unit of `y`.
+    let mut plot = plot_of(
+        pairs(&[1.0, 10.0, 100.0], &[0.0, 1.0, 2.0]),
+        "x",
+        "y",
+        Coord::Fixed(1.0),
+    );
+    plot.axes.push(PlotAxis::of(Aesthetic::X, AxisKind::Log));
+    let at = centres(&drawn(&with(&plot, Mark::Points)));
+    for pair in at.windows(2) {
+        let (across, up) = (pair[1].0 - pair[0].0, pair[0].1 - pair[1].1);
+        assert!(
+            across > 0.0 && (across - up).abs() < 1e-9,
+            "{across} and {up}"
+        );
+    }
+    // A square-root axis: from 0 to 1, from 1 to 4 and from 4 to 9 are each a unit.
+    let mut plot = plot_of(
+        pairs(&[0.0, 1.0, 2.0, 3.0], &[0.0, 1.0, 4.0, 9.0]),
+        "x",
+        "y",
+        Coord::Fixed(1.0),
+    );
+    plot.axes.push(PlotAxis::of(Aesthetic::Y, AxisKind::Sqrt));
+    let at = centres(&drawn(&with(&plot, Mark::Points)));
+    for pair in at.windows(2) {
+        let (across, up) = (pair[1].0 - pair[0].0, pair[0].1 - pair[1].1);
+        assert!(
+            across > 0.0 && (across - up).abs() < 1e-9,
+            "{across} and {up}"
+        );
+    }
+    // An axis of dates: a day is as long as a unit of `y`.
+    let days = frame(
+        "d",
+        vec![
+            (
+                "day",
+                Column::dates([Some(19_800), Some(19_803), Some(19_810)]),
+            ),
+            ("y", numbers(&[0.0, 3.0, 10.0])),
+        ],
+    );
+    let at = centres(&drawn(&with(
+        &plot_of(days, "day", "y", Coord::Fixed(1.0)),
+        Mark::Points,
+    )));
+    for pair in at.windows(2) {
+        let (across, up) = (pair[1].0 - pair[0].0, pair[0].1 - pair[1].1);
+        assert!(
+            across > 0.0 && (across - up).abs() < 1e-6,
+            "{across} and {up}"
+        );
+    }
+}
+
+#[test]
+fn a_panel_too_thin_is_refused_with_the_ratio_that_fills_the_page() {
+    // A thousand units along `x` and one along `y`, a unit of each the same length: a
+    // panel a thousand times as wide as it is high.
+    let frame = pairs(&[0.0, 1000.0], &[0.0, 1.0]);
+    let thin = with(
+        &plot_of(frame.clone(), "x", "y", Coord::Fixed(1.0)),
+        Mark::Points,
+    );
+    let Err(LayoutError::TooThin { panel, filling }) = layout(&thin, Size::OneColumn, &JOURNAL)
+    else {
+        panic!("a panel a thousand times as wide as it is high was drawn");
+    };
+    assert!(
+        panel.1 < SMALLEST_PANEL && panel.0 > 100.0 * panel.1,
+        "{panel:?}"
+    );
+    // At the ratio it names the panel is the room: that of the plot without fixed
+    // coordinates.
+    let room = drawn(&with(
+        &plot_of(frame.clone(), "x", "y", Coord::Cartesian),
+        Mark::Points,
+    ));
+    let filled = drawn(&with(
+        &plot_of(frame.clone(), "x", "y", Coord::Fixed(filling)),
+        Mark::Points,
+    ));
+    let ((_, wide, high, _), (_, width, height, _)) = (panel_of(&room), panel_of(&filled));
+    assert!((wide - width).abs() < 1e-6 && (high - height).abs() < 1e-6);
+    // The other way: a panel too narrow.
+    let narrow = with(&plot_of(frame, "x", "y", Coord::Fixed(1e6)), Mark::Points);
+    assert!(matches!(
+        layout(&narrow, Size::OneColumn, &JOURNAL),
+        Err(LayoutError::TooThin { panel, .. }) if panel.0 < SMALLEST_PANEL
+    ));
+    // A page too small for any panel is still said to be too small.
+    assert!(matches!(
+        layout(&thin, Size::Millimetres(12.0, 12.0), &JOURNAL),
+        Err(LayoutError::TooSmall { .. })
+    ));
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(128)))]
+
+    /// Whatever the rows and the ratio: where the figure is drawn, a unit of `y` is as long
+    /// as `ratio` units of `x`, the panel is no larger than its room either way and as
+    /// large as it one way; and where it is not drawn, the panel was too thin.
+    #[test]
+    fn a_unit_of_y_is_as_long_as_the_ratio_says(rows in rows(), ratio in 0.05..20.0f64) {
+        let frame = tried(&rows);
+        let plain = with(&plot_of(frame.clone(), "x", "y", Coord::Cartesian), Mark::Points);
+        prop_assume!(!plain.panels[0].layers[0].x.is_empty());
+        let Ok(room) = layout(&plain, Size::OneColumn, &JOURNAL) else {
+            return Ok(());
+        };
+        let fixed = with(&plot_of(frame, "x", "y", Coord::Fixed(ratio)), Mark::Points);
+        match layout(&fixed, Size::OneColumn, &JOURNAL) {
+            Ok(drawing) => {
+                let (x, y) = lengths_of_a_unit(&fixed, &drawing);
+                prop_assert!((y / x / ratio - 1.0).abs() < 1e-9, "{} against {}", y / x, ratio);
+                let ((_, wide, high, _), (_, width, height, _)) =
+                    (panel_of(&room), panel_of(&drawing));
+                prop_assert!(width <= wide + 1e-9 && height <= high + 1e-9);
+                prop_assert!((width - wide).abs() < 1e-9 || (height - high).abs() < 1e-9);
+            }
+            Err(LayoutError::TooThin { panel, .. }) => {
+                prop_assert!(panel.0 < SMALLEST_PANEL || panel.1 < SMALLEST_PANEL);
+            }
+            Err(other) => prop_assert!(false, "{:?}", other),
         }
     }
 }

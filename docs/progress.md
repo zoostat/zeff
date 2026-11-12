@@ -157,3 +157,13 @@ Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engin
 **Next.** Step 27b `[engine]`: `coord(fixed, ratio:)`, a panel whose shape follows the units of the data.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: `flip` written twice is still flipped; the first category is at the foot of the side; `legend(direct)` in a flipped plot is drawn at the right; labels at the left are never broken over lines. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 27b (`coord(fixed, ratio:)`)
+
+**Done.** `p.coord(fixed)` gives a unit of `y` the same length on the page as a unit of `x`, and `ratio:` makes it as long as that many units of `x`: the panel takes the shape the limits of the two axes and the ratio give it, the largest of that shape the page has room for, in the middle of that room with its axes and legends. A square of the data is a square on the page. A panel that would be thinner than 12.7 mm is refused at `export`, and the message names the ratio that fills the page.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 396 of 396; CI is read job by job after the push.
+
+**Next.** Step 27c `[engine]`: `coord(polar)`, `x` as the angle and `y` as the distance from the centre, which completes the page of `coord`.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: a unit is a place on an axis of categories, a power of ten on a log axis, one of the square root on a square-root axis and a day on an axis of dates; `ratio:` without `fixed` is refused; the fixed panel is centred in its room, and the title and caption of the figure stay at the edges of the page. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

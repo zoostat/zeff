@@ -81,6 +81,48 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
                 of_size: true,
             }
         }
+        LayoutError::TooThin { panel, filling } => {
+            let (wide, high) = size.millimetres();
+            // A number to two figures, as a message says it.
+            let rounded = |x: f64| {
+                format!("{x:.1e}")
+                    .parse::<f64>()
+                    .ok()
+                    .filter(|x| x.is_finite() && *x > 0.0)
+            };
+            let shape = if panel.1 >= panel.0 {
+                rounded(panel.1 / panel.0).map(|times| {
+                    format!("{} times as high as it is wide", format_float(times))
+                })
+            } else {
+                rounded(panel.0 / panel.1).map(|times| {
+                    format!("{} times as wide as it is high", format_float(times))
+                })
+            }
+            .unwrap_or_else(|| "with no width or no height".to_string());
+            FigureProblem {
+                message: format!(
+                    "fixed coordinates make the panel of this plot {shape}: on a page of {} by {} mm that is {} by {} mm",
+                    format_float(wide),
+                    format_float(high),
+                    mm(panel.0.max(0.0)),
+                    mm(panel.1.max(0.0))
+                ),
+                label: "too thin a panel".to_string(),
+                help: match rounded(filling) {
+                    Some(ratio) => format!(
+                        "a panel needs {} mm each way; `coord(fixed, ratio: {})` fills this page, and a plot whose two axes do not share a unit needs no `coord(fixed)`",
+                        mm(SMALLEST_PANEL),
+                        format_float(ratio)
+                    ),
+                    None => format!(
+                        "a panel needs {} mm each way; give another `ratio:`, or leave `coord(fixed)` out",
+                        mm(SMALLEST_PANEL)
+                    ),
+                },
+                of_size: false,
+            }
+        }
         LayoutError::Undrawn(why) => FigureProblem {
             message: why,
             label: "a plot this version does not draw".to_string(),

@@ -34,25 +34,43 @@ error[Z0401]: `coord(polar)` is not built yet: it comes with a later step of thi
 3 | p.coord(polar)
   |         ^^^^^ not in this build
   |
-  = help: the coordinates built so far are `cartesian` and `flip`
+  = help: the coordinates built so far are `cartesian`, `flip` and `fixed`
 
-== fixed_not_built_yet
-error[Z0401]: `coord(fixed)` is not built yet: it comes with a later step of this release
- --> scripts/main.zeff:3:9
-  |
-3 | p.coord(fixed)
-  |         ^^^^^ not in this build
-  |
-  = help: the coordinates built so far are `cartesian` and `flip`
-
-== a_ratio_not_built_yet
-error[Z0401]: `ratio:` of `coord` is not built yet: it comes with a later step of this release
+== a_ratio_without_fixed
+error[Z0401]: `ratio:` of `coord` goes with `fixed`, but the coordinates are `cartesian`
  --> scripts/main.zeff:3:16
   |
 3 | p.coord(ratio: 2)
-  |                ^ not in this build
+  |                ^ a ratio without `fixed`
   |
-  = help: the coordinates built so far are `cartesian` and `flip`
+  = help: write `coord(fixed, ratio: 2)` for a panel in which a unit of `y` is as long as two units of `x`; the other coordinates take the shape of the page
+
+== a_ratio_with_flip
+error[Z0401]: `ratio:` of `coord` goes with `fixed`, but the coordinates are `flip`
+ --> scripts/main.zeff:3:22
+  |
+3 | p.coord(flip, ratio: 2)
+  |                      ^ a ratio without `fixed`
+  |
+  = help: write `coord(fixed, ratio: 2)` for a panel in which a unit of `y` is as long as two units of `x`; the other coordinates take the shape of the page
+
+== a_ratio_of_zero
+error[Z0401]: `ratio:` of `coord` is how many units of `x` are as long as one unit of `y`, and must be above 0, but this is 0
+ --> scripts/main.zeff:3:23
+  |
+3 | p.coord(fixed, ratio: 0)
+  |                       ^ not a ratio
+  |
+  = help: `coord(fixed)` gives a unit of `y` the length of a unit of `x`; `coord(fixed, ratio: 2)` makes a unit of `y` twice as long, and `ratio: 0.5` half as long
+
+== a_ratio_below_zero
+error[Z0401]: `ratio:` of `coord` is how many units of `x` are as long as one unit of `y`, and must be above 0, but this is -1
+ --> scripts/main.zeff:3:23
+  |
+3 | p.coord(fixed, ratio: -1)
+  |                       ^^ not a ratio
+  |
+  = help: `coord(fixed)` gives a unit of `y` the length of a unit of `x`; `coord(fixed, ratio: 2)` makes a unit of `y` twice as long, and `ratio: 0.5` half as long
 
 == a_ratio_that_is_text
 error[Z0401]: `ratio` of `coord` must be a Float, but this is a Str
@@ -62,6 +80,24 @@ error[Z0401]: `ratio` of `coord` must be a Float, but this is a Str
   |                       ^^^^^^^^ a Str
   |
   = help: usage: `p.coord(type: cartesian | flip | polar | fixed = cartesian, ratio: Float)`
+
+== a_panel_too_thin
+error[Z0401]: fixed coordinates make the panel of this plot 420 times as high as it is wide: on a page of 89 by 66 mm that is 0.1 by 52 mm
+ --> scripts/main.zeff:3:1
+  |
+3 | export(d.plot(x: dose, y: change).points().coord(fixed, ratio: 500), "thin.svg")
+  | ^^^^^^ too thin a panel
+  |
+  = help: a panel needs 12.7 mm each way; `coord(fixed, ratio: 0.85)` fills this page, and a plot whose two axes do not share a unit needs no `coord(fixed)`
+
+== a_panel_too_flat
+error[Z0401]: fixed coordinates make the panel of this plot 600 times as wide as it is high: on a page of 89 by 66 mm that is 73.3 by 0.1 mm
+ --> scripts/main.zeff:3:1
+  |
+3 | export(d.plot(x: dose, y: change).points().coord(fixed, ratio: 0.002), "flat.svg")
+  | ^^^^^^ too thin a panel
+  |
+  = help: a panel needs 12.7 mm each way; `coord(fixed, ratio: 0.85)` fills this page, and a plot whose two axes do not share a unit needs no `coord(fixed)`
 
 == two_words
 error[Z0101]: nothing is called `polar` here

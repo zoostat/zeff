@@ -3305,11 +3305,21 @@ fn every_message_of_coord() {
         ("coordinates_in_quotation_marks", "p.coord(\"flip\")\n"),
         ("coordinates_of_a_frame", "d.coord(flip)\n"),
         ("polar_not_built_yet", "p.coord(polar)\n"),
-        ("fixed_not_built_yet", "p.coord(fixed)\n"),
-        ("a_ratio_not_built_yet", "p.coord(ratio: 2)\n"),
+        ("a_ratio_without_fixed", "p.coord(ratio: 2)\n"),
+        ("a_ratio_with_flip", "p.coord(flip, ratio: 2)\n"),
+        ("a_ratio_of_zero", "p.coord(fixed, ratio: 0)\n"),
+        ("a_ratio_below_zero", "p.coord(fixed, ratio: -1)\n"),
         (
             "a_ratio_that_is_text",
             "p.coord(fixed, ratio: \"square\")\n",
+        ),
+        (
+            "a_panel_too_thin",
+            "export(d.plot(x: dose, y: change).points().coord(fixed, ratio: 500), \"thin.svg\")\n",
+        ),
+        (
+            "a_panel_too_flat",
+            "export(d.plot(x: dose, y: change).points().coord(fixed, ratio: 0.002), \"flat.svg\")\n",
         ),
         ("two_words", "p.coord(flip, polar)\n"),
     ] {
@@ -3319,4 +3329,50 @@ fn every_message_of_coord() {
         all.push_str(&format!("== {name}\n{stderr}\n"));
     }
     insta::assert_snapshot!("coord_messages", all);
+}
+
+// ----- coord(fixed) (step 27b) -----
+
+#[test]
+fn fixed_coordinates_read_sensibly_as_text() {
+    let script = format!(
+        "{ARMS}p.coord(fixed)\n\
+         p.coord(fixed, ratio: 1)\n\
+         p.coord(fixed, ratio: 2)\n\
+         p.coord(fixed, ratio: 0.5)\n\
+         p.coord(fixed, ratio: 2).coord(flip)\n\
+         p.coord(flip).coord(fixed)\n\
+         p.coord(fixed, ratio: 3).coord()\n\
+         d.plot(x: dose, y: change).coord(fixed).lines().theme(minimal)\n"
+    );
+    let text = printed(&script);
+    let one = "coordinates: fixed, one unit of `y` as long as one of `x`\n";
+    assert_eq!(text.matches(one).count(), 4, "{text}");
+    assert_eq!(
+        text.matches("coordinates: fixed, one unit of `y` as long as 2 of `x`\n")
+            .count(),
+        1
+    );
+    assert_eq!(
+        text.matches("coordinates: fixed, one unit of `y` as long as 0.5 of `x`\n")
+            .count(),
+        1
+    );
+    // What is said last of the coordinates takes the place of what was said.
+    assert_eq!(text.matches("coordinates: flipped").count(), 1);
+    assert_eq!(text.matches("coordinates:").count(), 7);
+    assert!(text.contains(&format!("{one}theme: minimal\n")), "{text}");
+    insta::assert_snapshot!("fixed_coordinates_of_plots", text);
+}
+
+#[test]
+fn a_plot_with_fixed_coordinates_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{ARMS}let q = p.coord(fixed, ratio: 0.5)\n\
+         export(q, \"fixed.svg\")\n\
+         export(q, \"fixed.pdf\")\n\
+         export(q, \"fixed.png\")\n\
+         export(q.legend(top), \"fixed_top.svg\", size: two_column)\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
 }
