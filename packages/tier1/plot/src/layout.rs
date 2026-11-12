@@ -29,7 +29,7 @@
 //! A drawing holds no row of the data (open decision #118, F2): of a mark it keeps the place,
 //! the shape, the size and the colour.
 
-use zeff_core::value::{LegendPlace, Mark, Stairs};
+use zeff_core::value::{Coord, LegendPlace, Mark, Stairs};
 
 use crate::colour;
 use crate::drawing::{Anchor, Drawing, Head, Item, LineType, Primitive, Span, Step, Stroke, rgb};
@@ -820,6 +820,114 @@ fn spread(wanted: &[f64], apart: f64, top: f64, bottom: f64) -> Vec<f64> {
     out
 }
 
+/// An item drawn in the frame of the data, turned onto the page of a plot whose coordinates
+/// are flipped. The frame is the panel lying on its side: a place `(u, v)` of it, `u` from
+/// its left and `v` from its top, stands on the page as far from the foot of the panel as
+/// `u` is from the left of the frame, and as far from its left as `v` is from the foot of
+/// the frame. A point keeps its shape upright; a rectangle exchanges its width and height.
+/// `origin` is the top left corner of the panel on the page and `size` its width and height.
+fn turned(item: Item, origin: (f64, f64), size: (f64, f64)) -> Item {
+    let at = |(u, v): (f64, f64)| (origin.0 + size.0 - v, origin.1 + size.1 - u);
+    let primitive = match item.primitive {
+        Primitive::Point {
+            at: place,
+            shape,
+            size,
+            colour,
+            opacity,
+        } => Primitive::Point {
+            at: at(place),
+            shape,
+            size,
+            colour,
+            opacity,
+        },
+        Primitive::Segment {
+            from,
+            to,
+            stroke,
+            heads,
+        } => Primitive::Segment {
+            from: at(from),
+            to: at(to),
+            stroke,
+            heads,
+        },
+        Primitive::Polygon {
+            rings,
+            fill,
+            stroke,
+            opacity,
+        } => Primitive::Polygon {
+            rings: rings
+                .into_iter()
+                .map(|ring| ring.into_iter().map(at).collect())
+                .collect(),
+            fill,
+            stroke,
+            opacity,
+        },
+        Primitive::Path {
+            steps,
+            stroke,
+            fill,
+            opacity,
+        } => Primitive::Path {
+            steps: steps
+                .into_iter()
+                .map(|step| match step {
+                    Step::Move(to) => Step::Move(at(to)),
+                    Step::Line(to) => Step::Line(at(to)),
+                    Step::Curve(first, second, to) => Step::Curve(at(first), at(second), at(to)),
+                    // The frame is mirrored as it is turned: an arc runs the other way
+                    // round, with its radii exchanged.
+                    Step::Arc {
+                        radii,
+                        turn,
+                        larger,
+                        clockwise,
+                        to,
+                    } => Step::Arc {
+                        radii: (radii.1, radii.0),
+                        turn,
+                        larger,
+                        clockwise: !clockwise,
+                        to: at(to),
+                    },
+                    Step::Close => Step::Close,
+                })
+                .collect(),
+            stroke,
+            fill,
+            opacity,
+        },
+        Primitive::Rectangle {
+            at: (u, v),
+            width,
+            height,
+            radius,
+            fill,
+            stroke,
+        } => Primitive::Rectangle {
+            at: (
+                origin.0 + size.0 - v - height,
+                origin.1 + size.1 - u - width,
+            ),
+            width: height,
+            height: width,
+            radius,
+            fill,
+            stroke,
+        },
+        // A text, a picture and a clipped group are placed on the page as they are.
+        other => other,
+    };
+    Item {
+        name: item.name,
+        primitive,
+    }
+}
+
 /// The items of a legend with its top left corner at `at`.
 fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec<Item>) {
     let (left, mut y) = at;
@@ -1042,8 +1150,17 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let (width, height) = size.points();
     let mut set = Setter::default();
     let panel = scene.panels.first();
-    let xs = panel.and_then(|p| p.x).and_then(|id| scene.scale(id));
-    let ys = panel.and_then(|p| p.y).and_then(|id| scene.scale(id));
+    // The scales the marks are placed by, and the scales of the page: `xs` is the scale along
+    // the foot of the panel and `ys` the scale up its side, which are those of `x` and of
+    // `y` unless the coordinates are flipped.
+    let data_x = panel.and_then(|p| p.x).and_then(|id| scene.scale(id));
+    let data_y = panel.and_then(|p| p.y).and_then(|id| scene.scale(id));
+    let flip = scene.coord == Coord::Flip;
+    let (xs, ys) = if flip {
+        (data_y, data_x)
+    } else {
+        (data_x, data_y)
+    };
     let label = theme.label_size;
     let title_line = theme.title_size * theme.leading;
     let half_capital = capital(label) / 2.0;
@@ -1082,7 +1199,9 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let band_room = (width - 2.0 * theme.margin - width / 6.0).max(1.0);
     // With `direct`, the legends that lines read are replaced by the names at the ends of
     // the lines; any other stands at the right.
-    let (replaced, ends) = if place == LegendPlace::Direct {
+    // Flipped, a line ends at the top of the panel and not at its right, so its name has no
+    // place beside its end: the legend is then drawn at the right.
+    let (replaced, ends) = if place == LegendPlace::Direct && !flip {
         end_labels(scene, theme)
     } else {
         (vec![false; scene.legends.len()], Vec::new())
@@ -1394,16 +1513,37 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             ));
         }
     }
-    // The marks, clipped to the panel.
+    // The marks, clipped to the panel. They are drawn in the frame of the data, `x` across
+    // and `y` upwards; where the coordinates are flipped that frame is the panel lying on its
+    // side, as wide as the panel is high, and each layer is turned onto the page when it is
+    // drawn ([`turned`]).
     let mut marks: Vec<Item> = Vec::new();
+    let (m_left, m_top, m_width, m_height) = if flip {
+        (0.0, 0.0, panel_height, panel_width)
+    } else {
+        (left, top, panel_width, panel_height)
+    };
+    let m_across = |s: &Scale, v: f64| m_left + scale::share(s.kind, s.limits, v) * m_width;
+    let m_down =
+        |s: &Scale, v: f64| m_top + m_height - scale::share(s.kind, s.limits, v) * m_height;
+    let turn = |drawn: Vec<Item>| -> Vec<Item> {
+        if flip {
+            drawn
+                .into_iter()
+                .map(|item| turned(item, (left, top), (panel_width, panel_height)))
+                .collect()
+        } else {
+            drawn
+        }
+    };
     // A reference line goes from one edge of the panel to the other, at each place of its
     // layer on the one axis it needs, in the colour of the place and the type of the layer.
     let reference = |layer: &crate::scene::Layer, name: &str| -> Vec<Item> {
         let level = layer.mark == Mark::Hline;
         let (places, scale) = if level {
-            (&layer.y, ys)
+            (&layer.y, data_y)
         } else {
-            (&layer.x, xs)
+            (&layer.x, data_x)
         };
         let Some(scale) = scale else {
             return Vec::new();
@@ -1425,11 +1565,11 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     },
                 };
                 let (from, to) = if level {
-                    let y = down(scale, *place);
-                    ((left, y), (left + panel_width, y))
+                    let y = m_down(scale, *place);
+                    ((m_left, y), (m_left + m_width, y))
                 } else {
-                    let x = across(scale, *place);
-                    ((x, top), (x, top + panel_height))
+                    let x = m_across(scale, *place);
+                    ((x, m_top), (x, m_top + m_height))
                 };
                 named(
                     name,
@@ -1478,38 +1618,40 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             )
         };
         let mut drawn: Vec<Item> = Vec::new();
-        if let Some(scale) = xs {
-            let base = top + panel_height;
+        if let Some(scale) = data_x {
+            let base = m_top + m_height;
             for (i, value) in layer.x.iter().enumerate() {
-                let x = across(scale, *value);
+                let x = m_across(scale, *value);
                 drawn.push(tick(i, (x, base), (x, base - long)));
             }
         }
-        if let Some(scale) = ys {
+        if let Some(scale) = data_y {
             for (i, value) in layer.y.iter().enumerate() {
-                let y = down(scale, *value);
-                drawn.push(tick(i, (left, y), (left + long, y)));
+                let y = m_down(scale, *value);
+                drawn.push(tick(i, (m_left, y), (m_left + long, y)));
             }
         }
         drawn
     };
     // With one axis alone, the reference lines across it and the rugs along it are all that
     // can be placed.
-    if let (Some(p), true) = (panel, xs.is_none() || ys.is_none()) {
+    if let (Some(p), true) = (panel, data_x.is_none() || data_y.is_none()) {
         for (at, layer) in p.layers.iter().enumerate() {
             let name = format!("layer:{}", at + 1);
             if layer.mark.spans() {
-                marks.extend(reference(layer, &name));
+                marks.extend(turn(reference(layer, &name)));
             }
             if matches!(layer.mark, Mark::Rug(_)) {
-                marks.extend(ticks(layer, &name));
+                marks.extend(turn(ticks(layer, &name)));
             }
         }
     }
-    if let (Some(p), Some(sx), Some(sy)) = (panel, xs, ys) {
+    if let (Some(p), Some(sx), Some(sy)) = (panel, data_x, data_y) {
         for (at, layer) in p.layers.iter().enumerate() {
             let name = format!("layer:{}", at + 1);
             let mut drawn: Vec<Item> = Vec::new();
+            // What is placed on the page as it is, and is not turned with the marks.
+            let mut upright: Vec<Item> = Vec::new();
             if layer.mark.spans() {
                 drawn.extend(reference(layer, &name));
             }
@@ -1530,11 +1672,11 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 // either side of its place along `x`, in its own fill.
                 let bars = marks_of.min(layer.low.len()).min(layer.span.len());
                 for i in 0..bars {
-                    let (left, right) = (
-                        across(sx, layer.x[i] - layer.span[i] / 2.0),
-                        across(sx, layer.x[i] + layer.span[i] / 2.0),
+                    let (near, far) = (
+                        m_across(sx, layer.x[i] - layer.span[i] / 2.0),
+                        m_across(sx, layer.x[i] + layer.span[i] / 2.0),
                     );
-                    let (bottom, upper) = (down(sy, layer.low[i]), down(sy, layer.y[i]));
+                    let (bottom, upper) = (m_down(sy, layer.low[i]), m_down(sy, layer.y[i]));
                     let fill = match &layer.fill {
                         Paint::Theme => theme.mark.to_string(),
                         Paint::Constant(hex) => hex.clone(),
@@ -1547,10 +1689,10 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                         &name,
                         Primitive::Polygon {
                             rings: vec![vec![
-                                (left, bottom),
-                                (right, bottom),
-                                (right, upper),
-                                (left, upper),
+                                (near, bottom),
+                                (far, bottom),
+                                (far, upper),
+                                (near, upper),
                             ]],
                             fill: Some(fill),
                             stroke: None,
@@ -1570,12 +1712,12 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                         end += 1;
                     }
                     let mut ring: Vec<(f64, f64)> = (start..end)
-                        .map(|i| (across(sx, layer.x[i]), down(sy, layer.y[i])))
+                        .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])))
                         .collect();
                     ring.extend(
                         (start..end)
                             .rev()
-                            .map(|i| (across(sx, layer.x[i]), down(sy, layer.low[i]))),
+                            .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.low[i]))),
                     );
                     let fill = match &layer.fill {
                         Paint::Theme => theme.mark.to_string(),
@@ -1620,7 +1762,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     // The places of the marks on the page, joined straight for a line and by
                     // level and upright pieces for steps.
                     let places: Vec<(f64, f64)> = (start..end)
-                        .map(|i| (across(sx, layer.x[i]), down(sy, layer.y[i])))
+                        .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])))
                         .collect();
                     let mut steps: Vec<Step> = Vec::with_capacity(3 * places.len());
                     for (i, &at) in places.iter().enumerate() {
@@ -1672,12 +1814,19 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     Sizing::Scaled(_) => theme.label_size,
                 };
                 for i in 0..marks_of.min(layer.label.len()) {
-                    drawn.push(named(
+                    // A text stands upright wherever the coordinates lie: it is placed on
+                    // the page itself, and moved there, to the right and up.
+                    let (x, y) = if flip {
+                        (across(sy, layer.y[i]), down(sx, layer.x[i]))
+                    } else {
+                        (across(sx, layer.x[i]), down(sy, layer.y[i]))
+                    };
+                    upright.push(named(
                         &name,
                         Primitive::Text {
                             at: (
-                                across(sx, layer.x[i]) + layer.nudge.0,
-                                down(sy, layer.y[i]) - layer.nudge.1 + capital(type_size) / 2.0,
+                                x + layer.nudge.0,
+                                y - layer.nudge.1 + capital(type_size) / 2.0,
                             ),
                             anchor: Anchor::Middle,
                             turn: 0.0,
@@ -1719,7 +1868,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 drawn.push(named(
                     &name,
                     Primitive::Point {
-                        at: (across(sx, layer.x[i]), down(sy, layer.y[i])),
+                        at: (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])),
                         shape: outline,
                         size: across_mark,
                         colour,
@@ -1727,6 +1876,9 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     },
                 ));
             }
+            // The layer on the page: turned where the coordinates are flipped.
+            let mut drawn = turn(drawn);
+            drawn.extend(upright);
             // A layer flagged to be drawn in dots (open decision #118, F4): the panel as it
             // stands with this layer on it, the page, the gridlines and the layers under it,
             // as one picture at the dots to the inch of a figure, which takes the place of
@@ -1782,10 +1934,13 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     ));
     // The x axis: its line, a tick at each break, the labels that do not touch, its title.
     if let Some(s) = xs {
+        // The axis is named by its scale: `axis:x`, or `axis:y` where the coordinates are
+        // flipped.
+        let along = format!("axis:{}", s.id);
         let base = top + panel_height;
         if theme.axis_lines {
             items.push(named(
-                "axis:x",
+                &along,
                 segment(
                     (left, base),
                     (left + panel_width, base),
@@ -1799,7 +1954,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         for (i, &x) in centres.iter().enumerate() {
             if theme.axis_lines {
                 items.push(named(
-                    "axis:x",
+                    &along,
                     segment(
                         (x, base),
                         (x, base + theme.tick_length),
@@ -1813,7 +1968,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 for (row, words) in lines.iter().enumerate() {
                     let y = baseline + row as f64 * label * theme.leading;
                     items.push(named(
-                        "axis:x",
+                        &along,
                         text((x, y), Anchor::Middle, 0.0, words, label, theme),
                     ));
                 }
@@ -1825,7 +1980,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             let y = baseline + theme.title_gap + (i + 1) as f64 * title_line
                 - theme.title_size * (theme.leading - 1.0);
             items.push(named(
-                "axis:x",
+                &along,
                 text(
                     (left + panel_width / 2.0, y),
                     Anchor::Middle,
@@ -1839,9 +1994,10 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     }
     // The y axis: the same, its labels ending at the ticks and its title read upwards.
     if let Some(s) = ys {
+        let up = format!("axis:{}", s.id);
         if theme.axis_lines {
             items.push(named(
-                "axis:y",
+                &up,
                 segment(
                     (left, top),
                     (left, top + panel_height),
@@ -1855,7 +2011,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         for (i, &y) in centres.iter().enumerate() {
             if theme.axis_lines {
                 items.push(named(
-                    "axis:y",
+                    &up,
                     segment(
                         (left - theme.tick_length, y),
                         (left, y),
@@ -1867,7 +2023,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 && let Some(words) = s.labels.get(i)
             {
                 items.push(named(
-                    "axis:y",
+                    &up,
                     text(
                         (left - theme.tick_length - theme.label_gap, y + half_capital),
                         Anchor::End,
@@ -1885,7 +2041,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             let x = theme.margin + (i + 1) as f64 * title_line
                 - theme.title_size * (theme.leading - 1.0);
             items.push(named(
-                "axis:y",
+                &up,
                 text(
                     (x, top + panel_height / 2.0),
                     Anchor::Middle,
@@ -2043,6 +2199,72 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_item_is_turned_onto_the_page_and_back() {
+        let item = |primitive: Primitive| named("layer:1", primitive);
+        // A panel 100 wide and 60 high at (10, 20): its frame of data is 60 wide and 100
+        // high. The left foot of the frame is the left foot of the panel; a place to the
+        // right in the frame is higher on the page, and a place higher in the frame is
+        // further right.
+        let (origin, size) = ((10.0, 20.0), (100.0, 60.0));
+        let point = |at: (f64, f64)| Primitive::Point {
+            at,
+            shape: "circle",
+            size: 4.5,
+            colour: "#222222".to_string(),
+            opacity: 1.0,
+        };
+        let at = |turned: Item| match turned.primitive {
+            Primitive::Point { at, .. } => at,
+            other => panic!("not a point: {other:?}"),
+        };
+        assert_eq!(
+            at(turned(item(point((0.0, 100.0))), origin, size)),
+            (10.0, 80.0)
+        );
+        assert_eq!(
+            at(turned(item(point((60.0, 100.0))), origin, size)),
+            (10.0, 20.0)
+        );
+        assert_eq!(
+            at(turned(item(point((0.0, 0.0))), origin, size)),
+            (110.0, 80.0)
+        );
+        // A rectangle exchanges its width and its height.
+        let rectangle = Primitive::Rectangle {
+            at: (6.0, 40.0),
+            width: 12.0,
+            height: 30.0,
+            radius: 0.0,
+            fill: None,
+            stroke: None,
+        };
+        match turned(item(rectangle), origin, size).primitive {
+            Primitive::Rectangle {
+                at, width, height, ..
+            } => assert_eq!((at, width, height), ((40.0, 62.0), 30.0, 12.0)),
+            other => panic!("not a rectangle: {other:?}"),
+        }
+        // Turned back, with the sides exchanged, an item is where it was.
+        let path = Primitive::Path {
+            steps: vec![
+                Step::Move((3.0, 4.0)),
+                Step::Line((30.0, 44.0)),
+                Step::Curve((1.0, 2.0), (3.0, 5.0), (8.0, 13.0)),
+                Step::Close,
+            ],
+            stroke: None,
+            fill: None,
+            opacity: 1.0,
+        };
+        let there = turned(item(path.clone()), (0.0, 0.0), (100.0, 60.0));
+        let back = turned(there, (0.0, 0.0), (60.0, 100.0));
+        assert_eq!(back.primitive, path);
+        // A text is left as it is: the layout places it on the page itself.
+        let words = text((5.0, 6.0), Anchor::Middle, 0.0, "a", 8.0, &JOURNAL);
+        assert_eq!(turned(item(words.clone()), origin, size).primitive, words);
+    }
 
     #[test]
     fn names_at_the_ends_of_lines_are_moved_apart_and_stay_beside_the_panel() {

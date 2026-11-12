@@ -365,6 +365,12 @@ plot/annotate/annotated.svg 30aba136edd82cc8
 plot/annotate/annotated.pdf 8988d9ffe03c79f0
 plot/annotate/annotated.png 462002fcac50c4a8
 plot/annotate/wrapped.svg 61acc2574918c763
+plot/coord/stdout 07ff36017582f84b
+plot/coord/stderr 056c1196908c015c
+plot/coord/flipped.svg de53afe76b584359
+plot/coord/flipped.pdf 12d9ecff1011f3d6
+plot/coord/flipped.png cec11250ff4ee1d6
+plot/coord/turned.svg 9fca1d730a38c904
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

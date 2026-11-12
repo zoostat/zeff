@@ -1,0 +1,77 @@
+---
+source: packages/tier1/plot/tests/coords.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 138.087,7.792 to 138.087,155.253 stroke #E3E3E3 0.35
+[grid] segment 158.62,7.792 to 158.62,155.253 stroke #E3E3E3 0.35
+[grid] segment 179.152,7.792 to 179.152,155.253 stroke #E3E3E3 0.35
+[grid] segment 199.685,7.792 to 199.685,155.253 stroke #E3E3E3 0.35
+[grid] segment 220.218,7.792 to 220.218,155.253 stroke #E3E3E3 0.35
+[grid] segment 240.75,7.792 to 240.75,155.253 stroke #E3E3E3 0.35
+[grid] segment 132.954,148 to 245.883,148 stroke #E3E3E3 0.35
+[grid] segment 132.954,135.914 to 245.883,135.914 stroke #E3E3E3 0.35
+[grid] segment 132.954,123.827 to 245.883,123.827 stroke #E3E3E3 0.35
+[grid] segment 132.954,111.74 to 245.883,111.74 stroke #E3E3E3 0.35
+[grid] segment 132.954,99.653 to 245.883,99.653 stroke #E3E3E3 0.35
+[grid] segment 132.954,87.566 to 245.883,87.566 stroke #E3E3E3 0.35
+[grid] segment 132.954,75.479 to 245.883,75.479 stroke #E3E3E3 0.35
+[grid] segment 132.954,63.392 to 245.883,63.392 stroke #E3E3E3 0.35
+[grid] segment 132.954,51.305 to 245.883,51.305 stroke #E3E3E3 0.35
+[grid] segment 132.954,39.218 to 245.883,39.218 stroke #E3E3E3 0.35
+[grid] segment 132.954,27.131 to 245.883,27.131 stroke #E3E3E3 0.35
+[grid] segment 132.954,15.044 to 245.883,15.044 stroke #E3E3E3 0.35
+[panel] clip 132.954,7.792 112.929 by 147.461
+  [layer:1] polygon 138.087,153.44 138.087,142.561 158.62,142.561 158.62,153.44 fill #222222 opacity 1
+  [layer:1] polygon 138.087,141.353 138.087,130.474 179.152,130.474 179.152,141.353 fill #222222 opacity 1
+  [layer:1] polygon 138.087,129.266 138.087,118.387 199.685,118.387 199.685,129.266 fill #222222 opacity 1
+  [layer:1] polygon 138.087,117.179 138.087,106.301 220.218,106.301 220.218,117.179 fill #222222 opacity 1
+  [layer:1] polygon 138.087,105.092 138.087,94.214 240.75,94.214 240.75,105.092 fill #222222 opacity 1
+  [layer:1] polygon 138.087,93.005 138.087,82.127 158.62,82.127 158.62,93.005 fill #222222 opacity 1
+  [layer:1] polygon 138.087,80.918 138.087,70.04 179.152,70.04 179.152,80.918 fill #222222 opacity 1
+  [layer:1] polygon 138.087,68.831 138.087,57.953 199.685,57.953 199.685,68.831 fill #222222 opacity 1
+  [layer:1] polygon 138.087,56.744 138.087,45.866 220.218,45.866 220.218,56.744 fill #222222 opacity 1
+  [layer:1] polygon 138.087,44.657 138.087,33.779 240.75,33.779 240.75,44.657 fill #222222 opacity 1
+  [layer:1] polygon 138.087,32.57 138.087,21.692 158.62,21.692 158.62,32.57 fill #222222 opacity 1
+  [layer:1] polygon 138.087,20.483 138.087,9.605 179.152,9.605 179.152,20.483 fill #222222 opacity 1
+[axis:y] segment 132.954,155.253 to 245.883,155.253 stroke #222222 0.5
+[axis:y] segment 138.087,155.253 to 138.087,158.253 stroke #222222 0.5
+[axis:y] text 138.087,166.837 middle "0" sans 8 #222222
+[axis:y] segment 158.62,155.253 to 158.62,158.253 stroke #222222 0.5
+[axis:y] text 158.62,166.837 middle "1" sans 8 #222222
+[axis:y] segment 179.152,155.253 to 179.152,158.253 stroke #222222 0.5
+[axis:y] text 179.152,166.837 middle "2" sans 8 #222222
+[axis:y] segment 199.685,155.253 to 199.685,158.253 stroke #222222 0.5
+[axis:y] text 199.685,166.837 middle "3" sans 8 #222222
+[axis:y] segment 220.218,155.253 to 220.218,158.253 stroke #222222 0.5
+[axis:y] text 220.218,166.837 middle "4" sans 8 #222222
+[axis:y] segment 240.75,155.253 to 240.75,158.253 stroke #222222 0.5
+[axis:y] text 240.75,166.837 middle "5" sans 8 #222222
+[axis:y] text 189.419,180.837 middle "n" sans 9 #222222
+[axis:x] segment 132.954,7.792 to 132.954,155.253 stroke #222222 0.5
+[axis:x] segment 129.954,148 to 132.954,148 stroke #222222 0.5
+[axis:x] text 126.954,150.792 end "an industry of some length 00" sans 8 #222222
+[axis:x] segment 129.954,135.914 to 132.954,135.914 stroke #222222 0.5
+[axis:x] text 126.954,138.706 end "an industry of some length 01" sans 8 #222222
+[axis:x] segment 129.954,123.827 to 132.954,123.827 stroke #222222 0.5
+[axis:x] text 126.954,126.619 end "an industry of some length 02" sans 8 #222222
+[axis:x] segment 129.954,111.74 to 132.954,111.74 stroke #222222 0.5
+[axis:x] text 126.954,114.532 end "an industry of some length 03" sans 8 #222222
+[axis:x] segment 129.954,99.653 to 132.954,99.653 stroke #222222 0.5
+[axis:x] text 126.954,102.445 end "an industry of some length 04" sans 8 #222222
+[axis:x] segment 129.954,87.566 to 132.954,87.566 stroke #222222 0.5
+[axis:x] text 126.954,90.358 end "an industry of some length 05" sans 8 #222222
+[axis:x] segment 129.954,75.479 to 132.954,75.479 stroke #222222 0.5
+[axis:x] text 126.954,78.271 end "an industry of some length 06" sans 8 #222222
+[axis:x] segment 129.954,63.392 to 132.954,63.392 stroke #222222 0.5
+[axis:x] text 126.954,66.184 end "an industry of some length 07" sans 8 #222222
+[axis:x] segment 129.954,51.305 to 132.954,51.305 stroke #222222 0.5
+[axis:x] text 126.954,54.097 end "an industry of some length 08" sans 8 #222222
+[axis:x] segment 129.954,39.218 to 132.954,39.218 stroke #222222 0.5
+[axis:x] text 126.954,42.01 end "an industry of some length 09" sans 8 #222222
+[axis:x] segment 129.954,27.131 to 132.954,27.131 stroke #222222 0.5
+[axis:x] text 126.954,29.923 end "an industry of some length 10" sans 8 #222222
+[axis:x] segment 129.954,15.044 to 132.954,15.044 stroke #222222 0.5
+[axis:x] text 126.954,17.836 end "an industry of some length 11" sans 8 #222222
+[axis:x] text 13,81.522 middle turned 90 "group" sans 9 #222222

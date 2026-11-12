@@ -1,0 +1,71 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== coordinates_that_are_none
+error[Z0402]: `sideways` is not one of the allowed words
+ --> scripts/main.zeff:3:9
+  |
+3 | p.coord(sideways)
+  |         ^^^^^^^^ expected one of cartesian, flip, polar, fixed
+
+== coordinates_in_quotation_marks
+error[Z0403]: expected one of cartesian, flip, polar, fixed, found text
+ --> scripts/main.zeff:3:9
+  |
+3 | p.coord("flip")
+  |         ^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `flip`
+
+== coordinates_of_a_frame
+error[Z0401]: `coord` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | d.coord(flip)
+  | ^ this is a Frame
+  |
+  = help: `coord` takes a Plot first; `x.coord(...)` is `coord(x, ...)`
+
+== polar_not_built_yet
+error[Z0401]: `coord(polar)` is not built yet: it comes with a later step of this release
+ --> scripts/main.zeff:3:9
+  |
+3 | p.coord(polar)
+  |         ^^^^^ not in this build
+  |
+  = help: the coordinates built so far are `cartesian` and `flip`
+
+== fixed_not_built_yet
+error[Z0401]: `coord(fixed)` is not built yet: it comes with a later step of this release
+ --> scripts/main.zeff:3:9
+  |
+3 | p.coord(fixed)
+  |         ^^^^^ not in this build
+  |
+  = help: the coordinates built so far are `cartesian` and `flip`
+
+== a_ratio_not_built_yet
+error[Z0401]: `ratio:` of `coord` is not built yet: it comes with a later step of this release
+ --> scripts/main.zeff:3:16
+  |
+3 | p.coord(ratio: 2)
+  |                ^ not in this build
+  |
+  = help: the coordinates built so far are `cartesian` and `flip`
+
+== a_ratio_that_is_text
+error[Z0401]: `ratio` of `coord` must be a Float, but this is a Str
+ --> scripts/main.zeff:3:23
+  |
+3 | p.coord(fixed, ratio: "square")
+  |                       ^^^^^^^^ a Str
+  |
+  = help: usage: `p.coord(type: cartesian | flip | polar | fixed = cartesian, ratio: Float)`
+
+== two_words
+error[Z0101]: nothing is called `polar` here
+ --> scripts/main.zeff:3:15
+  |
+3 | p.coord(flip, polar)
+  |               ^^^^^ not a binding

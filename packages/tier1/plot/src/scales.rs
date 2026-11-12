@@ -14,8 +14,8 @@ use std::rc::Rc;
 
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, AxisKind, LegendPlace, Palette, Plot, PlotAxis, PlotScale, PlotTheme, ThemeName,
-    Value,
+    Aesthetic, AxisKind, Coord, LegendPlace, Palette, Plot, PlotAxis, PlotScale, PlotTheme,
+    ThemeName, Value,
 };
 use zeff_diagnostics::Diagnostic;
 use zeff_diagnostics::Span;
@@ -799,6 +799,49 @@ pub fn theme(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let mut next = (**plot).clone();
     // What is said last of the theme takes the place of what was said.
     next.theme = PlotTheme { name, base_size };
+    describe(&mut next);
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+const C_TYPE: usize = 1;
+const C_RATIO: usize = 2;
+
+/// `p.coord(type: cartesian | flip | polar | fixed = cartesian, ratio: Float)`: the
+/// coordinates of a plot, how its two scales are brought to the page.
+pub fn coord(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(
+            ctx,
+            "coordinates reached their body without a plot",
+        ));
+    };
+    let not_yet = |ctx: &CallContext<'_>, slot: usize, what: &str| {
+        fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("{what} is not built yet: it comes with a later step of this release"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(slot), "not in this build")
+            .help("the coordinates built so far are `cartesian` and `flip`"),
+        )
+    };
+    let coord = match args.get(C_TYPE) {
+        None | Some(Value::Na) => Coord::Cartesian,
+        Some(Value::Word(word)) => match word.as_str() {
+            "cartesian" => Coord::Cartesian,
+            "flip" => Coord::Flip,
+            "polar" => return Err(not_yet(ctx, C_TYPE, "`coord(polar)`")),
+            "fixed" => return Err(not_yet(ctx, C_TYPE, "`coord(fixed)`")),
+            _ => return Err(internal(ctx, "coordinates that are none of the four")),
+        },
+        Some(_) => return Err(internal(ctx, "coordinates that are not a word")),
+    };
+    if !matches!(args.get(C_RATIO), None | Some(Value::Na)) {
+        return Err(not_yet(ctx, C_RATIO, "`ratio:` of `coord`"));
+    }
+    let mut next = (**plot).clone();
+    next.coord = coord;
     describe(&mut next);
     Ok(Value::Plot(Rc::new(next)))
 }

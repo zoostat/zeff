@@ -2111,6 +2111,19 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/annotate/{name}"), &data));
     }
+    // Flipped coordinates (step 27a): the mean wage of each industry as bars that lie along
+    // the page, every name written; a series with a reference line and a note, turned; what
+    // the script prints, the lying bars in the three formats and the turned series as a
+    // figure.
+    let script = "let w = dataset(wages)\nlet m = w.where(year == 2015).aggregate(wage = mean(wage), by: [industry])\nlet p = m.plot(x: industry, y: wage).bars().coord(flip)\np\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nlet q = u.plot(x: year, y: wage, color: union).lines().hline(at: 30).annotate(text: \"thirty an hour\", x: 2012, y: 31).coord(flip)\nq\nq.coord(cartesian)\nexport(p, \"flipped.svg\")\nexport(p, \"flipped.pdf\")\nexport(p, \"flipped.png\")\nexport(q, \"turned.svg\")\n";
+    let flipped = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/coord/stdout", &flipped.output.stdout));
+    fills.push(text("plot/coord/stderr", &flipped.output.stderr));
+    for name in ["flipped.svg", "flipped.pdf", "flipped.png", "turned.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/coord/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

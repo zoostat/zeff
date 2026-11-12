@@ -90,6 +90,8 @@ pub struct Plot {
     pub labels: PlotLabels,
     /// The theme of the figure: `journal` where the script says nothing.
     pub theme: PlotTheme,
+    /// The coordinates: cartesian where the script says nothing.
+    pub coord: Coord,
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
     pub summary: Table,
@@ -111,6 +113,27 @@ pub struct PlotLabels {
     pub y: Option<String>,
     pub color: Option<String>,
     pub caption: Option<String>,
+}
+
+/// The coordinates of a plot (section 7.6, "Coordinates": `coord`): how its two scales are
+/// brought to the page.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum Coord {
+    /// `x` along the foot of the panel and `y` up its side.
+    #[default]
+    Cartesian,
+    /// `x` up the side and `y` along the foot: every mark turned with them.
+    Flip,
+}
+
+impl Coord {
+    /// The coordinates as they are written: `cartesian`, `flip`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Coord::Cartesian => "cartesian",
+            Coord::Flip => "flip",
+        }
+    }
 }
 
 /// The themes of a figure (section 7.6, "Guides and theme": `theme`).

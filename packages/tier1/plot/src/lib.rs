@@ -744,5 +744,30 @@ pub fn functions() -> Vec<Function> {
             },
             body: marks::annotate,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "coord",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option_with_default(
+                        "type",
+                        "cartesian | flip | polar | fixed",
+                        "cartesian",
+                    ),
+                    ParamSpec::option("ratio", "Float"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "polar, fixed and ratio:, which are not built yet",
+                )],
+                help: include_str!("../help/coord.md"),
+                accuracy: None,
+            },
+            body: scales::coord,
+        },
     ]
 }

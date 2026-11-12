@@ -3262,3 +3262,61 @@ fn every_message_of_annotate() {
     }
     insta::assert_snapshot!("annotate_messages", all);
 }
+
+// ----- coord (step 27a) -----
+
+#[test]
+fn the_coordinates_of_a_plot_read_sensibly_as_text() {
+    let script = format!(
+        "{ARMS}p.coord(flip)\n\
+         p.coord()\n\
+         p.coord(cartesian)\n\
+         p.coord(flip).coord(cartesian)\n\
+         p.coord(flip).coord(flip)\n\
+         d.plot(x: arm, y: change).coord(flip).bars().labels(title: \"Change by arm\").theme(minimal)\n\
+         d.plot(x: dose, y: change).lines().hline(at: 2).coord(flip)\n"
+    );
+    let text = printed(&script);
+    // The coordinates are said on a line of their own, and only when they are flipped:
+    // the last word on them is the one that holds.
+    let line = "coordinates: flipped, `x` up the side and `y` along the foot\n";
+    assert_eq!(text.matches(line).count(), 4, "{text}");
+    assert!(
+        text.contains(&format!("title: Change by arm\n{line}theme: minimal\n")),
+        "{text}"
+    );
+    insta::assert_snapshot!("coordinates_of_plots", text);
+}
+
+#[test]
+fn a_flipped_plot_is_exported_with_its_axes_exchanged() {
+    let (code, stdout, stderr) = go(&format!(
+        "{ARMS}export(d.plot(x: arm, y: change).bars().coord(flip), \"lying.svg\")\n\
+         export(d.plot(x: arm, y: change).bars(), \"standing.svg\")\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
+}
+
+#[test]
+fn every_message_of_coord() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("coordinates_that_are_none", "p.coord(sideways)\n"),
+        ("coordinates_in_quotation_marks", "p.coord(\"flip\")\n"),
+        ("coordinates_of_a_frame", "d.coord(flip)\n"),
+        ("polar_not_built_yet", "p.coord(polar)\n"),
+        ("fixed_not_built_yet", "p.coord(fixed)\n"),
+        ("a_ratio_not_built_yet", "p.coord(ratio: 2)\n"),
+        (
+            "a_ratio_that_is_text",
+            "p.coord(fixed, ratio: \"square\")\n",
+        ),
+        ("two_words", "p.coord(flip, polar)\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{ARMS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("coord_messages", all);
+}

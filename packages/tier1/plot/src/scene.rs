@@ -67,8 +67,9 @@ use std::borrow::Cow;
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Arrangement, AxisKind, Frame, LegendPlace, Mark, Palette, Plot, PlotConstant,
-    PlotLabels, PlotLayer, PlotMapping, PlotSetting, PlotTheme, Sides, Stacking, Stairs, Table,
+    Aesthetic, Align, Arrangement, AxisKind, Coord, Frame, LegendPlace, Mark, Palette, Plot,
+    PlotConstant, PlotLabels, PlotLayer, PlotMapping, PlotSetting, PlotTheme, Sides, Stacking,
+    Stairs, Table,
 };
 use zeff_diagnostics::count;
 
@@ -132,6 +133,10 @@ pub struct Scene {
     pub legends: Vec<Legend>,
     /// Where the script puts the legends: at the right where it says nothing.
     pub legend: LegendPlace,
+    /// The coordinates the script gives the plot: how the two scales are brought to the
+    /// page. Flipped, the axis of `x` is at the left and that of `y` at the foot, and a
+    /// writer turns every mark with them.
+    pub coord: Coord,
     /// The theme the script gives the figure, which a writer draws by; `journal` at its
     /// own size where it says nothing.
     pub theme: PlotTheme,
@@ -2618,10 +2623,12 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     }
     let mut scales: Vec<Scale> = Vec::new();
     let mut axes: Vec<Axis> = Vec::new();
-    for (aesthetic, position) in [
-        (Aesthetic::X, Position::Bottom),
-        (Aesthetic::Y, Position::Left),
-    ] {
+    // Flipped, `x` runs up the side of the panel and `y` along its foot.
+    let sides = match plot.coord {
+        Coord::Cartesian => (Position::Bottom, Position::Left),
+        Coord::Flip => (Position::Left, Position::Bottom),
+    };
+    for (aesthetic, position) in [(Aesthetic::X, sides.0), (Aesthetic::Y, sides.1)] {
         // Bars that count rows give the plot a `y` axis where nothing is mapped to `y`.
         let counting = aesthetic == Aesthetic::Y
             && plot.layers.iter().any(|layer| {
@@ -2911,6 +2918,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         }],
         notes,
         legend: plot.legend,
+        coord: plot.coord,
         theme: plot.theme,
         title: said(&plot.labels.title),
         subtitle: said(&plot.labels.subtitle),
@@ -3358,6 +3366,10 @@ impl Scene {
                 ("notes", Json::texts(&self.notes)),
             ]
             .into_iter()
+            // The coordinates, when they are not cartesian.
+            .chain(
+                (self.coord != Coord::Cartesian).then(|| ("coord", Json::text(self.coord.name()))),
+            )
             // The theme, when the script names one or gives a size: `journal` at its own
             // size is not written.
             .chain((self.theme != PlotTheme::default()).then(|| {
@@ -3953,6 +3965,12 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         }
     }
     drawn.after.extend(placed.map(str::to_string));
+    // The coordinates, when they are not cartesian.
+    if scene.coord == Coord::Flip {
+        drawn
+            .after
+            .push("coordinates: flipped, `x` up the side and `y` along the foot".to_string());
+    }
     // The theme, when it is not `journal` at its own size.
     if scene.theme != PlotTheme::default() {
         drawn.after.push(match scene.theme.base_size {
@@ -3989,6 +4007,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         legend: LegendPlace::Right,
         labels: PlotLabels::default(),
         theme: PlotTheme::default(),
+        coord: Coord::Cartesian,
         summary: Table {
             title: String::new(),
             before: Vec::new(),
