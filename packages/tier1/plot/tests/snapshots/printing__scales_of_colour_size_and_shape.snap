@@ -1,0 +1,192 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   grey, firebrick
+
+  layer   mark     data   marks   settings
+      1   points   w      2,152   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   viridis at equal steps, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   w      2,152   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   w      2,152   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   #48B, black
+
+  layer   mark     data   marks   settings
+      1   points   w      2,152   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale    values        shown as
+  color       Hours worked   linear   8.1 to 67.1   a ramp through white, steelblue
+
+  layer   mark     data   marks   settings
+      1   points   w      2,144   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale    values        shown as
+  color       Hours worked   linear   8.1 to 67.1   viridis, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   w      2,144   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title      scale      values
+  color       Industry   category   Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+
+  shown as
+  grey, firebrick, navy, grey, firebrick and 7 more
+
+  layer   mark     data   marks   settings
+      1   points   w      2,152   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title      scale      values
+  color       Industry   category   Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+
+  shown as
+  viridis at equal steps, dark purple to yellow
+
+  layer   mark     data   marks   settings
+      1   points   w      2,152   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale   values      shown as
+  size        Hours worked   sqrt    0 to 67.1   by area, up to 24 across
+
+  layer   mark     data   marks   settings
+      1   points   w      2,144   size by hours, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale   values        shown as
+  size        Hours worked   sqrt    8.1 to 67.1   from 2 to 12 across
+
+  layer   mark     data   marks   settings
+      1   points   w      2,144   size by hours, alpha 1
+plot · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title   scale   values             shown as
+  size        gap     sqrt    -24.75 to 110.24   from 2 to 12 across
+
+  layer   mark     data        marks   settings
+      1   points   the frame   2,152   size by gap, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale      values    shown as
+  shape       Union member   category   no, yes   circle_open, cross
+
+  layer   mark     data   marks   settings
+      1   points   w      2,152   size 4.5, shape by union, alpha 1
+plot · w · industry
+
+  axis   title      scale      limits           breaks
+  x      Industry   category   0.4 to 12.6      Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+  y      count      linear     -13.7 to 287.7   0, 50, 100, 150, 200, 250
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   grey, black
+  fill        Union member   category   no, yes   grey, black
+
+  layer   mark   data   marks   settings
+      1   bars   w         24   width 0.9, position dodge, alpha 1
+plot · w · industry
+
+  axis   title      scale      limits
+  x      Industry   category   0.4 to 12.6
+  y      count      linear     -17.15 to 360.15
+
+  breaks
+  Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+  0, 100, 200, 300
+
+  aesthetic   title          scale      values    shown as
+  fill        Union member   category   no, yes   grey, black
+
+  layer   mark   data   marks   settings
+      1   bars   w         24   width 0.9, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -1.4995 to 146.99   0, 20, 40, 60, 80, 100, 120, 140
+
+  aesthetic   title          scale      values        shown as
+  color       Union member   category   no, yes       grey, firebrick
+  size        Hours worked   sqrt       8.1 to 67.1   from 2 to 8 across
+
+  layer   mark     data   marks   settings
+      1   points   w      2,144   color by union, size by hours, alpha 1
+---
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+note: 27 rows with NA in educ or wage dropped (line 10)
+note: `industry` has 12 categories and the scale 3 colours, so the colours repeat from category 4 (line 10)
+note: 27 rows with NA in educ or wage dropped (line 11)
+note: 35 rows with NA in educ, wage or hours dropped (line 12)
+note: 35 rows with NA in educ, wage or hours dropped (line 13)
+note: 27 rows with NA in educ, wage or gap dropped (line 14)
+note: 27 rows with NA in educ or wage dropped (line 15)
+note: 35 rows with NA in educ, wage or hours dropped (line 18)

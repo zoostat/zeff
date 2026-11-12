@@ -2889,3 +2889,103 @@ fn every_message_of_a_case_in_a_mapping() {
     }
     insta::assert_snapshot!("mapping_case_messages", all);
 }
+
+// ----- scale (step 25d) -----
+
+const PAY: &str = "let w = dataset(wages).where(year == 2015)\nlet p = w.plot(x: educ, y: wage, color: union).points()\nlet h = w.plot(x: educ, y: wage, color: hours).points()\n";
+
+#[test]
+fn the_scales_of_colour_size_and_shape_read_sensibly_as_text() {
+    let script = format!(
+        "{PAY}p.scale(color: [\"grey\", \"firebrick\"])\n\
+         p.scale(color: viridis)\n\
+         p.scale(color: okabe_ito)\n\
+         p.scale(color: [\"#48B\", \"black\", \"white\"])\n\
+         h.scale(color: [\"white\", \"steelblue\"])\n\
+         h.scale(color: [\"white\", \"steelblue\"]).scale(color: viridis)\n\
+         w.plot(x: educ, y: wage, color: industry).scale(color: [\"grey\", \"firebrick\", \"navy\"]).points()\n\
+         w.plot(x: educ, y: wage, color: industry).scale(color: viridis).points()\n\
+         w.plot(x: educ, y: wage, size: hours).points().scale(size: [24])\n\
+         w.plot(x: educ, y: wage, size: hours).points().scale(size: [2, 12])\n\
+         w.add(gap = wage - 30).plot(x: educ, y: wage, size: gap).scale(size: [2, 12]).points()\n\
+         w.plot(x: educ, y: wage, shape: union).points().scale(shape: [\"circle_open\", \"cross\"])\n\
+         w.plot(x: industry, color: union).bars(position: dodge).scale(color: [\"grey\", \"black\"])\n\
+         w.plot(x: industry, fill: union).bars().scale(fill: [\"grey\", \"black\"], color: viridis)\n\
+         w.plot(x: educ, y: wage).scale(color: [\"grey\", \"firebrick\"], size: [2, 8]).points(color: union, size: hours)\n"
+    );
+    let text = printed(&script);
+    for line in [
+        "  color       Union member   category   no, yes   grey, firebrick\n",
+        "  color       Union member   category   no, yes   viridis at equal steps, dark purple to yellow\n",
+        "  color       Union member   category   no, yes   orange, sky blue\n",
+        "  color       Hours worked   linear   8.1 to 67.1   a ramp through white, steelblue\n",
+        "  color       Hours worked   linear   8.1 to 67.1   viridis, dark purple to yellow\n",
+        "  size        Hours worked   sqrt    0 to 67.1   by area, up to 24 across\n",
+        "  size        Hours worked   sqrt    8.1 to 67.1   from 2 to 12 across\n",
+        "  shape       Union member   category   no, yes   circle_open, cross\n",
+        "  fill        Union member   category   no, yes   grey, black\n",
+        "note: `industry` has 12 categories and the scale 3 colours, so the colours repeat from category 4 (line 10)\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    // Written before the layer, a scale leaves no note of what it mends: viridis has a colour
+    // for each of the twelve industries, and two sizes draw the rows below zero.
+    assert!(!text.contains("category (line 11)"), "{text}");
+    assert!(!text.contains("below 0 dropped"), "{text}");
+    insta::assert_snapshot!("scales_of_colour_size_and_shape", text);
+}
+
+#[test]
+fn every_message_of_scale() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("nothing_set", "p.scale()\n"),
+        // The colours.
+        ("no_colours", "p.scale(color: [])\n"),
+        (
+            "a_name_that_is_no_colour",
+            "p.scale(color: [\"grey\", \"firebrik\"])\n",
+        ),
+        (
+            "digits_that_are_no_colour",
+            "p.scale(fill: [\"grey\", \"#12\"])\n",
+        ),
+        ("colours_that_are_numbers", "p.scale(color: [1, 2])\n"),
+        ("a_colour_that_is_not_a_list", "p.scale(color: \"grey\")\n"),
+        ("a_palette_that_is_not_one", "p.scale(color: rainbow)\n"),
+        (
+            "the_palette_of_categories_for_a_number",
+            "h.scale(color: okabe_ito)\n",
+        ),
+        ("one_colour_for_a_number", "h.scale(color: [\"navy\"])\n"),
+        (
+            "a_number_added_to_the_palette_of_categories",
+            "w.plot(x: educ, y: wage).scale(color: okabe_ito).points(color: hours)\n",
+        ),
+        (
+            "a_fill_by_a_number_with_one_colour",
+            "w.aggregate(wage = mean(wage), by: [educ, female]).plot(x: educ, y: female, fill: wage).tile().scale(fill: [\"navy\"])\n",
+        ),
+        // The sizes.
+        ("a_size_of_zero", "p.scale(size: [0, 4])\n"),
+        ("sizes_the_wrong_way", "p.scale(size: [4, 2])\n"),
+        ("three_sizes", "p.scale(size: [1, 2, 3])\n"),
+        ("sizes_that_are_text", "p.scale(size: [\"a\"])\n"),
+        ("no_sizes", "p.scale(size: [])\n"),
+        // The shapes.
+        ("no_shapes", "p.scale(shape: [])\n"),
+        (
+            "a_name_that_is_no_shape",
+            "p.scale(shape: [\"circle\", \"blob\"])\n",
+        ),
+        ("shapes_that_are_numbers", "p.scale(shape: [1])\n"),
+        // The receiver.
+        ("a_scale_of_a_frame", "w.scale(color: viridis)\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{PAY}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("scale_messages", all);
+}

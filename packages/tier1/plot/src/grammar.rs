@@ -104,7 +104,7 @@ pub(crate) fn a_type(column: &Column) -> String {
 }
 
 /// Z0401 for a string given to a colour aesthetic that names no colour.
-fn not_a_colour(
+pub(crate) fn not_a_colour(
     ctx: &CallContext<'_>,
     frame: &Frame,
     function: &str,
@@ -159,7 +159,7 @@ fn labelled(column: &Column) -> bool {
 }
 
 /// Z0401 for a string given to `shape:` that names no shape.
-fn not_a_shape(
+pub(crate) fn not_a_shape(
     ctx: &CallContext<'_>,
     frame: &Frame,
     function: &str,

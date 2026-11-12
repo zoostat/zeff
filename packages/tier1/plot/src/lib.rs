@@ -619,5 +619,37 @@ pub fn functions() -> Vec<Function> {
             },
             body: scales::scale_y,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "scale",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("color", "List | viridis | okabe_ito"),
+                    ParamSpec::option("fill", "List | viridis | okabe_ito"),
+                    ParamSpec::option("size", "List"),
+                    ParamSpec::option("shape", "List"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "more categories than the scale has colours or shapes, which repeat",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a list of colours that is empty or holds what is not a colour; okabe_ito, or a list of one colour, for a variable shown on a continuous scale; sizes that are not one number or two above 0, or the smaller after the larger; a list of shapes that is empty or holds what is not the name of a shape",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0406",
+                        "none of color:, fill:, size: and shape: is given",
+                    ),
+                ],
+                help: include_str!("../help/scale.md"),
+                accuracy: None,
+            },
+            body: scales::scale,
+        },
     ]
 }

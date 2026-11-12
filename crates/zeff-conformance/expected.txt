@@ -332,6 +332,11 @@ plot/case/stderr a1fe93256fcee796
 plot/case/case.svg 5b10b92c1da1ba2c
 plot/case/case.pdf 7ff1e9f5c0b7c0ef
 plot/case/case.png 132d327ed8ed5ac0
+plot/palette/stdout 5c51d8c5e033cceb
+plot/palette/stderr 286bf9c6df85decd
+plot/palette/palette.svg 877be85a46e5756e
+plot/palette/palette.pdf 2a65b22e70dd4aef
+plot/palette/palette.png c6db569997b7c259
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

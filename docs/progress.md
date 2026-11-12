@@ -163,3 +163,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25d `[engine]`: `scale(color:, fill:, size:, shape:)`.
 
 **For the owner to decide.** Nothing new. Taken on the recommendation at this step, his to overturn: an axis mapped from a `case` is titled `case { … }` until `labels` (step 26) gives it a title. Open as before: the internal error of `add` under #108, #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25d (`scale`)
+
+**Done.** `p.scale(color:, fill:, size:, shape:)` sets what the scales that are not positions show: a list of colours for categories, or the colours a continuous scale passes through; `okabe_ito` and `viridis` by name; one size (the largest mark, by area from zero) or two (the marks of the smallest and of the largest value); a list of shapes. The legends follow. Open decision #109 was decided as recommended.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 356 of 356; CI is read job by job after the push.
+
+**Next.** Step 25e `[engine]`: `legend(right | top | bottom | none | direct)`, which completes step 25.
+
+**For the owner to decide.** Two things, neither blocking. (1) #109, question 2: an argument of `scale` to keep every level of a Category in the legend, recommended as `levels: all`, due 0.8.0. (2) #130: a note raised by a layer before `scale` in one chain stays printed though `scale` may undo its cause; kept as built for 0.7.0, with the remedy in the help page, and a proper fix planned for 0.8.0. Taken on the recommendation at this step, his to overturn: a ramp mixes red, green and blue directly, where ggplot2 mixes in another colour space; fewer colours than categories repeat with a note, where ggplot2 stops. Open as before: the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

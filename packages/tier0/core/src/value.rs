@@ -81,6 +81,9 @@ pub struct Plot {
     /// What the script says of the scale of an axis (`scale_x`, `scale_y`); an axis it says
     /// nothing of is linear, or of categories, as its variable asks.
     pub axes: Vec<PlotAxis>,
+    /// What the script says of the scales of colour, fill, size and shape: the last said of
+    /// each, in the order said.
+    pub scales: Vec<PlotScale>,
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
     pub summary: Table,
@@ -88,6 +91,35 @@ pub struct Plot {
     /// puts here when it makes a plot, so that `export`, in a package below it, can ask for the
     /// bytes without calling upwards (rule 5). `None` for a plot value made by hand in a test.
     pub figure: Option<FigureWriter>,
+}
+
+/// What a script says of a scale that is not a position: the colours of `color` or `fill`,
+/// the sizes of `size`, the shapes of `shape` (section 7.6, "Scales": `scale`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlotScale {
+    /// `Aesthetic::Color`, `Fill`, `Size` or `Shape`.
+    pub aesthetic: Aesthetic,
+    pub palette: Palette,
+}
+
+/// What a scale shows its values as, where the script says.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Palette {
+    /// The eight colours of Okabe and Ito, the default of a scale of categories.
+    OkabeIto,
+    /// Viridis, the default of a continuous scale; for categories, its colours at equal
+    /// steps.
+    Viridis,
+    /// Colours of the script's own, each as six hexadecimal digits after `#` with the colour
+    /// as written: one for each category in their order, or the colours a continuous scale
+    /// passes through from its lowest value to its highest.
+    Colours(Vec<(String, String)>),
+    /// Sizes, as diameters in points of 1/72 inch. With `smallest`, the marks of the
+    /// smallest and of the largest value drawn; without it, an amount shown by area from
+    /// zero, the largest value drawn `largest` across.
+    Sizes { smallest: Option<f64>, largest: f64 },
+    /// Shapes by name, one for each category in their order.
+    Shapes(Vec<&'static str>),
 }
 
 /// What a script says of the scale of one axis.
@@ -155,6 +187,16 @@ impl Plot {
     pub fn axis(&self, aesthetic: Aesthetic) -> AxisKind {
         self.axis_setting(aesthetic)
             .map_or(AxisKind::Linear, |axis| axis.kind)
+    }
+
+    /// What the script says of the colours, sizes or shapes of a scale, `None` where it says
+    /// nothing.
+    pub fn palette(&self, aesthetic: Aesthetic) -> Option<&Palette> {
+        self.scales
+            .iter()
+            .rev()
+            .find(|scale| scale.aesthetic == aesthetic)
+            .map(|scale| &scale.palette)
     }
 
     /// What the script says of the scale of an axis: the last it said, `None` where it said

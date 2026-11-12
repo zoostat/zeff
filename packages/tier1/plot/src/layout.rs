@@ -1585,7 +1585,7 @@ mod tests {
             limits: (1.0, 3.0),
             breaks: vec![1.0, 2.0, 3.0],
             labels: vec!["a".to_string(), "b".to_string(), "NA".to_string()],
-            range: Range::Colours(vec!["#E69F00", "#56B4E9", "#999999"]),
+            range: Range::Colours(["#E69F00", "#56B4E9", "#999999"].map(String::from).to_vec()),
         };
         assert_eq!(colour_on(&categories, 1.0), "#E69F00");
         assert_eq!(colour_on(&categories, 3.0), "#999999");
@@ -1594,7 +1594,11 @@ mod tests {
         let ramp = Scale {
             kind: ScaleKind::Linear,
             limits: (0.0, 10.0),
-            range: Range::Colours(vec!["#000001", "#000002", "#000003", "#000004"]),
+            range: Range::Colours(
+                ["#000001", "#000002", "#000003", "#000004"]
+                    .map(String::from)
+                    .to_vec(),
+            ),
             ..categories.clone()
         };
         assert_eq!(colour_on(&ramp, 0.0), "#000001");

@@ -1,0 +1,217 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== nothing_set
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0406]: `scale` needs `color`, `fill`, `size` or `shape`
+ --> scripts/main.zeff:4:3
+  |
+4 | p.scale()
+  |   ^^^^^ nothing is set
+  |
+  = help: `scale` says what a scale shows its values as: `scale(color: ["grey", "firebrick"])`, `scale(color: viridis)`, `scale(size: [2, 12])`, `scale(shape: ["circle_open", "cross"])`; the axes are set with `scale_x` and `scale_y`
+
+== no_colours
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `color:` of `scale` is a list of colours, but this list is empty
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale(color: [])
+  |                ^^ not a list of colours
+  |
+  = help: write the colours as strings, one for each category in their order, as in `scale(color: ["grey", "firebrick"])`, or for a number the colours its scale passes through
+
+== a_name_that_is_no_colour
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `color:` of `scale` is "firebrik", which is not the name of a colour
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale(color: ["grey", "firebrik"])
+  |                ^^^^^^^^^^^^^^^^^^^^ not a colour
+  |
+  = help: did you mean "firebrick"?
+
+== digits_that_are_no_colour
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `fill:` of `scale` is "#12", which is not a colour: after `#` come six hexadecimal digits, or three
+ --> scripts/main.zeff:4:15
+  |
+4 | p.scale(fill: ["grey", "#12"])
+  |               ^^^^^^^^^^^^^^^ not six hexadecimal digits, or three
+  |
+  = help: write the red, the green and the blue as two digits each, as in "#4682B4"; "#48B" is short for "#4488BB"
+
+== colours_that_are_numbers
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `color:` of `scale` is a list of colours, each a string, but this list holds an Int
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale(color: [1, 2])
+  |                ^^^^^^ not a list of colours
+  |
+  = help: write the colours as strings, one for each category in their order, as in `scale(color: ["grey", "firebrick"])`, or for a number the colours its scale passes through
+
+== a_colour_that_is_not_a_list
+error[Z0401]: `color` of `scale` must be a List or viridis | okabe_ito, but this is a Str
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale(color: "grey")
+  |                ^^^^^^ a Str
+  |
+  = help: usage: `p.scale(color: List | viridis | okabe_ito, fill: List | viridis | okabe_ito, size: List, shape: List)`
+
+== a_palette_that_is_not_one
+error[Z0402]: `rainbow` is not one of the allowed words
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale(color: rainbow)
+  |                ^^^^^^^ expected one of viridis, okabe_ito, or a List
+
+== the_palette_of_categories_for_a_number
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `okabe_ito` is the palette of categories, but `color` shows `hours` on a continuous scale
+ --> scripts/main.zeff:4:16
+  |
+4 | h.scale(color: okabe_ito)
+  |                ^^^^^^^^^ a palette of categories
+  |
+  = help: a continuous scale takes `viridis`, or the colours to pass through from its lowest value to its highest, as in `scale(color: ["white", "steelblue"])`
+
+== one_colour_for_a_number
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `color` shows `hours` on a continuous scale, which passes through two colours or more, but the list has 1
+ --> scripts/main.zeff:4:16
+  |
+4 | h.scale(color: ["navy"])
+  |                ^^^^^^^^ too few colours for a ramp
+  |
+  = help: a continuous scale takes `viridis`, or the colours to pass through from its lowest value to its highest, as in `scale(color: ["white", "steelblue"])`
+
+== a_number_added_to_the_palette_of_categories
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `okabe_ito` is the palette of categories, but `color` shows `hours` on a continuous scale
+ --> scripts/main.zeff:4:50
+  |
+4 | w.plot(x: educ, y: wage).scale(color: okabe_ito).points(color: hours)
+  |                                                  ^^^^^^ a palette of categories
+  |
+  = help: a continuous scale takes `viridis`, or the colours to pass through from its lowest value to its highest, as in `scale(color: ["white", "steelblue"])`
+
+== a_fill_by_a_number_with_one_colour
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+warning[W0201]: 27 rows with NA in wage were skipped (line 4)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 4)
+error[Z0401]: `fill` shows `wage` on a continuous scale, which passes through two colours or more, but the list has 1
+ --> scripts/main.zeff:4:108
+  |
+4 | w.aggregate(wage = mean(wage), by: [educ, female]).plot(x: educ, y: female, fill: wage).tile().scale(fill: ["navy"])
+  |                                                                                                            ^^^^^^^^ too few colours for a ramp
+  |
+  = help: a continuous scale takes `viridis`, or the colours to pass through from its lowest value to its highest, as in `scale(fill: ["white", "steelblue"])`
+
+== a_size_of_zero
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: a size of `scale` is the diameter of a mark, in points, above 0, but this is 0
+ --> scripts/main.zeff:4:15
+  |
+4 | p.scale(size: [0, 4])
+  |               ^^^^^^ not the sizes of a scale
+  |
+  = help: write the diameter of the largest mark, in points, as in `scale(size: [24])`, where a size shows an amount by its area; or those of the marks of the smallest and of the largest value, as in `scale(size: [2, 12])`, where it shows a difference
+
+== sizes_the_wrong_way
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: the mark of the smallest value must be smaller than that of the largest, but the sizes are 4 and 2
+ --> scripts/main.zeff:4:15
+  |
+4 | p.scale(size: [4, 2])
+  |               ^^^^^^ not the sizes of a scale
+  |
+  = help: write the diameter of the largest mark, in points, as in `scale(size: [24])`, where a size shows an amount by its area; or those of the marks of the smallest and of the largest value, as in `scale(size: [2, 12])`, where it shows a difference
+
+== three_sizes
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `size:` of `scale` is a list of one number or of two, but this list has 3
+ --> scripts/main.zeff:4:15
+  |
+4 | p.scale(size: [1, 2, 3])
+  |               ^^^^^^^^^ not the sizes of a scale
+  |
+  = help: write the diameter of the largest mark, in points, as in `scale(size: [24])`, where a size shows an amount by its area; or those of the marks of the smallest and of the largest value, as in `scale(size: [2, 12])`, where it shows a difference
+
+== sizes_that_are_text
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `size:` of `scale` is a list of one number or of two, the diameters of marks in points
+ --> scripts/main.zeff:4:15
+  |
+4 | p.scale(size: ["a"])
+  |               ^^^^^ not the sizes of a scale
+  |
+  = help: write the diameter of the largest mark, in points, as in `scale(size: [24])`, where a size shows an amount by its area; or those of the marks of the smallest and of the largest value, as in `scale(size: [2, 12])`, where it shows a difference
+
+== no_sizes
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `size:` of `scale` is a list of one number or of two, but this list has 0
+ --> scripts/main.zeff:4:15
+  |
+4 | p.scale(size: [])
+  |               ^^ not the sizes of a scale
+  |
+  = help: write the diameter of the largest mark, in points, as in `scale(size: [24])`, where a size shows an amount by its area; or those of the marks of the smallest and of the largest value, as in `scale(size: [2, 12])`, where it shows a difference
+
+== no_shapes
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `shape:` of `scale` is a list of shapes, but this list is empty
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale(shape: [])
+  |                ^^ not a list of shapes
+  |
+  = help: write the names of shapes as strings, one for each category in their order, as in `scale(shape: ["circle_open", "cross"])`
+
+== a_name_that_is_no_shape
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `shape:` of `scale` is "blob", which is not the name of a shape
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale(shape: ["circle", "blob"])
+  |                ^^^^^^^^^^^^^^^^^^ not a shape
+  |
+  = help: a shape is one of asterisk, circle, circle_open, cross, diamond, diamond_open, plus, square, square_open, star, star_open, triangle, triangle_down, triangle_down_open and triangle_open
+
+== shapes_that_are_numbers
+note: 27 rows with NA in educ or wage dropped (line 2)
+note: 35 rows with NA in educ, wage or hours dropped (line 3)
+error[Z0401]: `shape:` of `scale` is a list of the names of shapes, each a string, but this list holds an Int
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale(shape: [1])
+  |                ^^^ not a list of shapes
+  |
+  = help: write the names of shapes as strings, one for each category in their order, as in `scale(shape: ["circle_open", "cross"])`
+
+== a_scale_of_a_frame
+error[Z0401]: `scale` cannot be called on a Frame
+ --> scripts/main.zeff:4:1
+  |
+4 | w.scale(color: viridis)
+  | ^ this is a Frame
+  |
+  = help: `scale` takes a Plot first; `x.scale(...)` is `scale(x, ...)`

@@ -13,13 +13,18 @@
 use std::rc::Rc;
 
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Aesthetic, AxisKind, Plot, PlotAxis, Value};
+use zeff_core::value::{Aesthetic, AxisKind, Palette, Plot, PlotAxis, PlotScale, Value};
 use zeff_diagnostics::Diagnostic;
+use zeff_diagnostics::Span;
 
+use crate::colour;
 use crate::dates;
-use crate::grammar::{internal, shown};
-use crate::marks::misplaced;
-use crate::scene::{Misplaced, Placing, axis_fault, describe, placing_of, scene};
+use crate::grammar::{internal, not_a_colour, not_a_shape, shown};
+use crate::marks::{announce, misplaced};
+use crate::scene::{
+    Misplaced, PaletteFault, Placing, axis_fault, describe, palette_fault, placing_of, scene,
+};
+use crate::shape;
 
 const P: usize = 0;
 const KIND: usize = 1;
@@ -409,10 +414,253 @@ fn axis(
     }
     let before = scene(&plot).notes;
     let after = describe(&mut next);
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
+    announce(ctx, &before, &after.notes);
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+const S_COLOR: usize = 1;
+const S_FILL: usize = 2;
+const S_SIZE: usize = 3;
+const S_SHAPE: usize = 4;
+
+/// The refusal of a plot whose scale of colours cannot show its variable as the script asks.
+pub(crate) fn unfit(ctx: &CallContext<'_>, fault: &PaletteFault, at: Span) -> Fail {
+    let PaletteFault {
+        aesthetic,
+        variable,
+        colours,
+    } = fault;
+    let (message, label) = match colours {
+        None => (
+            format!(
+                "`okabe_ito` is the palette of categories, but `{aesthetic}` shows `{variable}` on a continuous scale"
+            ),
+            "a palette of categories",
+        ),
+        Some(count) => (
+            format!(
+                "`{aesthetic}` shows `{variable}` on a continuous scale, which passes through two colours or more, but the list has {count}"
+            ),
+            "too few colours for a ramp",
+        ),
+    };
+    fail(
+        Diagnostic::error("Z0401", message)
+            .in_file(ctx.script)
+            .primary(at, label)
+            .help(format!("a continuous scale takes `viridis`, or the colours to pass through from its lowest value to its highest, as in `scale({aesthetic}: [\"white\", \"steelblue\"])`")),
+    )
+}
+
+/// `p.scale(color: List | viridis | okabe_ito, fill: List | viridis | okabe_ito, size: List,
+/// shape: List)`: what the scales that are not positions show their values as.
+pub fn scale(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "a scale reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let mut next = (*plot).clone();
+    let mut said: Vec<(usize, Aesthetic)> = Vec::new();
+    let set = |next: &mut Plot, aesthetic: Aesthetic, palette: Palette| {
+        // The scale of an aesthetic is said once: what is said last takes the place of what
+        // was.
+        next.scales.retain(|scale| scale.aesthetic != aesthetic);
+        next.scales.push(PlotScale { aesthetic, palette });
+    };
+    // The colours: a palette by its name, or a list of colours.
+    for (slot, aesthetic) in [(S_COLOR, Aesthetic::Color), (S_FILL, Aesthetic::Fill)] {
+        let name = aesthetic.name();
+        let palette = match args.get(slot) {
+            None | Some(Value::Na) => continue,
+            Some(Value::Word(word)) => match word.as_str() {
+                "viridis" => Palette::Viridis,
+                "okabe_ito" => Palette::OkabeIto,
+                _ => return Err(internal(ctx, "a palette that is neither of the two")),
+            },
+            Some(Value::List(items)) => {
+                let refused = |ctx: &CallContext<'_>, why: String| {
+                    fail(
+                        Diagnostic::error("Z0401", why)
+                            .in_file(ctx.script)
+                            .primary(ctx.span_of(slot), "not a list of colours")
+                            .help(format!("write the colours as strings, one for each category in their order, as in `scale({name}: [\"grey\", \"firebrick\"])`, or for a number the colours its scale passes through")),
+                    )
+                };
+                if items.is_empty() {
+                    return Err(refused(
+                        ctx,
+                        format!(
+                            "`{name}:` of `scale` is a list of colours, but this list is empty"
+                        ),
+                    ));
+                }
+                let mut colours: Vec<(String, String)> = Vec::new();
+                for item in items.iter() {
+                    let Value::Str(written) = item else {
+                        return Err(refused(
+                            ctx,
+                            format!(
+                                "`{name}:` of `scale` is a list of colours, each a string, but this list holds {}",
+                                item.type_word()
+                            ),
+                        ));
+                    };
+                    match colour::parse(written) {
+                        Ok(hex) => colours.push((hex, written.to_string())),
+                        Err(why) => {
+                            return Err(not_a_colour(
+                                ctx,
+                                &plot.frame,
+                                "scale",
+                                slot,
+                                aesthetic,
+                                written,
+                                &why,
+                            ));
+                        }
+                    }
+                }
+                Palette::Colours(colours)
+            }
+            Some(_) => return Err(internal(ctx, "colours that are not a list or a palette")),
+        };
+        set(&mut next, aesthetic, palette);
+        said.push((slot, aesthetic));
     }
+    // The sizes: one number, the largest mark where a size shows an amount by its area from
+    // zero; or two, the marks of the smallest and of the largest value drawn.
+    match args.get(S_SIZE) {
+        None | Some(Value::Na) => {}
+        Some(Value::List(items)) => {
+            let refused = |ctx: &CallContext<'_>, why: String| {
+                fail(
+                    Diagnostic::error("Z0401", why)
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(S_SIZE), "not the sizes of a scale")
+                        .help("write the diameter of the largest mark, in points, as in `scale(size: [24])`, where a size shows an amount by its area; or those of the marks of the smallest and of the largest value, as in `scale(size: [2, 12])`, where it shows a difference"),
+                )
+            };
+            let mut sizes: Vec<f64> = Vec::new();
+            for item in items.iter() {
+                match number(item) {
+                    Ok(Some(v)) if v > 0.0 => sizes.push(v),
+                    Ok(Some(v)) => {
+                        return Err(refused(
+                            ctx,
+                            format!(
+                                "a size of `scale` is the diameter of a mark, in points, above 0, but this is {}",
+                                shown(v)
+                            ),
+                        ));
+                    }
+                    _ => {
+                        return Err(refused(
+                            ctx,
+                            "`size:` of `scale` is a list of one number or of two, the diameters of marks in points".to_string(),
+                        ));
+                    }
+                }
+            }
+            let palette = match sizes.as_slice() {
+                [largest] => Palette::Sizes {
+                    smallest: None,
+                    largest: *largest,
+                },
+                [smallest, largest] if smallest < largest => Palette::Sizes {
+                    smallest: Some(*smallest),
+                    largest: *largest,
+                },
+                [smallest, largest] => {
+                    return Err(refused(
+                        ctx,
+                        format!(
+                            "the mark of the smallest value must be smaller than that of the largest, but the sizes are {} and {}",
+                            shown(*smallest),
+                            shown(*largest)
+                        ),
+                    ));
+                }
+                other => {
+                    return Err(refused(
+                        ctx,
+                        format!(
+                            "`size:` of `scale` is a list of one number or of two, but this list has {}",
+                            other.len()
+                        ),
+                    ));
+                }
+            };
+            set(&mut next, Aesthetic::Size, palette);
+            said.push((S_SIZE, Aesthetic::Size));
+        }
+        Some(_) => return Err(internal(ctx, "sizes that are not a list")),
+    }
+    // The shapes: a name for each category, in their order.
+    match args.get(S_SHAPE) {
+        None | Some(Value::Na) => {}
+        Some(Value::List(items)) => {
+            let refused = |ctx: &CallContext<'_>, why: String| {
+                fail(
+                    Diagnostic::error("Z0401", why)
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(S_SHAPE), "not a list of shapes")
+                        .help("write the names of shapes as strings, one for each category in their order, as in `scale(shape: [\"circle_open\", \"cross\"])`"),
+                )
+            };
+            if items.is_empty() {
+                return Err(refused(
+                    ctx,
+                    "`shape:` of `scale` is a list of shapes, but this list is empty".to_string(),
+                ));
+            }
+            let mut shapes: Vec<&'static str> = Vec::new();
+            for item in items.iter() {
+                let Value::Str(written) = item else {
+                    return Err(refused(
+                        ctx,
+                        format!(
+                            "`shape:` of `scale` is a list of the names of shapes, each a string, but this list holds {}",
+                            item.type_word()
+                        ),
+                    ));
+                };
+                match shape::parse(written) {
+                    Ok(name) => shapes.push(name),
+                    Err(near) => {
+                        return Err(not_a_shape(
+                            ctx,
+                            &plot.frame,
+                            "scale",
+                            S_SHAPE,
+                            written,
+                            near,
+                        ));
+                    }
+                }
+            }
+            set(&mut next, Aesthetic::Shape, Palette::Shapes(shapes));
+            said.push((S_SHAPE, Aesthetic::Shape));
+        }
+        Some(_) => return Err(internal(ctx, "shapes that are not a list")),
+    }
+    if said.is_empty() {
+        return Err(fail(
+            Diagnostic::error("Z0406", "`scale` needs `color`, `fill`, `size` or `shape`")
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "nothing is set")
+                .help("`scale` says what a scale shows its values as: `scale(color: [\"grey\", \"firebrick\"])`, `scale(color: viridis)`, `scale(size: [2, 12])`, `scale(shape: [\"circle_open\", \"cross\"])`; the axes are set with `scale_x` and `scale_y`"),
+        ));
+    }
+    if let Some(fault) = palette_fault(&next) {
+        let at = said
+            .iter()
+            .find(|(_, aesthetic)| aesthetic.name() == fault.aesthetic)
+            .or(said.first())
+            .map_or(ctx.callee_span, |(slot, _)| ctx.span_of(*slot));
+        return Err(unfit(ctx, &fault, at));
+    }
+    let before = scene(&plot).notes;
+    let after = describe(&mut next);
+    announce(ctx, &before, &after.notes);
     Ok(Value::Plot(Rc::new(next)))
 }

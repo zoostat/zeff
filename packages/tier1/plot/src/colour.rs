@@ -33,6 +33,54 @@ pub fn category(position: usize) -> (&'static str, &'static str) {
     OKABE_ITO[position % OKABE_ITO.len()]
 }
 
+/// The number of colours of a ramp: that of viridis.
+pub const RAMP_STEPS: usize = 256;
+
+/// A ramp through the colours a script gives a continuous scale, each `#` and six
+/// hexadecimal digits: 256 colours from the first to the last, the given ones at equal
+/// distances along it and each colour between two of them a mixture of the two, in proportion
+/// to its place, of their red, their green and their blue. The mixing is whole-number
+/// arithmetic, so the ramp is the same on every target. Fewer than two colours give none.
+pub fn ramp_through(colours: &[String]) -> Vec<String> {
+    let channels: Vec<[i64; 3]> = colours
+        .iter()
+        .filter_map(|hex| {
+            let digits = hex.strip_prefix('#')?;
+            let value = i64::from_str_radix(digits, 16).ok()?;
+            (digits.len() == 6).then_some([(value >> 16) & 255, (value >> 8) & 255, value & 255])
+        })
+        .collect();
+    if channels.len() < 2 || channels.len() != colours.len() {
+        return Vec::new();
+    }
+    let last = (RAMP_STEPS - 1) as i64;
+    let spans = (channels.len() - 1) as i64;
+    (0..RAMP_STEPS as i64)
+        .map(|step| {
+            // The place of the step among the spans between two given colours, in parts of
+            // `last`: the span it falls in and how far into it.
+            let along = step * spans;
+            let span = (along / last).min(spans - 1);
+            let within = along - span * last;
+            let (from, to) = (channels[span as usize], channels[span as usize + 1]);
+            let mix = |c: usize| (from[c] * (last - within) + to[c] * within + last / 2) / last;
+            format!("#{:02X}{:02X}{:02X}", mix(0), mix(1), mix(2))
+        })
+        .collect()
+}
+
+/// The colours of `count` categories taken at equal steps along viridis, from its first
+/// colour to its last; one category takes the middle of it.
+pub fn viridis_steps(count: usize) -> Vec<&'static str> {
+    match count {
+        0 => Vec::new(),
+        1 => vec![VIRIDIS[VIRIDIS.len() / 2]],
+        _ => (0..count)
+            .map(|k| VIRIDIS[(k * (VIRIDIS.len() - 1) + (count - 1) / 2) / (count - 1)])
+            .collect(),
+    }
+}
+
 /// The entry of a ramp of `steps` colours for the value `v` on a scale from `lo` to `hi`: the
 /// share of the way from `lo` to `hi`, times `steps`, rounded down, and the last entry for `hi`
 /// itself, so that each entry takes an equal share of the scale (the rule of matplotlib's
@@ -307,6 +355,50 @@ pub const VIRIDIS: [&str; 256] = [
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_ramp_passes_through_the_colours_given() {
+        let two = ramp_through(&["#000000".to_string(), "#FFFFFF".to_string()]);
+        assert_eq!(two.len(), RAMP_STEPS);
+        assert_eq!((two[0].as_str(), two[255].as_str()), ("#000000", "#FFFFFF"));
+        assert_eq!(two[128], "#808080");
+        // Every step is no darker than the one before it.
+        assert!(two.windows(2).all(|pair| pair[0] <= pair[1]));
+        // Three colours: the middle one stands in the middle, to the nearest step.
+        let three = ramp_through(&[
+            "#0000FF".to_string(),
+            "#FFFFFF".to_string(),
+            "#FF0000".to_string(),
+        ]);
+        assert_eq!(three[0], "#0000FF");
+        assert_eq!(three[255], "#FF0000");
+        assert!(
+            three[127] == "#FDFDFF" || three[127] == "#FEFEFF",
+            "{}",
+            three[127]
+        );
+        assert!(
+            three[128] == "#FFFDFD" || three[128] == "#FFFEFE",
+            "{}",
+            three[128]
+        );
+        // One colour is no ramp, and neither is what is no colour.
+        assert!(ramp_through(&["#000000".to_string()]).is_empty());
+        assert!(ramp_through(&["#000000".to_string(), "white".to_string()]).is_empty());
+    }
+
+    #[test]
+    fn categories_take_viridis_at_equal_steps() {
+        assert!(viridis_steps(0).is_empty());
+        assert_eq!(viridis_steps(1), [VIRIDIS[128]]);
+        assert_eq!(viridis_steps(2), [VIRIDIS[0], VIRIDIS[255]]);
+        assert_eq!(
+            viridis_steps(4),
+            [VIRIDIS[0], VIRIDIS[85], VIRIDIS[170], VIRIDIS[255]]
+        );
+        let many = viridis_steps(300);
+        assert_eq!((many[0], many[299]), (VIRIDIS[0], VIRIDIS[255]));
+    }
+
     use super::*;
 
     fn is_hex(colour: &str) -> bool {

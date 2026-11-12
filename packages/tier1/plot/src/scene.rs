@@ -67,7 +67,7 @@ use std::borrow::Cow;
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Arrangement, AxisKind, Frame, Mark, Plot, PlotConstant, PlotLayer,
+    Aesthetic, Align, Arrangement, AxisKind, Frame, Mark, Palette, Plot, PlotConstant, PlotLayer,
     PlotMapping, PlotSetting, Sides, Stacking, Stairs, Table,
 };
 use zeff_diagnostics::count;
@@ -194,7 +194,7 @@ pub enum Range {
     Position,
     /// Colours: on a scale of categories one for each break, on a linear scale a ramp laid
     /// evenly from the lower limit to the upper.
-    Colours(Vec<&'static str>),
+    Colours(Vec<String>),
     /// Sizes: the diameter of a mark at the lower limit and at the upper, in points of 1/72
     /// inch.
     Sizes(f64, f64),
@@ -1600,6 +1600,55 @@ fn axis_title(frame: &Frame, mapping: &PlotMapping) -> String {
 
 /// An aesthetic with a scale of its own that a variable is mapped to, a colour, the size or the
 /// shape: how the variable is shown, and which layers take the aesthetic from it.
+/// The palette the script gives the scale of `aesthetic`. A fill that the plot borrows from
+/// its colour takes the palette of the colour where none is said of the fill.
+fn palette_of(plot: &Plot, aesthetic: Aesthetic) -> Option<&Palette> {
+    plot.palette(aesthetic).or_else(|| {
+        (aesthetic == Aesthetic::Fill && plot.mapping(Aesthetic::Fill).is_none())
+            .then(|| plot.palette(Aesthetic::Color))
+            .flatten()
+    })
+}
+
+/// Why a scale cannot show its variable by what the script asks of it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PaletteFault {
+    /// `color` or `fill`.
+    pub aesthetic: &'static str,
+    /// The variable the scale shows on a continuous scale.
+    pub variable: String,
+    /// How many colours the script gives: `None` for `okabe_ito`, the palette of
+    /// categories, and the count of a list too short to pass through.
+    pub colours: Option<usize>,
+}
+
+/// The first scale of colours that cannot show its variable as the script asks, or `None`:
+/// a number on a continuous scale has no place among the eight colours of categories, and a
+/// ramp passes through two colours or more.
+pub fn palette_fault(plot: &Plot) -> Option<PaletteFault> {
+    for aesthetic in [Aesthetic::Color, Aesthetic::Fill] {
+        let Some((Shading::Ramp, variable)) = kind_of(plot, aesthetic) else {
+            continue;
+        };
+        let colours = match palette_of(plot, aesthetic) {
+            Some(Palette::OkabeIto) => None,
+            Some(Palette::Colours(given)) if given.len() < 2 => Some(given.len()),
+            _ => continue,
+        };
+        return Some(PaletteFault {
+            aesthetic: aesthetic.name(),
+            variable: variable.to_string(),
+            colours,
+        });
+    }
+    None
+}
+
+/// The name of a shape as the scene holds it: one of the names of the shape module.
+fn named_shape(name: &str) -> &'static str {
+    shape::parse(name).unwrap_or(shape::DEFAULT)
+}
+
 struct Colouring<'a> {
     aesthetic: Aesthetic,
     /// The mapping the scale is named by: the plot's, or the first a layer names.
@@ -1673,6 +1722,37 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
             let found = extent(values.iter().flatten().flatten())
                 .or_else(|| frame_extent(plot, colouring.aesthetic));
             if colouring.aesthetic == Aesthetic::Size {
+                // Where the script asks, the sizes run from the smallest value drawn to the
+                // largest, the two as large as it says: a difference shown, not an amount.
+                if let Some(Palette::Sizes {
+                    smallest: Some(smallest),
+                    largest,
+                }) = plot.palette(Aesthetic::Size)
+                {
+                    let (lo, hi) = match found {
+                        Some((lo, hi)) if lo < hi => (lo + 0.0, hi + 0.0),
+                        other => scale::limits(other),
+                    };
+                    let breaks = scale::breaks(lo, hi);
+                    let labels = scale::labels(&breaks);
+                    return Shaded {
+                        scale: Scale {
+                            id,
+                            kind: ScaleKind::Sqrt,
+                            title,
+                            limits: (lo, hi),
+                            breaks,
+                            labels,
+                            range: Range::Sizes(*smallest, *largest),
+                        },
+                        values,
+                        note: None,
+                    };
+                }
+                let across = match plot.palette(Aesthetic::Size) {
+                    Some(Palette::Sizes { largest, .. }) => *largest,
+                    _ => LARGEST_SIZE,
+                };
                 // The sizes run from 0, where a mark has no area, to the largest value drawn,
                 // with no margin; with nothing above 0 to draw, to 1.
                 let hi = found
@@ -1693,7 +1773,7 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                         limits: (0.0, hi),
                         breaks,
                         labels,
-                        range: Range::Sizes(0.0, LARGEST_SIZE),
+                        range: Range::Sizes(0.0, across),
                     },
                     values,
                     note: None,
@@ -1716,7 +1796,15 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                     limits: (lo, hi),
                     breaks,
                     labels,
-                    range: Range::Colours(colour::VIRIDIS.to_vec()),
+                    // Viridis, or a ramp through the colours of the script.
+                    range: Range::Colours(match palette_of(plot, colouring.aesthetic) {
+                        Some(Palette::Colours(given)) if given.len() >= 2 => {
+                            let hexes: Vec<String> =
+                                given.iter().map(|(hex, _)| hex.clone()).collect();
+                            colour::ramp_through(&hexes)
+                        }
+                        _ => colour::VIRIDIS.iter().map(|c| (*c).to_string()).collect(),
+                    }),
                 },
                 values,
                 note: None,
@@ -1791,29 +1879,48 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
             let line_type = |at: usize| LineType::ALL[at % LineType::ALL.len()].name();
             let mut position = vec![0_usize; labels.len()];
             let mut shown: Vec<String> = Vec::new();
-            let mut colours: Vec<&'static str> = Vec::new();
             for (place, label) in labels.iter().enumerate() {
                 if used[place] {
-                    colours.push(if shapes {
-                        shape::category(shown.len())
-                    } else if lines {
-                        line_type(shown.len())
-                    } else {
-                        colour::category(shown.len()).0
-                    });
                     shown.push(label.clone());
                     position[place] = shown.len();
                 }
             }
             let named = shown.len();
+            // What each category is shown as: the colours, shapes or types of the script
+            // where it gives them, in the order of the categories and again from the first
+            // where they run out; else the palette of the engine.
+            let asked = palette_of(plot, colouring.aesthetic);
+            let own: Option<Vec<String>> = match asked {
+                Some(Palette::Colours(given)) if !shapes && !lines && !given.is_empty() => {
+                    Some(given.iter().map(|(hex, _)| hex.clone()).collect())
+                }
+                Some(Palette::Viridis) if !shapes && !lines => Some(
+                    colour::viridis_steps(named)
+                        .into_iter()
+                        .map(str::to_string)
+                        .collect(),
+                ),
+                Some(Palette::Shapes(given)) if shapes && !given.is_empty() => {
+                    Some(given.iter().map(|name| (*name).to_string()).collect())
+                }
+                _ => None,
+            };
+            let mut colours: Vec<String> = (0..named)
+                .map(|at| match &own {
+                    Some(given) => given[at % given.len()].clone(),
+                    None if shapes => shape::category(at).to_string(),
+                    None if lines => line_type(at).to_string(),
+                    None => colour::category(at).0.to_string(),
+                })
+                .collect();
             if na {
                 // The rows without a category have the type of line after the last given.
                 colours.push(if shapes {
-                    shape::NA_SHAPE
+                    shape::NA_SHAPE.to_string()
                 } else if lines {
-                    line_type(shown.len())
+                    line_type(shown.len()).to_string()
                 } else {
-                    colour::NA_COLOUR.0
+                    colour::NA_COLOUR.0.to_string()
                 });
                 shown.push("NA".to_string());
             }
@@ -1830,16 +1937,29 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                 })
                 .collect();
             let read = colouring.readers.iter().any(Option::is_some);
-            let palette = if shapes {
-                shape::PALETTE.len()
-            } else if lines {
-                LineType::ALL.len()
-            } else {
-                colour::OKABE_ITO.len()
+            let palette = match &own {
+                // Viridis has a colour for every category.
+                Some(_) if matches!(asked, Some(Palette::Viridis)) => usize::MAX,
+                Some(given) => given.len(),
+                None if shapes => shape::PALETTE.len(),
+                None if lines => LineType::ALL.len(),
+                None => colour::OKABE_ITO.len(),
             };
             let note = (read && named > palette).then(|| {
                 let (variable, named) = (&colouring.mapping.variable, count(named as u64));
-                if lines {
+                if own.is_some() {
+                    format!(
+                        "`{variable}` has {named} categories and the scale {palette} {}, so {} repeat from category {}",
+                        match (shapes, palette) {
+                            (true, 1) => "shape",
+                            (true, _) => "shapes",
+                            (false, 1) => "colour",
+                            (false, _) => "colours",
+                        },
+                        if shapes { "the shapes" } else { "the colours" },
+                        palette + 1
+                    )
+                } else if lines {
                     format!(
                         "`{variable}` has {named} categories and there are {palette} types of line, so the types repeat from the seventh category"
                     )
@@ -1862,9 +1982,14 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                     breaks: (1..=total).map(|place| place as f64).collect(),
                     labels: shown,
                     range: if shapes {
-                        Range::Shapes(colours)
+                        Range::Shapes(colours.iter().map(|name| named_shape(name)).collect())
                     } else if lines {
-                        Range::LineTypes(colours)
+                        Range::LineTypes(
+                            colours
+                                .iter()
+                                .map(|name| LineType::parse(name).unwrap_or_default().name())
+                                .collect(),
+                        )
                     } else {
                         Range::Colours(colours)
                     },
@@ -2217,13 +2342,27 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         .iter()
                         .filter(|colouring| colouring.aesthetic == Aesthetic::Size)
                         .find_map(read);
-                    let columns: Vec<&Column> = ramps.iter().map(|(_, column)| *column).collect();
+                    let mut columns: Vec<&Column> =
+                        ramps.iter().map(|(_, column)| *column).collect();
+                    // Where the script reads the sizes from the smallest value to the
+                    // largest, a size shows a difference and not an amount: a value of 0 or
+                    // below has its size like any other, and must only be there and finite.
+                    let ranged = matches!(
+                        plot.palette(Aesthetic::Size),
+                        Some(Palette::Sizes {
+                            smallest: Some(_),
+                            ..
+                        })
+                    );
+                    if ranged {
+                        columns.extend(sized.map(|(_, column)| column));
+                    }
                     let (across, upper) = (place(layer, Aesthetic::X), place(layer, Aesthetic::Y));
                     let points = drawn(
                         across.as_deref(),
                         upper.as_deref(),
                         &columns,
-                        sized.map(|(_, column)| column),
+                        sized.filter(|_| !ranged).map(|(_, column)| column),
                     );
                     let mut names = vec![x, y];
                     names.extend(ramps.iter().map(|(name, _)| *name));
@@ -2242,7 +2381,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                             either(&names)
                         ));
                     }
-                    if let Some((name, column)) = sized {
+                    if let Some((name, column)) = sized.filter(|_| !ranged) {
                         if points.negative > 0 {
                             note(format!(
                                 "{} with {name} below 0 dropped: `size` shows amounts of 0 or more",
@@ -2743,11 +2882,17 @@ impl Scene {
                                         "range",
                                         match &s.range {
                                             Range::Position => Json::Null,
-                                            Range::Colours(names)
-                                            | Range::Shapes(names)
-                                            | Range::LineTypes(names) => Json::List(
-                                                names.iter().map(|c| Json::text(*c)).collect(),
+                                            Range::Colours(names) => Json::List(
+                                                names
+                                                    .iter()
+                                                    .map(|c| Json::text(c.as_str()))
+                                                    .collect(),
                                             ),
+                                            Range::Shapes(names) | Range::LineTypes(names) => {
+                                                Json::List(
+                                                    names.iter().map(|c| Json::text(*c)).collect(),
+                                                )
+                                            }
                                             Range::Sizes(least, largest) => {
                                                 Json::numbers(&[*least, *largest])
                                             }
@@ -3277,19 +3422,61 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             plot.mapping(aesthetic),
         ) {
             (Some(s), _, _) => {
+                // A colour of the script's own is named as the script wrote it.
+                let given = match palette_of(plot, aesthetic) {
+                    Some(Palette::Colours(colours)) => Some(colours),
+                    _ => None,
+                };
+                let written = |hex: &String| {
+                    given
+                        .and_then(|colours| colours.iter().find(|(h, _)| h == hex))
+                        .map(|(_, name)| name.clone())
+                        .or_else(|| colour::name_of(hex).map(str::to_string))
+                        .unwrap_or_else(|| hex.clone())
+                };
                 let (values, shown_as) = match (&s.range, s.kind) {
+                    // Viridis for categories is named, not listed colour by colour.
+                    (Range::Colours(range), ScaleKind::Category)
+                        if matches!(palette_of(plot, aesthetic), Some(Palette::Viridis)) =>
+                    {
+                        (
+                            listed(&s.labels),
+                            format!(
+                                "viridis at equal steps, dark purple to yellow{}",
+                                if range.iter().any(|hex| hex == colour::NA_COLOUR.0) {
+                                    ", and grey"
+                                } else {
+                                    ""
+                                }
+                            ),
+                        )
+                    }
                     (Range::Colours(range), ScaleKind::Category) => (
                         listed(&s.labels),
-                        listed(
-                            &range
-                                .iter()
-                                .map(|hex| colour::name_of(hex).unwrap_or(hex).to_string())
-                                .collect::<Vec<String>>(),
+                        listed(&range.iter().map(&written).collect::<Vec<String>>()),
+                    ),
+                    (Range::Colours(_), _) => (
+                        limits(s),
+                        match given {
+                            Some(colours) if colours.len() >= 2 => format!(
+                                "a ramp through {}",
+                                colours
+                                    .iter()
+                                    .map(|(_, name)| name.as_str())
+                                    .collect::<Vec<&str>>()
+                                    .join(", ")
+                            ),
+                            _ => "viridis, dark purple to yellow".to_string(),
+                        },
+                    ),
+                    (Range::Sizes(least, largest), _) if *least > 0.0 => (
+                        limits(s),
+                        format!(
+                            "from {} to {} across",
+                            format_float(*least),
+                            format_float(*largest)
                         ),
                     ),
-                    (Range::Colours(_), _) => {
-                        (limits(s), "viridis, dark purple to yellow".to_string())
-                    }
                     (Range::Sizes(_, largest), _) => (
                         limits(s),
                         format!("by area, up to {} across", format_float(*largest)),
@@ -3608,6 +3795,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         constants,
         layers: Vec::new(),
         axes: Vec::new(),
+        scales: Vec::new(),
         summary: Table {
             title: String::new(),
             before: Vec::new(),

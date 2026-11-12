@@ -2032,6 +2032,19 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/case/{name}"), &data));
     }
+    // The scales of colour, size and shape (step 25d): two colours of the script for two
+    // categories, a ramp through three colours for a number, viridis for twelve categories,
+    // sizes read from the smallest value to the largest, and shapes of the script's own;
+    // what the script prints and the ramp in the three formats.
+    let script = "let w = dataset(wages).where(year == 2015)\nw.plot(x: educ, y: wage, color: union).scale(color: [\"grey\", \"firebrick\"]).points(alpha: 0.5)\nlet p = w.plot(x: educ, y: wage, color: hours).scale(color: [\"white\", \"steelblue\", \"navy\"]).points()\np\nw.plot(x: educ, y: wage, color: industry).scale(color: viridis).points()\nw.plot(x: educ, y: wage, size: hours, shape: union).scale(size: [2, 12], shape: [\"circle_open\", \"cross\"]).points(alpha: 0.4)\nw.plot(x: industry, color: union).scale(color: [\"grey\", \"black\"]).bars(position: dodge)\nexport(p, \"palette.svg\")\nexport(p, \"palette.pdf\")\nexport(p, \"palette.png\")\n";
+    let paletted = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/palette/stdout", &paletted.output.stdout));
+    fills.push(text("plot/palette/stderr", &paletted.output.stderr));
+    for name in ["palette.svg", "palette.pdf", "palette.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/palette/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

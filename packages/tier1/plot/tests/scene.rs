@@ -799,9 +799,9 @@ fn shades(drawn: &Scene, layer: usize) -> &[f64] {
 }
 
 /// The colours of a scale.
-fn colours<'a>(drawn: &'a Scene, id: &str) -> &'a [&'static str] {
+fn colours<'a>(drawn: &'a Scene, id: &str) -> Vec<&'a str> {
     match &drawn.scale(id).unwrap().range {
-        Range::Colours(colours) => colours,
+        Range::Colours(colours) => colours.iter().map(String::as_str).collect(),
         other => panic!("`{id}` is not a scale of colours: {other:?}"),
     }
 }

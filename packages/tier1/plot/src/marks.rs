@@ -1897,12 +1897,23 @@ fn finish(ctx: &mut CallContext<'_>, plot: &Plot, layer: PlotLayer) -> Result<Va
     if let Some(fault) = axis_fault(&next) {
         return Err(misplaced(ctx, &fault, ctx.callee_span));
     }
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
+    if let Some(fault) = crate::scene::palette_fault(&next) {
+        return Err(crate::scales::unfit(ctx, &fault, ctx.callee_span));
+    }
+    announce(ctx, &before, &after.notes);
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+/// The notes of a plot as a call leaves it, told against those it had before the call: a
+/// note that is new is raised. A note an earlier call of the same statement raised stays,
+/// though a later call may have made it untrue (open decision #130): `scale` written before
+/// the layers avoids it.
+pub(crate) fn announce(ctx: &mut CallContext<'_>, before: &[String], after: &[String]) {
+    for note in after {
+        if !before.contains(note) {
+            ctx.message(Diagnostic::plain_note(note.clone()));
         }
     }
-    Ok(Value::Plot(Rc::new(next)))
 }
 
 /// The refusal of a plot that holds something with no place on the scale of an axis.
