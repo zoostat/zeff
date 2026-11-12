@@ -3179,3 +3179,27 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 22b3b; section 7.6 of the Language Reference ("A layer may also be flagged `raster`, to be drawn as a grid of pixels inside a vector figure"); open decision #118, F4.
+
+## 12 November 2026: the trial of the typesetting engine, as a tool only (release 0.7.0, step 22b4; open decision #73)
+
+**What was done.** Typst 0.15.0, already installed on the owner's machine by Homebrew, was run as a program on files Zeff wrote. Nothing was linked into the engine, nothing added to the repository or to its dependencies, and nothing downloaded for the tool; the trial's files are outside the repository, in `~/dev/handbook/typst-trial-0.7.0/` (`report.typ`, `report.pdf`, and the table and the figure Zeff wrote). The document holds one regression table (`m.export("model.tex")`) and one plot written by `p.export` as SVG, PDF and PNG and placed three times, set in IBM Plex from the three font files of the engine and no font of the system. The decision on #73 stays due at 0.8.0 and stays the owner's; what follows is what was measured for it.
+
+**1. The licence.** Typst is under Apache-2.0. Its library as an engine would link it (`typst` and `typst-pdf` =0.15.0) resolves to 298 crates. Every one offers MIT, Apache-2.0, BSD, ISC, Zlib or the Unicode licence, but for two that are more permissive still or the same with a permission added: `roman-numerals-rs` (0BSD OR CC0-1.0) and `ar_archive_writer` (Apache-2.0 WITH LLVM-exception). None is under the GPL, the LGPL, the AGPL or the MPL. Two things the licence lines of the crates do not say and that must be read before anything is linked: the fonts and data inside `typst-assets`, which carry licences of their own (the tool can be told to leave its fonts out), and the hyphenation patterns inside `hypher`.
+
+**2. The same bytes from run to run.** With the fonts fixed (`--ignore-system-fonts --font-path` to the three files) and the date fixed (`--creation-timestamp 0`, or `SOURCE_DATE_EPOCH=0`, which gives the same file), two runs give the same bytes. With no date given, two runs two seconds apart differ: Typst writes the day and the hour into the file. It also writes `Creator: Typst 0.15.0`, so the bytes change with its version.
+
+**3. The same bytes across machines.** Not measured: the trial ran on one machine. It is measured the way the engine's own files are, by the identity jobs, once Typst is a dependency under trial at 0.8.0; until then the claim of #73 that the bytes agree when the fonts are fixed rests on Typst's word.
+
+**4. The size.** The program is 44.9 MB on the owner's machine (ARM64 macOS), with its own fonts, its fetcher of packages and its watcher. What the library adds to the engine when linked was not measured, the trial being of the tool alone; it is one of the standard checks of a dependency at 0.8.0.
+
+**5. The speed.** The two pages are set in 0.05 seconds.
+
+**6. How a figure of Zeff is placed.** From the SVG: at 89 by 66 mm, the size it was written for, as lines, sharp at any enlargement; the letters, which the SVG holds as outlines, are drawn as they are, and the words the SVG keeps beside them, unpainted, come through as text, so a search of the PDF finds "Years of schooling"; a page with the figure alone is 65 kB. From Zeff's PDF: at 89 by 66 mm, its text as text in the font Zeff put inside it, whole; 96 kB. From the PNG: at 88.985 by 65.955 mm, which is 1051 by 779 dots at the 300 to the inch the file says; 112 kB, and no words. The SVG with its text as outlines (open decision #126) is the smallest of the three in a Typst page and loses nothing.
+
+**7. How a table of Zeff is placed.** There is no path today: `export` writes a table as `.docx` or `.tex`, and Typst reads neither. The cells of `model.tex` were written by hand as a Typst table with a rule above, under the headings and below, and the three notes under it, which is what a `.typ` writer of `export` would write; it is set as the LaTeX table is, and Typst sets the hyphen before a number as a minus sign.
+
+**8. The fonts.** Given the engine's three font files and told to use no other, Typst sets its own text in IBM Plex, carrying only the letters used, so the text of a document and the text of its figures are one face.
+
+**What this says for #73**, as a reading and not a decision. Nothing found speaks against option A. Open for 0.8.0, in the order they would stop it: the bytes across machines (3), the licences inside the bundled fonts and patterns (1), what the library adds to the size of the engine (4), and the version written into every file (2), which means a PDF set by Typst changes its bytes when Typst is upgraded even if nothing else does.
+
+**Reason.** The checklist's step 22b4; question 1 at the opening of the release ("#73's trial of the typesetting engine ... is run as a tool-only step once the SVG writer exists, with nothing linked into the engine"); open decision #73, whose recommendation asks for "a spike at 0.7.0 beside the plot renderer" with its result reported at 0.7.0.

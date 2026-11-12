@@ -152,3 +152,13 @@ Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold a
 
 **For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: the picture of a layer holds what is under it in the panel; it is at 300 dots to the inch whatever the page. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 22b4 (the trial of the typesetting engine), and step 22b complete
+
+**Done.** No code. Typst 0.15.0, already on the owner's machine, was run as a tool on a table and a figure Zeff wrote; nothing was linked or added. The findings are in `docs/decisions.md` and the register's entry #73 points to them: permissive licences throughout the 298 crates of its library, the same bytes from run to run when the fonts and the date are fixed, a Zeff SVG placed as lines at its own size with its words searchable, no path for a table until `export` writes `.typ`. Not measured: the bytes across machines, and what the library adds to the size of the engine. The trial's files are in `~/dev/handbook/typst-trial-0.7.0/`. Step 22b, the PDF and PNG writers, is complete with its four parts.
+
+**Green.** Documents only; the code is as at the green commit of step 22b3b. CI is read job by job after the push.
+
+**Next.** Step 23 `[function]`: the first seven marks (`lines`, `step`, `area`, `ribbon`, `hline`, `vline`, `rug`), before which open decision #106 is taken on the recommendation.
+
+**For the owner to decide.** Nothing waits for him. #73 itself is due at 0.8.0. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
