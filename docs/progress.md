@@ -86,59 +86,9 @@ Step 18 `[engine]`: `dist.tukey(groups:, df:)`, the studentized range, exact to 
 
 Step 20 `[engine]`: the package `plot`; `w.plot(x: educ, y: wage)` starts a plot, `.points()` adds a layer with `alpha:`, `size:`, seeded `jitter:` and a frame of its own; a plot prints as text, and behind the text is the versioned scene every writer of figures will read; open decision #106 (a layer overriding a mapping, due before step 23) was raised. Step 20a `[engine]`: a fault dating from 0.3.0 was corrected, so that the seed the engine notes for a run, written at the top as `seed(N)`, repeats that run; every figure drawn under a script-wide seed changed to another valid draw, which the release notes must say. Step 20b `[engine]`: an expression as a position (`y: log(wage)`), computed row by row, the axis titled by the expression as written; `PI` and `E` inside a frame method were corrected the same day; open decisions #107 (what such an expression may call, decided as built) and #108 (a numeric function given a text column, due at 0.8.0) were raised. Step 20c `[engine]`: `color:` and `fill:`, categories in the eight colours of Okabe and Ito with grey for `NA`, numbers on the viridis ramp, a string for one colour; open decision #109 (three questions on colours, due before step 25) was raised. `zeff selftest` stood at 244 of 244.
 
-## 12 November 2026, release 0.7.0, step 20d (size, shape, group and label)
+## 12 November 2026, steps 20d, 18c, 19b, 20e and 20f of release 0.7.0 (folded)
 
-**Done.** `plot` takes its last four aesthetics, and the catalogue's row 460 is implemented. `size: hours` sizes each point by area from 0: twice the hours is twice the ink, the largest value is 18 points across, and a number (`size: 3`) sets one size for every mark. `shape: union` gives each category a shape, in the order circle, triangle, square, diamond, plus, cross, with an asterisk for `NA`; a string (`shape: "cross"`, `"circle_open"`) sets one shape. `group:` and `label:` are checked and held for the lines and text of steps 23 and 24, and the printed plot says that no layer draws them yet. One variable on two scales (`color: union, shape: union`) has one legend. The table of the printed plot is now headed `shown as`. Rows a size cannot show are accounted for in notes: `NA` and negative values dropped, a value of 0 kept and drawn with no size. Checked against R on the `wages` data (18,167 points sized by `hours`; 340 rows with `exper` of 0). Details in `docs/decisions.md`.
-
-**Since step 20c, by the owner in other sessions.** Open decisions #111 to #125 were recorded and most adopted. Those that touch this release: #104 decided (step 19b written out), #107 decided as built, #111 adopted (new step 18c), a defect reported in the message for `color: wage > 20` (new step 20e, which covers the aesthetics of this step too), and #118 adopted (the fixed points of the renderer, written into steps 21 to 30).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247 with the new case `plot/size_shape`; CI is read job by job after the push.
-
-**Next.** The first unticked steps in order: 18c `[function]` (`p_adjust` as a column inside `add`), 19b `[engine]` (`posthoc` after a factorial `anova`), 20e `[engine]` (the message for an expression in an aesthetic), then 21 `[engine]` (the SVG writer).
-
-**For the owner to decide.** New: #110, due at 0.7.0 before step 25, five questions on sizes and shapes. The one that needs him before step 21: his proposal F9 asks for eight shapes and six are built; recommended, two more after the six, proposed `triangle_down` and `star`, the choice his. The others are recommended as built: sizes by area from 0; negative sizes dropped and sizes of 0 kept, each with a note; `group` and `label` held and printed; shapes of one size drawn with equal area. Also noticed: a file `Rplots.pdf` of 11 November lies untracked in the repository's folder, left by a run of R that was not part of this step; it is not committed and can be deleted. Open as before: #109, #108, #106 (due before step 23), #105, #102, #101, #100 and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 18c (`p_adjust` as a column, families by `by:`)
-
-**Done.** `tests.add(p_holm = p_adjust(p))` now works: given a variable of a frame, `p_adjust` gives a variable, one adjusted p-value on each row. With `by:` on the verb, as in `tests.add(p_holm = p_adjust(p), by: outcome)`, each group is a family adjusted on its own. A list still gives a list. A value outside 0 to 1 is refused with the row of the frame that holds it, also inside a group. R is the reference: `p.adjust` within each group on seven sets, every method, agreeing to twelve digits; the split form used in the reference was compared once with dplyr's `group_by` and `mutate` and is identical. The help page covers both forms. Details in `docs/decisions.md`.
-
-**A fault of `by:` corrected on the way.** Under `by:` a definition that gave `NA` on every row, or any definition on a frame of no rows, was refused for want of a type where the same definition without `by:` worked. It held for `rank` and plain arithmetic too, since release 0.6.0. Both forms now give the same variable.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247; CI is read job by job after the push. The run GitHub opened for the step's commit never left its queue (over four hours, no job started, no fault reported by GitHub, and it could be neither cancelled nor restarted), so the checks were started again by the push that records this sentence.
-
-**Next.** Step 19b `[engine]`: `posthoc` after a factorial `anova`. Then 20e `[engine]` and 21 `[engine]`.
-
-**For the owner to decide.** Nothing new. Noticed and not changed: `p_adjust(p, by: outcome)`, with `by:` written inside the function, is refused by the general message for an unknown argument, which could say that `by:` belongs to `add`; and `add(m = mean(x))` on values that are all `NA` is refused for want of a type. Open as before: #110 (eight shapes, before step 21), #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 19b (`posthoc` after a factorial `anova`)
-
-**Done.** `d.anova(y ~ a * b + x).posthoc(term: a)` now compares the estimated marginal means of the term named: for each level, what the model predicts averaged with equal weight over the levels of the other categories, each numeric variable at its mean. `term: "a:b"` compares every pair of cells. All ten methods apply, on the residual variance of the model. `term:` may be left out when the formula has one term of categories. A mean that the data cannot determine, because a combination of levels has no row, is left out with a note. R's emmeans is the reference: thirty models, every method, agreeing to nine digits (Tukey's within the accuracy of R's own function); on a balanced table also `TukeyHSD`. The `anova` of a formula now hands its fitted model on, and the arithmetic never forms the covariance matrix. The help page covers both forms. Details and ten rulings in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247, the case `tests/posthoc` extended; `stats` at 13 of 13 and `dist` at 19 of 19; CI is read job by job after the push.
-
-**Next.** Step 20e `[engine]`: the message for an expression mapped to `color:`, `fill:`, `size:`, `shape:`, `group:` or `label:`. Then step 21 `[engine]`, the SVG writer.
-
-**For the owner to decide.** Nothing new is needed to go on. Rulings he may overturn, all in `docs/decisions.md`: `term:` is written after `method:`, so that `posthoc(holm)` keeps its meaning; `term:` must be a term of the formula; a numeric variable is held at its weighted mean under weights, where emmeans uses the unweighted mean; a `Bool` is a number, where emmeans treats it as a factor; a mean that cannot be estimated is left out with a note; no table of the marginal means themselves is printed. Noticed and not changed: three older test files read their number of property cases from a name the nightly run does not set. Open as before: #110 (eight shapes, before step 21), #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 20e (an expression where an aesthetic takes a variable)
-
-**Done.** The defect the owner found is corrected. `w.plot(x: educ, y: wage, color: wage > 20)` is still refused, but the message now names the real cause: "`color:` of `plot` takes a variable of the frame or a string, not an expression", with the advice to compute it with `add` first, written out for the case in hand. The same holds for `fill:`, `size:`, `shape:`, `group:` and `label:`. A misspelt variable given alone keeps its own message and its "did you mean". The cause was general, so the correction is too: `w.mean(wage * 2)` and `group: educ > 12` in any method of a frame now get the same clear message. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247; CI is read job by job after the push.
-
-**Next.** Step 21 `[engine]`: the SVG writer, fonts and theme, with the fixed points of open decision #118.
-
-**For the owner to decide.** Before step 21: open decision #110, question 2, the eight shapes (six are built; recommended, add `triangle_down` and `star`). A ruling he may overturn: the message says "a string" for `color:`, not "a string naming a colour", because one rule serves every function. Open as before: #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 20f (the seventh and eighth shapes)
-
-**Done.** The owner decided question 2 of open decision #110: "Yes, add both". The categories of `shape:` now take eight shapes, the six as before followed by `triangle_down` and `star`, one for each colour of the palette. Each new shape may also be named for every mark, solid or as an outline (`"star_open"`). With nine categories or more the shapes repeat and a note says so. The step was added to the checklist as 20f, as the open decision asked. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247; CI is read job by job after the push.
-
-**Next.** Step 21 `[engine]`: the SVG writer, fonts and theme, with the fixed points of open decision #118. It is the first step to draw a shape.
-
-**For the owner to decide.** Nothing blocks step 21. Open as before: the other four questions of #110 (recommended as built, due before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size by area from 0, the largest mark 18 points across; a shape for each category; one legend for a variable shown twice; open decision #110 (five questions on sizes and shapes) was raised. Step 18c `[function]`: `p_adjust` given a variable gives a variable, and under `by:` each group is a family adjusted on its own (#111); a fault of `by:` dating from 0.6.0 was corrected, a definition giving `NA` on every row being refused for want of a type. Step 19b `[engine]`: `posthoc(term:)` after an `anova` of a formula compares the estimated marginal means of the term named, by any of the ten methods, checked against emmeans on thirty models (#104); the `anova` hands its fitted model on. Step 20e `[engine]`: an expression where a parameter takes a variable by its name (`color: wage > 20`, and `mean(wage * 2)` in any method of a frame) is refused as an expression, with the `add` that computes it first, where the message spoke of a binding. Step 20f `[engine]`: by the owner's ruling on question 2 of #110 ("Yes, add both"), eight shapes, the six followed by `triangle_down` and `star`. GitHub's first run for step 18c never left its queue and was started again by a later push. `zeff selftest` stood at 247 of 247.
 
 ## 12 November 2026, release 0.7.0, step 21 opened and split
 
@@ -177,4 +127,14 @@ Step 20 `[engine]`: the package `plot`; `w.plot(x: educ, y: wage)` starts a plot
 **Next.** Step 21c `[engine]`: the SVG writer. It needs the owner's answer to open decision #126 first.
 
 **For the owner to decide.** #126, now blocking: how the text of an SVG is written (recommended: letters drawn as outlines, so that a figure looks the same in every program; editable text as an option after 1.0). Rulings he reads on the figures at step 22: the three sizes in millimetres, the constants of the journal theme, the three faces, no ligatures. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 21c (the SVG writer)
+
+**Done.** The owner decided open decision #126: "Yes, outlines". A plot's drawing is now written as an SVG file: the bytes of a figure, the same on every machine. The text is drawn as the outlines of the letters of the embedded IBM Plex, so the figure looks the same in every program, and the words are kept in the file for search. Every primitive of the closed set is written. The seven sample figures of the wages were written at the three sizes, read back by an independent reader of XML, and four were looked at as pictures: the letters, the axes, the legends, the colour ramp and the eight shapes are where they should be. A file holds nothing of the rows of the data. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 252 of 252 with the new case `plot/svg/figures`; CI is read job by job after the push.
+
+**Next.** Step 21d `[engine]`: `export` of a plot to `.svg`, with `size:` and `notes:`, the six sample figures in the sample project and the identity job on their bytes. Then step 22: the owner reads the six figures.
+
+**For the owner to decide.** Nothing blocks step 21d. Rulings he reads on the figures at step 22: the three sizes in millimetres, the journal theme, the three faces, no ligatures, marks clipped at the edge of the panel, the stroke of the outline shapes. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

@@ -250,6 +250,7 @@ plot/size_shape/stdout baee7e13689bfd62
 plot/size_shape/stderr 3de90dd466d7e82a
 plot/size_shape/scene.json 2b93c82602807c56
 plot/layout/drawings 79ad2f9cfb47f798
+plot/svg/figures f566106f75c245d2
 plot/fonts/metrics bebed91423abec50
 plot/fonts/texts 1ef6df97a647e193
 plot/fonts/outlines 2d1b1d03228c837c

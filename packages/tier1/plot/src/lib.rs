@@ -25,6 +25,7 @@ pub mod marks;
 pub mod scale;
 pub mod scene;
 pub mod shape;
+pub mod svg;
 
 pub use scene::{SCENE_VERSION, Scene, scene};
 

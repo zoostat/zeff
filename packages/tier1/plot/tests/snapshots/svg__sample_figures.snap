@@ -1,0 +1,25 @@
+---
+source: packages/tier1/plot/tests/svg.rs
+expression: all
+---
+wage_schooling at one_column: 846337 bytes, 18201 marks, af5d03915a3c445e2e47a56321b9ad9035af0f1089abd806324e4d7bde51a78a
+wage_schooling at two_column: 847182 bytes, 18201 marks, c98a444667d05c930cf9d19b3d0a3fff20a3bccb1bed6d9b20bdd6d6500e3ce2
+wage_schooling at slide: 850883 bytes, 18201 marks, 58ab2d59cc197aa3642a00e73df3d78a3964442fa5da5c1633bd5268c23579f9
+wage_experience_translucent at one_column: 865318 bytes, 18179 marks, f1a0fee5cc61f2d4169edb8452e58b9a1b87fe4b2ec06ec0c70e96e785e9beeb
+wage_experience_translucent at two_column: 870367 bytes, 18179 marks, c36c000e19dd22b30fe36d5f9ef243dd54cd9502a07b26afe2beb77384edf354
+wage_experience_translucent at slide: 870051 bytes, 18179 marks, e308da221f331c2fb68b7ca0bc2017a969ff0e3ffb3afa970cf7eb92b7c20878
+coloured_by_union at one_column: 918270 bytes, 18201 marks, 2417ddb5c4cf170f6fa504eafbde5618e7f7bac307e604bdafa911b68131a0ea
+coloured_by_union at two_column: 933911 bytes, 18201 marks, e6980902d58e3fff015e741574d19e7fb1aeba6dc9940ca25d7753c24de9cbec
+coloured_by_union at slide: 935149 bytes, 18201 marks, a297c1c9b3a4b913d944a72034a2e02fbec45a829ec494489e069e66faaf443a
+coloured_by_hours at one_column: 1146321 bytes, 18167 marks, 90baecc1cac57df346a036fcd701fb75502bde42cf9a6c2acc74a7d310371ecb
+coloured_by_hours at two_column: 1154905 bytes, 18167 marks, f0f9121f5ba56524ca083eabe0c81d5872c5ea70fe6b49c36164fdf42e9eb80e
+coloured_by_hours at slide: 1150491 bytes, 18167 marks, 436b65f3ae6ee301f2c5e65f880b804acc94f5a8d3a5744ffaa90a553b702b20
+sized_coloured_shaped at one_column: 1109120 bytes, 18145 marks, b44528491fdafb6ec6d9176505ee8823445cb5cfad12d7634d1de96dd923f8b1
+sized_coloured_shaped at two_column: 1131679 bytes, 18145 marks, f8eae0529ab088442e8c3373158e863971b238944e82020316ced32799e09fdb
+sized_coloured_shaped at slide: 1130919 bytes, 18145 marks, ee4515456e5f82e25389c9ffb3cba42efbb1428ac5f492dc9c660d9882c68700
+shaped_by_industry at one_column: 1477218 bytes, 18377 marks, 3105c001f0c9840a2f176d780d7a395ab0cf2d1181da7c78f57ab830c44b83c8
+shaped_by_industry at two_column: 1567048 bytes, 18377 marks, 425a5624336ec3a7599babc8b9e827539214a3299b676f29ccc1415f973c48d9
+shaped_by_industry at slide: 1572751 bytes, 18377 marks, 1d2a60b4d4bf3322ea988dd6ff6a4adeb003ee3501458d1e001101696a409dea
+one_shape at one_column: 3004037 bytes, 18377 marks, 9104c1b388b70120b423581eb9cc92d23e7406d7a51efb53ccec902fcd6c9143
+one_shape at two_column: 3173495 bytes, 18377 marks, 6e4c774471502273ebbd696a46137cb47b68eb28e332c3bf725ce20577b646f3
+one_shape at slide: 3194600 bytes, 18377 marks, 85c21ddd14882abd6e6ee679faa9e77d4dd57ac2d100272a2c9078f7ff81a399

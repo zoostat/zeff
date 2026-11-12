@@ -1744,22 +1744,25 @@ fn plot_cases() -> Vec<Line> {
         text("plot/size_shape/stderr", &size_shape.output.stderr),
         text("plot/size_shape/scene.json", &sized),
         text("plot/layout/drawings", &layout_drawings()),
+        text("plot/svg/figures", &svg_figures()),
         text("plot/fonts/metrics", &font_metrics()),
         text("plot/fonts/texts", &font_texts()),
         text("plot/fonts/outlines", &font_outlines()),
     ]
 }
 
-/// The layout of a figure (release 0.7.0, step 21b): two plots of the shipped wages, one plain
-/// and one with a colour, a size and a shape and so with two legends, each laid out under the
-/// journal theme at the three named sizes and at a size in millimetres, and read as text: every
-/// place to a thousandth of a point.
-fn layout_drawings() -> String {
+/// Two plots of the shipped wages, one plain and one with a colour, a size and a shape and so
+/// with two legends, each laid out under the journal theme at the three named sizes and at a
+/// size in millimetres (release 0.7.0, steps 21b and 21c).
+fn sample_drawings() -> Vec<(String, Result<zeff_plot::drawing::Drawing, String>)> {
     use std::rc::Rc;
     use zeff_core::value::{Aesthetic, Frame, Mark, PlotLayer, PlotMapping};
     use zeff_plot::layout::{JOURNAL, Size, layout};
     let Some(table) = zeff_datasets::table("wages") else {
-        return "the wages did not load".to_string();
+        return vec![(
+            "wages".to_string(),
+            Err("the wages did not load".to_string()),
+        )];
     };
     let frame = Frame {
         table: Rc::new(table),
@@ -1795,7 +1798,7 @@ fn layout_drawings() -> String {
         ],
         Vec::new(),
     );
-    let mut out = String::new();
+    let mut out = Vec::new();
     for (name, plot) in [("plain", plain), ("full", full)] {
         let scene = zeff_plot::scene::with_layer(&plot, layer.clone()).1;
         for (page, size) in [
@@ -1804,11 +1807,38 @@ fn layout_drawings() -> String {
             ("slide", Size::Slide),
             ("120 by 75 mm", Size::Millimetres(120.0, 75.0)),
         ] {
-            out.push_str(&format!("=== {name}, {page}\n"));
-            match layout(&scene, size, &JOURNAL) {
-                Ok(drawing) => out.push_str(&drawing.describe()),
-                Err(why) => out.push_str(&format!("{why:?}\n")),
-            }
+            out.push((
+                format!("{name}, {page}"),
+                layout(&scene, size, &JOURNAL).map_err(|why| format!("{why:?}")),
+            ));
+        }
+    }
+    out
+}
+
+/// The layout of a figure (step 21b): the sample drawings read as text, every place to a
+/// thousandth of a point.
+fn layout_drawings() -> String {
+    let mut out = String::new();
+    for (name, drawing) in sample_drawings() {
+        out.push_str(&format!("=== {name}\n"));
+        match drawing {
+            Ok(drawing) => out.push_str(&drawing.describe()),
+            Err(why) => out.push_str(&format!("{why}\n")),
+        }
+    }
+    out
+}
+
+/// The SVG of a figure (step 21c): the bytes of each sample drawing, its text drawn as the
+/// outlines of the embedded fonts.
+fn svg_figures() -> String {
+    let mut out = String::new();
+    for (name, drawing) in sample_drawings() {
+        out.push_str(&format!("=== {name}\n"));
+        match drawing {
+            Ok(drawing) => out.push_str(&zeff_plot::svg::write(&drawing)),
+            Err(why) => out.push_str(&format!("{why}\n")),
         }
     }
     out

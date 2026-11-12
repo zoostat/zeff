@@ -475,3 +475,7 @@ Step 21a2 of release 0.7.0 builds three of the fixed points the owner adopted wi
 
 Step 21b of release 0.7.0 builds F1 of open decision #118, adopted by the owner on 11 November 2026 with the amendment D3 of the proposal on diagrams: the closed set of drawing primitives. As that decision says, section 7.6 gains the rule when its step is built: a paragraph, "What a figure is drawn with", after the paragraph on what a scene keeps and reserves. It lists the eight primitives, says there are no gradients, images from files or blur, and that a primitive may carry a name that becomes a named group of an SVG and never names rows of the data.
 
+## 12 November 2026 — Language Reference, section 7.6; zeff_open_decisions.md, entry #126
+
+The owner decided open decision #126 ("Yes, outlines"). The sentence of section 7.6 on the embedded fonts said that a figure's SVG and PDF bytes are identical on every machine and did not say how an SVG carries its text. It now adds that a PDF carries the fonts inside it and that an SVG draws its text as the outlines of the embedded fonts and keeps the words in the file for search, so that it looks the same wherever it is opened. The register records the decision in a status paragraph, in the summary row and under the entry. Built at step 21c.
+
