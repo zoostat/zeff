@@ -127,15 +127,19 @@ pub enum Coord {
     /// Cartesian, with one unit of `y` as long on the page as this many units of `x`: the
     /// panel takes the shape the limits of the two axes and the ratio give it.
     Fixed(f64),
+    /// `x` as the angle, once round from the top and clockwise, and `y` as the distance
+    /// from the centre: every mark wound round the centre.
+    Polar,
 }
 
 impl Coord {
-    /// The coordinates as they are written: `cartesian`, `flip`, `fixed`.
+    /// The coordinates as they are written: `cartesian`, `flip`, `fixed`, `polar`.
     pub fn name(self) -> &'static str {
         match self {
             Coord::Cartesian => "cartesian",
             Coord::Flip => "flip",
             Coord::Fixed(_) => "fixed",
+            Coord::Polar => "polar",
         }
     }
 }

@@ -2555,3 +2555,17 @@ Raised on 12 November 2026 at step 26a of release 0.7.0, where `labels` was buil
 *Recommendation.* B, at 0.8.0: an addition that breaks no script. Until then A, as built. Deadline: 0.8.0.
 
 **The decision (12 November 2026).** As recommended, taken under the owner's standing instruction of that day ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A stands for 0.7.0, and the three arguments are planned for 0.8.0.
+
+### 132. Polar coordinates: where the circle starts, which way it turns, and which variable is the angle
+
+Raised on 13 November 2026 at step 27c1 of release 0.7.0, where polar coordinates were built. The catalogue gives `coord` two arguments, `coord(type: cartesian | flip | polar | fixed, ratio:)`, and the Language Reference says `coord(flip | polar | fixed)` and no more. So `coord(polar)` has one form: `x` is the angle, which starts at the top of the circle and turns clockwise, once round over the limits of `x`; `y` is the distance from the centre. ggplot2's `coord_polar()` takes three settings more: `theta = "y"`, which makes `y` the angle (a stacked bar becomes a pie); `start =`, the angle of the first value; and `direction =`, clockwise or not. None can be written in Zeff today.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As the catalogue has it: `x` is the angle, from the top, clockwise | Nothing to add; it draws the rose of bars, the series round a clock or a year, and the rings of tiles; the top and clockwise is how a clock and a compass are read | No pie: a share of a whole as an angle needs `y` as the angle |
+| B. Add `theta: x \| y = x`, `start:` in degrees and `direction: clockwise \| anticlockwise` to `coord` | Everything `coord_polar()` draws; a pie is `bars(position: stack)` with `coord(polar, theta: y)` | Three more arguments in the usage line, a change to the catalogue under the freeze; a pie is the chart the Language Reference's defaults were written to discourage |
+
+*Recommendation.* A for 0.7.0, as built. B at 0.8.0 if the owner wants pies and wind roses that start elsewhere: an addition that breaks no script. Deadline: 0.8.0.
+
+**The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A stands for 0.7.0, and the three arguments are a question for 0.8.0.
+

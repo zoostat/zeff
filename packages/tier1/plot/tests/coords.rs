@@ -16,7 +16,7 @@ use zeff_core::value::{
 use zeff_plot::drawing::{Drawing, Primitive, Step};
 use zeff_plot::layout::{JOURNAL, LayoutError, SMALLEST_PANEL, Size, layout};
 use zeff_plot::scale::share;
-use zeff_plot::scene::{Position, RUG_LENGTH, Scene, start, with_layer};
+use zeff_plot::scene::{Position, RUG_LENGTH, Scene, describe, start, with_layer};
 
 /// The rows of a property, or a small frame, as a plot of `x` and `y` in the coordinates.
 fn plot_of(frame: Frame, x: &str, y: &str, coord: Coord) -> Plot {
@@ -753,6 +753,529 @@ proptest! {
                 prop_assert!(panel.0 < SMALLEST_PANEL || panel.1 < SMALLEST_PANEL);
             }
             Err(other) => prop_assert!(false, "{:?}", other),
+        }
+    }
+}
+
+// ----- the polar frame (step 27c1) -----
+
+/// The circle of a polar drawing: its centre, which is the middle of the panel, and its
+/// radius, the length of a spoke of the grid.
+fn circle_of(drawing: &Drawing) -> ((f64, f64), f64) {
+    let (panel, width, height, _) = panel_of(drawing);
+    let centre = (panel.0 + width / 2.0, panel.1 + height / 2.0);
+    let radius = drawing
+        .items
+        .iter()
+        .find_map(|item| match &item.primitive {
+            Primitive::Segment { from, to, .. } if item.name.as_deref() == Some("grid") => {
+                Some(((to.0 - from.0).powi(2) + (to.1 - from.1).powi(2)).sqrt())
+            }
+            _ => None,
+        })
+        .expect("a polar drawing has a spoke");
+    (centre, radius)
+}
+
+/// Where a place stands round a circle: its share of the way round, clockwise from the
+/// top, and its share of the way out from the centre.
+fn round(at: (f64, f64), (centre, radius): ((f64, f64), f64)) -> (f64, f64) {
+    let (across, up) = (at.0 - centre.0, centre.1 - at.1);
+    let turn = across.atan2(up) / (2.0 * std::f64::consts::PI);
+    (
+        if turn < 0.0 { turn + 1.0 } else { turn },
+        (across * across + up * up).sqrt() / radius,
+    )
+}
+
+/// The corners of the marks in the panel of a drawing, on the page.
+fn on_the_page(drawing: &Drawing) -> Vec<Vec<(f64, f64)>> {
+    let (_, _, _, marks) = panel_of(drawing);
+    marks
+        .iter()
+        .filter_map(|item| match &item.primitive {
+            Primitive::Polygon { rings, .. } => Some(rings.iter().flatten().copied().collect()),
+            Primitive::Segment { from, to, .. } => Some(vec![*from, *to]),
+            Primitive::Path { steps, .. } => Some(
+                steps
+                    .iter()
+                    .filter_map(|step| match step {
+                        Step::Move(to) | Step::Line(to) => Some(*to),
+                        _ => None,
+                    })
+                    .collect(),
+            ),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn the_axes_of_a_polar_scene_have_no_margin() {
+    // Numbers: the limits are the lowest and the highest value.
+    let scene = with(
+        &plot_of(small("d"), "dose", "response", Coord::Polar),
+        Mark::Points,
+    );
+    assert_eq!(scene.coord, Coord::Polar);
+    assert_eq!(scene.scale("x").unwrap().limits, (1.0, 6.0));
+    assert_eq!(scene.scale("y").unwrap().limits, (2.1, 11.5));
+    assert!(scene.json().write().contains("\"coord\": \"polar\""));
+    // The printed plot says so on a line of its own.
+    let (mut plot, _) = with_layer(
+        &plot_of(small("d"), "dose", "response", Coord::Polar),
+        points(1.0),
+    );
+    describe(&mut plot);
+    let last: Vec<&String> = plot
+        .summary
+        .after
+        .iter()
+        .chain(plot.summary.more.iter().flat_map(|table| &table.after))
+        .collect();
+    assert_eq!(
+        last,
+        ["coordinates: polar, `x` as the angle and `y` as the distance from the centre"]
+    );
+    // Categories: half a place beyond each end, on either axis.
+    let scene = with(
+        &plot_of(small("d"), "arm", "response", Coord::Polar),
+        Mark::Bars(Arrangement::Stack),
+    );
+    assert_eq!(scene.scale("x").unwrap().limits, (0.5, 2.5));
+    // Bars start at zero, which is the centre; the two bars of a category are stacked.
+    let y = scene.scale("y").unwrap().limits;
+    assert_eq!(y.0, 0.0);
+    assert!((y.1 - (3.9 + 7.8 + 11.5)).abs() < 1e-9, "{y:?}");
+    let scene = with(
+        &plot_of(small("d"), "dose", "arm", Coord::Polar),
+        Mark::Points,
+    );
+    assert_eq!(scene.scale("y").unwrap().limits, (0.5, 2.5));
+    // A log axis keeps its values; one value alone keeps the limits it has elsewhere.
+    let mut plot = plot_of(
+        pairs(&[1.0, 10.0, 100.0], &[5.0, 5.0, 5.0]),
+        "x",
+        "y",
+        Coord::Polar,
+    );
+    plot.axes.push(PlotAxis::of(Aesthetic::X, AxisKind::Log));
+    let scene = with(&plot, Mark::Points);
+    assert_eq!(scene.scale("x").unwrap().limits, (1.0, 100.0));
+    let alone = with(
+        &plot_of(
+            pairs(&[1.0, 10.0, 100.0], &[5.0, 5.0, 5.0]),
+            "x",
+            "y",
+            Coord::Cartesian,
+        ),
+        Mark::Points,
+    );
+    assert_eq!(
+        scene.scale("y").unwrap().limits,
+        alone.scale("y").unwrap().limits
+    );
+    // What the script sets is kept.
+    let mut plot = plot_of(small("d"), "dose", "response", Coord::Polar);
+    let mut hours = PlotAxis::of(Aesthetic::X, AxisKind::Linear);
+    hours.limits = (Some(0.0), Some(24.0));
+    plot.axes.push(hours);
+    assert_eq!(
+        with(&plot, Mark::Points).scale("x").unwrap().limits,
+        (0.0, 24.0)
+    );
+}
+
+#[test]
+fn the_grid_of_a_polar_plot_is_spokes_and_circles_in_a_square_panel() {
+    let scene = with(
+        &plot_of(small("d"), "dose", "response", Coord::Polar),
+        Mark::Points,
+    );
+    let drawing = drawn(&scene);
+    let (panel, width, height, _) = panel_of(&drawing);
+    assert!((width - height).abs() < 1e-9);
+    let (centre, radius) = circle_of(&drawing);
+    assert!(radius > 20.0 && 2.0 * radius < width);
+    let (x, y) = (scene.scale("x").unwrap(), scene.scale("y").unwrap());
+    // A spoke from the centre to the rim at each break of `x`; its two ends, 1 and 6, are
+    // one spoke.
+    let spokes: Vec<(f64, f64)> = drawing
+        .items
+        .iter()
+        .filter(|item| item.name.as_deref() == Some("grid"))
+        .filter_map(|item| match &item.primitive {
+            Primitive::Segment { from, to, .. } => {
+                assert!((from.0 - centre.0).abs() < 1e-9 && (from.1 - centre.1).abs() < 1e-9);
+                Some(round(*to, (centre, radius)))
+            }
+            _ => None,
+        })
+        .collect();
+    let wanted: Vec<f64> = x
+        .breaks
+        .iter()
+        .map(|value| share(x.kind, x.limits, *value))
+        .filter(|share| *share < 1.0)
+        .collect();
+    assert_eq!(spokes.len(), wanted.len());
+    assert_eq!(x.breaks.len(), wanted.len() + 1);
+    for ((turn, out), wanted) in spokes.iter().zip(&wanted) {
+        assert!((turn - wanted).abs() < 1e-9 && (out - 1.0).abs() < 1e-9);
+    }
+    // A circle round the centre at each break of `y` that is not the centre itself.
+    let circles: Vec<f64> = drawing
+        .items
+        .iter()
+        .filter(|item| item.name.as_deref() == Some("grid"))
+        .filter_map(|item| match &item.primitive {
+            Primitive::Path { steps, .. } => match steps[..] {
+                [
+                    Step::Move(top),
+                    Step::Arc { radii, to, .. },
+                    Step::Arc { .. },
+                    Step::Close,
+                ] => {
+                    assert!((top.0 - centre.0).abs() < 1e-9 && (to.0 - centre.0).abs() < 1e-9);
+                    assert!((centre.1 - top.1 - radii.0).abs() < 1e-9);
+                    Some(radii.0 / radius)
+                }
+                _ => panic!("a gridline that is neither a spoke nor a circle"),
+            },
+            _ => None,
+        })
+        .collect();
+    let rings: Vec<f64> = y
+        .breaks
+        .iter()
+        .map(|value| share(y.kind, y.limits, *value))
+        .filter(|share| *share > 0.0)
+        .collect();
+    assert_eq!(circles.len(), rings.len());
+    for (found, wanted) in circles.iter().zip(&rings) {
+        assert!((found - wanted).abs() < 1e-9);
+    }
+    // The circle is in the middle of the panel, and the panel in the middle of its room.
+    let room = drawn(&with(
+        &plot_of(small("d"), "dose", "response", Coord::Cartesian),
+        Mark::Points,
+    ));
+    let (at, wide, high, _) = panel_of(&room);
+    assert!((at.0 + wide / 2.0 - centre.0).abs() < 1e-9);
+    assert!((at.1 + high / 2.0 - centre.1).abs() < 1e-9);
+    assert!((panel.0 + width / 2.0 - centre.0).abs() < 1e-9);
+}
+
+#[test]
+fn bars_by_a_category_are_wedges_of_one_circle() {
+    let frame = frame(
+        "d",
+        vec![
+            (
+                "g",
+                Column::strs(["north", "east", "south", "west"].map(Some)),
+            ),
+            ("n", numbers(&[4.0, 1.0, 3.0, 2.0])),
+        ],
+    );
+    let scene = with(
+        &plot_of(frame, "g", "n", Coord::Polar),
+        Mark::Bars(Arrangement::Stack),
+    );
+    let drawing = drawn(&scene);
+    let circle = circle_of(&drawing);
+    let wedges = on_the_page(&drawing);
+    assert_eq!(wedges.len(), 4);
+    // The categories in the order of the scale, each with its value.
+    let x = scene.scale("x").unwrap();
+    for (i, wedge) in wedges.iter().enumerate() {
+        let value = scene.panels[0].layers[0].y[i];
+        let (mut first, mut last, mut furthest) = (f64::MAX, f64::MIN, 0.0f64);
+        for &corner in wedge {
+            let (turn, out) = round(corner, circle);
+            furthest = furthest.max(out);
+            // The centre has no angle.
+            if out > 1e-9 {
+                (first, last) = (first.min(turn), last.max(turn));
+            }
+        }
+        // A quarter of the circle for each category, of which the bar takes nine tenths,
+        // from the centre out to the share of its value.
+        let middle = (i as f64 + 0.5) / 4.0;
+        assert!(
+            (first - (middle - 0.1125)).abs() < 1e-9,
+            "{}: from {first}",
+            x.labels[i]
+        );
+        assert!(
+            (last - (middle + 0.1125)).abs() < 1e-9,
+            "{}: to {last}",
+            x.labels[i]
+        );
+        assert!((furthest - value / 4.0).abs() < 1e-9);
+        // The outer edge is an arc, drawn in pieces of two degrees at most: 81 degrees.
+        assert!(wedge.len() >= 2 * 41, "{} corners", wedge.len());
+    }
+    insta::assert_snapshot!("four_wedges", drawing.describe());
+}
+
+#[test]
+fn one_category_is_a_wedge_of_nine_tenths_of_the_circle() {
+    let frame = frame(
+        "d",
+        vec![("g", Column::strs([Some("all")])), ("n", numbers(&[5.0]))],
+    );
+    let drawing = drawn(&with(
+        &plot_of(frame, "g", "n", Coord::Polar),
+        Mark::Bars(Arrangement::Stack),
+    ));
+    let circle = circle_of(&drawing);
+    let wedges = on_the_page(&drawing);
+    assert_eq!(wedges.len(), 1);
+    let turns: Vec<f64> = wedges[0]
+        .iter()
+        .map(|corner| round(*corner, circle))
+        .filter(|(_, out)| *out > 1e-9)
+        .map(|(turn, _)| turn)
+        .collect();
+    let (first, last) = (
+        turns.iter().copied().fold(f64::MAX, f64::min),
+        turns.iter().copied().fold(f64::MIN, f64::max),
+    );
+    assert!((first - 0.05).abs() < 1e-9 && (last - 0.95).abs() < 1e-9);
+    // On the rim all the way: the highest value is the rim.
+    assert!(
+        wedges[0]
+            .iter()
+            .map(|corner| round(*corner, circle).1)
+            .all(|out| out < 1e-9 || (out - 1.0).abs() < 1e-9)
+    );
+}
+
+#[test]
+fn a_line_is_wound_round_the_centre_and_closes_where_its_values_come_round() {
+    // The hours of a day at one level: the line is a circle, which ends where it began.
+    let hours: Vec<f64> = (0..=24).map(f64::from).collect();
+    let level = [3.0; 25];
+    let mut y = vec![1.0];
+    y.extend(&level[1..]);
+    let scene = with(
+        &plot_of(pairs(&hours, &y), "x", "y", Coord::Polar),
+        Mark::Lines,
+    );
+    let drawing = drawn(&scene);
+    let circle = circle_of(&drawing);
+    let lines = on_the_page(&drawing);
+    assert_eq!(lines.len(), 1);
+    let line = &lines[0];
+    // From the centre, where the lowest value is, out to the rim within the first hour, and
+    // round the rim from there; the last place is the first hour's angle again: the top.
+    assert!(round(line[0], circle).1 < 1e-9);
+    let end = round(*line.last().unwrap(), circle);
+    assert!((end.1 - 1.0).abs() < 1e-9);
+    assert!(end.0 < 1e-9 || (end.0 - 1.0).abs() < 1e-9);
+    assert!((line.last().unwrap().0 - circle.0.0).abs() < 1e-9);
+    // An hour is fifteen degrees: eight pieces of two degrees at most, and 24 hours of them.
+    assert_eq!(line.len(), 1 + 24 * 8);
+    for corner in &line[8..] {
+        assert!((round(*corner, circle).1 - 1.0).abs() < 1e-9);
+    }
+    // The angle never turns back.
+    let turns: Vec<f64> = line[1..line.len() - 1]
+        .iter()
+        .map(|corner| round(*corner, circle).0)
+        .collect();
+    assert!(turns.windows(2).all(|pair| pair[1] > pair[0]));
+}
+
+#[test]
+fn a_line_across_is_a_circle_and_a_line_down_a_spoke() {
+    let plot = plot_of(small("d"), "dose", "response", Coord::Polar);
+    let (plot, _) = with_layer(&plot, points(1.0));
+    let mut level = PlotLayer {
+        mark: Mark::Hline,
+        ..points(1.0)
+    };
+    level.constants = vec![PlotConstant {
+        aesthetic: Aesthetic::Y,
+        value: PlotSetting::Place(6.8),
+    }];
+    let (plot, _) = with_layer(&plot, level);
+    let mut upright = PlotLayer {
+        mark: Mark::Vline,
+        ..points(1.0)
+    };
+    upright.constants = vec![PlotConstant {
+        aesthetic: Aesthetic::X,
+        value: PlotSetting::Place(2.25),
+    }];
+    let (_, scene) = with_layer(&plot, upright);
+    let drawing = drawn(&scene);
+    let circle = circle_of(&drawing);
+    let lines = on_the_page(&drawing);
+    assert_eq!(lines.len(), 2);
+    // The level at half the way from 2.1 to 11.5: a circle at half the radius, once round.
+    assert_eq!(lines[0].len(), 181);
+    for corner in &lines[0] {
+        assert!((round(*corner, circle).1 - 0.5).abs() < 1e-9);
+    }
+    // The line at a quarter of the way from 1 to 6: a spoke to the right, from the centre to
+    // the rim.
+    assert_eq!(lines[1].len(), 2);
+    let ends: Vec<(f64, f64)> = lines[1].iter().map(|at| round(*at, circle)).collect();
+    assert!(ends.iter().any(|(_, out)| *out < 1e-9));
+    assert!(
+        ends.iter()
+            .any(|(turn, out)| (turn - 0.25).abs() < 1e-9 && (out - 1.0).abs() < 1e-9)
+    );
+}
+
+#[test]
+fn tiles_are_pieces_of_rings_and_a_text_stays_upright() {
+    // Two rings of three: the first category of `y` is the disc round the centre.
+    let frame = frame(
+        "d",
+        vec![
+            (
+                "month",
+                Column::strs(["apr", "may", "oct", "apr", "may", "oct"].map(Some)),
+            ),
+            (
+                "year",
+                Column::strs(["one", "one", "one", "two", "two", "two"].map(Some)),
+            ),
+            ("sales", numbers(&[4.0, 7.0, 9.0, 5.0, 8.0, 12.0])),
+        ],
+    );
+    let mut plot: Plot = start(
+        frame,
+        vec![
+            mapped(Aesthetic::X, "month"),
+            mapped(Aesthetic::Y, "year"),
+            mapped(Aesthetic::Fill, "sales"),
+        ],
+        Vec::new(),
+    );
+    plot.coord = Coord::Polar;
+    let (plot, _) = with_layer(
+        &plot,
+        PlotLayer {
+            mark: Mark::Tile,
+            ..points(1.0)
+        },
+    );
+    let mut words = PlotLayer {
+        mark: Mark::Text,
+        ..points(1.0)
+    };
+    words.mappings = vec![mapped(Aesthetic::Label, "month")];
+    let (_, scene) = with_layer(&plot, words);
+    let drawing = drawn(&scene);
+    let circle = circle_of(&drawing);
+    let tiles = on_the_page(&drawing);
+    assert_eq!(tiles.len(), 6);
+    for (i, tile) in tiles.iter().enumerate() {
+        let (ring, third) = (i / 3, i % 3);
+        for &corner in tile {
+            let (turn, out) = round(corner, circle);
+            assert!(out > ring as f64 / 2.0 - 1e-9 && out < (ring + 1) as f64 / 2.0 + 1e-9);
+            if out > 1e-9 {
+                // The top of the circle is the start of the first third and the end of
+                // the last.
+                let turn = if third == 0 && turn > 0.9 {
+                    turn - 1.0
+                } else if third == 2 && turn < 0.1 {
+                    turn + 1.0
+                } else {
+                    turn
+                };
+                assert!(turn > third as f64 / 3.0 - 1e-9 && turn < (third + 1) as f64 / 3.0 + 1e-9);
+            }
+        }
+    }
+    // Each text is at the middle of its tile, and not turned.
+    let (_, _, _, marks) = panel_of(&drawing);
+    let texts: Vec<(f64, (f64, f64))> = marks
+        .iter()
+        .filter_map(|item| match &item.primitive {
+            Primitive::Text { at, turn, .. } => Some((*turn, *at)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(texts.len(), 6);
+    for (i, (turn, at)) in texts.iter().enumerate() {
+        assert_eq!(*turn, 0.0);
+        let (round_the_rim, out) = round((at.0, at.1 - 3.0), circle);
+        assert!((out - (0.25 + 0.5 * (i / 3) as f64)).abs() < 0.05, "{out}");
+        assert!((round_the_rim - ((i % 3) as f64 + 0.5) / 3.0).abs() < 0.05);
+    }
+}
+
+#[test]
+fn what_is_beyond_the_limits_of_a_polar_axis_stays_in_the_circle() {
+    // The limits of `y` set below the highest value: a point beyond them is not drawn, and
+    // a bar beyond them ends at the rim.
+    let limited = |mark: Mark, x: &str| {
+        let mut plot = plot_of(small("d"), x, "response", Coord::Polar);
+        let mut axis = PlotAxis::of(Aesthetic::Y, AxisKind::Linear);
+        axis.limits = (Some(0.0), Some(8.0));
+        plot.axes.push(axis);
+        drawn(&with(&plot, mark))
+    };
+    let dots = limited(Mark::Points, "dose");
+    assert_eq!(centres(&dots).len(), 4);
+    let bars = limited(Mark::Bars(Arrangement::Dodge), "dose");
+    let circle = circle_of(&bars);
+    let wedges = on_the_page(&bars);
+    assert_eq!(wedges.len(), 6);
+    for wedge in &wedges {
+        assert!(
+            wedge
+                .iter()
+                .all(|corner| round(*corner, circle).1 < 1.0 + 1e-9)
+        );
+    }
+    let reach = |wedge: &Vec<(f64, f64)>| {
+        wedge
+            .iter()
+            .map(|corner| round(*corner, circle).1)
+            .fold(0.0, f64::max)
+    };
+    assert!((reach(&wedges[4]) - 1.0).abs() < 1e-9 && (reach(&wedges[5]) - 1.0).abs() < 1e-9);
+    assert!((reach(&wedges[0]) - 2.1 / 8.0).abs() < 1e-9);
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(128)))]
+
+    /// Whatever the rows: a point of a polar plot stands at the angle its `x` gives, its
+    /// share of the way between the limits as a share of the circle, clockwise from the top,
+    /// and as far from the centre as the share of its `y` is of the radius.
+    #[test]
+    fn a_polar_point_stands_at_the_angle_and_the_distance_of_its_values(rows in rows()) {
+        let scene = with(&plot_of(tried(&rows), "x", "y", Coord::Polar), Mark::Points);
+        let layer = &scene.panels[0].layers[0];
+        prop_assume!(!layer.x.is_empty());
+        let Ok(drawing) = layout(&scene, Size::OneColumn, &JOURNAL) else {
+            return Ok(());
+        };
+        let has_spoke = drawing.items.iter().any(|item| {
+            item.name.as_deref() == Some("grid")
+                && matches!(item.primitive, Primitive::Segment { .. })
+        });
+        prop_assume!(has_spoke);
+        let (centre, radius) = circle_of(&drawing);
+        let (x, y) = (scene.scale("x").unwrap(), scene.scale("y").unwrap());
+        let dots = centres(&drawing);
+        prop_assert_eq!(dots.len(), layer.x.len());
+        for (i, dot) in dots.iter().enumerate() {
+            let turn = 2.0 * std::f64::consts::PI * share(x.kind, x.limits, layer.x[i]);
+            let out = radius * share(y.kind, y.limits, layer.y[i]);
+            let wanted = (centre.0 + out * turn.sin(), centre.1 - out * turn.cos());
+            prop_assert!(
+                (dot.0 - wanted.0).abs() < 1e-6 && (dot.1 - wanted.1).abs() < 1e-6,
+                "{:?} where {:?} was looked for", dot, wanted
+            );
         }
     }
 }

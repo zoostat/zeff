@@ -824,6 +824,205 @@ fn spread(wanted: &[f64], apart: f64, top: f64, bottom: f64) -> Vec<f64> {
     out
 }
 
+/// The largest angle one straight piece of a wound mark spans: two degrees, at which a
+/// chord of a circle a hundred points across is a hundredth of a point from its arc.
+const WOUND_STEP: f64 = std::f64::consts::PI / 90.0;
+
+/// How many straight pieces the curve of a wound mark that turns through `angle` is drawn as.
+fn pieces(angle: f64) -> usize {
+    let wanted = (angle.abs() / WOUND_STEP).ceil();
+    if wanted.is_finite() && wanted >= 1.0 {
+        wanted as usize
+    } else {
+        1
+    }
+}
+
+/// The place on the page of a place of the polar frame. The frame is the circle unrolled:
+/// `u` from its left is the way round the rim, clockwise from the top, so that the frame is
+/// as wide as the rim is long; `v` from its top is the way in from the rim, so that the foot
+/// of the frame is the centre. A place beyond the frame is brought to its edge.
+fn wound_place((u, v): (f64, f64), centre: (f64, f64), radius: f64) -> (f64, f64) {
+    let around = 2.0 * std::f64::consts::PI * radius;
+    let angle = u.clamp(0.0, around) / radius;
+    let out = radius - v.clamp(0.0, radius);
+    (
+        centre.0 + out * zeff_numeric::maths::sin(angle),
+        centre.1 - out * zeff_numeric::maths::cos(angle),
+    )
+}
+
+/// Whether a place of the polar frame is in it: a point or a text beyond the limits of an
+/// axis is not drawn, as the edge of a panel would have cut it off.
+fn in_the_round((u, v): (f64, f64), radius: f64) -> bool {
+    let around = 2.0 * std::f64::consts::PI * radius;
+    let slack = 1e-9 * radius.max(1.0);
+    u >= -slack && u <= around + slack && v >= -slack && v <= radius + slack
+}
+
+/// An item drawn in the polar frame, wound round the centre onto the page: `None` for a
+/// point beyond the frame. A straight line of the frame is an arc of a circle where it runs
+/// level, a piece of a radius where it runs upright, and a spiral between; it is drawn as
+/// straight pieces of two degrees at most. A point keeps its shape upright and its size.
+fn wound(item: Item, centre: (f64, f64), radius: f64) -> Option<Item> {
+    let at = |place: (f64, f64)| wound_place(place, centre, radius);
+    // The places along the straight line of the frame from `from` to `to`, after `from`.
+    let along = |from: (f64, f64), to: (f64, f64)| -> Vec<(f64, f64)> {
+        let n = pieces((to.0 - from.0) / radius);
+        (1..=n)
+            .map(|k| {
+                let share = k as f64 / n as f64;
+                at((
+                    from.0 + (to.0 - from.0) * share,
+                    from.1 + (to.1 - from.1) * share,
+                ))
+            })
+            .collect()
+    };
+    let ring = |ring: Vec<(f64, f64)>| -> Vec<(f64, f64)> {
+        let mut out: Vec<(f64, f64)> = Vec::new();
+        for (i, &from) in ring.iter().enumerate() {
+            out.extend(along(from, ring[(i + 1) % ring.len()]));
+        }
+        out
+    };
+    let primitive = match item.primitive {
+        Primitive::Point {
+            at: place,
+            shape,
+            size,
+            colour,
+            opacity,
+        } => {
+            if !in_the_round(place, radius) {
+                return None;
+            }
+            Primitive::Point {
+                at: at(place),
+                shape,
+                size,
+                colour,
+                opacity,
+            }
+        }
+        Primitive::Segment {
+            from,
+            to,
+            stroke,
+            heads,
+        } => {
+            if pieces((to.0 - from.0) / radius) == 1 {
+                Primitive::Segment {
+                    from: at(from),
+                    to: at(to),
+                    stroke,
+                    heads,
+                }
+            } else {
+                let mut steps = vec![Step::Move(at(from))];
+                steps.extend(along(from, to).into_iter().map(Step::Line));
+                Primitive::Path {
+                    steps,
+                    stroke: Some(stroke),
+                    fill: None,
+                    opacity: 1.0,
+                }
+            }
+        }
+        Primitive::Polygon {
+            rings,
+            fill,
+            stroke,
+            opacity,
+        } => Primitive::Polygon {
+            rings: rings.into_iter().map(ring).collect(),
+            fill,
+            stroke,
+            opacity,
+        },
+        Primitive::Rectangle {
+            at: (u, v),
+            width,
+            height,
+            fill,
+            stroke,
+            ..
+        } => Primitive::Polygon {
+            rings: vec![ring(vec![
+                (u, v),
+                (u + width, v),
+                (u + width, v + height),
+                (u, v + height),
+            ])],
+            fill,
+            stroke,
+            opacity: 1.0,
+        },
+        Primitive::Path {
+            steps,
+            stroke,
+            fill,
+            opacity,
+        } => {
+            let mut out: Vec<Step> = Vec::new();
+            // Where the pen is in the frame, and where the piece it is drawing began.
+            let (mut pen, mut began) = ((0.0, 0.0), (0.0, 0.0));
+            for step in steps {
+                match step {
+                    Step::Move(to) => {
+                        out.push(Step::Move(at(to)));
+                        (pen, began) = (to, to);
+                    }
+                    // An arc of the frame is drawn as the line to its end: no mark draws
+                    // one.
+                    Step::Line(to) | Step::Arc { to, .. } => {
+                        out.extend(along(pen, to).into_iter().map(Step::Line));
+                        pen = to;
+                    }
+                    Step::Curve(first, second, to) => {
+                        // The curve as sixteen lines of the frame, each wound.
+                        let mut from = pen;
+                        for k in 1..=16 {
+                            let t = f64::from(k) / 16.0;
+                            let s = 1.0 - t;
+                            let mix = |a: f64, b: f64, c: f64, d: f64| {
+                                s * s * s * a
+                                    + 3.0 * s * s * t * b
+                                    + 3.0 * s * t * t * c
+                                    + t * t * t * d
+                            };
+                            let next = (
+                                mix(pen.0, first.0, second.0, to.0),
+                                mix(pen.1, first.1, second.1, to.1),
+                            );
+                            out.extend(along(from, next).into_iter().map(Step::Line));
+                            from = next;
+                        }
+                        pen = to;
+                    }
+                    Step::Close => {
+                        out.extend(along(pen, began).into_iter().map(Step::Line));
+                        out.push(Step::Close);
+                        pen = began;
+                    }
+                }
+            }
+            Primitive::Path {
+                steps: out,
+                stroke,
+                fill,
+                opacity,
+            }
+        }
+        // A text, a picture and a clipped group are placed on the page as they are.
+        other => other,
+    };
+    Some(Item {
+        name: item.name,
+        primitive,
+    })
+}
+
 /// An item drawn in the frame of the data, turned onto the page of a plot whose coordinates
 /// are flipped. The frame is the panel lying on its side: a place `(u, v)` of it, `u` from
 /// its left and `v` from its top, stands on the page as far from the foot of the panel as
@@ -1160,6 +1359,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let data_x = panel.and_then(|p| p.x).and_then(|id| scene.scale(id));
     let data_y = panel.and_then(|p| p.y).and_then(|id| scene.scale(id));
     let flip = scene.coord == Coord::Flip;
+    let polar = scene.coord == Coord::Polar;
     let (xs, ys) = if flip {
         (data_y, data_x)
     } else {
@@ -1205,7 +1405,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // the lines; any other stands at the right.
     // Flipped, a line ends at the top of the panel and not at its right, so its name has no
     // place beside its end: the legend is then drawn at the right.
-    let (replaced, ends) = if place == LegendPlace::Direct && !flip {
+    let (replaced, ends) = if place == LegendPlace::Direct && !flip && !polar {
         end_labels(scene, theme)
     } else {
         (vec![false; scene.legends.len()], Vec::new())
@@ -1387,11 +1587,13 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // The shape fixed coordinates give the panel, its height for a width of one: a unit of
     // `y` is as long as `ratio` units of `x`, so the height is to the width as the units
     // `y` runs over, times the ratio, are to the units `x` runs over.
+    // Polar coordinates draw a circle, whose panel is a square.
     let upright: Option<f64> = match (scene.coord, xs, ys) {
         (Coord::Fixed(ratio), Some(x), Some(y)) => {
             let shape = ratio * scale::units(y.kind, y.limits) / scale::units(x.kind, x.limits);
             (shape > 0.0 && shape.is_finite()).then_some(shape)
         }
+        (Coord::Polar, _, _) => Some(1.0),
         _ => None,
     };
     let shaped = |wide: f64, high: f64| -> (f64, f64) {
@@ -1504,6 +1706,20 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         (room_height - panel_height) / 2.0,
     );
     let (left, top) = (left + moved_across, top + moved_down);
+    // In polar coordinates the panel is a square and the marks a circle in its middle, with
+    // room between its rim and the square for the labels round the rim.
+    let rim_room = if polar {
+        theme.tick_length + theme.label_gap + label * theme.leading
+    } else {
+        0.0
+    };
+    let radius = panel_width.min(panel_height) / 2.0 - rim_room;
+    let centre = (left + panel_width / 2.0, top + panel_height / 2.0);
+    if polar && 2.0 * radius < SMALLEST_PANEL {
+        return Err(LayoutError::TooSmall {
+            panel: (2.0 * radius, 2.0 * radius),
+        });
+    }
     // A value is placed by the share of the way it stands between the limits of its axis, as
     // the kind of the axis has it: linear, log or square root.
     let across = |s: &Scale, v: f64| left + scale::share(s.kind, s.limits, v) * panel_width;
@@ -1532,8 +1748,68 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             stroke: None,
         },
     )];
-    // The gridlines, under the marks.
-    if let Some(s) = xs {
+    // The gridlines, under the marks: a line down the panel at each break of the scale along
+    // its foot and one across at each break of the scale up its side; in polar coordinates
+    // a spoke from the centre to the rim at each break of `x` and a circle round the centre
+    // at each break of `y`.
+    if polar {
+        if let Some(s) = xs {
+            let shares: Vec<f64> = s
+                .breaks
+                .iter()
+                .map(|value| scale::share(s.kind, s.limits, *value))
+                .collect();
+            for &share in &shares {
+                // The two ends of the scale are one spoke, drawn once.
+                if share >= 1.0 - 1e-12 && shares.iter().any(|other| *other <= 1e-12) {
+                    continue;
+                }
+                let angle = 2.0 * std::f64::consts::PI * share.clamp(0.0, 1.0);
+                items.push(named(
+                    "grid",
+                    segment(
+                        centre,
+                        (
+                            centre.0 + radius * zeff_numeric::maths::sin(angle),
+                            centre.1 - radius * zeff_numeric::maths::cos(angle),
+                        ),
+                        line(theme.grid, theme.grid_width),
+                    ),
+                ));
+            }
+        }
+        if let Some(s) = ys {
+            for &value in &s.breaks {
+                let out = radius * scale::share(s.kind, s.limits, value).clamp(0.0, 1.0);
+                if out <= 0.0 {
+                    continue;
+                }
+                // A circle: two half turns, from its top to its foot and back.
+                let half = |to: (f64, f64)| Step::Arc {
+                    radii: (out, out),
+                    turn: 0.0,
+                    larger: false,
+                    clockwise: true,
+                    to,
+                };
+                items.push(named(
+                    "grid",
+                    Primitive::Path {
+                        steps: vec![
+                            Step::Move((centre.0, centre.1 - out)),
+                            half((centre.0, centre.1 + out)),
+                            half((centre.0, centre.1 - out)),
+                            Step::Close,
+                        ],
+                        stroke: Some(line(theme.grid, theme.grid_width)),
+                        fill: None,
+                        opacity: 1.0,
+                    },
+                ));
+            }
+        }
+    }
+    if let Some(s) = xs.filter(|_| !polar) {
         for &value in &s.breaks {
             let x = across(s, value);
             items.push(named(
@@ -1546,7 +1822,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             ));
         }
     }
-    if let Some(s) = ys {
+    if let Some(s) = ys.filter(|_| !polar) {
         for &value in &s.breaks {
             let y = down(s, value);
             items.push(named(
@@ -1566,6 +1842,9 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let mut marks: Vec<Item> = Vec::new();
     let (m_left, m_top, m_width, m_height) = if flip {
         (0.0, 0.0, panel_height, panel_width)
+    } else if polar {
+        // The circle unrolled: as wide as the rim is long, and as high as the radius.
+        (0.0, 0.0, 2.0 * std::f64::consts::PI * radius, radius)
     } else {
         (left, top, panel_width, panel_height)
     };
@@ -1577,6 +1856,11 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             drawn
                 .into_iter()
                 .map(|item| turned(item, (left, top), (panel_width, panel_height)))
+                .collect()
+        } else if polar {
+            drawn
+                .into_iter()
+                .filter_map(|item| wound(item, centre, radius))
                 .collect()
         } else {
             drawn
@@ -1864,6 +2148,12 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     // the page itself, and moved there, to the right and up.
                     let (x, y) = if flip {
                         (across(sy, layer.y[i]), down(sx, layer.x[i]))
+                    } else if polar {
+                        let place = (m_across(sx, layer.x[i]), m_down(sy, layer.y[i]));
+                        if !in_the_round(place, radius) {
+                            continue;
+                        }
+                        wound_place(place, centre, radius)
                     } else {
                         (across(sx, layer.x[i]), down(sy, layer.y[i]))
                     };
@@ -1979,7 +2269,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         },
     ));
     // The x axis: its line, a tick at each break, the labels that do not touch, its title.
-    if let Some(s) = xs {
+    if let Some(s) = xs.filter(|_| !polar) {
         // The axis is named by its scale: `axis:x`, or `axis:y` where the coordinates are
         // flipped.
         let along = format!("axis:{}", s.id);
@@ -2039,7 +2329,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         }
     }
     // The y axis: the same, its labels ending at the ticks and its title read upwards.
-    if let Some(s) = ys {
+    if let Some(s) = ys.filter(|_| !polar) {
         let up = format!("axis:{}", s.id);
         if theme.axis_lines {
             items.push(named(
@@ -2311,6 +2601,154 @@ mod tests {
         // A text is left as it is: the layout places it on the page itself.
         let words = text((5.0, 6.0), Anchor::Middle, 0.0, "a", 8.0, &JOURNAL);
         assert_eq!(turned(item(words.clone()), origin, size).primitive, words);
+    }
+
+    #[test]
+    fn an_item_is_wound_round_the_centre() {
+        let item = |primitive: Primitive| named("layer:1", primitive);
+        // A circle of radius 50 round (100, 80): its frame is as wide as the rim is long,
+        // and 50 high. The top left of the frame is the top of the rim; a quarter of the
+        // way along it is the right of the rim; its foot is the centre.
+        let (centre, radius) = ((100.0, 80.0), 50.0);
+        let around = 2.0 * std::f64::consts::PI * radius;
+        let near = |a: (f64, f64), b: (f64, f64)| {
+            assert!(
+                (a.0 - b.0).abs() < 1e-9 && (a.1 - b.1).abs() < 1e-9,
+                "{a:?} and {b:?}"
+            );
+        };
+        near(wound_place((0.0, 0.0), centre, radius), (100.0, 30.0));
+        near(
+            wound_place((around / 4.0, 0.0), centre, radius),
+            (150.0, 80.0),
+        );
+        near(
+            wound_place((around / 2.0, 25.0), centre, radius),
+            (100.0, 105.0),
+        );
+        near(
+            wound_place((around * 0.75, 0.0), centre, radius),
+            (50.0, 80.0),
+        );
+        near(wound_place((123.0, 50.0), centre, radius), centre);
+        // A place beyond the frame is brought to its edge: beyond the rim to the rim, below
+        // the centre to the centre, past the end of the turn to its end.
+        near(wound_place((0.0, -20.0), centre, radius), (100.0, 30.0));
+        near(wound_place((around / 4.0, 70.0), centre, radius), centre);
+        near(
+            wound_place((around + 40.0, 0.0), centre, radius),
+            (100.0, 30.0),
+        );
+        // A point keeps its shape and its size, and one beyond the frame is not drawn.
+        let point = |at: (f64, f64)| Primitive::Point {
+            at,
+            shape: "circle",
+            size: 4.5,
+            colour: "#222222".to_string(),
+            opacity: 1.0,
+        };
+        match wound(item(point((around / 4.0, 10.0))), centre, radius).map(|item| item.primitive) {
+            Some(Primitive::Point { at, size, .. }) => {
+                near(at, (140.0, 80.0));
+                assert_eq!(size, 4.5);
+            }
+            other => panic!("not a point: {other:?}"),
+        }
+        assert!(wound(item(point((10.0, -1.0))), centre, radius).is_none());
+        assert!(wound(item(point((around + 1.0, 10.0))), centre, radius).is_none());
+        // A level line of a quarter of the frame is an arc of 90 degrees, in 45 pieces, each
+        // corner on its circle; an upright line is one straight piece of a radius.
+        let stroke = Stroke {
+            colour: "#222222".to_string(),
+            width: 1.0,
+            dash: LineType::Solid,
+        };
+        let line = |from: (f64, f64), to: (f64, f64)| Primitive::Segment {
+            from,
+            to,
+            stroke: stroke.clone(),
+            heads: (Head::Plain, Head::Plain),
+        };
+        match wound(
+            item(line((0.0, 20.0), (around / 4.0, 20.0))),
+            centre,
+            radius,
+        )
+        .map(|item| item.primitive)
+        {
+            Some(Primitive::Path { steps, fill, .. }) => {
+                assert_eq!((steps.len(), fill), (46, None));
+                for step in &steps {
+                    let (Step::Move(at) | Step::Line(at)) = step else {
+                        panic!("not a line: {step:?}");
+                    };
+                    let out = ((at.0 - 100.0).powi(2) + (at.1 - 80.0).powi(2)).sqrt();
+                    assert!((out - 30.0).abs() < 1e-9);
+                }
+                assert_eq!(steps[0], Step::Move((100.0, 50.0)));
+            }
+            other => panic!("not a path: {other:?}"),
+        }
+        match wound(item(line((0.0, 0.0), (0.0, 50.0))), centre, radius).map(|item| item.primitive)
+        {
+            Some(Primitive::Segment { from, to, .. }) => {
+                near(from, (100.0, 30.0));
+                near(to, centre);
+            }
+            other => panic!("not a segment: {other:?}"),
+        }
+        // A rectangle is a piece of a ring: a polygon with its two level sides as arcs.
+        let rectangle = Primitive::Rectangle {
+            at: (0.0, 0.0),
+            width: around / 2.0,
+            height: 25.0,
+            radius: 0.0,
+            fill: Some("#222222".to_string()),
+            stroke: None,
+        };
+        match wound(item(rectangle), centre, radius).map(|item| item.primitive) {
+            Some(Primitive::Polygon { rings, .. }) => {
+                assert_eq!(rings.len(), 1);
+                assert_eq!(rings[0].len(), 90 + 1 + 90 + 1);
+                for at in &rings[0] {
+                    let out = ((at.0 - 100.0).powi(2) + (at.1 - 80.0).powi(2)).sqrt();
+                    assert!((out - 50.0).abs() < 1e-9 || (out - 25.0).abs() < 1e-9);
+                    assert!(at.0 > 100.0 - 1e-9);
+                }
+            }
+            other => panic!("not a polygon: {other:?}"),
+        }
+        // A closed path comes back to where it began, and a curve is drawn as lines.
+        let path = Primitive::Path {
+            steps: vec![
+                Step::Move((10.0, 10.0)),
+                Step::Line((10.0, 40.0)),
+                Step::Curve((20.0, 40.0), (30.0, 30.0), (30.0, 10.0)),
+                Step::Close,
+            ],
+            stroke: None,
+            fill: Some("#222222".to_string()),
+            opacity: 1.0,
+        };
+        match wound(item(path), centre, radius).map(|item| item.primitive) {
+            Some(Primitive::Path { steps, .. }) => {
+                assert!(steps.iter().all(|step| !matches!(step, Step::Curve(..))));
+                assert_eq!(steps.last(), Some(&Step::Close));
+                let (Step::Move(began), Step::Line(ended)) = (steps[0], steps[steps.len() - 2])
+                else {
+                    panic!("a path that does not begin with a move and end with a line");
+                };
+                near(began, ended);
+                assert!(steps.len() >= 20, "{} steps", steps.len());
+            }
+            other => panic!("not a path: {other:?}"),
+        }
+        // A text is left as it is: the layout places it on the page itself.
+        let words = text((5.0, 6.0), Anchor::Middle, 0.0, "a", 8.0, &JOURNAL);
+        assert_eq!(
+            wound(item(words.clone()), centre, radius).map(|item| item.primitive),
+            Some(words)
+        );
     }
 
     #[test]

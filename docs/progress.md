@@ -167,3 +167,14 @@ Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engin
 **Next.** Step 27c `[engine]`: `coord(polar)`, `x` as the angle and `y` as the distance from the centre, which completes the page of `coord`.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: a unit is a place on an axis of categories, a power of ten on a log axis, one of the square root on a square-root axis and a day on an axis of dates; `ratio:` without `fixed` is refused; the fixed panel is centred in its room, and the title and caption of the figure stay at the edges of the page. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 27c1 (the polar frame), and step 27c split in two
+
+**Done.** Step 27c was split into 27c1 (the polar frame) and 27c2 (the guides, and the function opened). Polar coordinates are in the plot, the scene and the layout: `x` is the angle, from the top and clockwise, `y` the distance from the centre, and neither axis has a margin beyond the data; the panel is a square with the circle in its middle; every mark is wound round the centre, so that bars are wedges, a line a spiral, a level line a circle and tiles pieces of rings; the gridlines are spokes and circles. No script reaches it yet: `coord(polar)` is still refused until the labels round the rim are drawn (27c2).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 396 of 396; CI is read job by job after the push.
+
+**Next.** Step 27c2 `[engine]`: the labels of `x` round the rim, the axis of `y`, what polar coordinates refuse, and `coord(polar)` opened with its help page.
+
+**For the owner to decide.** #132, new: whether `coord(polar)` should also take `y` as the angle (pies), a starting angle and a direction, as ggplot2 does; taken on the recommendation as A, the catalogue's one form, with the rest a question for 0.8.0. Also taken, his to overturn: the lowest and the highest value of `x` stand together at the top, and the lowest value of `y` is at the centre, as in ggplot2. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

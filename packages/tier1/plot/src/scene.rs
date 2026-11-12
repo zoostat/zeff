@@ -2625,7 +2625,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     let mut axes: Vec<Axis> = Vec::new();
     // Flipped, `x` runs up the side of the panel and `y` along its foot.
     let sides = match plot.coord {
-        Coord::Cartesian | Coord::Fixed(_) => (Position::Bottom, Position::Left),
+        Coord::Cartesian | Coord::Fixed(_) | Coord::Polar => (Position::Bottom, Position::Left),
         Coord::Flip => (Position::Left, Position::Bottom),
     };
     for (aesthetic, position) in [(Aesthetic::X, sides.0), (Aesthetic::Y, sides.1)] {
@@ -2683,14 +2683,17 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             &up_categories
         };
         // An axis of categories: a place for each, 1, 2, 3, and 0.6 of a place beyond each
-        // end, whatever is drawn; with no category, the room of one.
+        // end, whatever is drawn; with no category, the room of one. In polar coordinates
+        // an axis has no margin: half a place beyond each end, so that the categories share
+        // the circle evenly and the first ring starts at the centre.
         if let Some(labels) = categories {
             let places = labels.len().max(1);
+            let beyond = if plot.coord == Coord::Polar { 0.5 } else { 0.6 };
             scales.push(Scale {
                 id: aesthetic.name(),
                 kind: ScaleKind::Category,
                 title,
-                limits: (0.4, places as f64 + 0.6),
+                limits: (1.0 - beyond, places as f64 + beyond),
                 breaks: (1..=labels.len()).map(|place| place as f64).collect(),
                 labels: labels.clone(),
                 range: Range::Position,
@@ -2728,6 +2731,24 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 ScaleKind::Sqrt,
                 scale::sqrt_limits(found.filter(|(lo, _)| *lo >= 0.0)),
             ),
+        };
+        // In polar coordinates an axis has no margin: the angle runs once round over the
+        // values of `x` exactly, its lowest and its highest at the top together, and the
+        // lowest value of `y` is at the centre and its highest on the rim. Values that are
+        // one value, or that the kind of the axis cannot place, keep the limits above.
+        let (lo, hi) = match found {
+            Some((least, most))
+                if plot.coord == Coord::Polar
+                    && least < most
+                    && match kind {
+                        ScaleKind::Log => least > 0.0,
+                        ScaleKind::Sqrt => least >= 0.0,
+                        _ => true,
+                    } =>
+            {
+                (least, most)
+            }
+            _ => (lo, hi),
         };
         // The limits the script sets are the visible range and nothing more (decision #118,
         // F5): an end it gives is that end exactly, with no margin, no row is dropped for
@@ -3976,6 +3997,10 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         Coord::Flip => drawn
             .after
             .push("coordinates: flipped, `x` up the side and `y` along the foot".to_string()),
+        Coord::Polar => drawn.after.push(
+            "coordinates: polar, `x` as the angle and `y` as the distance from the centre"
+                .to_string(),
+        ),
         Coord::Fixed(ratio) => drawn.after.push(if ratio == 1.0 {
             "coordinates: fixed, one unit of `y` as long as one of `x`".to_string()
         } else {
