@@ -2156,6 +2156,25 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/polar/{name}"), &data));
     }
+    // Panels (step 27d3): the wage against schooling in 2015, parted by union membership
+    // and coloured by sex, and parted by industry into twelve panels; stacked bars by year
+    // within each panel, flipped; what the script prints, the two panels in the three
+    // formats, the twelve as a figure of two columns and the bars as a figure.
+    let script = "let w = dataset(wages)\nlet y = w.where(year == 2015)\nlet p = y.plot(x: educ, y: wage, color: female).points(alpha: 0.4).facet(by: union)\np\nlet q = y.plot(x: educ, y: wage).points(alpha: 0.3).facet(by: industry)\nq\nlet m = w.aggregate(wage = mean(wage), by: [year, union, female])\nlet r = m.plot(x: year, y: wage, fill: female).bars().facet(by: union).coord(flip).legend(top)\nr\nexport(p, \"panels.svg\")\nexport(p, \"panels.pdf\")\nexport(p, \"panels.png\")\nexport(q, \"twelve.svg\", size: two_column)\nexport(r, \"lying.svg\", size: two_column)\n";
+    let parted = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/facet/stdout", &parted.output.stdout));
+    fills.push(text("plot/facet/stderr", &parted.output.stderr));
+    for name in [
+        "panels.svg",
+        "panels.pdf",
+        "panels.png",
+        "twelve.svg",
+        "lying.svg",
+    ] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/facet/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

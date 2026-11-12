@@ -384,6 +384,13 @@ plot/polar/polar.pdf bc51e52c13f13474
 plot/polar/polar.png 07347d80dd707e60
 plot/polar/clock.svg f3c87f2316ed7966
 plot/polar/rings.svg 396df71cb027d76b
+plot/facet/stdout 27b15e47782b75af
+plot/facet/stderr a01e2769ab515dce
+plot/facet/panels.svg 403f533b7dc2c21b
+plot/facet/panels.pdf 767d9a4fd8c1d81a
+plot/facet/panels.png 326fccd0ce1ebcd8
+plot/facet/twelve.svg 8a9a13c75c666299
+plot/facet/lying.svg e8733a14bbb3742b
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

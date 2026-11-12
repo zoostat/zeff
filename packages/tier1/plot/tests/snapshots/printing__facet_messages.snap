@@ -1,0 +1,118 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== nothing_said
+error[Z0406]: `facet` needs `by`
+ --> scripts/main.zeff:3:3
+  |
+3 | p.facet()
+  |   ^^^^^ `by` is missing
+  |
+  = help: a plot is parted into panels by a variable, one panel for each of its values, as in `facet(by: industry)`; `facet(by: [industry, union])` has a panel for each pair of values
+
+== an_empty_list
+error[Z0219]: `[]` alone has no type
+ --> scripts/main.zeff:3:13
+  |
+3 | p.facet(by: [])
+  |             ^^ an empty list of what?
+  |
+  = help: where a parameter takes the list, its type is known; elsewhere give one value
+
+== a_variable_the_frame_lacks
+error[Z0101]: no variable `region` in `d`
+ --> scripts/main.zeff:3:13
+  |
+3 | p.facet(by: region)
+  |             ^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: site, week, arm, count
+
+== one_of_two_the_frame_lacks
+error[Z0101]: no variable `region` in `d`
+ --> scripts/main.zeff:3:13
+  |
+3 | p.facet(by: [site, region])
+  |             ^^^^^^^^^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: site, week, arm, count
+
+== a_variable_named_twice
+error[Z0401]: `by:` of `facet` names `site` twice
+ --> scripts/main.zeff:3:13
+  |
+3 | p.facet(by: [site, site])
+  |             ^^^^^^^^^^^^ one variable, twice
+  |
+  = help: a plot is parted by each variable once; leave the second out
+
+== a_variable_in_quotation_marks
+error[Z0401]: `by` of `facet` must be a Var or Vars, but this is a Str
+ --> scripts/main.zeff:3:13
+  |
+3 | p.facet(by: "site")
+  |             ^^^^^^ a Str
+  |
+  = help: usage: `p.facet(by: Var | Vars, rows: Var, cols: Var, scales: fixed | free | free_x | free_y = fixed)`
+
+== a_number
+error[Z0401]: `by` of `facet` must be a Var or Vars, but this is an Int
+ --> scripts/main.zeff:3:13
+  |
+3 | p.facet(by: 3)
+  |             ^ an Int
+  |
+  = help: usage: `p.facet(by: Var | Vars, rows: Var, cols: Var, scales: fixed | free | free_x | free_y = fixed)`
+
+== facets_of_a_frame
+error[Z0401]: `facet` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | d.facet(by: site)
+  | ^ this is a Frame
+  |
+  = help: `facet` takes a Plot first; `x.facet(...)` is `facet(x, ...)`
+
+== rows_not_built_yet
+error[Z0401]: `rows:` of `facet` is not built yet: it comes with a later step of this release
+ --> scripts/main.zeff:3:15
+  |
+3 | p.facet(rows: site)
+  |               ^^^^ not in this build
+  |
+  = help: `facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share
+
+== cols_not_built_yet
+error[Z0401]: `cols:` of `facet` is not built yet: it comes with a later step of this release
+ --> scripts/main.zeff:3:25
+  |
+3 | p.facet(by: site, cols: arm)
+  |                         ^^^ not in this build
+  |
+  = help: `facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share
+
+== free_scales_not_built_yet
+error[Z0401]: `scales: free_y` of `facet` is not built yet: it comes with a later step of this release
+ --> scripts/main.zeff:3:27
+  |
+3 | p.facet(by: site, scales: free_y)
+  |                           ^^^^^^ not in this build
+  |
+  = help: `facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share
+
+== scales_that_are_none
+error[Z0402]: `loose` is not one of the allowed words
+ --> scripts/main.zeff:3:27
+  |
+3 | p.facet(by: site, scales: loose)
+  |                           ^^^^^ expected one of fixed, free, free_x, free_y
+
+== too_many_panels_for_the_page
+error[Z0401]: a page of 40 by 40 mm is too small for the 6 panels of this plot: however they are laid, it leaves each 6.1 by 6.3 mm
+ --> scripts/main.zeff:3:98
+  |
+3 | export(d.plot(x: week, y: count).points().facet(by: [site, arm, week, count]), "many.svg", size: [40, 40])
+  |                                                                                                  ^^^^^^^^ too many panels for the page
+  |
+  = help: a panel needs 12.7 mm each way; give a larger `size:`, as `two_column` (183 by 110 mm) or a width and a height in millimetres, or part the plot by a variable with fewer values

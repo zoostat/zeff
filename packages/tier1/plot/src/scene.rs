@@ -4372,11 +4372,22 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
     }
     drawn.after.extend(placed.map(str::to_string));
     // The panels, where the plot is parted into them.
-    if let Some(facet) = plot.facet.as_ref().filter(|_| scene.panels.len() > 1) {
+    if let Some(facet) = plot
+        .facet
+        .as_ref()
+        .filter(|_| scene.panels.iter().any(|panel| panel.strip.is_some()))
+    {
+        // How many, by what, and what is written over them.
+        let strips: Vec<String> = scene
+            .panels
+            .iter()
+            .filter_map(|panel| panel.strip.clone())
+            .collect();
         drawn.after.push(format!(
-            "panels: {} by {}",
+            "panels: {} by {}: {}",
             count(scene.panels.len() as u64),
-            listed(&facet.by)
+            facet.by.join(" and "),
+            listed(&strips)
         ));
     }
     // The coordinates, when they are not cartesian.

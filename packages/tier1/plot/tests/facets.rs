@@ -504,7 +504,7 @@ fn the_printed_plot_counts_its_layers_over_the_panels_and_says_how_many_there_ar
         .iter()
         .flat_map(|table| &table.after)
         .collect();
-    assert_eq!(last, ["panels: 3 by site"]);
+    assert_eq!(last, ["panels: 3 by site: east, north, south"]);
 }
 
 proptest! {

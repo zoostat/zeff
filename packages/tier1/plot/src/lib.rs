@@ -762,12 +762,42 @@ pub fn functions() -> Vec<Function> {
                 returns: "Plot",
                 diagnostics: vec![DiagnosticDecl::new(
                     "Z0401",
-                    "polar, fixed and ratio:, which are not built yet",
+                    "a ratio that is not above 0 or goes without fixed, and a rug in polar coordinates",
                 )],
                 help: include_str!("../help/coord.md"),
                 accuracy: None,
             },
             body: scales::coord,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "facet",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("by", "Var | Vars"),
+                    ParamSpec::option("rows", "Var"),
+                    ParamSpec::option("cols", "Var"),
+                    ParamSpec::option_with_default(
+                        "scales",
+                        "fixed | free | free_x | free_y",
+                        "fixed",
+                    ),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable named twice, and rows:, cols: and free scales, which are not built yet",
+                    ),
+                    DiagnosticDecl::new("Z0406", "no by:"),
+                ],
+                help: include_str!("../help/facet.md"),
+                accuracy: None,
+            },
+            body: scales::facet,
         },
     ]
 }

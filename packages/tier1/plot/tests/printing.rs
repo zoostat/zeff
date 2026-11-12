@@ -3427,3 +3427,93 @@ fn a_polar_plot_is_exported_in_the_three_formats() {
     ));
     assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
 }
+
+// ----- facet(by:) (step 27d3) -----
+
+const SITES: &str = "let d = frame(site = [\"north\", \"south\", \"east\", \"north\", \"south\", \"east\"], week = [1, 1, 1, 2, 2, 2], arm = [\"a\", \"a\", \"a\", \"b\", \"b\", \"b\"], count = [4, 7, 2, 5, 9, 3])\nlet p = d.plot(x: week, y: count).points()\n";
+
+#[test]
+fn a_plot_parted_into_panels_reads_sensibly_as_text() {
+    let script = format!(
+        "{SITES}p.facet(by: site)\n\
+         p.facet(by: [site, arm])\n\
+         p.facet(by: site, scales: fixed)\n\
+         p.facet(by: site).facet(by: arm)\n\
+         d.plot(x: week, y: count, fill: arm).facet(by: site).bars().coord(flip).legend(top)\n\
+         d.plot(x: week, y: count).lines().hline(at: 5).facet(by: site).labels(title: \"Counts by site\")\n\
+         d.where(site == \"east\").plot(x: week, y: count).points().facet(by: site)\n"
+    );
+    let text = printed(&script);
+    // The panels are said on a line of their own: how many, by what, and what is written
+    // over them. What is said last of the facets is what holds.
+    assert_eq!(
+        text.matches("panels: 3 by site: east, north, south\n")
+            .count(),
+        4,
+        "{text}"
+    );
+    assert_eq!(
+        text.matches(
+            "panels: 6 by site and arm: east, a, east, b, north, a, north, b, south, a, south, b\n"
+        )
+        .count(),
+        1,
+        "{text}"
+    );
+    assert_eq!(text.matches("panels: 2 by arm: a, b\n").count(), 1);
+    assert_eq!(text.matches("panels: 1 by site: east\n").count(), 1);
+    // A layer counts its marks over all the panels, and a line across is drawn in each.
+    assert!(
+        text.contains("1   lines   d          6   width 1, 3 lines"),
+        "{text}"
+    );
+    assert!(text.contains("2   hline   d          3   at 5"), "{text}");
+    insta::assert_snapshot!("panels_of_plots", text);
+}
+
+#[test]
+fn a_plot_of_panels_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{SITES}let q = p.facet(by: site)\n\
+         export(q, \"panels.svg\")\n\
+         export(q, \"panels.pdf\")\n\
+         export(q, \"panels.png\")\n\
+         export(p.facet(by: [site, arm]).coord(polar).theme(minimal), \"six.svg\", size: two_column)\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
+}
+
+#[test]
+fn every_message_of_facet() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("nothing_said", "p.facet()\n"),
+        ("an_empty_list", "p.facet(by: [])\n"),
+        ("a_variable_the_frame_lacks", "p.facet(by: region)\n"),
+        (
+            "one_of_two_the_frame_lacks",
+            "p.facet(by: [site, region])\n",
+        ),
+        ("a_variable_named_twice", "p.facet(by: [site, site])\n"),
+        ("a_variable_in_quotation_marks", "p.facet(by: \"site\")\n"),
+        ("a_number", "p.facet(by: 3)\n"),
+        ("facets_of_a_frame", "d.facet(by: site)\n"),
+        ("rows_not_built_yet", "p.facet(rows: site)\n"),
+        ("cols_not_built_yet", "p.facet(by: site, cols: arm)\n"),
+        (
+            "free_scales_not_built_yet",
+            "p.facet(by: site, scales: free_y)\n",
+        ),
+        ("scales_that_are_none", "p.facet(by: site, scales: loose)\n"),
+        (
+            "too_many_panels_for_the_page",
+            "export(d.plot(x: week, y: count).points().facet(by: [site, arm, week, count]), \"many.svg\", size: [40, 40])\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SITES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("facet_messages", all);
+}

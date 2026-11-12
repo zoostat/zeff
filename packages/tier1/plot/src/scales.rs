@@ -14,15 +14,15 @@ use std::rc::Rc;
 
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, AxisKind, Coord, LegendPlace, Palette, Plot, PlotAxis, PlotScale, PlotTheme,
-    ThemeName, Value,
+    Aesthetic, AxisKind, Coord, LegendPlace, Palette, Plot, PlotAxis, PlotFacet, PlotScale,
+    PlotTheme, ThemeName, Value,
 };
 use zeff_diagnostics::Diagnostic;
 use zeff_diagnostics::Span;
 
 use crate::colour;
 use crate::dates;
-use crate::grammar::{internal, not_a_colour, not_a_shape, shown};
+use crate::grammar::{column, internal, not_a_colour, not_a_shape, shown};
 use crate::marks::{announce, misplaced};
 use crate::scene::{
     Misplaced, PaletteFault, Placing, axis_fault, describe, palette_fault, placing_of, scene,
@@ -885,5 +885,80 @@ pub fn coord(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         return Err(no_rug(ctx, ctx.span_of(C_TYPE)));
     }
     describe(&mut next);
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+const FA_BY: usize = 1;
+const FA_ROWS: usize = 2;
+const FA_COLS: usize = 3;
+const FA_SCALES: usize = 4;
+
+/// `p.facet(by: Var | Vars, rows: Var, cols: Var, scales: fixed | free | free_x | free_y =
+/// fixed)`: the plot parted into panels, one for each value of a variable, or for each
+/// combination of the values of several.
+pub fn facet(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "facets reached their body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let not_yet = |ctx: &CallContext<'_>, slot: usize, what: &str| {
+        fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("{what} is not built yet: it comes with a later step of this release"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(slot), "not in this build")
+            .help("`facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share"),
+        )
+    };
+    for (slot, name) in [(FA_ROWS, "rows"), (FA_COLS, "cols")] {
+        if !matches!(args.get(slot), None | Some(Value::Na)) {
+            return Err(not_yet(ctx, slot, &format!("`{name}:` of `facet`")));
+        }
+    }
+    match args.get(FA_SCALES) {
+        None | Some(Value::Na) => {}
+        Some(Value::Word(word)) if word.as_str() == "fixed" => {}
+        Some(Value::Word(word)) => {
+            return Err(not_yet(
+                ctx,
+                FA_SCALES,
+                &format!("`scales: {word}` of `facet`"),
+            ));
+        }
+        Some(_) => return Err(internal(ctx, "scales of facets that are not a word")),
+    }
+    let by: Vec<String> = match args.get(FA_BY) {
+        Some(Value::Var(name)) => vec![name.clone()],
+        Some(Value::Vars(names)) if !names.is_empty() => names.clone(),
+        None | Some(Value::Na) | Some(Value::Vars(_)) => {
+            return Err(fail(
+                Diagnostic::error("Z0406", "`facet` needs `by`")
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "`by` is missing")
+                    .help("a plot is parted into panels by a variable, one panel for each of its values, as in `facet(by: industry)`; `facet(by: [industry, union])` has a panel for each pair of values"),
+            ));
+        }
+        Some(_) => return Err(internal(ctx, "a `by:` of facets that names no variable")),
+    };
+    // Each variable is one of the plot's frame, and is named once.
+    for (i, name) in by.iter().enumerate() {
+        column(ctx, &plot.frame, name, ctx.span_of(FA_BY))?;
+        if by[..i].contains(name) {
+            return Err(fail(
+                Diagnostic::error("Z0401", format!("`by:` of `facet` names `{name}` twice"))
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(FA_BY), "one variable, twice")
+                    .help("a plot is parted by each variable once; leave the second out"),
+            ));
+        }
+    }
+    let mut next = (*plot).clone();
+    // What is said last of the facets takes the place of what was said.
+    next.facet = Some(PlotFacet { by });
+    let before = scene(&plot).notes;
+    let after = describe(&mut next);
+    announce(ctx, &before, &after.notes);
     Ok(Value::Plot(Rc::new(next)))
 }

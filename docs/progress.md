@@ -146,3 +146,13 @@ Step 27 was split into 27a to 27e, and 27c into 27c1 and 27c2. 27a `[engine]`: `
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: what is written over a panel is plain text centred on it, with no band behind it; the labels of an axis are written at the outer panels only; the layout may lay wrapped panels in more columns than ggplot2's rule where a page asks for it. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 27d3 (`facet(by:)` opened), and step 27d complete
+
+**Done.** `p.facet(by: industry)` parts a plot into panels, one for each value of the variable, and `by: [industry, union]` one for each pair of values. The printed plot says how many panels there are, by what, and what is written over them. `rows:`, `cols:` and `scales:` other than `fixed` are refused as not built yet (27e). The help page of `facet` is begun, with two verified examples. With it step 27d is complete: the scene of several panels (27d1), their layout (27d2) and the function (27d3). `plot` stands at twenty-one functions registered, twenty of them complete.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 410 of 410; CI is read job by job after the push.
+
+**Next.** Step 27e `[engine]`: `facet(rows:, cols:)`, a grid of panels by two variables, and the four `scales:`, which completes step 27 and lets the specification's sample (`scales: free_y`) run.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: a variable named twice in `by:` is refused; what a later `facet` says replaces an earlier one. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

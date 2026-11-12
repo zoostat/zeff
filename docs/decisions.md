@@ -3808,3 +3808,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 27d2; section 7.6 of the Language Reference ("Facets"; "Guides and theme").
 
+## 13 November 2026: `facet(by:)` opened (release 0.7.0, step 27d3); step 27d complete
+
+**The function.** `p.facet(by: Var | Vars, rows: Var, cols: Var, scales: fixed | free | free_x | free_y = fixed)`, registered with the catalogue's usage line. It sets the facets of the plot (`Plot.facet`) and gives the plot back; the scene and the layout of steps 27d1 and 27d2 do the rest. At this step `by:` is the whole of it: `rows:`, `cols:` and the three free `scales:` are refused with "is not built yet: it comes with a later step of this release", which step 27e ends.
+
+**Rulings where the text is silent**, each of which the owner may overturn. (a) `facet` without `by:` is refused (Z0406), with the two forms of the call in the help. (b) Every variable of `by:` must be one of the plot's frame, and is refused by the message every function has for a variable the frame lacks. (c) A variable named twice in `by:` is refused: it would write each value twice over every panel. (d) What a later `facet` says takes the place of what an earlier one said, as with `coord`, `theme` and `legend`. (e) Any variable parts a plot, whatever its type: a number has a panel for each of its values, as it has a category for each on an axis of categories; the page then says whether they fit. (f) The printed plot says "panels: 2 by site: north, south": how many, the variables with "and" between, and what is written over the panels, the first five and a count where there are more than six; a plot parted by a variable of one value says so too.
+
+**A correction in passing.** The declared diagnostics of `coord` still said "polar, fixed and ratio:, which are not built yet", which steps 27b and 27c2 had made untrue; they now say what `coord` refuses: a ratio that is not above 0 or goes without `fixed`, and a rug in polar coordinates.
+
+**Against R.** For the help page's example, ggplot2 4.0.3 (`facet_wrap(~ site)`) has the same two panels in the same order, the same shared limits (0.95 to 2.05 and 3.75 to 9.25; with bars 0.455 to 2.545 and -0.45 to 9.45), the line across in both panels, and for 3, 4, 6, 7, 12, 13 and 40 panels the rows and columns of the scene.
+
+**Tests.** `packages/tier1/plot/tests/printing.rs`: the printed plot in seven forms (one variable, two, `scales: fixed`, a later `facet`, with bars flipped and a legend above, a line and a reference line with a title, one value), an export in the three formats and of six polar panels, and every message of `facet` (thirteen). Two verified examples in the help page. One conformance case (`plot/facet`: what the script prints and five figures), which brings `zeff selftest` to 410 of 410. The two stored checks of the specification's sample script lose "no function is called `facet`".
+
+**The specification.** Catalogue row 480 stays `planned` until step 27e completes the function.
+
+**Step 27d is complete**: the scene of several panels (27d1), their layout (27d2) and `facet(by:)` (27d3).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 27d3; section 7.6 of the Language Reference ("Facets"); catalogue row 480.
+
