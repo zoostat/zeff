@@ -21,24 +21,6 @@ error[Z0401]: the `x` axis holds the dates of `day`, which are placed in proport
   |
   = help: a log or a square-root scale is set on an axis of numbers
 
-== limits_of_an_axis_of_dates
-error[Z0401]: the `x` axis holds the dates of `day`: the limits, the breaks and the labels of an axis of dates are set with `scale_x(date)`, which is not built yet
- --> scripts/main.zeff:4:26
-  |
-4 | r.plot(x: day, y: level).scale_x(limits: [0, 1])
-  |                          ^^^^^^^ not in this build
-  |
-  = help: an axis of dates chooses its limits and its breaks from the dates drawn; `where` keeps the rows of a range of dates
-
-== the_kind_date
-error[Z0401]: `scale_x(date)` is not built yet: an axis of dates comes with the next step of this release
- --> scripts/main.zeff:4:34
-  |
-4 | r.plot(x: day, y: level).scale_x(date)
-  |                                  ^^^^ not in this build
-  |
-  = help: the kinds of scale built so far are `linear`, `log` and `sqrt`
-
 == an_area_up_to_dates
 error[Z0401]: `area` fills from its line down to zero, but the `y` axis of this plot holds the dates of `day`
  --> scripts/main.zeff:4:26
@@ -129,7 +111,7 @@ error[Z0401]: `at:` of `vline` is the number 3, but the `x` axis of this plot ho
 4 | r.plot(x: day, y: level).points().vline(at: 3)
   |                                             ^ a number on an axis of dates
   |
-  = help: draw the line at each date of a variable, as in `vline(data: events, at: day)`
+  = help: write the date, as in `vline(at: date("2024-03-10"))`, or draw a line at each date of a variable, as in `vline(data: events, at: day)`
 
 == a_line_at_dates_on_numbers
 error[Z0401]: the plot places `level` on a linear scale along `x`, but `day`, which `vline` maps to `x`, is a Date, which is placed on a scale of dates

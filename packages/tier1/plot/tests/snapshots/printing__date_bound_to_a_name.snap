@@ -1,0 +1,33 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+      2   vline    r          1   at 2024-03-10, width 0.5, style dashed
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark    data   marks   settings
+      1   vline   r          4   at day, width 0.5, style dashed
+---
+warning[W0101]: `day` hides the function `time::day`
+ --> scripts/main.zeff:6:5
+  |
+6 | let day = date("2024-05-01")
+  |     ^^^ a binding with a built-in name
+  |
+  = help: the function is still reachable as `time::day`; a different name avoids the confusion
+note: 1 row with NA in day or level dropped (line 5)
+warning[W0102]: `day` is both a variable of r and a binding; the variable was used (line 7)
+  = help: rename the binding, or the variable with `rename`; where an option takes a variable or a value, a bare name is the frame's variable first
+note: 1 row with NA in day dropped (line 7)

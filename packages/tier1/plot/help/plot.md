@@ -120,9 +120,10 @@ share the axis: what a layer maps to it must be a Date or a DateTime too. The tw
 mixed, a Date standing at the midnight that starts it. Every mark is placed along an axis of
 dates; a bar and a tile are as wide as the smallest gap between two dates, a day where there
 is one date. `area`, `ribbon` and `bars` measure from zero along `y`, so their `y` stays a
-number. `hline` and `vline` stand at each date of a variable. A log or a square-root scale has
-no place for dates. The printed plot shows the limits as days, and to the second where the
-axis covers less than two days.
+number. `hline` and `vline` stand at a date, or at each date of a variable. `scale_x` and
+`scale_y` set the limits and the breaks of the axis as dates, and the pattern the breaks are
+written by. A log or a square-root scale has no place for dates. The printed plot shows the
+limits as days, and to the second where the axis covers less than two days.
 
 Colour by categories. A Category, a Str and a Bool variable are shown as categories, and so is
 an Int or a Float that carries value labels. Each category has a colour of its own. The

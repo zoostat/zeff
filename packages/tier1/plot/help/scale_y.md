@@ -4,8 +4,9 @@
 The scale of the y axis: its kind, limits, breaks and labels
 
 ## Description
-Says how the `y` axis of a plot shows its numbers. Without it the axis is linear, runs a
-little beyond the smallest and the largest value drawn, and has its breaks at round numbers.
+Says how the `y` axis of a plot shows its numbers or its dates. Without it the axis is
+linear, runs a little beyond the smallest and the largest value drawn, and has its breaks at
+round numbers.
 `p.scale_y(...)` changes any of the four: the kind of scale, where the axis starts and ends,
 where its ticks stand, and what is written at them. It gives the plot back, so it is written
 in the chain with the marks, before or after them.
@@ -27,14 +28,17 @@ In R with ggplot2 this is `scale_y_continuous()` with its `transform`, `breaks` 
 `yscale(log range(...))` with `ylabel(...)`.
 
 ## Arguments
-- p: The plot whose `y` axis is set. The axis must be one of numbers, not of categories or
-  of dates.
-- type: The kind of scale: `linear`, `log` or `sqrt`. `date` is for an axis of dates.
-- limits: A list of two numbers, where the axis starts and where it ends. `NA` in the place
-  of one leaves that end to the values drawn, as in `limits: [0, NA]`.
-- breaks: A list of numbers: the values at which the axis has a tick, a gridline and a label.
+- p: The plot whose `y` axis is set: an axis of numbers or of dates, not of categories.
+- type: The kind of scale: `linear`, `log` or `sqrt` for an axis of numbers, `date` for an
+  axis of dates, where it may be left out.
+- limits: A list of two numbers, where the axis starts and where it ends; on an axis of
+  dates, two dates. `NA` in the place of one leaves that end to the values drawn, as in
+  `limits: [0, NA]`.
+- breaks: A list of numbers, or of dates on an axis of dates: the values at which the axis
+  has a tick, a gridline and a label.
 - labels: A list of text, one for each of `breaks:` in the order they are written: what is
-  written at each break in the place of the number.
+  written at each break in the place of the number. On an axis of dates one string is the
+  pattern every break is written by, as in `labels: "%b %Y"`.
 
 ## Value
 The `Plot` with the scale of its `y` axis set. The plot given is not changed. What a
@@ -70,11 +74,19 @@ Categories. An axis of categories, of a Str or a Category variable, has a place 
 category and no other scale: `scale_y` is refused on it.
 
 Dates. An axis of dates, of a Date or a DateTime variable, is placed in proportion to the
-time and chooses its limits and its breaks from the dates drawn. A log or a square-root scale
-is refused on it, and so, in this build, are `limits:`, `breaks:` and `labels:`.
+time, and is on the scale `date` whether the kind is written or not. Its limits and its breaks
+are dates: written with `date` or `datetime`, as in
+`limits: [date("2024-01-01"), date("2024-12-31")]`, or names bound to dates. The limits show
+and do not select, as on an axis of numbers. Without `breaks:` the breaks fall on the
+calendar, as the page of `plot` says. `labels:` as one string is a pattern in the notation of
+`format`: `%Y` is the year, `%m` the month as a number, `%b` and `%B` its English name, short
+and in full, `%d` the day, and `%H`, `%M` and `%S` the time. `labels: "%b %Y"` writes
+`Mar 2024`. The pattern writes the breaks the scale chooses as well as those of `breaks:`. A
+log or a square-root scale is refused on an axis of dates, and `date` on an axis of numbers.
+In ggplot2 this is `scale_y_date()` with `date_labels`.
 
 ## See also
-scale_x, plot, points, where
+scale_x, plot, points, where, date, format
 
 ## Examples
 > let d = frame(year = [1, 2, 3, 4], sales = [3, 30, 250, 4000])
@@ -88,3 +100,14 @@ plot · d · sales against year
   layer   mark     data   marks   settings
       1   points   d          4   size 4.5, alpha 1
       2   lines    d          4   width 1, 1 line
+> let v = frame(read = ["2024-01-15", "2024-02-29", "2024-06-20"], level = [3, 5, 6])
+> let visits = v.add(day = date(read))
+> visits.plot(x: level, y: day).points().scale_y(date, labels: "%d %B")
+plot · visits · day against level
+
+  axis   title   scale    limits                     breaks
+  x      level   linear   2.85 to 6.15               3, 3.5, 4, 4.5, 5, 5.5, 6
+  y      day     date     2024-01-07 to 2024-06-27   01 February, 01 March, 01 April, 01 May, 01 June
+
+  layer   mark     data     marks   settings
+      1   points   visits       3   size 4.5, alpha 1

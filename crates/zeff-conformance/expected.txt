@@ -315,6 +315,11 @@ plot/dates/stderr cbf29ce484222325
 plot/dates/dates.svg ff653bf09d234476
 plot/dates/dates.pdf 907b6ac7982d5e4e
 plot/dates/dates.png 7262c116663a69f0
+plot/datescale/stdout cba918bca38bfb9d
+plot/datescale/stderr 9070de9ab0790af5
+plot/datescale/datescale.svg c44e0a391e9880be
+plot/datescale/datescale.pdf 9c47d2dbd4972e68
+plot/datescale/datescale.png d5b4e59a3f22df8c
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

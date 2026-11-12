@@ -14,7 +14,7 @@
 //! Everything here is whole-number arithmetic on the calendar of the kernel, but for the
 //! choice of the step, which multiplies two doubles; it gives the same breaks on every target.
 
-use zeff_dates::{MAX_DAYS, MIN_DAYS, civil_from_days, days_from_civil, weekday_of};
+use zeff_dates::{MAX_DAYS, MIN_DAYS, civil_from_days, days_from_civil, format_with, weekday_of};
 
 use crate::scale::{INTERVALS, MARGIN};
 
@@ -325,6 +325,25 @@ pub fn shown(at: f64, timed: bool) -> String {
     out
 }
 
+/// An instant as a script would write it and a reader is told it: the day alone where it
+/// is a midnight, and otherwise the time of the clock to the second with it.
+pub fn moment(at: f64) -> String {
+    shown(at, parts(at).1 != 0)
+}
+
+/// The breaks of an axis of dates written by a pattern of the script, in the notation of
+/// `format` (`"%b %Y"`). A pattern that cannot be used writes nothing: `scale_x` and
+/// `scale_y` refuse it before a plot holds it.
+pub fn written(pattern: &str, breaks: &[f64]) -> Vec<String> {
+    breaks
+        .iter()
+        .map(|at| {
+            let (day, within) = parts(*at);
+            format_with(pattern, day, within).unwrap_or_default()
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -516,5 +535,18 @@ mod tests {
         assert_eq!(shown(at(2024, 3, 5, 14, 5), false), "2024-03-05");
         assert_eq!(shown(at(2024, 3, 5, 14, 5), true), "2024-03-05 14:05:00");
         assert_eq!(shown(-1.0, true), "1969-12-31 23:59:59");
+        assert_eq!(moment(day(2024, 3, 5)), "2024-03-05");
+        assert_eq!(moment(at(2024, 3, 5, 14, 5)), "2024-03-05 14:05:00");
+    }
+
+    #[test]
+    fn a_pattern_writes_the_breaks() {
+        let found = [day(2024, 3, 1), at(2024, 11, 5, 14, 5)];
+        assert_eq!(written("%b %Y", &found), ["Mar 2024", "Nov 2024"]);
+        assert_eq!(
+            written("%d/%m %H:%M", &found),
+            ["01/03 00:00", "05/11 14:05"]
+        );
+        assert_eq!(written("%Q", &found), ["", ""]);
     }
 }

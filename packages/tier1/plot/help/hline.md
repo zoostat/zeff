@@ -28,9 +28,9 @@ In R with ggplot2 this is `geom_hline(yintercept = )`. In Stata it is the option
   before this one must map something to `y`, so that there is an axis to place the line on.
 - data: A frame for this layer alone, in place of the frame of the plot: the frame whose
   variable `at:` names. It needs none of the variables the plot maps.
-- at: Where the lines stand on the `y` axis. A number draws one line at that place. A
-  bare name draws a line at each value of that variable: a number, or on an axis of dates a
-  Date or a DateTime.
+- at: Where the lines stand on the `y` axis. A number draws one line at that place, and
+  on an axis of dates a date does, as in `at: date("2024-03-10")`. A bare name draws a line
+  at each value of that variable: a number, or on an axis of dates a Date or a DateTime.
 - color: A string sets one colour for every line of the layer. A bare name colours each line
   by the value of a variable in its row, which needs `at:` to name a variable too.
 - style: The type of the lines: `solid`, `dashed`, `dotted`, `dash_dot`, `long_dash` or
@@ -43,8 +43,8 @@ bound to a name can be extended in more than one way.
 
 ## Details
 A number or a variable. A bare name given to `at:` is a variable of the frame where the
-frame has one of that name. Where it has none, it is a number bound to that name earlier in
-the script, so `let target = 1.5` and then `at: target` draw the line at 1.5. Where both
+frame has one of that name. Where it has none, it is a number or a date bound to that name
+earlier in the script, so `let target = 1.5` and then `at: target` draw the line at 1.5. Where both
 exist the variable is used, and a warning says so. `color:` reads a name in the same way: a
 variable of the frame, or text bound to the name.
 
@@ -55,9 +55,10 @@ The axis. The values of `at:` count for the limits of the `y` axis as the marks 
 line at 0 on a plot whose marks start at 5 brings 0 onto the axis. Where the plot maps nothing
 to `y` and `at:` names a variable, the axis is that variable's, with its name for a title.
 
-Dates. On an axis of dates the lines stand at the dates of a variable, a Date or a DateTime,
-as in `hline(data: events, at: day)`. A number has no place on such an axis, and a date none
-on an axis of numbers.
+Dates. On an axis of dates a line stands at a date: one date written in the call, as in
+`hline(at: date("2024-03-10"))`, a name bound to a date, or each date of a variable, as in
+`hline(data: events, at: day)`. A number has no place on such an axis, and a date none on an
+axis of numbers.
 
 Colour. Without `color:` a reference line is drawn in the dark grey of the theme's marks.
 With a variable of categories each line has the colour of its category, and the legend shows

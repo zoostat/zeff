@@ -21,13 +21,13 @@ error[Z0401]: `vline` draws a line at each value of `at:` on the `x` axis, so `a
   = help: a reference line stands at a number or at a date; `d.describe()` lists the types of the variables
 
 == a_place_in_quotes
-error[Z0401]: `at` of `hline` must be a Float or Var, but this is a Str
+error[Z0401]: `at` of `hline` must be a Float, Date, DateTime or Var, but this is a Str
  --> scripts/main.zeff:3:38
   |
 3 | d.plot(x: dose, y: change).hline(at: "0")
   |                                      ^^^ a Str
   |
-  = help: usage: `p.hline(data: Frame, at: Float | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`
+  = help: usage: `p.hline(data: Frame, at: Float | Date | DateTime | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`
 
 == no_such_variable
 error[Z0101]: no variable `chnge` in `d`
@@ -134,7 +134,7 @@ error[Z0404]: `hline` has no argument called `linetype`
 3 | d.plot(x: dose, y: change).hline(at: 0, linetype: "dashed")
   |                                         ^^^^^^^^ unknown argument
   |
-  = help: usage: `p.hline(data: Frame, at: Float | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`
+  = help: usage: `p.hline(data: Frame, at: Float | Date | DateTime | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`
 
 == a_frame_without_the_variable
 error[Z0101]: no variable `change` in `limits`

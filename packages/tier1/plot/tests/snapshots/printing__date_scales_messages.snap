@@ -1,0 +1,253 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_scale_of_dates_on_numbers
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the `x` axis holds the numbers of `level`, which a scale of dates has no place for
+ --> scripts/main.zeff:7:36
+  |
+7 | r.plot(x: level, y: level).scale_x(date)
+  |                                    ^^^^ a scale of dates is for dates
+  |
+  = help: a scale of dates holds a Date or a DateTime variable; `date(v)` reads dates from text
+
+== a_scale_of_dates_on_categories
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the `x` axis holds the categories of `site`, which have their places and no other scale
+ --> scripts/main.zeff:7:27
+  |
+7 | r.plot(x: site, y: level).scale_x(date)
+  |                           ^^^^^^^ the axis is of categories
+  |
+  = help: `scale_x` sets the scale of an axis of numbers or of dates: its kind, its limits, its breaks and their labels
+
+== numbers_added_to_a_scale_of_dates
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the `x` axis holds the numbers of `level`, which a scale of dates has no place for
+ --> scripts/main.zeff:7:24
+  |
+7 | r.plot().scale_x(date).points(x: level, y: level)
+  |                        ^^^^^^ a scale of dates is for dates
+  |
+  = help: a scale of dates holds a Date or a DateTime variable; `date(v)` reads dates from text
+
+== dates_added_to_limits_in_numbers
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the `x` axis holds the dates of `day`, but the limits or the breaks set for it are numbers
+ --> scripts/main.zeff:7:34
+  |
+7 | r.plot().scale_x(limits: [0, 5]).points(x: day, y: level)
+  |                                  ^^^^^^ dates on an axis set in numbers
+  |
+  = help: set them as dates, as in `scale_x(date, limits: [date("2024-01-01"), NA])`
+
+== a_square_root_scale_after_a_scale_of_dates
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the `x` axis holds the dates of `day`, which are placed in proportion to the time and on no other scale
+ --> scripts/main.zeff:7:41
+  |
+7 | p.scale_x(date, limits: [a, b]).scale_x(sqrt)
+  |                                         ^^^^ a square-root scale is for numbers
+  |
+  = help: a log or a square-root scale is set on an axis of numbers
+
+== limits_in_dates_on_numbers
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `limits:` of `scale_x` holds dates, but the `x` axis is one of numbers
+ --> scripts/main.zeff:7:44
+  |
+7 | r.plot(x: level, y: level).scale_x(limits: [a, b])
+  |                                            ^^^^^^ dates on an axis of numbers
+  |
+  = help: an axis of dates is one a Date or a DateTime variable is mapped to; `scale_x(date, ...)` says the kind outright
+
+== breaks_in_dates_on_a_log_scale
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `breaks:` of `scale_x` holds dates, but the `x` axis is on a log scale
+ --> scripts/main.zeff:7:49
+  |
+7 | r.plot(x: level, y: level).scale_x(log, breaks: [a, b])
+  |                                                 ^^^^^^ dates on an axis of numbers
+  |
+  = help: an axis of dates is one a Date or a DateTime variable is mapped to; `scale_x(date, ...)` says the kind outright
+
+== a_pattern_on_numbers
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `labels:` of `scale_x` as one string is the pattern an axis of dates is written by, and the `x` axis is one of numbers
+ --> scripts/main.zeff:7:44
+  |
+7 | r.plot(x: level, y: level).scale_x(labels: "%Y")
+  |                                            ^^^^ a pattern for dates
+  |
+  = help: for an axis of numbers, write a label for each break, as in `scale_x(breaks: [0, 1], labels: ["no", "yes"])`
+
+== limits_in_numbers
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `limits:` of `scale_x` on an axis of dates is a list of two dates, the first shown and the last
+ --> scripts/main.zeff:7:19
+  |
+7 | p.scale_x(limits: [0, 1])
+  |                   ^^^^^^ not two limits
+  |
+  = help: write the lower limit and the upper, as in `scale_x(date, limits: [date("2024-01-01"), date("2024-12-31")])`; `NA` in the place of one leaves that end to the dates drawn
+
+== limits_the_wrong_way
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: the first limit of `scale_x` must be before the last, but they are 2024-12-31 and 2024-01-01
+ --> scripts/main.zeff:7:25
+  |
+7 | p.scale_x(date, limits: [b, a])
+  |                         ^^^^^^ not two limits
+  |
+  = help: write the lower limit and the upper, as in `scale_x(date, limits: [date("2024-01-01"), date("2024-12-31")])`; `NA` in the place of one leaves that end to the dates drawn
+
+== one_limit
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `limits:` of `scale_x` is a list of two dates, the lower limit and the upper, but this list has 1
+ --> scripts/main.zeff:7:19
+  |
+7 | p.scale_x(limits: [a])
+  |                   ^^^ not two limits
+  |
+  = help: write the lower limit and the upper, as in `scale_x(date, limits: [date("2024-01-01"), date("2024-12-31")])`; `NA` in the place of one leaves that end to the dates drawn
+
+== breaks_in_numbers
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `breaks:` of `scale_x` on an axis of dates is a list of dates, the values at which the axis has a tick, and each is a date
+ --> scripts/main.zeff:7:19
+  |
+7 | p.scale_x(breaks: [1, 2])
+  |                   ^^^^^^ not the breaks of an axis
+  |
+  = help: write the values at which the axis has a tick and a label, as in `scale_x(date, breaks: [date("2024-01-01"), date("2024-07-01")])`
+
+== no_breaks
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `breaks:` of `scale_x` is a list of dates, but this list is empty
+ --> scripts/main.zeff:7:19
+  |
+7 | p.scale_x(breaks: [])
+  |                   ^^ not the breaks of an axis
+  |
+  = help: write the values at which the axis has a tick and a label, as in `scale_x(date, breaks: [date("2024-01-01"), date("2024-07-01")])`
+
+== a_directive_the_formats_lack
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `labels:` of `scale_x` is the pattern the dates of the axis are written by, but `%Q` is not a directive of a date format
+ --> scripts/main.zeff:7:19
+  |
+7 | p.scale_x(labels: "%Q")
+  |                   ^^^^ not a pattern for dates
+  |
+  = help: a pattern is written as `format` writes a date: `%Y` the year, `%m` the month, `%d` the day, `%b` the name of the month, `%H:%M` the time, as in `labels: "%b %Y"`
+
+== an_empty_pattern
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `labels:` of `scale_x` is the pattern the dates of the axis are written by, but the format is empty
+ --> scripts/main.zeff:7:19
+  |
+7 | p.scale_x(labels: "")
+  |                   ^^ not a pattern for dates
+  |
+  = help: a pattern is written as `format` writes a date: `%Y` the year, `%m` the month, `%d` the day, `%b` the name of the month, `%H:%M` the time, as in `labels: "%b %Y"`
+
+== a_pattern_that_ends_in_a_percent
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `labels:` of `scale_x` is the pattern the dates of the axis are written by, but the format ends with a `%`
+ --> scripts/main.zeff:7:19
+  |
+7 | p.scale_x(labels: "%Y %")
+  |                   ^^^^^^ not a pattern for dates
+  |
+  = help: a pattern is written as `format` writes a date: `%Y` the year, `%m` the month, `%d` the day, `%b` the name of the month, `%H:%M` the time, as in `labels: "%b %Y"`
+
+== labels_without_breaks
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `labels:` of `scale_x` names the breaks one by one, so it needs `breaks:` to say where they are
+ --> scripts/main.zeff:7:19
+  |
+7 | p.scale_x(labels: ["x"])
+  |                   ^^^^^ not a label for each break
+  |
+  = help: write `breaks:` and a label for each of them, in the same order, as in `scale_x(breaks: [0, 1], labels: ["no", "yes"])`
+
+== too_few_labels
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `scale_x` has 2 breaks and 1 labels: each break has one label
+ --> scripts/main.zeff:7:35
+  |
+7 | p.scale_x(breaks: [a, b], labels: ["x"])
+  |                                   ^^^^^ not a label for each break
+  |
+  = help: write `breaks:` and a label for each of them, in the same order, as in `scale_x(breaks: [0, 1], labels: ["no", "yes"])`
+
+== a_line_at_a_number
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `at:` of `vline` is the number 3, but the `x` axis of this plot holds the dates of `day`
+ --> scripts/main.zeff:7:13
+  |
+7 | p.vline(at: 3)
+  |             ^ a number on an axis of dates
+  |
+  = help: write the date, as in `vline(at: date("2024-03-10"))`, or draw a line at each date of a variable, as in `vline(data: events, at: day)`
+
+== a_line_at_a_date_on_numbers
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `at:` of `vline` is the date 2024-01-01, but the `x` axis of this plot holds the numbers of `level`
+ --> scripts/main.zeff:7:47
+  |
+7 | r.plot(x: level, y: level).points().vline(at: a)
+  |                                               ^ a date on an axis of numbers
+  |
+  = help: a line at a date stands on an axis of dates; across the other axis the line is `hline`
+
+== a_line_across_at_a_date
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `at:` of `hline` is the date 2024-01-01, but the `y` axis of this plot holds the numbers of `level`
+ --> scripts/main.zeff:7:13
+  |
+7 | p.hline(at: a)
+  |             ^ a date on an axis of numbers
+  |
+  = help: a line at a date stands on an axis of dates; across the other axis the line is `vline`
+
+== a_line_at_a_date_on_categories
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `vline` stands at a number on its axis, but the `x` axis of this plot holds the categories of `site`
+ --> scripts/main.zeff:7:36
+  |
+7 | r.plot(x: site, y: level).points().vline(at: a)
+  |                                    ^^^^^ needs numbers along `x`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `vline` needs a number along `x`
+
+== a_colour_for_one_line_at_a_date
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `color:` of `vline` names the variable `site`, but `at:` is one date: there is one line, and no row to take its colour from
+ --> scripts/main.zeff:7:23
+  |
+7 | p.vline(at: a, color: site)
+  |             - one line
+  |                       ^^^^ a colour for each row
+  |
+  = help: set one colour, as in `color: "firebrick"`, or draw a line for each row of a frame, as in `vline(data: means, at: wage, color: union)`
+
+== a_line_at_a_date_with_no_axis
+note: 1 row with NA in day or level dropped (line 4)
+error[Z0401]: `vline` draws a line at a place on the `x` axis, but nothing is mapped to `x` yet
+ --> scripts/main.zeff:7:18
+  |
+7 | r.plot(y: level).vline(at: a)
+  |                  ^^^^^ needs an `x` axis
+  |
+  = help: map a variable to `x` where the plot starts, or add the layer that maps it before this one; a line at a place on the other axis is `hline`
+
+== a_line_at_text
+error[Z0401]: `at` of `vline` must be a Float, Date, DateTime or Var, but this is a Str
+ --> scripts/main.zeff:7:13
+  |
+7 | p.vline(at: "2024-03-10")
+  |             ^^^^^^^^^^^^ a Str
+  |
+  = help: usage: `p.vline(data: Frame, at: Float | Date | DateTime | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`

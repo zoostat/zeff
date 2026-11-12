@@ -724,7 +724,7 @@ fn placed<'a>(
         return Some(Cow::Owned(Column::floats(places).0));
     }
     let Some(labels) = on else {
-        if kind == AxisKind::Linear || !is_numeric(column) {
+        if matches!(kind, AxisKind::Linear | AxisKind::Date) || !is_numeric(column) {
             return Some(Cow::Borrowed(column));
         }
         let held = |v: f64| match kind {
@@ -777,8 +777,11 @@ pub enum Misplaced {
     Zero(&'static str),
     /// The axis is of categories, which have no kind of scale but their own.
     Categories(String),
-    /// The axis is of dates, which have no logarithm and no square root.
+    /// The axis is of dates, which have no logarithm and no square root, and whose limits
+    /// and breaks are dates and not numbers.
     Dates(String),
+    /// The axis is of numbers, and the script asks a scale of dates of it.
+    Numbers(String),
 }
 
 /// The first thing in a plot that has no place on the scale the script asks of an axis, or
@@ -787,16 +790,25 @@ pub enum Misplaced {
 pub fn axis_fault(plot: &Plot) -> Option<AxisFault> {
     for aesthetic in [Aesthetic::X, Aesthetic::Y] {
         let kind = plot.axis(aesthetic);
-        if kind == AxisKind::Linear {
-            continue;
-        }
         let axis = aesthetic.name();
         let fault = |what: Misplaced| Some(AxisFault { axis, kind, what });
-        match placing_of(plot, aesthetic) {
-            Some((Placing::Categories, variable)) => {
+        // Whether the script set limits or breaks, which on a linear scale are numbers.
+        let set = plot
+            .axis_setting(aesthetic)
+            .is_some_and(|axis| axis.limits != (None, None) || axis.breaks.is_some());
+        match (kind, placing_of(plot, aesthetic)) {
+            (AxisKind::Linear, Some((Placing::Dates, variable))) if set => {
+                return fault(Misplaced::Dates(variable.to_string()));
+            }
+            (AxisKind::Linear, _) => continue,
+            (_, Some((Placing::Categories, variable))) => {
                 return fault(Misplaced::Categories(variable.to_string()));
             }
-            Some((Placing::Dates, variable)) => {
+            (AxisKind::Date, Some((Placing::Linear, variable))) => {
+                return fault(Misplaced::Numbers(variable.to_string()));
+            }
+            (AxisKind::Date, _) => continue,
+            (_, Some((Placing::Dates, variable))) => {
                 return fault(Misplaced::Dates(variable.to_string()));
             }
             _ => {}
@@ -2034,7 +2046,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             }
         } else if single.is_none() {
             None
-        } else if let Some(PlotSetting::Place(at)) = layer.constant(along) {
+        } else if let Some(PlotSetting::Place(at) | PlotSetting::Moment(at)) = layer.constant(along)
+        {
             Some(across(Drawn {
                 x: vec![*at],
                 y: vec![*at],
@@ -2475,39 +2488,24 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             continue;
         }
         let found = marks.or_else(|| frame_extent(plot, aesthetic));
-        // An axis of dates: the limits with the margin of a linear axis, and the breaks on
-        // the calendar. An axis of whole days, one named by a Date, has none within a day.
-        if if aesthetic == Aesthetic::X {
+        // An axis of dates has the limits of a linear axis, with their margin, and its
+        // breaks on the calendar. An axis of whole days, one named by a Date, has none within
+        // a day.
+        let on_dates = if aesthetic == Aesthetic::X {
             across_dates
         } else {
             up_dates
-        } {
-            let whole_days = first_mapping(plot, aesthetic)
+        };
+        let whole_days = on_dates
+            && first_mapping(plot, aesthetic)
                 .and_then(|(mapping, _, layer)| values(plot, layer, mapping.aesthetic))
                 .is_some_and(|column| column.ty() == ColumnType::Date);
-            let (lo, hi) = dates::limits(found, whole_days);
-            let breaks = dates::breaks(lo, hi, whole_days);
-            let labels = dates::labels(&breaks);
-            scales.push(Scale {
-                id: aesthetic.name(),
-                kind: ScaleKind::Date,
-                title,
-                limits: (lo, hi),
-                breaks,
-                labels,
-                range: Range::Position,
-            });
-            axes.push(Axis {
-                scale: aesthetic.name(),
-                position,
-            });
-            continue;
-        }
         // The kind of scale the script asks of the axis: its limits, with their margin, and
         // its breaks are taken as that kind places its values.
         let asked = plot.axis(aesthetic);
         let (kind, (lo, hi)) = match asked {
-            AxisKind::Linear => (ScaleKind::Linear, scale::limits(found)),
+            _ if on_dates => (ScaleKind::Date, dates::limits(found, whole_days)),
+            AxisKind::Linear | AxisKind::Date => (ScaleKind::Linear, scale::limits(found)),
             AxisKind::Log => (
                 ScaleKind::Log,
                 scale::log_limits(found.filter(|(lo, _)| *lo > 0.0)),
@@ -2520,7 +2518,11 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         // The limits the script sets are the visible range and nothing more (decision #118,
         // F5): an end it gives is that end exactly, with no margin, no row is dropped for
         // it, and the marks beyond it, which the edge of the panel cuts off, are counted.
-        let setting = plot.axis_setting(aesthetic);
+        // What is said of a scale of dates is in instants, and holds for an axis of dates
+        // alone; what is said of another kind holds for an axis of numbers alone.
+        let setting = plot
+            .axis_setting(aesthetic)
+            .filter(|axis| (axis.kind == AxisKind::Date) == on_dates);
         let (lo, hi) = match setting.map(|axis| axis.limits) {
             Some((low, high)) => {
                 let set = (low.unwrap_or(lo), high.unwrap_or(hi));
@@ -2560,9 +2562,16 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         // The breaks: those the script sets, the ones within the limits, with its labels or
         // the numbers; or, for a variable with value labels, its labelled values, written
         // as their labels (open decision #128); or those the scale chooses.
+        // The dates of an axis as they are written: by the pattern of the script, or in
+        // the form the scale chooses.
+        let written = |breaks: &[f64]| match setting.and_then(|axis| axis.pattern.as_deref()) {
+            Some(pattern) if on_dates => dates::written(pattern, breaks),
+            _ if on_dates => dates::labels(breaks),
+            _ => scale::labels(breaks),
+        };
         let labelled = || -> Option<(Vec<f64>, Vec<String>)> {
             let (mapping, _, layer) = first_mapping(plot, aesthetic)?;
-            if mapping.aesthetic != aesthetic || mapping.computed.is_some() {
+            if on_dates || mapping.aesthetic != aesthetic || mapping.computed.is_some() {
                 return None;
             }
             let pairs = values(plot, layer, aesthetic)?.metadata().value_labels()?;
@@ -2589,16 +2598,17 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                     }
                 }
                 if texts.is_none() {
-                    labels = scale::labels(&breaks);
+                    labels = written(&breaks);
                 }
                 (breaks, labels)
             }
             None => labelled().unwrap_or_else(|| {
                 let breaks = match asked {
+                    _ if on_dates => dates::breaks(lo, hi, whole_days),
                     AxisKind::Log => scale::log_breaks(lo, hi),
                     _ => scale::breaks(lo, hi),
                 };
-                let labels = scale::labels(&breaks);
+                let labels = written(&breaks);
                 (breaks, labels)
             }),
         };
@@ -3313,6 +3323,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                     PlotSetting::Size(across) => format_float(*across),
                     PlotSetting::Shape(name) | PlotSetting::Line(name) => name.to_string(),
                     PlotSetting::Place(at) => format_float(*at),
+                    PlotSetting::Moment(at) => dates::moment(*at),
                 },
             ],
             // A group and a label have no scale: the values themselves are what a mark reads.
@@ -3429,6 +3440,8 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                     own.push(format!("{name} {}", mapping.variable));
                 } else if let Some(PlotSetting::Place(at)) = l.constant(aesthetic) {
                     own.push(format!("{name} {}", format_float(*at)));
+                } else if let Some(PlotSetting::Moment(at)) = l.constant(aesthetic) {
+                    own.push(format!("{name} {}", dates::moment(*at)));
                 }
             }
             for aesthetic in [Aesthetic::Color, Aesthetic::Fill] {

@@ -361,3 +361,130 @@ proptest! {
         prop_assert_eq!(lo - low, high - hi);
     }
 }
+
+// ----- what a script says of a scale of dates (step 25c2) -----
+
+/// The readings with the scale of `x` set.
+fn set(axis: PlotAxis) -> zeff_plot::scene::Scene {
+    let mut plot = start(
+        readings(),
+        vec![mapped(Aesthetic::X, "day"), mapped(Aesthetic::Y, "level")],
+        Vec::new(),
+    );
+    plot.axes.push(axis);
+    assert_eq!(axis_fault(&plot), None);
+    let (_, scene) = with_layer(&plot, points(1.0));
+    scene
+}
+
+#[test]
+fn the_limits_of_a_scale_of_dates_are_the_visible_range() {
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Date);
+    axis.limits = (Some(at(2024, 2, 1)), Some(at(2024, 5, 1)));
+    let scene = set(axis);
+    let x = scene.scale("x").unwrap();
+    // The ends as they are set, with no margin; no row is dropped for them.
+    assert_eq!(x.limits, (at(2024, 2, 1), at(2024, 5, 1)));
+    assert_eq!(x.labels, ["2024-02", "2024-03", "2024-04", "2024-05"]);
+    assert_eq!(scene.panels[0].layers[0].x.len(), 4);
+    assert!(
+        scene.notes.contains(
+            &"2 marks beyond the limits of the `x` axis are cut off at the edge of the panel"
+                .to_string()
+        )
+    );
+    // One end set, the other left to the dates drawn.
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Date);
+    axis.limits = (None, Some(at(2024, 5, 1)));
+    let x = set(axis).scale("x").unwrap().clone();
+    assert_eq!(x.limits.1, at(2024, 5, 1));
+    assert!(x.limits.0 < at(2024, 1, 15));
+}
+
+#[test]
+fn the_breaks_and_their_labels_as_the_script_sets_them() {
+    // Breaks of the script's own, those within the limits, written as the scale writes.
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Date);
+    axis.breaks = Some(vec![at(2023, 1, 1), at(2024, 3, 15), at(2024, 6, 1)]);
+    let x = set(axis).scale("x").unwrap().clone();
+    assert_eq!(x.breaks, [at(2024, 3, 15), at(2024, 6, 1)]);
+    assert_eq!(x.labels, ["2024-03-15", "2024-06-01"]);
+    // A pattern writes the breaks the scale chooses, and those the script sets.
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Date);
+    axis.pattern = Some("%b %Y".to_string());
+    let x = set(axis).scale("x").unwrap().clone();
+    assert_eq!(
+        x.labels,
+        ["Feb 2024", "Mar 2024", "Apr 2024", "May 2024", "Jun 2024"]
+    );
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Date);
+    axis.breaks = Some(vec![at(2024, 3, 15), at(2024, 6, 1)]);
+    axis.pattern = Some("%d %B".to_string());
+    assert_eq!(
+        set(axis).scale("x").unwrap().labels,
+        ["15 March", "01 June"]
+    );
+    // A label for each break.
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Date);
+    axis.breaks = Some(vec![at(2024, 3, 15), at(2024, 6, 1)]);
+    axis.labels = Some(vec!["spring".to_string(), "summer".to_string()]);
+    assert_eq!(set(axis).scale("x").unwrap().labels, ["spring", "summer"]);
+    // Limits that hold no break of the script leave the axis without one.
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Date);
+    axis.limits = (Some(at(2024, 2, 1)), Some(at(2024, 2, 10)));
+    axis.breaks = Some(vec![at(2024, 6, 1)]);
+    let x = set(axis).scale("x").unwrap().clone();
+    assert!(x.breaks.is_empty() && x.labels.is_empty());
+}
+
+#[test]
+fn a_scale_of_dates_and_an_axis_of_numbers_do_not_meet() {
+    // A scale of dates on numbers.
+    let mut plot = start(
+        readings(),
+        vec![mapped(Aesthetic::X, "level"), mapped(Aesthetic::Y, "level")],
+        Vec::new(),
+    );
+    plot.axes.push(PlotAxis::of(Aesthetic::X, AxisKind::Date));
+    assert_eq!(
+        axis_fault(&plot).unwrap().what,
+        Misplaced::Numbers("level".to_string())
+    );
+    // Limits in numbers, said before the dates came.
+    let mut plot = start(
+        readings(),
+        vec![mapped(Aesthetic::X, "day"), mapped(Aesthetic::Y, "level")],
+        Vec::new(),
+    );
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Linear);
+    axis.limits = (Some(0.0), Some(5.0));
+    plot.axes.push(axis);
+    assert_eq!(
+        axis_fault(&plot).unwrap().what,
+        Misplaced::Dates("day".to_string())
+    );
+    // A linear scale with nothing set says nothing an axis of dates cannot bear.
+    plot.axes.clear();
+    plot.axes.push(PlotAxis::of(Aesthetic::X, AxisKind::Linear));
+    assert_eq!(axis_fault(&plot), None);
+}
+
+#[test]
+fn a_reference_line_stands_at_one_date() {
+    use zeff_core::value::{PlotConstant, PlotSetting};
+    let plot = start(
+        readings(),
+        vec![mapped(Aesthetic::X, "day"), mapped(Aesthetic::Y, "level")],
+        Vec::new(),
+    );
+    let (plot, _) = with_layer(&plot, points(1.0));
+    let mut line = layer(Mark::Vline);
+    line.constants = vec![PlotConstant {
+        aesthetic: Aesthetic::X,
+        value: PlotSetting::Moment(at(2024, 9, 1)),
+    }];
+    let (_, scene) = with_layer(&plot, line);
+    assert_eq!(scene.panels[0].layers[1].x, [at(2024, 9, 1)]);
+    // The line counts for the limits as a mark does: the axis reaches September.
+    assert!(scene.scale("x").unwrap().limits.1 > at(2024, 9, 1));
+}

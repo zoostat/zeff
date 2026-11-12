@@ -70,18 +70,18 @@ error[Z0401]: the `x` axis holds the categories of `kind`, which have their plac
  --> scripts/main.zeff:3:36
   |
 3 | d.plot(x: kind, y: sales).points().scale_x(log)
-  |                                    ^^^^^^^ a scale of numbers
+  |                                    ^^^^^^^ the axis is of categories
   |
-  = help: `scale_x` sets the scale of an axis of numbers: its kind, its limits, its breaks and their labels
+  = help: `scale_x` sets the scale of an axis of numbers or of dates: its kind, its limits, its breaks and their labels
 
 == categories_and_limits
 error[Z0401]: the `x` axis holds the categories of `kind`, which have their places and no other scale
  --> scripts/main.zeff:3:36
   |
 3 | d.plot(x: kind, y: sales).points().scale_x(limits: [0, 1])
-  |                                    ^^^^^^^ a scale of numbers
+  |                                    ^^^^^^^ the axis is of categories
   |
-  = help: `scale_x` sets the scale of an axis of numbers: its kind, its limits, its breaks and their labels
+  = help: `scale_x` sets the scale of an axis of numbers or of dates: its kind, its limits, its breaks and their labels
 
 == not_a_kind
 error[Z0402]: `logarithm` is not one of the allowed words
@@ -100,13 +100,13 @@ error[Z0403]: expected one of linear, log, sqrt, date, found text
   = help: write the word without quotes: `log`
 
 == a_date_scale
-error[Z0401]: `scale_x(date)` is not built yet: an axis of dates comes with the next step of this release
+error[Z0401]: the `x` axis holds the numbers of `year`, which a scale of dates has no place for
  --> scripts/main.zeff:3:35
   |
 3 | d.plot(x: year, y: sales).scale_x(date)
-  |                                   ^^^^ not in this build
+  |                                   ^^^^ a scale of dates is for dates
   |
-  = help: the kinds of scale built so far are `linear`, `log` and `sqrt`
+  = help: a scale of dates holds a Date or a DateTime variable; `date(v)` reads dates from text
 
 == one_limit
 error[Z0401]: `limits:` of `scale_y` is a list of two numbers, the lower limit and the upper, but this list has 1
@@ -190,7 +190,7 @@ error[Z0401]: `scale_y` has 3 breaks and 2 labels: each break has one label
   = help: write `breaks:` and a label for each of them, in the same order, as in `scale_y(breaks: [0, 1], labels: ["no", "yes"])`
 
 == a_pattern_for_labels
-error[Z0401]: `labels:` of `scale_y` as one string is the pattern an axis of dates is written by, which is not built yet
+error[Z0401]: `labels:` of `scale_y` as one string is the pattern an axis of dates is written by, and the `y` axis is one of numbers
  --> scripts/main.zeff:3:43
   |
 3 | d.plot(x: year, y: sales).scale_y(labels: "%Y")

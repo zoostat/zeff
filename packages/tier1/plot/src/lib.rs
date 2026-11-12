@@ -309,7 +309,7 @@ pub fn functions() -> Vec<Function> {
                 params: vec![
                     ParamSpec::required("p", "Plot"),
                     ParamSpec::option("data", "Frame"),
-                    ParamSpec::option("at", "Float | Var"),
+                    ParamSpec::option("at", "Float | Date | DateTime | Var"),
                     ParamSpec::option("color", "Var | Str"),
                     ParamSpec::option_with_default(
                         "style",
@@ -338,7 +338,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable for at: that is not a number or a date, or of another kind than the axis holds; a number for at: on an axis of dates; an at: that is not a finite number; a number for at: when nothing is mapped to y; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows, or given with an at: that is one number; an expression given to color:, which takes a variable by its name; width: not above 0",
+                        "a variable for at: that is not a number or a date, or of another kind than the axis holds; a number for at: on an axis of dates, or a date on an axis of numbers; an at: that is not a finite number; a number for at: when nothing is mapped to y; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows, or given with an at: that is one number; an expression given to color:, which takes a variable by its name; width: not above 0",
                     ),
                     DiagnosticDecl::new("Z0406", "at: is not given"),
                 ],
@@ -355,7 +355,7 @@ pub fn functions() -> Vec<Function> {
                 params: vec![
                     ParamSpec::required("p", "Plot"),
                     ParamSpec::option("data", "Frame"),
-                    ParamSpec::option("at", "Float | Var"),
+                    ParamSpec::option("at", "Float | Date | DateTime | Var"),
                     ParamSpec::option("color", "Var | Str"),
                     ParamSpec::option_with_default(
                         "style",
@@ -384,7 +384,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable for at: that is not a number or a date, or of another kind than the axis holds; a number for at: on an axis of dates; an at: that is not a finite number; a number for at: when nothing is mapped to x; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows, or given with an at: that is one number; an expression given to color:, which takes a variable by its name; width: not above 0",
+                        "a variable for at: that is not a number or a date, or of another kind than the axis holds; a number for at: on an axis of dates, or a date on an axis of numbers; an at: that is not a finite number; a number for at: when nothing is mapped to x; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows, or given with an at: that is one number; an expression given to color:, which takes a variable by its name; width: not above 0",
                     ),
                     DiagnosticDecl::new("Z0406", "at: is not given"),
                 ],
@@ -583,7 +583,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a value of x at or below 0 on a log scale, or below 0 on a square-root scale, with the rows named; a bar or an area on a log scale; an axis of categories or of dates; limits: that is not a list of two numbers with the lower below the upper, or a limit with no place on the scale; breaks: that is not a list of numbers, or a break with no place on the scale; labels: without breaks:, or not one for each break; date and a pattern for labels:, which are built at the next step",
+                        "a value of x at or below 0 on a log scale, or below 0 on a square-root scale, with the rows named; a bar or an area on a log scale; an axis of categories; a log or a square-root scale on an axis of dates, or a scale of dates on an axis of numbers; limits: or breaks: in numbers on an axis of dates, or in dates on an axis of numbers; a pattern for labels: that cannot be used, or one on an axis of numbers; limits: that is not a list of two numbers with the lower below the upper, or a limit with no place on the scale; breaks: that is not a list of numbers, or a break with no place on the scale; labels: without breaks:, or not one for each break; date and a pattern for labels:, which are built at the next step",
                     ),
                 ],
                 help: include_str!("../help/scale_x.md"),
@@ -611,7 +611,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a value of y at or below 0 on a log scale, or below 0 on a square-root scale, with the rows named; a bar or an area on a log scale; an axis of categories or of dates; limits: that is not a list of two numbers with the lower below the upper, or a limit with no place on the scale; breaks: that is not a list of numbers, or a break with no place on the scale; labels: without breaks:, or not one for each break; date and a pattern for labels:, which are built at the next step",
+                        "a value of y at or below 0 on a log scale, or below 0 on a square-root scale, with the rows named; a bar or an area on a log scale; an axis of categories; a log or a square-root scale on an axis of dates, or a scale of dates on an axis of numbers; limits: or breaks: in numbers on an axis of dates, or in dates on an axis of numbers; a pattern for labels: that cannot be used, or one on an axis of numbers; limits: that is not a list of two numbers with the lower below the upper, or a limit with no place on the scale; breaks: that is not a list of numbers, or a break with no place on the scale; labels: without breaks:, or not one for each break; date and a pattern for labels:, which are built at the next step",
                     ),
                 ],
                 help: include_str!("../help/scale_y.md"),

@@ -1,0 +1,123 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-02-01 to 2024-05-01   2024-02, 2024-03, 2024-04, 2024-05
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-01 to 2024-06-27   Jan 2024, Feb 2024, Mar 2024, Apr 2024, May 2024, Jun 2024
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   2024-03-15, 2024-06-01
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-07 to 2024-06-27   winter, spring
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-01 to 2024-12-31   2024-01, 2024-04, 2024-07, 2024-10
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+plot · r · day against level
+
+  axis   title   scale    limits                     breaks
+  x      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+  y      day     date     2024-01-07 to 2024-06-27   February, March, April, May, June
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+plot · t · level against when
+
+  axis   title   scale    limits                                       breaks
+  x      when    date     2024-03-05 08:00:00 to 2024-03-05 20:00:00   09 h, 12 h, 15 h, 18 h
+  y      level   linear   0.85 to 4.15                                 1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark   data   marks   settings
+      1   step   t          3   width 1, 1 line
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2024-01-01 to 2024-12-31   2024-01, 2024-04, 2024-07, 2024-10
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   x day, y level, size 4.5, alpha 1
+plot · r · level against day
+
+  axis   title   scale    limits                     breaks
+  x      day     date     2023-12-28 to 2025-01-17   2024-01, 2024-04, 2024-07, 2024-10, 2025-01
+  y      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+      2   vline    r          1   at 2024-03-10, width 0.5, style dashed
+      3   vline    r          1   at 2024-12-31, color firebrick, width 0.5, style solid
+plot · t · level against when
+
+  axis   title   scale    limits
+  x      when    date     2024-03-05 09:08:15 to 2024-03-05 17:06:45
+  y      level   linear   0.85 to 4.15
+
+  breaks
+  10:00, 11:00, 12:00, 13:00, 14:00, 15:00, 16:00, 17:00
+  1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark    data   marks   settings
+      1   step    t          3   width 1, 1 line
+      2   vline   t          1   at 2024-03-05 13:30:00, width 0.5, style dashed
+plot · r · day against level
+
+  axis   title   scale    limits                     breaks
+  x      level   linear   2.75 to 8.25               3, 4, 5, 6, 7, 8
+  y      day     date     2023-12-23 to 2024-06-28   2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+
+  layer   mark     data   marks   settings
+      1   points   r          4   size 4.5, alpha 1
+      2   hline    r          1   at 2024-01-01, width 0.5, style dashed
+plot · f · size against founded
+
+  axis   title                       scale    limits                     breaks
+  x      Date founded                date     1980-01-01 to 2000-01-01   1980, 1985, 1990, 1995, 2000
+  y      Workers observed in wages   linear   -1.95 to 40.95             0, 10, 20, 30, 40
+
+  layer   mark     data   marks   settings
+      1   points   f        400   size 4.5, alpha 0.4
+---
+note: 1 row with NA in day or level dropped (line 4)
+note: 2 marks beyond the limits of the `x` axis are cut off at the edge of the panel (line 8)
+note: 1 row with NA in level or day dropped (line 13)
+note: 1 row with NA in day or level dropped (line 15)
+note: 1 row with NA in level or day dropped (line 18)
+note: 267 marks beyond the limits of the `x` axis are cut off at the edge of the panel (line 20)

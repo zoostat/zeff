@@ -2389,12 +2389,6 @@ fn every_message_of_an_axis_of_dates() {
             "dates_added_to_a_square_root_scale",
             "r.plot(x: day, y: level).scale_x(sqrt).points()\n",
         ),
-        // What an axis of dates cannot yet be told.
-        (
-            "limits_of_an_axis_of_dates",
-            "r.plot(x: day, y: level).scale_x(limits: [0, 1])\n",
-        ),
-        ("the_kind_date", "r.plot(x: day, y: level).scale_x(date)\n"),
         // The marks that measure from zero.
         ("an_area_up_to_dates", "r.plot(x: level, y: day).area()\n"),
         ("bars_up_to_dates", "r.plot(x: level, y: day).bars()\n"),
@@ -2453,4 +2447,144 @@ fn every_message_of_an_axis_of_dates() {
         all.push_str(&format!("== {name}\n{stderr}\n"));
     }
     insta::assert_snapshot!("date_axes_messages", all);
+}
+
+// ----- scale_x(date) and scale_y(date), and a line at one date (step 25c2) -----
+
+const SPAN: &str = "let p = r.plot(x: day, y: level).points()\nlet a = date(\"2024-01-01\")\nlet b = date(\"2024-12-31\")\n";
+
+#[test]
+fn a_scale_of_dates_reads_sensibly_as_text() {
+    let script = format!(
+        "{READINGS}{SPAN}p.scale_x(date)\n\
+         p.scale_x(date, limits: [date(\"2024-02-01\"), date(\"2024-05-01\")])\n\
+         p.scale_x(limits: [a, NA], labels: \"%b %Y\")\n\
+         p.scale_x(breaks: [date(\"2024-06-01\"), date(\"2024-03-15\"), date(\"2023-01-01\")])\n\
+         p.scale_x(date, breaks: [date(\"2024-04-01\"), date(\"2024-02-01\")], labels: [\"spring\", \"winter\"])\n\
+         p.scale_x(labels: \"%d/%m\").scale_x(limits: [a, b])\n\
+         r.plot(x: level, y: day).points().scale_y(date, labels: \"%B\")\n\
+         t.plot(x: when, y: level).step().scale_x(limits: [datetime(\"2024-03-05 08:00:00\"), datetime(\"2024-03-05 20:00:00\")], labels: \"%H h\")\n\
+         r.plot().scale_x(date, limits: [a, b]).points(x: day, y: level)\n\
+         p.vline(at: date(\"2024-03-10\")).vline(at: b, color: \"firebrick\", style: solid)\n\
+         t.plot(x: when, y: level).step().vline(at: datetime(\"2024-03-05 13:30:00\"))\n\
+         r.plot(x: level, y: day).points().hline(at: a)\n\
+         let f = dataset(firms)\n\
+         f.plot(x: founded, y: size).points(alpha: 0.4).scale_x(date, limits: [date(\"1980-01-01\"), date(\"2000-01-01\")])\n"
+    );
+    let text = printed(&script);
+    for line in [
+        "  x      day     date     2024-02-01 to 2024-05-01   2024-02, 2024-03, 2024-04, 2024-05\n",
+        "  x      day     date     2024-01-07 to 2024-06-27   2024-03-15, 2024-06-01\n",
+        "  x      day     date     2024-01-07 to 2024-06-27   winter, spring\n",
+        "  x      Date founded                date     1980-01-01 to 2000-01-01   1980, 1985, 1990, 1995, 2000\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("date_scales", text);
+}
+
+#[test]
+fn a_bare_name_given_to_at_is_a_bound_date() {
+    // A date bound to a name is the place of the line (open decision #127, as for a
+    // number); where the frame has a variable of the name, the variable is used, and a
+    // warning says so.
+    let text = printed(&format!(
+        "{READINGS}let crash = date(\"2024-03-10\")\nr.plot(x: day, y: level).points().vline(at: crash)\nlet day = date(\"2024-05-01\")\nr.plot(x: day, y: level).vline(at: day)\n"
+    ));
+    assert!(
+        text.contains("at 2024-03-10, width 0.5, style dashed\n"),
+        "{text}"
+    );
+    assert!(text.contains("at day, width 0.5, style dashed\n"), "{text}");
+    assert!(text.contains("warning[W0102]"), "{text}");
+    insta::assert_snapshot!("date_bound_to_a_name", text);
+}
+
+#[test]
+fn every_message_of_a_scale_of_dates() {
+    let mut all = String::new();
+    for (name, script) in [
+        // A scale of dates and an axis of another kind.
+        (
+            "a_scale_of_dates_on_numbers",
+            "r.plot(x: level, y: level).scale_x(date)\n",
+        ),
+        (
+            "a_scale_of_dates_on_categories",
+            "r.plot(x: site, y: level).scale_x(date)\n",
+        ),
+        (
+            "numbers_added_to_a_scale_of_dates",
+            "r.plot().scale_x(date).points(x: level, y: level)\n",
+        ),
+        (
+            "dates_added_to_limits_in_numbers",
+            "r.plot().scale_x(limits: [0, 5]).points(x: day, y: level)\n",
+        ),
+        (
+            "a_square_root_scale_after_a_scale_of_dates",
+            "p.scale_x(date, limits: [a, b]).scale_x(sqrt)\n",
+        ),
+        // Dates given to an axis of numbers.
+        (
+            "limits_in_dates_on_numbers",
+            "r.plot(x: level, y: level).scale_x(limits: [a, b])\n",
+        ),
+        (
+            "breaks_in_dates_on_a_log_scale",
+            "r.plot(x: level, y: level).scale_x(log, breaks: [a, b])\n",
+        ),
+        (
+            "a_pattern_on_numbers",
+            "r.plot(x: level, y: level).scale_x(labels: \"%Y\")\n",
+        ),
+        // The limits.
+        ("limits_in_numbers", "p.scale_x(limits: [0, 1])\n"),
+        ("limits_the_wrong_way", "p.scale_x(date, limits: [b, a])\n"),
+        ("one_limit", "p.scale_x(limits: [a])\n"),
+        // The breaks.
+        ("breaks_in_numbers", "p.scale_x(breaks: [1, 2])\n"),
+        ("no_breaks", "p.scale_x(breaks: [])\n"),
+        // The labels.
+        (
+            "a_directive_the_formats_lack",
+            "p.scale_x(labels: \"%Q\")\n",
+        ),
+        ("an_empty_pattern", "p.scale_x(labels: \"\")\n"),
+        (
+            "a_pattern_that_ends_in_a_percent",
+            "p.scale_x(labels: \"%Y %\")\n",
+        ),
+        ("labels_without_breaks", "p.scale_x(labels: [\"x\"])\n"),
+        (
+            "too_few_labels",
+            "p.scale_x(breaks: [a, b], labels: [\"x\"])\n",
+        ),
+        // A line at one date.
+        ("a_line_at_a_number", "p.vline(at: 3)\n"),
+        (
+            "a_line_at_a_date_on_numbers",
+            "r.plot(x: level, y: level).points().vline(at: a)\n",
+        ),
+        ("a_line_across_at_a_date", "p.hline(at: a)\n"),
+        (
+            "a_line_at_a_date_on_categories",
+            "r.plot(x: site, y: level).points().vline(at: a)\n",
+        ),
+        (
+            "a_colour_for_one_line_at_a_date",
+            "p.vline(at: a, color: site)\n",
+        ),
+        (
+            "a_line_at_a_date_with_no_axis",
+            "r.plot(y: level).vline(at: a)\n",
+        ),
+        ("a_line_at_text", "p.vline(at: \"2024-03-10\")\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{READINGS}{SPAN}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("date_scales_messages", all);
 }

@@ -1,7 +1,8 @@
 //! The scales of the two axes (Language Reference, section 7.6, "Scales"): `scale_x` and
 //! `scale_y` say the kind of scale of an axis of numbers, linear, log or square root, its
-//! limits, its breaks and their labels. What they say is held with the plot
-//! (`Plot.axes`), and the scene derives the scale from it.
+//! limits, its breaks and their labels; of an axis of dates, the kind `date`, they say the
+//! limits and the breaks as dates and the pattern the breaks are written by. What they say
+//! is held with the plot (`Plot.axes`), and the scene derives the scale from it.
 //!
 //! The limits are the visible range and nothing more (open decision #118, F5): no row is
 //! dropped for them, the marks beyond them are cut off at the edge of the panel and counted in
@@ -15,9 +16,10 @@ use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{Aesthetic, AxisKind, Plot, PlotAxis, Value};
 use zeff_diagnostics::Diagnostic;
 
+use crate::dates;
 use crate::grammar::{internal, shown};
 use crate::marks::misplaced;
-use crate::scene::{Placing, axis_fault, describe, placing_of, scene};
+use crate::scene::{Misplaced, Placing, axis_fault, describe, placing_of, scene};
 
 const P: usize = 0;
 const KIND: usize = 1;
@@ -46,6 +48,24 @@ fn number(value: &Value) -> Result<Option<f64>, ()> {
     }
 }
 
+/// A date of a list as its instant on a scale of dates, `None` for `NA`; anything else is
+/// not a date.
+fn instant(value: &Value) -> Result<Option<f64>, ()> {
+    match value {
+        Value::Na => Ok(None),
+        Value::Date(days) => Ok(Some(f64::from(*days) * dates::DAY as f64)),
+        Value::DateTime(micros) => Ok(Some(*micros as f64)),
+        _ => Err(()),
+    }
+}
+
+/// Whether a list holds a date.
+fn holds_dates(items: &[Value]) -> bool {
+    items
+        .iter()
+        .any(|item| matches!(item, Value::Date(_) | Value::DateTime(_)))
+}
+
 /// What `scale_x` and `scale_y` share.
 fn axis(
     ctx: &mut CallContext<'_>,
@@ -64,17 +84,7 @@ fn axis(
             "linear" => AxisKind::Linear,
             "log" => AxisKind::Log,
             "sqrt" => AxisKind::Sqrt,
-            "date" => {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!("`{function}(date)` is not built yet: an axis of dates comes with the next step of this release"),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(KIND), "not in this build")
-                    .help("the kinds of scale built so far are `linear`, `log` and `sqrt`"),
-                ));
-            }
+            "date" => AxisKind::Date,
             _ => return Err(internal(ctx, "a kind of scale that is none of the four")),
         },
         Some(_) => return Err(internal(ctx, "a kind of scale that is not a word")),
@@ -89,38 +99,86 @@ fn axis(
                 ),
             )
             .in_file(ctx.script)
-            .primary(ctx.callee_span, "a scale of numbers")
+            .primary(ctx.callee_span, "the axis is of categories")
             .help(format!(
-                "`{function}` sets the scale of an axis of numbers: its kind, its limits, its breaks and their labels"
+                "`{function}` sets the scale of an axis of numbers or of dates: its kind, its limits, its breaks and their labels"
             )),
         ));
     }
-    // An axis of dates is placed in proportion to the time; what else may be said of it,
-    // its limits, its breaks and their labels, is said with `date`.
-    if kind == AxisKind::Linear
-        && let Some((Placing::Dates, variable)) = placing_of(&plot, aesthetic)
+    // An axis of dates is placed in proportion to the time whatever is said, so a linear
+    // scale on it, or no kind at all, is the scale of dates: its limits and breaks are dates.
+    let dated = kind == AxisKind::Date
+        || (kind == AxisKind::Linear
+            && matches!(placing_of(&plot, aesthetic), Some((Placing::Dates, _))));
+    let kind = if dated { AxisKind::Date } else { kind };
+    let at_kind = if matches!(args.get(KIND), None | Some(Value::Na)) {
+        ctx.callee_span
+    } else {
+        ctx.span_of(KIND)
+    };
+    // A kind the axis cannot have is said before anything else of the call is read: a
+    // scale of dates on numbers, a scale of numbers on dates.
     {
-        return Err(fail(
+        let mut tried = (*plot).clone();
+        tried.axes.retain(|axis| axis.aesthetic != aesthetic);
+        tried.axes.push(PlotAxis::of(aesthetic, kind));
+        if let Some(fault) = axis_fault(&tried)
+            && matches!(fault.what, Misplaced::Dates(_) | Misplaced::Numbers(_))
+        {
+            return Err(misplaced(ctx, &fault, at_kind));
+        }
+    }
+    // A limit or a break as the axis holds it: a number, or on a scale of dates a date.
+    let read = |value: &Value| if dated { instant(value) } else { number(value) };
+    let told = |v: f64| if dated { dates::moment(v) } else { shown(v) };
+    let na_help = if dated {
+        "`NA` in the place of one leaves that end to the dates drawn"
+    } else {
+        "`NA` leaves an end to the values drawn, as in `limits: [0, NA]`"
+    };
+    let (things, a_thing, sample_limits, sample_breaks) = if dated {
+        (
+            "dates",
+            "a date",
+            format!("{function}(date, limits: [date(\"2024-01-01\"), date(\"2024-12-31\")])"),
+            format!("{function}(date, breaks: [date(\"2024-01-01\"), date(\"2024-07-01\")])"),
+        )
+    } else {
+        (
+            "numbers",
+            "a number",
+            format!("{function}(limits: [0, 100])"),
+            format!("{function}(breaks: [0, 25, 50, 75, 100])"),
+        )
+    };
+    // Dates given to an axis of numbers are named for what they are.
+    let dates_on_numbers = |ctx: &CallContext<'_>, slot: usize, option: &str| {
+        fail(
             Diagnostic::error(
                 "Z0401",
                 format!(
-                    "the `{name}` axis holds the dates of `{variable}`: the limits, the breaks and the labels of an axis of dates are set with `{function}(date)`, which is not built yet"
+                    "`{option}:` of `{function}` holds dates, but the `{name}` axis is {}",
+                    if kind == AxisKind::Linear {
+                        "one of numbers".to_string()
+                    } else {
+                        format!("on a {} scale", kind.name())
+                    }
                 ),
             )
             .in_file(ctx.script)
-            .primary(ctx.callee_span, "not in this build")
-            .help("an axis of dates chooses its limits and its breaks from the dates drawn; `where` keeps the rows of a range of dates"),
-        ));
-    }
+            .primary(ctx.span_of(slot), "dates on an axis of numbers")
+            .help(format!("an axis of dates is one a Date or a DateTime variable is mapped to; `{function}(date, ...)` says the kind outright")),
+        )
+    };
     let holds = |v: f64| match kind {
         AxisKind::Log => v > 0.0,
         AxisKind::Sqrt => v >= 0.0,
-        AxisKind::Linear => true,
+        AxisKind::Linear | AxisKind::Date => true,
     };
     let place = match kind {
         AxisKind::Log => "a log scale holds the values above 0",
         AxisKind::Sqrt => "a square-root scale holds the values of 0 or more",
-        AxisKind::Linear => "",
+        AxisKind::Linear | AxisKind::Date => "",
     };
     // The limits: a list of two, the lower and the upper, either of which may be `NA` for
     // the end the values drawn decide.
@@ -132,24 +190,33 @@ fn axis(
                     Diagnostic::error("Z0401", why)
                         .in_file(ctx.script)
                         .primary(ctx.span_of(LIMITS), "not two limits")
-                        .help(format!("write the lower limit and the upper, as in `{function}(limits: [0, 100])`; `NA` leaves an end to the values drawn, as in `limits: [0, NA]`")),
+                        .help(format!("write the lower limit and the upper, as in `{sample_limits}`; {na_help}")),
                 )
             };
+            if !dated && holds_dates(items) {
+                return Err(dates_on_numbers(ctx, LIMITS, "limits"));
+            }
             let [low, high] = items.as_slice() else {
                 return Err(refused(
                     ctx,
                     format!(
-                        "`limits:` of `{function}` is a list of two numbers, the lower limit and the upper, but this list has {}",
+                        "`limits:` of `{function}` is a list of two {things}, the lower limit and the upper, but this list has {}",
                         items.len()
                     ),
                 ));
             };
-            let (Ok(low), Ok(high)) = (number(low), number(high)) else {
+            let (Ok(low), Ok(high)) = (read(low), read(high)) else {
                 return Err(refused(
                     ctx,
-                    format!(
-                        "`limits:` of `{function}` is a list of two numbers, the lower limit and the upper"
-                    ),
+                    if dated {
+                        format!(
+                            "`limits:` of `{function}` on an axis of dates is a list of two dates, the first shown and the last"
+                        )
+                    } else {
+                        format!(
+                            "`limits:` of `{function}` is a list of two numbers, the lower limit and the upper"
+                        )
+                    },
                 ));
             };
             if let (Some(low), Some(high)) = (low, high)
@@ -158,9 +225,15 @@ fn axis(
                 return Err(refused(
                     ctx,
                     format!(
-                        "the lower limit of `{function}` must be below the upper, but they are {} and {}",
-                        shown(low),
-                        shown(high)
+                        "the {} limit of `{function}` must be {}, but they are {} and {}",
+                        if dated { "first" } else { "lower" },
+                        if dated {
+                            "before the last"
+                        } else {
+                            "below the upper"
+                        },
+                        told(low),
+                        told(high)
                     ),
                 ));
             }
@@ -186,18 +259,22 @@ fn axis(
                     Diagnostic::error("Z0401", why)
                         .in_file(ctx.script)
                         .primary(ctx.span_of(BREAKS), "not the breaks of an axis")
-                        .help(format!("write the values at which the axis has a tick and a label, as in `{function}(breaks: [0, 25, 50, 75, 100])`")),
+                        .help(format!("write the values at which the axis has a tick and a label, as in `{sample_breaks}`")),
                 )
             };
+            if !dated && holds_dates(items) {
+                return Err(dates_on_numbers(ctx, BREAKS, "breaks"));
+            }
             let mut values: Vec<f64> = Vec::new();
             for item in items.iter() {
-                match number(item) {
+                match read(item) {
                     Ok(Some(v)) => values.push(v + 0.0),
                     _ => {
                         return Err(refused(
                             ctx,
                             format!(
-                                "`breaks:` of `{function}` is a list of numbers, the values at which the axis has a tick"
+                                "`breaks:` of `{function}` {}is a list of {things}, the values at which the axis has a tick, and each is {a_thing}",
+                                if dated { "on an axis of dates " } else { "" }
                             ),
                         ));
                     }
@@ -207,7 +284,7 @@ fn axis(
                 return Err(refused(
                     ctx,
                     format!(
-                        "`breaks:` of `{function}` is a list of numbers, but this list is empty"
+                        "`breaks:` of `{function}` is a list of {things}, but this list is empty"
                     ),
                 ));
             }
@@ -224,19 +301,38 @@ fn axis(
         }
         Some(_) => return Err(internal(ctx, "breaks that are not a list")),
     };
-    // The labels: a text for each break, in the order the breaks are written.
+    // The labels: a text for each break, in the order the breaks are written; or, on an axis
+    // of dates, one string, the pattern every break is written by.
+    let mut pattern: Option<String> = None;
     let labels = match args.get(LABELS) {
         None | Some(Value::Na) => None,
-        Some(Value::Str(_)) => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0401",
-                    format!("`labels:` of `{function}` as one string is the pattern an axis of dates is written by, which is not built yet"),
-                )
-                .in_file(ctx.script)
-                .primary(ctx.span_of(LABELS), "a pattern for dates")
-                .help(format!("for an axis of numbers, write a label for each break, as in `{function}(breaks: [0, 1], labels: [\"no\", \"yes\"])`")),
-            ));
+        Some(Value::Str(text)) => {
+            if !dated {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!("`labels:` of `{function}` as one string is the pattern an axis of dates is written by, and the `{name}` axis is one of numbers"),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(LABELS), "a pattern for dates")
+                    .help(format!("for an axis of numbers, write a label for each break, as in `{function}(breaks: [0, 1], labels: [\"no\", \"yes\"])`")),
+                ));
+            }
+            // The pattern is tried on a day, so that a plot never holds one that cannot be
+            // written.
+            if let Err(why) = zeff_dates::format_with(text, 0, 0) {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!("`labels:` of `{function}` is the pattern the dates of the axis are written by, but {why}"),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(LABELS), "not a pattern for dates")
+                    .help("a pattern is written as `format` writes a date: `%Y` the year, `%m` the month, `%d` the day, `%b` the name of the month, `%H:%M` the time, as in `labels: \"%b %Y\"`"),
+                ));
+            }
+            pattern = Some(text.to_string());
+            None
         }
         Some(Value::List(items)) => {
             let refused = |ctx: &CallContext<'_>, why: String| {
@@ -306,14 +402,10 @@ fn axis(
         limits,
         breaks,
         labels,
+        pattern,
     });
     if let Some(fault) = axis_fault(&next) {
-        let at = if matches!(args.get(KIND), None | Some(Value::Na)) {
-            ctx.callee_span
-        } else {
-            ctx.span_of(KIND)
-        };
-        return Err(misplaced(ctx, &fault, at));
+        return Err(misplaced(ctx, &fault, at_kind));
     }
     let before = scene(&plot).notes;
     let after = describe(&mut next);

@@ -110,65 +110,9 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 
 23f `[engine]`: open decision #127, option B: where an option takes a variable or a value, a bare name is the frame's variable where the frame has one and otherwise a number or text bound to that name, so `hline(at: target)` draws at a bound number; both at once is the variable, with W0102; sections 3.7 and 7.6 amended (logged). Step 24 was split into 24a to 24d and open decision #128 taken as option C. 24a `[engine]`: a Str or a Category variable on `x` or `y` makes an axis of categories, the places and limits as in ggplot2; a number stays on a linear axis, labelled or not; `area`, `ribbon`, `hline` and `vline` are refused on such an axis. 24b: `bars`, a bar from zero at each `x`, of values or of counts, stacked, side by side or as shares, every edge matching ggplot2's; catalogue row 464 brought up to date (logged). Known for later steps: a labelled number on an axis reads as numbers until step 25 (#128), and an axis of many long categories writes only the labels that fit until step 26.
 
-## 12 November 2026, release 0.7.0, step 24b2 (a filled mark takes its fill from `color`)
+## 12 November 2026, steps 24b2 to 25b of release 0.7.0 (folded)
 
-**Done.** The specification's sample script draws its bars with `color: female` and a legend, and section 6 has `color:` colour bars; as built, a bar, an area and a band were filled by `fill:` alone. Now, where nothing says anything of `fill`, they take their fill from `color:` of the plot. `fill:` still comes first. This withdraws one ruling of step 23d1 (areas took no colour from `color`).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 313 of 313; CI is read job by job after the push.
-
-**Next.** Step 24c `[function]`: `tile`.
-
-**For the owner to decide.** Nothing waits for him. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 24c (`tile`)
-
-**Done.** `p.tile()` draws a filled rectangle at each row's `x` and `y`, as wide and as high as the gap between two places, on axes of categories or of numbers: a heat map. `fill:` shows a number on the continuous scale, with a bar of the colours for a legend, or categories. Edges and limits match ggplot2's. Catalogue row 468 is brought up to date (logged). `plot` stands at eleven functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 318 of 318; CI is read job by job after the push.
-
-**Next.** Step 24d `[function]`: `text`, which completes step 24.
-
-**For the owner to decide.** Nothing waits for him. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 24d (`text`), and step 24 complete
-
-**Done.** `p.text(label:)` writes the label of each row at its place, in a `size:` and a `color:`, moved by `nudge:` in points on the page. Catalogue row 467 is brought up to date (logged). With it step 24 is complete: an axis of categories, `bars`, `tile` and `text`. The eleven marks of section 7.6 are implemented; `plot` stands at twelve functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 323 of 323; CI is read job by job after the push.
-
-**Known, for later steps.** A label near an edge of the panel is cut there, as in ggplot2; room for labels belongs to steps 25 and 26.
-
-**Next.** Step 25 `[engine]`: scales and the legend. Before it is built the checklist asks the owner about open decisions #107 (what an expression in a mapping may call) and #110, questions 1, 3, 4 and 5; under his standing instruction they are taken on the recommendation, recorded and announced.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: `nudge:` in points, not in the units of the data; no `alpha:` on text. Open as before: questions 1, 3, 4 and 5 of #110 and #107 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 25 opened and split
-
-**Done.** No code. Step 25 was split in the checklist into 25a (the kinds of scale: `linear`, `log`, `sqrt`), 25b (`limits:`, `breaks:`, `labels:` and the labels of a labelled variable), 25c (the date scale), 25d (`scale`) and 25e (`legend`), all `[engine]`. The decisions due before it were taken on their recommendations, under the owner's standing instruction: #110, questions 1 (C), 3 (A), 4 (A) and 5 (A), all as built, with the other reading of a size as an option of `scale` at step 25d; and #107, option B, the widening of an expression in a mapping to the functions of `time` and `text` and to `case`, at step 25c, with option C not taken.
-
-**Next.** Step 25a `[engine]`: `scale_x` and `scale_y` with `linear`, `log` and `sqrt`.
-
-**For the owner to decide.** Nothing waits for him; the decisions above are his to overturn. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 25a (the kinds of scale of an axis)
-
-**Done.** A plot can hold the kind of scale of each axis, linear, log or square root, and the scene and the layout place every mark by it, with the engine's own logarithm. The limits match ggplot2's. A value with no place on a log or a square-root scale is found and named, and every mark refuses such a plot. No script sets a scale yet: `scale_x` and `scale_y` are registered at step 25b.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 324 of 324; CI is read job by job after the push.
-
-**Next.** Step 25b `[engine]`: `scale_x` and `scale_y`, with `limits:`, `breaks:` and `labels:`, and the labels of a labelled variable on an axis.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: the breaks of a log axis (1, 2 and 5 times a power of ten, where R writes 1 and 3); bars and areas refused on a log axis. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 25b (`scale_x` and `scale_y`)
-
-**Done.** `p.scale_y(log)` draws an axis on a log scale, as the specification's sample writes it; `sqrt` and `linear` are the other kinds. `limits:` sets the visible range and drops no row (decision #118, F5), with a note counting the marks cut off; `breaks:` and `labels:` set the ticks and what is written at them. A variable with value labels reads as its labels on a linear axis (#128): bars by `union` say `no` and `yes`. A value with no place on a log scale is refused with its rows named. Section 7.6 has the rules (logged). `plot` stands at fourteen functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 329 of 329; CI is read job by job after the push.
-
-**Next.** Step 25c `[engine]`: the date scale, and the widening of an expression in a mapping (#107, option B).
-
-**For the owner to decide.** Nothing waits for him. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+24b2: a bar, an area and a band take their fill from `color:` of the plot where nothing says anything of `fill`, as the specification's sample script draws them; one ruling of step 23d1 withdrawn. 24c `[function]`: `tile`, a filled rectangle at each row's `x` and `y`, a heat map on a continuous scale of fills; catalogue row 468 brought up to date (logged). 24d `[function]`: `text`, the label of each row at its place, with `nudge:` in points; row 467 brought up to date (logged); step 24 complete, the eleven marks of section 7.6 built. Step 25 was split into 25a to 25e, and the decisions due before it taken on their recommendations: #110, questions 1 (C), 3 (A), 4 (A) and 5, and #107, option B. 25a `[engine]`: the kinds of scale of an axis, linear, log and square root, with limits that match ggplot2's and a value with no place on the scale found and named. 25b `[engine]`: `scale_x` and `scale_y`, with `limits:` that show and do not select (decision #118, F5), `breaks:` and `labels:`, and the labels of a labelled variable on a linear axis (#128); rows 476 and 477 implemented; `zeff selftest` at 329 of 329. Rulings taken then, the owner's to overturn: `nudge:` in points; no `alpha:` on text; the breaks of a log axis at 1, 2 and 5 times a power of ten, where R writes 1 and 3; bars and areas refused on a log axis. Known for later steps: a label near an edge of the panel is cut there (steps 25 and 26).
 
 ## 12 November 2026, release 0.7.0, step 25c1 (an axis of dates)
 
@@ -179,3 +123,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25c2 `[engine]`: `scale_x(date)` and `scale_y(date)` with `limits:`, `breaks:` and `labels:` as a pattern, and a reference line at one date.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: open decision #129, option A (dates on an axis in the ISO form of tables, `2024-03`, where ggplot2 writes `Mar`); a break at every decade where ggplot2 marks every second one. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25c2 (`scale_x(date)` and `scale_y(date)`)
+
+**Done.** The scale of an axis of dates can be set: `scale_x(date, limits: [date("1980-01-01"), date("2000-01-01")])` shows that range and drops no row; `breaks:` takes dates; `labels: "%b %Y"` is a pattern every break is written by (`Jan 1980`), or a label for each break. On an axis of dates the word `date` may be left out. A reference line stands at one date, `vline(at: date("2008-09-15"))`, or at a name bound to a date. The counts of marks beyond the limits and the labels match ggplot2's. Catalogue rows 470 and 471 and section 3.7 are brought up to date (logged).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 339 of 339; CI is read job by job after the push.
+
+**Next.** Step 25c3 `[engine]`: an expression in a mapping, widened to the scalar functions of `time` and `text`, the four Zeff-written functions of `core` and `case` (#107, option B).
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: a bare name given to `at:` reads a bound date as it reads a bound number (#127 extended). Open as before: #129 (how dates are written on an axis, taken as A), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

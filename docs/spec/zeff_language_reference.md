@@ -398,7 +398,7 @@ Every other operator and function gives `NA` when an input is `NA`, unless its e
 | Parameter type | A bare name means | Looked up in |
 | --- | --- | --- |
 | `Var`, `Vars`, `Terms`, `Formula` | A column, or a loop variable or parameter holding a `Var` | The receiver frame; in `merge`, `on:` names must exist in both frames with the same type (rename one first when the names differ); a `Var` passed to a project function is checked against the frame the function uses it with |
-| A variable or a value (`Float \| Var`, `Var \| Float`, `Var \| Str`) | A column; where the frame has none of that name, a script binding that holds a number or text, as the parameter takes; where both exist the column, with a warning (W0102); a loop variable or parameter holding such a value is that value, and a clash with a column is an error (Z0106) | The frame the call draws, when the statement runs; then the enclosing scopes |
+| A variable or a value (`Float \| Var`, `Var \| Float`, `Var \| Str`, `Float \| Date \| DateTime \| Var`) | A column; where the frame has none of that name, a script binding that holds a number, text or a date, as the parameter takes; where both exist the column, with a warning (W0102); a loop variable or parameter holding such a value is that value, and a clash with a column is an error (Z0106) | The frame the call draws, when the statement runs; then the enclosing scopes |
 | A fixed list of words | A word | The parameter's list (Z0402 when absent) |
 | A term name (`coef`, `test`, `derive` and the other result methods) | A term of section 7.2 | The result's model matrix |
 | Any other type | A loop variable or parameter, then a script binding, then a function | The enclosing scopes, in that order |

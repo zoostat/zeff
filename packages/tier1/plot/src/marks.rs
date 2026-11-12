@@ -1149,9 +1149,14 @@ fn spanning(
                 computed: None,
             });
         }
-        Some(Value::Int(_) | Value::Float(_)) => {
-            let Some(at) = number_option(ctx, &args, H_AT, "an `at:` that is not a number")? else {
-                return Err(internal(ctx, "an `at:` that is a number and is not"));
+        Some(at @ (Value::Int(_) | Value::Float(_) | Value::Date(_) | Value::DateTime(_))) => {
+            // One place: a number, or on an axis of dates a date, held as its instant.
+            let (at, dated) = match at {
+                Value::Int(i) => (*i as f64, false),
+                Value::Float(x) => (*x, false),
+                Value::Date(days) => (f64::from(*days) * crate::dates::DAY as f64, true),
+                Value::DateTime(micros) => (*micros as f64, true),
+                _ => return Err(internal(ctx, "an `at:` that is a place and is not")),
             };
             if !at.is_finite() {
                 return Err(fail(
@@ -1173,8 +1178,9 @@ fn spanning(
                     Diagnostic::error(
                         "Z0401",
                         format!(
-                            "`color:` of `{function}` names the variable `{}`, but `at:` is one number: there is one line, and no row to take its colour from",
-                            by.variable
+                            "`color:` of `{function}` names the variable `{}`, but `at:` is one {}: there is one line, and no row to take its colour from",
+                            by.variable,
+                            if dated { "date" } else { "number" }
                         ),
                     )
                     .in_file(ctx.script)
@@ -1185,22 +1191,42 @@ fn spanning(
                     )),
                 ));
             }
-            // On an axis of dates a place is a date, and a number is none.
-            if let Some((Placing::Dates, variable)) = placing_of(&plot, along) {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!(
-                            "`at:` of `{function}` is the number {}, but the `{axis}` axis of this plot holds the dates of `{variable}`",
-                            shown(at)
-                        ),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(H_AT), "a number on an axis of dates")
-                    .help(format!(
-                        "draw the line at each date of a variable, as in `{function}(data: events, at: day)`"
-                    )),
-                ));
+            // A place is of the kind the axis holds: a date on an axis of dates, a number
+            // on one of numbers.
+            match (placing_of(&plot, along), dated) {
+                (Some((Placing::Dates, variable)), false) => {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`at:` of `{function}` is the number {}, but the `{axis}` axis of this plot holds the dates of `{variable}`",
+                                shown(at)
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(H_AT), "a number on an axis of dates")
+                        .help(format!(
+                            "write the date, as in `{function}(at: date(\"2024-03-10\"))`, or draw a line at each date of a variable, as in `{function}(data: events, at: day)`"
+                        )),
+                    ));
+                }
+                (Some((Placing::Linear, variable)), true) => {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`at:` of `{function}` is the date {}, but the `{axis}` axis of this plot holds the numbers of `{variable}`",
+                                crate::dates::moment(at)
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(H_AT), "a date on an axis of numbers")
+                        .help(format!(
+                            "a line at a date stands on an axis of dates; across the other axis the line is `{other}`"
+                        )),
+                    ));
+                }
+                _ => {}
             }
             // The line is drawn across an axis that something else gives the plot.
             if scene(&plot).scale(axis).is_none() {
@@ -1226,7 +1252,11 @@ fn spanning(
             }
             constants.push(PlotConstant {
                 aesthetic: along,
-                value: PlotSetting::Place(at),
+                value: if dated {
+                    PlotSetting::Moment(at)
+                } else {
+                    PlotSetting::Place(at)
+                },
             });
         }
         Some(_) => {
@@ -1845,7 +1875,20 @@ pub(crate) fn misplaced(ctx: &CallContext<'_>, fault: &AxisFault, at: Span) -> F
     let axis = fault.axis;
     let (scale, limit, keep) = match fault.kind {
         AxisKind::Log => ("a log scale", "at or below 0", "above 0"),
+        AxisKind::Date => ("a scale of dates", "", ""),
         _ => ("a square-root scale", "below 0", "of 0 or more"),
+    };
+    // What the scale asked for is set on: an axis of numbers, or one of dates.
+    let (holds, set_on) = if fault.kind == AxisKind::Date {
+        (
+            "dates",
+            "a scale of dates is set on an axis that a Date or a DateTime variable is mapped to",
+        )
+    } else {
+        (
+            "numbers",
+            "a log or a square-root scale is set on an axis of numbers",
+        )
     };
     let other = match fault.kind {
         AxisKind::Log => "; a square-root scale, `sqrt`, holds 0",
@@ -1905,8 +1948,16 @@ pub(crate) fn misplaced(ctx: &CallContext<'_>, fault: &AxisFault, at: Span) -> F
                 "the `{axis}` axis holds the categories of `{variable}`, which have their places and no other scale"
             ),
         )
-        .primary(at, format!("{scale} is for numbers"))
-        .help("a log or a square-root scale is set on an axis of numbers"),
+        .primary(at, format!("{scale} is for {holds}"))
+        .help(set_on),
+        Misplaced::Dates(variable) if fault.kind == AxisKind::Linear => Diagnostic::error(
+            "Z0401",
+            format!(
+                "the `{axis}` axis holds the dates of `{variable}`, but the limits or the breaks set for it are numbers"
+            ),
+        )
+        .primary(at, "dates on an axis set in numbers")
+        .help(format!("set them as dates, as in `scale_{axis}(date, limits: [date(\"2024-01-01\"), NA])`")),
         Misplaced::Dates(variable) => Diagnostic::error(
             "Z0401",
             format!(
@@ -1915,6 +1966,14 @@ pub(crate) fn misplaced(ctx: &CallContext<'_>, fault: &AxisFault, at: Span) -> F
         )
         .primary(at, format!("{scale} is for numbers"))
         .help("a log or a square-root scale is set on an axis of numbers"),
+        Misplaced::Numbers(variable) => Diagnostic::error(
+            "Z0401",
+            format!(
+                "the `{axis}` axis holds the numbers of `{variable}`, which a scale of dates has no place for"
+            ),
+        )
+        .primary(at, "a scale of dates is for dates")
+        .help("a scale of dates holds a Date or a DateTime variable; `date(v)` reads dates from text"),
     };
     fail(diagnostic.in_file(ctx.script))
 }

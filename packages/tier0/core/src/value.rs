@@ -103,6 +103,9 @@ pub struct PlotAxis {
     pub breaks: Option<Vec<f64>>,
     /// The labels of the breaks the script sets, one for each; `None` for the numbers.
     pub labels: Option<Vec<String>>,
+    /// On an axis of dates, the pattern its breaks are written by, as `format` writes a
+    /// date (`"%b %Y"`); `None` for the form the scale chooses.
+    pub pattern: Option<String>,
 }
 
 impl PlotAxis {
@@ -114,11 +117,14 @@ impl PlotAxis {
             limits: (None, None),
             breaks: None,
             labels: None,
+            pattern: None,
         }
     }
 }
 
-/// The kind of scale of an axis of numbers (section 7.6, "Scales").
+/// The kind of scale of an axis of numbers or of dates (section 7.6, "Scales"). On an axis
+/// of the kind `Date` the limits and the breaks a script sets are instants, in microseconds
+/// since 1970-01-01 00:00:00 UTC, a day at the midnight that starts it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AxisKind {
     /// Equal distances on the page for equal differences.
@@ -128,15 +134,18 @@ pub enum AxisKind {
     Log,
     /// Distances in proportion to the square root: for values of zero or more.
     Sqrt,
+    /// Equal distances for equal spans of time: for a Date or a DateTime variable.
+    Date,
 }
 
 impl AxisKind {
-    /// The kind as it is written: `linear`, `log`, `sqrt`.
+    /// The kind as it is written: `linear`, `log`, `sqrt`, `date`.
     pub fn name(self) -> &'static str {
         match self {
             AxisKind::Linear => "linear",
             AxisKind::Log => "log",
             AxisKind::Sqrt => "sqrt",
+            AxisKind::Date => "date",
         }
     }
 }
@@ -307,6 +316,9 @@ pub enum PlotSetting {
     Line(&'static str),
     /// A place on an axis, in the units of the data: where a reference line stands.
     Place(f64),
+    /// A place on an axis of dates: an instant, in microseconds since 1970-01-01 00:00:00
+    /// UTC, a day at the midnight that starts it.
+    Moment(f64),
 }
 
 /// One mapping of a plot: an aesthetic and what it reads, a variable of the frame or an

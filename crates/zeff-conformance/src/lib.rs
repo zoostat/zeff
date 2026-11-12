@@ -1988,6 +1988,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/dates/{name}"), &data));
     }
+    // The scale of dates (step 25c2): the firms within limits said as dates, with a pattern
+    // for the labels, breaks of the script's own and a line at one date; what the script
+    // prints and the first figure in the three formats.
+    let script = "let f = dataset(firms)\nlet crash = date(\"2008-09-15\")\nlet p = f.plot(x: founded, y: size).points(alpha: 0.4).scale_x(date, limits: [date(\"1970-01-01\"), NA], labels: \"%b %Y\").vline(at: date(\"1973-10-17\")).vline(at: crash, color: \"firebrick\", style: solid)\np\nf.plot(x: founded, y: size).points(alpha: 0.4).scale_x(breaks: [date(\"1973-10-17\"), crash], labels: [\"oil\", \"Lehman\"])\nf.plot(x: size, y: founded).points(alpha: 0.4).scale_y(date, limits: [date(\"1990-01-01\"), date(\"1992-01-01\")])\nexport(p, \"datescale.svg\")\nexport(p, \"datescale.pdf\")\nexport(p, \"datescale.png\")\n";
+    let date_scaled = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/datescale/stdout", &date_scaled.output.stdout));
+    fills.push(text("plot/datescale/stderr", &date_scaled.output.stderr));
+    for name in ["datescale.svg", "datescale.pdf", "datescale.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/datescale/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

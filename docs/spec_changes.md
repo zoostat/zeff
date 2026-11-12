@@ -546,3 +546,7 @@ Three rules decided earlier are written into the section at the step that builds
 ## 12 November 2026 — Language Reference, section 7.6 (the row "Scales" of the grammar table)
 
 Step 25c1 of release 0.7.0 builds the axis of dates, of which the section named only the kind `date`. Under open decision #129 (option A, taken on 12 November 2026) the row gains, after the rule of the axis of categories: "a Date or a DateTime variable makes an axis of dates, placed in proportion to the time, with its breaks on the calendar, written in the ISO form of tables cut to the part they differ in". Nothing else in the row changes; `scale_x(date)` with its limits, breaks and labels is built at step 25c2.
+
+## 12 November 2026 — zeff_functions.csv, rows 470 and 471; Language Reference, section 3.7
+
+Step 25c2 of release 0.7.0 lets a reference line stand at one date on an axis of dates. The usage lines of catalogue rows 470 (`hline`) and 471 (`vline`) had `at: Float | Var`; they now have `at: Float | Date | DateTime | Var`. In section 3.7 the row "A variable or a value" gains that form among its examples, and "a script binding that holds a number or text" becomes "a number, text or a date": the rule of open decision #127 (option B) is the same, and now reaches the dates the parameter takes, so `let crash = date("2008-09-15")` and `vline(at: crash)` draw the line. Rows 476 and 477 keep their usage lines: `date`, and `labels:` as one string, were there since the catalogue was written and are built at this step.
