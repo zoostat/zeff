@@ -1782,6 +1782,36 @@ impl<'a> Interpreter<'a> {
                 Named::Binding(id, frame) => self.bound_in_frame(id, &frame, expr)?,
                 Named::Constant(constant) => self.eval(constant, printed, messages)?,
             },
+            // A name that may be a variable of the frame or a bound value (open decision
+            // #127): the variable where the frame the call draws has one, said with a warning
+            // since a binding has the name too; else the value of the binding.
+            ExprKind::VarOrBound { name, binding } => {
+                let column = self
+                    .receivers
+                    .last()
+                    .filter(|receiver| receiver.current().table.column(name).is_some())
+                    .map(|receiver| receiver.current().shown_name());
+                match column {
+                    Some(frame_name) => {
+                        messages.push(
+                            Diagnostic::warning(
+                                "W0102",
+                                format!("`{name}` is both a variable of {frame_name} and a binding; the variable was used"),
+                            )
+                            .help("rename the binding, or the variable with `rename`; where an option takes a variable or a value, a bare name is the frame's variable first"),
+                        );
+                        Value::Var(name.clone())
+                    }
+                    None => match self.env.get(binding) {
+                        Some(value) => value.clone(),
+                        None => {
+                            return Err(
+                                self.internal(expr, "a binding was read before it was made")
+                            );
+                        }
+                    },
+                }
+            }
             ExprKind::Word(word) => Value::Word(word.clone()),
             ExprKind::Term(inner) => match self.eval(inner, printed, messages)? {
                 Value::Str(name) => Value::Term(name),

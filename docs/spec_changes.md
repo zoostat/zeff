@@ -518,3 +518,11 @@ Step 23e1 of release 0.7.0 builds `hline` and `vline`. Under open decision #106 
 ## 12 November 2026 — zeff_functions.csv, row 469
 
 Step 23e2 of release 0.7.0 builds `rug`. Under open decision #106 (option A) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer. The usage line of catalogue row 469 was `p.rug(data: Frame, sides: x | y | both = x)`; it is now `p.rug(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, sides: x | y | both = x, alpha: Float = 1)`, and its status is `implemented`.
+
+## 12 November 2026 — Language Reference, section 3.7 ("Resolution by parameter type")
+
+Open decision #127 (option B, taken on 12 November 2026 on the recommendation under the owner's standing instruction) settles what a bare name means where a parameter takes a variable or a value, which the table did not say. Step 23f of release 0.7.0 builds it. The table gains the row "A variable or a value (`Float | Var`, `Var | Float`, `Var | Str`)": a column; where the frame has none of that name, a script binding that holds a number or text, as the parameter takes; where both exist the column, with W0102; a loop variable or parameter holding such a value is that value, a clash with a column being Z0106; looked up in the frame the call draws when the statement runs, then in the enclosing scopes. This is the order the "Name lookup" row already gives for a frame method. No script that ran before changes its meaning: a name that was no column was refused (Z0101). A script in which a `let` binding of a number or of text has the name of a variable given to such an option now has the warning W0102, and draws what it drew.
+
+## 12 November 2026 — Language Reference, section 7.6 ("Mappings and constants")
+
+The same decision (#127, option B) touches the sentence of section 7.6 that says a bare name maps a variable and a string sets a constant. It gains the sentence: "A bare name that is no variable of the frame and is bound to a string, or for `size:` to a number, is that value (section 3.7, "Resolution by parameter type")." Until step 23f of release 0.7.0 such a name was refused (Z0101), which steps 20c and 20d had tested on purpose; those tests now hold a binding of another type, which is still refused.

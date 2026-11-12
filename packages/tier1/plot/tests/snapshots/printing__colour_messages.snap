@@ -133,7 +133,7 @@ error[Z0102]: no variable `Female` in `w`; names are case-sensitive
   = help: write `female`
 
 let w = dataset(wages)
-let shade = "red"
+let shade = 3
 w.plot(x: educ, y: wage, color: shade)
 error[Z0101]: no variable `shade` in `w`
  --> scripts/main.zeff:3:33

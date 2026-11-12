@@ -161,3 +161,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 303 of 303; CI is read job by job after the push.
 
 **Next.** Step 23f `[engine]`: a name bound to a number where an option takes a number or a variable (open decision #127, option B).
+
+## 12 November 2026, release 0.7.0, step 23f (a name that is a variable or a bound value)
+
+**Done.** Open decision #127, option B, is built: where an option takes a variable or a value, a bare name is the frame's variable where the frame has one, and otherwise a number or text bound to that name, so `let target = 1.5` and `p.hline(at: target)` draw the line. Both at once is the variable, with W0102. It holds for `at:`, `size:`, `color:`, `fill:`, `shape:` and `linetype:`. Section 3.7 of the Language Reference has the rule (logged).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 303 of 303; CI is read job by job after the push.
+
+**Next.** Step 24 `[function]`: `bars`, `tile`, `text`.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation, his to overturn: #127 option B, and that it holds for text as for numbers. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

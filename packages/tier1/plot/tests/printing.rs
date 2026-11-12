@@ -555,10 +555,11 @@ fn every_message_of_a_colour() {
         "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: 3)\n".to_string(),
         "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: log(exper))\n".to_string(),
         "let w = dataset(wages)\nw.plot(x: educ, y: wage, fill: [\"red\", \"blue\"])\n".to_string(),
-        // The names: a variable the frame lacks, and a binding, which a bare name never reads.
+        // The names: a variable the frame lacks, and a binding that holds no text, which a
+        // bare name does not read (a binding that holds text is that text, from step 23f).
         "let w = dataset(wages)\nw.plot(x: educ, y: wage, color: sex)\n".to_string(),
         "let w = dataset(wages)\nw.plot(x: educ, y: wage, fill: Female)\n".to_string(),
-        "let w = dataset(wages)\nlet shade = \"red\"\nw.plot(x: educ, y: wage, color: shade)\n".to_string(),
+        "let w = dataset(wages)\nlet shade = 3\nw.plot(x: educ, y: wage, color: shade)\n".to_string(),
         // A type with no colour scale yet.
         "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: b, color: when)\n".to_string(),
         "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: b, fill: when)\n".to_string(),
@@ -733,13 +734,15 @@ fn every_message_of_a_size_and_a_shape() {
         format!("{W}w.plot(x: educ, y: wage, shape: hours)\n"),
         format!("{W}w.plot(x: educ, y: wage, shape: educ)\n"),
         "let d = frame(a = [1, 2], b = [1.0, 2.0], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: b, shape: when)\n".to_string(),
-        // The names: a variable the frame lacks, and a binding, which a bare name never reads.
+        // The names: a variable the frame lacks, and a binding that holds what the option
+        // does not take, which a bare name does not read (a number bound to a name is a size,
+        // and text a shape, from step 23f).
         format!("{W}w.plot(x: educ, y: wage, size: Hours)\n"),
         format!("{W}w.plot(x: educ, y: wage, shape: sex)\n"),
         format!("{W}w.plot(x: educ, y: wage, group: person)\n"),
         format!("{W}w.plot(x: educ, y: wage, label: Firm)\n"),
-        format!("{W}let s = 6\nw.plot(x: educ, y: wage, size: s)\n"),
-        format!("{W}let mark = \"cross\"\nw.plot(x: educ, y: wage, shape: mark)\n"),
+        format!("{W}let s = \"six\"\nw.plot(x: educ, y: wage, size: s)\n"),
+        format!("{W}let mark = 4\nw.plot(x: educ, y: wage, shape: mark)\n"),
         // A group and a label are variables.
         format!("{W}w.plot(x: educ, y: wage, group: \"worker\")\n"),
         format!("{W}w.plot(x: educ, y: wage, label: 3)\n"),
@@ -787,8 +790,8 @@ fn a_layer_with_its_own_size_is_not_asked_for_the_size_of_the_plot() {
     assert_eq!(stderr, "");
 }
 
-/// A number bound to a name is not a size: a bare name is a variable of the frame, and a
-/// constant is a constant only where it is written.
+/// Where the frame has a variable of the name, a bare name is that variable, whatever is
+/// bound to it, and a warning says that both exist (section 3.7; open decision #127).
 #[test]
 fn a_bare_name_for_a_size_is_a_variable_whatever_is_bound_to_it() {
     let (code, stdout, stderr) = go(
@@ -802,6 +805,12 @@ fn a_bare_name_for_a_size_is_a_variable_whatever_is_bound_to_it() {
     assert!(
         stdout.contains("      1   points   d          3   size by s, alpha 1\n"),
         "{stdout}"
+    );
+    assert!(
+        stderr.contains(
+            "warning[W0102]: `s` is both a variable of d and a binding; the variable was used"
+        ),
+        "{stderr}"
     );
 }
 
@@ -1682,8 +1691,8 @@ fn every_message_of_hline_and_vline() {
             "d.plot(x: dose, y: change).hline(at: chnge)\n",
         ),
         (
-            "a_binding_is_not_a_variable",
-            "let centre = 0.5\nd.plot(x: dose, y: change).hline(at: centre)\n",
+            "a_binding_of_text_is_not_a_place",
+            "let centre = \"0.5\"\nd.plot(x: dose, y: change).hline(at: centre)\n",
         ),
         (
             "an_infinite_place",

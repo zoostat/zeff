@@ -265,7 +265,7 @@ error[Z0102]: no variable `Firm` in `w`; names are case-sensitive
   = help: write `firm`
 
 let w = dataset(wages)
-let s = 6
+let s = "six"
 w.plot(x: educ, y: wage, size: s)
 error[Z0101]: no variable `s` in `w`
  --> scripts/main.zeff:3:32
@@ -276,7 +276,7 @@ error[Z0101]: no variable `s` in `w`
   = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
 
 let w = dataset(wages)
-let mark = "cross"
+let mark = 4
 w.plot(x: educ, y: wage, shape: mark)
 error[Z0101]: no variable `mark` in `w`
  --> scripts/main.zeff:3:33

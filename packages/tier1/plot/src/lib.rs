@@ -323,6 +323,10 @@ pub fn functions() -> Vec<Function> {
                         "the rows not drawn for NA, or for an infinite value, in the variable of at: or a variable shown on a continuous colour scale; more categories than the palette has colours",
                     ),
                     DiagnosticDecl::new(
+                        "W0102",
+                        "a name given to at: or color: is both a variable of the frame and a binding",
+                    ),
+                    DiagnosticDecl::new(
                         "Z0101",
                         "the frame the layer draws lacks a variable the layer names",
                     ),
@@ -363,6 +367,10 @@ pub fn functions() -> Vec<Function> {
                 diagnostics: vec![
                     DiagnosticDecl::note(
                         "the rows not drawn for NA, or for an infinite value, in the variable of at: or a variable shown on a continuous colour scale; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name given to at: or color: is both a variable of the frame and a binding",
                     ),
                     DiagnosticDecl::new(
                         "Z0101",

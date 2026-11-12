@@ -2915,6 +2915,32 @@ impl Checker<'_> {
                 };
             }
             Some(Ty::Union(options)) if options.iter().any(|o| matches!(o, Ty::Var | Ty::Vars)) => {
+                // Where the parameter also takes a value, a number or text, a binding holding
+                // such a value may be what the name means (open decision #127): a loop
+                // variable or a parameter is that value, as everywhere in a frame method, and
+                // for a `let` the frame's variable of the name comes first, which is known
+                // when the statement runs.
+                if let Some(id) = self.lookup(&text) {
+                    let bound = self.bindings[id].ty.clone();
+                    let taken = options
+                        .iter()
+                        .any(|o| matches!(o, Ty::Float | Ty::Int | Ty::Str) && o.accepts(&bound));
+                    if taken && matches!(bound, Ty::Float | Ty::Int | Ty::Str) {
+                        let kind = if self.bindings[id].kind == BindingKind::Let {
+                            ExprKind::VarOrBound {
+                                name: text,
+                                binding: id,
+                            }
+                        } else {
+                            ExprKind::Binding(id)
+                        };
+                        return Expr {
+                            ty: Ty::Var,
+                            span,
+                            kind,
+                        };
+                    }
+                }
                 return Expr {
                     ty: Ty::Var,
                     span,
@@ -7142,7 +7168,7 @@ impl Checker<'_> {
             }
         }
         match &expr.kind {
-            ExprKind::Binding(id) => note(*id, out),
+            ExprKind::Binding(id) | ExprKind::VarOrBound { binding: id, .. } => note(*id, out),
             ExprKind::FrameName {
                 binding: Some(id), ..
             } => note(*id, out),

@@ -41,9 +41,11 @@ The `Plot` with the layer of reference lines on top. The plot given is not chang
 bound to a name can be extended in more than one way.
 
 ## Details
-A number or a variable. A bare name given to `at:` is always read as a variable of the frame.
-A number computed earlier in the script and bound to a name is given as an expression that
-holds the name, as in `at: centre + 0`.
+A number or a variable. A bare name given to `at:` is a variable of the frame where the
+frame has one of that name. Where it has none, it is a number bound to that name earlier in
+the script, so `let target = 1.5` and then `at: target` draw the line at 1.5. Where both
+exist the variable is used, and a warning says so. `color:` reads a name in the same way: a
+variable of the frame, or text bound to the name.
 
 Rows not drawn. With a variable, a row whose value is `NA` or infinite draws no line, and a
 note counts such rows. Two rows with one value draw two lines in one place.

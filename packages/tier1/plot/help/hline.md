@@ -41,9 +41,11 @@ The `Plot` with the layer of reference lines on top. The plot given is not chang
 bound to a name can be extended in more than one way.
 
 ## Details
-A number or a variable. A bare name given to `at:` is always read as a variable of the frame.
-A number computed earlier in the script and bound to a name is given as an expression that
-holds the name, as in `at: centre + 0`.
+A number or a variable. A bare name given to `at:` is a variable of the frame where the
+frame has one of that name. Where it has none, it is a number bound to that name earlier in
+the script, so `let target = 1.5` and then `at: target` draw the line at 1.5. Where both
+exist the variable is used, and a warning says so. `color:` reads a name in the same way: a
+variable of the frame, or text bound to the name.
 
 Rows not drawn. With a variable, a row whose value is `NA` or infinite draws no line, and a
 note counts such rows. Two rows with one value draw two lines in one place.
@@ -76,6 +78,17 @@ plot · d · change against dose
   layer   mark     data   marks   settings
       1   hline    d          1   at 0, width 0.5, style dashed
       2   points   d          4   size 4.5, alpha 1
+> let target = 1.5
+> d.plot(x: dose, y: change).points().hline(at: target, color: "firebrick")
+plot · d · change against dose
+
+  axis   title    scale    limits            breaks
+  x      dose     linear   0.85 to 4.15      1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   -1.375 to 2.475   -1, 0, 1, 2
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+      2   hline    d          1   at 1.5, color firebrick, width 0.5, style dashed
 > let limits = frame(level = [-1, 1], kind = ["lower", "upper"])
 > d.plot(x: dose, y: change).points().hline(data: limits, at: level, color: kind, style: dotted)
 plot · d · change against dose

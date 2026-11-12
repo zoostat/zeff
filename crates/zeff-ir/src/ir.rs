@@ -199,6 +199,15 @@ pub enum ExprKind {
         binding: Option<BindingId>,
         constant: Option<Box<Expr>>,
     },
+    /// A bare name given where a parameter takes a variable or a value (`at: Float | Var`,
+    /// `color: Var | Str`; section 3.7, "Resolution by parameter type") that is also a `let`
+    /// binding holding such a value: the receiver's variable of that name when the frame has
+    /// one, with a warning, else the value of the binding, resolved when the statement runs
+    /// because the frame's columns are not known before (open decision #127).
+    VarOrBound {
+        name: String,
+        binding: BindingId,
+    },
     /// A word from a parameter's fixed list.
     Word(String),
     /// A term name given to a parameter of type `Term` (section 3.7, "Resolution by parameter

@@ -173,6 +173,13 @@ variable of the frame is read as a binding of the script, with the value it hold
 is called; a later change of the binding does not change the plot. A number alone, as in
 `y: 0`, is that number in every row.
 
+A name where a variable or a value is taken. `color:`, `fill:`, `shape:` and `size:` take a
+variable by its bare name, or one value: a string, or for `size:` a number. A bare name is a
+variable of the frame where the frame has one of that name. Where it has none, it is a value
+bound to that name earlier in the script, so `let shade = "firebrick"` and then `color: shade`
+set one colour. Where both exist the variable is used, and a warning says so. The marks read
+their own options in the same way.
+
 What an expression cannot hold. A summary of a variable, such as `mean(wage)`, a function of
 another package, a function defined in the script, `case` and `if` are not computed inside a
 mapping, and neither are `clamp`, `logit`, `inv_logit` and `fill_missing`. Compute such a

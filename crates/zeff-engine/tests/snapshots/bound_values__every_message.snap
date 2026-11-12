@@ -1,0 +1,66 @@
+---
+source: crates/zeff-engine/tests/bound_values.rs
+expression: all
+---
+== a_loop_variable_that_is_a_variable_too
+error[Z0106]: `dose` is both a loop variable or parameter and a variable of d
+ --> scripts/main.zeff:2:67
+  |
+2 | for dose in [1, 2] { print(d.plot(x: change, y: change).vline(at: dose)) }
+  |                                                                   ^^^^ which one is meant?
+  |
+  = help: rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently
+
+== a_binding_of_another_type
+error[Z0101]: no variable `places` in `d`
+ --> scripts/main.zeff:3:38
+  |
+3 | d.plot(x: dose, y: change).hline(at: places)
+  |                                      ^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: dose, change, arm
+
+== text_where_a_number_is_taken
+error[Z0101]: no variable `centre` in `d`
+ --> scripts/main.zeff:3:38
+  |
+3 | d.plot(x: dose, y: change).hline(at: centre)
+  |                                      ^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: dose, change, arm
+
+== a_number_where_text_is_taken
+error[Z0101]: no variable `shade` in `d`
+ --> scripts/main.zeff:3:42
+  |
+3 | d.plot(x: dose, y: change).points(color: shade)
+  |                                          ^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: dose, change, arm
+
+== neither_a_variable_nor_a_binding
+error[Z0101]: no variable `center` in `d`
+ --> scripts/main.zeff:3:38
+  |
+3 | d.plot(x: dose, y: change).hline(at: center)
+  |                                      ^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: dose, change, arm
+
+== bound_text_that_is_no_colour
+error[Z0401]: `color:` of `points` is "blu", which is not the name of a colour
+ --> scripts/main.zeff:3:42
+  |
+3 | d.plot(x: dose, y: change).points(color: shade)
+  |                                          ^^^^^ not a colour
+  |
+  = help: did you mean "blue"?
+
+== a_bound_number_that_is_no_size
+error[Z0401]: `size:` of `points` is the diameter of every mark in points of 1/72 inch, above 0, but this is -2
+ --> scripts/main.zeff:3:41
+  |
+3 | d.plot(x: dose, y: change).points(size: big)
+  |                                         ^^^ not a size
+  |
+  = help: write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point takes the size the plot gives, or is 4.5 across

@@ -83,7 +83,7 @@ fn arm_uses(arm: &Arm, used: &mut Vec<BindingId>) {
 
 pub fn expr_uses(expr: &Expr, used: &mut Vec<BindingId>) {
     match &expr.kind {
-        ExprKind::Binding(id) => used.push(*id),
+        ExprKind::Binding(id) | ExprKind::VarOrBound { binding: id, .. } => used.push(*id),
         ExprKind::FrameName { binding, .. } => {
             if let Some(id) = binding {
                 used.push(*id);
