@@ -81,6 +81,25 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
                 of_size: true,
             }
         }
+        LayoutError::TooMany { panel, panels } => {
+            let (wide, high) = size.millimetres();
+            FigureProblem {
+                message: format!(
+                    "a page of {} by {} mm is too small for the {} panels of this plot: however they are laid, it leaves each {} by {} mm",
+                    format_float(wide),
+                    format_float(high),
+                    zeff_diagnostics::count(panels as u64),
+                    mm(panel.0.max(0.0)),
+                    mm(panel.1.max(0.0))
+                ),
+                label: "too many panels for the page".to_string(),
+                help: format!(
+                    "a panel needs {} mm each way; give a larger `size:`, as `two_column` (183 by 110 mm) or a width and a height in millimetres, or part the plot by a variable with fewer values",
+                    mm(SMALLEST_PANEL)
+                ),
+                of_size: true,
+            }
+        }
         LayoutError::TooThin { panel, filling } => {
             let (wide, high) = size.millimetres();
             // A number to two figures, as a message says it.

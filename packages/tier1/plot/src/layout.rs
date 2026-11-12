@@ -208,6 +208,10 @@ pub enum LayoutError {
     /// The page leaves the panel less than [`SMALLEST_PANEL`] each way: what it leaves, in
     /// points.
     TooSmall { panel: (f64, f64) },
+    /// The page leaves each of the panels of a plot parted into panels less than
+    /// [`SMALLEST_PANEL`] one way, however they are laid: what it leaves each, in points, and
+    /// how many they are.
+    TooMany { panel: (f64, f64), panels: usize },
     /// Fixed coordinates give the panel a shape that is less than [`SMALLEST_PANEL`] one
     /// way in the room the page leaves it: the panel, in points, and the ratio at which it
     /// would fill that room.
@@ -1555,11 +1559,12 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // the lines; any other stands at the right.
     // Flipped, a line ends at the top of the panel and not at its right, so its name has no
     // place beside its end: the legend is then drawn at the right.
-    let (replaced, ends) = if place == LegendPlace::Direct && !flip && !polar {
-        end_labels(scene, theme)
-    } else {
-        (vec![false; scene.legends.len()], Vec::new())
-    };
+    let (replaced, ends) =
+        if place == LegendPlace::Direct && !flip && !polar && scene.panels.len() <= 1 {
+            end_labels(scene, theme)
+        } else {
+            (vec![false; scene.legends.len()], Vec::new())
+        };
     let ends_width = ends
         .iter()
         .map(|end| set.width(&end.text, FaceName::Sans, label))
@@ -1762,20 +1767,80 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             _ => (wide, high),
         }
     };
+    // A plot parted into panels has a grid of them in its room: every panel in a cell of
+    // one size, with a gap between two cells and, over each, a line for what is written
+    // over the panel. A plot of one panel has one cell, which is its room.
+    let strip_room = if scene.panels.iter().any(|panel| panel.strip.is_some()) {
+        label * theme.leading + theme.label_gap
+    } else {
+        0.0
+    };
+    // The gap between two panels: a line and a half of the labels, and across the page as
+    // much as the last label of one panel and the first of the next need to stand apart.
+    let (between_across, between_down) = if scene.panels.len() > 1 {
+        let reach = match (x_widths.first(), x_widths.last()) {
+            (Some(first), Some(last)) if !polar => (first + last) / 2.0 + label / 2.0,
+            _ => 0.0,
+        };
+        ((1.5 * label).max(reach), 1.5 * label)
+    } else {
+        (0.0, 0.0)
+    };
     let (mut left, mut bottom) = sides(usize::from(titled(xs)), usize::from(titled(ys)), 1);
+    // The grid is the one the scene has. Panels that follow one another in rows are laid in
+    // more columns, or fewer, where the grid of the scene leaves each less than a panel
+    // needs and another does not: the nearest number of columns that does, more before
+    // fewer.
+    let count = scene.panels.len().max(1);
+    let cell_in = |(rows, columns): (f64, f64), wide: f64, high: f64| -> (f64, f64) {
+        (
+            (wide - (columns - 1.0) * between_across) / columns,
+            (high - (rows - 1.0) * between_down) / rows - strip_room,
+        )
+    };
+    let wrapped = scene.wrapped && count > 1;
+    let (grid_rows, grid_columns) = if wrapped {
+        let grid = |columns: usize| (count.div_ceil(columns) as f64, columns as f64);
+        let fits = |columns: usize| {
+            let (wide, high) = cell_in(grid(columns), width - left - right, height - top - bottom);
+            wide >= SMALLEST_PANEL && high >= SMALLEST_PANEL
+        };
+        let wanted = scene.columns.clamp(1, count);
+        let columns = if fits(wanted) {
+            wanted
+        } else {
+            (1..count)
+                .flat_map(|step| [wanted + step, wanted.saturating_sub(step)])
+                .filter(|columns| (1..=count).contains(columns))
+                .find(|columns| fits(*columns))
+                .unwrap_or(wanted)
+        };
+        grid(columns)
+    } else {
+        (scene.rows.max(1) as f64, scene.columns.max(1) as f64)
+    };
+    // Where each panel stands in the grid: its row and its column, from 1.
+    let places: Vec<(usize, usize)> = (0..count)
+        .map(|at| {
+            if wrapped {
+                let columns = grid_columns as usize;
+                (at / columns + 1, at % columns + 1)
+            } else {
+                scene
+                    .panels
+                    .get(at)
+                    .map_or((1, 1), |panel| (panel.row.max(1), panel.column.max(1)))
+            }
+        })
+        .collect();
+    let cell = |wide: f64, high: f64| cell_in((grid_rows, grid_columns), wide, high);
     for _ in 0..2 {
+        let (cell_width, cell_height) = cell(width - left - right, height - top - bottom);
         // In polar coordinates the panel is the circle with the labels round its rim.
         let (panel_width, panel_height) = if polar {
-            round_in(
-                xs,
-                &mut set,
-                theme,
-                width - left - right,
-                height - top - bottom,
-            )
-            .panel
+            round_in(xs, &mut set, theme, cell_width, cell_height).panel
         } else {
-            shaped(width - left - right, height - top - bottom)
+            shaped(cell_width, cell_height)
         };
         // On an axis of categories a label wider than its place is broken between words,
         // into three lines at most, a word longer than the place standing alone on its
@@ -1833,7 +1898,8 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 &s.title,
                 FaceName::Sans,
                 theme.title_size,
-                panel_width.max(1.0),
+                // A title runs along the grid of the panels, which one panel is.
+                (grid_columns * panel_width + (grid_columns - 1.0) * between_across).max(1.0),
             );
         }
         if let Some(s) = ys.filter(|_| titled(ys)) {
@@ -1841,7 +1907,8 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 &s.title,
                 FaceName::Sans,
                 theme.title_size,
-                panel_height.max(1.0),
+                (grid_rows * (panel_height + strip_room) + (grid_rows - 1.0) * between_down)
+                    .max(1.0),
             );
         }
         (left, bottom) = sides(x_title.len(), y_title.len(), x_rows);
@@ -1856,7 +1923,20 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // in the middle of that room: the axes go with it, and a legend at its right.
     // In polar coordinates the panel holds the largest circle the room has room for, with
     // the labels of `x` round its rim; it stands in the middle of the room like a fixed one.
-    let round = polar.then(|| round_in(xs, &mut set, theme, room_width, room_height));
+    let (cell_width, cell_height) = cell(room_width, room_height);
+    if !(cell_width >= SMALLEST_PANEL && cell_height >= SMALLEST_PANEL) {
+        return Err(if count > 1 {
+            LayoutError::TooMany {
+                panel: (cell_width, cell_height),
+                panels: count,
+            }
+        } else {
+            LayoutError::TooSmall {
+                panel: (cell_width, cell_height),
+            }
+        });
+    }
+    let round = polar.then(|| round_in(xs, &mut set, theme, cell_width, cell_height));
     if let Some(round) = round
         .as_ref()
         .filter(|round| 2.0 * round.radius < SMALLEST_PANEL)
@@ -1867,11 +1947,11 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     }
     let (panel_width, panel_height) = match &round {
         Some(round) => round.panel,
-        None => shaped(room_width, room_height),
+        None => shaped(cell_width, cell_height),
     };
     if !(panel_width >= SMALLEST_PANEL && panel_height >= SMALLEST_PANEL) {
         let filling = match (scene.coord, upright) {
-            (Coord::Fixed(ratio), Some(upright)) => ratio * (room_height / room_width) / upright,
+            (Coord::Fixed(ratio), Some(upright)) => ratio * (cell_height / cell_width) / upright,
             _ => f64::NAN,
         };
         return Err(LayoutError::TooThin {
@@ -1881,21 +1961,27 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     }
     // How far the panel, and all that goes with it, is moved from the left and from the top
     // to stand in the middle of its room: nothing, unless the coordinates are fixed.
-    let (moved_across, moved_down) = (
-        (room_width - panel_width) / 2.0,
-        (room_height - panel_height) / 2.0,
+    // The panels stand together, a gap apart, each under what is written over it, and the
+    // grid of them stands in the middle of the room; the axes, their titles and the legends
+    // go with it. One panel is a grid of one.
+    let grid = (
+        grid_columns * panel_width + (grid_columns - 1.0) * between_across,
+        grid_rows * (panel_height + strip_room) + (grid_rows - 1.0) * between_down,
     );
-    let (left, top) = (left + moved_across, top + moved_down);
+    let (moved_across, moved_down) = ((room_width - grid.0) / 2.0, (room_height - grid.1) / 2.0);
+    // Where the grid starts, and the first of its panels, which the legends stand beside.
+    let (room_left, room_top) = (left + moved_across, top + moved_down);
+    let (left, top) = (room_left, room_top + strip_room);
+    let (shift_across, shift_down) = (moved_across, moved_down);
     // The circle is in the middle of its panel.
     let rim_gap = theme.tick_length + theme.label_gap;
     let (rim, radius): (&[RimLabel], f64) = match &round {
         Some(round) => (&round.rim, round.radius),
         None => (&[], 0.0),
     };
-    let centre = (left + panel_width / 2.0, top + panel_height / 2.0);
     // A value is placed by the share of the way it stands between the limits of its axis, as
-    // the kind of the axis has it: linear, log or square root.
-    let across = |s: &Scale, v: f64| left + scale::share(s.kind, s.limits, v) * panel_width;
+    // the kind of the axis has it: linear, log or square root. Here in the first panel, for
+    // the names at the ends of its lines; in each panel below.
     let down =
         |s: &Scale, v: f64| top + panel_height - scale::share(s.kind, s.limits, v) * panel_height;
     let line = |colour: &str, width: f64| Stroke {
@@ -1921,144 +2007,217 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             stroke: None,
         },
     )];
-    // The gridlines, under the marks: a line down the panel at each break of the scale along
-    // its foot and one across at each break of the scale up its side; in polar coordinates
-    // a spoke from the centre to the rim at each break of `x` and a circle round the centre
-    // at each break of `y`.
-    if polar {
-        if let Some(s) = xs {
-            let shares: Vec<f64> = s
-                .breaks
-                .iter()
-                .map(|value| scale::share(s.kind, s.limits, *value))
-                .collect();
-            for &share in &shares {
-                // The two ends of the scale are one spoke, drawn once.
-                if share >= 1.0 - 1e-12 && shares.iter().any(|other| *other <= 1e-12) {
-                    continue;
+    // Each panel in its cell: what is written over it, its gridlines, its marks and its
+    // axes. The labels of `y` are written beside the first panel of a row, and those of `x`
+    // under the lowest panel of a column; the titles of the axes are written once.
+    for at in 0..count {
+        let panel = scene.panels.get(at);
+        let (row, column) = places[at];
+        let left = room_left + (column - 1) as f64 * (panel_width + between_across);
+        let top =
+            room_top + (row - 1) as f64 * (panel_height + strip_room + between_down) + strip_room;
+        let labels_y = column == 1;
+        let labels_x = !places
+            .iter()
+            .any(|other| other.1 == column && other.0 > row);
+        let last = at + 1 == count;
+        // The titles of the axes are centred on the grid of the panels.
+        let (title_across, title_down) = (room_left + grid.0 / 2.0, room_top + grid.1 / 2.0);
+        let centre = (left + panel_width / 2.0, top + panel_height / 2.0);
+        let across = |s: &Scale, v: f64| left + scale::share(s.kind, s.limits, v) * panel_width;
+        let down = |s: &Scale, v: f64| {
+            top + panel_height - scale::share(s.kind, s.limits, v) * panel_height
+        };
+        if let Some(words) = panel.and_then(|panel| panel.strip.as_ref()) {
+            items.push(named(
+                "strip",
+                text(
+                    (left + panel_width / 2.0, top - theme.label_gap),
+                    Anchor::Middle,
+                    0.0,
+                    words,
+                    label,
+                    theme,
+                ),
+            ));
+        }
+        // The gridlines, under the marks: a line down the panel at each break of the scale along
+        // its foot and one across at each break of the scale up its side; in polar coordinates
+        // a spoke from the centre to the rim at each break of `x` and a circle round the centre
+        // at each break of `y`.
+        if polar {
+            if let Some(s) = xs {
+                let shares: Vec<f64> = s
+                    .breaks
+                    .iter()
+                    .map(|value| scale::share(s.kind, s.limits, *value))
+                    .collect();
+                for &share in &shares {
+                    // The two ends of the scale are one spoke, drawn once.
+                    if share >= 1.0 - 1e-12 && shares.iter().any(|other| *other <= 1e-12) {
+                        continue;
+                    }
+                    let angle = 2.0 * std::f64::consts::PI * share.clamp(0.0, 1.0);
+                    items.push(named(
+                        "grid",
+                        segment(
+                            centre,
+                            (
+                                centre.0 + radius * zeff_numeric::maths::sin(angle),
+                                centre.1 - radius * zeff_numeric::maths::cos(angle),
+                            ),
+                            line(theme.grid, theme.grid_width),
+                        ),
+                    ));
                 }
-                let angle = 2.0 * std::f64::consts::PI * share.clamp(0.0, 1.0);
+            }
+            if let Some(s) = ys {
+                for &value in &s.breaks {
+                    let out = radius * scale::share(s.kind, s.limits, value).clamp(0.0, 1.0);
+                    if out <= 0.0 {
+                        continue;
+                    }
+                    // A circle: two half turns, from its top to its foot and back.
+                    let half = |to: (f64, f64)| Step::Arc {
+                        radii: (out, out),
+                        turn: 0.0,
+                        larger: false,
+                        clockwise: true,
+                        to,
+                    };
+                    items.push(named(
+                        "grid",
+                        Primitive::Path {
+                            steps: vec![
+                                Step::Move((centre.0, centre.1 - out)),
+                                half((centre.0, centre.1 + out)),
+                                half((centre.0, centre.1 - out)),
+                                Step::Close,
+                            ],
+                            stroke: Some(line(theme.grid, theme.grid_width)),
+                            fill: None,
+                            opacity: 1.0,
+                        },
+                    ));
+                }
+            }
+        }
+        if let Some(s) = xs.filter(|_| !polar) {
+            for &value in &s.breaks {
+                let x = across(s, value);
                 items.push(named(
                     "grid",
                     segment(
-                        centre,
-                        (
-                            centre.0 + radius * zeff_numeric::maths::sin(angle),
-                            centre.1 - radius * zeff_numeric::maths::cos(angle),
-                        ),
+                        (x, top),
+                        (x, top + panel_height),
                         line(theme.grid, theme.grid_width),
                     ),
                 ));
             }
         }
-        if let Some(s) = ys {
+        if let Some(s) = ys.filter(|_| !polar) {
             for &value in &s.breaks {
-                let out = radius * scale::share(s.kind, s.limits, value).clamp(0.0, 1.0);
-                if out <= 0.0 {
-                    continue;
-                }
-                // A circle: two half turns, from its top to its foot and back.
-                let half = |to: (f64, f64)| Step::Arc {
-                    radii: (out, out),
-                    turn: 0.0,
-                    larger: false,
-                    clockwise: true,
-                    to,
-                };
+                let y = down(s, value);
                 items.push(named(
                     "grid",
-                    Primitive::Path {
-                        steps: vec![
-                            Step::Move((centre.0, centre.1 - out)),
-                            half((centre.0, centre.1 + out)),
-                            half((centre.0, centre.1 - out)),
-                            Step::Close,
-                        ],
-                        stroke: Some(line(theme.grid, theme.grid_width)),
-                        fill: None,
-                        opacity: 1.0,
-                    },
+                    segment(
+                        (left, y),
+                        (left + panel_width, y),
+                        line(theme.grid, theme.grid_width),
+                    ),
                 ));
             }
         }
-    }
-    if let Some(s) = xs.filter(|_| !polar) {
-        for &value in &s.breaks {
-            let x = across(s, value);
-            items.push(named(
-                "grid",
-                segment(
-                    (x, top),
-                    (x, top + panel_height),
-                    line(theme.grid, theme.grid_width),
-                ),
-            ));
-        }
-    }
-    if let Some(s) = ys.filter(|_| !polar) {
-        for &value in &s.breaks {
-            let y = down(s, value);
-            items.push(named(
-                "grid",
-                segment(
-                    (left, y),
-                    (left + panel_width, y),
-                    line(theme.grid, theme.grid_width),
-                ),
-            ));
-        }
-    }
-    // The marks, clipped to the panel. They are drawn in the frame of the data, `x` across
-    // and `y` upwards; where the coordinates are flipped that frame is the panel lying on its
-    // side, as wide as the panel is high, and each layer is turned onto the page when it is
-    // drawn ([`turned`]).
-    let mut marks: Vec<Item> = Vec::new();
-    let (m_left, m_top, m_width, m_height) = if flip {
-        (0.0, 0.0, panel_height, panel_width)
-    } else if polar {
-        // The circle unrolled: as wide as the rim is long, and as high as the radius.
-        (0.0, 0.0, 2.0 * std::f64::consts::PI * radius, radius)
-    } else {
-        (left, top, panel_width, panel_height)
-    };
-    let m_across = |s: &Scale, v: f64| m_left + scale::share(s.kind, s.limits, v) * m_width;
-    let m_down =
-        |s: &Scale, v: f64| m_top + m_height - scale::share(s.kind, s.limits, v) * m_height;
-    let turn = |drawn: Vec<Item>| -> Vec<Item> {
-        if flip {
-            drawn
-                .into_iter()
-                .map(|item| turned(item, (left, top), (panel_width, panel_height)))
-                .collect()
+        // The marks, clipped to the panel. They are drawn in the frame of the data, `x` across
+        // and `y` upwards; where the coordinates are flipped that frame is the panel lying on its
+        // side, as wide as the panel is high, and each layer is turned onto the page when it is
+        // drawn ([`turned`]).
+        let mut marks: Vec<Item> = Vec::new();
+        let (m_left, m_top, m_width, m_height) = if flip {
+            (0.0, 0.0, panel_height, panel_width)
         } else if polar {
-            drawn
-                .into_iter()
-                .filter_map(|item| wound(item, centre, radius))
+            // The circle unrolled: as wide as the rim is long, and as high as the radius.
+            (0.0, 0.0, 2.0 * std::f64::consts::PI * radius, radius)
+        } else {
+            (left, top, panel_width, panel_height)
+        };
+        let m_across = |s: &Scale, v: f64| m_left + scale::share(s.kind, s.limits, v) * m_width;
+        let m_down =
+            |s: &Scale, v: f64| m_top + m_height - scale::share(s.kind, s.limits, v) * m_height;
+        let turn = |drawn: Vec<Item>| -> Vec<Item> {
+            if flip {
+                drawn
+                    .into_iter()
+                    .map(|item| turned(item, (left, top), (panel_width, panel_height)))
+                    .collect()
+            } else if polar {
+                drawn
+                    .into_iter()
+                    .filter_map(|item| wound(item, centre, radius))
+                    .collect()
+            } else {
+                drawn
+            }
+        };
+        // A reference line goes from one edge of the panel to the other, at each place of its
+        // layer on the one axis it needs, in the colour of the place and the type of the layer.
+        let reference = |layer: &crate::scene::Layer, name: &str| -> Vec<Item> {
+            let level = layer.mark == Mark::Hline;
+            let (places, scale) = if level {
+                (&layer.y, data_y)
+            } else {
+                (&layer.x, data_x)
+            };
+            let Some(scale) = scale else {
+                return Vec::new();
+            };
+            let dash = match &layer.linetype {
+                Lining::Constant(name) => LineType::parse(name).unwrap_or_default(),
+                Lining::Scaled(_) => LineType::Solid,
+            };
+            places
+                .iter()
+                .enumerate()
+                .map(|(i, place)| {
+                    let colour = match &layer.color {
+                        Paint::Theme => theme.mark.to_string(),
+                        Paint::Constant(hex) => hex.clone(),
+                        Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
+                            (Some(scale), Some(value)) => colour_on(scale, *value),
+                            _ => theme.mark.to_string(),
+                        },
+                    };
+                    let (from, to) = if level {
+                        let y = m_down(scale, *place);
+                        ((m_left, y), (m_left + m_width, y))
+                    } else {
+                        let x = m_across(scale, *place);
+                        ((x, m_top), (x, m_top + m_height))
+                    };
+                    named(
+                        name,
+                        Primitive::Segment {
+                            from,
+                            to,
+                            stroke: Stroke {
+                                colour,
+                                width: layer.width,
+                                dash,
+                            },
+                            heads: (Head::Plain, Head::Plain),
+                        },
+                    )
+                })
                 .collect()
-        } else {
-            drawn
-        }
-    };
-    // A reference line goes from one edge of the panel to the other, at each place of its
-    // layer on the one axis it needs, in the colour of the place and the type of the layer.
-    let reference = |layer: &crate::scene::Layer, name: &str| -> Vec<Item> {
-        let level = layer.mark == Mark::Hline;
-        let (places, scale) = if level {
-            (&layer.y, data_y)
-        } else {
-            (&layer.x, data_x)
         };
-        let Some(scale) = scale else {
-            return Vec::new();
-        };
-        let dash = match &layer.linetype {
-            Lining::Constant(name) => LineType::parse(name).unwrap_or_default(),
-            Lining::Scaled(_) => LineType::Solid,
-        };
-        places
-            .iter()
-            .enumerate()
-            .map(|(i, place)| {
+        // A rug has a tick for each mark, from the edge of the panel inwards: at the bottom for a
+        // place on `x`, at the left for one on `y`.
+        let ticks = |layer: &crate::scene::Layer, name: &str| -> Vec<Item> {
+            let long = match &layer.size {
+                Sizing::Constant(points) => *points,
+                Sizing::Scaled(_) => theme.key_size,
+            };
+            let tick = |i: usize, from: (f64, f64), to: (f64, f64)| {
                 let colour = match &layer.color {
                     Paint::Theme => theme.mark.to_string(),
                     Paint::Constant(hex) => hex.clone(),
@@ -2067,675 +2226,641 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                         _ => theme.mark.to_string(),
                     },
                 };
-                let (from, to) = if level {
-                    let y = m_down(scale, *place);
-                    ((m_left, y), (m_left + m_width, y))
-                } else {
-                    let x = m_across(scale, *place);
-                    ((x, m_top), (x, m_top + m_height))
-                };
                 named(
                     name,
-                    Primitive::Segment {
-                        from,
-                        to,
-                        stroke: Stroke {
+                    Primitive::Path {
+                        steps: vec![Step::Move(from), Step::Line(to)],
+                        stroke: Some(Stroke {
                             colour,
                             width: layer.width,
-                            dash,
-                        },
-                        heads: (Head::Plain, Head::Plain),
-                    },
-                )
-            })
-            .collect()
-    };
-    // A rug has a tick for each mark, from the edge of the panel inwards: at the bottom for a
-    // place on `x`, at the left for one on `y`.
-    let ticks = |layer: &crate::scene::Layer, name: &str| -> Vec<Item> {
-        let long = match &layer.size {
-            Sizing::Constant(points) => *points,
-            Sizing::Scaled(_) => theme.key_size,
-        };
-        let tick = |i: usize, from: (f64, f64), to: (f64, f64)| {
-            let colour = match &layer.color {
-                Paint::Theme => theme.mark.to_string(),
-                Paint::Constant(hex) => hex.clone(),
-                Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
-                    (Some(scale), Some(value)) => colour_on(scale, *value),
-                    _ => theme.mark.to_string(),
-                },
-            };
-            named(
-                name,
-                Primitive::Path {
-                    steps: vec![Step::Move(from), Step::Line(to)],
-                    stroke: Some(Stroke {
-                        colour,
-                        width: layer.width,
-                        dash: LineType::Solid,
-                    }),
-                    fill: None,
-                    opacity: layer.alpha,
-                },
-            )
-        };
-        let mut drawn: Vec<Item> = Vec::new();
-        if let Some(scale) = data_x {
-            let base = m_top + m_height;
-            for (i, value) in layer.x.iter().enumerate() {
-                let x = m_across(scale, *value);
-                drawn.push(tick(i, (x, base), (x, base - long)));
-            }
-        }
-        if let Some(scale) = data_y {
-            for (i, value) in layer.y.iter().enumerate() {
-                let y = m_down(scale, *value);
-                drawn.push(tick(i, (m_left, y), (m_left + long, y)));
-            }
-        }
-        drawn
-    };
-    // With one axis alone, the reference lines across it and the rugs along it are all that
-    // can be placed.
-    if let (Some(p), true) = (panel, data_x.is_none() || data_y.is_none()) {
-        for (at, layer) in p.layers.iter().enumerate() {
-            let name = format!("layer:{}", at + 1);
-            if layer.mark.spans() {
-                marks.extend(turn(reference(layer, &name)));
-            }
-            if matches!(layer.mark, Mark::Rug(_)) {
-                marks.extend(turn(ticks(layer, &name)));
-            }
-        }
-    }
-    if let (Some(p), Some(sx), Some(sy)) = (panel, data_x, data_y) {
-        for (at, layer) in p.layers.iter().enumerate() {
-            let name = format!("layer:{}", at + 1);
-            let mut drawn: Vec<Item> = Vec::new();
-            // What is placed on the page as it is, and is not turned with the marks.
-            let mut upright: Vec<Item> = Vec::new();
-            if layer.mark.spans() {
-                drawn.extend(reference(layer, &name));
-            }
-            if matches!(layer.mark, Mark::Rug(_)) {
-                drawn.extend(ticks(layer, &name));
-            }
-            let colour_of = |i: usize| match &layer.color {
-                Paint::Theme => theme.mark.to_string(),
-                Paint::Constant(hex) => hex.clone(),
-                Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
-                    (Some(scale), Some(value)) => colour_on(scale, *value),
-                    _ => theme.mark.to_string(),
-                },
-            };
-            let marks_of = layer.x.len().min(layer.y.len());
-            if matches!(layer.mark, Mark::Bars(_) | Mark::Tile) {
-                // A bar: from its lower end to its upper one along `y`, half its width to
-                // either side of its place along `x`, in its own fill.
-                let bars = marks_of.min(layer.low.len()).min(layer.span.len());
-                for i in 0..bars {
-                    let (near, far) = (
-                        m_across(sx, layer.x[i] - layer.span[i] / 2.0),
-                        m_across(sx, layer.x[i] + layer.span[i] / 2.0),
-                    );
-                    let (bottom, upper) = (m_down(sy, layer.low[i]), m_down(sy, layer.y[i]));
-                    let fill = match &layer.fill {
-                        Paint::Theme => theme.mark.to_string(),
-                        Paint::Constant(hex) => hex.clone(),
-                        Paint::Scaled(values) => match (scene.scale("fill"), values.get(i)) {
-                            (Some(scale), Some(value)) => colour_on(scale, *value),
-                            _ => theme.mark.to_string(),
-                        },
-                    };
-                    drawn.push(named(
-                        &name,
-                        Primitive::Polygon {
-                            rings: vec![vec![
-                                (near, bottom),
-                                (far, bottom),
-                                (far, upper),
-                                (near, upper),
-                            ]],
-                            fill: Some(fill),
-                            stroke: None,
-                            opacity: layer.alpha,
-                        },
-                    ));
-                }
-            }
-            if layer.mark.fills() {
-                // The shape under each line of the layer: along its upper edge in the order of
-                // the marks and back along its lower edge, in the fill of its first mark.
-                let ends = marks_of.min(layer.line.len()).min(layer.low.len());
-                let mut start = 0;
-                while start < ends {
-                    let mut end = start + 1;
-                    while end < ends && layer.line[end] == layer.line[start] {
-                        end += 1;
-                    }
-                    let mut ring: Vec<(f64, f64)> = (start..end)
-                        .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])))
-                        .collect();
-                    ring.extend(
-                        (start..end)
-                            .rev()
-                            .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.low[i]))),
-                    );
-                    let fill = match &layer.fill {
-                        Paint::Theme => theme.mark.to_string(),
-                        Paint::Constant(hex) => hex.clone(),
-                        Paint::Scaled(values) => match (scene.scale("fill"), values.get(start)) {
-                            (Some(scale), Some(value)) => colour_on(scale, *value),
-                            _ => theme.mark.to_string(),
-                        },
-                    };
-                    drawn.push(named(
-                        &name,
-                        Primitive::Polygon {
-                            rings: vec![ring],
-                            fill: Some(fill),
-                            stroke: None,
-                            opacity: layer.alpha,
-                        },
-                    ));
-                    start = end;
-                }
-            }
-            if layer.mark.joins() {
-                // A line through the marks of each line of the layer, in their order, in the
-                // colour and the type of its first mark: one line has one of each.
-                let mut start = 0;
-                while start < marks_of.min(layer.line.len()) {
-                    let mut end = start + 1;
-                    while end < marks_of.min(layer.line.len())
-                        && layer.line[end] == layer.line[start]
-                    {
-                        end += 1;
-                    }
-                    let dash = match &layer.linetype {
-                        Lining::Constant(name) => LineType::parse(name).unwrap_or_default(),
-                        Lining::Scaled(values) => {
-                            match (scene.scale("linetype"), values.get(start)) {
-                                (Some(scale), Some(value)) => line_on(scale, *value),
-                                _ => LineType::Solid,
-                            }
-                        }
-                    };
-                    // The places of the marks on the page, joined straight for a line and by
-                    // level and upright pieces for steps.
-                    let places: Vec<(f64, f64)> = (start..end)
-                        .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])))
-                        .collect();
-                    let mut steps: Vec<Step> = Vec::with_capacity(3 * places.len());
-                    for (i, &at) in places.iter().enumerate() {
-                        if i == 0 {
-                            steps.push(Step::Move(at));
-                            continue;
-                        }
-                        let from = places[i - 1];
-                        let corners: Vec<(f64, f64)> = match layer.mark {
-                            Mark::Step(Stairs::LevelFirst) => vec![(at.0, from.1)],
-                            Mark::Step(Stairs::UprightFirst) => vec![(from.0, at.1)],
-                            Mark::Step(Stairs::Halfway) => {
-                                let half = (from.0 + at.0) / 2.0;
-                                vec![(half, from.1), (half, at.1)]
-                            }
-                            _ => Vec::new(),
-                        };
-                        // A corner that stands where the line already is adds nothing.
-                        let mut last = from;
-                        for corner in corners {
-                            if corner != last && corner != at {
-                                steps.push(Step::Line(corner));
-                                last = corner;
-                            }
-                        }
-                        steps.push(Step::Line(at));
-                    }
-                    drawn.push(named(
-                        &name,
-                        Primitive::Path {
-                            steps,
-                            stroke: Some(Stroke {
-                                colour: colour_of(start),
-                                width: layer.width,
-                                dash,
-                            }),
-                            fill: None,
-                            opacity: layer.alpha,
-                        },
-                    ));
-                    start = end;
-                }
-            }
-            if layer.mark == Mark::Text {
-                // A text: the label of its mark, centred on its place and moved by the
-                // layer's nudge, to the right and up, in its colour and the layer's size.
-                let type_size = match &layer.size {
-                    Sizing::Constant(points) => *points,
-                    Sizing::Scaled(_) => theme.label_size,
-                };
-                for i in 0..marks_of.min(layer.label.len()) {
-                    // A text stands upright wherever the coordinates lie: it is placed on
-                    // the page itself, and moved there, to the right and up.
-                    let (x, y) = if flip {
-                        (across(sy, layer.y[i]), down(sx, layer.x[i]))
-                    } else if polar {
-                        let place = (m_across(sx, layer.x[i]), m_down(sy, layer.y[i]));
-                        if !in_the_round(place, radius) {
-                            continue;
-                        }
-                        wound_place(place, centre, radius)
-                    } else {
-                        (across(sx, layer.x[i]), down(sy, layer.y[i]))
-                    };
-                    upright.push(named(
-                        &name,
-                        Primitive::Text {
-                            at: (
-                                x + layer.nudge.0,
-                                y - layer.nudge.1 + capital(type_size) / 2.0,
-                            ),
-                            anchor: Anchor::Middle,
-                            turn: 0.0,
-                            spans: vec![Span {
-                                text: layer.label[i].clone(),
-                                face: FaceName::Sans,
-                                size: type_size,
-                                colour: colour_of(i),
-                            }],
-                            frame: None,
-                        },
-                    ));
-                }
-            }
-            let one_by_one = !(layer.mark.joins()
-                || layer.mark.patches()
-                || matches!(layer.mark, Mark::Rug(_) | Mark::Text));
-            for i in 0..if one_by_one { marks_of } else { 0 } {
-                let colour = colour_of(i);
-                let across_mark = match &layer.size {
-                    Sizing::Constant(points) => *points,
-                    Sizing::Scaled(values) => match (scene.scale("size"), values.get(i)) {
-                        (Some(scale), Some(value)) => match scale.range {
-                            Range::Sizes(least, most) => {
-                                diameter(*value, scale.limits, (least, most))
-                            }
-                            _ => theme.key_size,
-                        },
-                        _ => theme.key_size,
-                    },
-                };
-                let outline = match &layer.shape {
-                    Shaping::Constant(name) => *name,
-                    Shaping::Scaled(values) => match (scene.scale("shape"), values.get(i)) {
-                        (Some(scale), Some(value)) => shape_on(scale, *value),
-                        _ => shape::DEFAULT,
-                    },
-                };
-                drawn.push(named(
-                    &name,
-                    Primitive::Point {
-                        at: (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])),
-                        shape: outline,
-                        size: across_mark,
-                        colour,
+                            dash: LineType::Solid,
+                        }),
+                        fill: None,
                         opacity: layer.alpha,
                     },
-                ));
+                )
+            };
+            let mut drawn: Vec<Item> = Vec::new();
+            if let Some(scale) = data_x {
+                let base = m_top + m_height;
+                for (i, value) in layer.x.iter().enumerate() {
+                    let x = m_across(scale, *value);
+                    drawn.push(tick(i, (x, base), (x, base - long)));
+                }
             }
-            // The layer on the page: turned where the coordinates are flipped.
-            let mut drawn = turn(drawn);
-            drawn.extend(upright);
-            // A layer flagged to be drawn in dots (open decision #118, F4): the panel as it
-            // stands with this layer on it, the page, the gridlines and the layers under it,
-            // as one picture at the dots to the inch of a figure, which takes the place of
-            // the layer's marks. A picture has no way to let through what is under it, so it
-            // holds it. A panel of more dots than a picture may have keeps its marks.
-            if layer.raster {
-                // The picture is as many whole dots as cover the panel. Its last dots are
-                // drawn whole, and the edge of the panel, which is a line, cuts them where
-                // the panel ends.
-                let to_a_point = raster::DOTS / 72.0;
-                let covering = |points: f64| (points * to_a_point - 1e-6).ceil() / to_a_point;
-                let (wide, high) = (covering(panel_width), covering(panel_height));
-                let mut under = items.clone();
-                let mut inside = marks.clone();
-                inside.extend(drawn.iter().cloned());
-                under.push(named(
-                    "panel",
-                    Primitive::Clip {
-                        at: (left, top),
-                        width: wide,
-                        height: high,
-                        items: inside,
+            if let Some(scale) = data_y {
+                for (i, value) in layer.y.iter().enumerate() {
+                    let y = m_down(scale, *value);
+                    drawn.push(tick(i, (m_left, y), (m_left + long, y)));
+                }
+            }
+            drawn
+        };
+        // With one axis alone, the reference lines across it and the rugs along it are all that
+        // can be placed.
+        if let (Some(p), true) = (panel, data_x.is_none() || data_y.is_none()) {
+            for (at, layer) in p.layers.iter().enumerate() {
+                let name = format!("layer:{}", at + 1);
+                if layer.mark.spans() {
+                    marks.extend(turn(reference(layer, &name)));
+                }
+                if matches!(layer.mark, Mark::Rug(_)) {
+                    marks.extend(turn(ticks(layer, &name)));
+                }
+            }
+        }
+        if let (Some(p), Some(sx), Some(sy)) = (panel, data_x, data_y) {
+            for (at, layer) in p.layers.iter().enumerate() {
+                let name = format!("layer:{}", at + 1);
+                let mut drawn: Vec<Item> = Vec::new();
+                // What is placed on the page as it is, and is not turned with the marks.
+                let mut upright: Vec<Item> = Vec::new();
+                if layer.mark.spans() {
+                    drawn.extend(reference(layer, &name));
+                }
+                if matches!(layer.mark, Mark::Rug(_)) {
+                    drawn.extend(ticks(layer, &name));
+                }
+                let colour_of = |i: usize| match &layer.color {
+                    Paint::Theme => theme.mark.to_string(),
+                    Paint::Constant(hex) => hex.clone(),
+                    Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
+                        (Some(scale), Some(value)) => colour_on(scale, *value),
+                        _ => theme.mark.to_string(),
                     },
-                ));
-                if let Ok(picture) =
-                    raster::render_part(&under, (left, top), wide, high, raster::DOTS)
-                {
-                    marks.push(named(
+                };
+                let marks_of = layer.x.len().min(layer.y.len());
+                if matches!(layer.mark, Mark::Bars(_) | Mark::Tile) {
+                    // A bar: from its lower end to its upper one along `y`, half its width to
+                    // either side of its place along `x`, in its own fill.
+                    let bars = marks_of.min(layer.low.len()).min(layer.span.len());
+                    for i in 0..bars {
+                        let (near, far) = (
+                            m_across(sx, layer.x[i] - layer.span[i] / 2.0),
+                            m_across(sx, layer.x[i] + layer.span[i] / 2.0),
+                        );
+                        let (bottom, upper) = (m_down(sy, layer.low[i]), m_down(sy, layer.y[i]));
+                        let fill = match &layer.fill {
+                            Paint::Theme => theme.mark.to_string(),
+                            Paint::Constant(hex) => hex.clone(),
+                            Paint::Scaled(values) => match (scene.scale("fill"), values.get(i)) {
+                                (Some(scale), Some(value)) => colour_on(scale, *value),
+                                _ => theme.mark.to_string(),
+                            },
+                        };
+                        drawn.push(named(
+                            &name,
+                            Primitive::Polygon {
+                                rings: vec![vec![
+                                    (near, bottom),
+                                    (far, bottom),
+                                    (far, upper),
+                                    (near, upper),
+                                ]],
+                                fill: Some(fill),
+                                stroke: None,
+                                opacity: layer.alpha,
+                            },
+                        ));
+                    }
+                }
+                if layer.mark.fills() {
+                    // The shape under each line of the layer: along its upper edge in the order of
+                    // the marks and back along its lower edge, in the fill of its first mark.
+                    let ends = marks_of.min(layer.line.len()).min(layer.low.len());
+                    let mut start = 0;
+                    while start < ends {
+                        let mut end = start + 1;
+                        while end < ends && layer.line[end] == layer.line[start] {
+                            end += 1;
+                        }
+                        let mut ring: Vec<(f64, f64)> = (start..end)
+                            .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])))
+                            .collect();
+                        ring.extend(
+                            (start..end)
+                                .rev()
+                                .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.low[i]))),
+                        );
+                        let fill = match &layer.fill {
+                            Paint::Theme => theme.mark.to_string(),
+                            Paint::Constant(hex) => hex.clone(),
+                            Paint::Scaled(values) => match (scene.scale("fill"), values.get(start))
+                            {
+                                (Some(scale), Some(value)) => colour_on(scale, *value),
+                                _ => theme.mark.to_string(),
+                            },
+                        };
+                        drawn.push(named(
+                            &name,
+                            Primitive::Polygon {
+                                rings: vec![ring],
+                                fill: Some(fill),
+                                stroke: None,
+                                opacity: layer.alpha,
+                            },
+                        ));
+                        start = end;
+                    }
+                }
+                if layer.mark.joins() {
+                    // A line through the marks of each line of the layer, in their order, in the
+                    // colour and the type of its first mark: one line has one of each.
+                    let mut start = 0;
+                    while start < marks_of.min(layer.line.len()) {
+                        let mut end = start + 1;
+                        while end < marks_of.min(layer.line.len())
+                            && layer.line[end] == layer.line[start]
+                        {
+                            end += 1;
+                        }
+                        let dash = match &layer.linetype {
+                            Lining::Constant(name) => LineType::parse(name).unwrap_or_default(),
+                            Lining::Scaled(values) => {
+                                match (scene.scale("linetype"), values.get(start)) {
+                                    (Some(scale), Some(value)) => line_on(scale, *value),
+                                    _ => LineType::Solid,
+                                }
+                            }
+                        };
+                        // The places of the marks on the page, joined straight for a line and by
+                        // level and upright pieces for steps.
+                        let places: Vec<(f64, f64)> = (start..end)
+                            .map(|i| (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])))
+                            .collect();
+                        let mut steps: Vec<Step> = Vec::with_capacity(3 * places.len());
+                        for (i, &at) in places.iter().enumerate() {
+                            if i == 0 {
+                                steps.push(Step::Move(at));
+                                continue;
+                            }
+                            let from = places[i - 1];
+                            let corners: Vec<(f64, f64)> = match layer.mark {
+                                Mark::Step(Stairs::LevelFirst) => vec![(at.0, from.1)],
+                                Mark::Step(Stairs::UprightFirst) => vec![(from.0, at.1)],
+                                Mark::Step(Stairs::Halfway) => {
+                                    let half = (from.0 + at.0) / 2.0;
+                                    vec![(half, from.1), (half, at.1)]
+                                }
+                                _ => Vec::new(),
+                            };
+                            // A corner that stands where the line already is adds nothing.
+                            let mut last = from;
+                            for corner in corners {
+                                if corner != last && corner != at {
+                                    steps.push(Step::Line(corner));
+                                    last = corner;
+                                }
+                            }
+                            steps.push(Step::Line(at));
+                        }
+                        drawn.push(named(
+                            &name,
+                            Primitive::Path {
+                                steps,
+                                stroke: Some(Stroke {
+                                    colour: colour_of(start),
+                                    width: layer.width,
+                                    dash,
+                                }),
+                                fill: None,
+                                opacity: layer.alpha,
+                            },
+                        ));
+                        start = end;
+                    }
+                }
+                if layer.mark == Mark::Text {
+                    // A text: the label of its mark, centred on its place and moved by the
+                    // layer's nudge, to the right and up, in its colour and the layer's size.
+                    let type_size = match &layer.size {
+                        Sizing::Constant(points) => *points,
+                        Sizing::Scaled(_) => theme.label_size,
+                    };
+                    for i in 0..marks_of.min(layer.label.len()) {
+                        // A text stands upright wherever the coordinates lie: it is placed on
+                        // the page itself, and moved there, to the right and up.
+                        let (x, y) = if flip {
+                            (across(sy, layer.y[i]), down(sx, layer.x[i]))
+                        } else if polar {
+                            let place = (m_across(sx, layer.x[i]), m_down(sy, layer.y[i]));
+                            if !in_the_round(place, radius) {
+                                continue;
+                            }
+                            wound_place(place, centre, radius)
+                        } else {
+                            (across(sx, layer.x[i]), down(sy, layer.y[i]))
+                        };
+                        upright.push(named(
+                            &name,
+                            Primitive::Text {
+                                at: (
+                                    x + layer.nudge.0,
+                                    y - layer.nudge.1 + capital(type_size) / 2.0,
+                                ),
+                                anchor: Anchor::Middle,
+                                turn: 0.0,
+                                spans: vec![Span {
+                                    text: layer.label[i].clone(),
+                                    face: FaceName::Sans,
+                                    size: type_size,
+                                    colour: colour_of(i),
+                                }],
+                                frame: None,
+                            },
+                        ));
+                    }
+                }
+                let one_by_one = !(layer.mark.joins()
+                    || layer.mark.patches()
+                    || matches!(layer.mark, Mark::Rug(_) | Mark::Text));
+                for i in 0..if one_by_one { marks_of } else { 0 } {
+                    let colour = colour_of(i);
+                    let across_mark = match &layer.size {
+                        Sizing::Constant(points) => *points,
+                        Sizing::Scaled(values) => match (scene.scale("size"), values.get(i)) {
+                            (Some(scale), Some(value)) => match scale.range {
+                                Range::Sizes(least, most) => {
+                                    diameter(*value, scale.limits, (least, most))
+                                }
+                                _ => theme.key_size,
+                            },
+                            _ => theme.key_size,
+                        },
+                    };
+                    let outline = match &layer.shape {
+                        Shaping::Constant(name) => *name,
+                        Shaping::Scaled(values) => match (scene.scale("shape"), values.get(i)) {
+                            (Some(scale), Some(value)) => shape_on(scale, *value),
+                            _ => shape::DEFAULT,
+                        },
+                    };
+                    drawn.push(named(
                         &name,
-                        Primitive::Raster {
-                            at: (left, top),
-                            width: picture.width as f64 / to_a_point,
-                            height: picture.height as f64 / to_a_point,
-                            columns: picture.width,
-                            rows: picture.height,
-                            cells: picture.rgb.as_chunks::<3>().0.to_vec(),
+                        Primitive::Point {
+                            at: (m_across(sx, layer.x[i]), m_down(sy, layer.y[i])),
+                            shape: outline,
+                            size: across_mark,
+                            colour,
+                            opacity: layer.alpha,
                         },
                     ));
-                    continue;
                 }
+                // The layer on the page: turned where the coordinates are flipped.
+                let mut drawn = turn(drawn);
+                drawn.extend(upright);
+                // A layer flagged to be drawn in dots (open decision #118, F4): the panel as it
+                // stands with this layer on it, the page, the gridlines and the layers under it,
+                // as one picture at the dots to the inch of a figure, which takes the place of
+                // the layer's marks. A picture has no way to let through what is under it, so it
+                // holds it. A panel of more dots than a picture may have keeps its marks.
+                if layer.raster {
+                    // The picture is as many whole dots as cover the panel. Its last dots are
+                    // drawn whole, and the edge of the panel, which is a line, cuts them where
+                    // the panel ends.
+                    let to_a_point = raster::DOTS / 72.0;
+                    let covering = |points: f64| (points * to_a_point - 1e-6).ceil() / to_a_point;
+                    let (wide, high) = (covering(panel_width), covering(panel_height));
+                    let mut under = items.clone();
+                    let mut inside = marks.clone();
+                    inside.extend(drawn.iter().cloned());
+                    under.push(named(
+                        "panel",
+                        Primitive::Clip {
+                            at: (left, top),
+                            width: wide,
+                            height: high,
+                            items: inside,
+                        },
+                    ));
+                    if let Ok(picture) =
+                        raster::render_part(&under, (left, top), wide, high, raster::DOTS)
+                    {
+                        marks.push(named(
+                            &name,
+                            Primitive::Raster {
+                                at: (left, top),
+                                width: picture.width as f64 / to_a_point,
+                                height: picture.height as f64 / to_a_point,
+                                columns: picture.width,
+                                rows: picture.height,
+                                cells: picture.rgb.as_chunks::<3>().0.to_vec(),
+                            },
+                        ));
+                        continue;
+                    }
+                }
+                marks.extend(drawn);
             }
-            marks.extend(drawn);
         }
-    }
-    items.push(named(
-        "panel",
-        Primitive::Clip {
-            at: (left, top),
-            width: panel_width,
-            height: panel_height,
-            items: marks,
-        },
-    ));
-    // The guides of a polar plot. The axis of `x` is the rim: its line, a tick outwards at
-    // each break, and the labels round it that do not touch, each beside its tick and
-    // upright; its title is under the panel.
-    if let Some(s) = xs.filter(|_| polar) {
-        let along = format!("axis:{}", s.id);
-        if theme.axis_lines {
-            let half = |to: (f64, f64)| Step::Arc {
-                radii: (radius, radius),
-                turn: 0.0,
-                larger: false,
-                clockwise: true,
-                to,
-            };
-            items.push(named(
-                &along,
-                Primitive::Path {
-                    steps: vec![
-                        Step::Move((centre.0, centre.1 - radius)),
-                        half((centre.0, centre.1 + radius)),
-                        half((centre.0, centre.1 - radius)),
-                        Step::Close,
-                    ],
-                    stroke: Some(line(theme.ink, theme.axis_width)),
-                    fill: None,
-                    opacity: 1.0,
-                },
-            ));
-        }
-        // Where each label stands: its box on the page, by its anchor. The lines of a
-        // label stand over the rim at the top, under it at the foot, and level with their
-        // tick at the sides.
-        let boxes: Vec<Placed> = rim
-            .iter()
-            .map(|at| {
-                let x = centre.0 + (radius + rim_gap) * at.towards.0;
-                let head = centre.1
-                    - (radius + rim_gap) * at.towards.1
-                    - at.height * (1.0 + at.towards.1) / 2.0;
-                let (from, to) = match at.anchor {
-                    Anchor::Start => (x, x + at.width),
-                    Anchor::End => (x - at.width, x),
-                    Anchor::Middle => (x - at.width / 2.0, x + at.width / 2.0),
+        items.push(named(
+            "panel",
+            Primitive::Clip {
+                at: (left, top),
+                width: panel_width,
+                height: panel_height,
+                items: marks,
+            },
+        ));
+        // The guides of a polar plot. The axis of `x` is the rim: its line, a tick outwards at
+        // each break, and the labels round it that do not touch, each beside its tick and
+        // upright; its title is under the panel.
+        if let Some(s) = xs.filter(|_| polar) {
+            let along = format!("axis:{}", s.id);
+            if theme.axis_lines {
+                let half = |to: (f64, f64)| Step::Arc {
+                    radii: (radius, radius),
+                    turn: 0.0,
+                    larger: false,
+                    clockwise: true,
+                    to,
                 };
-                (
-                    (x, head + capital(label)),
-                    (from, to),
-                    (head, head + at.height),
-                )
-            })
-            .collect();
-        let touch = |a: usize, b: usize| {
-            let ((_, across_a, down_a), (_, across_b, down_b)) = (boxes[a], boxes[b]);
-            across_a.0 < across_b.1 + label / 2.0
-                && across_b.0 < across_a.1 + label / 2.0
-                && down_a.0 < down_b.1 + label / 4.0
-                && down_b.0 < down_a.1 + label / 4.0
-        };
-        // Every label, or every second, or every third: the first step at which no two of
-        // those written touch, the last and the first of the round among them.
-        let step = (1..=rim.len().max(1))
-            .find(|&step| {
-                let kept: Vec<usize> = (0..rim.len()).step_by(step).collect();
-                kept.iter()
-                    .enumerate()
-                    .all(|(i, &a)| kept[i + 1..].iter().all(|&b| !touch(a, b)))
-            })
-            .unwrap_or(1);
-        for (i, at) in rim.iter().enumerate() {
-            if theme.axis_lines {
                 items.push(named(
                     &along,
-                    segment(
-                        (
-                            centre.0 + radius * at.towards.0,
-                            centre.1 - radius * at.towards.1,
-                        ),
-                        (
-                            centre.0 + (radius + theme.tick_length) * at.towards.0,
-                            centre.1 - (radius + theme.tick_length) * at.towards.1,
-                        ),
-                        line(theme.ink, theme.axis_width),
-                    ),
+                    Primitive::Path {
+                        steps: vec![
+                            Step::Move((centre.0, centre.1 - radius)),
+                            half((centre.0, centre.1 + radius)),
+                            half((centre.0, centre.1 - radius)),
+                            Step::Close,
+                        ],
+                        stroke: Some(line(theme.ink, theme.axis_width)),
+                        fill: None,
+                        opacity: 1.0,
+                    },
                 ));
             }
-            if i % step == 0 {
-                let (x, baseline) = boxes[i].0;
-                for (row, words) in at.lines.iter().enumerate() {
-                    let y = baseline + row as f64 * label * theme.leading;
+            // Where each label stands: its box on the page, by its anchor. The lines of a
+            // label stand over the rim at the top, under it at the foot, and level with their
+            // tick at the sides.
+            let boxes: Vec<Placed> = rim
+                .iter()
+                .map(|at| {
+                    let x = centre.0 + (radius + rim_gap) * at.towards.0;
+                    let head = centre.1
+                        - (radius + rim_gap) * at.towards.1
+                        - at.height * (1.0 + at.towards.1) / 2.0;
+                    let (from, to) = match at.anchor {
+                        Anchor::Start => (x, x + at.width),
+                        Anchor::End => (x - at.width, x),
+                        Anchor::Middle => (x - at.width / 2.0, x + at.width / 2.0),
+                    };
+                    (
+                        (x, head + capital(label)),
+                        (from, to),
+                        (head, head + at.height),
+                    )
+                })
+                .collect();
+            let touch = |a: usize, b: usize| {
+                let ((_, across_a, down_a), (_, across_b, down_b)) = (boxes[a], boxes[b]);
+                across_a.0 < across_b.1 + label / 2.0
+                    && across_b.0 < across_a.1 + label / 2.0
+                    && down_a.0 < down_b.1 + label / 4.0
+                    && down_b.0 < down_a.1 + label / 4.0
+            };
+            // Every label, or every second, or every third: the first step at which no two of
+            // those written touch, the last and the first of the round among them.
+            let step = (1..=rim.len().max(1))
+                .find(|&step| {
+                    let kept: Vec<usize> = (0..rim.len()).step_by(step).collect();
+                    kept.iter()
+                        .enumerate()
+                        .all(|(i, &a)| kept[i + 1..].iter().all(|&b| !touch(a, b)))
+                })
+                .unwrap_or(1);
+            for (i, at) in rim.iter().enumerate() {
+                if theme.axis_lines {
                     items.push(named(
                         &along,
-                        text((x, y), at.anchor, 0.0, words, label, theme),
+                        segment(
+                            (
+                                centre.0 + radius * at.towards.0,
+                                centre.1 - radius * at.towards.1,
+                            ),
+                            (
+                                centre.0 + (radius + theme.tick_length) * at.towards.0,
+                                centre.1 - (radius + theme.tick_length) * at.towards.1,
+                            ),
+                            line(theme.ink, theme.axis_width),
+                        ),
                     ));
                 }
+                if i % step == 0 {
+                    let (x, baseline) = boxes[i].0;
+                    for (row, words) in at.lines.iter().enumerate() {
+                        let y = baseline + row as f64 * label * theme.leading;
+                        items.push(named(
+                            &along,
+                            text((x, y), at.anchor, 0.0, words, label, theme),
+                        ));
+                    }
+                }
             }
-        }
-        for (i, words) in x_title.iter().enumerate() {
-            let y = top + panel_height + theme.title_gap + (i + 1) as f64 * title_line
-                - theme.title_size * (theme.leading - 1.0);
-            items.push(named(
-                &along,
-                text(
-                    (left + panel_width / 2.0, y),
-                    Anchor::Middle,
-                    0.0,
-                    words,
-                    theme.title_size,
-                    theme,
-                ),
-            ));
-        }
-    }
-    // The axis of `y` of a polar plot stands at the left of the panel, beside the radius
-    // that goes up from the centre: its line from the height of the centre to that of the
-    // top of the rim, a tick at the height of each circle of the grid, and its labels.
-    if let Some(s) = ys.filter(|_| polar) {
-        let up = format!("axis:{}", s.id);
-        if theme.axis_lines {
-            items.push(named(
-                &up,
-                segment(
-                    (left, centre.1 - radius),
-                    (left, centre.1),
-                    line(theme.ink, theme.axis_width),
-                ),
-            ));
-        }
-        let centres: Vec<f64> = s
-            .breaks
-            .iter()
-            .map(|v| centre.1 - radius * scale::share(s.kind, s.limits, *v).clamp(0.0, 1.0))
-            .collect();
-        let heights = vec![capital(label); centres.len()];
-        let step = thinning(&centres, &heights, label / 4.0);
-        for (i, &y) in centres.iter().enumerate() {
-            if theme.axis_lines {
+            for (i, words) in x_title.iter().enumerate().filter(|_| last) {
+                let y = top + panel_height + theme.title_gap + (i + 1) as f64 * title_line
+                    - theme.title_size * (theme.leading - 1.0);
                 items.push(named(
-                    &up,
-                    segment(
-                        (left - theme.tick_length, y),
-                        (left, y),
-                        line(theme.ink, theme.axis_width),
-                    ),
-                ));
-            }
-            if i % step == 0
-                && let Some(words) = s.labels.get(i)
-            {
-                items.push(named(
-                    &up,
+                    &along,
                     text(
-                        (left - theme.tick_length - theme.label_gap, y + half_capital),
-                        Anchor::End,
+                        (title_across, y),
+                        Anchor::Middle,
                         0.0,
                         words,
-                        label,
+                        theme.title_size,
                         theme,
                     ),
                 ));
             }
         }
-        for (i, words) in y_title.iter().enumerate() {
-            let x = theme.margin + moved_across + (i + 1) as f64 * title_line
-                - theme.title_size * (theme.leading - 1.0);
-            items.push(named(
-                &up,
-                text(
-                    (x, top + panel_height / 2.0),
-                    Anchor::Middle,
-                    90.0,
-                    words,
-                    theme.title_size,
-                    theme,
-                ),
-            ));
-        }
-    }
-    // The x axis: its line, a tick at each break, the labels that do not touch, its title.
-    if let Some(s) = xs.filter(|_| !polar) {
-        // The axis is named by its scale: `axis:x`, or `axis:y` where the coordinates are
-        // flipped.
-        let along = format!("axis:{}", s.id);
-        let base = top + panel_height;
-        if theme.axis_lines {
-            items.push(named(
-                &along,
-                segment(
-                    (left, base),
-                    (left + panel_width, base),
-                    line(theme.ink, theme.axis_width),
-                ),
-            ));
-        }
-        let centres: Vec<f64> = s.breaks.iter().map(|v| across(s, *v)).collect();
-        let step = thinning(&centres, &x_widths, label / 2.0);
-        let baseline = base + theme.tick_length + theme.label_gap + capital(label);
-        for (i, &x) in centres.iter().enumerate() {
+        // The axis of `y` of a polar plot stands at the left of the panel, beside the radius
+        // that goes up from the centre: its line from the height of the centre to that of the
+        // top of the rim, a tick at the height of each circle of the grid, and its labels.
+        if let Some(s) = ys.filter(|_| polar) {
+            let up = format!("axis:{}", s.id);
             if theme.axis_lines {
                 items.push(named(
-                    &along,
+                    &up,
                     segment(
-                        (x, base),
-                        (x, base + theme.tick_length),
+                        (left, centre.1 - radius),
+                        (left, centre.1),
                         line(theme.ink, theme.axis_width),
                     ),
                 ));
             }
-            if i % step == 0
-                && let Some(lines) = x_labels.get(i)
-            {
-                for (row, words) in lines.iter().enumerate() {
-                    let y = baseline + row as f64 * label * theme.leading;
+            let centres: Vec<f64> = s
+                .breaks
+                .iter()
+                .map(|v| centre.1 - radius * scale::share(s.kind, s.limits, *v).clamp(0.0, 1.0))
+                .collect();
+            let heights = vec![capital(label); centres.len()];
+            let step = thinning(&centres, &heights, label / 4.0);
+            for (i, &y) in centres.iter().enumerate() {
+                if theme.axis_lines {
                     items.push(named(
-                        &along,
-                        text((x, y), Anchor::Middle, 0.0, words, label, theme),
+                        &up,
+                        segment(
+                            (left - theme.tick_length, y),
+                            (left, y),
+                            line(theme.ink, theme.axis_width),
+                        ),
+                    ));
+                }
+                if labels_y
+                    && i % step == 0
+                    && let Some(words) = s.labels.get(i)
+                {
+                    items.push(named(
+                        &up,
+                        text(
+                            (left - theme.tick_length - theme.label_gap, y + half_capital),
+                            Anchor::End,
+                            0.0,
+                            words,
+                            label,
+                            theme,
+                        ),
                     ));
                 }
             }
-        }
-        // The title of the axis stands under the last line of its labels.
-        let baseline = baseline + x_rows.saturating_sub(1) as f64 * label * theme.leading;
-        for (i, words) in x_title.iter().enumerate() {
-            let y = baseline + theme.title_gap + (i + 1) as f64 * title_line
-                - theme.title_size * (theme.leading - 1.0);
-            items.push(named(
-                &along,
-                text(
-                    (left + panel_width / 2.0, y),
-                    Anchor::Middle,
-                    0.0,
-                    words,
-                    theme.title_size,
-                    theme,
-                ),
-            ));
-        }
-    }
-    // The y axis: the same, its labels ending at the ticks and its title read upwards.
-    if let Some(s) = ys.filter(|_| !polar) {
-        let up = format!("axis:{}", s.id);
-        if theme.axis_lines {
-            items.push(named(
-                &up,
-                segment(
-                    (left, top),
-                    (left, top + panel_height),
-                    line(theme.ink, theme.axis_width),
-                ),
-            ));
-        }
-        let centres: Vec<f64> = s.breaks.iter().map(|v| down(s, *v)).collect();
-        let heights = vec![capital(label); centres.len()];
-        let step = thinning(&centres, &heights, label / 4.0);
-        for (i, &y) in centres.iter().enumerate() {
-            if theme.axis_lines {
-                items.push(named(
-                    &up,
-                    segment(
-                        (left - theme.tick_length, y),
-                        (left, y),
-                        line(theme.ink, theme.axis_width),
-                    ),
-                ));
-            }
-            if i % step == 0
-                && let Some(words) = s.labels.get(i)
-            {
+            for (i, words) in y_title.iter().enumerate().filter(|_| last) {
+                let x = theme.margin + shift_across + (i + 1) as f64 * title_line
+                    - theme.title_size * (theme.leading - 1.0);
                 items.push(named(
                     &up,
                     text(
-                        (left - theme.tick_length - theme.label_gap, y + half_capital),
-                        Anchor::End,
-                        0.0,
+                        (x, title_down),
+                        Anchor::Middle,
+                        90.0,
                         words,
-                        label,
+                        theme.title_size,
                         theme,
                     ),
                 ));
             }
         }
-        // Turned to read upwards, a line's letters rise towards the left: the first line is
-        // the leftmost.
-        for (i, words) in y_title.iter().enumerate() {
-            let x = theme.margin + moved_across + (i + 1) as f64 * title_line
-                - theme.title_size * (theme.leading - 1.0);
-            items.push(named(
-                &up,
-                text(
-                    (x, top + panel_height / 2.0),
-                    Anchor::Middle,
-                    90.0,
-                    words,
-                    theme.title_size,
-                    theme,
-                ),
-            ));
+        // The x axis: its line, a tick at each break, the labels that do not touch, its title.
+        if let Some(s) = xs.filter(|_| !polar) {
+            // The axis is named by its scale: `axis:x`, or `axis:y` where the coordinates are
+            // flipped.
+            let along = format!("axis:{}", s.id);
+            let base = top + panel_height;
+            if theme.axis_lines {
+                items.push(named(
+                    &along,
+                    segment(
+                        (left, base),
+                        (left + panel_width, base),
+                        line(theme.ink, theme.axis_width),
+                    ),
+                ));
+            }
+            let centres: Vec<f64> = s.breaks.iter().map(|v| across(s, *v)).collect();
+            let step = thinning(&centres, &x_widths, label / 2.0);
+            let baseline = base + theme.tick_length + theme.label_gap + capital(label);
+            for (i, &x) in centres.iter().enumerate() {
+                if theme.axis_lines {
+                    items.push(named(
+                        &along,
+                        segment(
+                            (x, base),
+                            (x, base + theme.tick_length),
+                            line(theme.ink, theme.axis_width),
+                        ),
+                    ));
+                }
+                if labels_x
+                    && i % step == 0
+                    && let Some(lines) = x_labels.get(i)
+                {
+                    for (row, words) in lines.iter().enumerate() {
+                        let y = baseline + row as f64 * label * theme.leading;
+                        items.push(named(
+                            &along,
+                            text((x, y), Anchor::Middle, 0.0, words, label, theme),
+                        ));
+                    }
+                }
+            }
+            // The title of the axis stands under the last line of its labels.
+            let baseline = baseline + x_rows.saturating_sub(1) as f64 * label * theme.leading;
+            for (i, words) in x_title.iter().enumerate().filter(|_| last) {
+                let y = baseline + theme.title_gap + (i + 1) as f64 * title_line
+                    - theme.title_size * (theme.leading - 1.0);
+                items.push(named(
+                    &along,
+                    text(
+                        (title_across, y),
+                        Anchor::Middle,
+                        0.0,
+                        words,
+                        theme.title_size,
+                        theme,
+                    ),
+                ));
+            }
+        }
+        // The y axis: the same, its labels ending at the ticks and its title read upwards.
+        if let Some(s) = ys.filter(|_| !polar) {
+            let up = format!("axis:{}", s.id);
+            if theme.axis_lines {
+                items.push(named(
+                    &up,
+                    segment(
+                        (left, top),
+                        (left, top + panel_height),
+                        line(theme.ink, theme.axis_width),
+                    ),
+                ));
+            }
+            let centres: Vec<f64> = s.breaks.iter().map(|v| down(s, *v)).collect();
+            let heights = vec![capital(label); centres.len()];
+            let step = thinning(&centres, &heights, label / 4.0);
+            for (i, &y) in centres.iter().enumerate() {
+                if theme.axis_lines {
+                    items.push(named(
+                        &up,
+                        segment(
+                            (left - theme.tick_length, y),
+                            (left, y),
+                            line(theme.ink, theme.axis_width),
+                        ),
+                    ));
+                }
+                if labels_y
+                    && i % step == 0
+                    && let Some(words) = s.labels.get(i)
+                {
+                    items.push(named(
+                        &up,
+                        text(
+                            (left - theme.tick_length - theme.label_gap, y + half_capital),
+                            Anchor::End,
+                            0.0,
+                            words,
+                            label,
+                            theme,
+                        ),
+                    ));
+                }
+            }
+            // Turned to read upwards, a line's letters rise towards the left: the first line is
+            // the leftmost.
+            for (i, words) in y_title.iter().enumerate().filter(|_| last) {
+                let x = theme.margin + shift_across + (i + 1) as f64 * title_line
+                    - theme.title_size * (theme.leading - 1.0);
+                items.push(named(
+                    &up,
+                    text(
+                        (x, title_down),
+                        Anchor::Middle,
+                        90.0,
+                        words,
+                        theme.title_size,
+                        theme,
+                    ),
+                ));
+            }
         }
     }
     // The names at the ends of the lines, beside the right edge of the panel, each at the
@@ -2764,10 +2889,10 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // The legends above or under the panel: each band from the left edge of the panel.
     if banded {
         let mut y = if place == LegendPlace::Top {
-            theme.margin + heading_room + moved_down
+            theme.margin + heading_room + shift_down
         } else {
             height - theme.margin - noted_room - caption_room - bands_height + theme.legend_gap
-                - moved_down
+                - shift_down
         };
         for (tallest, members) in &bands {
             let mut x = left;
@@ -2779,7 +2904,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         }
     }
     // The legends at the right, each column from the top of the panel down.
-    let mut x = width - theme.margin - legends_width - moved_across;
+    let mut x = width - theme.margin - legends_width - shift_across;
     for (widest, members) in &legend_columns {
         let mut y = top - half_capital;
         for &at in members {

@@ -122,45 +122,9 @@ Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engin
 
 Step 26 was split into 26a to 26c. 26a `[function]`: `labels(title:, subtitle:, x:, y:, color:, caption:)`, the title at 10 points in the heavier face, the subtitle at 9 and the caption at 8, all from the left margin of the page (ruling); #131 recorded (titles for the legends of size, shape and fill, at 0.8.0). 26b `[function]`: `theme(journal | minimal | slide, base_size:)`; a base size below 9 is refused; the marks keep their size in points on a slide, as in ggplot2 (flagged to the owner). 26c `[function]`: `annotate(text:, x:, y:, size:)`, which widens the axes like a mark and is cut off at the edge of the panel, and the labels of a crowded axis of categories broken between words where all can then be written. Step 26 complete; `plot` at nineteen functions built.
 
-## 13 November 2026, release 0.7.0, step 27a (`coord(flip)`), and step 27 split in five
+## 13 November 2026, steps 27a to 27c2 of release 0.7.0 (folded)
 
-**Done.** Step 27 was split into 27a (`coord(cartesian | flip)`), 27b (`coord(fixed, ratio:)`), 27c (`coord(polar)`), 27d (`facet(by:)`) and 27e (`facet(rows:, cols:)` with `scales:`). `p.coord(flip)` draws `x` up the side and `y` along the foot with every mark turned: bars lie along the page with every name of a category written, lines run upwards, a line across becomes one down, and text stays upright. The scales, limits and breaks are those of the upright plot. `polar`, `fixed` and `ratio:` are refused as not built yet.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 390 of 390; CI is read job by job after the push.
-
-**Next.** Step 27b `[engine]`: `coord(fixed, ratio:)`, a panel whose shape follows the units of the data.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: `flip` written twice is still flipped; the first category is at the foot of the side; `legend(direct)` in a flipped plot is drawn at the right; labels at the left are never broken over lines. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 27b (`coord(fixed, ratio:)`)
-
-**Done.** `p.coord(fixed)` gives a unit of `y` the same length on the page as a unit of `x`, and `ratio:` makes it as long as that many units of `x`: the panel takes the shape the limits of the two axes and the ratio give it, the largest of that shape the page has room for, in the middle of that room with its axes and legends. A square of the data is a square on the page. A panel that would be thinner than 12.7 mm is refused at `export`, and the message names the ratio that fills the page.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 396 of 396; CI is read job by job after the push.
-
-**Next.** Step 27c `[engine]`: `coord(polar)`, `x` as the angle and `y` as the distance from the centre, which completes the page of `coord`.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: a unit is a place on an axis of categories, a power of ten on a log axis, one of the square root on a square-root axis and a day on an axis of dates; `ratio:` without `fixed` is refused; the fixed panel is centred in its room, and the title and caption of the figure stay at the edges of the page. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 27c1 (the polar frame), and step 27c split in two
-
-**Done.** Step 27c was split into 27c1 (the polar frame) and 27c2 (the guides, and the function opened). Polar coordinates are in the plot, the scene and the layout: `x` is the angle, from the top and clockwise, `y` the distance from the centre, and neither axis has a margin beyond the data; the panel is a square with the circle in its middle; every mark is wound round the centre, so that bars are wedges, a line a spiral, a level line a circle and tiles pieces of rings; the gridlines are spokes and circles. No script reaches it yet: `coord(polar)` is still refused until the labels round the rim are drawn (27c2).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 396 of 396; CI is read job by job after the push.
-
-**Next.** Step 27c2 `[engine]`: the labels of `x` round the rim, the axis of `y`, what polar coordinates refuse, and `coord(polar)` opened with its help page.
-
-**For the owner to decide.** #132, new: whether `coord(polar)` should also take `y` as the angle (pies), a starting angle and a direction, as ggplot2 does; taken on the recommendation as A, the catalogue's one form, with the rest a question for 0.8.0. Also taken, his to overturn: the lowest and the highest value of `x` stand together at the top, and the lowest value of `y` is at the centre, as in ggplot2. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 27c2 (the guides of a polar plot, `coord(polar)` opened), and step 27c complete
-
-**Done.** `p.coord(polar)` draws: the labels of `x` stand round the rim, each beside its tick and upright, a long one broken between words and crowded ones thinned; the two ends of an axis of numbers share the top and are written once, as `0/24`; the axis of `y` stands at the left, beside the upward radius, with its ticks at the heights of the circles; the circle is the largest the page has room for with its labels. A rug in polar coordinates is refused. The page of `coord` is complete, with its four forms, and catalogue row 479 is implemented: `plot` stands at twenty functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 403 of 403; CI is read job by job after the push.
-
-**Next.** Step 27d `[engine]`: `facet(by:)`, one panel for each group with shared scales and a strip over each.
-
-**For the owner to decide.** Nothing new waits for him beyond #132 (pies, a starting angle and a direction for `coord(polar)`, at 0.8.0). Taken on the recommendation at this step, his to overturn: the axis of `y` at the left of the panel, as in ggplot2, and not along a spoke; long labels round the rim broken at a quarter of the room; a rug refused in polar coordinates, as ggplot2 refuses it. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+Step 27 was split into 27a to 27e, and 27c into 27c1 and 27c2. 27a `[engine]`: `coord(flip)`, `x` up the side and `y` along the foot with every mark turned and text upright; `flip` written twice is still flipped (ruling). 27b `[engine]`: `coord(fixed, ratio:)`, a panel in the shape of the data, centred in its room; a unit is a place, a power of ten, one of the square root or a day (rulings); a panel too thin is refused with the ratio that fills the page. 27c1 `[engine]`: the polar frame, `x` as the angle from the top and clockwise and `y` as the distance from the centre, no axis with a margin beyond the data, every mark wound round the centre; open decision #132 recorded (pies, a starting angle and a direction, at 0.8.0). 27c2 `[engine]`: the labels of `x` round the rim, the axis of `y` at the left, a rug refused, `coord(polar)` opened; the page of `coord` complete and catalogue row 479 implemented; `plot` at twenty functions built.
 
 ## 13 November 2026, release 0.7.0, step 27d1 (a scene of several panels), and step 27d split in three
 
@@ -171,4 +135,14 @@ Step 26 was split into 26a to 26c. 26a `[function]`: `labels(title:, subtitle:, 
 **Next.** Step 27d2 `[engine]`: the layout of several panels, each with its strip, the axes shared along the edges.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the panels in one row up to three, two rows up to six, three up to twelve, as ggplot2 lays them; a panel named `NA` for rows without a value; the strips of two variables written with a comma between. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 27d2 (the layout of several panels)
+
+**Done.** The panels of a plot parted into panels are drawn: together as one grid in the middle of the room, a gap apart, each under what is written over it, with its own gridlines, marks and axes; the labels of `y` beside the first panel of each row and those of `x` under the lowest panel of each column; one title for each axis, centred on the grid; one set of legends beside it. Flipped, fixed and polar panels are laid the same way. Where the grid of the scene would leave each panel too small, panels that follow one another are laid in the nearest number of columns that gives each its room: forty panels are drawn on a page of two columns, and refused on one with a message that says so. No script reaches it yet (27d3). A plot of one panel is byte for byte as it was.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 403 of 403; CI is read job by job after the push.
+
+**Next.** Step 27d3 `[engine]`: `facet(by:)` opened, with its messages, its help page begun and a conformance case.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: what is written over a panel is plain text centred on it, with no band behind it; the labels of an axis are written at the outer panels only; the layout may lay wrapped panels in more columns than ggplot2's rule where a page asks for it. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

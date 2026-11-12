@@ -10,9 +10,11 @@ use common::*;
 use proptest::prelude::*;
 use zeff_columns::{Column, MetadataKey, format_value_labels};
 use zeff_core::value::{
-    Aesthetic, Arrangement, Frame, Mark, Plot, PlotConstant, PlotFacet, PlotLayer, PlotSetting,
-    Stacking,
+    Aesthetic, Arrangement, Coord, Frame, LegendPlace, Mark, Plot, PlotConstant, PlotFacet,
+    PlotLayer, PlotSetting, Stacking,
 };
+use zeff_plot::drawing::{Drawing, Primitive};
+use zeff_plot::layout::{JOURNAL, LayoutError, SMALLEST_PANEL, Size, layout};
 use zeff_plot::scene::{Scene, describe, rows_and_columns, start, with_layer};
 
 /// A plot of `x` and `y` of a frame, parted by some of its variables.
@@ -543,5 +545,330 @@ proptest! {
         sorted.sort_by_key(|strip| (strip == "NA", strip.clone()));
         sorted.dedup();
         prop_assert_eq!(strips, sorted);
+    }
+}
+
+// ----- the layout of several panels (step 27d2) -----
+
+/// The panels of a drawing: where each starts, with its width and its height.
+fn panels_of(drawing: &Drawing) -> Vec<((f64, f64), f64, f64)> {
+    drawing
+        .items
+        .iter()
+        .filter(|item| item.name.as_deref() == Some("panel"))
+        .filter_map(|item| match &item.primitive {
+            Primitive::Clip {
+                at, width, height, ..
+            } => Some((*at, *width, *height)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The texts of a drawing with one name, each with where it stands and how it is turned.
+fn words_of(drawing: &Drawing, name: &str) -> Vec<(String, (f64, f64), f64)> {
+    drawing
+        .items
+        .iter()
+        .filter(|item| item.name.as_deref() == Some(name))
+        .filter_map(|item| match &item.primitive {
+            Primitive::Text {
+                at, turn, spans, ..
+            } => spans.first().map(|span| (span.text.clone(), *at, *turn)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// A frame of `n` groups, three rows in each.
+fn groups(n: usize) -> Frame {
+    let names: Vec<String> = (0..3 * n).map(|i| format!("group {:02}", i / 3)).collect();
+    frame(
+        "d",
+        vec![
+            (
+                "g",
+                Column::strs(names.iter().map(|name| Some(name.as_str()))),
+            ),
+            (
+                "x",
+                numbers(&(0..3 * n).map(|i| (i % 3) as f64).collect::<Vec<f64>>()),
+            ),
+            (
+                "y",
+                numbers(&(0..3 * n).map(|i| (i % 7) as f64).collect::<Vec<f64>>()),
+            ),
+        ],
+    )
+}
+
+fn laid(scene: &Scene, size: Size) -> Drawing {
+    layout(scene, size, &JOURNAL).unwrap()
+}
+
+/// That no two of some panels overlap, and that all are of one size.
+fn apart_and_alike(panels: &[((f64, f64), f64, f64)]) {
+    for (i, a) in panels.iter().enumerate() {
+        assert!((a.1 - panels[0].1).abs() < 1e-9 && (a.2 - panels[0].2).abs() < 1e-9);
+        for b in &panels[i + 1..] {
+            let beside = a.0.0 + a.1 <= b.0.0 + 1e-9 || b.0.0 + b.1 <= a.0.0 + 1e-9;
+            let above = a.0.1 + a.2 <= b.0.1 + 1e-9 || b.0.1 + b.2 <= a.0.1 + 1e-9;
+            assert!(beside || above, "{a:?} and {b:?} overlap");
+        }
+    }
+}
+
+#[test]
+fn twelve_panels_are_laid_in_three_rows_with_their_strips_and_shared_axes() {
+    let scene = with(&parted(groups(12), "x", "y", &["g"]), Mark::Points);
+    assert!(scene.wrapped);
+    assert!(scene.json().write().contains("\"wrapped\": true"));
+    let drawing = laid(&scene, Size::TwoColumn);
+    let panels = panels_of(&drawing);
+    assert_eq!(panels.len(), 12);
+    apart_and_alike(&panels);
+    // Three rows of four, from the top left, the rows and the columns each in line.
+    for (i, panel) in panels.iter().enumerate() {
+        let (row, column) = (i / 4, i % 4);
+        assert!((panel.0.0 - panels[column].0.0).abs() < 1e-9, "panel {i}");
+        assert!((panel.0.1 - panels[4 * row].0.1).abs() < 1e-9, "panel {i}");
+    }
+    assert!(panels[1].0.0 > panels[0].0.0 + panels[0].1);
+    assert!(panels[4].0.1 > panels[0].0.1 + panels[0].2);
+    // Over each panel, what it holds, centred on it and above its top.
+    let strips = words_of(&drawing, "strip");
+    assert_eq!(strips.len(), 12);
+    for (i, (words, at, turn)) in strips.iter().enumerate() {
+        assert_eq!(
+            (words.as_str(), *turn),
+            (format!("group {i:02}").as_str(), 0.0)
+        );
+        assert!((at.0 - (panels[i].0.0 + panels[i].1 / 2.0)).abs() < 1e-9);
+        assert!(at.1 < panels[i].0.1 && at.1 > panels[i].0.1 - 12.0);
+    }
+    // The labels of `y` beside the first panel of each row, and no other; those of `x`
+    // under the panels of the last row, and no other; each title once, in the middle of the
+    // grid.
+    let (left, right) = (panels[0].0.0, panels[3].0.0 + panels[3].1);
+    let (top, foot) = (panels[0].0.1, panels[8].0.1 + panels[8].2);
+    let up = words_of(&drawing, "axis:y");
+    let title: Vec<&(String, (f64, f64), f64)> = up.iter().filter(|w| w.0 == "y").collect();
+    assert_eq!(title.len(), 1);
+    assert_eq!(title[0].2, 90.0);
+    // The strip over the first row is part of the grid.
+    assert!((title[0].1.1 - (top + foot) / 2.0).abs() < 8.0);
+    let labels: Vec<&(String, (f64, f64), f64)> = up.iter().filter(|w| w.0 != "y").collect();
+    assert!(labels.iter().all(|w| w.1.0 < left));
+    assert_eq!(labels.len() % 3, 0);
+    assert!(labels.len() >= 9);
+    let along = words_of(&drawing, "axis:x");
+    let title: Vec<&(String, (f64, f64), f64)> = along.iter().filter(|w| w.0 == "x").collect();
+    assert_eq!(title.len(), 1);
+    assert!((title[0].1.0 - (left + right) / 2.0).abs() < 1e-9);
+    let labels: Vec<&(String, (f64, f64), f64)> = along.iter().filter(|w| w.0 != "x").collect();
+    assert!(labels.iter().all(|w| w.1.1 > foot));
+    assert_eq!(labels.len() % 4, 0);
+    // The marks of each panel are in it.
+    for (i, item) in drawing
+        .items
+        .iter()
+        .filter(|item| item.name.as_deref() == Some("panel"))
+        .enumerate()
+    {
+        let Primitive::Clip { items, .. } = &item.primitive else {
+            panic!("a panel that is not a clip");
+        };
+        let dots: Vec<(f64, f64)> = items
+            .iter()
+            .filter_map(|item| match &item.primitive {
+                Primitive::Point { at, .. } => Some(*at),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(dots.len(), 3);
+        for dot in dots {
+            assert!(dot.0 >= panels[i].0.0 && dot.0 <= panels[i].0.0 + panels[i].1);
+            assert!(dot.1 >= panels[i].0.1 && dot.1 <= panels[i].0.1 + panels[i].2);
+        }
+    }
+    insta::assert_snapshot!("twelve_panels", drawing.describe());
+}
+
+#[test]
+fn a_last_row_that_is_not_full_and_a_plot_of_one_panel() {
+    // Five panels: three and two. The labels of `x` are under the lowest panel of each
+    // column: the two of the second row, and the third of the first.
+    let scene = with(&parted(groups(5), "x", "y", &["g"]), Mark::Points);
+    let drawing = laid(&scene, Size::TwoColumn);
+    let panels = panels_of(&drawing);
+    assert_eq!(panels.len(), 5);
+    apart_and_alike(&panels);
+    assert!((panels[3].0.0 - panels[0].0.0).abs() < 1e-9 && panels[3].0.1 > panels[0].0.1);
+    let labels: Vec<(f64, f64)> = words_of(&drawing, "axis:x")
+        .into_iter()
+        .filter(|w| w.0 != "x")
+        .map(|w| w.1)
+        .collect();
+    let under = |panel: usize| {
+        labels
+            .iter()
+            .filter(|at| {
+                at.0 >= panels[panel].0.0 - 6.0
+                    && at.0 <= panels[panel].0.0 + panels[panel].1 + 6.0
+                    && at.1 > panels[panel].0.1 + panels[panel].2
+                    && at.1 < panels[panel].0.1 + panels[panel].2 + 16.0
+            })
+            .count()
+    };
+    assert_eq!((under(0), under(1)), (0, 0));
+    assert!(under(2) >= 2 && under(3) >= 2 && under(4) >= 2);
+    assert_eq!(under(2), under(3));
+    // One panel: its strip over it, and a panel lower by the room of the strip than that of
+    // the plot without facets.
+    let one = frame(
+        "d",
+        vec![
+            ("g", Column::strs(["all", "all"].map(Some))),
+            ("x", numbers(&[1.0, 2.0])),
+            ("y", numbers(&[3.0, 4.0])),
+        ],
+    );
+    let whole = laid(
+        &with(&parted(one.clone(), "x", "y", &[]), Mark::Points),
+        Size::OneColumn,
+    );
+    let alone = laid(
+        &with(&parted(one, "x", "y", &["g"]), Mark::Points),
+        Size::OneColumn,
+    );
+    let (a, b) = (panels_of(&whole)[0], panels_of(&alone)[0]);
+    assert!((a.0.0 - b.0.0).abs() < 1e-9 && (a.1 - b.1).abs() < 1e-9);
+    assert!(b.0.1 > a.0.1 && (a.0.1 + a.2 - (b.0.1 + b.2)).abs() < 1e-9);
+    assert_eq!(words_of(&alone, "strip")[0].0, "all");
+    assert!(words_of(&whole, "strip").is_empty());
+}
+
+#[test]
+fn forty_panels_are_drawn_on_two_columns_and_refused_on_one() {
+    let scene = with(&parted(groups(40), "x", "y", &["g"]), Mark::Points);
+    assert_eq!((scene.rows, scene.columns), (6, 7));
+    // Six rows of seven would leave each panel too low: the panels are laid in the nearest
+    // number of columns at which each has the room a panel needs, four rows of ten.
+    let drawing = laid(&scene, Size::TwoColumn);
+    let panels = panels_of(&drawing);
+    assert_eq!(panels.len(), 40);
+    apart_and_alike(&panels);
+    assert!(panels[0].1 >= SMALLEST_PANEL && panels[0].2 >= SMALLEST_PANEL);
+    let in_a_row = panels
+        .iter()
+        .filter(|panel| (panel.0.1 - panels[0].0.1).abs() < 1e-9)
+        .count();
+    assert_eq!(in_a_row, 10);
+    assert_eq!(words_of(&drawing, "strip").len(), 40);
+    // Every panel is on the page.
+    for panel in &panels {
+        assert!(panel.0.0 > 0.0 && panel.0.0 + panel.1 < drawing.width);
+        assert!(panel.0.1 > 0.0 && panel.0.1 + panel.2 < drawing.height);
+    }
+    // On one column no grid gives forty panels their room.
+    match layout(&scene, Size::OneColumn, &JOURNAL) {
+        Err(LayoutError::TooMany { panels, panel }) => {
+            assert_eq!(panels, 40);
+            assert!(panel.0 < SMALLEST_PANEL || panel.1 < SMALLEST_PANEL);
+        }
+        other => panic!("forty panels on one column: {other:?}"),
+    }
+}
+
+#[test]
+fn flipped_fixed_and_polar_panels_and_the_legend_beside_them() {
+    let frame = groups(4);
+    let drawn_in = |coord: Coord| {
+        let mut plot = parted(frame.clone(), "x", "y", &["g"]);
+        plot.coord = coord;
+        plot.mappings.push(mapped(Aesthetic::Color, "g"));
+        plot.legend = LegendPlace::Direct;
+        laid(&with(&plot, Mark::Lines), Size::TwoColumn)
+    };
+    for coord in [
+        Coord::Cartesian,
+        Coord::Flip,
+        Coord::Fixed(1.0),
+        Coord::Polar,
+    ] {
+        let drawing = drawn_in(coord);
+        let panels = panels_of(&drawing);
+        assert_eq!(panels.len(), 4, "{coord:?}");
+        apart_and_alike(&panels);
+        // The legend stands at the right of the grid: names at the ends of lines are for a
+        // plot of one panel.
+        let right = panels.iter().map(|p| p.0.0 + p.1).fold(0.0, f64::max);
+        let keys = words_of(&drawing, "legend:color");
+        assert!(keys.len() >= 4, "{coord:?}");
+        assert!(keys.iter().all(|key| key.1.0 > right), "{coord:?}");
+    }
+    // Fixed panels stand together, a gap apart, in the middle of the room: the grid of the
+    // panels is as far from the left of the room as from its right.
+    let fixed = panels_of(&drawn_in(Coord::Fixed(1.0)));
+    let plain = panels_of(&drawn_in(Coord::Cartesian));
+    // `x` runs over 2.2 units and `y` over 6.6: a panel three times as high as it is wide.
+    assert!((fixed[0].2 / fixed[0].1 - 3.0).abs() < 1e-9);
+    let gap = fixed[1].0.0 - (fixed[0].0.0 + fixed[0].1);
+    assert!(gap > 0.0 && gap < 30.0, "{gap}");
+    let (room_left, room_right) = (plain[0].0.0, plain[1].0.0 + plain[1].1);
+    let (grid_left, grid_right) = (fixed[0].0.0, fixed[1].0.0 + fixed[1].1);
+    assert!(((grid_left - room_left) - (room_right - grid_right)).abs() < 1e-6);
+    // Each polar panel has its own labels round its rim.
+    let polar = drawn_in(Coord::Polar);
+    let rims = words_of(&polar, "axis:x")
+        .into_iter()
+        .filter(|w| w.0 != "x")
+        .count();
+    assert_eq!(rims % 4, 0);
+    assert!(rims >= 8);
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(64)))]
+
+    /// Whatever the rows: the panels of the drawing are as many as those of the scene, all
+    /// of one size, no two overlapping, each on the page, with as many points in each as
+    /// its panel of the scene holds; or the page was too small for them.
+    #[test]
+    fn no_two_panels_overlap_and_each_is_as_large_as_the_others(rows in rows()) {
+        let scene = with(&parted(tried(&rows), "x", "y", &["g"]), Mark::Points);
+        match layout(&scene, Size::TwoColumn, &JOURNAL) {
+            Ok(drawing) => {
+                let panels = panels_of(&drawing);
+                prop_assert_eq!(panels.len(), scene.panels.len());
+                for (i, a) in panels.iter().enumerate() {
+                    prop_assert!((a.1 - panels[0].1).abs() < 1e-9);
+                    prop_assert!((a.2 - panels[0].2).abs() < 1e-9);
+                    prop_assert!(a.0.0 >= 0.0 && a.0.0 + a.1 <= drawing.width);
+                    prop_assert!(a.0.1 >= 0.0 && a.0.1 + a.2 <= drawing.height);
+                    for b in &panels[i + 1..] {
+                        let beside = a.0.0 + a.1 <= b.0.0 + 1e-9 || b.0.0 + b.1 <= a.0.0 + 1e-9;
+                        let above = a.0.1 + a.2 <= b.0.1 + 1e-9 || b.0.1 + b.2 <= a.0.1 + 1e-9;
+                        prop_assert!(beside || above);
+                    }
+                }
+                let dots: Vec<usize> = drawing
+                    .items
+                    .iter()
+                    .filter(|item| item.name.as_deref() == Some("panel"))
+                    .map(|item| match &item.primitive {
+                        Primitive::Clip { items, .. } => items
+                            .iter()
+                            .filter(|item| matches!(item.primitive, Primitive::Point { .. }))
+                            .count(),
+                        _ => 0,
+                    })
+                    .collect();
+                let held: Vec<usize> = scene.panels.iter().map(|p| p.layers[0].x.len()).collect();
+                prop_assert_eq!(dots, held);
+            }
+            Err(LayoutError::TooSmall { .. } | LayoutError::TooMany { .. }) => {}
+            Err(other) => prop_assert!(false, "{:?}", other),
+        }
     }
 }

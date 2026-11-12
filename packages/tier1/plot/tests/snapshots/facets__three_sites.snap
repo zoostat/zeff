@@ -101,5 +101,6 @@ expression: json
     }
   ],
   "notes": [],
+  "wrapped": true,
   "strips": ["east", "north", "south"]
 }

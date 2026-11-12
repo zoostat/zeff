@@ -126,6 +126,10 @@ pub struct Scene {
     /// The grid of panels: its rows and columns.
     pub rows: usize,
     pub columns: usize,
+    /// Whether the panels follow one another in rows, as those of `facet(by:)` do: a writer
+    /// may then lay them in more columns or fewer than the grid says, where a page asks for
+    /// it. `false` for one panel, and for a grid whose rows and columns each mean a value.
+    pub wrapped: bool,
     pub scales: Vec<Scale>,
     pub axes: Vec<Axis>,
     /// What each legend shows: the content only, since where a legend stands is the business of
@@ -3232,6 +3236,17 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             projection: None,
             crs: None,
         }],
+        // A frame with no row has no value to part it by: one panel, as without facets.
+        Some(parts) if parts.strips.is_empty() => vec![Panel {
+            row: 1,
+            column: 1,
+            strip: None,
+            x,
+            y,
+            layers,
+            projection: None,
+            crs: None,
+        }],
         Some(parts) => {
             let of: Vec<Option<Vec<usize>>> = (0..layers.len())
                 .map(|at| panel_of(at).map(|rows| kept[at].iter().map(|row| rows[*row]).collect()))
@@ -3263,6 +3278,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     Scene {
         rows: panels.iter().map(|panel| panel.row).max().unwrap_or(1),
         columns: panels.iter().map(|panel| panel.column).max().unwrap_or(1),
+        wrapped: parts.as_ref().is_some_and(|parts| !parts.strips.is_empty()),
         scales,
         axes,
         legends,
@@ -3721,6 +3737,9 @@ impl Scene {
             .chain(
                 (self.coord != Coord::Cartesian).then(|| ("coord", Json::text(self.coord.name()))),
             )
+            // Panels that follow one another in rows, which a writer may lay in more
+            // columns or fewer.
+            .chain(self.wrapped.then_some(("wrapped", Json::Bool(true))))
             // What is written over each panel of a plot parted into panels, in the order
             // of the panels.
             .chain(
