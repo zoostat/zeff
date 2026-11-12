@@ -1,0 +1,5 @@
+---
+source: packages/tier1/plot/tests/png.rs
+expression: "kept(&picture, &file)"
+---
+500 by 333 dots, 278c20b390f8aa707af1b66bd61e8f2290b743ef5f40d00d1a2b083b9a4c0842; the file 6317 bytes, e85303a58b47d79bbf746d0bc03981c1a112e2f858a35ec1ae264287774e2071

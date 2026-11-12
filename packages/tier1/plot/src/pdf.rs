@@ -142,6 +142,19 @@ impl Trace {
     }
 }
 
+/// The ink and the gaps of a line that is not whole, as the page writes them, `[3 2.25]`;
+/// `None` for a whole line, so that a file without such a line is as it was before lines had
+/// a type.
+fn dashes(line: &Stroke) -> Option<String> {
+    let lengths: Vec<String> = line
+        .dash
+        .lengths(line.width)
+        .iter()
+        .map(|part| length(*part))
+        .collect();
+    (!lengths.is_empty()).then(|| format!("[{}]", lengths.join(" ")))
+}
+
 /// The operator that paints a path: filled, stroked, both or neither; `even_odd` when what
 /// lies inside a hole is outside.
 fn painting(fill: bool, stroke: bool, even_odd: bool) -> &'static str {
@@ -355,10 +368,18 @@ impl Content {
                 length(line.width)
             ));
         }
+        // A line that is not whole: its ink and its gaps, and a whole line again after it.
+        let dashed = stroke.as_ref().and_then(dashes);
+        if let Some(pattern) = &dashed {
+            self.out.push_str(&format!("{pattern} 0 d\n"));
+        }
         self.out.push_str(&format!(
             "{path}{}\n",
             painting(fill.is_some(), stroke.is_some(), even_odd)
         ));
+        if dashed.is_some() {
+            self.out.push_str("[] 0 d\n");
+        }
         if through {
             self.out.push_str("Q\n");
         }
@@ -434,14 +455,19 @@ impl Content {
                 stroke,
                 heads,
             } => {
+                let dashed = dashes(stroke);
                 self.out.push_str(&format!(
-                    "{} RG {} w\n{} {} m {} {} l S\n",
+                    "{} RG {} w\n{}{} {} m {} {} l S\n{}",
                     shares(&stroke.colour),
                     length(stroke.width),
+                    dashed
+                        .as_ref()
+                        .map_or(String::new(), |pattern| format!("{pattern} 0 d\n")),
                     length(from.0),
                     length(from.1),
                     length(to.0),
-                    length(to.1)
+                    length(to.1),
+                    if dashed.is_some() { "[] 0 d\n" } else { "" }
                 ));
                 if heads.0 == Head::Arrow {
                     self.arrow(*to, *from, stroke);

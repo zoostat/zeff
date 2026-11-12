@@ -17,7 +17,7 @@ use lopdf::{Dictionary, Document, Object, Stream};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 use zeff_core::value::Aesthetic;
-use zeff_plot::drawing::{Anchor, Drawing, Item, Primitive, Span, length};
+use zeff_plot::drawing::{Anchor, Drawing, Item, LineType, Primitive, Span, length};
 use zeff_plot::font::{FaceName, face};
 use zeff_plot::layout::{JOURNAL, SMALLEST_TEXT, Size, layout};
 use zeff_plot::pdf::{DOTS, SHARED, rgb, write, write_plain};
@@ -873,6 +873,69 @@ fn a_layer_flagged_to_be_drawn_in_dots_is_a_picture_inside_the_file() {
     );
     if let Ok(folder) = std::env::var("ZEFF_FIGURES_DIR") {
         std::fs::write(format!("{folder}/picture_layer.pdf"), &pdf).unwrap();
+    }
+}
+
+// ----- lines with a type (step 23b) -----
+
+#[test]
+fn a_line_that_is_not_whole_says_its_ink_and_its_gaps() {
+    let drawing = six_lines();
+    let pdf = write(&drawing);
+    let found = read(&pdf, &drawing).unwrap();
+    // Every time the page says how a line is cut: the ink and the gaps of the type times the
+    // width of the line, before the line, and a whole line again after it.
+    let said: Vec<Vec<f64>> = lopdf::content::Content::decode(found.page.as_bytes())
+        .unwrap()
+        .operations
+        .iter()
+        .filter(|operation| operation.operator == "d")
+        .map(|operation| {
+            assert_eq!(
+                number(&operation.operands[1]),
+                0.0,
+                "the ink begins where the line does"
+            );
+            operation.operands[0]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(number)
+                .collect()
+        })
+        .collect();
+    let mut wanted: Vec<Vec<f64>> = Vec::new();
+    // The five of the six lines that are not whole, 1.5 wide; then the bent path, 1 wide and
+    // dashed; the outline of the rectangle, 0.5 wide, a dash and a dot; and that of the
+    // polygon, 1 wide and dotted.
+    for dash in &LineType::ALL[1..] {
+        wanted.push(dash.lengths(1.5));
+        wanted.push(Vec::new());
+    }
+    for (dash, width) in [
+        (LineType::Dashed, 1.0),
+        (LineType::DashDot, 0.5),
+        (LineType::Dotted, 1.0),
+    ] {
+        wanted.push(dash.lengths(width));
+        wanted.push(Vec::new());
+    }
+    assert_eq!(said.len(), wanted.len());
+    for (found, wanted) in said.iter().zip(&wanted) {
+        assert_eq!(found.len(), wanted.len());
+        for (a, b) in found.iter().zip(wanted) {
+            assert!((a - b).abs() < 1e-6, "{said:?}");
+        }
+    }
+    // The whole line is drawn before any is cut, and says nothing of ink and gaps.
+    assert!(found.page.contains("0.133 0.133 0.133 RG 1.5 w\n10 8 m 110 8 l S\n0.133 0.133 0.133 RG 1.5 w\n[6 4.5] 0 d\n10 16 m 110 16 l S\n[] 0 d\n"));
+    assert_eq!(write(&drawing), pdf);
+    insta::assert_snapshot!(
+        "line_types",
+        format!("{}{}", readable(&write_plain(&drawing)), kept(&pdf))
+    );
+    if let Ok(folder) = std::env::var("ZEFF_FIGURES_DIR") {
+        std::fs::write(format!("{folder}/line_types.pdf"), &pdf).unwrap();
     }
 }
 

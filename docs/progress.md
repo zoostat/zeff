@@ -180,3 +180,13 @@ Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold a
 
 **For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: `points` takes the five aesthetics it draws and not `fill:`, `group:` or `label:`; the order of its options; the title of a shared axis stays the plot's. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 23b (lines with a type)
+
+**Done.** A line of a drawing has one of six types, in a fixed order: `solid`, `dashed`, `dotted`, `dash_dot`, `long_dash`, `dash_dot_dot`, each told from the others in black on white. The SVG and the PDF say the ink and gaps of a line; the rasteriser cuts the line itself; the three agree, and the engine's picture matches Ghostscript's rendering of the PDF. Section 7.6 of the Language Reference has the six with their lengths (logged). No script draws a line yet: `lines` is step 23c, which also draws the piece of line that is a legend key.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 282 of 282; CI is read job by job after the push.
+
+**Next.** Step 23c `[function]`: `lines` and `step`.
+
+**For the owner to decide.** Nothing waits for him. Chosen on the recommendation at this step, and his to change: which six line types, their names, their order and their lengths. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

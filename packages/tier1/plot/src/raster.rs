@@ -42,7 +42,9 @@
 
 use zeff_numeric::maths::sqrt;
 
-use crate::drawing::{Anchor, Drawing, Head, Item, Place, Primitive, Span, Stroke, TextBox, rgb};
+use crate::drawing::{
+    Anchor, Drawing, Head, Item, LineType, Place, Primitive, Span, Stroke, TextBox, rgb,
+};
 use crate::font::{Segment, face};
 use crate::shape::Geometry;
 use crate::svg::{ABOVE, BELOW, MARK_STROKE, geometry, turned};
@@ -550,6 +552,64 @@ fn stroke(corners: &[Place], closed: bool, width: f64, out: &mut Vec<Vec<Place>>
     }
 }
 
+/// The most pieces of ink one line is cut into: a line that would have more is drawn whole.
+const MOST_PIECES: usize = 200_000;
+
+/// A line cut into its pieces of ink: `lengths` are of ink and of gap by turns, beginning
+/// with ink where the line begins, and going round the corners. A closed line is cut all the
+/// way back to its start. A piece that ends where the line turns keeps the corner. Lengths
+/// that are not all above zero leave the line whole.
+pub fn pieces(corners: &[Place], closed: bool, lengths: &[f64]) -> Vec<Vec<Place>> {
+    let mut path: Vec<Place> = corners.to_vec();
+    if closed && let Some(&first) = corners.first() {
+        path.push(first);
+    }
+    if lengths.is_empty() || lengths.iter().any(|part| part.is_nan() || *part <= 0.0) {
+        return vec![path];
+    }
+    let mut out: Vec<Vec<Place>> = Vec::new();
+    let Some(&start) = path.first() else {
+        return out;
+    };
+    let (mut turn, mut left, mut ink) = (0, lengths[0], true);
+    let mut piece: Vec<Place> = vec![start];
+    for pair in path.windows(2) {
+        let (a, b) = (pair[0], pair[1]);
+        let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+        let long = sqrt(dx * dx + dy * dy);
+        if long.is_nan() || long <= 0.0 || long.is_infinite() {
+            continue;
+        }
+        let (ux, uy) = (dx / long, dy / long);
+        // How far along this straight piece the line has been cut.
+        let mut gone = 0.0;
+        while long - gone > left {
+            gone += left;
+            let at = (a.0 + ux * gone, a.1 + uy * gone);
+            if ink {
+                piece.push(at);
+                out.push(std::mem::take(&mut piece));
+                if out.len() > MOST_PIECES {
+                    return vec![path];
+                }
+            } else {
+                piece = vec![at];
+            }
+            turn = (turn + 1) % lengths.len();
+            left = lengths[turn];
+            ink = !ink;
+        }
+        left -= long - gone;
+        if ink {
+            piece.push(b);
+        }
+    }
+    if ink && piece.len() > 1 {
+        out.push(piece);
+    }
+    out
+}
+
 /// How many straight lines a curve is made of, from how far its controls bend it, in dots:
 /// `order` is 2 for a curve of one control and 3 for one of two.
 fn lines_for(bend: f64, order: f64) -> usize {
@@ -712,9 +772,18 @@ impl Page {
             self.fill(&shapes, rgb(colour), opacity, even_odd);
         }
         if let Some(line) = line {
+            let width = line.width * self.scale;
+            let lengths = line.dash.lengths(width);
             let mut ink = Vec::new();
             for (corners, closed) in parts {
-                stroke(corners, *closed, line.width * self.scale, &mut ink);
+                if lengths.is_empty() {
+                    stroke(corners, *closed, width, &mut ink);
+                } else {
+                    // A line that is not whole is the ink of each of its pieces.
+                    for piece in pieces(corners, *closed, &lengths) {
+                        stroke(&piece, false, width, &mut ink);
+                    }
+                }
             }
             self.fill(&ink, rgb(&line.colour), opacity, false);
         }
@@ -770,6 +839,7 @@ impl Page {
                         Some(Stroke {
                             colour: colour.clone(),
                             width: MARK_STROKE,
+                            dash: LineType::Solid,
                         }),
                     )
                 } else {

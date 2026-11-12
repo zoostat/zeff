@@ -30,7 +30,7 @@
 //! the shape, the size and the colour.
 
 use crate::colour;
-use crate::drawing::{Anchor, Drawing, Head, Item, Primitive, Span, Stroke, rgb};
+use crate::drawing::{Anchor, Drawing, Head, Item, LineType, Primitive, Span, Stroke, rgb};
 use crate::font::{FaceName, face};
 use crate::raster;
 use crate::scene::{Legend, Paint, Range, Scale, ScaleKind, Scene, Shaping, Sizing, diameter};
@@ -576,6 +576,7 @@ fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec
                         stroke: Stroke {
                             colour: theme.ink.to_string(),
                             width: theme.axis_width,
+                            dash: LineType::Solid,
                         },
                         heads: (Head::Plain, Head::Plain),
                     },
@@ -768,6 +769,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let line = |colour: &str, width: f64| Stroke {
         colour: colour.to_string(),
         width,
+        dash: LineType::Solid,
     };
     let segment = |from: (f64, f64), to: (f64, f64), stroke: Stroke| Primitive::Segment {
         from,

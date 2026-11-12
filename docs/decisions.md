@@ -3228,3 +3228,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 23a; open decision #106, option A; section 7.6 of the Language Reference ("a layer may name its own frame (`.points(data: outliers)`) or override a mapping").
 
+## 12 November 2026: lines with a type in a drawing (release 0.7.0, step 23b; decision #118, F9)
+
+**Decision.** A line of a drawing has a type (`drawing::LineType`, a field of `Stroke`): whole, or ink and gaps by turns. There are six, in the order a scale will give them to the categories of a variable: `solid`, `dashed`, `dotted`, `dash_dot`, `long_dash`, `dash_dot_dot`. The lengths of ink and gap are in widths of the line, so that a thicker line has longer dashes: 4 and 3; 1 and 2; 4, 2, 1 and 2; 8 and 3; 4, 2, 1, 2, 1 and 2. The ink begins where each part of a path begins, and the ends of every piece are cut square, a dot being as long as the line is wide.
+
+**The six, and why these.** Chosen on the recommendation under the owner's standing instruction of 12 November 2026, and his to change: they are the six a draughtsman's set has (whole, dashed, dotted, chain, long dashed, chain with two dots), each told from the others in black on white by the rhythm of its ink alone, which is what F9 asks ("distinguishable in greyscale"). The names are the project's own, in the snake case of its other words. The order puts the whole line first and the three plainest patterns next, so that a plot of two or three groups uses the types easiest to tell apart.
+
+**In each writer.** The SVG says the ink and the gaps of a line that is not whole as `stroke-dasharray`, in points; the PDF as its dash pattern before the line, and a whole line again after it; both leave the ends and the corners to the reader's own rule, which is square ends and pointed corners in both formats. The rasteriser cuts the line into its pieces of ink itself (`raster::pieces`), going round the corners, a piece that passes a corner keeping it so that the corner is drawn, and draws the ink of each piece as it draws any line. A file with no such line is byte for byte what it was: the conformance digests of every figure written before this step did not move.
+
+**What moved to step 23c.** The checklist gave this step the key of a legend for a line, "a piece of line". A legend key is drawn for a mark, and the first mark that is a line is `lines`, of step 23c; the key is built there with it and the checklist says so.
+
+**Tests.** The six in each format on one drawing (`tests/common`, `six_lines`): the SVG read by the independent reader of XML, each line saying the lengths of its type times its width and the whole line nothing; the PDF read by the independent reader, the pattern before each line and a whole line after; the picture at 720 dots to the inch, where a point is ten dots, with the ink of each type counted along the line and equal to what its lengths give over 100 points, and dots that must be ink or page at the ends of a dash and of a dot. `raster::pieces` by hand: a straight line, a piece round a corner, a closed line, the end of a line in ink and in a gap, lengths that are none. A property over 400 lines: the shares of the dots the ink of a cut line covers sum to the length of its ink times its width, to eight decimals. The names, the order and the lengths of the six. The conformance set gains `plot/lines/svg`, `plot/lines/pdf` and `plot/lines/png`, 326 lines.
+
+**Checked by eye.** The picture the engine draws beside Ghostscript's rendering of the PDF of the same drawing: the same six rhythms, the same bent line, the same outlines.
+
+**The specification.** The table of defaults of section 7.6 gains the row "Line types" (logged in `docs/spec_changes.md`).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 23b; decision #118, F9 ("Fix the default order of eight shapes and six line types, distinguishable in greyscale"; "F9's line types at step 23").
+

@@ -1772,6 +1772,9 @@ fn plot_cases() -> Vec<Line> {
         bytes("plot/png/figures", &png_figures(true)),
         bytes("plot/svg/picture", &picture_figure(false)),
         bytes("plot/pdf/picture", &picture_figure(true)),
+        bytes("plot/lines/svg", &line_types(0)),
+        bytes("plot/lines/pdf", &line_types(1)),
+        bytes("plot/lines/png", &line_types(2)),
         text("plot/fonts/metrics", &font_metrics()),
         text("plot/fonts/texts", &font_texts()),
         text("plot/fonts/outlines", &font_outlines()),
@@ -1967,6 +1970,67 @@ fn picture_figure(as_pdf: bool) -> Vec<u8> {
         zeff_plot::pdf::write(&drawing)
     } else {
         zeff_plot::svg::write(&drawing).into_bytes()
+    }
+}
+
+/// Lines with a type (step 23b; decision #118, F9): a line of each of the six types, a bent
+/// line and two outlines that are not whole, written as SVG (0), as PDF (1) and as a PNG at
+/// 300 dots to the inch (2), so that the targets prove they cut a line alike.
+fn line_types(format: u8) -> Vec<u8> {
+    use zeff_plot::drawing::{Drawing, Head, Item, LineType, Primitive, Step, Stroke};
+    let line = |dash: LineType, width: f64, colour: &str| Stroke {
+        colour: colour.to_string(),
+        width,
+        dash,
+    };
+    let unnamed = |primitive: Primitive| Item {
+        name: None,
+        primitive,
+    };
+    let mut items = vec![unnamed(Primitive::Rectangle {
+        at: (0.0, 0.0),
+        width: 120.0,
+        height: 80.0,
+        radius: 0.0,
+        fill: Some("#FFFFFF".to_string()),
+        stroke: None,
+    })];
+    for (i, dash) in LineType::ALL.into_iter().enumerate() {
+        let y = 8.0 + 8.0 * i as f64;
+        items.push(unnamed(Primitive::Segment {
+            from: (10.0, y),
+            to: (110.0, y + 0.37 * i as f64),
+            stroke: line(dash, 0.5 + 0.25 * i as f64, "#222222"),
+            heads: (Head::Plain, Head::Plain),
+        }));
+    }
+    for (i, dash) in LineType::ALL.into_iter().enumerate() {
+        let x = 10.0 + 17.0 * i as f64;
+        items.push(unnamed(Primitive::Path {
+            steps: vec![
+                Step::Move((x, 74.0)),
+                Step::Line((x + 6.5, 58.3)),
+                Step::Curve((x + 9.0, 55.0), (x + 12.0, 70.0), (x + 14.0, 60.0)),
+                Step::Close,
+            ],
+            stroke: Some(line(dash, 0.75, "#0072B2")),
+            fill: None,
+            opacity: if i % 2 == 0 { 1.0 } else { 0.5 },
+        }));
+    }
+    let drawing = Drawing {
+        width: 120.0,
+        height: 80.0,
+        items,
+        notes: Vec::new(),
+    };
+    match format {
+        0 => zeff_plot::svg::write(&drawing).into_bytes(),
+        1 => zeff_plot::pdf::write(&drawing),
+        _ => zeff_plot::raster::render(&drawing, zeff_plot::raster::DOTS)
+            .ok()
+            .and_then(|picture| zeff_plot::png::write(&picture, zeff_plot::raster::DOTS))
+            .unwrap_or_default(),
     }
 }
 

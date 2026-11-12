@@ -33,7 +33,7 @@
 use zeff_numeric::maths::{cos, sin};
 
 use crate::drawing::{
-    Anchor, Drawing, Head, Item, Primitive, Span, Step, Stroke, TextBox, hex, length,
+    Anchor, Drawing, Head, Item, LineType, Primitive, Span, Step, Stroke, TextBox, hex, length,
 };
 use crate::font::{Segment, face};
 use crate::png;
@@ -161,6 +161,22 @@ pub(crate) fn turned(degrees: f64) -> (f64, f64) {
     }
 }
 
+/// The ink and the gaps of a line that is not whole, as an attribute; nothing for a whole
+/// line, so that a file without such a line is as it was before lines had a type.
+fn dashes(line: &Stroke) -> String {
+    let lengths: Vec<String> = line
+        .dash
+        .lengths(line.width)
+        .iter()
+        .map(|part| length(*part))
+        .collect();
+    if lengths.is_empty() {
+        String::new()
+    } else {
+        format!(" stroke-dasharray=\"{}\"", lengths.join(" "))
+    }
+}
+
 fn paint(fill: &Option<String>, stroke: &Option<Stroke>, opacity: f64) -> String {
     let mut out = match fill {
         Some(colour) => format!(" fill=\"{colour}\""),
@@ -168,9 +184,10 @@ fn paint(fill: &Option<String>, stroke: &Option<Stroke>, opacity: f64) -> String
     };
     if let Some(line) = stroke {
         out.push_str(&format!(
-            " stroke=\"{}\" stroke-width=\"{}\"",
+            " stroke=\"{}\" stroke-width=\"{}\"{}",
             line.colour,
-            length(line.width)
+            length(line.width),
+            dashes(line)
         ));
     }
     if opacity != 1.0 {
@@ -290,6 +307,7 @@ impl Writer {
                 let line = Some(Stroke {
                     colour: first.colour.to_string(),
                     width: MARK_STROKE,
+                    dash: LineType::Solid,
                 });
                 paint(&None, &line, first.opacity)
             } else {
@@ -457,13 +475,14 @@ impl Writer {
                 heads,
             } => {
                 self.out.push_str(&format!(
-                    "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n",
+                    "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\"{}/>\n",
                     length(from.0),
                     length(from.1),
                     length(to.0),
                     length(to.1),
                     stroke.colour,
-                    length(stroke.width)
+                    length(stroke.width),
+                    dashes(stroke)
                 ));
                 if heads.0 == Head::Arrow {
                     self.arrow(*to, *from, stroke);

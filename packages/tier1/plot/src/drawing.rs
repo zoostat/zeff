@@ -22,11 +22,76 @@ use crate::font::FaceName;
 /// A place on the page, in points.
 pub type Place = (f64, f64);
 
-/// A line: its colour, `#RRGGBB`, and its width in points.
+/// The type of a line (decision #118, F9): whole, or ink and gaps by turns. There are six, in
+/// the order a scale gives them to the categories of a variable, chosen so that each can be
+/// told from the others in black on white, whatever the colour.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LineType {
+    #[default]
+    Solid,
+    Dashed,
+    Dotted,
+    DashDot,
+    LongDash,
+    DashDotDot,
+}
+
+impl LineType {
+    /// The six, in their order.
+    pub const ALL: [LineType; 6] = [
+        LineType::Solid,
+        LineType::Dashed,
+        LineType::Dotted,
+        LineType::DashDot,
+        LineType::LongDash,
+        LineType::DashDotDot,
+    ];
+
+    /// The type as it is written: `solid`, `dashed`, `dotted`, `dash_dot`, `long_dash`,
+    /// `dash_dot_dot`.
+    pub fn name(self) -> &'static str {
+        match self {
+            LineType::Solid => "solid",
+            LineType::Dashed => "dashed",
+            LineType::Dotted => "dotted",
+            LineType::DashDot => "dash_dot",
+            LineType::LongDash => "long_dash",
+            LineType::DashDotDot => "dash_dot_dot",
+        }
+    }
+
+    /// The type of a name; `None` for a name that is none of the six.
+    pub fn parse(name: &str) -> Option<LineType> {
+        LineType::ALL.into_iter().find(|each| each.name() == name)
+    }
+
+    /// The lengths of ink and of gap by turns, beginning with ink, in widths of the line, so
+    /// that a thicker line has longer dashes; nothing for a whole line. A dot is as long as
+    /// the line is wide.
+    pub fn pattern(self) -> &'static [f64] {
+        match self {
+            LineType::Solid => &[],
+            LineType::Dashed => &[4.0, 3.0],
+            LineType::Dotted => &[1.0, 2.0],
+            LineType::DashDot => &[4.0, 2.0, 1.0, 2.0],
+            LineType::LongDash => &[8.0, 3.0],
+            LineType::DashDotDot => &[4.0, 2.0, 1.0, 2.0, 1.0, 2.0],
+        }
+    }
+
+    /// The lengths of ink and of gap of a line `width` wide, in the unit of the width.
+    pub fn lengths(self, width: f64) -> Vec<f64> {
+        self.pattern().iter().map(|part| part * width).collect()
+    }
+}
+
+/// A line: its colour, `#RRGGBB`, its width in points, and its type. The ink of a line that
+/// is not whole begins where each part of the path begins, and its ends are cut square.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Stroke {
     pub colour: String,
     pub width: f64,
+    pub dash: LineType,
 }
 
 /// Where a text stands against its place: starting there, centred on it or ending there.
@@ -210,7 +275,10 @@ fn place(at: Place) -> String {
 
 fn stroke(stroke: &Option<Stroke>) -> String {
     match stroke {
-        Some(s) => format!(" stroke {} {}", s.colour, length(s.width)),
+        Some(s) if s.dash == LineType::Solid => {
+            format!(" stroke {} {}", s.colour, length(s.width))
+        }
+        Some(s) => format!(" stroke {} {} {}", s.colour, length(s.width), s.dash.name()),
         None => String::new(),
     }
 }
@@ -362,11 +430,16 @@ fn describe_items(items: &[Item], depth: usize, out: &mut String) {
                 stroke: line,
                 heads,
             } => format!(
-                "segment {} to {} stroke {} {}{}",
+                "segment {} to {} stroke {} {}{}{}",
                 place(*from),
                 place(*to),
                 line.colour,
                 length(line.width),
+                if line.dash == LineType::Solid {
+                    String::new()
+                } else {
+                    format!(" {}", line.dash.name())
+                },
                 match heads {
                     (Head::Plain, Head::Plain) => "",
                     (Head::Arrow, Head::Plain) => " arrow at the start",
@@ -459,6 +532,44 @@ mod tests {
     use super::*;
 
     #[test]
+    fn the_six_types_of_a_line_have_names_and_begin_with_ink() {
+        let names: Vec<&str> = LineType::ALL.iter().map(|each| each.name()).collect();
+        assert_eq!(
+            names,
+            [
+                "solid",
+                "dashed",
+                "dotted",
+                "dash_dot",
+                "long_dash",
+                "dash_dot_dot"
+            ]
+        );
+        for each in LineType::ALL {
+            assert_eq!(LineType::parse(each.name()), Some(each));
+            // Ink and gap by turns: an even number of lengths, each above zero.
+            let pattern = each.pattern();
+            assert_eq!(pattern.len() % 2, 0);
+            assert!(pattern.iter().all(|part| *part > 0.0));
+            // No two types have the same lengths.
+            for other in LineType::ALL {
+                assert_eq!(each.pattern() == other.pattern(), each == other);
+            }
+        }
+        assert_eq!(LineType::default(), LineType::Solid);
+        assert!(LineType::Solid.pattern().is_empty());
+        assert_eq!(LineType::parse("Dashed"), None);
+        assert_eq!(LineType::parse("dash"), None);
+        // A thicker line has longer dashes: the lengths are in widths of the line.
+        assert_eq!(LineType::Dashed.lengths(0.5), [2.0, 1.5]);
+        assert_eq!(
+            LineType::DashDotDot.lengths(2.0),
+            [8.0, 4.0, 2.0, 4.0, 2.0, 4.0]
+        );
+        assert!(LineType::Solid.lengths(3.0).is_empty());
+    }
+
+    #[test]
     fn a_length_is_written_to_a_thousandth_of_a_point() {
         assert_eq!(length(0.0), "0");
         assert_eq!(length(-0.0), "0");
@@ -478,6 +589,7 @@ mod tests {
         let line = Stroke {
             colour: "#222222".to_string(),
             width: 0.5,
+            dash: LineType::Solid,
         };
         let named = |name: &str, primitive: Primitive| Item {
             name: Some(name.to_string()),

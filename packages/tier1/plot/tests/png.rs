@@ -16,13 +16,13 @@ mod common;
 use common::*;
 use proptest::prelude::*;
 use zeff_core::value::Aesthetic;
-use zeff_plot::drawing::{Anchor, Drawing, Item, Place, Primitive, Span, Step, Stroke};
+use zeff_plot::drawing::{Anchor, Drawing, Item, LineType, Place, Primitive, Span, Step, Stroke};
 use zeff_plot::font::{FaceName, face};
 use zeff_plot::layout::{JOURNAL, Size, layout};
 use zeff_plot::pdf::rgb;
 use zeff_plot::png::write;
 use zeff_plot::raster::{
-    DOTS, MOST_DOTS, Picture, RasterError, coverage, dots_of, ink_of, render, render_part,
+    DOTS, MOST_DOTS, Picture, RasterError, coverage, dots_of, ink_of, pieces, render, render_part,
 };
 
 const WHITE: [u8; 3] = [255, 255, 255];
@@ -382,6 +382,7 @@ fn marks_that_are_not_opaque_darken_each_other_and_the_pieces_of_one_line_do_not
             stroke: Some(Stroke {
                 colour: "#000000".to_string(),
                 width: 6.0,
+                dash: LineType::Solid,
             }),
             fill: None,
             opacity: 0.5,
@@ -804,6 +805,114 @@ fn a_layer_flagged_to_be_drawn_in_dots_is_laid_out_as_a_picture_of_the_panel() {
     assert!(most <= 128, "{most}");
 }
 
+// ----- lines with a type (step 23b) -----
+
+#[test]
+fn a_line_that_is_not_whole_is_drawn_as_its_pieces_of_ink() {
+    let drawing = six_lines();
+    // At 720 dots to the inch a point is ten dots: a line 1.5 wide is fifteen dots, and the
+    // ink of a dash starts and ends on a dot.
+    let picture = render(&drawing, 720.0).unwrap();
+    assert_eq!((picture.width, picture.height), (1200, 800));
+    let ink = rgb("#222222");
+    for (i, dash) in LineType::ALL.into_iter().enumerate() {
+        let row = 80 + 80 * i;
+        // The ink of the line: every dot of it wholly ink or wholly page, counted along the
+        // middle of the line, is the ink of its type over a hundred points.
+        let dark = (0..1200).filter(|&x| picture.dot(x, row) == ink).count();
+        let wanted = ink_along(100.0, &dash.lengths(1.5)) * 10.0;
+        assert_eq!(dark as f64, wanted, "{}", dash.name());
+        // Nothing before the line or after it, and nothing between it and the next.
+        assert_eq!(picture.dot(99, row), WHITE);
+        assert_eq!(picture.dot(1100, row), WHITE);
+        assert_eq!(picture.dot(600, row + 40), WHITE);
+        // The line is fifteen dots wide about a middle that lies between two rows: seven
+        // rows above it and seven below are ink, and half a row beyond each.
+        assert_eq!(picture.dot(100, row - 7), ink);
+        assert_eq!(picture.dot(100, row + 6), ink);
+        let half = mix(WHITE, ink, 0.5);
+        assert!(near(picture.dot(100, row - 8), half) && near(picture.dot(100, row + 7), half));
+        assert_eq!(picture.dot(100, row - 9), WHITE);
+        assert_eq!(picture.dot(100, row + 8), WHITE);
+    }
+    // The dashed line: 6 points of ink and 4.5 of gap, so ink from 100 to 160 dots, a gap to
+    // 205, and ink again.
+    let row = 160;
+    assert_eq!(picture.dot(100, row), ink);
+    assert_eq!(picture.dot(159, row), ink);
+    assert_eq!(picture.dot(160, row), WHITE);
+    assert_eq!(picture.dot(204, row), WHITE);
+    assert_eq!(picture.dot(205, row), ink);
+    // The dotted line: a dot as long as the line is wide.
+    let row = 240;
+    assert_eq!(picture.dot(114, row), ink);
+    assert_eq!(picture.dot(115, row), WHITE);
+    assert_eq!(picture.dot(144, row), WHITE);
+    assert_eq!(picture.dot(145, row), ink);
+    let file = write(&picture, 720.0).unwrap();
+    checks(&file, &picture, 720.0).unwrap();
+    // At the dots of a figure, kept as its size and hash.
+    let picture = render(&drawing, DOTS).unwrap();
+    let file = write(&picture, DOTS).unwrap();
+    checks(&file, &picture, DOTS).unwrap();
+    insta::assert_snapshot!("line_types", kept(&picture, &file));
+    if let Ok(folder) = std::env::var("ZEFF_FIGURES_DIR") {
+        std::fs::write(format!("{folder}/line_types.png"), &file).unwrap();
+    }
+}
+
+#[test]
+fn a_line_is_cut_into_pieces_that_go_round_its_corners() {
+    // A straight line of 20 with 4 of ink and 3 of gap: three pieces.
+    let straight = pieces(&[(0.0, 0.0), (20.0, 0.0)], false, &[4.0, 3.0]);
+    assert_eq!(
+        straight,
+        [
+            vec![(0.0, 0.0), (4.0, 0.0)],
+            vec![(7.0, 0.0), (11.0, 0.0)],
+            vec![(14.0, 0.0), (18.0, 0.0)],
+        ]
+    );
+    // A piece that goes round a corner keeps the corner, so the corner is drawn.
+    let bent = pieces(&[(0.0, 0.0), (5.0, 0.0), (5.0, 9.0)], false, &[7.0, 3.0]);
+    assert_eq!(
+        bent,
+        [
+            vec![(0.0, 0.0), (5.0, 0.0), (5.0, 2.0)],
+            vec![(5.0, 5.0), (5.0, 9.0)],
+        ]
+    );
+    // A closed line is cut all the way back to its start: a square of side 5, 20 round.
+    let square = [(0.0, 0.0), (5.0, 0.0), (5.0, 5.0), (0.0, 5.0)];
+    let round = pieces(&square, true, &[6.0, 4.0]);
+    assert_eq!(round.len(), 2);
+    assert_eq!(round[0], [(0.0, 0.0), (5.0, 0.0), (5.0, 1.0)]);
+    assert_eq!(round[1], [(5.0, 5.0), (0.0, 5.0), (0.0, 4.0)]);
+    // A gap that ends where the line ends leaves no piece; ink that is cut by the end stops
+    // there.
+    assert_eq!(
+        pieces(&[(0.0, 0.0), (7.0, 0.0)], false, &[4.0, 3.0]).len(),
+        1
+    );
+    assert_eq!(
+        pieces(&[(0.0, 0.0), (9.0, 0.0)], false, &[4.0, 3.0])[1],
+        [(7.0, 0.0), (9.0, 0.0)]
+    );
+    // Lengths that are not all above zero, and no lengths, leave the line whole.
+    for lengths in [&[][..], &[4.0, 0.0], &[4.0, -1.0], &[f64::NAN, 2.0]] {
+        assert_eq!(
+            pieces(&[(0.0, 0.0), (9.0, 0.0)], false, lengths),
+            [vec![(0.0, 0.0), (9.0, 0.0)]]
+        );
+    }
+    // Corners that stand on each other are passed over; no corner, no piece.
+    assert_eq!(
+        pieces(&[(0.0, 0.0), (0.0, 0.0), (5.0, 0.0)], false, &[2.0, 1.0]).len(),
+        2
+    );
+    assert!(pieces(&[], false, &[2.0, 1.0]).is_empty());
+}
+
 // ----- figures -----
 
 /// What holds of the picture of a figure laid out from a scene: the page is white at its
@@ -1077,6 +1186,25 @@ proptest! {
         let ink = ink_of(&[(vec![from, to], false)], width);
         let sum: f64 = coverage(&ink, false, 30, 30).iter().sum();
         prop_assert!((sum - long * width).abs() < 1e-9 * (1.0 + long * width));
+    }
+
+    #[test]
+    fn the_ink_of_a_line_that_is_not_whole_is_the_length_of_its_ink_times_its_width(
+        from in (5.0..25.0f64, 5.0..25.0f64),
+        to in (5.0..25.0f64, 5.0..25.0f64),
+        width in 0.1..2.0f64,
+        kind in 1usize..6,
+    ) {
+        let long = ((to.0 - from.0).powi(2) + (to.1 - from.1).powi(2)).sqrt();
+        prop_assume!(long > 0.01);
+        let lengths = LineType::ALL[kind].lengths(width);
+        let cut: Vec<(Vec<Place>, bool)> = pieces(&[from, to], false, &lengths)
+            .into_iter()
+            .map(|piece| (piece, false))
+            .collect();
+        let sum: f64 = coverage(&ink_of(&cut, width), false, 30, 30).iter().sum();
+        let wanted = ink_along(long, &lengths) * width;
+        prop_assert!((sum - wanted).abs() < 1e-8 * (1.0 + wanted), "{} and {}", sum, wanted);
     }
 
     #[test]

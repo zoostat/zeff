@@ -12,7 +12,7 @@ mod common;
 use common::*;
 use proptest::prelude::*;
 use zeff_core::value::Aesthetic;
-use zeff_plot::drawing::{Drawing, Item, Primitive};
+use zeff_plot::drawing::{Drawing, Item, LineType, Primitive};
 use zeff_plot::layout::{JOURNAL, SMALLEST_TEXT, Size, layout};
 use zeff_plot::svg::{MARK_STROKE, MOST_RECTANGLES, write};
 
@@ -295,6 +295,57 @@ fn a_grid_of_few_cells_is_rectangles_and_one_of_many_a_picture() {
     );
     checks(&many, &grid(65, 64)).unwrap();
     assert!(many.len() < few.len() / 4);
+}
+
+// ----- lines with a type (step 23b) -----
+
+#[test]
+fn a_line_that_is_not_whole_says_its_ink_and_its_gaps() {
+    let drawing = six_lines();
+    let svg = write(&drawing);
+    checks(&svg, &drawing).unwrap();
+    let document = roxmltree::Document::parse(&svg).unwrap();
+    // The six lines, each 1.5 wide: its ink and gaps are those of its type times its width,
+    // and a whole line says nothing.
+    let lines: Vec<_> = document
+        .descendants()
+        .filter(|node| node.has_tag_name("line"))
+        .collect();
+    assert_eq!(lines.len(), 6);
+    for (line, dash) in lines.iter().zip(LineType::ALL) {
+        let wanted: Vec<f64> = dash.lengths(1.5);
+        let found: Vec<f64> = line
+            .attribute("stroke-dasharray")
+            .map(|written| {
+                written
+                    .split(' ')
+                    .map(|part| part.parse().unwrap())
+                    .collect()
+            })
+            .unwrap_or_default();
+        assert_eq!(found, wanted, "{}", dash.name());
+        assert_eq!(line.attribute("stroke-width"), Some("1.5"));
+    }
+    assert!(lines[0].attribute("stroke-dasharray").is_none());
+    assert_eq!(lines[1].attribute("stroke-dasharray"), Some("6 4.5"));
+    assert_eq!(
+        lines[5].attribute("stroke-dasharray"),
+        Some("6 3 1.5 3 1.5 3")
+    );
+    // A bent path, the outline of a rectangle and the outline of a polygon say theirs too.
+    assert!(svg.contains(
+        "stroke=\"#0072B2\" stroke-width=\"1\" stroke-dasharray=\"4 3\" stroke-opacity=\"0.5\""
+    ));
+    assert!(svg.contains("stroke=\"#222222\" stroke-width=\"0.5\" stroke-dasharray=\"2 1 0.5 1\""));
+    assert!(svg.contains("stroke=\"#222222\" stroke-width=\"1\" stroke-dasharray=\"1 2\""));
+    // The ends of a line are cut square and its corners drawn to a point, as a reader of SVG
+    // does unless told otherwise: the file tells it nothing of either.
+    assert!(!svg.contains("linecap") && !svg.contains("linejoin") && !svg.contains("dashoffset"));
+    assert_eq!(write(&drawing), svg);
+    insta::assert_snapshot!("line_types", svg);
+    if let Ok(folder) = std::env::var("ZEFF_FIGURES_DIR") {
+        std::fs::write(format!("{folder}/line_types.svg"), &svg).unwrap();
+    }
 }
 
 // ----- figures -----

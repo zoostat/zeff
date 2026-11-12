@@ -1,0 +1,27 @@
+---
+source: packages/tier1/plot/tests/svg.rs
+expression: svg
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120pt" height="80pt" viewBox="0 0 120 80">
+<g id="background">
+<rect x="0" y="0" width="120" height="80" fill="#FFFFFF"/>
+</g>
+<g id="types">
+<line x1="10" y1="8" x2="110" y2="8" stroke="#222222" stroke-width="1.5"/>
+<line x1="10" y1="16" x2="110" y2="16" stroke="#222222" stroke-width="1.5" stroke-dasharray="6 4.5"/>
+<line x1="10" y1="24" x2="110" y2="24" stroke="#222222" stroke-width="1.5" stroke-dasharray="1.5 3"/>
+<line x1="10" y1="32" x2="110" y2="32" stroke="#222222" stroke-width="1.5" stroke-dasharray="6 3 1.5 3"/>
+<line x1="10" y1="40" x2="110" y2="40" stroke="#222222" stroke-width="1.5" stroke-dasharray="12 4.5"/>
+<line x1="10" y1="48" x2="110" y2="48" stroke="#222222" stroke-width="1.5" stroke-dasharray="6 3 1.5 3 1.5 3"/>
+</g>
+<g id="bent">
+<path d="M10 62L40 56L70 62" fill="none" stroke="#0072B2" stroke-width="1" stroke-dasharray="4 3" stroke-opacity="0.5"/>
+</g>
+<g id="boxed">
+<rect x="80" y="56" width="14" height="16" fill="#F0E442" stroke="#222222" stroke-width="0.5" stroke-dasharray="2 1 0.5 1"/>
+</g>
+<g id="outlined">
+<path d="M100 56L112 64L100 72Z" fill-rule="evenodd" fill="none" stroke="#222222" stroke-width="1" stroke-dasharray="1 2"/>
+</g>
+</svg>

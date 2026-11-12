@@ -257,6 +257,9 @@ plot/png/dots 5f4f4b8609f9849b
 plot/png/figures bb33bb1f8a9dfd28
 plot/svg/picture 0c532a1e9480d092
 plot/pdf/picture 20623f8e1b133fc3
+plot/lines/svg 440bffa038959ef8
+plot/lines/pdf e8dba8e18bec6745
+plot/lines/png e246a4c14ffa9c6e
 plot/fonts/metrics bebed91423abec50
 plot/fonts/texts 1ef6df97a647e193
 plot/fonts/outlines 2d1b1d03228c837c

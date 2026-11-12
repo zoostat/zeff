@@ -9,7 +9,7 @@ use std::rc::Rc;
 use zeff_columns::{Column, Table};
 use zeff_core::value::{Aesthetic, Frame, Mark, PlotConstant, PlotLayer, PlotMapping, PlotSetting};
 use zeff_plot::drawing::{
-    Anchor, Drawing, Head, Item, Primitive, Span, Step, Stroke, TextBox, rgb,
+    Anchor, Drawing, Head, Item, LineType, Primitive, Span, Step, Stroke, TextBox, rgb,
 };
 use zeff_plot::font::FaceName;
 use zeff_plot::scene::{Scene, start, with_layer};
@@ -127,6 +127,7 @@ pub fn every_primitive() -> Drawing {
     let line = |width: f64| Stroke {
         colour: "#222222".to_string(),
         width,
+        dash: LineType::Solid,
     };
     let unnamed = |primitive: Primitive| Item {
         name: None,
@@ -530,4 +531,105 @@ pub fn pictures_in(drawing: &Drawing) -> Vec<(usize, usize, Vec<u8>)> {
             _ => None,
         })
         .collect()
+}
+
+// ----- lines with a type (step 23b) -----
+
+/// A drawing of 120 by 80 points with a line of each of the six types, 100 points long and
+/// 1.5 wide, one under the other; and under them a bent line, the outline of a rectangle and
+/// the outline of a polygon, each of a type that is not whole.
+pub fn six_lines() -> Drawing {
+    let line = |dash: LineType, width: f64| Stroke {
+        colour: "#222222".to_string(),
+        width,
+        dash,
+    };
+    let item = |name: &str, primitive: Primitive| Item {
+        name: Some(name.to_string()),
+        primitive,
+    };
+    let mut items = vec![item(
+        "background",
+        Primitive::Rectangle {
+            at: (0.0, 0.0),
+            width: 120.0,
+            height: 80.0,
+            radius: 0.0,
+            fill: Some("#FFFFFF".to_string()),
+            stroke: None,
+        },
+    )];
+    for (i, dash) in LineType::ALL.into_iter().enumerate() {
+        let y = 8.0 + 8.0 * i as f64;
+        items.push(item(
+            "types",
+            Primitive::Segment {
+                from: (10.0, y),
+                to: (110.0, y),
+                stroke: line(dash, 1.5),
+                heads: (Head::Plain, Head::Plain),
+            },
+        ));
+    }
+    items.push(item(
+        "bent",
+        Primitive::Path {
+            steps: vec![
+                Step::Move((10.0, 62.0)),
+                Step::Line((40.0, 56.0)),
+                Step::Line((70.0, 62.0)),
+            ],
+            stroke: Some(Stroke {
+                colour: "#0072B2".to_string(),
+                width: 1.0,
+                dash: LineType::Dashed,
+            }),
+            fill: None,
+            opacity: 0.5,
+        },
+    ));
+    items.push(item(
+        "boxed",
+        Primitive::Rectangle {
+            at: (80.0, 56.0),
+            width: 14.0,
+            height: 16.0,
+            radius: 0.0,
+            fill: Some("#F0E442".to_string()),
+            stroke: Some(line(LineType::DashDot, 0.5)),
+        },
+    ));
+    items.push(item(
+        "outlined",
+        Primitive::Polygon {
+            rings: vec![vec![(100.0, 56.0), (112.0, 64.0), (100.0, 72.0)]],
+            fill: None,
+            stroke: Some(line(LineType::Dotted, 1.0)),
+            opacity: 1.0,
+        },
+    ));
+    Drawing {
+        width: 120.0,
+        height: 80.0,
+        items,
+        notes: Vec::new(),
+    }
+}
+
+/// How much of a line of a length is ink, when its ink and gaps are of these lengths by
+/// turns from its start.
+pub fn ink_along(long: f64, lengths: &[f64]) -> f64 {
+    if lengths.is_empty() {
+        return long;
+    }
+    let (mut gone, mut ink, mut turn) = (0.0, 0.0, 0);
+    while gone < long {
+        let part = lengths[turn % lengths.len()].min(long - gone);
+        if turn % 2 == 0 {
+            ink += part;
+        }
+        gone += part;
+        turn += 1;
+    }
+    ink
 }
