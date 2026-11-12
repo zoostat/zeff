@@ -14,8 +14,8 @@ use std::rc::Rc;
 
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, AxisKind, Coord, LegendPlace, Palette, Plot, PlotAxis, PlotFacet, PlotScale,
-    PlotTheme, ThemeName, Value,
+    Aesthetic, AxisKind, Coord, FacetScales, LegendPlace, Palette, Plot, PlotAxis, PlotFacet,
+    PlotScale, PlotTheme, ThemeName, Value,
 };
 use zeff_diagnostics::Diagnostic;
 use zeff_diagnostics::Span;
@@ -817,6 +817,20 @@ pub(crate) fn no_rug(ctx: &CallContext<'_>, at: Span) -> Fail {
     )
 }
 
+/// The refusal of panels with axes of their own in fixed or polar coordinates, where the
+/// call that brings the two together is written.
+pub(crate) fn not_free(ctx: &CallContext<'_>, coord: &str, at: Span) -> Fail {
+    fail(
+        Diagnostic::error(
+            "Z0401",
+            format!("panels with axes of their own are not drawn in `{coord}` coordinates, where the scales of the plot give every panel one shape"),
+        )
+        .in_file(ctx.script)
+        .primary(at, "free scales, where the scales shape the panel")
+        .help("leave `scales:` at `fixed`, or draw the plot in `cartesian` or flipped coordinates"),
+    )
+}
+
 const C_TYPE: usize = 1;
 const C_RATIO: usize = 2;
 
@@ -884,6 +898,9 @@ pub fn coord(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     if crate::scene::rug_round_a_circle(&next) {
         return Err(no_rug(ctx, ctx.span_of(C_TYPE)));
     }
+    if let Some(coord) = crate::scene::free_in_a_fixed_shape(&next) {
+        return Err(not_free(ctx, coord, ctx.span_of(C_TYPE)));
+    }
     describe(&mut next);
     Ok(Value::Plot(Rc::new(next)))
 }
@@ -901,17 +918,6 @@ pub fn facet(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         return Err(internal(ctx, "facets reached their body without a plot"));
     };
     let plot: Rc<Plot> = plot.clone();
-    let not_yet = |ctx: &CallContext<'_>, slot: usize, what: &str| {
-        fail(
-            Diagnostic::error(
-                "Z0401",
-                format!("{what} is not built yet: it comes with a later step of this release"),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(slot), "not in this build")
-            .help("`facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share"),
-        )
-    };
     // The variable of the rows of a grid, and that of its columns.
     let mut grid: [Option<String>; 2] = [None, None];
     for (at, slot) in [FA_ROWS, FA_COLS].into_iter().enumerate() {
@@ -930,18 +936,17 @@ pub fn facet(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         };
     }
     let [rows, cols] = grid;
-    match args.get(FA_SCALES) {
-        None | Some(Value::Na) => {}
-        Some(Value::Word(word)) if word.as_str() == "fixed" => {}
-        Some(Value::Word(word)) => {
-            return Err(not_yet(
-                ctx,
-                FA_SCALES,
-                &format!("`scales: {word}` of `facet`"),
-            ));
-        }
+    let shared = match args.get(FA_SCALES) {
+        None | Some(Value::Na) => FacetScales::Fixed,
+        Some(Value::Word(word)) => match word.as_str() {
+            "fixed" => FacetScales::Fixed,
+            "free" => FacetScales::Free,
+            "free_x" => FacetScales::FreeX,
+            "free_y" => FacetScales::FreeY,
+            _ => return Err(internal(ctx, "scales of facets that are none of the four")),
+        },
         Some(_) => return Err(internal(ctx, "scales of facets that are not a word")),
-    }
+    };
     let gridded = rows.is_some() || cols.is_some();
     let by: Vec<String> = match args.get(FA_BY) {
         Some(Value::Var(name)) => vec![name.clone()],
@@ -997,7 +1002,15 @@ pub fn facet(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     let mut next = (*plot).clone();
     // What is said last of the facets takes the place of what was said.
-    next.facet = Some(PlotFacet { by, rows, cols });
+    next.facet = Some(PlotFacet {
+        by,
+        rows,
+        cols,
+        scales: shared,
+    });
+    if let Some(coord) = crate::scene::free_in_a_fixed_shape(&next) {
+        return Err(not_free(ctx, coord, ctx.span_of(FA_SCALES)));
+    }
     let before = scene(&plot).notes;
     let after = describe(&mut next);
     announce(ctx, &before, &after.notes);

@@ -29,8 +29,9 @@ with one variable or two.
 - cols: For a grid: the variable with a column of panels for each of its values, a bare
   name. Alone, the panels stand side by side. `rows:` and `cols:` are not given with `by:`.
 - scales: Whether the panels share their axes, a word without quotation marks. `fixed`, the
-  default, is the one way built so far: every panel has the same two axes. `free`, `free_x`
-  and `free_y` are refused.
+  default: every panel has the same two axes. `free`: each panel has axes of its own.
+  `free_x`: an `x` axis of its own, and `y` shared. `free_y`: a `y` axis of its own, and `x`
+  shared.
 
 ## Value
 The `Plot` parted into panels. The plot given is not changed. What a later `facet` says
@@ -63,15 +64,28 @@ The scales. The axes, the colours, the sizes and the shapes are those of the plo
 facets, trained over all the rows, and every panel is drawn by them. The width of a bar is
 the same in every panel.
 
-The page. The panels are of one size and are laid in rows from the top left: one row for up
-to three panels, two for up to six, three for up to twelve, and beyond that about as many
-rows as columns. The labels of `y` are written beside the first panel of each row and those
-of `x` under the lowest panel of each column; each axis has its title once, and the legends
-stand beside the whole. Where that grid would leave each panel less than 12.7 mm wide or
-high on the page of the figure, the panels are laid in more columns or fewer, so that forty
-panels on a page of two columns are four rows of ten. A grid of `rows:` and `cols:` is laid
-as it is. Where the panels cannot have their room, the figure is refused when it is written
-by `export`: give a larger `size:`.
+Axes of their own. With `scales: free_y` each panel has the `y` axis of its own marks: its
+limits, its breaks and its labels are those the panel would have as a plot by itself, and its
+labels are written beside it. Small groups are then not flattened by large ones, and the
+shapes within the panels can be compared; the heights cannot, for the same place on the page
+is no longer the same value, so say in the caption that the axes differ. `free_x` does the
+same along `x`, and `free` along both. In a grid of `rows:` and `cols:` a row of panels shares
+its `y` axis and a column its `x` axis, so free scales there give each row its own `y` and
+each column its own `x`. An axis of categories is never free: every panel keeps a place for
+every category. Bars and areas still start at zero in every panel. Limits and breaks that
+`scale_x` or `scale_y` set hold in every panel. Free scales are drawn in cartesian and flipped
+coordinates; with `coord(fixed)` and `coord(polar)`, where the scales give the panel its
+shape, they are refused.
+
+The page. The panels are of one size and are laid in rows from the top left: one row for up to
+three panels, two for up to six, three for up to twelve, and beyond that about as many rows as
+columns. The labels of `y` are written beside the first panel of each row and those of `x`
+under the lowest panel of each column, and beside or under any panel whose axis is not its
+neighbour's; each axis has its title once, and the legends stand beside the whole. Where that
+grid would leave each panel less than 12.7 mm wide or high on the page of the figure, the
+panels are laid in more columns or fewer, so that forty panels on a page of two columns are
+four rows of ten. A grid of `rows:` and `cols:` is laid as it is. Where the panels cannot have
+their room, the figure is refused when it is written by `export`: give a larger `size:`.
 
 With the other functions. `coord(flip)`, `coord(fixed)` and `coord(polar)` are applied in
 every panel. `legend(direct)` writes names at the ends of lines beside one panel, so with
@@ -79,11 +93,12 @@ facets the legend is drawn at the right. `labels`, `theme` and the scales are th
 whole plot.
 
 The printed plot says the panels on a line of its own under the table of layers: how many they
-are, the variable, and what is written over them; for a grid, its rows and its columns. Its
+are, the variable, and what is written over them; for a grid, its rows and its columns; and
+which axes the panels have of their own. Its table of axes is that of the whole plot, and its
 table of layers counts the marks of each layer over all the panels.
 
 ## See also
-plot, coord, legend, scale, export
+plot, coord, scale_x, scale_y, legend, export
 
 ## Examples
 > let d = frame(site = ["north", "south", "north", "south"], week = [1, 1, 2, 2], count = [4, 7, 5, 9])
@@ -123,3 +138,16 @@ plot · g · count against week
       1   points   g          4   size 4.5, alpha 1
 
 panels: 4, 2 rows by site (north, south) and 2 columns by arm (a, b)
+> let h = frame(site = ["north", "south", "north", "south"], week = [1, 1, 2, 2], count = [4, 70, 5, 90])
+> h.plot(x: week, y: count).lines().points().facet(by: site, scales: free_y)
+plot · h · count against week
+
+  axis   title   scale    limits         breaks
+  x      week    linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      count   linear   -0.3 to 94.3   0, 20, 40, 60, 80
+
+  layer   mark     data   marks   settings
+      1   lines    h          4   width 1, 2 lines
+      2   points   h          4   size 4.5, alpha 1
+
+panels: 2 by site: north, south; each with its own `y` axis

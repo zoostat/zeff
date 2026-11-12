@@ -3515,8 +3515,20 @@ fn every_message_of_facet() {
             "export(p.facet(rows: site, cols: arm), \"grid.svg\", size: [50, 50])\n",
         ),
         (
-            "free_scales_not_built_yet",
-            "p.facet(by: site, scales: free_y)\n",
+            "free_scales_in_fixed_coordinates",
+            "p.coord(fixed).facet(by: site, scales: free_y)\n",
+        ),
+        (
+            "fixed_coordinates_after_free_scales",
+            "p.facet(by: site, scales: free).coord(fixed, ratio: 2)\n",
+        ),
+        (
+            "free_scales_in_polar_coordinates",
+            "p.coord(polar).facet(rows: site, scales: free_x)\n",
+        ),
+        (
+            "scales_in_quotation_marks",
+            "p.facet(by: site, scales: \"free\")\n",
         ),
         ("scales_that_are_none", "p.facet(by: site, scales: loose)\n"),
         (
@@ -3575,6 +3587,65 @@ fn a_grid_of_panels_is_exported_in_the_three_formats() {
          export(q, \"grid.pdf\", size: two_column)\n\
          export(q, \"grid.png\", size: two_column)\n\
          export(p.facet(rows: arm).legend(top), \"down.svg\")\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
+}
+
+// ----- facet(scales:) (step 27e2) -----
+
+#[test]
+fn panels_with_axes_of_their_own_read_sensibly_as_text() {
+    let script = format!(
+        "{SITES}p.facet(by: site, scales: free_y)\n\
+         p.facet(by: site, scales: free_x)\n\
+         p.facet(by: site, scales: free)\n\
+         p.facet(rows: site, cols: arm, scales: free)\n\
+         p.facet(rows: site, scales: free_y)\n\
+         p.facet(by: site, scales: free).facet(by: site)\n\
+         d.plot(x: arm, y: count).points().facet(by: site, scales: free)\n\
+         d.plot(x: week, y: count).bars().facet(by: site, scales: free_y).coord(flip)\n"
+    );
+    let text = printed(&script);
+    let by = "panels: 3 by site: east, north, south";
+    assert_eq!(
+        text.matches(&format!("{by}; each with its own `y` axis\n"))
+            .count(),
+        3,
+        "{text}"
+    );
+    assert_eq!(
+        text.matches(&format!("{by}; each with its own `x` axis\n"))
+            .count(),
+        1
+    );
+    assert_eq!(
+        text.matches(&format!("{by}; each with its own `x` and `y` axes\n"))
+            .count(),
+        1
+    );
+    assert_eq!(text.matches(&format!("{by}\n")).count(), 1);
+    assert!(
+        text.contains("2 columns by arm (a, b); each column with its own `x` axis and each row with its own `y` axis\n"),
+        "{text}"
+    );
+    assert!(
+        text.contains(
+            "panels: 3, 3 rows by site (east, north, south); each row with its own `y` axis\n"
+        ),
+        "{text}"
+    );
+    insta::assert_snapshot!("free_panels_of_plots", text);
+}
+
+#[test]
+fn panels_with_axes_of_their_own_are_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{SITES}let q = p.facet(by: site, scales: free_y)\n\
+         export(q, \"free.svg\")\n\
+         export(q, \"free.pdf\")\n\
+         export(q, \"free.png\")\n\
+         export(p.facet(rows: site, cols: arm, scales: free), \"free_grid.svg\", size: two_column)\n\
+         export(q.coord(flip).legend(top), \"free_flip.svg\", size: two_column)\n"
     ));
     assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
 }

@@ -1,0 +1,144 @@
+---
+source: packages/tier1/plot/tests/facets.rs
+expression: json
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 3
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "week",
+      "limits": [0.9, 3.1],
+      "breaks": [1, 1.5, 2, 2.5, 3],
+      "labels": ["1", "1.5", "2", "2.5", "3"],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "count",
+      "limits": [0.6, 9.4],
+      "breaks": [2, 4, 6, 8],
+      "labels": ["2", "4", "6", "8"],
+      "range": null
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "points",
+          "x": [1, 2, 3],
+          "y": [2, 3, 1],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": "d",
+          "rows": [3, 6, 9]
+        }
+      ]
+    },
+    {
+      "row": 1,
+      "column": 2,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "points",
+          "x": [1, 2, 3],
+          "y": [4, 5, 6],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": "d",
+          "rows": [1, 4, 7]
+        }
+      ]
+    },
+    {
+      "row": 1,
+      "column": 3,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "points",
+          "x": [1, 2, 3],
+          "y": [7, 9, 8],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": "d",
+          "rows": [2, 5, 8]
+        }
+      ]
+    }
+  ],
+  "notes": [],
+  "wrapped": true,
+  "strips": ["east", "north", "south"],
+  "own_scales": [
+    {
+      "x": {
+        "limits": [0.9, 3.1],
+        "breaks": [1, 1.5, 2, 2.5, 3],
+        "labels": ["1", "1.5", "2", "2.5", "3"]
+      },
+      "y": {
+        "limits": [0.9, 3.1],
+        "breaks": [1, 1.5, 2, 2.5, 3],
+        "labels": ["1", "1.5", "2", "2.5", "3"]
+      }
+    },
+    {
+      "x": {
+        "limits": [0.9, 3.1],
+        "breaks": [1, 1.5, 2, 2.5, 3],
+        "labels": ["1", "1.5", "2", "2.5", "3"]
+      },
+      "y": {
+        "limits": [3.9, 6.1],
+        "breaks": [4, 4.5, 5, 5.5, 6],
+        "labels": ["4", "4.5", "5", "5.5", "6"]
+      }
+    },
+    {
+      "x": {
+        "limits": [0.9, 3.1],
+        "breaks": [1, 1.5, 2, 2.5, 3],
+        "labels": ["1", "1.5", "2", "2.5", "3"]
+      },
+      "y": {
+        "limits": [6.9, 9.1],
+        "breaks": [7, 7.5, 8, 8.5, 9],
+        "labels": ["7", "7.5", "8", "8.5", "9"]
+      }
+    }
+  ]
+}

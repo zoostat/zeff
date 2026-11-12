@@ -762,7 +762,7 @@ pub fn functions() -> Vec<Function> {
                 returns: "Plot",
                 diagnostics: vec![DiagnosticDecl::new(
                     "Z0401",
-                    "a ratio that is not above 0 or goes without fixed, and a rug in polar coordinates",
+                    "a ratio that is not above 0 or goes without fixed, a rug in polar coordinates, and fixed or polar coordinates for panels with free scales",
                 )],
                 help: include_str!("../help/coord.md"),
                 accuracy: None,
@@ -790,7 +790,7 @@ pub fn functions() -> Vec<Function> {
                 diagnostics: vec![
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable named twice, by: with rows: or cols:, one variable for both, and free scales, which are not built yet",
+                        "a variable named twice, by: with rows: or cols:, one variable for both, and free scales in fixed or polar coordinates",
                     ),
                     DiagnosticDecl::new("Z0406", "no by:, rows: or cols:"),
                 ],

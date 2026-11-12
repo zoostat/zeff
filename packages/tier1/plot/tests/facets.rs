@@ -10,8 +10,8 @@ use common::*;
 use proptest::prelude::*;
 use zeff_columns::{Column, MetadataKey, format_value_labels};
 use zeff_core::value::{
-    Aesthetic, Arrangement, Coord, Frame, LegendPlace, Mark, Plot, PlotConstant, PlotFacet,
-    PlotLayer, PlotSetting, Stacking,
+    Aesthetic, Arrangement, Coord, FacetScales, Frame, LegendPlace, Mark, Plot, PlotConstant,
+    PlotFacet, PlotLayer, PlotSetting, Stacking,
 };
 use zeff_plot::drawing::{Drawing, Primitive};
 use zeff_plot::layout::{JOURNAL, LayoutError, SMALLEST_PANEL, Size, layout};
@@ -884,6 +884,7 @@ fn gridded(frame: Frame, x: &str, y: &str, rows: Option<&str>, cols: Option<&str
         by: Vec::new(),
         rows: rows.map(str::to_string),
         cols: cols.map(str::to_string),
+        ..PlotFacet::default()
     });
     plot
 }
@@ -1060,4 +1061,274 @@ fn a_grid_is_laid_as_it_is_with_its_columns_named_above_and_its_rows_at_the_righ
         Err(LayoutError::TooMany { panels: 6, .. })
     ));
     insta::assert_snapshot!("a_grid_of_six", drawing.describe());
+}
+
+// ----- panels with axes of their own (step 27e2) -----
+
+/// A plot parted by variables, with the axes its panels share.
+fn freed(frame: Frame, x: &str, y: &str, by: &[&str], scales: FacetScales) -> Plot {
+    let mut plot = parted(frame, x, y, by);
+    if let Some(facet) = plot.facet.as_mut() {
+        facet.scales = scales;
+    }
+    plot
+}
+
+#[test]
+fn each_panel_has_the_axes_of_its_own_marks_where_the_scales_are_free() {
+    // Three sites: the counts of the east run from 1 to 3, of the north from 4 to 6 and of
+    // the south from 7 to 9. Every site has the weeks 1 to 3.
+    let fixed = with(
+        &freed(sites(), "week", "count", &["site"], FacetScales::Fixed),
+        Mark::Points,
+    );
+    assert!(
+        fixed
+            .panels
+            .iter()
+            .all(|p| p.own_x.is_none() && p.own_y.is_none())
+    );
+    assert!(!fixed.json().write().contains("own_scales"));
+    let free_y = with(
+        &freed(sites(), "week", "count", &["site"], FacetScales::FreeY),
+        Mark::Points,
+    );
+    // The scales of the plot, and the marks, are those of the plot with fixed scales.
+    assert_eq!(&free_y.scales, &fixed.scales);
+    for (free, plain) in free_y.panels.iter().zip(&fixed.panels) {
+        assert_eq!(&free.layers, &plain.layers);
+        assert!(free.own_x.is_none());
+    }
+    // Each panel has a scale of `y` of its own: that of the plot of its rows alone.
+    let limits: Vec<(f64, f64)> = free_y
+        .panels
+        .iter()
+        .map(|p| p.own_y.as_ref().unwrap().limits)
+        .collect();
+    for (found, wanted) in limits.iter().zip([(1.0, 3.0), (4.0, 6.0), (7.0, 9.0)]) {
+        assert!(
+            (found.0 - (wanted.0 - 0.1)).abs() < 1e-9 && (found.1 - (wanted.1 + 0.1)).abs() < 1e-9
+        );
+    }
+    for (panel, site) in free_y.panels.iter().zip(["east", "north", "south"]) {
+        let keep: Vec<usize> = (0..9)
+            .filter(|row| ["north", "south", "east"][row % 3] == site)
+            .collect();
+        let alone = frame(
+            "d",
+            vec![
+                (
+                    "week",
+                    numbers(
+                        &keep
+                            .iter()
+                            .map(|r| (r / 3 + 1) as f64)
+                            .collect::<Vec<f64>>(),
+                    ),
+                ),
+                (
+                    "count",
+                    numbers(
+                        &keep
+                            .iter()
+                            .map(|r| [4.0, 7.0, 2.0, 5.0, 9.0, 3.0, 6.0, 8.0, 1.0][*r])
+                            .collect::<Vec<f64>>(),
+                    ),
+                ),
+            ],
+        );
+        let one = with(&parted(alone, "week", "count", &[]), Mark::Points);
+        let (own, wanted) = (panel.own_y.as_ref().unwrap(), one.scale("y").unwrap());
+        assert_eq!(
+            (own.limits, &own.breaks, &own.labels),
+            (wanted.limits, &wanted.breaks, &wanted.labels)
+        );
+        assert_eq!(
+            (own.id, own.kind, own.title.as_str()),
+            ("y", wanted.kind, "count")
+        );
+    }
+    // `free_x` frees `x` alone, and `free` both.
+    let free_x = with(
+        &freed(sites(), "week", "count", &["site"], FacetScales::FreeX),
+        Mark::Points,
+    );
+    assert!(
+        free_x
+            .panels
+            .iter()
+            .all(|p| p.own_x.is_some() && p.own_y.is_none())
+    );
+    let free = with(
+        &freed(sites(), "week", "count", &["site"], FacetScales::Free),
+        Mark::Points,
+    );
+    assert!(
+        free.panels
+            .iter()
+            .all(|p| p.own_x.is_some() && p.own_y.is_some())
+    );
+    let json = free.json().write();
+    assert!(json.contains("\"own_scales\""), "{json}");
+    insta::assert_snapshot!("three_sites_free", json);
+}
+
+#[test]
+fn an_axis_of_categories_bars_and_an_empty_panel_with_free_scales() {
+    // An axis of categories is the plot's in every panel, with a place for every category.
+    let scene = with(
+        &freed(sites(), "arm", "count", &["site"], FacetScales::Free),
+        Mark::Points,
+    );
+    assert!(
+        scene
+            .panels
+            .iter()
+            .all(|p| p.own_x.is_none() && p.own_y.is_some())
+    );
+    // Bars start at zero in every panel: each axis runs from under zero to over its own
+    // highest bar.
+    let scene = with(
+        &freed(sites(), "week", "count", &["site"], FacetScales::FreeY),
+        Mark::Bars(Arrangement::Stack),
+    );
+    for (panel, top) in scene.panels.iter().zip([3.0, 6.0, 9.0]) {
+        let limits = panel.own_y.as_ref().unwrap().limits;
+        assert!(limits.0 < 0.0 && limits.1 > top && limits.1 < top * 1.1);
+    }
+    // A panel with no mark has the axis of the whole variable.
+    let frame = frame(
+        "d",
+        vec![
+            ("g", Column::strs(["a", "a", "b"].map(Some))),
+            ("x", numbers(&[1.0, 2.0, 3.0])),
+            ("y", floats(&[Some(10.0), Some(20.0), None])),
+        ],
+    );
+    let scene = with(
+        &freed(frame, "x", "y", &["g"], FacetScales::FreeY),
+        Mark::Points,
+    );
+    assert_eq!(scene.panels[1].layers[0].x.len(), 0);
+    assert_eq!(
+        scene.panels[1].own_y.as_ref().unwrap().limits,
+        scene.scale("y").unwrap().limits
+    );
+}
+
+#[test]
+fn in_a_grid_each_column_has_its_x_and_each_row_its_y() {
+    let mut plot = gridded(sites(), "week", "count", Some("site"), Some("arm"));
+    if let Some(facet) = plot.facet.as_mut() {
+        facet.scales = FacetScales::Free;
+    }
+    let scene = with(&plot, Mark::Points);
+    // The panels of a row have one scale of `y`, and those of a column one scale of `x`.
+    for row in 0..3 {
+        assert_eq!(scene.panels[2 * row].own_y, scene.panels[2 * row + 1].own_y);
+        assert!(scene.panels[2 * row].own_y.is_some());
+    }
+    for column in 0..2 {
+        assert_eq!(scene.panels[column].own_x, scene.panels[column + 2].own_x);
+        assert_eq!(scene.panels[column].own_x, scene.panels[column + 4].own_x);
+    }
+    // Arm `a` has the weeks 1 and 3, and arm `b` week 2 alone: two scales of `x`.
+    assert_ne!(scene.panels[0].own_x, scene.panels[1].own_x);
+    assert_ne!(scene.panels[0].own_y, scene.panels[2].own_y);
+}
+
+#[test]
+fn the_labels_of_a_free_axis_are_written_wherever_it_differs_from_its_neighbours() {
+    let labels_in = |scales: FacetScales| {
+        let drawing = laid(
+            &with(&freed(groups(6), "x", "y", &["g"], scales), Mark::Points),
+            Size::TwoColumn,
+        );
+        let panels = panels_of(&drawing);
+        let side = words_of(&drawing, "axis:y")
+            .into_iter()
+            .filter(|w| w.0 != "y")
+            .count();
+        let foot = words_of(&drawing, "axis:x")
+            .into_iter()
+            .filter(|w| w.0 != "x")
+            .count();
+        (panels, side, foot)
+    };
+    let (fixed, side, foot) = labels_in(FacetScales::Fixed);
+    apart_and_alike(&fixed);
+    // Six groups, each with the rows 0, 1 and 2 of `x` and other values of `y`: with `y`
+    // free, every panel has its labels up its side, and the panels stand further apart for
+    // them; the labels of `x`, which every panel shares, stay under the last row.
+    let (free_y, side_free, foot_free) = labels_in(FacetScales::FreeY);
+    apart_and_alike(&free_y);
+    assert!(side_free > side, "{side_free} against {side}");
+    assert_eq!(foot_free, foot);
+    let gap = |panels: &[((f64, f64), f64, f64)]| panels[1].0.0 - (panels[0].0.0 + panels[0].1);
+    assert!(gap(&free_y) > gap(&fixed) + 4.0);
+    // With `x` free too, each panel would have its labels under it; here every panel has
+    // the same three values of `x`, so its axis is its neighbour's and is labelled once.
+    let (free, _, foot_all) = labels_in(FacetScales::Free);
+    apart_and_alike(&free);
+    assert_eq!(foot_all, foot);
+    // Flipped, the free `y` is along the foot: labelled under every panel.
+    let mut plot = freed(groups(6), "x", "y", &["g"], FacetScales::FreeY);
+    plot.coord = Coord::Flip;
+    let flipped = laid(&with(&plot, Mark::Points), Size::TwoColumn);
+    let along = words_of(&flipped, "axis:y")
+        .into_iter()
+        .filter(|w| w.0 != "y")
+        .count();
+    assert!(along > foot, "{along}");
+    insta::assert_snapshot!(
+        "six_panels_free_y",
+        laid(
+            &with(
+                &freed(groups(6), "x", "y", &["g"], FacetScales::FreeY),
+                Mark::Points
+            ),
+            Size::TwoColumn
+        )
+        .describe()
+    );
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(64)))]
+
+    /// Whatever the rows: with free scales every point of a panel stands inside the limits
+    /// of the scales of its panel, and is drawn inside the panel.
+    #[test]
+    fn a_point_stands_within_the_axes_of_its_own_panel(rows in rows()) {
+        let scene = with(&freed(tried(&rows), "x", "y", &["g"], FacetScales::Free), Mark::Points);
+        for panel in &scene.panels {
+            let layer = &panel.layers[0];
+            for (own, values) in [(&panel.own_x, &layer.x), (&panel.own_y, &layer.y)] {
+                if let Some(own) = own {
+                    for value in values {
+                        prop_assert!(*value >= own.limits.0 && *value <= own.limits.1);
+                    }
+                }
+            }
+        }
+        if let Ok(drawing) = layout(&scene, Size::TwoColumn, &JOURNAL) {
+            let panels = panels_of(&drawing);
+            for (i, item) in drawing
+                .items
+                .iter()
+                .filter(|item| item.name.as_deref() == Some("panel"))
+                .enumerate()
+            {
+                let Primitive::Clip { items, .. } = &item.primitive else {
+                    continue;
+                };
+                for dot in items {
+                    if let Primitive::Point { at, .. } = &dot.primitive {
+                        prop_assert!(at.0 >= panels[i].0.0 - 1e-9 && at.0 <= panels[i].0.0 + panels[i].1 + 1e-9);
+                        prop_assert!(at.1 >= panels[i].0.1 - 1e-9 && at.1 <= panels[i].0.1 + panels[i].2 + 1e-9);
+                    }
+                }
+            }
+        }
+    }
 }

@@ -126,35 +126,9 @@ Step 26 was split into 26a to 26c. 26a `[function]`: `labels(title:, subtitle:, 
 
 Step 27 was split into 27a to 27e, and 27c into 27c1 and 27c2. 27a `[engine]`: `coord(flip)`, `x` up the side and `y` along the foot with every mark turned and text upright; `flip` written twice is still flipped (ruling). 27b `[engine]`: `coord(fixed, ratio:)`, a panel in the shape of the data, centred in its room; a unit is a place, a power of ten, one of the square root or a day (rulings); a panel too thin is refused with the ratio that fills the page. 27c1 `[engine]`: the polar frame, `x` as the angle from the top and clockwise and `y` as the distance from the centre, no axis with a margin beyond the data, every mark wound round the centre; open decision #132 recorded (pies, a starting angle and a direction, at 0.8.0). 27c2 `[engine]`: the labels of `x` round the rim, the axis of `y` at the left, a rug refused, `coord(polar)` opened; the page of `coord` complete and catalogue row 479 implemented; `plot` at twenty functions built.
 
-## 13 November 2026, release 0.7.0, step 27d1 (a scene of several panels), and step 27d split in three
+## 13 November 2026, steps 27d1 to 27d3 of release 0.7.0 (folded)
 
-**Done.** Step 27d was split into 27d1 (the scene), 27d2 (the layout) and 27d3 (the function). The facets of a plot are held with it, and its scene has a panel for each value of the variable, in the order of its categories, laid in rows, with what is written over each: the value label where the variable has one. Stacks, bars side by side and lines are built within their panel on scales shared by all; a layer whose frame lacks the variable is drawn in every panel; a row without a value has a panel named `NA`. No script reaches it yet: `facet` is not registered until the panels are laid out (27d2) and the function is opened (27d3). A plot without facets is byte for byte as it was.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 403 of 403; CI is read job by job after the push.
-
-**Next.** Step 27d2 `[engine]`: the layout of several panels, each with its strip, the axes shared along the edges.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the panels in one row up to three, two rows up to six, three up to twelve, as ggplot2 lays them; a panel named `NA` for rows without a value; the strips of two variables written with a comma between. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 27d2 (the layout of several panels)
-
-**Done.** The panels of a plot parted into panels are drawn: together as one grid in the middle of the room, a gap apart, each under what is written over it, with its own gridlines, marks and axes; the labels of `y` beside the first panel of each row and those of `x` under the lowest panel of each column; one title for each axis, centred on the grid; one set of legends beside it. Flipped, fixed and polar panels are laid the same way. Where the grid of the scene would leave each panel too small, panels that follow one another are laid in the nearest number of columns that gives each its room: forty panels are drawn on a page of two columns, and refused on one with a message that says so. No script reaches it yet (27d3). A plot of one panel is byte for byte as it was.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 403 of 403; CI is read job by job after the push.
-
-**Next.** Step 27d3 `[engine]`: `facet(by:)` opened, with its messages, its help page begun and a conformance case.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: what is written over a panel is plain text centred on it, with no band behind it; the labels of an axis are written at the outer panels only; the layout may lay wrapped panels in more columns than ggplot2's rule where a page asks for it. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 27d3 (`facet(by:)` opened), and step 27d complete
-
-**Done.** `p.facet(by: industry)` parts a plot into panels, one for each value of the variable, and `by: [industry, union]` one for each pair of values. The printed plot says how many panels there are, by what, and what is written over them. `rows:`, `cols:` and `scales:` other than `fixed` are refused as not built yet (27e). The help page of `facet` is begun, with two verified examples. With it step 27d is complete: the scene of several panels (27d1), their layout (27d2) and the function (27d3). `plot` stands at twenty-one functions registered, twenty of them complete.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 410 of 410; CI is read job by job after the push.
-
-**Next.** Step 27e `[engine]`: `facet(rows:, cols:)`, a grid of panels by two variables, and the four `scales:`, which completes step 27 and lets the specification's sample (`scales: free_y`) run.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: a variable named twice in `by:` is refused; what a later `facet` says replaces an earlier one. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+Step 27d was split into 27d1 to 27d3. 27d1 `[engine]`: a scene of several panels, the marks built once and dealt to the panels by the row each comes from, with stacks, bars side by side and lines kept within their panel on scales shared by all; a row without a value in a panel named `NA` (ruling). 27d2 `[engine]`: the layout of several panels as one grid in the middle of the room, each under its name, labels at the outer panels, one title for each axis; wrapped panels laid in the nearest number of columns that fits the page, so that forty are four rows of ten on two columns (ruling). 27d3 `[engine]`: `facet(by:)` opened, with its messages, its help page begun and a conformance case; step 27d complete.
 
 ## 13 November 2026, release 0.7.0, step 27e1 (`facet(rows:, cols:)`), and step 27e split in two
 
@@ -165,4 +139,14 @@ Step 27 was split into 27a to 27e, and 27c into 27c1 and 27c2. 27a `[engine]`: `
 **Next.** Step 27e2 `[engine]`: `scales: free | free_x | free_y`, panels with axes of their own, which completes step 27 and lets the specification's sample run.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the values of the rows are written at the right, read downwards, as ggplot2 writes them; a cell with no row is drawn empty and not left out; a layer is parted only where its frame holds both variables. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 27e2 (`scales: free | free_x | free_y`); steps 27e and 27 complete
+
+**Done.** Panels can have axes of their own: with `scales: free_y` each panel of `facet(by:)` has the `y` axis of its own marks, with its labels beside it; `free_x` the same along `x`, `free` along both; in a grid each row has its own `y` and each column its own `x`. An axis of categories is never free. Free scales are refused in fixed and polar coordinates. The specification's sample, `.facet(by: industry, scales: free_y)`, draws its twelve panels. The help page of `facet` is complete and catalogue row 480 is implemented. With it step 27 is complete: `coord` in its four forms and `facet` in its three; `plot` stands at twenty-one functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 422 of 422; CI is read job by job after the push.
+
+**Next.** Step 28 of the checklist.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: an axis of categories keeps every category in every panel, where ggplot2 drops those a panel lacks; free scales are refused with `coord(fixed)` and `coord(polar)`, as in ggplot2; the labels of a free axis are written wherever it differs from its neighbour's. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

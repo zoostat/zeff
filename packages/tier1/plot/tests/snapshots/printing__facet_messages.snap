@@ -137,14 +137,41 @@ error[Z0401]: a page of 50 by 50 mm is too small for the 6 panels of this plot: 
   |
   = help: a panel needs 12.7 mm each way; give a larger `size:`, as `two_column` (183 by 110 mm) or a width and a height in millimetres, or part the plot by a variable with fewer values
 
-== free_scales_not_built_yet
-error[Z0401]: `scales: free_y` of `facet` is not built yet: it comes with a later step of this release
+== free_scales_in_fixed_coordinates
+error[Z0401]: panels with axes of their own are not drawn in `fixed` coordinates, where the scales of the plot give every panel one shape
+ --> scripts/main.zeff:3:40
+  |
+3 | p.coord(fixed).facet(by: site, scales: free_y)
+  |                                        ^^^^^^ free scales, where the scales shape the panel
+  |
+  = help: leave `scales:` at `fixed`, or draw the plot in `cartesian` or flipped coordinates
+
+== fixed_coordinates_after_free_scales
+error[Z0401]: panels with axes of their own are not drawn in `fixed` coordinates, where the scales of the plot give every panel one shape
+ --> scripts/main.zeff:3:39
+  |
+3 | p.facet(by: site, scales: free).coord(fixed, ratio: 2)
+  |                                       ^^^^^ free scales, where the scales shape the panel
+  |
+  = help: leave `scales:` at `fixed`, or draw the plot in `cartesian` or flipped coordinates
+
+== free_scales_in_polar_coordinates
+error[Z0401]: panels with axes of their own are not drawn in `polar` coordinates, where the scales of the plot give every panel one shape
+ --> scripts/main.zeff:3:42
+  |
+3 | p.coord(polar).facet(rows: site, scales: free_x)
+  |                                          ^^^^^^ free scales, where the scales shape the panel
+  |
+  = help: leave `scales:` at `fixed`, or draw the plot in `cartesian` or flipped coordinates
+
+== scales_in_quotation_marks
+error[Z0403]: expected one of fixed, free, free_x, free_y, found text
  --> scripts/main.zeff:3:27
   |
-3 | p.facet(by: site, scales: free_y)
-  |                           ^^^^^^ not in this build
+3 | p.facet(by: site, scales: "free")
+  |                           ^^^^^^ a word, not a string
   |
-  = help: `facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share
+  = help: write the word without quotes: `free`
 
 == scales_that_are_none
 error[Z0402]: `loose` is not one of the allowed words

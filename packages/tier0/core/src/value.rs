@@ -128,6 +128,45 @@ pub struct PlotFacet {
     pub rows: Option<String>,
     /// For a grid: the variable with a column of panels for each of its values.
     pub cols: Option<String>,
+    /// Whether the panels share their axes: they do where the script says nothing.
+    pub scales: FacetScales,
+}
+
+/// Which axes the panels of a plot share (section 7.6, "Facets": `scales:`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FacetScales {
+    /// Every panel has the same two axes.
+    #[default]
+    Fixed,
+    /// Each panel has axes of its own; in a grid, each column its own `x` and each row its
+    /// own `y`.
+    Free,
+    /// An `x` axis of its own, and `y` shared.
+    FreeX,
+    /// A `y` axis of its own, and `x` shared.
+    FreeY,
+}
+
+impl FacetScales {
+    /// The word of the language: `fixed`, `free`, `free_x`, `free_y`.
+    pub fn name(self) -> &'static str {
+        match self {
+            FacetScales::Fixed => "fixed",
+            FacetScales::Free => "free",
+            FacetScales::FreeX => "free_x",
+            FacetScales::FreeY => "free_y",
+        }
+    }
+
+    /// Whether `x` is free, and whether `y` is.
+    pub fn free(self) -> (bool, bool) {
+        match self {
+            FacetScales::Fixed => (false, false),
+            FacetScales::Free => (true, true),
+            FacetScales::FreeX => (true, false),
+            FacetScales::FreeY => (false, true),
+        }
+    }
 }
 
 /// The coordinates of a plot (section 7.6, "Coordinates": `coord`): how its two scales are

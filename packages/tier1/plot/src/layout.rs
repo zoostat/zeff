@@ -833,6 +833,26 @@ fn spread(wanted: &[f64], apart: f64, top: f64, bottom: f64) -> Vec<f64> {
 /// its foot.
 type Placed = ((f64, f64), (f64, f64), (f64, f64));
 
+/// The scale a panel has of its own up its side, where it has one (`scales: free`): that of
+/// `y`, or of `x` where the coordinates are flipped.
+fn side_own(panel: &crate::scene::Panel, flip: bool) -> Option<&Scale> {
+    if flip {
+        panel.own_x.as_ref()
+    } else {
+        panel.own_y.as_ref()
+    }
+}
+
+/// The scale a panel has of its own along its foot: that of `x`, or of `y` where the
+/// coordinates are flipped.
+fn foot_own(panel: &crate::scene::Panel, flip: bool) -> Option<&Scale> {
+    if flip {
+        panel.own_y.as_ref()
+    } else {
+        panel.own_x.as_ref()
+    }
+}
+
 /// A label of `x` round the rim of a polar plot: its lines, the way from the centre to its
 /// place, across and up, as a length of one, the width of its widest line, the height of
 /// its lines together, and the side it is written from.
@@ -1648,7 +1668,26 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     });
     let mut x_rows: usize = 1;
     let first_x_half = x_widths.first().map_or(0.0, |w| w / 2.0);
-    let widest_y = y_widths.iter().copied().fold(0.0, f64::max);
+    // A panel may have a scale of its own up its side, or along its foot (`scales: free`):
+    // the room at the left is that of the widest label of any of them.
+    let mut widest_y = y_widths.iter().copied().fold(0.0, f64::max);
+    for own in scene
+        .panels
+        .iter()
+        .filter_map(|panel| side_own(panel, flip))
+    {
+        for words in &own.labels {
+            widest_y = widest_y.max(set.width(words, FaceName::Sans, label));
+        }
+    }
+    let free_side = scene
+        .panels
+        .iter()
+        .any(|panel| side_own(panel, flip).is_some());
+    let free_foot = scene
+        .panels
+        .iter()
+        .any(|panel| foot_own(panel, flip).is_some());
 
     // The title of the figure and its subtitle, above everything, and its caption, under
     // everything but the notes: each from the left margin of the page and broken to its
@@ -1792,7 +1831,23 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             (Some(first), Some(last)) if !polar => (first + last) / 2.0 + label / 2.0,
             _ => 0.0,
         };
-        ((1.5 * label).max(reach), 1.5 * label)
+        // Panels that follow one another with axes of their own have their labels between
+        // them; in a grid a row shares its axis up the side and a column its axis along the
+        // foot, and the labels stand at the edges as before.
+        let labels_across = if free_side && scene.wrapped {
+            widest_y + theme.tick_length + theme.label_gap + label / 2.0
+        } else {
+            0.0
+        };
+        let labels_down = if free_foot && scene.wrapped {
+            capital(label) + theme.label_gap + theme.tick_length
+        } else {
+            0.0
+        };
+        (
+            (1.5 * label).max(reach).max(labels_across),
+            1.5 * label + labels_down,
+        )
     } else {
         (0.0, 0.0)
     };
@@ -2028,10 +2083,47 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             + head_room
             + (row - 1) as f64 * (panel_height + strip_room + between_down)
             + strip_room;
-        let labels_y = column == 1;
+        // The scales of this panel: its own where it has them, and the plot's.
+        let data_x = panel.and_then(|panel| panel.own_x.as_ref()).or(data_x);
+        let data_y = panel.and_then(|panel| panel.own_y.as_ref()).or(data_y);
+        let (xs, ys) = if flip {
+            (data_y, data_x)
+        } else {
+            (data_x, data_y)
+        };
+        // The labels along the foot, where the scale there is the panel's own.
+        let own_along: Option<(Vec<Vec<String>>, Vec<f64>)> =
+            panel.and_then(|panel| foot_own(panel, flip)).map(|own| {
+                (
+                    own.labels.iter().map(|words| vec![words.clone()]).collect(),
+                    own.labels
+                        .iter()
+                        .map(|words| set.width(words, FaceName::Sans, label))
+                        .collect(),
+                )
+            });
+        let (x_labels, x_widths): (&Vec<Vec<String>>, &Vec<f64>) = match &own_along {
+            Some((lines, widths)) => (lines, widths),
+            None => (&x_labels, &x_widths),
+        };
+        // The labels of an axis are written at the edge of the grid, and wherever the axis
+        // of a panel is not that of its neighbour: beside a panel whose scale up the side
+        // is not that of the panel at its left, and under one whose scale along the foot is
+        // not that of the panel below it.
+        let neighbour = |row: usize, column: usize| {
+            places
+                .iter()
+                .position(|place| *place == (row, column))
+                .and_then(|at| scene.panels.get(at))
+        };
+        let labels_y = column == 1
+            || neighbour(row, column - 1).and_then(|other| side_own(other, flip))
+                != panel.and_then(|panel| side_own(panel, flip));
         let labels_x = !places
             .iter()
-            .any(|other| other.1 == column && other.0 > row);
+            .any(|other| other.1 == column && other.0 > row)
+            || neighbour(row + 1, column).and_then(|other| foot_own(other, flip))
+                != panel.and_then(|panel| foot_own(panel, flip));
         let last = at + 1 == count;
         // The titles of the axes are centred on the grid of the panels.
         let (title_across, title_down) = (
@@ -2788,7 +2880,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 ));
             }
             let centres: Vec<f64> = s.breaks.iter().map(|v| across(s, *v)).collect();
-            let step = thinning(&centres, &x_widths, label / 2.0);
+            let step = thinning(&centres, x_widths, label / 2.0);
             let baseline = base + theme.tick_length + theme.label_gap + capital(label);
             for (i, &x) in centres.iter().enumerate() {
                 if theme.axis_lines {

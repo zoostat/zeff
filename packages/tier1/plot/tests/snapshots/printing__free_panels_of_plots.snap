@@ -1,0 +1,86 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · count against week
+
+  axis   title   scale    limits         breaks
+  x      week    linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      count   linear   1.65 to 9.35   2, 4, 6, 8
+
+  layer   mark     data   marks   settings
+      1   points   d          6   size 4.5, alpha 1
+
+panels: 3 by site: east, north, south; each with its own `y` axis
+plot · d · count against week
+
+  axis   title   scale    limits         breaks
+  x      week    linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      count   linear   1.65 to 9.35   2, 4, 6, 8
+
+  layer   mark     data   marks   settings
+      1   points   d          6   size 4.5, alpha 1
+
+panels: 3 by site: east, north, south; each with its own `x` axis
+plot · d · count against week
+
+  axis   title   scale    limits         breaks
+  x      week    linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      count   linear   1.65 to 9.35   2, 4, 6, 8
+
+  layer   mark     data   marks   settings
+      1   points   d          6   size 4.5, alpha 1
+
+panels: 3 by site: east, north, south; each with its own `x` and `y` axes
+plot · d · count against week
+
+  axis   title   scale    limits         breaks
+  x      week    linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      count   linear   1.65 to 9.35   2, 4, 6, 8
+
+  layer   mark     data   marks   settings
+      1   points   d          6   size 4.5, alpha 1
+
+panels: 6, 3 rows by site (east, north, south) and 2 columns by arm (a, b); each column with its own `x` axis and each row with its own `y` axis
+plot · d · count against week
+
+  axis   title   scale    limits         breaks
+  x      week    linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      count   linear   1.65 to 9.35   2, 4, 6, 8
+
+  layer   mark     data   marks   settings
+      1   points   d          6   size 4.5, alpha 1
+
+panels: 3, 3 rows by site (east, north, south); each row with its own `y` axis
+plot · d · count against week
+
+  axis   title   scale    limits         breaks
+  x      week    linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      count   linear   1.65 to 9.35   2, 4, 6, 8
+
+  layer   mark     data   marks   settings
+      1   points   d          6   size 4.5, alpha 1
+
+panels: 3 by site: east, north, south
+plot · d · count against arm
+
+  axis   title   scale      limits         breaks
+  x      arm     category   0.4 to 2.6     a, b
+  y      count   linear     1.65 to 9.35   2, 4, 6, 8
+
+  layer   mark     data   marks   settings
+      1   points   d          6   size 4.5, alpha 1
+
+panels: 3 by site: east, north, south; each with its own `y` axis
+plot · d · count against week
+
+  axis   title   scale    limits           breaks
+  x      week    linear   0.455 to 2.545   0.5, 1, 1.5, 2, 2.5
+  y      count   linear   -0.45 to 9.45    0, 2, 4, 6, 8
+
+  layer   mark   data   marks   settings
+      1   bars   d          6   width 0.9, alpha 1
+
+panels: 3 by site: east, north, south; each with its own `y` axis
+coordinates: flipped, `x` up the side and `y` along the foot
+---

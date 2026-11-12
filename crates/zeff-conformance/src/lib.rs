@@ -2187,6 +2187,19 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/grid/{name}"), &data));
     }
+    // Panels with axes of their own (step 27e2): the specification's sample, the wage
+    // against schooling in a panel for each industry, each with its own `y` axis; a grid
+    // whose rows have their own `y`; what the script prints, the twelve panels in the three
+    // formats and the grid as a figure.
+    let script = "let y = dataset(wages).where(year == 2015)\nlet p = y.plot(x: educ, y: wage).points(alpha: 0.3).facet(by: industry, scales: free_y)\np\nlet q = y.plot(x: educ, y: wage).points(alpha: 0.3).facet(rows: union, cols: female, scales: free)\nq\nexport(p, \"free.svg\", size: two_column)\nexport(p, \"free.pdf\", size: two_column)\nexport(p, \"free.png\", size: two_column)\nexport(q, \"free_grid.svg\", size: two_column)\n";
+    let freed = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/free/stdout", &freed.output.stdout));
+    fills.push(text("plot/free/stderr", &freed.output.stderr));
+    for name in ["free.svg", "free.pdf", "free.png", "free_grid.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/free/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

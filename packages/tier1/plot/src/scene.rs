@@ -268,6 +268,14 @@ pub struct Panel {
     /// What is written beside the panel, at its right, in a grid of panels: the value of
     /// the variable of its row, at the last panel of the row. `None` elsewhere.
     pub side: Option<String>,
+    /// The scale of `x` of the panel where it has one of its own (`scales: free` or
+    /// `free_x`): the scale of the plot with the limits, breaks and labels of the marks of
+    /// this panel, or in a grid of this column. `None` where the panel is placed by the
+    /// scale of the plot.
+    pub own_x: Option<Scale>,
+    /// The scale of `y` of the panel where it has one of its own, as `own_x`; in a grid,
+    /// that of its row.
+    pub own_y: Option<Scale>,
     pub x: Option<&'static str>,
     pub y: Option<&'static str>,
     pub layers: Vec<Layer>,
@@ -1710,6 +1718,20 @@ pub fn rug_round_a_circle(plot: &Plot) -> bool {
             .any(|layer| matches!(layer.mark, Mark::Rug(_)))
 }
 
+/// The coordinates of a plot whose panels have axes of their own and cannot: `fixed`, where
+/// the shape of a panel follows its scales, and `polar`, where the circle does. `None` where
+/// the plot can be drawn.
+pub fn free_in_a_fixed_shape(plot: &Plot) -> Option<&'static str> {
+    let free = plot
+        .facet
+        .as_ref()
+        .is_some_and(|facet| facet.scales != zeff_core::value::FacetScales::Fixed);
+    match plot.coord {
+        Coord::Fixed(_) | Coord::Polar if free => Some(plot.coord.name()),
+        _ => None,
+    }
+}
+
 /// The words and the place of a layer that `annotate` made: a layer of text of one row, in
 /// a frame of its own called `annotation` whose variables are `x`, `y` and `text`. The place
 /// is written as a script writes it: a number, the name of a category, a date.
@@ -2117,6 +2139,11 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
         }
     }
 }
+
+/// An axis of numbers or dates as it is built from the extent of its marks: its kind, its
+/// limits, its breaks, their labels, and what there is to say of marks beyond limits the
+/// script sets.
+type Numbered = (ScaleKind, (f64, f64), Vec<f64>, Vec<String>, Option<String>);
 
 /// How the rows of a plot are parted among its panels: what is written over each panel, and
 /// for each layer the panel of each row of its frame. A layer whose frame lacks a variable
@@ -3030,6 +3057,179 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         Coord::Cartesian | Coord::Fixed(_) | Coord::Polar => (Position::Bottom, Position::Left),
         Coord::Flip => (Position::Left, Position::Bottom),
     };
+    // The scale of an axis of numbers or dates from the extent of the marks it places: its
+    // kind, its limits, its breaks and their labels, and what there is to say of the marks
+    // beyond limits the script sets. It is built once for the plot, and once more for each
+    // panel, row or column that has an axis of its own.
+    let numbered =
+        |aesthetic: Aesthetic, found: Option<(f64, f64)>, layers: &[&Layer]| -> Numbered {
+            let mut said: Option<String> = None;
+            // An axis of dates has the limits of a linear axis, with their margin, and its
+            // breaks on the calendar. An axis of whole days, one named by a Date, has none within
+            // a day.
+            let on_dates = if aesthetic == Aesthetic::X {
+                across_dates
+            } else {
+                up_dates
+            };
+            let whole_days = on_dates
+                && first_mapping(plot, aesthetic)
+                    .and_then(|(mapping, _, layer)| values(plot, layer, mapping.aesthetic))
+                    .is_some_and(|column| column.ty() == ColumnType::Date);
+            // The kind of scale the script asks of the axis: its limits, with their margin, and
+            // its breaks are taken as that kind places its values.
+            let asked = plot.axis(aesthetic);
+            let (kind, (lo, hi)) = match asked {
+                _ if on_dates => (ScaleKind::Date, dates::limits(found, whole_days)),
+                AxisKind::Linear | AxisKind::Date => (ScaleKind::Linear, scale::limits(found)),
+                AxisKind::Log => (
+                    ScaleKind::Log,
+                    scale::log_limits(found.filter(|(lo, _)| *lo > 0.0)),
+                ),
+                AxisKind::Sqrt => (
+                    ScaleKind::Sqrt,
+                    scale::sqrt_limits(found.filter(|(lo, _)| *lo >= 0.0)),
+                ),
+            };
+            // In polar coordinates an axis has no margin: the angle runs once round over the
+            // values of `x` exactly, its lowest and its highest at the top together, and the
+            // lowest value of `y` is at the centre and its highest on the rim. Values that are
+            // one value, or that the kind of the axis cannot place, keep the limits above.
+            let (lo, hi) = match found {
+                Some((least, most))
+                    if plot.coord == Coord::Polar
+                        && least < most
+                        && match kind {
+                            ScaleKind::Log => least > 0.0,
+                            ScaleKind::Sqrt => least >= 0.0,
+                            _ => true,
+                        } =>
+                {
+                    (least, most)
+                }
+                _ => (lo, hi),
+            };
+            // The limits the script sets are the visible range and nothing more (decision #118,
+            // F5): an end it gives is that end exactly, with no margin, no row is dropped for
+            // it, and the marks beyond it, which the edge of the panel cuts off, are counted.
+            // What is said of a scale of dates is in instants, and holds for an axis of dates
+            // alone; what is said of another kind holds for an axis of numbers alone.
+            let setting = plot
+                .axis_setting(aesthetic)
+                .filter(|axis| (axis.kind == AxisKind::Date) == on_dates);
+            let (lo, hi) = match setting.map(|axis| axis.limits) {
+                Some((low, high)) => {
+                    let set = (low.unwrap_or(lo), high.unwrap_or(hi));
+                    if set.0 < set.1 { set } else { (lo, hi) }
+                }
+                None => (lo, hi),
+            };
+            if setting.is_some_and(|axis| axis.limits != (None, None)) {
+                let out = |v: Option<&f64>| v.is_some_and(|v| *v < lo || *v > hi);
+                let beyond: usize = layers
+                    .iter()
+                    .map(|layer| {
+                        (0..layer.x.len().max(layer.y.len()))
+                            .filter(|&i| {
+                                if aesthetic == Aesthetic::X {
+                                    out(layer.x.get(i))
+                                } else {
+                                    out(layer.y.get(i)) || out(layer.low.get(i))
+                                }
+                            })
+                            .count()
+                    })
+                    .sum();
+                if beyond > 0 {
+                    said = Some(format!(
+                        "{} beyond the limits of the `{}` axis {} cut off at the edge of the panel",
+                        if beyond == 1 {
+                            "1 mark".to_string()
+                        } else {
+                            format!("{} marks", count(beyond as u64))
+                        },
+                        aesthetic.name(),
+                        if beyond == 1 { "is" } else { "are" }
+                    ));
+                }
+            }
+            // The breaks: those the script sets, the ones within the limits, with its labels or
+            // the numbers; or, for a variable with value labels, its labelled values, written
+            // as their labels (open decision #128); or those the scale chooses.
+            // The dates of an axis as they are written: by the pattern of the script, or in
+            // the form the scale chooses.
+            let written = |breaks: &[f64]| match setting.and_then(|axis| axis.pattern.as_deref()) {
+                Some(pattern) if on_dates => dates::written(pattern, breaks),
+                _ if on_dates => dates::labels(breaks),
+                _ => scale::labels(breaks),
+            };
+            let labelled = || -> Option<(Vec<f64>, Vec<String>)> {
+                let (mapping, _, layer) = first_mapping(plot, aesthetic)?;
+                if on_dates || mapping.aesthetic != aesthetic || mapping.computed.is_some() {
+                    return None;
+                }
+                let pairs = values(plot, layer, aesthetic)?.metadata().value_labels()?;
+                let mut held: Vec<(f64, String)> = pairs
+                    .into_iter()
+                    .filter_map(|(code, label)| Some((code.parse::<f64>().ok()?, label)))
+                    .filter(|(value, _)| *value >= lo && *value <= hi)
+                    .collect();
+                held.sort_by(|a, b| a.0.total_cmp(&b.0));
+                held.dedup_by(|a, b| a.0 == b.0);
+                (!held.is_empty()).then(|| held.into_iter().unzip())
+            };
+            let (breaks, labels) = match setting.and_then(|axis| axis.breaks.as_ref()) {
+                Some(given) => {
+                    let texts = setting.and_then(|axis| axis.labels.as_ref());
+                    let mut breaks: Vec<f64> = Vec::new();
+                    let mut labels: Vec<String> = Vec::new();
+                    for (i, value) in given.iter().enumerate() {
+                        if *value >= lo && *value <= hi {
+                            breaks.push(*value);
+                            if let Some(texts) = texts {
+                                labels.push(texts.get(i).cloned().unwrap_or_default());
+                            }
+                        }
+                    }
+                    if texts.is_none() {
+                        labels = written(&breaks);
+                    }
+                    (breaks, labels)
+                }
+                None => labelled().unwrap_or_else(|| {
+                    let breaks = match asked {
+                        _ if on_dates => dates::breaks(lo, hi, whole_days),
+                        AxisKind::Log => scale::log_breaks(lo, hi),
+                        _ => scale::breaks(lo, hi),
+                    };
+                    let labels = written(&breaks);
+                    (breaks, labels)
+                }),
+            };
+            (kind, (lo, hi), breaks, labels, said)
+        };
+    // The extent of the marks of some layers along an axis: along `y` a filled mark reaches
+    // from its lower edge to its upper one, and along `x` a bar half its width to either
+    // side of its place.
+    let reach = |aesthetic: Aesthetic, layers: &[&Layer]| -> Option<(f64, f64)> {
+        let mut all: Vec<f64> = Vec::new();
+        for layer in layers {
+            if aesthetic == Aesthetic::X {
+                all.extend(&layer.x);
+                all.extend(
+                    layer
+                        .x
+                        .iter()
+                        .zip(&layer.span)
+                        .flat_map(|(x, span)| [x - span / 2.0, x + span / 2.0]),
+                );
+            } else {
+                all.extend(&layer.y);
+                all.extend(&layer.low);
+            }
+        }
+        extent(all.iter())
+    };
     for (aesthetic, position) in [(Aesthetic::X, sides.0), (Aesthetic::Y, sides.1)] {
         // Bars that count rows give the plot a `y` axis where nothing is mapped to `y`.
         let counting = aesthetic == Aesthetic::Y
@@ -3107,148 +3307,11 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             continue;
         }
         let found = marks.or_else(|| frame_extent(plot, aesthetic));
-        // An axis of dates has the limits of a linear axis, with their margin, and its
-        // breaks on the calendar. An axis of whole days, one named by a Date, has none within
-        // a day.
-        let on_dates = if aesthetic == Aesthetic::X {
-            across_dates
-        } else {
-            up_dates
-        };
-        let whole_days = on_dates
-            && first_mapping(plot, aesthetic)
-                .and_then(|(mapping, _, layer)| values(plot, layer, mapping.aesthetic))
-                .is_some_and(|column| column.ty() == ColumnType::Date);
-        // The kind of scale the script asks of the axis: its limits, with their margin, and
-        // its breaks are taken as that kind places its values.
-        let asked = plot.axis(aesthetic);
-        let (kind, (lo, hi)) = match asked {
-            _ if on_dates => (ScaleKind::Date, dates::limits(found, whole_days)),
-            AxisKind::Linear | AxisKind::Date => (ScaleKind::Linear, scale::limits(found)),
-            AxisKind::Log => (
-                ScaleKind::Log,
-                scale::log_limits(found.filter(|(lo, _)| *lo > 0.0)),
-            ),
-            AxisKind::Sqrt => (
-                ScaleKind::Sqrt,
-                scale::sqrt_limits(found.filter(|(lo, _)| *lo >= 0.0)),
-            ),
-        };
-        // In polar coordinates an axis has no margin: the angle runs once round over the
-        // values of `x` exactly, its lowest and its highest at the top together, and the
-        // lowest value of `y` is at the centre and its highest on the rim. Values that are
-        // one value, or that the kind of the axis cannot place, keep the limits above.
-        let (lo, hi) = match found {
-            Some((least, most))
-                if plot.coord == Coord::Polar
-                    && least < most
-                    && match kind {
-                        ScaleKind::Log => least > 0.0,
-                        ScaleKind::Sqrt => least >= 0.0,
-                        _ => true,
-                    } =>
-            {
-                (least, most)
-            }
-            _ => (lo, hi),
-        };
-        // The limits the script sets are the visible range and nothing more (decision #118,
-        // F5): an end it gives is that end exactly, with no margin, no row is dropped for
-        // it, and the marks beyond it, which the edge of the panel cuts off, are counted.
-        // What is said of a scale of dates is in instants, and holds for an axis of dates
-        // alone; what is said of another kind holds for an axis of numbers alone.
-        let setting = plot
-            .axis_setting(aesthetic)
-            .filter(|axis| (axis.kind == AxisKind::Date) == on_dates);
-        let (lo, hi) = match setting.map(|axis| axis.limits) {
-            Some((low, high)) => {
-                let set = (low.unwrap_or(lo), high.unwrap_or(hi));
-                if set.0 < set.1 { set } else { (lo, hi) }
-            }
-            None => (lo, hi),
-        };
-        if setting.is_some_and(|axis| axis.limits != (None, None)) {
-            let out = |v: Option<&f64>| v.is_some_and(|v| *v < lo || *v > hi);
-            let beyond: usize = layers
-                .iter()
-                .map(|layer| {
-                    (0..layer.x.len().max(layer.y.len()))
-                        .filter(|&i| {
-                            if aesthetic == Aesthetic::X {
-                                out(layer.x.get(i))
-                            } else {
-                                out(layer.y.get(i)) || out(layer.low.get(i))
-                            }
-                        })
-                        .count()
-                })
-                .sum();
-            if beyond > 0 {
-                note(format!(
-                    "{} beyond the limits of the `{}` axis {} cut off at the edge of the panel",
-                    if beyond == 1 {
-                        "1 mark".to_string()
-                    } else {
-                        format!("{} marks", count(beyond as u64))
-                    },
-                    aesthetic.name(),
-                    if beyond == 1 { "is" } else { "are" }
-                ));
-            }
+        let (kind, (lo, hi), breaks, labels, said) =
+            numbered(aesthetic, found, &layers.iter().collect::<Vec<&Layer>>());
+        if let Some(said) = said {
+            note(said);
         }
-        // The breaks: those the script sets, the ones within the limits, with its labels or
-        // the numbers; or, for a variable with value labels, its labelled values, written
-        // as their labels (open decision #128); or those the scale chooses.
-        // The dates of an axis as they are written: by the pattern of the script, or in
-        // the form the scale chooses.
-        let written = |breaks: &[f64]| match setting.and_then(|axis| axis.pattern.as_deref()) {
-            Some(pattern) if on_dates => dates::written(pattern, breaks),
-            _ if on_dates => dates::labels(breaks),
-            _ => scale::labels(breaks),
-        };
-        let labelled = || -> Option<(Vec<f64>, Vec<String>)> {
-            let (mapping, _, layer) = first_mapping(plot, aesthetic)?;
-            if on_dates || mapping.aesthetic != aesthetic || mapping.computed.is_some() {
-                return None;
-            }
-            let pairs = values(plot, layer, aesthetic)?.metadata().value_labels()?;
-            let mut held: Vec<(f64, String)> = pairs
-                .into_iter()
-                .filter_map(|(code, label)| Some((code.parse::<f64>().ok()?, label)))
-                .filter(|(value, _)| *value >= lo && *value <= hi)
-                .collect();
-            held.sort_by(|a, b| a.0.total_cmp(&b.0));
-            held.dedup_by(|a, b| a.0 == b.0);
-            (!held.is_empty()).then(|| held.into_iter().unzip())
-        };
-        let (breaks, labels) = match setting.and_then(|axis| axis.breaks.as_ref()) {
-            Some(given) => {
-                let texts = setting.and_then(|axis| axis.labels.as_ref());
-                let mut breaks: Vec<f64> = Vec::new();
-                let mut labels: Vec<String> = Vec::new();
-                for (i, value) in given.iter().enumerate() {
-                    if *value >= lo && *value <= hi {
-                        breaks.push(*value);
-                        if let Some(texts) = texts {
-                            labels.push(texts.get(i).cloned().unwrap_or_default());
-                        }
-                    }
-                }
-                if texts.is_none() {
-                    labels = written(&breaks);
-                }
-                (breaks, labels)
-            }
-            None => labelled().unwrap_or_else(|| {
-                let breaks = match asked {
-                    _ if on_dates => dates::breaks(lo, hi, whole_days),
-                    AxisKind::Log => scale::log_breaks(lo, hi),
-                    _ => scale::breaks(lo, hi),
-                };
-                let labels = written(&breaks);
-                (breaks, labels)
-            }),
-        };
         scales.push(Scale {
             id: aesthetic.name(),
             kind,
@@ -3327,12 +3390,14 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     // The panels: one, or one for each value of the facets, laid in rows. The marks of a
     // layer are dealt to the panels by the rows they are drawn from; a layer whose frame
     // lacks a variable of the facets is drawn whole in every panel.
-    let panels: Vec<Panel> = match &parts {
+    let mut panels: Vec<Panel> = match &parts {
         None => vec![Panel {
             row: 1,
             column: 1,
             strip: None,
             side: None,
+            own_x: None,
+            own_y: None,
             x,
             y,
             layers,
@@ -3345,6 +3410,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             column: 1,
             strip: None,
             side: None,
+            own_x: None,
+            own_y: None,
             x,
             y,
             layers,
@@ -3364,6 +3431,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                     column: *column,
                     strip: strip.clone(),
                     side: side.clone(),
+                    own_x: None,
+                    own_y: None,
                     x,
                     y,
                     layers: layers
@@ -3380,12 +3449,85 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 .collect()
         }
     };
+    // Axes of their own (`scales: free`, `free_x`, `free_y`): an axis of numbers or dates
+    // is built again from the marks of each panel, or in a grid of each column for `x` and
+    // of each row for `y`. An axis of categories is the plot's, with a place for every
+    // category, in every panel.
+    let wrapped = parts
+        .as_ref()
+        .is_some_and(|parts| parts.wrapped && !parts.panels.is_empty());
+    if let Some(facet) = plot
+        .facet
+        .as_ref()
+        .filter(|_| panels.iter().any(|p| p.strip.is_some() || p.side.is_some()))
+    {
+        let (free_x, free_y) = facet.scales.free();
+        for (aesthetic, free) in [(Aesthetic::X, free_x), (Aesthetic::Y, free_y)] {
+            let Some(shared) = scales
+                .iter()
+                .find(|scale| scale.id == aesthetic.name() && scale.kind != ScaleKind::Category)
+                .filter(|_| free)
+            else {
+                continue;
+            };
+            // The panels that share one axis: each alone, or a column, or a row.
+            let group = |at: usize, panel: &Panel| {
+                if wrapped {
+                    at
+                } else if aesthetic == Aesthetic::X {
+                    panel.column
+                } else {
+                    panel.row
+                }
+            };
+            let mut groups: Vec<usize> = panels
+                .iter()
+                .enumerate()
+                .map(|(at, panel)| group(at, panel))
+                .collect();
+            groups.sort_unstable();
+            groups.dedup();
+            let mut own: Vec<(usize, Scale)> = Vec::new();
+            for wanted in groups {
+                let members: Vec<&Layer> = panels
+                    .iter()
+                    .enumerate()
+                    .filter(|(at, panel)| group(*at, panel) == wanted)
+                    .flat_map(|(_, panel)| panel.layers.iter())
+                    .collect();
+                let found = reach(aesthetic, &members).or_else(|| frame_extent(plot, aesthetic));
+                let (kind, limits, breaks, labels, _) = numbered(aesthetic, found, &members);
+                own.push((
+                    wanted,
+                    Scale {
+                        id: shared.id,
+                        kind,
+                        title: shared.title.clone(),
+                        limits,
+                        breaks,
+                        labels,
+                        range: Range::Position,
+                    },
+                ));
+            }
+            for (at, panel) in panels.iter_mut().enumerate() {
+                let mine = group(at, panel);
+                let scale = own
+                    .iter()
+                    .find(|(of, _)| *of == mine)
+                    .map(|(_, s)| s.clone());
+                if aesthetic == Aesthetic::X {
+                    panel.own_x = scale;
+                } else {
+                    panel.own_y = scale;
+                }
+            }
+        }
+    }
     Scene {
         rows: panels.iter().map(|panel| panel.row).max().unwrap_or(1),
         columns: panels.iter().map(|panel| panel.column).max().unwrap_or(1),
-        wrapped: parts
-            .as_ref()
-            .is_some_and(|parts| parts.wrapped && !parts.panels.is_empty()),
+        wrapped,
         scales,
         axes,
         legends,
@@ -3879,6 +4021,37 @@ impl Scene {
                                 self.panels
                                     .iter()
                                     .map(|panel| Json::text(panel.side.clone().unwrap_or_default()))
+                                    .collect(),
+                            ),
+                        )
+                    }),
+            )
+            // The scales the panels have of their own, in the order of the panels: for each
+            // the scale of `x` and that of `y`, or nothing where it is placed by the plot's.
+            .chain(
+                self.panels
+                    .iter()
+                    .any(|panel| panel.own_x.is_some() || panel.own_y.is_some())
+                    .then(|| {
+                        let own = |scale: &Option<Scale>| match scale {
+                            Some(s) => Json::Object(vec![
+                                ("limits", Json::numbers(&[s.limits.0, s.limits.1])),
+                                ("breaks", Json::numbers(&s.breaks)),
+                                ("labels", Json::texts(&s.labels)),
+                            ]),
+                            None => Json::Null,
+                        };
+                        (
+                            "own_scales",
+                            Json::List(
+                                self.panels
+                                    .iter()
+                                    .map(|panel| {
+                                        Json::Object(vec![
+                                            ("x", own(&panel.own_x)),
+                                            ("y", own(&panel.own_y)),
+                                        ])
+                                    })
                                     .collect(),
                             ),
                         )
@@ -4527,9 +4700,19 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         .flatten()
         .collect();
         drawn.after.push(format!(
-            "panels: {}, {}",
+            "panels: {}, {}{}",
             count(scene.panels.len() as u64),
-            parts.join(" and ")
+            parts.join(" and "),
+            match (
+                scene.panels.iter().any(|p| p.own_x.is_some()),
+                scene.panels.iter().any(|p| p.own_y.is_some()),
+            ) {
+                (true, true) =>
+                    "; each column with its own `x` axis and each row with its own `y` axis",
+                (true, false) => "; each column with its own `x` axis",
+                (false, true) => "; each row with its own `y` axis",
+                (false, false) => "",
+            }
         ));
     }
     if let Some(facet) = plot.facet.as_ref().filter(|facet| {
@@ -4542,10 +4725,19 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             .filter_map(|panel| panel.strip.clone())
             .collect();
         drawn.after.push(format!(
-            "panels: {} by {}: {}",
+            "panels: {} by {}: {}{}",
             count(scene.panels.len() as u64),
             facet.by.join(" and "),
-            listed(&strips)
+            listed(&strips),
+            match (
+                scene.panels.iter().any(|p| p.own_x.is_some()),
+                scene.panels.iter().any(|p| p.own_y.is_some()),
+            ) {
+                (true, true) => "; each with its own `x` and `y` axes",
+                (true, false) => "; each with its own `x` axis",
+                (false, true) => "; each with its own `y` axis",
+                (false, false) => "",
+            }
         ));
     }
     // The coordinates, when they are not cartesian.
