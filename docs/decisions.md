@@ -3203,3 +3203,12 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **What this says for #73**, as a reading and not a decision. Nothing found speaks against option A. Open for 0.8.0, in the order they would stop it: the bytes across machines (3), the licences inside the bundled fonts and patterns (1), what the library adds to the size of the engine (4), and the version written into every file (2), which means a PDF set by Typst changes its bytes when Typst is upgraded even if nothing else does.
 
 **Reason.** The checklist's step 22b4; question 1 at the opening of the release ("#73's trial of the typesetting engine ... is run as a tool-only step once the SVG writer exists, with nothing linked into the engine"); open decision #73, whose recommendation asks for "a spike at 0.7.0 beside the plot renderer" with its result reported at 0.7.0.
+
+## 12 November 2026: open decision #106 taken, and step 23 split (release 0.7.0, opening of step 23)
+
+**The decision.** Open decision #106, due before step 23, is taken as option A on the register's recommendation, under the owner's standing instruction of 12 November 2026 ("22b2 onwards don't wait for my permission, continue to next steps. If at any point any decisions to be taken by me, I will go by your recommended decisions."): every mark takes `x:` and `y:`, and each other aesthetic it draws, for its own layer, and an argument given replaces the plot's mapping for that layer. The register's entry holds the rule in full; the owner may overturn it.
+
+**The split.** Step 23 was written as seven catalogued marks on machinery that exists. Two pieces of that machinery do not exist yet: a layer's own mappings (the decision above) and a line with a type in a drawing (decision #118, F9, which this step is to write into section 7.6). The step is split in the checklist into 23a `[engine]`, a layer's own mappings, built on `points`; 23b `[engine]`, lines with a type in the three writers; 23c `[function]`, `lines` and `step`; 23d `[function]`, `area` and `ribbon`; 23e `[function]`, `hline`, `vline` and `rug`. The step as first written stays above them and is ticked when the five are.
+
+**Reason.** The checklist's step 23 ("Before this step is built" of #106's deadline); the standing instruction that a step too large is split in the checklist; the standing instruction of 12 November 2026.
+

@@ -162,3 +162,11 @@ Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold a
 
 **For the owner to decide.** Nothing waits for him. #73 itself is due at 0.8.0. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 23 opened and split
+
+**Done.** No code. Open decision #106 was taken as option A on the recommendation, under the owner's standing instruction: a layer may name its own variables (`points(y: fitted)`). Step 23 was split in the checklist into 23a `[engine]` (a layer's own mappings), 23b `[engine]` (lines with a type in the three writers), 23c `[function]` (`lines`, `step`), 23d `[function]` (`area`, `ribbon`) and 23e `[function]` (`hline`, `vline`, `rug`).
+
+**Next.** Step 23a `[engine]`: a layer's own mappings, built on `points`.
+
+**For the owner to decide.** Nothing waits for him; #106 as taken is his to overturn. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
