@@ -150,7 +150,7 @@ Step 18 `[engine]`: `dist.tukey(groups:, df:)`, the studentized range, exact to 
 
 **A fault of `by:` corrected on the way.** Under `by:` a definition that gave `NA` on every row, or any definition on a frame of no rows, was refused for want of a type where the same definition without `by:` worked. It held for `rank` and plain arithmetic too, since release 0.6.0. Both forms now give the same variable.
 
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247; CI is read job by job after the push.
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247; CI is read job by job after the push. The run GitHub opened for the step's commit never left its queue (over four hours, no job started, no fault reported by GitHub, and it could be neither cancelled nor restarted), so the checks were started again by the push that records this sentence.
 
 **Next.** Step 19b `[engine]`: `posthoc` after a factorial `anova`. Then 20e `[engine]` and 21 `[engine]`.
 
