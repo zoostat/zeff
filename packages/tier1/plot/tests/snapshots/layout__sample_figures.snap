@@ -1,0 +1,1156 @@
+---
+source: packages/tier1/plot/tests/layout.rs
+expression: all
+---
+=== wage against schooling, one_column
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 49.87,7.792 to 49.87,155.253 stroke #E3E3E3 0.35
+[grid] segment 80.602,7.792 to 80.602,155.253 stroke #E3E3E3 0.35
+[grid] segment 111.334,7.792 to 111.334,155.253 stroke #E3E3E3 0.35
+[grid] segment 142.067,7.792 to 142.067,155.253 stroke #E3E3E3 0.35
+[grid] segment 172.799,7.792 to 172.799,155.253 stroke #E3E3E3 0.35
+[grid] segment 203.531,7.792 to 203.531,155.253 stroke #E3E3E3 0.35
+[grid] segment 234.264,7.792 to 234.264,155.253 stroke #E3E3E3 0.35
+[grid] segment 40.65,151.729 to 243.483,151.729 stroke #E3E3E3 0.35
+[grid] segment 40.65,106.702 to 243.483,106.702 stroke #E3E3E3 0.35
+[grid] segment 40.65,61.674 to 243.483,61.674 stroke #E3E3E3 0.35
+[grid] segment 40.65,16.647 to 243.483,16.647 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 202.833 by 147.461
+  [layer:1] point 188.165,135.447 circle 4.5 #222222 opacity 1
+  [layer:1] point 188.165,136.167 circle 4.5 #222222 opacity 1
+  [layer:1] point 188.165,132.88 circle 4.5 #222222 opacity 1
+  … 18198 more marks
+[axis:x] segment 40.65,155.253 to 243.483,155.253 stroke #222222 0.5
+[axis:x] segment 49.87,155.253 to 49.87,158.253 stroke #222222 0.5
+[axis:x] text 49.87,166.837 middle "8" sans 8 #222222
+[axis:x] segment 80.602,155.253 to 80.602,158.253 stroke #222222 0.5
+[axis:x] text 80.602,166.837 middle "10" sans 8 #222222
+[axis:x] segment 111.334,155.253 to 111.334,158.253 stroke #222222 0.5
+[axis:x] text 111.334,166.837 middle "12" sans 8 #222222
+[axis:x] segment 142.067,155.253 to 142.067,158.253 stroke #222222 0.5
+[axis:x] text 142.067,166.837 middle "14" sans 8 #222222
+[axis:x] segment 172.799,155.253 to 172.799,158.253 stroke #222222 0.5
+[axis:x] text 172.799,166.837 middle "16" sans 8 #222222
+[axis:x] segment 203.531,155.253 to 203.531,158.253 stroke #222222 0.5
+[axis:x] text 203.531,166.837 middle "18" sans 8 #222222
+[axis:x] segment 234.264,155.253 to 234.264,158.253 stroke #222222 0.5
+[axis:x] text 234.264,166.837 middle "20" sans 8 #222222
+[axis:x] text 142.067,180.837 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,155.253 stroke #222222 0.5
+[axis:y] segment 37.65,151.729 to 40.65,151.729 stroke #222222 0.5
+[axis:y] text 34.65,154.521 end "0" sans 8 #222222
+[axis:y] segment 37.65,106.702 to 40.65,106.702 stroke #222222 0.5
+[axis:y] text 34.65,109.494 end "50" sans 8 #222222
+[axis:y] segment 37.65,61.674 to 40.65,61.674 stroke #222222 0.5
+[axis:y] text 34.65,64.466 end "100" sans 8 #222222
+[axis:y] segment 37.65,16.647 to 40.65,16.647 stroke #222222 0.5
+[axis:y] text 34.65,19.439 end "150" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "Hourly wage" sans 9 #222222
+note: 211 rows with NA in educ or wage dropped
+all of it: 27b071c040a525828354d3690d6d28de3bde4b6ef22858db84b80cd89e1e3648
+=== wage against schooling, two_column
+drawing 518.74 by 311.811
+[background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
+[grid] segment 61.981,7.792 to 61.981,279.977 stroke #E3E3E3 0.35
+[grid] segment 133.086,7.792 to 133.086,279.977 stroke #E3E3E3 0.35
+[grid] segment 204.191,7.792 to 204.191,279.977 stroke #E3E3E3 0.35
+[grid] segment 275.295,7.792 to 275.295,279.977 stroke #E3E3E3 0.35
+[grid] segment 346.4,7.792 to 346.4,279.977 stroke #E3E3E3 0.35
+[grid] segment 417.504,7.792 to 417.504,279.977 stroke #E3E3E3 0.35
+[grid] segment 488.609,7.792 to 488.609,279.977 stroke #E3E3E3 0.35
+[grid] segment 40.65,273.473 to 509.94,273.473 stroke #E3E3E3 0.35
+[grid] segment 40.65,190.361 to 509.94,190.361 stroke #E3E3E3 0.35
+[grid] segment 40.65,107.249 to 509.94,107.249 stroke #E3E3E3 0.35
+[grid] segment 40.65,24.137 to 509.94,24.137 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 469.29 by 272.185
+  [layer:1] point 381.952,243.419 circle 4.5 #222222 opacity 1
+  [layer:1] point 381.952,244.749 circle 4.5 #222222 opacity 1
+  [layer:1] point 381.952,238.682 circle 4.5 #222222 opacity 1
+  … 18198 more marks
+[axis:x] segment 40.65,279.977 to 509.94,279.977 stroke #222222 0.5
+[axis:x] segment 61.981,279.977 to 61.981,282.977 stroke #222222 0.5
+[axis:x] text 61.981,291.561 middle "8" sans 8 #222222
+[axis:x] segment 133.086,279.977 to 133.086,282.977 stroke #222222 0.5
+[axis:x] text 133.086,291.561 middle "10" sans 8 #222222
+[axis:x] segment 204.191,279.977 to 204.191,282.977 stroke #222222 0.5
+[axis:x] text 204.191,291.561 middle "12" sans 8 #222222
+[axis:x] segment 275.295,279.977 to 275.295,282.977 stroke #222222 0.5
+[axis:x] text 275.295,291.561 middle "14" sans 8 #222222
+[axis:x] segment 346.4,279.977 to 346.4,282.977 stroke #222222 0.5
+[axis:x] text 346.4,291.561 middle "16" sans 8 #222222
+[axis:x] segment 417.504,279.977 to 417.504,282.977 stroke #222222 0.5
+[axis:x] text 417.504,291.561 middle "18" sans 8 #222222
+[axis:x] segment 488.609,279.977 to 488.609,282.977 stroke #222222 0.5
+[axis:x] text 488.609,291.561 middle "20" sans 8 #222222
+[axis:x] text 275.295,305.561 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,279.977 stroke #222222 0.5
+[axis:y] segment 37.65,273.473 to 40.65,273.473 stroke #222222 0.5
+[axis:y] text 34.65,276.265 end "0" sans 8 #222222
+[axis:y] segment 37.65,190.361 to 40.65,190.361 stroke #222222 0.5
+[axis:y] text 34.65,193.153 end "50" sans 8 #222222
+[axis:y] segment 37.65,107.249 to 40.65,107.249 stroke #222222 0.5
+[axis:y] text 34.65,110.041 end "100" sans 8 #222222
+[axis:y] segment 37.65,24.137 to 40.65,24.137 stroke #222222 0.5
+[axis:y] text 34.65,26.929 end "150" sans 8 #222222
+[axis:y] text 13,143.885 middle turned 90 "Hourly wage" sans 9 #222222
+note: 211 rows with NA in educ or wage dropped
+all of it: 4d9af1be15bbef4a4ef3121c982f4f69ca4ddec01796181e3f0f0584e2a2bd79
+=== wage against schooling, slide
+drawing 720 by 405.354
+[background] rectangle 0,0 720 by 405.354 fill #FFFFFF
+[grid] segment 71.13,7.792 to 71.13,373.52 stroke #E3E3E3 0.35
+[grid] segment 172.728,7.792 to 172.728,373.52 stroke #E3E3E3 0.35
+[grid] segment 274.327,7.792 to 274.327,373.52 stroke #E3E3E3 0.35
+[grid] segment 375.925,7.792 to 375.925,373.52 stroke #E3E3E3 0.35
+[grid] segment 477.523,7.792 to 477.523,373.52 stroke #E3E3E3 0.35
+[grid] segment 579.122,7.792 to 579.122,373.52 stroke #E3E3E3 0.35
+[grid] segment 680.72,7.792 to 680.72,373.52 stroke #E3E3E3 0.35
+[grid] segment 40.65,364.781 to 711.2,364.781 stroke #E3E3E3 0.35
+[grid] segment 40.65,253.105 to 711.2,253.105 stroke #E3E3E3 0.35
+[grid] segment 40.65,141.43 to 711.2,141.43 stroke #E3E3E3 0.35
+[grid] segment 40.65,29.754 to 711.2,29.754 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 670.55 by 365.728
+  [layer:1] point 528.323,324.399 circle 4.5 #222222 opacity 1
+  [layer:1] point 528.323,326.186 circle 4.5 #222222 opacity 1
+  [layer:1] point 528.323,318.033 circle 4.5 #222222 opacity 1
+  … 18198 more marks
+[axis:x] segment 40.65,373.52 to 711.2,373.52 stroke #222222 0.5
+[axis:x] segment 71.13,373.52 to 71.13,376.52 stroke #222222 0.5
+[axis:x] text 71.13,385.104 middle "8" sans 8 #222222
+[axis:x] segment 172.728,373.52 to 172.728,376.52 stroke #222222 0.5
+[axis:x] text 172.728,385.104 middle "10" sans 8 #222222
+[axis:x] segment 274.327,373.52 to 274.327,376.52 stroke #222222 0.5
+[axis:x] text 274.327,385.104 middle "12" sans 8 #222222
+[axis:x] segment 375.925,373.52 to 375.925,376.52 stroke #222222 0.5
+[axis:x] text 375.925,385.104 middle "14" sans 8 #222222
+[axis:x] segment 477.523,373.52 to 477.523,376.52 stroke #222222 0.5
+[axis:x] text 477.523,385.104 middle "16" sans 8 #222222
+[axis:x] segment 579.122,373.52 to 579.122,376.52 stroke #222222 0.5
+[axis:x] text 579.122,385.104 middle "18" sans 8 #222222
+[axis:x] segment 680.72,373.52 to 680.72,376.52 stroke #222222 0.5
+[axis:x] text 680.72,385.104 middle "20" sans 8 #222222
+[axis:x] text 375.925,399.104 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,373.52 stroke #222222 0.5
+[axis:y] segment 37.65,364.781 to 40.65,364.781 stroke #222222 0.5
+[axis:y] text 34.65,367.573 end "0" sans 8 #222222
+[axis:y] segment 37.65,253.105 to 40.65,253.105 stroke #222222 0.5
+[axis:y] text 34.65,255.897 end "50" sans 8 #222222
+[axis:y] segment 37.65,141.43 to 40.65,141.43 stroke #222222 0.5
+[axis:y] text 34.65,144.222 end "100" sans 8 #222222
+[axis:y] segment 37.65,29.754 to 40.65,29.754 stroke #222222 0.5
+[axis:y] text 34.65,32.546 end "150" sans 8 #222222
+[axis:y] text 13,190.656 middle turned 90 "Hourly wage" sans 9 #222222
+note: 211 rows with NA in educ or wage dropped
+all of it: 22bc8fb02c000e6e9f5bee40a9bd4cc06abcb0790a9c521b5453e850627780cf
+=== wage against experience, translucent, one_column
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 49.87,7.792 to 49.87,144.003 stroke #E3E3E3 0.35
+[grid] segment 101.09,7.792 to 101.09,144.003 stroke #E3E3E3 0.35
+[grid] segment 152.311,7.792 to 152.311,144.003 stroke #E3E3E3 0.35
+[grid] segment 203.531,7.792 to 203.531,144.003 stroke #E3E3E3 0.35
+[grid] segment 40.65,140.748 to 243.483,140.748 stroke #E3E3E3 0.35
+[grid] segment 40.65,99.156 to 243.483,99.156 stroke #E3E3E3 0.35
+[grid] segment 40.65,57.564 to 243.483,57.564 stroke #E3E3E3 0.35
+[grid] segment 40.65,15.971 to 243.483,15.971 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 202.833 by 136.211
+  [layer:1] point 95.968,125.708 circle 4.5 #222222 opacity 0.3
+  [layer:1] point 101.09,126.373 circle 4.5 #222222 opacity 0.3
+  [layer:1] point 106.212,123.337 circle 4.5 #222222 opacity 0.3
+  … 18176 more marks
+[axis:x] segment 40.65,144.003 to 243.483,144.003 stroke #222222 0.5
+[axis:x] segment 49.87,144.003 to 49.87,147.003 stroke #222222 0.5
+[axis:x] text 49.87,155.587 middle "0" sans 8 #222222
+[axis:x] segment 101.09,144.003 to 101.09,147.003 stroke #222222 0.5
+[axis:x] text 101.09,155.587 middle "10" sans 8 #222222
+[axis:x] segment 152.311,144.003 to 152.311,147.003 stroke #222222 0.5
+[axis:x] text 152.311,155.587 middle "20" sans 8 #222222
+[axis:x] segment 203.531,144.003 to 203.531,147.003 stroke #222222 0.5
+[axis:x] text 203.531,155.587 middle "30" sans 8 #222222
+[axis:x] text 142.067,169.587 middle "Potential labour-market experience: age less" sans 9 #222222
+[axis:x] text 142.067,180.837 middle "schooling less six" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,144.003 stroke #222222 0.5
+[axis:y] segment 37.65,140.748 to 40.65,140.748 stroke #222222 0.5
+[axis:y] text 34.65,143.54 end "0" sans 8 #222222
+[axis:y] segment 37.65,99.156 to 40.65,99.156 stroke #222222 0.5
+[axis:y] text 34.65,101.948 end "50" sans 8 #222222
+[axis:y] segment 37.65,57.564 to 40.65,57.564 stroke #222222 0.5
+[axis:y] text 34.65,60.356 end "100" sans 8 #222222
+[axis:y] segment 37.65,15.971 to 40.65,15.971 stroke #222222 0.5
+[axis:y] text 34.65,18.763 end "150" sans 8 #222222
+[axis:y] text 13,75.897 middle turned 90 "Hourly wage" sans 9 #222222
+note: 233 rows with NA in exper or wage dropped
+all of it: adf62b3bb84e4c3b34765a23824191962cadb458217b1a7832650bc7ae498945
+=== wage against experience, translucent, two_column
+drawing 518.74 by 311.811
+[background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
+[grid] segment 61.981,7.792 to 61.981,279.977 stroke #E3E3E3 0.35
+[grid] segment 180.489,7.792 to 180.489,279.977 stroke #E3E3E3 0.35
+[grid] segment 298.997,7.792 to 298.997,279.977 stroke #E3E3E3 0.35
+[grid] segment 417.504,7.792 to 417.504,279.977 stroke #E3E3E3 0.35
+[grid] segment 40.65,273.473 to 509.94,273.473 stroke #E3E3E3 0.35
+[grid] segment 40.65,190.361 to 509.94,190.361 stroke #E3E3E3 0.35
+[grid] segment 40.65,107.249 to 509.94,107.249 stroke #E3E3E3 0.35
+[grid] segment 40.65,24.137 to 509.94,24.137 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 469.29 by 272.185
+  [layer:1] point 168.638,243.419 circle 4.5 #222222 opacity 0.3
+  [layer:1] point 180.489,244.749 circle 4.5 #222222 opacity 0.3
+  [layer:1] point 192.34,238.682 circle 4.5 #222222 opacity 0.3
+  … 18176 more marks
+[axis:x] segment 40.65,279.977 to 509.94,279.977 stroke #222222 0.5
+[axis:x] segment 61.981,279.977 to 61.981,282.977 stroke #222222 0.5
+[axis:x] text 61.981,291.561 middle "0" sans 8 #222222
+[axis:x] segment 180.489,279.977 to 180.489,282.977 stroke #222222 0.5
+[axis:x] text 180.489,291.561 middle "10" sans 8 #222222
+[axis:x] segment 298.997,279.977 to 298.997,282.977 stroke #222222 0.5
+[axis:x] text 298.997,291.561 middle "20" sans 8 #222222
+[axis:x] segment 417.504,279.977 to 417.504,282.977 stroke #222222 0.5
+[axis:x] text 417.504,291.561 middle "30" sans 8 #222222
+[axis:x] text 275.295,305.561 middle "Potential labour-market experience: age less schooling less six" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,279.977 stroke #222222 0.5
+[axis:y] segment 37.65,273.473 to 40.65,273.473 stroke #222222 0.5
+[axis:y] text 34.65,276.265 end "0" sans 8 #222222
+[axis:y] segment 37.65,190.361 to 40.65,190.361 stroke #222222 0.5
+[axis:y] text 34.65,193.153 end "50" sans 8 #222222
+[axis:y] segment 37.65,107.249 to 40.65,107.249 stroke #222222 0.5
+[axis:y] text 34.65,110.041 end "100" sans 8 #222222
+[axis:y] segment 37.65,24.137 to 40.65,24.137 stroke #222222 0.5
+[axis:y] text 34.65,26.929 end "150" sans 8 #222222
+[axis:y] text 13,143.885 middle turned 90 "Hourly wage" sans 9 #222222
+note: 233 rows with NA in exper or wage dropped
+all of it: f6c7b0c864e51f60bf530bd3e9923c9ebb697605a06b7500c3d7054f87ca66a9
+=== wage against experience, translucent, slide
+drawing 720 by 405.354
+[background] rectangle 0,0 720 by 405.354 fill #FFFFFF
+[grid] segment 71.13,7.792 to 71.13,373.52 stroke #E3E3E3 0.35
+[grid] segment 240.46,7.792 to 240.46,373.52 stroke #E3E3E3 0.35
+[grid] segment 409.791,7.792 to 409.791,373.52 stroke #E3E3E3 0.35
+[grid] segment 579.122,7.792 to 579.122,373.52 stroke #E3E3E3 0.35
+[grid] segment 40.65,364.781 to 711.2,364.781 stroke #E3E3E3 0.35
+[grid] segment 40.65,253.105 to 711.2,253.105 stroke #E3E3E3 0.35
+[grid] segment 40.65,141.43 to 711.2,141.43 stroke #E3E3E3 0.35
+[grid] segment 40.65,29.754 to 711.2,29.754 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 670.55 by 365.728
+  [layer:1] point 223.527,324.399 circle 4.5 #222222 opacity 0.3
+  [layer:1] point 240.46,326.186 circle 4.5 #222222 opacity 0.3
+  [layer:1] point 257.393,318.033 circle 4.5 #222222 opacity 0.3
+  … 18176 more marks
+[axis:x] segment 40.65,373.52 to 711.2,373.52 stroke #222222 0.5
+[axis:x] segment 71.13,373.52 to 71.13,376.52 stroke #222222 0.5
+[axis:x] text 71.13,385.104 middle "0" sans 8 #222222
+[axis:x] segment 240.46,373.52 to 240.46,376.52 stroke #222222 0.5
+[axis:x] text 240.46,385.104 middle "10" sans 8 #222222
+[axis:x] segment 409.791,373.52 to 409.791,376.52 stroke #222222 0.5
+[axis:x] text 409.791,385.104 middle "20" sans 8 #222222
+[axis:x] segment 579.122,373.52 to 579.122,376.52 stroke #222222 0.5
+[axis:x] text 579.122,385.104 middle "30" sans 8 #222222
+[axis:x] text 375.925,399.104 middle "Potential labour-market experience: age less schooling less six" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,373.52 stroke #222222 0.5
+[axis:y] segment 37.65,364.781 to 40.65,364.781 stroke #222222 0.5
+[axis:y] text 34.65,367.573 end "0" sans 8 #222222
+[axis:y] segment 37.65,253.105 to 40.65,253.105 stroke #222222 0.5
+[axis:y] text 34.65,255.897 end "50" sans 8 #222222
+[axis:y] segment 37.65,141.43 to 40.65,141.43 stroke #222222 0.5
+[axis:y] text 34.65,144.222 end "100" sans 8 #222222
+[axis:y] segment 37.65,29.754 to 40.65,29.754 stroke #222222 0.5
+[axis:y] text 34.65,32.546 end "150" sans 8 #222222
+[axis:y] text 13,190.656 middle turned 90 "Hourly wage" sans 9 #222222
+note: 233 rows with NA in exper or wage dropped
+all of it: 247ffb11c22dcfedd1699d23571b12c23e82fc51053521b1005b13d2d86b49a4
+=== coloured by union membership, one_column
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 46.912,7.792 to 46.912,155.253 stroke #E3E3E3 0.35
+[grid] segment 67.787,7.792 to 67.787,155.253 stroke #E3E3E3 0.35
+[grid] segment 88.662,7.792 to 88.662,155.253 stroke #E3E3E3 0.35
+[grid] segment 109.537,7.792 to 109.537,155.253 stroke #E3E3E3 0.35
+[grid] segment 130.412,7.792 to 130.412,155.253 stroke #E3E3E3 0.35
+[grid] segment 151.287,7.792 to 151.287,155.253 stroke #E3E3E3 0.35
+[grid] segment 172.162,7.792 to 172.162,155.253 stroke #E3E3E3 0.35
+[grid] segment 40.65,151.729 to 178.424,151.729 stroke #E3E3E3 0.35
+[grid] segment 40.65,106.702 to 178.424,106.702 stroke #E3E3E3 0.35
+[grid] segment 40.65,61.674 to 178.424,61.674 stroke #E3E3E3 0.35
+[grid] segment 40.65,16.647 to 178.424,16.647 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 137.774 by 147.461
+  [layer:1] point 140.85,135.447 circle 4.5 #E69F00 opacity 0.3
+  [layer:1] point 140.85,136.167 circle 4.5 #E69F00 opacity 0.3
+  [layer:1] point 140.85,132.88 circle 4.5 #E69F00 opacity 0.3
+  … 18198 more marks
+[axis:x] segment 40.65,155.253 to 178.424,155.253 stroke #222222 0.5
+[axis:x] segment 46.912,155.253 to 46.912,158.253 stroke #222222 0.5
+[axis:x] text 46.912,166.837 middle "8" sans 8 #222222
+[axis:x] segment 67.787,155.253 to 67.787,158.253 stroke #222222 0.5
+[axis:x] text 67.787,166.837 middle "10" sans 8 #222222
+[axis:x] segment 88.662,155.253 to 88.662,158.253 stroke #222222 0.5
+[axis:x] text 88.662,166.837 middle "12" sans 8 #222222
+[axis:x] segment 109.537,155.253 to 109.537,158.253 stroke #222222 0.5
+[axis:x] text 109.537,166.837 middle "14" sans 8 #222222
+[axis:x] segment 130.412,155.253 to 130.412,158.253 stroke #222222 0.5
+[axis:x] text 130.412,166.837 middle "16" sans 8 #222222
+[axis:x] segment 151.287,155.253 to 151.287,158.253 stroke #222222 0.5
+[axis:x] text 151.287,166.837 middle "18" sans 8 #222222
+[axis:x] segment 172.162,155.253 to 172.162,158.253 stroke #222222 0.5
+[axis:x] text 172.162,166.837 middle "20" sans 8 #222222
+[axis:x] text 109.537,180.837 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,155.253 stroke #222222 0.5
+[axis:y] segment 37.65,151.729 to 40.65,151.729 stroke #222222 0.5
+[axis:y] text 34.65,154.521 end "0" sans 8 #222222
+[axis:y] segment 37.65,106.702 to 40.65,106.702 stroke #222222 0.5
+[axis:y] text 34.65,109.494 end "50" sans 8 #222222
+[axis:y] segment 37.65,61.674 to 40.65,61.674 stroke #222222 0.5
+[axis:y] text 34.65,64.466 end "100" sans 8 #222222
+[axis:y] segment 37.65,16.647 to 40.65,16.647 stroke #222222 0.5
+[axis:y] text 34.65,19.439 end "150" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color] text 188.424,14 start "Union member" sans 9 #222222
+[legend:color] point 190.674,24.25 circle 4.5 #E69F00 opacity 1
+[legend:color] text 195.924,27.042 start "no" sans 8 #222222
+[legend:color] point 190.674,34.25 circle 4.5 #56B4E9 opacity 1
+[legend:color] text 195.924,37.042 start "yes" sans 8 #222222
+note: 211 rows with NA in educ or wage dropped
+all of it: a58919d8161d50dca3696fab54cf10c896e2f996701b0b038a33bbe2e8ca0f7f
+=== coloured by union membership, two_column
+drawing 518.74 by 311.811
+[background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
+[grid] segment 59.024,7.792 to 59.024,279.977 stroke #E3E3E3 0.35
+[grid] segment 120.271,7.792 to 120.271,279.977 stroke #E3E3E3 0.35
+[grid] segment 181.518,7.792 to 181.518,279.977 stroke #E3E3E3 0.35
+[grid] segment 242.766,7.792 to 242.766,279.977 stroke #E3E3E3 0.35
+[grid] segment 304.013,7.792 to 304.013,279.977 stroke #E3E3E3 0.35
+[grid] segment 365.26,7.792 to 365.26,279.977 stroke #E3E3E3 0.35
+[grid] segment 426.507,7.792 to 426.507,279.977 stroke #E3E3E3 0.35
+[grid] segment 40.65,273.473 to 444.881,273.473 stroke #E3E3E3 0.35
+[grid] segment 40.65,190.361 to 444.881,190.361 stroke #E3E3E3 0.35
+[grid] segment 40.65,107.249 to 444.881,107.249 stroke #E3E3E3 0.35
+[grid] segment 40.65,24.137 to 444.881,24.137 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 404.231 by 272.185
+  [layer:1] point 334.636,243.419 circle 4.5 #E69F00 opacity 0.3
+  [layer:1] point 334.636,244.749 circle 4.5 #E69F00 opacity 0.3
+  [layer:1] point 334.636,238.682 circle 4.5 #E69F00 opacity 0.3
+  … 18198 more marks
+[axis:x] segment 40.65,279.977 to 444.881,279.977 stroke #222222 0.5
+[axis:x] segment 59.024,279.977 to 59.024,282.977 stroke #222222 0.5
+[axis:x] text 59.024,291.561 middle "8" sans 8 #222222
+[axis:x] segment 120.271,279.977 to 120.271,282.977 stroke #222222 0.5
+[axis:x] text 120.271,291.561 middle "10" sans 8 #222222
+[axis:x] segment 181.518,279.977 to 181.518,282.977 stroke #222222 0.5
+[axis:x] text 181.518,291.561 middle "12" sans 8 #222222
+[axis:x] segment 242.766,279.977 to 242.766,282.977 stroke #222222 0.5
+[axis:x] text 242.766,291.561 middle "14" sans 8 #222222
+[axis:x] segment 304.013,279.977 to 304.013,282.977 stroke #222222 0.5
+[axis:x] text 304.013,291.561 middle "16" sans 8 #222222
+[axis:x] segment 365.26,279.977 to 365.26,282.977 stroke #222222 0.5
+[axis:x] text 365.26,291.561 middle "18" sans 8 #222222
+[axis:x] segment 426.507,279.977 to 426.507,282.977 stroke #222222 0.5
+[axis:x] text 426.507,291.561 middle "20" sans 8 #222222
+[axis:x] text 242.766,305.561 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,279.977 stroke #222222 0.5
+[axis:y] segment 37.65,273.473 to 40.65,273.473 stroke #222222 0.5
+[axis:y] text 34.65,276.265 end "0" sans 8 #222222
+[axis:y] segment 37.65,190.361 to 40.65,190.361 stroke #222222 0.5
+[axis:y] text 34.65,193.153 end "50" sans 8 #222222
+[axis:y] segment 37.65,107.249 to 40.65,107.249 stroke #222222 0.5
+[axis:y] text 34.65,110.041 end "100" sans 8 #222222
+[axis:y] segment 37.65,24.137 to 40.65,24.137 stroke #222222 0.5
+[axis:y] text 34.65,26.929 end "150" sans 8 #222222
+[axis:y] text 13,143.885 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color] text 454.881,14 start "Union member" sans 9 #222222
+[legend:color] point 457.131,24.25 circle 4.5 #E69F00 opacity 1
+[legend:color] text 462.381,27.042 start "no" sans 8 #222222
+[legend:color] point 457.131,34.25 circle 4.5 #56B4E9 opacity 1
+[legend:color] text 462.381,37.042 start "yes" sans 8 #222222
+note: 211 rows with NA in educ or wage dropped
+all of it: 087d56809ecf88b968f50e4144b411e4a19225c94e8fe24c5b70e2c0ea7d82c2
+=== coloured by union membership, slide
+drawing 720 by 405.354
+[background] rectangle 0,0 720 by 405.354 fill #FFFFFF
+[grid] segment 68.172,7.792 to 68.172,373.52 stroke #E3E3E3 0.35
+[grid] segment 159.913,7.792 to 159.913,373.52 stroke #E3E3E3 0.35
+[grid] segment 251.654,7.792 to 251.654,373.52 stroke #E3E3E3 0.35
+[grid] segment 343.395,7.792 to 343.395,373.52 stroke #E3E3E3 0.35
+[grid] segment 435.137,7.792 to 435.137,373.52 stroke #E3E3E3 0.35
+[grid] segment 526.878,7.792 to 526.878,373.52 stroke #E3E3E3 0.35
+[grid] segment 618.619,7.792 to 618.619,373.52 stroke #E3E3E3 0.35
+[grid] segment 40.65,364.781 to 646.141,364.781 stroke #E3E3E3 0.35
+[grid] segment 40.65,253.105 to 646.141,253.105 stroke #E3E3E3 0.35
+[grid] segment 40.65,141.43 to 646.141,141.43 stroke #E3E3E3 0.35
+[grid] segment 40.65,29.754 to 646.141,29.754 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 605.491 by 365.728
+  [layer:1] point 481.007,324.399 circle 4.5 #E69F00 opacity 0.3
+  [layer:1] point 481.007,326.186 circle 4.5 #E69F00 opacity 0.3
+  [layer:1] point 481.007,318.033 circle 4.5 #E69F00 opacity 0.3
+  … 18198 more marks
+[axis:x] segment 40.65,373.52 to 646.141,373.52 stroke #222222 0.5
+[axis:x] segment 68.172,373.52 to 68.172,376.52 stroke #222222 0.5
+[axis:x] text 68.172,385.104 middle "8" sans 8 #222222
+[axis:x] segment 159.913,373.52 to 159.913,376.52 stroke #222222 0.5
+[axis:x] text 159.913,385.104 middle "10" sans 8 #222222
+[axis:x] segment 251.654,373.52 to 251.654,376.52 stroke #222222 0.5
+[axis:x] text 251.654,385.104 middle "12" sans 8 #222222
+[axis:x] segment 343.395,373.52 to 343.395,376.52 stroke #222222 0.5
+[axis:x] text 343.395,385.104 middle "14" sans 8 #222222
+[axis:x] segment 435.137,373.52 to 435.137,376.52 stroke #222222 0.5
+[axis:x] text 435.137,385.104 middle "16" sans 8 #222222
+[axis:x] segment 526.878,373.52 to 526.878,376.52 stroke #222222 0.5
+[axis:x] text 526.878,385.104 middle "18" sans 8 #222222
+[axis:x] segment 618.619,373.52 to 618.619,376.52 stroke #222222 0.5
+[axis:x] text 618.619,385.104 middle "20" sans 8 #222222
+[axis:x] text 343.395,399.104 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,373.52 stroke #222222 0.5
+[axis:y] segment 37.65,364.781 to 40.65,364.781 stroke #222222 0.5
+[axis:y] text 34.65,367.573 end "0" sans 8 #222222
+[axis:y] segment 37.65,253.105 to 40.65,253.105 stroke #222222 0.5
+[axis:y] text 34.65,255.897 end "50" sans 8 #222222
+[axis:y] segment 37.65,141.43 to 40.65,141.43 stroke #222222 0.5
+[axis:y] text 34.65,144.222 end "100" sans 8 #222222
+[axis:y] segment 37.65,29.754 to 40.65,29.754 stroke #222222 0.5
+[axis:y] text 34.65,32.546 end "150" sans 8 #222222
+[axis:y] text 13,190.656 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color] text 656.141,14 start "Union member" sans 9 #222222
+[legend:color] point 658.391,24.25 circle 4.5 #E69F00 opacity 1
+[legend:color] text 663.641,27.042 start "no" sans 8 #222222
+[legend:color] point 658.391,34.25 circle 4.5 #56B4E9 opacity 1
+[legend:color] text 663.641,37.042 start "yes" sans 8 #222222
+note: 211 rows with NA in educ or wage dropped
+all of it: b99c6babfe001158df88a60a2f3bb2d75c76eb37f2a24b38b8c87b713bcbf48e
+=== coloured by hours on a ramp, one_column
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 47.075,7.792 to 47.075,155.253 stroke #E3E3E3 0.35
+[grid] segment 68.491,7.792 to 68.491,155.253 stroke #E3E3E3 0.35
+[grid] segment 89.907,7.792 to 89.907,155.253 stroke #E3E3E3 0.35
+[grid] segment 111.324,7.792 to 111.324,155.253 stroke #E3E3E3 0.35
+[grid] segment 132.74,7.792 to 132.74,155.253 stroke #E3E3E3 0.35
+[grid] segment 154.156,7.792 to 154.156,155.253 stroke #E3E3E3 0.35
+[grid] segment 175.573,7.792 to 175.573,155.253 stroke #E3E3E3 0.35
+[grid] segment 40.65,151.729 to 181.997,151.729 stroke #E3E3E3 0.35
+[grid] segment 40.65,106.702 to 181.997,106.702 stroke #E3E3E3 0.35
+[grid] segment 40.65,61.674 to 181.997,61.674 stroke #E3E3E3 0.35
+[grid] segment 40.65,16.647 to 181.997,16.647 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 141.347 by 147.461
+  [layer:1] point 143.448,135.447 circle 4.5 #25AB82 opacity 1
+  [layer:1] point 143.448,136.167 circle 4.5 #1E9D89 opacity 1
+  [layer:1] point 143.448,132.88 circle 4.5 #63CB5F opacity 1
+  … 18164 more marks
+[axis:x] segment 40.65,155.253 to 181.997,155.253 stroke #222222 0.5
+[axis:x] segment 47.075,155.253 to 47.075,158.253 stroke #222222 0.5
+[axis:x] text 47.075,166.837 middle "8" sans 8 #222222
+[axis:x] segment 68.491,155.253 to 68.491,158.253 stroke #222222 0.5
+[axis:x] text 68.491,166.837 middle "10" sans 8 #222222
+[axis:x] segment 89.907,155.253 to 89.907,158.253 stroke #222222 0.5
+[axis:x] text 89.907,166.837 middle "12" sans 8 #222222
+[axis:x] segment 111.324,155.253 to 111.324,158.253 stroke #222222 0.5
+[axis:x] text 111.324,166.837 middle "14" sans 8 #222222
+[axis:x] segment 132.74,155.253 to 132.74,158.253 stroke #222222 0.5
+[axis:x] text 132.74,166.837 middle "16" sans 8 #222222
+[axis:x] segment 154.156,155.253 to 154.156,158.253 stroke #222222 0.5
+[axis:x] text 154.156,166.837 middle "18" sans 8 #222222
+[axis:x] segment 175.573,155.253 to 175.573,158.253 stroke #222222 0.5
+[axis:x] text 175.573,166.837 middle "20" sans 8 #222222
+[axis:x] text 111.324,180.837 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,155.253 stroke #222222 0.5
+[axis:y] segment 37.65,151.729 to 40.65,151.729 stroke #222222 0.5
+[axis:y] text 34.65,154.521 end "0" sans 8 #222222
+[axis:y] segment 37.65,106.702 to 40.65,106.702 stroke #222222 0.5
+[axis:y] text 34.65,109.494 end "50" sans 8 #222222
+[axis:y] segment 37.65,61.674 to 40.65,61.674 stroke #222222 0.5
+[axis:y] text 34.65,64.466 end "100" sans 8 #222222
+[axis:y] segment 37.65,16.647 to 40.65,16.647 stroke #222222 0.5
+[axis:y] text 34.65,19.439 end "150" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color] text 191.997,14 start "Hours worked" sans 9 #222222
+[legend:color] raster 191.997,22.042 8 by 72 cells 1 by 256 from #FDE725 to #440154
+[legend:color] segment 199.997,90.569 to 202.997,90.569 stroke #222222 0.5
+[legend:color] text 205.997,93.361 start "10" sans 8 #222222
+[legend:color] segment 199.997,78.994 to 202.997,78.994 stroke #222222 0.5
+[legend:color] text 205.997,81.786 start "20" sans 8 #222222
+[legend:color] segment 199.997,67.418 to 202.997,67.418 stroke #222222 0.5
+[legend:color] text 205.997,70.21 start "30" sans 8 #222222
+[legend:color] segment 199.997,55.843 to 202.997,55.843 stroke #222222 0.5
+[legend:color] text 205.997,58.635 start "40" sans 8 #222222
+[legend:color] segment 199.997,44.267 to 202.997,44.267 stroke #222222 0.5
+[legend:color] text 205.997,47.059 start "50" sans 8 #222222
+[legend:color] segment 199.997,32.692 to 202.997,32.692 stroke #222222 0.5
+[legend:color] text 205.997,35.484 start "60" sans 8 #222222
+note: 245 rows with NA in educ, wage or hours dropped
+all of it: 31a21aa85b1ea300adc5c1fc5d533dd637db1ff82a887ec4dce6cfbcfe7d0f90
+=== coloured by hours on a ramp, two_column
+drawing 518.74 by 311.811
+[background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
+[grid] segment 59.187,7.792 to 59.187,279.977 stroke #E3E3E3 0.35
+[grid] segment 120.975,7.792 to 120.975,279.977 stroke #E3E3E3 0.35
+[grid] segment 182.764,7.792 to 182.764,279.977 stroke #E3E3E3 0.35
+[grid] segment 244.552,7.792 to 244.552,279.977 stroke #E3E3E3 0.35
+[grid] segment 306.341,7.792 to 306.341,279.977 stroke #E3E3E3 0.35
+[grid] segment 368.129,7.792 to 368.129,279.977 stroke #E3E3E3 0.35
+[grid] segment 429.918,7.792 to 429.918,279.977 stroke #E3E3E3 0.35
+[grid] segment 40.65,273.473 to 448.454,273.473 stroke #E3E3E3 0.35
+[grid] segment 40.65,190.361 to 448.454,190.361 stroke #E3E3E3 0.35
+[grid] segment 40.65,107.249 to 448.454,107.249 stroke #E3E3E3 0.35
+[grid] segment 40.65,24.137 to 448.454,24.137 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 407.804 by 272.185
+  [layer:1] point 337.235,243.419 circle 4.5 #25AB82 opacity 1
+  [layer:1] point 337.235,244.749 circle 4.5 #1E9D89 opacity 1
+  [layer:1] point 337.235,238.682 circle 4.5 #63CB5F opacity 1
+  … 18164 more marks
+[axis:x] segment 40.65,279.977 to 448.454,279.977 stroke #222222 0.5
+[axis:x] segment 59.187,279.977 to 59.187,282.977 stroke #222222 0.5
+[axis:x] text 59.187,291.561 middle "8" sans 8 #222222
+[axis:x] segment 120.975,279.977 to 120.975,282.977 stroke #222222 0.5
+[axis:x] text 120.975,291.561 middle "10" sans 8 #222222
+[axis:x] segment 182.764,279.977 to 182.764,282.977 stroke #222222 0.5
+[axis:x] text 182.764,291.561 middle "12" sans 8 #222222
+[axis:x] segment 244.552,279.977 to 244.552,282.977 stroke #222222 0.5
+[axis:x] text 244.552,291.561 middle "14" sans 8 #222222
+[axis:x] segment 306.341,279.977 to 306.341,282.977 stroke #222222 0.5
+[axis:x] text 306.341,291.561 middle "16" sans 8 #222222
+[axis:x] segment 368.129,279.977 to 368.129,282.977 stroke #222222 0.5
+[axis:x] text 368.129,291.561 middle "18" sans 8 #222222
+[axis:x] segment 429.918,279.977 to 429.918,282.977 stroke #222222 0.5
+[axis:x] text 429.918,291.561 middle "20" sans 8 #222222
+[axis:x] text 244.552,305.561 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,279.977 stroke #222222 0.5
+[axis:y] segment 37.65,273.473 to 40.65,273.473 stroke #222222 0.5
+[axis:y] text 34.65,276.265 end "0" sans 8 #222222
+[axis:y] segment 37.65,190.361 to 40.65,190.361 stroke #222222 0.5
+[axis:y] text 34.65,193.153 end "50" sans 8 #222222
+[axis:y] segment 37.65,107.249 to 40.65,107.249 stroke #222222 0.5
+[axis:y] text 34.65,110.041 end "100" sans 8 #222222
+[axis:y] segment 37.65,24.137 to 40.65,24.137 stroke #222222 0.5
+[axis:y] text 34.65,26.929 end "150" sans 8 #222222
+[axis:y] text 13,143.885 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color] text 458.454,14 start "Hours worked" sans 9 #222222
+[legend:color] raster 458.454,22.042 8 by 72 cells 1 by 256 from #FDE725 to #440154
+[legend:color] segment 466.454,90.569 to 469.454,90.569 stroke #222222 0.5
+[legend:color] text 472.454,93.361 start "10" sans 8 #222222
+[legend:color] segment 466.454,78.994 to 469.454,78.994 stroke #222222 0.5
+[legend:color] text 472.454,81.786 start "20" sans 8 #222222
+[legend:color] segment 466.454,67.418 to 469.454,67.418 stroke #222222 0.5
+[legend:color] text 472.454,70.21 start "30" sans 8 #222222
+[legend:color] segment 466.454,55.843 to 469.454,55.843 stroke #222222 0.5
+[legend:color] text 472.454,58.635 start "40" sans 8 #222222
+[legend:color] segment 466.454,44.267 to 469.454,44.267 stroke #222222 0.5
+[legend:color] text 472.454,47.059 start "50" sans 8 #222222
+[legend:color] segment 466.454,32.692 to 469.454,32.692 stroke #222222 0.5
+[legend:color] text 472.454,35.484 start "60" sans 8 #222222
+note: 245 rows with NA in educ, wage or hours dropped
+all of it: 118b7348ea8b355f1bae7de56de371afbc79acc41c047b8619a10416f368f6a6
+=== coloured by hours on a ramp, slide
+drawing 720 by 405.354
+[background] rectangle 0,0 720 by 405.354 fill #FFFFFF
+[grid] segment 68.335,7.792 to 68.335,373.52 stroke #E3E3E3 0.35
+[grid] segment 160.617,7.792 to 160.617,373.52 stroke #E3E3E3 0.35
+[grid] segment 252.9,7.792 to 252.9,373.52 stroke #E3E3E3 0.35
+[grid] segment 345.182,7.792 to 345.182,373.52 stroke #E3E3E3 0.35
+[grid] segment 437.464,7.792 to 437.464,373.52 stroke #E3E3E3 0.35
+[grid] segment 529.747,7.792 to 529.747,373.52 stroke #E3E3E3 0.35
+[grid] segment 622.029,7.792 to 622.029,373.52 stroke #E3E3E3 0.35
+[grid] segment 40.65,364.781 to 649.714,364.781 stroke #E3E3E3 0.35
+[grid] segment 40.65,253.105 to 649.714,253.105 stroke #E3E3E3 0.35
+[grid] segment 40.65,141.43 to 649.714,141.43 stroke #E3E3E3 0.35
+[grid] segment 40.65,29.754 to 649.714,29.754 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 609.064 by 365.728
+  [layer:1] point 483.606,324.399 circle 4.5 #25AB82 opacity 1
+  [layer:1] point 483.606,326.186 circle 4.5 #1E9D89 opacity 1
+  [layer:1] point 483.606,318.033 circle 4.5 #63CB5F opacity 1
+  … 18164 more marks
+[axis:x] segment 40.65,373.52 to 649.714,373.52 stroke #222222 0.5
+[axis:x] segment 68.335,373.52 to 68.335,376.52 stroke #222222 0.5
+[axis:x] text 68.335,385.104 middle "8" sans 8 #222222
+[axis:x] segment 160.617,373.52 to 160.617,376.52 stroke #222222 0.5
+[axis:x] text 160.617,385.104 middle "10" sans 8 #222222
+[axis:x] segment 252.9,373.52 to 252.9,376.52 stroke #222222 0.5
+[axis:x] text 252.9,385.104 middle "12" sans 8 #222222
+[axis:x] segment 345.182,373.52 to 345.182,376.52 stroke #222222 0.5
+[axis:x] text 345.182,385.104 middle "14" sans 8 #222222
+[axis:x] segment 437.464,373.52 to 437.464,376.52 stroke #222222 0.5
+[axis:x] text 437.464,385.104 middle "16" sans 8 #222222
+[axis:x] segment 529.747,373.52 to 529.747,376.52 stroke #222222 0.5
+[axis:x] text 529.747,385.104 middle "18" sans 8 #222222
+[axis:x] segment 622.029,373.52 to 622.029,376.52 stroke #222222 0.5
+[axis:x] text 622.029,385.104 middle "20" sans 8 #222222
+[axis:x] text 345.182,399.104 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,373.52 stroke #222222 0.5
+[axis:y] segment 37.65,364.781 to 40.65,364.781 stroke #222222 0.5
+[axis:y] text 34.65,367.573 end "0" sans 8 #222222
+[axis:y] segment 37.65,253.105 to 40.65,253.105 stroke #222222 0.5
+[axis:y] text 34.65,255.897 end "50" sans 8 #222222
+[axis:y] segment 37.65,141.43 to 40.65,141.43 stroke #222222 0.5
+[axis:y] text 34.65,144.222 end "100" sans 8 #222222
+[axis:y] segment 37.65,29.754 to 40.65,29.754 stroke #222222 0.5
+[axis:y] text 34.65,32.546 end "150" sans 8 #222222
+[axis:y] text 13,190.656 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color] text 659.714,14 start "Hours worked" sans 9 #222222
+[legend:color] raster 659.714,22.042 8 by 72 cells 1 by 256 from #FDE725 to #440154
+[legend:color] segment 667.714,90.569 to 670.714,90.569 stroke #222222 0.5
+[legend:color] text 673.714,93.361 start "10" sans 8 #222222
+[legend:color] segment 667.714,78.994 to 670.714,78.994 stroke #222222 0.5
+[legend:color] text 673.714,81.786 start "20" sans 8 #222222
+[legend:color] segment 667.714,67.418 to 670.714,67.418 stroke #222222 0.5
+[legend:color] text 673.714,70.21 start "30" sans 8 #222222
+[legend:color] segment 667.714,55.843 to 670.714,55.843 stroke #222222 0.5
+[legend:color] text 673.714,58.635 start "40" sans 8 #222222
+[legend:color] segment 667.714,44.267 to 670.714,44.267 stroke #222222 0.5
+[legend:color] text 673.714,47.059 start "50" sans 8 #222222
+[legend:color] segment 667.714,32.692 to 670.714,32.692 stroke #222222 0.5
+[legend:color] text 673.714,35.484 start "60" sans 8 #222222
+note: 245 rows with NA in educ, wage or hours dropped
+all of it: cc7b9581c17120de6bfacf5601fb0e5a60bcbf40cb49adad887dc72b02d2c166
+=== sized by hours, coloured and shaped by sex, one_column
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 47.075,7.792 to 47.075,132.753 stroke #E3E3E3 0.35
+[grid] segment 82.769,7.792 to 82.769,132.753 stroke #E3E3E3 0.35
+[grid] segment 118.462,7.792 to 118.462,132.753 stroke #E3E3E3 0.35
+[grid] segment 154.156,7.792 to 154.156,132.753 stroke #E3E3E3 0.35
+[grid] segment 40.65,129.766 to 181.997,129.766 stroke #E3E3E3 0.35
+[grid] segment 40.65,91.61 to 181.997,91.61 stroke #E3E3E3 0.35
+[grid] segment 40.65,53.453 to 181.997,53.453 stroke #E3E3E3 0.35
+[grid] segment 40.65,15.296 to 181.997,15.296 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 141.347 by 124.961
+  [layer:1] point 79.199,115.969 circle 14.531 #E69F00 opacity 1
+  [layer:1] point 82.769,116.579 circle 13.923 #E69F00 opacity 1
+  [layer:1] point 86.338,113.794 circle 15.945 #E69F00 opacity 1
+  … 18142 more marks
+[axis:x] segment 40.65,132.753 to 181.997,132.753 stroke #222222 0.5
+[axis:x] segment 47.075,132.753 to 47.075,135.753 stroke #222222 0.5
+[axis:x] text 47.075,144.337 middle "0" sans 8 #222222
+[axis:x] segment 82.769,132.753 to 82.769,135.753 stroke #222222 0.5
+[axis:x] text 82.769,144.337 middle "10" sans 8 #222222
+[axis:x] segment 118.462,132.753 to 118.462,135.753 stroke #222222 0.5
+[axis:x] text 118.462,144.337 middle "20" sans 8 #222222
+[axis:x] segment 154.156,132.753 to 154.156,135.753 stroke #222222 0.5
+[axis:x] text 154.156,144.337 middle "30" sans 8 #222222
+[axis:x] text 111.324,158.337 middle "Potential labour-market" sans 9 #222222
+[axis:x] text 111.324,169.587 middle "experience: age less schooling less" sans 9 #222222
+[axis:x] text 111.324,180.837 middle "six" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,132.753 stroke #222222 0.5
+[axis:y] segment 37.65,129.766 to 40.65,129.766 stroke #222222 0.5
+[axis:y] text 34.65,132.558 end "0" sans 8 #222222
+[axis:y] segment 37.65,91.61 to 40.65,91.61 stroke #222222 0.5
+[axis:y] text 34.65,94.402 end "50" sans 8 #222222
+[axis:y] segment 37.65,53.453 to 40.65,53.453 stroke #222222 0.5
+[axis:y] text 34.65,56.245 end "100" sans 8 #222222
+[axis:y] segment 37.65,15.296 to 40.65,15.296 stroke #222222 0.5
+[axis:y] text 34.65,18.088 end "150" sans 8 #222222
+[axis:y] text 13,70.272 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color+shape] text 191.997,14 start "Sex" sans 9 #222222
+[legend:color+shape] point 194.247,24.25 circle 4.5 #E69F00 opacity 1
+[legend:color+shape] text 199.497,27.042 start "male" sans 8 #222222
+[legend:color+shape] point 194.247,34.25 triangle 4.5 #56B4E9 opacity 1
+[legend:color+shape] text 199.497,37.042 start "female" sans 8 #222222
+[legend:size] text 191.997,58.25 start "Hours worked" sans 9 #222222
+[legend:size] point 200.378,72.88 circle 6.843 #222222 opacity 1
+[legend:size] text 211.758,75.672 start "10" sans 8 #222222
+[legend:size] point 200.378,91.641 circle 9.677 #222222 opacity 1
+[legend:size] text 211.758,94.433 start "20" sans 8 #222222
+[legend:size] point 200.378,110.402 circle 11.852 #222222 opacity 1
+[legend:size] text 211.758,113.194 start "30" sans 8 #222222
+[legend:size] point 200.378,129.163 circle 13.685 #222222 opacity 1
+[legend:size] text 211.758,131.955 start "40" sans 8 #222222
+[legend:size] point 200.378,147.924 circle 15.3 #222222 opacity 1
+[legend:size] text 211.758,150.716 start "50" sans 8 #222222
+[legend:size] point 200.378,166.684 circle 16.761 #222222 opacity 1
+[legend:size] text 211.758,169.476 start "60" sans 8 #222222
+note: 267 rows with NA in exper, wage or hours dropped
+all of it: c2824adf47bff314339e535d4339447c5f5c827dc82cd4ba2c3569f858c9485d
+=== sized by hours, coloured and shaped by sex, two_column
+drawing 518.74 by 311.811
+[background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
+[grid] segment 59.187,7.792 to 59.187,279.977 stroke #E3E3E3 0.35
+[grid] segment 162.167,7.792 to 162.167,279.977 stroke #E3E3E3 0.35
+[grid] segment 265.148,7.792 to 265.148,279.977 stroke #E3E3E3 0.35
+[grid] segment 368.129,7.792 to 368.129,279.977 stroke #E3E3E3 0.35
+[grid] segment 40.65,273.473 to 448.454,273.473 stroke #E3E3E3 0.35
+[grid] segment 40.65,190.361 to 448.454,190.361 stroke #E3E3E3 0.35
+[grid] segment 40.65,107.249 to 448.454,107.249 stroke #E3E3E3 0.35
+[grid] segment 40.65,24.137 to 448.454,24.137 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 407.804 by 272.185
+  [layer:1] point 151.869,243.419 circle 14.531 #E69F00 opacity 1
+  [layer:1] point 162.167,244.749 circle 13.923 #E69F00 opacity 1
+  [layer:1] point 172.465,238.682 circle 15.945 #E69F00 opacity 1
+  … 18142 more marks
+[axis:x] segment 40.65,279.977 to 448.454,279.977 stroke #222222 0.5
+[axis:x] segment 59.187,279.977 to 59.187,282.977 stroke #222222 0.5
+[axis:x] text 59.187,291.561 middle "0" sans 8 #222222
+[axis:x] segment 162.167,279.977 to 162.167,282.977 stroke #222222 0.5
+[axis:x] text 162.167,291.561 middle "10" sans 8 #222222
+[axis:x] segment 265.148,279.977 to 265.148,282.977 stroke #222222 0.5
+[axis:x] text 265.148,291.561 middle "20" sans 8 #222222
+[axis:x] segment 368.129,279.977 to 368.129,282.977 stroke #222222 0.5
+[axis:x] text 368.129,291.561 middle "30" sans 8 #222222
+[axis:x] text 244.552,305.561 middle "Potential labour-market experience: age less schooling less six" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,279.977 stroke #222222 0.5
+[axis:y] segment 37.65,273.473 to 40.65,273.473 stroke #222222 0.5
+[axis:y] text 34.65,276.265 end "0" sans 8 #222222
+[axis:y] segment 37.65,190.361 to 40.65,190.361 stroke #222222 0.5
+[axis:y] text 34.65,193.153 end "50" sans 8 #222222
+[axis:y] segment 37.65,107.249 to 40.65,107.249 stroke #222222 0.5
+[axis:y] text 34.65,110.041 end "100" sans 8 #222222
+[axis:y] segment 37.65,24.137 to 40.65,24.137 stroke #222222 0.5
+[axis:y] text 34.65,26.929 end "150" sans 8 #222222
+[axis:y] text 13,143.885 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color+shape] text 458.454,14 start "Sex" sans 9 #222222
+[legend:color+shape] point 460.704,24.25 circle 4.5 #E69F00 opacity 1
+[legend:color+shape] text 465.954,27.042 start "male" sans 8 #222222
+[legend:color+shape] point 460.704,34.25 triangle 4.5 #56B4E9 opacity 1
+[legend:color+shape] text 465.954,37.042 start "female" sans 8 #222222
+[legend:size] text 458.454,58.25 start "Hours worked" sans 9 #222222
+[legend:size] point 466.835,72.88 circle 6.843 #222222 opacity 1
+[legend:size] text 478.215,75.672 start "10" sans 8 #222222
+[legend:size] point 466.835,91.641 circle 9.677 #222222 opacity 1
+[legend:size] text 478.215,94.433 start "20" sans 8 #222222
+[legend:size] point 466.835,110.402 circle 11.852 #222222 opacity 1
+[legend:size] text 478.215,113.194 start "30" sans 8 #222222
+[legend:size] point 466.835,129.163 circle 13.685 #222222 opacity 1
+[legend:size] text 478.215,131.955 start "40" sans 8 #222222
+[legend:size] point 466.835,147.924 circle 15.3 #222222 opacity 1
+[legend:size] text 478.215,150.716 start "50" sans 8 #222222
+[legend:size] point 466.835,166.684 circle 16.761 #222222 opacity 1
+[legend:size] text 478.215,169.476 start "60" sans 8 #222222
+note: 267 rows with NA in exper, wage or hours dropped
+all of it: b1eeee03a48373a52aab5ec22dbd4355888f919956ef12b494040a51f31d4b32
+=== sized by hours, coloured and shaped by sex, slide
+drawing 720 by 405.354
+[background] rectangle 0,0 720 by 405.354 fill #FFFFFF
+[grid] segment 68.335,7.792 to 68.335,373.52 stroke #E3E3E3 0.35
+[grid] segment 222.139,7.792 to 222.139,373.52 stroke #E3E3E3 0.35
+[grid] segment 375.943,7.792 to 375.943,373.52 stroke #E3E3E3 0.35
+[grid] segment 529.747,7.792 to 529.747,373.52 stroke #E3E3E3 0.35
+[grid] segment 40.65,364.781 to 649.714,364.781 stroke #E3E3E3 0.35
+[grid] segment 40.65,253.105 to 649.714,253.105 stroke #E3E3E3 0.35
+[grid] segment 40.65,141.43 to 649.714,141.43 stroke #E3E3E3 0.35
+[grid] segment 40.65,29.754 to 649.714,29.754 stroke #E3E3E3 0.35
+[panel] clip 40.65,7.792 609.064 by 365.728
+  [layer:1] point 206.758,324.399 circle 14.531 #E69F00 opacity 1
+  [layer:1] point 222.139,326.186 circle 13.923 #E69F00 opacity 1
+  [layer:1] point 237.519,318.033 circle 15.945 #E69F00 opacity 1
+  … 18142 more marks
+[axis:x] segment 40.65,373.52 to 649.714,373.52 stroke #222222 0.5
+[axis:x] segment 68.335,373.52 to 68.335,376.52 stroke #222222 0.5
+[axis:x] text 68.335,385.104 middle "0" sans 8 #222222
+[axis:x] segment 222.139,373.52 to 222.139,376.52 stroke #222222 0.5
+[axis:x] text 222.139,385.104 middle "10" sans 8 #222222
+[axis:x] segment 375.943,373.52 to 375.943,376.52 stroke #222222 0.5
+[axis:x] text 375.943,385.104 middle "20" sans 8 #222222
+[axis:x] segment 529.747,373.52 to 529.747,376.52 stroke #222222 0.5
+[axis:x] text 529.747,385.104 middle "30" sans 8 #222222
+[axis:x] text 345.182,399.104 middle "Potential labour-market experience: age less schooling less six" sans 9 #222222
+[axis:y] segment 40.65,7.792 to 40.65,373.52 stroke #222222 0.5
+[axis:y] segment 37.65,364.781 to 40.65,364.781 stroke #222222 0.5
+[axis:y] text 34.65,367.573 end "0" sans 8 #222222
+[axis:y] segment 37.65,253.105 to 40.65,253.105 stroke #222222 0.5
+[axis:y] text 34.65,255.897 end "50" sans 8 #222222
+[axis:y] segment 37.65,141.43 to 40.65,141.43 stroke #222222 0.5
+[axis:y] text 34.65,144.222 end "100" sans 8 #222222
+[axis:y] segment 37.65,29.754 to 40.65,29.754 stroke #222222 0.5
+[axis:y] text 34.65,32.546 end "150" sans 8 #222222
+[axis:y] text 13,190.656 middle turned 90 "Hourly wage" sans 9 #222222
+[legend:color+shape] text 659.714,14 start "Sex" sans 9 #222222
+[legend:color+shape] point 661.964,24.25 circle 4.5 #E69F00 opacity 1
+[legend:color+shape] text 667.214,27.042 start "male" sans 8 #222222
+[legend:color+shape] point 661.964,34.25 triangle 4.5 #56B4E9 opacity 1
+[legend:color+shape] text 667.214,37.042 start "female" sans 8 #222222
+[legend:size] text 659.714,58.25 start "Hours worked" sans 9 #222222
+[legend:size] point 668.094,72.88 circle 6.843 #222222 opacity 1
+[legend:size] text 679.475,75.672 start "10" sans 8 #222222
+[legend:size] point 668.094,91.641 circle 9.677 #222222 opacity 1
+[legend:size] text 679.475,94.433 start "20" sans 8 #222222
+[legend:size] point 668.094,110.402 circle 11.852 #222222 opacity 1
+[legend:size] text 679.475,113.194 start "30" sans 8 #222222
+[legend:size] point 668.094,129.163 circle 13.685 #222222 opacity 1
+[legend:size] text 679.475,131.955 start "40" sans 8 #222222
+[legend:size] point 668.094,147.924 circle 15.3 #222222 opacity 1
+[legend:size] text 679.475,150.716 start "50" sans 8 #222222
+[legend:size] point 668.094,166.684 circle 16.761 #222222 opacity 1
+[legend:size] text 679.475,169.476 start "60" sans 8 #222222
+note: 267 rows with NA in exper, wage or hours dropped
+all of it: 7ec035660ba4a017d79b2f232a55f71ff6c627c5391afccbf73d563b0ba1ae50
+=== shaped by industry, twelve categories, one_column
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 47.787,7.792 to 47.787,155.253 stroke #E3E3E3 0.35
+[grid] segment 80.492,7.792 to 80.492,155.253 stroke #E3E3E3 0.35
+[grid] segment 113.196,7.792 to 113.196,155.253 stroke #E3E3E3 0.35
+[grid] segment 145.901,7.792 to 145.901,155.253 stroke #E3E3E3 0.35
+[grid] segment 35.85,142.084 to 154.567,142.084 stroke #E3E3E3 0.35
+[grid] segment 35.85,120.532 to 154.567,120.532 stroke #E3E3E3 0.35
+[grid] segment 35.85,98.98 to 154.567,98.98 stroke #E3E3E3 0.35
+[grid] segment 35.85,77.427 to 154.567,77.427 stroke #E3E3E3 0.35
+[grid] segment 35.85,55.875 to 154.567,55.875 stroke #E3E3E3 0.35
+[grid] segment 35.85,34.323 to 154.567,34.323 stroke #E3E3E3 0.35
+[grid] segment 35.85,12.771 to 154.567,12.771 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 118.717 by 147.461
+  [layer:1] point 87.033,66.436 cross 4.5 #222222 opacity 1
+  [layer:1] point 90.303,74.41 cross 4.5 #222222 opacity 1
+  [layer:1] point 93.574,46.608 cross 4.5 #222222 opacity 1
+  … 18374 more marks
+[axis:x] segment 35.85,155.253 to 154.567,155.253 stroke #222222 0.5
+[axis:x] segment 47.787,155.253 to 47.787,158.253 stroke #222222 0.5
+[axis:x] text 47.787,166.837 middle "20" sans 8 #222222
+[axis:x] segment 80.492,155.253 to 80.492,158.253 stroke #222222 0.5
+[axis:x] text 80.492,166.837 middle "30" sans 8 #222222
+[axis:x] segment 113.196,155.253 to 113.196,158.253 stroke #222222 0.5
+[axis:x] text 113.196,166.837 middle "40" sans 8 #222222
+[axis:x] segment 145.901,155.253 to 145.901,158.253 stroke #222222 0.5
+[axis:x] text 145.901,166.837 middle "50" sans 8 #222222
+[axis:x] text 95.209,180.837 middle "Age" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,155.253 stroke #222222 0.5
+[axis:y] segment 32.85,142.084 to 35.85,142.084 stroke #222222 0.5
+[axis:y] text 29.85,144.876 end "10" sans 8 #222222
+[axis:y] segment 32.85,120.532 to 35.85,120.532 stroke #222222 0.5
+[axis:y] text 29.85,123.324 end "20" sans 8 #222222
+[axis:y] segment 32.85,98.98 to 35.85,98.98 stroke #222222 0.5
+[axis:y] text 29.85,101.772 end "30" sans 8 #222222
+[axis:y] segment 32.85,77.427 to 35.85,77.427 stroke #222222 0.5
+[axis:y] text 29.85,80.219 end "40" sans 8 #222222
+[axis:y] segment 32.85,55.875 to 35.85,55.875 stroke #222222 0.5
+[axis:y] text 29.85,58.667 end "50" sans 8 #222222
+[axis:y] segment 32.85,34.323 to 35.85,34.323 stroke #222222 0.5
+[axis:y] text 29.85,37.115 end "60" sans 8 #222222
+[axis:y] segment 32.85,12.771 to 35.85,12.771 stroke #222222 0.5
+[axis:y] text 29.85,15.563 end "70" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "Hours worked" sans 9 #222222
+[legend:shape] text 164.567,14 start "Industry" sans 9 #222222
+[legend:shape] point 166.817,24.25 circle 4.5 #222222 opacity 1
+[legend:shape] text 172.067,27.042 start "Agriculture" sans 8 #222222
+[legend:shape] point 166.817,34.25 triangle 4.5 #222222 opacity 1
+[legend:shape] text 172.067,37.042 start "Mining" sans 8 #222222
+[legend:shape] point 166.817,44.25 square 4.5 #222222 opacity 1
+[legend:shape] text 172.067,47.042 start "Utilities" sans 8 #222222
+[legend:shape] point 166.817,54.25 diamond 4.5 #222222 opacity 1
+[legend:shape] text 172.067,57.042 start "Construction" sans 8 #222222
+[legend:shape] point 166.817,64.25 plus 4.5 #222222 opacity 1
+[legend:shape] text 172.067,67.042 start "Manufacturing" sans 8 #222222
+[legend:shape] point 166.817,74.25 cross 4.5 #222222 opacity 1
+[legend:shape] text 172.067,77.042 start "Retail" sans 8 #222222
+[legend:shape] point 166.817,84.25 triangle_down 4.5 #222222 opacity 1
+[legend:shape] text 172.067,87.042 start "Transport" sans 8 #222222
+[legend:shape] point 166.817,94.25 star 4.5 #222222 opacity 1
+[legend:shape] text 172.067,97.042 start "Finance" sans 8 #222222
+[legend:shape] point 166.817,104.25 circle 4.5 #222222 opacity 1
+[legend:shape] text 172.067,107.042 start "Services" sans 8 #222222
+[legend:shape] point 166.817,114.25 triangle 4.5 #222222 opacity 1
+[legend:shape] text 172.067,117.042 start "Education" sans 8 #222222
+[legend:shape] point 166.817,124.25 square 4.5 #222222 opacity 1
+[legend:shape] text 172.067,127.042 start "Health" sans 8 #222222
+[legend:shape] point 166.817,134.25 diamond 4.5 #222222 opacity 1
+[legend:shape] text 172.067,137.042 start "Public administration" sans 8 #222222
+note: 35 rows with NA in age or hours dropped
+note: `industry` has 12 categories and there are 8 shapes, so the shapes repeat from the ninth category
+all of it: aa004acdba56e54c1565186b3cf39f60e03ea94a183d79c3350b41271b4b1a04
+=== shaped by industry, twelve categories, two_column
+drawing 518.74 by 311.811
+[background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
+[grid] segment 74.58,7.792 to 74.58,279.977 stroke #E3E3E3 0.35
+[grid] segment 180.688,7.792 to 180.688,279.977 stroke #E3E3E3 0.35
+[grid] segment 286.797,7.792 to 286.797,279.977 stroke #E3E3E3 0.35
+[grid] segment 392.905,7.792 to 392.905,279.977 stroke #E3E3E3 0.35
+[grid] segment 35.85,255.671 to 421.024,255.671 stroke #E3E3E3 0.35
+[grid] segment 35.85,215.889 to 421.024,215.889 stroke #E3E3E3 0.35
+[grid] segment 35.85,176.108 to 421.024,176.108 stroke #E3E3E3 0.35
+[grid] segment 35.85,136.326 to 421.024,136.326 stroke #E3E3E3 0.35
+[grid] segment 35.85,96.545 to 421.024,96.545 stroke #E3E3E3 0.35
+[grid] segment 35.85,56.763 to 421.024,56.763 stroke #E3E3E3 0.35
+[grid] segment 35.85,16.982 to 421.024,16.982 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 385.174 by 272.185
+  [layer:1] point 201.91,116.037 cross 4.5 #222222 opacity 1
+  [layer:1] point 212.521,130.757 cross 4.5 #222222 opacity 1
+  [layer:1] point 223.132,79.438 cross 4.5 #222222 opacity 1
+  … 18374 more marks
+[axis:x] segment 35.85,279.977 to 421.024,279.977 stroke #222222 0.5
+[axis:x] segment 74.58,279.977 to 74.58,282.977 stroke #222222 0.5
+[axis:x] text 74.58,291.561 middle "20" sans 8 #222222
+[axis:x] segment 180.688,279.977 to 180.688,282.977 stroke #222222 0.5
+[axis:x] text 180.688,291.561 middle "30" sans 8 #222222
+[axis:x] segment 286.797,279.977 to 286.797,282.977 stroke #222222 0.5
+[axis:x] text 286.797,291.561 middle "40" sans 8 #222222
+[axis:x] segment 392.905,279.977 to 392.905,282.977 stroke #222222 0.5
+[axis:x] text 392.905,291.561 middle "50" sans 8 #222222
+[axis:x] text 228.437,305.561 middle "Age" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,279.977 stroke #222222 0.5
+[axis:y] segment 32.85,255.671 to 35.85,255.671 stroke #222222 0.5
+[axis:y] text 29.85,258.463 end "10" sans 8 #222222
+[axis:y] segment 32.85,215.889 to 35.85,215.889 stroke #222222 0.5
+[axis:y] text 29.85,218.681 end "20" sans 8 #222222
+[axis:y] segment 32.85,176.108 to 35.85,176.108 stroke #222222 0.5
+[axis:y] text 29.85,178.9 end "30" sans 8 #222222
+[axis:y] segment 32.85,136.326 to 35.85,136.326 stroke #222222 0.5
+[axis:y] text 29.85,139.118 end "40" sans 8 #222222
+[axis:y] segment 32.85,96.545 to 35.85,96.545 stroke #222222 0.5
+[axis:y] text 29.85,99.337 end "50" sans 8 #222222
+[axis:y] segment 32.85,56.763 to 35.85,56.763 stroke #222222 0.5
+[axis:y] text 29.85,59.555 end "60" sans 8 #222222
+[axis:y] segment 32.85,16.982 to 35.85,16.982 stroke #222222 0.5
+[axis:y] text 29.85,19.774 end "70" sans 8 #222222
+[axis:y] text 13,143.885 middle turned 90 "Hours worked" sans 9 #222222
+[legend:shape] text 431.024,14 start "Industry" sans 9 #222222
+[legend:shape] point 433.274,24.25 circle 4.5 #222222 opacity 1
+[legend:shape] text 438.524,27.042 start "Agriculture" sans 8 #222222
+[legend:shape] point 433.274,34.25 triangle 4.5 #222222 opacity 1
+[legend:shape] text 438.524,37.042 start "Mining" sans 8 #222222
+[legend:shape] point 433.274,44.25 square 4.5 #222222 opacity 1
+[legend:shape] text 438.524,47.042 start "Utilities" sans 8 #222222
+[legend:shape] point 433.274,54.25 diamond 4.5 #222222 opacity 1
+[legend:shape] text 438.524,57.042 start "Construction" sans 8 #222222
+[legend:shape] point 433.274,64.25 plus 4.5 #222222 opacity 1
+[legend:shape] text 438.524,67.042 start "Manufacturing" sans 8 #222222
+[legend:shape] point 433.274,74.25 cross 4.5 #222222 opacity 1
+[legend:shape] text 438.524,77.042 start "Retail" sans 8 #222222
+[legend:shape] point 433.274,84.25 triangle_down 4.5 #222222 opacity 1
+[legend:shape] text 438.524,87.042 start "Transport" sans 8 #222222
+[legend:shape] point 433.274,94.25 star 4.5 #222222 opacity 1
+[legend:shape] text 438.524,97.042 start "Finance" sans 8 #222222
+[legend:shape] point 433.274,104.25 circle 4.5 #222222 opacity 1
+[legend:shape] text 438.524,107.042 start "Services" sans 8 #222222
+[legend:shape] point 433.274,114.25 triangle 4.5 #222222 opacity 1
+[legend:shape] text 438.524,117.042 start "Education" sans 8 #222222
+[legend:shape] point 433.274,124.25 square 4.5 #222222 opacity 1
+[legend:shape] text 438.524,127.042 start "Health" sans 8 #222222
+[legend:shape] point 433.274,134.25 diamond 4.5 #222222 opacity 1
+[legend:shape] text 438.524,137.042 start "Public administration" sans 8 #222222
+note: 35 rows with NA in age or hours dropped
+note: `industry` has 12 categories and there are 8 shapes, so the shapes repeat from the ninth category
+all of it: 04da6da05b4807a98e4c86a82c2b7777bec59f8344bf299e07d211c0dc542769
+=== shaped by industry, twelve categories, slide
+drawing 720 by 405.354
+[background] rectangle 0,0 720 by 405.354 fill #FFFFFF
+[grid] segment 94.817,7.792 to 94.817,373.52 stroke #E3E3E3 0.35
+[grid] segment 256.369,7.792 to 256.369,373.52 stroke #E3E3E3 0.35
+[grid] segment 417.921,7.792 to 417.921,373.52 stroke #E3E3E3 0.35
+[grid] segment 579.473,7.792 to 579.473,373.52 stroke #E3E3E3 0.35
+[grid] segment 35.85,340.86 to 622.284,340.86 stroke #E3E3E3 0.35
+[grid] segment 35.85,287.407 to 622.284,287.407 stroke #E3E3E3 0.35
+[grid] segment 35.85,233.953 to 622.284,233.953 stroke #E3E3E3 0.35
+[grid] segment 35.85,180.5 to 622.284,180.5 stroke #E3E3E3 0.35
+[grid] segment 35.85,127.047 to 622.284,127.047 stroke #E3E3E3 0.35
+[grid] segment 35.85,73.593 to 622.284,73.593 stroke #E3E3E3 0.35
+[grid] segment 35.85,20.14 to 622.284,20.14 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 586.434 by 365.728
+  [layer:1] point 288.679,153.239 cross 4.5 #222222 opacity 1
+  [layer:1] point 304.834,173.017 cross 4.5 #222222 opacity 1
+  [layer:1] point 320.989,104.062 cross 4.5 #222222 opacity 1
+  … 18374 more marks
+[axis:x] segment 35.85,373.52 to 622.284,373.52 stroke #222222 0.5
+[axis:x] segment 94.817,373.52 to 94.817,376.52 stroke #222222 0.5
+[axis:x] text 94.817,385.104 middle "20" sans 8 #222222
+[axis:x] segment 256.369,373.52 to 256.369,376.52 stroke #222222 0.5
+[axis:x] text 256.369,385.104 middle "30" sans 8 #222222
+[axis:x] segment 417.921,373.52 to 417.921,376.52 stroke #222222 0.5
+[axis:x] text 417.921,385.104 middle "40" sans 8 #222222
+[axis:x] segment 579.473,373.52 to 579.473,376.52 stroke #222222 0.5
+[axis:x] text 579.473,385.104 middle "50" sans 8 #222222
+[axis:x] text 329.067,399.104 middle "Age" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,373.52 stroke #222222 0.5
+[axis:y] segment 32.85,340.86 to 35.85,340.86 stroke #222222 0.5
+[axis:y] text 29.85,343.652 end "10" sans 8 #222222
+[axis:y] segment 32.85,287.407 to 35.85,287.407 stroke #222222 0.5
+[axis:y] text 29.85,290.199 end "20" sans 8 #222222
+[axis:y] segment 32.85,233.953 to 35.85,233.953 stroke #222222 0.5
+[axis:y] text 29.85,236.745 end "30" sans 8 #222222
+[axis:y] segment 32.85,180.5 to 35.85,180.5 stroke #222222 0.5
+[axis:y] text 29.85,183.292 end "40" sans 8 #222222
+[axis:y] segment 32.85,127.047 to 35.85,127.047 stroke #222222 0.5
+[axis:y] text 29.85,129.839 end "50" sans 8 #222222
+[axis:y] segment 32.85,73.593 to 35.85,73.593 stroke #222222 0.5
+[axis:y] text 29.85,76.385 end "60" sans 8 #222222
+[axis:y] segment 32.85,20.14 to 35.85,20.14 stroke #222222 0.5
+[axis:y] text 29.85,22.932 end "70" sans 8 #222222
+[axis:y] text 13,190.656 middle turned 90 "Hours worked" sans 9 #222222
+[legend:shape] text 632.284,14 start "Industry" sans 9 #222222
+[legend:shape] point 634.534,24.25 circle 4.5 #222222 opacity 1
+[legend:shape] text 639.784,27.042 start "Agriculture" sans 8 #222222
+[legend:shape] point 634.534,34.25 triangle 4.5 #222222 opacity 1
+[legend:shape] text 639.784,37.042 start "Mining" sans 8 #222222
+[legend:shape] point 634.534,44.25 square 4.5 #222222 opacity 1
+[legend:shape] text 639.784,47.042 start "Utilities" sans 8 #222222
+[legend:shape] point 634.534,54.25 diamond 4.5 #222222 opacity 1
+[legend:shape] text 639.784,57.042 start "Construction" sans 8 #222222
+[legend:shape] point 634.534,64.25 plus 4.5 #222222 opacity 1
+[legend:shape] text 639.784,67.042 start "Manufacturing" sans 8 #222222
+[legend:shape] point 634.534,74.25 cross 4.5 #222222 opacity 1
+[legend:shape] text 639.784,77.042 start "Retail" sans 8 #222222
+[legend:shape] point 634.534,84.25 triangle_down 4.5 #222222 opacity 1
+[legend:shape] text 639.784,87.042 start "Transport" sans 8 #222222
+[legend:shape] point 634.534,94.25 star 4.5 #222222 opacity 1
+[legend:shape] text 639.784,97.042 start "Finance" sans 8 #222222
+[legend:shape] point 634.534,104.25 circle 4.5 #222222 opacity 1
+[legend:shape] text 639.784,107.042 start "Services" sans 8 #222222
+[legend:shape] point 634.534,114.25 triangle 4.5 #222222 opacity 1
+[legend:shape] text 639.784,117.042 start "Education" sans 8 #222222
+[legend:shape] point 634.534,124.25 square 4.5 #222222 opacity 1
+[legend:shape] text 639.784,127.042 start "Health" sans 8 #222222
+[legend:shape] point 634.534,134.25 diamond 4.5 #222222 opacity 1
+[legend:shape] text 639.784,137.042 start "Public administration" sans 8 #222222
+note: 35 rows with NA in age or hours dropped
+note: `industry` has 12 categories and there are 8 shapes, so the shapes repeat from the ninth category
+all of it: 31fe9e9266fa385f777c0ca2a915ac1cfff597f9019fe426ad680b38f249b52e
+=== one shape for every mark, one_column
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 45.288,7.792 to 45.288,155.253 stroke #E3E3E3 0.35
+[grid] segment 76.748,7.792 to 76.748,155.253 stroke #E3E3E3 0.35
+[grid] segment 108.207,7.792 to 108.207,155.253 stroke #E3E3E3 0.35
+[grid] segment 139.667,7.792 to 139.667,155.253 stroke #E3E3E3 0.35
+[grid] segment 171.126,7.792 to 171.126,155.253 stroke #E3E3E3 0.35
+[grid] segment 202.586,7.792 to 202.586,155.253 stroke #E3E3E3 0.35
+[grid] segment 234.046,7.792 to 234.046,155.253 stroke #E3E3E3 0.35
+[grid] segment 35.85,142.084 to 243.483,142.084 stroke #E3E3E3 0.35
+[grid] segment 35.85,120.532 to 243.483,120.532 stroke #E3E3E3 0.35
+[grid] segment 35.85,98.98 to 243.483,98.98 stroke #E3E3E3 0.35
+[grid] segment 35.85,77.427 to 243.483,77.427 stroke #E3E3E3 0.35
+[grid] segment 35.85,55.875 to 243.483,55.875 stroke #E3E3E3 0.35
+[grid] segment 35.85,34.323 to 243.483,34.323 stroke #E3E3E3 0.35
+[grid] segment 35.85,12.771 to 243.483,12.771 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 207.633 by 147.461
+  [layer:1] point 186.856,66.436 star_open 4.5 #222222 opacity 1
+  [layer:1] point 186.856,74.41 star_open 4.5 #222222 opacity 1
+  [layer:1] point 186.856,46.608 star_open 4.5 #222222 opacity 1
+  … 18374 more marks
+[axis:x] segment 35.85,155.253 to 243.483,155.253 stroke #222222 0.5
+[axis:x] segment 45.288,155.253 to 45.288,158.253 stroke #222222 0.5
+[axis:x] text 45.288,166.837 middle "8" sans 8 #222222
+[axis:x] segment 76.748,155.253 to 76.748,158.253 stroke #222222 0.5
+[axis:x] text 76.748,166.837 middle "10" sans 8 #222222
+[axis:x] segment 108.207,155.253 to 108.207,158.253 stroke #222222 0.5
+[axis:x] text 108.207,166.837 middle "12" sans 8 #222222
+[axis:x] segment 139.667,155.253 to 139.667,158.253 stroke #222222 0.5
+[axis:x] text 139.667,166.837 middle "14" sans 8 #222222
+[axis:x] segment 171.126,155.253 to 171.126,158.253 stroke #222222 0.5
+[axis:x] text 171.126,166.837 middle "16" sans 8 #222222
+[axis:x] segment 202.586,155.253 to 202.586,158.253 stroke #222222 0.5
+[axis:x] text 202.586,166.837 middle "18" sans 8 #222222
+[axis:x] segment 234.046,155.253 to 234.046,158.253 stroke #222222 0.5
+[axis:x] text 234.046,166.837 middle "20" sans 8 #222222
+[axis:x] text 139.667,180.837 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,155.253 stroke #222222 0.5
+[axis:y] segment 32.85,142.084 to 35.85,142.084 stroke #222222 0.5
+[axis:y] text 29.85,144.876 end "10" sans 8 #222222
+[axis:y] segment 32.85,120.532 to 35.85,120.532 stroke #222222 0.5
+[axis:y] text 29.85,123.324 end "20" sans 8 #222222
+[axis:y] segment 32.85,98.98 to 35.85,98.98 stroke #222222 0.5
+[axis:y] text 29.85,101.772 end "30" sans 8 #222222
+[axis:y] segment 32.85,77.427 to 35.85,77.427 stroke #222222 0.5
+[axis:y] text 29.85,80.219 end "40" sans 8 #222222
+[axis:y] segment 32.85,55.875 to 35.85,55.875 stroke #222222 0.5
+[axis:y] text 29.85,58.667 end "50" sans 8 #222222
+[axis:y] segment 32.85,34.323 to 35.85,34.323 stroke #222222 0.5
+[axis:y] text 29.85,37.115 end "60" sans 8 #222222
+[axis:y] segment 32.85,12.771 to 35.85,12.771 stroke #222222 0.5
+[axis:y] text 29.85,15.563 end "70" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "Hours worked" sans 9 #222222
+note: 35 rows with NA in educ or hours dropped
+all of it: e46e742ca63a6c2c2a42cd1b5677f10e59be456af9b598b3f7f7cf04ce9113fc
+=== one shape for every mark, two_column
+drawing 518.74 by 311.811
+[background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
+[grid] segment 57.4,7.792 to 57.4,279.977 stroke #E3E3E3 0.35
+[grid] segment 129.231,7.792 to 129.231,279.977 stroke #E3E3E3 0.35
+[grid] segment 201.063,7.792 to 201.063,279.977 stroke #E3E3E3 0.35
+[grid] segment 272.895,7.792 to 272.895,279.977 stroke #E3E3E3 0.35
+[grid] segment 344.727,7.792 to 344.727,279.977 stroke #E3E3E3 0.35
+[grid] segment 416.559,7.792 to 416.559,279.977 stroke #E3E3E3 0.35
+[grid] segment 488.391,7.792 to 488.391,279.977 stroke #E3E3E3 0.35
+[grid] segment 35.85,255.671 to 509.94,255.671 stroke #E3E3E3 0.35
+[grid] segment 35.85,215.889 to 509.94,215.889 stroke #E3E3E3 0.35
+[grid] segment 35.85,176.108 to 509.94,176.108 stroke #E3E3E3 0.35
+[grid] segment 35.85,136.326 to 509.94,136.326 stroke #E3E3E3 0.35
+[grid] segment 35.85,96.545 to 509.94,96.545 stroke #E3E3E3 0.35
+[grid] segment 35.85,56.763 to 509.94,56.763 stroke #E3E3E3 0.35
+[grid] segment 35.85,16.982 to 509.94,16.982 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 474.09 by 272.185
+  [layer:1] point 380.643,116.037 star_open 4.5 #222222 opacity 1
+  [layer:1] point 380.643,130.757 star_open 4.5 #222222 opacity 1
+  [layer:1] point 380.643,79.438 star_open 4.5 #222222 opacity 1
+  … 18374 more marks
+[axis:x] segment 35.85,279.977 to 509.94,279.977 stroke #222222 0.5
+[axis:x] segment 57.4,279.977 to 57.4,282.977 stroke #222222 0.5
+[axis:x] text 57.4,291.561 middle "8" sans 8 #222222
+[axis:x] segment 129.231,279.977 to 129.231,282.977 stroke #222222 0.5
+[axis:x] text 129.231,291.561 middle "10" sans 8 #222222
+[axis:x] segment 201.063,279.977 to 201.063,282.977 stroke #222222 0.5
+[axis:x] text 201.063,291.561 middle "12" sans 8 #222222
+[axis:x] segment 272.895,279.977 to 272.895,282.977 stroke #222222 0.5
+[axis:x] text 272.895,291.561 middle "14" sans 8 #222222
+[axis:x] segment 344.727,279.977 to 344.727,282.977 stroke #222222 0.5
+[axis:x] text 344.727,291.561 middle "16" sans 8 #222222
+[axis:x] segment 416.559,279.977 to 416.559,282.977 stroke #222222 0.5
+[axis:x] text 416.559,291.561 middle "18" sans 8 #222222
+[axis:x] segment 488.391,279.977 to 488.391,282.977 stroke #222222 0.5
+[axis:x] text 488.391,291.561 middle "20" sans 8 #222222
+[axis:x] text 272.895,305.561 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,279.977 stroke #222222 0.5
+[axis:y] segment 32.85,255.671 to 35.85,255.671 stroke #222222 0.5
+[axis:y] text 29.85,258.463 end "10" sans 8 #222222
+[axis:y] segment 32.85,215.889 to 35.85,215.889 stroke #222222 0.5
+[axis:y] text 29.85,218.681 end "20" sans 8 #222222
+[axis:y] segment 32.85,176.108 to 35.85,176.108 stroke #222222 0.5
+[axis:y] text 29.85,178.9 end "30" sans 8 #222222
+[axis:y] segment 32.85,136.326 to 35.85,136.326 stroke #222222 0.5
+[axis:y] text 29.85,139.118 end "40" sans 8 #222222
+[axis:y] segment 32.85,96.545 to 35.85,96.545 stroke #222222 0.5
+[axis:y] text 29.85,99.337 end "50" sans 8 #222222
+[axis:y] segment 32.85,56.763 to 35.85,56.763 stroke #222222 0.5
+[axis:y] text 29.85,59.555 end "60" sans 8 #222222
+[axis:y] segment 32.85,16.982 to 35.85,16.982 stroke #222222 0.5
+[axis:y] text 29.85,19.774 end "70" sans 8 #222222
+[axis:y] text 13,143.885 middle turned 90 "Hours worked" sans 9 #222222
+note: 35 rows with NA in educ or hours dropped
+all of it: fc25c142d965732bcf6602a16f73e8a597d11076b95ba0de4fbad55452c861d4
+=== one shape for every mark, slide
+drawing 720 by 405.354
+[background] rectangle 0,0 720 by 405.354 fill #FFFFFF
+[grid] segment 66.548,7.792 to 66.548,373.52 stroke #E3E3E3 0.35
+[grid] segment 168.873,7.792 to 168.873,373.52 stroke #E3E3E3 0.35
+[grid] segment 271.199,7.792 to 271.199,373.52 stroke #E3E3E3 0.35
+[grid] segment 373.525,7.792 to 373.525,373.52 stroke #E3E3E3 0.35
+[grid] segment 475.851,7.792 to 475.851,373.52 stroke #E3E3E3 0.35
+[grid] segment 578.177,7.792 to 578.177,373.52 stroke #E3E3E3 0.35
+[grid] segment 680.502,7.792 to 680.502,373.52 stroke #E3E3E3 0.35
+[grid] segment 35.85,340.86 to 711.2,340.86 stroke #E3E3E3 0.35
+[grid] segment 35.85,287.407 to 711.2,287.407 stroke #E3E3E3 0.35
+[grid] segment 35.85,233.953 to 711.2,233.953 stroke #E3E3E3 0.35
+[grid] segment 35.85,180.5 to 711.2,180.5 stroke #E3E3E3 0.35
+[grid] segment 35.85,127.047 to 711.2,127.047 stroke #E3E3E3 0.35
+[grid] segment 35.85,73.593 to 711.2,73.593 stroke #E3E3E3 0.35
+[grid] segment 35.85,20.14 to 711.2,20.14 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 675.35 by 365.728
+  [layer:1] point 527.014,153.239 star_open 4.5 #222222 opacity 1
+  [layer:1] point 527.014,173.017 star_open 4.5 #222222 opacity 1
+  [layer:1] point 527.014,104.062 star_open 4.5 #222222 opacity 1
+  … 18374 more marks
+[axis:x] segment 35.85,373.52 to 711.2,373.52 stroke #222222 0.5
+[axis:x] segment 66.548,373.52 to 66.548,376.52 stroke #222222 0.5
+[axis:x] text 66.548,385.104 middle "8" sans 8 #222222
+[axis:x] segment 168.873,373.52 to 168.873,376.52 stroke #222222 0.5
+[axis:x] text 168.873,385.104 middle "10" sans 8 #222222
+[axis:x] segment 271.199,373.52 to 271.199,376.52 stroke #222222 0.5
+[axis:x] text 271.199,385.104 middle "12" sans 8 #222222
+[axis:x] segment 373.525,373.52 to 373.525,376.52 stroke #222222 0.5
+[axis:x] text 373.525,385.104 middle "14" sans 8 #222222
+[axis:x] segment 475.851,373.52 to 475.851,376.52 stroke #222222 0.5
+[axis:x] text 475.851,385.104 middle "16" sans 8 #222222
+[axis:x] segment 578.177,373.52 to 578.177,376.52 stroke #222222 0.5
+[axis:x] text 578.177,385.104 middle "18" sans 8 #222222
+[axis:x] segment 680.502,373.52 to 680.502,376.52 stroke #222222 0.5
+[axis:x] text 680.502,385.104 middle "20" sans 8 #222222
+[axis:x] text 373.525,399.104 middle "Years of schooling" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,373.52 stroke #222222 0.5
+[axis:y] segment 32.85,340.86 to 35.85,340.86 stroke #222222 0.5
+[axis:y] text 29.85,343.652 end "10" sans 8 #222222
+[axis:y] segment 32.85,287.407 to 35.85,287.407 stroke #222222 0.5
+[axis:y] text 29.85,290.199 end "20" sans 8 #222222
+[axis:y] segment 32.85,233.953 to 35.85,233.953 stroke #222222 0.5
+[axis:y] text 29.85,236.745 end "30" sans 8 #222222
+[axis:y] segment 32.85,180.5 to 35.85,180.5 stroke #222222 0.5
+[axis:y] text 29.85,183.292 end "40" sans 8 #222222
+[axis:y] segment 32.85,127.047 to 35.85,127.047 stroke #222222 0.5
+[axis:y] text 29.85,129.839 end "50" sans 8 #222222
+[axis:y] segment 32.85,73.593 to 35.85,73.593 stroke #222222 0.5
+[axis:y] text 29.85,76.385 end "60" sans 8 #222222
+[axis:y] segment 32.85,20.14 to 35.85,20.14 stroke #222222 0.5
+[axis:y] text 29.85,22.932 end "70" sans 8 #222222
+[axis:y] text 13,190.656 middle turned 90 "Hours worked" sans 9 #222222
+note: 35 rows with NA in educ or hours dropped
+all of it: 8b671ad89bd8a861627bb6c2d4cce656568803aa17d1a057f02672d3ca9aa310

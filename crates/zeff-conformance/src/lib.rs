@@ -1743,10 +1743,75 @@ fn plot_cases() -> Vec<Line> {
         text("plot/size_shape/stdout", &size_shape.output.stdout),
         text("plot/size_shape/stderr", &size_shape.output.stderr),
         text("plot/size_shape/scene.json", &sized),
+        text("plot/layout/drawings", &layout_drawings()),
         text("plot/fonts/metrics", &font_metrics()),
         text("plot/fonts/texts", &font_texts()),
         text("plot/fonts/outlines", &font_outlines()),
     ]
+}
+
+/// The layout of a figure (release 0.7.0, step 21b): two plots of the shipped wages, one plain
+/// and one with a colour, a size and a shape and so with two legends, each laid out under the
+/// journal theme at the three named sizes and at a size in millimetres, and read as text: every
+/// place to a thousandth of a point.
+fn layout_drawings() -> String {
+    use std::rc::Rc;
+    use zeff_core::value::{Aesthetic, Frame, Mark, PlotLayer, PlotMapping};
+    use zeff_plot::layout::{JOURNAL, Size, layout};
+    let Some(table) = zeff_datasets::table("wages") else {
+        return "the wages did not load".to_string();
+    };
+    let frame = Frame {
+        table: Rc::new(table),
+        name: Some("wages".to_string()),
+    };
+    let mapping = |aesthetic, variable: &str| PlotMapping {
+        aesthetic,
+        variable: variable.to_string(),
+        computed: None,
+    };
+    let layer = PlotLayer {
+        mark: Mark::Points,
+        data: None,
+        alpha: 0.4,
+        size: None,
+        jitter: 0.0,
+        stream: None,
+        computed: Vec::new(),
+    };
+    let plain = zeff_plot::scene::start(
+        frame.clone(),
+        vec![mapping(Aesthetic::X, "educ"), mapping(Aesthetic::Y, "wage")],
+        Vec::new(),
+    );
+    let full = zeff_plot::scene::start(
+        frame,
+        vec![
+            mapping(Aesthetic::X, "exper"),
+            mapping(Aesthetic::Y, "wage"),
+            mapping(Aesthetic::Color, "industry"),
+            mapping(Aesthetic::Shape, "industry"),
+            mapping(Aesthetic::Size, "hours"),
+        ],
+        Vec::new(),
+    );
+    let mut out = String::new();
+    for (name, plot) in [("plain", plain), ("full", full)] {
+        let scene = zeff_plot::scene::with_layer(&plot, layer.clone()).1;
+        for (page, size) in [
+            ("one_column", Size::OneColumn),
+            ("two_column", Size::TwoColumn),
+            ("slide", Size::Slide),
+            ("120 by 75 mm", Size::Millimetres(120.0, 75.0)),
+        ] {
+            out.push_str(&format!("=== {name}, {page}\n"));
+            match layout(&scene, size, &JOURNAL) {
+                Ok(drawing) => out.push_str(&drawing.describe()),
+                Err(why) => out.push_str(&format!("{why:?}\n")),
+            }
+        }
+    }
+    out
 }
 
 /// The fonts of a figure (release 0.7.0, step 21a): for each embedded face, its heights, the

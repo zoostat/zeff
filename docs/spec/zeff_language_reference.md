@@ -1097,6 +1097,8 @@ Accuracy class: exact. The same data give the same scene, checked by snapshot te
 
 **What a scene keeps for the viewer and reserves for later.** Each layer of a scene names the frame it draws, by its binding, and holds the row of that frame behind each mark, so that a viewer can show the row under the pointer and select the rows of the marks brushed; a figure written by `export` never carries a row of the data. Version 1 of the scene reserves four names for what later releases draw: `frame`, the place of a scene in an animation; `z`, a third coordinate, with `projection`; and `crs`, the coordinate system of a map. A reader that meets one it does not draw refuses the scene and says so. A layer may also be flagged `raster`, to be drawn as a grid of pixels inside a vector figure; the marks gain that option after 1.0.
 
+**What a figure is drawn with.** A scene is first laid out at the size of the page, and the layout is a list of primitives in points, which every writer of figures draws and nothing else: a point with a shape; a path of lines, cubic Bézier curves and arcs of ellipses; a polygon with holes; a rectangle; a segment with arrow heads; a run of text in styled spans, with an optional box; a grid of coloured cells; and a region that clips what is inside it. Every mark, and every later layer, diagram and map, is drawn with these. There are no gradients, no images from files and no blur. A primitive may carry a name for what it is (`axis:x`, `layer:1`), which becomes a named group of an exported SVG; a name never says which rows of the data a shape shows.
+
 ---
 
 ## 10. A complete analysis, with its output

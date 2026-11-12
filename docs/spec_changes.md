@@ -471,3 +471,7 @@ Step 21 of release 0.7.0 was opened and split into steps 21a to 21d in `docs/rel
 
 Step 21a2 of release 0.7.0 builds three of the fixed points the owner adopted with open decision #118 on 11 November 2026 (F2, F3 and F4), and that decision says section 7.6 gains each rule when its step is built. A paragraph, "What a scene keeps for the viewer and reserves for later", follows "Rendering and export": each layer of a scene names its frame and the row behind each mark, which no exported figure carries; version 1 reserves `frame`, `z` with `projection`, and `crs`, and a reader that does not draw one refuses the scene; a layer may be flagged `raster`. F1 follows at step 21b and F7 at step 21d.
 
+## 12 November 2026 — Language Reference, section 7.6 (the primitives)
+
+Step 21b of release 0.7.0 builds F1 of open decision #118, adopted by the owner on 11 November 2026 with the amendment D3 of the proposal on diagrams: the closed set of drawing primitives. As that decision says, section 7.6 gains the rule when its step is built: a paragraph, "What a figure is drawn with", after the paragraph on what a scene keeps and reserves. It lists the eight primitives, says there are no gradients, images from files or blur, and that a primitive may carry a name that becomes a named group of an SVG and never names rows of the data.
+

@@ -1,0 +1,1073 @@
+//! The layout of a figure (Language Reference, section 7.6, "Defaults" and "Rendering and
+//! export"; release 0.7.0, step 21b): a scene and a size become a drawing, the list of
+//! primitives a writer turns into a file ([`crate::drawing`]).
+//!
+//! A scene has no size; here it is given one. The page is `one_column`, `two_column` or
+//! `slide`, or a width and a height in millimetres. Inside a margin stand, from the left: the
+//! title of the y axis, read upwards; the labels of its breaks; the panel; and, at the right,
+//! the legends, one under the other, a legend that does not fit under the one before it
+//! starting a new column. Under the panel stand the labels of the x axis and its
+//! title. What is left for the panel is what the titles, labels and legends do not take, so
+//! that a longer label makes the panel smaller and never runs off the page. Every width is
+//! measured from the embedded fonts ([`crate::font`]), so the same scene at the same size is
+//! the same drawing on every machine.
+//!
+//! The journal theme: a white page, the major gridlines alone in a light grey, the two axes
+//! as thin dark lines with their ticks outside the panel, text in IBM Plex Sans, 8 points for
+//! labels and 9 for titles, and no frame round the panel or the legend. No text is smaller
+//! than 8 points ([`SMALLEST_TEXT`]). Its constants are in one place, [`JOURNAL`], which the
+//! owner reads with the six figures at step 22.
+//!
+//! A title that is longer than the side it runs along is broken between words. Labels of
+//! breaks that would touch are thinned, every second or third being written; the ticks and
+//! gridlines stay. Marks are placed by their scales and clipped to the panel.
+//!
+//! A drawing holds no row of the data (open decision #118, F2): of a mark it keeps the place,
+//! the shape, the size and the colour.
+
+use crate::colour;
+use crate::drawing::{Anchor, Drawing, Head, Item, Primitive, Span, Stroke};
+use crate::font::{FaceName, face};
+use crate::scene::{Legend, Paint, Range, Scale, ScaleKind, Scene, Shaping, Sizing, diameter};
+use crate::shape;
+
+/// Points of 1/72 inch to the millimetre.
+pub const MM: f64 = 72.0 / 25.4;
+
+/// The smallest type a figure is written in, in points (section 7.6, "Text").
+pub const SMALLEST_TEXT: f64 = 8.0;
+
+/// The smallest panel a figure is drawn with, in points each way: below it the page is too
+/// small for its labels.
+pub const SMALLEST_PANEL: f64 = 36.0;
+
+/// The size of the page.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Size {
+    /// One column of a journal page: 89 mm wide, 66 mm high.
+    OneColumn,
+    /// The full width of a journal page: 183 mm wide, 110 mm high.
+    TwoColumn,
+    /// A slide of 16 to 9: 254 mm wide, 143 mm high.
+    Slide,
+    /// A width and a height in millimetres.
+    Millimetres(f64, f64),
+}
+
+impl Size {
+    /// The width and the height, in millimetres.
+    pub fn millimetres(self) -> (f64, f64) {
+        match self {
+            Size::OneColumn => (89.0, 66.0),
+            Size::TwoColumn => (183.0, 110.0),
+            Size::Slide => (254.0, 143.0),
+            Size::Millimetres(width, height) => (width, height),
+        }
+    }
+
+    /// The width and the height, in points: 72 to the inch of 25.4 mm, multiplied before it
+    /// is divided, so that 254 mm is 720 points exactly.
+    pub fn points(self) -> (f64, f64) {
+        let (width, height) = self.millimetres();
+        (width * 72.0 / 25.4, height * 72.0 / 25.4)
+    }
+}
+
+/// What a theme fixes: colours as `#RRGGBB`, lengths in points.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Theme {
+    pub name: &'static str,
+    /// The page.
+    pub background: &'static str,
+    /// Text, the axes and their ticks.
+    pub ink: &'static str,
+    /// The gridlines.
+    pub grid: &'static str,
+    /// A mark that has no colour of its own.
+    pub mark: &'static str,
+    /// The type of the labels of breaks and of legend keys.
+    pub label_size: f64,
+    /// The type of the titles of axes and legends.
+    pub title_size: f64,
+    /// From one baseline to the next, as a multiple of the size of the type.
+    pub leading: f64,
+    pub axis_width: f64,
+    pub grid_width: f64,
+    pub tick_length: f64,
+    /// Round the whole figure.
+    pub margin: f64,
+    /// Between a tick and its label, and between a key and its label.
+    pub label_gap: f64,
+    /// Between the labels of an axis and its title.
+    pub title_gap: f64,
+    /// Between the panel and the legends, and between two legends.
+    pub legend_gap: f64,
+    /// The key of a legend whose marks are of the default size.
+    pub key_size: f64,
+    /// The bar of a continuous colour: across and along.
+    pub ramp_width: f64,
+    pub ramp_length: f64,
+}
+
+/// The journal theme.
+pub const JOURNAL: Theme = Theme {
+    name: "journal",
+    background: "#FFFFFF",
+    ink: "#222222",
+    grid: "#E3E3E3",
+    mark: "#222222",
+    label_size: 8.0,
+    title_size: 9.0,
+    leading: 1.25,
+    axis_width: 0.5,
+    grid_width: 0.35,
+    tick_length: 3.0,
+    margin: 4.0,
+    label_gap: 3.0,
+    title_gap: 5.0,
+    legend_gap: 10.0,
+    key_size: 4.5,
+    ramp_width: 8.0,
+    ramp_length: 72.0,
+};
+
+// The theme writes no text below 8 points, or the engine does not build.
+const _: () = assert!(
+    JOURNAL.label_size >= SMALLEST_TEXT
+        && JOURNAL.title_size >= SMALLEST_TEXT
+        && JOURNAL.leading >= 1.0
+);
+
+/// Why a scene cannot be laid out.
+#[derive(Debug, Clone, PartialEq)]
+pub enum LayoutError {
+    /// The scene holds what this version does not draw: the sentence of [`Scene::undrawn`].
+    Undrawn(String),
+    /// A width or a height that is not a length above zero.
+    NotASize,
+    /// The page leaves the panel less than [`SMALLEST_PANEL`] each way: what it leaves, in
+    /// points.
+    TooSmall { panel: (f64, f64) },
+}
+
+/// Measures text and remembers the characters no face has.
+#[derive(Default)]
+struct Setter {
+    lacking: Vec<char>,
+}
+
+impl Setter {
+    /// The width of `text` in `name` at `size` points.
+    fn width(&mut self, text: &str, name: FaceName, size: f64) -> f64 {
+        let shaped = face(name).shape(text);
+        for character in shaped.missing {
+            if !self.lacking.contains(&character) {
+                self.lacking.push(character);
+            }
+        }
+        f64::from(shaped.width) * size / f64::from(face(name).units_per_em())
+    }
+
+    /// `text` broken between words into lines no wider than `limit`; a word wider than the
+    /// limit stands alone on its line.
+    fn wrap(&mut self, text: &str, name: FaceName, size: f64, limit: f64) -> Vec<String> {
+        let mut lines: Vec<String> = Vec::new();
+        let mut line = String::new();
+        for word in text.split(' ').filter(|word| !word.is_empty()) {
+            let longer = if line.is_empty() {
+                word.to_string()
+            } else {
+                format!("{line} {word}")
+            };
+            if line.is_empty() || self.width(&longer, name, size) <= limit {
+                line = longer;
+            } else {
+                lines.push(std::mem::take(&mut line));
+                line = word.to_string();
+            }
+        }
+        if !line.is_empty() {
+            lines.push(line);
+        }
+        lines
+    }
+}
+
+/// The height of a capital letter of the labels' face at `size` points.
+fn capital(size: f64) -> f64 {
+    let sans = face(FaceName::Sans);
+    f64::from(sans.cap_height()) * size / f64::from(sans.units_per_em())
+}
+
+fn text(
+    at: (f64, f64),
+    anchor: Anchor,
+    turn: f64,
+    words: &str,
+    size: f64,
+    theme: &Theme,
+) -> Primitive {
+    Primitive::Text {
+        at,
+        anchor,
+        turn,
+        spans: vec![Span {
+            text: words.to_string(),
+            face: FaceName::Sans,
+            size,
+            colour: theme.ink.to_string(),
+        }],
+        frame: None,
+    }
+}
+
+fn named(name: &str, primitive: Primitive) -> Item {
+    Item {
+        name: Some(name.to_string()),
+        primitive,
+    }
+}
+
+/// How many labels to pass over from one written to the next, so that no two written touch:
+/// 1 writes them all. `centres` are their places along the axis and `extents` how much room
+/// each takes along it.
+fn thinning(centres: &[f64], extents: &[f64], apart: f64) -> usize {
+    let fits = |step: usize| {
+        let kept: Vec<usize> = (0..centres.len()).step_by(step).collect();
+        kept.windows(2).all(|pair| {
+            let (a, b) = (pair[0], pair[1]);
+            (centres[b] - centres[a]).abs() >= (extents[a] + extents[b]) / 2.0 + apart
+        })
+    };
+    (1..=centres.len().max(1))
+        .find(|&step| fits(step))
+        .unwrap_or(1)
+}
+
+/// The colour a value takes on a scale of colours.
+fn colour_on(scale: &Scale, value: f64) -> String {
+    let Range::Colours(colours) = &scale.range else {
+        return colour::NA_COLOUR.0.to_string();
+    };
+    if colours.is_empty() {
+        return colour::NA_COLOUR.0.to_string();
+    }
+    let entry = match scale.kind {
+        ScaleKind::Category => (value as usize).saturating_sub(1).min(colours.len() - 1),
+        _ => colour::ramp_entry(value, scale.limits.0, scale.limits.1, colours.len()),
+    };
+    colours[entry].to_string()
+}
+
+/// The shape a place takes on the scale of shapes.
+fn shape_on(scale: &Scale, value: f64) -> &'static str {
+    match &scale.range {
+        Range::Shapes(shapes) if !shapes.is_empty() => {
+            shapes[(value as usize).saturating_sub(1).min(shapes.len() - 1)]
+        }
+        _ => shape::DEFAULT,
+    }
+}
+
+/// One key of a legend: a mark and what it stands for.
+struct Key {
+    label: String,
+    shape: &'static str,
+    size: f64,
+    colour: String,
+}
+
+/// What a legend shows, measured.
+enum Content {
+    /// Keys, in columns of `rows` keys.
+    Keys {
+        keys: Vec<Key>,
+        rows: usize,
+        /// The room each key and its label take: how wide the column of marks is, how wide
+        /// each column of labels, and the height of a row.
+        mark_width: f64,
+        label_widths: Vec<f64>,
+        row_height: f64,
+    },
+    /// A bar of colours from the largest value at the top, with the labels of its breaks at
+    /// their share of the way down.
+    Ramp {
+        colours: Vec<String>,
+        length: f64,
+        ticks: Vec<(f64, String)>,
+    },
+}
+
+struct LegendPlan {
+    name: String,
+    title: Vec<String>,
+    content: Content,
+    width: f64,
+    height: f64,
+}
+
+/// Between two columns of keys.
+const COLUMN_GAP: f64 = 8.0;
+
+fn plan_legend(
+    scene: &Scene,
+    legend: &Legend,
+    theme: &Theme,
+    set: &mut Setter,
+    page: (f64, f64),
+) -> LegendPlan {
+    let scales: Vec<&Scale> = legend
+        .scales
+        .iter()
+        .filter_map(|id| scene.scale(id))
+        .collect();
+    let of = |id: &str| scales.iter().copied().find(|s| s.id == id);
+    // What the marks of the legend look like where no scale of the legend says: the
+    // constants of the first layer drawn.
+    let layer = scene
+        .panels
+        .first()
+        .and_then(|p| p.layers.iter().find(|l| legend.marks.contains(&l.mark)));
+    let base_colour = match layer.map(|l| &l.color) {
+        Some(Paint::Constant(hex)) => hex.clone(),
+        _ => theme.mark.to_string(),
+    };
+    let base_shape = match layer.map(|l| &l.shape) {
+        Some(Shaping::Constant(name)) => *name,
+        _ => shape::DEFAULT,
+    };
+    // A title no wider than a third of the page.
+    let title = set.wrap(
+        &legend.title,
+        FaceName::Sans,
+        theme.title_size,
+        (page.0 / 3.0).max(48.0),
+    );
+    let title_width = title
+        .iter()
+        .map(|line| set.width(line, FaceName::Sans, theme.title_size))
+        .fold(0.0, f64::max);
+    let title_height = if title.is_empty() {
+        0.0
+    } else {
+        title.len() as f64 * theme.title_size * theme.leading + theme.label_gap
+    };
+    let room = (page.1 - 2.0 * theme.margin - capital(theme.label_size) - title_height).max(1.0);
+    let colours = of("color");
+    let sizes = of("size");
+    let shapes = of("shape");
+    let categories = scales
+        .iter()
+        .copied()
+        .find(|s| s.kind == ScaleKind::Category);
+    let keys: Option<Vec<Key>> = if let Some(named) = categories {
+        Some(
+            named
+                .labels
+                .iter()
+                .enumerate()
+                .map(|(i, label)| {
+                    let place = (i + 1) as f64;
+                    Key {
+                        label: label.clone(),
+                        shape: shapes.map_or(base_shape, |s| shape_on(s, place)),
+                        size: theme.key_size,
+                        colour: match colours {
+                            Some(s) if s.kind == ScaleKind::Category => colour_on(s, place),
+                            _ => base_colour.clone(),
+                        },
+                    }
+                })
+                .collect(),
+        )
+    } else {
+        sizes.map(|sized| {
+            let range = match sized.range {
+                Range::Sizes(least, most) => (least, most),
+                _ => (0.0, theme.key_size),
+            };
+            sized
+                .breaks
+                .iter()
+                .zip(&sized.labels)
+                .map(|(value, label)| Key {
+                    label: label.clone(),
+                    shape: base_shape,
+                    size: diameter(*value, sized.limits, range),
+                    colour: colours.map_or(base_colour.clone(), |s| colour_on(s, *value)),
+                })
+                .collect()
+        })
+    };
+    let (content, width, height) = match (keys, colours) {
+        (Some(keys), _) => {
+            let line = theme.label_size * theme.leading;
+            let widest_mark = keys.iter().map(|k| k.size).fold(theme.key_size, f64::max);
+            let row_height = line.max(widest_mark + 2.0);
+            let rows = ((room / row_height).floor() as usize).clamp(1, keys.len().max(1));
+            let label_widths: Vec<f64> = keys
+                .chunks(rows)
+                .map(|column| {
+                    column
+                        .iter()
+                        .map(|k| set.width(&k.label, FaceName::Sans, theme.label_size))
+                        .fold(0.0, f64::max)
+                })
+                .collect();
+            let columns = label_widths.len();
+            let width = label_widths
+                .iter()
+                .map(|w| widest_mark + theme.label_gap + w)
+                .sum::<f64>()
+                + COLUMN_GAP * columns.saturating_sub(1) as f64;
+            let height = rows.min(keys.len()) as f64 * row_height;
+            (
+                Content::Keys {
+                    keys,
+                    rows,
+                    mark_width: widest_mark,
+                    label_widths,
+                    row_height,
+                },
+                width,
+                height,
+            )
+        }
+        (None, Some(ramp)) => {
+            let colours: Vec<String> = match &ramp.range {
+                Range::Colours(list) => list.iter().rev().map(|c| (*c).to_string()).collect(),
+                _ => Vec::new(),
+            };
+            let length = theme.ramp_length.min(room);
+            let (lo, hi) = ramp.limits;
+            let ticks: Vec<(f64, String)> = ramp
+                .breaks
+                .iter()
+                .zip(&ramp.labels)
+                .filter(|(value, _)| hi > lo && **value >= lo && **value <= hi)
+                .map(|(value, label)| ((hi - value) / (hi - lo), label.clone()))
+                .collect();
+            let widest = ticks
+                .iter()
+                .map(|(_, label)| set.width(label, FaceName::Sans, theme.label_size))
+                .fold(0.0, f64::max);
+            let width = theme.ramp_width + theme.tick_length + theme.label_gap + widest;
+            // Half a label above the bar and half below, for the labels at its ends.
+            let height = length + capital(theme.label_size);
+            (
+                Content::Ramp {
+                    colours,
+                    length,
+                    ticks,
+                },
+                width,
+                height,
+            )
+        }
+        (None, None) => (
+            Content::Keys {
+                keys: Vec::new(),
+                rows: 1,
+                mark_width: 0.0,
+                label_widths: Vec::new(),
+                row_height: 0.0,
+            },
+            0.0,
+            0.0,
+        ),
+    };
+    LegendPlan {
+        name: format!("legend:{}", legend.scales.join("+")),
+        title,
+        content,
+        width: width.max(title_width),
+        height: title_height + height,
+    }
+}
+
+/// The items of a legend with its top left corner at `at`.
+fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec<Item>) {
+    let (left, mut y) = at;
+    for line in &plan.title {
+        y += theme.title_size * theme.leading;
+        items.push(named(
+            &plan.name,
+            text(
+                (left, y - theme.title_size * (theme.leading - 1.0)),
+                Anchor::Start,
+                0.0,
+                line,
+                theme.title_size,
+                theme,
+            ),
+        ));
+    }
+    if !plan.title.is_empty() {
+        y += theme.label_gap;
+    }
+    let half_capital = capital(theme.label_size) / 2.0;
+    match &plan.content {
+        Content::Keys {
+            keys,
+            rows,
+            mark_width,
+            label_widths,
+            row_height,
+        } => {
+            let mut x = left;
+            for (column, part) in keys.chunks(*rows).enumerate() {
+                for (row, key) in part.iter().enumerate() {
+                    let middle = y + (row as f64 + 0.5) * row_height;
+                    items.push(named(
+                        &plan.name,
+                        Primitive::Point {
+                            at: (x + mark_width / 2.0, middle),
+                            shape: key.shape,
+                            size: key.size,
+                            colour: key.colour.clone(),
+                            opacity: 1.0,
+                        },
+                    ));
+                    items.push(named(
+                        &plan.name,
+                        text(
+                            (x + mark_width + theme.label_gap, middle + half_capital),
+                            Anchor::Start,
+                            0.0,
+                            &key.label,
+                            theme.label_size,
+                            theme,
+                        ),
+                    ));
+                }
+                x += mark_width + theme.label_gap + label_widths[column] + COLUMN_GAP;
+            }
+        }
+        Content::Ramp {
+            colours,
+            length,
+            ticks,
+        } => {
+            let top = y + half_capital;
+            items.push(named(
+                &plan.name,
+                Primitive::Raster {
+                    at: (left, top),
+                    width: theme.ramp_width,
+                    height: *length,
+                    columns: 1,
+                    rows: colours.len(),
+                    cells: colours.clone(),
+                },
+            ));
+            for (share, label) in ticks {
+                let at = top + share * length;
+                let right = left + theme.ramp_width;
+                items.push(named(
+                    &plan.name,
+                    Primitive::Segment {
+                        from: (right, at),
+                        to: (right + theme.tick_length, at),
+                        stroke: Stroke {
+                            colour: theme.ink.to_string(),
+                            width: theme.axis_width,
+                        },
+                        heads: (Head::Plain, Head::Plain),
+                    },
+                ));
+                items.push(named(
+                    &plan.name,
+                    text(
+                        (
+                            right + theme.tick_length + theme.label_gap,
+                            at + half_capital,
+                        ),
+                        Anchor::Start,
+                        0.0,
+                        label,
+                        theme.label_size,
+                        theme,
+                    ),
+                ));
+            }
+        }
+    }
+}
+
+/// The drawing of `scene` on a page of `size` under `theme`.
+pub fn layout(scene: &Scene, size: Size, theme: &Theme) -> Result<Drawing, LayoutError> {
+    if let Some(why) = scene.undrawn() {
+        return Err(LayoutError::Undrawn(why));
+    }
+    let (wide, high) = size.millimetres();
+    if !(wide.is_finite() && high.is_finite() && wide > 0.0 && high > 0.0) {
+        return Err(LayoutError::NotASize);
+    }
+    let (width, height) = size.points();
+    let mut set = Setter::default();
+    let panel = scene.panels.first();
+    let xs = panel.and_then(|p| p.x).and_then(|id| scene.scale(id));
+    let ys = panel.and_then(|p| p.y).and_then(|id| scene.scale(id));
+    let label = theme.label_size;
+    let title_line = theme.title_size * theme.leading;
+    let half_capital = capital(label) / 2.0;
+
+    // The legends, at the right.
+    let plans: Vec<LegendPlan> = scene
+        .legends
+        .iter()
+        .map(|legend| plan_legend(scene, legend, theme, &mut set, (width, height)))
+        .collect();
+    // A legend that does not fit under the one before it starts a new column to its right.
+    let legends_room = height - 2.0 * theme.margin;
+    let mut legend_columns: Vec<(f64, Vec<usize>)> = Vec::new();
+    let mut used = 0.0;
+    for (at, plan) in plans.iter().enumerate() {
+        match legend_columns.last_mut() {
+            Some((widest, members)) if used + theme.legend_gap + plan.height <= legends_room => {
+                *widest = widest.max(plan.width);
+                members.push(at);
+                used += theme.legend_gap + plan.height;
+            }
+            _ => {
+                legend_columns.push((plan.width, vec![at]));
+                used = plan.height;
+            }
+        }
+    }
+    let legends_width = legend_columns.iter().map(|(widest, _)| widest).sum::<f64>()
+        + theme.legend_gap * legend_columns.len().saturating_sub(1) as f64;
+
+    // The widths of the labels of the two axes.
+    let widths = |scale: Option<&Scale>, set: &mut Setter| -> Vec<f64> {
+        scale.map_or(Vec::new(), |s| {
+            s.labels
+                .iter()
+                .map(|l| set.width(l, FaceName::Sans, label))
+                .collect()
+        })
+    };
+    let x_widths = widths(xs, &mut set);
+    let y_widths = widths(ys, &mut set);
+    let widest_y = y_widths.iter().copied().fold(0.0, f64::max);
+
+    // The room each side takes. A label at the end of the x axis may reach past the panel by
+    // half its width, and the top label of the y axis by half its height.
+    let top = theme.margin + half_capital + 1.0;
+    let right = theme.margin
+        + if plans.is_empty() {
+            x_widths.last().map_or(0.0, |w| w / 2.0)
+        } else {
+            theme.legend_gap + legends_width
+        };
+    let sides = |x_lines: usize, y_lines: usize| -> (f64, f64) {
+        let left = theme.margin
+            + match ys {
+                Some(_) => {
+                    let title = if y_lines > 0 {
+                        y_lines as f64 * title_line + theme.title_gap
+                    } else {
+                        0.0
+                    };
+                    title + widest_y + theme.label_gap + theme.tick_length
+                }
+                None => x_widths.first().map_or(0.0, |w| w / 2.0),
+            };
+        let bottom = theme.margin
+            + match xs {
+                Some(_) => {
+                    let title = if x_lines > 0 {
+                        x_lines as f64 * title_line + theme.title_gap
+                    } else {
+                        0.0
+                    };
+                    title + capital(label) + theme.label_gap + theme.tick_length
+                }
+                None => half_capital,
+            };
+        (left, bottom)
+    };
+    // A title is broken to the side it runs along, which depends on the room the titles
+    // take: settled in two rounds, from one line each.
+    let titled = |scale: Option<&Scale>| scale.is_some_and(|s| !s.title.trim().is_empty());
+    let mut x_title: Vec<String> = Vec::new();
+    let mut y_title: Vec<String> = Vec::new();
+    let (mut left, mut bottom) = sides(usize::from(titled(xs)), usize::from(titled(ys)));
+    for _ in 0..2 {
+        let (panel_width, panel_height) = (width - left - right, height - top - bottom);
+        if let Some(s) = xs.filter(|_| titled(xs)) {
+            x_title = set.wrap(
+                &s.title,
+                FaceName::Sans,
+                theme.title_size,
+                panel_width.max(1.0),
+            );
+        }
+        if let Some(s) = ys.filter(|_| titled(ys)) {
+            y_title = set.wrap(
+                &s.title,
+                FaceName::Sans,
+                theme.title_size,
+                panel_height.max(1.0),
+            );
+        }
+        (left, bottom) = sides(x_title.len(), y_title.len());
+    }
+    let (panel_width, panel_height) = (width - left - right, height - top - bottom);
+    if !(panel_width >= SMALLEST_PANEL && panel_height >= SMALLEST_PANEL) {
+        return Err(LayoutError::TooSmall {
+            panel: (panel_width, panel_height),
+        });
+    }
+    let across =
+        |s: &Scale, v: f64| left + (v - s.limits.0) / (s.limits.1 - s.limits.0) * panel_width;
+    let down = |s: &Scale, v: f64| {
+        top + panel_height - (v - s.limits.0) / (s.limits.1 - s.limits.0) * panel_height
+    };
+    let line = |colour: &str, width: f64| Stroke {
+        colour: colour.to_string(),
+        width,
+    };
+    let segment = |from: (f64, f64), to: (f64, f64), stroke: Stroke| Primitive::Segment {
+        from,
+        to,
+        stroke,
+        heads: (Head::Plain, Head::Plain),
+    };
+
+    let mut items: Vec<Item> = vec![named(
+        "background",
+        Primitive::Rectangle {
+            at: (0.0, 0.0),
+            width,
+            height,
+            radius: 0.0,
+            fill: Some(theme.background.to_string()),
+            stroke: None,
+        },
+    )];
+    // The gridlines, under the marks.
+    if let Some(s) = xs {
+        for &value in &s.breaks {
+            let x = across(s, value);
+            items.push(named(
+                "grid",
+                segment(
+                    (x, top),
+                    (x, top + panel_height),
+                    line(theme.grid, theme.grid_width),
+                ),
+            ));
+        }
+    }
+    if let Some(s) = ys {
+        for &value in &s.breaks {
+            let y = down(s, value);
+            items.push(named(
+                "grid",
+                segment(
+                    (left, y),
+                    (left + panel_width, y),
+                    line(theme.grid, theme.grid_width),
+                ),
+            ));
+        }
+    }
+    // The marks, clipped to the panel.
+    let mut marks: Vec<Item> = Vec::new();
+    if let (Some(p), Some(sx), Some(sy)) = (panel, xs, ys) {
+        for (at, layer) in p.layers.iter().enumerate() {
+            let name = format!("layer:{}", at + 1);
+            for i in 0..layer.x.len().min(layer.y.len()) {
+                let colour = match &layer.color {
+                    Paint::Theme => theme.mark.to_string(),
+                    Paint::Constant(hex) => hex.clone(),
+                    Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
+                        (Some(scale), Some(value)) => colour_on(scale, *value),
+                        _ => theme.mark.to_string(),
+                    },
+                };
+                let across_mark = match &layer.size {
+                    Sizing::Constant(points) => *points,
+                    Sizing::Scaled(values) => match (scene.scale("size"), values.get(i)) {
+                        (Some(scale), Some(value)) => match scale.range {
+                            Range::Sizes(least, most) => {
+                                diameter(*value, scale.limits, (least, most))
+                            }
+                            _ => theme.key_size,
+                        },
+                        _ => theme.key_size,
+                    },
+                };
+                let outline = match &layer.shape {
+                    Shaping::Constant(name) => *name,
+                    Shaping::Scaled(values) => match (scene.scale("shape"), values.get(i)) {
+                        (Some(scale), Some(value)) => shape_on(scale, *value),
+                        _ => shape::DEFAULT,
+                    },
+                };
+                marks.push(named(
+                    &name,
+                    Primitive::Point {
+                        at: (across(sx, layer.x[i]), down(sy, layer.y[i])),
+                        shape: outline,
+                        size: across_mark,
+                        colour,
+                        opacity: layer.alpha,
+                    },
+                ));
+            }
+        }
+    }
+    items.push(named(
+        "panel",
+        Primitive::Clip {
+            at: (left, top),
+            width: panel_width,
+            height: panel_height,
+            items: marks,
+        },
+    ));
+    // The x axis: its line, a tick at each break, the labels that do not touch, its title.
+    if let Some(s) = xs {
+        let base = top + panel_height;
+        items.push(named(
+            "axis:x",
+            segment(
+                (left, base),
+                (left + panel_width, base),
+                line(theme.ink, theme.axis_width),
+            ),
+        ));
+        let centres: Vec<f64> = s.breaks.iter().map(|v| across(s, *v)).collect();
+        let step = thinning(&centres, &x_widths, label / 2.0);
+        let baseline = base + theme.tick_length + theme.label_gap + capital(label);
+        for (i, &x) in centres.iter().enumerate() {
+            items.push(named(
+                "axis:x",
+                segment(
+                    (x, base),
+                    (x, base + theme.tick_length),
+                    line(theme.ink, theme.axis_width),
+                ),
+            ));
+            if i % step == 0
+                && let Some(words) = s.labels.get(i)
+            {
+                items.push(named(
+                    "axis:x",
+                    text((x, baseline), Anchor::Middle, 0.0, words, label, theme),
+                ));
+            }
+        }
+        for (i, words) in x_title.iter().enumerate() {
+            let y = baseline + theme.title_gap + (i + 1) as f64 * title_line
+                - theme.title_size * (theme.leading - 1.0);
+            items.push(named(
+                "axis:x",
+                text(
+                    (left + panel_width / 2.0, y),
+                    Anchor::Middle,
+                    0.0,
+                    words,
+                    theme.title_size,
+                    theme,
+                ),
+            ));
+        }
+    }
+    // The y axis: the same, its labels ending at the ticks and its title read upwards.
+    if let Some(s) = ys {
+        items.push(named(
+            "axis:y",
+            segment(
+                (left, top),
+                (left, top + panel_height),
+                line(theme.ink, theme.axis_width),
+            ),
+        ));
+        let centres: Vec<f64> = s.breaks.iter().map(|v| down(s, *v)).collect();
+        let heights = vec![capital(label); centres.len()];
+        let step = thinning(&centres, &heights, label / 4.0);
+        for (i, &y) in centres.iter().enumerate() {
+            items.push(named(
+                "axis:y",
+                segment(
+                    (left - theme.tick_length, y),
+                    (left, y),
+                    line(theme.ink, theme.axis_width),
+                ),
+            ));
+            if i % step == 0
+                && let Some(words) = s.labels.get(i)
+            {
+                items.push(named(
+                    "axis:y",
+                    text(
+                        (left - theme.tick_length - theme.label_gap, y + half_capital),
+                        Anchor::End,
+                        0.0,
+                        words,
+                        label,
+                        theme,
+                    ),
+                ));
+            }
+        }
+        // Turned to read upwards, a line's letters rise towards the left: the first line is
+        // the leftmost.
+        for (i, words) in y_title.iter().enumerate() {
+            let x = theme.margin + (i + 1) as f64 * title_line
+                - theme.title_size * (theme.leading - 1.0);
+            items.push(named(
+                "axis:y",
+                text(
+                    (x, top + panel_height / 2.0),
+                    Anchor::Middle,
+                    90.0,
+                    words,
+                    theme.title_size,
+                    theme,
+                ),
+            ));
+        }
+    }
+    // The legends, each column from the top of the panel down.
+    let mut x = width - theme.margin - legends_width;
+    for (widest, members) in &legend_columns {
+        let mut y = top - half_capital;
+        for &at in members {
+            draw_legend(&plans[at], (x, y), theme, &mut items);
+            y += plans[at].height + theme.legend_gap;
+        }
+        x += widest + theme.legend_gap;
+    }
+    let mut notes = scene.notes.clone();
+    if !set.lacking.is_empty() {
+        let shown: Vec<String> = set
+            .lacking
+            .iter()
+            .map(|c| match c {
+                '\t' => "a tab".to_string(),
+                '\n' | '\r' => "a line break".to_string(),
+                c if c.is_control() => format!("U+{:04X}", u32::from(*c)),
+                c => format!("`{c}`"),
+            })
+            .collect();
+        let (list, verb) = match shown.split_last() {
+            Some((last, [])) => (last.clone(), "is"),
+            Some((last, others)) => (format!("{} and {last}", others.join(", ")), "are"),
+            None => (String::new(), "are"),
+        };
+        notes.push(format!(
+            "{list} {verb} not in the font of the figure and {verb} drawn as an empty box"
+        ));
+    }
+    Ok(Drawing {
+        width,
+        height,
+        items,
+        notes,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn labels_that_would_touch_are_passed_over_evenly() {
+        // Room for all: every label is written.
+        assert_eq!(thinning(&[0.0, 20.0, 40.0], &[10.0, 10.0, 10.0], 4.0), 1);
+        // Too close: every second, then every third.
+        assert_eq!(thinning(&[0.0, 10.0, 20.0, 30.0], &[10.0; 4], 4.0), 2);
+        assert_eq!(
+            thinning(&[0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0], &[10.0; 7], 4.0),
+            3
+        );
+        // A wide label among narrow ones decides for its neighbours alone.
+        assert_eq!(thinning(&[0.0, 12.0, 24.0], &[4.0, 30.0, 4.0], 2.0), 2);
+        // Places that fall (an axis that runs downwards) are read the same.
+        assert_eq!(thinning(&[40.0, 20.0, 0.0], &[10.0; 3], 4.0), 1);
+        // Labels that cannot be told apart at all: the first alone.
+        assert_eq!(thinning(&[5.0, 5.0, 5.0], &[10.0; 3], 4.0), 3);
+        // One label, and none.
+        assert_eq!(thinning(&[7.0], &[100.0], 4.0), 1);
+        assert_eq!(thinning(&[], &[], 4.0), 1);
+    }
+
+    #[test]
+    fn a_text_is_broken_between_words_and_never_inside_one() {
+        let mut set = Setter::default();
+        let width = |set: &mut Setter, words: &str| set.width(words, FaceName::Sans, 9.0);
+        let whole = "Years of schooling completed";
+        let all = width(&mut set, whole);
+        // Room for all of it: one line.
+        assert_eq!(set.wrap(whole, FaceName::Sans, 9.0, all), [whole]);
+        // A little less: the last word goes to a second line.
+        assert_eq!(
+            set.wrap(whole, FaceName::Sans, 9.0, all - 0.01),
+            ["Years of schooling", "completed"]
+        );
+        // No line is wider than the limit unless it is one word.
+        let limit = width(&mut set, "schooling").max(width(&mut set, "completed")) + 1.0;
+        let lines = set.wrap(whole, FaceName::Sans, 9.0, limit);
+        assert_eq!(lines, ["Years of", "schooling", "completed"]);
+        assert!(lines.iter().all(|line| width(&mut set, line) <= limit));
+        // A word wider than the limit stands alone; spaces in a row are one; nothing gives none.
+        assert_eq!(
+            set.wrap("a extraordinarily b", FaceName::Sans, 9.0, 12.0),
+            ["a", "extraordinarily", "b"]
+        );
+        assert_eq!(
+            set.wrap("  two   spaces ", FaceName::Sans, 9.0, 500.0),
+            ["two spaces"]
+        );
+        assert!(set.wrap("", FaceName::Sans, 9.0, 50.0).is_empty());
+        assert!(set.wrap("   ", FaceName::Sans, 9.0, 50.0).is_empty());
+        assert!(set.lacking.is_empty());
+        // A character no face has is measured as the empty box and remembered once.
+        let boxed = set.width("中中", FaceName::Sans, 10.0);
+        assert_eq!(
+            boxed,
+            2.0 * f64::from(face(FaceName::Sans).advance(0)) * 10.0 / 1000.0
+        );
+        assert_eq!(set.lacking, ['中']);
+    }
+
+    #[test]
+    fn a_value_takes_the_colour_and_the_shape_of_its_place_on_a_scale() {
+        assert_eq!(JOURNAL.background, "#FFFFFF");
+        // A value on a scale of categories takes the colour of its place; beyond the last, the
+        // last; on a ramp, its share of the way.
+        let categories = Scale {
+            id: "color",
+            kind: ScaleKind::Category,
+            title: String::new(),
+            limits: (1.0, 3.0),
+            breaks: vec![1.0, 2.0, 3.0],
+            labels: vec!["a".to_string(), "b".to_string(), "NA".to_string()],
+            range: Range::Colours(vec!["#E69F00", "#56B4E9", "#999999"]),
+        };
+        assert_eq!(colour_on(&categories, 1.0), "#E69F00");
+        assert_eq!(colour_on(&categories, 3.0), "#999999");
+        assert_eq!(colour_on(&categories, 9.0), "#999999");
+        assert_eq!(colour_on(&categories, 0.0), "#E69F00");
+        let ramp = Scale {
+            kind: ScaleKind::Linear,
+            limits: (0.0, 10.0),
+            range: Range::Colours(vec!["#000001", "#000002", "#000003", "#000004"]),
+            ..categories.clone()
+        };
+        assert_eq!(colour_on(&ramp, 0.0), "#000001");
+        assert_eq!(colour_on(&ramp, 4.9), "#000002");
+        assert_eq!(colour_on(&ramp, 10.0), "#000004");
+        let shapes = Scale {
+            range: Range::Shapes(vec!["circle", "triangle"]),
+            ..categories
+        };
+        assert_eq!(shape_on(&shapes, 2.0), "triangle");
+        assert_eq!(shape_on(&shapes, 5.0), "triangle");
+        assert_eq!(shape_on(&ramp, 2.0), shape::DEFAULT);
+    }
+}

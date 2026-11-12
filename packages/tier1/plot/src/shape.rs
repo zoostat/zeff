@@ -69,6 +69,119 @@ pub fn parse(written: &str) -> Result<&'static str, Option<&'static str>> {
     }
 }
 
+/// How a shape is drawn, about its centre, in points, the y axis downwards as on a page.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Geometry {
+    /// A circle of this radius.
+    Circle(f64),
+    /// A closed outline through these corners.
+    Polygon(Vec<(f64, f64)>),
+    /// Strokes, each from one end to the other.
+    Lines(Vec<((f64, f64), (f64, f64))>),
+}
+
+/// A shape of a size: its geometry, and whether it is the outline alone (`_open`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Outline {
+    pub geometry: Geometry,
+    pub open: bool,
+}
+
+// The sines and cosines of 18 and 54 degrees, written out so that a star has the same corners
+// on every machine.
+const SIN_18: f64 = 0.309_016_994_374_947_4;
+const COS_18: f64 = 0.951_056_516_295_153_5;
+const SIN_54: f64 = 0.809_016_994_374_947_4;
+const COS_54: f64 = 0.587_785_252_292_473_1;
+
+/// The inner corners of the star stand at this share of the outer ones, the share of the
+/// five-pointed star drawn with five straight strokes: (3 − √5) / 2.
+const STAR_WAIST: f64 = 0.381_966_011_250_105_1;
+
+/// The shape `name` at `size` points: a circle `size` across; any other shape with an inside
+/// with the area of that circle, so that the shapes of one size weigh the same to the eye
+/// (question 5 of open decision #110); a shape of lines `size` across. `None` for a name that
+/// is no shape.
+pub fn outline(name: &str, size: f64) -> Option<Outline> {
+    let (solid, open) = match name.strip_suffix("_open") {
+        Some(solid) => (solid, true),
+        None => (name, false),
+    };
+    let radius = size / 2.0;
+    let area = std::f64::consts::PI * radius * radius;
+    let geometry = match solid {
+        "circle" => Geometry::Circle(radius),
+        "square" => {
+            let half = area.sqrt() / 2.0;
+            Geometry::Polygon(vec![
+                (-half, -half),
+                (half, -half),
+                (half, half),
+                (-half, half),
+            ])
+        }
+        // A square on its corner: its area is twice the square of the reach of a corner.
+        "diamond" => {
+            let reach = (area / 2.0).sqrt();
+            Geometry::Polygon(vec![
+                (0.0, -reach),
+                (reach, 0.0),
+                (0.0, reach),
+                (-reach, 0.0),
+            ])
+        }
+        // Three equal sides; the centre is the point the three medians meet at, a third of
+        // the height above the base.
+        "triangle" | "triangle_down" => {
+            let side = (4.0 * area / 3.0_f64.sqrt()).sqrt();
+            let height = side * 3.0_f64.sqrt() / 2.0;
+            let (tip, base) = (-2.0 * height / 3.0, height / 3.0);
+            let up = vec![(0.0, tip), (side / 2.0, base), (-side / 2.0, base)];
+            if solid == "triangle" {
+                Geometry::Polygon(up)
+            } else {
+                Geometry::Polygon(up.into_iter().map(|(x, y)| (x, -y)).collect())
+            }
+        }
+        // Ten corners, outer and inner in turn, the first at the top. The area of such a
+        // star is five times the outer reach, the inner reach and the sine of 36 degrees.
+        "star" => {
+            let outer = (area / (5.0 * STAR_WAIST * COS_54)).sqrt();
+            let inner = outer * STAR_WAIST;
+            Geometry::Polygon(vec![
+                (0.0, -outer),
+                (inner * COS_54, -inner * SIN_54),
+                (outer * COS_18, -outer * SIN_18),
+                (inner * COS_18, inner * SIN_18),
+                (outer * COS_54, outer * SIN_54),
+                (0.0, inner),
+                (-outer * COS_54, outer * SIN_54),
+                (-inner * COS_18, inner * SIN_18),
+                (-outer * COS_18, -outer * SIN_18),
+                (-inner * COS_54, -inner * SIN_54),
+            ])
+        }
+        "plus" | "cross" | "asterisk" if !open => {
+            let slant = radius / 2.0_f64.sqrt();
+            let upright = [
+                ((-radius, 0.0), (radius, 0.0)),
+                ((0.0, -radius), (0.0, radius)),
+            ];
+            let turned = [
+                ((-slant, -slant), (slant, slant)),
+                ((-slant, slant), (slant, -slant)),
+            ];
+            Geometry::Lines(match solid {
+                "plus" => upright.to_vec(),
+                "cross" => turned.to_vec(),
+                _ => upright.into_iter().chain(turned).collect(),
+            })
+        }
+        _ => return None,
+    };
+    Some(Outline { geometry, open })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -139,5 +252,95 @@ mod tests {
         assert_eq!(parse("stars"), Err(Some("star")));
         assert_eq!(parse(""), Err(None));
         assert_eq!(parse("steelblue"), Err(None));
+    }
+
+    /// The area inside corners, by the surveyor's rule.
+    fn area(corners: &[(f64, f64)]) -> f64 {
+        let n = corners.len();
+        let twice: f64 = (0..n)
+            .map(|i| {
+                let (a, b) = (corners[i], corners[(i + 1) % n]);
+                a.0 * b.1 - b.0 * a.1
+            })
+            .sum();
+        twice.abs() / 2.0
+    }
+
+    #[test]
+    fn every_name_has_a_geometry_and_the_solid_shapes_of_one_size_have_one_area() {
+        for size in [0.5, 4.5, 8.0, 18.0] {
+            let circle = std::f64::consts::PI * size * size / 4.0;
+            for name in NAMED {
+                let drawn = outline(name, size).unwrap_or_else(|| panic!("no geometry for {name}"));
+                assert_eq!(drawn.open, name.ends_with("_open"), "{name}");
+                match &drawn.geometry {
+                    Geometry::Circle(radius) => assert_eq!(*radius, size / 2.0),
+                    Geometry::Polygon(corners) => {
+                        let inside = area(corners);
+                        assert!(
+                            (inside - circle).abs() <= 1e-12 * circle,
+                            "{name} at {size}: {inside} against {circle}"
+                        );
+                        // Balanced left and right.
+                        let lean: f64 = corners.iter().map(|c| c.0).sum();
+                        assert!(lean.abs() <= 1e-12 * size, "{name}");
+                    }
+                    Geometry::Lines(strokes) => {
+                        // Every stroke passes through the centre and is `size` long.
+                        for (from, to) in strokes {
+                            assert!(
+                                (from.0 + to.0).abs() <= 1e-12 && (from.1 + to.1).abs() <= 1e-12
+                            );
+                            let length = ((to.0 - from.0).powi(2) + (to.1 - from.1).powi(2)).sqrt();
+                            assert!((length - size).abs() <= 1e-12 * size, "{name}");
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(outline("hexagon", 4.5), None);
+        assert_eq!(outline("plus_open", 4.5), None);
+        assert_eq!(outline("", 4.5), None);
+    }
+
+    #[test]
+    fn a_triangle_stands_on_its_base_and_the_other_on_its_point_and_a_star_points_up() {
+        let corners = |name: &str| match outline(name, 10.0).unwrap().geometry {
+            Geometry::Polygon(corners) => corners,
+            other => panic!("{name}: {other:?}"),
+        };
+        // On a page y grows downwards: the tip is above the base.
+        let up = corners("triangle");
+        assert_eq!(up.len(), 3);
+        assert!(up[0].1 < 0.0 && up[1].1 > 0.0 && up[1].1 == up[2].1);
+        let down = corners("triangle_down");
+        assert!(down[0].1 > 0.0 && down[1].1 < 0.0 && down[1].1 == down[2].1);
+        assert_eq!(down[0].1, -up[0].1);
+        // The centre is where the medians meet: the heights of the corners sum to nothing.
+        assert!((up.iter().map(|c| c.1).sum::<f64>()).abs() <= 1e-12);
+        let star = corners("star");
+        assert_eq!(star.len(), 10);
+        assert_eq!(star[0].0, 0.0);
+        assert!(
+            star.iter().all(|c| c.1 >= star[0].1),
+            "the first corner is the top"
+        );
+        // The outer corners are all as far from the centre, and the inner ones nearer.
+        let reach = |c: &(f64, f64)| (c.0 * c.0 + c.1 * c.1).sqrt();
+        for pair in star.chunks(2) {
+            assert!((reach(&pair[0]) - reach(&star[0])).abs() <= 1e-12);
+            assert!((reach(&pair[1]) - reach(&star[1])).abs() <= 1e-12);
+            assert!(reach(&pair[1]) < reach(&pair[0]) / 2.0);
+        }
+        // A diamond is as wide as it is tall, a square has four equal sides.
+        let diamond = corners("diamond");
+        assert_eq!(diamond[1].0, diamond[2].1);
+        let square = corners("square");
+        assert_eq!(square[1].0 - square[0].0, square[2].1 - square[1].1);
+        // An outline has the geometry of its solid shape.
+        assert_eq!(
+            outline("star_open", 6.0).unwrap().geometry,
+            outline("star", 6.0).unwrap().geometry
+        );
     }
 }

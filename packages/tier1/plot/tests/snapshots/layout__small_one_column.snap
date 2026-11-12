@@ -1,0 +1,64 @@
+---
+source: packages/tier1/plot/tests/layout.rs
+expression: figure.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 43.412,7.792 to 43.412,155.253 stroke #E3E3E3 0.35
+[grid] segment 73.659,7.792 to 73.659,155.253 stroke #E3E3E3 0.35
+[grid] segment 103.905,7.792 to 103.905,155.253 stroke #E3E3E3 0.35
+[grid] segment 134.152,7.792 to 134.152,155.253 stroke #E3E3E3 0.35
+[grid] segment 164.399,7.792 to 164.399,155.253 stroke #E3E3E3 0.35
+[grid] segment 194.646,7.792 to 194.646,155.253 stroke #E3E3E3 0.35
+[grid] segment 35.85,149.976 to 202.207,149.976 stroke #E3E3E3 0.35
+[grid] segment 35.85,121.454 to 202.207,121.454 stroke #E3E3E3 0.35
+[grid] segment 35.85,92.931 to 202.207,92.931 stroke #E3E3E3 0.35
+[grid] segment 35.85,64.409 to 202.207,64.409 stroke #E3E3E3 0.35
+[grid] segment 35.85,35.887 to 202.207,35.887 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 166.357 by 147.461
+  [layer:1] point 43.412,148.55 triangle 14.697 #56B4E9 opacity 1
+  [layer:1] point 73.659,122.88 circle 16.155 #E69F00 opacity 1
+  [layer:1] point 103.905,90.079 triangle 17.076 #56B4E9 opacity 1
+  [layer:1] point 134.152,67.261 circle 14.071 #E69F00 opacity 1
+  [layer:1] point 164.399,50.148 triangle 18 #56B4E9 opacity 1
+  [layer:1] point 194.646,14.495 circle 15.646 #E69F00 opacity 1
+[axis:x] segment 35.85,155.253 to 202.207,155.253 stroke #222222 0.5
+[axis:x] segment 43.412,155.253 to 43.412,158.253 stroke #222222 0.5
+[axis:x] text 43.412,166.837 middle "1" sans 8 #222222
+[axis:x] segment 73.659,155.253 to 73.659,158.253 stroke #222222 0.5
+[axis:x] text 73.659,166.837 middle "2" sans 8 #222222
+[axis:x] segment 103.905,155.253 to 103.905,158.253 stroke #222222 0.5
+[axis:x] text 103.905,166.837 middle "3" sans 8 #222222
+[axis:x] segment 134.152,155.253 to 134.152,158.253 stroke #222222 0.5
+[axis:x] text 134.152,166.837 middle "4" sans 8 #222222
+[axis:x] segment 164.399,155.253 to 164.399,158.253 stroke #222222 0.5
+[axis:x] text 164.399,166.837 middle "5" sans 8 #222222
+[axis:x] segment 194.646,155.253 to 194.646,158.253 stroke #222222 0.5
+[axis:x] text 194.646,166.837 middle "6" sans 8 #222222
+[axis:x] text 119.029,180.837 middle "dose" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,155.253 stroke #222222 0.5
+[axis:y] segment 32.85,149.976 to 35.85,149.976 stroke #222222 0.5
+[axis:y] text 29.85,152.768 end "2" sans 8 #222222
+[axis:y] segment 32.85,121.454 to 35.85,121.454 stroke #222222 0.5
+[axis:y] text 29.85,124.246 end "4" sans 8 #222222
+[axis:y] segment 32.85,92.931 to 35.85,92.931 stroke #222222 0.5
+[axis:y] text 29.85,95.723 end "6" sans 8 #222222
+[axis:y] segment 32.85,64.409 to 35.85,64.409 stroke #222222 0.5
+[axis:y] text 29.85,67.201 end "8" sans 8 #222222
+[axis:y] segment 32.85,35.887 to 35.85,35.887 stroke #222222 0.5
+[axis:y] text 29.85,38.679 end "10" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "response" sans 9 #222222
+[legend:color+shape] text 212.207,14 start "arm" sans 9 #222222
+[legend:color+shape] point 214.457,24.25 circle 4.5 #E69F00 opacity 1
+[legend:color+shape] text 219.707,27.042 start "drug" sans 8 #222222
+[legend:color+shape] point 214.457,34.25 triangle 4.5 #56B4E9 opacity 1
+[legend:color+shape] text 219.707,37.042 start "placebo" sans 8 #222222
+[legend:size] text 212.207,58.25 start "weight" sans 9 #222222
+[legend:size] point 220.693,72.985 circle 8.485 #222222 opacity 1
+[legend:size] text 232.178,75.777 start "20" sans 8 #222222
+[legend:size] point 220.693,91.956 circle 12 #222222 opacity 1
+[legend:size] text 232.178,94.748 start "40" sans 8 #222222
+[legend:size] point 220.693,110.926 circle 14.697 #222222 opacity 1
+[legend:size] text 232.178,113.718 start "60" sans 8 #222222
+[legend:size] point 220.693,129.897 circle 16.971 #222222 opacity 1
+[legend:size] text 232.178,132.689 start "80" sans 8 #222222

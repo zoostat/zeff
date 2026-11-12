@@ -168,3 +168,13 @@ Step 20 `[engine]`: the package `plot`; `w.plot(x: educ, y: wage)` starts a plot
 
 **For the owner to decide.** #126, before step 21c (recommended: letters drawn as outlines). Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 21b (the layout and the journal theme)
+
+**Done.** A plot can now be laid out on a page: at `one_column`, `two_column`, `slide` or a size in millimetres, the engine works out where the panel, the axes with their ticks and labels, the gridlines, the titles, the legends and every mark stand, in points, with every width measured from the embedded fonts. The result is a drawing made of eight kinds of primitive, the closed set of open decision #118, which the SVG writer of the next step turns into a file. Long titles are broken between words, labels that would touch are thinned, legends run into columns when the page is low, and no text is below 8 points; a page too small for that is refused. Nothing of the rows of the data reaches a drawing. Section 7.6 of the Language Reference gained the paragraph on the primitives. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 251 of 251 with the new case `plot/layout/drawings`; CI is read job by job after the push.
+
+**Next.** Step 21c `[engine]`: the SVG writer. It needs the owner's answer to open decision #126 first.
+
+**For the owner to decide.** #126, now blocking: how the text of an SVG is written (recommended: letters drawn as outlines, so that a figure looks the same in every program; editable text as an option after 1.0). Rulings he reads on the figures at step 22: the three sizes in millimetres, the constants of the journal theme, the three faces, no ligatures. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

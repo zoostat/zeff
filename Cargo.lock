@@ -1569,6 +1569,7 @@ dependencies = [
  "unicode-normalization",
  "zeff-columns",
  "zeff-core",
+ "zeff-datasets",
  "zeff-diagnostics",
  "zeff-hash",
  "zeff-numeric",

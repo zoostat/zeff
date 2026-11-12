@@ -1,0 +1,68 @@
+---
+source: packages/tier1/plot/tests/layout.rs
+expression: "layout(&ramp, Size::TwoColumn, &JOURNAL).unwrap().describe()"
+---
+drawing 518.74 by 311.811
+[background] rectangle 0,0 518.74 by 311.811 fill #FFFFFF
+[grid] segment 55.932,7.792 to 55.932,279.977 stroke #E3E3E3 0.35
+[grid] segment 136.261,7.792 to 136.261,279.977 stroke #E3E3E3 0.35
+[grid] segment 216.59,7.792 to 216.59,279.977 stroke #E3E3E3 0.35
+[grid] segment 296.919,7.792 to 296.919,279.977 stroke #E3E3E3 0.35
+[grid] segment 377.248,7.792 to 377.248,279.977 stroke #E3E3E3 0.35
+[grid] segment 457.577,7.792 to 457.577,279.977 stroke #E3E3E3 0.35
+[grid] segment 35.85,270.237 to 477.659,270.237 stroke #E3E3E3 0.35
+[grid] segment 35.85,217.59 to 477.659,217.59 stroke #E3E3E3 0.35
+[grid] segment 35.85,164.943 to 477.659,164.943 stroke #E3E3E3 0.35
+[grid] segment 35.85,112.296 to 477.659,112.296 stroke #E3E3E3 0.35
+[grid] segment 35.85,59.649 to 477.659,59.649 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 441.809 by 272.185
+  [layer:1] point 55.932,267.605 circle 4.5 #46327E opacity 1
+  [layer:1] point 136.261,220.223 circle 4.5 #21918C opacity 1
+  [layer:1] point 216.59,159.679 circle 4.5 #5AC864 opacity 1
+  [layer:1] point 296.919,117.561 circle 4.5 #440154 opacity 1
+  [layer:1] point 377.248,85.973 circle 4.5 #FDE725 opacity 1
+  [layer:1] point 457.577,20.164 circle 4.5 #2C718E opacity 1
+[axis:x] segment 35.85,279.977 to 477.659,279.977 stroke #222222 0.5
+[axis:x] segment 55.932,279.977 to 55.932,282.977 stroke #222222 0.5
+[axis:x] text 55.932,291.561 middle "1" sans 8 #222222
+[axis:x] segment 136.261,279.977 to 136.261,282.977 stroke #222222 0.5
+[axis:x] text 136.261,291.561 middle "2" sans 8 #222222
+[axis:x] segment 216.59,279.977 to 216.59,282.977 stroke #222222 0.5
+[axis:x] text 216.59,291.561 middle "3" sans 8 #222222
+[axis:x] segment 296.919,279.977 to 296.919,282.977 stroke #222222 0.5
+[axis:x] text 296.919,291.561 middle "4" sans 8 #222222
+[axis:x] segment 377.248,279.977 to 377.248,282.977 stroke #222222 0.5
+[axis:x] text 377.248,291.561 middle "5" sans 8 #222222
+[axis:x] segment 457.577,279.977 to 457.577,282.977 stroke #222222 0.5
+[axis:x] text 457.577,291.561 middle "6" sans 8 #222222
+[axis:x] text 256.755,305.561 middle "dose" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,279.977 stroke #222222 0.5
+[axis:y] segment 32.85,270.237 to 35.85,270.237 stroke #222222 0.5
+[axis:y] text 29.85,273.029 end "2" sans 8 #222222
+[axis:y] segment 32.85,217.59 to 35.85,217.59 stroke #222222 0.5
+[axis:y] text 29.85,220.382 end "4" sans 8 #222222
+[axis:y] segment 32.85,164.943 to 35.85,164.943 stroke #222222 0.5
+[axis:y] text 29.85,167.735 end "6" sans 8 #222222
+[axis:y] segment 32.85,112.296 to 35.85,112.296 stroke #222222 0.5
+[axis:y] text 29.85,115.088 end "8" sans 8 #222222
+[axis:y] segment 32.85,59.649 to 35.85,59.649 stroke #222222 0.5
+[axis:y] text 29.85,62.441 end "10" sans 8 #222222
+[axis:y] text 13,143.885 middle turned 90 "response" sans 9 #222222
+[legend:color] text 487.659,14 start "weight" sans 9 #222222
+[legend:color] raster 487.659,22.042 8 by 72 cells 1 by 256 from #FDE725 to #440154
+[legend:color] segment 495.659,94.042 to 498.659,94.042 stroke #222222 0.5
+[legend:color] text 501.659,96.834 start "55" sans 8 #222222
+[legend:color] segment 495.659,83.756 to 498.659,83.756 stroke #222222 0.5
+[legend:color] text 501.659,86.548 start "60" sans 8 #222222
+[legend:color] segment 495.659,73.471 to 498.659,73.471 stroke #222222 0.5
+[legend:color] text 501.659,76.263 start "65" sans 8 #222222
+[legend:color] segment 495.659,63.185 to 498.659,63.185 stroke #222222 0.5
+[legend:color] text 501.659,65.977 start "70" sans 8 #222222
+[legend:color] segment 495.659,52.899 to 498.659,52.899 stroke #222222 0.5
+[legend:color] text 501.659,55.691 start "75" sans 8 #222222
+[legend:color] segment 495.659,42.613 to 498.659,42.613 stroke #222222 0.5
+[legend:color] text 501.659,45.405 start "80" sans 8 #222222
+[legend:color] segment 495.659,32.328 to 498.659,32.328 stroke #222222 0.5
+[legend:color] text 501.659,35.12 start "85" sans 8 #222222
+[legend:color] segment 495.659,22.042 to 498.659,22.042 stroke #222222 0.5
+[legend:color] text 501.659,24.834 start "90" sans 8 #222222
