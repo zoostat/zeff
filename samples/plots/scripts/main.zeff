@@ -1,5 +1,6 @@
 // The sample project of the plots of release 0.7.0: six figures of the shipped wages, each
-// written as an SVG file under output/. `zeff run` in this folder prints what
+// written under output/ in the three formats of a figure: SVG and PDF, drawn with lines, and
+// PNG, drawn in dots at 300 to the inch. `zeff run` in this folder prints what
 // expected/stdout.txt holds, and its messages are expected/stderr.txt; the script tests compare
 // both byte for byte on every target, and the conformance report carries the digest of every
 // figure, so that the four targets prove they write the same bytes. The figures are the ones
@@ -16,31 +17,39 @@ let w2010 = wages.where(year == 2010)
 let schooling = wages.plot(x: educ, y: wage).points(alpha: 0.2)
 schooling
 schooling.export("output/fig1_wage_schooling.svg")
+schooling.export("output/fig1_wage_schooling.pdf")
+schooling.export("output/fig1_wage_schooling.png")
 
 // 2. An expression on an axis, and schooling moved a little sideways so that the columns of
 //    whole years open up; at the full width of a page.
-wages.plot(x: educ, y: log(wage))
-    .points(alpha: 0.15, jitter: 0.4)
-    .export("output/fig2_log_wage.svg", size: two_column)
+let logged = wages.plot(x: educ, y: log(wage)).points(alpha: 0.15, jitter: 0.4)
+logged.export("output/fig2_log_wage.svg", size: two_column)
+logged.export("output/fig2_log_wage.pdf", size: two_column)
+logged.export("output/fig2_log_wage.png", size: two_column)
 
 // 3. A category shown by colour, with its legend.
-wages.plot(x: exper, y: wage, color: union)
-    .points(alpha: 0.3)
-    .export("output/fig3_union.svg", size: one_column)
+let by_union = wages.plot(x: exper, y: wage, color: union).points(alpha: 0.3)
+by_union.export("output/fig3_union.svg", size: one_column)
+by_union.export("output/fig3_union.pdf", size: one_column)
+by_union.export("output/fig3_union.png", size: one_column)
 
 // 4. A number shown on a ramp of colours.
-w2010.plot(x: educ, y: wage, color: hours)
-    .points(size: 6, jitter: 0.5)
-    .export("output/fig4_hours.svg", size: [120, 80])
+let by_hours = w2010.plot(x: educ, y: wage, color: hours).points(size: 6, jitter: 0.5)
+by_hours.export("output/fig4_hours.svg", size: [120, 80])
+by_hours.export("output/fig4_hours.pdf", size: [120, 80])
+by_hours.export("output/fig4_hours.png", size: [120, 80])
 
 // 5. Size by area, and sex by colour and by shape at once: one legend for sex, one for hours.
 //    The notes on the rows that cannot be drawn are written under this figure.
 let sized = w2010.plot(x: exper, y: wage, size: hours, color: female, shape: female).points(alpha: 0.5)
 sized
 sized.export("output/fig5_size_shape.svg", size: two_column, notes: true)
+sized.export("output/fig5_size_shape.pdf", size: two_column, notes: true)
+sized.export("output/fig5_size_shape.png", size: two_column, notes: true)
 
 // 6. Twelve industries by shape and colour on a slide: there are eight of each, so they repeat
 //    from the ninth, and a note says so.
-w2010.plot(x: age, y: hours, color: industry, shape: industry)
-    .points(size: 7)
-    .export("output/fig6_industry.svg", size: slide)
+let by_industry = w2010.plot(x: age, y: hours, color: industry, shape: industry).points(size: 7)
+by_industry.export("output/fig6_industry.svg", size: slide)
+by_industry.export("output/fig6_industry.pdf", size: slide)
+by_industry.export("output/fig6_industry.png", size: slide)

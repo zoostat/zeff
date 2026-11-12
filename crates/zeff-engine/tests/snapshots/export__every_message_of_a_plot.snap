@@ -2,26 +2,6 @@
 source: crates/zeff-engine/tests/export.rs
 expression: text
 ---
-== pdf_not_yet
-note: 6 rows with NA in educ or wage dropped (line 2)
-error[Z0716]: `wage.pdf`: this version of Zeff writes a plot as `.svg`; `.pdf` is not written yet
- --> scripts/main.zeff:3:10
-  |
-3 | p.export("wage.pdf")
-  |          ^^^^^^^^^^ `.pdf` comes in a later version
-  |
-  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
-
-== png_not_yet
-note: 6 rows with NA in educ or wage dropped (line 2)
-error[Z0716]: `output/wage.PNG`: this version of Zeff writes a plot as `.svg`; `.png` is not written yet
- --> scripts/main.zeff:3:10
-  |
-3 | p.export("output/wage.PNG", size: slide)
-  |          ^^^^^^^^^^^^^^^^^ `.png` comes in a later version
-  |
-  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
-
 == a_table_format
 note: 6 rows with NA in educ or wage dropped (line 2)
 error[Z0716]: `wage.docx`: `.docx` is the format of a table, and this is a plot
@@ -30,7 +10,17 @@ error[Z0716]: `wage.docx`: `.docx` is the format of a table, and this is a plot
 3 | p.export("wage.docx")
   |          ^^^^^^^^^^^ not a format of a figure
   |
-  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/wage.pdf`
+
+== a_table_format_in_capitals
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `wage.TEX`: `.tex` is the format of a table, and this is a plot
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export("wage.TEX")
+  |          ^^^^^^^^^^ not a format of a figure
+  |
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/wage.pdf`
 
 == unknown_extension
 note: 6 rows with NA in educ or wage dropped (line 2)
@@ -40,7 +30,7 @@ error[Z0716]: `wage.jpeg` has an extension Zeff does not write
 3 | p.export("wage.jpeg")
   |          ^^^^^^^^^^^ `.jpeg` is not a format of `export`
   |
-  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/wage.pdf`
 
 == no_extension
 note: 6 rows with NA in educ or wage dropped (line 2)
@@ -50,7 +40,7 @@ error[Z0716]: `output/wage` has no extension, so no format is chosen
 3 | p.export("output/wage")
   |          ^^^^^^^^^^^^^ which format?
   |
-  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/wage.pdf`
 
 == dot_only
 note: 6 rows with NA in educ or wage dropped (line 2)
@@ -60,7 +50,7 @@ error[Z0716]: `.svg` has no name before its extension
 3 | p.export(".svg")
   |          ^^^^^^ a name is needed
   |
-  = help: write `output/figure.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+  = help: a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/figure.pdf`
 
 == not_a_word
 error[Z0402]: `poster` is not one of the allowed words
@@ -154,6 +144,56 @@ error[Z0401]: a page of 30 by 20 mm is too small for this plot: its labels, neve
   |                            ^^^^^^^^ too small a page
   |
   = help: a panel needs 12.7 mm each way; give a larger `size:`, as `one_column` (89 by 66 mm) or `two_column` (183 by 110 mm), or shorten the labels
+
+== too_small_for_a_pdf_too
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: a page of 30 by 20 mm is too small for this plot: its labels, never set below 8 points, leave 0 by 0 mm for the panel
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.pdf", size: [30, 20])
+  |                            ^^^^^^^^ too small a page
+  |
+  = help: a panel needs 12.7 mm each way; give a larger `size:`, as `one_column` (89 by 66 mm) or `two_column` (183 by 110 mm), or shorten the labels
+
+== too_small_for_a_png_too
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: a page of 30 by 20 mm is too small for this plot: its labels, never set below 8 points, leave 0 by 0 mm for the panel
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.png", size: [30, 20])
+  |                            ^^^^^^^^ too small a page
+  |
+  = help: a panel needs 12.7 mm each way; give a larger `size:`, as `one_column` (89 by 66 mm) or `two_column` (183 by 110 mm), or shorten the labels
+
+== too_large_for_a_pdf
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: a page of 5081 by 100 mm is larger than a page of a PDF may be: 5080 mm each way at most
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.pdf", size: [5081, 100])
+  |                            ^^^^^^^^^^^ too large a page for a PDF
+  |
+  = help: give a smaller `size:`, or write the figure as `.svg`, which has no largest page
+
+== too_many_dots_for_a_png
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: a page of 600 by 500 mm is 7086 by 5905 dots at 300 to the inch, and a PNG holds 40 million at most
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.png", size: [600, 500])
+  |                            ^^^^^^^^^^ too many dots
+  |
+  = help: give a smaller `size:`, or write the figure as `.pdf` or `.svg`, which are drawn with lines and have no dots
+
+== no_size_for_a_png
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: the size of a figure is a width and a height above 0, in millimetres
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.png", size: [0, 0])
+  |                            ^^^^^^ not a width and a height
+  |
+  = help: write `size: [89, 66]` for 89 mm by 66 mm, or one of `one_column`, `two_column` and `slide`
 
 == too_low_for_the_notes
 note: 6 rows with NA in educ or wage dropped (line 2)

@@ -54,6 +54,9 @@ use crate::trace::{Piece, Trace};
 /// How hard the streams are compressed, of 10: the same on every machine.
 const LEVEL: u8 = 9;
 
+/// The longest side of a page some readers of PDF take, in points: 200 inches, 5080 mm.
+pub const LARGEST_PAGE: f64 = 14_400.0;
+
 /// How many marks of one shape and size make it worth writing the shape once and placing it.
 pub const SHARED: usize = 3;
 

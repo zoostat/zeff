@@ -181,7 +181,8 @@ axes, the legends and the layout. It has one legend for each variable that a lay
 colour, a size or a shape. It holds no size in pixels and no fonts, which belong to the program
 that draws it, so the same data give the same scene on every computer.
 
-A figure. `p.export("output/wage.svg", size: one_column)` writes the plot as a figure. The
+A figure. `p.export("output/wage.pdf", size: one_column)` writes the plot as a figure, in the
+format its extension names: `.pdf` or `.svg`, drawn with lines, or `.png`, drawn in dots. The
 scene is laid out on a page of that size (`one_column`, `two_column`, `slide`, or a width and a
 height in millimetres), under one theme: a white page, the major gridlines in light grey, the
 two axes as thin lines with their ticks outside the panel, labels of 8 points and titles of 9

@@ -3141,3 +3141,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Left for later, on purpose.** No transparent page and no 16-bit file; nobody has asked. Colours are mixed in the numbers as written, not in light; that is what every browser does with an SVG, and changing it would make the PNG differ from the other two. The layer flag `raster` (a layer drawn in dots inside a vector file) is step 22b3 and will call `render` on the items of the layer.
 
 **Reason.** The checklist's step 22b2; section 7.6 of the Language Reference ("PNG at 300 dpi"); the opening of the release, on the identity of PNG bytes; section 8.3 of the Engine Specification, point 3.
+
+## 12 November 2026: step 22b3 split, and `export` by the three extensions (release 0.7.0, step 22b3a)
+
+**The split.** Step 22b3 is split in the checklist into 22b3a, `export` writing SVG, PDF or PNG by the extension with the six sample figures in each, and 22b3b, the layer flagged `raster` drawn in dots inside a figure drawn with lines. The second needs the grid of cells of a drawing to hold its colours as numbers and a picture placed inside an SVG, which is a step of its own; the first is what a script sees.
+
+**Decision.** `p.export(path, size:, notes:)` writes `.svg`, `.pdf` or `.png`, the extension compared without regard to case; the format travels in `FigureRequest` to the writer the plot value carries (`plot::figure::write`), which lays the scene out once and hands the drawing to `svg::write`, `pdf::write`, or `raster::render` at 300 dots to the inch and `png::write`. `size:` and `notes:` mean the same in the three. The refusal of `.pdf` and `.png` as "not written yet" (step 21d, ruling (b)) is gone, with its two messages.
+
+**Rulings where the text is silent**, each of which the owner may overturn, taken under his standing instruction of 12 November 2026. (a) A page longer than 5080 mm on a side is refused for a PDF (Z0401): that is 14,400 points, the longest side some readers of PDF take, and a file that one reader opens and another does not is worse than a plain refusal; the message offers `.svg`, which has no largest page. A page of exactly 5080 mm is written (tested). (b) A page of more than forty million dots is refused for a PNG (Z0401), with the number of dots it would have and the offer of `.pdf` or `.svg`; that is about 535 mm each way. (c) A PNG has a white page and no transparency, at 300 dots to the inch whatever its size; no option changes either at this release. (d) The help of every refusal of a path now names the three formats and recommends `.pdf`.
+
+**The specification.** The sentence of section 7.6 on bytes identical on every machine names the three formats, as decided at step 22b2 and confirmed by the identity jobs of that step's commit; the note of catalogue row 165 says PDF and PNG are written. Both logged in `docs/spec_changes.md`.
+
+**The sample project.** `samples/plots` binds each of its six plots to a name and exports it three times; the six SVG files are byte for byte what they were (their digests in the conformance set did not move), which shows that a plot bound to a name and one exported from a chain draw the same marks. Its messages carry new line numbers. The conformance set gains the twelve new files, 321 lines in all.
+
+**Tests.** `crates/zeff-engine/tests/export.rs`: a plot written as PDF and as PNG, by a bare name and under `output/`, with the extension in capitals, at three sizes, with and without its notes, twice to the same bytes, with no layer, and at the largest page of a PDF; the size of each PDF page read from the file and the size and density of each PNG from its chunks; nothing of the day or of the frame in a file. The snapshot of messages has twenty-nine: the two of "not written yet" left it, and a table format in capitals, a page too small in each of the two new formats, too large for a PDF, of too many dots for a PNG, and of no size for a PNG joined it. The examples of the help page of `export` run with the three formats.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's steps 22b3 and 22b3a; section 7.6 of the Language Reference ("`export` writes SVG or PDF (vector) or PNG at 300 dpi (raster), chosen by the extension"); the standing instruction that a step too large is split in the checklist.

@@ -311,7 +311,7 @@ pub fn functions() -> Vec<Function> {
                 diagnostics: vec![
                     DiagnosticDecl::new(
                         "Z0401",
-                        "size: or notes: given for a table or a result; a size that is not one of the three words or a width and a height in millimetres above 0; a page too small for the plot's labels at 8 points",
+                        "size: or notes: given for a table or a result; a size that is not one of the three words or a width and a height in millimetres above 0; a page too small for the plot's labels at 8 points, larger than a page of a PDF may be, or of more dots than a PNG holds",
                     ),
                     DiagnosticDecl::new(
                         "Z0707",
@@ -319,7 +319,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0716",
-                        "a path with no extension, an extension that is not a format `export` writes, the format of a figure for a table or of a table for a plot, or `.pdf` or `.png`, which are not written yet",
+                        "a path with no extension, an extension that is not a format `export` writes, or the format of a figure for a table or of a table for a plot",
                     ),
                 ],
                 help: include_str!("../help/export.md"),

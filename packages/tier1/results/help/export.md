@@ -15,14 +15,16 @@ above and below the grid as notes, and a test's result its title, its statistic 
 table: its title, its columns with numbers to the right, and its rows. Like Stata's
 `esttab using`.
 
-A plot is written as a figure, `.svg`, on a page of the size `size:` gives: one column of a
-journal unless told otherwise. The figure is drawn by Zeff itself with its own fonts, so the
-file is the same, byte for byte, on every computer. Like R's `ggsave`.
+A plot is written as a figure on a page of the size `size:` gives: one column of a journal
+unless told otherwise. `.pdf` and `.svg` are drawn with lines and stay sharp at any
+enlargement; `.png` is drawn in dots, 300 to the inch. The figure is drawn by Zeff itself with
+its own fonts, so each file is the same, byte for byte, on every computer. Like R's `ggsave`.
 
 ## Arguments
-- x: The table or result to write.
+- x: The table, result or plot to write.
 - path: Where to write it, from the project folder: `output/table1.docx`. The extension chooses
-  the format.
+  the format, whether written in small letters or in capitals: `.docx` or `.tex` for a table
+  or a result, `.pdf`, `.svg` or `.png` for a plot.
 - size: For a plot, the size of the page: `one_column` (89 mm wide and 66 mm high),
   `two_column` (183 by 110 mm), `slide` (254 by 143 mm), or a width and a height in
   millimetres as a list, `[120, 80]`. Without it the page is `one_column`. The text of a
@@ -45,21 +47,30 @@ the table, as `report` draws one above its statistics, is a `\midrule` in LaTeX 
 Word. Both files depend on the table alone, so they are the same bytes on every machine, and the
 conformance suite checks them.
 
-A figure. An SVG is a vector picture: it stays sharp at any enlargement, opens in every
-browser, and Word and PowerPoint place it as a picture that can be resized. The plot is laid
-out for the page it is written on, so a wider page has a wider panel and the same size of type,
-8 points for labels and 9 for titles, in IBM Plex Sans; give the size the figure will be printed
-at, and do not enlarge it afterwards. The letters are drawn as their outlines and not as text
-in a font, because a program that opens an SVG may not have the font and would set the labels
-in another, of other widths; drawn as outlines they look the same everywhere. The words are
-kept in the file, so a search in a browser finds them, but a label cannot be retyped in a
-drawing program. Nothing in the file says when or where it was made, and it holds no row of
-the data and not the name of the frame: what it shows is what it holds. `.pdf` and `.png` are
-not written by this version (Z0716).
+A figure. The plot is laid out for the page it is written on, so a wider page has a wider
+panel and the same size of type, 8 points for labels and 9 for titles, in IBM Plex Sans; give
+the size the figure will be printed at, and do not enlarge it afterwards. Nothing in a file
+says when or where it was made, and it holds no row of the data and not the name of the frame:
+what it shows is what it holds.
 
-In R the same is `ggsave("wage.svg", width = 89, height = 66, units = "mm")`, which writes text
-in a font named in the file and so depends on the fonts of the computer that opens it. In Stata
-it is `graph export wage.svg`.
+Which format. A journal usually asks for a PDF, and LaTeX places one with `\includegraphics`.
+The fonts are inside the file, so it prints the same anywhere, and its words are text, which
+can be searched and copied. An SVG opens in every browser, and Word and PowerPoint place it as
+a picture that can be resized. Its letters are drawn as their outlines and not as text in a
+font, because a program that opens an SVG may not have the font and would set the labels in
+another, of other widths; the words are kept in the file, so a search in a browser finds them,
+but a label cannot be retyped in a drawing program. A PNG is a picture in dots, for where
+neither of the two is taken: a web page, or an older word processor. It has 300 dots to the
+inch and says so, so a page of 89 mm is 1051 dots wide and is placed 89 mm wide. Its page is
+white, without transparency. Enlarged, a PNG shows its dots; the other two do not.
+
+The largest page. A page of a PDF is at most 5080 mm each way, and a PNG holds at most 40
+million dots, a page of about 535 mm each way; a larger page is refused (Z0401). An SVG has no
+largest page.
+
+In R the same is `ggsave("wage.pdf", width = 89, height = 66, units = "mm")`. R's PDF names its
+fonts without carrying them, unless the `cairo_pdf` device is asked for, and writes the day
+into the file, so two runs do not give the same bytes. In Stata it is `graph export wage.pdf`.
 
 ## See also
 report, describe, summary, plot, points
@@ -74,6 +85,8 @@ note: data/wages.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carr
 > m.test(educ == exper).export("output/test.tex")
 > let p = dataset(wages).plot(x: educ, y: wage, color: union).points(alpha: 0.3)
 note: 211 rows with NA in educ or wage dropped (line 7)
+> p.export("output/wage.pdf")
 > p.export("output/wage.svg")
-> p.export("wage_wide.svg", size: two_column, notes: true)
-> p.export("output/wage_own.svg", size: [120, 80])
+> p.export("output/wage.png")
+> p.export("wage_wide.pdf", size: two_column, notes: true)
+> p.export("output/wage_own.png", size: [120, 80])

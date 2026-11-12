@@ -90,63 +90,9 @@ Step 20 `[engine]`: the package `plot`; `w.plot(x: educ, y: wage)` starts a plot
 
 Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size by area from 0, the largest mark 18 points across; a shape for each category; one legend for a variable shown twice; open decision #110 (five questions on sizes and shapes) was raised. Step 18c `[function]`: `p_adjust` given a variable gives a variable, and under `by:` each group is a family adjusted on its own (#111); a fault of `by:` dating from 0.6.0 was corrected, a definition giving `NA` on every row being refused for want of a type. Step 19b `[engine]`: `posthoc(term:)` after an `anova` of a formula compares the estimated marginal means of the term named, by any of the ten methods, checked against emmeans on thirty models (#104); the `anova` hands its fitted model on. Step 20e `[engine]`: an expression where a parameter takes a variable by its name (`color: wage > 20`, and `mean(wage * 2)` in any method of a frame) is refused as an expression, with the `add` that computes it first, where the message spoke of a binding. Step 20f `[engine]`: by the owner's ruling on question 2 of #110 ("Yes, add both"), eight shapes, the six followed by `triangle_down` and `star`. GitHub's first run for step 18c never left its queue and was started again by a later push. `zeff selftest` stood at 247 of 247.
 
-## 12 November 2026, release 0.7.0, step 21 opened and split
+## 12 November 2026, steps 21 to 21d of release 0.7.0 (folded)
 
-**Done.** No code. Step 21 was split in the checklist into 21a (the fonts), 21b (the layout and the journal theme), 21c (the SVG writer) and 21d (`export` of a plot and the six figures). With the owner's word, the two IBM Plex archives were downloaded from IBM's repository; they are kept outside the repository until step 21a copies the three faces used. Open decision #126 was raised: how the text of an SVG is written. Details in `docs/decisions.md`.
-
-**Next.** Step 21a `[engine]`: the fonts.
-
-**For the owner to decide.** New: #126, due before step 21c (recommended: letters drawn as outlines, so that a figure looks the same in every program, with the words kept in the file for search; editable text as an option after 1.0). Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 21a (the fonts)
-
-**Done.** The engine now carries its own fonts: IBM Plex Sans Regular and SemiBold and IBM Plex Mono Regular, embedded unchanged with their licence, and a reader written for the project that gives the glyph of each character, its width, its outline and the kerning of each pair. A text has the same width, to the last unit, on every machine. Checked against two independent tools: a second font parser used in the tests alone (every character, width, outline and 2.4 million kerning pairs) and HarfBuzz (110 texts in each face); all agree exactly. A letter and an accent written after it are joined as HarfBuzz joins them; `fi` is not made a ligature. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 250 of 250 with three new cases for the fonts; CI is read job by job after the push.
-
-**Next.** Step 21b `[engine]`: the layout and the journal theme. Then 21c `[engine]`, the SVG writer, which waits on open decision #126.
-
-**For the owner to decide.** #126, before step 21c: how the text of an SVG is written (recommended: letters drawn as outlines). Rulings he may overturn, read with the figures at step 22: the three faces (Regular for labels, SemiBold for titles, Mono for code and aligned digits); no ligatures. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 21a2 (what the scene keeps and reserves)
-
-**Done.** Split from step 21b, which was too large. Each layer of a plot's scene now names the frame it draws and the row behind each mark, so that the viewer can later show the row under the pointer; no exported figure will carry them. The scene also reserves the names that animation, 3D and maps will need (`frame`, `z` with `projection`, `crs`), and a scene that holds one is refused with a clear sentence. A layer has a flag for being drawn as pixels. Section 7.6 of the Language Reference gained the paragraph, as the decision on #118 asks. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 250 of 250; CI is read job by job after the push.
-
-**Next.** Step 21b `[engine]`: the layout and the journal theme. Then 21c `[engine]`, which waits on open decision #126.
-
-**For the owner to decide.** #126, before step 21c (recommended: letters drawn as outlines). Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 21b (the layout and the journal theme)
-
-**Done.** A plot can now be laid out on a page: at `one_column`, `two_column`, `slide` or a size in millimetres, the engine works out where the panel, the axes with their ticks and labels, the gridlines, the titles, the legends and every mark stand, in points, with every width measured from the embedded fonts. The result is a drawing made of eight kinds of primitive, the closed set of open decision #118, which the SVG writer of the next step turns into a file. Long titles are broken between words, labels that would touch are thinned, legends run into columns when the page is low, and no text is below 8 points; a page too small for that is refused. Nothing of the rows of the data reaches a drawing. Section 7.6 of the Language Reference gained the paragraph on the primitives. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 251 of 251 with the new case `plot/layout/drawings`; CI is read job by job after the push.
-
-**Next.** Step 21c `[engine]`: the SVG writer. It needs the owner's answer to open decision #126 first.
-
-**For the owner to decide.** #126, now blocking: how the text of an SVG is written (recommended: letters drawn as outlines, so that a figure looks the same in every program; editable text as an option after 1.0). Rulings he reads on the figures at step 22: the three sizes in millimetres, the constants of the journal theme, the three faces, no ligatures. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 21c (the SVG writer)
-
-**Done.** The owner decided open decision #126: "Yes, outlines". A plot's drawing is now written as an SVG file: the bytes of a figure, the same on every machine. The text is drawn as the outlines of the letters of the embedded IBM Plex, so the figure looks the same in every program, and the words are kept in the file for search. Every primitive of the closed set is written. The seven sample figures of the wages were written at the three sizes, read back by an independent reader of XML, and four were looked at as pictures: the letters, the axes, the legends, the colour ramp and the eight shapes are where they should be. A file holds nothing of the rows of the data. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 252 of 252 with the new case `plot/svg/figures`; CI is read job by job after the push.
-
-**Next.** Step 21d `[engine]`: `export` of a plot to `.svg`, with `size:` and `notes:`, the six sample figures in the sample project and the identity job on their bytes. Then step 22: the owner reads the six figures.
-
-**For the owner to decide.** Nothing blocks step 21d. Rulings he reads on the figures at step 22: the three sizes in millimetres, the journal theme, the three faces, no ligatures, marks clipped at the edge of the panel, the stroke of the outline shapes. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 21d (`export` of a plot), and step 21 complete
-
-**Done.** A script can now write a figure: `p.export("output/wage.svg", size: two_column)`. The size is one of the three names or a width and a height in millimetres, one column when it is left out; `notes: true` writes the plot's notes under the figure. `.pdf` and `.png` are refused with a message that says they come later. A page too small for labels of 8 points is refused. A new sample project, `samples/plots`, writes six figures of the shipped wages, and every target must write the same bytes. With this, step 21 is complete: the fonts, the layout, the SVG writer and the export. Details in `docs/decisions.md`.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 261 of 261 with the nine cases of the sample `plots`; CI is read job by job after the push.
-
-**Next.** Step 22 `[engine]`: the owner reads the six figures; the changes asked for are made and the theme is frozen. To see them: `zeff run scripts/main.zeff` in `samples/plots` writes them into `samples/plots/output/`. Then step 22b `[engine]`, the PDF and PNG writers.
-
-**For the owner to decide.** At step 22, on the six figures: the three sizes in millimetres (the heights are proposals), the journal theme (gridlines, axes, type sizes, the colour of a mark without one), the three faces, no ligatures, marks cut at the edge of the panel, the stroke of the outline shapes, one column as the size when none is given. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold and Mono Regular (Open Font License, downloaded with the owner's yes) with the engine's own reader of them, checked against a second parser and against HarfBuzz. 21a2 gave the scene the frame and the row behind each mark and reserved `frame`, `z`, `projection`, `crs` and the layer flag `raster` (#118, F2 to F4). 21b laid a scene out on a page as a drawing of eight primitives under the journal theme, never below 8 points. 21c wrote a drawing as SVG with its text as outlines of the fonts and the words kept (open decision #126, the owner's "Yes, outlines"). 21d gave `export` a plot: `.svg`, `size:` as one of three words or millimetres, `notes:` (F7), the sample project `samples/plots` with six figures. All green on CI.
 
 ## 12 November 2026, release 0.7.0, step 22 (the theme frozen)
 
@@ -185,3 +131,14 @@ Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size 
 **Next.** Step 22b3 `[engine]`: `export` in the three formats, the layer flag `raster`, and the six figures of `samples/plots` in each format.
 
 **For the owner to decide.** Nothing new, and from step 22b2 on nothing waits for him: decisions that are his are taken on the recommendation, recorded and announced. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 22b3a (`export` in the three formats)
+
+**Done.** `p.export("figure.pdf")`, `.svg` and `.png` each write the plot, with `size:` and `notes:` the same in the three; the extension may be in capitals. A page too large for a PDF (over 5080 mm a side) or for a PNG (over forty million dots) is refused in plain words. The sample project writes its six figures in the three formats, eighteen files, and the six SVG files are byte for byte what they were. The help pages of `export` and `plot` say which format is for what. Step 22b3 was split: the layer drawn in dots inside a vector figure is step 22b3b. The Language Reference now says the PNG bytes too are identical on every machine (logged).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 277 of 277; CI is read job by job after the push.
+
+**Next.** Step 22b3b `[engine]`: a layer flagged `raster` drawn in dots inside the PDF and the SVG.
+
+**For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: the largest page of a PDF (5080 mm) and of a PNG (forty million dots); a PNG with a white page, without transparency, at 300 dots to the inch. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

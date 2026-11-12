@@ -5,15 +5,19 @@
 //! and Project Specification, section 8.1, rule 5).
 //!
 //! The scene of the plot is laid out on the page asked for under the journal theme
-//! ([`crate::layout`]) and written as SVG ([`crate::svg`]). What cannot be drawn is said in
-//! this package's words: a size that is none, and a page too small for labels of 8 points.
+//! ([`crate::layout`]) and written in the format asked for: as SVG ([`crate::svg`]) or PDF
+//! ([`crate::pdf`]), drawn with lines, or as PNG ([`crate::png`]), drawn in dots at 300 to
+//! the inch ([`crate::raster`]). What cannot be drawn is said in this package's words: a size
+//! that is none, a page too small for labels of 8 points, a page larger than a PDF may have,
+//! and a page of more dots than a PNG of Zeff holds.
 
 use zeff_core::display::format_float;
 use zeff_core::value::{FigureFormat, FigureProblem, FigureRequest, FigureSize, Plot};
 
 use crate::layout::{JOURNAL, LayoutError, MM, SMALLEST_PANEL, Size, layout, layout_with_notes};
+use crate::raster::{DOTS, MOST_DOTS, RasterError, render};
 use crate::scene::scene;
-use crate::svg;
+use crate::{pdf, png, svg};
 
 /// A length in millimetres as a message writes it: to a tenth.
 fn mm(points: f64) -> String {
@@ -34,14 +38,16 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
     } else {
         layout(&drawn, size, &JOURNAL)
     };
+    let not_a_size = || {
+        FigureProblem {
+        message: "the size of a figure is a width and a height above 0, in millimetres".to_string(),
+        label: "not a width and a height".to_string(),
+        help: "write `size: [89, 66]` for 89 mm by 66 mm, or one of `one_column`, `two_column` and `slide`".to_string(),
+        of_size: true,
+    }
+    };
     let drawing = laid.map_err(|why| match why {
-        LayoutError::NotASize => FigureProblem {
-            message: "the size of a figure is a width and a height above 0, in millimetres"
-                .to_string(),
-            label: "not a width and a height".to_string(),
-            help: "write `size: [89, 66]` for 89 mm by 66 mm, or one of `one_column`, `two_column` and `slide`".to_string(),
-            of_size: true,
-        },
+        LayoutError::NotASize => not_a_size(),
         LayoutError::TooSmall { panel } => {
             let (wide, high) = size.millimetres();
             FigureProblem {
@@ -67,7 +73,42 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
             of_size: false,
         },
     })?;
-    Ok(match request.format {
-        FigureFormat::Svg => svg::write(&drawing).into_bytes(),
-    })
+    let (wide, high) = size.millimetres();
+    match request.format {
+        FigureFormat::Svg => Ok(svg::write(&drawing).into_bytes()),
+        FigureFormat::Pdf => {
+            if drawing.width > pdf::LARGEST_PAGE || drawing.height > pdf::LARGEST_PAGE {
+                return Err(FigureProblem {
+                    message: format!(
+                        "a page of {} by {} mm is larger than a page of a PDF may be: {} mm each way at most",
+                        format_float(wide),
+                        format_float(high),
+                        mm(pdf::LARGEST_PAGE)
+                    ),
+                    label: "too large a page for a PDF".to_string(),
+                    help: "give a smaller `size:`, or write the figure as `.svg`, which has no largest page".to_string(),
+                    of_size: true,
+                });
+            }
+            Ok(pdf::write(&drawing))
+        }
+        FigureFormat::Png => match render(&drawing, DOTS) {
+            Ok(picture) => png::write(&picture, DOTS).ok_or_else(not_a_size),
+            Err(RasterError::TooLarge { width, height }) => Err(FigureProblem {
+                message: format!(
+                    "a page of {} by {} mm is {} by {} dots at {} to the inch, and a PNG holds {} million at most",
+                    format_float(wide),
+                    format_float(high),
+                    format_float(width),
+                    format_float(height),
+                    format_float(DOTS),
+                    MOST_DOTS / 1_000_000
+                ),
+                label: "too many dots".to_string(),
+                help: "give a smaller `size:`, or write the figure as `.pdf` or `.svg`, which are drawn with lines and have no dots".to_string(),
+                of_size: true,
+            }),
+            Err(RasterError::NotASize) => Err(not_a_size()),
+        },
+    }
 }

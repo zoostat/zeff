@@ -1,6 +1,7 @@
 //! `export` through the engine (Engine and Project Specification, section 2, "Writes"; release
 //! 0.4.0, step 13): a table written as Word and LaTeX under the project folder, `output/` created
-//! as needed and a bare name written there, a file replaced, and every message.
+//! as needed and a bare name written there, a file replaced, and every message. A plot written
+//! as a figure by its extension, SVG, PDF or PNG (release 0.7.0, steps 21d and 22b3a).
 
 use std::path::Path;
 use zeff_engine::VERSION;
@@ -187,15 +188,94 @@ fn a_plot_is_written_as_an_svg_figure_under_the_project() {
     assert!(read("wage.svg").contains(" width=\"720pt\""));
 }
 
+/// The width and the height of a PNG file, in dots, and how many dots it says there are to
+/// the metre: read from its first chunk and from the chunk named `pHYs`.
+fn png_size(file: &[u8]) -> (u32, u32, Option<u32>) {
+    assert_eq!(file[..8], [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]);
+    assert_eq!(&file[12..16], b"IHDR");
+    let number =
+        |at: usize| u32::from_be_bytes([file[at], file[at + 1], file[at + 2], file[at + 3]]);
+    let density = file
+        .windows(4)
+        .position(|window| window == b"pHYs")
+        .map(|at| number(at + 4));
+    (number(16), number(20), density)
+}
+
+#[test]
+fn a_plot_is_written_as_pdf_and_as_png_by_its_extension() {
+    let (fs, project) = project();
+    let script = format!(
+        "{PLOT}p.export(\"wage.pdf\")\np.export(\"wage.png\")\np.export(\"wage.svg\")\n\
+         p.export(\"output/wide.PDF\", size: two_column)\np.export(\"output/wide.Png\", size: two_column)\n\
+         p.export(\"output/own.pdf\", size: [120, 80.5])\np.export(\"output/own.png\", size: [120, 80.5])\n\
+         p.export(\"output/noted.pdf\", notes: true)\np.export(\"output/noted.png\", notes: true)\n\
+         p.export(\"output/again.pdf\", size: one_column, notes: false)\n\
+         p.export(\"output/again.png\", size: one_column, notes: false)\n\
+         p.export(\"output/largest.pdf\", size: [5080, 100])\n\
+         w.plot(x: educ, y: wage).export(\"output/empty.pdf\")\n\
+         w.plot(x: educ, y: wage).export(\"output/empty.png\")\n"
+    );
+    let (code, stdout, stderr) = go(&fs, &project, &script);
+    assert_eq!(code, 0, "{stderr}");
+    assert_eq!(stdout, "", "an export prints nothing");
+    assert_eq!(
+        stderr,
+        "note: 6 rows with NA in educ or wage dropped (line 2)\n"
+    );
+    let read = |name: &str| fs.read(Path::new(&format!("/p/output/{name}"))).unwrap();
+    let holds = |file: &[u8], words: &str| file.windows(words.len()).any(|w| w == words.as_bytes());
+    // A PDF of one page as large as the page asked for, in points, with its font inside it.
+    let pdf = read("wage.pdf");
+    assert!(pdf.starts_with(b"%PDF-1.4\n") && pdf.ends_with(b"%%EOF\n"));
+    assert!(holds(&pdf, "/MediaBox [0 0 252.283 187.087]"));
+    assert!(holds(&pdf, "/FontFile2") && holds(&pdf, "/BaseFont /IBMPlexSans"));
+    assert!(holds(&read("wide.PDF"), "/MediaBox [0 0 518.74 311.811]"));
+    assert!(holds(&read("own.pdf"), "/MediaBox [0 0 340.157 228.189]"));
+    // The largest page a PDF may have is written.
+    assert!(holds(&read("largest.pdf"), "/MediaBox [0 0 14400 283.465]"));
+    // A PNG at 300 dots to the inch, which it says as 11,811 to the metre: 89 mm by 66 is
+    // 1051 dots by 779, what is left of a dot cut.
+    let png = read("wage.png");
+    assert_eq!(png_size(&png), (1051, 779, Some(11811)));
+    assert_eq!(png_size(&read("wide.Png")), (2161, 1299, Some(11811)));
+    assert_eq!(png_size(&read("own.png")), (1417, 950, Some(11811)));
+    // The same plot at the same size is the same file, to the byte, in each format.
+    assert_eq!(read("again.pdf"), pdf);
+    assert_eq!(read("again.png"), png);
+    // With its notes a figure is another file; the note is words in the PDF, which a file
+    // of dots has none of.
+    assert_ne!(read("noted.pdf"), pdf);
+    assert_ne!(read("noted.png"), png);
+    // A plot with no layer yet is written too.
+    assert!(read("empty.pdf").starts_with(b"%PDF-1.4\n"));
+    assert_eq!(png_size(&read("empty.png")), (1051, 779, Some(11811)));
+    // Nothing of the day, and nothing of the frame, in any of the files.
+    for name in [
+        "wage.pdf",
+        "noted.pdf",
+        "empty.pdf",
+        "wage.png",
+        "noted.png",
+    ] {
+        let file = read(name);
+        for word in ["wages", "CreationDate", "ModDate", "tIME", "tEXt"] {
+            assert!(!holds(&file, word), "{word} in {name}");
+        }
+    }
+    // The three formats of one plot stand side by side.
+    assert!(
+        fs.read_to_string(Path::new("/p/output/wage.svg"))
+            .unwrap()
+            .ends_with("</svg>\n")
+    );
+}
+
 #[test]
 fn every_message_of_the_export_of_a_plot() {
     let cases: &[(&str, &str)] = &[
-        ("pdf_not_yet", "p.export(\"wage.pdf\")\n"),
-        (
-            "png_not_yet",
-            "p.export(\"output/wage.PNG\", size: slide)\n",
-        ),
         ("a_table_format", "p.export(\"wage.docx\")\n"),
+        ("a_table_format_in_capitals", "p.export(\"wage.TEX\")\n"),
         ("unknown_extension", "p.export(\"wage.jpeg\")\n"),
         ("no_extension", "p.export(\"output/wage\")\n"),
         ("dot_only", "p.export(\".svg\")\n"),
@@ -218,6 +298,26 @@ fn every_message_of_the_export_of_a_plot() {
             "p.export(\"wage.svg\", size: [89, -66])\n",
         ),
         ("too_small", "p.export(\"wage.svg\", size: [30, 20])\n"),
+        (
+            "too_small_for_a_pdf_too",
+            "p.export(\"wage.pdf\", size: [30, 20])\n",
+        ),
+        (
+            "too_small_for_a_png_too",
+            "p.export(\"wage.png\", size: [30, 20])\n",
+        ),
+        (
+            "too_large_for_a_pdf",
+            "p.export(\"wage.pdf\", size: [5081, 100])\n",
+        ),
+        (
+            "too_many_dots_for_a_png",
+            "p.export(\"wage.png\", size: [600, 500])\n",
+        ),
+        (
+            "no_size_for_a_png",
+            "p.export(\"wage.png\", size: [0, 0])\n",
+        ),
         (
             "too_low_for_the_notes",
             "p.export(\"wage.svg\", size: [60, 26], notes: true)\n",

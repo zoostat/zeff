@@ -105,7 +105,12 @@ impl FigureSize {
 /// The format of a figure's file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FigureFormat {
+    /// Drawn with lines, as text a browser reads.
     Svg,
+    /// Drawn with lines, on a page, with its fonts inside it.
+    Pdf,
+    /// Drawn in dots, at 300 to the inch.
+    Png,
 }
 
 /// What `export` asks of a plot.

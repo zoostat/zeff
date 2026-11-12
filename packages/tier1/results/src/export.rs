@@ -24,7 +24,7 @@ const PATH: usize = 1;
 const SIZE: usize = 2;
 const NOTES: usize = 3;
 
-/// The extensions of the formats a figure is written in, or will be.
+/// The extensions of the formats a figure is written in.
 const FIGURE_EXTENSIONS: [&str; 3] = ["svg", "pdf", "png"];
 
 /// The formats a table is written in, chosen by the path's extension.
@@ -92,23 +92,12 @@ fn export_plot(
         stem
     };
     let instead = format!(
-        "write `output/{stem}.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture"
+        "a plot is written as `.pdf` or `.svg`, drawn with lines and sharp at any size, or as `.png`, in dots at 300 to the inch: `output/{stem}.pdf`"
     );
-    match extension.as_deref() {
-        Some("svg") => {}
-        Some(later @ ("pdf" | "png")) => {
-            return Err(fail(
-                Diagnostic::error(
-                    "Z0716",
-                    format!(
-                        "`{path}`: this version of Zeff writes a plot as `.svg`; `.{later}` is not written yet"
-                    ),
-                )
-                .in_file(ctx.script)
-                .primary(span, format!("`.{later}` comes in a later version"))
-                .help(instead),
-            ));
-        }
+    let format = match extension.as_deref() {
+        Some("svg") => FigureFormat::Svg,
+        Some("pdf") => FigureFormat::Pdf,
+        Some("png") => FigureFormat::Png,
         Some(table @ ("docx" | "tex")) => {
             return Err(fail(
                 Diagnostic::error(
@@ -150,7 +139,7 @@ fn export_plot(
                     .help(instead),
             ));
         }
-    }
+    };
     let not_a_size = |ctx: &CallContext<'_>, what: String| {
         fail(
             Diagnostic::error(
@@ -209,7 +198,7 @@ fn export_plot(
         ));
     };
     let request = FigureRequest {
-        format: FigureFormat::Svg,
+        format,
         size,
         notes,
     };
