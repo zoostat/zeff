@@ -1817,7 +1817,28 @@ fn plot_cases() -> Vec<Line> {
         }
         None => "the wages did not load".to_string(),
     };
-    vec![
+    // Filled marks (step 23d): a band of two standard errors around the yearly means and an
+    // area under the means of each group, what the script prints, and each figure as the
+    // bytes of its SVG, its PDF and its PNG, where a see-through fill is drawn three ways.
+    let script = "let w = dataset(wages).drop_missing([wage])\nlet m = w.aggregate(se = sd(wage) / sqrt(n()), wage = mean(wage), by: year)\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nlet band = m.plot(x: year, y: wage).ribbon(low: wage - 2 * se, high: wage + 2 * se).lines()\nband\nlet areas = u.plot(x: year, y: wage, color: union, fill: union).area().lines()\nareas\nu.plot(x: year).ribbon(low: wage * 0.9, high: wage * 1.1, group: union, fill: \"steelblue\")\nexport(band, \"band.svg\")\nexport(band, \"band.pdf\")\nexport(band, \"band.png\")\nexport(areas, \"areas.svg\")\nexport(areas, \"areas.pdf\")\nexport(areas, \"areas.png\")\n";
+    let filled = run_script(&fs, &project, "scripts/main.zeff", script);
+    let mut fills = vec![
+        text("plot/fills/stdout", &filled.output.stdout),
+        text("plot/fills/stderr", &filled.output.stderr),
+    ];
+    for name in [
+        "band.svg",
+        "band.pdf",
+        "band.png",
+        "areas.svg",
+        "areas.pdf",
+        "areas.png",
+    ] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/fills/{name}"), &data));
+    }
+    let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),
         text("plot/lines/scene", &lines),
@@ -1847,7 +1868,9 @@ fn plot_cases() -> Vec<Line> {
         text("plot/fonts/metrics", &font_metrics()),
         text("plot/fonts/texts", &font_texts()),
         text("plot/fonts/outlines", &font_outlines()),
-    ]
+    ];
+    cases.extend(fills);
+    cases
 }
 
 /// Two plots of the shipped wages, one plain and one with a colour, a size and a shape and so

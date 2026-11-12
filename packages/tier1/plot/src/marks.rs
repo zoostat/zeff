@@ -1,5 +1,6 @@
 //! The marks (Language Reference, section 7.6, "Marks"): each adds a layer to a plot and gives
-//! the plot back, so that layers chain. At release 0.7.0, step 20d: `points`.
+//! the plot back, so that layers chain. At release 0.7.0: `points` (step 20d), `lines` and `step`
+//! (step 23c), `area` and `ribbon` (step 23d).
 //!
 //! A layer draws the rows of the plot's frame, or of its own (`data:`), which must then hold the
 //! variables the plot maps to the aesthetics the layer reads and those its mapped expressions
@@ -82,21 +83,26 @@ fn positions(
 }
 
 /// The layers of a plot share one scale of each aesthetic (open decision #106): a variable a
-/// layer maps to a colour of its own must be shown as the scale already shows its variable, as
-/// categories or on a continuous scale. Z0401 when it is of the other kind.
+/// layer maps to a colour of its own, `color` or `fill`, must be shown as the scale already
+/// shows its variable, as categories or on a continuous scale. Z0401 when it is of the other
+/// kind.
 fn one_scale(
     ctx: &CallContext<'_>,
     plot: &Plot,
     frame: &Frame,
     own: &[PlotMapping],
-    slot: usize,
+    (aesthetic, slot): (Aesthetic, usize),
     function: &str,
 ) -> Result<(), Fail> {
-    let Some(mapping) = own.iter().find(|m| m.aesthetic == Aesthetic::Color) else {
+    let Some(mapping) = own.iter().find(|m| m.aesthetic == aesthetic) else {
         return Ok(());
     };
-    let Some((theirs, variable)) = kind_of(plot, Aesthetic::Color) else {
+    let Some((theirs, variable)) = kind_of(plot, aesthetic) else {
         return Ok(());
+    };
+    let (written, scale) = match aesthetic {
+        Aesthetic::Fill => ("fill", "fill"),
+        _ => ("color", "colour"),
     };
     let Some(found) = frame.table.column(&mapping.variable) else {
         return Ok(());
@@ -131,13 +137,13 @@ fn one_scale(
         Diagnostic::error(
             "Z0401",
             format!(
-                "the plot shows `{variable}` {shown} for `color`, but `{name}`, which `{function}` maps to `color`, is {}{what}",
+                "the plot shows `{variable}` {shown} for `{written}`, but `{name}`, which `{function}` maps to `{written}`, is {}{what}",
                 a_type(found)
             ),
         )
         .in_file(ctx.script)
         .primary(ctx.span_of(slot), format!("`{name}` is of another kind"))
-        .help("the layers of a plot share one scale of colour, so the variables mapped to `color` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels"),
+        .help(format!("the layers of a plot share one scale of {scale}, so the variables mapped to `{written}` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels")),
     ))
 }
 
@@ -324,8 +330,10 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         "points",
         &Slots {
             x: X,
-            y: Y,
-            color: COLOR,
+            y: Some(Y),
+            low: None,
+            high: None,
+            color: Some(COLOR),
             fill: None,
             size: Some(SIZE),
             shape: Some(SHAPE),
@@ -342,7 +350,14 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     });
     constants.retain(|c| c.aesthetic != Aesthetic::Size);
     positions(ctx, &plot, &mappings, "points")?;
-    one_scale(ctx, &plot, &frame, &mappings, COLOR, "points")?;
+    one_scale(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Color, COLOR),
+        "points",
+    )?;
     // What the layer reads from the plot: what it neither names nor sets of its own.
     let read: Vec<Aesthetic> = [
         Aesthetic::X,
@@ -525,8 +540,10 @@ fn joined(
         function,
         &Slots {
             x: X,
-            y: Y,
-            color: L_COLOR,
+            y: Some(Y),
+            low: None,
+            high: None,
+            color: Some(L_COLOR),
             fill: None,
             size: None,
             shape: None,
@@ -537,7 +554,14 @@ fn joined(
         own_data,
     )?;
     positions(ctx, &plot, &mappings, function)?;
-    one_scale(ctx, &plot, &frame, &mappings, L_COLOR, function)?;
+    one_scale(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Color, L_COLOR),
+        function,
+    )?;
     // What the layer reads from the plot: what it neither names nor sets of its own.
     let read: Vec<Aesthetic> = [
         Aesthetic::X,
@@ -581,6 +605,221 @@ fn joined(
             size: None,
             jitter: 0.0,
             width,
+            stream: None,
+            computed,
+            mappings,
+            constants,
+        },
+    );
+    for note in after.notes {
+        if !before.contains(&note) {
+            ctx.message(Diagnostic::plain_note(note));
+        }
+    }
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+// ----- area and ribbon (step 23d) -----
+
+const A_FILL: usize = 4;
+const A_GROUP: usize = 5;
+const A_ALPHA: usize = 6;
+const R_LOW: usize = 3;
+const R_HIGH: usize = 4;
+const R_FILL: usize = 5;
+const R_GROUP: usize = 6;
+const R_ALPHA: usize = 7;
+
+/// An area has one fill from end to end, so the fill a filled layer draws, its own or the
+/// plot's, must show categories; a number without value labels, which is shown on a ramp, is
+/// refused (Z0401) with the two ways out.
+fn one_fill_to_an_area(
+    ctx: &CallContext<'_>,
+    plot: &Plot,
+    frame: &Frame,
+    own: &[PlotMapping],
+    (set, slot): (bool, usize),
+    function: &str,
+) -> Result<(), Fail> {
+    let named = own.iter().find(|m| m.aesthetic == Aesthetic::Fill);
+    let mapping = match (named, set) {
+        (Some(own), _) => own,
+        (None, true) => return Ok(()),
+        (None, false) => match plot.mapping(Aesthetic::Fill) {
+            Some(of_the_plot) => of_the_plot,
+            None => return Ok(()),
+        },
+    };
+    let Some(found) = frame.table.column(&mapping.variable) else {
+        return Ok(());
+    };
+    if shading(found) != Some(Shading::Ramp) {
+        return Ok(());
+    }
+    let name = mapping.variable.as_str();
+    let at = if named.is_some() {
+        ctx.span_of(slot)
+    } else {
+        ctx.callee_span
+    };
+    let what = if function == "ribbon" { "band" } else { "area" };
+    Err(fail(
+        Diagnostic::error(
+            "Z0401",
+            format!(
+                "`{function}` fills each {what} in one colour, so `fill` must show categories, but `{name}` is {} without value labels, which is shown on a continuous scale",
+                a_type(found)
+            ),
+        )
+        .in_file(ctx.script)
+        .primary(at, format!("a colour for each row, not for each {what}"))
+        .help(format!(
+            "fill by a variable of categories, as in `{function}(fill: union)`, or set one fill for this layer, as in `{function}(fill: \"steelblue\")`"
+        )),
+    ))
+}
+
+/// `p.area(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var,
+/// alpha: Float = 0.6)`.
+pub fn area(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    filled(ctx, args, "area", Mark::Area)
+}
+
+/// `p.ribbon(data: Frame, x: Var | Expr, low: Var | Expr, high: Var | Expr, fill: Var | Str,
+/// group: Var, alpha: Float = 0.3)`.
+pub fn ribbon(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    filled(ctx, args, "ribbon", Mark::Ribbon)
+}
+
+/// A layer of filled marks, an area down to zero or a band between two variables: what `area`
+/// and `ribbon` share.
+fn filled(
+    ctx: &mut CallContext<'_>,
+    args: Args,
+    function: &'static str,
+    mark: Mark,
+) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "a mark reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let band = mark == Mark::Ribbon;
+    let (fill, group, opacity, usual) = if band {
+        (R_FILL, R_GROUP, R_ALPHA, 0.3)
+    } else {
+        (A_FILL, A_GROUP, A_ALPHA, 0.6)
+    };
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mappings, constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        function,
+        &Slots {
+            x: X,
+            y: (!band).then_some(Y),
+            low: band.then_some(R_LOW),
+            high: band.then_some(R_HIGH),
+            color: None,
+            fill: Some(fill),
+            size: None,
+            shape: None,
+            group: Some(group),
+            label: None,
+            linetype: None,
+        },
+        own_data,
+    )?;
+    let names = |aesthetic: Aesthetic| mappings.iter().any(|m| m.aesthetic == aesthetic);
+    if band {
+        // The two edges are the layer's own, and a band has both.
+        let lacking = match (names(Aesthetic::Low), names(Aesthetic::High)) {
+            (true, true) => None,
+            (false, true) => Some(("`low`", "`low` is missing")),
+            (true, false) => Some(("`high`", "`high` is missing")),
+            (false, false) => Some(("`low` and `high`", "`low` and `high` are missing")),
+        };
+        if let Some((what, label)) = lacking {
+            return Err(fail(
+                Diagnostic::error("Z0406", format!("`ribbon` needs {what}"))
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, label)
+                    .help("a band reaches from `low:` to `high:` at each row: name the two variables, as in `ribbon(low: lower, high: upper)`"),
+            ));
+        }
+        if !names(Aesthetic::X) && plot.mapping(Aesthetic::X).is_none() {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    "`ribbon` places its band along `x`, but neither the plot nor this layer maps a variable to `x`",
+                )
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "needs `x`")
+                .help("name it in the layer, as in `ribbon(x: educ, low: lower, high: upper)`, or where the plot starts, as in `plot(x: educ)`"),
+            ));
+        }
+    } else {
+        positions(ctx, &plot, &mappings, function)?;
+    }
+    one_scale(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Fill, fill),
+        function,
+    )?;
+    // What the layer reads from the plot: what it neither names nor sets of its own. A band
+    // does not read `y`.
+    let read: Vec<Aesthetic> = [
+        Aesthetic::X,
+        Aesthetic::Y,
+        Aesthetic::Fill,
+        Aesthetic::Group,
+    ]
+    .into_iter()
+    .filter(|aesthetic| {
+        !(band && *aesthetic == Aesthetic::Y)
+            && !mappings.iter().any(|m| m.aesthetic == *aesthetic)
+            && !constants.iter().any(|c| c.aesthetic == *aesthetic)
+    })
+    .collect();
+    let (data, computed) = own_frame(ctx, &args, &plot, function, &read)?;
+    let set = constants.iter().any(|c| c.aesthetic == Aesthetic::Fill);
+    one_fill_to_an_area(ctx, &plot, &frame, &mappings, (set, fill), function)?;
+    let alpha =
+        number_option(ctx, &args, opacity, "an `alpha:` that is not a number")?.unwrap_or(usual);
+    if !(0.0..=1.0).contains(&alpha) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`alpha:` of `{function}` is an opacity between 0 and 1, but this is {}",
+                    shown(alpha)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(opacity), "outside [0, 1]")
+            .help(format!(
+                "write 1 for a fill that hides what is under it, or a share such as {} so that it shows through",
+                shown(usual)
+            )),
+        ));
+    }
+    let before = scene(&plot).notes;
+    let (next, after) = with_layer(
+        &plot,
+        PlotLayer {
+            mark,
+            data,
+            alpha,
+            size: None,
+            jitter: 0.0,
+            width: None,
             stream: None,
             computed,
             mappings,

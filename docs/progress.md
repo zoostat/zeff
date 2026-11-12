@@ -156,3 +156,12 @@ Step 22: the owner read the six figures and said "Yes, freeze it"; the journal t
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: `step` has the options of `lines` and `direction:` with R's three words. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 23d1 (`area` and `ribbon`)
+
+**Done.** `p.area()` fills from the line through the rows of each group down to zero, and `p.ribbon(low:, high:)` the band between two variables; a missing value breaks the shape, `fill:` colours by categories or sets one colour, and a legend of fills has a patch for its key. Polygons and limits match ggplot2's, corner for corner. Catalogue rows 465 and 466 are brought up to date (logged). Step 23d was split: the stacked area is 23d2. `plot` stands at six functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 293 of 293; CI is read job by job after the push.
+
+**Next.** Step 23d2 `[function]`: `position: overlay | stack | fill` on `area`.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn (all in `docs/decisions.md`): areas overlay by default and stacking is an option; no `color:` on a filled mark; a band does not read `y`; the rows are parted by the plot's colour as well. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

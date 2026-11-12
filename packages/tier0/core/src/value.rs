@@ -188,11 +188,15 @@ pub enum Aesthetic {
     /// The type of a line, whole or ink and gaps by turns: an aesthetic of the marks that are
     /// lines, which a layer names for itself.
     Linetype,
+    /// The lower edge of a band, a second position along `y` that a layer names for itself.
+    Low,
+    /// The upper edge of a band.
+    High,
 }
 
 impl Aesthetic {
     /// The aesthetic as the language writes it: `x`, `y`, `color`, `fill`, `size`, `shape`,
-    /// `group`, `label`, `linetype`.
+    /// `group`, `label`, `linetype`, `low`, `high`.
     pub fn name(self) -> &'static str {
         match self {
             Aesthetic::X => "x",
@@ -204,6 +208,8 @@ impl Aesthetic {
             Aesthetic::Group => "group",
             Aesthetic::Label => "label",
             Aesthetic::Linetype => "linetype",
+            Aesthetic::Low => "low",
+            Aesthetic::High => "high",
         }
     }
 }
@@ -260,6 +266,11 @@ pub enum Mark {
     /// A line through the rows of each group that goes level and upright by turns, as stairs
     /// do.
     Step(Stairs),
+    /// The area between the line through the rows of each group and zero, filled.
+    Area,
+    /// The band between two variables, `low` and `high`, through the rows of each group,
+    /// filled.
+    Ribbon,
 }
 
 /// The way a line of steps goes from one row to the next.
@@ -286,18 +297,27 @@ impl Stairs {
 }
 
 impl Mark {
-    /// The mark as the method that adds it is called: `points`, `lines`, `step`.
+    /// The mark as the method that adds it is called: `points`, `lines`, `step`, `area`,
+    /// `ribbon`.
     pub fn name(self) -> &'static str {
         match self {
             Mark::Points => "points",
             Mark::Lines => "lines",
             Mark::Step(_) => "step",
+            Mark::Area => "area",
+            Mark::Ribbon => "ribbon",
         }
     }
 
     /// Whether the marks of a layer are joined into lines, and not drawn one by one.
     pub fn joins(self) -> bool {
         matches!(self, Mark::Lines | Mark::Step(_))
+    }
+
+    /// Whether the marks of a layer are the corners of filled shapes, one for each run of rows
+    /// that a line would join.
+    pub fn fills(self) -> bool {
+        matches!(self, Mark::Area | Mark::Ribbon)
     }
 }
 

@@ -1,0 +1,58 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · m · wage against year
+
+  axis   title           scale    limits               breaks
+  x      Calendar year   linear   2009.45 to 2021.55   2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   20.7926 to 34.4123   22, 24, 26, 28, 30, 32, 34
+
+  layer   mark     data   marks   settings
+      1   ribbon   m         12   low wage - 2 * se, high wage + 2 * se, alpha 0.3, 1 band
+      2   lines    m         12   width 1, 1 line
+plot · m · wage against year
+
+  axis   title           scale    limits                breaks
+  x      Calendar year   linear   2009.45 to 2021.55    2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   -1.62215 to 34.0652   0, 10, 20, 30
+
+  layer   mark   data   marks   settings
+      1   area   m         12   alpha 0.6, 1 area
+plot · u · wage against year
+
+  axis   title           scale    limits                breaks
+  x      Calendar year   linear   2009.45 to 2021.55    2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   -1.81966 to 38.2128   0, 10, 20, 30
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   orange, sky blue
+  fill        Union member   category   no, yes   orange, sky blue
+
+  layer   mark    data   marks   settings
+      1   area    u         24   alpha 0.6, 2 areas
+      2   lines   u         24   color by union, width 1, 2 lines
+plot · u · wage against year
+
+  axis   title           scale    limits                breaks
+  x      Calendar year   linear   2009.45 to 2021.55    2010, 2012, 2014, 2016, 2018, 2020
+  y      wage            linear   -1.81966 to 38.2128   0, 10, 20, 30
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   orange, sky blue
+
+  layer   mark    data   marks   settings
+      1   area    u         24   fill grey, alpha 0.2, 2 areas
+      2   lines   u         24   width 1, 2 lines
+plot · m · wage - se against year
+
+  axis   title           scale    limits               breaks
+  x      Calendar year   linear   2009.45 to 2021.55   2010, 2012, 2014, 2016, 2018, 2020
+  y      wage - se       linear   21.3559 to 33.6782   22, 24, 26, 28, 30, 32
+
+  layer   mark     data   marks   settings
+      1   ribbon   m         12   low wage - se, high wage + se, fill steelblue, alpha 0.5, 1 band
+---
+note: 211 rows with NA in wage dropped (line 1)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 2)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 3)

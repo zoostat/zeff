@@ -293,6 +293,10 @@ fn line_on(scale: &Scale, value: f64) -> LineType {
 /// of the six rhythms at the width of a line.
 const KEY_LINE: f64 = 24.0;
 
+/// The patch of fill that is the key of a filled mark in a legend: its width where no piece of
+/// line makes the key wider, and its height.
+const KEY_PATCH: (f64, f64) = (12.0, 8.0);
+
 /// One key of a legend: a mark and what it stands for.
 struct Key {
     label: String,
@@ -303,6 +307,8 @@ struct Key {
     line: Option<(LineType, f64)>,
     /// Whether the key shows a point: the legend is of marks drawn one by one.
     point: bool,
+    /// For a legend of filled marks: the colour and the opacity of the patch that is the key.
+    patch: Option<(String, f64)>,
 }
 
 /// What a legend shows, measured.
@@ -371,7 +377,26 @@ fn plan_legend(
             .iter()
             .find(|l| l.mark.joins() && legend.marks.contains(&l.mark))
     });
-    let pointed = legend.marks.iter().any(|mark| !mark.joins());
+    let pointed = legend
+        .marks
+        .iter()
+        .any(|mark| !mark.joins() && !mark.fills());
+    // A legend of filled marks has a patch of the fill for a key, as see-through as the marks.
+    let filled = scene.panels.first().and_then(|p| {
+        p.layers
+            .iter()
+            .find(|l| l.mark.fills() && legend.marks.contains(&l.mark))
+    });
+    let base_patch = filled.map(|l| {
+        (
+            match &l.fill {
+                Paint::Constant(hex) => hex.clone(),
+                _ => theme.mark.to_string(),
+            },
+            l.alpha,
+        )
+    });
+    let fills = of("fill");
     let base_line = lined.map(|l| {
         (
             match &l.linetype {
@@ -426,6 +451,15 @@ fn plan_legend(
                             (line_types.map_or(whole, |s| line_on(s, place)), width)
                         }),
                         point: pointed,
+                        patch: base_patch.clone().map(|(whole, opacity)| {
+                            (
+                                match fills {
+                                    Some(s) if s.kind == ScaleKind::Category => colour_on(s, place),
+                                    _ => whole,
+                                },
+                                opacity,
+                            )
+                        }),
                     }
                 })
                 .collect(),
@@ -447,6 +481,7 @@ fn plan_legend(
                     colour: colours.map_or(base_colour.clone(), |s| colour_on(s, *value)),
                     line: None,
                     point: true,
+                    patch: None,
                 })
                 .collect()
         })
@@ -454,11 +489,29 @@ fn plan_legend(
     let (content, width, height) = match (keys, colours) {
         (Some(keys), _) => {
             let line = theme.label_size * theme.leading;
-            // A key is as tall as its point, and as wide as its point or its piece of line.
-            let tallest_mark = keys.iter().map(|k| k.size).fold(theme.key_size, f64::max);
+            // A key is as tall as its point or its patch, and as wide as its point, its patch
+            // or its piece of line.
+            let tallest_mark = keys
+                .iter()
+                .map(|k| {
+                    if k.patch.is_some() {
+                        k.size.max(KEY_PATCH.1)
+                    } else {
+                        k.size
+                    }
+                })
+                .fold(theme.key_size, f64::max);
             let widest_mark = keys
                 .iter()
-                .map(|k| if k.line.is_some() { KEY_LINE } else { k.size })
+                .map(|k| {
+                    if k.line.is_some() {
+                        KEY_LINE
+                    } else if k.patch.is_some() {
+                        KEY_PATCH.0
+                    } else {
+                        k.size
+                    }
+                })
                 .fold(tallest_mark, f64::max);
             let row_height = line.max(tallest_mark + 2.0);
             let rows = ((room / row_height).floor() as usize).clamp(1, keys.len().max(1));
@@ -575,6 +628,25 @@ fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec
             for (column, part) in keys.chunks(*rows).enumerate() {
                 for (row, key) in part.iter().enumerate() {
                     let middle = y + (row as f64 + 0.5) * row_height;
+                    // The patch is under the piece of line and the point, as the fill is.
+                    if let Some((colour, opacity)) = &key.patch {
+                        let (top, bottom) =
+                            (middle - KEY_PATCH.1 / 2.0, middle + KEY_PATCH.1 / 2.0);
+                        items.push(named(
+                            &plan.name,
+                            Primitive::Polygon {
+                                rings: vec![vec![
+                                    (x, top),
+                                    (x + mark_width, top),
+                                    (x + mark_width, bottom),
+                                    (x, bottom),
+                                ]],
+                                fill: Some(colour.clone()),
+                                stroke: None,
+                                opacity: *opacity,
+                            },
+                        ));
+                    }
                     if let Some((dash, width)) = key.line {
                         items.push(named(
                             &plan.name,
@@ -900,6 +972,44 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 },
             };
             let marks_of = layer.x.len().min(layer.y.len());
+            if layer.mark.fills() {
+                // The shape under each line of the layer: along its upper edge in the order of
+                // the marks and back along its lower edge, in the fill of its first mark.
+                let ends = marks_of.min(layer.line.len()).min(layer.low.len());
+                let mut start = 0;
+                while start < ends {
+                    let mut end = start + 1;
+                    while end < ends && layer.line[end] == layer.line[start] {
+                        end += 1;
+                    }
+                    let mut ring: Vec<(f64, f64)> = (start..end)
+                        .map(|i| (across(sx, layer.x[i]), down(sy, layer.y[i])))
+                        .collect();
+                    ring.extend(
+                        (start..end)
+                            .rev()
+                            .map(|i| (across(sx, layer.x[i]), down(sy, layer.low[i]))),
+                    );
+                    let fill = match &layer.fill {
+                        Paint::Theme => theme.mark.to_string(),
+                        Paint::Constant(hex) => hex.clone(),
+                        Paint::Scaled(values) => match (scene.scale("fill"), values.get(start)) {
+                            (Some(scale), Some(value)) => colour_on(scale, *value),
+                            _ => theme.mark.to_string(),
+                        },
+                    };
+                    drawn.push(named(
+                        &name,
+                        Primitive::Polygon {
+                            rings: vec![ring],
+                            fill: Some(fill),
+                            stroke: None,
+                            opacity: layer.alpha,
+                        },
+                    ));
+                    start = end;
+                }
+            }
             if layer.mark.joins() {
                 // A line through the marks of each line of the layer, in their order, in the
                 // colour and the type of its first mark: one line has one of each.
@@ -967,7 +1077,8 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     start = end;
                 }
             }
-            for i in 0..if layer.mark.joins() { 0 } else { marks_of } {
+            let one_by_one = !(layer.mark.joins() || layer.mark.fills());
+            for i in 0..if one_by_one { marks_of } else { 0 } {
                 let colour = colour_of(i);
                 let across_mark = match &layer.size {
                     Sizing::Constant(points) => *points,

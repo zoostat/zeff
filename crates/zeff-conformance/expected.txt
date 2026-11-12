@@ -266,6 +266,14 @@ plot/lines/png e246a4c14ffa9c6e
 plot/fonts/metrics bebed91423abec50
 plot/fonts/texts 1ef6df97a647e193
 plot/fonts/outlines 2d1b1d03228c837c
+plot/fills/stdout e73ec86f67ea405c
+plot/fills/stderr 0c3794162893a905
+plot/fills/band.svg 88480f9f67899f3e
+plot/fills/band.pdf 6b618e3247833c0b
+plot/fills/band.png 0327059f27fb4147
+plot/fills/areas.svg e99a17848c3947cc
+plot/fills/areas.pdf 614b1eaa02be260f
+plot/fills/areas.png 0f8a7bd60f101375
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

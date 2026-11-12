@@ -1444,3 +1444,122 @@ fn every_message_of_step() {
     }
     insta::assert_snapshot!("step_messages", all);
 }
+
+// ----- area and ribbon (step 23d) -----
+
+const BANDS: &str = "let w = dataset(wages).drop_missing([wage])\nlet m = w.aggregate(se = sd(wage) / sqrt(n()), wage = mean(wage), by: year)\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\n";
+
+#[test]
+fn areas_and_bands_read_sensibly_as_text() {
+    let script = format!(
+        "{BANDS}m.plot(x: year, y: wage).ribbon(low: wage - 2 * se, high: wage + 2 * se).lines()\n\
+         m.plot(x: year, y: wage).area()\n\
+         u.plot(x: year, y: wage, fill: union).area().lines(color: union)\n\
+         u.plot(x: year, y: wage, color: union).area(fill: \"grey\", alpha: 0.2).lines()\n\
+         m.plot(x: year).ribbon(low: wage - se, high: wage + se, fill: \"steelblue\", alpha: 0.5)\n"
+    );
+    let text = printed(&script);
+    // The reference, from ggplot2 4.0.3 on the shipped file: the twelve yearly means with two
+    // standard errors either side run from 21.4117 to 33.7932, so `geom_ribbon` has limits
+    // 20.79263661 and 34.41232440; `geom_area(position = "identity")` on the means has
+    // -1.622151515 and 34.065181818, and on the 24 means by union membership, in two
+    // groups of twelve, -1.819656069 and 38.212777457.
+    for line in [
+        "  y      wage            linear   20.7926 to 34.4123   22, 24, 26, 28, 30, 32, 34\n",
+        "      1   ribbon   m         12   low wage - 2 * se, high wage + 2 * se, alpha 0.3, 1 band\n",
+        "  y      wage            linear   -1.62215 to 34.0652   0, 10, 20, 30\n",
+        "      1   area   m         12   alpha 0.6, 1 area\n",
+        "  y      wage            linear   -1.81966 to 38.2128   0, 10, 20, 30\n",
+        "  fill        Union member   category   no, yes   orange, sky blue\n",
+        "      1   area    u         24   alpha 0.6, 2 areas\n",
+        "      1   area    u         24   fill grey, alpha 0.2, 2 areas\n",
+        "  y      wage - se       linear",
+        "      1   ribbon   m         12   low wage - se, high wage + se, fill steelblue, alpha 0.5, 1 band\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("fills", text);
+}
+
+const GAPS: &str = "let d = frame(t = [1, 2, 3, 4, 5, 6, 1, 2], v = [2.0, 4.0, NA, 1.0, 5.0, 3.0, 1.0, 1 / 0], lo = [1.0, 3.0, 2.0, NA, 4.0, 2.0, 0.5, 0.5], hi = [3.0, 5.0, 4.5, 5.0, 6.0, 4.0, 1.5, 1.5], g = [\"a\", \"a\", \"a\", \"a\", \"a\", \"a\", \"b\", \"b\"])\n";
+
+#[test]
+fn the_edge_cases_of_areas_and_bands() {
+    let script = format!(
+        "{GAPS}d.plot(x: t, y: v).area()\n\
+         d.plot(x: t, y: v).area(group: g)\n\
+         d.plot(x: t, y: v, fill: g).ribbon(low: lo, high: hi)\n\
+         d.plot(x: t, y: v).points().ribbon(data: frame(t = [1, 6], a = [0.0, 1.0], b = [7.0, 8.0]), low: a, high: b)\n\
+         d.plot(x: t, y: v).area(data: d.where(t > 6))\n\
+         d.where(t == 3).plot(x: t, y: lo).area()\n\
+         d.plot(x: t, y: v).ribbon(low: hi, high: lo, alpha: 1)\n\
+         d.plot(x: t, y: v).area(alpha: 0)\n\
+         d.plot(x: t).ribbon(x: t * 2, low: lo, high: hi, group: g)\n\
+         d.plot(x: t, y: lo, color: v).area()\n"
+    );
+    insta::assert_snapshot!("fills_edges", printed(&script));
+}
+
+#[test]
+fn every_message_of_area_and_ribbon() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("the_plot_maps_no_y", "d.plot(x: t).area()\n"),
+        (
+            "a_band_without_x",
+            "d.plot(y: v).ribbon(low: lo, high: hi)\n",
+        ),
+        ("a_band_without_high", "d.plot(x: t).ribbon(low: lo)\n"),
+        ("a_band_without_low", "d.plot(x: t).ribbon(high: hi)\n"),
+        ("a_band_without_edges", "d.plot(x: t, y: v).ribbon()\n"),
+        ("a_fill_by_a_number", "d.plot(x: t, y: v).area(fill: lo)\n"),
+        (
+            "a_fill_by_a_number_from_the_plot",
+            "d.plot(x: t, y: v, fill: lo).ribbon(low: lo, high: hi)\n",
+        ),
+        ("not_a_colour", "d.plot(x: t, y: v).area(fill: \"blu\")\n"),
+        (
+            "a_variable_in_quotes",
+            "d.plot(x: t, y: v).ribbon(low: lo, high: hi, fill: \"g\")\n",
+        ),
+        (
+            "an_edge_that_is_text",
+            "d.plot(x: t, y: v).ribbon(low: lo, high: g)\n",
+        ),
+        (
+            "no_such_edge",
+            "d.plot(x: t, y: v).ribbon(low: lo, high: hii)\n",
+        ),
+        (
+            "another_kind_of_fill",
+            "d.plot(x: t, y: v, fill: g).area().ribbon(low: lo, high: hi, fill: t)\n",
+        ),
+        ("alpha_above_one", "d.plot(x: t, y: v).area(alpha: 1.5)\n"),
+        (
+            "alpha_below_zero",
+            "d.plot(x: t, y: v).ribbon(low: lo, high: hi, alpha: -0.1)\n",
+        ),
+        ("no_color_on_area", "d.plot(x: t, y: v).area(color: g)\n"),
+        (
+            "no_y_on_ribbon",
+            "d.plot(x: t, y: v).ribbon(y: v, low: lo, high: hi)\n",
+        ),
+        (
+            "a_frame_without_the_fill",
+            "d.plot(x: t, y: v, fill: g).area(data: frame(t = [1, 2], v = [1, 2]))\n",
+        ),
+        ("area_of_a_frame", "d.area()\n"),
+        (
+            "an_edge_that_reduces",
+            "d.plot(x: t, y: v).ribbon(low: lo, high: mean(hi))\n",
+        ),
+    ] {
+        // The same frame without its infinite value, which has a warning of its own.
+        let frame = GAPS.replace("1 / 0", "9.0");
+        let (code, stdout, stderr) = go(&format!("{frame}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("fills_messages", all);
+}

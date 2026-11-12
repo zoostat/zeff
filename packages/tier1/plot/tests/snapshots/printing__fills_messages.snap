@@ -1,0 +1,177 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== the_plot_maps_no_y
+error[Z0401]: `area` places each mark by its `x` and its `y`, but the plot maps no variable to `y`
+ --> scripts/main.zeff:2:14
+  |
+2 | d.plot(x: t).area()
+  |              ^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+== a_band_without_x
+error[Z0401]: `ribbon` places its band along `x`, but neither the plot nor this layer maps a variable to `x`
+ --> scripts/main.zeff:2:14
+  |
+2 | d.plot(y: v).ribbon(low: lo, high: hi)
+  |              ^^^^^^ needs `x`
+  |
+  = help: name it in the layer, as in `ribbon(x: educ, low: lower, high: upper)`, or where the plot starts, as in `plot(x: educ)`
+
+== a_band_without_high
+error[Z0406]: `ribbon` needs `high`
+ --> scripts/main.zeff:2:14
+  |
+2 | d.plot(x: t).ribbon(low: lo)
+  |              ^^^^^^ `high` is missing
+  |
+  = help: a band reaches from `low:` to `high:` at each row: name the two variables, as in `ribbon(low: lower, high: upper)`
+
+== a_band_without_low
+error[Z0406]: `ribbon` needs `low`
+ --> scripts/main.zeff:2:14
+  |
+2 | d.plot(x: t).ribbon(high: hi)
+  |              ^^^^^^ `low` is missing
+  |
+  = help: a band reaches from `low:` to `high:` at each row: name the two variables, as in `ribbon(low: lower, high: upper)`
+
+== a_band_without_edges
+error[Z0406]: `ribbon` needs `low` and `high`
+ --> scripts/main.zeff:2:20
+  |
+2 | d.plot(x: t, y: v).ribbon()
+  |                    ^^^^^^ `low` and `high` are missing
+  |
+  = help: a band reaches from `low:` to `high:` at each row: name the two variables, as in `ribbon(low: lower, high: upper)`
+
+== a_fill_by_a_number
+error[Z0401]: `area` fills each area in one colour, so `fill` must show categories, but `lo` is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:2:31
+  |
+2 | d.plot(x: t, y: v).area(fill: lo)
+  |                               ^^ a colour for each row, not for each area
+  |
+  = help: fill by a variable of categories, as in `area(fill: union)`, or set one fill for this layer, as in `area(fill: "steelblue")`
+
+== a_fill_by_a_number_from_the_plot
+error[Z0401]: `ribbon` fills each band in one colour, so `fill` must show categories, but `lo` is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:2:30
+  |
+2 | d.plot(x: t, y: v, fill: lo).ribbon(low: lo, high: hi)
+  |                              ^^^^^^ a colour for each row, not for each band
+  |
+  = help: fill by a variable of categories, as in `ribbon(fill: union)`, or set one fill for this layer, as in `ribbon(fill: "steelblue")`
+
+== not_a_colour
+error[Z0401]: `fill:` of `area` is "blu", which is not the name of a colour
+ --> scripts/main.zeff:2:31
+  |
+2 | d.plot(x: t, y: v).area(fill: "blu")
+  |                               ^^^^^ not a colour
+  |
+  = help: did you mean "blue"?
+
+== a_variable_in_quotes
+error[Z0401]: `fill:` of `ribbon` is "g", which is not the name of a colour
+ --> scripts/main.zeff:2:52
+  |
+2 | d.plot(x: t, y: v).ribbon(low: lo, high: hi, fill: "g")
+  |                                                    ^^^ not a colour
+  |
+  = help: a string sets one colour for every mark; to colour by the variable `g`, write it without quotation marks, `fill: g`
+
+== an_edge_that_is_text
+error[Z0401]: `ribbon` draws `high` on a linear scale, so `g` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:2:42
+  |
+2 | d.plot(x: t, y: v).ribbon(low: lo, high: g)
+  |                                          ^ not a numeric variable
+  |
+  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+
+== no_such_edge
+error[Z0101]: no variable `hii` in `d`
+ --> scripts/main.zeff:2:42
+  |
+2 | d.plot(x: t, y: v).ribbon(low: lo, high: hii)
+  |                                          ^^^ not a variable of d
+  |
+  = help: did you mean `hi`? If you meant a category level, write it in quotes: `"hi"`
+
+== another_kind_of_fill
+note: 1 row with NA in t or v dropped (line 2)
+note: 1 break in an area where v is NA (line 2)
+error[Z0401]: the plot shows `g` as categories for `fill`, but `t`, which `ribbon` maps to `fill`, is an Int without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:2:68
+  |
+2 | d.plot(x: t, y: v, fill: g).area().ribbon(low: lo, high: hi, fill: t)
+  |                                                                    ^ `t` is of another kind
+  |
+  = help: the layers of a plot share one scale of fill, so the variables mapped to `fill` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels
+
+== alpha_above_one
+error[Z0401]: `alpha:` of `area` is an opacity between 0 and 1, but this is 1.5
+ --> scripts/main.zeff:2:32
+  |
+2 | d.plot(x: t, y: v).area(alpha: 1.5)
+  |                                ^^^ outside [0, 1]
+  |
+  = help: write 1 for a fill that hides what is under it, or a share such as 0.6 so that it shows through
+
+== alpha_below_zero
+error[Z0401]: `alpha:` of `ribbon` is an opacity between 0 and 1, but this is -0.1
+ --> scripts/main.zeff:2:53
+  |
+2 | d.plot(x: t, y: v).ribbon(low: lo, high: hi, alpha: -0.1)
+  |                                                     ^^^^ outside [0, 1]
+  |
+  = help: write 1 for a fill that hides what is under it, or a share such as 0.3 so that it shows through
+
+== no_color_on_area
+error[Z0404]: `area` has no argument called `color`
+ --> scripts/main.zeff:2:25
+  |
+2 | d.plot(x: t, y: v).area(color: g)
+  |                         ^^^^^ unknown argument
+  |
+  = help: usage: `p.area(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, group: Var, alpha: Float = 0.6)`
+
+== no_y_on_ribbon
+error[Z0404]: `ribbon` has no argument called `y`
+ --> scripts/main.zeff:2:27
+  |
+2 | d.plot(x: t, y: v).ribbon(y: v, low: lo, high: hi)
+  |                           ^ unknown argument
+  |
+  = help: did you mean `x:`?
+
+== a_frame_without_the_fill
+error[Z0101]: no variable `g` in `the frame`
+ --> scripts/main.zeff:2:40
+  |
+2 | d.plot(x: t, y: v, fill: g).area(data: frame(t = [1, 2], v = [1, 2]))
+  |                             ---- this layer draws `g`, which the plot maps to `fill`
+  |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not a variable of the frame
+  |
+  = help: did you mean `t`? If you meant a category level, write it in quotes: `"t"`
+
+== area_of_a_frame
+error[Z0401]: `area` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | d.area()
+  | ^ this is a Frame
+  |
+  = help: `area` takes a Plot first; `x.area(...)` is `area(x, ...)`
+
+== an_edge_that_reduces
+error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function of `data`
+ --> scripts/main.zeff:2:42
+  |
+2 | d.plot(x: t, y: v).ribbon(low: lo, high: mean(hi))
+  |                                          ^^^^ not kept in a mapping
+  |
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable

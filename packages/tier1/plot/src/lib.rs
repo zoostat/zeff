@@ -212,5 +212,91 @@ pub fn functions() -> Vec<Function> {
             },
             body: marks::step,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "area",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("x", "Var | Expr"),
+                    ParamSpec::option("y", "Var | Expr"),
+                    ParamSpec::option("fill", "Var | Str"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option_with_default("alpha", "Float", "0.6"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in x or y; the places where an area is broken because y is NA; the rows with no neighbour to be joined to; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression the layer maps is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the frame the layer draws lacks a variable the layer names, or one an expression it maps reads; the frame of data: lacks a variable the plot maps, or one a mapped expression reads",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "the frame the layer draws, or the frame of data:, has the variable in another case",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, that is not numeric, or an expression that gives no number for each row; a string for fill: that is not a colour; a fill by a number without value labels, where an area has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; alpha: outside [0, 1]",
+                    ),
+                ],
+                help: include_str!("../help/area.md"),
+                accuracy: None,
+            },
+            body: marks::area,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "ribbon",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("x", "Var | Expr"),
+                    ParamSpec::option("low", "Var | Expr"),
+                    ParamSpec::option("high", "Var | Expr"),
+                    ParamSpec::option("fill", "Var | Str"),
+                    ParamSpec::option("group", "Var"),
+                    ParamSpec::option_with_default("alpha", "Float", "0.3"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in x, low or high; the places where a band is broken because low or high is NA; the rows with no neighbour to be joined to; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression the layer maps is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the frame the layer draws lacks a variable the layer names, or one an expression it maps reads; the frame of data: lacks a variable the plot maps, or one a mapped expression reads",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "the frame the layer draws, or the frame of data:, has the variable in another case",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "neither the plot nor the layer maps anything to x; a variable the layer names for x:, low: or high:, or a mapped variable of data:, that is not numeric, or an expression that gives no number for each row; a string for fill: that is not a colour; a fill by a number without value labels, where a band has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; alpha: outside [0, 1]",
+                    ),
+                    DiagnosticDecl::new("Z0406", "low: or high: is not given"),
+                ],
+                help: include_str!("../help/ribbon.md"),
+                accuracy: None,
+            },
+            body: marks::ribbon,
+        },
     ]
 }

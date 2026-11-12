@@ -1,0 +1,118 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: printed(&script)
+---
+plot · d · v against t
+
+  axis   title   scale    limits          breaks
+  x      t       linear   0.75 to 6.25    1, 2, 3, 4, 5, 6
+  y      v       linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark   data   marks   settings
+      1   area   d          6   alpha 0.6, 2 areas
+plot · d · v against t
+
+  axis   title   scale    limits          breaks
+  x      t       linear   0.75 to 6.25    1, 2, 3, 4, 5, 6
+  y      v       linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark   data   marks   settings
+      1   area   d          5   alpha 0.6, group by g, 2 areas
+plot · d · v against t
+
+  axis   title   scale    limits           breaks
+  x      t       linear   0.75 to 6.25     1, 2, 3, 4, 5, 6
+  y      v       linear   0.225 to 6.275   1, 2, 3, 4, 5, 6
+
+  aesthetic   title   scale      values   shown as
+  fill        g       category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   ribbon   d          7   low lo, high hi, alpha 0.3, 3 bands
+plot · d · v against t
+
+  axis   title   scale    limits         breaks
+  x      t       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
+  y      v       linear   -0.4 to 8.4    0, 2, 4, 6, 8
+
+  layer   mark     data            marks   settings
+      1   points   d                   6   size 4.5, alpha 1
+      2   ribbon   its own frame       2   low a, high b, alpha 0.3, 1 band
+plot · d · v against t
+
+  axis   title   scale    limits         breaks
+  x      t       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
+  y      v       linear   0.8 to 5.2     1, 2, 3, 4, 5
+
+  layer   mark   data            marks   settings
+      1   area   its own frame       0   alpha 0.6, 0 areas
+plot · lo against t
+
+  axis   title   scale    limits       breaks
+  x      t       linear   2.5 to 3.5   2.6, 2.8, 3, 3.2, 3.4
+  y      lo      linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+
+  layer   mark   data        marks   settings
+      1   area   the frame       0   alpha 0.6, 0 areas
+plot · d · v against t
+
+  axis   title   scale    limits           breaks
+  x      t       linear   0.75 to 6.25     1, 2, 3, 4, 5, 6
+  y      v       linear   0.225 to 6.275   1, 2, 3, 4, 5, 6
+
+  layer   mark     data   marks   settings
+      1   ribbon   d          7   low hi, high lo, alpha 1, 2 bands
+plot · d · v against t
+
+  axis   title   scale    limits          breaks
+  x      t       linear   0.75 to 6.25    1, 2, 3, 4, 5, 6
+  y      v       linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark   data   marks   settings
+      1   area   d          6   alpha 0, 2 areas
+plot · d · lo against t
+
+  axis   title   scale    limits           breaks
+  x      t       linear   1.5 to 12.5      2, 4, 6, 8, 10, 12
+  y      lo      linear   0.225 to 6.275   1, 2, 3, 4, 5, 6
+
+  layer   mark     data   marks   settings
+      1   ribbon   d          7   x t * 2, low lo, high hi, alpha 0.3, group by g, 3 bands
+plot · d · lo against t
+
+  axis   title   scale    limits         breaks
+  x      t       linear   0.75 to 6.25   1, 2, 3, 4, 5, 6
+  y      lo      linear   -0.2 to 4.2    0, 1, 2, 3, 4
+
+  aesthetic   title   scale    values   shown as
+  color       v       linear   1 to 5   viridis, dark purple to yellow
+
+no layer draws `color`
+
+  layer   mark   data   marks   settings
+      1   area   d          7   alpha 0.6, 2 areas
+---
+warning[W0204]: division by zero gave Inf (line 1)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 1 row with NA in t or v dropped (line 2)
+note: 1 row with an infinite value in t or v dropped (line 2)
+note: 1 break in an area where v is NA or infinite (line 2)
+note: 1 row with NA in t or v dropped (line 3)
+note: 1 row with an infinite value in t or v dropped (line 3)
+note: 1 break in an area where v is NA or infinite (line 3)
+note: 1 row with no neighbour to be joined to draws no area (line 3)
+note: 1 row with NA in t, lo or hi dropped (line 4)
+note: 1 break in a band where lo or hi is NA (line 4)
+note: 1 row with NA in t or v dropped (line 5)
+note: 1 row with an infinite value in t or v dropped (line 5)
+note: no row kept: the result is empty (line 6)
+note: 1 row with no neighbour to be joined to draws no area (line 7)
+note: 1 row with NA in t, hi or lo dropped (line 8)
+note: 1 break in a band where hi or lo is NA (line 8)
+note: 1 row with NA in t or v dropped (line 9)
+note: 1 row with an infinite value in t or v dropped (line 9)
+note: 1 break in an area where v is NA or infinite (line 9)
+note: 1 row with NA in t * 2, lo or hi dropped (line 10)
+note: 1 break in a band where lo or hi is NA (line 10)
+note: 1 row with NA in t or lo dropped (line 11)
+note: 1 break in an area where lo is NA (line 11)

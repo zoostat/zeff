@@ -199,8 +199,11 @@ fn not_a_shape(
 /// size and a shape, which every mark of points takes, and those only some calls take.
 pub(crate) struct Slots {
     pub x: usize,
-    pub y: usize,
-    pub color: usize,
+    pub y: Option<usize>,
+    /// The two edges of a band, for the mark that has them.
+    pub low: Option<usize>,
+    pub high: Option<usize>,
+    pub color: Option<usize>,
     pub fill: Option<usize>,
     pub size: Option<usize>,
     pub shape: Option<usize>,
@@ -223,7 +226,15 @@ pub(crate) fn aesthetics(
     own: bool,
 ) -> Result<(Vec<PlotMapping>, Vec<PlotConstant>), Fail> {
     let mut mappings: Vec<PlotMapping> = Vec::new();
-    for (slot, aesthetic) in [(slots.x, Aesthetic::X), (slots.y, Aesthetic::Y)] {
+    for (slot, aesthetic) in [
+        (Some(slots.x), Aesthetic::X),
+        (slots.y, Aesthetic::Y),
+        (slots.low, Aesthetic::Low),
+        (slots.high, Aesthetic::High),
+    ] {
+        let Some(slot) = slot else {
+            continue;
+        };
         let name = match args.get(slot) {
             None | Some(Value::Na) => continue,
             Some(Value::Var(name)) => name.clone(),
@@ -282,7 +293,7 @@ pub(crate) fn aesthetics(
     }
     let mut constants: Vec<PlotConstant> = Vec::new();
     for (slot, aesthetic) in [
-        (Some(slots.color), Aesthetic::Color),
+        (slots.color, Aesthetic::Color),
         (slots.fill, Aesthetic::Fill),
     ] {
         let Some(slot) = slot else {
@@ -602,8 +613,10 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         "plot",
         &Slots {
             x: X,
-            y: Y,
-            color: COLOR,
+            y: Some(Y),
+            low: None,
+            high: None,
+            color: Some(COLOR),
             fill: Some(FILL),
             size: Some(SIZE),
             shape: Some(SHAPE),
