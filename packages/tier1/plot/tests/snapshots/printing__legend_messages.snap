@@ -2,15 +2,6 @@
 source: packages/tier1/plot/tests/printing.rs
 expression: all
 ---
-== the_names_at_the_ends
-error[Z0401]: `legend(direct)` is not built yet: the names of the lines at their ends come with the next step of this release
- --> scripts/main.zeff:3:10
-  |
-3 | p.legend(direct)
-  |          ^^^^^^ not in this build
-  |
-  = help: the places built so far are `right`, `top`, `bottom` and `none`
-
 == a_place_that_is_none
 error[Z0402]: `left` is not one of the allowed words
  --> scripts/main.zeff:3:10

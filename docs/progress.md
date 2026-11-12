@@ -114,65 +114,9 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 
 24b2: a bar, an area and a band take their fill from `color:` of the plot where nothing says anything of `fill`, as the specification's sample script draws them; one ruling of step 23d1 withdrawn. 24c `[function]`: `tile`, a filled rectangle at each row's `x` and `y`, a heat map on a continuous scale of fills; catalogue row 468 brought up to date (logged). 24d `[function]`: `text`, the label of each row at its place, with `nudge:` in points; row 467 brought up to date (logged); step 24 complete, the eleven marks of section 7.6 built. Step 25 was split into 25a to 25e, and the decisions due before it taken on their recommendations: #110, questions 1 (C), 3 (A), 4 (A) and 5, and #107, option B. 25a `[engine]`: the kinds of scale of an axis, linear, log and square root, with limits that match ggplot2's and a value with no place on the scale found and named. 25b `[engine]`: `scale_x` and `scale_y`, with `limits:` that show and do not select (decision #118, F5), `breaks:` and `labels:`, and the labels of a labelled variable on a linear axis (#128); rows 476 and 477 implemented; `zeff selftest` at 329 of 329. Rulings taken then, the owner's to overturn: `nudge:` in points; no `alpha:` on text; the breaks of a log axis at 1, 2 and 5 times a power of ten, where R writes 1 and 3; bars and areas refused on a log axis. Known for later steps: a label near an edge of the panel is cut there (steps 25 and 26).
 
-## 12 November 2026, release 0.7.0, step 25c1 (an axis of dates)
+## 12 November 2026, steps 25c1 to 25d of release 0.7.0 (folded)
 
-**Done.** Step 25c was split into 25c1 (the axis of dates), 25c2 (`scale_x(date)`, limits, breaks and a pattern for the labels, a line at one date) and 25c3 (the widening of mapping expressions, #107 B). 25c1 is built: a Date or a DateTime variable on `x` or `y` is placed in proportion to the time, the breaks fall on the calendar (years, half-years, quarters, months, Mondays, days, round times of the clock) and are written in the ISO form of tables; every mark stands on such an axis, and `vline(data: events, at: day)` draws lines at dates. The limits match ggplot2's to the day.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 334 of 334; CI is read job by job after the push.
-
-**Next.** Step 25c2 `[engine]`: `scale_x(date)` and `scale_y(date)` with `limits:`, `breaks:` and `labels:` as a pattern, and a reference line at one date.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: open decision #129, option A (dates on an axis in the ISO form of tables, `2024-03`, where ggplot2 writes `Mar`); a break at every decade where ggplot2 marks every second one. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 25c2 (`scale_x(date)` and `scale_y(date)`)
-
-**Done.** The scale of an axis of dates can be set: `scale_x(date, limits: [date("1980-01-01"), date("2000-01-01")])` shows that range and drops no row; `breaks:` takes dates; `labels: "%b %Y"` is a pattern every break is written by (`Jan 1980`), or a label for each break. On an axis of dates the word `date` may be left out. A reference line stands at one date, `vline(at: date("2008-09-15"))`, or at a name bound to a date. The counts of marks beyond the limits and the labels match ggplot2's. Catalogue rows 470 and 471 and section 3.7 are brought up to date (logged).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 339 of 339; CI is read job by job after the push.
-
-**Next.** Step 25c3 `[engine]`: an expression in a mapping, widened to the scalar functions of `time` and `text`, the four Zeff-written functions of `core` and `case` (#107, option B).
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: a bare name given to `at:` reads a bound date as it reads a bound number (#127 extended). Open as before: #129 (how dates are written on an axis, taken as A), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 25c3a (the functions of `time` and `text` in a mapping)
-
-**Done.** Step 25c3 was split into 25c3a (here), 25c3b (the four functions of `core` written in Zeff) and 25c3c (`case`). An expression mapped to `x` or `y` may now call the functions of `time` and `text`: `plot(x: year(founded), ...)` draws. An expression is placed by what it gives: numbers on a linear scale, text as categories, dates on a scale of dates, so `x: category(educ)` and `x: upper(industry)` draw too. The reducers of `data`, such as `mean`, stay refused.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 344 of 344; CI is read job by job after the push.
-
-**Next.** Step 25c3b `[engine]`: `logit`, `inv_logit`, `clamp` and `fill_missing` in a mapping.
-
-**For the owner to decide.** One thing found, not changed: `f.add(y = year(industry))`, a function of `time` or `text` given a variable of the wrong type, stops with "internal error: this is a bug in Zeff" and has done since 0.6.0; a mapping now reaches the same message. It is recorded under open decision #108 (due 0.8.0, recommendation A: refuse with a plain message). Open as before: #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 25c3b (the four functions written in Zeff, in a mapping)
-
-**Done.** `logit`, `inv_logit`, `clamp` and `fill_missing` are computed inside a mapping: `plot(x: x, y: logit(share))` draws the log odds, with the values and the warnings that `add` gives, which a test compares one by one.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 346 of 346; CI is read job by job after the push.
-
-**Next.** Step 25c3c `[engine]`: `case` in a mapping, which completes step 25c.
-
-**For the owner to decide.** Nothing new. Open as before: the internal error of `add` under #108, #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 25c3c (`case` in a mapping), and step 25c complete
-
-**Done.** `case` is computed inside a mapping: `plot(x: educ, y: case { wage > 100 => 100, _ => wage })` draws, with the values, the warning and the notes that `add` gives. The row-by-row code of `case` moved from the interpreter into a kernel of `core` that both use; no earlier result changed. With it step 25c is complete: the axis of dates, its scale, and wider expressions in a mapping (`time`, `text`, the four functions written in Zeff, `case`).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 351 of 351; CI is read job by job after the push.
-
-**Next.** Step 25d `[engine]`: `scale(color:, fill:, size:, shape:)`.
-
-**For the owner to decide.** Nothing new. Taken on the recommendation at this step, his to overturn: an axis mapped from a `case` is titled `case { … }` until `labels` (step 26) gives it a title. Open as before: the internal error of `add` under #108, #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 25d (`scale`)
-
-**Done.** `p.scale(color:, fill:, size:, shape:)` sets what the scales that are not positions show: a list of colours for categories, or the colours a continuous scale passes through; `okabe_ito` and `viridis` by name; one size (the largest mark, by area from zero) or two (the marks of the smallest and of the largest value); a list of shapes. The legends follow. Open decision #109 was decided as recommended.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 356 of 356; CI is read job by job after the push.
-
-**Next.** Step 25e `[engine]`: `legend(right | top | bottom | none | direct)`, which completes step 25.
-
-**For the owner to decide.** Two things, neither blocking. (1) #109, question 2: an argument of `scale` to keep every level of a Category in the legend, recommended as `levels: all`, due 0.8.0. (2) #130: a note raised by a layer before `scale` in one chain stays printed though `scale` may undo its cause; kept as built for 0.7.0, with the remedy in the help page, and a proper fix planned for 0.8.0. Taken on the recommendation at this step, his to overturn: a ramp mixes red, green and blue directly, where ggplot2 mixes in another colour space; fewer colours than categories repeat with a note, where ggplot2 stops. Open as before: the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engine]`: a Date or a DateTime variable on `x` or `y` is placed in proportion to the time, with breaks on the calendar written in the ISO form of tables (open decision #129, option A); the limits match ggplot2's to the day. 25c2 `[engine]`: `scale_x(date)` and `scale_y(date)` with limits and breaks as dates and `labels:` as a pattern (`"%b %Y"`); a reference line at one date; catalogue rows 470 and 471 and section 3.7 brought up to date (logged). 25c3a `[engine]`: a mapping may call the functions of `time` and `text`, and an expression is placed by what it gives, numbers, text or dates (#107, option B). 25c3b `[engine]`: `logit`, `inv_logit`, `clamp` and `fill_missing` in a mapping, their one-line bodies taken into the kept expression. 25c3c `[engine]`: `case` in a mapping, by a kernel of `core` (`zeff_core::cases`) that the interpreter and the `plot` package share; no earlier result changed. 25d `[engine]`: `scale(color:, fill:, size:, shape:)`, with lists of colours, `okabe_ito` and `viridis`, one size or two, and a list of shapes; #109 decided as recommended; `zeff selftest` at 356 of 356. Rulings taken then, the owner's to overturn: a break at every decade where ggplot2 marks every second one; a ramp mixes red, green and blue directly; fewer colours than categories repeat with a note; an axis mapped from a `case` is titled `case { … }`. Found and not changed: `f.add(y = year(industry))` stops with an internal error, recorded under #108. Put to the owner, due 0.8.0: an argument of `scale` to keep every level of a Category (#109, question 2) and the notes of a chain (#130).
 
 ## 12 November 2026, release 0.7.0, step 25e1 (`legend`: right, top, bottom, none)
 
@@ -183,3 +127,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25e2 `[engine]`: `legend(direct)`, the name of each line at its end, which completes step 25.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: above and under the panel the legends start at the left edge of the panel with the title above the keys, where ggplot2 centres them with the title beside. Open as before: #109 (question 2, an argument to keep every level), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25e2 (`legend(direct)`), and step 25 complete
+
+**Done.** `p.legend(direct)` writes the name of each line at its end, in the colour of the line, in the place of a legend; names that would touch are moved apart; a legend no line reads stands at the right. With it step 25 is complete: scales of the axes (linear, log, square root, dates), `scale` for colours, sizes and shapes, and `legend` in its five forms. `plot` stands at sixteen functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 367 of 367; CI is read job by job after the push.
+
+**Next.** Step 26 of the checklist: `labels`, `theme` and `annotate`, where the titles of axes and legends are set and labels are given room.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the names of the lines stand in one column beside the panel, moved apart where they would touch, with no leader to the line. Open as before: #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

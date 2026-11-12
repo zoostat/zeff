@@ -645,6 +645,128 @@ fn plan_legend(
     }
 }
 
+/// The name of a line, written at its end in the place of a key of a legend
+/// (`legend(direct)`).
+struct EndLabel {
+    /// The legend whose key it stands for, by the name of its items.
+    name: String,
+    text: String,
+    colour: String,
+    /// Where the line ends along `y`, in data coordinates.
+    y: f64,
+}
+
+/// What `legend(direct)` writes: for each legend of categories that a layer of lines reads by
+/// its colour or its type of line, the name of each category at the end of its line, in the
+/// colour of the line; and, for each legend of the scene, whether its keys are replaced so.
+/// A category drawn as several lines is named once, at the line that ends furthest along
+/// `x`. A legend no line reads, the bar of a continuous scale, the keys of points or of
+/// sizes, is not replaced, and stands at the right.
+fn end_labels(scene: &Scene, theme: &Theme) -> (Vec<bool>, Vec<EndLabel>) {
+    let mut replaced = vec![false; scene.legends.len()];
+    let mut labels: Vec<EndLabel> = Vec::new();
+    let layers: &[crate::scene::Layer] = scene.panels.first().map_or(&[], |p| &p.layers[..]);
+    for (at, legend) in scene.legends.iter().enumerate() {
+        let categories = |id: &str| {
+            legend
+                .scales
+                .contains(&id)
+                .then(|| scene.scale(id))
+                .flatten()
+                .filter(|scale| scale.kind == ScaleKind::Category)
+        };
+        let (colours, types) = (categories("color"), categories("linetype"));
+        // The first layer of lines that reads one of the two scales, and the place of each
+        // of its marks among the categories.
+        let read = layers
+            .iter()
+            .filter(|layer| layer.mark.joins())
+            .find_map(
+                |layer| match (&layer.color, &layer.linetype, colours, types) {
+                    (Paint::Scaled(places), _, Some(scale), _) => Some((layer, places, scale)),
+                    (_, Lining::Scaled(places), _, Some(scale)) => Some((layer, places, scale)),
+                    _ => None,
+                },
+            );
+        let Some((layer, places, scale)) = read else {
+            continue;
+        };
+        let whole = match &layer.color {
+            Paint::Constant(hex) => hex.clone(),
+            _ => theme.mark.to_string(),
+        };
+        // For each category, the end of its line that reaches furthest along `x`.
+        let mut ends: Vec<Option<(f64, f64, f64)>> = vec![None; scale.labels.len()];
+        let marks = layer
+            .x
+            .len()
+            .min(layer.y.len())
+            .min(layer.line.len())
+            .min(places.len());
+        let mut start = 0;
+        while start < marks {
+            let mut end = start + 1;
+            while end < marks && layer.line[end] == layer.line[start] {
+                end += 1;
+            }
+            let last = end - 1;
+            let place = places[last];
+            let slot = (place as usize).saturating_sub(1);
+            if place >= 1.0
+                && let Some(found) = ends.get_mut(slot)
+                && found.is_none_or(|(x, _, _)| layer.x[last] > x)
+            {
+                *found = Some((layer.x[last], layer.y[last], place));
+            }
+            start = end;
+        }
+        let name = format!("legend:{}", legend.scales.join("+"));
+        for (slot, end) in ends.iter().enumerate() {
+            let Some((_, y, place)) = end else {
+                continue;
+            };
+            labels.push(EndLabel {
+                name: name.clone(),
+                text: scale.labels[slot].clone(),
+                colour: match colours {
+                    Some(scale) => colour_on(scale, *place),
+                    None => whole.clone(),
+                },
+                y: *y,
+            });
+        }
+        replaced[at] = true;
+    }
+    (replaced, labels)
+}
+
+/// The heights at which names are written beside a panel from `top` to `bottom`, each as
+/// near as may be to the height asked for, `wanted`, and no two nearer than `apart`: the
+/// names keep their order down the page, and where they would touch they are moved apart,
+/// downwards first and then, where the foot of the panel is passed, back up.
+fn spread(wanted: &[f64], apart: f64, top: f64, bottom: f64) -> Vec<f64> {
+    let mut order: Vec<usize> = (0..wanted.len()).collect();
+    order.sort_by(|a, b| wanted[*a].total_cmp(&wanted[*b]));
+    let mut placed: Vec<f64> = order
+        .iter()
+        .map(|i| wanted[*i].clamp(top.min(bottom), bottom.max(top)))
+        .collect();
+    for i in 1..placed.len() {
+        placed[i] = placed[i].max(placed[i - 1] + apart);
+    }
+    if let Some(last) = placed.last_mut() {
+        *last = last.min(bottom.max(top));
+    }
+    for i in (0..placed.len().saturating_sub(1)).rev() {
+        placed[i] = placed[i].min(placed[i + 1] - apart);
+    }
+    let mut out = vec![0.0; wanted.len()];
+    for (at, i) in order.into_iter().enumerate() {
+        out[i] = placed[at];
+    }
+    out
+}
+
 /// The items of a legend with its top left corner at `at`.
 fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec<Item>) {
     let (left, mut y) = at;
@@ -905,13 +1027,26 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // the title of the y axis take at the left, which is not yet known; a sixth of the page
     // is allowed for it.
     let band_room = (width - 2.0 * theme.margin - width / 6.0).max(1.0);
-    let plans: Vec<LegendPlan> = if matches!(place, LegendPlace::None | LegendPlace::Direct) {
+    // With `direct`, the legends that lines read are replaced by the names at the ends of
+    // the lines; any other stands at the right.
+    let (replaced, ends) = if place == LegendPlace::Direct {
+        end_labels(scene, theme)
+    } else {
+        (vec![false; scene.legends.len()], Vec::new())
+    };
+    let ends_width = ends
+        .iter()
+        .map(|end| set.width(&end.text, FaceName::Sans, label))
+        .fold(0.0, f64::max);
+    let plans: Vec<LegendPlan> = if place == LegendPlace::None {
         Vec::new()
     } else {
         scene
             .legends
             .iter()
-            .map(|legend| {
+            .zip(&replaced)
+            .filter(|(_, replaced)| !**replaced)
+            .map(|(legend, _)| {
                 plan_legend(
                     scene,
                     legend,
@@ -987,11 +1122,18 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         } else {
             0.0
         };
+    // At the right of the panel: the names at the ends of the lines, then the legends; or
+    // half the last label of the x axis, which may reach past the panel.
+    let ends_room = if ends.is_empty() {
+        0.0
+    } else {
+        theme.label_gap + ends_width
+    };
     let right = theme.margin
         + if plans.is_empty() || banded {
-            x_widths.last().map_or(0.0, |w| w / 2.0)
+            x_widths.last().map_or(0.0, |w| w / 2.0).max(ends_room)
         } else {
-            theme.legend_gap + legends_width
+            ends_room + theme.legend_gap + legends_width
         };
     let sides = |x_lines: usize, y_lines: usize| -> (f64, f64) {
         let left = theme.margin
@@ -1603,6 +1745,29 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             ));
         }
     }
+    // The names at the ends of the lines, beside the right edge of the panel, each at the
+    // height its line ends at and moved apart where two would touch.
+    if let Some(s) = ys.filter(|_| !ends.is_empty()) {
+        let wanted: Vec<f64> = ends.iter().map(|end| down(s, end.y)).collect();
+        let heights = spread(&wanted, label * theme.leading, top, top + panel_height);
+        for (end, y) in ends.iter().zip(heights) {
+            items.push(named(
+                &end.name,
+                Primitive::Text {
+                    at: (left + panel_width + theme.label_gap, y + half_capital),
+                    anchor: Anchor::Start,
+                    turn: 0.0,
+                    spans: vec![Span {
+                        text: end.text.clone(),
+                        face: FaceName::Sans,
+                        size: label,
+                        colour: end.colour.clone(),
+                    }],
+                    frame: None,
+                },
+            ));
+        }
+    }
     // The legends above or under the panel: each band from the left edge of the panel.
     if banded {
         let mut y = if place == LegendPlace::Top {
@@ -1679,6 +1844,36 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn names_at_the_ends_of_lines_are_moved_apart_and_stay_beside_the_panel() {
+        // Far enough apart: each at the height asked for.
+        assert_eq!(
+            spread(&[10.0, 40.0, 70.0], 10.0, 0.0, 100.0),
+            [10.0, 40.0, 70.0]
+        );
+        // Two that would touch: the lower is moved down, and the order asked for is kept.
+        assert_eq!(spread(&[50.0, 52.0], 10.0, 0.0, 100.0), [50.0, 60.0]);
+        assert_eq!(spread(&[52.0, 50.0], 10.0, 0.0, 100.0), [60.0, 50.0]);
+        // At the foot of the panel there is no room below: they move up.
+        assert_eq!(
+            spread(&[95.0, 96.0, 97.0], 10.0, 0.0, 100.0),
+            [80.0, 90.0, 100.0]
+        );
+        // A height asked for beyond the panel is brought to its edge.
+        assert_eq!(spread(&[-20.0, 300.0], 10.0, 0.0, 100.0), [0.0, 100.0]);
+        // More names than the panel holds keep their distance and run past its top.
+        let many = spread(&[50.0; 15], 10.0, 0.0, 100.0);
+        let mut sorted = many.clone();
+        sorted.sort_by(f64::total_cmp);
+        assert!(
+            sorted
+                .windows(2)
+                .all(|pair| pair[1] - pair[0] >= 10.0 - 1e-9)
+        );
+        assert_eq!(sorted.last(), Some(&100.0));
+        assert!(spread(&[], 10.0, 0.0, 100.0).is_empty());
+    }
 
     #[test]
     fn labels_that_would_touch_are_passed_over_evenly() {

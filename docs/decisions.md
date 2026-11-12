@@ -3625,3 +3625,19 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 25e1; section 7.6 of the Language Reference ("Guides and theme"); the specification's sample script, which writes `.legend(top)`.
+
+## 12 November 2026: `legend(direct)` (release 0.7.0, step 25e2), and step 25 complete
+
+**Decision.** `p.legend(direct)` writes the name of each line at its end, in the place of a legend. The scene carries the place, as for the other four; the layout does the work from the layers of the scene (`end_labels` in `packages/tier1/plot/src/layout.rs`). A legend is replaced when a layer of lines, `lines` or `step`, reads one of its scales of categories by its colour or its type of line (`Scene::named_at_ends`, which the printed plot uses too). For each category the name is written beside the right edge of the panel, at the height its line ends at, in the colour of the line, in the type of the labels of an axis; the legend is not drawn, and the panel gives up the width of the longest name and no more.
+
+**Rulings where the text is silent**, each of which the owner may overturn. (a) The names stand in one column beside the right edge of the panel and not at the last point of each line, so that they have their room whatever the lines do and read as a list; a line that ends before the edge is named at the edge, at its own height. (b) Names that would touch are moved apart (`spread`): they keep their order down the page, a name is moved down to clear the one above it, and where the foot of the panel is passed they are moved back up; with more names than the panel is high they run past its top. No leader is drawn from a moved name to its line: the colour ties them. (c) A category drawn as several lines, parted by `group:`, is named once, at the line that reaches furthest along `x`. (d) A legend that no line reads, the bar of a continuous scale, the keys of points, of sizes, of filled marks, stands at the right as usual, beyond the names; a plot in which no legend is replaced is drawn exactly as with `right`. Nothing is refused and no note is raised, since the layer of lines may come later in the chain (open decision #130); the last line of the printed plot says which of the three it is. (e) Where a legend is of colour and of type of line together, the names take the colour.
+
+**Step 25 is complete**: the kinds of scale (25a), `scale_x` and `scale_y` (25b), the axis of dates, its scale and wider expressions in a mapping (25c), `scale` (25d) and `legend` (25e). Four functions joined the catalogue as implemented: `scale_x`, `scale_y`, `scale` and `legend`; `plot` stands at sixteen functions built.
+
+**Tests.** A unit test of `spread` (names far apart, two that would touch in either order, the foot of the panel, heights beyond the panel, more names than the panel holds). `packages/tier1/plot/tests/legends.rs`: five more tests (three names at the ends in the colours of their lines, at the heights the lines end at, with the panel wider than beside a legend, and a snapshot of the drawing; four lines that end together, a line of text apart and in order; a legend no line reads, drawn as with `right`; a category of several lines named once; names beside the keys of a legend they do not replace). `printing.rs`: four more plots, with the three last lines the printed plot can end with. The example of the page of `legend` is run. The conformance set gains five cases: what a script prints and twelve lines named at their ends in SVG, PDF and PNG.
+
+**The specification.** Catalogue row 482 is marked `implemented`; its usage line is as it was.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 25e2; section 7.6 of the Language Reference ("Guides and theme": "direct labels the series at their ends" in the catalogue).

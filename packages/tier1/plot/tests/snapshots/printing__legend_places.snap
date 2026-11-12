@@ -84,6 +84,57 @@ plot · d · change against dose
   color       arm     category   a, b     orange, sky blue
 
   layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+legend: at the right, since no layer of lines is coloured by categories (`direct`)
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark    data   marks   settings
+      1   lines   d          4   width 1, 2 lines
+
+legend: the name of each line at its end
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title    scale      values     shown as
+  color       arm      category   a, b       orange, sky blue
+  size        change   sqrt       0 to 2.9   by area, up to 18 across
+
+  layer   mark     data   marks   settings
+      1   lines    d          4   width 1, 2 lines
+      2   points   d          4   size by change, alpha 1
+
+legend: the name of each line at its end, and the others at the right
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark    data   marks   settings
+      1   lines   d          4   width 1, 1 line
+
+legend: at the right, since no layer of lines is coloured by categories (`direct`)
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
       1   points   d          4   color by arm, size 4.5, alpha 1
 
 legend: under the panel

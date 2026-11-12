@@ -2850,6 +2850,33 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
 }
 
 impl Scene {
+    /// For each legend, whether `legend(direct)` writes it as names at the ends of lines: a
+    /// legend of categories that a layer of lines reads by its colour or its type of line.
+    /// Any other legend, the bar of a continuous scale, the keys of points or of sizes, has
+    /// no line to be written at, and stands at the right.
+    pub fn named_at_ends(&self) -> Vec<bool> {
+        let layers: &[Layer] = self.panels.first().map_or(&[], |p| &p.layers[..]);
+        self.legends
+            .iter()
+            .map(|legend| {
+                let categories = |id: &str| {
+                    legend.scales.contains(&id)
+                        && self
+                            .scale(id)
+                            .is_some_and(|scale| scale.kind == ScaleKind::Category)
+                };
+                let (colours, types) = (categories("color"), categories("linetype"));
+                layers
+                    .iter()
+                    .filter(|layer| layer.mark.joins())
+                    .any(|layer| {
+                        (colours && matches!(layer.color, Paint::Scaled(_)))
+                            || (types && matches!(layer.linetype, Lining::Scaled(_)))
+                    })
+            })
+            .collect()
+    }
+
     /// The scale called `id`.
     pub fn scale(&self, id: &str) -> Option<&Scale> {
         self.scales.iter().find(|s| s.id == id)
@@ -3789,7 +3816,16 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         LegendPlace::Top => Some("legend: above the panel"),
         LegendPlace::Bottom => Some("legend: under the panel"),
         LegendPlace::None => Some("legend: not drawn"),
-        LegendPlace::Direct => Some("legend: the name of each line at its end"),
+        LegendPlace::Direct => {
+            let named = scene.named_at_ends();
+            Some(if named.is_empty() || !named.iter().any(|n| *n) {
+                "legend: at the right, since no layer of lines is coloured by categories (`direct`)"
+            } else if named.iter().all(|n| *n) {
+                "legend: the name of each line at its end"
+            } else {
+                "legend: the name of each line at its end, and the others at the right"
+            })
+        }
     };
     drawn.after.extend(placed.map(str::to_string));
     table.more.push(drawn);

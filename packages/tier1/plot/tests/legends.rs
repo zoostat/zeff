@@ -7,7 +7,7 @@ mod common;
 
 use common::*;
 use zeff_columns::{Column, MetadataKey};
-use zeff_core::value::{Aesthetic, Frame, LegendPlace, Plot};
+use zeff_core::value::{Aesthetic, Frame, LegendPlace, Mark, Plot, PlotLayer};
 use zeff_plot::drawing::{Drawing, Item, Primitive};
 use zeff_plot::layout::{JOURNAL, LayoutError, Size, layout};
 use zeff_plot::scene::{Scene, start, with_layer};
@@ -300,4 +300,268 @@ fn two_legends_stand_side_by_side_and_a_long_title_is_broken() {
     });
     assert!(most - least > 100.0, "{least} to {most}");
     insta::assert_snapshot!("two_legends_above", drawing.describe());
+}
+
+// ----- legend(direct): the name of each line at its end (step 25e2) -----
+
+/// The rows as lines, shown by the aesthetics named, with the legends at `place`.
+fn lined(frame: Frame, shown: &[(Aesthetic, &str)], place: LegendPlace) -> Scene {
+    let mut mappings = vec![mapped(Aesthetic::X, "x"), mapped(Aesthetic::Y, "y")];
+    mappings.extend(
+        shown
+            .iter()
+            .map(|(aesthetic, name)| mapped(*aesthetic, name)),
+    );
+    let mut plot: Plot = start(frame, mappings, Vec::new());
+    plot.legend = place;
+    let lines = PlotLayer {
+        mark: Mark::Lines,
+        ..points(1.0)
+    };
+    with_layer(&plot, lines).1
+}
+
+/// The texts of the items of the legends of a drawing: what is written, in what colour, and
+/// where.
+fn written(drawing: &Drawing) -> Vec<(String, String, (f64, f64))> {
+    of_legends(drawing)
+        .iter()
+        .filter_map(|item| match &item.primitive {
+            Primitive::Text { at, spans, .. } => Some((
+                spans
+                    .iter()
+                    .map(|span| span.text.as_str())
+                    .collect::<String>(),
+                spans
+                    .first()
+                    .map_or(String::new(), |span| span.colour.clone()),
+                *at,
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn the_name_of_each_line_is_written_at_its_end_in_its_colour() {
+    let by_g = &[(Aesthetic::Color, "g")];
+    let scene = lined(rows(6, 3), by_g, LegendPlace::Direct);
+    assert_eq!(scene.legend, LegendPlace::Direct);
+    assert_eq!(scene.named_at_ends(), [true]);
+    assert!(scene.json().write().contains("\"legend\": \"direct\""));
+    let drawing = drawn(&scene);
+    let (panel, width, height, marks) = panel_of(&drawing);
+    // No key, no title: three names and nothing else.
+    let items = of_legends(&drawing);
+    assert_eq!(items.len(), 3);
+    let names = written(&drawing);
+    let texts: Vec<&str> = names.iter().map(|(text, _, _)| text.as_str()).collect();
+    assert_eq!(texts, ["group 00", "group 01", "group 02"]);
+    // Each in the colour of its line, the three of Okabe and Ito.
+    let colours: Vec<&str> = names.iter().map(|(_, colour, _)| colour.as_str()).collect();
+    assert_eq!(colours, ["#E69F00", "#56B4E9", "#009E73"]);
+    let strokes: Vec<String> = marks
+        .iter()
+        .filter_map(|item| match &item.primitive {
+            Primitive::Path { stroke, .. } => stroke.as_ref().map(|s| s.colour.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(strokes, colours);
+    // Each beside the right edge of the panel, within its height, and at the height its
+    // line ends at: the lines end at y = 10, 6 and 2 of a scale from -0.5 to 10.5.
+    let y = scene.scale("y").unwrap();
+    for ((_, _, at), end) in names.iter().zip([10.0, 6.0, 2.0]) {
+        assert!(at.0 > panel.0 + width && at.0 < panel.0 + width + 10.0);
+        assert!(at.1 > panel.1 && at.1 < panel.1 + height + 5.0);
+        let share = (end - y.limits.0) / (y.limits.1 - y.limits.0);
+        let line_end = panel.1 + height - share * height;
+        // The text stands on its baseline, half the height of a capital under the middle.
+        assert!(
+            (at.1 - line_end).abs() < 4.0,
+            "{} is not near {line_end}",
+            at.1
+        );
+    }
+    // The room at the right is that of the names: less than a legend with its keys takes.
+    let (_, width_right, _, _) = panel_of(&drawn(&lined(rows(6, 3), by_g, LegendPlace::Right)));
+    assert!(width > width_right);
+    insta::assert_snapshot!("three_names_at_the_ends", drawing.describe());
+}
+
+#[test]
+fn names_that_would_touch_are_moved_apart_and_keep_their_order() {
+    // Four lines that end within a hair of one another.
+    let frame = frame(
+        "d",
+        vec![
+            ("x", numbers(&[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0])),
+            ("y", numbers(&[0.0, 5.00, 1.0, 5.01, 2.0, 5.02, 9.0, 5.03])),
+            (
+                "g",
+                Column::strs(
+                    ["a", "a", "b", "b", "c", "c", "d", "d"]
+                        .iter()
+                        .map(|name| Some(*name)),
+                ),
+            ),
+        ],
+    );
+    let drawing = drawn(&lined(
+        frame,
+        &[(Aesthetic::Color, "g")],
+        LegendPlace::Direct,
+    ));
+    let names = written(&drawing);
+    assert_eq!(names.len(), 4);
+    // Down the page the names are in the order of the ends, the highest first, and a line
+    // of text apart.
+    let mut by_height: Vec<(f64, &str)> =
+        names.iter().map(|(t, _, at)| (at.1, t.as_str())).collect();
+    by_height.sort_by(|a, b| a.0.total_cmp(&b.0));
+    assert_eq!(
+        by_height
+            .iter()
+            .map(|(_, text)| *text)
+            .collect::<Vec<&str>>(),
+        ["d", "c", "b", "a"]
+    );
+    assert!(
+        by_height
+            .windows(2)
+            .all(|pair| pair[1].0 - pair[0].0 >= 8.0 * JOURNAL.leading - 1e-9),
+        "{by_height:?}"
+    );
+    let (panel, _, height, _) = panel_of(&drawing);
+    assert!(
+        by_height
+            .iter()
+            .all(|(y, _)| *y > panel.1 && *y < panel.1 + height + 5.0)
+    );
+}
+
+#[test]
+fn a_legend_no_line_reads_stands_at_the_right() {
+    // Points coloured by a category: no line to write a name at.
+    let by_g = &[(Aesthetic::Color, "g")];
+    let points_direct = placed(rows(6, 3), by_g, LegendPlace::Direct);
+    assert_eq!(points_direct.named_at_ends(), [false]);
+    let points_right = placed(rows(6, 3), by_g, LegendPlace::Right);
+    assert_eq!(
+        drawn(&points_direct).describe(),
+        drawn(&points_right).describe()
+    );
+    // Lines coloured by a number: a bar of colours, which has no ends of lines either.
+    let ramp = lined(rows(6, 3), &[(Aesthetic::Color, "z")], LegendPlace::Direct);
+    assert_eq!(ramp.named_at_ends(), [false]);
+    assert!(
+        of_legends(&drawn(&ramp))
+            .iter()
+            .any(|item| matches!(item.primitive, Primitive::Raster { .. }))
+    );
+    // Lines by colour, and nothing else: the plain plot has no legend to place.
+    let plain = lined(rows(6, 3), &[], LegendPlace::Direct);
+    assert!(plain.named_at_ends().is_empty());
+    assert!(of_legends(&drawn(&plain)).is_empty());
+}
+
+#[test]
+fn a_category_drawn_as_several_lines_is_named_once() {
+    // Two categories, each two lines by a group: the name stands at the line that reaches
+    // furthest along x.
+    let frame = frame(
+        "d",
+        vec![
+            ("x", numbers(&[0.0, 1.0, 0.0, 3.0, 0.0, 2.0, 0.0, 1.0])),
+            ("y", numbers(&[0.0, 1.0, 0.0, 9.0, 0.0, 4.0, 0.0, 6.0])),
+            (
+                "g",
+                Column::strs(
+                    ["a", "a", "a", "a", "b", "b", "b", "b"]
+                        .iter()
+                        .map(|name| Some(*name)),
+                ),
+            ),
+            (
+                "unit",
+                Column::strs(
+                    ["p", "p", "q", "q", "r", "r", "s", "s"]
+                        .iter()
+                        .map(|name| Some(*name)),
+                ),
+            ),
+        ],
+    );
+    let scene = lined(
+        frame,
+        &[(Aesthetic::Color, "g"), (Aesthetic::Group, "unit")],
+        LegendPlace::Direct,
+    );
+    let drawing = drawn(&scene);
+    let names = written(&drawing);
+    assert_eq!(names.len(), 2);
+    let (panel, _, height, _) = panel_of(&drawing);
+    let y = scene.scale("y").unwrap();
+    // `a` at the end of the line that reaches x = 3, where y is 9; `b` at x = 2, y = 4.
+    for ((text, _, at), end) in names.iter().zip([9.0, 4.0]) {
+        let share = (end - y.limits.0) / (y.limits.1 - y.limits.0);
+        let line_end = panel.1 + height - share * height;
+        assert!(
+            (at.1 - line_end).abs() < 4.0,
+            "{text}: {} is not near {line_end}",
+            at.1
+        );
+    }
+}
+
+#[test]
+fn the_names_stand_beside_the_legends_they_do_not_replace() {
+    // Lines by colour and by size of a number: the names of the lines, and the keys of the
+    // sizes at the right of them.
+    let scene = {
+        let mut mappings = vec![
+            mapped(Aesthetic::X, "x"),
+            mapped(Aesthetic::Y, "y"),
+            mapped(Aesthetic::Color, "g"),
+            mapped(Aesthetic::Size, "z"),
+        ];
+        mappings.truncate(4);
+        let mut plot: Plot = start(rows(6, 3), mappings, Vec::new());
+        plot.legend = LegendPlace::Direct;
+        let lines = PlotLayer {
+            mark: Mark::Lines,
+            ..points(1.0)
+        };
+        let (plot, _) = with_layer(&plot, lines);
+        with_layer(&plot, points(1.0)).1
+    };
+    let named = scene.named_at_ends();
+    assert_eq!(scene.legends.len(), named.len());
+    assert!(
+        named.iter().any(|n| *n) && named.iter().any(|n| !*n),
+        "{named:?}"
+    );
+    let drawing = drawn(&scene);
+    let names = written(&drawing);
+    let texts: Vec<&str> = names.iter().map(|(text, _, _)| text.as_str()).collect();
+    for name in ["group 00", "group 01", "group 02"] {
+        assert_eq!(
+            texts.iter().filter(|text| **text == name).count(),
+            1,
+            "{texts:?}"
+        );
+    }
+    // The keys of the sizes are drawn, to the right of the names.
+    let furthest_name = names
+        .iter()
+        .filter(|(text, _, _)| text.starts_with("group"))
+        .map(|(_, _, at)| at.0)
+        .fold(f64::MIN, f64::max);
+    let keys: Vec<f64> = of_legends(&drawing)
+        .iter()
+        .filter(|item| matches!(item.primitive, Primitive::Point { .. }))
+        .map(|item| at(item).0)
+        .collect();
+    assert!(!keys.is_empty());
+    assert!(keys.iter().all(|x| *x > furthest_name));
 }

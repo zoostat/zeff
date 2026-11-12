@@ -682,17 +682,7 @@ pub fn legend(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             "top" => LegendPlace::Top,
             "bottom" => LegendPlace::Bottom,
             "none" => LegendPlace::None,
-            "direct" => {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        "`legend(direct)` is not built yet: the names of the lines at their ends come with the next step of this release",
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(L_POSITION), "not in this build")
-                    .help("the places built so far are `right`, `top`, `bottom` and `none`"),
-                ));
-            }
+            "direct" => LegendPlace::Direct,
             _ => {
                 return Err(internal(
                     ctx,

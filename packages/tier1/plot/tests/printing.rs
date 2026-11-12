@@ -3003,6 +3003,10 @@ fn the_place_of_the_legend_reads_sensibly_as_text() {
          p.legend(right)\n\
          p.legend()\n\
          p.legend(top).legend(right)\n\
+         p.legend(direct)\n\
+         d.plot(x: dose, y: change, color: arm).lines().legend(direct)\n\
+         d.plot(x: dose, y: change, color: arm, size: change).lines().points().legend(direct)\n\
+         d.plot(x: dose, y: change).lines().legend(direct)\n\
          d.plot(x: dose, y: change).legend(bottom).points(color: arm)\n\
          d.plot(x: dose, y: change).points().legend(top)\n\
          d.plot(x: dose, y: change, color: arm).legend(none)\n"
@@ -3012,6 +3016,24 @@ fn the_place_of_the_legend_reads_sensibly_as_text() {
     assert_eq!(text.matches("legend: above the panel\n").count(), 2);
     assert_eq!(text.matches("legend: under the panel\n").count(), 2);
     assert_eq!(text.matches("legend: not drawn\n").count(), 1);
+    // `direct` names the lines where lines read the legend, and says so where none does.
+    assert_eq!(
+        text.matches("legend: the name of each line at its end\n")
+            .count(),
+        1
+    );
+    assert_eq!(
+        text.matches("legend: the name of each line at its end, and the others at the right\n")
+            .count(),
+        1
+    );
+    assert_eq!(
+        text.matches(
+            "legend: at the right, since no layer of lines is coloured by categories (`direct`)\n"
+        )
+        .count(),
+        2
+    );
     insta::assert_snapshot!("legend_places", text);
 }
 
@@ -3019,7 +3041,6 @@ fn the_place_of_the_legend_reads_sensibly_as_text() {
 fn every_message_of_legend() {
     let mut all = String::new();
     for (name, script) in [
-        ("the_names_at_the_ends", "p.legend(direct)\n"),
         ("a_place_that_is_none", "p.legend(left)\n"),
         ("a_place_in_quotation_marks", "p.legend(\"top\")\n"),
         ("two_places", "p.legend(top, bottom)\n"),

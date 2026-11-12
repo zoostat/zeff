@@ -2057,6 +2057,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/legend/{name}"), &data));
     }
+    // The names of the lines at their ends (step 25e2): the mean wage of each industry by
+    // year as twelve lines, each named at its end in its colour, the names moved apart
+    // where they would touch; what the script prints and the figure in the three formats.
+    let script = "let w = dataset(wages)\nlet m = w.aggregate(wage = mean(wage), by: [year, industry])\nlet p = m.plot(x: year, y: wage, color: industry).scale(color: viridis).lines().legend(direct)\np\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nu.plot(x: year, y: wage, color: union).lines().points().legend(direct)\nu.plot(x: year, y: wage, color: union).points().legend(direct)\nexport(p, \"direct.svg\")\nexport(p, \"direct.pdf\")\nexport(p, \"direct.png\")\n";
+    let ended = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/direct/stdout", &ended.output.stdout));
+    fills.push(text("plot/direct/stderr", &ended.output.stderr));
+    for name in ["direct.svg", "direct.pdf", "direct.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/direct/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

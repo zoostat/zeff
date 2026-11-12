@@ -666,10 +666,7 @@ pub fn functions() -> Vec<Function> {
                 ],
                 rest: None,
                 returns: "Plot",
-                diagnostics: vec![DiagnosticDecl::new(
-                    "Z0401",
-                    "direct, which is not built yet",
-                )],
+                diagnostics: vec![],
                 help: include_str!("../help/legend.md"),
                 accuracy: None,
             },
