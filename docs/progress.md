@@ -158,3 +158,11 @@ Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size 
 
 **For the owner to decide.** Nothing blocks step 22b. Open as before: questions 1, 3, 4 and 5 of #110 (recommended as built, before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 22b opened and split
+
+**Done.** No code. Step 22b was split in the checklist into 22b1 (the PDF writer), 22b2 (the rasteriser and the PNG writer), 22b3 (`export` in the three formats and the six figures in each) and 22b4 (the tool-only trial of the typesetting engine, #73).
+
+**Next.** Step 22b1 `[engine]`: the PDF writer.
+
+**For the owner to decide.** Nothing new. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

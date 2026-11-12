@@ -3078,3 +3078,11 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 22; question 6 at the opening of the release ("the journal theme is drawn on six figures, read by the owner and then frozen").
 
+## 12 November 2026: step 22b split (release 0.7.0, opening of step 22b)
+
+**The split.** Step 22b (the PDF and PNG writers) is too large for one session and is split in the checklist into four: 22b1, the PDF writer; 22b2, the rasteriser and the PNG writer; 22b3, `export` in the three formats, the layer flag `raster` and the six figures in each; 22b4, the tool-only trial of the typesetting engine of open decision #73. The step as first written stays above them and is ticked when the four are.
+
+**What is settled before any code**, as engineering. (a) A PDF carries its text as text in the embedded fonts, as section 7.6 of the Language Reference now says, and carries each font file whole: no subsetter is written at this release, at the cost of about 0.1 MB a face in a file. (b) The content of a PDF and the pixels of a PNG are compressed by the DEFLATE method; the crate for it is chosen and recorded at step 22b1 with its licence and its exact version, and its output must be the same on the four targets or the engine's own encoder takes its place. (c) The PDF is checked by a pure-Rust parser and the PNG by an independent decoder, both test dependencies alone.
+
+**Reason.** The checklist's step 22b; the standing instruction that a step too large is split in the checklist.
+
