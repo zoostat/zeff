@@ -1,0 +1,67 @@
+---
+source: packages/tier1/plot/tests/legends.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 45.397,51.626 to 45.397,155.253 stroke #E3E3E3 0.35
+[grid] segment 83.585,51.626 to 83.585,155.253 stroke #E3E3E3 0.35
+[grid] segment 121.773,51.626 to 121.773,155.253 stroke #E3E3E3 0.35
+[grid] segment 159.961,51.626 to 159.961,155.253 stroke #E3E3E3 0.35
+[grid] segment 198.149,51.626 to 198.149,155.253 stroke #E3E3E3 0.35
+[grid] segment 236.336,51.626 to 236.336,155.253 stroke #E3E3E3 0.35
+[grid] segment 35.85,150.542 to 245.883,150.542 stroke #E3E3E3 0.35
+[grid] segment 35.85,131.701 to 245.883,131.701 stroke #E3E3E3 0.35
+[grid] segment 35.85,112.86 to 245.883,112.86 stroke #E3E3E3 0.35
+[grid] segment 35.85,94.019 to 245.883,94.019 stroke #E3E3E3 0.35
+[grid] segment 35.85,75.178 to 245.883,75.178 stroke #E3E3E3 0.35
+[grid] segment 35.85,56.336 to 245.883,56.336 stroke #E3E3E3 0.35
+[panel] clip 35.85,51.626 210.033 by 103.627
+  [layer:1] point 45.397,150.542 circle 4.5 #440154 opacity 1
+  [layer:1] point 83.585,84.598 circle 4.5 #414487 opacity 1
+  [layer:1] point 121.773,122.281 circle 4.5 #2A788E opacity 1
+  [layer:1] point 159.961,56.336 circle 4.5 #22A884 opacity 1
+  [layer:1] point 198.149,94.019 circle 4.5 #7AD151 opacity 1
+  [layer:1] point 236.336,131.701 circle 4.5 #FDE725 opacity 1
+[axis:x] segment 35.85,155.253 to 245.883,155.253 stroke #222222 0.5
+[axis:x] segment 45.397,155.253 to 45.397,158.253 stroke #222222 0.5
+[axis:x] text 45.397,166.837 middle "0" sans 8 #222222
+[axis:x] segment 83.585,155.253 to 83.585,158.253 stroke #222222 0.5
+[axis:x] text 83.585,166.837 middle "1" sans 8 #222222
+[axis:x] segment 121.773,155.253 to 121.773,158.253 stroke #222222 0.5
+[axis:x] text 121.773,166.837 middle "2" sans 8 #222222
+[axis:x] segment 159.961,155.253 to 159.961,158.253 stroke #222222 0.5
+[axis:x] text 159.961,166.837 middle "3" sans 8 #222222
+[axis:x] segment 198.149,155.253 to 198.149,158.253 stroke #222222 0.5
+[axis:x] text 198.149,166.837 middle "4" sans 8 #222222
+[axis:x] segment 236.336,155.253 to 236.336,158.253 stroke #222222 0.5
+[axis:x] text 236.336,166.837 middle "5" sans 8 #222222
+[axis:x] text 140.867,180.837 middle "x" sans 9 #222222
+[axis:y] segment 35.85,51.626 to 35.85,155.253 stroke #222222 0.5
+[axis:y] segment 32.85,150.542 to 35.85,150.542 stroke #222222 0.5
+[axis:y] text 29.85,153.334 end "0" sans 8 #222222
+[axis:y] segment 32.85,131.701 to 35.85,131.701 stroke #222222 0.5
+[axis:y] text 29.85,134.493 end "2" sans 8 #222222
+[axis:y] segment 32.85,112.86 to 35.85,112.86 stroke #222222 0.5
+[axis:y] text 29.85,115.652 end "4" sans 8 #222222
+[axis:y] segment 32.85,94.019 to 35.85,94.019 stroke #222222 0.5
+[axis:y] text 29.85,96.811 end "6" sans 8 #222222
+[axis:y] segment 32.85,75.178 to 35.85,75.178 stroke #222222 0.5
+[axis:y] text 29.85,77.97 end "8" sans 8 #222222
+[axis:y] segment 32.85,56.336 to 35.85,56.336 stroke #222222 0.5
+[axis:y] text 29.85,59.128 end "10" sans 8 #222222
+[axis:y] text 13,103.439 middle turned 90 "y" sans 9 #222222
+[legend:color] text 35.85,13 start "z" sans 9 #222222
+[legend:color] raster 40.65,18.25 72 by 8 cells 256 by 1 from #440154 to #FDE725
+[legend:color] segment 40.65,26.25 to 40.65,29.25 stroke #222222 0.5
+[legend:color] text 40.65,37.834 middle "0" sans 8 #222222
+[legend:color] segment 55.05,26.25 to 55.05,29.25 stroke #222222 0.5
+[legend:color] text 55.05,37.834 middle "10" sans 8 #222222
+[legend:color] segment 69.45,26.25 to 69.45,29.25 stroke #222222 0.5
+[legend:color] text 69.45,37.834 middle "20" sans 8 #222222
+[legend:color] segment 83.85,26.25 to 83.85,29.25 stroke #222222 0.5
+[legend:color] text 83.85,37.834 middle "30" sans 8 #222222
+[legend:color] segment 98.25,26.25 to 98.25,29.25 stroke #222222 0.5
+[legend:color] text 98.25,37.834 middle "40" sans 8 #222222
+[legend:color] segment 112.65,26.25 to 112.65,29.25 stroke #222222 0.5
+[legend:color] text 112.65,37.834 middle "50" sans 8 #222222

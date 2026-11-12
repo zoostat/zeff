@@ -67,8 +67,8 @@ use std::borrow::Cow;
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Arrangement, AxisKind, Frame, Mark, Palette, Plot, PlotConstant, PlotLayer,
-    PlotMapping, PlotSetting, Sides, Stacking, Stairs, Table,
+    Aesthetic, Align, Arrangement, AxisKind, Frame, LegendPlace, Mark, Palette, Plot, PlotConstant,
+    PlotLayer, PlotMapping, PlotSetting, Sides, Stacking, Stairs, Table,
 };
 use zeff_diagnostics::count;
 
@@ -130,6 +130,8 @@ pub struct Scene {
     /// What each legend shows: the content only, since where a legend stands is the business of
     /// `legend` and of the writer.
     pub legends: Vec<Legend>,
+    /// Where the script puts the legends: at the right where it says nothing.
+    pub legend: LegendPlace,
     pub panels: Vec<Panel>,
     /// What the reader must be told about the data drawn: the rows dropped and why, each
     /// sentence once.
@@ -2842,6 +2844,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             crs: None,
         }],
         notes,
+        legend: plot.legend,
         frame: None,
     }
 }
@@ -3258,6 +3261,11 @@ impl Scene {
                 ("notes", Json::texts(&self.notes)),
             ]
             .into_iter()
+            // Where the legends stand, when the script says: at the right is not written.
+            .chain(
+                (self.legend != LegendPlace::Right)
+                    .then(|| ("legend", Json::text(self.legend.name()))),
+            )
             .chain(self.frame.map(|frame| ("frame", Json::whole(frame))))
             .collect(),
         )
@@ -3765,7 +3773,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             settings,
         ]);
     }
-    table.more.push(part(
+    let mut drawn = part(
         vec![
             right("layer"),
             left("mark"),
@@ -3774,7 +3782,17 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             left("settings"),
         ],
         rows,
-    ));
+    );
+    // Where the legends stand, when the script says; at the right is not said.
+    let placed = match scene.legend {
+        LegendPlace::Right => None,
+        LegendPlace::Top => Some("legend: above the panel"),
+        LegendPlace::Bottom => Some("legend: under the panel"),
+        LegendPlace::None => Some("legend: not drawn"),
+        LegendPlace::Direct => Some("legend: the name of each line at its end"),
+    };
+    drawn.after.extend(placed.map(str::to_string));
+    table.more.push(drawn);
     table
 }
 
@@ -3796,6 +3814,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         layers: Vec::new(),
         axes: Vec::new(),
         scales: Vec::new(),
+        legend: LegendPlace::Right,
         summary: Table {
             title: String::new(),
             before: Vec::new(),

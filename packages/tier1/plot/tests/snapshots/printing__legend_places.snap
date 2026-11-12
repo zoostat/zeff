@@ -1,0 +1,110 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+legend: above the panel
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+legend: under the panel
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+legend: not drawn
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   color by arm, size 4.5, alpha 1
+
+legend: under the panel
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+legend: above the panel
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+no layer yet: a mark such as `.points()` adds one
+---

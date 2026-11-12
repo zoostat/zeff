@@ -13,7 +13,9 @@
 use std::rc::Rc;
 
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Aesthetic, AxisKind, Palette, Plot, PlotAxis, PlotScale, Value};
+use zeff_core::value::{
+    Aesthetic, AxisKind, LegendPlace, Palette, Plot, PlotAxis, PlotScale, Value,
+};
 use zeff_diagnostics::Diagnostic;
 use zeff_diagnostics::Span;
 
@@ -662,5 +664,46 @@ pub fn scale(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let before = scene(&plot).notes;
     let after = describe(&mut next);
     announce(ctx, &before, &after.notes);
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+const L_POSITION: usize = 1;
+
+/// `p.legend(position: right | top | bottom | none | direct = right)`: where the legends of
+/// the plot stand.
+pub fn legend(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "a legend reached its body without a plot"));
+    };
+    let place = match args.get(L_POSITION) {
+        None | Some(Value::Na) => LegendPlace::Right,
+        Some(Value::Word(word)) => match word.as_str() {
+            "right" => LegendPlace::Right,
+            "top" => LegendPlace::Top,
+            "bottom" => LegendPlace::Bottom,
+            "none" => LegendPlace::None,
+            "direct" => {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        "`legend(direct)` is not built yet: the names of the lines at their ends come with the next step of this release",
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(L_POSITION), "not in this build")
+                    .help("the places built so far are `right`, `top`, `bottom` and `none`"),
+                ));
+            }
+            _ => {
+                return Err(internal(
+                    ctx,
+                    "a place of the legend that is none of the five",
+                ));
+            }
+        },
+        Some(_) => return Err(internal(ctx, "a place of the legend that is not a word")),
+    };
+    let mut next = (**plot).clone();
+    next.legend = place;
+    describe(&mut next);
     Ok(Value::Plot(Rc::new(next)))
 }

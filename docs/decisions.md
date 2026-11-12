@@ -3601,3 +3601,27 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 25d; section 7.6 of the Language Reference ("Scales", "Colour"); open decisions #109, #110 (question 1) and #130.
+
+## 12 November 2026: `legend(right | top | bottom | none)` (release 0.7.0, step 25e1), and step 25e split in two
+
+**The split.** Four of the five places move the legends that exist; `direct` draws something else, the name of each line at its end, with its own questions of room and of names that would touch. It is step 25e2.
+
+**Decision.** The place the script says is held with the plot (`Plot.legend`) and carried by the scene (`Scene.legend`), whose legends are, as before, their content alone. In the scene's JSON the place is the key `legend`, written when it is not `right`, so a scene made before the function existed reads the same and no earlier published scene changes. The layout gives the legends their room by the place.
+
+**Above and under the panel** (rulings where the text is silent, each the owner's to overturn). (a) The legends stand side by side from the left edge of the panel, each with its title above its keys, as at the right; a legend that does not fit beside the one before it starts a new band under it. ggplot2 centres them over the plot and sets the title beside the keys. (b) The keys are laid in as few rows as the width holds, by the code that lays them in columns at the right: the width allowed is the page less its margins and a sixth of the page for the labels of the `y` axis, whose room is not known when the legends are measured. (c) The bar of a continuous scale lies down, 256 colours to a row, the smallest value at the left, a tick and a label under each break. (d) `bottom` is under the title of the `x` axis and above the notes of a figure written with its notes. (e) The room is taken from the height of the panel; a legend that leaves the panel less than its smallest size is refused by the existing refusal of a page too small, at `export`, which names the room left.
+
+**`none`** draws no legend and gives the panel the room, to the last point: the panel is that of the same plot without the variable. The scales, and so the colours of the marks and the printed plot, are unchanged.
+
+**The printed plot** says the place on its last line, `legend: above the panel`, when it is not at the right.
+
+**`direct`** is refused with a message that says it comes with the next step.
+
+**The sample script.** The specification's sample writes `.legend(top)`. The two stored checks of that script (`formulas__sample_script_check` and `script_tests__sample_script_with_module`) lose the line "no function is called `legend`" and nothing else, as they lost `bars` at step 24b and `scale_y` at step 25b.
+
+**Tests.** `packages/tier1/plot/tests/legends.rs`: six tests (the place in the scene and its JSON; the items of a legend at the right, above and under the panel, with the panel wider and lower; no legend and the panel of the plain plot; a ramp lying above the panel and standing at the right; forty categories under a panel of two columns in more than one row, and refused on one column; two legends side by side with a long title broken) and four snapshots of drawings. `printing.rs`: nine plots and six messages. The two examples of the page of `legend` are run. The conformance set gains six cases: what a script of the places prints, the keys above the panel in SVG, PDF and PNG, and the lying bar in SVG. No snapshot of an earlier step changes: a legend at the right is laid out as it was.
+
+**The specification.** No change; catalogue row 482 stays `planned` until `direct` is built at step 25e2.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 25e1; section 7.6 of the Language Reference ("Guides and theme"); the specification's sample script, which writes `.legend(top)`.

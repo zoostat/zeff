@@ -2989,3 +2989,50 @@ fn every_message_of_scale() {
     }
     insta::assert_snapshot!("scale_messages", all);
 }
+
+// ----- legend (step 25e1) -----
+
+const ARMS: &str = "let d = frame(dose = [1, 2, 3, 4], change = [0.4, 1.1, 2.3, 2.9], arm = [\"a\", \"b\", \"a\", \"b\"])\nlet p = d.plot(x: dose, y: change, color: arm).points()\n";
+
+#[test]
+fn the_place_of_the_legend_reads_sensibly_as_text() {
+    let script = format!(
+        "{ARMS}p.legend(top)\n\
+         p.legend(bottom)\n\
+         p.legend(none)\n\
+         p.legend(right)\n\
+         p.legend()\n\
+         p.legend(top).legend(right)\n\
+         d.plot(x: dose, y: change).legend(bottom).points(color: arm)\n\
+         d.plot(x: dose, y: change).points().legend(top)\n\
+         d.plot(x: dose, y: change, color: arm).legend(none)\n"
+    );
+    let text = printed(&script);
+    // The place is said on the last line of a plot that has a layer, and not for the right.
+    assert_eq!(text.matches("legend: above the panel\n").count(), 2);
+    assert_eq!(text.matches("legend: under the panel\n").count(), 2);
+    assert_eq!(text.matches("legend: not drawn\n").count(), 1);
+    insta::assert_snapshot!("legend_places", text);
+}
+
+#[test]
+fn every_message_of_legend() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("the_names_at_the_ends", "p.legend(direct)\n"),
+        ("a_place_that_is_none", "p.legend(left)\n"),
+        ("a_place_in_quotation_marks", "p.legend(\"top\")\n"),
+        ("two_places", "p.legend(top, bottom)\n"),
+        ("a_legend_of_a_frame", "d.legend(top)\n"),
+        (
+            "a_legend_with_no_room_for_the_panel",
+            "let w = dataset(wages)\nexport(w.plot(x: educ, y: wage, color: industry, size: hours).points().legend(bottom), \"small.svg\")\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{ARMS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("legend_messages", all);
+}

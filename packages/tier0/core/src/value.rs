@@ -84,6 +84,8 @@ pub struct Plot {
     /// What the script says of the scales of colour, fill, size and shape: the last said of
     /// each, in the order said.
     pub scales: Vec<PlotScale>,
+    /// Where the script puts the legends; at the right where it says nothing.
+    pub legend: LegendPlace,
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
     pub summary: Table,
@@ -91,6 +93,35 @@ pub struct Plot {
     /// puts here when it makes a plot, so that `export`, in a package below it, can ask for the
     /// bytes without calling upwards (rule 5). `None` for a plot value made by hand in a test.
     pub figure: Option<FigureWriter>,
+}
+
+/// Where the legends of a plot stand (section 7.6, "Guides and theme": `legend`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LegendPlace {
+    /// At the right of the panel, one under the other.
+    #[default]
+    Right,
+    /// Above the panel, side by side.
+    Top,
+    /// Under the panel and the title of its axis, side by side.
+    Bottom,
+    /// Not drawn.
+    None,
+    /// Not drawn: the name of each line is written at its end.
+    Direct,
+}
+
+impl LegendPlace {
+    /// The place as it is written: `right`, `top`, `bottom`, `none`, `direct`.
+    pub fn name(self) -> &'static str {
+        match self {
+            LegendPlace::Right => "right",
+            LegendPlace::Top => "top",
+            LegendPlace::Bottom => "bottom",
+            LegendPlace::None => "none",
+            LegendPlace::Direct => "direct",
+        }
+    }
 }
 
 /// What a script says of a scale that is not a position: the colours of `color` or `fill`,

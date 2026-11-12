@@ -337,6 +337,12 @@ plot/palette/stderr 286bf9c6df85decd
 plot/palette/palette.svg 877be85a46e5756e
 plot/palette/palette.pdf 2a65b22e70dd4aef
 plot/palette/palette.png c6db569997b7c259
+plot/legend/stdout 1c13e5a89b8dc57a
+plot/legend/stderr 038b5530f7e346ae
+plot/legend/legend.svg b65934a2b53a244f
+plot/legend/legend.pdf cf1095774379b916
+plot/legend/legend.png 0a414cf9163221b6
+plot/legend/legend_ramp.svg 050098f75e0b7fb3
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

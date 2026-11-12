@@ -46,5 +46,3 @@ error[Z0103]: no function is called `theme`
  --> zeff_samples.zeff:243:6
 error[Z0103]: no function is called `errorbars`
  --> zeff_samples.zeff:249:6
-error[Z0103]: no function is called `legend`
- --> zeff_samples.zeff:250:6

@@ -29,7 +29,7 @@
 //! A drawing holds no row of the data (open decision #118, F2): of a mark it keeps the place,
 //! the shape, the size and the colour.
 
-use zeff_core::value::{Mark, Stairs};
+use zeff_core::value::{LegendPlace, Mark, Stairs};
 
 use crate::colour;
 use crate::drawing::{Anchor, Drawing, Head, Item, LineType, Primitive, Span, Step, Stroke, rgb};
@@ -324,12 +324,14 @@ enum Content {
         label_widths: Vec<f64>,
         row_height: f64,
     },
-    /// A bar of colours from the largest value at the top, with the labels of its breaks at
-    /// their share of the way down.
+    /// A bar of colours with the labels of its breaks at their share of the way along it:
+    /// standing, from the largest value at the top, or lying (`across`), from the smallest
+    /// value at the left, for a legend above or under the panel.
     Ramp {
         colours: Vec<String>,
         length: f64,
         ticks: Vec<(f64, String)>,
+        across: bool,
     },
 }
 
@@ -344,12 +346,17 @@ struct LegendPlan {
 /// Between two columns of keys.
 const COLUMN_GAP: f64 = 8.0;
 
+/// A legend, measured. `across` is the width it may take where it stands above or under the
+/// panel: its keys are then laid in as few rows as that width holds, and the bar of a ramp
+/// lies down. Without it the legend stands at the right, its keys in columns as tall as the
+/// page holds.
 fn plan_legend(
     scene: &Scene,
     legend: &Legend,
     theme: &Theme,
     set: &mut Setter,
     page: (f64, f64),
+    across: Option<f64>,
 ) -> LegendPlan {
     let scales: Vec<&Scale> = legend
         .scales
@@ -519,22 +526,34 @@ fn plan_legend(
                 })
                 .fold(tallest_mark, f64::max);
             let row_height = line.max(tallest_mark + 2.0);
-            let rows = ((room / row_height).floor() as usize).clamp(1, keys.len().max(1));
-            let label_widths: Vec<f64> = keys
-                .chunks(rows)
-                .map(|column| {
-                    column
-                        .iter()
-                        .map(|k| set.width(&k.label, FaceName::Sans, theme.label_size))
-                        .fold(0.0, f64::max)
-                })
-                .collect();
-            let columns = label_widths.len();
-            let width = label_widths
+            let most = ((room / row_height).floor() as usize).clamp(1, keys.len().max(1));
+            let labels: Vec<f64> = keys
                 .iter()
-                .map(|w| widest_mark + theme.label_gap + w)
-                .sum::<f64>()
-                + COLUMN_GAP * columns.saturating_sub(1) as f64;
+                .map(|k| set.width(&k.label, FaceName::Sans, theme.label_size))
+                .collect();
+            // The widths of the columns of labels, and of the whole, with `rows` keys to a
+            // column.
+            let laid = |rows: usize| -> (Vec<f64>, f64) {
+                let label_widths: Vec<f64> = labels
+                    .chunks(rows)
+                    .map(|column| column.iter().copied().fold(0.0, f64::max))
+                    .collect();
+                let width = label_widths
+                    .iter()
+                    .map(|w| widest_mark + theme.label_gap + w)
+                    .sum::<f64>()
+                    + COLUMN_GAP * label_widths.len().saturating_sub(1) as f64;
+                (label_widths, width)
+            };
+            // At the right: columns as tall as the page holds. Above or under the panel: as
+            // few rows as the width holds, and as many as the page where none does.
+            let rows = match across {
+                None => most,
+                Some(wide) => (1..=most)
+                    .find(|&rows| laid(rows).1 <= wide)
+                    .unwrap_or(most),
+            };
+            let (label_widths, width) = laid(rows);
             let height = rows.min(keys.len()) as f64 * row_height;
             (
                 Content::Keys {
@@ -549,31 +568,57 @@ fn plan_legend(
             )
         }
         (None, Some(ramp)) => {
-            let colours: Vec<String> = match &ramp.range {
-                Range::Colours(list) => list.iter().rev().map(|c| (*c).to_string()).collect(),
+            let lying = across.is_some();
+            let mut colours: Vec<String> = match &ramp.range {
+                Range::Colours(list) => list.clone(),
                 _ => Vec::new(),
             };
-            let length = theme.ramp_length.min(room);
+            // Standing, the largest value is at the top.
+            if !lying {
+                colours.reverse();
+            }
+            let length = match across {
+                Some(wide) => theme.ramp_length.min(wide),
+                None => theme.ramp_length.min(room),
+            };
             let (lo, hi) = ramp.limits;
             let ticks: Vec<(f64, String)> = ramp
                 .breaks
                 .iter()
                 .zip(&ramp.labels)
                 .filter(|(value, _)| hi > lo && **value >= lo && **value <= hi)
-                .map(|(value, label)| ((hi - value) / (hi - lo), label.clone()))
+                .map(|(value, label)| {
+                    let up = (value - lo) / (hi - lo);
+                    (if lying { up } else { 1.0 - up }, label.clone())
+                })
                 .collect();
-            let widest = ticks
+            let widths: Vec<f64> = ticks
                 .iter()
                 .map(|(_, label)| set.width(label, FaceName::Sans, theme.label_size))
-                .fold(0.0, f64::max);
-            let width = theme.ramp_width + theme.tick_length + theme.label_gap + widest;
-            // Half a label above the bar and half below, for the labels at its ends.
-            let height = length + capital(theme.label_size);
+                .collect();
+            let widest = widths.iter().copied().fold(0.0, f64::max);
+            let (width, height) = if lying {
+                // Half a label beyond each end of the bar, for the labels at its ends.
+                (
+                    length + widest,
+                    theme.ramp_width
+                        + theme.tick_length
+                        + theme.label_gap
+                        + capital(theme.label_size),
+                )
+            } else {
+                // Half a label above the bar and half below.
+                (
+                    theme.ramp_width + theme.tick_length + theme.label_gap + widest,
+                    length + capital(theme.label_size),
+                )
+            };
             (
                 Content::Ramp {
                     colours,
                     length,
                     ticks,
+                    across: lying,
                 },
                 width,
                 height,
@@ -698,6 +743,59 @@ fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec
             colours,
             length,
             ticks,
+            across: true,
+        } => {
+            // Lying: the smallest value at the left, a tick and a label under each break.
+            let widest = (plan.width - length).max(0.0);
+            let start = left + widest / 2.0;
+            items.push(named(
+                &plan.name,
+                Primitive::Raster {
+                    at: (start, y),
+                    width: *length,
+                    height: theme.ramp_width,
+                    columns: colours.len(),
+                    rows: 1,
+                    cells: colours.iter().map(|colour| rgb(colour)).collect(),
+                },
+            ));
+            let under = y + theme.ramp_width;
+            for (share, label) in ticks {
+                let at = start + share * length;
+                items.push(named(
+                    &plan.name,
+                    Primitive::Segment {
+                        from: (at, under),
+                        to: (at, under + theme.tick_length),
+                        stroke: Stroke {
+                            colour: theme.ink.to_string(),
+                            width: theme.axis_width,
+                            dash: LineType::Solid,
+                        },
+                        heads: (Head::Plain, Head::Plain),
+                    },
+                ));
+                items.push(named(
+                    &plan.name,
+                    text(
+                        (
+                            at,
+                            under + theme.tick_length + theme.label_gap + capital(theme.label_size),
+                        ),
+                        Anchor::Middle,
+                        0.0,
+                        label,
+                        theme.label_size,
+                        theme,
+                    ),
+                ));
+            }
+        }
+        Content::Ramp {
+            colours,
+            length,
+            ticks,
+            across: false,
         } => {
             let top = y + half_capital;
             items.push(named(
@@ -799,17 +897,58 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         noted_lines.len() as f64 * label * theme.leading + theme.title_gap
     };
 
-    // The legends, at the right.
-    let plans: Vec<LegendPlan> = scene
-        .legends
-        .iter()
-        .map(|legend| plan_legend(scene, legend, theme, &mut set, (width, height - noted_room)))
-        .collect();
+    // The legends: at the right, one under the other; above or under the panel, side by
+    // side; or not drawn.
+    let place = scene.legend;
+    let banded = matches!(place, LegendPlace::Top | LegendPlace::Bottom);
+    // The room of a band: the width of the page less its margins and the room the labels and
+    // the title of the y axis take at the left, which is not yet known; a sixth of the page
+    // is allowed for it.
+    let band_room = (width - 2.0 * theme.margin - width / 6.0).max(1.0);
+    let plans: Vec<LegendPlan> = if matches!(place, LegendPlace::None | LegendPlace::Direct) {
+        Vec::new()
+    } else {
+        scene
+            .legends
+            .iter()
+            .map(|legend| {
+                plan_legend(
+                    scene,
+                    legend,
+                    theme,
+                    &mut set,
+                    (width, height - noted_room),
+                    banded.then_some(band_room),
+                )
+            })
+            .collect()
+    };
+    // Above or under the panel, a legend that does not fit beside the one before it starts
+    // a new band under it.
+    let mut bands: Vec<(f64, Vec<usize>)> = Vec::new();
+    if banded {
+        let mut used = 0.0;
+        for (at, plan) in plans.iter().enumerate() {
+            match bands.last_mut() {
+                Some((tallest, members)) if used + theme.legend_gap + plan.width <= band_room => {
+                    *tallest = tallest.max(plan.height);
+                    members.push(at);
+                    used += theme.legend_gap + plan.width;
+                }
+                _ => {
+                    bands.push((plan.height, vec![at]));
+                    used = plan.width;
+                }
+            }
+        }
+    }
+    let bands_height = bands.iter().map(|(tallest, _)| tallest).sum::<f64>()
+        + theme.legend_gap * bands.len() as f64;
     // A legend that does not fit under the one before it starts a new column to its right.
     let legends_room = height - noted_room - 2.0 * theme.margin;
     let mut legend_columns: Vec<(f64, Vec<usize>)> = Vec::new();
     let mut used = 0.0;
-    for (at, plan) in plans.iter().enumerate() {
+    for (at, plan) in plans.iter().enumerate().filter(|_| !banded) {
         match legend_columns.last_mut() {
             Some((widest, members)) if used + theme.legend_gap + plan.height <= legends_room => {
                 *widest = widest.max(plan.width);
@@ -840,9 +979,16 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
 
     // The room each side takes. A label at the end of the x axis may reach past the panel by
     // half its width, and the top label of the y axis by half its height.
-    let top = theme.margin + half_capital + 1.0;
+    let top = theme.margin
+        + half_capital
+        + 1.0
+        + if place == LegendPlace::Top {
+            bands_height
+        } else {
+            0.0
+        };
     let right = theme.margin
-        + if plans.is_empty() {
+        + if plans.is_empty() || banded {
             x_widths.last().map_or(0.0, |w| w / 2.0)
         } else {
             theme.legend_gap + legends_width
@@ -862,6 +1008,11 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             };
         let bottom = theme.margin
             + noted_room
+            + if place == LegendPlace::Bottom {
+                bands_height
+            } else {
+                0.0
+            }
             + match xs {
                 Some(_) => {
                     let title = if x_lines > 0 {
@@ -1452,7 +1603,23 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             ));
         }
     }
-    // The legends, each column from the top of the panel down.
+    // The legends above or under the panel: each band from the left edge of the panel.
+    if banded {
+        let mut y = if place == LegendPlace::Top {
+            theme.margin
+        } else {
+            height - theme.margin - noted_room - bands_height + theme.legend_gap
+        };
+        for (tallest, members) in &bands {
+            let mut x = left;
+            for &at in members {
+                draw_legend(&plans[at], (x, y), theme, &mut items);
+                x += plans[at].width + theme.legend_gap;
+            }
+            y += tallest + theme.legend_gap;
+        }
+    }
+    // The legends at the right, each column from the top of the panel down.
     let mut x = width - theme.margin - legends_width;
     for (widest, members) in &legend_columns {
         let mut y = top - half_capital;

@@ -173,3 +173,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25e `[engine]`: `legend(right | top | bottom | none | direct)`, which completes step 25.
 
 **For the owner to decide.** Two things, neither blocking. (1) #109, question 2: an argument of `scale` to keep every level of a Category in the legend, recommended as `levels: all`, due 0.8.0. (2) #130: a note raised by a layer before `scale` in one chain stays printed though `scale` may undo its cause; kept as built for 0.7.0, with the remedy in the help page, and a proper fix planned for 0.8.0. Taken on the recommendation at this step, his to overturn: a ramp mixes red, green and blue directly, where ggplot2 mixes in another colour space; fewer colours than categories repeat with a note, where ggplot2 stops. Open as before: the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25e1 (`legend`: right, top, bottom, none)
+
+**Done.** Step 25e was split into 25e1 (the four places) and 25e2 (`direct`). `p.legend(top)` and `p.legend(bottom)` put the legends above or under the panel, side by side, the keys in rows and the bar of a continuous scale lying down; `p.legend(none)` draws none and gives the panel the room. The specification's sample, `.legend(top)`, now runs. A legend at the right is laid out as before.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 362 of 362; CI is read job by job after the push.
+
+**Next.** Step 25e2 `[engine]`: `legend(direct)`, the name of each line at its end, which completes step 25.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: above and under the panel the legends start at the left edge of the panel with the title above the keys, where ggplot2 centres them with the title beside. Open as before: #109 (question 2, an argument to keep every level), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

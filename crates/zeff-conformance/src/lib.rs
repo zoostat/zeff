@@ -2045,6 +2045,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/palette/{name}"), &data));
     }
+    // The place of the legend (step 25e1): above the panel, under it and not drawn, with
+    // the bar of a continuous scale lying above the panel; what the script prints, the keys
+    // above the panel in the three formats and the lying bar as a figure.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet p = w.plot(x: educ, y: wage, color: union).points(alpha: 0.5).legend(top)\np\nw.plot(x: educ, y: wage, color: union).points(alpha: 0.5).legend(bottom)\nw.plot(x: educ, y: wage, color: union).points(alpha: 0.5).legend(none)\nlet q = w.plot(x: educ, y: wage, color: hours).points().legend(top)\nexport(p, \"legend.svg\")\nexport(p, \"legend.pdf\")\nexport(p, \"legend.png\")\nexport(q, \"legend_ramp.svg\")\n";
+    let legended = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/legend/stdout", &legended.output.stdout));
+    fills.push(text("plot/legend/stderr", &legended.output.stderr));
+    for name in ["legend.svg", "legend.pdf", "legend.png", "legend_ramp.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/legend/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

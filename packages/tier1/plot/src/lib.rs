@@ -651,5 +651,29 @@ pub fn functions() -> Vec<Function> {
             },
             body: scales::scale,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "legend",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option_with_default(
+                        "position",
+                        "right | top | bottom | none | direct",
+                        "right",
+                    ),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "direct, which is not built yet",
+                )],
+                help: include_str!("../help/legend.md"),
+                accuracy: None,
+            },
+            body: scales::legend,
+        },
     ]
 }
