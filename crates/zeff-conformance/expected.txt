@@ -359,6 +359,12 @@ plot/theme/theme.svg a48f1793b293009d
 plot/theme/theme.pdf 75476cf87f7c76b4
 plot/theme/theme.png 9821327de150db72
 plot/theme/theme_slide.svg 147cf8729d29c451
+plot/annotate/stdout 6ca21c86c3d7751d
+plot/annotate/stderr 897d8d71ed5d8216
+plot/annotate/annotated.svg 30aba136edd82cc8
+plot/annotate/annotated.pdf 8988d9ffe03c79f0
+plot/annotate/annotated.png 462002fcac50c4a8
+plot/annotate/wrapped.svg 61acc2574918c763
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

@@ -3683,3 +3683,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 26b; section 7.6 of the Language Reference ("Guides and theme": "One default theme: white background, major gridlines only, no chart junk").
+
+## 13 November 2026: `annotate`, and the labels of a crowded axis (release 0.7.0, step 26c); step 26 complete
+
+**`annotate`.** `p.annotate(text:, x:, y:, size:)` writes one text at a place of the data. It is a layer of the mark `text` of one row, in a frame of its own called `annotation` with the variables `x`, `y` and `text`, which the function makes and the scene and the writers treat as any layer of text: nothing new is drawn, and an annotation is placed by the scales of the plot whatever they are. The printed plot reads such a layer as what it is, `"steepest here" at 2.5, 1.2, size 8`.
+
+**Rulings where the text is silent**, each of which the owner may overturn. (a) A place is of the kind its axis holds: a number on an axis of numbers, the name of a category the axis has on an axis of categories, a date on an axis of dates; another kind, and a category the axis lacks, are refused with the nearest name offered. The catalogue's usage line is widened for it (logged). (b) An annotation counts for the limits of the axes, as a mark does and as ggplot2's `annotate` does: a text placed beyond the data widens the axis. (c) The text is centred on its place and cut off at the edge of the panel, as the marks are; the help page says to place it further in or to widen the limits. (d) `size:` is the size of the type in points, 8 where it is left out, and the base size of a theme does not change it, as it changes no mark. (e) The plot must map something to `x` and to `y` first: a place needs its axis. (f) The words must not be empty.
+
+**The labels of a crowded axis.** The checklist asks for labels "wrapped or thinned, never overlapping". Thinning was built at step 21b for both axes: labels that would touch are passed over, every second or third being written, with a tick at every break. This step adds the wrapping, along `x`, for an axis of categories: each label wider than its place is broken between words, a word longer than the place standing alone on its line; where the broken labels can then all be written without touching, in three lines at most, they are written so and the panel gives up the room of the lines; where even so some would have to be passed over, the labels stay whole on one line and are thinned as before. All or none: an axis on which some labels are broken and others left out reserved room for lines that were not written, which the first form of the rule did. An axis of numbers or of dates is not wrapped. No drawing of an earlier step changes: where labels were thinned before, breaking them would not have let all be written.
+
+**What is not done.** A figure whose axis of categories has labels passed over says nothing of it: the layout knows which labels it left out, and the writer of a figure returns bytes and no notes. Turning the labels on their side is not among the three themes; the categories along `y`, where each has a line of its own, is the remedy today, and `coord(flip)` of step 27 will make it one word.
+
+**Step 26 is complete**: `labels` (26a), `theme` (26b), `annotate` and the crowded axis (26c). `plot` stands at nineteen functions built.
+
+**Tests.** `packages/tier1/plot/tests/crowded.rs`: four tests of the layout (five regions written on two or three lines, word for word, a line apart, none touching, with a snapshot of the drawing; a word too long for its place, where the labels stay whole and some are passed over, and all four written on a page of two columns; two hundred categories on three sizes of page and along `y`, evenly passed over, none touching, a tick at each; an axis of numbers as it was). `printing.rs`: nine plots with annotations at a number, a category and a date, beyond the data, twice on one plot and on a log scale, and fifteen messages. The two examples of the page of `annotate` are run. The conformance set gains six cases: what a script prints, an annotated series in SVG, PDF and PNG, and the broken labels in SVG.
+
+**The specification.** Catalogue row 484 (logged in `docs/spec_changes.md`) is marked `implemented`.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 26c; section 7.6 of the Language Reference ("Guides and theme"; "Defaults": labels never overlapping).

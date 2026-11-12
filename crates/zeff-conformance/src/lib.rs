@@ -2093,6 +2093,24 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/theme/{name}"), &data));
     }
+    // An annotation, and the labels of a crowded axis (step 26c): a text at a place of a
+    // series, at a category and at a date; five regions whose labels are broken onto two or
+    // three lines; what the script prints, the annotated series in the three formats and
+    // the broken labels as a figure.
+    let script = "let w = dataset(wages)\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nlet p = u.plot(x: year, y: wage, color: union).lines().annotate(text: \"the gap widens\", x: 2017, y: 34, size: 10)\np\nlet f = dataset(firms)\nf.plot(x: founded, y: size).points(alpha: 0.3).annotate(text: \"oil crisis\", x: date(\"1973-10-17\"), y: 38)\nlet s = frame(group = [\"New south region\", \"Old north region\", \"Far east region\", \"Mid west region\", \"The islands\"], n = [12, 30, 22, 8, 15])\nlet q = s.plot(x: group, y: n).bars().annotate(text: \"largest\", x: \"Old north region\", y: 31)\nq\nexport(p, \"annotated.svg\")\nexport(p, \"annotated.pdf\")\nexport(p, \"annotated.png\")\nexport(q, \"wrapped.svg\")\n";
+    let annotated = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/annotate/stdout", &annotated.output.stdout));
+    fills.push(text("plot/annotate/stderr", &annotated.output.stderr));
+    for name in [
+        "annotated.svg",
+        "annotated.pdf",
+        "annotated.png",
+        "wrapped.svg",
+    ] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/annotate/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

@@ -2028,3 +2028,188 @@ pub(crate) fn misplaced(ctx: &CallContext<'_>, fault: &AxisFault, at: Span) -> F
 fn count_of(n: usize) -> String {
     zeff_diagnostics::count(n as u64)
 }
+
+const A_TEXT: usize = 1;
+const A_X: usize = 2;
+const A_Y: usize = 3;
+const A_SIZE: usize = 4;
+
+/// `p.annotate(text: Str, x: Float | Str | Date | DateTime, y: Float | Str | Date | DateTime,
+/// size: Float)`: one text written at a place of the data.
+///
+/// An annotation is a layer of text of one row, in a frame of its own called `annotation`:
+/// it is placed by the scales of the plot, counts for the limits of the axes as a mark does,
+/// and is drawn over the layers before it.
+pub fn annotate(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`annotate` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let missing = |ctx: &CallContext<'_>, what: &str| {
+        fail(
+            Diagnostic::error("Z0406", format!("`annotate` needs `{what}`"))
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, format!("`{what}` is missing"))
+                .help("an annotation is a text and the place it is written at, as in `annotate(text: \"policy change\", x: 2015, y: 40)`"),
+        )
+    };
+    let words = match args.get(A_TEXT) {
+        None | Some(Value::Na) => return Err(missing(ctx, "text")),
+        Some(Value::Str(words)) if words.trim().is_empty() => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    "`text:` of `annotate` is empty: there is nothing to write",
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(A_TEXT), "no text")
+                .help("write the words of the annotation, as in `text: \"policy change\"`"),
+            ));
+        }
+        Some(Value::Str(words)) => words.to_string(),
+        Some(_) => return Err(internal(ctx, "an annotation that is not text")),
+    };
+    // The place along each axis: a number on an axis of numbers, the name of a category
+    // on an axis of categories, a date on a scale of dates.
+    let mut columns: Vec<(String, Column)> = Vec::new();
+    for (slot, aesthetic) in [(A_X, Aesthetic::X), (A_Y, Aesthetic::Y)] {
+        let axis = aesthetic.name();
+        let given = match args.get(slot) {
+            None | Some(Value::Na) => return Err(missing(ctx, axis)),
+            Some(given) => given,
+        };
+        let refused = |ctx: &CallContext<'_>, why: String, label: &str, help: String| {
+            fail(
+                Diagnostic::error("Z0401", why)
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(slot), label.to_string())
+                    .help(help),
+            )
+        };
+        let Some((placing, variable)) = placing_of(&plot, aesthetic) else {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`annotate` writes at a place on the `{axis}` axis, but nothing is mapped to `{axis}` yet"
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(
+                    ctx.callee_span,
+                    format!("needs {} `{axis}` axis", if axis == "x" { "an" } else { "a" }),
+                )
+                .help(format!("map a variable to `{axis}` where the plot starts, or add the layer that maps it before the annotation")),
+            ));
+        };
+        let column = match (placing, given) {
+            (Placing::Linear, Value::Int(i)) => Column::floats([Some(*i as f64)]).0,
+            (Placing::Linear, Value::Float(v)) if v.is_finite() => Column::floats([Some(*v)]).0,
+            (Placing::Dates, Value::Date(days)) => Column::dates([Some(*days)]),
+            (Placing::Dates, Value::DateTime(micros)) => Column::datetimes([Some(*micros)]),
+            (Placing::Categories, Value::Str(name)) => {
+                let name: &str = name;
+                let known = crate::scene::axis_categories(&plot, aesthetic).unwrap_or_default();
+                if !known.iter().any(|category| category == name) {
+                    let near =
+                        zeff_diagnostics::did_you_mean(name, known.iter().map(String::as_str));
+                    return Err(refused(
+                        ctx,
+                        format!(
+                            "the `{axis}` axis has no category called \"{name}\": it holds the categories of `{variable}`"
+                        ),
+                        "not a category of the axis",
+                        match near {
+                            Some(near) => format!("did you mean \"{near}\"?"),
+                            None => format!("the categories are {}", known.join(", ")),
+                        },
+                    ));
+                }
+                Column::strs([Some(name)])
+            }
+            (placing, given) => {
+                let (holds, wants) = match placing {
+                    Placing::Linear => (
+                        format!("the numbers of `{variable}`"),
+                        format!("a number, as in `{axis}: 40`"),
+                    ),
+                    Placing::Dates => (
+                        format!("the dates of `{variable}`"),
+                        format!("a date, as in `{axis}: date(\"2020-03-01\")`"),
+                    ),
+                    Placing::Categories => (
+                        format!("the categories of `{variable}`"),
+                        format!("the name of a category, as in `{axis}: \"north\"`"),
+                    ),
+                };
+                return Err(refused(
+                    ctx,
+                    format!(
+                        "`{axis}:` of `annotate` is {}, but the `{axis}` axis of this plot holds {holds}",
+                        given.type_word()
+                    ),
+                    "no place on this axis",
+                    format!("write {wants}"),
+                ));
+            }
+        };
+        columns.push((axis.to_string(), column));
+    }
+    let size = number_option(ctx, &args, A_SIZE, "a `size:` that is not a number")?;
+    if let Some(given) = size
+        && !(given > 0.0 && given.is_finite())
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`size:` of `annotate` is the size of the type in points of 1/72 inch, above 0, but this is {}",
+                    shown(given)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(A_SIZE), "not a size")
+            .help("write a size such as 8 or 10; without `size:` the text is 8 points, as the labels of the axes are"),
+        ));
+    }
+    columns.push(("text".to_string(), Column::strs([Some(words.as_str())])));
+    let table = match zeff_columns::Table::new(columns) {
+        Ok(table) => table,
+        Err(_) => {
+            return Err(internal(
+                ctx,
+                "the frame of an annotation could not be made",
+            ));
+        }
+    };
+    let own = Frame {
+        table: Rc::new(table),
+        name: Some("annotation".to_string()),
+    };
+    let variable = |aesthetic: Aesthetic, name: &str| PlotMapping {
+        aesthetic,
+        variable: name.to_string(),
+        computed: None,
+    };
+    finish(
+        ctx,
+        &plot,
+        PlotLayer {
+            mark: Mark::Text,
+            data: Some(own),
+            alpha: 1.0,
+            size,
+            jitter: 0.0,
+            nudge: (0.0, 0.0),
+            width: None,
+            stream: None,
+            computed: Vec::new(),
+            mappings: vec![
+                variable(Aesthetic::X, "x"),
+                variable(Aesthetic::Y, "y"),
+                variable(Aesthetic::Label, "text"),
+            ],
+            constants: Vec::new(),
+        },
+    )
+}

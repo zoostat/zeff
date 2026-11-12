@@ -550,3 +550,7 @@ Step 25c1 of release 0.7.0 builds the axis of dates, of which the section named 
 ## 12 November 2026 — zeff_functions.csv, rows 470 and 471; Language Reference, section 3.7
 
 Step 25c2 of release 0.7.0 lets a reference line stand at one date on an axis of dates. The usage lines of catalogue rows 470 (`hline`) and 471 (`vline`) had `at: Float | Var`; they now have `at: Float | Date | DateTime | Var`. In section 3.7 the row "A variable or a value" gains that form among its examples, and "a script binding that holds a number or text" becomes "a number, text or a date": the rule of open decision #127 (option B) is the same, and now reaches the dates the parameter takes, so `let crash = date("2008-09-15")` and `vline(at: crash)` draw the line. Rows 476 and 477 keep their usage lines: `date`, and `labels:` as one string, were there since the catalogue was written and are built at this step.
+
+## 13 November 2026 — zeff_functions.csv, row 484
+
+Step 26c of release 0.7.0 builds `annotate`. Its usage line had `x: Float, y: Float`: a place on an axis of numbers alone. Since steps 24a and 25c1 an axis may hold categories or dates, and a text is as often wanted at a category or at the date of an event. The line is now `p.annotate(text: Str, x: Float | Str | Date | DateTime, y: Float | Str | Date | DateTime, size: Float)`: the name of a category on an axis of categories and a date on an axis of dates, as `hline` and `vline` take a date since step 25c2. The row is marked `implemented`.

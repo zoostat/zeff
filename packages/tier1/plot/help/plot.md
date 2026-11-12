@@ -107,6 +107,14 @@ categories and numbers where it is linear, and a category that only a layer's ow
 takes the place after the others. `points`, `lines`, `step` and `rug` are placed on an axis of
 categories; `area`, `ribbon`, `hline` and `vline` stand at numbers and are not.
 
+The labels of a crowded axis. The labels of an axis never touch. Along `x`, a label of an
+axis of categories that is wider than its place is broken between words, into three lines at
+most, where every label of the axis can then be written. Where even so two would touch, the
+labels stay on one line and every second or third is written, with a tick at every category.
+A wider figure, as `size: two_column` of `export`, or fewer categories, shows them all. The
+labels of an axis of numbers or of dates are passed over in the same way where they would
+touch.
+
 An axis of dates. A Date or a DateTime variable mapped to `x` or to `y` is placed in
 proportion to the time: equal spans of time are equal distances on the page. The axis runs 5%
 of its range beyond the first and the last date drawn. Its breaks fall on the calendar: the

@@ -157,3 +157,13 @@ Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engin
 **Next.** Step 26c `[function]`: `annotate`, and the labels of a crowded axis, which completes step 26.
 
 **For the owner to decide.** One thing to look at, not blocking: on a slide the type is twice as large and the points and lines keep their size in points, as in ggplot2; the figures of the step show it. Taken on the recommendation, his to overturn: what `minimal` and `slide` are; a base size below 9 refused. Open as before: #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 26c (`annotate`, and the labels of a crowded axis), and step 26 complete
+
+**Done.** `p.annotate(text:, x:, y:, size:)` writes a text at a place of the data: a number, the name of a category or a date, as the axis holds. The labels of an axis of categories that are wider than their places are broken between words onto two or three lines where every label can then be written; otherwise they stay whole and every second or third is written; two hundred categories never overlap. With it step 26 is complete: `labels`, `theme`, `annotate`. `plot` stands at nineteen functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 384 of 384; CI is read job by job after the push.
+
+**Next.** Step 27 `[engine]`: coordinates and facets (`coord`, `facet`).
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: an annotation widens the axes like a mark and is cut off at the edge of the panel; labels are broken only where all can then be written. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

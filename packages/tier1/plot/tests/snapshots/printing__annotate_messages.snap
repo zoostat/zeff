@@ -1,0 +1,136 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_text
+error[Z0406]: `annotate` needs `text`
+ --> scripts/main.zeff:4:3
+  |
+4 | p.annotate(x: 2, y: 1)
+  |   ^^^^^^^^ `text` is missing
+  |
+  = help: an annotation is a text and the place it is written at, as in `annotate(text: "policy change", x: 2015, y: 40)`
+
+== no_place_along_x
+error[Z0406]: `annotate` needs `x`
+ --> scripts/main.zeff:4:3
+  |
+4 | p.annotate(text: "here", y: 1)
+  |   ^^^^^^^^ `x` is missing
+  |
+  = help: an annotation is a text and the place it is written at, as in `annotate(text: "policy change", x: 2015, y: 40)`
+
+== no_place_along_y
+error[Z0406]: `annotate` needs `y`
+ --> scripts/main.zeff:4:3
+  |
+4 | p.annotate(text: "here", x: 2)
+  |   ^^^^^^^^ `y` is missing
+  |
+  = help: an annotation is a text and the place it is written at, as in `annotate(text: "policy change", x: 2015, y: 40)`
+
+== an_empty_text
+error[Z0401]: `text:` of `annotate` is empty: there is nothing to write
+ --> scripts/main.zeff:4:18
+  |
+4 | p.annotate(text: "", x: 2, y: 1)
+  |                  ^^ no text
+  |
+  = help: write the words of the annotation, as in `text: "policy change"`
+
+== a_category_on_numbers
+error[Z0401]: `x:` of `annotate` is a Str, but the `x` axis of this plot holds the numbers of `dose`
+ --> scripts/main.zeff:4:29
+  |
+4 | p.annotate(text: "here", x: "a", y: 1)
+  |                             ^^^ no place on this axis
+  |
+  = help: write a number, as in `x: 40`
+
+== a_date_on_numbers
+error[Z0401]: `x:` of `annotate` is a Date, but the `x` axis of this plot holds the numbers of `dose`
+ --> scripts/main.zeff:4:29
+  |
+4 | p.annotate(text: "here", x: date("2020-01-01"), y: 1)
+  |                             ^^^^^^^^^^^^^^^^^^ no place on this axis
+  |
+  = help: write a number, as in `x: 40`
+
+== a_number_on_categories
+error[Z0401]: `x:` of `annotate` is an Int, but the `x` axis of this plot holds the categories of `arm`
+ --> scripts/main.zeff:4:29
+  |
+4 | c.annotate(text: "here", x: 2, y: 1)
+  |                             ^ no place on this axis
+  |
+  = help: write the name of a category, as in `x: "north"`
+
+== a_category_the_axis_lacks
+error[Z0401]: the `x` axis has no category called "c": it holds the categories of `arm`
+ --> scripts/main.zeff:4:29
+  |
+4 | c.annotate(text: "here", x: "c", y: 1)
+  |                             ^^^ not a category of the axis
+  |
+  = help: did you mean "a"?
+
+== a_number_on_dates
+error[Z0401]: `x:` of `annotate` is an Int, but the `x` axis of this plot holds the dates of `day`
+ --> scripts/main.zeff:4:61
+  |
+4 | d.plot(x: day, y: change).lines().annotate(text: "here", x: 3, y: 1)
+  |                                                             ^ no place on this axis
+  |
+  = help: write a date, as in `x: date("2020-03-01")`
+
+== no_axis_to_place_by
+error[Z0401]: `annotate` writes at a place on the `y` axis, but nothing is mapped to `y` yet
+ --> scripts/main.zeff:4:17
+  |
+4 | d.plot(x: dose).annotate(text: "here", x: 2, y: 1)
+  |                 ^^^^^^^^ needs a `y` axis
+  |
+  = help: map a variable to `y` where the plot starts, or add the layer that maps it before the annotation
+
+== a_size_of_zero
+error[Z0401]: `size:` of `annotate` is the size of the type in points of 1/72 inch, above 0, but this is 0
+ --> scripts/main.zeff:4:44
+  |
+4 | p.annotate(text: "here", x: 2, y: 1, size: 0)
+  |                                            ^ not a size
+  |
+  = help: write a size such as 8 or 10; without `size:` the text is 8 points, as the labels of the axes are
+
+== zero_on_a_log_scale
+error[Z0401]: `y` has 1 value at or below 0, which has no place on a log scale: row 1 of annotation
+ --> scripts/main.zeff:4:16
+  |
+4 | p.scale_y(log).annotate(text: "here", x: 2, y: 0)
+  |                ^^^^^^^^ the `y` axis is a log scale
+  |
+  = help: keep the rows with a value above 0, as in `where(y > 0)`; a square-root scale, `sqrt`, holds 0
+
+== a_text_that_is_a_number
+error[Z0401]: `text` of `annotate` must be a Str, but this is an Int
+ --> scripts/main.zeff:4:18
+  |
+4 | p.annotate(text: 3, x: 2, y: 1)
+  |                  ^ an Int
+  |
+  = help: usage: `p.annotate(text: Str, x: Float | Str | Date | DateTime, y: Float | Str | Date | DateTime, size: Float)`
+
+== a_place_that_is_a_variable
+error[Z0101]: nothing is called `dose` here
+ --> scripts/main.zeff:4:29
+  |
+4 | p.annotate(text: "here", x: dose, y: 1)
+  |                             ^^^^ not a binding
+
+== an_annotation_of_a_frame
+error[Z0401]: `annotate` cannot be called on a Frame
+ --> scripts/main.zeff:4:1
+  |
+4 | d.annotate(text: "here", x: 2, y: 1)
+  | ^ this is a Frame
+  |
+  = help: `annotate` takes a Plot first; `x.annotate(...)` is `annotate(x, ...)`

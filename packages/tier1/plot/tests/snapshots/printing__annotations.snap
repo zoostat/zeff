@@ -1,0 +1,92 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark    data         marks   settings
+      1   lines   d                4   width 1, 1 line
+      2   text    annotation       1   "steepest here" at 2.5, 1.2, size 8
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark    data         marks   settings
+      1   lines   d                4   width 1, 1 line
+      2   text    annotation       1   "larger" at 2, 1, size 12
+plot · d · change against dose
+
+  axis   title    scale    limits            breaks
+  x      dose     linear   0.55 to 10.45     2, 4, 6, 8, 10
+  y      change   linear   -3.295 to 3.195   -3, -2, -1, 0, 1, 2, 3
+
+  layer   mark    data         marks   settings
+      1   lines   d                4   width 1, 1 line
+      2   text    annotation       1   "far away" at 10, -3, size 8
+plot · d · change against arm
+
+  axis   title    scale      limits         breaks
+  x      arm      category   0.4 to 2.6     a, b
+  y      change   linear     0.27 to 3.13   0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark     data         marks   settings
+      1   points   d                4   size 4.5, alpha 1
+      2   text     annotation       1   "the better arm" at b, 3, size 8
+plot · d · arm against change
+
+  axis   title    scale      limits           breaks
+  x      change   linear     0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+  y      arm      category   0.4 to 2.6       a, b
+
+  layer   mark     data         marks   settings
+      1   points   d                4   size 4.5, alpha 1
+      2   text     annotation       1   "here" at 1, a, size 8
+plot · d · change against day
+
+  axis   title    scale    limits                     breaks
+  x      day      date     2024-01-07 to 2024-06-27   2024-02, 2024-03, 2024-04, 2024-05, 2024-06
+  y      change   linear   0.275 to 3.025             0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark    data         marks   settings
+      1   lines   d                4   width 1, 1 line
+      2   text    annotation       1   "leap day" at 2024-02-29, 1.5, size 8
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark    data         marks   settings
+      1   lines   d                4   width 1, 1 line
+      2   text    annotation       1   "one" at 1.5, 1, size 8
+      3   text    annotation       1   "two" at 3.5, 2, size 8
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data         marks   settings
+      1   points   d                4   size 4.5, alpha 1
+      2   text     annotation       1   "both arms" at 2, 2, size 8
+
+legend: above the panel
+plot · d · change against dose
+
+  axis   title    scale    limits                breaks
+  x      dose     linear   0.85 to 4.15          1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   log      0.362279 to 3.20195   0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark    data         marks   settings
+      1   lines   d                4   width 1, 1 line
+      2   text    annotation       1   "on a log scale" at 2, 1, size 8
+---

@@ -3169,3 +3169,96 @@ fn every_message_of_theme() {
     }
     insta::assert_snapshot!("theme_messages", all);
 }
+
+// ----- annotate (step 26c) -----
+
+const NOTED: &str = "let d = frame(dose = [1, 2, 3, 4], change = [0.4, 1.1, 2.3, 2.9], arm = [\"a\", \"b\", \"a\", \"b\"], read = [\"2024-01-15\", \"2024-02-29\", \"2024-04-01\", \"2024-06-20\"]).add(day = date(read))\nlet p = d.plot(x: dose, y: change).lines()\nlet c = d.plot(x: arm, y: change).points()\n";
+
+#[test]
+fn an_annotation_reads_sensibly_as_text() {
+    let script = format!(
+        "{NOTED}p.annotate(text: \"steepest here\", x: 2.5, y: 1.2)\n\
+         p.annotate(text: \"larger\", x: 2, y: 1, size: 12)\n\
+         p.annotate(text: \"far away\", x: 10, y: -3)\n\
+         c.annotate(text: \"the better arm\", x: \"b\", y: 3)\n\
+         d.plot(x: change, y: arm).points().annotate(text: \"here\", x: 1, y: \"a\")\n\
+         d.plot(x: day, y: change).lines().annotate(text: \"leap day\", x: date(\"2024-02-29\"), y: 1.5)\n\
+         p.annotate(text: \"one\", x: 1.5, y: 1).annotate(text: \"two\", x: 3.5, y: 2)\n\
+         d.plot(x: dose, y: change, color: arm).points().annotate(text: \"both arms\", x: 2, y: 2).legend(top)\n\
+         p.scale_y(log).annotate(text: \"on a log scale\", x: 2, y: 1)\n"
+    );
+    let text = printed(&script);
+    for line in [
+        "      2   text    annotation       1   \"steepest here\" at 2.5, 1.2, size 8\n",
+        "      2   text    annotation       1   \"larger\" at 2, 1, size 12\n",
+        // A text beyond the data widens the axes to hold it, as a mark does.
+        "  x      dose     linear   0.55 to 10.45     2, 4, 6, 8, 10\n",
+        "\"the better arm\" at b, 3, size 8\n",
+        "\"leap day\" at 2024-02-29, 1.5, size 8\n",
+        "      3   text    annotation       1   \"two\" at 3.5, 2, size 8\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("annotations", text);
+}
+
+#[test]
+fn every_message_of_annotate() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_text", "p.annotate(x: 2, y: 1)\n"),
+        ("no_place_along_x", "p.annotate(text: \"here\", y: 1)\n"),
+        ("no_place_along_y", "p.annotate(text: \"here\", x: 2)\n"),
+        ("an_empty_text", "p.annotate(text: \"\", x: 2, y: 1)\n"),
+        (
+            "a_category_on_numbers",
+            "p.annotate(text: \"here\", x: \"a\", y: 1)\n",
+        ),
+        (
+            "a_date_on_numbers",
+            "p.annotate(text: \"here\", x: date(\"2020-01-01\"), y: 1)\n",
+        ),
+        (
+            "a_number_on_categories",
+            "c.annotate(text: \"here\", x: 2, y: 1)\n",
+        ),
+        (
+            "a_category_the_axis_lacks",
+            "c.annotate(text: \"here\", x: \"c\", y: 1)\n",
+        ),
+        (
+            "a_number_on_dates",
+            "d.plot(x: day, y: change).lines().annotate(text: \"here\", x: 3, y: 1)\n",
+        ),
+        (
+            "no_axis_to_place_by",
+            "d.plot(x: dose).annotate(text: \"here\", x: 2, y: 1)\n",
+        ),
+        (
+            "a_size_of_zero",
+            "p.annotate(text: \"here\", x: 2, y: 1, size: 0)\n",
+        ),
+        (
+            "zero_on_a_log_scale",
+            "p.scale_y(log).annotate(text: \"here\", x: 2, y: 0)\n",
+        ),
+        (
+            "a_text_that_is_a_number",
+            "p.annotate(text: 3, x: 2, y: 1)\n",
+        ),
+        (
+            "a_place_that_is_a_variable",
+            "p.annotate(text: \"here\", x: dose, y: 1)\n",
+        ),
+        (
+            "an_annotation_of_a_frame",
+            "d.annotate(text: \"here\", x: 2, y: 1)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{NOTED}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("annotate_messages", all);
+}

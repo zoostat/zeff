@@ -718,5 +718,31 @@ pub fn functions() -> Vec<Function> {
             },
             body: scales::theme,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "annotate",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("text", "Str"),
+                    ParamSpec::option("x", "Float | Str | Date | DateTime"),
+                    ParamSpec::option("y", "Float | Str | Date | DateTime"),
+                    ParamSpec::option("size", "Float"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a text that is empty; a place of another kind than the axis holds, a number on an axis of dates or of categories and the like; a category the axis does not have; nothing mapped to x or to y; a place with no place on a log or a square-root scale; a size: not above 0",
+                    ),
+                    DiagnosticDecl::new("Z0406", "text:, x: or y: is not given"),
+                ],
+                help: include_str!("../help/annotate.md"),
+                accuracy: None,
+            },
+            body: marks::annotate,
+        },
     ]
 }

@@ -1,0 +1,52 @@
+---
+source: packages/tier1/plot/tests/crowded.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 53.76,7.792 to 53.76,135.253 stroke #E3E3E3 0.35
+[grid] segment 91.61,7.792 to 91.61,135.253 stroke #E3E3E3 0.35
+[grid] segment 129.461,7.792 to 129.461,135.253 stroke #E3E3E3 0.35
+[grid] segment 167.311,7.792 to 167.311,135.253 stroke #E3E3E3 0.35
+[grid] segment 205.161,7.792 to 205.161,135.253 stroke #E3E3E3 0.35
+[grid] segment 31.05,129.459 to 227.871,129.459 stroke #E3E3E3 0.35
+[grid] segment 31.05,100.491 to 227.871,100.491 stroke #E3E3E3 0.35
+[grid] segment 31.05,71.522 to 227.871,71.522 stroke #E3E3E3 0.35
+[grid] segment 31.05,42.554 to 227.871,42.554 stroke #E3E3E3 0.35
+[grid] segment 31.05,13.586 to 227.871,13.586 stroke #E3E3E3 0.35
+[panel] clip 31.05,7.792 196.821 by 127.461
+  [layer:1] point 129.461,129.459 circle 4.5 #222222 opacity 1
+  [layer:1] point 167.311,100.491 circle 4.5 #222222 opacity 1
+  [layer:1] point 53.76,71.522 circle 4.5 #222222 opacity 1
+  [layer:1] point 91.61,42.554 circle 4.5 #222222 opacity 1
+  [layer:1] point 205.161,13.586 circle 4.5 #222222 opacity 1
+[axis:x] segment 31.05,135.253 to 227.871,135.253 stroke #222222 0.5
+[axis:x] segment 53.76,135.253 to 53.76,138.253 stroke #222222 0.5
+[axis:x] text 53.76,146.837 middle "Far east" sans 8 #222222
+[axis:x] text 53.76,156.837 middle "region" sans 8 #222222
+[axis:x] segment 91.61,135.253 to 91.61,138.253 stroke #222222 0.5
+[axis:x] text 91.61,146.837 middle "Mid west" sans 8 #222222
+[axis:x] text 91.61,156.837 middle "region" sans 8 #222222
+[axis:x] segment 129.461,135.253 to 129.461,138.253 stroke #222222 0.5
+[axis:x] text 129.461,146.837 middle "New" sans 8 #222222
+[axis:x] text 129.461,156.837 middle "south" sans 8 #222222
+[axis:x] text 129.461,166.837 middle "region" sans 8 #222222
+[axis:x] segment 167.311,135.253 to 167.311,138.253 stroke #222222 0.5
+[axis:x] text 167.311,146.837 middle "Old north" sans 8 #222222
+[axis:x] text 167.311,156.837 middle "region" sans 8 #222222
+[axis:x] segment 205.161,135.253 to 205.161,138.253 stroke #222222 0.5
+[axis:x] text 205.161,146.837 middle "The" sans 8 #222222
+[axis:x] text 205.161,156.837 middle "islands" sans 8 #222222
+[axis:x] text 129.461,180.837 middle "group" sans 9 #222222
+[axis:y] segment 31.05,7.792 to 31.05,135.253 stroke #222222 0.5
+[axis:y] segment 28.05,129.459 to 31.05,129.459 stroke #222222 0.5
+[axis:y] text 25.05,132.251 end "1" sans 8 #222222
+[axis:y] segment 28.05,100.491 to 31.05,100.491 stroke #222222 0.5
+[axis:y] text 25.05,103.283 end "2" sans 8 #222222
+[axis:y] segment 28.05,71.522 to 31.05,71.522 stroke #222222 0.5
+[axis:y] text 25.05,74.314 end "3" sans 8 #222222
+[axis:y] segment 28.05,42.554 to 31.05,42.554 stroke #222222 0.5
+[axis:y] text 25.05,45.346 end "4" sans 8 #222222
+[axis:y] segment 28.05,13.586 to 31.05,13.586 stroke #222222 0.5
+[axis:y] text 25.05,16.378 end "5" sans 8 #222222
+[axis:y] text 13,71.522 middle turned 90 "n" sans 9 #222222

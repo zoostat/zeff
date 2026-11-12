@@ -396,6 +396,9 @@ struct LegendPlan {
 /// Between two columns of keys.
 const COLUMN_GAP: f64 = 8.0;
 
+/// The most lines a label of an axis of categories is broken into.
+const MOST_LINES: usize = 3;
+
 /// A legend, measured. `across` is the width it may take where it stands above or under the
 /// panel: its keys are then laid in as few rows as that width holds, and the bar of a ramp
 /// lies down. Without it the legend stands at the right, its keys in columns as tall as the
@@ -1158,8 +1161,15 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 .collect()
         })
     };
-    let x_widths = widths(xs, &mut set);
+    let mut x_widths = widths(xs, &mut set);
     let y_widths = widths(ys, &mut set);
+    // The labels of the x axis as they are written: one line each, but for the labels of
+    // an axis of categories that are broken between words to fit their place.
+    let mut x_labels: Vec<Vec<String>> = xs.map_or(Vec::new(), |s| {
+        s.labels.iter().map(|label| vec![label.clone()]).collect()
+    });
+    let mut x_rows: usize = 1;
+    let first_x_half = x_widths.first().map_or(0.0, |w| w / 2.0);
     let widest_y = y_widths.iter().copied().fold(0.0, f64::max);
 
     // The title of the figure and its subtitle, above everything, and its caption, under
@@ -1210,7 +1220,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         } else {
             ends_room + theme.legend_gap + legends_width
         };
-    let sides = |x_lines: usize, y_lines: usize| -> (f64, f64) {
+    let sides = |x_lines: usize, y_lines: usize, x_rows: usize| -> (f64, f64) {
         let left = theme.margin
             + match ys {
                 Some(_) => {
@@ -1221,7 +1231,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     };
                     title + widest_y + theme.label_gap + theme.tick_length
                 }
-                None => x_widths.first().map_or(0.0, |w| w / 2.0),
+                None => first_x_half,
             };
         let bottom = theme.margin
             + noted_room
@@ -1238,7 +1248,9 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     } else {
                         0.0
                     };
-                    title + capital(label) + theme.label_gap + theme.tick_length
+                    // Each line of a label after the first takes a line of the type.
+                    let more = x_rows.saturating_sub(1) as f64 * label * theme.leading;
+                    title + capital(label) + more + theme.label_gap + theme.tick_length
                 }
                 None => half_capital,
             };
@@ -1249,9 +1261,60 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let titled = |scale: Option<&Scale>| scale.is_some_and(|s| !s.title.trim().is_empty());
     let mut x_title: Vec<String> = Vec::new();
     let mut y_title: Vec<String> = Vec::new();
-    let (mut left, mut bottom) = sides(usize::from(titled(xs)), usize::from(titled(ys)));
+    let (mut left, mut bottom) = sides(usize::from(titled(xs)), usize::from(titled(ys)), 1);
     for _ in 0..2 {
         let (panel_width, panel_height) = (width - left - right, height - top - bottom);
+        // On an axis of categories a label wider than its place is broken between words,
+        // into three lines at most, a word longer than the place standing alone on its
+        // line. The labels are written so where every one of them can then be written
+        // without touching its neighbour; where some would still have to be passed over,
+        // they are left whole, on one line, and every second or third is written.
+        if let Some(s) = xs.filter(|s| s.kind == ScaleKind::Category) {
+            let places = s.limits.1 - s.limits.0;
+            let slot = if places > 0.0 {
+                panel_width / places - label / 2.0
+            } else {
+                panel_width
+            };
+            let mut broken: Vec<Vec<String>> = Vec::new();
+            let mut broadest: Vec<f64> = Vec::new();
+            for words in &s.labels {
+                let whole = set.width(words, FaceName::Sans, label);
+                let lines = if whole > slot && slot > 0.0 {
+                    set.wrap(words, FaceName::Sans, label, slot)
+                } else {
+                    vec![words.clone()]
+                };
+                broadest.push(
+                    lines
+                        .iter()
+                        .map(|line| set.width(line, FaceName::Sans, label))
+                        .fold(0.0, f64::max),
+                );
+                broken.push(lines);
+            }
+            let centres: Vec<f64> = s
+                .breaks
+                .iter()
+                .map(|v| scale::share(s.kind, s.limits, *v) * panel_width)
+                .collect();
+            let rows = broken.iter().map(Vec::len).max().unwrap_or(1);
+            let fits =
+                rows > 1 && rows <= MOST_LINES && thinning(&centres, &broadest, label / 2.0) == 1;
+            if fits {
+                x_rows = rows;
+                x_labels = broken;
+                x_widths = broadest;
+            } else {
+                x_rows = 1;
+                x_labels = s.labels.iter().map(|words| vec![words.clone()]).collect();
+                x_widths = s
+                    .labels
+                    .iter()
+                    .map(|words| set.width(words, FaceName::Sans, label))
+                    .collect();
+            }
+        }
         if let Some(s) = xs.filter(|_| titled(xs)) {
             x_title = set.wrap(
                 &s.title,
@@ -1268,7 +1331,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 panel_height.max(1.0),
             );
         }
-        (left, bottom) = sides(x_title.len(), y_title.len());
+        (left, bottom) = sides(x_title.len(), y_title.len(), x_rows);
     }
     let (panel_width, panel_height) = (width - left - right, height - top - bottom);
     if !(panel_width >= SMALLEST_PANEL && panel_height >= SMALLEST_PANEL) {
@@ -1745,14 +1808,19 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 ));
             }
             if i % step == 0
-                && let Some(words) = s.labels.get(i)
+                && let Some(lines) = x_labels.get(i)
             {
-                items.push(named(
-                    "axis:x",
-                    text((x, baseline), Anchor::Middle, 0.0, words, label, theme),
-                ));
+                for (row, words) in lines.iter().enumerate() {
+                    let y = baseline + row as f64 * label * theme.leading;
+                    items.push(named(
+                        "axis:x",
+                        text((x, y), Anchor::Middle, 0.0, words, label, theme),
+                    ));
+                }
             }
         }
+        // The title of the axis stands under the last line of its labels.
+        let baseline = baseline + x_rows.saturating_sub(1) as f64 * label * theme.leading;
         for (i, words) in x_title.iter().enumerate() {
             let y = baseline + theme.title_gap + (i + 1) as f64 * title_line
                 - theme.title_size * (theme.leading - 1.0);

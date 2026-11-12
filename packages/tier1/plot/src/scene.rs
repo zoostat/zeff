@@ -686,7 +686,7 @@ pub(crate) fn placing_of(plot: &Plot, aesthetic: Aesthetic) -> Option<(Placing, 
 /// The categories of an axis of categories, in their order: those of the variable the axis
 /// is named by, then those that only a layer's own variable has. `None` for a linear axis and
 /// for one nothing is mapped to.
-fn axis_categories(plot: &Plot, aesthetic: Aesthetic) -> Option<Vec<String>> {
+pub(crate) fn axis_categories(plot: &Plot, aesthetic: Aesthetic) -> Option<Vec<String>> {
     if placing_of(plot, aesthetic)?.0 != Placing::Categories {
         return None;
     }
@@ -1652,6 +1652,33 @@ pub fn palette_fault(plot: &Plot) -> Option<PaletteFault> {
         });
     }
     None
+}
+
+/// The words and the place of a layer that `annotate` made: a layer of text of one row, in
+/// a frame of its own called `annotation` whose variables are `x`, `y` and `text`. The place
+/// is written as a script writes it: a number, the name of a category, a date.
+fn annotation_of(layer: &PlotLayer) -> Option<(String, String, String)> {
+    let frame = layer.data.as_ref()?;
+    if layer.mark != Mark::Text
+        || frame.name.as_deref() != Some("annotation")
+        || frame.table.rows() != 1
+        || layer.mapping(Aesthetic::X).map(|m| m.variable.as_str()) != Some("x")
+        || layer.mapping(Aesthetic::Y).map(|m| m.variable.as_str()) != Some("y")
+        || layer.mapping(Aesthetic::Label).map(|m| m.variable.as_str()) != Some("text")
+    {
+        return None;
+    }
+    let cell = |name: &str| -> Option<String> {
+        Some(match frame.table.column(name)?.get(0)? {
+            Cell::Float(v) => format_float(v),
+            Cell::Int(i) => i.to_string(),
+            Cell::Str(text) | Cell::Category(text) => text.to_string(),
+            Cell::Date(days) => dates::moment(f64::from(days) * dates::DAY as f64),
+            Cell::DateTime(micros) => dates::moment(micros as f64),
+            _ => return None,
+        })
+    };
+    Some((cell("text")?, cell("x")?, cell("y")?))
 }
 
 /// A title, a subtitle or a caption as the scene holds it: the words of the script, and
@@ -3725,7 +3752,12 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         };
         // What the layer names of its own comes first: its positions, then its colour.
         let mut own: Vec<String> = Vec::new();
-        if let Some(l) = written {
+        // An annotation is read as what it is: its words and its place.
+        let annotation = written.and_then(annotation_of);
+        if let Some((words, x, y)) = &annotation {
+            own.push(format!("\"{words}\" at {x}, {y}"));
+        }
+        if let Some(l) = written.filter(|_| annotation.is_none()) {
             for aesthetic in [Aesthetic::X, Aesthetic::Y, Aesthetic::Low, Aesthetic::High] {
                 // A reference line names its place by `at:`, a variable or a number.
                 let name = if l.mark.spans() {
@@ -3795,9 +3827,17 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             settings
         } else if layer.mark == Mark::Text {
             // A layer of text: what it writes, the size of its type, how far it is moved.
-            let mut settings = format!("label {}", by(Aesthetic::Label));
+            // An annotation has said its words already: the size of its type is left.
+            let mut settings = if annotation.is_some() {
+                String::new()
+            } else {
+                format!("label {}", by(Aesthetic::Label))
+            };
             if let Sizing::Constant(points) = &layer.size {
-                settings.push_str(&format!(", size {}", format_float(*points)));
+                if !settings.is_empty() {
+                    settings.push_str(", ");
+                }
+                settings.push_str(&format!("size {}", format_float(*points)));
             }
             if layer.nudge != (0.0, 0.0) {
                 settings.push_str(&format!(
