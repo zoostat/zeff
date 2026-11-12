@@ -29,11 +29,15 @@
 //! A drawing holds no row of the data (open decision #118, F2): of a mark it keeps the place,
 //! the shape, the size and the colour.
 
+use zeff_core::value::Mark;
+
 use crate::colour;
-use crate::drawing::{Anchor, Drawing, Head, Item, LineType, Primitive, Span, Stroke, rgb};
+use crate::drawing::{Anchor, Drawing, Head, Item, LineType, Primitive, Span, Step, Stroke, rgb};
 use crate::font::{FaceName, face};
 use crate::raster;
-use crate::scene::{Legend, Paint, Range, Scale, ScaleKind, Scene, Shaping, Sizing, diameter};
+use crate::scene::{
+    Legend, Lining, Paint, Range, Scale, ScaleKind, Scene, Shaping, Sizing, diameter,
+};
 use crate::shape;
 
 /// Points of 1/72 inch to the millimetre.
@@ -274,12 +278,31 @@ fn shape_on(scale: &Scale, value: f64) -> &'static str {
     }
 }
 
+/// The type of line of a value's place on a scale of types; whole for what is no place.
+fn line_on(scale: &Scale, value: f64) -> LineType {
+    match &scale.range {
+        Range::LineTypes(types) if !types.is_empty() => {
+            let place = (value.round().max(1.0) as usize - 1).min(types.len() - 1);
+            LineType::parse(types[place]).unwrap_or_default()
+        }
+        _ => LineType::Solid,
+    }
+}
+
+/// How long the piece of line that is a legend key is, in points: two rounds of the longest
+/// of the six rhythms at the width of a line.
+const KEY_LINE: f64 = 24.0;
+
 /// One key of a legend: a mark and what it stands for.
 struct Key {
     label: String,
     shape: &'static str,
     size: f64,
     colour: String,
+    /// For a legend of lines: the type and the width of the piece of line that is the key.
+    line: Option<(LineType, f64)>,
+    /// Whether the key shows a point: the legend is of marks drawn one by one.
+    point: bool,
 }
 
 /// What a legend shows, measured.
@@ -341,6 +364,24 @@ fn plan_legend(
         Some(Shaping::Constant(name)) => *name,
         _ => shape::DEFAULT,
     };
+    // A legend of lines has a piece of line for a key, and a point on it when points read
+    // the scale too.
+    let lined = scene.panels.first().and_then(|p| {
+        p.layers
+            .iter()
+            .find(|l| l.mark == Mark::Lines && legend.marks.contains(&l.mark))
+    });
+    let pointed = legend.marks.iter().any(|mark| *mark != Mark::Lines);
+    let base_line = lined.map(|l| {
+        (
+            match &l.linetype {
+                Lining::Constant(name) => LineType::parse(name).unwrap_or_default(),
+                Lining::Scaled(_) => LineType::Solid,
+            },
+            l.width,
+        )
+    });
+    let line_types = of("linetype");
     // A title no wider than a third of the page.
     let title = set.wrap(
         &legend.title,
@@ -381,6 +422,10 @@ fn plan_legend(
                             Some(s) if s.kind == ScaleKind::Category => colour_on(s, place),
                             _ => base_colour.clone(),
                         },
+                        line: base_line.map(|(whole, width)| {
+                            (line_types.map_or(whole, |s| line_on(s, place)), width)
+                        }),
+                        point: pointed,
                     }
                 })
                 .collect(),
@@ -400,6 +445,8 @@ fn plan_legend(
                     shape: base_shape,
                     size: diameter(*value, sized.limits, range),
                     colour: colours.map_or(base_colour.clone(), |s| colour_on(s, *value)),
+                    line: None,
+                    point: true,
                 })
                 .collect()
         })
@@ -407,8 +454,13 @@ fn plan_legend(
     let (content, width, height) = match (keys, colours) {
         (Some(keys), _) => {
             let line = theme.label_size * theme.leading;
-            let widest_mark = keys.iter().map(|k| k.size).fold(theme.key_size, f64::max);
-            let row_height = line.max(widest_mark + 2.0);
+            // A key is as tall as its point, and as wide as its point or its piece of line.
+            let tallest_mark = keys.iter().map(|k| k.size).fold(theme.key_size, f64::max);
+            let widest_mark = keys
+                .iter()
+                .map(|k| if k.line.is_some() { KEY_LINE } else { k.size })
+                .fold(tallest_mark, f64::max);
+            let row_height = line.max(tallest_mark + 2.0);
             let rows = ((room / row_height).floor() as usize).clamp(1, keys.len().max(1));
             let label_widths: Vec<f64> = keys
                 .chunks(rows)
@@ -523,16 +575,33 @@ fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec
             for (column, part) in keys.chunks(*rows).enumerate() {
                 for (row, key) in part.iter().enumerate() {
                     let middle = y + (row as f64 + 0.5) * row_height;
-                    items.push(named(
-                        &plan.name,
-                        Primitive::Point {
-                            at: (x + mark_width / 2.0, middle),
-                            shape: key.shape,
-                            size: key.size,
-                            colour: key.colour.clone(),
-                            opacity: 1.0,
-                        },
-                    ));
+                    if let Some((dash, width)) = key.line {
+                        items.push(named(
+                            &plan.name,
+                            Primitive::Segment {
+                                from: (x, middle),
+                                to: (x + KEY_LINE, middle),
+                                stroke: Stroke {
+                                    colour: key.colour.clone(),
+                                    width,
+                                    dash,
+                                },
+                                heads: (Head::Plain, Head::Plain),
+                            },
+                        ));
+                    }
+                    if key.point {
+                        items.push(named(
+                            &plan.name,
+                            Primitive::Point {
+                                at: (x + mark_width / 2.0, middle),
+                                shape: key.shape,
+                                size: key.size,
+                                colour: key.colour.clone(),
+                                opacity: 1.0,
+                            },
+                        ));
+                    }
                     items.push(named(
                         &plan.name,
                         text(
@@ -822,15 +891,67 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         for (at, layer) in p.layers.iter().enumerate() {
             let name = format!("layer:{}", at + 1);
             let mut drawn: Vec<Item> = Vec::new();
-            for i in 0..layer.x.len().min(layer.y.len()) {
-                let colour = match &layer.color {
-                    Paint::Theme => theme.mark.to_string(),
-                    Paint::Constant(hex) => hex.clone(),
-                    Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
-                        (Some(scale), Some(value)) => colour_on(scale, *value),
-                        _ => theme.mark.to_string(),
-                    },
-                };
+            let colour_of = |i: usize| match &layer.color {
+                Paint::Theme => theme.mark.to_string(),
+                Paint::Constant(hex) => hex.clone(),
+                Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
+                    (Some(scale), Some(value)) => colour_on(scale, *value),
+                    _ => theme.mark.to_string(),
+                },
+            };
+            let marks_of = layer.x.len().min(layer.y.len());
+            if layer.mark == Mark::Lines {
+                // A line through the marks of each line of the layer, in their order, in the
+                // colour and the type of its first mark: one line has one of each.
+                let mut start = 0;
+                while start < marks_of.min(layer.line.len()) {
+                    let mut end = start + 1;
+                    while end < marks_of.min(layer.line.len())
+                        && layer.line[end] == layer.line[start]
+                    {
+                        end += 1;
+                    }
+                    let dash = match &layer.linetype {
+                        Lining::Constant(name) => LineType::parse(name).unwrap_or_default(),
+                        Lining::Scaled(values) => {
+                            match (scene.scale("linetype"), values.get(start)) {
+                                (Some(scale), Some(value)) => line_on(scale, *value),
+                                _ => LineType::Solid,
+                            }
+                        }
+                    };
+                    let steps: Vec<Step> = (start..end)
+                        .map(|i| {
+                            let at = (across(sx, layer.x[i]), down(sy, layer.y[i]));
+                            if i == start {
+                                Step::Move(at)
+                            } else {
+                                Step::Line(at)
+                            }
+                        })
+                        .collect();
+                    drawn.push(named(
+                        &name,
+                        Primitive::Path {
+                            steps,
+                            stroke: Some(Stroke {
+                                colour: colour_of(start),
+                                width: layer.width,
+                                dash,
+                            }),
+                            fill: None,
+                            opacity: layer.alpha,
+                        },
+                    ));
+                    start = end;
+                }
+            }
+            for i in 0..if layer.mark == Mark::Lines {
+                0
+            } else {
+                marks_of
+            } {
+                let colour = colour_of(i);
                 let across_mark = match &layer.size {
                     Sizing::Constant(points) => *points,
                     Sizing::Scaled(values) => match (scene.scale("size"), values.get(i)) {

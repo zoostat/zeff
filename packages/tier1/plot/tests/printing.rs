@@ -1158,3 +1158,218 @@ fn every_message_of_a_layer_that_names_its_own_variables() {
     }
     insta::assert_snapshot!("layer_mapping_messages", all);
 }
+
+// ----- lines (step 23c) -----
+
+/// The shipped wages, their mean by year, and their mean by year and union membership.
+const MEANS: &str = "let w = dataset(wages)\nlet m = w.aggregate(wage = mean(wage), by: year)\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\n";
+
+#[test]
+fn lines_read_sensibly_as_text() {
+    let script = format!(
+        "{MEANS}m.plot(x: year, y: wage).lines()\n\
+         u.plot(x: year, y: wage, color: union).points().lines(linetype: union)\n\
+         let few = w.where(worker <= 6)\n\
+         few.plot(x: year, y: wage, group: worker).lines(width: 0.5)\n\
+         few.plot(x: year, y: wage).lines(group: worker, color: female, linetype: \"dashed\")\n\
+         m.plot(x: year, y: wage).points().lines(y: wage * 1.1, color: \"firebrick\", linetype: \"dotted\")\n"
+    );
+    let text = printed(&script);
+    // The reference, from R on the shipped file: twelve years, 2010 to 2021, whose mean wages
+    // run from 22.4203 to 32.4430, so the limits, 5% of the range beyond each end, are
+    // 21.9191 and 32.9442, and 2009.45 and 2021.55 for the years; by union membership 24
+    // means in two lines, with limits 21.131 and 37.1199 (ggplot2 gives 21.13096 and
+    // 37.11989, and draws the second line dashed too); workers 1 to 6 have 30 rows, all with
+    // a wage, in six lines, with limits 11.4635 and 65.5065.
+    for line in [
+        "  x      Calendar year   linear   2009.45 to 2021.55   2010, 2012, 2014, 2016, 2018, 2020\n",
+        "  y      wage            linear   21.9191 to 32.9442   22, 24, 26, 28, 30, 32\n",
+        "      1   lines   m         12   width 1, 1 line\n",
+        "  y      wage            linear   21.131 to 37.1199    25, 30, 35\n",
+        "  color       Union member   category   no, yes   orange, sky blue\n",
+        "  linetype    Union member   category   no, yes   solid, dashed\n",
+        "      2   lines    u         24   width 1, linetype by union, 2 lines\n",
+        "  y      Hourly wage     linear   11.4635 to 65.5065   20, 30, 40, 50, 60\n",
+        "  group       Worker identifier           each value a group\n",
+        "      1   lines   few       30   width 0.5, 6 lines\n",
+        "      1   lines   few       30   color by female, width 1, linetype dashed, group by worker, 6 lines\n",
+        "      2   lines    m         12   y wage * 1.1, color firebrick, width 1, linetype dotted, 1 line\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("lines", text);
+}
+
+#[test]
+fn the_edge_cases_of_lines() {
+    let gap = "let gap = frame(t = [7, 2, 3, 4, 5, 6, 1], v = [5.0, 2.0, NA, 4.0, 3.0, NA, 1.0], g = [\"b\", \"a\", \"a\", \"a\", \"b\", \"b\", \"a\"])\n";
+    let mut all = String::new();
+    for (name, script) in [
+        // The rows in any order: joined in the order of `t`; a line broken where `v` is NA,
+        // and the last row, left alone, drawing nothing.
+        ("a_gap", "gap.plot(x: t, y: v).lines()\n"),
+        (
+            "a_gap_in_each_group",
+            "gap.plot(x: t, y: v).lines(group: g)\n",
+        ),
+        // One point, and a group of one: nothing to join.
+        (
+            "one_point",
+            "frame(a = [1], b = [2.0]).plot(x: a, y: b).lines()\n",
+        ),
+        (
+            "a_group_of_one",
+            "frame(a = [1, 2, 3], b = [2.0, 3.0, 1.0], g = [\"p\", \"p\", \"q\"]).plot(x: a, y: b, group: g).lines()\n",
+        ),
+        // No row at all, and no row with both positions.
+        (
+            "no_rows",
+            "frame(a = [1], b = [2.0]).where(a > 1).plot(x: a, y: b).lines()\n",
+        ),
+        (
+            "nothing_to_draw",
+            "frame(a = [1, NA], b = [NA, 2.0]).plot(x: a, y: b).lines()\n",
+        ),
+        // Rows with one `x`: joined in the order of the frame.
+        (
+            "ties",
+            "frame(a = [1, 1, 2, 2], b = [1.0, 3.0, 2.0, 0.0]).plot(x: a, y: b).lines()\n",
+        ),
+        // An infinite `y` breaks the line as `NA` does, and an infinite `x` has no place.
+        (
+            "infinite",
+            "frame(a = [1, 2, 3, 4, 1 / 0], b = [1.0, 2.0, 1 / 0, 4.0, 5.0]).plot(x: a, y: b).lines()\n",
+        ),
+        // A category of the group that is NA is a line of its own.
+        (
+            "a_group_without_a_name",
+            "frame(a = [1, 2, 3, 4], b = [1.0, 2.0, 3.0, 4.0], g = [\"p\", NA, \"p\", NA]).plot(x: a, y: b).lines(group: g)\n",
+        ),
+        // Seven categories and six types of line: the types repeat from the seventh.
+        (
+            "seven_types",
+            "frame(a = [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2], b = [1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 5.0, 5.0, 6.0, 6.0, 7.0, 7.0, 8.0], g = [\"a\", \"a\", \"b\", \"b\", \"c\", \"c\", \"d\", \"d\", \"e\", \"e\", \"f\", \"f\", \"g\", \"g\"]).plot(x: a, y: b).lines(linetype: g)\n",
+        ),
+        // A layer of lines with a frame of its own, and one that takes the group of the plot.
+        (
+            "its_own_frame",
+            "let late = gap.where(t > 3)\ngap.plot(x: t, y: v, group: g).points().lines(data: late)\n",
+        ),
+        // The plot sets one colour: the lines take it; the layer sets another.
+        (
+            "one_colour",
+            "gap.plot(x: t, y: v, color: \"steelblue\").lines().lines(color: \"black\", width: 2)\n",
+        ),
+        // Size and shape of the plot are not read by a line.
+        (
+            "what_a_line_does_not_read",
+            "gap.plot(x: t, y: v, size: 6, shape: \"square\").lines()\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{gap}{script}"));
+        assert_eq!(code, 0, "{name}\n{stderr}");
+        all.push_str(&format!("== {name}\n{stdout}---\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("lines_edges", all);
+}
+
+#[test]
+fn every_message_of_lines() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("the_plot_maps_no_y", "m.plot(x: year).lines()\n"),
+        ("neither_maps_x", "m.plot().lines(y: wage)\n"),
+        (
+            "no_such_variable",
+            "m.plot(x: year, y: wage).lines(y: wag)\n",
+        ),
+        (
+            "not_a_number",
+            "w.plot(x: year, y: wage).lines(y: industry)\n",
+        ),
+        (
+            "no_such_group",
+            "u.plot(x: year, y: wage).lines(group: unionn)\n",
+        ),
+        (
+            "a_group_in_quotes",
+            "u.plot(x: year, y: wage).lines(group: \"union\")\n",
+        ),
+        (
+            "a_group_computed",
+            "u.plot(x: year, y: wage).lines(group: year > 2015)\n",
+        ),
+        (
+            "a_colour_by_a_number",
+            "u.plot(x: year, y: wage).lines(color: wage)\n",
+        ),
+        (
+            "a_colour_by_a_number_of_the_plot",
+            "u.plot(x: year, y: wage, color: wage).points().lines()\n",
+        ),
+        (
+            "not_a_colour",
+            "u.plot(x: year, y: wage).lines(color: \"blu\")\n",
+        ),
+        (
+            "a_type_by_a_number",
+            "u.plot(x: year, y: wage).lines(linetype: wage)\n",
+        ),
+        (
+            "not_a_type",
+            "u.plot(x: year, y: wage).lines(linetype: \"dash\")\n",
+        ),
+        (
+            "a_type_without_quotes",
+            "u.plot(x: year, y: wage).lines(linetype: dashed)\n",
+        ),
+        (
+            "a_variable_in_quotes_for_a_type",
+            "u.plot(x: year, y: wage).lines(linetype: \"union\")\n",
+        ),
+        (
+            "a_type_computed",
+            "u.plot(x: year, y: wage).lines(linetype: union == 1)\n",
+        ),
+        ("no_width", "u.plot(x: year, y: wage).lines(width: 0)\n"),
+        (
+            "a_negative_width",
+            "u.plot(x: year, y: wage).lines(width: -1)\n",
+        ),
+        (
+            "a_width_in_words",
+            "u.plot(x: year, y: wage).lines(width: \"thin\")\n",
+        ),
+        (
+            "no_size_on_lines",
+            "u.plot(x: year, y: wage).lines(size: 2)\n",
+        ),
+        (
+            "no_shape_on_lines",
+            "u.plot(x: year, y: wage).lines(shape: union)\n",
+        ),
+        (
+            "no_alpha_on_lines",
+            "u.plot(x: year, y: wage).lines(alpha: 0.5)\n",
+        ),
+        ("lines_of_a_frame", "u.lines()\n"),
+        (
+            "its_frame_lacks_the_group",
+            "u.plot(x: year, y: wage, group: union).lines(data: m)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{MEANS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        // The warning and the note of `aggregate` are not what is tested here.
+        let said: String = stderr
+            .lines()
+            .filter(|l| {
+                !l.starts_with("warning[W0201]") && !l.starts_with("note: the panel declaration")
+            })
+            .map(|l| format!("{l}\n"))
+            .collect();
+        all.push_str(&format!("== {name}\n{said}\n"));
+    }
+    insta::assert_snapshot!("lines_messages", all);
+}

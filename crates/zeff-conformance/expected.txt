@@ -237,6 +237,9 @@ functions/builtin_fixture/stdout 4cc2b7b1e74d82bd
 functions/builtin_fixture/stderr cbf29ce484222325
 export/sample.docx c1fd0481a8a88c3f
 export/sample.tex 79622a8e73235482
+plot/lines/stdout 6e95eb45356d00e8
+plot/lines/stderr d506b2829ad67707
+plot/lines/scene 66f92d7d3b29a4ca
 plot/points/stdout 3a6b6d60d4063bdc
 plot/points/stderr f4efa5fd3454f8e9
 plot/points/scene.json 453ea0d06f195b15

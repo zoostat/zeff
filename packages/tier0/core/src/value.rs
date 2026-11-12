@@ -185,11 +185,14 @@ pub enum Aesthetic {
     Shape,
     Group,
     Label,
+    /// The type of a line, whole or ink and gaps by turns: an aesthetic of the marks that are
+    /// lines, which a layer names for itself.
+    Linetype,
 }
 
 impl Aesthetic {
     /// The aesthetic as the language writes it: `x`, `y`, `color`, `fill`, `size`, `shape`,
-    /// `group`, `label`.
+    /// `group`, `label`, `linetype`.
     pub fn name(self) -> &'static str {
         match self {
             Aesthetic::X => "x",
@@ -200,6 +203,7 @@ impl Aesthetic {
             Aesthetic::Shape => "shape",
             Aesthetic::Group => "group",
             Aesthetic::Label => "label",
+            Aesthetic::Linetype => "linetype",
         }
     }
 }
@@ -222,6 +226,8 @@ pub enum PlotSetting {
     Size(f64),
     /// A shape, by its name: `square`.
     Shape(&'static str),
+    /// The type of a line, by its name: `dashed`.
+    Line(&'static str),
 }
 
 /// One mapping of a plot: an aesthetic and what it reads, a variable of the frame or an
@@ -249,13 +255,16 @@ pub struct PlotComputed {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mark {
     Points,
+    /// A line through the rows of each group, in the order of `x`.
+    Lines,
 }
 
 impl Mark {
-    /// The mark as the method that adds it is called: `points`.
+    /// The mark as the method that adds it is called: `points`, `lines`.
     pub fn name(self) -> &'static str {
         match self {
             Mark::Points => "points",
+            Mark::Lines => "lines",
         }
     }
 }
@@ -275,6 +284,9 @@ pub struct PlotLayer {
     /// How far a mark may be moved at random along each axis, as a share of the smallest gap
     /// between two values on that axis; 0 for no jitter.
     pub jitter: f64,
+    /// The width of a line in points (1/72 inch), for the marks that are lines; `None` for the
+    /// width a line has when the layer says nothing, and for the marks that are not lines.
+    pub width: Option<f64>,
     /// The seeded stream the jitter draws from, at its start (section 8.3, point 3), kept with
     /// the layer so that the scene is the same however often it is derived.
     pub stream: Option<Stream>,

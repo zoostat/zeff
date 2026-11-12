@@ -65,6 +65,7 @@ use zeff_core::value::{
 use zeff_diagnostics::count;
 
 use crate::colour;
+use crate::drawing::LineType;
 use crate::json::Json;
 use crate::scale;
 use crate::shape;
@@ -81,6 +82,9 @@ pub const POINT_SIZE: f64 = 4.5;
 /// four times the default, the share ggplot2 has between its largest size, 6, and its default,
 /// 1.5.
 pub const LARGEST_SIZE: f64 = 18.0;
+
+/// The width of a line when its layer says nothing, in points of 1/72 inch.
+pub const LINE_WIDTH: f64 = 1.0;
 
 /// The diameter the scale of sizes with these limits and this range gives the value `v`: the
 /// share of the way from the lower limit to the upper, its square root taken, laid on the range.
@@ -168,6 +172,8 @@ pub enum Range {
     Sizes(f64, f64),
     /// Shapes, by name: one for each break.
     Shapes(Vec<&'static str>),
+    /// Types of line, by name: one for each break.
+    LineTypes(Vec<&'static str>),
 }
 
 /// What a legend shows: its title, the scales it is the guide of, which are those of one
@@ -238,6 +244,23 @@ pub struct Layer {
     /// Whether a writer of vector figures draws this layer as a grid of pixels. False in this
     /// release.
     pub raster: bool,
+    /// For a mark that is a line: the line each mark belongs to, counted from 1. The marks of
+    /// one line follow one another in the order they are joined, and a line has two marks or
+    /// more. Empty for the marks that are drawn one by one.
+    pub line: Vec<usize>,
+    /// The type of the lines of the layer.
+    pub linetype: Lining,
+    /// The width of a line of the layer, in points of 1/72 inch.
+    pub width: f64,
+}
+
+/// The type of the lines of a layer.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Lining {
+    /// One type for every line, by its name: `solid`.
+    Constant(&'static str),
+    /// The place of each mark's category on the scale `linetype`, counted from 1.
+    Scaled(Vec<f64>),
 }
 
 /// The colour of the marks of a layer.
@@ -278,6 +301,12 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
         Mark::Points => matches!(
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Color | Aesthetic::Size | Aesthetic::Shape
+        ),
+        // A line is placed by `x` and `y`, coloured by `color`, of the type `linetype` says,
+        // and drawn through the rows of one `group`.
+        Mark::Lines => matches!(
+            aesthetic,
+            Aesthetic::X | Aesthetic::Y | Aesthetic::Color | Aesthetic::Group | Aesthetic::Linetype
         ),
     }
 }
@@ -558,6 +587,116 @@ fn drawn(
     out
 }
 
+/// The rows of a layer of lines, joined: the marks in the order they are joined, the line of
+/// each, and what was not drawn.
+#[derive(Default)]
+struct Joined {
+    points: Drawn,
+    /// The line of each mark, counted from 1.
+    line: Vec<usize>,
+    /// The places where a line is broken because a row between two that are drawn has no `y`.
+    breaks: usize,
+    /// Whether a row was left out for an infinite `y`, which breaks a line as `NA` does.
+    infinite_y: bool,
+    /// The rows that have no neighbour to be joined to.
+    alone: usize,
+}
+
+/// The lines of a layer. The rows are parted into groups by the categories of `keys`, row by
+/// row; the rows of a group are put in the order of `x`, those of one `x` in the order of the
+/// frame; and each row is joined to the next. A row with no `x`, or an infinite one, has no
+/// place in that order and is left out. A row with no `y`, or an infinite one, is left out
+/// too, and the line is broken there: the rows before it and after it are not joined to each
+/// other. A row left with no neighbour draws nothing and is counted.
+fn joined(cx: Option<&Column>, cy: Option<&Column>, keys: &[Categories]) -> Joined {
+    let mut out = Joined::default();
+    let (Some(cx), Some(cy)) = (cx, cy) else {
+        return out;
+    };
+    if !(is_numeric(cx) && is_numeric(cy)) || cx.len() != cy.len() {
+        return out;
+    }
+    if keys.iter().any(|key| key.of.len() != cx.len()) {
+        return out;
+    }
+    // The groups in the order their first row comes, each with its rows: `x`, `y` where it
+    // can be drawn, and the row.
+    type Row = (f64, Option<f64>, usize);
+    let mut groups: Vec<(Vec<Option<usize>>, Vec<Row>)> = Vec::new();
+    for row in 0..cx.len() {
+        let x = match number(cx, row) {
+            None => {
+                out.points.missing += 1;
+                continue;
+            }
+            Some(x) if !x.is_finite() => {
+                out.points.infinite += 1;
+                continue;
+            }
+            Some(x) => x,
+        };
+        let y = match number(cy, row) {
+            None => {
+                out.points.missing += 1;
+                None
+            }
+            Some(y) if !y.is_finite() => {
+                out.points.infinite += 1;
+                out.infinite_y = true;
+                None
+            }
+            Some(y) => Some(y),
+        };
+        let key: Vec<Option<usize>> = keys.iter().map(|key| key.of[row]).collect();
+        match groups.iter_mut().find(|(known, _)| *known == key) {
+            Some((_, rows)) => rows.push((x, y, row)),
+            None => groups.push((key, vec![(x, y, row)])),
+        }
+    }
+    let mut lines = 0;
+    for (_, mut rows) in groups {
+        // The sort keeps rows of one `x` in the order of the frame.
+        rows.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let mut run: Vec<(f64, f64, usize)> = Vec::new();
+        let mut finish = |run: &mut Vec<(f64, f64, usize)>, out: &mut Joined| {
+            match run.len() {
+                0 => {}
+                1 => out.alone += 1,
+                _ => {
+                    lines += 1;
+                    for &(x, y, row) in run.iter() {
+                        out.points.x.push(x);
+                        out.points.y.push(y);
+                        out.points.rows.push(row);
+                        out.line.push(lines);
+                    }
+                }
+            }
+            run.clear();
+        };
+        // A break is a row without `y` that has rows with one on both sides of it.
+        let (mut before, mut gap) = (false, false);
+        for (x, y, row) in rows {
+            match y {
+                Some(y) => {
+                    if gap && before {
+                        out.breaks += 1;
+                    }
+                    gap = false;
+                    before = true;
+                    run.push((x, y, row));
+                }
+                None => {
+                    gap = true;
+                    finish(&mut run, &mut out);
+                }
+            }
+        }
+        finish(&mut run, &mut out);
+    }
+    out
+}
+
 /// The smallest gap between two different values, the unit of `jitter:`; 1 when there are not
 /// two different values to take a gap between.
 fn resolution(values: &[f64]) -> f64 {
@@ -688,7 +827,8 @@ fn colouring(plot: &Plot, aesthetic: Aesthetic) -> Option<Colouring<'_>> {
     let base = values(plot, layer, aesthetic)?;
     let kind = shading(base)?;
     match (aesthetic, kind) {
-        (Aesthetic::Size, Shading::Categories) | (Aesthetic::Shape, Shading::Ramp) => return None,
+        (Aesthetic::Size, Shading::Categories)
+        | (Aesthetic::Shape | Aesthetic::Linetype, Shading::Ramp) => return None,
         _ => {}
     }
     let readers = plot
@@ -849,6 +989,10 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
             }
             // The place of each category that is there, counted from 1; `NA` is the last.
             let shapes = colouring.aesthetic == Aesthetic::Shape;
+            let lines = colouring.aesthetic == Aesthetic::Linetype;
+            // The type of line of a place among the categories: the six in their order, and
+            // from the seventh the six again.
+            let line_type = |at: usize| LineType::ALL[at % LineType::ALL.len()].name();
             let mut position = vec![0_usize; labels.len()];
             let mut shown: Vec<String> = Vec::new();
             let mut colours: Vec<&'static str> = Vec::new();
@@ -856,6 +1000,8 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                 if used[place] {
                     colours.push(if shapes {
                         shape::category(shown.len())
+                    } else if lines {
+                        line_type(shown.len())
                     } else {
                         colour::category(shown.len()).0
                     });
@@ -865,8 +1011,11 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
             }
             let named = shown.len();
             if na {
+                // The rows without a category have the type of line after the last given.
                 colours.push(if shapes {
                     shape::NA_SHAPE
+                } else if lines {
+                    line_type(shown.len())
                 } else {
                     colour::NA_COLOUR.0
                 });
@@ -887,12 +1036,18 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
             let read = colouring.readers.iter().any(Option::is_some);
             let palette = if shapes {
                 shape::PALETTE.len()
+            } else if lines {
+                LineType::ALL.len()
             } else {
                 colour::OKABE_ITO.len()
             };
             let note = (read && named > palette).then(|| {
                 let (variable, named) = (&colouring.mapping.variable, count(named as u64));
-                if shapes {
+                if lines {
+                    format!(
+                        "`{variable}` has {named} categories and there are {palette} types of line, so the types repeat from the seventh category"
+                    )
+                } else if shapes {
                     format!(
                         "`{variable}` has {named} categories and there are {palette} shapes, so the shapes repeat from the ninth category"
                     )
@@ -912,6 +1067,8 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                     labels: shown,
                     range: if shapes {
                         Range::Shapes(colours)
+                    } else if lines {
+                        Range::LineTypes(colours)
                     } else {
                         Range::Colours(colours)
                     },
@@ -930,6 +1087,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         Aesthetic::Fill,
         Aesthetic::Size,
         Aesthetic::Shape,
+        Aesthetic::Linetype,
     ]
     .into_iter()
     .filter_map(|aesthetic| colouring(plot, aesthetic))
@@ -948,7 +1106,70 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         let named = |aesthetic: Aesthetic| {
             mapping_of(plot, layer, aesthetic).map(|mapping| mapping.variable.as_str())
         };
+        // For a layer of lines, the line of each mark.
+        let mut line: Vec<usize> = Vec::new();
         let mut points = match (named(Aesthetic::X), named(Aesthetic::Y)) {
+            (Some(x), Some(y)) if layer.mark == Mark::Lines => {
+                // The rows are parted into lines by the group, and by the categories a colour
+                // or a type of line shows, since one line has one colour and one type.
+                let mut keys: Vec<Categories> = Vec::new();
+                if mapping_of(plot, layer, Aesthetic::Group).is_some()
+                    && let Some(column) = values(plot, Some(layer), Aesthetic::Group)
+                {
+                    keys.push(categories(column));
+                }
+                for colouring in &colourings {
+                    if colouring.kind == Shading::Categories
+                        && matches!(colouring.aesthetic, Aesthetic::Color | Aesthetic::Linetype)
+                        && let Some(column) = colouring.readers[at]
+                    {
+                        keys.push(categories(column));
+                    }
+                }
+                let lines = joined(
+                    values(plot, Some(layer), Aesthetic::X),
+                    values(plot, Some(layer), Aesthetic::Y),
+                    &keys,
+                );
+                if lines.points.missing > 0 {
+                    note(format!(
+                        "{} with NA in {} dropped",
+                        rows_text(lines.points.missing),
+                        either(&[x, y])
+                    ));
+                }
+                if lines.points.infinite > 0 {
+                    note(format!(
+                        "{} with an infinite value in {} dropped",
+                        rows_text(lines.points.infinite),
+                        either(&[x, y])
+                    ));
+                }
+                if lines.breaks > 0 {
+                    let lacking = if lines.infinite_y {
+                        "NA or infinite"
+                    } else {
+                        "NA"
+                    };
+                    note(if lines.breaks == 1 {
+                        format!("1 break in a line where {y} is {lacking}")
+                    } else {
+                        format!(
+                            "{} breaks in the lines where {y} is {lacking}",
+                            count(lines.breaks as u64)
+                        )
+                    });
+                }
+                if lines.alone > 0 {
+                    note(format!(
+                        "{} with no neighbour to be joined to {} no line",
+                        rows_text(lines.alone),
+                        if lines.alone == 1 { "draws" } else { "draw" }
+                    ));
+                }
+                line = lines.line;
+                lines.points
+            }
             (Some(x), Some(y)) => {
                 // A value on a ramp of colours must be there and finite, as a position must; a
                 // row without a category is drawn, in the colour of `NA`.
@@ -1048,6 +1269,10 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             Some(PlotSetting::Shape(name)) if reads(layer.mark, Aesthetic::Shape) => *name,
             _ => shape::DEFAULT,
         };
+        let linetype = match set(Aesthetic::Linetype) {
+            Some(PlotSetting::Line(name)) if reads(layer.mark, Aesthetic::Linetype) => *name,
+            _ => LineType::Solid.name(),
+        };
         layers.push(Layer {
             mark: layer.mark,
             x: points.x,
@@ -1060,6 +1285,9 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             rows: points.rows.iter().map(|row| row + 1).collect(),
             z: None,
             raster: false,
+            line,
+            linetype: Lining::Constant(linetype),
+            width: layer.width.unwrap_or(LINE_WIDTH),
         });
         kept.push(points.rows);
     }
@@ -1141,6 +1369,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 Aesthetic::Color => layer.color = Paint::Scaled(values),
                 Aesthetic::Size => layer.size = Sizing::Scaled(values),
                 Aesthetic::Shape => layer.shape = Shaping::Scaled(values),
+                Aesthetic::Linetype => layer.linetype = Lining::Scaled(values),
                 _ => {}
             }
         }
@@ -1211,11 +1440,11 @@ impl Scene {
                                         "range",
                                         match &s.range {
                                             Range::Position => Json::Null,
-                                            Range::Colours(names) | Range::Shapes(names) => {
-                                                Json::List(
-                                                    names.iter().map(|c| Json::text(*c)).collect(),
-                                                )
-                                            }
+                                            Range::Colours(names)
+                                            | Range::Shapes(names)
+                                            | Range::LineTypes(names) => Json::List(
+                                                names.iter().map(|c| Json::text(*c)).collect(),
+                                            ),
                                             Range::Sizes(least, largest) => {
                                                 Json::numbers(&[*least, *largest])
                                             }
@@ -1365,6 +1594,43 @@ impl Scene {
                                                                 "raster",
                                                                 Json::Bool(true),
                                                             )))
+                                                            // What a layer of lines holds
+                                                            // more: the line of each mark,
+                                                            // the type and the width.
+                                                            .chain(if l.mark == Mark::Lines {
+                                                                vec![
+                                                                    (
+                                                                        "line",
+                                                                        Json::List(
+                                                                            l.line
+                                                                                .iter()
+                                                                                .map(|n| {
+                                                                                    Json::whole(*n)
+                                                                                })
+                                                                                .collect(),
+                                                                        ),
+                                                                    ),
+                                                                    (
+                                                                        "linetype",
+                                                                        match &l.linetype {
+                                                                            Lining::Constant(
+                                                                                name,
+                                                                            ) => Json::text(*name),
+                                                                            Lining::Scaled(
+                                                                                values,
+                                                                            ) => Json::numbers(
+                                                                                values,
+                                                                            ),
+                                                                        },
+                                                                    ),
+                                                                    (
+                                                                        "width",
+                                                                        Json::Number(l.width),
+                                                                    ),
+                                                                ]
+                                                            } else {
+                                                                Vec::new()
+                                                            })
                                                             .collect(),
                                                         )
                                                     })
@@ -1528,6 +1794,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         Aesthetic::Fill,
         Aesthetic::Size,
         Aesthetic::Shape,
+        Aesthetic::Linetype,
         Aesthetic::Group,
         Aesthetic::Label,
     ] {
@@ -1555,7 +1822,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                         limits(s),
                         format!("by area, up to {} across", format_float(*largest)),
                     ),
-                    (Range::Shapes(range), _) => (
+                    (Range::Shapes(range) | Range::LineTypes(range), _) => (
                         listed(&s.labels),
                         listed(
                             &range
@@ -1582,7 +1849,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 match setting {
                     PlotSetting::Colour { written, .. } => written.clone(),
                     PlotSetting::Size(across) => format_float(*across),
-                    PlotSetting::Shape(name) => name.to_string(),
+                    PlotSetting::Shape(name) | PlotSetting::Line(name) => name.to_string(),
                 },
             ],
             // A group and a label have no scale: the values themselves are what a mark reads.
@@ -1611,7 +1878,9 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         };
         if said && !layers.is_empty() && !plot.layers.iter().any(|l| takes_from_plot(l, aesthetic))
         {
-            unread.push(
+            // In the words of `points` while every layer is one; plainly otherwise.
+            let only_points = plot.layers.iter().all(|l| l.mark == Mark::Points);
+            unread.push(if only_points {
                 match aesthetic {
                     Aesthetic::Color => {
                         "no layer draws `color`: every layer has a `color:` of its own"
@@ -1629,8 +1898,10 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                     Aesthetic::Label => "no layer draws `label`: `points` writes no text",
                     _ => continue,
                 }
-                .to_string(),
-            );
+                .to_string()
+            } else {
+                format!("no layer draws `{id}`")
+            });
         }
     }
     if !lines.is_empty() {
@@ -1688,19 +1959,42 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 _ => {}
             }
         }
-        let mut settings = match &layer.size {
-            Sizing::Constant(across) => format!("size {}", format_float(*across)),
-            Sizing::Scaled(_) => format!("size by {}", by(Aesthetic::Size)),
-        };
-        // The shape is told where it is not the circle every plot begins with.
-        match &layer.shape {
-            Shaping::Constant(name) if *name == shape::DEFAULT => {}
-            Shaping::Constant(name) => settings.push_str(&format!(", shape {name}")),
-            Shaping::Scaled(_) => {
-                settings.push_str(&format!(", shape by {}", by(Aesthetic::Shape)));
+        let mut settings = if layer.mark == Mark::Lines {
+            // A layer of lines: their width, their type where it is not whole, how many.
+            let mut settings = format!("width {}", format_float(layer.width));
+            match &layer.linetype {
+                Lining::Constant(name) if *name == LineType::Solid.name() => {}
+                Lining::Constant(name) => settings.push_str(&format!(", linetype {name}")),
+                Lining::Scaled(_) => {
+                    settings.push_str(&format!(", linetype by {}", by(Aesthetic::Linetype)));
+                }
             }
-        }
-        settings.push_str(&format!(", alpha {}", format_float(layer.alpha)));
+            if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
+                settings.push_str(&format!(", group by {}", mapping.variable));
+            }
+            let lines = layer.line.last().copied().unwrap_or(0);
+            settings.push_str(&format!(
+                ", {} {}",
+                count(lines as u64),
+                if lines == 1 { "line" } else { "lines" }
+            ));
+            settings
+        } else {
+            let mut settings = match &layer.size {
+                Sizing::Constant(across) => format!("size {}", format_float(*across)),
+                Sizing::Scaled(_) => format!("size by {}", by(Aesthetic::Size)),
+            };
+            // The shape is told where it is not the circle every plot begins with.
+            match &layer.shape {
+                Shaping::Constant(name) if *name == shape::DEFAULT => {}
+                Shaping::Constant(name) => settings.push_str(&format!(", shape {name}")),
+                Shaping::Scaled(_) => {
+                    settings.push_str(&format!(", shape by {}", by(Aesthetic::Shape)));
+                }
+            }
+            settings.push_str(&format!(", alpha {}", format_float(layer.alpha)));
+            settings
+        };
         if !own.is_empty() {
             settings = format!("{}, {settings}", own.join(", "));
         }

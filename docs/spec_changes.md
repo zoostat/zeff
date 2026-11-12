@@ -495,3 +495,7 @@ Open decision #106 was taken on 12 November 2026 as option A, on the register's 
 
 Decision #118, F9, adopted by the owner on 11 November 2026, fixes "the default order of eight shapes and six line types, distinguishable in greyscale", and asks that the line types be written into section 7.6 at the step that builds lines. Step 23b of release 0.7.0 builds them in the three writers of figures. The table of defaults gains the row "Line types": the six names in their order (`solid`, `dashed`, `dotted`, `dash_dot`, `long_dash`, `dash_dot_dot`), the lengths of ink and gap of each in widths of the line, and the rule that the ink begins where the line begins with its ends cut square. Which six, their names and their lengths were chosen at this step on the recommendation, under the owner's standing instruction of 12 November 2026; the catalogue is unchanged, the option that names a line type arriving with `lines` at step 23c.
 
+## 12 November 2026 — zeff_functions.csv, row 462
+
+Step 23c1 of release 0.7.0 builds `lines`. Under open decision #106 (option A, taken on 12 November 2026) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer, and decision #118, F9, gives a line a type. The usage line of catalogue row 462 was `p.lines(data: Frame, width: Float = 1)`; it is now `p.lines(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, group: Var, linetype: Var | Str, width: Float = 1)`, and its status is `implemented`.
+

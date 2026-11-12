@@ -1,0 +1,51 @@
+---
+source: packages/tier1/plot/tests/lines.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 36.531,7.792 to 36.531,155.253 stroke #E3E3E3 0.35
+[grid] segment 63.935,7.792 to 63.935,155.253 stroke #E3E3E3 0.35
+[grid] segment 91.339,7.792 to 91.339,155.253 stroke #E3E3E3 0.35
+[grid] segment 118.743,7.792 to 118.743,155.253 stroke #E3E3E3 0.35
+[grid] segment 146.147,7.792 to 146.147,155.253 stroke #E3E3E3 0.35
+[grid] segment 31.05,148.55 to 151.627,148.55 stroke #E3E3E3 0.35
+[grid] segment 31.05,121.739 to 151.627,121.739 stroke #E3E3E3 0.35
+[grid] segment 31.05,94.928 to 151.627,94.928 stroke #E3E3E3 0.35
+[grid] segment 31.05,68.117 to 151.627,68.117 stroke #E3E3E3 0.35
+[grid] segment 31.05,41.306 to 151.627,41.306 stroke #E3E3E3 0.35
+[grid] segment 31.05,14.495 to 151.627,14.495 stroke #E3E3E3 0.35
+[panel] clip 31.05,7.792 120.577 by 147.461
+  [layer:1] path M 36.531,148.55 L 91.339,121.739 L 146.147,94.928 stroke #E69F00 1.5 opacity 1
+  [layer:1] path M 36.531,41.306 L 91.339,14.495 stroke #56B4E9 1.5 dashed opacity 1
+[axis:x] segment 31.05,155.253 to 151.627,155.253 stroke #222222 0.5
+[axis:x] segment 36.531,155.253 to 36.531,158.253 stroke #222222 0.5
+[axis:x] text 36.531,166.837 middle "1" sans 8 #222222
+[axis:x] segment 63.935,155.253 to 63.935,158.253 stroke #222222 0.5
+[axis:x] text 63.935,166.837 middle "1.5" sans 8 #222222
+[axis:x] segment 91.339,155.253 to 91.339,158.253 stroke #222222 0.5
+[axis:x] text 91.339,166.837 middle "2" sans 8 #222222
+[axis:x] segment 118.743,155.253 to 118.743,158.253 stroke #222222 0.5
+[axis:x] text 118.743,166.837 middle "2.5" sans 8 #222222
+[axis:x] segment 146.147,155.253 to 146.147,158.253 stroke #222222 0.5
+[axis:x] text 146.147,166.837 middle "3" sans 8 #222222
+[axis:x] text 91.339,180.837 middle "x" sans 9 #222222
+[axis:y] segment 31.05,7.792 to 31.05,155.253 stroke #222222 0.5
+[axis:y] segment 28.05,148.55 to 31.05,148.55 stroke #222222 0.5
+[axis:y] text 25.05,151.342 end "1" sans 8 #222222
+[axis:y] segment 28.05,121.739 to 31.05,121.739 stroke #222222 0.5
+[axis:y] text 25.05,124.531 end "2" sans 8 #222222
+[axis:y] segment 28.05,94.928 to 31.05,94.928 stroke #222222 0.5
+[axis:y] text 25.05,97.72 end "3" sans 8 #222222
+[axis:y] segment 28.05,68.117 to 31.05,68.117 stroke #222222 0.5
+[axis:y] text 25.05,70.909 end "4" sans 8 #222222
+[axis:y] segment 28.05,41.306 to 31.05,41.306 stroke #222222 0.5
+[axis:y] text 25.05,44.098 end "5" sans 8 #222222
+[axis:y] segment 28.05,14.495 to 31.05,14.495 stroke #222222 0.5
+[axis:y] text 25.05,17.287 end "6" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "y" sans 9 #222222
+[legend:color+linetype] text 161.627,14 start "g" sans 9 #222222
+[legend:color+linetype] segment 161.627,24.25 to 185.627,24.25 stroke #E69F00 1.5
+[legend:color+linetype] text 188.627,27.042 start "group <00> & co" sans 8 #222222
+[legend:color+linetype] segment 161.627,34.25 to 185.627,34.25 stroke #56B4E9 1.5 dashed
+[legend:color+linetype] text 188.627,37.042 start "group <01> & co" sans 8 #222222

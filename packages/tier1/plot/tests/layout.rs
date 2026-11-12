@@ -61,6 +61,7 @@ fn points(alpha: f64) -> PlotLayer {
         alpha,
         size: None,
         jitter: 0.0,
+        width: None,
         stream: None,
         computed: Vec::new(),
         mappings: Vec::new(),

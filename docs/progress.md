@@ -94,73 +94,9 @@ Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size 
 
 Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold and Mono Regular (Open Font License, downloaded with the owner's yes) with the engine's own reader of them, checked against a second parser and against HarfBuzz. 21a2 gave the scene the frame and the row behind each mark and reserved `frame`, `z`, `projection`, `crs` and the layer flag `raster` (#118, F2 to F4). 21b laid a scene out on a page as a drawing of eight primitives under the journal theme, never below 8 points. 21c wrote a drawing as SVG with its text as outlines of the fonts and the words kept (open decision #126, the owner's "Yes, outlines"). 21d gave `export` a plot: `.svg`, `size:` as one of three words or millimetres, `notes:` (F7), the sample project `samples/plots` with six figures. All green on CI.
 
-## 12 November 2026, release 0.7.0, step 22 (the theme frozen)
+## 12 November 2026, steps 22 to 22b4 of release 0.7.0 (folded)
 
-**Done.** The owner read the six figures and answered "Yes, freeze it"; no change was asked for. The three sizes, the journal theme, the faces, the rule of no ligatures and the stroke of the outline shapes are frozen as drawn, written out in `docs/decisions.md` and held by a test that fails if any of them is changed.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 261 of 261; CI is read job by job after the push.
-
-**Next.** Step 22b `[engine]`: the PDF and PNG writers, so that the six figures export in the three formats.
-
-**For the owner to decide.** Nothing blocks step 22b. Open as before: questions 1, 3, 4 and 5 of #110 (recommended as built, before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 22b opened and split
-
-**Done.** No code. Step 22b was split in the checklist into 22b1 (the PDF writer), 22b2 (the rasteriser and the PNG writer), 22b3 (`export` in the three formats and the six figures in each) and 22b4 (the tool-only trial of the typesetting engine, #73).
-
-**Next.** Step 22b1 `[engine]`: the PDF writer.
-
-**For the owner to decide.** Nothing new. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 22b1 (the PDF writer)
-
-**Done.** A drawing is written as a PDF file of one page (`plot::pdf::write`): every primitive as lines and curves, opacity, the clip region, the colour ramp as an image, and the text as real text in IBM Plex, which the file carries whole, set glyph by glyph with the kerning of step 21a and with the map that lets a reader search and copy the words. A shape met three times or more is written once and placed, so the first sample figure, of 18,201 marks, is 171 kB as PDF against 846 kB as SVG. No date, no version, nothing of the machine; the identifier comes from the file's own bytes. The font reader gained what a PDF asks of a font. Two crates were added and recorded with their licences: `miniz_oxide` =0.9.1 for compression, linked into the engine, and `lopdf` =0.47.0, a reader used by the tests alone. `export` does not write `.pdf` yet: that is step 22b3.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 263 of 263 (two new cases, the sample figures as PDF with and without compression); Ghostscript and the macOS renderer read and draw every sample file; CI is read job by job after the push, the identity jobs deciding whether the compressed bytes agree on the four targets.
-
-**Next.** Step 22b2 `[engine]`: the rasteriser and the PNG writer.
-
-**For the owner to decide.** Nothing new. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 22b2 (the rasteriser and the PNG writer)
-
-**Done.** A drawing is drawn in dots by the engine's own rasteriser (`plot::raster::render`) and written as a PNG file (`plot::png::write`), at 300 dots to the inch on a white page: every primitive, edges smoothed by the exact area each dot is covered by, lines with their corners, cells without seams, and the letters from the outlines of IBM Plex. A figure of one column is 1051 by 779 dots, as R's `png()` gives. The file says how many dots there are to the metre and nothing of the day. Decided here under the owner's standing instruction (take the recommended option): the PNG bytes are held identical on the four targets, as the SVG and PDF bytes are. One test-only crate was added and recorded, `png` =0.18.1. `export` does not write `.png` yet: that is step 22b3.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 265 of 265 (two new cases, the sample figures as dots and as PNG files); CI is read job by job after the push.
-
-**Next.** Step 22b3 `[engine]`: `export` in the three formats, the layer flag `raster`, and the six figures of `samples/plots` in each format.
-
-**For the owner to decide.** Nothing new, and from step 22b2 on nothing waits for him: decisions that are his are taken on the recommendation, recorded and announced. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 22b3a (`export` in the three formats)
-
-**Done.** `p.export("figure.pdf")`, `.svg` and `.png` each write the plot, with `size:` and `notes:` the same in the three; the extension may be in capitals. A page too large for a PDF (over 5080 mm a side) or for a PNG (over forty million dots) is refused in plain words. The sample project writes its six figures in the three formats, eighteen files, and the six SVG files are byte for byte what they were. The help pages of `export` and `plot` say which format is for what. Step 22b3 was split: the layer drawn in dots inside a vector figure is step 22b3b. The Language Reference now says the PNG bytes too are identical on every machine (logged).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 277 of 277; CI is read job by job after the push.
-
-**Next.** Step 22b3b `[engine]`: a layer flagged `raster` drawn in dots inside the PDF and the SVG.
-
-**For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: the largest page of a PDF (5080 mm) and of a PNG (forty million dots); a PNG with a white page, without transparency, at 300 dots to the inch. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 22b3b (a layer in dots inside a figure of lines), and step 22b3 complete
-
-**Done.** A layer of the scene flagged `raster` is drawn as a picture at 300 dots to the inch and placed inside the PDF (as an image) and the SVG (as a PNG held in the file), with the axes, labels and other layers staying lines and text; in a PNG it is a layer like any other. No script can set the flag at this release; the tests set it by hand. The cells of a grid in a drawing are numbers now, not text. Every figure written before this step is byte for byte what it was.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 279 of 279; CI is read job by job after the push.
-
-**Next.** Step 22b4 `[engine]`: the trial of the typesetting engine (#73), as a tool only; then step 23 `[function]`, the first seven marks, before which open decision #106 is taken on the recommendation.
-
-**For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: the picture of a layer holds what is under it in the panel; it is at 300 dots to the inch whatever the page. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 22b4 (the trial of the typesetting engine), and step 22b complete
-
-**Done.** No code. Typst 0.15.0, already on the owner's machine, was run as a tool on a table and a figure Zeff wrote; nothing was linked or added. The findings are in `docs/decisions.md` and the register's entry #73 points to them: permissive licences throughout the 298 crates of its library, the same bytes from run to run when the fonts and the date are fixed, a Zeff SVG placed as lines at its own size with its words searchable, no path for a table until `export` writes `.typ`. Not measured: the bytes across machines, and what the library adds to the size of the engine. The trial's files are in `~/dev/handbook/typst-trial-0.7.0/`. Step 22b, the PDF and PNG writers, is complete with its four parts.
-
-**Green.** Documents only; the code is as at the green commit of step 22b3b. CI is read job by job after the push.
-
-**Next.** Step 23 `[function]`: the first seven marks (`lines`, `step`, `area`, `ribbon`, `hline`, `vline`, `rug`), before which open decision #106 is taken on the recommendation.
-
-**For the owner to decide.** Nothing waits for him. #73 itself is due at 0.8.0. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+Step 22: the owner read the six figures and said "Yes, freeze it"; the journal theme is frozen. Step 22b was split into four. 22b1: a drawing is written as a PDF of one page with its text as text in IBM Plex, carried whole, a fifth of the SVG's size (`miniz_oxide` =0.9.1 for compression, `lopdf` =0.47.0 in the tests alone). 22b2: the engine's own rasteriser and PNG writer at 300 dots to the inch, edges by exact area, the bytes held identical on every target (`png` =0.18.1 in the tests alone). 22b3a: `export` writes `.svg`, `.pdf` or `.png` by the extension; the sample project writes eighteen figures. 22b3b: a layer flagged `raster` drawn as a picture inside the PDF and the SVG. 22b4: Typst 0.15.0 tried as a tool on a table and a figure of Zeff, findings recorded for #73, due at 0.8.0. From step 22b2 on the owner's standing instruction holds: steps follow without waiting, and decisions that are his are taken on the recommendation, recorded and announced. All green on CI.
 
 ## 12 November 2026, release 0.7.0, step 23 opened and split
 
@@ -189,4 +125,16 @@ Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold a
 **Next.** Step 23c `[function]`: `lines` and `step`.
 
 **For the owner to decide.** Nothing waits for him. Chosen on the recommendation at this step, and his to change: which six line types, their names, their order and their lengths. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 23c1 (`lines`)
+
+**Done.** `p.lines()` joins the rows in the order of `x`, a line for each group, for each category of `color:` and for each of `linetype:`; a row without `y` breaks the line, a row left alone draws nothing, and notes count both. The six types of line of step 23b are a scale of their own, and a legend of lines has a piece of line for its key. Checked against ggplot2 on the shipped wages. Step 23c was split: `step` is 23c2. Catalogue row 462 is brought up to date (logged).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 285 of 285; CI is read job by job after the push.
+
+**Found beside the step.** The checker refuses a variable named by `by: vars(a, b)` of `aggregate` when the result is bound to a name and used later; the run is right and `by: [a, b]` is taken. To be corrected next, in a step of its own.
+
+**Next.** The correction above, then step 23c2 `[function]`: `step`.
+
+**For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn, are listed in `docs/decisions.md`: how rows are parted into lines, what a missing value does, no colour by a number on a line, the options of `lines`. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

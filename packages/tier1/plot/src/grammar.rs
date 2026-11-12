@@ -23,6 +23,7 @@ use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, Span};
 
 use crate::colour::{self, NotAColour};
+use crate::drawing::LineType;
 use crate::mapping::{Asked, computed};
 use crate::scene::{Shading, is_numeric, shading, start};
 use crate::shape;
@@ -201,10 +202,11 @@ pub(crate) struct Slots {
     pub y: usize,
     pub color: usize,
     pub fill: Option<usize>,
-    pub size: usize,
-    pub shape: usize,
+    pub size: Option<usize>,
+    pub shape: Option<usize>,
     pub group: Option<usize>,
     pub label: Option<usize>,
+    pub linetype: Option<usize>,
 }
 
 /// What a call maps and what it sets to one value, read from its arguments as `plot` reads
@@ -338,132 +340,129 @@ pub(crate) fn aesthetics(
             }
         }
     }
-    match args.get(slots.size) {
-        None | Some(Value::Na) => {}
-        // A bare name: the variable whose amounts the areas of the marks show.
-        Some(Value::Var(name)) => {
-            let found = column(ctx, frame, name, ctx.span_of(slots.size))?;
-            if shading(found) != Some(Shading::Ramp) {
-                let with_labels = if is_numeric(found) && labelled(found) {
-                    " with value labels"
-                } else {
-                    ""
-                };
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!(
-                            "`{function}` shows `size` by area, so `{name}` must be an Int or Float variable without value labels, but it is {}{with_labels}",
-                            a_type(found)
-                        ),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(slots.size), "not an amount")
-                    .help("a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`"),
-                ));
-            }
-            mappings.push(PlotMapping {
-                aesthetic: Aesthetic::Size,
-                variable: name.clone(),
-                computed: None,
-            });
-        }
-        // A number: the diameter of every mark.
-        Some(Value::Int(_) | Value::Float(_)) => {
-            let Some(across) =
-                number_option(ctx, args, slots.size, "a `size:` that is not a number")?
-            else {
-                return Err(internal(ctx, "a `size:` that is a number and is not"));
-            };
-            if !(across > 0.0 && across.is_finite()) {
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!(
-                            "`size:` of `{function}` is the diameter of every mark in points of 1/72 inch, above 0, but this is {}",
-                            shown(across)
-                        ),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(slots.size), "not a size")
-                    .help(if function == "plot" {
-                        "write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point is 4.5 across"
+    if let Some(slot) = slots.size {
+        match args.get(slot) {
+            None | Some(Value::Na) => {}
+            // A bare name: the variable whose amounts the areas of the marks show.
+            Some(Value::Var(name)) => {
+                let found = column(ctx, frame, name, ctx.span_of(slot))?;
+                if shading(found) != Some(Shading::Ramp) {
+                    let with_labels = if is_numeric(found) && labelled(found) {
+                        " with value labels"
                     } else {
-                        "write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point takes the size the plot gives, or is 4.5 across"
-                    }),
+                        ""
+                    };
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`{function}` shows `size` by area, so `{name}` must be an Int or Float variable without value labels, but it is {}{with_labels}",
+                                a_type(found)
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(slot), "not an amount")
+                        .help("a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`"),
+                    ));
+                }
+                mappings.push(PlotMapping {
+                    aesthetic: Aesthetic::Size,
+                    variable: name.clone(),
+                    computed: None,
+                });
+            }
+            // A number: the diameter of every mark.
+            Some(Value::Int(_) | Value::Float(_)) => {
+                let Some(across) =
+                    number_option(ctx, args, slot, "a `size:` that is not a number")?
+                else {
+                    return Err(internal(ctx, "a `size:` that is a number and is not"));
+                };
+                if !(across > 0.0 && across.is_finite()) {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`size:` of `{function}` is the diameter of every mark in points of 1/72 inch, above 0, but this is {}",
+                                shown(across)
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(slot), "not a size")
+                        .help(if function == "plot" {
+                            "write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point is 4.5 across"
+                        } else {
+                            "write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point takes the size the plot gives, or is 4.5 across"
+                        }),
+                    ));
+                }
+                constants.push(PlotConstant {
+                    aesthetic: Aesthetic::Size,
+                    value: PlotSetting::Size(across),
+                });
+            }
+            Some(_) => {
+                return Err(internal(
+                    ctx,
+                    "a call was given a size that is not a variable or a number",
                 ));
             }
-            constants.push(PlotConstant {
-                aesthetic: Aesthetic::Size,
-                value: PlotSetting::Size(across),
-            });
-        }
-        Some(_) => {
-            return Err(internal(
-                ctx,
-                "a call was given a size that is not a variable or a number",
-            ));
         }
     }
-    match args.get(slots.shape) {
-        None | Some(Value::Na) => {}
-        // A bare name: the variable whose categories the shapes show.
-        Some(Value::Var(name)) => {
-            let found = column(ctx, frame, name, ctx.span_of(slots.shape))?;
-            if shading(found) != Some(Shading::Categories) {
-                let number = shading(found) == Some(Shading::Ramp);
-                return Err(fail(
-                    Diagnostic::error(
-                        "Z0401",
-                        format!(
-                            "`{function}` gives each category a shape, so `{name}` must be a Bool, Str or Category variable, or a number with value labels, but it is {}{}",
-                            a_type(found),
-                            if number { " without value labels" } else { "" }
-                        ),
-                    )
-                    .in_file(ctx.script)
-                    .primary(ctx.span_of(slots.shape), "not categories")
-                    .help(if number {
-                        format!(
-                            "a shape shows a category; a number is shown by `color:` or `size:`, or made categories first, as in `{}.add({name} = category({name}))`",
-                            frame.shown_name()
+    if let Some(slot) = slots.shape {
+        match args.get(slot) {
+            None | Some(Value::Na) => {}
+            // A bare name: the variable whose categories the shapes show.
+            Some(Value::Var(name)) => {
+                let found = column(ctx, frame, name, ctx.span_of(slot))?;
+                if shading(found) != Some(Shading::Categories) {
+                    let number = shading(found) == Some(Shading::Ramp);
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`{function}` gives each category a shape, so `{name}` must be a Bool, Str or Category variable, or a number with value labels, but it is {}{}",
+                                a_type(found),
+                                if number { " without value labels" } else { "" }
+                            ),
                         )
-                    } else {
-                        format!(
-                            "`{}.describe()` lists the types of the variables",
-                            frame.shown_name()
-                        )
-                    }),
-                ));
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(slot), "not categories")
+                        .help(if number {
+                            format!(
+                                "a shape shows a category; a number is shown by `color:` or `size:`, or made categories first, as in `{}.add({name} = category({name}))`",
+                                frame.shown_name()
+                            )
+                        } else {
+                            format!(
+                                "`{}.describe()` lists the types of the variables",
+                                frame.shown_name()
+                            )
+                        }),
+                    ));
+                }
+                mappings.push(PlotMapping {
+                    aesthetic: Aesthetic::Shape,
+                    variable: name.clone(),
+                    computed: None,
+                });
             }
-            mappings.push(PlotMapping {
-                aesthetic: Aesthetic::Shape,
-                variable: name.clone(),
-                computed: None,
-            });
-        }
-        // A string: one shape for every mark.
-        Some(Value::Str(written)) => match shape::parse(written) {
-            Ok(name) => constants.push(PlotConstant {
-                aesthetic: Aesthetic::Shape,
-                value: PlotSetting::Shape(name),
-            }),
-            Err(near) => {
-                return Err(not_a_shape(
+            // A string: one shape for every mark.
+            Some(Value::Str(written)) => match shape::parse(written) {
+                Ok(name) => constants.push(PlotConstant {
+                    aesthetic: Aesthetic::Shape,
+                    value: PlotSetting::Shape(name),
+                }),
+                Err(near) => {
+                    return Err(not_a_shape(ctx, frame, function, slot, written, near));
+                }
+            },
+            Some(_) => {
+                return Err(internal(
                     ctx,
-                    frame,
-                    function,
-                    slots.shape,
-                    written,
-                    near,
+                    "a call was given a shape that is not a variable or a string",
                 ));
             }
-        },
-        Some(_) => {
-            return Err(internal(
-                ctx,
-                "a call was given a shape that is not a variable or a string",
-            ));
         }
     }
     // The variables held for the marks that read them: any type will do.
@@ -492,6 +491,100 @@ pub(crate) fn aesthetics(
             }
         }
     }
+    // The type of a line: a bare name gives each category of a variable one of the six types,
+    // and a string sets one type for every line.
+    if let Some(slot) = slots.linetype {
+        match args.get(slot) {
+            None | Some(Value::Na) => {}
+            Some(Value::Var(name)) => {
+                // A type of line written without quotation marks reads as a variable.
+                if frame.table.column(name).is_none() && LineType::parse(name).is_some() {
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0101",
+                            format!("no variable `{name}` in `{}`", frame.shown_name()),
+                        )
+                        .in_file(ctx.script)
+                        .primary(
+                            ctx.span_of(slot),
+                            format!("not a variable of {}", frame.shown_name()),
+                        )
+                        .help(format!(
+                            "`{name}` is a type of line: to draw every line of the layer that way, write it in quotation marks, `linetype: \"{name}\"`"
+                        )),
+                    ));
+                }
+                let found = column(ctx, frame, name, ctx.span_of(slot))?;
+                if shading(found) != Some(Shading::Categories) {
+                    let number = shading(found) == Some(Shading::Ramp);
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`{function}` gives each category a type of line, so `{name}` must be a Bool, Str or Category variable, or a number with value labels, but it is {}{}",
+                                a_type(found),
+                                if number { " without value labels" } else { "" }
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(slot), "not categories")
+                        .help(if number {
+                            format!(
+                                "a type of line shows a category; make the number categories first, as in `{}.add({name} = category({name}))`",
+                                frame.shown_name()
+                            )
+                        } else {
+                            format!(
+                                "`{}.describe()` lists the types of the variables",
+                                frame.shown_name()
+                            )
+                        }),
+                    ));
+                }
+                mappings.push(PlotMapping {
+                    aesthetic: Aesthetic::Linetype,
+                    variable: name.clone(),
+                    computed: None,
+                });
+            }
+            Some(Value::Str(written)) => match LineType::parse(written) {
+                Some(kind) => constants.push(PlotConstant {
+                    aesthetic: Aesthetic::Linetype,
+                    value: PlotSetting::Line(kind.name()),
+                }),
+                None => {
+                    // The string may be the variable the script meant to give types by.
+                    let help = if frame.table.column(written).is_some() {
+                        format!(
+                            "a string sets one type for every line; to give each category of `{written}` a type, write it without quotation marks, `linetype: {written}`"
+                        )
+                    } else {
+                        let names: Vec<&str> =
+                            LineType::ALL.iter().map(|each| each.name()).collect();
+                        let (last, others) = names.split_last().unwrap_or((&"", &[]));
+                        format!("a type of line is one of {} and {last}", others.join(", "))
+                    };
+                    return Err(fail(
+                        Diagnostic::error(
+                            "Z0401",
+                            format!(
+                                "`linetype:` of `{function}` is \"{written}\", which is not a type of line"
+                            ),
+                        )
+                        .in_file(ctx.script)
+                        .primary(ctx.span_of(slot), "not a type of line")
+                        .help(help),
+                    ));
+                }
+            },
+            Some(_) => {
+                return Err(internal(
+                    ctx,
+                    "a call was given a type of line that is not a variable or a string",
+                ));
+            }
+        }
+    }
     Ok((mappings, constants))
 }
 
@@ -512,10 +605,11 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             y: Y,
             color: COLOR,
             fill: Some(FILL),
-            size: SIZE,
-            shape: SHAPE,
+            size: Some(SIZE),
+            shape: Some(SHAPE),
             group: Some(GROUP),
             label: Some(LABEL),
+            linetype: None,
         },
         false,
     )?;

@@ -198,6 +198,10 @@ fn own_frame(
             Some(bound) => format!("`{bound}`"),
             None => "this frame".to_string(),
         };
+        // A group is read as it stands, whatever its type: it need only be there.
+        if matches!(aesthetic, Aesthetic::Group | Aesthetic::Label) {
+            continue;
+        }
         // A colour, a size, a shape: the variable must be shown the same way as in the plot's
         // frame, as categories or as a number, since the layers share one scale.
         if matches!(
@@ -321,10 +325,11 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             y: Y,
             color: COLOR,
             fill: None,
-            size: SIZE,
-            shape: SHAPE,
+            size: Some(SIZE),
+            shape: Some(SHAPE),
             group: None,
             label: None,
+            linetype: None,
         },
         own_data,
     )?;
@@ -402,7 +407,152 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             alpha,
             size,
             jitter,
+            width: None,
             stream,
+            computed,
+            mappings,
+            constants,
+        },
+    );
+    for note in after.notes {
+        if !before.contains(&note) {
+            ctx.message(Diagnostic::plain_note(note));
+        }
+    }
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+// ----- lines (step 23c) -----
+
+const L_COLOR: usize = 4;
+const L_GROUP: usize = 5;
+const L_LINETYPE: usize = 6;
+const L_WIDTH: usize = 7;
+
+/// A line has one colour from end to end, so the colour a layer of lines draws, its own or
+/// the plot's, must show categories; a number without value labels, which is shown on a ramp,
+/// is refused (Z0401) with the two ways out.
+fn one_colour_to_a_line(
+    ctx: &CallContext<'_>,
+    plot: &Plot,
+    frame: &Frame,
+    own: &[PlotMapping],
+    set: bool,
+    function: &str,
+) -> Result<(), Fail> {
+    let named = own.iter().find(|m| m.aesthetic == Aesthetic::Color);
+    let mapping = match (named, set) {
+        (Some(own), _) => own,
+        (None, true) => return Ok(()),
+        (None, false) => match plot.mapping(Aesthetic::Color) {
+            Some(of_the_plot) => of_the_plot,
+            None => return Ok(()),
+        },
+    };
+    let Some(found) = frame.table.column(&mapping.variable) else {
+        return Ok(());
+    };
+    if shading(found) != Some(Shading::Ramp) {
+        return Ok(());
+    }
+    let name = mapping.variable.as_str();
+    let at = if named.is_some() {
+        ctx.span_of(L_COLOR)
+    } else {
+        ctx.callee_span
+    };
+    Err(fail(
+        Diagnostic::error(
+            "Z0401",
+            format!(
+                "`{function}` draws each line in one colour, so `color` must show categories, but `{name}` is {} without value labels, which is shown on a continuous scale",
+                a_type(found)
+            ),
+        )
+        .in_file(ctx.script)
+        .primary(at, "a colour for each row, not for each line")
+        .help(format!(
+            "colour the lines by a variable of categories, as in `{function}(color: union)`, or set one colour for this layer, as in `{function}(color: \"black\")`"
+        )),
+    ))
+}
+
+/// `p.lines(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, group: Var,
+/// linetype: Var | Str, width: Float = 1)`.
+pub fn lines(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`lines` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mappings, constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        "lines",
+        &Slots {
+            x: X,
+            y: Y,
+            color: L_COLOR,
+            fill: None,
+            size: None,
+            shape: None,
+            group: Some(L_GROUP),
+            label: None,
+            linetype: Some(L_LINETYPE),
+        },
+        own_data,
+    )?;
+    positions(ctx, &plot, &mappings, "lines")?;
+    one_scale(ctx, &plot, &frame, &mappings, L_COLOR, "lines")?;
+    // What the layer reads from the plot: what it neither names nor sets of its own.
+    let read: Vec<Aesthetic> = [
+        Aesthetic::X,
+        Aesthetic::Y,
+        Aesthetic::Color,
+        Aesthetic::Group,
+    ]
+    .into_iter()
+    .filter(|aesthetic| {
+        !mappings.iter().any(|m| m.aesthetic == *aesthetic)
+            && !constants.iter().any(|c| c.aesthetic == *aesthetic)
+    })
+    .collect();
+    let (data, computed) = own_frame(ctx, &args, &plot, "lines", &read)?;
+    let coloured = constants.iter().any(|c| c.aesthetic == Aesthetic::Color);
+    one_colour_to_a_line(ctx, &plot, &frame, &mappings, coloured, "lines")?;
+    let width = number_option(ctx, &args, L_WIDTH, "a `width:` that is not a number")?;
+    if let Some(given) = width
+        && !(given > 0.0 && given.is_finite())
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`width:` of `lines` is the width of a line in points of 1/72 inch, above 0, but this is {}",
+                    shown(given)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(L_WIDTH), "not a width")
+            .help("write a width such as 0.5 or 2; without `width:` a line is 1 wide"),
+        ));
+    }
+    let before = scene(&plot).notes;
+    let (next, after) = with_layer(
+        &plot,
+        PlotLayer {
+            mark: Mark::Lines,
+            data,
+            alpha: 1.0,
+            size: None,
+            jitter: 0.0,
+            width,
+            stream: None,
             computed,
             mappings,
             constants,

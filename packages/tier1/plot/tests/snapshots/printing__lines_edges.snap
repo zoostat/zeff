@@ -1,0 +1,195 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_gap
+plot · gap · v against t
+
+  axis   title   scale    limits         breaks
+  x      t       linear   0.8 to 5.2     1, 2, 3, 4, 5
+  y      v       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark    data   marks   settings
+      1   lines   gap        4   width 1, 2 lines
+---
+note: 2 rows with NA in t or v dropped (line 2)
+note: 2 breaks in the lines where v is NA (line 2)
+note: 1 row with no neighbour to be joined to draws no line (line 2)
+
+== a_gap_in_each_group
+plot · gap · v against t
+
+  axis   title   scale    limits         breaks
+  x      t       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      v       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+
+  layer   mark    data   marks   settings
+      1   lines   gap        2   width 1, group by g, 1 line
+---
+note: 2 rows with NA in t or v dropped (line 2)
+note: 2 breaks in the lines where v is NA (line 2)
+note: 3 rows with no neighbour to be joined to draw no line (line 2)
+
+== one_point
+plot · b against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+  y      b       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+
+  layer   mark    data        marks   settings
+      1   lines   the frame       0   width 1, 0 lines
+---
+note: 1 row with no neighbour to be joined to draws no line (line 2)
+
+== a_group_of_one
+plot · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      b       linear   1.95 to 3.05   2, 2.2, 2.4, 2.6, 2.8, 3
+
+  aesthetic   title   scale   values               shown as
+  group       g               each value a group
+
+  layer   mark    data        marks   settings
+      1   lines   the frame       2   width 1, 1 line
+---
+note: 1 row with no neighbour to be joined to draws no line (line 2)
+
+== no_rows
+plot · b against a
+
+  axis   title   scale    limits   breaks
+  x      a       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+  y      b       linear   0 to 1   0, 0.2, 0.4, 0.6, 0.8, 1
+
+  layer   mark    data        marks   settings
+      1   lines   the frame       0   width 1, 0 lines
+---
+note: no row kept: the result is empty (line 2)
+
+== nothing_to_draw
+plot · b against a
+
+  axis   title   scale    limits       breaks
+  x      a       linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+  y      b       linear   1.5 to 2.5   1.6, 1.8, 2, 2.2, 2.4
+
+  layer   mark    data        marks   settings
+      1   lines   the frame       0   width 1, 0 lines
+---
+note: 2 rows with NA in a or b dropped (line 2)
+
+== ties
+plot · b against a
+
+  axis   title   scale    limits          breaks
+  x      a       linear   0.95 to 2.05    1, 1.2, 1.4, 1.6, 1.8, 2
+  y      b       linear   -0.15 to 3.15   0, 0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark    data        marks   settings
+      1   lines   the frame       4   width 1, 1 line
+---
+
+== infinite
+plot · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      b       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+
+  layer   mark    data        marks   settings
+      1   lines   the frame       2   width 1, 1 line
+---
+warning[W0204]: division by zero gave Inf (line 2)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+warning[W0204]: division by zero gave Inf (line 2)
+  = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
+note: 2 rows with an infinite value in a or b dropped (line 2)
+note: 1 break in a line where b is NA or infinite (line 2)
+note: 1 row with no neighbour to be joined to draws no line (line 2)
+
+== a_group_without_a_name
+plot · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      b       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark    data        marks   settings
+      1   lines   the frame       4   width 1, group by g, 2 lines
+---
+
+== seven_types
+plot · b against a
+
+  axis   title   scale    limits         breaks
+  x      a       linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      b       linear   0.65 to 8.35   2, 4, 6, 8
+
+  aesthetic   title   scale      values                     shown as
+  linetype    g       category   a, b, c, d, e and 2 more   solid, dashed, dotted, dash_dot, long_dash and 2 more
+
+  layer   mark    data        marks   settings
+      1   lines   the frame      14   width 1, linetype by g, 7 lines
+---
+note: `g` has 7 categories and there are 6 types of line, so the types repeat from the seventh category (line 2)
+
+== its_own_frame
+plot · gap · v against t
+
+  axis   title   scale    limits       breaks
+  x      t       linear   0.7 to 7.3   1, 2, 3, 4, 5, 6, 7
+  y      v       linear   0.8 to 5.2   1, 2, 3, 4, 5
+
+  aesthetic   title   scale   values               shown as
+  group       g               each value a group
+
+  layer   mark     data   marks   settings
+      1   points   gap        5   size 4.5, alpha 1
+      2   lines    late       0   width 1, 0 lines
+---
+note: 2 rows with NA in t or v dropped (line 3)
+note: 1 row with NA in t or v dropped (line 3)
+note: 1 break in a line where v is NA (line 3)
+note: 3 rows with no neighbour to be joined to draw no line (line 3)
+
+== one_colour
+plot · gap · v against t
+
+  axis   title   scale    limits         breaks
+  x      t       linear   0.8 to 5.2     1, 2, 3, 4, 5
+  y      v       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       shown as
+  color               constant   every mark   steelblue
+
+  layer   mark    data   marks   settings
+      1   lines   gap        4   width 1, 2 lines
+      2   lines   gap        4   color black, width 2, 2 lines
+---
+note: 2 rows with NA in t or v dropped (line 2)
+note: 2 breaks in the lines where v is NA (line 2)
+note: 1 row with no neighbour to be joined to draws no line (line 2)
+
+== what_a_line_does_not_read
+plot · gap · v against t
+
+  axis   title   scale    limits         breaks
+  x      t       linear   0.8 to 5.2     1, 2, 3, 4, 5
+  y      v       linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  aesthetic   title   scale      values       shown as
+  size                constant   every mark   6
+  shape               constant   every mark   square
+
+no layer draws `size`
+no layer draws `shape`
+
+  layer   mark    data   marks   settings
+      1   lines   gap        4   width 1, 2 lines
+---
+note: 2 rows with NA in t or v dropped (line 2)
+note: 2 breaks in the lines where v is NA (line 2)
+note: 1 row with no neighbour to be joined to draws no line (line 2)

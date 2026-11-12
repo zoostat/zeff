@@ -1579,6 +1579,7 @@ fn plot_cases() -> Vec<Line> {
                 alpha: 0.3,
                 size: None,
                 jitter: 0.4,
+                width: None,
                 stream: Some(Stream::new(20_261_111, 2, 0)),
                 computed: Vec::new(),
                 mappings: Vec::new(),
@@ -1631,6 +1632,7 @@ fn plot_cases() -> Vec<Line> {
                         alpha: 1.0,
                         size: None,
                         jitter: 0.0,
+                        width: None,
                         stream: None,
                         computed: Vec::new(),
                         mappings: Vec::new(),
@@ -1665,6 +1667,7 @@ fn plot_cases() -> Vec<Line> {
                 alpha: 1.0,
                 size: None,
                 jitter: 0.0,
+                width: None,
                 stream: None,
                 computed: Vec::new(),
                 mappings: Vec::new(),
@@ -1726,6 +1729,7 @@ fn plot_cases() -> Vec<Line> {
                 alpha: 1.0,
                 size,
                 jitter: 0.0,
+                width: None,
                 stream: None,
                 computed: Vec::new(),
                 mappings: Vec::new(),
@@ -1751,7 +1755,58 @@ fn plot_cases() -> Vec<Line> {
         }
         None => "the wages did not load".to_string(),
     };
+    // Lines (step 23c): means joined from year to year, a line for each worker, a line broken
+    // where the wage is missing; what the script prints, and the scene and the drawing of the
+    // wages of each worker as lines of a type for each sex.
+    let script = "let w = dataset(wages)\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nu.plot(x: year, y: wage, color: union).points().lines(linetype: union)\nlet few = w.where(worker <= 40)\nfew.plot(x: year, y: log(wage), group: worker).lines(width: 0.5)\nfew.plot(x: exper, y: wage).lines(group: worker, color: female)\n";
+    let lined = run_script(&fs, &project, "scripts/main.zeff", script);
+    let lines = match zeff_datasets::table("wages") {
+        Some(table) => {
+            use std::rc::Rc;
+            use zeff_core::value::{Aesthetic, Frame, Mark, PlotLayer, PlotMapping};
+            use zeff_plot::layout::{JOURNAL, Size, layout};
+            let mapping = |aesthetic, variable: &str| PlotMapping {
+                aesthetic,
+                variable: variable.to_string(),
+                computed: None,
+            };
+            let plot = zeff_plot::scene::start(
+                Frame {
+                    table: Rc::new(table),
+                    name: Some("wages".to_string()),
+                },
+                vec![
+                    mapping(Aesthetic::X, "year"),
+                    mapping(Aesthetic::Y, "wage"),
+                    mapping(Aesthetic::Group, "worker"),
+                ],
+                Vec::new(),
+            );
+            let layer = PlotLayer {
+                mark: Mark::Lines,
+                data: None,
+                alpha: 1.0,
+                size: None,
+                jitter: 0.0,
+                width: Some(0.25),
+                stream: None,
+                computed: Vec::new(),
+                mappings: vec![mapping(Aesthetic::Linetype, "female")],
+                constants: Vec::new(),
+            };
+            let scene = zeff_plot::scene::with_layer(&plot, layer).1;
+            let drawing = match layout(&scene, Size::TwoColumn, &JOURNAL) {
+                Ok(drawing) => drawing.describe(),
+                Err(why) => format!("{why:?}\n"),
+            };
+            format!("{}\n=== drawing\n{drawing}", scene.to_json())
+        }
+        None => "the wages did not load".to_string(),
+    };
     vec![
+        text("plot/lines/stdout", &lined.output.stdout),
+        text("plot/lines/stderr", &lined.output.stderr),
+        text("plot/lines/scene", &lines),
         text("plot/points/stdout", &outcome.output.stdout),
         text("plot/points/stderr", &outcome.output.stderr),
         text("plot/points/scene.json", &scene),
@@ -1809,6 +1864,7 @@ fn sample_drawings() -> Vec<(String, Result<zeff_plot::drawing::Drawing, String>
         alpha: 0.4,
         size: None,
         jitter: 0.0,
+        width: None,
         stream: None,
         computed: Vec::new(),
         mappings: Vec::new(),
@@ -1951,6 +2007,7 @@ fn picture_figure(as_pdf: bool) -> Vec<u8> {
         alpha: 0.4,
         size: None,
         jitter: 0.0,
+        width: None,
         stream: None,
         computed: Vec::new(),
         mappings: Vec::new(),
