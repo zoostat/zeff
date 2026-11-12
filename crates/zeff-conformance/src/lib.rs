@@ -1760,6 +1760,8 @@ fn plot_cases() -> Vec<Line> {
         text("plot/svg/figures", &svg_figures()),
         bytes("plot/pdf/plain", &pdf_figures(false)),
         bytes("plot/pdf/figures", &pdf_figures(true)),
+        bytes("plot/png/dots", &png_figures(false)),
+        bytes("plot/png/figures", &png_figures(true)),
         text("plot/fonts/metrics", &font_metrics()),
         text("plot/fonts/texts", &font_texts()),
         text("plot/fonts/outlines", &font_outlines()),
@@ -1871,6 +1873,34 @@ fn pdf_figures(packed: bool) -> Vec<u8> {
         match drawing {
             Ok(drawing) if packed => out.extend_from_slice(&zeff_plot::pdf::write(&drawing)),
             Ok(drawing) => out.extend_from_slice(&zeff_plot::pdf::write_plain(&drawing)),
+            Err(why) => out.extend_from_slice(format!("{why}\n").as_bytes()),
+        }
+    }
+    out
+}
+
+/// The PNG of a figure (step 22b2): the sample drawings of one column and of 120 mm by 75,
+/// drawn in dots at 300 to the inch by the engine's own reckoning. With `written` each is
+/// the PNG file `export` writes; without, the dots themselves, so that a difference between
+/// two machines says whether it lies in what is drawn or in how it is compressed.
+fn png_figures(written: bool) -> Vec<u8> {
+    use zeff_plot::raster::{DOTS, render};
+    let mut out = Vec::new();
+    for (name, drawing) in sample_drawings() {
+        if !(name.ends_with("one_column") || name.ends_with("mm")) {
+            continue;
+        }
+        out.extend_from_slice(format!("=== {name}\n").as_bytes());
+        match drawing.and_then(|d| render(&d, DOTS).map_err(|why| format!("{why:?}"))) {
+            Ok(picture) if written => {
+                out.extend_from_slice(&zeff_plot::png::write(&picture, DOTS).unwrap_or_default());
+            }
+            Ok(picture) => {
+                out.extend_from_slice(
+                    format!("{} by {}\n", picture.width, picture.height).as_bytes(),
+                );
+                out.extend_from_slice(&picture.rgb);
+            }
             Err(why) => out.extend_from_slice(format!("{why}\n").as_bytes()),
         }
     }

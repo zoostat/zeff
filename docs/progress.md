@@ -175,3 +175,13 @@ Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size 
 **Next.** Step 22b2 `[engine]`: the rasteriser and the PNG writer.
 
 **For the owner to decide.** Nothing new. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 22b2 (the rasteriser and the PNG writer)
+
+**Done.** A drawing is drawn in dots by the engine's own rasteriser (`plot::raster::render`) and written as a PNG file (`plot::png::write`), at 300 dots to the inch on a white page: every primitive, edges smoothed by the exact area each dot is covered by, lines with their corners, cells without seams, and the letters from the outlines of IBM Plex. A figure of one column is 1051 by 779 dots, as R's `png()` gives. The file says how many dots there are to the metre and nothing of the day. Decided here under the owner's standing instruction (take the recommended option): the PNG bytes are held identical on the four targets, as the SVG and PDF bytes are. One test-only crate was added and recorded, `png` =0.18.1. `export` does not write `.png` yet: that is step 22b3.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 265 of 265 (two new cases, the sample figures as dots and as PNG files); CI is read job by job after the push.
+
+**Next.** Step 22b3 `[engine]`: `export` in the three formats, the layer flag `raster`, and the six figures of `samples/plots` in each format.
+
+**For the owner to decide.** Nothing new, and from step 22b2 on nothing waits for him: decisions that are his are taken on the recommendation, recorded and announced. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

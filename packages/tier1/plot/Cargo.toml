@@ -18,8 +18,8 @@ zeff-numeric.workspace = true
 zeff-registry.workspace = true
 # The composed form of a letter and its mark, before a text is set (the crate `data` uses already).
 unicode-normalization = "=0.1.26"
-# DEFLATE, for the streams of a PDF file (decisions.md, step 22b1): pure Rust, no part of it
-# written for one processor.
+# DEFLATE, for the streams of a PDF file and the dots of a PNG file (decisions.md, steps
+# 22b1 and 22b2): pure Rust, no part of it written for one processor.
 miniz_oxide = { version = "=0.9.1", default-features = false, features = ["with-alloc"] }
 
 [dev-dependencies]
@@ -34,3 +34,5 @@ ttf-parser = "=0.25.1"
 roxmltree = "=0.21.2"
 # An independent reader of PDF, for the tests of `pdf` alone (decisions.md, step 22b1).
 lopdf = { version = "=0.47.0", default-features = false }
+# An independent reader of PNG, for the tests of `png` alone (decisions.md, step 22b2).
+png = "=0.18.1"

@@ -41,14 +41,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
 use miniz_oxide::deflate::compress_to_vec_zlib;
-use zeff_numeric::maths::{atan2, cos, sin, sqrt, tan};
+use zeff_numeric::maths::sqrt;
 
 use crate::drawing::{
-    Anchor, Drawing, Head, Item, Place, Primitive, Span, Step, Stroke, TextBox, length,
+    Anchor, Drawing, Head, Item, Place, Primitive, Span, Stroke, TextBox, length,
 };
 use crate::font::{FaceName, face};
 use crate::shape::Geometry;
 use crate::svg::{ABOVE, BELOW, MARK_STROKE, geometry, turned};
+use crate::trace::{Piece, Trace};
 
 /// How hard the streams are compressed, of 10: the same on every machine.
 const LEVEL: u8 = 9;
@@ -62,9 +63,6 @@ pub const DOTS: f64 = 300.0;
 /// The most a cell is repeated each way, and the most dots an image is made of by repeating.
 const FINEST: usize = 64;
 const MOST_DOTS: usize = 4_000_000;
-
-/// How far the control of a quarter of a circle stands from its end, as a share of the radius.
-const QUARTER: f64 = 0.552_284_749_830_793_6;
 
 /// How far a corner of a line may reach beyond its place, in widths of the line, before it
 /// is cut flat: what an SVG reader uses.
@@ -129,240 +127,27 @@ fn share(opacity: f64) -> String {
     length(opacity.clamp(0.0, 1.0))
 }
 
-/// A path being written: its operators, where it stands and where its part began.
-#[derive(Default)]
-struct Trace {
-    ops: String,
-    at: Place,
-    start: Place,
-    begun: bool,
-}
-
 impl Trace {
-    fn to(&mut self, p: Place) {
-        self.ops
-            .push_str(&format!("{} {} m ", length(p.0), length(p.1)));
-        self.at = p;
-        self.start = p;
-        self.begun = true;
-    }
-
-    fn line(&mut self, p: Place) {
-        // A path must begin somewhere: one that does not begins where it first goes.
-        if !self.begun {
-            return self.to(p);
-        }
-        self.ops
-            .push_str(&format!("{} {} l ", length(p.0), length(p.1)));
-        self.at = p;
-    }
-
-    fn curve(&mut self, a: Place, b: Place, p: Place) {
-        if !self.begun {
-            return self.to(p);
-        }
-        self.ops.push_str(&format!(
-            "{} {} {} {} {} {} c ",
-            length(a.0),
-            length(a.1),
-            length(b.0),
-            length(b.1),
-            length(p.0),
-            length(p.1)
-        ));
-        self.at = p;
-    }
-
-    fn close(&mut self) {
-        if self.begun {
-            self.ops.push_str("h ");
-            self.at = self.start;
-        }
-    }
-
-    /// An arc of an ellipse from where the path stands to `to`, as an SVG path has it,
-    /// drawn as curves of at most a quarter turn each.
-    fn arc(&mut self, radii: (f64, f64), turn: f64, larger: bool, clockwise: bool, to: Place) {
-        let from = self.at;
-        if !self.begun {
-            return self.to(to);
-        }
-        if from == to {
-            return;
-        }
-        let (mut rx, mut ry) = (radii.0.abs(), radii.1.abs());
-        // An ellipse of no width is the straight line between the ends.
-        if !(rx > 0.0 && ry > 0.0 && rx.is_finite() && ry.is_finite()) {
-            return self.line(to);
-        }
-        // The ends as the ellipse sees them: halved, and turned back by its turn.
-        let (cosine, sine) = turned(turn);
-        let (hx, hy) = ((from.0 - to.0) / 2.0, (from.1 - to.1) / 2.0);
-        let (x1, y1) = (cosine * hx + sine * hy, -sine * hx + cosine * hy);
-        // Radii too small to reach from one end to the other are grown until they do.
-        let reach = x1 * x1 / (rx * rx) + y1 * y1 / (ry * ry);
-        if reach > 1.0 {
-            let grow = sqrt(reach);
-            rx *= grow;
-            ry *= grow;
-        }
-        // The centre, on the side the two choices name.
-        let below = rx * rx * y1 * y1 + ry * ry * x1 * x1;
-        let above = (rx * rx * ry * ry - below).max(0.0);
-        let mut side = if below > 0.0 {
-            sqrt(above / below)
-        } else {
-            0.0
-        };
-        if larger == clockwise {
-            side = -side;
-        }
-        let (cx1, cy1) = (side * rx * y1 / ry, -side * ry * x1 / rx);
-        let centre = (
-            cosine * cx1 - sine * cy1 + (from.0 + to.0) / 2.0,
-            sine * cx1 + cosine * cy1 + (from.1 + to.1) / 2.0,
-        );
-        // The angle the arc starts at and how far it sweeps.
-        let first = atan2((y1 - cy1) / ry, (x1 - cx1) / rx);
-        let last = atan2((-y1 - cy1) / ry, (-x1 - cx1) / rx);
-        let whole = 2.0 * std::f64::consts::PI;
-        let mut sweep = last - first;
-        if clockwise && sweep < 0.0 {
-            sweep += whole;
-        } else if !clockwise && sweep > 0.0 {
-            sweep -= whole;
-        }
-        let pieces = (sweep.abs() / (whole / 4.0) - 1e-9).ceil().max(1.0) as usize;
-        let each = sweep / pieces as f64;
-        let pull = 4.0 / 3.0 * tan(each / 4.0);
-        // A place on the ellipse and the direction the arc leaves it in.
-        let on = |angle: f64| {
-            let (c, s) = (cos(angle), sin(angle));
-            (
-                (
-                    centre.0 + rx * c * cosine - ry * s * sine,
-                    centre.1 + rx * c * sine + ry * s * cosine,
-                ),
-                (
-                    -rx * s * cosine - ry * c * sine,
-                    -rx * s * sine + ry * c * cosine,
-                ),
-            )
-        };
-        let (_, mut going) = on(first);
-        let mut here = from;
-        for piece in 1..=pieces {
-            let (mut there, coming) = on(first + each * piece as f64);
-            // The arc ends where it was told to, not a rounding away from it.
-            if piece == pieces {
-                there = to;
-            }
-            self.curve(
-                (here.0 + pull * going.0, here.1 + pull * going.1),
-                (there.0 - pull * coming.0, there.1 - pull * coming.1),
-                there,
-            );
-            here = there;
-            going = coming;
-        }
-    }
-
-    fn step(&mut self, step: &Step) {
-        match *step {
-            Step::Move(to) => self.to(to),
-            Step::Line(to) => self.line(to),
-            Step::Curve(a, b, to) => self.curve(a, b, to),
-            Step::Arc {
-                radii,
-                turn,
-                larger,
-                clockwise,
-                to,
-            } => self.arc(radii, turn, larger, clockwise, to),
-            Step::Close => self.close(),
-        }
-    }
-
-    /// A circle, as four quarters.
-    fn circle(&mut self, centre: Place, radius: f64) {
-        let (x, y) = centre;
-        let (r, k) = (radius, radius * QUARTER);
-        self.to((x + r, y));
-        self.curve((x + r, y + k), (x + k, y + r), (x, y + r));
-        self.curve((x - k, y + r), (x - r, y + k), (x - r, y));
-        self.curve((x - r, y - k), (x - k, y - r), (x, y - r));
-        self.curve((x + k, y - r), (x + r, y - k), (x + r, y));
-        self.close();
-    }
-
-    /// A rectangle with its corners rounded by `radius`, each of its places taken `through`
-    /// a turn before it is written.
-    fn rounded(
-        &mut self,
-        at: Place,
-        width: f64,
-        height: f64,
-        radius: f64,
-        through: impl Fn(Place) -> Place,
-    ) {
-        let (x, y) = at;
-        let r = radius.min(width / 2.0).min(height / 2.0).max(0.0);
-        if r.is_nan() || r == 0.0 {
-            self.to(through((x, y)));
-            self.line(through((x + width, y)));
-            self.line(through((x + width, y + height)));
-            self.line(through((x, y + height)));
-            return self.close();
-        }
-        let k = r * (1.0 - QUARTER);
-        let (right, bottom) = (x + width, y + height);
-        self.to(through((x + r, y)));
-        self.line(through((right - r, y)));
-        self.curve(
-            through((right - k, y)),
-            through((right, y + k)),
-            through((right, y + r)),
-        );
-        self.line(through((right, bottom - r)));
-        self.curve(
-            through((right, bottom - k)),
-            through((right - k, bottom)),
-            through((right - r, bottom)),
-        );
-        self.line(through((x + r, bottom)));
-        self.curve(
-            through((x + k, bottom)),
-            through((x, bottom - k)),
-            through((x, bottom - r)),
-        );
-        self.line(through((x, y + r)));
-        self.curve(
-            through((x, y + k)),
-            through((x + k, y)),
-            through((x + r, y)),
-        );
-        self.close();
-    }
-
-    /// The geometry of a mark, centred at a place.
-    fn shape(&mut self, centre: Place, geometry: &Geometry) {
-        let (x, y) = centre;
-        match geometry {
-            Geometry::Circle(radius) => self.circle(centre, *radius),
-            Geometry::Polygon(corners) => {
-                for (i, corner) in corners.iter().enumerate() {
-                    let p = (x + corner.0, y + corner.1);
-                    if i == 0 { self.to(p) } else { self.line(p) }
-                }
-                self.close();
-            }
-            Geometry::Lines(strokes) => {
-                for (from, to) in strokes {
-                    self.to((x + from.0, y + from.1));
-                    self.line((x + to.0, y + to.1));
-                }
+    /// The path as the operators of a page: every place by the one rule of lengths.
+    fn ops(&self) -> String {
+        let mut out = String::new();
+        for piece in &self.pieces {
+            match *piece {
+                Piece::Move(p) => out.push_str(&format!("{} {} m ", length(p.0), length(p.1))),
+                Piece::Line(p) => out.push_str(&format!("{} {} l ", length(p.0), length(p.1))),
+                Piece::Curve(a, b, p) => out.push_str(&format!(
+                    "{} {} {} {} {} {} c ",
+                    length(a.0),
+                    length(a.1),
+                    length(b.0),
+                    length(b.1),
+                    length(p.0),
+                    length(p.1)
+                )),
+                Piece::Close => out.push_str("h "),
             }
         }
+        out
     }
 }
 
@@ -518,7 +303,7 @@ impl Content {
         if self.uses.get(&key).copied().unwrap_or(0) < SHARED {
             let mut trace = Trace::default();
             trace.shape(mark.centre, &mark.geometry);
-            self.out.push_str(&format!("{}{paint}\n", trace.ops));
+            self.out.push_str(&format!("{}{paint}\n", trace.ops()));
             return;
         }
         let at = match self.placed.get(&key) {
@@ -538,7 +323,7 @@ impl Content {
                         .fold(0.0, f64::max),
                 };
                 self.forms.push(Form {
-                    ops: format!("{}{paint}\n", trace.ops),
+                    ops: format!("{}{paint}\n", trace.ops()),
                     // A corner of a line reaches beyond its place by at most this.
                     reach: far + f64::from(MITRE) * MARK_STROKE,
                 });
@@ -603,7 +388,7 @@ impl Content {
                     trace.step(step);
                 }
                 if trace.begun {
-                    self.painted(&trace.ops, fill, stroke, *opacity, false);
+                    self.painted(&trace.ops(), fill, stroke, *opacity, false);
                 }
             }
             Primitive::Polygon {
@@ -626,7 +411,7 @@ impl Content {
                     }
                 }
                 if trace.begun {
-                    self.painted(&trace.ops, fill, stroke, *opacity, true);
+                    self.painted(&trace.ops(), fill, stroke, *opacity, true);
                 }
             }
             Primitive::Rectangle {
@@ -640,7 +425,7 @@ impl Content {
                 let path = if *radius > 0.0 {
                     let mut trace = Trace::default();
                     trace.rounded(*at, *width, *height, *radius, |p| p);
-                    trace.ops
+                    trace.ops()
                 } else {
                     format!(
                         "{} {} {} {} re ",
@@ -807,8 +592,11 @@ impl Content {
         trace.line((base.0 - uy * half, base.1 + ux * half));
         trace.line((base.0 + uy * half, base.1 - ux * half));
         trace.close();
-        self.out
-            .push_str(&format!("{} rg\n{}f\n", shares(&stroke.colour), trace.ops));
+        self.out.push_str(&format!(
+            "{} rg\n{}f\n",
+            shares(&stroke.colour),
+            trace.ops()
+        ));
     }
 
     /// A line of text: the box behind it, and its words set glyph by glyph.
@@ -860,7 +648,7 @@ impl Content {
                 frame.radius,
                 |p| place(p.0 - at.0, at.1 - p.1),
             );
-            self.painted(&trace.ops, &frame.fill, &frame.border, 1.0, false);
+            self.painted(&trace.ops(), &frame.fill, &frame.border, 1.0, false);
         }
         self.out.push_str("BT\n");
         let mut along = start;
@@ -1177,6 +965,7 @@ fn assemble(drawing: &Drawing, pack: bool) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::trace::QUARTER;
 
     #[test]
     fn a_colour_is_three_shares_of_one_and_what_is_no_colour_is_black() {
@@ -1237,7 +1026,7 @@ mod tests {
         let mut trace = Trace::default();
         trace.circle((10.0, 20.0), 5.0);
         assert_eq!(
-            ends(&trace.ops),
+            ends(&trace.ops()),
             [
                 (15.0, 20.0),
                 (10.0, 25.0),
@@ -1246,7 +1035,7 @@ mod tests {
                 (15.0, 20.0)
             ]
         );
-        assert!(trace.ops.ends_with("h "));
+        assert!(trace.ops().ends_with("h "));
         // Halfway along a quarter the curve is within a thousandth of the radius of the
         // circle: (1 + 3k) / (4 √2) of it from the centre along the diagonal.
         let middle = (4.0 + 3.0 * QUARTER) / 8.0;
@@ -1262,43 +1051,43 @@ mod tests {
             trace.to((0.0, 0.0));
             trace.arc((10.0, 10.0), 0.0, false, clockwise, (20.0, 0.0));
             assert_eq!(
-                ends(&trace.ops),
+                ends(&trace.ops()),
                 [(0.0, 0.0), (10.0, through), (20.0, 0.0)],
                 "{}",
-                trace.ops
+                trace.ops()
             );
         }
         // Radii too small to reach are grown: the same half circle.
         let mut small = Trace::default();
         small.to((0.0, 0.0));
         small.arc((1.0, 1.0), 0.0, false, true, (20.0, 0.0));
-        assert_eq!(ends(&small.ops), [(0.0, 0.0), (10.0, -10.0), (20.0, 0.0)]);
+        assert_eq!(ends(&small.ops()), [(0.0, 0.0), (10.0, -10.0), (20.0, 0.0)]);
         // The larger of the two arcs between ends a quarter apart is three quarters.
         let mut large = Trace::default();
         large.to((10.0, 0.0));
         large.arc((10.0, 10.0), 0.0, true, true, (0.0, 10.0));
-        assert_eq!(ends(&large.ops).len(), 4, "{}", large.ops);
+        assert_eq!(ends(&large.ops()).len(), 4, "{}", large.ops());
         let mut little = Trace::default();
         little.to((10.0, 0.0));
         little.arc((10.0, 10.0), 0.0, false, true, (0.0, 10.0));
-        assert_eq!(ends(&little.ops).len(), 2, "{}", little.ops);
+        assert_eq!(ends(&little.ops()).len(), 2, "{}", little.ops());
         // No radius, a straight line; no way to go, nothing; no start, a start.
         let mut flat = Trace::default();
         flat.to((0.0, 0.0));
         flat.arc((0.0, 5.0), 0.0, false, true, (4.0, 4.0));
-        assert_eq!(flat.ops, "0 0 m 4 4 l ");
+        assert_eq!(flat.ops(), "0 0 m 4 4 l ");
         let mut still = Trace::default();
         still.to((3.0, 3.0));
         still.arc((5.0, 5.0), 0.0, false, true, (3.0, 3.0));
-        assert_eq!(still.ops, "3 3 m ");
+        assert_eq!(still.ops(), "3 3 m ");
         let mut unbegun = Trace::default();
         unbegun.arc((5.0, 5.0), 0.0, false, true, (3.0, 3.0));
-        assert_eq!(unbegun.ops, "3 3 m ");
+        assert_eq!(unbegun.ops(), "3 3 m ");
         // A turned ellipse: every end of a piece is on it.
         let mut turned_arc = Trace::default();
         turned_arc.to((10.0, 70.0));
         turned_arc.arc((8.0, 5.0), 30.0, true, false, (16.0, 74.0));
-        let all = ends(&turned_arc.ops);
+        let all = ends(&turned_arc.ops());
         assert_eq!(all.last(), Some(&(16.0, 74.0)));
         assert!(all.len() >= 3);
     }
@@ -1310,24 +1099,24 @@ mod tests {
         trace.line((1.0, 2.0));
         trace.line((3.0, 4.0));
         trace.close();
-        assert_eq!(trace.ops, "1 2 m 3 4 l h ");
+        assert_eq!(trace.ops(), "1 2 m 3 4 l h ");
         let mut curve = Trace::default();
         curve.curve((0.0, 0.0), (1.0, 1.0), (2.0, 2.0));
-        assert_eq!(curve.ops, "2 2 m ");
+        assert_eq!(curve.ops(), "2 2 m ");
     }
 
     #[test]
     fn a_rectangle_is_rounded_by_no_more_than_half_its_smaller_side() {
         let mut plain = Trace::default();
         plain.rounded((1.0, 2.0), 10.0, 4.0, 0.0, |p| p);
-        assert_eq!(plain.ops, "1 2 m 11 2 l 11 6 l 1 6 l h ");
+        assert_eq!(plain.ops(), "1 2 m 11 2 l 11 6 l 1 6 l h ");
         let mut round = Trace::default();
         round.rounded((0.0, 0.0), 10.0, 4.0, 50.0, |p| p);
         // The radius is 2: the top runs from 2 to 8.
-        assert!(round.ops.starts_with("2 0 m 8 0 l "), "{}", round.ops);
+        assert!(round.ops().starts_with("2 0 m 8 0 l "), "{}", round.ops());
         let mut through = Trace::default();
         through.rounded((0.0, 0.0), 10.0, 4.0, 0.0, |p| (p.1, -p.0));
-        assert_eq!(through.ops, "0 0 m 0 -10 l 4 -10 l 4 0 l h ");
+        assert_eq!(through.ops(), "0 0 m 0 -10 l 4 -10 l 4 0 l h ");
     }
 
     #[test]
