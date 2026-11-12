@@ -21,7 +21,9 @@ use zeff_plot::font::{FaceName, face};
 use zeff_plot::layout::{JOURNAL, Size, layout};
 use zeff_plot::pdf::rgb;
 use zeff_plot::png::write;
-use zeff_plot::raster::{DOTS, MOST_DOTS, Picture, RasterError, coverage, dots_of, ink_of, render};
+use zeff_plot::raster::{
+    DOTS, MOST_DOTS, Picture, RasterError, coverage, dots_of, ink_of, render, render_part,
+};
 
 const WHITE: [u8; 3] = [255, 255, 255];
 
@@ -409,7 +411,7 @@ fn cells_leave_no_seam_and_a_dot_over_two_takes_of_both() {
                 height: 2.0,
                 columns,
                 rows: 1,
-                cells: cells.iter().map(|c| c.to_string()).collect(),
+                cells: cells.iter().map(|c| rgb(c)).collect(),
             })],
         )
     };
@@ -602,6 +604,204 @@ fn a_page_of_no_dots_and_one_of_too_many_are_refused() {
     );
     // A metre at 300 dots to the inch is 11,811 dots.
     assert_eq!(dots_of(1000.0 * 72.0 / 25.4, DOTS), 11811.0);
+}
+
+// ----- a part of a page, and a layer drawn in dots (step 22b3b) -----
+
+#[test]
+fn the_picture_of_a_part_of_a_page_is_the_dots_of_the_page_there() {
+    let drawing = every_primitive();
+    let whole = render(&drawing, 72.0).unwrap();
+    // A part that starts on a dot: the same dots, one for one.
+    let part = render_part(&drawing.items, (60.0, 20.0), 100.0, 70.0, 72.0).unwrap();
+    assert_eq!((part.width, part.height), (100, 70));
+    for y in 0..70 {
+        for x in 0..100 {
+            assert_eq!(part.dot(x, y), whole.dot(60 + x, 20 + y), "{x},{y}");
+        }
+    }
+    // What is left of a dot at the right and at the bottom is a dot more.
+    let wider = render_part(&drawing.items, (60.0, 20.0), 100.2, 70.0, 72.0).unwrap();
+    assert_eq!((wider.width, wider.height), (101, 70));
+    // A part that starts between dots is drawn from there: a slab from 10 on, seen from 9.5,
+    // covers half of the first dot.
+    let slabs = vec![slab(10.0, 0.0, 5.0, 5.0, "#000000", 1.0)];
+    let between = render_part(&slabs, (9.5, 0.0), 3.0, 2.0, 72.0).unwrap();
+    assert_eq!(between.dot(0, 0), [128, 128, 128]);
+    assert_eq!(between.dot(1, 0), [0, 0, 0]);
+    // A region that clips and a grid of cells are counted from the start of the part too.
+    let inside = vec![unnamed(Primitive::Clip {
+        at: (12.0, 1.0),
+        width: 2.0,
+        height: 1.0,
+        items: vec![unnamed(Primitive::Raster {
+            at: (10.0, 0.0),
+            width: 6.0,
+            height: 3.0,
+            columns: 3,
+            rows: 1,
+            cells: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
+        })],
+    })];
+    let cut = render_part(&inside, (10.0, 0.0), 6.0, 3.0, 72.0).unwrap();
+    assert_eq!(cut.dot(2, 1), [0, 255, 0]);
+    assert_eq!(cut.dot(3, 1), [0, 255, 0]);
+    assert_eq!(cut.dot(1, 1), WHITE);
+    assert_eq!(cut.dot(4, 1), WHITE);
+    assert_eq!(cut.dot(2, 0), WHITE);
+    assert_eq!(cut.dot(2, 2), WHITE);
+    // No part, no picture.
+    assert_eq!(
+        render_part(&slabs, (0.0, 0.0), 0.0, 5.0, 72.0),
+        Err(RasterError::NotASize)
+    );
+}
+
+#[test]
+fn a_layer_flagged_to_be_drawn_in_dots_is_laid_out_as_a_picture_of_the_panel() {
+    let lines = layout(&two_layers(false, false), Size::OneColumn, &JOURNAL).unwrap();
+    let (at, width, height, marks) = panel_of(&lines);
+    assert_eq!(marks.len(), 12);
+    assert!(pictures_in(&lines).is_empty());
+    // What stands under the panel: the page and the gridlines.
+    let under: Vec<Item> = lines
+        .items
+        .iter()
+        .take_while(|item| item.name.as_deref() != Some("panel"))
+        .cloned()
+        .collect();
+    // The panel in whole dots, the last of them whole: what a picture of it covers.
+    let covering = |points: f64| (points * DOTS / 72.0 - 1e-6).ceil() * 72.0 / DOTS;
+    let with = |marks: &[Item]| {
+        let mut all = under.clone();
+        all.push(Item {
+            name: Some("panel".to_string()),
+            primitive: Primitive::Clip {
+                at,
+                width: covering(width),
+                height: covering(height),
+                items: marks.to_vec(),
+            },
+        });
+        let picture = render_part(&all, at, covering(width), covering(height), DOTS).unwrap();
+        (picture.width, picture.height, picture.rgb)
+    };
+    // Two pictures compared without printing them: their sizes, how many parts differ and by
+    // how many steps at most.
+    let within = |found: &(usize, usize, Vec<u8>), wanted: &(usize, usize, Vec<u8>), steps: u8| {
+        let pairs = || found.2.iter().zip(&wanted.2);
+        let differing = pairs().filter(|(a, b)| a != b).count();
+        let most = pairs().map(|(a, b)| a.abs_diff(*b)).max().unwrap_or(0);
+        assert!(
+            (found.0, found.1) == (wanted.0, wanted.1) && most <= steps,
+            "{} by {} and {} by {}, {differing} parts differ, by {most} at most",
+            found.0,
+            found.1,
+            wanted.0,
+            wanted.1
+        );
+        differing
+    };
+    let same = |found: &(usize, usize, Vec<u8>), wanted: &(usize, usize, Vec<u8>)| {
+        assert_eq!(within(found, wanted, 0), 0);
+    };
+
+    // The layer under, in dots: one picture, then the six marks of the layer over it.
+    let dots = layout(&two_layers(true, false), Size::OneColumn, &JOURNAL).unwrap();
+    let (_, _, _, items) = panel_of(&dots);
+    assert_eq!(items.len(), 7);
+    assert_eq!(&items[1..], &marks[6..]);
+    assert_eq!(items[0].name.as_deref(), Some("layer:1"));
+    let Primitive::Raster {
+        at: placed,
+        width: wide,
+        height: high,
+        columns,
+        rows,
+        ..
+    } = &items[0].primitive
+    else {
+        panic!("the first layer is not a picture");
+    };
+    // The picture starts where the panel does, at 300 dots to the inch, and covers it: what
+    // is left of a dot is a dot more.
+    assert_eq!(*placed, at);
+    assert_eq!(*columns, (width * DOTS / 72.0).ceil() as usize);
+    assert_eq!(*rows, (height * DOTS / 72.0).ceil() as usize);
+    assert!((wide - *columns as f64 * 0.24).abs() < 1e-9 && *wide >= width && *wide < width + 0.24);
+    assert!((high - *rows as f64 * 0.24).abs() < 1e-9 && *high >= height && *high < height + 0.24);
+    // Its dots are the panel with that layer on it: the page, the gridlines, the marks.
+    let picture = with(&marks[..6]);
+    assert_eq!(pictures_in(&dots).len(), 1);
+    same(&pictures_in(&dots)[0], &picture);
+    // The page shows, and the grey of a gridline, and the half-opaque ink of a mark.
+    let has = |colour: [u8; 3]| picture.2.chunks(3).any(|dot| dot == colour);
+    assert!(has(WHITE) && has(rgb("#E3E3E3")) && has(mix(WHITE, rgb("#222222"), 0.5)));
+    // Everything outside the panel is as it was.
+    let outside = |drawing: &Drawing| -> Vec<Item> {
+        drawing
+            .items
+            .iter()
+            .filter(|item| item.name.as_deref() != Some("panel"))
+            .cloned()
+            .collect()
+    };
+    assert_eq!(outside(&dots), outside(&lines));
+    assert_eq!((dots.width, dots.height), (lines.width, lines.height));
+
+    // The layer over, in dots: the marks of the layer under it stay, and the picture holds
+    // them too, with its own on them.
+    let over = layout(&two_layers(false, true), Size::OneColumn, &JOURNAL).unwrap();
+    let (_, _, _, items) = panel_of(&over);
+    assert_eq!(items.len(), 7);
+    assert_eq!(&items[..6], &marks[..6]);
+    assert_eq!(items[6].name.as_deref(), Some("layer:2"));
+    let picture = with(marks);
+    assert_eq!(pictures_in(&over).len(), 1);
+    same(&pictures_in(&over)[0], &picture);
+    // Both: two pictures, the second with everything.
+    let both = layout(&two_layers(true, true), Size::OneColumn, &JOURNAL).unwrap();
+    assert_eq!(panel_of(&both).3.len(), 2);
+    same(&pictures_in(&both)[0], &pictures_in(&dots)[0]);
+    // The second holds the first as a picture of 256 steps, where the layer drawn at once
+    // keeps finer ones: at the edges of the marks over it a dot may be one step off.
+    let off = within(&pictures_in(&both)[1], &pictures_in(&over)[0], 1);
+    assert!(off < 1000, "{off}");
+    // A panel of more dots than a picture may have keeps its marks as they are.
+    let vast = layout(
+        &two_layers(true, true),
+        Size::Millimetres(2500.0, 2000.0),
+        &JOURNAL,
+    )
+    .unwrap();
+    assert!(pictures_in(&vast).is_empty());
+    assert_eq!(panel_of(&vast).3.len(), 12);
+    // As a picture in dots, a drawing with a picture in it is the drawing without, to within
+    // what one layer of dots laid on another loses: no dot differs by more than a few steps.
+    let (plain, pictured) = (render(&lines, DOTS).unwrap(), render(&dots, DOTS).unwrap());
+    assert_eq!(
+        (plain.width, plain.height),
+        (pictured.width, pictured.height)
+    );
+    let most = plain
+        .rgb
+        .iter()
+        .zip(&pictured.rgb)
+        .map(|(a, b)| a.abs_diff(*b))
+        .max()
+        .unwrap();
+    let differing = plain
+        .rgb
+        .iter()
+        .zip(&pictured.rgb)
+        .filter(|(a, b)| a != b)
+        .count();
+    assert!(
+        differing * 20 < plain.rgb.len(),
+        "{differing} of {}",
+        plain.rgb.len()
+    );
+    assert!(most <= 128, "{most}");
 }
 
 // ----- figures -----

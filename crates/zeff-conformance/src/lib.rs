@@ -1762,6 +1762,8 @@ fn plot_cases() -> Vec<Line> {
         bytes("plot/pdf/figures", &pdf_figures(true)),
         bytes("plot/png/dots", &png_figures(false)),
         bytes("plot/png/figures", &png_figures(true)),
+        bytes("plot/svg/picture", &picture_figure(false)),
+        bytes("plot/pdf/picture", &picture_figure(true)),
         text("plot/fonts/metrics", &font_metrics()),
         text("plot/fonts/texts", &font_texts()),
         text("plot/fonts/outlines", &font_outlines()),
@@ -1905,6 +1907,55 @@ fn png_figures(written: bool) -> Vec<u8> {
         }
     }
     out
+}
+
+/// A layer drawn in dots inside a figure of lines (step 22b3b; open decision #118, F4): the
+/// plain plot of the shipped wages on a page of one column, its one layer flagged, which no
+/// script of this release can do, written as SVG or as PDF.
+fn picture_figure(as_pdf: bool) -> Vec<u8> {
+    use std::rc::Rc;
+    use zeff_core::value::{Aesthetic, Frame, Mark, PlotLayer, PlotMapping};
+    use zeff_plot::layout::{JOURNAL, Size, layout};
+    let Some(table) = zeff_datasets::table("wages") else {
+        return b"the wages did not load\n".to_vec();
+    };
+    let mapping = |aesthetic, variable: &str| PlotMapping {
+        aesthetic,
+        variable: variable.to_string(),
+        computed: None,
+    };
+    let plot = zeff_plot::scene::start(
+        Frame {
+            table: Rc::new(table),
+            name: Some("wages".to_string()),
+        },
+        vec![mapping(Aesthetic::X, "educ"), mapping(Aesthetic::Y, "wage")],
+        Vec::new(),
+    );
+    let layer = PlotLayer {
+        mark: Mark::Points,
+        data: None,
+        alpha: 0.4,
+        size: None,
+        jitter: 0.0,
+        stream: None,
+        computed: Vec::new(),
+    };
+    let mut scene = zeff_plot::scene::with_layer(&plot, layer).1;
+    for panel in &mut scene.panels {
+        for layer in &mut panel.layers {
+            layer.raster = true;
+        }
+    }
+    let drawing = match layout(&scene, Size::OneColumn, &JOURNAL) {
+        Ok(drawing) => drawing,
+        Err(why) => return format!("{why:?}\n").into_bytes(),
+    };
+    if as_pdf {
+        zeff_plot::pdf::write(&drawing)
+    } else {
+        zeff_plot::svg::write(&drawing).into_bytes()
+    }
 }
 
 /// The fonts of a figure (release 0.7.0, step 21a): for each embedded face, its heights, the

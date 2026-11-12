@@ -12,9 +12,9 @@ mod common;
 use common::*;
 use proptest::prelude::*;
 use zeff_core::value::Aesthetic;
-use zeff_plot::drawing::{Drawing, Primitive};
+use zeff_plot::drawing::{Drawing, Item, Primitive};
 use zeff_plot::layout::{JOURNAL, SMALLEST_TEXT, Size, layout};
-use zeff_plot::svg::{MARK_STROKE, write};
+use zeff_plot::svg::{MARK_STROKE, MOST_RECTANGLES, write};
 
 /// What must hold of the file a drawing is written as: said as a sentence when it does not.
 fn checks(svg: &str, drawing: &Drawing) -> Result<(), String> {
@@ -38,9 +38,18 @@ fn checks(svg: &str, drawing: &Drawing) -> Result<(), String> {
     {
         return Err("the page is not as large as the drawing".to_string());
     }
-    // Nothing that is not a number where a number stands, and no control character.
+    // Nothing that is not a number where a number stands, and no control character; the
+    // letters a picture is held as may spell anything, and are left out of the search.
+    let mut drawn = String::new();
+    for (i, part) in svg.split("base64,").enumerate() {
+        drawn.push_str(if i == 0 {
+            part
+        } else {
+            part.split_once('"').map_or("", |(_, after)| after)
+        });
+    }
     for bad in ["NaN", "inf", "\u{0}", "\u{7}"] {
-        if svg.contains(bad) {
+        if drawn.contains(bad) {
             return Err(format!("the file holds {bad:?}"));
         }
     }
@@ -54,8 +63,11 @@ fn checks(svg: &str, drawing: &Drawing) -> Result<(), String> {
             ids.push(id);
         }
         for attribute in node.attributes() {
-            // Nothing is carried for a program to read back: no data attribute, no link.
-            if attribute.name().starts_with("data") || attribute.name() == "href" {
+            // Nothing is carried for a program to read back: no data attribute, and no link
+            // but a picture held inside the file itself.
+            let held = node.has_tag_name("image")
+                && attribute.value().starts_with("data:image/png;base64,");
+            if attribute.name().starts_with("data") || (attribute.name() == "href" && !held) {
                 return Err(format!("an attribute {}", attribute.name()));
             }
         }
@@ -133,6 +145,156 @@ fn every_primitive_of_the_closed_set_is_written() {
     assert!(svg.contains("aria-label=\"Wage &amp; hours &lt;2010&gt;\""));
     assert!(!svg.contains("a note is not drawn"));
     assert!(svg.ends_with("</svg>\n"));
+}
+
+// ----- a layer drawn in dots (step 22b3b) -----
+
+/// Text of 64 letters back to the bytes it holds.
+fn bytes_of(letters: &str) -> Vec<u8> {
+    let value = |letter: u8| match letter {
+        b'A'..=b'Z' => u32::from(letter - b'A'),
+        b'a'..=b'z' => u32::from(letter - b'a') + 26,
+        b'0'..=b'9' => u32::from(letter - b'0') + 52,
+        b'+' => 62,
+        b'/' => 63,
+        other => panic!("{other} is not one of the 64 letters"),
+    };
+    let mut out = Vec::new();
+    for four in letters.as_bytes().chunks(4) {
+        assert_eq!(four.len(), 4, "letters not in fours");
+        let filled = four.iter().filter(|&&letter| letter == b'=').count();
+        let mut word = 0;
+        for &letter in &four[..4 - filled] {
+            word = word << 6 | value(letter);
+        }
+        word <<= 6 * filled as u32;
+        out.extend_from_slice(&word.to_be_bytes()[1..4 - filled]);
+    }
+    out
+}
+
+#[test]
+fn a_layer_flagged_to_be_drawn_in_dots_is_a_picture_inside_the_file() {
+    let lines = layout(&two_layers(false, false), Size::OneColumn, &JOURNAL).unwrap();
+    let dots = layout(&two_layers(true, false), Size::OneColumn, &JOURNAL).unwrap();
+    let pictures = pictures_in(&dots);
+    assert_eq!(pictures.len(), 1);
+    let (columns, rows, wanted) = &pictures[0];
+    let svg = write(&dots);
+    checks(&svg, &dots).unwrap();
+    let document = roxmltree::Document::parse(&svg).unwrap();
+    let images: Vec<_> = document
+        .descendants()
+        .filter(|node| node.has_tag_name("image"))
+        .collect();
+    assert_eq!(images.len(), 1);
+    let image = images[0];
+    // The picture is held inside the file as a PNG, written as letters: no file is named.
+    let held = image
+        .attribute(("http://www.w3.org/1999/xlink", "href"))
+        .and_then(|link| link.strip_prefix("data:image/png;base64,"))
+        .expect("a picture held inside the file");
+    let file = bytes_of(held);
+    let decoder = png::Decoder::new(std::io::Cursor::new(&file[..]));
+    let mut reader = decoder.read_info().unwrap();
+    let mut found = vec![0; reader.output_buffer_size().unwrap()];
+    let frame = reader.next_frame(&mut found).unwrap();
+    found.truncate(frame.buffer_size());
+    assert_eq!(
+        (frame.width as usize, frame.height as usize),
+        (*columns, *rows)
+    );
+    assert!(
+        &found == wanted,
+        "the dots of the picture are not those of the layer"
+    );
+    // It is stretched over its place, which starts where the panel does, inside the region
+    // that clips to the panel.
+    let (at, _, _, _) = panel_of(&dots);
+    let number = |name: &str| {
+        image
+            .attribute(name)
+            .and_then(|v| v.parse::<f64>().ok())
+            .unwrap()
+    };
+    assert!((number("x") - at.0).abs() < 0.0006 && (number("y") - at.1).abs() < 0.0006);
+    assert!((number("width") - *columns as f64 * 0.24).abs() < 0.0006);
+    assert!((number("height") - *rows as f64 * 0.24).abs() < 0.0006);
+    assert_eq!(image.attribute("preserveAspectRatio"), Some("none"));
+    assert!(
+        image
+            .ancestors()
+            .any(|a| a.attribute("clip-path").is_some())
+    );
+    assert_eq!(
+        image.parent().and_then(|group| group.attribute("id")),
+        Some("layer-1")
+    );
+    // The six marks of the layer over it are lines still (`checks` counted them), and the
+    // words are those of the figure without the flag.
+    assert_eq!(svg.matches("<circle").count(), 6);
+    let plain = write(&lines);
+    let labels = |file: &str| -> Vec<String> {
+        roxmltree::Document::parse(file)
+            .unwrap()
+            .descendants()
+            .filter_map(|node| node.attribute("aria-label").map(String::from))
+            .collect()
+    };
+    assert_eq!(labels(&svg), labels(&plain));
+    // A file with no picture does not speak of one.
+    assert!(!plain.contains("<image") && !plain.contains("xlink"));
+    assert!(svg.starts_with(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width="
+    ));
+    // The same drawing, the same bytes.
+    assert_eq!(write(&dots), svg);
+    insta::assert_snapshot!(
+        "picture_layer",
+        format!(
+            "a picture of {columns} by {rows} dots, {}; the file {} bytes, {}",
+            zeff_hash::hash_hex(wanted),
+            svg.len(),
+            zeff_hash::hash_hex(svg.as_bytes())
+        )
+    );
+    if let Ok(folder) = std::env::var("ZEFF_FIGURES_DIR") {
+        std::fs::write(format!("{folder}/picture_layer.svg"), &svg).unwrap();
+    }
+}
+
+#[test]
+fn a_grid_of_few_cells_is_rectangles_and_one_of_many_a_picture() {
+    let grid = |columns: usize, rows: usize| Drawing {
+        width: 100.0,
+        height: 100.0,
+        items: vec![Item {
+            name: None,
+            primitive: Primitive::Raster {
+                at: (10.0, 10.0),
+                width: 80.0,
+                height: 80.0,
+                columns,
+                rows,
+                cells: (0..columns * rows)
+                    .map(|i| [(i % 251) as u8, (i % 7) as u8 * 30, 99])
+                    .collect(),
+            },
+        }],
+        notes: Vec::new(),
+    };
+    assert_eq!(MOST_RECTANGLES, 4096);
+    // Sixty-four by sixty-four is the most that is drawn cell by cell.
+    let few = write(&grid(64, 64));
+    assert!(few.contains("<rect") && !few.contains("<image"));
+    checks(&few, &grid(64, 64)).unwrap();
+    let many = write(&grid(65, 64));
+    assert!(
+        many.contains("<image x=\"10\" y=\"10\" width=\"80\" height=\"80\" ")
+            && !many.contains("<rect")
+    );
+    checks(&many, &grid(65, 64)).unwrap();
+    assert!(many.len() < few.len() / 4);
 }
 
 // ----- figures -----

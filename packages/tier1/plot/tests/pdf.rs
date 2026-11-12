@@ -17,7 +17,7 @@ use lopdf::{Dictionary, Document, Object, Stream};
 use proptest::prelude::*;
 use std::collections::BTreeMap;
 use zeff_core::value::Aesthetic;
-use zeff_plot::drawing::{Anchor, Drawing, Item, Primitive, Span};
+use zeff_plot::drawing::{Anchor, Drawing, Item, Primitive, Span, length};
 use zeff_plot::font::{FaceName, face};
 use zeff_plot::layout::{JOURNAL, SMALLEST_TEXT, Size, layout};
 use zeff_plot::pdf::{DOTS, SHARED, rgb, write, write_plain};
@@ -686,7 +686,7 @@ fn a_shape_met_often_is_written_once_and_placed() {
 
 #[test]
 fn a_grid_of_cells_is_an_image_fine_enough_to_stay_sharp() {
-    let grid = |width: f64, height: f64, columns: usize, rows: usize, cells: Vec<String>| {
+    let grid = |width: f64, height: f64, columns: usize, rows: usize, cells: Vec<[u8; 3]>| {
         of(vec![unnamed(Primitive::Raster {
             at: (10.0, 20.0),
             width,
@@ -696,9 +696,9 @@ fn a_grid_of_cells_is_an_image_fine_enough_to_stay_sharp() {
             cells,
         })])
     };
-    let colours = |n: usize| -> Vec<String> {
+    let colours = |n: usize| -> Vec<[u8; 3]> {
         (0..n)
-            .map(|i| format!("#{:02X}{:02X}{:02X}", i % 256, (i / 256) % 256, 128))
+            .map(|i| [(i % 256) as u8, ((i / 256) % 256) as u8, 128])
             .collect()
     };
     assert_eq!(DOTS, 300.0);
@@ -811,6 +811,69 @@ fn text_is_set_glyph_by_glyph_with_the_kerning_of_the_font() {
     let found = read(&write(&drawing), &drawing).unwrap();
     assert_eq!(found.words, ["résumé  β"]);
     assert_eq!(found.runs[0].glyphs[7].0, 0);
+}
+
+// ----- a layer drawn in dots (step 22b3b) -----
+
+#[test]
+fn a_layer_flagged_to_be_drawn_in_dots_is_a_picture_inside_the_file() {
+    let lines = layout(&two_layers(false, false), Size::OneColumn, &JOURNAL).unwrap();
+    let dots = layout(&two_layers(true, false), Size::OneColumn, &JOURNAL).unwrap();
+    let pictures = pictures_in(&dots);
+    assert_eq!(pictures.len(), 1);
+    let (columns, rows, wanted) = &pictures[0];
+    let pdf = write(&dots);
+    let found = read(&pdf, &dots).unwrap();
+    // One image, a dot to a dot of the picture, not made finer: it is at 300 to the inch.
+    assert_eq!(found.images.len(), 1);
+    let (across, down, held) = &found.images[0];
+    assert_eq!((across, down), (columns, rows));
+    assert!(
+        held == wanted,
+        "the dots of the image are not those of the picture"
+    );
+    // It is placed where the panel starts, inside the region that clips to the panel, and
+    // the six marks of the layer over it are lines still.
+    let (at, width, height, _) = panel_of(&dots);
+    let to_a_point = DOTS / 72.0;
+    let clip = format!(
+        "q {} {} {} {} re W n\nq {} 0 0 {} {} {} cm /I1 Do Q\n",
+        length(at.0),
+        length(at.1),
+        length(width),
+        length(height),
+        length(*columns as f64 / to_a_point),
+        length(-(*rows as f64) / to_a_point),
+        length(at.0),
+        length(at.1 + *rows as f64 / to_a_point)
+    );
+    assert!(
+        found.page.contains(&clip),
+        "{}",
+        &found.page[..found.page.len().min(1500)]
+    );
+    assert_eq!((found.marks, found.forms), (6, 1));
+    // Without the flag there is no image, and twelve marks.
+    let plain = read(&write(&lines), &lines).unwrap();
+    assert!(plain.images.is_empty());
+    assert_eq!(plain.marks, 12);
+    // The axes, the labels and the titles are text and lines in both, the same words.
+    assert_eq!(found.words, plain.words);
+    assert_eq!(found.sizes, plain.sizes);
+    // The same drawing, the same bytes.
+    assert_eq!(write(&dots), pdf);
+    insta::assert_snapshot!(
+        "picture_layer",
+        format!(
+            "a picture of {columns} by {rows} dots, {}; the file {} bytes, {}",
+            zeff_hash::hash_hex(wanted),
+            pdf.len(),
+            zeff_hash::hash_hex(&pdf)
+        )
+    );
+    if let Ok(folder) = std::env::var("ZEFF_FIGURES_DIR") {
+        std::fs::write(format!("{folder}/picture_layer.pdf"), &pdf).unwrap();
+    }
 }
 
 // ----- figures -----

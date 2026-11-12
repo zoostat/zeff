@@ -8,7 +8,9 @@ use proptest::prelude::*;
 use std::rc::Rc;
 use zeff_columns::{Column, Table};
 use zeff_core::value::{Aesthetic, Frame, Mark, PlotConstant, PlotLayer, PlotMapping, PlotSetting};
-use zeff_plot::drawing::{Anchor, Drawing, Head, Item, Primitive, Span, Step, Stroke, TextBox};
+use zeff_plot::drawing::{
+    Anchor, Drawing, Head, Item, Primitive, Span, Step, Stroke, TextBox, rgb,
+};
 use zeff_plot::font::FaceName;
 use zeff_plot::scene::{Scene, start, with_layer};
 
@@ -302,7 +304,7 @@ pub fn every_primitive() -> Drawing {
                     cells: [
                         "#440154", "#440154", "#21918C", "#FDE725", "#21918C", "#FDE725",
                     ]
-                    .map(String::from)
+                    .map(rgb)
                     .to_vec(),
                 },
             ),
@@ -466,4 +468,64 @@ pub fn tried(rows: &[Row]) -> Frame {
             ("z", floats(&rows.iter().map(|r| r.3).collect::<Vec<_>>())),
         ],
     )
+}
+
+// ----- a layer drawn in dots inside a figure of lines (step 22b3b) -----
+
+/// A small scene of two layers of points over the same six rows: large and half opaque
+/// under, small and opaque over. With `under_in_dots` the first is flagged to be drawn in
+/// dots, with `over_in_dots` the second; no script of this release can set the flag.
+pub fn two_layers(under_in_dots: bool, over_in_dots: bool) -> Scene {
+    let plot = start(
+        small("d"),
+        vec![
+            mapped(Aesthetic::X, "dose"),
+            mapped(Aesthetic::Y, "response"),
+        ],
+        Vec::new(),
+    );
+    let mut large = points(0.5);
+    large.size = Some(12.0);
+    let (plot, _) = with_layer(&plot, large);
+    let mut little = points(1.0);
+    little.size = Some(3.0);
+    let (_, mut scene) = with_layer(&plot, little);
+    scene.panels[0].layers[0].raster = under_in_dots;
+    scene.panels[0].layers[1].raster = over_in_dots;
+    scene
+}
+
+/// The panel of a drawing: where it starts, its width and height, and what is drawn in it.
+pub fn panel_of(drawing: &Drawing) -> (zeff_plot::drawing::Place, f64, f64, &[Item]) {
+    drawing
+        .items
+        .iter()
+        .find_map(|item| match &item.primitive {
+            Primitive::Clip {
+                at,
+                width,
+                height,
+                items,
+            } if item.name.as_deref() == Some("panel") => Some((*at, *width, *height, &items[..])),
+            _ => None,
+        })
+        .expect("a drawing with a panel")
+}
+
+/// The pictures in the panel of a drawing: for each how many dots across and down, and the
+/// red, green and blue of every dot in a row.
+pub fn pictures_in(drawing: &Drawing) -> Vec<(usize, usize, Vec<u8>)> {
+    panel_of(drawing)
+        .3
+        .iter()
+        .filter_map(|item| match &item.primitive {
+            Primitive::Raster {
+                columns,
+                rows,
+                cells,
+                ..
+            } => Some((*columns, *rows, cells.iter().flatten().copied().collect())),
+            _ => None,
+        })
+        .collect()
 }

@@ -42,9 +42,8 @@
 
 use zeff_numeric::maths::sqrt;
 
-use crate::drawing::{Anchor, Drawing, Head, Item, Place, Primitive, Span, Stroke, TextBox};
+use crate::drawing::{Anchor, Drawing, Head, Item, Place, Primitive, Span, Stroke, TextBox, rgb};
 use crate::font::{Segment, face};
-use crate::pdf::rgb;
 use crate::shape::Geometry;
 use crate::svg::{ABOVE, BELOW, MARK_STROKE, geometry, turned};
 use crate::trace::{Piece, Trace};
@@ -98,7 +97,38 @@ pub fn dots_of(points: f64, dots: f64) -> f64 {
 
 /// The picture of `drawing` at `dots` to the inch.
 pub fn render(drawing: &Drawing, dots: f64) -> Result<Picture, RasterError> {
-    let (wide, high) = (dots_of(drawing.width, dots), dots_of(drawing.height, dots));
+    draw(
+        &drawing.items,
+        (0.0, 0.0),
+        dots_of(drawing.width, dots),
+        dots_of(drawing.height, dots),
+        dots,
+    )
+}
+
+/// The picture of a part of a page: what `items` draw in the rectangle that starts at `at`
+/// and is `width` by `height` points, at `dots` to the inch. The first dot starts at `at`,
+/// and what is left of a dot at the right and at the bottom is a dot more, so that the
+/// picture covers the part.
+pub fn render_part(
+    items: &[Item],
+    at: Place,
+    width: f64,
+    height: f64,
+    dots: f64,
+) -> Result<Picture, RasterError> {
+    let covering = |points: f64| (points * dots / 72.0 - 1e-6).ceil();
+    draw(items, at, covering(width), covering(height), dots)
+}
+
+/// The picture, `wide` by `high` dots, of what `items` draw from `at` on.
+fn draw(
+    items: &[Item],
+    at: Place,
+    wide: f64,
+    high: f64,
+    dots: f64,
+) -> Result<Picture, RasterError> {
     if !(wide >= 1.0 && high >= 1.0 && wide.is_finite() && high.is_finite()) {
         return Err(RasterError::NotASize);
     }
@@ -109,11 +139,13 @@ pub fn render(drawing: &Drawing, dots: f64) -> Result<Picture, RasterError> {
         });
     }
     let (width, height) = (wide as usize, high as usize);
+    let scale = dots / 72.0;
     let mut page = Page {
         width,
         height,
         ink: vec![u16::MAX; width * height * 3],
-        scale: dots / 72.0,
+        scale,
+        shift: (at.0 * scale, at.1 * scale),
         clip: Rect {
             x0: 0.0,
             y0: 0.0,
@@ -122,7 +154,7 @@ pub fn render(drawing: &Drawing, dots: f64) -> Result<Picture, RasterError> {
         },
         mask: Mask::default(),
     };
-    page.items(&drawing.items);
+    page.items(items);
     // From one part in 65,535 to one in 255, to the nearest.
     let rgb = page
         .ink
@@ -613,6 +645,9 @@ struct Page {
     ink: Vec<u16>,
     /// Dots to a point.
     scale: f64,
+    /// Where the first dot of the picture starts on the page, in dots: nothing but for the
+    /// picture of a part of a page.
+    shift: Place,
     /// What is drawn outside this is not drawn.
     clip: Rect,
     mask: Mask,
@@ -635,6 +670,18 @@ impl Page {
 
     /// Closed shapes in one colour.
     fn fill(&mut self, shapes: &[Vec<Place>], colour: [u8; 3], opacity: f64, even_odd: bool) {
+        // The picture of a part of a page: every corner counted from where the part starts.
+        let moved: Vec<Vec<Place>>;
+        let shapes = if self.shift == (0.0, 0.0) {
+            shapes
+        } else {
+            let (x, y) = self.shift;
+            moved = shapes
+                .iter()
+                .map(|shape| shape.iter().map(|p| (p.0 - x, p.1 - y)).collect())
+                .collect();
+            &moved
+        };
         let Some(bounds) = bounds_of(shapes) else {
             return;
         };
@@ -677,11 +724,12 @@ impl Page {
     /// measure of its width covered times its height covered.
     fn block(&mut self, at: Place, width: f64, height: f64, colour: [u8; 3]) {
         let s = self.scale;
+        let (x, y) = self.shift;
         let block = Rect {
-            x0: at.0 * s,
-            y0: at.1 * s,
-            x1: (at.0 + width) * s,
-            y1: (at.1 + height) * s,
+            x0: at.0 * s - x,
+            y0: at.1 * s - y,
+            x1: (at.0 + width) * s - x,
+            y1: (at.1 + height) * s - y,
         };
         let Some(shown) = block.both(self.clip) else {
             return;
@@ -813,11 +861,12 @@ impl Page {
                 height,
                 items,
             } => {
+                let (x, y) = self.shift;
                 let region = Rect {
-                    x0: at.0 * s,
-                    y0: at.1 * s,
-                    x1: (at.0 + width) * s,
-                    y1: (at.1 + height) * s,
+                    x0: at.0 * s - x,
+                    y0: at.1 * s - y,
+                    x1: (at.0 + width) * s - x,
+                    y1: (at.1 + height) * s - y,
                 };
                 let outside = self.clip;
                 // A region that shares nothing with what is already shown shows nothing.
@@ -961,13 +1010,13 @@ impl Page {
         height: f64,
         columns: usize,
         rows: usize,
-        cells: &[String],
+        cells: &[[u8; 3]],
     ) {
         if columns == 0 || rows == 0 {
             return;
         }
         let s = self.scale;
-        let (left, top) = (at.0 * s, at.1 * s);
+        let (left, top) = (at.0 * s - self.shift.0, at.1 * s - self.shift.1);
         let (wide, high) = (width * s / columns as f64, height * s / rows as f64);
         let grid = Rect {
             x0: left,
@@ -981,7 +1030,6 @@ impl Page {
         let Some(shown) = grid.both(self.clip) else {
             return;
         };
-        let colours: Vec<[u8; 3]> = cells.iter().map(|cell| rgb(cell)).collect();
         // The cells along one axis that lie under the dot from `from` to one more, within
         // what is shown: each with the length of the dot it lies under.
         let under = |dot: usize, first: f64, size: f64, count: usize, lo: f64, hi: f64| {
@@ -1014,7 +1062,7 @@ impl Page {
                 for &(row, tall) in &down {
                     for &(column, long) in along {
                         // A cell without a colour is not drawn.
-                        if let Some(colour) = colours.get(row * columns + column) {
+                        if let Some(colour) = cells.get(row * columns + column) {
                             let area = tall * long;
                             covered += area;
                             for part in 0..3 {

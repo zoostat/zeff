@@ -30,8 +30,9 @@
 //! the shape, the size and the colour.
 
 use crate::colour;
-use crate::drawing::{Anchor, Drawing, Head, Item, Primitive, Span, Stroke};
+use crate::drawing::{Anchor, Drawing, Head, Item, Primitive, Span, Stroke, rgb};
 use crate::font::{FaceName, face};
+use crate::raster;
 use crate::scene::{Legend, Paint, Range, Scale, ScaleKind, Scene, Shaping, Sizing, diameter};
 use crate::shape;
 
@@ -561,7 +562,7 @@ fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec
                     height: *length,
                     columns: 1,
                     rows: colours.len(),
-                    cells: colours.clone(),
+                    cells: colours.iter().map(|colour| rgb(colour)).collect(),
                 },
             ));
             for (share, label) in ticks {
@@ -818,6 +819,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     if let (Some(p), Some(sx), Some(sy)) = (panel, xs, ys) {
         for (at, layer) in p.layers.iter().enumerate() {
             let name = format!("layer:{}", at + 1);
+            let mut drawn: Vec<Item> = Vec::new();
             for i in 0..layer.x.len().min(layer.y.len()) {
                 let colour = match &layer.color {
                     Paint::Theme => theme.mark.to_string(),
@@ -846,7 +848,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                         _ => shape::DEFAULT,
                     },
                 };
-                marks.push(named(
+                drawn.push(named(
                     &name,
                     Primitive::Point {
                         at: (across(sx, layer.x[i]), down(sy, layer.y[i])),
@@ -857,6 +859,48 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     },
                 ));
             }
+            // A layer flagged to be drawn in dots (open decision #118, F4): the panel as it
+            // stands with this layer on it, the page, the gridlines and the layers under it,
+            // as one picture at the dots to the inch of a figure, which takes the place of
+            // the layer's marks. A picture has no way to let through what is under it, so it
+            // holds it. A panel of more dots than a picture may have keeps its marks.
+            if layer.raster {
+                // The picture is as many whole dots as cover the panel. Its last dots are
+                // drawn whole, and the edge of the panel, which is a line, cuts them where
+                // the panel ends.
+                let to_a_point = raster::DOTS / 72.0;
+                let covering = |points: f64| (points * to_a_point - 1e-6).ceil() / to_a_point;
+                let (wide, high) = (covering(panel_width), covering(panel_height));
+                let mut under = items.clone();
+                let mut inside = marks.clone();
+                inside.extend(drawn.iter().cloned());
+                under.push(named(
+                    "panel",
+                    Primitive::Clip {
+                        at: (left, top),
+                        width: wide,
+                        height: high,
+                        items: inside,
+                    },
+                ));
+                if let Ok(picture) =
+                    raster::render_part(&under, (left, top), wide, high, raster::DOTS)
+                {
+                    marks.push(named(
+                        &name,
+                        Primitive::Raster {
+                            at: (left, top),
+                            width: picture.width as f64 / to_a_point,
+                            height: picture.height as f64 / to_a_point,
+                            columns: picture.width,
+                            rows: picture.height,
+                            cells: picture.rgb.as_chunks::<3>().0.to_vec(),
+                        },
+                    ));
+                    continue;
+                }
+            }
+            marks.extend(drawn);
         }
     }
     items.push(named(

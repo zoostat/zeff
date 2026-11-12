@@ -16,12 +16,22 @@ use zeff_core::value::{FigureFormat, FigureProblem, FigureRequest, FigureSize, P
 
 use crate::layout::{JOURNAL, LayoutError, MM, SMALLEST_PANEL, Size, layout, layout_with_notes};
 use crate::raster::{DOTS, MOST_DOTS, RasterError, render};
-use crate::scene::scene;
+use crate::scene::{Scene, scene};
 use crate::{pdf, png, svg};
 
 /// A length in millimetres as a message writes it: to a tenth.
 fn mm(points: f64) -> String {
     format_float((points / MM * 10.0).round() / 10.0)
+}
+
+/// A figure in dots is dots throughout: a layer flagged to be drawn in dots inside a figure
+/// of lines (open decision #118, F4) is, in a PNG, a layer like any other, drawn once.
+fn all_in_dots(scene: &mut Scene) {
+    for panel in &mut scene.panels {
+        for layer in &mut panel.layers {
+            layer.raster = false;
+        }
+    }
 }
 
 /// The bytes of `plot` as the figure `request` asks for.
@@ -32,7 +42,10 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
         FigureSize::Slide => Size::Slide,
         FigureSize::Millimetres(width, height) => Size::Millimetres(width, height),
     };
-    let drawn = scene(plot);
+    let mut drawn = scene(plot);
+    if request.format == FigureFormat::Png {
+        all_in_dots(&mut drawn);
+    }
     let laid = if request.notes {
         layout_with_notes(&drawn, size, &JOURNAL)
     } else {
@@ -110,5 +123,82 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
             }),
             Err(RasterError::NotASize) => Err(not_a_size()),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scene::{start, with_layer};
+    use std::rc::Rc;
+    use zeff_columns::{Column, Table};
+    use zeff_core::value::{Aesthetic, Frame, Mark, PlotLayer, PlotMapping};
+
+    #[test]
+    fn a_figure_in_dots_draws_every_layer_once_and_is_the_picture_of_its_drawing() {
+        let numbers = |values: &[f64]| Column::floats(values.iter().map(|v| Some(*v))).0;
+        let table = Table::new(vec![
+            ("dose".to_string(), numbers(&[1.0, 2.0, 3.0])),
+            ("response".to_string(), numbers(&[2.0, 3.5, 7.0])),
+        ])
+        .unwrap();
+        let frame = Frame {
+            table: Rc::new(table),
+            name: Some("d".to_string()),
+        };
+        let mapped = |aesthetic, name: &str| PlotMapping {
+            aesthetic,
+            variable: name.to_string(),
+            computed: None,
+        };
+        let plot = start(
+            frame,
+            vec![
+                mapped(Aesthetic::X, "dose"),
+                mapped(Aesthetic::Y, "response"),
+            ],
+            Vec::new(),
+        );
+        let (plot, mut flagged) = with_layer(
+            &plot,
+            PlotLayer {
+                mark: Mark::Points,
+                data: None,
+                alpha: 1.0,
+                size: None,
+                jitter: 0.0,
+                stream: None,
+                computed: Vec::new(),
+            },
+        );
+        flagged.panels[0].layers[0].raster = true;
+        all_in_dots(&mut flagged);
+        assert!(!flagged.panels[0].layers[0].raster);
+        // The PNG of a plot is the picture of its drawing at 300 dots to the inch.
+        let request = FigureRequest {
+            format: FigureFormat::Png,
+            size: FigureSize::OneColumn,
+            notes: false,
+        };
+        let drawing = layout(&scene(&plot), Size::OneColumn, &JOURNAL).unwrap();
+        let picture = render(&drawing, DOTS).unwrap();
+        assert_eq!(
+            write(&plot, &request).unwrap(),
+            png::write(&picture, DOTS).unwrap()
+        );
+        // And its PDF and its SVG are those of the same drawing.
+        let as_pdf = FigureRequest {
+            format: FigureFormat::Pdf,
+            ..request
+        };
+        assert_eq!(write(&plot, &as_pdf).unwrap(), pdf::write(&drawing));
+        let as_svg = FigureRequest {
+            format: FigureFormat::Svg,
+            ..request
+        };
+        assert_eq!(
+            write(&plot, &as_svg).unwrap(),
+            svg::write(&drawing).into_bytes()
+        );
     }
 }

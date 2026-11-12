@@ -129,14 +129,15 @@ pub enum Primitive {
         spans: Vec<Span>,
         frame: Option<TextBox>,
     },
-    /// A grid of cells of one size, row by row from the top left, each a colour.
+    /// A grid of cells of one size, row by row from the top left, each a colour: its red,
+    /// green and blue, each of 255. A picture in dots is such a grid, a cell to a dot.
     Raster {
         at: Place,
         width: f64,
         height: f64,
         columns: usize,
         rows: usize,
-        cells: Vec<String>,
+        cells: Vec<[u8; 3]>,
     },
     /// A region outside which what it holds is not drawn.
     Clip {
@@ -165,6 +166,24 @@ pub struct Drawing {
     /// What the reader must be told and the figure does not show: the notes of the scene,
     /// and the characters no font of the figure has.
     pub notes: Vec<String>,
+}
+
+/// The red, green and blue of `#RRGGBB`, each of 255; black for what is no such colour.
+pub fn rgb(colour: &str) -> [u8; 3] {
+    let digits = colour.strip_prefix('#').unwrap_or("");
+    if digits.len() != 6 || !digits.is_ascii() {
+        return [0, 0, 0];
+    }
+    let part = |at: usize| u8::from_str_radix(&digits[at..at + 2], 16).ok();
+    match (part(0), part(2), part(4)) {
+        (Some(red), Some(green), Some(blue)) => [red, green, blue],
+        _ => [0, 0, 0],
+    }
+}
+
+/// A colour as it is written, `#RRGGBB`.
+pub fn hex(colour: [u8; 3]) -> String {
+    format!("#{:02X}{:02X}{:02X}", colour[0], colour[1], colour[2])
 }
 
 /// A length as a drawing is read as text: to a thousandth of a point, without trailing
@@ -416,8 +435,8 @@ fn describe_items(items: &[Item], depth: usize, out: &mut String) {
                 place(*at),
                 length(*width),
                 length(*height),
-                cells.first().map_or("none", String::as_str),
-                cells.last().map_or("none", String::as_str)
+                cells.first().map_or("none".to_string(), |c| hex(*c)),
+                cells.last().map_or("none".to_string(), |c| hex(*c))
             ),
             Primitive::Clip {
                 at, width, height, ..
@@ -569,7 +588,7 @@ mod tests {
                         height: 40.0,
                         columns: 1,
                         rows: 2,
-                        cells: vec!["#FDE725".to_string(), "#440154".to_string()],
+                        cells: vec![rgb("#FDE725"), rgb("#440154")],
                     },
                 },
             ],

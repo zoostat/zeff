@@ -22,18 +22,30 @@
 //! each; a point with no such neighbour carries its own. An outline shape (`_open`) and a
 //! shape of lines are stroked [`MARK_STROKE`] wide.
 //!
+//! **Cells.** A grid of cells is rectangles, neighbours of one colour in a row as one. A grid
+//! of more than [`MOST_RECTANGLES`] cells, which is a picture in dots, is held inside the
+//! file as a PNG ([`crate::png`]), written as text; nothing outside the file is named.
+//!
 //! **Names.** Neighbouring items of one name are a group whose `id` is the name, with the
 //! characters an identifier cannot hold replaced (`axis:x` is `axis-x`); a name met again
 //! later gets a number after it. A drawing holds no row of the data, and so no file does.
 
 use zeff_numeric::maths::{cos, sin};
 
-use crate::drawing::{Anchor, Drawing, Head, Item, Primitive, Span, Step, Stroke, TextBox, length};
+use crate::drawing::{
+    Anchor, Drawing, Head, Item, Primitive, Span, Step, Stroke, TextBox, hex, length,
+};
 use crate::font::{Segment, face};
+use crate::png;
+use crate::raster::Picture;
 use crate::shape::{self, Geometry};
 
 /// The width of the stroke of an outline shape and of a shape of lines, in points.
 pub const MARK_STROKE: f64 = 0.9;
+
+/// The most cells a grid is drawn with as rectangles; a grid of more is a picture inside
+/// the file.
+pub const MOST_RECTANGLES: usize = 4096;
 
 /// The share of the size of the type that a line of text takes above its baseline and below
 /// it, for the box behind a text.
@@ -51,12 +63,66 @@ pub fn write(drawing: &Drawing) -> String {
     writer
         .out
         .push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    // A file that holds a picture names the way a picture is held; no other file does.
+    let pictured = drawing
+        .primitives()
+        .iter()
+        .any(|item| match &item.primitive {
+            Primitive::Raster {
+                columns,
+                rows,
+                cells,
+                ..
+            } => picture_of(*columns, *rows, cells).is_some(),
+            _ => false,
+        });
+    let held = if pictured {
+        " xmlns:xlink=\"http://www.w3.org/1999/xlink\""
+    } else {
+        ""
+    };
     writer.out.push_str(&format!(
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}pt\" height=\"{height}pt\" viewBox=\"0 0 {width} {height}\">\n"
+        "<svg xmlns=\"http://www.w3.org/2000/svg\"{held} width=\"{width}pt\" height=\"{height}pt\" viewBox=\"0 0 {width} {height}\">\n"
     ));
     writer.items(&drawing.items);
     writer.out.push_str("</svg>\n");
     writer.out
+}
+
+/// The grid of cells as a picture, a cell to a dot, when it has more than
+/// [`MOST_RECTANGLES`] cells and a colour for each of them.
+fn picture_of(columns: usize, rows: usize, cells: &[[u8; 3]]) -> Option<Picture> {
+    let all = columns.checked_mul(rows)?;
+    if all <= MOST_RECTANGLES || cells.len() < all {
+        return None;
+    }
+    Some(Picture {
+        width: columns,
+        height: rows,
+        rgb: cells[..all].iter().flatten().copied().collect(),
+    })
+}
+
+/// Bytes as text of 64 letters, three bytes to four letters, the last four filled out
+/// with `=`: the way a picture is held inside a file of text.
+fn base64(bytes: &[u8]) -> String {
+    const LETTERS: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for three in bytes.chunks(3) {
+        let word = u32::from(three[0]) << 16
+            | u32::from(three.get(1).copied().unwrap_or(0)) << 8
+            | u32::from(three.get(2).copied().unwrap_or(0));
+        for letter in 0..4 {
+            if letter <= three.len() {
+                out.push(char::from(
+                    LETTERS[((word >> (18 - 6 * letter)) & 63) as usize],
+                ));
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
 }
 
 /// Text as the content of an element or the value of an attribute.
@@ -425,6 +491,20 @@ impl Writer {
                     return;
                 }
                 let (wide, high) = (width / *columns as f64, height / *rows as f64);
+                // A grid of many cells is a picture: its dots as a PNG inside the file.
+                if let Some(picture) = picture_of(*columns, *rows, cells)
+                    && let Some(file) = png::write(&picture, f64::NAN)
+                {
+                    self.out.push_str(&format!(
+                        "<image x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" preserveAspectRatio=\"none\" xlink:href=\"data:image/png;base64,{}\"/>\n",
+                        length(at.0),
+                        length(at.1),
+                        length(*width),
+                        length(*height),
+                        base64(&file)
+                    ));
+                    return;
+                }
                 // Cells that meet are drawn without the soft edge that would show between them.
                 self.out.push_str("<g shape-rendering=\"crispEdges\">\n");
                 for row in 0..*rows {
@@ -439,11 +519,12 @@ impl Writer {
                             end += 1;
                         }
                         self.out.push_str(&format!(
-                            "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{colour}\"/>\n",
+                            "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{}\"/>\n",
                             length(at.0 + column as f64 * wide),
                             length(at.1 + row as f64 * high),
                             length((end - column) as f64 * wide),
-                            length(high)
+                            length(high),
+                            hex(*colour)
                         ));
                         column = end;
                     }
@@ -621,6 +702,29 @@ mod tests {
         assert_eq!(escape("a\tb\nc\rd"), "a b c d");
         assert_eq!(escape("bell\u{7} nul\u{0} escape\u{1b}"), "bell nul escape");
         assert_eq!(escape(""), "");
+    }
+
+    #[test]
+    fn bytes_are_held_as_text_three_to_four_letters() {
+        assert_eq!(base64(b""), "");
+        assert_eq!(base64(b"f"), "Zg==");
+        assert_eq!(base64(b"fo"), "Zm8=");
+        assert_eq!(base64(b"foo"), "Zm9v");
+        assert_eq!(base64(b"foob"), "Zm9vYg==");
+        assert_eq!(base64(b"fooba"), "Zm9vYmE=");
+        assert_eq!(base64(b"foobar"), "Zm9vYmFy");
+        assert_eq!(base64(&[0xFB, 0xFF, 0xFE]), "+//+");
+    }
+
+    #[test]
+    fn a_grid_is_a_picture_when_it_has_many_cells_and_a_colour_for_each() {
+        let cells = vec![[1, 2, 3]; 5000];
+        assert!(picture_of(50, 100, &cells).is_some());
+        assert_eq!(picture_of(50, 100, &cells).unwrap().rgb.len(), 15000);
+        // Few cells are rectangles; a grid short of colours is drawn cell by cell too.
+        assert!(picture_of(64, 64, &cells).is_none());
+        assert!(picture_of(50, 101, &cells).is_none());
+        assert!(picture_of(usize::MAX, 2, &cells).is_none());
     }
 
     #[test]

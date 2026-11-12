@@ -43,6 +43,7 @@ use std::sync::OnceLock;
 use miniz_oxide::deflate::compress_to_vec_zlib;
 use zeff_numeric::maths::sqrt;
 
+pub use crate::drawing::rgb;
 use crate::drawing::{
     Anchor, Drawing, Head, Item, Place, Primitive, Span, Stroke, TextBox, length,
 };
@@ -95,19 +96,6 @@ fn fine(x: f64) -> String {
     } else {
         let digits = format!("{part:06}");
         format!("{sign}{units}.{}", digits.trim_end_matches('0'))
-    }
-}
-
-/// The red, green and blue of `#RRGGBB`, each of 255; black for what is no such colour.
-pub fn rgb(colour: &str) -> [u8; 3] {
-    let digits = colour.strip_prefix('#').unwrap_or("");
-    if digits.len() != 6 || !digits.is_ascii() {
-        return [0, 0, 0];
-    }
-    let part = |at: usize| u8::from_str_radix(&digits[at..at + 2], 16).ok();
-    match (part(0), part(2), part(4)) {
-        (Some(red), Some(green), Some(blue)) => [red, green, blue],
-        _ => [0, 0, 0],
     }
 }
 
@@ -525,13 +513,14 @@ impl Content {
         high: f64,
         columns: usize,
         rows: usize,
-        cells: &[String],
+        cells: &[[u8; 3]],
     ) {
         if columns == 0 || rows == 0 {
             return;
         }
         let times = |points: f64| {
-            let wanted = (points * DOTS / 72.0).ceil();
+            // A cell that is one dot but for the last bit of the reckoning is one dot.
+            let wanted = (points * DOTS / 72.0 - 1e-9).ceil();
             if wanted >= 1.0 {
                 (wanted as usize).min(FINEST)
             } else {
@@ -551,7 +540,7 @@ impl Content {
         for row in 0..rows {
             let mut line = Vec::with_capacity(columns * across * 3);
             for column in 0..columns {
-                let colour = rgb(&cells[row * columns + column]);
+                let colour = cells[row * columns + column];
                 for _ in 0..across {
                     line.extend_from_slice(&colour);
                 }

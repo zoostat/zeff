@@ -142,3 +142,13 @@ Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold a
 
 **For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: the largest page of a PDF (5080 mm) and of a PNG (forty million dots); a PNG with a white page, without transparency, at 300 dots to the inch. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 22b3b (a layer in dots inside a figure of lines), and step 22b3 complete
+
+**Done.** A layer of the scene flagged `raster` is drawn as a picture at 300 dots to the inch and placed inside the PDF (as an image) and the SVG (as a PNG held in the file), with the axes, labels and other layers staying lines and text; in a PNG it is a layer like any other. No script can set the flag at this release; the tests set it by hand. The cells of a grid in a drawing are numbers now, not text. Every figure written before this step is byte for byte what it was.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 279 of 279; CI is read job by job after the push.
+
+**Next.** Step 22b4 `[engine]`: the trial of the typesetting engine (#73), as a tool only; then step 23 `[function]`, the first seven marks, before which open decision #106 is taken on the recommendation.
+
+**For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: the picture of a layer holds what is under it in the panel; it is at 300 dots to the inch whatever the page. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
