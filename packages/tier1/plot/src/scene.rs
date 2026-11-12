@@ -60,7 +60,8 @@
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Table,
+    Aesthetic, Align, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Stairs,
+    Table,
 };
 use zeff_diagnostics::count;
 
@@ -304,7 +305,7 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
         ),
         // A line is placed by `x` and `y`, coloured by `color`, of the type `linetype` says,
         // and drawn through the rows of one `group`.
-        Mark::Lines => matches!(
+        Mark::Lines | Mark::Step(_) => matches!(
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Color | Aesthetic::Group | Aesthetic::Linetype
         ),
@@ -1109,7 +1110,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         // For a layer of lines, the line of each mark.
         let mut line: Vec<usize> = Vec::new();
         let mut points = match (named(Aesthetic::X), named(Aesthetic::Y)) {
-            (Some(x), Some(y)) if layer.mark == Mark::Lines => {
+            (Some(x), Some(y)) if layer.mark.joins() => {
                 // The rows are parted into lines by the group, and by the categories a colour
                 // or a type of line shows, since one line has one colour and one type.
                 let mut keys: Vec<Categories> = Vec::new();
@@ -1597,7 +1598,7 @@ impl Scene {
                                                             // What a layer of lines holds
                                                             // more: the line of each mark,
                                                             // the type and the width.
-                                                            .chain(if l.mark == Mark::Lines {
+                                                            .chain(if l.mark.joins() {
                                                                 vec![
                                                                     (
                                                                         "line",
@@ -1630,6 +1631,15 @@ impl Scene {
                                                                 ]
                                                             } else {
                                                                 Vec::new()
+                                                            })
+                                                            // And a layer of steps the way
+                                                            // they go.
+                                                            .chain(match l.mark {
+                                                                Mark::Step(way) => Some((
+                                                                    "direction",
+                                                                    Json::text(way.name()),
+                                                                )),
+                                                                _ => None,
                                                             })
                                                             .collect(),
                                                         )
@@ -1959,9 +1969,15 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 _ => {}
             }
         }
-        let mut settings = if layer.mark == Mark::Lines {
-            // A layer of lines: their width, their type where it is not whole, how many.
+        let mut settings = if layer.mark.joins() {
+            // A layer of lines: their width, their type where it is not whole, how many; for
+            // steps, the way they go where it is not level first.
             let mut settings = format!("width {}", format_float(layer.width));
+            if let Mark::Step(way) = layer.mark
+                && way != Stairs::LevelFirst
+            {
+                settings.push_str(&format!(", direction {}", way.name()));
+            }
             match &layer.linetype {
                 Lining::Constant(name) if *name == LineType::Solid.name() => {}
                 Lining::Constant(name) => settings.push_str(&format!(", linetype {name}")),

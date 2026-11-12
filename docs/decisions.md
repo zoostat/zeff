@@ -3276,3 +3276,19 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** Section 11 of the Language Reference ("Checking before running"): the checker refuses what the run would refuse, and nothing else.
 
+## 12 November 2026: `step` (release 0.7.0, step 23c2), and step 23c complete
+
+**Decision.** `p.step(...)` is `lines` with risers: the same rows, the same parting into lines, the same breaks and notes, the same options, and one more, `direction: hv | vh | mid = hv`. `lines` and `step` share one body (`marks::joined`). The mark carries the direction (`Mark::Step(Stairs)`), the scene holds the rows as it does for a line and says the direction in its JSON (`"direction": "hv"`, on a layer of steps and no other), and the layout adds the corners: level to the `x` of the next row and then upright (`hv`), upright first (`vh`), or level to halfway between the two rows, upright there and level again (`mid`). A corner that would stand where the line already is is left out, so two rows of one `y` are joined by one level piece.
+
+**Rulings where the text is silent**, taken under the owner's standing instruction of 12 November 2026. (a) The catalogue gave `step` no option but `data:`; it takes those of `lines`, by open decision #106 and for the same reasons. (b) `direction:` is added because R's `geom_step` has the three and Stata's `connect()` two of them, and the owner's rule of open decisions #98 and #99 is that what R or Stata offers for a procedure is an option; the words are R's, `hv`, `vh` and `mid`, which name the order of level and upright as nothing shorter does. (c) Stepping halfway, the line passes through each row in the middle of its level piece and the path of the drawing keeps the row as a place on it; ggplot2 lists the ends of the piece alone, and the two draw the same line.
+
+**Tests.** `packages/tier1/plot/tests/lines.rs`: the corners of a rate at four months in each direction against `ggplot2:::stairstep` of ggplot2 4.0.3, place for place; two rows of one value; the direction in the scene's JSON; a property over 200 lines in each direction (every piece is level or upright, the rows are corners of the steps in their order, the steps start at the first row and end at the last). `tests/printing.rs`: four plots, with limits 0.6 to 9.4 and 4.4625 to 5.2875 as `geom_step` gives; nine messages. The help page of `step`, its examples run. The conformance case of lines gains a step plot and the scene and drawing of steps.
+
+**What changes for a user: a script's own function called `step`.** A built-in function captures its bare name, so a script that defines `fn step(...)` is now refused with Z0109, as section 3.6 of the Language Reference says of any name that a built-in and the script both define. The rewrite is a new name for the script's function (the argument `step:` of `iterate` is untouched: `iterate(start: s, step: advance, done: close)`). Two tests of `iterate` named a script function `step`; it is renamed `blanked` there, and the stored message follows, as was done for `now` at release 0.5.0. No sample, help example or text of the specification defines such a function. This is a breaking change for the notes of 0.7.0 (material for step 40c), with the other new names of the release (`plot`, `points`, `lines` and the marks to come). Z0109 is not weakened: the catalogue has reserved `step` for a mark since the freeze.
+
+**The specification.** The usage line of catalogue row 463 gains the options (logged in `docs/spec_changes.md`).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's steps 23c and 23c2; section 7.6 of the Language Reference ("Marks": `step`); open decisions #98, #99 and #106.
+

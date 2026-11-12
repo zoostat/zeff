@@ -1758,7 +1758,7 @@ fn plot_cases() -> Vec<Line> {
     // Lines (step 23c): means joined from year to year, a line for each worker, a line broken
     // where the wage is missing; what the script prints, and the scene and the drawing of the
     // wages of each worker as lines of a type for each sex.
-    let script = "let w = dataset(wages)\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nu.plot(x: year, y: wage, color: union).points().lines(linetype: union)\nlet few = w.where(worker <= 40)\nfew.plot(x: year, y: log(wage), group: worker).lines(width: 0.5)\nfew.plot(x: exper, y: wage).lines(group: worker, color: female)\n";
+    let script = "let w = dataset(wages)\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nu.plot(x: year, y: wage, color: union).points().lines(linetype: union)\nlet few = w.where(worker <= 40)\nfew.plot(x: year, y: log(wage), group: worker).lines(width: 0.5)\nfew.plot(x: exper, y: wage).lines(group: worker, color: female)\nfew.plot(x: year, y: wage, group: worker).step(direction: mid, linetype: \"dotted\")\n";
     let lined = run_script(&fs, &project, "scripts/main.zeff", script);
     let lines = match zeff_datasets::table("wages") {
         Some(table) => {
@@ -1794,12 +1794,26 @@ fn plot_cases() -> Vec<Line> {
                 mappings: vec![mapping(Aesthetic::Linetype, "female")],
                 constants: Vec::new(),
             };
-            let scene = zeff_plot::scene::with_layer(&plot, layer).1;
+            let scene = zeff_plot::scene::with_layer(&plot, layer.clone()).1;
             let drawing = match layout(&scene, Size::TwoColumn, &JOURNAL) {
                 Ok(drawing) => drawing.describe(),
                 Err(why) => format!("{why:?}\n"),
             };
-            format!("{}\n=== drawing\n{drawing}", scene.to_json())
+            // The same rows as steps that go upright first (step 23c2).
+            let stepped = PlotLayer {
+                mark: Mark::Step(zeff_core::value::Stairs::UprightFirst),
+                ..layer
+            };
+            let steps = zeff_plot::scene::with_layer(&plot, stepped).1;
+            let stairs = match layout(&steps, Size::TwoColumn, &JOURNAL) {
+                Ok(drawing) => drawing.describe(),
+                Err(why) => format!("{why:?}\n"),
+            };
+            format!(
+                "{}\n=== drawing\n{drawing}=== steps\n{}\n=== drawing\n{stairs}",
+                scene.to_json(),
+                steps.to_json()
+            )
         }
         None => "the wages did not load".to_string(),
     };

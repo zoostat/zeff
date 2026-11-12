@@ -1373,3 +1373,74 @@ fn every_message_of_lines() {
     }
     insta::assert_snapshot!("lines_messages", all);
 }
+
+// ----- step (step 23c2) -----
+
+const RATE: &str = "let rate = frame(month = [1, 4, 6, 9], percent = [5.0, 5.25, 5.0, 4.5])\n";
+
+#[test]
+fn steps_read_sensibly_as_text() {
+    let script = format!(
+        "{RATE}rate.plot(x: month, y: percent).points().step()\n\
+         rate.plot(x: month, y: percent).step(direction: vh, color: \"firebrick\").step(direction: mid, linetype: \"dashed\", width: 0.5)\n\
+         let w = dataset(wages).where(worker <= 6)\n\
+         w.plot(x: year, y: wage, color: female).step(group: worker)\n"
+    );
+    let text = printed(&script);
+    // The reference, from ggplot2 4.0.3: `geom_step` on the four rows has limits 0.6 to 9.4
+    // and 4.4625 to 5.2875; the six workers are six lines of 30 rows in all.
+    for line in [
+        "  x      month     linear   0.6 to 9.4         2, 4, 6, 8\n",
+        "  y      percent   linear   4.4625 to 5.2875   4.6, 4.8, 5, 5.2\n",
+        "      2   step     rate       4   width 1, 1 line\n",
+        "      1   step   rate       4   color firebrick, width 1, direction vh, 1 line\n",
+        "      2   step   rate       4   width 0.5, direction mid, linetype dashed, 1 line\n",
+        "      1   step   w         30   width 1, group by worker, 6 lines\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("step", text);
+}
+
+#[test]
+fn every_message_of_step() {
+    let mut all = String::new();
+    for (name, script) in [
+        (
+            "not_a_direction",
+            "rate.plot(x: month, y: percent).step(direction: up)\n",
+        ),
+        (
+            "a_direction_in_quotes",
+            "rate.plot(x: month, y: percent).step(direction: \"hv\")\n",
+        ),
+        ("the_plot_maps_no_y", "rate.plot(x: month).step()\n"),
+        (
+            "a_colour_by_a_number",
+            "rate.plot(x: month, y: percent).step(color: percent)\n",
+        ),
+        (
+            "not_a_type",
+            "rate.plot(x: month, y: percent).step(linetype: \"stairs\")\n",
+        ),
+        (
+            "no_width",
+            "rate.plot(x: month, y: percent).step(width: 0)\n",
+        ),
+        (
+            "no_such_variable",
+            "rate.plot(x: month, y: percent).step(y: percnt)\n",
+        ),
+        ("step_of_a_frame", "rate.step()\n"),
+        (
+            "no_alpha_on_step",
+            "rate.plot(x: month, y: percent).step(alpha: 0.5)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{RATE}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("step_messages", all);
+}

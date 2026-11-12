@@ -146,3 +146,13 @@ Step 22: the owner read the six figures and said "Yes, freeze it"; the journal t
 
 **Next.** Step 23c2 `[function]`: `step`.
 
+## 12 November 2026, release 0.7.0, step 23c2 (`step`), and step 23c complete
+
+**Done.** `p.step()` joins the rows as `lines` does, by level and upright pieces: level first (`hv`, the default), upright first (`vh`) or stepping halfway (`mid`), the three ways R's `geom_step` has. Its corners match ggplot2's, place for place. Catalogue row 463 is brought up to date (logged). `plot` stands at four functions built: `plot`, `points`, `lines`, `step`. A script's own function called `step` must now be renamed (Z0109); two tests of `iterate` had one, renamed; noted for the release notes.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 285 of 285; CI is read job by job after the push.
+
+**Next.** Step 23d `[function]`: `area` and `ribbon`.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: `step` has the options of `lines` and `direction:` with R's three words. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

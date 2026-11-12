@@ -183,7 +183,7 @@ fn a_step_that_changes_the_fields_is_refused_at_the_call() {
 #[test]
 fn done_giving_na_is_refused() {
     let out = run(
-        "/// Keeps NA.\nfn step(s: Record) -> Record { {x: NA * 1.0} }\n/// Compares with NA.\nfn cmp(old: Record, new: Record) -> Bool { new.x > 0 }\niterate(start: {x: 1.0}, step: step, done: cmp)\n",
+        "/// Keeps NA.\nfn blanked(s: Record) -> Record { {x: NA * 1.0} }\n/// Compares with NA.\nfn cmp(old: Record, new: Record) -> Bool { new.x > 0 }\niterate(start: {x: 1.0}, step: blanked, done: cmp)\n",
     );
     assert_eq!(out.exit_code, 1);
     assert!(
@@ -206,7 +206,7 @@ fn every_message_of_iterate() {
         ("options_missing", "iterate(start: {x: 1.0})\n".to_string()),
         ("step_adds_field", "/// Grows.\nfn grow(s: Record) -> Record { {x: s.x, extra: 1} }\n/// Never.\nfn never(old: Record, new: Record) -> Bool { false }\niterate(start: {x: 1.0}, step: grow, done: never, max: 3)\n".to_string()),
         ("step_drops_field", "/// Shrinks.\nfn shrink(s: Record) -> Record { {x: s.x} }\n/// Never.\nfn never(old: Record, new: Record) -> Bool { false }\niterate(start: {x: 1.0, k: 2}, step: shrink, done: never, max: 3)\n".to_string()),
-        ("done_na", "/// Keeps NA.\nfn step(s: Record) -> Record { {x: NA * 1.0} }\n/// Compares with NA.\nfn cmp(old: Record, new: Record) -> Bool { new.x > 0 }\niterate(start: {x: 1.0}, step: step, done: cmp)\n".to_string()),
+        ("done_na", "/// Keeps NA.\nfn blanked(s: Record) -> Record { {x: NA * 1.0} }\n/// Compares with NA.\nfn cmp(old: Record, new: Record) -> Bool { new.x > 0 }\niterate(start: {x: 1.0}, step: blanked, done: cmp)\n".to_string()),
         ("max_from_a_binding", format!("{NEWTON}let m = 0\niterate(start: {{x: 1.0}}, step: newton, args: {{a: 2.0}}, done: close, max: m)\n")),
     ];
     let mut text = String::new();

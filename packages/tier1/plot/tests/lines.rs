@@ -8,7 +8,7 @@ mod common;
 use common::*;
 use proptest::prelude::*;
 use zeff_columns::Column;
-use zeff_core::value::{Aesthetic, Mark, PlotConstant, PlotLayer, PlotSetting};
+use zeff_core::value::{Aesthetic, Mark, PlotConstant, PlotLayer, PlotSetting, Stairs};
 use zeff_plot::drawing::{Head, LineType, Primitive, Step};
 use zeff_plot::layout::{JOURNAL, Size, layout};
 use zeff_plot::scene::{LINE_WIDTH, Lining, Paint, Scene, start, with_layer};
@@ -414,5 +414,174 @@ fn a_group_may_be_of_any_type() {
         let layer = &with_layer(&plot, lines()).1.panels[0].layers[0];
         assert_eq!(layer.line, [1, 1, 2, 2], "{by}");
         assert_eq!(layer.y, [1.0, 2.0, 3.0, 4.0]);
+    }
+}
+
+// ----- step (step 23c2) -----
+
+/// A layer of step lines that says nothing of its own.
+fn steps(way: Stairs) -> PlotLayer {
+    PlotLayer {
+        mark: Mark::Step(way),
+        ..points(1.0)
+    }
+}
+
+/// The places a path of the panel goes through, in order.
+fn places_of(scene: &Scene) -> Vec<(f64, f64)> {
+    let drawing = layout(scene, Size::OneColumn, &JOURNAL).unwrap();
+    let (_, _, _, marks) = panel_of(&drawing);
+    assert_eq!(marks.len(), 1, "one line");
+    match &marks[0].primitive {
+        Primitive::Path { steps, .. } => steps
+            .iter()
+            .map(|step| match step {
+                Step::Move(p) | Step::Line(p) => *p,
+                other => panic!("{other:?}"),
+            })
+            .collect(),
+        other => panic!("{other:?} is not a line"),
+    }
+}
+
+#[test]
+fn steps_go_level_and_upright_through_every_row_as_ggplot2_has_them() {
+    // A rate at four months. The reference is `ggplot2:::stairstep` of ggplot2 4.0.3 on the
+    // same four rows, in the units of the data, for each of its three directions.
+    let rows = [row(1.0, 5.0), row(4.0, 5.25), row(6.0, 5.0), row(9.0, 4.5)];
+    let straight = places_of(&joined(&rows, lines()));
+    assert_eq!(straight.len(), 4);
+    // The page is a straight scale of the data: from two rows, the place of any value.
+    let (first, last) = (straight[0], straight[3]);
+    let place = |x: f64, y: f64| {
+        (
+            first.0 + (x - 1.0) / 8.0 * (last.0 - first.0),
+            first.1 + (y - 5.0) / (4.5 - 5.0) * (last.1 - first.1),
+        )
+    };
+    for (way, theirs) in [
+        (
+            Stairs::LevelFirst,
+            vec![
+                (1.0, 5.0),
+                (4.0, 5.0),
+                (4.0, 5.25),
+                (6.0, 5.25),
+                (6.0, 5.0),
+                (9.0, 5.0),
+                (9.0, 4.5),
+            ],
+        ),
+        (
+            Stairs::UprightFirst,
+            vec![
+                (1.0, 5.0),
+                (1.0, 5.25),
+                (4.0, 5.25),
+                (4.0, 5.0),
+                (6.0, 5.0),
+                (6.0, 4.5),
+                (9.0, 4.5),
+            ],
+        ),
+        (
+            Stairs::Halfway,
+            vec![
+                (1.0, 5.0),
+                (2.5, 5.0),
+                (2.5, 5.25),
+                (5.0, 5.25),
+                (5.0, 5.0),
+                (7.5, 5.0),
+                (7.5, 4.5),
+                (9.0, 4.5),
+            ],
+        ),
+    ] {
+        let scene = joined(&rows, steps(way));
+        // The scene holds the rows, as for a line; the corners are the page's.
+        let layer = &scene.panels[0].layers[0];
+        assert_eq!(layer.x, [1.0, 4.0, 6.0, 9.0]);
+        assert_eq!(layer.line, [1, 1, 1, 1]);
+        // Stepping halfway, a row stands in the middle of its level piece: the line passes
+        // through it, and ggplot2 lists the two ends of the piece alone. A place between two
+        // others on one level is left out before the two are compared.
+        let all = places_of(&scene);
+        let ours: Vec<(f64, f64)> = all
+            .iter()
+            .enumerate()
+            .filter(|(i, place)| {
+                *i == 0
+                    || *i == all.len() - 1
+                    || !(all[i - 1].1 == place.1 && all[i + 1].1 == place.1)
+            })
+            .map(|(_, place)| *place)
+            .collect();
+        assert_eq!(ours.len(), theirs.len(), "{}", way.name());
+        for (found, (x, y)) in ours.iter().zip(&theirs) {
+            let wanted = place(*x, *y);
+            assert!(
+                (found.0 - wanted.0).abs() < 1e-9 && (found.1 - wanted.1).abs() < 1e-9,
+                "{}: {found:?}, not {wanted:?}",
+                way.name()
+            );
+        }
+        let json = scene.json().write();
+        assert!(json.contains("\"mark\": \"step\""), "{json}");
+        assert!(
+            json.contains(&format!("\"direction\": \"{}\"", way.name())),
+            "{json}"
+        );
+    }
+    // A layer of lines says nothing of a direction.
+    assert!(!joined(&rows, lines()).json().write().contains("direction"));
+}
+
+#[test]
+fn two_rows_of_one_value_are_joined_by_one_level_piece() {
+    let rows = [row(1.0, 2.0), row(3.0, 2.0), row(5.0, 4.0), row(5.0, 6.0)];
+    for way in [Stairs::LevelFirst, Stairs::UprightFirst, Stairs::Halfway] {
+        let places = places_of(&joined(&rows, steps(way)));
+        // No piece of no length, and no place given twice in a row.
+        for pair in places.windows(2) {
+            assert_ne!(pair[0], pair[1], "{}: {places:?}", way.name());
+        }
+        // From the first row to the second: one level piece.
+        assert_eq!(places[0].1, places[1].1);
+        assert!(places[1].0 > places[0].0);
+    }
+    // Level first: (1,2) (3,2) (5,2) (5,4) (5,6).
+    assert_eq!(
+        places_of(&joined(&rows, steps(Stairs::LevelFirst))).len(),
+        5
+    );
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(200)))]
+
+    #[test]
+    fn a_step_line_passes_through_every_row_and_each_piece_is_level_or_upright(
+        values in prop::collection::vec((0.0..40.0f64, -20.0..20.0f64), 2..15),
+        way in prop_oneof![Just(Stairs::LevelFirst), Just(Stairs::UprightFirst), Just(Stairs::Halfway)],
+    ) {
+        let rows: Vec<Row> = values.iter().map(|(x, y)| row(*x, *y)).collect();
+        let straight = places_of(&joined(&rows, lines()));
+        let stepped = places_of(&joined(&rows, steps(way)));
+        // Each piece goes along one axis only.
+        for pair in stepped.windows(2) {
+            prop_assert!(pair[0].0 == pair[1].0 || pair[0].1 == pair[1].1, "{:?}", pair);
+        }
+        // The rows, in their order, are among the corners of the steps.
+        let mut at = 0;
+        for place in &straight {
+            while at < stepped.len() && stepped[at] != *place {
+                at += 1;
+            }
+            prop_assert!(at < stepped.len(), "{:?} is not on the steps {:?}", place, stepped);
+        }
+        // The steps start at the first row and end at the last.
+        prop_assert_eq!(stepped.first(), straight.first());
+        prop_assert_eq!(stepped.last(), straight.last());
     }
 }

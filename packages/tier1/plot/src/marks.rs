@@ -15,7 +15,9 @@ use std::rc::Rc;
 
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Aesthetic, Frame, Mark, Plot, PlotLayer, PlotMapping, PlotSetting, Value};
+use zeff_core::value::{
+    Aesthetic, Frame, Mark, Plot, PlotLayer, PlotMapping, PlotSetting, Stairs, Value,
+};
 use zeff_diagnostics::Diagnostic;
 
 use crate::grammar::{Slots, a_type, aesthetics, column, internal, number_option, shown};
@@ -428,6 +430,7 @@ const L_COLOR: usize = 4;
 const L_GROUP: usize = 5;
 const L_LINETYPE: usize = 6;
 const L_WIDTH: usize = 7;
+const S_DIRECTION: usize = 8;
 
 /// A line has one colour from end to end, so the colour a layer of lines draws, its own or
 /// the plot's, must show categories; a number without value labels, which is shown on a ramp,
@@ -480,8 +483,34 @@ fn one_colour_to_a_line(
 /// `p.lines(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, group: Var,
 /// linetype: Var | Str, width: Float = 1)`.
 pub fn lines(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    joined(ctx, args, "lines", Mark::Lines)
+}
+
+/// `p.step(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, group: Var,
+/// linetype: Var | Str, width: Float = 1, direction: hv | vh | mid = hv)`.
+pub fn step(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let way = match args.get(S_DIRECTION) {
+        None | Some(Value::Na) => Stairs::LevelFirst,
+        Some(Value::Word(word)) => match word.as_str() {
+            "hv" => Stairs::LevelFirst,
+            "vh" => Stairs::UprightFirst,
+            "mid" => Stairs::Halfway,
+            _ => return Err(internal(ctx, "a `direction:` that is none of the three")),
+        },
+        Some(_) => return Err(internal(ctx, "a `direction:` that is not a word")),
+    };
+    joined(ctx, args, "step", Mark::Step(way))
+}
+
+/// A layer of marks that are joined, a line or steps: what `lines` and `step` share.
+fn joined(
+    ctx: &mut CallContext<'_>,
+    args: Args,
+    function: &'static str,
+    mark: Mark,
+) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
-        return Err(internal(ctx, "`lines` reached its body without a plot"));
+        return Err(internal(ctx, "a mark reached its body without a plot"));
     };
     let plot: Rc<Plot> = plot.clone();
     let frame: Frame = match args.get(DATA) {
@@ -493,7 +522,7 @@ pub fn lines(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ctx,
         &args,
         &frame,
-        "lines",
+        function,
         &Slots {
             x: X,
             y: Y,
@@ -507,8 +536,8 @@ pub fn lines(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         },
         own_data,
     )?;
-    positions(ctx, &plot, &mappings, "lines")?;
-    one_scale(ctx, &plot, &frame, &mappings, L_COLOR, "lines")?;
+    positions(ctx, &plot, &mappings, function)?;
+    one_scale(ctx, &plot, &frame, &mappings, L_COLOR, function)?;
     // What the layer reads from the plot: what it neither names nor sets of its own.
     let read: Vec<Aesthetic> = [
         Aesthetic::X,
@@ -522,9 +551,9 @@ pub fn lines(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             && !constants.iter().any(|c| c.aesthetic == *aesthetic)
     })
     .collect();
-    let (data, computed) = own_frame(ctx, &args, &plot, "lines", &read)?;
+    let (data, computed) = own_frame(ctx, &args, &plot, function, &read)?;
     let coloured = constants.iter().any(|c| c.aesthetic == Aesthetic::Color);
-    one_colour_to_a_line(ctx, &plot, &frame, &mappings, coloured, "lines")?;
+    one_colour_to_a_line(ctx, &plot, &frame, &mappings, coloured, function)?;
     let width = number_option(ctx, &args, L_WIDTH, "a `width:` that is not a number")?;
     if let Some(given) = width
         && !(given > 0.0 && given.is_finite())
@@ -533,7 +562,7 @@ pub fn lines(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             Diagnostic::error(
                 "Z0401",
                 format!(
-                    "`width:` of `lines` is the width of a line in points of 1/72 inch, above 0, but this is {}",
+                    "`width:` of `{function}` is the width of a line in points of 1/72 inch, above 0, but this is {}",
                     shown(given)
                 ),
             )
@@ -546,7 +575,7 @@ pub fn lines(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let (next, after) = with_layer(
         &plot,
         PlotLayer {
-            mark: Mark::Lines,
+            mark,
             data,
             alpha: 1.0,
             size: None,

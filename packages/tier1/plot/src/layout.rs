@@ -29,7 +29,7 @@
 //! A drawing holds no row of the data (open decision #118, F2): of a mark it keeps the place,
 //! the shape, the size and the colour.
 
-use zeff_core::value::Mark;
+use zeff_core::value::{Mark, Stairs};
 
 use crate::colour;
 use crate::drawing::{Anchor, Drawing, Head, Item, LineType, Primitive, Span, Step, Stroke, rgb};
@@ -369,9 +369,9 @@ fn plan_legend(
     let lined = scene.panels.first().and_then(|p| {
         p.layers
             .iter()
-            .find(|l| l.mark == Mark::Lines && legend.marks.contains(&l.mark))
+            .find(|l| l.mark.joins() && legend.marks.contains(&l.mark))
     });
-    let pointed = legend.marks.iter().any(|mark| *mark != Mark::Lines);
+    let pointed = legend.marks.iter().any(|mark| !mark.joins());
     let base_line = lined.map(|l| {
         (
             match &l.linetype {
@@ -900,7 +900,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 },
             };
             let marks_of = layer.x.len().min(layer.y.len());
-            if layer.mark == Mark::Lines {
+            if layer.mark.joins() {
                 // A line through the marks of each line of the layer, in their order, in the
                 // colour and the type of its first mark: one line has one of each.
                 let mut start = 0;
@@ -920,16 +920,37 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                             }
                         }
                     };
-                    let steps: Vec<Step> = (start..end)
-                        .map(|i| {
-                            let at = (across(sx, layer.x[i]), down(sy, layer.y[i]));
-                            if i == start {
-                                Step::Move(at)
-                            } else {
-                                Step::Line(at)
-                            }
-                        })
+                    // The places of the marks on the page, joined straight for a line and by
+                    // level and upright pieces for steps.
+                    let places: Vec<(f64, f64)> = (start..end)
+                        .map(|i| (across(sx, layer.x[i]), down(sy, layer.y[i])))
                         .collect();
+                    let mut steps: Vec<Step> = Vec::with_capacity(3 * places.len());
+                    for (i, &at) in places.iter().enumerate() {
+                        if i == 0 {
+                            steps.push(Step::Move(at));
+                            continue;
+                        }
+                        let from = places[i - 1];
+                        let corners: Vec<(f64, f64)> = match layer.mark {
+                            Mark::Step(Stairs::LevelFirst) => vec![(at.0, from.1)],
+                            Mark::Step(Stairs::UprightFirst) => vec![(from.0, at.1)],
+                            Mark::Step(Stairs::Halfway) => {
+                                let half = (from.0 + at.0) / 2.0;
+                                vec![(half, from.1), (half, at.1)]
+                            }
+                            _ => Vec::new(),
+                        };
+                        // A corner that stands where the line already is adds nothing.
+                        let mut last = from;
+                        for corner in corners {
+                            if corner != last && corner != at {
+                                steps.push(Step::Line(corner));
+                                last = corner;
+                            }
+                        }
+                        steps.push(Step::Line(at));
+                    }
                     drawn.push(named(
                         &name,
                         Primitive::Path {
@@ -946,11 +967,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     start = end;
                 }
             }
-            for i in 0..if layer.mark == Mark::Lines {
-                0
-            } else {
-                marks_of
-            } {
+            for i in 0..if layer.mark.joins() { 0 } else { marks_of } {
                 let colour = colour_of(i);
                 let across_mark = match &layer.size {
                     Sizing::Constant(points) => *points,

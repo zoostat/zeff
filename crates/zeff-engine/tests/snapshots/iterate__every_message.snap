@@ -88,10 +88,10 @@ error[Z0401]: `step` of `iterate` returned a record without the field `k` of the
 
 ## done_na (exit 1)
 error[Z0203]: `done` of `iterate` gave NA where true or false was needed
- --> scripts/main.zeff:5:44
+ --> scripts/main.zeff:5:47
   |
-5 | iterate(start: {x: 1.0}, step: step, done: cmp)
-  |                                            ^^^ NA at pass 1
+5 | iterate(start: {x: 1.0}, step: blanked, done: cmp)
+  |                                               ^^^ NA at pass 1
   |
   = help: a comparison with NA is NA; test the fields with `is_missing` first, or stop on a quantity that is never missing
 

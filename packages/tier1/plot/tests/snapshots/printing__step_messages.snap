@@ -1,0 +1,82 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== not_a_direction
+error[Z0402]: `up` is not one of the allowed words
+ --> scripts/main.zeff:2:49
+  |
+2 | rate.plot(x: month, y: percent).step(direction: up)
+  |                                                 ^^ expected one of hv, vh, mid
+
+== a_direction_in_quotes
+error[Z0403]: expected one of hv, vh, mid, found text
+ --> scripts/main.zeff:2:49
+  |
+2 | rate.plot(x: month, y: percent).step(direction: "hv")
+  |                                                 ^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `hv`
+
+== the_plot_maps_no_y
+error[Z0401]: `step` places each mark by its `x` and its `y`, but the plot maps no variable to `y`
+ --> scripts/main.zeff:2:21
+  |
+2 | rate.plot(x: month).step()
+  |                     ^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+== a_colour_by_a_number
+error[Z0401]: `step` draws each line in one colour, so `color` must show categories, but `percent` is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:2:45
+  |
+2 | rate.plot(x: month, y: percent).step(color: percent)
+  |                                             ^^^^^^^ a colour for each row, not for each line
+  |
+  = help: colour the lines by a variable of categories, as in `step(color: union)`, or set one colour for this layer, as in `step(color: "black")`
+
+== not_a_type
+error[Z0401]: `linetype:` of `step` is "stairs", which is not a type of line
+ --> scripts/main.zeff:2:48
+  |
+2 | rate.plot(x: month, y: percent).step(linetype: "stairs")
+  |                                                ^^^^^^^^ not a type of line
+  |
+  = help: a type of line is one of solid, dashed, dotted, dash_dot, long_dash and dash_dot_dot
+
+== no_width
+error[Z0401]: `width:` of `step` is the width of a line in points of 1/72 inch, above 0, but this is 0
+ --> scripts/main.zeff:2:45
+  |
+2 | rate.plot(x: month, y: percent).step(width: 0)
+  |                                             ^ not a width
+  |
+  = help: write a width such as 0.5 or 2; without `width:` a line is 1 wide
+
+== no_such_variable
+error[Z0101]: no variable `percnt` in `rate`
+ --> scripts/main.zeff:2:41
+  |
+2 | rate.plot(x: month, y: percent).step(y: percnt)
+  |                                         ^^^^^^ not a variable of rate
+  |
+  = help: did you mean `percent`? If you meant a category level, write it in quotes: `"percent"`
+
+== step_of_a_frame
+error[Z0401]: `step` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | rate.step()
+  | ^^^^ this is a Frame
+  |
+  = help: `step` takes a Plot first; `x.step(...)` is `step(x, ...)`
+
+== no_alpha_on_step
+error[Z0404]: `step` has no argument called `alpha`
+ --> scripts/main.zeff:2:38
+  |
+2 | rate.plot(x: month, y: percent).step(alpha: 0.5)
+  |                                      ^^^^^ unknown argument
+  |
+  = help: usage: `p.step(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, group: Var, linetype: Var | Str, width: Float = 1, direction: hv | vh | mid = hv)`

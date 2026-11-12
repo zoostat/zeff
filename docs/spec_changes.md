@@ -499,3 +499,7 @@ Decision #118, F9, adopted by the owner on 11 November 2026, fixes "the default 
 
 Step 23c1 of release 0.7.0 builds `lines`. Under open decision #106 (option A, taken on 12 November 2026) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer, and decision #118, F9, gives a line a type. The usage line of catalogue row 462 was `p.lines(data: Frame, width: Float = 1)`; it is now `p.lines(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, group: Var, linetype: Var | Str, width: Float = 1)`, and its status is `implemented`.
 
+## 12 November 2026 — zeff_functions.csv, row 463
+
+Step 23c2 of release 0.7.0 builds `step`. The usage line of catalogue row 463 was `p.step(data: Frame)`; it is now `p.step(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, group: Var, linetype: Var | Str, width: Float = 1, direction: hv | vh | mid = hv)`, and its status is `implemented`: the options of `lines` under open decision #106 and decision #118, F9, and `direction:` for the three ways R's `geom_step` has, under the owner's rule of open decisions #98 and #99 that what R or Stata offers for a procedure is an option.
+

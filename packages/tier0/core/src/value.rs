@@ -257,15 +257,47 @@ pub enum Mark {
     Points,
     /// A line through the rows of each group, in the order of `x`.
     Lines,
+    /// A line through the rows of each group that goes level and upright by turns, as stairs
+    /// do.
+    Step(Stairs),
+}
+
+/// The way a line of steps goes from one row to the next.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Stairs {
+    /// Level to the `x` of the next row, then up or down to it.
+    #[default]
+    LevelFirst,
+    /// Up or down to the `y` of the next row, then level to it.
+    UprightFirst,
+    /// Level to halfway between the two rows, up or down there, then level again.
+    Halfway,
+}
+
+impl Stairs {
+    /// The way as it is written: `hv`, `vh`, `mid`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Stairs::LevelFirst => "hv",
+            Stairs::UprightFirst => "vh",
+            Stairs::Halfway => "mid",
+        }
+    }
 }
 
 impl Mark {
-    /// The mark as the method that adds it is called: `points`, `lines`.
+    /// The mark as the method that adds it is called: `points`, `lines`, `step`.
     pub fn name(self) -> &'static str {
         match self {
             Mark::Points => "points",
             Mark::Lines => "lines",
+            Mark::Step(_) => "step",
         }
+    }
+
+    /// Whether the marks of a layer are joined into lines, and not drawn one by one.
+    pub fn joins(self) -> bool {
+        matches!(self, Mark::Lines | Mark::Step(_))
     }
 }
 
