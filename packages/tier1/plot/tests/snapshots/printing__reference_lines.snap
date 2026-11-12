@@ -1,0 +1,77 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · change against dose
+
+  axis   title    scale    limits            breaks
+  x      dose     linear   0.85 to 4.15      1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   -1.375 to 2.475   -1, 0, 1, 2
+
+  layer   mark     data   marks   settings
+      1   hline    d          1   at 0, width 0.5, style dashed
+      2   points   d          4   size 4.5, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   -1.76 to 10.56   0, 2, 4, 6, 8, 10
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+      2   hline    d          1   at 10, width 0.5, style dashed
+plot · d · change against dose
+
+  axis   title    scale    limits        breaks
+  x      dose     linear   -2.3 to 4.3   -2, -1, 0, 1, 2, 3, 4
+  y      change   linear   -3.3 to 3.3   -3, -2, -1, 0, 1, 2, 3
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+      2   vline    d          1   at -2, width 0.5, style dashed
+      3   hline    d          1   at -3, width 0.5, style dashed
+      4   hline    d          1   at 3, color firebrick, width 1, style solid
+plot · d · change against dose
+
+  axis   title    scale    limits            breaks
+  x      dose     linear   0.85 to 4.15      1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   -1.375 to 2.475   -1, 0, 1, 2
+
+  aesthetic   title   scale      values               shown as
+  color       arm     category   a, b, lower, upper   orange, sky blue, bluish green, yellow
+
+  layer   mark     data     marks   settings
+      1   points   d            4   size 4.5, alpha 1
+      2   hline    limits       2   at level, color by kind, width 0.5, style dotted
+plot · d · dose
+
+  axis   title   scale    limits         breaks
+  x      dose    linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+
+  layer   mark    data   marks   settings
+      1   vline   d          4   at dose, width 0.5, style dashed
+plot · d · change
+
+  axis   title    scale    limits       breaks
+  y      change   linear   0.5 to 1.5   0.6, 0.8, 1, 1.2, 1.4
+
+  layer   mark    data   marks   settings
+      1   hline   d          1   at 1, width 0.5, style dashed
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   orange, sky blue
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.2
+      2   hline    m           2   at wage, color by union, width 0.5, style dashed
+      3   vline    w           1   at 12, width 0.5, style dashed
+---
+note: 1 row with NA in level dropped (line 6)
+warning[W0201]: 211 rows with NA in wage were skipped (line 10)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 10)
+note: 211 rows with NA in educ or wage dropped (line 11)

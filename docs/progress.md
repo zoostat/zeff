@@ -98,53 +98,9 @@ Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold a
 
 Step 22: the owner read the six figures and said "Yes, freeze it"; the journal theme is frozen. Step 22b was split into four. 22b1: a drawing is written as a PDF of one page with its text as text in IBM Plex, carried whole, a fifth of the SVG's size (`miniz_oxide` =0.9.1 for compression, `lopdf` =0.47.0 in the tests alone). 22b2: the engine's own rasteriser and PNG writer at 300 dots to the inch, edges by exact area, the bytes held identical on every target (`png` =0.18.1 in the tests alone). 22b3a: `export` writes `.svg`, `.pdf` or `.png` by the extension; the sample project writes eighteen figures. 22b3b: a layer flagged `raster` drawn as a picture inside the PDF and the SVG. 22b4: Typst 0.15.0 tried as a tool on a table and a figure of Zeff, findings recorded for #73, due at 0.8.0. From step 22b2 on the owner's standing instruction holds: steps follow without waiting, and decisions that are his are taken on the recommendation, recorded and announced. All green on CI.
 
-## 12 November 2026, release 0.7.0, step 23 opened and split
+## 12 November 2026, steps 23 to 23c1 of release 0.7.0 (folded)
 
-**Done.** No code. Open decision #106 was taken as option A on the recommendation, under the owner's standing instruction: a layer may name its own variables (`points(y: fitted)`). Step 23 was split in the checklist into 23a `[engine]` (a layer's own mappings), 23b `[engine]` (lines with a type in the three writers), 23c `[function]` (`lines`, `step`), 23d `[function]` (`area`, `ribbon`) and 23e `[function]` (`hline`, `vline`, `rug`).
-
-**Next.** Step 23a `[engine]`: a layer's own mappings, built on `points`.
-
-**For the owner to decide.** Nothing waits for him; #106 as taken is his to overturn. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 23a (a layer's own mappings)
-
-**Done.** `points` takes `x:`, `y:`, `color:`, `size:` and `shape:` for its own layer, written as on `plot`: `d.plot(x: educ, y: wage).points().points(y: fitted, color: "firebrick")` draws the observed and the fitted on one pair of axes, and a plot that maps nothing can be built from layers that name everything. The layers share one scale of each aesthetic. The checker and the interpreter learnt that an expression given to a mark speaks of the frame its layer draws. The help page of `points` and catalogue row 461 are brought up to date (logged).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest`; CI is read job by job after the push.
-
-**Next.** Step 23b `[engine]`: lines with a type in a drawing, in the three writers (decision #118, F9).
-
-**For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: `points` takes the five aesthetics it draws and not `fill:`, `group:` or `label:`; the order of its options; the title of a shared axis stays the plot's. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 23b (lines with a type)
-
-**Done.** A line of a drawing has one of six types, in a fixed order: `solid`, `dashed`, `dotted`, `dash_dot`, `long_dash`, `dash_dot_dot`, each told from the others in black on white. The SVG and the PDF say the ink and gaps of a line; the rasteriser cuts the line itself; the three agree, and the engine's picture matches Ghostscript's rendering of the PDF. Section 7.6 of the Language Reference has the six with their lengths (logged). No script draws a line yet: `lines` is step 23c, which also draws the piece of line that is a legend key.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 282 of 282; CI is read job by job after the push.
-
-**Next.** Step 23c `[function]`: `lines` and `step`.
-
-**For the owner to decide.** Nothing waits for him. Chosen on the recommendation at this step, and his to change: which six line types, their names, their order and their lengths. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 23c1 (`lines`)
-
-**Done.** `p.lines()` joins the rows in the order of `x`, a line for each group, for each category of `color:` and for each of `linetype:`; a row without `y` breaks the line, a row left alone draws nothing, and notes count both. The six types of line of step 23b are a scale of their own, and a legend of lines has a piece of line for its key. Checked against ggplot2 on the shipped wages. Step 23c was split: `step` is 23c2. Catalogue row 462 is brought up to date (logged).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 285 of 285; CI is read job by job after the push.
-
-**Found beside the step.** The checker refuses a variable named by `by: vars(a, b)` of `aggregate` when the result is bound to a name and used later; the run is right and `by: [a, b]` is taken. To be corrected next, in a step of its own.
-
-**Next.** The correction above, then step 23c2 `[function]`: `step`.
-
-**For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn, are listed in `docs/decisions.md`: how rows are parted into lines, what a missing value does, no colour by a number on a line, the options of `lines`. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, a correction after step 23c1 (the checker and `by: vars(...)`)
-
-**Done.** The fault found beside step 23c1 is corrected: the checker reads the groups of `aggregate`, and the kept variables of `to_long`, when they are written as `vars(a, b)`, and where it cannot read them it no longer believes the result has fewer variables than it has. No result was ever wrong; a valid script was refused before it ran.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; CI is read job by job after the push.
-
-**Next.** Step 23c2 `[function]`: `step`.
+Step 23 was split into 23a to 23e when open decision #106 was taken as option A on the recommendation: a layer may name its own variables. 23a `[engine]`: `points` takes `x:`, `y:`, `color:`, `size:` and `shape:` for its own layer, the layers share one scale of each aesthetic, and the checker and the interpreter learnt that an expression given to a mark speaks of the frame its layer draws. 23b `[engine]`: a line of a drawing has one of six types in a fixed order, written the same by the three writers, with section 7.6 amended (logged). 23c1: `lines` joins the rows in the order of `x`, a line for each group and each category of `color:` and `linetype:`, a missing `y` breaking it, checked against ggplot2; a legend of lines has a piece of line for its key. Beside it, the checker was corrected to read the groups of `aggregate` written as `vars(a, b)`. Catalogue rows 461 and 462 were brought up to date (logged).
 
 ## 12 November 2026, release 0.7.0, step 23c2 (`step`), and step 23c complete
 
@@ -175,3 +131,15 @@ Step 22: the owner read the six figures and said "Yes, freeze it"; the journal t
 **Next.** Step 23e `[function]`: `hline`, `vline` and `rug`, which completes step 23.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: the word `overlay`; no interpolation where the groups have different `x`, where R interpolates; no shares where a value is below zero. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 23e1 (`hline` and `vline`)
+
+**Done.** `p.hline(at:)` and `p.vline(at:)` draw reference lines from edge to edge of the panel, at a number or at each value of a variable, dashed and 0.5 wide unless `style:` and `width:` say otherwise, in a colour of their own; the axis grows to hold them, as ggplot2's does. A reference line takes nothing from the plot but its axes. Catalogue rows 470 and 471 are brought up to date (logged). Step 23e was split: `rug` is 23e2. `plot` stands at eight functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 298 of 298; CI is read job by job after the push.
+
+**Found beside the step.** A bare name given to an option that takes a number or a variable is always read as a variable, so `hline(at: centre)` with `centre` bound to a number is refused. Open decision #127 is raised and taken as option B on the recommendation (the variable first, then a binding that holds a number), built at the new step 23f `[engine]`.
+
+**Next.** Step 23e2 `[function]`: `rug`, which completes the seven marks of step 23; then step 23f `[engine]`.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: a reference line inherits nothing from the plot; `style:` takes the six types of line; the width of 0.5; open decision #127, option B. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

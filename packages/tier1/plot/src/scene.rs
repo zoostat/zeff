@@ -321,6 +321,15 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Fill | Aesthetic::Group
         ),
+        // A reference line stands at a place on one axis, in a colour and a type of its own.
+        Mark::Hline => matches!(
+            aesthetic,
+            Aesthetic::Y | Aesthetic::Color | Aesthetic::Linetype
+        ),
+        Mark::Vline => matches!(
+            aesthetic,
+            Aesthetic::X | Aesthetic::Color | Aesthetic::Linetype
+        ),
         // A band is an area between two edges, `low` and `high`, in the place of `y`.
         Mark::Ribbon => matches!(
             aesthetic,
@@ -339,7 +348,7 @@ pub fn layer_reads(layer: &PlotLayer, aesthetic: Aesthetic) -> bool {
 /// Whether a layer takes an aesthetic from the plot: it draws it from a variable, and names
 /// none of its own.
 fn takes_from_plot(layer: &PlotLayer, aesthetic: Aesthetic) -> bool {
-    layer_reads(layer, aesthetic) && layer.mapping(aesthetic).is_none()
+    layer_reads(layer, aesthetic) && layer.mapping(aesthetic).is_none() && !layer.mark.spans()
 }
 
 /// What a layer draws an aesthetic from (open decision #106): its own mapping where it names
@@ -352,6 +361,8 @@ pub fn mapping_of<'a>(
     match layer.mapping(aesthetic) {
         Some(own) => Some(own),
         None if layer.sets(aesthetic) => None,
+        // A reference line takes nothing from the plot but its axes.
+        None if layer.mark.spans() => None,
         None => plot.mapping(aesthetic),
     }
 }
@@ -539,6 +550,9 @@ fn values<'a>(
             Some(computed) => Some(&computed.values),
             None => frame_of(plot, layer).table.column(&own.variable),
         };
+    }
+    if layer.is_some_and(|layer| layer.mark.spans()) {
+        return None;
     }
     let mapping = plot.mapping(aesthetic)?;
     let own = layer.filter(|layer| layer.data.is_some());
@@ -1350,136 +1364,37 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         } else {
             (Aesthetic::Y, None)
         };
-        let mut points = match (named(Aesthetic::X), named(top)) {
-            (Some(x), Some(y)) if layer.mark.joins() || layer.mark.fills() => {
-                // The rows are parted into lines by the group, and by the categories a colour,
-                // a fill or a type of line shows, since one line has one colour and one type
-                // and one area one fill.
-                let mut keys: Vec<Categories> = Vec::new();
-                if mapping_of(plot, layer, Aesthetic::Group).is_some()
-                    && let Some(column) = values(plot, Some(layer), Aesthetic::Group)
-                {
-                    keys.push(categories(column));
-                }
-                for colouring in &colourings {
-                    if colouring.kind == Shading::Categories
-                        && matches!(
-                            colouring.aesthetic,
-                            Aesthetic::Color | Aesthetic::Linetype | Aesthetic::Fill
-                        )
-                        && let Some(column) = colouring.readers[at]
-                    {
-                        keys.push(categories(column));
-                    }
-                }
-                // A filled mark draws no colour of its own, but where the plot colours by
-                // categories that the layer's frame holds, each category has its own area, so
-                // that an area lies under each line of the plot.
-                if layer.mark.fills()
-                    && plot.mapping(Aesthetic::Color).is_some()
-                    && let Some(column) = values(plot, Some(layer), Aesthetic::Color)
-                    && shading(column) == Some(Shading::Categories)
-                {
-                    keys.push(categories(column));
-                }
-                let lower = bottom.map(|edge| values(plot, Some(layer), edge));
-                let lines = match layer.mark {
-                    Mark::Area(Stacking::Stack | Stacking::Share) => stacked(
-                        values(plot, Some(layer), Aesthetic::X),
-                        values(plot, Some(layer), Aesthetic::Y),
-                        &keys,
-                        layer.mark == Mark::Area(Stacking::Share),
-                    ),
-                    _ => joined(
-                        values(plot, Some(layer), Aesthetic::X),
-                        // A band whose lower edge is not there draws nothing.
-                        values(plot, Some(layer), top).filter(|_| lower != Some(None)),
-                        lower.flatten(),
-                        &keys,
-                    ),
-                };
-                // The variables a row needs, and the words for what is drawn.
-                let edge = bottom.and_then(named);
-                let mut needs = vec![x];
-                needs.extend(edge);
-                needs.push(y);
-                let upright = match edge {
-                    Some(edge) => either(&[edge, y]),
-                    None => y.to_string(),
-                };
-                let (one, many, none) = match layer.mark {
-                    Mark::Area(_) => ("an area", "the areas", "area"),
-                    Mark::Ribbon => ("a band", "the bands", "band"),
-                    _ => ("a line", "the lines", "line"),
-                };
-                if lines.points.missing > 0 {
-                    note(format!(
-                        "{} with NA in {} dropped",
-                        rows_text(lines.points.missing),
-                        either(&needs)
-                    ));
-                }
-                if lines.points.infinite > 0 {
-                    note(format!(
-                        "{} with an infinite value in {} dropped",
-                        rows_text(lines.points.infinite),
-                        either(&needs)
-                    ));
-                }
-                if lines.breaks > 0 {
-                    let lacking = if lines.infinite_y {
-                        "NA or infinite"
-                    } else {
-                        "NA"
-                    };
-                    note(if lines.breaks == 1 {
-                        format!("1 break in {one} where {upright} is {lacking}")
-                    } else {
-                        format!(
-                            "{} breaks in {many} where {upright} is {lacking}",
-                            count(lines.breaks as u64)
-                        )
-                    });
-                }
-                // What a stack leaves out: the places where it cannot be built.
-                let places = |n: usize| {
-                    if n == 1 {
-                        format!("1 value of {x}")
-                    } else {
-                        format!("{} values of {x}", count(n as u64))
-                    }
-                };
-                if lines.left.0 > 0 {
-                    note(format!(
-                        "{} at {} left out of the stack: not every area has one value there",
-                        rows_text(lines.left.0),
-                        places(lines.left.1)
-                    ));
-                }
-                if lines.unfit.0 > 0 {
-                    note(format!(
-                        "{} at {} left out of the stack: shares need values of 0 or more and a total above 0",
-                        rows_text(lines.unfit.0),
-                        places(lines.unfit.1)
-                    ));
-                }
-                if lines.alone > 0 {
-                    note(format!(
-                        "{} with no neighbour to be joined to {} no {none}",
-                        rows_text(lines.alone),
-                        if lines.alone == 1 { "draws" } else { "draw" }
-                    ));
-                }
-                line = lines.line;
-                if layer.mark.fills() {
-                    low = lines.low;
-                }
-                lines.points
+        // A reference line: one at the place the layer sets, or one at each value of the
+        // variable it names, which must be there and finite, as must a value it is coloured
+        // by on a ramp.
+        let along = if layer.mark == Mark::Hline {
+            Aesthetic::Y
+        } else {
+            Aesthetic::X
+        };
+        let across = |mut lines: Drawn| {
+            if along == Aesthetic::Y {
+                lines.x.clear();
+            } else {
+                lines.y.clear();
             }
-            (Some(x), Some(y)) => {
-                // A value on a ramp of colours must be there and finite, as a position must; a
-                // row without a category is drawn, in the colour of `NA`.
-                let read = |colouring: &Colouring<'a>| {
+            lines
+        };
+        let mut points = if !layer.mark.spans() {
+            None
+        } else if let Some(PlotSetting::Place(at)) = layer.constant(along) {
+            Some(across(Drawn {
+                x: vec![*at],
+                y: vec![*at],
+                ..Drawn::default()
+            }))
+        } else if let Some(mapping) = layer.mapping(along) {
+            let ramps: Vec<(&str, &Column)> = colourings
+                .iter()
+                .filter(|colouring| {
+                    colouring.kind == Shading::Ramp && colouring.aesthetic == Aesthetic::Color
+                })
+                .filter_map(|colouring| {
                     colouring.readers[at].map(|column| {
                         (
                             named(colouring.aesthetic)
@@ -1487,67 +1402,233 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                             column,
                         )
                     })
-                };
-                let ramps: Vec<(&str, &Column)> = colourings
-                    .iter()
-                    .filter(|colouring| {
-                        colouring.kind == Shading::Ramp && colouring.aesthetic != Aesthetic::Size
-                    })
-                    .filter_map(read)
-                    .collect();
-                // A size must be there and finite as well, and not below 0.
-                let sized = colourings
-                    .iter()
-                    .filter(|colouring| colouring.aesthetic == Aesthetic::Size)
-                    .find_map(read);
-                let columns: Vec<&Column> = ramps.iter().map(|(_, column)| *column).collect();
-                let points = drawn(
-                    values(plot, Some(layer), Aesthetic::X),
-                    values(plot, Some(layer), Aesthetic::Y),
-                    &columns,
-                    sized.map(|(_, column)| column),
-                );
-                let mut names = vec![x, y];
-                names.extend(ramps.iter().map(|(name, _)| *name));
-                names.extend(sized.map(|(name, _)| name));
-                if points.missing > 0 {
-                    note(format!(
-                        "{} with NA in {} dropped",
-                        rows_text(points.missing),
-                        either(&names)
-                    ));
-                }
-                if points.infinite > 0 {
-                    note(format!(
-                        "{} with an infinite value in {} dropped",
-                        rows_text(points.infinite),
-                        either(&names)
-                    ));
-                }
-                if let Some((name, column)) = sized {
-                    if points.negative > 0 {
-                        note(format!(
-                            "{} with {name} below 0 dropped: `size` shows amounts of 0 or more",
-                            rows_text(points.negative)
-                        ));
-                    }
-                    // A mark of no size is drawn, and not seen.
-                    let nothing = points
-                        .rows
-                        .iter()
-                        .filter(|&&row| number(column, row) == Some(0.0))
-                        .count();
-                    if nothing > 0 {
-                        note(format!(
-                            "{} with {name} of 0 {} drawn with no size",
-                            rows_text(nothing),
-                            if nothing == 1 { "is" } else { "are" }
-                        ));
-                    }
-                }
-                points
+                })
+                .collect();
+            let columns: Vec<&Column> = ramps.iter().map(|(_, column)| *column).collect();
+            let places = values(plot, Some(layer), along);
+            let lines = drawn(places, places, &columns, None);
+            let mut names = vec![mapping.variable.as_str()];
+            names.extend(ramps.iter().map(|(name, _)| *name));
+            if lines.missing > 0 {
+                note(format!(
+                    "{} with NA in {} dropped",
+                    rows_text(lines.missing),
+                    either(&names)
+                ));
             }
-            _ => Drawn::default(),
+            if lines.infinite > 0 {
+                note(format!(
+                    "{} with an infinite value in {} dropped",
+                    rows_text(lines.infinite),
+                    either(&names)
+                ));
+            }
+            Some(across(lines))
+        } else {
+            Some(Drawn::default())
+        };
+        let mut points = match points.take() {
+            Some(lines) => lines,
+            None => match (named(Aesthetic::X), named(top)) {
+                (Some(x), Some(y)) if layer.mark.joins() || layer.mark.fills() => {
+                    // The rows are parted into lines by the group, and by the categories a colour,
+                    // a fill or a type of line shows, since one line has one colour and one type
+                    // and one area one fill.
+                    let mut keys: Vec<Categories> = Vec::new();
+                    if mapping_of(plot, layer, Aesthetic::Group).is_some()
+                        && let Some(column) = values(plot, Some(layer), Aesthetic::Group)
+                    {
+                        keys.push(categories(column));
+                    }
+                    for colouring in &colourings {
+                        if colouring.kind == Shading::Categories
+                            && matches!(
+                                colouring.aesthetic,
+                                Aesthetic::Color | Aesthetic::Linetype | Aesthetic::Fill
+                            )
+                            && let Some(column) = colouring.readers[at]
+                        {
+                            keys.push(categories(column));
+                        }
+                    }
+                    // A filled mark draws no colour of its own, but where the plot colours by
+                    // categories that the layer's frame holds, each category has its own area, so
+                    // that an area lies under each line of the plot.
+                    if layer.mark.fills()
+                        && plot.mapping(Aesthetic::Color).is_some()
+                        && let Some(column) = values(plot, Some(layer), Aesthetic::Color)
+                        && shading(column) == Some(Shading::Categories)
+                    {
+                        keys.push(categories(column));
+                    }
+                    let lower = bottom.map(|edge| values(plot, Some(layer), edge));
+                    let lines = match layer.mark {
+                        Mark::Area(Stacking::Stack | Stacking::Share) => stacked(
+                            values(plot, Some(layer), Aesthetic::X),
+                            values(plot, Some(layer), Aesthetic::Y),
+                            &keys,
+                            layer.mark == Mark::Area(Stacking::Share),
+                        ),
+                        _ => joined(
+                            values(plot, Some(layer), Aesthetic::X),
+                            // A band whose lower edge is not there draws nothing.
+                            values(plot, Some(layer), top).filter(|_| lower != Some(None)),
+                            lower.flatten(),
+                            &keys,
+                        ),
+                    };
+                    // The variables a row needs, and the words for what is drawn.
+                    let edge = bottom.and_then(named);
+                    let mut needs = vec![x];
+                    needs.extend(edge);
+                    needs.push(y);
+                    let upright = match edge {
+                        Some(edge) => either(&[edge, y]),
+                        None => y.to_string(),
+                    };
+                    let (one, many, none) = match layer.mark {
+                        Mark::Area(_) => ("an area", "the areas", "area"),
+                        Mark::Ribbon => ("a band", "the bands", "band"),
+                        _ => ("a line", "the lines", "line"),
+                    };
+                    if lines.points.missing > 0 {
+                        note(format!(
+                            "{} with NA in {} dropped",
+                            rows_text(lines.points.missing),
+                            either(&needs)
+                        ));
+                    }
+                    if lines.points.infinite > 0 {
+                        note(format!(
+                            "{} with an infinite value in {} dropped",
+                            rows_text(lines.points.infinite),
+                            either(&needs)
+                        ));
+                    }
+                    if lines.breaks > 0 {
+                        let lacking = if lines.infinite_y {
+                            "NA or infinite"
+                        } else {
+                            "NA"
+                        };
+                        note(if lines.breaks == 1 {
+                            format!("1 break in {one} where {upright} is {lacking}")
+                        } else {
+                            format!(
+                                "{} breaks in {many} where {upright} is {lacking}",
+                                count(lines.breaks as u64)
+                            )
+                        });
+                    }
+                    // What a stack leaves out: the places where it cannot be built.
+                    let places = |n: usize| {
+                        if n == 1 {
+                            format!("1 value of {x}")
+                        } else {
+                            format!("{} values of {x}", count(n as u64))
+                        }
+                    };
+                    if lines.left.0 > 0 {
+                        note(format!(
+                            "{} at {} left out of the stack: not every area has one value there",
+                            rows_text(lines.left.0),
+                            places(lines.left.1)
+                        ));
+                    }
+                    if lines.unfit.0 > 0 {
+                        note(format!(
+                            "{} at {} left out of the stack: shares need values of 0 or more and a total above 0",
+                            rows_text(lines.unfit.0),
+                            places(lines.unfit.1)
+                        ));
+                    }
+                    if lines.alone > 0 {
+                        note(format!(
+                            "{} with no neighbour to be joined to {} no {none}",
+                            rows_text(lines.alone),
+                            if lines.alone == 1 { "draws" } else { "draw" }
+                        ));
+                    }
+                    line = lines.line;
+                    if layer.mark.fills() {
+                        low = lines.low;
+                    }
+                    lines.points
+                }
+                (Some(x), Some(y)) => {
+                    // A value on a ramp of colours must be there and finite, as a position must; a
+                    // row without a category is drawn, in the colour of `NA`.
+                    let read = |colouring: &Colouring<'a>| {
+                        colouring.readers[at].map(|column| {
+                            (
+                                named(colouring.aesthetic)
+                                    .unwrap_or(colouring.mapping.variable.as_str()),
+                                column,
+                            )
+                        })
+                    };
+                    let ramps: Vec<(&str, &Column)> = colourings
+                        .iter()
+                        .filter(|colouring| {
+                            colouring.kind == Shading::Ramp
+                                && colouring.aesthetic != Aesthetic::Size
+                        })
+                        .filter_map(read)
+                        .collect();
+                    // A size must be there and finite as well, and not below 0.
+                    let sized = colourings
+                        .iter()
+                        .filter(|colouring| colouring.aesthetic == Aesthetic::Size)
+                        .find_map(read);
+                    let columns: Vec<&Column> = ramps.iter().map(|(_, column)| *column).collect();
+                    let points = drawn(
+                        values(plot, Some(layer), Aesthetic::X),
+                        values(plot, Some(layer), Aesthetic::Y),
+                        &columns,
+                        sized.map(|(_, column)| column),
+                    );
+                    let mut names = vec![x, y];
+                    names.extend(ramps.iter().map(|(name, _)| *name));
+                    names.extend(sized.map(|(name, _)| name));
+                    if points.missing > 0 {
+                        note(format!(
+                            "{} with NA in {} dropped",
+                            rows_text(points.missing),
+                            either(&names)
+                        ));
+                    }
+                    if points.infinite > 0 {
+                        note(format!(
+                            "{} with an infinite value in {} dropped",
+                            rows_text(points.infinite),
+                            either(&names)
+                        ));
+                    }
+                    if let Some((name, column)) = sized {
+                        if points.negative > 0 {
+                            note(format!(
+                                "{} with {name} below 0 dropped: `size` shows amounts of 0 or more",
+                                rows_text(points.negative)
+                            ));
+                        }
+                        // A mark of no size is drawn, and not seen.
+                        let nothing = points
+                            .rows
+                            .iter()
+                            .filter(|&&row| number(column, row) == Some(0.0))
+                            .count();
+                        if nothing > 0 {
+                            note(format!(
+                                "{} with {name} of 0 {} drawn with no size",
+                                rows_text(nothing),
+                                if nothing == 1 { "is" } else { "are" }
+                            ));
+                        }
+                    }
+                    points
+                }
+                _ => Drawn::default(),
+            },
         };
         jitter(layer, &mut points);
         // A constant colour, for a mark that has one; a mapped colour takes its place below,
@@ -1556,6 +1637,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         let set = |aesthetic: Aesthetic| match layer.constant(aesthetic) {
             Some(own) => Some(own),
             None if layer.mapping(aesthetic).is_some() => None,
+            None if layer.mark.spans() => None,
             None => plot.constant(aesthetic),
         };
         let color = match set(Aesthetic::Color) {
@@ -1948,6 +2030,31 @@ impl Scene {
                                                             } else {
                                                                 Vec::new()
                                                             })
+                                                            // A layer of reference lines
+                                                            // says their type and width.
+                                                            .chain(if l.mark.spans() {
+                                                                vec![
+                                                                    (
+                                                                        "linetype",
+                                                                        match &l.linetype {
+                                                                            Lining::Constant(
+                                                                                name,
+                                                                            ) => Json::text(*name),
+                                                                            Lining::Scaled(
+                                                                                values,
+                                                                            ) => Json::numbers(
+                                                                                values,
+                                                                            ),
+                                                                        },
+                                                                    ),
+                                                                    (
+                                                                        "width",
+                                                                        Json::Number(l.width),
+                                                                    ),
+                                                                ]
+                                                            } else {
+                                                                Vec::new()
+                                                            })
                                                             // What a filled layer holds
                                                             // more: the line each mark is
                                                             // filled under, the lower edge
@@ -2221,6 +2328,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                     PlotSetting::Colour { written, .. } => written.clone(),
                     PlotSetting::Size(across) => format_float(*across),
                     PlotSetting::Shape(name) | PlotSetting::Line(name) => name.to_string(),
+                    PlotSetting::Place(at) => format_float(*at),
                 },
             ],
             // A group and a label have no scale: the values themselves are what a mark reads.
@@ -2318,8 +2426,16 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         let mut own: Vec<String> = Vec::new();
         if let Some(l) = written {
             for aesthetic in [Aesthetic::X, Aesthetic::Y, Aesthetic::Low, Aesthetic::High] {
+                // A reference line names its place by `at:`, a variable or a number.
+                let name = if l.mark.spans() {
+                    "at"
+                } else {
+                    aesthetic.name()
+                };
                 if let Some(mapping) = l.mapping(aesthetic) {
-                    own.push(format!("{} {}", aesthetic.name(), mapping.variable));
+                    own.push(format!("{name} {}", mapping.variable));
+                } else if let Some(PlotSetting::Place(at)) = l.constant(aesthetic) {
+                    own.push(format!("{name} {}", format_float(*at)));
                 }
             }
             for aesthetic in [Aesthetic::Color, Aesthetic::Fill] {
@@ -2334,7 +2450,14 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 }
             }
         }
-        let mut settings = if layer.mark.joins() {
+        let mut settings = if layer.mark.spans() {
+            // A layer of reference lines: their width and their type.
+            let style = match &layer.linetype {
+                Lining::Constant(name) => name,
+                Lining::Scaled(_) => LineType::Solid.name(),
+            };
+            format!("width {}, style {style}", format_float(layer.width))
+        } else if layer.mark.joins() {
             // A layer of lines: their width, their type where it is not whole, how many; for
             // steps, the way they go where it is not level first.
             let mut settings = format!("width {}", format_float(layer.width));
@@ -2409,7 +2532,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             (i + 1).to_string(),
             layer.mark.name().to_string(),
             data,
-            count(layer.x.len() as u64),
+            count(layer.x.len().max(layer.y.len()) as u64),
             settings,
         ]);
     }

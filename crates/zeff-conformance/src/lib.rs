@@ -1838,6 +1838,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/fills/{name}"), &data));
     }
+    // Reference lines (step 23e1): at a number and at the values of a variable of another
+    // frame, coloured by it, over the points; what the script prints and the figure in the
+    // three formats.
+    let script = "let w = dataset(wages)\nlet m = w.aggregate(wage = mean(wage), by: union)\nlet few = w.where(worker <= 40)\nlet p = few.plot(x: educ, y: wage).points(alpha: 0.5).hline(data: m, at: wage, color: union).vline(at: 12).vline(at: 16, style: dash_dot, color: \"firebrick\", width: 1)\np\nfew.plot(x: educ).vline(at: educ, style: solid, width: 0.25)\nexport(p, \"rules.svg\")\nexport(p, \"rules.pdf\")\nexport(p, \"rules.png\")\n";
+    let ruled = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/rules/stdout", &ruled.output.stdout));
+    fills.push(text("plot/rules/stderr", &ruled.output.stderr));
+    for name in ["rules.svg", "rules.pdf", "rules.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/rules/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

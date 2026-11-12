@@ -274,6 +274,11 @@ plot/fills/band.png 0327059f27fb4147
 plot/fills/areas.svg e99a17848c3947cc
 plot/fills/areas.pdf 614b1eaa02be260f
 plot/fills/areas.png 0f8a7bd60f101375
+plot/rules/stdout a9b63aea0b29fd0b
+plot/rules/stderr 689ddad8ceaf17f2
+plot/rules/rules.svg b7cda11aa7550e3a
+plot/rules/rules.pdf 5295644743137e94
+plot/rules/rules.png 9d20d3545a11e1d6
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

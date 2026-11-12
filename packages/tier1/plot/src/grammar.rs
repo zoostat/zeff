@@ -198,7 +198,7 @@ fn not_a_shape(
 /// Where the aesthetics stand among the arguments of a call: the two positions, a colour, a
 /// size and a shape, which every mark of points takes, and those only some calls take.
 pub(crate) struct Slots {
-    pub x: usize,
+    pub x: Option<usize>,
     pub y: Option<usize>,
     /// The two edges of a band, for the mark that has them.
     pub low: Option<usize>,
@@ -227,7 +227,7 @@ pub(crate) fn aesthetics(
 ) -> Result<(Vec<PlotMapping>, Vec<PlotConstant>), Fail> {
     let mut mappings: Vec<PlotMapping> = Vec::new();
     for (slot, aesthetic) in [
-        (Some(slots.x), Aesthetic::X),
+        (slots.x, Aesthetic::X),
         (slots.y, Aesthetic::Y),
         (slots.low, Aesthetic::Low),
         (slots.high, Aesthetic::High),
@@ -612,7 +612,7 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         &frame,
         "plot",
         &Slots {
-            x: X,
+            x: Some(X),
             y: Some(Y),
             low: None,
             high: None,

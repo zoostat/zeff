@@ -2465,3 +2465,25 @@ Raised on 12 November 2026 at the opening of step 21 of release 0.7.0, the SVG w
 
 **The owner's decision (12 November 2026).** "Yes, outlines." Option A is the one way an SVG is written in 1.0: every letter is drawn as the outline the embedded font gives it, and the words of each text are kept in the file, as the label of its group and as text that is not painted, so that a search finds them and a reader of the screen says them. The option `text: editable` of `export`, with a subsetter of the font, is an addition for after 1.0 and is not scheduled. Section 7.6 of the Language Reference is amended at step 21c, logged in `docs/spec_changes.md`.
 
+### 127. A name bound to a number, where an option takes a number or a variable
+
+Raised on 12 November 2026 at step 23e1 of release 0.7.0, when `hline` and `vline` were built. Their `at:` is catalogued as `Float | Var`, and section 7.6 of the Language Reference says that they "take a value or a variable". `size:` of `plot` and of `points` is `Var | Float` in the same way. Section 3.7, "Resolution by parameter type", says what a bare name means for a parameter of type `Var` (a column) and for "any other type" (a loop variable or parameter, then a script binding), and says nothing of a parameter that takes either. The engine reads a bare name there as a variable, always. So
+
+```
+let centre = 0.5
+d.plot(x: dose, y: change).points().hline(at: centre)
+```
+
+is refused: "no variable `centre` in `d`" (Z0101). The line is drawn by `at: centre + 0`, since an expression that is not a bare name is computed as a number. A reference line at a number computed earlier in the script, a mean, a threshold, an estimate, is the commonest use of the mark, so the question is what a bare name should mean there.
+
+What the reference tools do. In R with ggplot2, `geom_hline(yintercept = centre)` reads `centre` from the workspace, and a variable of the data is named inside `aes()`: the two are written differently. In Stata, `yline()` takes numbers, and a stored value is written as a macro, `yline(`centre')`.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As built: a bare name is a variable; a bound number is written as an expression | One rule, already in three functions; nothing to build | The commonest use meets an error whose message does not point to the way out; `+ 0` is a trick, not a notation |
+| B. The order of name lookup that section 3.7 gives for a frame method: a variable of the frame the layer draws; where it has none of that name, a script binding whose value the option takes; where both exist the variable, with W0102 | What the reader expects, and what section 3.7 already says of names in a frame method; no script that runs today changes its meaning, since a name that is not a variable is refused today | The checker does not always know the variables of the frame before the run, so the choice is made when the statement runs; a mistyped variable that happens to be the name of a binding draws the binding, and says nothing |
+| C. A notation for "the value of this binding" in such a place | Nothing is guessed | New syntax, under the freeze, for one kind of option |
+
+*Recommendation.* B, built as an engine step of its own right after step 23 (step 23f), for `at:` of `hline` and `vline` and for `size:` of `plot` and `points`, with the row of section 3.7's table for a parameter that takes a variable or a value written at that step and logged in `docs/spec_changes.md`. Until then `hline` and `vline` follow A and their help pages say how a bound number is written. Deadline: 0.7.0, before step 24.
+
+**The decision (12 November 2026).** Option B, taken on the recommendation under the owner's standing instruction of that day ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn. It is built at step 23f of release 0.7.0.

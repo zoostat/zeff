@@ -299,5 +299,89 @@ pub fn functions() -> Vec<Function> {
             },
             body: marks::ribbon,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "hline",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("at", "Float | Var"),
+                    ParamSpec::option("color", "Var | Str"),
+                    ParamSpec::option_with_default(
+                        "style",
+                        "solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot",
+                        "dashed",
+                    ),
+                    ParamSpec::option_with_default("width", "Float", "0.5"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in the variable of at: or a variable shown on a continuous colour scale; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the frame the layer draws lacks a variable the layer names",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "the frame the layer draws has the variable in another case",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable for at: that is not numeric; an at: that is not a finite number; a number for at: when nothing is mapped to y; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows, or given with an at: that is one number; an expression given to color:, which takes a variable by its name; width: not above 0",
+                    ),
+                    DiagnosticDecl::new("Z0406", "at: is not given"),
+                ],
+                help: include_str!("../help/hline.md"),
+                accuracy: None,
+            },
+            body: marks::hline,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "vline",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("at", "Float | Var"),
+                    ParamSpec::option("color", "Var | Str"),
+                    ParamSpec::option_with_default(
+                        "style",
+                        "solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot",
+                        "dashed",
+                    ),
+                    ParamSpec::option_with_default("width", "Float", "0.5"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in the variable of at: or a variable shown on a continuous colour scale; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the frame the layer draws lacks a variable the layer names",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "the frame the layer draws has the variable in another case",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable for at: that is not numeric; an at: that is not a finite number; a number for at: when nothing is mapped to x; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows, or given with an at: that is one number; an expression given to color:, which takes a variable by its name; width: not above 0",
+                    ),
+                    DiagnosticDecl::new("Z0406", "at: is not given"),
+                ],
+                help: include_str!("../help/vline.md"),
+                accuracy: None,
+            },
+            body: marks::vline,
+        },
     ]
 }

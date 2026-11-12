@@ -1,0 +1,155 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_place
+error[Z0406]: `hline` needs `at`
+ --> scripts/main.zeff:3:28
+  |
+3 | d.plot(x: dose, y: change).hline()
+  |                            ^^^^^ `at` is missing
+  |
+  = help: a reference line stands at a number on the `y` axis, as in `hline(at: 0)`, or at each value of a variable, as in `hline(at: wage)`
+
+== a_place_that_is_text
+error[Z0401]: `vline` draws a line at each value of `at:` on the `x` axis, which is a linear scale, so `arm` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:3:38
+  |
+3 | d.plot(x: dose, y: change).vline(at: arm)
+  |                                      ^^^ not a numeric variable
+  |
+  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+
+== a_place_in_quotes
+error[Z0401]: `at` of `hline` must be a Float or Var, but this is a Str
+ --> scripts/main.zeff:3:38
+  |
+3 | d.plot(x: dose, y: change).hline(at: "0")
+  |                                      ^^^ a Str
+  |
+  = help: usage: `p.hline(data: Frame, at: Float | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`
+
+== no_such_variable
+error[Z0101]: no variable `chnge` in `d`
+ --> scripts/main.zeff:3:38
+  |
+3 | d.plot(x: dose, y: change).hline(at: chnge)
+  |                                      ^^^^^ not a variable of d
+  |
+  = help: did you mean `change`? If you meant a category level, write it in quotes: `"change"`
+
+== a_binding_is_not_a_variable
+error[Z0101]: no variable `centre` in `d`
+ --> scripts/main.zeff:4:38
+  |
+4 | d.plot(x: dose, y: change).hline(at: centre)
+  |                                      ^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: dose, change, arm
+
+== an_infinite_place
+error[Z0401]: `at:` of `hline` is a place on the `y` axis, but this is Inf
+ --> scripts/main.zeff:3:38
+  |
+3 | d.plot(x: dose, y: change).hline(at: 1e308 * 10)
+  |                                      ^^^^^^^^^^ not a place on the axis
+  |
+  = help: a reference line stands at a finite number, or at each value of a variable
+
+== no_axis_for_the_line
+error[Z0401]: `hline` draws a line at a place on the `y` axis, but nothing is mapped to `y` yet
+ --> scripts/main.zeff:3:17
+  |
+3 | d.plot(x: dose).hline(at: 0)
+  |                 ^^^^^ needs a `y` axis
+  |
+  = help: map a variable to `y` where the plot starts, or add the layer that maps it before this one; a line at a place on the other axis is `vline`
+
+== no_axis_for_the_upright_line
+error[Z0401]: `vline` draws a line at a place on the `x` axis, but nothing is mapped to `x` yet
+ --> scripts/main.zeff:3:19
+  |
+3 | d.plot(y: change).vline(at: 0)
+  |                   ^^^^^ needs an `x` axis
+  |
+  = help: map a variable to `x` where the plot starts, or add the layer that maps it before this one; a line at a place on the other axis is `hline`
+
+== a_colour_by_a_variable_for_one_line
+error[Z0401]: `color:` of `hline` names the variable `arm`, but `at:` is one number: there is one line, and no row to take its colour from
+ --> scripts/main.zeff:3:48
+  |
+3 | d.plot(x: dose, y: change).hline(at: 0, color: arm)
+  |                                      - one line
+  |                                                ^^^ a colour for each row
+  |
+  = help: set one colour, as in `color: "firebrick"`, or draw a line for each row of a frame, as in `hline(data: means, at: wage, color: union)`
+
+== another_kind_of_colour
+error[Z0401]: the plot shows `arm` as categories for `color`, but `change`, which `vline` maps to `color`, is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:3:72
+  |
+3 | d.plot(x: dose, y: change, color: arm).points().vline(at: dose, color: change)
+  |                                                                        ^^^^^^ `change` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so the variables mapped to `color` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels
+
+== not_a_colour
+error[Z0401]: `color:` of `hline` is "redd", which is not the name of a colour
+ --> scripts/main.zeff:3:48
+  |
+3 | d.plot(x: dose, y: change).hline(at: 0, color: "redd")
+  |                                                ^^^^^^ not a colour
+  |
+  = help: did you mean "red"?
+
+== not_a_style
+error[Z0402]: `wavy` is not one of the allowed words
+ --> scripts/main.zeff:3:48
+  |
+3 | d.plot(x: dose, y: change).hline(at: 0, style: wavy)
+  |                                                ^^^^ expected one of solid, dashed, dotted, dash_dot, long_dash, dash_dot_dot
+
+== a_style_in_quotes
+error[Z0403]: expected one of solid, dashed, dotted, dash_dot, long_dash, dash_dot_dot, found text
+ --> scripts/main.zeff:3:48
+  |
+3 | d.plot(x: dose, y: change).hline(at: 0, style: "dashed")
+  |                                                ^^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `dashed`
+
+== no_width
+error[Z0401]: `width:` of `vline` is the width of a line in points of 1/72 inch, above 0, but this is 0
+ --> scripts/main.zeff:3:48
+  |
+3 | d.plot(x: dose, y: change).vline(at: 2, width: 0)
+  |                                                ^ not a width
+  |
+  = help: write a width such as 0.25 or 1; without `width:` a reference line is 0.5 wide
+
+== no_linetype_on_a_reference_line
+error[Z0404]: `hline` has no argument called `linetype`
+ --> scripts/main.zeff:3:41
+  |
+3 | d.plot(x: dose, y: change).hline(at: 0, linetype: "dashed")
+  |                                         ^^^^^^^^ unknown argument
+  |
+  = help: usage: `p.hline(data: Frame, at: Float | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`
+
+== a_frame_without_the_variable
+error[Z0101]: no variable `change` in `limits`
+ --> scripts/main.zeff:3:52
+  |
+3 | d.plot(x: dose, y: change).hline(data: limits, at: change)
+  |                                                    ^^^^^^ not a variable of limits
+  |
+  = help: the variables of `limits` are: level, kind
+
+== hline_of_a_frame
+error[Z0401]: `hline` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | d.hline(at: 0)
+  | ^ this is a Frame
+  |
+  = help: `hline` takes a Plot first; `x.hline(...)` is `hline(x, ...)`

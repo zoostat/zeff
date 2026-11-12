@@ -1620,3 +1620,118 @@ fn every_message_of_a_position() {
     }
     insta::assert_snapshot!("fills_position_messages", all);
 }
+
+// ----- hline and vline (step 23e1) -----
+
+const CHANGES: &str = "let d = frame(dose = [1, 2, 3, 4], change = [-1.2, 0.4, 1.1, 2.3], arm = [\"a\", \"a\", \"b\", \"b\"])\nlet limits = frame(level = [-1, 1, NA], kind = [\"lower\", \"upper\", \"none\"])\n";
+
+#[test]
+fn reference_lines_read_sensibly_as_text() {
+    let script = format!(
+        "{CHANGES}d.plot(x: dose, y: change).hline(at: 0).points()\n\
+         d.plot(x: dose, y: change).points().hline(at: 10)\n\
+         d.plot(x: dose, y: change).points().vline(at: -2).hline(at: -3).hline(at: 3, style: solid, width: 1, color: \"firebrick\")\n\
+         d.plot(x: dose, y: change, color: arm).points().hline(data: limits, at: level, color: kind, style: dotted)\n\
+         d.plot(x: dose).vline(at: dose)\n\
+         d.plot(y: change).hline(at: 1)\n\
+         let w = dataset(wages)\n\
+         let m = w.aggregate(wage = mean(wage), by: union)\n\
+         w.plot(x: educ, y: wage).points(alpha: 0.2).hline(data: m, at: wage, color: union).vline(at: 12)\n"
+    );
+    let text = printed(&script);
+    // The reference, from ggplot2 4.0.3: on the four rows, `geom_hline(yintercept = 0)` leaves
+    // the limits at -1.375 and 2.475, `yintercept = 10` gives -1.76 and 10.56, and a line at
+    // x = -2 with lines at -3 and 3 gives -2.3 to 4.3 and -3.3 to 3.3. On the shipped wages
+    // the two means by union membership, 26.46296786 and 29.31377332, and a line at 12 years
+    // of schooling leave the limits of the scatter as they were, 7.4 to 20.6 and -3.913 to
+    // 159.833.
+    for line in [
+        "  y      change   linear   -1.375 to 2.475   -1, 0, 1, 2\n",
+        "      1   hline    d          1   at 0, width 0.5, style dashed\n",
+        "  y      change   linear   -1.76 to 10.56   0, 2, 4, 6, 8, 10\n",
+        "  x      dose     linear   -2.3 to 4.3   -2, -1, 0, 1, 2, 3, 4\n",
+        "  y      change   linear   -3.3 to 3.3   -3, -2, -1, 0, 1, 2, 3\n",
+        "      4   hline    d          1   at 3, color firebrick, width 1, style solid\n",
+        "      2   hline    limits       2   at level, color by kind, width 0.5, style dotted\n",
+        "note: 1 row with NA in level dropped (line 6)\n",
+        "  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20\n",
+        "  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150\n",
+        "      2   hline    m           2   at wage, color by union, width 0.5, style dashed\n",
+        "      3   vline    w           1   at 12, width 0.5, style dashed\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("reference_lines", text);
+}
+
+#[test]
+fn every_message_of_hline_and_vline() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_place", "d.plot(x: dose, y: change).hline()\n"),
+        (
+            "a_place_that_is_text",
+            "d.plot(x: dose, y: change).vline(at: arm)\n",
+        ),
+        (
+            "a_place_in_quotes",
+            "d.plot(x: dose, y: change).hline(at: \"0\")\n",
+        ),
+        (
+            "no_such_variable",
+            "d.plot(x: dose, y: change).hline(at: chnge)\n",
+        ),
+        (
+            "a_binding_is_not_a_variable",
+            "let centre = 0.5\nd.plot(x: dose, y: change).hline(at: centre)\n",
+        ),
+        (
+            "an_infinite_place",
+            "d.plot(x: dose, y: change).hline(at: 1e308 * 10)\n",
+        ),
+        ("no_axis_for_the_line", "d.plot(x: dose).hline(at: 0)\n"),
+        (
+            "no_axis_for_the_upright_line",
+            "d.plot(y: change).vline(at: 0)\n",
+        ),
+        (
+            "a_colour_by_a_variable_for_one_line",
+            "d.plot(x: dose, y: change).hline(at: 0, color: arm)\n",
+        ),
+        (
+            "another_kind_of_colour",
+            "d.plot(x: dose, y: change, color: arm).points().vline(at: dose, color: change)\n",
+        ),
+        (
+            "not_a_colour",
+            "d.plot(x: dose, y: change).hline(at: 0, color: \"redd\")\n",
+        ),
+        (
+            "not_a_style",
+            "d.plot(x: dose, y: change).hline(at: 0, style: wavy)\n",
+        ),
+        (
+            "a_style_in_quotes",
+            "d.plot(x: dose, y: change).hline(at: 0, style: \"dashed\")\n",
+        ),
+        (
+            "no_width",
+            "d.plot(x: dose, y: change).vline(at: 2, width: 0)\n",
+        ),
+        (
+            "no_linetype_on_a_reference_line",
+            "d.plot(x: dose, y: change).hline(at: 0, linetype: \"dashed\")\n",
+        ),
+        (
+            "a_frame_without_the_variable",
+            "d.plot(x: dose, y: change).hline(data: limits, at: change)\n",
+        ),
+        ("hline_of_a_frame", "d.hline(at: 0)\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{CHANGES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("reference_lines_messages", all);
+}

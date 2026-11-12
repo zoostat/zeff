@@ -1,6 +1,6 @@
 //! The marks (Language Reference, section 7.6, "Marks"): each adds a layer to a plot and gives
 //! the plot back, so that layers chain. At release 0.7.0: `points` (step 20d), `lines` and `step`
-//! (step 23c), `area` and `ribbon` (step 23d).
+//! (step 23c), `area` and `ribbon` (step 23d), `hline` and `vline` (step 23e).
 //!
 //! A layer draws the rows of the plot's frame, or of its own (`data:`), which must then hold the
 //! variables the plot maps to the aesthetics the layer reads and those its mapped expressions
@@ -17,10 +17,12 @@ use std::rc::Rc;
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, Frame, Mark, Plot, PlotLayer, PlotMapping, PlotSetting, Stacking, Stairs, Value,
+    Aesthetic, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting, Stacking,
+    Stairs, Value,
 };
 use zeff_diagnostics::Diagnostic;
 
+use crate::drawing::LineType;
 use crate::grammar::{Slots, a_type, aesthetics, column, internal, number_option, shown};
 use crate::mapping::{self, variables};
 use crate::scene::{Shading, is_numeric, kind_of, scene, shading, with_layer};
@@ -329,7 +331,7 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         &frame,
         "points",
         &Slots {
-            x: X,
+            x: Some(X),
             y: Some(Y),
             low: None,
             high: None,
@@ -539,7 +541,7 @@ fn joined(
         &frame,
         function,
         &Slots {
-            x: X,
+            x: Some(X),
             y: Some(Y),
             low: None,
             high: None,
@@ -731,7 +733,7 @@ fn filled(
         &frame,
         function,
         &Slots {
-            x: X,
+            x: Some(X),
             y: (!band).then_some(Y),
             low: band.then_some(R_LOW),
             high: band.then_some(R_HIGH),
@@ -831,6 +833,234 @@ fn filled(
             size: None,
             jitter: 0.0,
             width: None,
+            stream: None,
+            computed,
+            mappings,
+            constants,
+        },
+    );
+    for note in after.notes {
+        if !before.contains(&note) {
+            ctx.message(Diagnostic::plain_note(note));
+        }
+    }
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+// ----- hline and vline (step 23e) -----
+
+const H_AT: usize = 2;
+const H_COLOR: usize = 3;
+const H_STYLE: usize = 4;
+const H_WIDTH: usize = 5;
+
+/// `p.hline(data: Frame, at: Float | Var, color: Var | Str,
+/// style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed,
+/// width: Float = 0.5)`.
+pub fn hline(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    spanning(ctx, args, "hline", Mark::Hline)
+}
+
+/// `p.vline(...)`, with the options of `hline`.
+pub fn vline(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    spanning(ctx, args, "vline", Mark::Vline)
+}
+
+/// A layer of reference lines, level or upright: what `hline` and `vline` share. The layer
+/// takes nothing from the plot but its axes: its place is `at:`, a number or the values of a
+/// variable, and its colour its own.
+fn spanning(
+    ctx: &mut CallContext<'_>,
+    args: Args,
+    function: &'static str,
+    mark: Mark,
+) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "a mark reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let (axis, along, other) = if mark == Mark::Hline {
+        ("y", Aesthetic::Y, "vline")
+    } else {
+        ("x", Aesthetic::X, "hline")
+    };
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mut mappings, mut constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        function,
+        &Slots {
+            x: None,
+            y: None,
+            low: None,
+            high: None,
+            color: Some(H_COLOR),
+            fill: None,
+            size: None,
+            shape: None,
+            group: None,
+            label: None,
+            linetype: None,
+        },
+        own_data,
+    )?;
+    // The place: one number, or a variable with a line at each of its values.
+    match args.get(H_AT) {
+        None | Some(Value::Na) => {
+            return Err(fail(
+                Diagnostic::error("Z0406", format!("`{function}` needs `at`"))
+                    .in_file(ctx.script)
+                    .primary(ctx.callee_span, "`at` is missing")
+                    .help(format!(
+                        "a reference line stands at a number on the `{axis}` axis, as in `{function}(at: 0)`, or at each value of a variable, as in `{function}(at: wage)`"
+                    )),
+            ));
+        }
+        Some(Value::Var(name)) => {
+            let found = column(ctx, &frame, name, ctx.span_of(H_AT))?;
+            if !is_numeric(found) {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`{function}` draws a line at each value of `at:` on the `{axis}` axis, which is a linear scale, so `{name}` must be a Bool, Int or Float variable, but it is {}",
+                            a_type(found)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(H_AT), "not a numeric variable")
+                    .help(format!(
+                        "the scales of categories, text and dates are not in this release yet; `{}.describe()` lists the types of the variables",
+                        frame.shown_name()
+                    )),
+                ));
+            }
+            mappings.push(PlotMapping {
+                aesthetic: along,
+                variable: name.clone(),
+                computed: None,
+            });
+        }
+        Some(Value::Int(_) | Value::Float(_)) => {
+            let Some(at) = number_option(ctx, &args, H_AT, "an `at:` that is not a number")? else {
+                return Err(internal(ctx, "an `at:` that is a number and is not"));
+            };
+            if !at.is_finite() {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`at:` of `{function}` is a place on the `{axis}` axis, but this is {}",
+                            shown(at)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(H_AT), "not a place on the axis")
+                    .help("a reference line stands at a finite number, or at each value of a variable"),
+                ));
+            }
+            // One line, with no row behind it to take a colour from.
+            if let Some(by) = mappings.iter().find(|m| m.aesthetic == Aesthetic::Color) {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`color:` of `{function}` names the variable `{}`, but `at:` is one number: there is one line, and no row to take its colour from",
+                            by.variable
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(H_COLOR), "a colour for each row")
+                    .secondary(ctx.span_of(H_AT), "one line")
+                    .help(format!(
+                        "set one colour, as in `color: \"firebrick\"`, or draw a line for each row of a frame, as in `{function}(data: means, at: wage, color: union)`"
+                    )),
+                ));
+            }
+            // The line is drawn across an axis that something else gives the plot.
+            if scene(&plot).scale(axis).is_none() {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`{function}` draws a line at a place on the `{axis}` axis, but nothing is mapped to `{axis}` yet"
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(
+                        ctx.callee_span,
+                        format!(
+                            "needs {} `{axis}` axis",
+                            if axis == "x" { "an" } else { "a" }
+                        ),
+                    )
+                    .help(format!(
+                        "map a variable to `{axis}` where the plot starts, or add the layer that maps it before this one; a line at a place on the other axis is `{other}`"
+                    )),
+                ));
+            }
+            constants.push(PlotConstant {
+                aesthetic: along,
+                value: PlotSetting::Place(at),
+            });
+        }
+        Some(_) => {
+            return Err(internal(ctx, "an `at:` that is not a variable or a number"));
+        }
+    }
+    one_scale(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Color, H_COLOR),
+        function,
+    )?;
+    // Nothing is read from the plot, so a frame of the layer's own needs none of its variables.
+    let (data, computed) = own_frame(ctx, &args, &plot, function, &[])?;
+    let style = match args.get(H_STYLE) {
+        None | Some(Value::Na) => LineType::Dashed,
+        Some(Value::Word(word)) => match LineType::parse(word) {
+            Some(kind) => kind,
+            None => return Err(internal(ctx, "a `style:` that is none of the six")),
+        },
+        Some(_) => return Err(internal(ctx, "a `style:` that is not a word")),
+    };
+    constants.push(PlotConstant {
+        aesthetic: Aesthetic::Linetype,
+        value: PlotSetting::Line(style.name()),
+    });
+    let width =
+        number_option(ctx, &args, H_WIDTH, "a `width:` that is not a number")?.unwrap_or(0.5);
+    if !(width > 0.0 && width.is_finite()) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`width:` of `{function}` is the width of a line in points of 1/72 inch, above 0, but this is {}",
+                    shown(width)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(H_WIDTH), "not a width")
+            .help("write a width such as 0.25 or 1; without `width:` a reference line is 0.5 wide"),
+        ));
+    }
+    let before = scene(&plot).notes;
+    let (next, after) = with_layer(
+        &plot,
+        PlotLayer {
+            mark,
+            data,
+            alpha: 1.0,
+            size: None,
+            jitter: 0.0,
+            width: Some(width),
             stream: None,
             computed,
             mappings,

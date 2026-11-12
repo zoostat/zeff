@@ -510,3 +510,7 @@ Step 23d1 of release 0.7.0 builds `area` and `ribbon`. Under open decision #106 
 ## 12 November 2026 — zeff_functions.csv, row 465
 
 Step 23d2 of release 0.7.0 gives `area` the three ways R's `geom_area` places the areas of several groups, under the owner's rule of open decisions #98 and #99 that what R or Stata offers for a procedure is an option. The usage line of catalogue row 465 gains `position: overlay | stack | fill = overlay` after `alpha:`, in the words of `position:` of `bars` (row 464) with `overlay` for the areas that each reach down to zero.
+
+## 12 November 2026 — zeff_functions.csv, rows 470 and 471
+
+Step 23e1 of release 0.7.0 builds `hline` and `vline`. Under open decision #106 (option A) a mark takes each aesthetic it draws for its own layer, and decision #118, F9, gives a line one of six types. The usage line of catalogue row 470 was `p.hline(data: Frame, at: Float | Var, style: solid | dashed | dotted = dashed)`; it is now `p.hline(data: Frame, at: Float | Var, color: Var | Str, style: solid | dashed | dotted | dash_dot | long_dash | dash_dot_dot = dashed, width: Float = 0.5)`, and row 471 (`vline`) is changed in the same way. `style:` keeps its name and its default and gains the three further types of line that `lines` has. The status of both is `implemented`.

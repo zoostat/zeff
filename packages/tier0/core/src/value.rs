@@ -234,6 +234,8 @@ pub enum PlotSetting {
     Shape(&'static str),
     /// The type of a line, by its name: `dashed`.
     Line(&'static str),
+    /// A place on an axis, in the units of the data: where a reference line stands.
+    Place(f64),
 }
 
 /// One mapping of a plot: an aesthetic and what it reads, a variable of the frame or an
@@ -272,6 +274,10 @@ pub enum Mark {
     /// The band between two variables, `low` and `high`, through the rows of each group,
     /// filled.
     Ribbon,
+    /// A level reference line across the panel, at a place on the `y` axis.
+    Hline,
+    /// An upright reference line, at a place on the `x` axis.
+    Vline,
 }
 
 /// How the areas of the groups of one layer are placed along `y`.
@@ -322,7 +328,7 @@ impl Stairs {
 
 impl Mark {
     /// The mark as the method that adds it is called: `points`, `lines`, `step`, `area`,
-    /// `ribbon`.
+    /// `ribbon`, `hline`, `vline`.
     pub fn name(self) -> &'static str {
         match self {
             Mark::Points => "points",
@@ -330,12 +336,20 @@ impl Mark {
             Mark::Step(_) => "step",
             Mark::Area(_) => "area",
             Mark::Ribbon => "ribbon",
+            Mark::Hline => "hline",
+            Mark::Vline => "vline",
         }
     }
 
     /// Whether the marks of a layer are joined into lines, and not drawn one by one.
     pub fn joins(self) -> bool {
         matches!(self, Mark::Lines | Mark::Step(_))
+    }
+
+    /// Whether each mark of a layer is a reference line from one edge of the panel to the
+    /// other. Such a layer takes nothing from the plot but its axes.
+    pub fn spans(self) -> bool {
+        matches!(self, Mark::Hline | Mark::Vline)
     }
 
     /// Whether the marks of a layer are the corners of filled shapes, one for each run of rows

@@ -375,12 +375,12 @@ fn plan_legend(
     let lined = scene.panels.first().and_then(|p| {
         p.layers
             .iter()
-            .find(|l| l.mark.joins() && legend.marks.contains(&l.mark))
+            .find(|l| (l.mark.joins() || l.mark.spans()) && legend.marks.contains(&l.mark))
     });
     let pointed = legend
         .marks
         .iter()
-        .any(|mark| !mark.joins() && !mark.fills());
+        .any(|mark| !mark.joins() && !mark.fills() && !mark.spans());
     // A legend of filled marks has a patch of the fill for a key, as see-through as the marks.
     let filled = scene.panels.first().and_then(|p| {
         p.layers
@@ -959,10 +959,72 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     }
     // The marks, clipped to the panel.
     let mut marks: Vec<Item> = Vec::new();
+    // A reference line goes from one edge of the panel to the other, at each place of its
+    // layer on the one axis it needs, in the colour of the place and the type of the layer.
+    let reference = |layer: &crate::scene::Layer, name: &str| -> Vec<Item> {
+        let level = layer.mark == Mark::Hline;
+        let (places, scale) = if level {
+            (&layer.y, ys)
+        } else {
+            (&layer.x, xs)
+        };
+        let Some(scale) = scale else {
+            return Vec::new();
+        };
+        let dash = match &layer.linetype {
+            Lining::Constant(name) => LineType::parse(name).unwrap_or_default(),
+            Lining::Scaled(_) => LineType::Solid,
+        };
+        places
+            .iter()
+            .enumerate()
+            .map(|(i, place)| {
+                let colour = match &layer.color {
+                    Paint::Theme => theme.mark.to_string(),
+                    Paint::Constant(hex) => hex.clone(),
+                    Paint::Scaled(values) => match (scene.scale("color"), values.get(i)) {
+                        (Some(scale), Some(value)) => colour_on(scale, *value),
+                        _ => theme.mark.to_string(),
+                    },
+                };
+                let (from, to) = if level {
+                    let y = down(scale, *place);
+                    ((left, y), (left + panel_width, y))
+                } else {
+                    let x = across(scale, *place);
+                    ((x, top), (x, top + panel_height))
+                };
+                named(
+                    name,
+                    Primitive::Segment {
+                        from,
+                        to,
+                        stroke: Stroke {
+                            colour,
+                            width: layer.width,
+                            dash,
+                        },
+                        heads: (Head::Plain, Head::Plain),
+                    },
+                )
+            })
+            .collect()
+    };
+    // With one axis alone, the reference lines across it are all that can be placed.
+    if let (Some(p), true) = (panel, xs.is_none() || ys.is_none()) {
+        for (at, layer) in p.layers.iter().enumerate() {
+            if layer.mark.spans() {
+                marks.extend(reference(layer, &format!("layer:{}", at + 1)));
+            }
+        }
+    }
     if let (Some(p), Some(sx), Some(sy)) = (panel, xs, ys) {
         for (at, layer) in p.layers.iter().enumerate() {
             let name = format!("layer:{}", at + 1);
             let mut drawn: Vec<Item> = Vec::new();
+            if layer.mark.spans() {
+                drawn.extend(reference(layer, &name));
+            }
             let colour_of = |i: usize| match &layer.color {
                 Paint::Theme => theme.mark.to_string(),
                 Paint::Constant(hex) => hex.clone(),
