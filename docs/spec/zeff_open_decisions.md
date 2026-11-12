@@ -1894,6 +1894,8 @@ What the reference tools do. In R with ggplot2, `aes()` takes any R expression a
 
 **The owner's decision (11 November 2026).** "Yes, as built", after samples of step 20b compared with ggplot2: option A. An expression mapped to an aesthetic holds variables, numbers, logical values, text, `NA`, the operators, script constants and the functions of `core` that the engine computes row by row; everything else is refused with the advice to compute the variable with `add` first, as step 20b builds it. The widening to B when the date scale is built at step 25, and C, were not ruled on: whether to widen is put to the owner again at step 25. Any widening is an addition, so a script accepted now keeps its meaning.
 
+**The decision on the widening (12 November 2026).** Option B, as recommended, taken under the owner's standing instruction of that day, which he may overturn: at step 25c of release 0.7.0, where the date scale is built, an expression mapped to an aesthetic may also call the scalar functions of `time` and `text`, the four functions of `core` that are written in Zeff (`logit`, `inv_logit`, `clamp`, `fill_missing`) and `case`. Option C, the reducers of `data` inside a mapping, is not taken: a mean that silently differs between two layers of one plot is not offered in 1.0.
+
 ### 108. A numeric function of `core` given a text or category column
 
 Raised on 11 November 2026 at step 20b of release 0.7.0, found while the edge cases of an expression in a mapping were read; the behaviour is that of `core` since the row-by-row functions were built, not of the step. A numeric function of `core` given a single text value is refused when the script is checked: `log("a")` gives Z0401, "`x` of `log` must be a Float, but this is a Str". Given a text or category column, the same function gives `NA` on every row and says nothing:
@@ -2007,6 +2009,8 @@ Raised on 11 November 2026 at step 20d of release 0.7.0, where `size:`, `shape:`
 *Recommendation.* A. Nothing is drawn before step 21, so this one must be settled by then or built as A.
 
 Deadline: 0.7.0, before step 25.
+
+**The decision on questions 1, 3, 4 and 5 (12 November 2026).** Each as recommended, taken under the owner's standing instruction of that day ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn. Question 1: option C; a size starts at 0 and shows an amount by area, as built, and `scale(size:)` of step 25d offers the other reading, from the smallest value to the largest. Question 3: option A, as built; a size below 0 drops its row and a size of 0 is drawn with no size, each counted in a note. Question 4: option A, as built; since steps 23c and 24d `lines` reads `group` and `text` reads `label`, so the question is closed by the marks themselves. Question 5: option A, as built at step 21; shapes of one size have one area.
 
 ### 111. `p_adjust` inside `add`: adjusted p-values as a column, and families with `by:`
 

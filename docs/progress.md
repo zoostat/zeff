@@ -141,3 +141,11 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25 `[engine]`: scales and the legend. Before it is built the checklist asks the owner about open decisions #107 (what an expression in a mapping may call) and #110, questions 1, 3, 4 and 5; under his standing instruction they are taken on the recommendation, recorded and announced.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: `nudge:` in points, not in the units of the data; no `alpha:` on text. Open as before: questions 1, 3, 4 and 5 of #110 and #107 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25 opened and split
+
+**Done.** No code. Step 25 was split in the checklist into 25a (the kinds of scale: `linear`, `log`, `sqrt`), 25b (`limits:`, `breaks:`, `labels:` and the labels of a labelled variable), 25c (the date scale), 25d (`scale`) and 25e (`legend`), all `[engine]`. The decisions due before it were taken on their recommendations, under the owner's standing instruction: #110, questions 1 (C), 3 (A), 4 (A) and 5 (A), all as built, with the other reading of a size as an option of `scale` at step 25d; and #107, option B, the widening of an expression in a mapping to the functions of `time` and `text` and to `case`, at step 25c, with option C not taken.
+
+**Next.** Step 25a `[engine]`: `scale_x` and `scale_y` with `linear`, `log` and `sqrt`.
+
+**For the owner to decide.** Nothing waits for him; the decisions above are his to overturn. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
