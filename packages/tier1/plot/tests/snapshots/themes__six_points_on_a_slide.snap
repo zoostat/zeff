@@ -1,0 +1,50 @@
+---
+source: packages/tier1/plot/tests/themes.rs
+expression: drawing.describe()
+---
+drawing 720 by 405.354
+[background] rectangle 0,0 720 by 405.354 fill #FFFFFF
+[grid] segment 100.586,14.584 to 100.586,341.686 stroke #E3E3E3 0.7
+[grid] segment 216.132,14.584 to 216.132,341.686 stroke #E3E3E3 0.7
+[grid] segment 331.677,14.584 to 331.677,341.686 stroke #E3E3E3 0.7
+[grid] segment 447.223,14.584 to 447.223,341.686 stroke #E3E3E3 0.7
+[grid] segment 562.768,14.584 to 562.768,341.686 stroke #E3E3E3 0.7
+[grid] segment 678.314,14.584 to 678.314,341.686 stroke #E3E3E3 0.7
+[grid] segment 71.7,329.982 to 707.2,329.982 stroke #E3E3E3 0.7
+[grid] segment 71.7,266.712 to 707.2,266.712 stroke #E3E3E3 0.7
+[grid] segment 71.7,203.443 to 707.2,203.443 stroke #E3E3E3 0.7
+[grid] segment 71.7,140.174 to 707.2,140.174 stroke #E3E3E3 0.7
+[grid] segment 71.7,76.904 to 707.2,76.904 stroke #E3E3E3 0.7
+[panel] clip 71.7,14.584 635.5 by 327.102
+  [layer:1] point 100.586,326.818 circle 4.5 #222222 opacity 1
+  [layer:1] point 216.132,269.876 circle 4.5 #222222 opacity 1
+  [layer:1] point 331.677,197.116 circle 4.5 #222222 opacity 1
+  [layer:1] point 447.223,146.501 circle 4.5 #222222 opacity 1
+  [layer:1] point 562.768,108.539 circle 4.5 #222222 opacity 1
+  [layer:1] point 678.314,29.452 circle 4.5 #222222 opacity 1
+[axis:x] segment 71.7,341.686 to 707.2,341.686 stroke #222222 1
+[axis:x] segment 100.586,341.686 to 100.586,347.686 stroke #222222 1
+[axis:x] text 100.586,364.854 middle "1" sans 16 #222222
+[axis:x] segment 216.132,341.686 to 216.132,347.686 stroke #222222 1
+[axis:x] text 216.132,364.854 middle "2" sans 16 #222222
+[axis:x] segment 331.677,341.686 to 331.677,347.686 stroke #222222 1
+[axis:x] text 331.677,364.854 middle "3" sans 16 #222222
+[axis:x] segment 447.223,341.686 to 447.223,347.686 stroke #222222 1
+[axis:x] text 447.223,364.854 middle "4" sans 16 #222222
+[axis:x] segment 562.768,341.686 to 562.768,347.686 stroke #222222 1
+[axis:x] text 562.768,364.854 middle "5" sans 16 #222222
+[axis:x] segment 678.314,341.686 to 678.314,347.686 stroke #222222 1
+[axis:x] text 678.314,364.854 middle "6" sans 16 #222222
+[axis:x] text 389.45,392.854 middle "dose" sans 18 #222222
+[axis:y] segment 71.7,14.584 to 71.7,341.686 stroke #222222 1
+[axis:y] segment 65.7,329.982 to 71.7,329.982 stroke #222222 1
+[axis:y] text 59.7,335.566 end "2" sans 16 #222222
+[axis:y] segment 65.7,266.712 to 71.7,266.712 stroke #222222 1
+[axis:y] text 59.7,272.296 end "4" sans 16 #222222
+[axis:y] segment 65.7,203.443 to 71.7,203.443 stroke #222222 1
+[axis:y] text 59.7,209.027 end "6" sans 16 #222222
+[axis:y] segment 65.7,140.174 to 71.7,140.174 stroke #222222 1
+[axis:y] text 59.7,145.758 end "8" sans 16 #222222
+[axis:y] segment 65.7,76.904 to 71.7,76.904 stroke #222222 1
+[axis:y] text 59.7,82.488 end "10" sans 16 #222222
+[axis:y] text 26,178.135 middle turned 90 "response" sans 18 #222222

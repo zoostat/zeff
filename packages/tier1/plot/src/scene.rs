@@ -68,7 +68,7 @@ use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
     Aesthetic, Align, Arrangement, AxisKind, Frame, LegendPlace, Mark, Palette, Plot, PlotConstant,
-    PlotLabels, PlotLayer, PlotMapping, PlotSetting, Sides, Stacking, Stairs, Table,
+    PlotLabels, PlotLayer, PlotMapping, PlotSetting, PlotTheme, Sides, Stacking, Stairs, Table,
 };
 use zeff_diagnostics::count;
 
@@ -132,6 +132,9 @@ pub struct Scene {
     pub legends: Vec<Legend>,
     /// Where the script puts the legends: at the right where it says nothing.
     pub legend: LegendPlace,
+    /// The theme the script gives the figure, which a writer draws by; `journal` at its
+    /// own size where it says nothing.
+    pub theme: PlotTheme,
     /// The title of the figure, its subtitle and its caption, where the script gives them;
     /// an empty text is none.
     pub title: Option<String>,
@@ -2881,6 +2884,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         }],
         notes,
         legend: plot.legend,
+        theme: plot.theme,
         title: said(&plot.labels.title),
         subtitle: said(&plot.labels.subtitle),
         caption: said(&plot.labels.caption),
@@ -3327,6 +3331,20 @@ impl Scene {
                 ("notes", Json::texts(&self.notes)),
             ]
             .into_iter()
+            // The theme, when the script names one or gives a size: `journal` at its own
+            // size is not written.
+            .chain((self.theme != PlotTheme::default()).then(|| {
+                (
+                    "theme",
+                    Json::Object(vec![
+                        ("name", Json::text(self.theme.name.name())),
+                        (
+                            "base_size",
+                            self.theme.base_size.map_or(Json::Null, Json::Number),
+                        ),
+                    ]),
+                )
+            }))
             // The title, the subtitle and the caption of the script, when it gives one.
             .chain(
                 (self.title.is_some() || self.subtitle.is_some() || self.caption.is_some()).then(
@@ -3895,6 +3913,17 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         }
     }
     drawn.after.extend(placed.map(str::to_string));
+    // The theme, when it is not `journal` at its own size.
+    if scene.theme != PlotTheme::default() {
+        drawn.after.push(match scene.theme.base_size {
+            Some(size) => format!(
+                "theme: {}, base size {}",
+                scene.theme.name.name(),
+                format_float(size)
+            ),
+            None => format!("theme: {}", scene.theme.name.name()),
+        });
+    }
     table.more.push(drawn);
     table
 }
@@ -3919,6 +3948,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         scales: Vec::new(),
         legend: LegendPlace::Right,
         labels: PlotLabels::default(),
+        theme: PlotTheme::default(),
         summary: Table {
             title: String::new(),
             before: Vec::new(),

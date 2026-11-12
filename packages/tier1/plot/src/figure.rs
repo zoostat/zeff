@@ -14,7 +14,7 @@
 use zeff_core::display::format_float;
 use zeff_core::value::{FigureFormat, FigureProblem, FigureRequest, FigureSize, Plot};
 
-use crate::layout::{JOURNAL, LayoutError, MM, SMALLEST_PANEL, Size, layout, layout_with_notes};
+use crate::layout::{LayoutError, MM, SMALLEST_PANEL, Size, Theme, layout, layout_with_notes};
 use crate::raster::{DOTS, MOST_DOTS, RasterError, render};
 use crate::scene::{Scene, scene};
 use crate::{pdf, png, svg};
@@ -46,10 +46,12 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
     if request.format == FigureFormat::Png {
         all_in_dots(&mut drawn);
     }
+    // The theme the script gives the plot: `journal` where it says nothing.
+    let theme = Theme::of(&drawn.theme);
     let laid = if request.notes {
-        layout_with_notes(&drawn, size, &JOURNAL)
+        layout_with_notes(&drawn, size, &theme)
     } else {
-        layout(&drawn, size, &JOURNAL)
+        layout(&drawn, size, &theme)
     };
     let not_a_size = || {
         FigureProblem {
@@ -129,6 +131,7 @@ pub fn write(plot: &Plot, request: &FigureRequest) -> Result<Vec<u8>, FigureProb
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::layout::JOURNAL;
     use crate::scene::{start, with_layer};
     use std::rc::Rc;
     use zeff_columns::{Column, Table};

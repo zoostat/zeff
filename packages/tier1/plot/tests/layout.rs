@@ -1076,6 +1076,8 @@ fn the_journal_theme_and_the_sizes_are_as_the_owner_froze_them() {
             title_size: 9.0,
             // Added at step 26a for the title of a figure; what was frozen is as it was.
             heading_size: 10.0,
+            // Added at step 26b, for the theme that draws no line of an axis.
+            axis_lines: true,
             leading: 1.25,
             axis_width: 0.5,
             grid_width: 0.35,

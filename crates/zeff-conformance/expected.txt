@@ -353,6 +353,12 @@ plot/titled/stderr 6e9f3677e9c3c861
 plot/titled/titled.svg 7dc4c34370e2962a
 plot/titled/titled.pdf c61b3d275df9a1be
 plot/titled/titled.png 29d979c87aa4b337
+plot/theme/stdout 90fb70b8bccc083e
+plot/theme/stderr f0fc14de36be5792
+plot/theme/theme.svg a48f1793b293009d
+plot/theme/theme.pdf 75476cf87f7c76b4
+plot/theme/theme.png 9821327de150db72
+plot/theme/theme_slide.svg 147cf8729d29c451
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

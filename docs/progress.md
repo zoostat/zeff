@@ -147,3 +147,13 @@ Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engin
 **Next.** Step 26b `[function]`: `theme(journal | minimal | slide, base_size:)`.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the title at 10 points in the heavier face, the subtitle at 9 and the caption at 8, all from the left margin of the page; #131, arguments of `labels` for the legends of size, shape and fill at 0.8.0. Open as before: #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 26b (`theme`)
+
+**Done.** `p.theme(journal | minimal | slide, base_size:)`: `journal` is the theme frozen at step 22; `minimal` leaves out the lines of the axes and their ticks; `slide` is twice the size, for a screen; `base_size:` sets the size of the type and every other size of the figure in proportion. No earlier figure changed by a byte. The specification's sample line with `theme` now runs.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 378 of 378; CI is read job by job after the push.
+
+**Next.** Step 26c `[function]`: `annotate`, and the labels of a crowded axis, which completes step 26.
+
+**For the owner to decide.** One thing to look at, not blocking: on a slide the type is twice as large and the points and lines keep their size in points, as in ggplot2; the figures of the step show it. Taken on the recommendation, his to overturn: what `minimal` and `slide` are; a base size below 9 refused. Open as before: #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

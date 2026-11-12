@@ -2081,6 +2081,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/titled/{name}"), &data));
     }
+    // The themes (step 26b): one plot in `minimal`, on a slide and at a base size of 12
+    // points; what the script prints, the minimal figure in the three formats and the slide
+    // as a figure of the size of a slide.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet p = w.plot(x: educ, y: wage, color: union).points(alpha: 0.5).labels(title: \"Schooling and wages\")\nlet m = p.theme(minimal)\nm\nlet s = p.theme(slide)\ns\np.theme(base_size: 12)\nexport(m, \"theme.svg\")\nexport(m, \"theme.pdf\")\nexport(m, \"theme.png\")\nexport(s, \"theme_slide.svg\", size: slide)\n";
+    let themed = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/theme/stdout", &themed.output.stdout));
+    fills.push(text("plot/theme/stderr", &themed.output.stderr));
+    for name in ["theme.svg", "theme.pdf", "theme.png", "theme_slide.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/theme/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

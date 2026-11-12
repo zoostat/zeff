@@ -3114,3 +3114,58 @@ fn every_message_of_labels() {
     }
     insta::assert_snapshot!("labels_messages", all);
 }
+
+// ----- theme (step 26b) -----
+
+#[test]
+fn the_theme_of_a_plot_reads_sensibly_as_text() {
+    let script = format!(
+        "{ARMS}p.theme(journal)\n\
+         p.theme()\n\
+         p.theme(minimal)\n\
+         p.theme(slide)\n\
+         p.theme(base_size: 12)\n\
+         p.theme(slide, base_size: 24)\n\
+         p.theme(slide).theme(minimal)\n\
+         p.theme(base_size: 9)\n\
+         d.plot(x: dose, y: change).theme(minimal).points().labels(title: \"Change by dose\").legend(none)\n"
+    );
+    let text = printed(&script);
+    // The theme is said on the last line, and not for `journal` at its own size.
+    assert_eq!(text.matches("theme: minimal\n").count(), 3);
+    assert_eq!(text.matches("theme: slide\n").count(), 1);
+    assert_eq!(text.matches("theme: journal, base size 12\n").count(), 1);
+    assert_eq!(text.matches("theme: slide, base size 24\n").count(), 1);
+    assert_eq!(text.matches("theme: journal, base size 9\n").count(), 1);
+    assert!(
+        text.contains("title: Change by dose\nlegend: not drawn\ntheme: minimal\n"),
+        "{text}"
+    );
+    insta::assert_snapshot!("themes_of_plots", text);
+}
+
+#[test]
+fn every_message_of_theme() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("a_base_size_below_nine", "p.theme(base_size: 8)\n"),
+        ("a_base_size_of_zero", "p.theme(slide, base_size: 0)\n"),
+        (
+            "a_base_size_that_is_text",
+            "p.theme(base_size: \"large\")\n",
+        ),
+        ("a_theme_that_is_none", "p.theme(dark)\n"),
+        ("a_theme_in_quotation_marks", "p.theme(\"slide\")\n"),
+        ("a_theme_of_a_frame", "d.theme(slide)\n"),
+        (
+            "a_type_too_large_for_the_page",
+            "export(p.theme(base_size: 60), \"large.svg\")\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{ARMS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("theme_messages", all);
+}

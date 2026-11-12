@@ -14,7 +14,8 @@ use std::rc::Rc;
 
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, AxisKind, LegendPlace, Palette, Plot, PlotAxis, PlotScale, Value,
+    Aesthetic, AxisKind, LegendPlace, Palette, Plot, PlotAxis, PlotScale, PlotTheme, ThemeName,
+    Value,
 };
 use zeff_diagnostics::Diagnostic;
 use zeff_diagnostics::Span;
@@ -746,6 +747,58 @@ pub fn labels(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("`labels` gives a plot its words, as in `labels(title: \"Schooling and wages\", y: \"log wage\")`; an empty text, `x: \"\"`, takes a title away"),
         ));
     }
+    describe(&mut next);
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+const TH_NAME: usize = 1;
+const TH_BASE: usize = 2;
+
+/// `p.theme(name: journal | minimal | slide = journal, base_size: Float = 9)`: the theme a
+/// figure is drawn by.
+pub fn theme(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "a theme reached its body without a plot"));
+    };
+    let name = match args.get(TH_NAME) {
+        None | Some(Value::Na) => ThemeName::Journal,
+        Some(Value::Word(word)) => match word.as_str() {
+            "journal" => ThemeName::Journal,
+            "minimal" => ThemeName::Minimal,
+            "slide" => ThemeName::Slide,
+            _ => return Err(internal(ctx, "a theme that is none of the three")),
+        },
+        Some(_) => return Err(internal(ctx, "a theme that is not a word")),
+    };
+    let base_size = match args.get(TH_BASE) {
+        None | Some(Value::Na) => None,
+        Some(value) => {
+            let size = match number(value) {
+                Ok(Some(size)) => size,
+                _ => return Err(internal(ctx, "a base size that is not a number")),
+            };
+            // The labels are eight ninths of the base size, and no text is set below 8
+            // points.
+            if size < crate::layout::BASE_SIZE {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`base_size:` of `theme` is the size of the titles of the axes, in points, and must be 9 or more, but this is {}",
+                            shown(size)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(TH_BASE), "too small a type")
+                    .help("the labels of the axes are eight ninths of the base size, and no text of a figure is set below 8 points; a figure for a slide takes `theme(slide)`, whose base size is 18"),
+                ));
+            }
+            Some(size)
+        }
+    };
+    let mut next = (**plot).clone();
+    // What is said last of the theme takes the place of what was said.
+    next.theme = PlotTheme { name, base_size };
     describe(&mut next);
     Ok(Value::Plot(Rc::new(next)))
 }

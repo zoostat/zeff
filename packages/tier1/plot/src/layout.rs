@@ -104,6 +104,9 @@ pub struct Theme {
     /// From one baseline to the next, as a multiple of the size of the type.
     pub leading: f64,
     pub axis_width: f64,
+    /// Whether the lines of the axes and their ticks are drawn; without them an axis is its
+    /// labels and its title.
+    pub axis_lines: bool,
     pub grid_width: f64,
     pub tick_length: f64,
     /// Round the whole figure.
@@ -133,6 +136,7 @@ pub const JOURNAL: Theme = Theme {
     heading_size: 10.0,
     leading: 1.25,
     axis_width: 0.5,
+    axis_lines: true,
     grid_width: 0.35,
     tick_length: 3.0,
     margin: 4.0,
@@ -143,6 +147,48 @@ pub const JOURNAL: Theme = Theme {
     ramp_width: 8.0,
     ramp_length: 72.0,
 };
+
+/// The size of the titles of the axes in the journal theme, in points: the base size, of
+/// which every other size of a theme is a fixed share.
+pub const BASE_SIZE: f64 = 9.0;
+
+/// The base size of the slide theme, where the script gives none: twice that of an article.
+pub const SLIDE_BASE_SIZE: f64 = 18.0;
+
+impl Theme {
+    /// The theme a script names, at the base size it gives or at the theme's own. `journal`
+    /// at 9 points is [`JOURNAL`]. Every size of the figure, the type, the lines of the axes
+    /// and the gridlines, the margins and the gaps, is in proportion to the base size;
+    /// `minimal` draws no line of an axis and no tick; `slide` has a base size of 18 points
+    /// of its own. The sizes of the marks are those of the plot and are not the theme's.
+    pub fn of(theme: &zeff_core::value::PlotTheme) -> Theme {
+        use zeff_core::value::ThemeName;
+        let base = theme.base_size.unwrap_or(match theme.name {
+            ThemeName::Slide => SLIDE_BASE_SIZE,
+            ThemeName::Journal | ThemeName::Minimal => BASE_SIZE,
+        });
+        let k = base / BASE_SIZE;
+        let lined = theme.name != ThemeName::Minimal;
+        Theme {
+            name: theme.name.name(),
+            label_size: JOURNAL.label_size * k,
+            title_size: JOURNAL.title_size * k,
+            heading_size: JOURNAL.heading_size * k,
+            axis_width: JOURNAL.axis_width * k,
+            axis_lines: lined,
+            grid_width: JOURNAL.grid_width * k,
+            // Without ticks the labels stand a tick nearer the panel.
+            tick_length: if lined { JOURNAL.tick_length * k } else { 0.0 },
+            margin: JOURNAL.margin * k,
+            label_gap: JOURNAL.label_gap * k,
+            title_gap: JOURNAL.title_gap * k,
+            legend_gap: JOURNAL.legend_gap * k,
+            ramp_width: JOURNAL.ramp_width * k,
+            ramp_length: JOURNAL.ramp_length * k,
+            ..JOURNAL
+        }
+    }
+}
 
 // The theme writes no text below 8 points, or the engine does not build.
 const _: () = assert!(
@@ -1674,26 +1720,30 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // The x axis: its line, a tick at each break, the labels that do not touch, its title.
     if let Some(s) = xs {
         let base = top + panel_height;
-        items.push(named(
-            "axis:x",
-            segment(
-                (left, base),
-                (left + panel_width, base),
-                line(theme.ink, theme.axis_width),
-            ),
-        ));
+        if theme.axis_lines {
+            items.push(named(
+                "axis:x",
+                segment(
+                    (left, base),
+                    (left + panel_width, base),
+                    line(theme.ink, theme.axis_width),
+                ),
+            ));
+        }
         let centres: Vec<f64> = s.breaks.iter().map(|v| across(s, *v)).collect();
         let step = thinning(&centres, &x_widths, label / 2.0);
         let baseline = base + theme.tick_length + theme.label_gap + capital(label);
         for (i, &x) in centres.iter().enumerate() {
-            items.push(named(
-                "axis:x",
-                segment(
-                    (x, base),
-                    (x, base + theme.tick_length),
-                    line(theme.ink, theme.axis_width),
-                ),
-            ));
+            if theme.axis_lines {
+                items.push(named(
+                    "axis:x",
+                    segment(
+                        (x, base),
+                        (x, base + theme.tick_length),
+                        line(theme.ink, theme.axis_width),
+                    ),
+                ));
+            }
             if i % step == 0
                 && let Some(words) = s.labels.get(i)
             {
@@ -1721,26 +1771,30 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     }
     // The y axis: the same, its labels ending at the ticks and its title read upwards.
     if let Some(s) = ys {
-        items.push(named(
-            "axis:y",
-            segment(
-                (left, top),
-                (left, top + panel_height),
-                line(theme.ink, theme.axis_width),
-            ),
-        ));
+        if theme.axis_lines {
+            items.push(named(
+                "axis:y",
+                segment(
+                    (left, top),
+                    (left, top + panel_height),
+                    line(theme.ink, theme.axis_width),
+                ),
+            ));
+        }
         let centres: Vec<f64> = s.breaks.iter().map(|v| down(s, *v)).collect();
         let heights = vec![capital(label); centres.len()];
         let step = thinning(&centres, &heights, label / 4.0);
         for (i, &y) in centres.iter().enumerate() {
-            items.push(named(
-                "axis:y",
-                segment(
-                    (left - theme.tick_length, y),
-                    (left, y),
-                    line(theme.ink, theme.axis_width),
-                ),
-            ));
+            if theme.axis_lines {
+                items.push(named(
+                    "axis:y",
+                    segment(
+                        (left - theme.tick_length, y),
+                        (left, y),
+                        line(theme.ink, theme.axis_width),
+                    ),
+                ));
+            }
             if i % step == 0
                 && let Some(words) = s.labels.get(i)
             {

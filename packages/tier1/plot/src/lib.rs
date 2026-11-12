@@ -697,5 +697,26 @@ pub fn functions() -> Vec<Function> {
             },
             body: scales::labels,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "theme",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option_with_default("name", "journal | minimal | slide", "journal"),
+                    ParamSpec::option_with_default("base_size", "Float", "9"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "a base_size: below 9, at which the labels would be set below 8 points",
+                )],
+                help: include_str!("../help/theme.md"),
+                accuracy: None,
+            },
+            body: scales::theme,
+        },
     ]
 }

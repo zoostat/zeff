@@ -1,0 +1,64 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_base_size_below_nine
+error[Z0401]: `base_size:` of `theme` is the size of the titles of the axes, in points, and must be 9 or more, but this is 8
+ --> scripts/main.zeff:3:20
+  |
+3 | p.theme(base_size: 8)
+  |                    ^ too small a type
+  |
+  = help: the labels of the axes are eight ninths of the base size, and no text of a figure is set below 8 points; a figure for a slide takes `theme(slide)`, whose base size is 18
+
+== a_base_size_of_zero
+error[Z0401]: `base_size:` of `theme` is the size of the titles of the axes, in points, and must be 9 or more, but this is 0
+ --> scripts/main.zeff:3:27
+  |
+3 | p.theme(slide, base_size: 0)
+  |                           ^ too small a type
+  |
+  = help: the labels of the axes are eight ninths of the base size, and no text of a figure is set below 8 points; a figure for a slide takes `theme(slide)`, whose base size is 18
+
+== a_base_size_that_is_text
+error[Z0401]: `base_size` of `theme` must be a Float, but this is a Str
+ --> scripts/main.zeff:3:20
+  |
+3 | p.theme(base_size: "large")
+  |                    ^^^^^^^ a Str
+  |
+  = help: usage: `p.theme(name: journal | minimal | slide = journal, base_size: Float = 9)`
+
+== a_theme_that_is_none
+error[Z0402]: `dark` is not one of the allowed words
+ --> scripts/main.zeff:3:9
+  |
+3 | p.theme(dark)
+  |         ^^^^ expected one of journal, minimal, slide
+
+== a_theme_in_quotation_marks
+error[Z0403]: expected one of journal, minimal, slide, found text
+ --> scripts/main.zeff:3:9
+  |
+3 | p.theme("slide")
+  |         ^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `slide`
+
+== a_theme_of_a_frame
+error[Z0401]: `theme` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | d.theme(slide)
+  | ^ this is a Frame
+  |
+  = help: `theme` takes a Plot first; `x.theme(...)` is `theme(x, ...)`
+
+== a_type_too_large_for_the_page
+error[Z0401]: a page of 89 by 66 mm is too small for this plot: its labels, never set below 8 points, leave 0 by 0 mm for the panel
+ --> scripts/main.zeff:3:1
+  |
+3 | export(p.theme(base_size: 60), "large.svg")
+  | ^^^^^^ too small a page
+  |
+  = help: a panel needs 12.7 mm each way; give a larger `size:`, as `one_column` (89 by 66 mm) or `two_column` (183 by 110 mm), or shorten the labels

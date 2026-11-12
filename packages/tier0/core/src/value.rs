@@ -88,6 +88,8 @@ pub struct Plot {
     pub legend: LegendPlace,
     /// The titles the script gives the plot, its axes and its legend of colour.
     pub labels: PlotLabels,
+    /// The theme of the figure: `journal` where the script says nothing.
+    pub theme: PlotTheme,
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
     pub summary: Table,
@@ -109,6 +111,39 @@ pub struct PlotLabels {
     pub y: Option<String>,
     pub color: Option<String>,
     pub caption: Option<String>,
+}
+
+/// The themes of a figure (section 7.6, "Guides and theme": `theme`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ThemeName {
+    /// For a figure in an article: axis lines with ticks, light gridlines, type from 8
+    /// points.
+    #[default]
+    Journal,
+    /// The same without the lines of the axes and their ticks: gridlines and labels alone.
+    Minimal,
+    /// For a slide: the same as `journal` with everything twice the size.
+    Slide,
+}
+
+impl ThemeName {
+    /// The theme as it is written: `journal`, `minimal`, `slide`.
+    pub fn name(self) -> &'static str {
+        match self {
+            ThemeName::Journal => "journal",
+            ThemeName::Minimal => "minimal",
+            ThemeName::Slide => "slide",
+        }
+    }
+}
+
+/// The theme the script gives a plot: its name, and the size of the titles of its axes in
+/// points of 1/72 inch, by which every other size of the figure is set in proportion;
+/// `None` for the size the theme has of its own.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct PlotTheme {
+    pub name: ThemeName,
+    pub base_size: Option<f64>,
 }
 
 /// Where the legends of a plot stand (section 7.6, "Guides and theme": `legend`).

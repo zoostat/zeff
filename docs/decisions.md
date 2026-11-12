@@ -3659,3 +3659,27 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 26a; section 7.6 of the Language Reference ("Guides and theme"; "A variable's label becomes its axis title").
+
+## 13 November 2026: `theme` (release 0.7.0, step 26b)
+
+**Decision.** `p.theme(name: journal | minimal | slide, base_size:)` sets the theme a figure is drawn by. It is held with the plot (`Plot.theme`) and carried by the scene (`Scene.theme`; the key `theme` of its JSON, written when it is not `journal` at its own size, so an earlier scene reads as it did). The writer of a figure builds the theme from it (`Theme::of` in `packages/tier1/plot/src/layout.rs`) where it used the constant `JOURNAL`; `journal` with no base size is that constant, value for value, which a test asserts, and no figure of an earlier step changes by a byte.
+
+**The three themes** (rulings where the text is silent, each the owner's to overturn; the catalogue says of a theme "white background, major gridlines only, text in points" and no more). (a) `journal` is the theme frozen at step 22. (b) `minimal` is `journal` without the lines of the two axes and without their ticks: an axis is its labels and its title, the labels a tick nearer the panel, and the gridlines carry the eye. The theme has a new value for it, `axis_lines`. (c) `slide` is `journal` at a base size of 18 points, twice that of an article, for the size `slide` of `export` (254 by 143 mm). (d) The three share one page, one ink and one grey of gridlines: a theme of another colour is not among the three.
+
+**The base size.** It is the size of the titles of the axes and legends, 9 points in `journal`, as the catalogue's `base_size: Float = 9` has it; every other size of the theme is a fixed share of it: the labels eight ninths, the title of the figure ten ninths, and the widths of lines, the lengths of ticks, the margins, the gaps and the bar of a continuous scale in the same proportion. The default of `slide` is 18 and not 9: the usage line's `= 9` holds for the two other themes, and the help page says so. A base size below 9 is refused, since the labels would be set below 8 points, which no text of a figure is (the rule of step 21b).
+
+**What a theme does not size: the marks.** The diameter of a point and the width of a line are given in points by the marks (`size:`, `width:`), and a scene holds them as it holds the data. A larger base size leaves them as they are, as ggplot2's `base_size` does, so on a slide the type is twice as large and a point of the default size is not. The help page says to give the marks a size to match. Scaling them with the theme would make `size: 6` mean two things; scaling only the sizes the script did not write would need the scene to tell a default from a number that was written, which it does not. The question is the owner's if he wants the marks of a slide larger by default.
+
+**What is said last replaces all that was said**: `theme(base_size: 12)` after `theme(slide)` is `journal` at 12 points.
+
+**The printed plot** says the theme on its last line when it is not `journal` at its own size.
+
+**The sample script.** The specification's sample writes `.theme(journal)`. The two stored checks of that script lose the line "no function is called `theme`" and nothing else.
+
+**Tests.** `packages/tier1/plot/tests/themes.rs`: five tests (`journal` is the frozen theme; every size in proportion to the base size, eleven of them, with the colours and the leading unchanged, and `slide` at 18; the theme in the scene and its JSON, with the scales and marks unchanged; `minimal` with no line and no tick, every label still written, the gridlines kept and the panel larger by a tick each way, with a snapshot of the drawing; a slide with labels at 16 and titles at 18 points and the points at their own 4.5, with a snapshot, and a base size of 12 on one column). `printing.rs`: nine plots and seven messages. The two examples of the page of `theme` are run. The conformance set gains six cases: what a script prints, the minimal figure in SVG, PDF and PNG, and a slide in SVG.
+
+**The specification.** Catalogue row 483 is marked `implemented`; its usage line is as it was.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 26b; section 7.6 of the Language Reference ("Guides and theme": "One default theme: white background, major gridlines only, no chart junk").

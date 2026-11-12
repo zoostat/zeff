@@ -1,0 +1,37 @@
+---
+source: packages/tier1/plot/tests/themes.rs
+expression: minimal.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 42.533,7.792 to 42.533,158.253 stroke #E3E3E3 0.35
+[grid] segment 81.267,7.792 to 81.267,158.253 stroke #E3E3E3 0.35
+[grid] segment 120,7.792 to 120,158.253 stroke #E3E3E3 0.35
+[grid] segment 158.733,7.792 to 158.733,158.253 stroke #E3E3E3 0.35
+[grid] segment 197.467,7.792 to 197.467,158.253 stroke #E3E3E3 0.35
+[grid] segment 236.2,7.792 to 236.2,158.253 stroke #E3E3E3 0.35
+[grid] segment 32.85,152.869 to 245.883,152.869 stroke #E3E3E3 0.35
+[grid] segment 32.85,123.766 to 245.883,123.766 stroke #E3E3E3 0.35
+[grid] segment 32.85,94.663 to 245.883,94.663 stroke #E3E3E3 0.35
+[grid] segment 32.85,65.561 to 245.883,65.561 stroke #E3E3E3 0.35
+[grid] segment 32.85,36.458 to 245.883,36.458 stroke #E3E3E3 0.35
+[panel] clip 32.85,7.792 213.033 by 150.461
+  [layer:1] point 42.533,151.413 circle 4.5 #222222 opacity 1
+  [layer:1] point 81.267,125.221 circle 4.5 #222222 opacity 1
+  [layer:1] point 120,91.753 circle 4.5 #222222 opacity 1
+  [layer:1] point 158.733,68.471 circle 4.5 #222222 opacity 1
+  [layer:1] point 197.467,51.009 circle 4.5 #222222 opacity 1
+  [layer:1] point 236.2,14.631 circle 4.5 #222222 opacity 1
+[axis:x] text 42.533,166.837 middle "1" sans 8 #222222
+[axis:x] text 81.267,166.837 middle "2" sans 8 #222222
+[axis:x] text 120,166.837 middle "3" sans 8 #222222
+[axis:x] text 158.733,166.837 middle "4" sans 8 #222222
+[axis:x] text 197.467,166.837 middle "5" sans 8 #222222
+[axis:x] text 236.2,166.837 middle "6" sans 8 #222222
+[axis:x] text 139.367,180.837 middle "dose" sans 9 #222222
+[axis:y] text 29.85,155.661 end "2" sans 8 #222222
+[axis:y] text 29.85,126.558 end "4" sans 8 #222222
+[axis:y] text 29.85,97.455 end "6" sans 8 #222222
+[axis:y] text 29.85,68.353 end "8" sans 8 #222222
+[axis:y] text 29.85,39.25 end "10" sans 8 #222222
+[axis:y] text 13,83.022 middle turned 90 "response" sans 9 #222222
