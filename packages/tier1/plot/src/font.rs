@@ -292,6 +292,18 @@ pub struct Face {
     line_gap: i16,
     cap_height: i16,
     x_height: i16,
+    /// The box that holds every glyph: left, bottom, right, top.
+    bounds: [i16; 4],
+    /// The name the font goes by in a PDF or PostScript file.
+    postscript_name: String,
+    /// How heavy the face is, from 1 to 1000: 400 for a regular face, 600 for a semibold one.
+    weight: u16,
+    /// Whether every glyph advances as far as every other.
+    fixed_pitch: bool,
+    /// How far the upright strokes lean, in degrees anticlockwise: 0 for an upright face.
+    italic_angle: f64,
+    /// What the maker of the font allows of a document that carries it (`fsType`).
+    embedding: u16,
     /// The advance of each glyph.
     advances: Vec<u16>,
     /// The characters the face draws, in order, each with its glyph.
@@ -332,6 +344,7 @@ impl Face {
         if units_per_em == 0 {
             return Err(FontError::Unsupported("a font with no units to the em"));
         }
+        let bounds = [head.i16(36)?, head.i16(38)?, head.i16(40)?, head.i16(42)?];
         let long_offsets = match head.i16(50)? {
             0 => false,
             1 => true,
@@ -363,7 +376,20 @@ impl Face {
         } else {
             (0, 0)
         };
+        let (weight, embedding) = (os2.u16(4)?, os2.u16(8)?);
+        // The lean of the face and whether it is of one width, where the font says.
+        let (italic_angle, fixed_pitch) = match table("post")? {
+            Some((offset, length)) => {
+                let post = file.part(offset, length)?;
+                (f64::from(post.u32(4)? as i32) / 65536.0, post.u32(12)? != 0)
+            }
+            None => (0.0, false),
+        };
         let map = Face::read_map(need("cmap")?, glyphs)?;
+        let postscript_name = match table("name")? {
+            Some((offset, length)) => Face::read_postscript_name(file.part(offset, length)?)?,
+            None => String::new(),
+        };
         // Where the outlines are.
         let loca = need("loca")?;
         let glyf = table("glyf")?.ok_or(FontError::MissingTable("glyf"))?;
@@ -391,12 +417,59 @@ impl Face {
             line_gap,
             cap_height,
             x_height,
+            bounds,
+            postscript_name,
+            weight,
+            fixed_pitch,
+            italic_angle,
+            embedding,
             advances,
             map,
             offsets,
             glyf,
             kerning,
         })
+    }
+
+    /// The PostScript name of the font (name 6 of the `name` table), from the Windows record in
+    /// UTF-16 or the Macintosh one in one byte to a letter; only the characters such a name may
+    /// hold are kept. Empty when the table has none.
+    fn read_postscript_name(name: Bytes<'static>) -> Result<String, FontError> {
+        let strings = usize::from(name.u16(4)?);
+        let mut found: Option<String> = None;
+        for i in 0..usize::from(name.u16(2)?) {
+            let at = 6 + 12 * i;
+            if name.u16(at + 6)? != 6 {
+                continue;
+            }
+            let platform = name.u16(at)?;
+            let text = name.part(
+                strings + usize::from(name.u16(at + 10)?),
+                usize::from(name.u16(at + 8)?),
+            )?;
+            let read: String = match platform {
+                3 | 0 => text
+                    .0
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .filter_map(|pair| char::from_u32(u32::from(u16::from_be_bytes(*pair))))
+                    .collect(),
+                1 => text.0.iter().map(|&b| char::from(b)).collect(),
+                _ => continue,
+            };
+            let kept: String = read
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+                .collect();
+            if !kept.is_empty() {
+                found = Some(kept);
+                if platform == 3 {
+                    break;
+                }
+            }
+        }
+        Ok(found.unwrap_or_default())
     }
 
     /// The characters of the Unicode map of format 4, each with its glyph.
@@ -579,6 +652,50 @@ impl Face {
     /// The height of a small letter such as x, in font units.
     pub fn x_height(&self) -> i16 {
         self.x_height
+    }
+
+    /// The box that holds every glyph, in font units: left, bottom, right, top.
+    pub fn bounds(&self) -> [i16; 4] {
+        self.bounds
+    }
+
+    /// The name the font goes by in a PDF file, `IBMPlexSans`; empty when the file gives none.
+    pub fn postscript_name(&self) -> &str {
+        &self.postscript_name
+    }
+
+    /// How heavy the face is, from 1 to 1000: 400 for a regular face, 600 for a semibold one.
+    pub fn weight(&self) -> u16 {
+        self.weight
+    }
+
+    /// Whether every glyph advances as far as every other.
+    pub fn fixed_pitch(&self) -> bool {
+        self.fixed_pitch
+    }
+
+    /// How far the upright strokes lean, in degrees anticlockwise: 0 for an upright face.
+    pub fn italic_angle(&self) -> f64 {
+        self.italic_angle
+    }
+
+    /// Whether the maker of the font lets a document carry it whole, for anyone to read and
+    /// print: the font sets no limit on embedding.
+    pub fn may_be_embedded(&self) -> bool {
+        self.embedding & 0x030E == 0
+    }
+
+    /// The file the face was read from, whole.
+    pub fn file_bytes(&self) -> &'static [u8] {
+        self.data
+    }
+
+    /// The character a glyph draws, when one does: the first in the order of Unicode.
+    pub fn character_of(&self, glyph: u16) -> Option<char> {
+        self.map
+            .iter()
+            .find(|&&(_, g)| g == glyph)
+            .and_then(|&(code, _)| char::from_u32(code))
     }
 
     /// The number of glyphs.

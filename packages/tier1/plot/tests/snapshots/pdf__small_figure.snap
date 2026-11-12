@@ -1,0 +1,249 @@
+---
+source: packages/tier1/plot/tests/pdf.rs
+expression: "format!(\"{}{}\", readable(&write_plain(&drawing)), kept(&pdf))"
+---
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 252.283 187.087] /Resources << /Font << /F1 5 0 R >> /XObject << /M1 10 0 R /M2 11 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 3331 >>
+stream
+1 0 0 -1 0 187.087 cm 4 M
+1 1 1 rg
+0 0 252.283 187.087 re f
+0.89 0.89 0.89 RG 0.35 w
+43.412 7.792 m 43.412 155.253 l S
+0.89 0.89 0.89 RG 0.35 w
+73.659 7.792 m 73.659 155.253 l S
+0.89 0.89 0.89 RG 0.35 w
+103.905 7.792 m 103.905 155.253 l S
+0.89 0.89 0.89 RG 0.35 w
+134.152 7.792 m 134.152 155.253 l S
+0.89 0.89 0.89 RG 0.35 w
+164.399 7.792 m 164.399 155.253 l S
+0.89 0.89 0.89 RG 0.35 w
+194.646 7.792 m 194.646 155.253 l S
+0.89 0.89 0.89 RG 0.35 w
+35.85 149.976 m 202.207 149.976 l S
+0.89 0.89 0.89 RG 0.35 w
+35.85 121.454 m 202.207 121.454 l S
+0.89 0.89 0.89 RG 0.35 w
+35.85 92.931 m 202.207 92.931 l S
+0.89 0.89 0.89 RG 0.35 w
+35.85 64.409 m 202.207 64.409 l S
+0.89 0.89 0.89 RG 0.35 w
+35.85 35.887 m 202.207 35.887 l S
+q 35.85 7.792 166.357 147.461 re W n
+q
+0.337 0.706 0.914 rg
+q 1 0 0 1 43.412 148.55 cm /M1 Do Q
+Q
+q
+0.902 0.624 0 rg
+q 1 0 0 1 73.659 122.88 cm /M2 Do Q
+Q
+q
+0.337 0.706 0.914 rg
+q 1 0 0 1 103.905 90.079 cm /M1 Do Q
+Q
+q
+0.902 0.624 0 rg
+q 1 0 0 1 134.152 67.261 cm /M2 Do Q
+Q
+q
+0.337 0.706 0.914 rg
+q 1 0 0 1 164.399 50.148 cm /M1 Do Q
+Q
+q
+0.902 0.624 0 rg
+q 1 0 0 1 194.646 14.495 cm /M2 Do Q
+Q
+Q
+0.133 0.133 0.133 RG 0.5 w
+35.85 155.253 m 202.207 155.253 l S
+0.133 0.133 0.133 RG 0.5 w
+43.412 155.253 m 43.412 158.253 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 41.012 166.837 Tm [<003E>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+73.659 155.253 m 73.659 158.253 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 71.259 166.837 Tm [<003F>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+103.905 155.253 m 103.905 158.253 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 101.505 166.837 Tm [<0040>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+134.152 155.253 m 134.152 158.253 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 131.752 166.837 Tm [<0041>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+164.399 155.253 m 164.399 158.253 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 161.999 166.837 Tm [<0042>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+194.646 155.253 m 194.646 158.253 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 192.246 166.837 Tm [<0043>] TJ
+ET
+BT
+/F1 9 Tf 0.133 0.133 0.133 rg 1 0 0 -1 109.237 180.837 Tm [<0008001500190009>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+35.85 7.792 m 35.85 155.253 l S
+0.133 0.133 0.133 RG 0.5 w
+32.85 149.976 m 35.85 149.976 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 25.05 152.768 Tm [<003F>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+32.85 121.454 m 35.85 121.454 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 25.05 124.246 Tm [<0041>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+32.85 92.931 m 35.85 92.931 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 25.05 95.723 Tm [<0043>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+32.85 64.409 m 35.85 64.409 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 25.05 67.201 Tm [<0045>] TJ
+ET
+0.133 0.133 0.133 RG 0.5 w
+32.85 35.887 m 35.85 35.887 l S
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 20.25 38.679 Tm [<003E003B>] TJ
+ET
+BT
+/F1 9 Tf 0.133 0.133 0.133 rg 0 -1 -1 0 13 100.161 Tm [<0018> 5 <0009001900160015001400190009>] TJ
+ET
+BT
+/F1 9 Tf 0.133 0.133 0.133 rg 1 0 0 -1 212.207 14 Tm [<000400180013>] TJ
+ET
+q
+0.902 0.624 0 rg
+q 1 0 0 1 214.457 24.25 cm /M2 Do Q
+Q
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 219.707 27.042 Tm [<00080018001B000B>] TJ
+ET
+q
+0.337 0.706 0.914 rg
+q 1 0 0 1 214.457 34.25 cm /M1 Do Q
+Q
+BT
+/F1 8 Tf 0.133 0.133 0.133 rg 1 0 0 -1 219.707 37.042 Tm [<0016001200040007> 6 <000900060015>] TJ
+ET
+
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type0 /BaseFont /IBMPlexSans /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 9 0 R >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /CIDFontType2 /BaseFont /IBMPlexSans /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 7 0 R /DW 1000 /W [4 [534] 6 [580 503 580 549] 11 [528] 18 [272 873 568 560 580] 24 [367 487] 27 [568] 59 [600] 62 [600 600 600 600 600 600] 69 [600]] /CIDToGIDMap /Identity >>
+endobj
+7 0 obj
+<< /Type /FontDescriptor /FontName /IBMPlexSans /Flags 4 /FontBBox [-260 -245 1241 1119] /ItalicAngle 0 /Ascent 1025 /Descent -275 /CapHeight 698 /StemV 96 /FontFile2 8 0 R >>
+endobj
+8 0 obj
+<< /Length1 200500 /Length 200500 >>
+stream
+(200500 bytes that are not text, a99deab680943960)
+endstream
+endobj
+9 0 obj
+<< /Length 633 >>
+stream
+/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def
+/CMapName /Adobe-Identity-UCS def
+/CMapType 2 def
+1 begincodespacerange
+<0000> <FFFF>
+endcodespacerange
+22 beginbfchar
+<0004> <0061>
+<0006> <0062>
+<0007> <0063>
+<0008> <0064>
+<0009> <0065>
+<000B> <0067>
+<0012> <006C>
+<0013> <006D>
+<0014> <006E>
+<0015> <006F>
+<0016> <0070>
+<0018> <0072>
+<0019> <0073>
+<001B> <0075>
+<003B> <0030>
+<003E> <0031>
+<003F> <0032>
+<0040> <0033>
+<0041> <0034>
+<0042> <0035>
+<0043> <0036>
+<0045> <0038>
+endbfchar
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end
+
+endstream
+endobj
+10 0 obj
+<< /Type /XObject /Subtype /Form /BBox [-7.099 -7.099 7.099 7.099] /Resources << >> /Length 40 >>
+stream
+0 -3.499 m 3.03 1.75 l -3.03 1.75 l h f
+
+endstream
+endobj
+11 0 obj
+<< /Type /XObject /Subtype /Form /BBox [-5.85 -5.85 5.85 5.85] /Resources << >> /Length 147 >>
+stream
+2.25 0 m 2.25 1.243 1.243 2.25 0 2.25 c -1.243 2.25 -2.25 1.243 -2.25 0 c -2.25 -1.243 -1.243 -2.25 0 -2.25 c 1.243 -2.25 2.25 -1.243 2.25 0 c h f
+
+endstream
+endobj
+12 0 obj
+<< /Producer (Zeff) >>
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000292 00000 n 
+0000003675 00000 n 
+0000003811 00000 n 
+0000004154 00000 n 
+0000004345 00000 n 
+0000204915 00000 n 
+0000205599 00000 n 
+0000205771 00000 n 
+0000206047 00000 n 
+trailer
+<< /Size 13 /Root 1 0 R /Info 12 0 R /ID [<122e66b8a3a8dff58083b392652ee097> <122e66b8a3a8dff58083b392652ee097>] >>
+startxref
+206086
+%%EOF
+--- with its streams compressed: 90793 bytes, b468734b6c6176d959d7f2245f6d53708ea8a6c89368ba2fc0b4809fcc09f900

@@ -166,3 +166,12 @@ Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size 
 
 **For the owner to decide.** Nothing new. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 22b1 (the PDF writer)
+
+**Done.** A drawing is written as a PDF file of one page (`plot::pdf::write`): every primitive as lines and curves, opacity, the clip region, the colour ramp as an image, and the text as real text in IBM Plex, which the file carries whole, set glyph by glyph with the kerning of step 21a and with the map that lets a reader search and copy the words. A shape met three times or more is written once and placed, so the first sample figure, of 18,201 marks, is 171 kB as PDF against 846 kB as SVG. No date, no version, nothing of the machine; the identifier comes from the file's own bytes. The font reader gained what a PDF asks of a font. Two crates were added and recorded with their licences: `miniz_oxide` =0.9.1 for compression, linked into the engine, and `lopdf` =0.47.0, a reader used by the tests alone. `export` does not write `.pdf` yet: that is step 22b3.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 263 of 263 (two new cases, the sample figures as PDF with and without compression); Ghostscript and the macOS renderer read and draw every sample file; CI is read job by job after the push, the identity jobs deciding whether the compressed bytes agree on the four targets.
+
+**Next.** Step 22b2 `[engine]`: the rasteriser and the PNG writer.
+
+**For the owner to decide.** Nothing new. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

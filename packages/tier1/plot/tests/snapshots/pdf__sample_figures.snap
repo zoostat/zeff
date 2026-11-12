@@ -1,0 +1,25 @@
+---
+source: packages/tier1/plot/tests/pdf.rs
+expression: all
+---
+wage_schooling at one_column: 170892 bytes, 18201 marks, 1 shapes written once, 9b7bfecab39973a9064d6fb426db25a47f55efc4dfcbb5e3a9bdbb8952391da4
+wage_schooling at two_column: 174449 bytes, 18201 marks, 1 shapes written once, 5147199357eaac1b25062aac94597559025d73d071a1a2a691d263fc2add7a53
+wage_schooling at slide: 176690 bytes, 18201 marks, 1 shapes written once, e48a7eee411a40fbbddbd5f379e70ee49ea21033c7dc3ebcbfa5aab445458270
+wage_experience_translucent at one_column: 179723 bytes, 18179 marks, 1 shapes written once, 3b00dd3e54976b47bf6dd988bf877fe2f4ec8e1b498d3db747cec46d45eb3def
+wage_experience_translucent at two_column: 183603 bytes, 18179 marks, 1 shapes written once, f9e417f4b270ac2dfb99f5494d8097035a15ff360c0ed85660ef55c2ca7317be
+wage_experience_translucent at slide: 185456 bytes, 18179 marks, 1 shapes written once, 0554daab6509197edd5bab057a3e96515035052adf48df43e8fe6e8b54457019
+coloured_by_union at one_column: 175535 bytes, 18201 marks, 1 shapes written once, 8c511136e94934b8f8ceab6e963669ada0eb6365d9b18aa27e255d2e214d4ea1
+coloured_by_union at two_column: 179547 bytes, 18201 marks, 1 shapes written once, fb06c2071e922e78e4ae55ed0d5e58ea7d13ce642bf5beebb42179ddcba0f7e1
+coloured_by_union at slide: 181638 bytes, 18201 marks, 1 shapes written once, 6db11e9539c9d55ce26b84084ef3ff2333e40541f01e163adef73ccdee73e597
+coloured_by_hours at one_column: 224306 bytes, 18167 marks, 1 shapes written once, 0c5fd1f698685a4234bc8d0827d567e355237129839c00291274df69a1f52059
+coloured_by_hours at two_column: 228339 bytes, 18167 marks, 1 shapes written once, 5d865dbd6e093e9cf4a43f4475a0149918d09889e3b9f4b94780b091341b12f4
+coloured_by_hours at slide: 230583 bytes, 18167 marks, 1 shapes written once, 4df16cacc8d1afae410937999be027499ecf78978e45cdc1ac80c7d472177c7f
+sized_coloured_shaped at one_column: 421490 bytes, 18145 marks, 768 shapes written once, e97753625a106707c1cc6c9abd8421228be0bbeaeca442b98f49d50c390125f1
+sized_coloured_shaped at two_column: 426478 bytes, 18145 marks, 768 shapes written once, eee89b58c9052d250b0d5edeb43cd951506d130148d40b8a67d5cb5c9828d60d
+sized_coloured_shaped at slide: 428613 bytes, 18145 marks, 768 shapes written once, 7eeecc80e9bd223fb7c75cb6ba3e4eb61b79572c658730812b9e3995420cf440
+shaped_by_industry at one_column: 187769 bytes, 18377 marks, 8 shapes written once, a678a906fa160b46db5a4110fd822c0c8dbcbd71b90865f065405f1e3c38ee81
+shaped_by_industry at two_column: 188475 bytes, 18377 marks, 8 shapes written once, 9e6ce467d82aa91affbd118c421367488b0682e0746edec839eb50187771e9be
+shaped_by_industry at slide: 188739 bytes, 18377 marks, 8 shapes written once, d8c248a0094300984c19c207cd202c4505d4b257479a6477ba8b9bffd1445bf1
+one_shape at one_column: 159885 bytes, 18377 marks, 1 shapes written once, 269eec1e3518ab53f7ceaeec941c0fefb742a6ca2a496017d6c7e854fb2505e0
+one_shape at two_column: 162506 bytes, 18377 marks, 1 shapes written once, 5987cc576196f215304d344bc185be58e2b8b7a0411242c3f3660308d8a77056
+one_shape at slide: 162455 bytes, 18377 marks, 1 shapes written once, ba84863f4880e345df827b77823583fc36d7b99a6d9c6d26f25d9f7c6025ae6e

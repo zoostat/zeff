@@ -37,8 +37,8 @@ pub const MARK_STROKE: f64 = 0.9;
 
 /// The share of the size of the type that a line of text takes above its baseline and below
 /// it, for the box behind a text.
-const ABOVE: f64 = 0.8;
-const BELOW: f64 = 0.2;
+pub(crate) const ABOVE: f64 = 0.8;
+pub(crate) const BELOW: f64 = 0.2;
 
 /// The SVG file of `drawing`, as text in UTF-8.
 pub fn write(drawing: &Drawing) -> String {
@@ -79,7 +79,7 @@ fn escape(text: &str) -> String {
 }
 
 /// The cosine and the sine of a turn in degrees, exact for the quarter turns.
-fn turned(degrees: f64) -> (f64, f64) {
+pub(crate) fn turned(degrees: f64) -> (f64, f64) {
     let within = degrees.rem_euclid(360.0);
     if within == 0.0 {
         (1.0, 0.0)
@@ -128,7 +128,7 @@ struct MarkPaint<'a> {
 
 /// The geometry of a point of this shape and size; a name that is no shape is drawn as the
 /// default shape.
-fn geometry(name: &str, size: f64) -> shape::Outline {
+pub(crate) fn geometry(name: &str, size: f64) -> shape::Outline {
     shape::outline(name, size)
         .or_else(|| shape::outline(shape::DEFAULT, size))
         .unwrap_or(shape::Outline {

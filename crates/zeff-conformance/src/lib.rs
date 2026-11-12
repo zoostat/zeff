@@ -1758,6 +1758,8 @@ fn plot_cases() -> Vec<Line> {
         text("plot/size_shape/scene.json", &sized),
         text("plot/layout/drawings", &layout_drawings()),
         text("plot/svg/figures", &svg_figures()),
+        bytes("plot/pdf/plain", &pdf_figures(false)),
+        bytes("plot/pdf/figures", &pdf_figures(true)),
         text("plot/fonts/metrics", &font_metrics()),
         text("plot/fonts/texts", &font_texts()),
         text("plot/fonts/outlines", &font_outlines()),
@@ -1852,6 +1854,24 @@ fn svg_figures() -> String {
         match drawing {
             Ok(drawing) => out.push_str(&zeff_plot::svg::write(&drawing)),
             Err(why) => out.push_str(&format!("{why}\n")),
+        }
+    }
+    out
+}
+
+/// The PDF of a figure (step 22b1): the bytes of each sample drawing as a file of one page,
+/// its text set in the embedded fonts, which it carries. With `packed` the streams of each
+/// file are compressed, as `export` writes them; without, they are as they are, so that a
+/// difference between two machines says whether it lies in what is drawn or in how it is
+/// compressed.
+fn pdf_figures(packed: bool) -> Vec<u8> {
+    let mut out = Vec::new();
+    for (name, drawing) in sample_drawings() {
+        out.extend_from_slice(format!("=== {name}\n").as_bytes());
+        match drawing {
+            Ok(drawing) if packed => out.extend_from_slice(&zeff_plot::pdf::write(&drawing)),
+            Ok(drawing) => out.extend_from_slice(&zeff_plot::pdf::write_plain(&drawing)),
+            Err(why) => out.extend_from_slice(format!("{why}\n").as_bytes()),
         }
     }
     out

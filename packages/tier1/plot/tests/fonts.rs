@@ -611,3 +611,47 @@ proptest! {
         }
     }
 }
+
+#[test]
+fn what_a_pdf_asks_of_a_font_is_read_as_the_second_reader_reads_it() {
+    let names = ["IBMPlexSans", "IBMPlexSans-SmBld", "IBMPlexMono"];
+    let weights = [400, 600, 400];
+    for (i, name) in FaceName::ALL.into_iter().enumerate() {
+        let font = face(name);
+        let theirs = other(name);
+        // The box that holds every glyph.
+        let b = theirs.global_bounding_box();
+        assert_eq!(font.bounds(), [b.x_min, b.y_min, b.x_max, b.y_max]);
+        // The name the font goes by in a PDF file.
+        assert_eq!(font.postscript_name(), names[i]);
+        let named = theirs
+            .names()
+            .into_iter()
+            .filter(|n| n.name_id == ttf_parser::name_id::POST_SCRIPT_NAME)
+            .find_map(|n| n.to_string());
+        assert_eq!(named.as_deref(), Some(names[i]));
+        // Its weight, its lean, and whether it is of one width.
+        assert_eq!(font.weight(), weights[i]);
+        assert_eq!(font.weight(), theirs.weight().to_number());
+        assert_eq!(font.fixed_pitch(), theirs.is_monospaced());
+        assert_eq!(font.fixed_pitch(), name == FaceName::Mono);
+        assert_eq!(font.italic_angle(), 0.0);
+        assert_eq!(font.italic_angle(), f64::from(theirs.italic_angle()));
+        // The fonts set no limit on being carried in a document.
+        assert!(font.may_be_embedded());
+        assert_eq!(
+            theirs.permissions(),
+            Some(ttf_parser::Permissions::Installable)
+        );
+        // The file is the one read, whole.
+        assert_eq!(font.file_bytes(), name.bytes());
+        // A glyph is given back the first character that draws it.
+        assert_eq!(font.character_of(font.glyph('A').unwrap()), Some('A'));
+        assert_eq!(font.character_of(font.glyph(' ').unwrap()), Some(' '));
+        for character in font.characters() {
+            let glyph = font.glyph(character).unwrap();
+            let first = font.character_of(glyph).unwrap();
+            assert!(first <= character && font.glyph(first) == Some(glyph));
+        }
+    }
+}

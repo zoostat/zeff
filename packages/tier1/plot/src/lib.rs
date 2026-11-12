@@ -23,6 +23,7 @@ pub mod json;
 pub mod layout;
 mod mapping;
 pub mod marks;
+pub mod pdf;
 pub mod scale;
 pub mod scene;
 pub mod shape;
