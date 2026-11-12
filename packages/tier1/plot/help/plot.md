@@ -118,11 +118,14 @@ After `#` come the red, the green and the blue as two hexadecimal digits each, a
 short for `"#4488BB"`. A bare name is always read as a variable of the frame, so the string is
 written where it is used.
 
-What a colour cannot hold. An expression is not mapped to a colour: compute the variable with
-`add` first. A Date and a DateTime have no colour scale. When a layer has a frame of its own,
-the variable must be of the same kind there, categories or a number without value labels, and
-categories that only that frame holds come after those of the frame of the plot. The same holds
-for a size and for a shape.
+What a colour cannot hold. An expression is not mapped to a colour, nor to `fill:`, `size:`,
+`shape:`, `group:` or `label:`, which take a variable by its name: `color: wage > 20` is an
+error (Z0401) that says so. Compute the variable with `add` first, as in
+`w.add(high = wage > 20).plot(x: educ, y: wage, color: high)`. A number worked out from numbers
+alone, `size: 2 + 1`, is a number. A Date and a DateTime have no colour scale. When a layer
+has a frame of its own, the variable must be of the same kind there, categories or a number
+without value labels, and categories that only that frame holds come after those of the frame
+of the plot. The same holds for a size and for a shape.
 
 Size. A variable mapped to `size:` is an amount: an Int or a Float without value labels. The
 area of a mark is in proportion to its value, so a value four times another is drawn twice as

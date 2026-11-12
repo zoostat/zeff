@@ -2588,6 +2588,70 @@ impl Checker<'_> {
         }
     }
 
+    /// Whether `value`, given where a parameter of type `ty` takes a variable by its name and
+    /// no expression, computes something from a name that is no binding: `color: wage > 20`,
+    /// `group: -educ`, `label: upper(industry)`. Such a name is meant as a variable of the
+    /// frame, and the mistake is the expression, not the name (release 0.7.0, step 20e). A
+    /// bare name, a list, a range, `vars(...)` and an expression over bindings alone
+    /// (`size: 2 + 1`) are not that mistake.
+    fn computes_where_a_variable_is_named(&self, value: &ast::Expr, ty: &Ty) -> bool {
+        if !accepts_var_value(Some(ty)) || takes_expression(ty) || takes_columns(ty) {
+            return false;
+        }
+        let mut inner = value;
+        while let ast::ExprKind::Paren(e) = &inner.kind {
+            inner = e;
+        }
+        let computes = match &inner.kind {
+            ast::ExprKind::Unary { .. } => true,
+            ast::ExprKind::Binary { op, .. } => {
+                !matches!(op, ast::BinaryOp::Range | ast::BinaryOp::Interact)
+            }
+            // A call of a known function that does not itself give variables, as `vars` does.
+            ast::ExprKind::Call { callee, .. } => {
+                let homes = self
+                    .registry
+                    .named(callee.segments.last().map_or("", |s| s.text.as_str()));
+                !homes.is_empty()
+                    && homes
+                        .iter()
+                        .all(|f| !matches!(Ty::parse(f.spec.returns), Some(Ty::Var | Ty::Vars)))
+            }
+            _ => false,
+        };
+        computes && self.names_no_binding(inner)
+    }
+
+    /// Whether an expression holds a bare name that is neither a binding nor a constant of
+    /// `core`: inside a frame's method, a variable of the frame.
+    fn names_no_binding(&self, expr: &ast::Expr) -> bool {
+        match &expr.kind {
+            ast::ExprKind::Name(path) => {
+                path.segments.len() == 1
+                    && self.lookup(&path.segments[0].text).is_none()
+                    && self
+                        .core_constant(&path.segments[0].text, expr.span)
+                        .is_none()
+            }
+            ast::ExprKind::Paren(inner) => self.names_no_binding(inner),
+            ast::ExprKind::Unary { operand, .. } => self.names_no_binding(operand),
+            ast::ExprKind::Binary { lhs, rhs, .. } => {
+                self.names_no_binding(lhs) || self.names_no_binding(rhs)
+            }
+            ast::ExprKind::Call { args, .. } => args.iter().any(|arg| match arg {
+                ast::Arg::Positional(e) | ast::Arg::Spread(e) => self.names_no_binding(e),
+                ast::Arg::Named { value, .. } | ast::Arg::Define { value, .. } => {
+                    self.names_no_binding(value)
+                }
+            }),
+            ast::ExprKind::List(items) => items.iter().any(|item| self.names_no_binding(item)),
+            ast::ExprKind::Index { receiver, index } => {
+                self.names_no_binding(receiver) || self.names_no_binding(index)
+            }
+            _ => false,
+        }
+    }
+
     /// An argument of a call: inside a frame method, an argument whose parameter takes a column
     /// is checked with the receiver's columns in scope (section 3.7, "Name lookup").
     fn argument(&mut self, value: &ast::Expr, ty: &Ty, frame_method: bool) -> Expr {
@@ -5504,6 +5568,11 @@ impl Checker<'_> {
             && spec.method
             && self.frame_scope > 0
             && spec.params.first().is_some_and(|p| p.ty == "Frame");
+        // The receiver as a message may write it: the name of the binding it is.
+        let receiver_name: Option<String> = match receiver.as_ref().map(|r| &r.kind) {
+            Some(ExprKind::Binding(id)) => Some(self.bindings[*id].name.clone()),
+            _ => None,
+        };
         if let Some(r) = receiver {
             if let ExprKind::Binding(id) = &r.kind
                 && self.maybe_failed.contains(id)
@@ -5553,8 +5622,24 @@ impl Checker<'_> {
                         continue;
                     }
                     if next_positional < params.len() {
-                        let (_, ty, _) = &params[next_positional];
-                        let lowered = self.argument(e, ty, frame_method);
+                        let (name, ty, _) = &params[next_positional];
+                        let lowered = if frame_method
+                            && !implicit_receiver
+                            && self.computes_where_a_variable_is_named(e, ty)
+                        {
+                            argument_error = true;
+                            self.report(not_a_variable(
+                                e,
+                                ty,
+                                name,
+                                &fname,
+                                receiver_name.as_deref(),
+                                if args.len() > 1 { "v, ..." } else { "v" },
+                            ));
+                            Expr::error(e.span)
+                        } else {
+                            self.argument(e, ty, frame_method)
+                        };
                         slots[next_positional] = Some(lowered);
                         order.push(Slot::Param(next_positional));
                         next_positional += 1;
@@ -5646,7 +5731,27 @@ impl Checker<'_> {
                         spreads[s].targets.retain(|(_, idx)| *idx != position);
                     }
                     let (_, ty, _) = &params[position];
-                    let lowered = self.argument(value, ty, frame_method);
+                    let lowered = if frame_method
+                        && !implicit_receiver
+                        && self.computes_where_a_variable_is_named(value, ty)
+                    {
+                        argument_error = true;
+                        self.report(not_a_variable(
+                            value,
+                            ty,
+                            &format!("{}:", arg_name.text),
+                            &fname,
+                            receiver_name.as_deref(),
+                            &format!(
+                                "{}{}: v",
+                                if args.len() > 1 { "..., " } else { "" },
+                                arg_name.text
+                            ),
+                        ));
+                        Expr::error(value.span)
+                    } else {
+                        self.argument(value, ty, frame_method)
+                    };
                     slots[position] = Some(lowered);
                     order.push(Slot::Param(position));
                 }
@@ -7474,6 +7579,60 @@ fn split_top_level(text: &str) -> (&str, &str) {
         }
     }
     (text.trim(), "")
+}
+
+/// The refusal of an expression where a parameter takes a variable by its name (release 0.7.0,
+/// step 20e): `param` is the parameter as the message names it (`color:`), `shown` the
+/// arguments of the corrected call (`..., color: v`). The code is that of the other refusals of
+/// what a mapping may hold (open decision #107).
+fn not_a_variable(
+    value: &ast::Expr,
+    ty: &Ty,
+    param: &str,
+    fname: &str,
+    receiver: Option<&str>,
+    shown: &str,
+) -> Diagnostic {
+    fn taken(ty: &Ty, out: &mut Vec<&'static str>) {
+        let what = match ty {
+            Ty::Union(options) => {
+                options.iter().for_each(|option| taken(option, out));
+                return;
+            }
+            Ty::Var => "a variable of the frame",
+            Ty::Vars => "variables of the frame",
+            Ty::Str => "a string",
+            Ty::Int | Ty::Float => "a number",
+            Ty::Bool => "true or false",
+            _ => return,
+        };
+        if !out.contains(&what) {
+            out.push(what);
+        }
+    }
+    let mut takes = Vec::new();
+    taken(ty, &mut takes);
+    let takes = match takes.as_slice() {
+        [] => "a variable of the frame".to_string(),
+        [one] => (*one).to_string(),
+        [first @ .., last] => format!("{} or {last}", first.join(", ")),
+    };
+    let computed = written(value);
+    // The receiver by its name when it is a binding; a longer one would bury the advice.
+    let help = match receiver {
+        Some(name) => format!(
+            "compute it first and name the new variable: `{name}.add(v = {computed}).{fname}({shown})`"
+        ),
+        None => format!(
+            "compute it first and name the new variable: `.add(v = {computed})` before `.{fname}({shown})`"
+        ),
+    };
+    Diagnostic::error(
+        "Z0401",
+        format!("`{param}` of `{fname}` takes {takes}, not an expression"),
+    )
+    .primary(value.span, "an expression")
+    .help(help)
 }
 
 /// Whether a parameter takes an expression over the frame (`Expr`, or a union with it).

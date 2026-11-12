@@ -166,3 +166,13 @@ Step 18 `[engine]`: `dist.tukey(groups:, df:)`, the studentized range, exact to 
 
 **For the owner to decide.** Nothing new is needed to go on. Rulings he may overturn, all in `docs/decisions.md`: `term:` is written after `method:`, so that `posthoc(holm)` keeps its meaning; `term:` must be a term of the formula; a numeric variable is held at its weighted mean under weights, where emmeans uses the unweighted mean; a `Bool` is a number, where emmeans treats it as a factor; a mean that cannot be estimated is left out with a note; no table of the marginal means themselves is printed. Noticed and not changed: three older test files read their number of property cases from a name the nightly run does not set. Open as before: #110 (eight shapes, before step 21), #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 20e (an expression where an aesthetic takes a variable)
+
+**Done.** The defect the owner found is corrected. `w.plot(x: educ, y: wage, color: wage > 20)` is still refused, but the message now names the real cause: "`color:` of `plot` takes a variable of the frame or a string, not an expression", with the advice to compute it with `add` first, written out for the case in hand. The same holds for `fill:`, `size:`, `shape:`, `group:` and `label:`. A misspelt variable given alone keeps its own message and its "did you mean". The cause was general, so the correction is too: `w.mean(wage * 2)` and `group: educ > 12` in any method of a frame now get the same clear message. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 247 of 247; CI is read job by job after the push.
+
+**Next.** Step 21 `[engine]`: the SVG writer, fonts and theme, with the fixed points of open decision #118.
+
+**For the owner to decide.** Before step 21: open decision #110, question 2, the eight shapes (six are built; recommended, add `triangle_down` and `star`). A ruling he may overturn: the message says "a string" for `color:`, not "a string naming a colour", because one rule serves every function. Open as before: #109, #108, #106, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

@@ -64,7 +64,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable mapped to x: or y: that is not a Bool, an Int or a Float; an expression that does not give one for each row, or that holds what a mapping cannot compute; a string for color: or fill: that is not a colour; a Date or DateTime variable mapped to color: or fill:; a variable mapped to size: that is not an Int or a Float without value labels; a size: that is not above 0; a variable mapped to shape: that is not shown as categories; a string for shape: that is not the name of a shape",
+                        "a variable mapped to x: or y: that is not a Bool, an Int or a Float; an expression that does not give one for each row, or that holds what a mapping cannot compute; a string for color: or fill: that is not a colour; a Date or DateTime variable mapped to color: or fill:; a variable mapped to size: that is not an Int or a Float without value labels; a size: that is not above 0; a variable mapped to shape: that is not shown as categories; a string for shape: that is not the name of a shape; an expression given to color:, fill:, size:, shape:, group: or label:, which take a variable by its name",
                     ),
                 ],
                 help: include_str!("../help/plot.md"),

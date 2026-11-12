@@ -2926,3 +2926,19 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** Open decision #104 and the checklist's step 19b; open decisions #97 and #98.
 
+## 12 November 2026: an expression where a variable is named (release 0.7.0, step 20e)
+
+**Decision.** `w.plot(x: educ, y: wage, color: wage > 20)` is still refused when the script is checked, and now for the right reason: Z0401, "`color:` of `plot` takes a variable of the frame or a string, not an expression", marked on the whole expression, with the help "compute it first and name the new variable: `w.add(v = wage > 20).plot(..., color: v)`". Before, the checker read `wage` as a name of the script and answered Z0101, "nothing is called `wage` here … not a binding", although `wage` is a variable of the frame; a function in the same place (`color: log(exper)`, `label: upper(industry)`) was answered with a type, "must be a Var or Str, but this is a Float". The same message now answers `fill:`, `size:`, `shape:`, `group:` and `label:`. The code is the one of the other refusals of what a mapping may hold (open decision #107).
+
+**The rule is general, not written for `plot`.** The cause was not in `plot`: every method of a frame whose parameter takes a variable by its name answered an expression in the same misleading way (`w.mean(wage * 2)`, `w.t_test(wage, group: educ > 12)`, `by: a + b`). The checker gained one rule for all of them. An argument is this mistake when the parameter takes a variable (`Var` or `Vars`, alone or beside other types) and no expression or column; the argument is an operator, a sign or a call of a known function that does not itself give variables; and it holds a bare name that is neither a binding nor a constant of `core`. What the parameter takes is said from its type: "a variable of the frame", "variables of the frame", "or a string", "or a number". So the message for `color:` says "a string" and not "a string naming a colour" as the checklist's sentence has it; the help page of `plot` says what the string names.
+
+**What is not that mistake**, and is answered as before: a name alone, in brackets or not, which is a variable and keeps Z0101 with its "did you mean" when the frame lacks it; a list of variables, a range `a..b` and `vars(...)`; an expression worked out from numbers and bindings alone, such as `size: 2 + 1`, which is a number; an axis, which takes an expression; and a reducer inside a definition, `aggregate(m = mean(wage * 2))`, which has no receiver to name in the advice and keeps its message "must be a Var, but this is a Column" (noticed, left for the diagnostics work).
+
+**The advice.** The corrected call is written with the receiver when it is a binding, and without it when the receiver is a longer expression, which would bury the advice: "`.add(v = wage > 20)` before `.plot(..., color: v)`". The new variable is called `v`.
+
+**Tests.** `packages/tier1/plot/tests/printing.rs`: the snapshot `aesthetic_expression_messages`, eighteen expressions over the six aesthetics (operators, a sign, functions, brackets, a binding beside the variable, a misspelt variable inside the expression, a receiver that is no single name), each checked to say "not an expression" and to mention no binding, and six misspelt variables given alone, each keeping Z0101 and its suggestion; four statements that still draw. `crates/zeff-engine/tests/methods.rs`: the general rule on `mean`, `t_test`, `aggregate` and `sort`, and the forms that are not the mistake. Two recorded messages of steps 20c and 20d changed with the rule (`size: sqrt(hours)`, `group: floor(exper / 10)` and `color: log(exper)`), each from the misleading form to the new one; no other snapshot of the workspace changed. The help page of `plot` names the message.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 20e, a defect the owner reported on 11 November 2026; open decision #107.
+

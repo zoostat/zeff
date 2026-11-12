@@ -136,11 +136,13 @@ error[Z0401]: `size` of `plot` must be a Var or Float, but this is a List<Int>
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage, size: sqrt(hours))
-error[Z0101]: nothing is called `hours` here
- --> scripts/main.zeff:2:37
+error[Z0401]: `size:` of `plot` takes a variable of the frame or a number, not an expression
+ --> scripts/main.zeff:2:32
   |
 2 | w.plot(x: educ, y: wage, size: sqrt(hours))
-  |                                     ^^^^^ not a binding
+  |                                ^^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = sqrt(hours)).plot(..., size: v)`
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage, size: female)
@@ -306,13 +308,13 @@ error[Z0401]: `label` of `plot` must be a Var, but this is an Int
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage, group: floor(exper / 10))
-error[Z0401]: `group` of `plot` must be a Var, but this is a Float
+error[Z0401]: `group:` of `plot` takes a variable of the frame, not an expression
  --> scripts/main.zeff:2:33
   |
 2 | w.plot(x: educ, y: wage, group: floor(exper / 10))
-  |                                 ^^^^^^^^^^^^^^^^^ a Float
+  |                                 ^^^^^^^^^^^^^^^^^ an expression
   |
-  = help: name a variable of the frame, without quotes
+  = help: compute it first and name the new variable: `w.add(v = floor(exper / 10)).plot(..., group: v)`
 
 let w = dataset(wages)
 let p = w.plot(x: educ, y: wage, size: hours)

@@ -149,6 +149,75 @@ fn what_a_function_value_refuses() {
     assert_eq!(error_code("let f = abs\n"), "Z0101");
 }
 
+/// An expression given where a frame's method takes a variable by its name (release 0.7.0,
+/// step 20e): the message names the expression, not a binding that is missing, whichever
+/// function is called; what gives variables or is worked out from bindings is no such mistake.
+#[test]
+fn an_expression_where_a_variable_is_named_is_refused_as_an_expression() {
+    const D: &str = "let d = frame(y = [1.5, 2.5, 4.0, 3.0, 5.5, 7.0], g = [1, 1, 1, 2, 2, 2], h = [1, 2, 1, 2, 1, 2])\n";
+    for (statement, message, help) in [
+        (
+            "d.mean(y * 2)",
+            "`var` of `mean` takes a variable of the frame, not an expression",
+            "`d.add(v = y * 2).mean(v)`",
+        ),
+        (
+            "d.t_test(y, group: g > 1)",
+            "`group:` of `t_test` takes a variable of the frame, not an expression",
+            "`d.add(v = g > 1).t_test(..., group: v)`",
+        ),
+        (
+            "d.t_test(log(y), group: g)",
+            "`var` of `t_test` takes a variable of the frame, not an expression",
+            "`d.add(v = log(y)).t_test(v, ...)`",
+        ),
+        (
+            "d.aggregate(m = mean(y), by: g + h)",
+            "`by:` of `aggregate` takes variables of the frame, not an expression",
+            "`d.add(v = g + h).aggregate(..., by: v)`",
+        ),
+        (
+            "d.where(g == 1).sort(-y)",
+            "`vars` of `sort` takes variables of the frame, not an expression",
+            "`.add(v = -y)` before `.sort(v)`",
+        ),
+    ] {
+        let outcome = run(&format!("{D}{statement}\n"));
+        assert_eq!(outcome.exit_code, 1, "{statement}");
+        let stderr = &outcome.output.stderr;
+        assert!(
+            stderr.starts_with(&format!("error[Z0401]: {message}\n")),
+            "{statement}\n{stderr}"
+        );
+        assert!(stderr.contains("an expression\n"), "{statement}\n{stderr}");
+        assert!(stderr.contains(help), "{statement}\n{stderr}");
+    }
+    // Variables given as a list, a range or `vars(...)`, and a name alone, are as before.
+    for statement in [
+        "d.aggregate(m = mean(y), by: [g, h])",
+        "d.aggregate(m = mean(y), by: vars(g, h))",
+        "d.select(y..g)",
+        "d.mean((y))",
+    ] {
+        let outcome = run(&format!("{D}{statement}\n"));
+        assert_eq!(
+            outcome.exit_code, 0,
+            "{statement}\n{}",
+            outcome.output.stderr
+        );
+    }
+    // A name that is no variable, given alone, keeps the message that says so.
+    let outcome = run(&format!("{D}d.mean(yy)\n"));
+    assert!(
+        outcome
+            .output
+            .stderr
+            .starts_with("error[Z0101]: no variable `yy` in `d`"),
+        "{}",
+        outcome.output.stderr
+    );
+}
+
 #[test]
 fn every_message_of_methods_and_function_values() {
     let cases = [

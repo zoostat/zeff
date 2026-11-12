@@ -1,0 +1,220 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+w.plot(x: educ, y: wage, color: wage > 20)
+error[Z0401]: `color:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: wage > 20)
+  |                                 ^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = wage > 20).plot(..., color: v)`
+
+w.plot(x: educ, y: wage, fill: wage > 20)
+error[Z0401]: `fill:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, fill: wage > 20)
+  |                                ^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = wage > 20).plot(..., fill: v)`
+
+w.plot(x: educ, y: wage, size: hours * 2)
+error[Z0401]: `size:` of `plot` takes a variable of the frame or a number, not an expression
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: hours * 2)
+  |                                ^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = hours * 2).plot(..., size: v)`
+
+w.plot(x: educ, y: wage, shape: union == 1)
+error[Z0401]: `shape:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: union == 1)
+  |                                 ^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = union == 1).plot(..., shape: v)`
+
+w.plot(x: educ, y: wage, group: -educ)
+error[Z0401]: `group:` of `plot` takes a variable of the frame, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, group: -educ)
+  |                                 ^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = -educ).plot(..., group: v)`
+
+w.plot(x: educ, y: wage, label: upper(industry))
+error[Z0401]: `label:` of `plot` takes a variable of the frame, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, label: upper(industry))
+  |                                 ^^^^^^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = upper(industry)).plot(..., label: v)`
+
+w.plot(x: educ, y: wage, color: !female)
+error[Z0401]: `color:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: !female)
+  |                                 ^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = !female).plot(..., color: v)`
+
+w.plot(x: educ, y: wage, color: log(wage))
+error[Z0401]: `color:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: log(wage))
+  |                                 ^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = log(wage)).plot(..., color: v)`
+
+w.plot(x: educ, y: wage, fill: industry == "Retail")
+error[Z0401]: `fill:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, fill: industry == "Retail")
+  |                                ^^^^^^^^^^^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = industry == "Retail").plot(..., fill: v)`
+
+w.plot(x: educ, y: wage, size: sqrt(hours))
+error[Z0401]: `size:` of `plot` takes a variable of the frame or a number, not an expression
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: sqrt(hours))
+  |                                ^^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = sqrt(hours)).plot(..., size: v)`
+
+w.plot(x: educ, y: wage, shape: wage > 20 && union == 1)
+error[Z0401]: `shape:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: wage > 20 && union == 1)
+  |                                 ^^^^^^^^^^^^^^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = wage > 20 && union == 1).plot(..., shape: v)`
+
+w.plot(x: educ, y: wage, group: floor(exper / 10))
+error[Z0401]: `group:` of `plot` takes a variable of the frame, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, group: floor(exper / 10))
+  |                                 ^^^^^^^^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = floor(exper / 10)).plot(..., group: v)`
+
+w.plot(x: educ, y: wage, label: industry + "!")
+error[Z0401]: `label:` of `plot` takes a variable of the frame, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, label: industry + "!")
+  |                                 ^^^^^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = industry + "!").plot(..., label: v)`
+
+w.plot(x: educ, y: wage, color: (wage > 20))
+error[Z0401]: `color:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: (wage > 20))
+  |                                 ^^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = (wage > 20)).plot(..., color: v)`
+
+w.plot(color: wage > 20)
+error[Z0401]: `color:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:15
+  |
+2 | w.plot(color: wage > 20)
+  |               ^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = wage > 20).plot(color: v)`
+
+let cut = 20
+w.plot(x: educ, y: wage, color: wage > cut)
+error[Z0401]: `color:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:3:33
+  |
+3 | w.plot(x: educ, y: wage, color: wage > cut)
+  |                                 ^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = wage > cut).plot(..., color: v)`
+
+w.plot(x: educ, y: wage, color: wagee > 20)
+error[Z0401]: `color:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: wagee > 20)
+  |                                 ^^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `w.add(v = wagee > 20).plot(..., color: v)`
+
+dataset(wages).where(year == 2010).plot(x: educ, y: wage, color: wage > 20)
+error[Z0401]: `color:` of `plot` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:2:66
+  |
+2 | dataset(wages).where(year == 2010).plot(x: educ, y: wage, color: wage > 20)
+  |                                                                  ^^^^^^^^^ an expression
+  |
+  = help: compute it first and name the new variable: `.add(v = wage > 20)` before `.plot(..., color: v)`
+
+w.plot(x: educ, y: wage, color: wagee)
+error[Z0101]: no variable `wagee` in `w`
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, color: wagee)
+  |                                 ^^^^^ not a variable of w
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+w.plot(x: educ, y: wage, size: hour)
+error[Z0101]: no variable `hour` in `w`
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, size: hour)
+  |                                ^^^^ not a variable of w
+  |
+  = help: did you mean `hours`? If you meant a category level, write it in quotes: `"hours"`
+
+w.plot(x: educ, y: wage, shape: unoin)
+error[Z0101]: no variable `unoin` in `w`
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, shape: unoin)
+  |                                 ^^^^^ not a variable of w
+  |
+  = help: did you mean `union`? If you meant a category level, write it in quotes: `"union"`
+
+w.plot(x: educ, y: wage, group: industy)
+error[Z0101]: no variable `industy` in `w`
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, group: industy)
+  |                                 ^^^^^^^ not a variable of w
+  |
+  = help: did you mean `industry`? If you meant a category level, write it in quotes: `"industry"`
+
+w.plot(x: educ, y: wage, label: industri)
+error[Z0101]: no variable `industri` in `w`
+ --> scripts/main.zeff:2:33
+  |
+2 | w.plot(x: educ, y: wage, label: industri)
+  |                                 ^^^^^^^^ not a variable of w
+  |
+  = help: did you mean `industry`? If you meant a category level, write it in quotes: `"industry"`
+
+w.plot(x: educ, y: wage, fill: femal)
+error[Z0101]: no variable `femal` in `w`
+ --> scripts/main.zeff:2:32
+  |
+2 | w.plot(x: educ, y: wage, fill: femal)
+  |                                ^^^^^ not a variable of w
+  |
+  = help: did you mean `female`? If you meant a category level, write it in quotes: `"female"`

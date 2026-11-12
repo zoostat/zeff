@@ -5,7 +5,9 @@
 //! prints against R's values, the names it reads, the layers that compute it on their own
 //! frame, its edge cases and its messages. From step 20c, colour and fill; from step 20d, size,
 //! shape, group and label: what a sized and shaped plot prints against R's counts, the edge
-//! cases, and a snapshot of every message.
+//! cases, and a snapshot of every message. From step 20e, an expression given to an aesthetic
+//! that takes a variable by its name: the message says so, for each of the six, and a name the
+//! frame lacks keeps its own message.
 
 use zeff_testkit::run;
 
@@ -801,4 +803,107 @@ fn a_bare_name_for_a_size_is_a_variable_whatever_is_bound_to_it() {
         stdout.contains("      1   points   d          3   size by s, alpha 1\n"),
         "{stdout}"
     );
+}
+
+// ----- an expression where an aesthetic takes a variable (step 20e) -----
+
+#[test]
+fn no_aesthetic_answers_an_expression_with_a_message_about_bindings() {
+    const W: &str = "let w = dataset(wages)\n";
+    let mut all = String::new();
+    for statement in [
+        // The owner's case, and the same in each aesthetic: an operator, a sign, a function.
+        "w.plot(x: educ, y: wage, color: wage > 20)",
+        "w.plot(x: educ, y: wage, fill: wage > 20)",
+        "w.plot(x: educ, y: wage, size: hours * 2)",
+        "w.plot(x: educ, y: wage, shape: union == 1)",
+        "w.plot(x: educ, y: wage, group: -educ)",
+        "w.plot(x: educ, y: wage, label: upper(industry))",
+        "w.plot(x: educ, y: wage, color: !female)",
+        "w.plot(x: educ, y: wage, color: log(wage))",
+        "w.plot(x: educ, y: wage, fill: industry == \"Retail\")",
+        "w.plot(x: educ, y: wage, size: sqrt(hours))",
+        "w.plot(x: educ, y: wage, shape: wage > 20 && union == 1)",
+        "w.plot(x: educ, y: wage, group: floor(exper / 10))",
+        "w.plot(x: educ, y: wage, label: industry + \"!\")",
+        // In brackets, alone in the call, with a binding beside the variable, and with a name
+        // the frame lacks: the mistake is still the expression.
+        "w.plot(x: educ, y: wage, color: (wage > 20))",
+        "w.plot(color: wage > 20)",
+        "let cut = 20\nw.plot(x: educ, y: wage, color: wage > cut)",
+        "w.plot(x: educ, y: wage, color: wagee > 20)",
+        // A receiver that is no single name: the advice does not repeat it.
+        "dataset(wages).where(year == 2010).plot(x: educ, y: wage, color: wage > 20)",
+    ] {
+        let script = format!("{W}{statement}\n");
+        let (code, stdout, stderr) = go(&script);
+        assert_eq!(code, 1, "{script}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{script}");
+        assert!(stderr.starts_with("error[Z0401]: `"), "{script}\n{stderr}");
+        assert!(
+            stderr.contains("not an expression") && stderr.contains("compute it first"),
+            "{script}\n{stderr}"
+        );
+        assert!(
+            !stderr.contains("binding") && !stderr.contains("Z0101"),
+            "{script}\n{stderr}"
+        );
+        all.push_str(statement);
+        all.push('\n');
+        all.push_str(&stderr);
+        all.push('\n');
+    }
+    // A name the frame lacks, given alone, keeps its own message and its suggestion.
+    for (statement, near) in [
+        (
+            "w.plot(x: educ, y: wage, color: wagee)",
+            "did you mean `wage`?",
+        ),
+        (
+            "w.plot(x: educ, y: wage, size: hour)",
+            "did you mean `hours`?",
+        ),
+        (
+            "w.plot(x: educ, y: wage, shape: unoin)",
+            "did you mean `union`?",
+        ),
+        (
+            "w.plot(x: educ, y: wage, group: industy)",
+            "did you mean `industry`?",
+        ),
+        (
+            "w.plot(x: educ, y: wage, label: industri)",
+            "did you mean `industry`?",
+        ),
+        (
+            "w.plot(x: educ, y: wage, fill: femal)",
+            "did you mean `female`?",
+        ),
+    ] {
+        let script = format!("{W}{statement}\n");
+        let (code, _, stderr) = go(&script);
+        assert_eq!(code, 1, "{script}");
+        assert!(
+            stderr.starts_with("error[Z0101]: no variable `"),
+            "{stderr}"
+        );
+        assert!(stderr.contains(near), "{script}\n{stderr}");
+        all.push_str(statement);
+        all.push('\n');
+        all.push_str(&stderr);
+        all.push('\n');
+    }
+    insta::assert_snapshot!("aesthetic_expression_messages", all);
+    // What is no such mistake still draws: a number worked out from numbers and bindings, a
+    // variable in brackets, and an expression on an axis, which takes one.
+    for statement in [
+        "w.plot(x: educ, y: wage, size: 2 + 1)",
+        "let k = 2\nw.plot(x: educ, y: wage, size: k * 1.5)",
+        "w.plot(x: educ, y: wage, color: (union))",
+        "w.plot(x: educ, y: log(wage), color: union)",
+    ] {
+        let (code, stdout, stderr) = go(&format!("{W}{statement}\n"));
+        assert_eq!(code, 0, "{statement}\n{stderr}");
+        assert!(stdout.starts_with("plot · w · "), "{statement}\n{stdout}");
+    }
 }
