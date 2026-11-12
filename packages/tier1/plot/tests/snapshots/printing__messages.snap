@@ -2,21 +2,21 @@
 source: packages/tier1/plot/tests/printing.rs
 expression: all
 ---
-error[Z0401]: `plot` draws `x` on a linear scale, so `industry` must be a Bool, Int or Float variable, but it is a Category
+error[Z0401]: `plot` places `x` on a linear scale or on an axis of categories, so `when` must be a Bool, Int, Float, Str or Category variable, but it is a Date
  --> scripts/main.zeff:2:11
   |
-2 | w.plot(x: industry, y: wage)
-  |           ^^^^^^^^ not a numeric variable
+2 | d.plot(x: when, y: a)
+  |           ^^^^ no axis for this type
   |
-  = help: the scales of categories, text and dates are not in this release yet; `w.describe()` lists the types of the variables
+  = help: an axis of dates is not in this release yet; `d.describe()` lists the types of the variables
 
-error[Z0101]: no variable `region` in `w`
- --> scripts/main.zeff:2:20
+error[Z0401]: `plot` places `y` on a linear scale or on an axis of categories, so `when` must be a Bool, Int, Float, Str or Category variable, but it is a Date
+ --> scripts/main.zeff:2:17
   |
-2 | w.plot(x: educ, y: region)
-  |                    ^^^^^^ not a variable of w
+2 | d.plot(x: a, y: when)
+  |                 ^^^^ no axis for this type
   |
-  = help: the variables of `w` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+  = help: an axis of dates is not in this release yet; `d.describe()` lists the types of the variables
 
 error[Z0101]: no variable `wages` in `w`
  --> scripts/main.zeff:2:20

@@ -111,29 +111,32 @@ note: 2 rows with NA in treated or with_na dropped (line 2)
 
 let d = import("data/empty.csv")
 d.plot(x: x, y: y).points()
-exit code 1
+exit code 0
+plot · d · y against x
+
+  axis   title   scale      limits       breaks
+  x      x       category   0.4 to 1.6
+  y      y       category   0.4 to 1.6
+
+  layer   mark     data   marks   settings
+      1   points   d          0   size 4.5, alpha 1
 ---
 note: data/empty.csv read as CSV: 0 rows × 2 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-error[Z0401]: `plot` draws `x` on a linear scale, so `x` must be a Bool, Int or Float variable, but it is a Str
- --> scripts/main.zeff:2:11
-  |
-2 | d.plot(x: x, y: y).points()
-  |           ^ not a numeric variable
-  |
-  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
 
 let d = import("data/all_na.csv")
 d.plot(x: x, y: y).points()
-exit code 1
+exit code 0
+plot · d · y against x
+
+  axis   title   scale      limits       breaks
+  x      x       category   0.4 to 1.6
+  y      y       category   0.4 to 1.6
+
+  layer   mark     data   marks   settings
+      1   points   d          0   size 4.5, alpha 1
 ---
 note: data/all_na.csv read as CSV: 3 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-error[Z0401]: `plot` draws `x` on a linear scale, so `x` must be a Bool, Int or Float variable, but it is a Str
- --> scripts/main.zeff:2:11
-  |
-2 | d.plot(x: x, y: y).points()
-  |           ^ not a numeric variable
-  |
-  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+note: 3 rows with NA in x or y dropped (line 2)
 
 let d = import("data/awkward_names.csv")
 d.plot(x: `Gross Sales (total)`, y: `日本語`).points()
@@ -152,7 +155,7 @@ note: data/awkward_names.csv read as CSV: 3 rows × 7 variables, types guessed; 
 let d = import("data/unicode_labels.csv")
 d.plot(x: n, y: n).points()
 d.plot(x: n, y: city).points()
-exit code 1
+exit code 0
 plot · d · n against n
 
   axis   title   scale    limits         breaks
@@ -161,17 +164,18 @@ plot · d · n against n
 
   layer   mark     data   marks   settings
       1   points   d          4   size 4.5, alpha 1
+plot · d · city against n
+
+  axis   title   scale      limits         breaks
+  x      n       linear     0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      city    category   0.4 to 4.6     Zürich, café, café, 東京
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
 ---
 note: data/unicode_labels.csv read as CSV: 4 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
 warning[W0601]: city holds values that differ only in their Unicode normalisation form, such as "café" and "café" (line 1)
   = help: Zeff treats them as different values; normalise the text in the file so that `==` and grouping treat them as one
-error[Z0401]: `plot` draws `y` on a linear scale, so `city` must be a Bool, Int or Float variable, but it is a Str
- --> scripts/main.zeff:3:17
-  |
-3 | d.plot(x: n, y: city).points()
-  |                 ^^^^ not a numeric variable
-  |
-  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
 
 let d = import("data/guess_boundary.csv")
 d.plot(x: id, y: hours).points()
@@ -188,7 +192,7 @@ error[Z0606]: row 1,002 of `data/guess_boundary.csv` has text in a numeric colum
 let d = import("data/level_symbols.csv")
 d.plot(x: n, y: y).points()
 d.plot(x: grp, y: y).points()
-exit code 1
+exit code 0
 plot · d · y against n
 
   axis   title   scale    limits       breaks
@@ -197,15 +201,16 @@ plot · d · y against n
 
   layer   mark     data   marks   settings
       1   points   d          5   size 4.5, alpha 1
+plot · d · y against grp
+
+  axis   title   scale      limits       breaks
+  x      grp     category   0.4 to 4.6   a=b, c:d, e+f, q "x"
+  y      y       linear     1.3 to 5.7   2, 3, 4, 5
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, alpha 1
 ---
 note: data/level_symbols.csv read as CSV: 5 rows × 3 variables, types guessed; CSV carries no labels, value labels or categories (line 1)
-error[Z0401]: `plot` draws `x` on a linear scale, so `grp` must be a Bool, Int or Float variable, but it is a Str
- --> scripts/main.zeff:3:11
-  |
-3 | d.plot(x: grp, y: y).points()
-  |           ^^^ not a numeric variable
-  |
-  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
 
 let d = import("data/wages.csv")
 d.plot(x: hours, y: wage).points()

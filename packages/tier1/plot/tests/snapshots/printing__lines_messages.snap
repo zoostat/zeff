@@ -30,13 +30,13 @@ error[Z0101]: no variable `wag` in `m`
   = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
 
 == not_a_number
-error[Z0401]: `lines` draws `y` on a linear scale, so `industry` must be a Bool, Int or Float variable, but it is a Category
+error[Z0401]: the plot places `wage` on a linear scale along `y`, but `industry`, which `lines` maps to `y`, is a Category, which is placed as categories
  --> scripts/main.zeff:4:35
   |
 4 | w.plot(x: year, y: wage).lines(y: industry)
-  |                                   ^^^^^^^^ not a numeric variable
+  |                                   ^^^^^^^^ `industry` is of another kind
   |
-  = help: the scales of categories, text and dates are not in this release yet; `w.describe()` lists the types of the variables
+  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
 
 == no_such_group
 error[Z0101]: no variable `unionn` in `u`

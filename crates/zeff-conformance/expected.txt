@@ -240,8 +240,8 @@ export/sample.tex 79622a8e73235482
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf
-plot/points/stdout 3a6b6d60d4063bdc
-plot/points/stderr f4efa5fd3454f8e9
+plot/points/stdout 0736444e0b43eec4
+plot/points/stderr 16a03371f268b2a8
 plot/points/scene.json 453ea0d06f195b15
 plot/expression/stdout 3b9fd5e3b6c515b1
 plot/expression/stderr b079f532d120ae17
@@ -284,6 +284,11 @@ plot/rug/stderr 72a23d109d8971c1
 plot/rug/rug.svg 1070d339b95c406a
 plot/rug/rug.pdf 8ee75404e856e04d
 plot/rug/rug.png 719c754e4b71575e
+plot/categories/stdout 37e887b8208eb9e1
+plot/categories/stderr c4acf2bd34822a80
+plot/categories/categories.svg 50aa051869d10d08
+plot/categories/categories.pdf 072d01f7f070866a
+plot/categories/categories.png 2aa7d0f180980bd0
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

@@ -21,13 +21,13 @@ error[Z0102]: no variable `Fitted` in `d`; names are case-sensitive
   = help: write `fitted`
 
 == not_a_number
-error[Z0401]: `points` draws `y` on a linear scale, so `industry` must be a Bool, Int or Float variable, but it is a Category
+error[Z0401]: the plot places `wage` on a linear scale along `y`, but `industry`, which `points` maps to `y`, is a Category, which is placed as categories
  --> scripts/main.zeff:3:36
   |
 3 | d.plot(x: educ, y: wage).points(y: industry)
-  |                                    ^^^^^^^^ not a numeric variable
+  |                                    ^^^^^^^^ `industry` is of another kind
   |
-  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
 
 == no_such_variable_in_an_expression
 error[Z0101]: no variable `wagee` in `d`

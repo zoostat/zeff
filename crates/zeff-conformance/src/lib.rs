@@ -1861,6 +1861,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/rug/{name}"), &data));
     }
+    // An axis of categories (step 24a): the wages by industry as points, the means of the
+    // industries joined, and a category on each axis; what the script prints and the first
+    // figure in the three formats, with a label under each place.
+    let script = "seed(20261112)\nlet w = dataset(wages).where(worker <= 200)\nlet p = w.plot(x: industry, y: wage, color: union).points(alpha: 0.5, jitter: 0.25)\np\nlet m = w.aggregate(wage = mean(wage), by: industry)\nm.plot(x: industry, y: wage).points().lines()\nw.plot(x: wage, y: industry).rug()\nexport(p, \"categories.svg\")\nexport(p, \"categories.pdf\")\nexport(p, \"categories.png\")\n";
+    let placed = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/categories/stdout", &placed.output.stdout));
+    fills.push(text("plot/categories/stderr", &placed.output.stderr));
+    for name in ["categories.svg", "categories.pdf", "categories.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/categories/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

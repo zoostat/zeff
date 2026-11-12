@@ -26,7 +26,9 @@ use zeff_diagnostics::Diagnostic;
 use crate::drawing::LineType;
 use crate::grammar::{Slots, a_type, aesthetics, column, internal, number_option, shown};
 use crate::mapping::{self, variables};
-use crate::scene::{Shading, is_numeric, kind_of, scene, shading, with_layer};
+use crate::scene::{
+    Placing, Shading, is_numeric, kind_of, placing, placing_of, scene, shading, with_layer,
+};
 
 const P: usize = 0;
 const DATA: usize = 1;
@@ -148,6 +150,121 @@ fn one_scale(
         .primary(ctx.span_of(slot), format!("`{name}` is of another kind"))
         .help(format!("the layers of a plot share one scale of {scale}, so the variables mapped to `{written}` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels")),
     ))
+}
+
+/// The layers of a plot share its two axes (open decision #128): a variable a layer names for
+/// `x` or `y` must be placed as the axis already places its variable, on a linear scale or as
+/// categories. Z0401 when it is of the other kind. `slots` are the arguments `x:` and `y:`.
+fn one_axis(
+    ctx: &CallContext<'_>,
+    plot: &Plot,
+    frame: &Frame,
+    own: &[PlotMapping],
+    slots: (usize, usize),
+    function: &str,
+) -> Result<(), Fail> {
+    for (aesthetic, slot) in [(Aesthetic::X, slots.0), (Aesthetic::Y, slots.1)] {
+        let Some(mapping) = own.iter().find(|m| m.aesthetic == aesthetic) else {
+            continue;
+        };
+        let Some((theirs, variable)) = placing_of(plot, aesthetic) else {
+            continue;
+        };
+        let name = mapping.variable.as_str();
+        // An expression gives numbers.
+        let (ours, what) = match (&mapping.computed, frame.table.column(name)) {
+            (Some(_), _) => (
+                Placing::Linear,
+                "an expression, which gives numbers".to_string(),
+            ),
+            (None, Some(found)) => match placing(found) {
+                Some(Placing::Linear) => (
+                    Placing::Linear,
+                    format!("{}, which is placed on a linear scale", a_type(found)),
+                ),
+                Some(Placing::Categories) => (
+                    Placing::Categories,
+                    format!("{}, which is placed as categories", a_type(found)),
+                ),
+                None => continue,
+            },
+            (None, None) => continue,
+        };
+        if ours == theirs {
+            continue;
+        }
+        let axis = aesthetic.name();
+        let placed = match theirs {
+            Placing::Linear => "on a linear scale",
+            Placing::Categories => "as categories",
+        };
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "the plot places `{variable}` {placed} along `{axis}`, but `{name}`, which `{function}` maps to `{axis}`, is {what}"
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(slot), format!("`{name}` is of another kind"))
+            .help(format!(
+                "the layers of a plot share one axis, so what is mapped to `{axis}` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number"
+            )),
+        ));
+    }
+    Ok(())
+}
+
+/// A mark that stands at numbers along an axis, an area down to zero, the edges of a band, a
+/// reference line, cannot be placed on an axis of categories. Z0401 when the axis of
+/// `aesthetic` is one, as the plot stands or as the layer's own mapping would make it; `why`
+/// says what the mark does with its numbers.
+fn numbers_along(
+    ctx: &CallContext<'_>,
+    plot: &Plot,
+    frame: &Frame,
+    own: &[PlotMapping],
+    (aesthetic, slot): (Aesthetic, Option<usize>),
+    (function, why): (&str, &str),
+) -> Result<(), Fail> {
+    let axis = aesthetic.name();
+    // The layer's own variable for the axis, where it names one.
+    let named = own
+        .iter()
+        .find(|m| m.aesthetic == aesthetic && m.computed.is_none())
+        .and_then(|m| frame.table.column(&m.variable).map(|found| (m, found)));
+    if let Some((mapping, found)) = named {
+        if placing(found) != Some(Placing::Categories) {
+            return Ok(());
+        }
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`{function}` {why}, so `{axis}` must be numbers, but `{}` is {}, which is placed as categories",
+                    mapping.variable,
+                    a_type(found)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(slot.map_or(ctx.callee_span, |slot| ctx.span_of(slot)), "categories")
+            .help(format!("`points` and `lines` are placed on an axis of categories; `{function}` needs a number along `{axis}`")),
+        ));
+    }
+    match placing_of(plot, aesthetic) {
+        Some((Placing::Categories, variable)) => Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`{function}` {why}, but the `{axis}` axis of this plot holds the categories of `{variable}`"
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, format!("needs numbers along `{axis}`"))
+            .help(format!("`points` and `lines` are placed on an axis of categories; `{function}` needs a number along `{axis}`")),
+        )),
+        _ => Ok(()),
+    }
 }
 
 /// The values a layer's own frame gives each aesthetic the plot maps from an expression.
@@ -290,7 +407,33 @@ fn own_frame(
                 )),
             ));
         }
-        if !is_numeric(found) {
+        // A position: placed as the plot's frame places it, on a linear scale or as
+        // categories, since the layers share the axis.
+        let theirs = plot
+            .frame
+            .table
+            .column(name)
+            .and_then(placing)
+            .unwrap_or(Placing::Linear);
+        if theirs == Placing::Categories && placing(found) != Some(Placing::Categories) {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{function}` places `{}` as categories, so `{name}` of {whose} must be a Str or Category variable, but it is {}",
+                        aesthetic.name(),
+                        a_type(found)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(at, format!("its `{name}` is not categories"))
+                .help(format!(
+                    "the plot maps `{name}` to `{}` as categories, so the frame of every layer must hold it as categories; `category({name})` makes categories of a number",
+                    aesthetic.name()
+                )),
+            ));
+        }
+        if theirs == Placing::Linear && !is_numeric(found) {
             return Err(fail(
                 Diagnostic::error(
                     "Z0401",
@@ -353,6 +496,7 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     });
     constants.retain(|c| c.aesthetic != Aesthetic::Size);
     positions(ctx, &plot, &mappings, "points")?;
+    one_axis(ctx, &plot, &frame, &mappings, (X, Y), "points")?;
     one_scale(
         ctx,
         &plot,
@@ -557,6 +701,7 @@ fn joined(
         own_data,
     )?;
     positions(ctx, &plot, &mappings, function)?;
+    one_axis(ctx, &plot, &frame, &mappings, (X, Y), function)?;
     one_scale(
         ctx,
         &plot,
@@ -776,9 +921,26 @@ fn filled(
                 .help("name it in the layer, as in `ribbon(x: educ, low: lower, high: upper)`, or where the plot starts, as in `plot(x: educ)`"),
             ));
         }
+        numbers_along(
+            ctx,
+            &plot,
+            &frame,
+            &mappings,
+            (Aesthetic::Y, None),
+            (function, "places its two edges on a linear scale"),
+        )?;
     } else {
         positions(ctx, &plot, &mappings, function)?;
+        numbers_along(
+            ctx,
+            &plot,
+            &frame,
+            &mappings,
+            (Aesthetic::Y, Some(Y)),
+            (function, "fills from its line down to zero"),
+        )?;
     }
+    one_axis(ctx, &plot, &frame, &mappings, (X, Y), function)?;
     one_scale(
         ctx,
         &plot,
@@ -1014,6 +1176,15 @@ fn spanning(
             return Err(internal(ctx, "an `at:` that is not a variable or a number"));
         }
     }
+    // A reference line stands at a number: not on an axis of categories.
+    numbers_along(
+        ctx,
+        &plot,
+        &frame,
+        &[],
+        (along, None),
+        (function, "stands at a number on its axis"),
+    )?;
     one_scale(
         ctx,
         &plot,
@@ -1158,6 +1329,7 @@ pub fn rug(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             )),
         ));
     }
+    one_axis(ctx, &plot, &frame, &mappings, (X, Y), "rug")?;
     one_scale(
         ctx,
         &plot,

@@ -46,13 +46,13 @@ error[Z0403]: expected one of x, y, both, found text
   = help: write the word without quotes: `x`
 
 == a_position_that_is_text
-error[Z0401]: `rug` draws `x` on a linear scale, so `arm` must be a Bool, Int or Float variable, but it is a Str
+error[Z0401]: the plot places `dose` on a linear scale along `x`, but `arm`, which `rug` maps to `x`, is a Str, which is placed as categories
  --> scripts/main.zeff:3:35
   |
 3 | d.plot(x: dose, y: change).rug(x: arm)
-  |                                   ^^^ not a numeric variable
+  |                                   ^^^ `arm` is of another kind
   |
-  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
 
 == not_a_colour
 error[Z0401]: `color:` of `rug` is "blu", which is not the name of a colour

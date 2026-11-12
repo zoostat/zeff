@@ -102,65 +102,9 @@ Step 22: the owner read the six figures and said "Yes, freeze it"; the journal t
 
 Step 23 was split into 23a to 23e when open decision #106 was taken as option A on the recommendation: a layer may name its own variables. 23a `[engine]`: `points` takes `x:`, `y:`, `color:`, `size:` and `shape:` for its own layer, the layers share one scale of each aesthetic, and the checker and the interpreter learnt that an expression given to a mark speaks of the frame its layer draws. 23b `[engine]`: a line of a drawing has one of six types in a fixed order, written the same by the three writers, with section 7.6 amended (logged). 23c1: `lines` joins the rows in the order of `x`, a line for each group and each category of `color:` and `linetype:`, a missing `y` breaking it, checked against ggplot2; a legend of lines has a piece of line for its key. Beside it, the checker was corrected to read the groups of `aggregate` written as `vars(a, b)`. Catalogue rows 461 and 462 were brought up to date (logged).
 
-## 12 November 2026, release 0.7.0, step 23c2 (`step`), and step 23c complete
+## 12 November 2026, steps 23c2 to 23e2 of release 0.7.0 (folded)
 
-**Done.** `p.step()` joins the rows as `lines` does, by level and upright pieces: level first (`hv`, the default), upright first (`vh`) or stepping halfway (`mid`), the three ways R's `geom_step` has. Its corners match ggplot2's, place for place. Catalogue row 463 is brought up to date (logged). `plot` stands at four functions built: `plot`, `points`, `lines`, `step`. A script's own function called `step` must now be renamed (Z0109); two tests of `iterate` had one, renamed; noted for the release notes.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 285 of 285; CI is read job by job after the push.
-
-**Next.** Step 23d `[function]`: `area` and `ribbon`.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: `step` has the options of `lines` and `direction:` with R's three words. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 23d1 (`area` and `ribbon`)
-
-**Done.** `p.area()` fills from the line through the rows of each group down to zero, and `p.ribbon(low:, high:)` the band between two variables; a missing value breaks the shape, `fill:` colours by categories or sets one colour, and a legend of fills has a patch for its key. Polygons and limits match ggplot2's, corner for corner. Catalogue rows 465 and 466 are brought up to date (logged). Step 23d was split: the stacked area is 23d2. `plot` stands at six functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 293 of 293; CI is read job by job after the push.
-
-**Next.** Step 23d2 `[function]`: `position: overlay | stack | fill` on `area`.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn (all in `docs/decisions.md`): areas overlay by default and stacking is an option; no `color:` on a filled mark; a band does not read `y`; the rows are parted by the plot's colour as well. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 23d2 (stacked areas), and step 23d complete
-
-**Done.** `area` takes `position: overlay | stack | fill`: each area down to zero (the default), each on the ones before it, or stacked as shares of the total. The first group is on top, values below zero stack downwards, and the edges match ggplot2's row for row where every group has every `x`. Where a group lacks a value the stack is not built and a note says so; nothing is interpolated. Catalogue row 465 gains the option (logged).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 293 of 293; CI is read job by job after the push.
-
-**Next.** Step 23e `[function]`: `hline`, `vline` and `rug`, which completes step 23.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: the word `overlay`; no interpolation where the groups have different `x`, where R interpolates; no shares where a value is below zero. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 23e1 (`hline` and `vline`)
-
-**Done.** `p.hline(at:)` and `p.vline(at:)` draw reference lines from edge to edge of the panel, at a number or at each value of a variable, dashed and 0.5 wide unless `style:` and `width:` say otherwise, in a colour of their own; the axis grows to hold them, as ggplot2's does. A reference line takes nothing from the plot but its axes. Catalogue rows 470 and 471 are brought up to date (logged). Step 23e was split: `rug` is 23e2. `plot` stands at eight functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 298 of 298; CI is read job by job after the push.
-
-**Found beside the step.** A bare name given to an option that takes a number or a variable is always read as a variable, so `hline(at: centre)` with `centre` bound to a number is refused. Open decision #127 is raised and taken as option B on the recommendation (the variable first, then a binding that holds a number), built at the new step 23f `[engine]`.
-
-**Next.** Step 23e2 `[function]`: `rug`, which completes the seven marks of step 23; then step 23f `[engine]`.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: a reference line inherits nothing from the plot; `style:` takes the six types of line; the width of 0.5; open decision #127, option B. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 23e2 (`rug`), and step 23 complete
-
-**Done.** `p.rug()` draws a tick at the margin of the panel for each row, along `x`, along `y` or both, in the plot's colour or its own, with `alpha:` for many rows. A rug along one axis needs that axis alone. Catalogue row 469 is brought up to date (logged). With it the seven marks of step 23 are built: `lines`, `step`, `area`, `ribbon`, `hline`, `vline`, `rug`. `plot` stands at nine functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 303 of 303; CI is read job by job after the push.
-
-**Next.** Step 23f `[engine]`: a name bound to a number where an option takes a number or a variable (open decision #127, option B). Then step 24 `[function]`: `bars`, `tile`, `text`.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: `alpha:` on `rug`; ticks of 4.5 points, not a share of the panel; the bottom and the left only. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, a correction after step 23e2 (the colour ramp at the smallest numbers)
-
-**Done.** The `test` job on GitHub failed for the push of step 23e1 in a property test of step 20c, which drew a colour scale from 0 to the smallest number above it: both ends were given the middle colour. `ramp_entry` now takes the width of the scale as it is and halves the limits only where the width would overflow. No published result changes; the failing frame is kept as a permanent case. Steps 23e1 and 23e2 themselves were green locally and are unchanged.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 303 of 303; CI is read job by job after the push.
-
-**Next.** Step 23f `[engine]`: a name bound to a number where an option takes a number or a variable (open decision #127, option B).
+23c2: `step`, lines with risers in three directions, its corners matching ggplot2's; a script's own function called `step` must be renamed (Z0109), noted for the release notes. 23d1: `area` and `ribbon`, filled shapes under a line and between two variables, a missing value breaking them, a legend of fills with a patch for its key. 23d2: `position: overlay | stack | fill` on `area`, matching ggplot2 where every group has every `x`, with nothing interpolated where they have not. 23e1: `hline` and `vline`, reference lines at a number or at a variable's values, taking nothing from the plot but its axes. 23e2: `rug`, a tick at the margin for each row. Step 23 was complete with it: seven marks, nine functions of `plot`. Beside them, a property test on CI found that the two ends of a colour scale from 0 to the smallest number above it were given the middle colour; `ramp_entry` was corrected and no published result changed. Catalogue rows 463, 465, 466, 469, 470 and 471 were brought up to date (logged).
 
 ## 12 November 2026, release 0.7.0, step 23f (a name that is a variable or a bound value)
 
@@ -179,3 +123,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 24a `[engine]`: an axis of categories.
 
 **For the owner to decide.** Nothing waits for him; #128 as taken is his to overturn. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 24a (an axis of categories)
+
+**Done.** A Str or a Category variable mapped to `x` or `y` makes an axis of categories: the categories at the places 1, 2, 3 with a label under each, the limits as in ggplot2, the layers sharing the axis. `w.plot(x: industry, y: wage).points()` draws. A number stays on a linear axis, labelled or not (open decision #128). `area`, `ribbon`, `hline` and `vline` are refused on such an axis, since they stand at numbers.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 308 of 308; CI is read job by job after the push.
+
+**Next.** Step 24b `[function]`: `bars`.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation, his to overturn: #128 option C; a row without a category is dropped and counted; an axis shows every category of its variable. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

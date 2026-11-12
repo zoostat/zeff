@@ -90,7 +90,7 @@ error[Z0401]: `ribbon` draws `high` on a linear scale, so `g` must be a Bool, In
 2 | d.plot(x: t, y: v).ribbon(low: lo, high: g)
   |                                          ^ not a numeric variable
   |
-  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+  = help: the edges of a band are numbers; `d.describe()` lists the types of the variables
 
 == no_such_edge
 error[Z0101]: no variable `hii` in `d`

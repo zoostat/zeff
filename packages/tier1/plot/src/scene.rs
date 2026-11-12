@@ -57,6 +57,8 @@
 //! without ([`Scene::undrawn`]). A layer also has the flag `raster`, false in this release:
 //! true asks a writer of vector figures to draw that one layer as a grid of pixels.
 
+use std::borrow::Cow;
+
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
@@ -518,6 +520,96 @@ pub fn is_numeric(column: &Column) -> bool {
         column.ty(),
         ColumnType::Bool | ColumnType::Int | ColumnType::Float
     )
+}
+
+/// Whether a variable makes an axis of categories when it is mapped to a position: a Str or
+/// a Category (open decision #128). A number is placed on a linear scale, with value labels
+/// or without.
+pub fn on_categories(column: &Column) -> bool {
+    matches!(column.ty(), ColumnType::Category | ColumnType::Str)
+}
+
+/// How an axis places its variable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Placing {
+    /// On a linear scale.
+    Linear,
+    /// Each category at a place of its own, 1, 2, 3 in their order.
+    Categories,
+}
+
+/// How a variable is placed on an axis, `None` for the types no axis holds yet.
+pub fn placing(column: &Column) -> Option<Placing> {
+    if is_numeric(column) {
+        Some(Placing::Linear)
+    } else if on_categories(column) {
+        Some(Placing::Categories)
+    } else {
+        None
+    }
+}
+
+/// How the axis of `aesthetic`, `x` or `y`, places its variable so far, with the variable it
+/// is named by: the plot's, or the first a layer names. `None` while nothing is mapped to it.
+pub(crate) fn placing_of(plot: &Plot, aesthetic: Aesthetic) -> Option<(Placing, &str)> {
+    let (mapping, _, layer) = first_mapping(plot, aesthetic)?;
+    // The edges of a band, and an expression, are numbers.
+    if mapping.aesthetic != aesthetic || mapping.computed.is_some() {
+        return Some((Placing::Linear, mapping.variable.as_str()));
+    }
+    let kind = placing(values(plot, layer, aesthetic)?)?;
+    Some((kind, mapping.variable.as_str()))
+}
+
+/// The categories of an axis of categories, in their order: those of the variable the axis
+/// is named by, then those that only a layer's own variable has. `None` for a linear axis and
+/// for one nothing is mapped to.
+fn axis_categories(plot: &Plot, aesthetic: Aesthetic) -> Option<Vec<String>> {
+    if placing_of(plot, aesthetic)?.0 != Placing::Categories {
+        return None;
+    }
+    let (_, _, first) = first_mapping(plot, aesthetic)?;
+    let mut labels = categories(values(plot, first, aesthetic)?).labels;
+    for layer in &plot.layers {
+        if mapping_of(plot, layer, aesthetic).is_none() || !reads(layer.mark, aesthetic) {
+            continue;
+        }
+        let Some(column) = values(plot, Some(layer), aesthetic).filter(|c| on_categories(c)) else {
+            continue;
+        };
+        for label in categories(column).labels {
+            if !labels.contains(&label) {
+                labels.push(label);
+            }
+        }
+    }
+    Some(labels)
+}
+
+/// The values a layer is placed by on an axis: the variable itself on a linear axis, and on
+/// an axis of categories the place of each row's category, counted from 1, `NA` where the row
+/// has none. A variable that is no categories gives nothing on such an axis; the marks refuse
+/// it before it comes to this.
+fn placed<'a>(column: Option<&'a Column>, on: Option<&[String]>) -> Option<Cow<'a, Column>> {
+    let column = column?;
+    let Some(labels) = on else {
+        return Some(Cow::Borrowed(column));
+    };
+    if !on_categories(column) {
+        return None;
+    }
+    let own = categories(column);
+    let at: Vec<Option<usize>> = own
+        .labels
+        .iter()
+        .map(|label| labels.iter().position(|known| known == label))
+        .collect();
+    let places = own.of.iter().map(|place| {
+        place
+            .and_then(|place| at.get(place).copied().flatten())
+            .map(|place| (place + 1) as f64)
+    });
+    Some(Cow::Owned(Column::floats(places).0))
 }
 
 /// A cell of a numeric column as a number, `None` where it is `NA`.
@@ -1351,6 +1443,17 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     .into_iter()
     .filter_map(|aesthetic| colouring(plot, aesthetic))
     .collect();
+    // The axes of categories, and what each layer is placed by on its two axes.
+    let across_categories = axis_categories(plot, Aesthetic::X);
+    let up_categories = axis_categories(plot, Aesthetic::Y);
+    let place = |layer: &'a PlotLayer, aesthetic: Aesthetic| -> Option<Cow<'a, Column>> {
+        let on = if aesthetic == Aesthetic::X {
+            across_categories.as_deref()
+        } else {
+            up_categories.as_deref()
+        };
+        placed(values(plot, Some(layer), aesthetic), on)
+    };
     let mut notes: Vec<String> = Vec::new();
     let mut note = |text: String| {
         if !notes.contains(&text) {
@@ -1418,8 +1521,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 })
                 .collect();
             let columns: Vec<&Column> = ramps.iter().map(|(_, column)| *column).collect();
-            let places = values(plot, Some(layer), along);
-            let lines = drawn(places, places, &columns, None);
+            let places = place(layer, along);
+            let lines = drawn(places.as_deref(), places.as_deref(), &columns, None);
             let mut names = vec![variable];
             names.extend(ramps.iter().map(|(name, _)| *name));
             if lines.missing > 0 {
@@ -1474,19 +1577,20 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                     {
                         keys.push(categories(column));
                     }
-                    let lower = bottom.map(|edge| values(plot, Some(layer), edge));
+                    let lower = bottom.map(|edge| place(layer, edge));
+                    let (across, upper) = (place(layer, Aesthetic::X), place(layer, top));
                     let lines = match layer.mark {
                         Mark::Area(Stacking::Stack | Stacking::Share) => stacked(
-                            values(plot, Some(layer), Aesthetic::X),
-                            values(plot, Some(layer), Aesthetic::Y),
+                            across.as_deref(),
+                            upper.as_deref(),
                             &keys,
                             layer.mark == Mark::Area(Stacking::Share),
                         ),
                         _ => joined(
-                            values(plot, Some(layer), Aesthetic::X),
+                            across.as_deref(),
                             // A band whose lower edge is not there draws nothing.
-                            values(plot, Some(layer), top).filter(|_| lower != Some(None)),
-                            lower.flatten(),
+                            upper.as_deref().filter(|_| !matches!(lower, Some(None))),
+                            lower.as_ref().and_then(|edge| edge.as_deref()),
                             &keys,
                         ),
                     };
@@ -1594,9 +1698,10 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         .filter(|colouring| colouring.aesthetic == Aesthetic::Size)
                         .find_map(read);
                     let columns: Vec<&Column> = ramps.iter().map(|(_, column)| *column).collect();
+                    let (across, upper) = (place(layer, Aesthetic::X), place(layer, Aesthetic::Y));
                     let points = drawn(
-                        values(plot, Some(layer), Aesthetic::X),
-                        values(plot, Some(layer), Aesthetic::Y),
+                        across.as_deref(),
+                        upper.as_deref(),
                         &columns,
                         sized.map(|(_, column)| column),
                     );
@@ -1723,6 +1828,30 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 layer.y.iter().chain(&layer.low)
             }
         }));
+        let categories = if aesthetic == Aesthetic::X {
+            &across_categories
+        } else {
+            &up_categories
+        };
+        // An axis of categories: a place for each, 1, 2, 3, and 0.6 of a place beyond each
+        // end, whatever is drawn; with no category, the room of one.
+        if let Some(labels) = categories {
+            let places = labels.len().max(1);
+            scales.push(Scale {
+                id: aesthetic.name(),
+                kind: ScaleKind::Category,
+                title: axis_title(frame, mapping),
+                limits: (0.4, places as f64 + 0.6),
+                breaks: (1..=labels.len()).map(|place| place as f64).collect(),
+                labels: labels.clone(),
+                range: Range::Position,
+            });
+            axes.push(Axis {
+                scale: aesthetic.name(),
+                position,
+            });
+            continue;
+        }
         let (lo, hi) = scale::limits(marks.or_else(|| frame_extent(plot, aesthetic)));
         let breaks = scale::breaks(lo, hi);
         let labels = scale::labels(&breaks);
@@ -2282,7 +2411,12 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                     format_float(s.limits.0),
                     format_float(s.limits.1)
                 ),
-                s.labels.join(", "),
+                // The categories of an axis are listed as those of a colour are.
+                if s.kind == ScaleKind::Category {
+                    listed(&s.labels)
+                } else {
+                    s.labels.join(", ")
+                },
             ]);
         }
     }

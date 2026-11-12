@@ -1,0 +1,98 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · units against shop
+
+  axis   title   scale      limits          breaks
+  x      shop    category   0.4 to 3.6      east, north, south
+  y      units   linear     6.45 to 18.55   8, 10, 12, 14, 16, 18
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, alpha 1
+plot · d · shop against units
+
+  axis   title   scale      limits          breaks
+  x      units   linear     6.45 to 18.55   8, 10, 12, 14, 16, 18
+  y      shop    category   0.4 to 3.6      east, north, south
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, alpha 1
+plot · d · units against shop
+
+  axis   title   scale      limits          breaks
+  x      shop    category   0.4 to 3.6      east, north, south
+  y      units   linear     6.45 to 18.55   8, 10, 12, 14, 16, 18
+
+  aesthetic   title   scale      values   shown as
+  color       kind    category   l, s     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, alpha 1
+      2   lines    d          5   width 1, 2 lines
+plot · d · kind against shop
+
+  axis   title   scale      limits       breaks
+  x      shop    category   0.4 to 3.6   east, north, south
+  y      kind    category   0.4 to 2.6   l, s
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, alpha 1, jitter 0.2
+plot · d · units against shop
+
+  axis   title   scale      limits          breaks
+  x      shop    category   0.4 to 4.6      east, north, south, west
+  y      units   linear     0.15 to 18.85   5, 10, 15
+
+  layer   mark     data            marks   settings
+      1   points   d                   5   size 4.5, alpha 1
+      2   points   its own frame       2   color firebrick, size 4.5, alpha 1
+plot · d · shop
+
+  axis   title   scale      limits       breaks
+  x      shop    category   0.4 to 3.6   east, north, south
+
+  layer   mark   data   marks   settings
+      1   rug    d          5   sides x, alpha 1
+plot · d · units against shop
+
+  axis   title   scale      limits          breaks
+  x      shop    category   0.4 to 3.6      east, north, south
+  y      units   linear     2.25 to 18.75   5, 10, 15
+
+no layer yet: a mark such as `.points()` adds one
+plot · w · wage against industry
+
+  axis   title         scale      limits
+  x      Industry      category   0.4 to 12.6
+  y      Hourly wage   linear     -3.91095 to 159.831
+
+  breaks
+  Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+  0, 50, 100, 150
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.1, jitter 0.3
+plot · wage against industry
+
+  axis   title      scale      limits
+  x      Industry   category   0.4 to 12.6
+  y      wage       linear     21.9672 to 30.52
+
+  breaks
+  Agriculture, Mining, Utilities, Construction, Manufacturing and 7 more
+  22, 24, 26, 28, 30
+
+  layer   mark     data        marks   settings
+      1   points   the frame      12   size 4.5, alpha 1
+      2   lines    the frame      12   width 1, 1 line
+---
+note: 1 row with NA in shop or units dropped (line 3)
+note: 1 row with NA in units or shop dropped (line 4)
+note: 1 row with NA in shop or units dropped (line 5)
+note: 1 row with NA in shop or kind dropped (line 6)
+note: 1 row with NA in shop or units dropped (line 7)
+note: 1 row with NA in shop dropped (line 8)
+note: 211 rows with NA in industry or wage dropped (line 11)
+warning[W0201]: 211 rows with NA in wage were skipped (line 12)
+note: the panel declaration `worker × year` dropped: `aggregate` summarised the rows (line 12)

@@ -29,10 +29,11 @@ the text of its scene: a row for each axis, with its title, its limits and its b
 for each colour, size and shape, with its values and what they are shown as, and a row for each
 layer, with the number of marks it draws.
 
-Each variable mapped to an axis is placed on a linear scale, so it must be a Float, an Int, or
-a Bool, which is read as 0 and 1, and an expression must give one of these for each row. The
-title of an axis and of every other scale is the label of its variable, or the name of the
-variable when it has no label; the title of an expression is the expression as it is written.
+A number mapped to an axis is placed on a linear scale: a Float, an Int, or a Bool, which is
+read as 0 and 1, and an expression must give one of these for each row. A Str or a Category
+variable makes an axis of categories, each at a place of its own. The title of an axis and of
+every other scale is the label of its variable, or the name of the variable when it has no
+label; the title of an expression is the expression as it is written.
 
 In R with ggplot2 this is `ggplot(w, aes(x = educ, y = wage, colour = female))`, where
 `aes(y = log(wage))` maps an expression in the same way, and in Stata it is the start of a
@@ -49,7 +50,8 @@ of ggplot2.
 ## Arguments
 - data: The frame whose rows are drawn. A layer may name a frame of its own with `data:`.
 - x: The variable placed along the horizontal axis, a bare name, or an expression of the
-  variables such as `log(wage)` or `wage / hours`.
+  variables such as `log(wage)` or `wage / hours`. A number is placed on a linear scale, a
+  Str or a Category as categories.
 - y: The variable placed along the vertical axis, a bare name, or an expression of the
   variables.
 - color: The colour of the marks. A variable of the frame, written as a bare name, is shown on
@@ -91,6 +93,18 @@ significant digits.
 
 Missing values. A row with `NA` in a mapped variable cannot be placed and is not drawn, and
 neither is a row with an infinite value. Each layer counts the rows it leaves out in a note.
+
+An axis of categories. A Str or a Category variable mapped to `x` or to `y` stands its
+categories side by side, at the places 1, 2, 3, with a label under each and a little more than
+half a place of room beyond the first and the last. The categories of a Category come in the
+order of its levels, and those of a Str in the order of text. A row with `NA` there is not
+drawn, and a note counts such rows. A number is never read as categories on an axis, whether
+it has value labels or not, so that a variable coded 0 and 1 and a curve fitted to it share a
+linear axis; `d.add(v = category(v))` makes categories of a number first. The layers of a
+plot share its axes: what a layer maps to `x` must be categories where the axis is of
+categories and numbers where it is linear, and a category that only a layer's own frame holds
+takes the place after the others. `points`, `lines`, `step` and `rug` are placed on an axis of
+categories; `area`, `ribbon`, `hline` and `vline` stand at numbers and are not.
 
 Colour by categories. A Category, a Str and a Bool variable are shown as categories, and so is
 an Int or a Float that carries value labels. Each category has a colour of its own. The
@@ -357,4 +371,13 @@ plot · w · wage against educ
   label       Firm identifier             the text of a mark
 
 no layer yet: a mark such as `.points()` adds one
+> let sales = frame(shop = ["north", "south", "east", "north"], units = [12, 18, 15, 7])
+> sales.plot(x: shop, y: units).points()
+plot · sales · units against shop
 
+  axis   title   scale      limits          breaks
+  x      shop    category   0.4 to 3.6      east, north, south
+  y      units   linear     6.45 to 18.55   8, 10, 12, 14, 16, 18
+
+  layer   mark     data    marks   settings
+      1   points   sales       4   size 4.5, alpha 1

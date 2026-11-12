@@ -1,0 +1,43 @@
+---
+source: packages/tier1/plot/tests/categories.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 73.781,7.792 to 73.781,155.253 stroke #E3E3E3 0.35
+[grid] segment 136.999,7.792 to 136.999,155.253 stroke #E3E3E3 0.35
+[grid] segment 200.217,7.792 to 200.217,155.253 stroke #E3E3E3 0.35
+[grid] segment 35.85,136.363 to 238.147,136.363 stroke #E3E3E3 0.35
+[grid] segment 35.85,111.989 to 238.147,111.989 stroke #E3E3E3 0.35
+[grid] segment 35.85,87.616 to 238.147,87.616 stroke #E3E3E3 0.35
+[grid] segment 35.85,63.242 to 238.147,63.242 stroke #E3E3E3 0.35
+[grid] segment 35.85,38.868 to 238.147,38.868 stroke #E3E3E3 0.35
+[grid] segment 35.85,14.495 to 238.147,14.495 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 202.297 by 147.461
+  [layer:1] point 136.999,87.616 circle 4.5 #222222 opacity 1
+  [layer:1] point 200.217,14.495 circle 4.5 #222222 opacity 1
+  [layer:1] point 73.781,51.055 circle 4.5 #222222 opacity 1
+  [layer:1] point 136.999,148.55 circle 4.5 #222222 opacity 1
+  [layer:1] point 200.217,124.176 circle 4.5 #222222 opacity 1
+[axis:x] segment 35.85,155.253 to 238.147,155.253 stroke #222222 0.5
+[axis:x] segment 73.781,155.253 to 73.781,158.253 stroke #222222 0.5
+[axis:x] text 73.781,166.837 middle "east" sans 8 #222222
+[axis:x] segment 136.999,155.253 to 136.999,158.253 stroke #222222 0.5
+[axis:x] text 136.999,166.837 middle "north" sans 8 #222222
+[axis:x] segment 200.217,155.253 to 200.217,158.253 stroke #222222 0.5
+[axis:x] text 200.217,166.837 middle "south" sans 8 #222222
+[axis:x] text 136.999,180.837 middle "shop" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,155.253 stroke #222222 0.5
+[axis:y] segment 32.85,136.363 to 35.85,136.363 stroke #222222 0.5
+[axis:y] text 29.85,139.155 end "8" sans 8 #222222
+[axis:y] segment 32.85,111.989 to 35.85,111.989 stroke #222222 0.5
+[axis:y] text 29.85,114.781 end "10" sans 8 #222222
+[axis:y] segment 32.85,87.616 to 35.85,87.616 stroke #222222 0.5
+[axis:y] text 29.85,90.408 end "12" sans 8 #222222
+[axis:y] segment 32.85,63.242 to 35.85,63.242 stroke #222222 0.5
+[axis:y] text 29.85,66.034 end "14" sans 8 #222222
+[axis:y] segment 32.85,38.868 to 35.85,38.868 stroke #222222 0.5
+[axis:y] text 29.85,41.66 end "16" sans 8 #222222
+[axis:y] segment 32.85,14.495 to 35.85,14.495 stroke #222222 0.5
+[axis:y] text 29.85,17.287 end "18" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "units" sans 9 #222222

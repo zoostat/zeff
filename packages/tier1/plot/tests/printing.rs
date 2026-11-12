@@ -180,8 +180,9 @@ fn jitter_is_repeated_by_the_seed_and_changed_by_another() {
 fn every_message() {
     let mut all = String::new();
     for script in [
-        "let w = dataset(wages)\nw.plot(x: industry, y: wage)\n",
-        "let w = dataset(wages)\nw.plot(x: educ, y: region)\n",
+        // A date has no axis yet (a Str and a Category have one, of categories, from step 24a).
+        "let d = frame(a = [1, 2], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: when, y: a)\n",
+        "let d = frame(a = [1, 2], s = [\"2026-01-01\", \"2026-06-01\"]).add(when = date(s))\nd.plot(x: a, y: when)\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: wages)\n",
         "let w = dataset(wages)\nw.plot(x: Educ, y: wage)\n",
         "let w = dataset(wages)\nw.plot(x: educ).points()\n",
@@ -1827,4 +1828,105 @@ fn every_message_of_rug() {
         all.push_str(&format!("== {name}\n{stderr}\n"));
     }
     insta::assert_snapshot!("rug_messages", all);
+}
+
+// ----- an axis of categories (step 24a) -----
+
+const SHOPS: &str = "let d = frame(shop = [\"north\", \"south\", \"east\", \"north\", \"south\", NA], units = [12, 18, 15, 7, 9, 3], kind = [\"s\", \"s\", \"s\", \"l\", \"l\", \"l\"])\n";
+
+#[test]
+fn an_axis_of_categories_reads_sensibly_as_text() {
+    let script = format!(
+        "seed(20261112)\n{SHOPS}d.plot(x: shop, y: units).points()\n\
+         d.plot(x: units, y: shop).points()\n\
+         d.plot(x: shop, y: units, color: kind).points().lines()\n\
+         d.plot(x: shop, y: kind).points(jitter: 0.2)\n\
+         d.plot(x: shop, y: units).points().points(data: frame(shop = [\"west\", \"east\"], units = [1, 2]), color: \"firebrick\")\n\
+         d.plot(x: shop).rug()\n\
+         d.plot(x: shop, y: units)\n\
+         let w = dataset(wages)\n\
+         w.plot(x: industry, y: wage).points(alpha: 0.1, jitter: 0.3)\n\
+         w.aggregate(wage = mean(wage), by: industry).plot(x: industry, y: wage).points().lines()\n"
+    );
+    let outcome = go(&script);
+    let text = format!("{}---\n{}", outcome.1, outcome.2);
+    assert_eq!(outcome.0, 0, "{text}");
+    // The reference, from ggplot2 4.0.3: the three shops stand at 1, 2 and 3 with the limits
+    // 0.4 to 3.6, and the units keep 6.45 to 18.55; the twelve industries of the shipped
+    // wages have the limits 0.4 to 12.6.
+    for line in [
+        "  x      shop    category   0.4 to 3.6      east, north, south\n",
+        "  y      units   linear     6.45 to 18.55   8, 10, 12, 14, 16, 18\n",
+        "  y      shop    category   0.4 to 3.6      east, north, south\n",
+        "  x      shop    category   0.4 to 4.6      east, north, south, west\n",
+        "note: 1 row with NA in shop or units dropped (line 3)\n",
+        "  x      Industry      category   0.4 to 12.6\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("categories", text);
+}
+
+#[test]
+fn every_message_of_an_axis_of_categories() {
+    let mut all = String::new();
+    for (name, script) in [
+        // The layers share an axis of one kind.
+        (
+            "a_number_on_an_axis_of_categories",
+            "d.plot(x: shop, y: units).points().points(x: units)\n",
+        ),
+        (
+            "categories_on_a_linear_axis",
+            "d.plot(x: units, y: units).points().lines(y: shop)\n",
+        ),
+        (
+            "an_expression_on_an_axis_of_categories",
+            "d.plot(x: shop, y: units).points().points(x: units * 2)\n",
+        ),
+        (
+            "a_frame_that_holds_the_category_as_a_number",
+            "d.plot(x: shop, y: units).points(data: frame(shop = [1, 2], units = [3, 4]))\n",
+        ),
+        (
+            "a_frame_that_holds_the_number_as_text",
+            "d.plot(x: units, y: units).points(data: frame(units = [\"a\", \"b\"]))\n",
+        ),
+        // What stands at numbers has no place on categories.
+        (
+            "an_area_up_to_categories",
+            "d.plot(x: units, y: shop).area()\n",
+        ),
+        (
+            "an_area_of_its_own_categories",
+            "d.plot(x: units, y: units).area(y: shop)\n",
+        ),
+        (
+            "a_band_on_categories",
+            "d.plot(x: units, y: shop).points().ribbon(low: units, high: units + 1)\n",
+        ),
+        (
+            "a_level_line_on_categories",
+            "d.plot(x: units, y: shop).points().hline(at: 2)\n",
+        ),
+        (
+            "an_upright_line_on_categories",
+            "d.plot(x: shop, y: units).points().vline(at: units)\n",
+        ),
+        // A type with no axis yet, and the edge of a band that is text.
+        (
+            "a_date_on_an_axis",
+            "d.add(when = date(\"2026-01-01\")).plot(x: when, y: units)\n",
+        ),
+        (
+            "an_edge_that_is_text",
+            "d.plot(x: units).ribbon(low: shop, high: units)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SHOPS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("categories_messages", all);
 }

@@ -1,0 +1,116 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_number_on_an_axis_of_categories
+note: 1 row with NA in shop or units dropped (line 2)
+error[Z0401]: the plot places `shop` as categories along `x`, but `units`, which `points` maps to `x`, is an Int, which is placed on a linear scale
+ --> scripts/main.zeff:2:46
+  |
+2 | d.plot(x: shop, y: units).points().points(x: units)
+  |                                              ^^^^^ `units` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+
+== categories_on_a_linear_axis
+error[Z0401]: the plot places `units` on a linear scale along `y`, but `shop`, which `lines` maps to `y`, is a Str, which is placed as categories
+ --> scripts/main.zeff:2:46
+  |
+2 | d.plot(x: units, y: units).points().lines(y: shop)
+  |                                              ^^^^ `shop` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `y` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+
+== an_expression_on_an_axis_of_categories
+note: 1 row with NA in shop or units dropped (line 2)
+error[Z0401]: the plot places `shop` as categories along `x`, but `units * 2`, which `points` maps to `x`, is an expression, which gives numbers
+ --> scripts/main.zeff:2:46
+  |
+2 | d.plot(x: shop, y: units).points().points(x: units * 2)
+  |                                              ^^^^^^^^^ `units * 2` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category) or all be numbers; `category(v)` makes categories of a number
+
+== a_frame_that_holds_the_category_as_a_number
+error[Z0401]: `points` places `x` as categories, so `shop` of this frame must be a Str or Category variable, but it is an Int
+ --> scripts/main.zeff:2:40
+  |
+2 | d.plot(x: shop, y: units).points(data: frame(shop = [1, 2], units = [3, 4]))
+  |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ its `shop` is not categories
+  |
+  = help: the plot maps `shop` to `x` as categories, so the frame of every layer must hold it as categories; `category(shop)` makes categories of a number
+
+== a_frame_that_holds_the_number_as_text
+error[Z0401]: `points` draws `x` on a linear scale, so `units` of this frame must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:2:41
+  |
+2 | d.plot(x: units, y: units).points(data: frame(units = ["a", "b"]))
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^ its `units` is not numeric
+  |
+  = help: the plot maps `units` to `x`, so the frame of every layer must hold it as a number
+
+== an_area_up_to_categories
+error[Z0401]: `area` fills from its line down to zero, but the `y` axis of this plot holds the categories of `shop`
+ --> scripts/main.zeff:2:27
+  |
+2 | d.plot(x: units, y: shop).area()
+  |                           ^^^^ needs numbers along `y`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `area` needs a number along `y`
+
+== an_area_of_its_own_categories
+error[Z0401]: `area` fills from its line down to zero, so `y` must be numbers, but `shop` is a Str, which is placed as categories
+ --> scripts/main.zeff:2:36
+  |
+2 | d.plot(x: units, y: units).area(y: shop)
+  |                                    ^^^^ categories
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `area` needs a number along `y`
+
+== a_band_on_categories
+note: 1 row with NA in units or shop dropped (line 2)
+error[Z0401]: `ribbon` places its two edges on a linear scale, but the `y` axis of this plot holds the categories of `shop`
+ --> scripts/main.zeff:2:36
+  |
+2 | d.plot(x: units, y: shop).points().ribbon(low: units, high: units + 1)
+  |                                    ^^^^^^ needs numbers along `y`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `ribbon` needs a number along `y`
+
+== a_level_line_on_categories
+note: 1 row with NA in units or shop dropped (line 2)
+error[Z0401]: `hline` stands at a number on its axis, but the `y` axis of this plot holds the categories of `shop`
+ --> scripts/main.zeff:2:36
+  |
+2 | d.plot(x: units, y: shop).points().hline(at: 2)
+  |                                    ^^^^^ needs numbers along `y`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `hline` needs a number along `y`
+
+== an_upright_line_on_categories
+note: 1 row with NA in shop or units dropped (line 2)
+error[Z0401]: `vline` stands at a number on its axis, but the `x` axis of this plot holds the categories of `shop`
+ --> scripts/main.zeff:2:36
+  |
+2 | d.plot(x: shop, y: units).points().vline(at: units)
+  |                                    ^^^^^ needs numbers along `x`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `vline` needs a number along `x`
+
+== a_date_on_an_axis
+error[Z0401]: `plot` places `x` on a linear scale or on an axis of categories, so `when` must be a Bool, Int, Float, Str or Category variable, but it is a Date
+ --> scripts/main.zeff:2:42
+  |
+2 | d.add(when = date("2026-01-01")).plot(x: when, y: units)
+  |                                          ^^^^ no axis for this type
+  |
+  = help: an axis of dates is not in this release yet; `the frame.describe()` lists the types of the variables
+
+== an_edge_that_is_text
+error[Z0401]: `ribbon` draws `low` on a linear scale, so `shop` must be a Bool, Int or Float variable, but it is a Str
+ --> scripts/main.zeff:2:30
+  |
+2 | d.plot(x: units).ribbon(low: shop, high: units)
+  |                              ^^^^ not a numeric variable
+  |
+  = help: the edges of a band are numbers; `d.describe()` lists the types of the variables
