@@ -74,23 +74,23 @@ error[Z0401]: `alpha:` of `points` is an opacity between 0 and 1, but this is -0
   |
   = help: write 1 for solid points, or a share such as 0.3 so that crowded points show through
 
-error[Z0401]: `size:` of `points` is the diameter of a point in points of 1/72 inch, above 0, but this is 0
+error[Z0401]: `size:` of `points` is the diameter of every mark in points of 1/72 inch, above 0, but this is 0
  --> scripts/main.zeff:2:39
   |
 2 | w.plot(x: educ, y: wage).points(size: 0)
   |                                       ^ not a size
   |
-  = help: write a size such as 3 or 6; without `size:` a point takes the size the plot gives, or is 4.5 across
+  = help: write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point takes the size the plot gives, or is 4.5 across
 
 warning[W0204]: division by zero gave Inf (line 2)
   = help: test the divisor first, as in `b != 0 && a / b > 1`; on a frame, `where(b != 0)`
-error[Z0401]: `size:` of `points` is the diameter of a point in points of 1/72 inch, above 0, but this is Inf
+error[Z0401]: `size:` of `points` is the diameter of every mark in points of 1/72 inch, above 0, but this is Inf
  --> scripts/main.zeff:2:39
   |
 2 | w.plot(x: educ, y: wage).points(size: 1 / 0)
   |                                       ^^^^^ not a size
   |
-  = help: write a size such as 3 or 6; without `size:` a point takes the size the plot gives, or is 4.5 across
+  = help: write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point takes the size the plot gives, or is 4.5 across
 
 error[Z0401]: `jitter:` of `points` is a share of the smallest gap between two values, 0 or more, but this is -1
  --> scripts/main.zeff:2:41
@@ -150,7 +150,7 @@ error[Z0401]: `points` cannot be called on a Frame
 2 | points(w)
   |        ^ this is a Frame
   |
-  = help: usage: `p.points(data: Frame, alpha: Float = 1, size: Float, jitter: Float = 0)`
+  = help: usage: `p.points(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, size: Var | Float, shape: Var | Str, alpha: Float = 1, jitter: Float = 0)`
 
 error[Z0401]: `data` of `points` must be a Frame, but this is an Int
  --> scripts/main.zeff:2:39
@@ -158,7 +158,7 @@ error[Z0401]: `data` of `points` must be a Frame, but this is an Int
 2 | w.plot(x: educ, y: wage).points(data: 3)
   |                                       ^ an Int
   |
-  = help: usage: `p.points(data: Frame, alpha: Float = 1, size: Float, jitter: Float = 0)`
+  = help: usage: `p.points(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, size: Var | Float, shape: Var | Str, alpha: Float = 1, jitter: Float = 0)`
 
 error[Z0404]: `plot` has no argument called `colour`
  --> scripts/main.zeff:2:26

@@ -2701,6 +2701,28 @@ impl<'a> Interpreter<'a> {
         } else {
             call.order.clone()
         };
+        // A mark is a method of a plot, and the variables its arguments name are those of the
+        // frame its layer draws: its own, given with `data:`, or the plot's (open decision
+        // #106). The frame of `data:` is therefore evaluated right after the plot, wherever it
+        // was written, so that it is in scope for every argument that names a variable.
+        let is = |i: usize, ty: Ty| {
+            call.args
+                .get(i)
+                .and_then(Option::as_ref)
+                .is_some_and(|e| e.ty == ty)
+        };
+        let on_a_plot = is(0, Ty::Plot);
+        let mut order = order;
+        if on_a_plot
+            && let Some(at) = order
+                .iter()
+                .position(|slot| matches!(slot, Slot::Param(i) if *i > 0 && is(*i, Ty::Frame)))
+            && let Some(after) = order.iter().position(|slot| matches!(slot, Slot::Param(0)))
+            && at > after + 1
+        {
+            let own = order.remove(at);
+            order.insert(after + 1, own);
+        }
         // The groups of `by:` on a frame method with definitions, each evaluated group by group.
         let mut groups: Option<zeff_columns::Groups> = None;
         // `aggregate` merges the reducers' warnings of every group and definition into one per
@@ -2754,6 +2776,31 @@ impl<'a> Interpreter<'a> {
                                 used: Vec::new(),
                             });
                             pushed = true;
+                        }
+                        // The frame of a plot is in scope for the arguments of its marks, and
+                        // a layer's own frame takes its place.
+                        if on_a_plot
+                            && *i == 0
+                            && !pushed
+                            && let Value::Plot(plot) = &value
+                        {
+                            self.receivers.push(Receiver {
+                                original: plot.frame.clone(),
+                                extended: plot.frame.clone(),
+                                in_definition: false,
+                                view: None,
+                                view_rows: None,
+                                used: Vec::new(),
+                            });
+                            pushed = true;
+                        } else if on_a_plot
+                            && pushed
+                            && *i > 0
+                            && let Value::Frame(own) = &value
+                            && let Some(receiver) = self.receivers.last_mut()
+                        {
+                            receiver.original = own.clone();
+                            receiver.extended = own.clone();
                         }
                         values[*i] = Some(value);
                     }

@@ -281,6 +281,33 @@ pub struct PlotLayer {
     /// The values, on the layer's own frame, of each aesthetic the plot maps from an expression;
     /// empty when the layer draws the plot's frame or the plot maps variables only.
     pub computed: Vec<(Aesthetic, Rc<Column>)>,
+    /// The layer's own mappings (open decision #106): what the layer draws an aesthetic from in
+    /// the place of what the plot maps to it, a variable of the layer's frame or an expression
+    /// computed on it. Empty when the layer names none.
+    pub mappings: Vec<PlotMapping>,
+    /// The aesthetics the layer sets to one value for its own marks, a colour or a shape, in
+    /// the place of what the plot says of them; its size is `size`.
+    pub constants: Vec<PlotConstant>,
+}
+
+impl PlotLayer {
+    /// What the layer itself maps to `aesthetic`, if anything.
+    pub fn mapping(&self, aesthetic: Aesthetic) -> Option<&PlotMapping> {
+        self.mappings.iter().find(|m| m.aesthetic == aesthetic)
+    }
+
+    /// The one value the layer itself sets `aesthetic` to, a colour or a shape, if it sets one.
+    pub fn constant(&self, aesthetic: Aesthetic) -> Option<&PlotSetting> {
+        self.constants
+            .iter()
+            .find(|c| c.aesthetic == aesthetic)
+            .map(|c| &c.value)
+    }
+
+    /// Whether the layer sets `aesthetic` to one value for its own marks.
+    pub fn sets(&self, aesthetic: Aesthetic) -> bool {
+        self.constant(aesthetic).is_some() || (aesthetic == Aesthetic::Size && self.size.is_some())
+    }
 }
 
 /// A probability distribution as a value (Language Reference, section 4: `dist.t(df: 24)` is a

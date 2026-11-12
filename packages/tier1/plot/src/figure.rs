@@ -169,6 +169,8 @@ mod tests {
                 jitter: 0.0,
                 stream: None,
                 computed: Vec::new(),
+                mappings: Vec::new(),
+                constants: Vec::new(),
             },
         );
         flagged.panels[0].layers[0].raster = true;

@@ -1581,6 +1581,8 @@ fn plot_cases() -> Vec<Line> {
                 jitter: 0.4,
                 stream: Some(Stream::new(20_261_111, 2, 0)),
                 computed: Vec::new(),
+                mappings: Vec::new(),
+                constants: Vec::new(),
             };
             zeff_plot::scene::with_layer(&plot, layer).1.to_json()
         }
@@ -1631,6 +1633,8 @@ fn plot_cases() -> Vec<Line> {
                         jitter: 0.0,
                         stream: None,
                         computed: Vec::new(),
+                        mappings: Vec::new(),
+                        constants: Vec::new(),
                     };
                     zeff_plot::scene::with_layer(&plot, layer).1.to_json()
                 }
@@ -1663,6 +1667,8 @@ fn plot_cases() -> Vec<Line> {
                 jitter: 0.0,
                 stream: None,
                 computed: Vec::new(),
+                mappings: Vec::new(),
+                constants: Vec::new(),
             };
             let categories = zeff_plot::scene::start(
                 frame.clone(),
@@ -1722,6 +1728,8 @@ fn plot_cases() -> Vec<Line> {
                 jitter: 0.0,
                 stream: None,
                 computed: Vec::new(),
+                mappings: Vec::new(),
+                constants: Vec::new(),
             };
             let plot = zeff_plot::scene::start(
                 frame,
@@ -1800,6 +1808,8 @@ fn sample_drawings() -> Vec<(String, Result<zeff_plot::drawing::Drawing, String>
         jitter: 0.0,
         stream: None,
         computed: Vec::new(),
+        mappings: Vec::new(),
+        constants: Vec::new(),
     };
     let plain = zeff_plot::scene::start(
         frame.clone(),
@@ -1940,6 +1950,8 @@ fn picture_figure(as_pdf: bool) -> Vec<u8> {
         jitter: 0.0,
         stream: None,
         computed: Vec::new(),
+        mappings: Vec::new(),
+        constants: Vec::new(),
     };
     let mut scene = zeff_plot::scene::with_layer(&plot, layer).1;
     for panel in &mut scene.panels {

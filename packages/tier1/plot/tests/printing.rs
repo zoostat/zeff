@@ -753,10 +753,10 @@ fn every_message_of_a_size_and_a_shape() {
         format!("{O}q.points(data: frame(educ = [1, 2], wage = [3.0, 4.0]))\n"),
         format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], union = [0, 1])\nq.points(data: o)\n"),
         format!("{O}let o = frame(educ = [1, 2], wage = [3.0, 4.0], union = [0.5, 1.5])\nq.points(data: o, size: 3)\n"),
-        // The options of `points`: a size that is not above 0, and a shape, which it has not.
+        // The options of `points`: a size that is not above 0. A shape and a size by a
+        // variable, which `points` refused as unknown until open decision #106 was taken, are
+        // a layer's own now (step 23a), and the tests of that step draw them.
         format!("{O}p.points(size: 0)\n"),
-        format!("{O}q.points(shape: \"cross\")\n"),
-        format!("{O}p.points(size: hours)\n"),
     ] {
         let (code, stdout, stderr) = go(&script);
         assert_eq!(code, 1, "{script}\n{stdout}\n{stderr}");
@@ -948,4 +948,213 @@ fn the_seventh_and_eighth_shapes_are_given_out_and_may_be_named() {
         stderr.contains("did you mean \"triangle_down\"?"),
         "{stderr}"
     );
+}
+
+// ----- a layer's own mappings (step 23a; open decision #106) -----
+
+/// The wages of 2010, with a second variable on the scale of the wage.
+const FITTED: &str =
+    "let w = dataset(wages).where(year == 2010)\nlet d = w.add(fitted = 3 + 2 * educ)\n";
+
+#[test]
+fn a_layer_that_names_its_own_variables_reads_sensibly_as_text() {
+    let script = format!(
+        "{FITTED}d.plot(x: educ, y: wage).points(alpha: 0.4).points(y: fitted, color: \"firebrick\", size: 3)\n\
+         d.plot(x: educ, y: wage).points().points(y: wage * 2)\n\
+         d.plot().points(x: educ, y: wage, color: union).points(x: educ, y: log(wage) * 20, shape: \"cross\")\n\
+         d.plot(x: educ, y: wage, color: union).points().points(y: fitted, color: female)\n\
+         d.plot(x: educ, y: wage, size: 6).points(size: hours).points(x: exper, shape: female)\n\
+         let top = d.where(wage > 50)\n\
+         d.plot(x: educ, y: wage).points(alpha: 0.2).points(data: top, y: hours, color: \"steelblue\")\n"
+    );
+    let text = printed(&script);
+    // The reference, from R on the shipped file: 537 rows of 2010, all with educ, 531 of them
+    // with a wage, 530 with a wage and hours, 530 with exper and a wage; 14 wages above 50.
+    // The wage runs from 4.58 to 97.98, so with twice the wage on the same axis the limits, 5%
+    // of the range beyond each end, are -4.989 and 205.529; educ and exper together run from
+    // 0 to 25, so theirs are -1.25 and 26.25. `fitted` lies within the wages and moves nothing.
+    for line in [
+        // A second variable on the axis of the first, in a colour and a size of its own.
+        "  y      Hourly wage          linear   -0.09 to 102.65   0, 20, 40, 60, 80, 100\n",
+        "      1   points   d        531   size 4.5, alpha 0.4\n",
+        "      2   points   d        537   y fitted, color firebrick, size 3, alpha 1\n",
+        // An axis runs over the values of every layer, and keeps the title of the plot.
+        "  y      Hourly wage          linear   -4.989 to 205.529   0, 50, 100, 150, 200\n",
+        "      2   points   d        531   y wage * 2, size 4.5, alpha 1\n",
+        // A plot that maps nothing: the layers name everything, and the first gives the titles.
+        "plot · d · wage against educ\n",
+        "      1   points   d        531   x educ, y wage, color by union, size 4.5, alpha 1\n",
+        "      2   points   d        531   x educ, y log(wage) * 20, size 4.5, shape cross, alpha 1\n",
+        // Two variables on one scale of colours: the categories of the second follow.
+        "  color       Union member   category   no, yes, male, female   orange, sky blue, bluish green, yellow\n",
+        "      2   points   d        537   y fitted, color by female, size 4.5, alpha 1\n",
+        // A layer sized by a variable where the plot sets one size; another placed by exper.
+        "  x      Years of schooling   linear   -1.25 to 26.25    0, 5, 10, 15, 20, 25\n",
+        "      1   points   d        530   size by hours, alpha 1\n",
+        "      2   points   d        530   x exper, size 6, shape by female, alpha 1\n",
+        // A layer with a frame of its own and a variable of its own, read in that frame.
+        "      2   points   top       14   y hours, color steelblue, size 4.5, alpha 1\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("layer_mappings", text);
+}
+
+#[test]
+fn the_edge_cases_of_a_layer_that_names_its_own_variables() {
+    let mut all = String::new();
+    for (name, script) in [
+        // What the layer names is what the plot maps: the same marks, told in its settings.
+        (
+            "repeats_the_plot",
+            "d.plot(x: educ, y: wage).points(x: educ, y: wage)\n",
+        ),
+        // The plot maps one position and each layer the other.
+        (
+            "each_its_own_y",
+            "d.plot(x: educ).points(y: wage).points(y: hours)\n",
+        ),
+        // One colour for a layer where the plot colours by a variable: no mark reads the
+        // scale, and no row is left out for a missing category.
+        (
+            "a_colour_of_its_own",
+            "d.plot(x: educ, y: wage, color: union).points(color: \"black\")\n",
+        ),
+        // One size for a layer where the plot sizes by a variable, and the reverse.
+        (
+            "a_size_of_its_own",
+            "d.plot(x: educ, y: wage, size: hours).points(size: 5)\n",
+        ),
+        (
+            "a_size_by_a_variable",
+            "d.plot(x: educ, y: wage, size: 5).points(size: hours)\n",
+        ),
+        // A shape by a variable where the plot sets one shape.
+        (
+            "a_shape_by_a_variable",
+            "d.plot(x: educ, y: wage, shape: \"square\").points(shape: union)\n",
+        ),
+        // The rows a layer lacks are counted under its own variable.
+        (
+            "its_own_missing_rows",
+            "d.plot(x: educ, y: wage).points(y: hours)\n",
+        ),
+        // A layer's own colour by a number, on a ramp, where the plot maps no colour.
+        (
+            "a_ramp_of_its_own",
+            "d.plot(x: educ, y: wage).points(color: hours)\n",
+        ),
+        // A name that is a binding and a variable both: the variable, with a warning.
+        (
+            "a_name_twice",
+            "let educ = 3\nd.plot(x: educ, y: wage).points(y: wage / educ)\n",
+        ),
+        // `data:` written after the variable it is read in.
+        (
+            "its_frame_written_last",
+            "let top = d.where(wage > 50)\nd.plot(x: educ, y: wage).points(y: hours * 2, data: top)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{FITTED}{script}"));
+        assert_eq!(code, 0, "{name}\n{stderr}");
+        all.push_str(&format!("== {name}\n{stdout}---\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("layer_mapping_edges", all);
+}
+
+#[test]
+fn every_message_of_a_layer_that_names_its_own_variables() {
+    let mut all = String::new();
+    for (name, script) in [
+        (
+            "no_such_variable",
+            "d.plot(x: educ, y: wage).points(y: fited)\n",
+        ),
+        (
+            "another_case",
+            "d.plot(x: educ, y: wage).points(y: Fitted)\n",
+        ),
+        (
+            "not_a_number",
+            "d.plot(x: educ, y: wage).points(y: industry)\n",
+        ),
+        (
+            "no_such_variable_in_an_expression",
+            "d.plot(x: educ, y: wage).points(y: log(wagee))\n",
+        ),
+        (
+            "one_value_for_all_rows",
+            "d.plot(x: educ, y: wage).points(y: mean(wage))\n",
+        ),
+        (
+            "not_in_its_own_frame",
+            "let top = d.where(wage > 50).drop(fitted)\nd.plot(x: educ, y: wage).points(data: top, y: fitted)\n",
+        ),
+        ("neither_maps_y", "d.plot(x: educ).points(x: exper)\n"),
+        ("neither_maps_either", "d.plot().points(color: union)\n"),
+        ("the_plot_maps_no_y", "d.plot(x: educ).points()\n"),
+        (
+            "not_a_colour",
+            "d.plot(x: educ, y: wage).points(color: \"firebrik\")\n",
+        ),
+        (
+            "a_variable_in_quotes",
+            "d.plot(x: educ, y: wage).points(color: \"union\")\n",
+        ),
+        (
+            "a_date_for_a_colour",
+            "frame(a = [1, 2], b = [3, 4], day = [date(\"2026-01-01\"), date(\"2026-01-02\")]).plot(x: a, y: b).points(color: day)\n",
+        ),
+        (
+            "a_number_where_categories_are",
+            "d.plot(x: educ, y: wage, color: union).points(color: hours)\n",
+        ),
+        (
+            "categories_where_a_number_is",
+            "d.plot(x: educ, y: wage, color: hours).points(color: union)\n",
+        ),
+        (
+            "another_kind_than_the_first_layer",
+            "d.plot(x: educ, y: wage).points(color: union).points(color: hours)\n",
+        ),
+        (
+            "categories_for_a_size",
+            "d.plot(x: educ, y: wage).points(size: union)\n",
+        ),
+        ("no_size", "d.plot(x: educ, y: wage).points(size: 0)\n"),
+        (
+            "a_number_for_a_shape",
+            "d.plot(x: educ, y: wage).points(shape: hours)\n",
+        ),
+        (
+            "not_a_shape",
+            "d.plot(x: educ, y: wage).points(shape: \"blob\")\n",
+        ),
+        (
+            "an_expression_for_a_colour",
+            "d.plot(x: educ, y: wage).points(color: wage > 20)\n",
+        ),
+        (
+            "an_expression_for_a_size",
+            "d.plot(x: educ, y: wage).points(size: hours / 2)\n",
+        ),
+        (
+            "an_expression_for_a_shape",
+            "d.plot(x: educ, y: wage).points(shape: union == 1)\n",
+        ),
+        (
+            "text_for_a_position",
+            "d.plot(x: educ, y: wage).points(y: \"fitted\")\n",
+        ),
+        (
+            "no_group_on_a_mark_of_points",
+            "d.plot(x: educ, y: wage).points(group: union)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{FITTED}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("layer_mapping_messages", all);
 }

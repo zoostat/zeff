@@ -1601,7 +1601,7 @@ impl Checker<'_> {
                 );
             }
             let default = p.default.as_ref().filter(|_| !marker).map(|d| {
-                let lowered = self.argument(d, ty, false);
+                let lowered = self.argument(d, ty, false, false);
                 let lowered = self.no_nothing(lowered, "a default");
                 if !ty.accepts(&lowered.ty) {
                     self.report(
@@ -2130,7 +2130,7 @@ impl Checker<'_> {
                     }
                     if next_positional < sig.params.len() {
                         let ty = sig.params[next_positional].1.clone();
-                        slots[next_positional] = Some(self.argument(e, &ty, false));
+                        slots[next_positional] = Some(self.argument(e, &ty, false, false));
                         order.push(Slot::Param(next_positional));
                         next_positional += 1;
                     } else {
@@ -2191,7 +2191,7 @@ impl Checker<'_> {
                         spreads[s].targets.retain(|(_, idx)| *idx != position);
                     }
                     let ty = sig.params[position].1.clone();
-                    slots[position] = Some(self.argument(value, &ty, false));
+                    slots[position] = Some(self.argument(value, &ty, false, false));
                     order.push(Slot::Param(position));
                 }
                 ast::Arg::Define { name: def_name, .. } => {
@@ -2653,8 +2653,16 @@ impl Checker<'_> {
     }
 
     /// An argument of a call: inside a frame method, an argument whose parameter takes a column
-    /// is checked with the receiver's columns in scope (section 3.7, "Name lookup").
-    fn argument(&mut self, value: &ast::Expr, ty: &Ty, frame_method: bool) -> Expr {
+    /// is checked with the receiver's columns in scope (section 3.7, "Name lookup"). Inside a
+    /// method of a plot (`plot_method`), an expression given where a variable or an expression
+    /// is taken is one over the variables of the frame the layer draws.
+    fn argument(
+        &mut self,
+        value: &ast::Expr,
+        ty: &Ty,
+        frame_method: bool,
+        plot_method: bool,
+    ) -> Expr {
         // An expression over the terms of a fit (`test`, `derive`): lowered with bare names as
         // coefficients, checked to give the inner type, and kept as written for the function.
         if let Ty::TermExpr(inner) = ty {
@@ -2697,11 +2705,12 @@ impl Checker<'_> {
         // other expression is lowered with the frame's columns in scope, as a column argument
         // is (section 3.7, "Name lookup"), and kept for the function to evaluate.
         if takes_expression(ty) && !plain_name_or_na(value) {
-            if frame_method {
+            let over_a_frame = frame_method || plot_method;
+            if over_a_frame {
                 self.frame_scope += 1;
             }
             let lowered = self.expr(value, None);
-            if frame_method {
+            if over_a_frame {
                 self.frame_scope -= 1;
             }
             if matches!(lowered.kind, ExprKind::Error) {
@@ -5064,7 +5073,12 @@ impl Checker<'_> {
         // The list, then `start` for `reduce`, then `f` typed by them.
         let list = match receiver {
             Some(r) => r,
-            None => self.argument(given[0].unwrap(), &Ty::List(Box::new(Ty::Any)), false),
+            None => self.argument(
+                given[0].unwrap(),
+                &Ty::List(Box::new(Ty::Any)),
+                false,
+                false,
+            ),
         };
         let items = match &list.ty {
             Ty::List(inner) => (**inner).clone(),
@@ -5093,7 +5107,7 @@ impl Checker<'_> {
                 Ty::Fn(vec![acc.clone(), items.clone()], false, Box::new(acc))
             }
         };
-        let f = self.argument(given[1].unwrap(), &f_type, false);
+        let f = self.argument(given[1].unwrap(), &f_type, false, false);
         let ty = match (fname.as_str(), &f.ty) {
             ("map", Ty::Fn(_, _, gives)) => Ty::List(gives.clone()),
             ("map", _) => Ty::List(Box::new(Ty::Unknown)),
@@ -5166,7 +5180,7 @@ impl Checker<'_> {
                         );
                         continue;
                     }
-                    let given = self.argument(e, &ty, false);
+                    let given = self.argument(e, &ty, false, false);
                     let given = self.no_nothing(given, "passed");
                     if !ty.accepts(&given.ty) {
                         self.report(
@@ -5635,6 +5649,10 @@ impl Checker<'_> {
         }
         // A method on a frame: its column-taking arguments see the receiver's columns.
         let frame_method = spec.method && params.first().is_some_and(|(_, ty, _)| *ty == Ty::Frame);
+        // A method on a plot (open decision #106): a mark names variables of the frame its
+        // layer draws, which only the run knows, so an expression given where one is taken is
+        // kept over that frame's variables and checked against them when the mark is added.
+        let plot_method = spec.method && params.first().is_some_and(|(_, ty, _)| *ty == Ty::Plot);
         // The definitions of this call, when each is one value per group, start a list of their
         // own; any other call (a reducer or `sqrt` inside a definition) keeps seeing the list of
         // the `aggregate` it stands in.
@@ -5661,7 +5679,7 @@ impl Checker<'_> {
                     }
                     if next_positional < params.len() {
                         let (name, ty, _) = &params[next_positional];
-                        let lowered = if frame_method
+                        let lowered = if (frame_method || plot_method)
                             && !implicit_receiver
                             && self.computes_where_a_variable_is_named(e, ty)
                         {
@@ -5673,17 +5691,18 @@ impl Checker<'_> {
                                 &fname,
                                 receiver_name.as_deref(),
                                 if args.len() > 1 { "v, ..." } else { "v" },
+                                plot_method,
                             ));
                             Expr::error(e.span)
                         } else {
-                            self.argument(e, ty, frame_method)
+                            self.argument(e, ty, frame_method, plot_method)
                         };
                         slots[next_positional] = Some(lowered);
                         order.push(Slot::Param(next_positional));
                         next_positional += 1;
                     } else if let Some(Rest::Values(ty)) = &spec.rest {
                         let ty = Ty::parse(ty).unwrap_or(Ty::Any);
-                        let lowered = self.argument(e, &ty, frame_method);
+                        let lowered = self.argument(e, &ty, frame_method, plot_method);
                         order.push(Slot::Rest(rest.len()));
                         rest.push(lowered);
                     } else {
@@ -5769,7 +5788,7 @@ impl Checker<'_> {
                         spreads[s].targets.retain(|(_, idx)| *idx != position);
                     }
                     let (_, ty, _) = &params[position];
-                    let lowered = if frame_method
+                    let lowered = if (frame_method || plot_method)
                         && !implicit_receiver
                         && self.computes_where_a_variable_is_named(value, ty)
                     {
@@ -5785,10 +5804,11 @@ impl Checker<'_> {
                                 if args.len() > 1 { "..., " } else { "" },
                                 arg_name.text
                             ),
+                            plot_method,
                         ));
                         Expr::error(value.span)
                     } else {
-                        self.argument(value, ty, frame_method)
+                        self.argument(value, ty, frame_method, plot_method)
                     };
                     slots[position] = Some(lowered);
                     order.push(Slot::Param(position));
@@ -5806,7 +5826,7 @@ impl Checker<'_> {
                             if frame_method {
                                 self.frame_scope += 1;
                             }
-                            let lowered = self.argument(value, &ty, frame_method);
+                            let lowered = self.argument(value, &ty, frame_method, plot_method);
                             if frame_method {
                                 self.frame_scope -= 1;
                             }
@@ -7630,6 +7650,7 @@ fn not_a_variable(
     fname: &str,
     receiver: Option<&str>,
     shown: &str,
+    on_a_plot: bool,
 ) -> Diagnostic {
     fn taken(ty: &Ty, out: &mut Vec<&'static str>) {
         let what = match ty {
@@ -7658,6 +7679,10 @@ fn not_a_variable(
     let computed = written(value);
     // The receiver by its name when it is a binding; a longer one would bury the advice.
     let help = match receiver {
+        // A mark is given to a plot, and the variable is made on the frame the plot draws.
+        _ if on_a_plot => format!(
+            "compute it first on the frame, with `add(v = {computed})`, and name the new variable: `.{fname}({shown})`"
+        ),
         Some(name) => format!(
             "compute it first and name the new variable: `{name}.add(v = {computed}).{fname}({shown})`"
         ),

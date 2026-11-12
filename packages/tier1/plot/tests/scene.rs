@@ -78,6 +78,8 @@ fn points() -> PlotLayer {
         jitter: 0.0,
         stream: None,
         computed: Vec::new(),
+        mappings: Vec::new(),
+        constants: Vec::new(),
     }
 }
 

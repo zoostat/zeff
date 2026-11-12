@@ -170,3 +170,13 @@ Step 21 was split into five. 21a embedded IBM Plex Sans Regular, Sans SemiBold a
 
 **For the owner to decide.** Nothing waits for him; #106 as taken is his to overturn. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 23a (a layer's own mappings)
+
+**Done.** `points` takes `x:`, `y:`, `color:`, `size:` and `shape:` for its own layer, written as on `plot`: `d.plot(x: educ, y: wage).points().points(y: fitted, color: "firebrick")` draws the observed and the fitted on one pair of axes, and a plot that maps nothing can be built from layers that name everything. The layers share one scale of each aesthetic. The checker and the interpreter learnt that an expression given to a mark speaks of the frame its layer draws. The help page of `points` and catalogue row 461 are brought up to date (logged).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest`; CI is read job by job after the push.
+
+**Next.** Step 23b `[engine]`: lines with a type in a drawing, in the three writers (decision #118, F9).
+
+**For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn: `points` takes the five aesthetics it draws and not `fill:`, `group:` or `label:`; the order of its options; the title of a shared axis stays the plot's. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

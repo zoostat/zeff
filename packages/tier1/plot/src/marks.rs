@@ -15,38 +15,127 @@ use std::rc::Rc;
 
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Aesthetic, Frame, Mark, Plot, PlotLayer, Value};
+use zeff_core::value::{Aesthetic, Frame, Mark, Plot, PlotLayer, PlotMapping, PlotSetting, Value};
 use zeff_diagnostics::Diagnostic;
 
-use crate::grammar::{a_type, column, internal, number_option, shown};
+use crate::grammar::{Slots, a_type, aesthetics, column, internal, number_option, shown};
 use crate::mapping::{self, variables};
-use crate::scene::{Shading, is_numeric, scene, shading, with_layer};
+use crate::scene::{Shading, is_numeric, kind_of, scene, shading, with_layer};
 
 const P: usize = 0;
 const DATA: usize = 1;
-const ALPHA: usize = 2;
-const SIZE: usize = 3;
-const JITTER: usize = 4;
+const X: usize = 2;
+const Y: usize = 3;
+const COLOR: usize = 4;
+const SIZE: usize = 5;
+const SHAPE: usize = 6;
+const ALPHA: usize = 7;
+const JITTER: usize = 8;
 
-/// A mark placed by two positions needs something mapped to `x` and to `y`; Z0401 when one is
-/// not mapped.
-fn positions(ctx: &CallContext<'_>, plot: &Plot, function: &str) -> Result<(), Fail> {
-    let lacking = match (plot.mapped(Aesthetic::X), plot.mapped(Aesthetic::Y)) {
-        (Some(_), Some(_)) => return Ok(()),
-        (Some(_), None) => "`y`",
-        (None, Some(_)) => "`x`",
-        (None, None) => "`x` or `y`",
+/// A mark placed by two positions needs something mapped to `x` and to `y`, by the plot or by
+/// the layer itself (`own`); Z0401 when one is mapped by neither.
+fn positions(
+    ctx: &CallContext<'_>,
+    plot: &Plot,
+    own: &[PlotMapping],
+    function: &str,
+) -> Result<(), Fail> {
+    let mapped = |aesthetic: Aesthetic| {
+        plot.mapping(aesthetic).is_some() || own.iter().any(|m| m.aesthetic == aesthetic)
+    };
+    let lacking = match (mapped(Aesthetic::X), mapped(Aesthetic::Y)) {
+        (true, true) => return Ok(()),
+        (true, false) => "`y`",
+        (false, true) => "`x`",
+        (false, false) => "`x` or `y`",
+    };
+    // A layer that names a position of its own is told of both places a position may come from.
+    let named = own
+        .iter()
+        .any(|m| matches!(m.aesthetic, Aesthetic::X | Aesthetic::Y));
+    let (whose, help) = if named {
+        (
+            "neither the plot nor this layer maps a variable",
+            format!(
+                "name it in the layer, as in `{function}(x: educ, y: wage)`, or where the plot starts, as in `plot(x: educ, y: wage)`"
+            ),
+        )
+    } else {
+        (
+            "the plot maps no variable",
+            "map both where the plot starts, as in `plot(x: educ, y: wage)`".to_string(),
+        )
     };
     Err(fail(
         Diagnostic::error(
             "Z0401",
             format!(
-                "`{function}` places each mark by its `x` and its `y`, but the plot maps no variable to {lacking}"
+                "`{function}` places each mark by its `x` and its `y`, but {whose} to {lacking}"
             ),
         )
         .in_file(ctx.script)
         .primary(ctx.callee_span, "needs both `x` and `y`")
-        .help("map both where the plot starts, as in `plot(x: educ, y: wage)`"),
+        .help(help),
+    ))
+}
+
+/// The layers of a plot share one scale of each aesthetic (open decision #106): a variable a
+/// layer maps to a colour of its own must be shown as the scale already shows its variable, as
+/// categories or on a continuous scale. Z0401 when it is of the other kind.
+fn one_scale(
+    ctx: &CallContext<'_>,
+    plot: &Plot,
+    frame: &Frame,
+    own: &[PlotMapping],
+    slot: usize,
+    function: &str,
+) -> Result<(), Fail> {
+    let Some(mapping) = own.iter().find(|m| m.aesthetic == Aesthetic::Color) else {
+        return Ok(());
+    };
+    let Some((theirs, variable)) = kind_of(plot, Aesthetic::Color) else {
+        return Ok(());
+    };
+    let Some(found) = frame.table.column(&mapping.variable) else {
+        return Ok(());
+    };
+    if shading(found) == Some(theirs) {
+        return Ok(());
+    }
+    let name = mapping.variable.as_str();
+    let labelled = found
+        .metadata()
+        .value_labels()
+        .is_some_and(|labels| !labels.is_empty());
+    let (shown, what) = match theirs {
+        Shading::Categories => (
+            "as categories",
+            if labelled {
+                " with value labels"
+            } else {
+                " without value labels, which is shown on a continuous scale"
+            },
+        ),
+        Shading::Ramp => (
+            "on a continuous scale",
+            if labelled {
+                " with value labels, which is shown as categories"
+            } else {
+                ", which is shown as categories"
+            },
+        ),
+    };
+    Err(fail(
+        Diagnostic::error(
+            "Z0401",
+            format!(
+                "the plot shows `{variable}` {shown} for `color`, but `{name}`, which `{function}` maps to `color`, is {}{what}",
+                a_type(found)
+            ),
+        )
+        .in_file(ctx.script)
+        .primary(ctx.span_of(slot), format!("`{name}` is of another kind"))
+        .help("the layers of a plot share one scale of colour, so the variables mapped to `color` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels"),
     ))
 }
 
@@ -208,24 +297,60 @@ fn own_frame(
     Ok((Some(own), values))
 }
 
-/// `p.points(data: Frame, alpha: Float = 1, size: Float, jitter: Float = 0)`.
+/// `p.points(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, size: Var | Float,
+/// shape: Var | Str, alpha: Float = 1, jitter: Float = 0)`.
 pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let Some(Value::Plot(plot)) = args.get(P) else {
         return Err(internal(ctx, "`points` reached its body without a plot"));
     };
     let plot: Rc<Plot> = plot.clone();
-    positions(ctx, &plot, "points")?;
-    let size = number_option(ctx, &args, SIZE, "a `size:` that is not a number")?;
-    // What the layer reads from the plot: with a `size:` of its own, not the plot's size.
-    let mut read = vec![
+    // What the layer names of its own (open decision #106), read as `plot` reads it, on the
+    // frame the layer draws: its own, or the plot's.
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mappings, mut constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        "points",
+        &Slots {
+            x: X,
+            y: Y,
+            color: COLOR,
+            fill: None,
+            size: SIZE,
+            shape: SHAPE,
+            group: None,
+            label: None,
+        },
+        own_data,
+    )?;
+    // A size that is a number is the layer's own size.
+    let size = constants.iter().find_map(|c| match c.value {
+        PlotSetting::Size(across) if c.aesthetic == Aesthetic::Size => Some(across),
+        _ => None,
+    });
+    constants.retain(|c| c.aesthetic != Aesthetic::Size);
+    positions(ctx, &plot, &mappings, "points")?;
+    one_scale(ctx, &plot, &frame, &mappings, COLOR, "points")?;
+    // What the layer reads from the plot: what it neither names nor sets of its own.
+    let read: Vec<Aesthetic> = [
         Aesthetic::X,
         Aesthetic::Y,
         Aesthetic::Color,
         Aesthetic::Shape,
-    ];
-    if size.is_none() {
-        read.push(Aesthetic::Size);
-    }
+        Aesthetic::Size,
+    ]
+    .into_iter()
+    .filter(|aesthetic| {
+        !mappings.iter().any(|m| m.aesthetic == *aesthetic)
+            && !constants.iter().any(|c| c.aesthetic == *aesthetic)
+            && !(*aesthetic == Aesthetic::Size && size.is_some())
+    })
+    .collect();
     let (data, computed) = own_frame(ctx, &args, &plot, "points", &read)?;
 
     let alpha =
@@ -242,22 +367,6 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .in_file(ctx.script)
             .primary(ctx.span_of(ALPHA), "outside [0, 1]")
             .help("write 1 for solid points, or a share such as 0.3 so that crowded points show through"),
-        ));
-    }
-    if let Some(given) = size
-        && !(given > 0.0 && given.is_finite())
-    {
-        return Err(fail(
-            Diagnostic::error(
-                "Z0401",
-                format!(
-                    "`size:` of `points` is the diameter of a point in points of 1/72 inch, above 0, but this is {}",
-                    shown(given)
-                ),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(SIZE), "not a size")
-            .help("write a size such as 3 or 6; without `size:` a point takes the size the plot gives, or is 4.5 across"),
         ));
     }
     let jitter =
@@ -295,6 +404,8 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             jitter,
             stream,
             computed,
+            mappings,
+            constants,
         },
     );
     for note in after.notes {

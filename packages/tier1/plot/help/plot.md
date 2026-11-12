@@ -8,7 +8,9 @@ Starts a plot of a frame: `w.plot(x: educ, y: wage)` names the frame and the var
 along the two axes. In place of a variable an axis takes an expression of the variables, as in
 `y: log(wage)`. A plot is built in layers. `plot` draws nothing by itself; each mark that
 follows, such as `.points()`, adds a layer on top of those before it, and all the layers share
-the frame, the mapped variables and the scales.
+the frame, the mapped variables and the scales. A layer may name a variable of its own in the
+place of one the plot maps, as in `.points(y: fitted)`, and a frame of its own with `data:`;
+the scales stay shared.
 
 `color:` shows a third variable by the colour of the marks. `color: female` gives each category
 a colour of its own, and `color: hours` shades the marks along a ramp from the smallest value to

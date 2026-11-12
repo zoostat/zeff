@@ -432,32 +432,10 @@ let w = dataset(wages)
 let p = w.plot(x: educ, y: wage, size: hours)
 let q = w.plot(x: educ, y: wage, shape: union)
 p.points(size: 0)
-error[Z0401]: `size:` of `points` is the diameter of a point in points of 1/72 inch, above 0, but this is 0
+error[Z0401]: `size:` of `points` is the diameter of every mark in points of 1/72 inch, above 0, but this is 0
  --> scripts/main.zeff:4:16
   |
 4 | p.points(size: 0)
   |                ^ not a size
   |
-  = help: write a size such as 3 or 6; without `size:` a point takes the size the plot gives, or is 4.5 across
-
-let w = dataset(wages)
-let p = w.plot(x: educ, y: wage, size: hours)
-let q = w.plot(x: educ, y: wage, shape: union)
-q.points(shape: "cross")
-error[Z0404]: `points` has no argument called `shape`
- --> scripts/main.zeff:4:10
-  |
-4 | q.points(shape: "cross")
-  |          ^^^^^ unknown argument
-  |
-  = help: usage: `p.points(data: Frame, alpha: Float = 1, size: Float, jitter: Float = 0)`
-
-let w = dataset(wages)
-let p = w.plot(x: educ, y: wage, size: hours)
-let q = w.plot(x: educ, y: wage, shape: union)
-p.points(size: hours)
-error[Z0101]: nothing is called `hours` here
- --> scripts/main.zeff:4:16
-  |
-4 | p.points(size: hours)
-  |                ^^^^^ not a binding
+  = help: write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point takes the size the plot gives, or is 4.5 across

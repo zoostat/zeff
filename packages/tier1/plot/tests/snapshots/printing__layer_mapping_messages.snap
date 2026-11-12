@@ -1,0 +1,221 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_such_variable
+error[Z0101]: no variable `fited` in `d`
+ --> scripts/main.zeff:3:36
+  |
+3 | d.plot(x: educ, y: wage).points(y: fited)
+  |                                    ^^^^^ not a variable of d
+  |
+  = help: did you mean `fitted`? If you meant a category level, write it in quotes: `"fitted"`
+
+== another_case
+error[Z0102]: no variable `Fitted` in `d`; names are case-sensitive
+ --> scripts/main.zeff:3:36
+  |
+3 | d.plot(x: educ, y: wage).points(y: Fitted)
+  |                                    ^^^^^^ differs only in case from `fitted`
+  |
+  = help: write `fitted`
+
+== not_a_number
+error[Z0401]: `points` draws `y` on a linear scale, so `industry` must be a Bool, Int or Float variable, but it is a Category
+ --> scripts/main.zeff:3:36
+  |
+3 | d.plot(x: educ, y: wage).points(y: industry)
+  |                                    ^^^^^^^^ not a numeric variable
+  |
+  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+
+== no_such_variable_in_an_expression
+error[Z0101]: no variable `wagee` in `d`
+ --> scripts/main.zeff:3:40
+  |
+3 | d.plot(x: educ, y: wage).points(y: log(wagee))
+  |                                        ^^^^^ not a variable of d
+  |
+  = help: did you mean `wage`? If you meant a category level, write it in quotes: `"wage"`
+
+== one_value_for_all_rows
+error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function of `data`
+ --> scripts/main.zeff:3:36
+  |
+3 | d.plot(x: educ, y: wage).points(y: mean(wage))
+  |                                    ^^^^ not kept in a mapping
+  |
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
+
+== not_in_its_own_frame
+note: 6 rows dropped where `wage > 50` was NA; `d.where(is_missing(wage))` lists them (line 3)
+error[Z0101]: no variable `fitted` in `top`
+ --> scripts/main.zeff:4:47
+  |
+4 | d.plot(x: educ, y: wage).points(data: top, y: fitted)
+  |                                               ^^^^^^ not a variable of top
+  |
+  = help: the variables of `top` are: worker, year, wage, educ, exper, age, hours, union and 3 more
+
+== neither_maps_y
+error[Z0401]: `points` places each mark by its `x` and its `y`, but neither the plot nor this layer maps a variable to `y`
+ --> scripts/main.zeff:3:17
+  |
+3 | d.plot(x: educ).points(x: exper)
+  |                 ^^^^^^ needs both `x` and `y`
+  |
+  = help: name it in the layer, as in `points(x: educ, y: wage)`, or where the plot starts, as in `plot(x: educ, y: wage)`
+
+== neither_maps_either
+error[Z0401]: `points` places each mark by its `x` and its `y`, but the plot maps no variable to `x` or `y`
+ --> scripts/main.zeff:3:10
+  |
+3 | d.plot().points(color: union)
+  |          ^^^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+== the_plot_maps_no_y
+error[Z0401]: `points` places each mark by its `x` and its `y`, but the plot maps no variable to `y`
+ --> scripts/main.zeff:3:17
+  |
+3 | d.plot(x: educ).points()
+  |                 ^^^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+== not_a_colour
+error[Z0401]: `color:` of `points` is "firebrik", which is not the name of a colour
+ --> scripts/main.zeff:3:40
+  |
+3 | d.plot(x: educ, y: wage).points(color: "firebrik")
+  |                                        ^^^^^^^^^^ not a colour
+  |
+  = help: did you mean "firebrick"?
+
+== a_variable_in_quotes
+error[Z0401]: `color:` of `points` is "union", which is not the name of a colour
+ --> scripts/main.zeff:3:40
+  |
+3 | d.plot(x: educ, y: wage).points(color: "union")
+  |                                        ^^^^^^^ not a colour
+  |
+  = help: a string sets one colour for every mark; to colour by the variable `union`, write it without quotation marks, `color: union`
+
+== a_date_for_a_colour
+error[Z0401]: `points` shows `color` as categories or on a continuous scale, so `day` must be a Bool, Int, Float, Str or Category variable, but it is a Date
+ --> scripts/main.zeff:3:110
+  |
+3 | frame(a = [1, 2], b = [3, 4], day = [date("2026-01-01"), date("2026-01-02")]).plot(x: a, y: b).points(color: day)
+  |                                                                                                              ^^^ no colour scale for this type
+  |
+  = help: a colour scale of dates is not in this release yet; `the frame.describe()` lists the types of the variables
+
+== a_number_where_categories_are
+error[Z0401]: the plot shows `union` as categories for `color`, but `hours`, which `points` maps to `color`, is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:3:54
+  |
+3 | d.plot(x: educ, y: wage, color: union).points(color: hours)
+  |                                                      ^^^^^ `hours` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so the variables mapped to `color` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels
+
+== categories_where_a_number_is
+error[Z0401]: the plot shows `hours` on a continuous scale for `color`, but `union`, which `points` maps to `color`, is an Int with value labels, which is shown as categories
+ --> scripts/main.zeff:3:54
+  |
+3 | d.plot(x: educ, y: wage, color: hours).points(color: union)
+  |                                                      ^^^^^ `union` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so the variables mapped to `color` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels
+
+== another_kind_than_the_first_layer
+note: 6 rows with NA in educ or wage dropped (line 3)
+error[Z0401]: the plot shows `union` as categories for `color`, but `hours`, which `points` maps to `color`, is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:3:61
+  |
+3 | d.plot(x: educ, y: wage).points(color: union).points(color: hours)
+  |                                                             ^^^^^ `hours` is of another kind
+  |
+  = help: the layers of a plot share one scale of colour, so the variables mapped to `color` must all be categories (a Category, a Str, a Bool or a variable with value labels) or all be numbers without value labels
+
+== categories_for_a_size
+error[Z0401]: `points` shows `size` by area, so `union` must be an Int or Float variable without value labels, but it is an Int with value labels
+ --> scripts/main.zeff:3:39
+  |
+3 | d.plot(x: educ, y: wage).points(size: union)
+  |                                       ^^^^^ not an amount
+  |
+  = help: a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`
+
+== no_size
+error[Z0401]: `size:` of `points` is the diameter of every mark in points of 1/72 inch, above 0, but this is 0
+ --> scripts/main.zeff:3:39
+  |
+3 | d.plot(x: educ, y: wage).points(size: 0)
+  |                                       ^ not a size
+  |
+  = help: write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point takes the size the plot gives, or is 4.5 across
+
+== a_number_for_a_shape
+error[Z0401]: `points` gives each category a shape, so `hours` must be a Bool, Str or Category variable, or a number with value labels, but it is a Float without value labels
+ --> scripts/main.zeff:3:40
+  |
+3 | d.plot(x: educ, y: wage).points(shape: hours)
+  |                                        ^^^^^ not categories
+  |
+  = help: a shape shows a category; a number is shown by `color:` or `size:`, or made categories first, as in `d.add(hours = category(hours))`
+
+== not_a_shape
+error[Z0401]: `shape:` of `points` is "blob", which is not the name of a shape
+ --> scripts/main.zeff:3:40
+  |
+3 | d.plot(x: educ, y: wage).points(shape: "blob")
+  |                                        ^^^^^^ not a shape
+  |
+  = help: a shape is one of asterisk, circle, circle_open, cross, diamond, diamond_open, plus, square, square_open, star, star_open, triangle, triangle_down, triangle_down_open and triangle_open
+
+== an_expression_for_a_colour
+error[Z0401]: `color:` of `points` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:3:40
+  |
+3 | d.plot(x: educ, y: wage).points(color: wage > 20)
+  |                                        ^^^^^^^^^ an expression
+  |
+  = help: compute it first on the frame, with `add(v = wage > 20)`, and name the new variable: `.points(color: v)`
+
+== an_expression_for_a_size
+error[Z0401]: `size:` of `points` takes a variable of the frame or a number, not an expression
+ --> scripts/main.zeff:3:39
+  |
+3 | d.plot(x: educ, y: wage).points(size: hours / 2)
+  |                                       ^^^^^^^^^ an expression
+  |
+  = help: compute it first on the frame, with `add(v = hours / 2)`, and name the new variable: `.points(size: v)`
+
+== an_expression_for_a_shape
+error[Z0401]: `shape:` of `points` takes a variable of the frame or a string, not an expression
+ --> scripts/main.zeff:3:40
+  |
+3 | d.plot(x: educ, y: wage).points(shape: union == 1)
+  |                                        ^^^^^^^^^^ an expression
+  |
+  = help: compute it first on the frame, with `add(v = union == 1)`, and name the new variable: `.points(shape: v)`
+
+== text_for_a_position
+error[Z0401]: `points` draws `y` on a linear scale, so `"fitted"` must give a Bool, Int or Float for each row, but it gives a Str
+ --> scripts/main.zeff:3:36
+  |
+3 | d.plot(x: educ, y: wage).points(y: "fitted")
+  |                                    ^^^^^^^^ not a number for each row
+  |
+  = help: the scales of categories, text and dates are not in this release yet; `d.describe()` lists the types of the variables
+
+== no_group_on_a_mark_of_points
+error[Z0404]: `points` has no argument called `group`
+ --> scripts/main.zeff:3:33
+  |
+3 | d.plot(x: educ, y: wage).points(group: union)
+  |                                 ^^^^^ unknown argument
+  |
+  = help: usage: `p.points(data: Frame, x: Var | Expr, y: Var | Expr, color: Var | Str, size: Var | Float, shape: Var | Str, alpha: Float = 1, jitter: Float = 0)`

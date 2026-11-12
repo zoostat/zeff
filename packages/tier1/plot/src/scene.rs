@@ -282,10 +282,60 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
     }
 }
 
-/// Whether a layer takes an aesthetic from the plot: its mark reads it, and the layer does not
-/// say otherwise. A layer with a `size:` of its own does not read the plot's.
+/// Whether a layer draws an aesthetic from a variable, its own or the plot's: its mark reads
+/// it, and the layer does not set it to one value. A layer with a `size:` of its own that is a
+/// number does not read a size.
 pub fn layer_reads(layer: &PlotLayer, aesthetic: Aesthetic) -> bool {
-    reads(layer.mark, aesthetic) && !(aesthetic == Aesthetic::Size && layer.size.is_some())
+    reads(layer.mark, aesthetic) && !layer.sets(aesthetic)
+}
+
+/// Whether a layer takes an aesthetic from the plot: it draws it from a variable, and names
+/// none of its own.
+fn takes_from_plot(layer: &PlotLayer, aesthetic: Aesthetic) -> bool {
+    layer_reads(layer, aesthetic) && layer.mapping(aesthetic).is_none()
+}
+
+/// What a layer draws an aesthetic from (open decision #106): its own mapping where it names
+/// one, nothing where it sets the aesthetic to one value, and the plot's mapping otherwise.
+pub fn mapping_of<'a>(
+    plot: &'a Plot,
+    layer: &'a PlotLayer,
+    aesthetic: Aesthetic,
+) -> Option<&'a PlotMapping> {
+    match layer.mapping(aesthetic) {
+        Some(own) => Some(own),
+        None if layer.sets(aesthetic) => None,
+        None => plot.mapping(aesthetic),
+    }
+}
+
+/// How the scale of an aesthetic shows its variable so far, as categories or on a ramp, with
+/// the variable it is named by: the plot's, or the first a layer names. `None` while nothing
+/// is mapped to it.
+pub(crate) fn kind_of(plot: &Plot, aesthetic: Aesthetic) -> Option<(Shading, &str)> {
+    let (mapping, _, layer) = first_mapping(plot, aesthetic)?;
+    let kind = shading(values(plot, layer, aesthetic)?)?;
+    Some((kind, mapping.variable.as_str()))
+}
+
+/// The frame a layer draws: its own, or the plot's.
+fn frame_of<'a>(plot: &'a Plot, layer: &'a PlotLayer) -> &'a Frame {
+    layer.data.as_ref().unwrap_or(&plot.frame)
+}
+
+/// What an aesthetic is mapped from for the whole plot, with the frame it is read in: the
+/// plot's mapping, or where the plot maps nothing the first a layer names of its own.
+fn first_mapping(
+    plot: &Plot,
+    aesthetic: Aesthetic,
+) -> Option<(&PlotMapping, &Frame, Option<&PlotLayer>)> {
+    if let Some(mapping) = plot.mapping(aesthetic) {
+        return Some((mapping, &plot.frame, None));
+    }
+    plot.layers.iter().find_map(|layer| {
+        let own = layer.mapping(aesthetic)?;
+        reads(layer.mark, aesthetic).then(|| (own, frame_of(plot, layer), Some(layer)))
+    })
 }
 
 /// How a variable mapped to a colour, a size or a shape is shown.
@@ -418,12 +468,22 @@ struct Drawn {
 
 /// The values a layer draws for an aesthetic: the variable of the layer's frame, which is the
 /// plot's unless the layer has its own, or the values of the mapped expression computed on that
-/// frame. `None` when nothing is mapped, or when the frame has no such variable.
+/// frame. A layer that names a mapping of its own draws that: its variable in its frame, or its
+/// expression as computed there when the layer was added. `None` when nothing is mapped, or
+/// when the frame has no such variable.
 fn values<'a>(
     plot: &'a Plot,
     layer: Option<&'a PlotLayer>,
     aesthetic: Aesthetic,
 ) -> Option<&'a Column> {
+    if let Some(layer) = layer
+        && let Some(own) = layer.mapping(aesthetic)
+    {
+        return match &own.computed {
+            Some(computed) => Some(&computed.values),
+            None => frame_of(plot, layer).table.column(&own.variable),
+        };
+    }
     let mapping = plot.mapping(aesthetic)?;
     let own = layer.filter(|layer| layer.data.is_some());
     match (&mapping.computed, own) {
@@ -580,20 +640,21 @@ fn extent<'a>(values: impl Iterator<Item = &'a f64>) -> Option<(f64, f64)> {
 }
 
 /// The extent of what the plot's frame gives an aesthetic, for an axis no mark has yet been
-/// drawn on.
+/// drawn on; where the plot maps nothing to it, of what the first layer that names it reads.
 fn frame_extent(plot: &Plot, aesthetic: Aesthetic) -> Option<(f64, f64)> {
-    let column = values(plot, None, aesthetic)?;
+    let (_, _, layer) = first_mapping(plot, aesthetic)?;
+    let column = values(plot, layer, aesthetic)?;
     let values = column.numeric_values()?.values;
     extent(values.iter())
 }
 
-/// The title of an axis: the label of its variable in the plot's frame, or the variable's name;
-/// for an expression, the expression as written.
-fn axis_title(plot: &Plot, mapping: &PlotMapping) -> String {
+/// The title of an axis: the label of its variable in the frame it is read in, or the
+/// variable's name; for an expression, the expression as written.
+fn axis_title(frame: &Frame, mapping: &PlotMapping) -> String {
     if mapping.computed.is_some() {
         return mapping.variable.clone();
     }
-    plot.frame
+    frame
         .table
         .column(&mapping.variable)
         .and_then(|c| c.metadata().get(MetadataKey::Label))
@@ -606,8 +667,11 @@ fn axis_title(plot: &Plot, mapping: &PlotMapping) -> String {
 /// shape: how the variable is shown, and which layers take the aesthetic from it.
 struct Colouring<'a> {
     aesthetic: Aesthetic,
+    /// The mapping the scale is named by: the plot's, or the first a layer names.
     mapping: &'a PlotMapping,
-    /// The variable in the plot's frame.
+    /// The frame that mapping is read in.
+    frame: &'a Frame,
+    /// The variable in that frame.
     base: &'a Column,
     kind: Shading,
     /// For each layer the variable its marks are coloured, sized or shaped by, in the layer's
@@ -620,8 +684,8 @@ struct Colouring<'a> {
 /// own frame holds the variable as another kind of scale than the plot's is not coloured; the
 /// marks refuse such a frame before it comes to this.
 fn colouring(plot: &Plot, aesthetic: Aesthetic) -> Option<Colouring<'_>> {
-    let mapping = plot.mapping(aesthetic)?;
-    let base = values(plot, None, aesthetic)?;
+    let (mapping, frame, layer) = first_mapping(plot, aesthetic)?;
+    let base = values(plot, layer, aesthetic)?;
     let kind = shading(base)?;
     match (aesthetic, kind) {
         (Aesthetic::Size, Shading::Categories) | (Aesthetic::Shape, Shading::Ramp) => return None,
@@ -640,6 +704,7 @@ fn colouring(plot: &Plot, aesthetic: Aesthetic) -> Option<Colouring<'_>> {
     Some(Colouring {
         aesthetic,
         mapping,
+        frame,
         base,
         kind,
         readers,
@@ -658,7 +723,7 @@ struct Shaded {
 /// The scale of a colouring. `kept` holds, for each layer, the rows its marks are drawn from.
 fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded {
     let id = colouring.aesthetic.name();
-    let title = axis_title(plot, colouring.mapping);
+    let title = axis_title(colouring.frame, colouring.mapping);
     let layers = || colouring.readers.iter().zip(kept);
     match colouring.kind {
         Shading::Ramp => {
@@ -860,8 +925,6 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
 
 /// The scene of a plot.
 pub fn scene<'a>(plot: &'a Plot) -> Scene {
-    let x = plot.mapped(Aesthetic::X);
-    let y = plot.mapped(Aesthetic::Y);
     let colourings: Vec<Colouring<'_>> = [
         Aesthetic::Color,
         Aesthetic::Fill,
@@ -881,13 +944,22 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     // For each layer, the rows its marks are drawn from.
     let mut kept: Vec<Vec<usize>> = Vec::new();
     for (at, layer) in plot.layers.iter().enumerate() {
-        let mut points = match (x, y) {
+        // What the layer draws each position from: its own mapping, or the plot's.
+        let named = |aesthetic: Aesthetic| {
+            mapping_of(plot, layer, aesthetic).map(|mapping| mapping.variable.as_str())
+        };
+        let mut points = match (named(Aesthetic::X), named(Aesthetic::Y)) {
             (Some(x), Some(y)) => {
                 // A value on a ramp of colours must be there and finite, as a position must; a
                 // row without a category is drawn, in the colour of `NA`.
                 let read = |colouring: &Colouring<'a>| {
-                    colouring.readers[at]
-                        .map(|column| (colouring.mapping.variable.as_str(), column))
+                    colouring.readers[at].map(|column| {
+                        (
+                            named(colouring.aesthetic)
+                                .unwrap_or(colouring.mapping.variable.as_str()),
+                            column,
+                        )
+                    })
                 };
                 let ramps: Vec<(&str, &Column)> = colourings
                     .iter()
@@ -953,7 +1025,13 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         jitter(layer, &mut points);
         // A constant colour, for a mark that has one; a mapped colour takes its place below,
         // when its scale is known.
-        let color = match plot.constant(Aesthetic::Color) {
+        // What the layer says of an aesthetic comes before what the plot says of it.
+        let set = |aesthetic: Aesthetic| match layer.constant(aesthetic) {
+            Some(own) => Some(own),
+            None if layer.mapping(aesthetic).is_some() => None,
+            None => plot.constant(aesthetic),
+        };
+        let color = match set(Aesthetic::Color) {
             Some(PlotSetting::Colour { hex, .. }) if reads(layer.mark, Aesthetic::Color) => {
                 Paint::Constant(hex.clone())
             }
@@ -961,12 +1039,12 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         };
         // The layer's own size comes before the plot's; a mapped size and a mapped shape take
         // their place below, as a mapped colour does.
-        let size = match (layer.size, plot.constant(Aesthetic::Size)) {
+        let size = match (layer.size, set(Aesthetic::Size)) {
             (Some(own), _) => own,
             (None, Some(PlotSetting::Size(all))) if reads(layer.mark, Aesthetic::Size) => *all,
             _ => POINT_SIZE,
         };
-        let outline = match plot.constant(Aesthetic::Shape) {
+        let outline = match set(Aesthetic::Shape) {
             Some(PlotSetting::Shape(name)) if reads(layer.mark, Aesthetic::Shape) => *name,
             _ => shape::DEFAULT,
         };
@@ -991,7 +1069,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         (Aesthetic::X, Position::Bottom),
         (Aesthetic::Y, Position::Left),
     ] {
-        let Some(mapping) = plot.mapping(aesthetic) else {
+        let Some((mapping, frame, _)) = first_mapping(plot, aesthetic) else {
             continue;
         };
         let marks = extent(layers.iter().flat_map(|layer| {
@@ -1007,7 +1085,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         scales.push(Scale {
             id: aesthetic.name(),
             kind: ScaleKind::Linear,
-            title: axis_title(plot, mapping),
+            title: axis_title(frame, mapping),
             limits: (lo, hi),
             breaks,
             labels,
@@ -1071,6 +1149,12 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         }
         scales.push(scale);
     }
+    let placed_by = |aesthetic: Aesthetic| {
+        axes.iter()
+            .any(|axis| axis.scale == aesthetic.name())
+            .then(|| aesthetic.name())
+    };
+    let (x, y) = (placed_by(Aesthetic::X), placed_by(Aesthetic::Y));
     Scene {
         rows: 1,
         columns: 1,
@@ -1080,8 +1164,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         panels: vec![Panel {
             row: 1,
             column: 1,
-            x: x.map(|_| Aesthetic::X.name()),
-            y: y.map(|_| Aesthetic::Y.name()),
+            x,
+            y,
             layers,
             projection: None,
             crs: None,
@@ -1383,7 +1467,10 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         Some(name) => format!("plot · {name}"),
         None => "plot".to_string(),
     };
-    let title = match (plot.mapped(Aesthetic::X), plot.mapped(Aesthetic::Y)) {
+    let mapped = |aesthetic: Aesthetic| {
+        first_mapping(plot, aesthetic).map(|(mapping, _, _)| mapping.variable.as_str())
+    };
+    let title = match (mapped(Aesthetic::X), mapped(Aesthetic::Y)) {
         (Some(x), Some(y)) => format!("{named} · {y} against {x}"),
         (Some(one), None) | (None, Some(one)) => format!("{named} · {one}"),
         (None, None) => named,
@@ -1501,14 +1588,14 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             // A group and a label have no scale: the values themselves are what a mark reads.
             (None, None, Some(mapping)) if aesthetic == Aesthetic::Group => vec![
                 id.to_string(),
-                axis_title(plot, mapping),
+                axis_title(&plot.frame, mapping),
                 String::new(),
                 "each value a group".to_string(),
                 String::new(),
             ],
             (None, None, Some(mapping)) if aesthetic == Aesthetic::Label => vec![
                 id.to_string(),
-                axis_title(plot, mapping),
+                axis_title(&plot.frame, mapping),
                 String::new(),
                 "the text of a mark".to_string(),
                 String::new(),
@@ -1516,14 +1603,27 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             _ => continue,
         };
         lines.push(line);
-        if !layers.is_empty() && !plot.layers.iter().any(|l| layer_reads(l, aesthetic)) {
+        // What the plot says of an aesthetic and no layer takes from it: its variable, where
+        // the line above shows the scale of the plot's own variable, or the value it sets.
+        let said = match scene.scale(id) {
+            Some(_) => plot.mapping(aesthetic).is_some(),
+            None => plot.mapping(aesthetic).is_some() || plot.constant(aesthetic).is_some(),
+        };
+        if said && !layers.is_empty() && !plot.layers.iter().any(|l| takes_from_plot(l, aesthetic))
+        {
             unread.push(
                 match aesthetic {
+                    Aesthetic::Color => {
+                        "no layer draws `color`: every layer has a `color:` of its own"
+                    }
                     Aesthetic::Fill => {
                         "no layer draws `fill`: `points` takes its colour from `color`"
                     }
                     Aesthetic::Size => {
                         "no layer draws `size`: every layer sets a `size:` of its own"
+                    }
+                    Aesthetic::Shape => {
+                        "no layer draws `shape`: every layer has a `shape:` of its own"
                     }
                     Aesthetic::Group => "no layer draws `group`: `points` draws each row by itself",
                     Aesthetic::Label => "no layer draws `label`: `points` writes no text",
@@ -1567,7 +1667,27 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 .unwrap_or_else(|| "its own frame".to_string()),
             None => shown.clone(),
         };
-        let by = |aesthetic: Aesthetic| plot.mapped(aesthetic).unwrap_or(aesthetic.name());
+        let by = |aesthetic: Aesthetic| {
+            written
+                .and_then(|l| mapping_of(plot, l, aesthetic))
+                .map_or(aesthetic.name(), |mapping| mapping.variable.as_str())
+        };
+        // What the layer names of its own comes first: its positions, then its colour.
+        let mut own: Vec<String> = Vec::new();
+        if let Some(l) = written {
+            for aesthetic in [Aesthetic::X, Aesthetic::Y] {
+                if let Some(mapping) = l.mapping(aesthetic) {
+                    own.push(format!("{} {}", aesthetic.name(), mapping.variable));
+                }
+            }
+            match (l.mapping(Aesthetic::Color), l.constant(Aesthetic::Color)) {
+                (Some(mapping), _) => own.push(format!("color by {}", mapping.variable)),
+                (None, Some(PlotSetting::Colour { written, .. })) => {
+                    own.push(format!("color {written}"));
+                }
+                _ => {}
+            }
+        }
         let mut settings = match &layer.size {
             Sizing::Constant(across) => format!("size {}", format_float(*across)),
             Sizing::Scaled(_) => format!("size by {}", by(Aesthetic::Size)),
@@ -1581,6 +1701,9 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             }
         }
         settings.push_str(&format!(", alpha {}", format_float(layer.alpha)));
+        if !own.is_empty() {
+            settings = format!("{}, {settings}", own.join(", "));
+        }
         if let Some(share) = written.map(|l| l.jitter).filter(|j| *j > 0.0) {
             settings.push_str(&format!(", jitter {}", format_float(share)));
         }

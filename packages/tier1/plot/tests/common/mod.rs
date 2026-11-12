@@ -60,6 +60,8 @@ pub fn points(alpha: f64) -> PlotLayer {
         jitter: 0.0,
         stream: None,
         computed: Vec::new(),
+        mappings: Vec::new(),
+        constants: Vec::new(),
     }
 }
 

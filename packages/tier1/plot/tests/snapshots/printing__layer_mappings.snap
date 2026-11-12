@@ -1,0 +1,79 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · wage against educ
+
+  axis   title                scale    limits            breaks
+  x      Years of schooling   linear   7.4 to 20.6       8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -0.09 to 102.65   0, 20, 40, 60, 80, 100
+
+  layer   mark     data   marks   settings
+      1   points   d        531   size 4.5, alpha 0.4
+      2   points   d        537   y fitted, color firebrick, size 3, alpha 1
+plot · d · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -4.989 to 205.529   0, 50, 100, 150, 200
+
+  layer   mark     data   marks   settings
+      1   points   d        531   size 4.5, alpha 1
+      2   points   d        531   y wage * 2, size 4.5, alpha 1
+plot · d · wage against educ
+
+  axis   title                scale    limits            breaks
+  x      Years of schooling   linear   7.4 to 20.6       8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -0.09 to 102.65   0, 20, 40, 60, 80, 100
+
+  aesthetic   title          scale      values    shown as
+  color       Union member   category   no, yes   orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d        531   x educ, y wage, color by union, size 4.5, alpha 1
+      2   points   d        531   x educ, y log(wage) * 20, size 4.5, shape cross, alpha 1
+plot · d · wage against educ
+
+  axis   title                scale    limits            breaks
+  x      Years of schooling   linear   7.4 to 20.6       8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -0.09 to 102.65   0, 20, 40, 60, 80, 100
+
+  aesthetic   title          scale      values                  shown as
+  color       Union member   category   no, yes, male, female   orange, sky blue, bluish green, yellow
+
+  layer   mark     data   marks   settings
+      1   points   d        531   size 4.5, alpha 1
+      2   points   d        537   y fitted, color by female, size 4.5, alpha 1
+plot · d · wage against educ
+
+  axis   title                scale    limits            breaks
+  x      Years of schooling   linear   -1.25 to 26.25    0, 5, 10, 15, 20, 25
+  y      Hourly wage          linear   -0.09 to 102.65   0, 20, 40, 60, 80, 100
+
+  aesthetic   title          scale      values         shown as
+  size        Hours worked   sqrt       0 to 66.2      by area, up to 18 across
+  shape       Sex            category   male, female   circle, triangle
+
+  layer   mark     data   marks   settings
+      1   points   d        530   size by hours, alpha 1
+      2   points   d        530   x exper, size 6, shape by female, alpha 1
+plot · d · wage against educ
+
+  axis   title                scale    limits            breaks
+  x      Years of schooling   linear   7.4 to 20.6       8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -0.09 to 102.65   0, 20, 40, 60, 80, 100
+
+  layer   mark     data   marks   settings
+      1   points   d        531   size 4.5, alpha 0.2
+      2   points   top       14   y hours, color steelblue, size 4.5, alpha 1
+---
+note: 6 rows with NA in educ or wage dropped (line 3)
+note: 6 rows with NA in educ or wage dropped (line 4)
+note: 6 rows with NA in educ or wage * 2 dropped (line 4)
+note: 6 rows with NA in educ or wage dropped (line 5)
+note: 6 rows with NA in educ or log(wage) * 20 dropped (line 5)
+note: 6 rows with NA in educ or wage dropped (line 6)
+note: 7 rows with NA in educ, wage or hours dropped (line 7)
+note: 7 rows with NA in exper or wage dropped (line 7)
+note: 6 rows dropped where `wage > 50` was NA; `d.where(is_missing(wage))` lists them (line 8)
+note: 6 rows with NA in educ or wage dropped (line 9)

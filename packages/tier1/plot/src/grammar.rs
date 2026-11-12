@@ -106,6 +106,7 @@ pub(crate) fn a_type(column: &Column) -> String {
 fn not_a_colour(
     ctx: &CallContext<'_>,
     frame: &Frame,
+    function: &str,
     slot: usize,
     aesthetic: Aesthetic,
     written: &str,
@@ -116,13 +117,13 @@ fn not_a_colour(
     let (message, label, help) = match why {
         NotAColour::Digits => (
             format!(
-                "`{name}:` of `plot` is \"{written}\", which is not a colour: after `#` come six hexadecimal digits, or three"
+                "`{name}:` of `{function}` is \"{written}\", which is not a colour: after `#` come six hexadecimal digits, or three"
             ),
             "not six hexadecimal digits, or three",
             "write the red, the green and the blue as two digits each, as in \"#4682B4\"; \"#48B\" is short for \"#4488BB\"".to_string(),
         ),
         NotAColour::Name(near) => (
-            format!("`{name}:` of `plot` is \"{written}\", which is not the name of a colour"),
+            format!("`{name}:` of `{function}` is \"{written}\", which is not the name of a colour"),
             "not a colour",
             // The string may be the variable the script meant to colour by.
             if frame.table.column(written).is_some() {
@@ -160,6 +161,8 @@ fn labelled(column: &Column) -> bool {
 fn not_a_shape(
     ctx: &CallContext<'_>,
     frame: &Frame,
+    function: &str,
+    slot: usize,
     written: &str,
     near: Option<&'static str>,
 ) -> Fail {
@@ -183,23 +186,42 @@ fn not_a_shape(
     fail(
         Diagnostic::error(
             "Z0401",
-            format!("`shape:` of `plot` is \"{written}\", which is not the name of a shape"),
+            format!("`shape:` of `{function}` is \"{written}\", which is not the name of a shape"),
         )
         .in_file(ctx.script)
-        .primary(ctx.span_of(SHAPE), "not a shape")
+        .primary(ctx.span_of(slot), "not a shape")
         .help(help),
     )
 }
 
-/// `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str,
-/// size: Var | Float, shape: Var | Str, group: Var, label: Var)`.
-pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
-    let Some(Value::Frame(frame)) = args.get(DATA) else {
-        return Err(internal(ctx, "`plot` reached its body without a frame"));
-    };
-    let frame: Frame = frame.clone();
+/// Where the aesthetics stand among the arguments of a call: the two positions, a colour, a
+/// size and a shape, which every mark of points takes, and those only some calls take.
+pub(crate) struct Slots {
+    pub x: usize,
+    pub y: usize,
+    pub color: usize,
+    pub fill: Option<usize>,
+    pub size: usize,
+    pub shape: usize,
+    pub group: Option<usize>,
+    pub label: Option<usize>,
+}
+
+/// What a call maps and what it sets to one value, read from its arguments as `plot` reads
+/// them (open decision #106): a bare name is a variable of `frame`, an expression given to a
+/// position is computed on it, and a string or a number sets a colour, a shape or a size for
+/// every mark. `function` is the call, for the messages; `own` says that `frame` is a layer's
+/// own.
+pub(crate) fn aesthetics(
+    ctx: &mut CallContext<'_>,
+    args: &Args,
+    frame: &Frame,
+    function: &'static str,
+    slots: &Slots,
+    own: bool,
+) -> Result<(Vec<PlotMapping>, Vec<PlotConstant>), Fail> {
     let mut mappings: Vec<PlotMapping> = Vec::new();
-    for (slot, aesthetic) in [(X, Aesthetic::X), (Y, Aesthetic::Y)] {
+    for (slot, aesthetic) in [(slots.x, Aesthetic::X), (slots.y, Aesthetic::Y)] {
         let name = match args.get(slot) {
             None | Some(Value::Na) => continue,
             Some(Value::Var(name)) => name.clone(),
@@ -209,11 +231,11 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     expr,
                     text,
                     aesthetic,
-                    function: "plot",
+                    function,
                     span: ctx.span_of(slot),
-                    own: false,
+                    own,
                 };
-                let values = computed(ctx, &frame, &asked)?;
+                let values = computed(ctx, frame, &asked)?;
                 mappings.push(PlotMapping {
                     aesthetic,
                     variable: text.clone(),
@@ -227,17 +249,17 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             Some(_) => {
                 return Err(internal(
                     ctx,
-                    "`plot` was given a mapping that is not a variable or an expression",
+                    "a call was given a mapping that is not a variable or an expression",
                 ));
             }
         };
-        let found = column(ctx, &frame, &name, ctx.span_of(slot))?;
+        let found = column(ctx, frame, &name, ctx.span_of(slot))?;
         if !is_numeric(found) {
             return Err(fail(
                 Diagnostic::error(
                     "Z0401",
                     format!(
-                        "`plot` draws `{}` on a linear scale, so `{name}` must be a Bool, Int or Float variable, but it is {}",
+                        "`{function}` draws `{}` on a linear scale, so `{name}` must be a Bool, Int or Float variable, but it is {}",
                         aesthetic.name(),
                         a_type(found)
                     ),
@@ -257,18 +279,24 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         });
     }
     let mut constants: Vec<PlotConstant> = Vec::new();
-    for (slot, aesthetic) in [(COLOR, Aesthetic::Color), (FILL, Aesthetic::Fill)] {
+    for (slot, aesthetic) in [
+        (Some(slots.color), Aesthetic::Color),
+        (slots.fill, Aesthetic::Fill),
+    ] {
+        let Some(slot) = slot else {
+            continue;
+        };
         match args.get(slot) {
             None | Some(Value::Na) => {}
             // A bare name: the variable whose values the colours show.
             Some(Value::Var(name)) => {
-                let found = column(ctx, &frame, name, ctx.span_of(slot))?;
+                let found = column(ctx, frame, name, ctx.span_of(slot))?;
                 if shading(found).is_none() {
                     return Err(fail(
                         Diagnostic::error(
                             "Z0401",
                             format!(
-                                "`plot` shows `{}` as categories or on a continuous scale, so `{name}` must be a Bool, Int, Float, Str or Category variable, but it is {}",
+                                "`{function}` shows `{}` as categories or on a continuous scale, so `{name}` must be a Bool, Int, Float, Str or Category variable, but it is {}",
                                 aesthetic.name(),
                                 a_type(found)
                             ),
@@ -297,22 +325,24 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     },
                 }),
                 Err(why) => {
-                    return Err(not_a_colour(ctx, &frame, slot, aesthetic, written, &why));
+                    return Err(not_a_colour(
+                        ctx, frame, function, slot, aesthetic, written, &why,
+                    ));
                 }
             },
             Some(_) => {
                 return Err(internal(
                     ctx,
-                    "`plot` was given a colour that is not a variable or a string",
+                    "a call was given a colour that is not a variable or a string",
                 ));
             }
         }
     }
-    match args.get(SIZE) {
+    match args.get(slots.size) {
         None | Some(Value::Na) => {}
         // A bare name: the variable whose amounts the areas of the marks show.
         Some(Value::Var(name)) => {
-            let found = column(ctx, &frame, name, ctx.span_of(SIZE))?;
+            let found = column(ctx, frame, name, ctx.span_of(slots.size))?;
             if shading(found) != Some(Shading::Ramp) {
                 let with_labels = if is_numeric(found) && labelled(found) {
                     " with value labels"
@@ -323,12 +353,12 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     Diagnostic::error(
                         "Z0401",
                         format!(
-                            "`plot` shows `size` by area, so `{name}` must be an Int or Float variable without value labels, but it is {}{with_labels}",
+                            "`{function}` shows `size` by area, so `{name}` must be an Int or Float variable without value labels, but it is {}{with_labels}",
                             a_type(found)
                         ),
                     )
                     .in_file(ctx.script)
-                    .primary(ctx.span_of(SIZE), "not an amount")
+                    .primary(ctx.span_of(slots.size), "not an amount")
                     .help("a size shows how much: the area of a mark is in proportion to the value; categories are shown by `color:` or `shape:`"),
                 ));
             }
@@ -340,7 +370,8 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
         // A number: the diameter of every mark.
         Some(Value::Int(_) | Value::Float(_)) => {
-            let Some(across) = number_option(ctx, &args, SIZE, "a `size:` that is not a number")?
+            let Some(across) =
+                number_option(ctx, args, slots.size, "a `size:` that is not a number")?
             else {
                 return Err(internal(ctx, "a `size:` that is a number and is not"));
             };
@@ -349,13 +380,17 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                     Diagnostic::error(
                         "Z0401",
                         format!(
-                            "`size:` of `plot` is the diameter of every mark in points of 1/72 inch, above 0, but this is {}",
+                            "`size:` of `{function}` is the diameter of every mark in points of 1/72 inch, above 0, but this is {}",
                             shown(across)
                         ),
                     )
                     .in_file(ctx.script)
-                    .primary(ctx.span_of(SIZE), "not a size")
-                    .help("write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point is 4.5 across"),
+                    .primary(ctx.span_of(slots.size), "not a size")
+                    .help(if function == "plot" {
+                        "write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point is 4.5 across"
+                    } else {
+                        "write a size such as 3 or 6, or the name of a variable to size the marks by; without `size:` a point takes the size the plot gives, or is 4.5 across"
+                    }),
                 ));
             }
             constants.push(PlotConstant {
@@ -366,28 +401,28 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         Some(_) => {
             return Err(internal(
                 ctx,
-                "`plot` was given a size that is not a variable or a number",
+                "a call was given a size that is not a variable or a number",
             ));
         }
     }
-    match args.get(SHAPE) {
+    match args.get(slots.shape) {
         None | Some(Value::Na) => {}
         // A bare name: the variable whose categories the shapes show.
         Some(Value::Var(name)) => {
-            let found = column(ctx, &frame, name, ctx.span_of(SHAPE))?;
+            let found = column(ctx, frame, name, ctx.span_of(slots.shape))?;
             if shading(found) != Some(Shading::Categories) {
                 let number = shading(found) == Some(Shading::Ramp);
                 return Err(fail(
                     Diagnostic::error(
                         "Z0401",
                         format!(
-                            "`plot` gives each category a shape, so `{name}` must be a Bool, Str or Category variable, or a number with value labels, but it is {}{}",
+                            "`{function}` gives each category a shape, so `{name}` must be a Bool, Str or Category variable, or a number with value labels, but it is {}{}",
                             a_type(found),
                             if number { " without value labels" } else { "" }
                         ),
                     )
                     .in_file(ctx.script)
-                    .primary(ctx.span_of(SHAPE), "not categories")
+                    .primary(ctx.span_of(slots.shape), "not categories")
                     .help(if number {
                         format!(
                             "a shape shows a category; a number is shown by `color:` or `size:`, or made categories first, as in `{}.add({name} = category({name}))`",
@@ -413,21 +448,36 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 aesthetic: Aesthetic::Shape,
                 value: PlotSetting::Shape(name),
             }),
-            Err(near) => return Err(not_a_shape(ctx, &frame, written, near)),
+            Err(near) => {
+                return Err(not_a_shape(
+                    ctx,
+                    frame,
+                    function,
+                    slots.shape,
+                    written,
+                    near,
+                ));
+            }
         },
         Some(_) => {
             return Err(internal(
                 ctx,
-                "`plot` was given a shape that is not a variable or a string",
+                "a call was given a shape that is not a variable or a string",
             ));
         }
     }
     // The variables held for the marks that read them: any type will do.
-    for (slot, aesthetic) in [(GROUP, Aesthetic::Group), (LABEL, Aesthetic::Label)] {
+    for (slot, aesthetic) in [
+        (slots.group, Aesthetic::Group),
+        (slots.label, Aesthetic::Label),
+    ] {
+        let Some(slot) = slot else {
+            continue;
+        };
         match args.get(slot) {
             None | Some(Value::Na) => {}
             Some(Value::Var(name)) => {
-                column(ctx, &frame, name, ctx.span_of(slot))?;
+                column(ctx, frame, name, ctx.span_of(slot))?;
                 mappings.push(PlotMapping {
                     aesthetic,
                     variable: name.clone(),
@@ -437,11 +487,38 @@ pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             Some(_) => {
                 return Err(internal(
                     ctx,
-                    "`plot` was given a group or a label that is not a variable",
+                    "a call was given a group or a label that is not a variable",
                 ));
             }
         }
     }
+    Ok((mappings, constants))
+}
+
+/// `data.plot(x: Var | Expr, y: Var | Expr, color: Var | Str, fill: Var | Str,
+/// size: Var | Float, shape: Var | Str, group: Var, label: Var)`.
+pub fn plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Frame(frame)) = args.get(DATA) else {
+        return Err(internal(ctx, "`plot` reached its body without a frame"));
+    };
+    let frame: Frame = frame.clone();
+    let (mappings, constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        "plot",
+        &Slots {
+            x: X,
+            y: Y,
+            color: COLOR,
+            fill: Some(FILL),
+            size: SIZE,
+            shape: SHAPE,
+            group: Some(GROUP),
+            label: Some(LABEL),
+        },
+        false,
+    )?;
     Ok(Value::Plot(std::rc::Rc::new(start(
         frame, mappings, constants,
     ))))

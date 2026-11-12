@@ -89,8 +89,12 @@ pub fn functions() -> Vec<Function> {
                 params: vec![
                     ParamSpec::required("p", "Plot"),
                     ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("x", "Var | Expr"),
+                    ParamSpec::option("y", "Var | Expr"),
+                    ParamSpec::option("color", "Var | Str"),
+                    ParamSpec::option("size", "Var | Float"),
+                    ParamSpec::option("shape", "Var | Str"),
                     ParamSpec::option_with_default("alpha", "Float", "1"),
-                    ParamSpec::option("size", "Float"),
                     ParamSpec::option_with_default("jitter", "Float", "0"),
                 ],
                 rest: None,
@@ -100,16 +104,20 @@ pub fn functions() -> Vec<Function> {
                         "the rows not drawn for NA, or for an infinite value, in x, y, a variable shown on a continuous colour scale or the variable mapped to size; the rows not drawn for a size below 0, and those drawn with a size of 0; more categories than the palette has colours, or than there are shapes; the seed chosen for jitter: when the script set none",
                     ),
                     DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression the layer maps is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
                         "Z0101",
-                        "the frame of data: lacks a variable the plot maps, or one a mapped expression reads",
+                        "the frame the layer draws lacks a variable the layer names, or one an expression it maps reads; the frame of data: lacks a variable the plot maps, or one a mapped expression reads",
                     ),
                     DiagnosticDecl::new(
                         "Z0102",
-                        "the frame of data: has the variable in another case",
+                        "the frame the layer draws, or the frame of data:, has the variable in another case",
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "the plot maps nothing to x or to y; a mapped variable of data: that is not numeric, or a mapped expression that gives no number for each row of it; the variable mapped to color:, size: or shape: is of another kind in data: than in the frame of the plot; alpha: outside [0, 1]; size: not above 0; jitter: below 0",
+                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, that is not numeric, or an expression that gives no number for each row; a string for color: that is not a colour, or for shape: that is not the name of a shape; a variable the layer names for color:, size: or shape: that the aesthetic cannot show; a variable the layer maps to color: of another kind than the one the scale already shows, or the variable the plot maps to color:, size: or shape: of another kind in data: than in the frame of the plot; an expression given to color:, size: or shape:, which take a variable by its name; alpha: outside [0, 1]; size: not above 0; jitter: below 0",
                     ),
                 ],
                 help: include_str!("../help/points.md"),
