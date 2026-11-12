@@ -2956,3 +2956,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The owner's ruling of 12 November 2026 on question 2 of open decision #110; F9 of open decision #118.
 
+## 12 November 2026: step 21 split, the font files and their reader (release 0.7.0, opening of step 21)
+
+**The split.** Step 21 (the SVG writer, the fonts and the theme) is too large for one session and is split in the checklist into four, each with its own tests and definition of done: 21a, the fonts (the files, the reader of their tables, the width of a text); 21b, the layout and the journal theme (a scene and a size become a drawing in points, a list of the closed set of primitives of #118); 21c, the SVG writer (a drawing becomes bytes); 21d, `export` of a plot, the six sample figures and the identity job. The step as first written stays in the checklist above them and is ticked when the four are.
+
+**The font files.** With the owner's word of 12 November 2026 ("Yes, download"), two archives were fetched from the releases of IBM's repository `github.com/IBM/plex`, licence OFL-1.1: `ibm-plex-sans.zip` of the release `@ibm/plex-sans@1.1.0` (9,921,777 bytes, SHA-256 `fb365d910566e6d199cc2c15579a7dd9a267128e18431a394ed81f1970c69200`) and `ibm-plex-mono.zip` of `@ibm/plex-mono@2.5.0` (6,940,652 bytes, SHA-256 `6d23f01257663d8cc49a0d64c22ced630b79e0e2a0ac08a0da86e9a38bbc481c`). They are kept outside the repository. Step 21a copies into the `plot` crate only the TrueType files of the faces the figures use, each about 200 kB, with `LICENSE.txt` beside them and this source and these hashes in a note, as the owner's rule on copied files asks. The Open Font License was allowed for these two fonts by question 7 at the opening of the release.
+
+**The faces.** Proposed for the journal theme, and read by the owner with the six figures at step 22: IBM Plex Sans Regular for every label, IBM Plex Sans SemiBold for a title, IBM Plex Mono Regular where a figure shows code or aligned digits. Italic waits for rich text (open decision #119, after 1.0). Three files, about 580 kB, which the WebAssembly build carries too.
+
+**The reader of the fonts.** The engine reads the font tables with its own code (the map from characters to glyphs, the advances, the vertical metrics, the outlines, the pair kerning): a figure's bytes rest on these numbers, so they are computed by code the project holds, as the numerical kernels are. The crate `ttf-parser` (MIT or Apache-2.0) joins as a test dependency alone, the independent reader every width and outline is checked against; it is recorded with its exact version when step 21a adds it. Ligatures are not applied (`fi` is drawn as two letters): one fixed rule, and no shaping engine.
+
+**The question put to the owner.** Whether the text of an SVG is drawn as outlines or written as text with the font embedded is open decision #126, due before step 21c; steps 21a and 21b do not depend on it.
+
+**Reason.** The checklist's step 21; the standing instruction that a step too large is split in the checklist; question 7 of the release; the owner's rule of 11 November 2026 on the source and licence of copied files.
+

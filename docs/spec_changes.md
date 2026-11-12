@@ -463,3 +463,7 @@ Step 19b of release 0.7.0 builds open decision #104 (option A, decided 11 Novemb
 
 The owner decided question 2 of open decision #110, "Yes, add both": eight shapes for the categories of `shape:`, the six built at step 20d followed by `triangle_down` and `star`. The register records the decision in a status paragraph, in the row of the summary table and under the question; the other four questions of the entry stay open. No text of the Language Reference or of the Engine Specification names the shapes, so none changes; the help page of `plot` lists them.
 
+## 12 November 2026 — zeff_open_decisions.md, new entry #126
+
+Step 21 of release 0.7.0 was opened and split into steps 21a to 21d in `docs/releases/0.7.0.md`. One design question that section 7.6 of the Language Reference does not settle was met before any code: whether the text of an exported SVG is drawn as outlines or written as text with the font embedded, which decides how a figure looks in programs that ignore a font carried in an SVG. It is recorded as open decision #126, with a recommendation and the deadline "0.7.0, before step 21c". No normative text changes until the owner decides.
+

@@ -140,3 +140,11 @@ Step 20 `[engine]`: the package `plot`; `w.plot(x: educ, y: wage)` starts a plot
 
 **For the owner to decide.** Nothing blocks step 21. Open as before: the other four questions of #110 (recommended as built, due before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 21 opened and split
+
+**Done.** No code. Step 21 was split in the checklist into 21a (the fonts), 21b (the layout and the journal theme), 21c (the SVG writer) and 21d (`export` of a plot and the six figures). With the owner's word, the two IBM Plex archives were downloaded from IBM's repository; they are kept outside the repository until step 21a copies the three faces used. Open decision #126 was raised: how the text of an SVG is written. Details in `docs/decisions.md`.
+
+**Next.** Step 21a `[engine]`: the fonts.
+
+**For the owner to decide.** New: #126, due before step 21c (recommended: letters drawn as outlines, so that a figure looks the same in every program, with the words kept in the file for search; editable text as an option after 1.0). Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
