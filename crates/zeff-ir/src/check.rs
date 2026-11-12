@@ -6756,6 +6756,19 @@ impl Checker<'_> {
             match &e.kind {
                 ExprKind::Var(name) => Some(vec![name.clone()]),
                 ExprKind::Vars(names) => Some(names.clone()),
+                // `vars(a, b)`: the names it lists, when each is written as a name. Anything
+                // else it may hold is known only when the statement runs.
+                ExprKind::Call(listed) if listed.name == "vars" => {
+                    let mut names = Vec::new();
+                    for item in listed.args.iter().flatten().chain(listed.rest.iter()) {
+                        match &item.kind {
+                            ExprKind::Var(name) => names.push(name.clone()),
+                            ExprKind::Vars(more) => names.extend(more.iter().cloned()),
+                            _ => return None,
+                        }
+                    }
+                    Some(names)
+                }
                 _ => None,
             }
         };
@@ -6899,10 +6912,12 @@ impl Checker<'_> {
             }
             "to_long" => {
                 let stub = text_of(arg(1))?;
-                let ids = arg(2)
-                    .and_then(names_of)
-                    .map(|n| expand(&n))
-                    .unwrap_or_default();
+                // Variables that cannot be read before the run leave the frame's variables
+                // unknown, and not fewer than they are.
+                let ids = match arg(2) {
+                    Some(given) => expand(&names_of(given)?),
+                    None => Vec::new(),
+                };
                 let names_to = text_of(arg(3))?;
                 let values_to = text_of(arg(4))?;
                 let names_ty = match arg(5).map(|e| &e.kind) {
@@ -6938,10 +6953,12 @@ impl Checker<'_> {
                 out.columns = columns;
             }
             "aggregate" => {
-                let by = arg(1)
-                    .and_then(names_of)
-                    .map(|n| expand(&n))
-                    .unwrap_or_default();
+                // The same for the groups: a `by:` that cannot be read before the run leaves
+                // the variables of the result unknown.
+                let by = match arg(1) {
+                    Some(given) => expand(&names_of(given)?),
+                    None => Vec::new(),
+                };
                 let mut columns: Vec<(String, Ty)> = by
                     .iter()
                     .filter_map(|n| input.column(n).map(|t| (n.clone(), t.clone())))

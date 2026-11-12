@@ -143,6 +143,13 @@ fn the_schema_after_every_verb() {
         "w.aggregate(m = mean(wage), s = sd(wage) / sqrt(n()), rows = n(), by: industry)",
         "w.aggregate(m = mean(wage))",
         "w.aggregate(m = mean(wage), by: [industry, year])",
+        // The groups, and the variables kept, written with `vars(...)`: the checker knows
+        // them as it knows a list (they were lost until step 23c1 of release 0.7.0, so that
+        // a later use of a group of the result was refused before the run).
+        "w.aggregate(m = mean(wage), by: vars(industry, year))",
+        "w.aggregate(m = mean(wage), by: vars(industry))",
+        "w.aggregate(m = mean(wage), by: vars(industry, year)).select(year)",
+        "w.head(4).select([worker, year, wage, hours]).to_long(\"h\", id: vars(worker, year), names_to: \"k\", values_to: \"v\")",
         "w.where(wage > 10).add(lw = log(wage)).select([worker, lw]).rename(l = lw).sort([worker]).head(5)",
     ] {
         agree(&format!("{w}let r = {chain}\n"));

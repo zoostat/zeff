@@ -138,3 +138,11 @@ Step 22: the owner read the six figures and said "Yes, freeze it"; the journal t
 
 **For the owner to decide.** Nothing waits for him. Rulings taken on the recommendation at this step, which he may overturn, are listed in `docs/decisions.md`: how rows are parted into lines, what a missing value does, no colour by a number on a line, the options of `lines`. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, a correction after step 23c1 (the checker and `by: vars(...)`)
+
+**Done.** The fault found beside step 23c1 is corrected: the checker reads the groups of `aggregate`, and the kept variables of `to_long`, when they are written as `vars(a, b)`, and where it cannot read them it no longer believes the result has fewer variables than it has. No result was ever wrong; a valid script was refused before it ran.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; CI is read job by job after the push.
+
+**Next.** Step 23c2 `[function]`: `step`.
+

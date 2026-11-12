@@ -3266,3 +3266,13 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's steps 23c and 23c1; section 7.6 of the Language Reference ("Marks": `lines`); open decision #106; decision #118, F9.
 
+## 12 November 2026: the checker and `by: vars(...)` (a correction, after step 23c1 of release 0.7.0)
+
+**The fault.** The schema pass, which tells the checker the variables of a frame before the script runs (release 0.6.0, step 21), read the groups of `aggregate` and the kept variables of `to_long` when they were written as a name or as a list, and took them for none when they were written as `vars(a, b)`. The frame that came out was then believed to lack its groups, and a later use of one, on a result bound to a name, was refused before the run: `let u = w.aggregate(m = mean(wage), by: vars(year, union))` followed by `u.select(year)` gave "no variable `year` in `u`". The run itself was right, and so was every result; nothing wrong was ever computed. Found while the examples of `lines` were written.
+
+**The correction.** The pass reads the names inside `vars(...)` when each is written as a name. Where the groups cannot be read before the run at all, the variables of the result are now unknown to the checker, and not fewer than they are, so nothing is refused that the run would take; the run checks the names itself, as it always did.
+
+**Tests.** `crates/zeff-engine/tests/schemas_verbs.rs`: four chains with `vars(...)`, each compared, name for name, with the frame the run gives.
+
+**Reason.** Section 11 of the Language Reference ("Checking before running"): the checker refuses what the run would refuse, and nothing else.
+
