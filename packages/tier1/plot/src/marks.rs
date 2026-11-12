@@ -1808,7 +1808,8 @@ pub(crate) fn misplaced(ctx: &CallContext<'_>, fault: &AxisFault, at: Span) -> F
             )
             .primary(at, format!("the `{axis}` axis is {scale}"))
             .help(format!(
-                "keep the rows with a value {keep}, as in `where({variable} > 0)`{other}"
+                "keep the rows with a value {keep}, as in `where({variable} {} 0)`{other}",
+                if fault.kind == AxisKind::Log { ">" } else { ">=" }
             ))
         }
         Misplaced::Place(place) => Diagnostic::error(

@@ -2409,11 +2409,91 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 scale::sqrt_limits(found.filter(|(lo, _)| *lo >= 0.0)),
             ),
         };
-        let breaks = match asked {
-            AxisKind::Log => scale::log_breaks(lo, hi),
-            _ => scale::breaks(lo, hi),
+        // The limits the script sets are the visible range and nothing more (decision #118,
+        // F5): an end it gives is that end exactly, with no margin, no row is dropped for
+        // it, and the marks beyond it, which the edge of the panel cuts off, are counted.
+        let setting = plot.axis_setting(aesthetic);
+        let (lo, hi) = match setting.map(|axis| axis.limits) {
+            Some((low, high)) => {
+                let set = (low.unwrap_or(lo), high.unwrap_or(hi));
+                if set.0 < set.1 { set } else { (lo, hi) }
+            }
+            None => (lo, hi),
         };
-        let labels = scale::labels(&breaks);
+        if setting.is_some_and(|axis| axis.limits != (None, None)) {
+            let out = |v: Option<&f64>| v.is_some_and(|v| *v < lo || *v > hi);
+            let beyond: usize = layers
+                .iter()
+                .map(|layer| {
+                    (0..layer.x.len().max(layer.y.len()))
+                        .filter(|&i| {
+                            if aesthetic == Aesthetic::X {
+                                out(layer.x.get(i))
+                            } else {
+                                out(layer.y.get(i)) || out(layer.low.get(i))
+                            }
+                        })
+                        .count()
+                })
+                .sum();
+            if beyond > 0 {
+                note(format!(
+                    "{} beyond the limits of the `{}` axis {} cut off at the edge of the panel",
+                    if beyond == 1 {
+                        "1 mark".to_string()
+                    } else {
+                        format!("{} marks", count(beyond as u64))
+                    },
+                    aesthetic.name(),
+                    if beyond == 1 { "is" } else { "are" }
+                ));
+            }
+        }
+        // The breaks: those the script sets, the ones within the limits, with its labels or
+        // the numbers; or, for a variable with value labels, its labelled values, written
+        // as their labels (open decision #128); or those the scale chooses.
+        let labelled = || -> Option<(Vec<f64>, Vec<String>)> {
+            let (mapping, _, layer) = first_mapping(plot, aesthetic)?;
+            if mapping.aesthetic != aesthetic || mapping.computed.is_some() {
+                return None;
+            }
+            let pairs = values(plot, layer, aesthetic)?.metadata().value_labels()?;
+            let mut held: Vec<(f64, String)> = pairs
+                .into_iter()
+                .filter_map(|(code, label)| Some((code.parse::<f64>().ok()?, label)))
+                .filter(|(value, _)| *value >= lo && *value <= hi)
+                .collect();
+            held.sort_by(|a, b| a.0.total_cmp(&b.0));
+            held.dedup_by(|a, b| a.0 == b.0);
+            (!held.is_empty()).then(|| held.into_iter().unzip())
+        };
+        let (breaks, labels) = match setting.and_then(|axis| axis.breaks.as_ref()) {
+            Some(given) => {
+                let texts = setting.and_then(|axis| axis.labels.as_ref());
+                let mut breaks: Vec<f64> = Vec::new();
+                let mut labels: Vec<String> = Vec::new();
+                for (i, value) in given.iter().enumerate() {
+                    if *value >= lo && *value <= hi {
+                        breaks.push(*value);
+                        if let Some(texts) = texts {
+                            labels.push(texts.get(i).cloned().unwrap_or_default());
+                        }
+                    }
+                }
+                if texts.is_none() {
+                    labels = scale::labels(&breaks);
+                }
+                (breaks, labels)
+            }
+            None => labelled().unwrap_or_else(|| {
+                let breaks = match asked {
+                    AxisKind::Log => scale::log_breaks(lo, hi),
+                    _ => scale::breaks(lo, hi),
+                };
+                let labels = scale::labels(&breaks);
+                (breaks, labels)
+            }),
+        };
         scales.push(Scale {
             id: aesthetic.name(),
             kind,

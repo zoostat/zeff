@@ -159,3 +159,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25b `[engine]`: `scale_x` and `scale_y`, with `limits:`, `breaks:` and `labels:`, and the labels of a labelled variable on an axis.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: the breaks of a log axis (1, 2 and 5 times a power of ten, where R writes 1 and 3); bars and areas refused on a log axis. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25b (`scale_x` and `scale_y`)
+
+**Done.** `p.scale_y(log)` draws an axis on a log scale, as the specification's sample writes it; `sqrt` and `linear` are the other kinds. `limits:` sets the visible range and drops no row (decision #118, F5), with a note counting the marks cut off; `breaks:` and `labels:` set the ticks and what is written at them. A variable with value labels reads as its labels on a linear axis (#128): bars by `union` say `no` and `yes`. A value with no place on a log scale is refused with its rows named. Section 7.6 has the rules (logged). `plot` stands at fourteen functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 329 of 329; CI is read job by job after the push.
+
+**Next.** Step 25c `[engine]`: the date scale, and the widening of an expression in a mapping (#107, option B).
+
+**For the owner to decide.** Nothing waits for him. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

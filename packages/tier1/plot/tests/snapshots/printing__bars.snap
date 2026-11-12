@@ -103,7 +103,7 @@ plot · w · industry
 plot · wage against union
 
   axis   title          scale    limits                breaks
-  x      Union member   linear   -0.545 to 1.545       -0.5, 0, 0.5, 1, 1.5
+  x      Union member   linear   -0.545 to 1.545       no, yes
   y      wage           linear   -1.46569 to 30.7795   0, 5, 10, 15, 20, 25, 30
 
   layer   mark   data        marks   settings

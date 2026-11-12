@@ -2196,3 +2196,145 @@ fn every_message_of_text() {
     }
     insta::assert_snapshot!("text_messages", all);
 }
+
+// ----- scale_x and scale_y (step 25b) -----
+
+const GROWTH: &str = "let d = frame(year = [1, 2, 3, 4, 5], sales = [3, 30, 250, 4000, 0], loss = [5, -2, 3, 1, 4], kind = [\"a\", \"a\", \"b\", \"b\", \"b\"])\nlet g = d.where(sales > 0)\n";
+
+#[test]
+fn the_scales_of_the_axes_read_sensibly_as_text() {
+    let script = format!(
+        "{GROWTH}g.plot(x: year, y: sales).points().lines().scale_y(log)\n\
+         g.plot(x: year, y: sales).scale_y(log).points()\n\
+         d.plot(x: year, y: sales).points().scale_y(sqrt)\n\
+         d.plot(x: year, y: sales).points().scale_x(limits: [0, 6], breaks: [1, 3, 5]).scale_y(limits: [0, 300])\n\
+         d.plot(x: year, y: loss).lines().scale_y(limits: [NA, 4], breaks: [4, 0, 2], labels: [\"four\", \"none\", \"two\"])\n\
+         g.plot(x: year, y: sales).points().scale_y(log).scale_y(limits: [1, 10000])\n\
+         d.plot(x: year, y: sales).bars().scale_y(sqrt)\n\
+         let w = dataset(wages)\n\
+         w.plot(x: educ, y: wage).points(alpha: 0.2).scale_y(log)\n\
+         w.plot(x: educ, y: wage).points(alpha: 0.2).scale_y(sqrt).scale_x(sqrt)\n\
+         w.plot(x: union, y: wage).points(alpha: 0.2)\n"
+    );
+    let text = printed(&script);
+    // The reference, from ggplot2 4.0.3 on the shipped wages: `scale_y_log10()` has the
+    // limits 2.92425753208 and 183.95667758324, and `scale_y_sqrt()` 1.8374864437 and
+    // 165.5834864437. The breaks of the log axis are the engine's own, 5, 10, 20, 50 and
+    // 100, where ggplot2 writes 3, 10, 30 and 100.
+    for line in [
+        "  y      sales   log      2.09351 to 5732.01   10, 100, 1000\n",
+        "  y      sales   sqrt     0 to 4410    0, 1000, 2000, 3000, 4000\n",
+        "  x      year    linear   0 to 6     1, 3, 5\n",
+        "  y      sales   linear   0 to 300   0, 50, 100, 150, 200, 250, 300\n",
+        "note: 1 mark beyond the limits of the `y` axis is cut off at the edge of the panel (line 6)\n",
+        "  y      loss    linear   -2.35 to 4   none, two, four\n",
+        "  y      sales   linear   1 to 10000     2000, 4000, 6000, 8000, 10000\n",
+        "  y      Hourly wage          log      2.92426 to 183.957   5, 10, 20, 50, 100\n",
+        "  y      Hourly wage          sqrt    1.83749 to 165.583   50, 100, 150\n",
+        "  x      Union member   linear   -0.05 to 1.05       no, yes\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("axis_scales", text);
+}
+
+#[test]
+fn every_message_of_scale_x_and_scale_y() {
+    let mut all = String::new();
+    for (name, script) in [
+        // What has no place on the scale, whichever comes last.
+        (
+            "a_zero_on_a_log_scale",
+            "d.plot(x: year, y: sales).points().scale_y(log)\n",
+        ),
+        (
+            "a_zero_added_to_a_log_scale",
+            "d.plot(x: year, y: sales).scale_y(log).points()\n",
+        ),
+        (
+            "values_below_zero_on_a_log_scale",
+            "d.plot(x: year, y: loss).lines().scale_y(log)\n",
+        ),
+        (
+            "a_value_below_zero_on_a_root_scale",
+            "d.plot(x: year, y: loss).points().scale_y(sqrt)\n",
+        ),
+        (
+            "bars_on_a_log_scale",
+            "g.plot(x: year, y: sales).bars().scale_y(log)\n",
+        ),
+        (
+            "an_area_added_to_a_log_scale",
+            "g.plot(x: year, y: sales).scale_y(log).area()\n",
+        ),
+        (
+            "a_line_at_zero_on_a_log_scale",
+            "g.plot(x: year, y: sales).points().scale_y(log).hline(at: 0)\n",
+        ),
+        (
+            "categories",
+            "d.plot(x: kind, y: sales).points().scale_x(log)\n",
+        ),
+        (
+            "categories_and_limits",
+            "d.plot(x: kind, y: sales).points().scale_x(limits: [0, 1])\n",
+        ),
+        // The options.
+        (
+            "not_a_kind",
+            "d.plot(x: year, y: sales).scale_y(logarithm)\n",
+        ),
+        (
+            "a_kind_in_quotes",
+            "d.plot(x: year, y: sales).scale_y(\"log\")\n",
+        ),
+        ("a_date_scale", "d.plot(x: year, y: sales).scale_x(date)\n"),
+        (
+            "one_limit",
+            "d.plot(x: year, y: sales).scale_y(limits: [0])\n",
+        ),
+        (
+            "limits_the_wrong_way",
+            "d.plot(x: year, y: sales).scale_y(limits: [10, 2])\n",
+        ),
+        (
+            "limits_of_text",
+            "d.plot(x: year, y: sales).scale_y(limits: [\"a\", \"b\"])\n",
+        ),
+        (
+            "a_limit_off_the_scale",
+            "g.plot(x: year, y: sales).scale_y(log, limits: [0, 100])\n",
+        ),
+        (
+            "limits_that_are_a_number",
+            "d.plot(x: year, y: sales).scale_y(limits: 100)\n",
+        ),
+        (
+            "no_breaks",
+            "d.plot(x: year, y: sales).scale_y(breaks: [])\n",
+        ),
+        (
+            "a_break_off_the_scale",
+            "g.plot(x: year, y: sales).scale_y(log, breaks: [0, 10])\n",
+        ),
+        (
+            "labels_without_breaks",
+            "d.plot(x: year, y: sales).scale_y(labels: [\"low\", \"high\"])\n",
+        ),
+        (
+            "too_few_labels",
+            "d.plot(x: year, y: sales).scale_y(breaks: [0, 1, 2], labels: [\"low\", \"high\"])\n",
+        ),
+        (
+            "a_pattern_for_labels",
+            "d.plot(x: year, y: sales).scale_y(labels: \"%Y\")\n",
+        ),
+        ("scale_of_a_frame", "d.scale_y(log)\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{GROWTH}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("axis_scales_messages", all);
+}

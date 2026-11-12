@@ -21,7 +21,7 @@ fn on(rows: &[Row], aesthetic: Aesthetic, kind: AxisKind) -> Plot {
         vec![mapped(Aesthetic::X, "x"), mapped(Aesthetic::Y, "y")],
         Vec::new(),
     );
-    plot.axes.push(PlotAxis { aesthetic, kind });
+    plot.axes.push(PlotAxis::of(aesthetic, kind));
     describe(&mut plot);
     plot
 }
@@ -227,10 +227,7 @@ fn what_has_no_place_on_a_scale_is_found_and_named() {
         vec![mapped(Aesthetic::X, "g"), mapped(Aesthetic::Y, "y")],
         Vec::new(),
     );
-    plot.axes.push(PlotAxis {
-        aesthetic: Aesthetic::X,
-        kind: AxisKind::Log,
-    });
+    plot.axes.push(PlotAxis::of(Aesthetic::X, AxisKind::Log));
     assert_eq!(
         axis_fault(&plot).unwrap().what,
         Misplaced::Categories("g".to_string())

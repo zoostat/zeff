@@ -1,0 +1,91 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · g · sales against year
+
+  axis   title   scale    limits               breaks
+  x      year    linear   0.85 to 4.15         1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      sales   log      2.09351 to 5732.01   10, 100, 1000
+
+  layer   mark     data   marks   settings
+      1   points   g          4   size 4.5, alpha 1
+      2   lines    g          4   width 1, 1 line
+plot · g · sales against year
+
+  axis   title   scale    limits               breaks
+  x      year    linear   0.85 to 4.15         1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      sales   log      2.09351 to 5732.01   10, 100, 1000
+
+  layer   mark     data   marks   settings
+      1   points   g          4   size 4.5, alpha 1
+plot · d · sales against year
+
+  axis   title   scale    limits       breaks
+  x      year    linear   0.8 to 5.2   1, 2, 3, 4, 5
+  y      sales   sqrt     0 to 4410    0, 1000, 2000, 3000, 4000
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, alpha 1
+plot · d · sales against year
+
+  axis   title   scale    limits     breaks
+  x      year    linear   0 to 6     1, 3, 5
+  y      sales   linear   0 to 300   0, 50, 100, 150, 200, 250, 300
+
+  layer   mark     data   marks   settings
+      1   points   d          5   size 4.5, alpha 1
+plot · d · loss against year
+
+  axis   title   scale    limits       breaks
+  x      year    linear   0.8 to 5.2   1, 2, 3, 4, 5
+  y      loss    linear   -2.35 to 4   none, two, four
+
+  layer   mark    data   marks   settings
+      1   lines   d          5   width 1, 1 line
+plot · g · sales against year
+
+  axis   title   scale    limits         breaks
+  x      year    linear   0.85 to 4.15   1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      sales   linear   1 to 10000     2000, 4000, 6000, 8000, 10000
+
+  layer   mark     data   marks   settings
+      1   points   g          4   size 4.5, alpha 1
+plot · d · sales against year
+
+  axis   title   scale    limits           breaks
+  x      year    linear   0.305 to 5.695   1, 2, 3, 4, 5
+  y      sales   sqrt     0 to 4410        0, 1000, 2000, 3000, 4000
+
+  layer   mark   data   marks   settings
+      1   bars   d          5   width 0.9, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits               breaks
+  x      Years of schooling   linear   7.4 to 20.6          8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          log      2.92426 to 183.957   5, 10, 20, 50, 100
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.2
+plot · w · wage against educ
+
+  axis   title                scale   limits               breaks
+  x      Years of schooling   sqrt    7.54184 to 20.7418   8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          sqrt    1.83749 to 165.583   50, 100, 150
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.2
+plot · w · wage against union
+
+  axis   title          scale    limits              breaks
+  x      Union member   linear   -0.05 to 1.05       no, yes
+  y      Hourly wage    linear   -3.913 to 159.833   0, 50, 100, 150
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.2
+---
+note: 1 mark beyond the limits of the `y` axis is cut off at the edge of the panel (line 6)
+note: 1 mark beyond the limits of the `y` axis is cut off at the edge of the panel (line 7)
+note: 211 rows with NA in educ or wage dropped (line 11)
+note: 211 rows with NA in educ or wage dropped (line 12)
+note: 211 rows with NA in union or wage dropped (line 13)

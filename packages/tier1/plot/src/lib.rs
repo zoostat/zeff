@@ -27,6 +27,7 @@ pub mod pdf;
 pub mod png;
 pub mod raster;
 pub mod scale;
+pub mod scales;
 pub mod scene;
 pub mod shape;
 pub mod svg;
@@ -560,6 +561,62 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: marks::text,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "scale_x",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option_with_default("type", "linear | log | sqrt | date", "linear"),
+                    ParamSpec::option("limits", "List"),
+                    ParamSpec::option("breaks", "List"),
+                    ParamSpec::option("labels", "List | Str"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the marks beyond the limits set for the axis, which the edge of the panel cuts off",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a value of x at or below 0 on a log scale, or below 0 on a square-root scale, with the rows named; a bar or an area on a log scale; an axis of categories; limits: that is not a list of two numbers with the lower below the upper, or a limit with no place on the scale; breaks: that is not a list of numbers, or a break with no place on the scale; labels: without breaks:, or not one for each break; date and a pattern for labels:, which are built at the next step",
+                    ),
+                ],
+                help: include_str!("../help/scale_x.md"),
+                accuracy: None,
+            },
+            body: scales::scale_x,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "scale_y",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option_with_default("type", "linear | log | sqrt | date", "linear"),
+                    ParamSpec::option("limits", "List"),
+                    ParamSpec::option("breaks", "List"),
+                    ParamSpec::option("labels", "List | Str"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the marks beyond the limits set for the axis, which the edge of the panel cuts off",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a value of y at or below 0 on a log scale, or below 0 on a square-root scale, with the rows named; a bar or an area on a log scale; an axis of categories; limits: that is not a list of two numbers with the lower below the upper, or a limit with no place on the scale; breaks: that is not a list of numbers, or a break with no place on the scale; labels: without breaks:, or not one for each break; date and a pattern for labels:, which are built at the next step",
+                    ),
+                ],
+                help: include_str!("../help/scale_y.md"),
+                accuracy: None,
+            },
+            body: scales::scale_y,
         },
     ]
 }

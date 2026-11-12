@@ -1,0 +1,208 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_zero_on_a_log_scale
+error[Z0401]: `sales` has 1 value at or below 0, which has no place on a log scale: row 5 of d
+ --> scripts/main.zeff:3:44
+  |
+3 | d.plot(x: year, y: sales).points().scale_y(log)
+  |                                            ^^^ the `y` axis is a log scale
+  |
+  = help: keep the rows with a value above 0, as in `where(sales > 0)`; a square-root scale, `sqrt`, holds 0
+
+== a_zero_added_to_a_log_scale
+error[Z0401]: `sales` has 1 value at or below 0, which has no place on a log scale: row 5 of d
+ --> scripts/main.zeff:3:40
+  |
+3 | d.plot(x: year, y: sales).scale_y(log).points()
+  |                                        ^^^^^^ the `y` axis is a log scale
+  |
+  = help: keep the rows with a value above 0, as in `where(sales > 0)`; a square-root scale, `sqrt`, holds 0
+
+== values_below_zero_on_a_log_scale
+error[Z0401]: `loss` has 1 value at or below 0, which has no place on a log scale: row 2 of d
+ --> scripts/main.zeff:3:42
+  |
+3 | d.plot(x: year, y: loss).lines().scale_y(log)
+  |                                          ^^^ the `y` axis is a log scale
+  |
+  = help: keep the rows with a value above 0, as in `where(loss > 0)`; a square-root scale, `sqrt`, holds 0
+
+== a_value_below_zero_on_a_root_scale
+error[Z0401]: `loss` has 1 value below 0, which has no place on a square-root scale: row 2 of d
+ --> scripts/main.zeff:3:43
+  |
+3 | d.plot(x: year, y: loss).points().scale_y(sqrt)
+  |                                           ^^^^ the `y` axis is a square-root scale
+  |
+  = help: keep the rows with a value of 0 or more, as in `where(loss >= 0)`
+
+== bars_on_a_log_scale
+error[Z0401]: `bars` reaches down to zero, and zero has no place on a log scale
+ --> scripts/main.zeff:3:42
+  |
+3 | g.plot(x: year, y: sales).bars().scale_y(log)
+  |                                          ^^^ the `y` axis is a log scale
+  |
+  = help: a square-root scale, `sqrt`, holds zero; on a log scale `points` or `lines` show the values
+
+== an_area_added_to_a_log_scale
+error[Z0401]: `area` reaches down to zero, and zero has no place on a log scale
+ --> scripts/main.zeff:3:40
+  |
+3 | g.plot(x: year, y: sales).scale_y(log).area()
+  |                                        ^^^^ the `y` axis is a log scale
+  |
+  = help: a square-root scale, `sqrt`, holds zero; on a log scale `points` or `lines` show the values
+
+== a_line_at_zero_on_a_log_scale
+error[Z0401]: a reference line at 0 has no place on a log scale, which holds the values above 0
+ --> scripts/main.zeff:3:49
+  |
+3 | g.plot(x: year, y: sales).points().scale_y(log).hline(at: 0)
+  |                                                 ^^^^^ the `y` axis is a log scale
+  |
+  = help: place the line at a value above 0
+
+== categories
+error[Z0401]: the `x` axis holds the categories of `kind`, which have their places and no other scale
+ --> scripts/main.zeff:3:36
+  |
+3 | d.plot(x: kind, y: sales).points().scale_x(log)
+  |                                    ^^^^^^^ a scale of numbers
+  |
+  = help: `scale_x` sets the scale of an axis of numbers: its kind, its limits, its breaks and their labels
+
+== categories_and_limits
+error[Z0401]: the `x` axis holds the categories of `kind`, which have their places and no other scale
+ --> scripts/main.zeff:3:36
+  |
+3 | d.plot(x: kind, y: sales).points().scale_x(limits: [0, 1])
+  |                                    ^^^^^^^ a scale of numbers
+  |
+  = help: `scale_x` sets the scale of an axis of numbers: its kind, its limits, its breaks and their labels
+
+== not_a_kind
+error[Z0402]: `logarithm` is not one of the allowed words
+ --> scripts/main.zeff:3:35
+  |
+3 | d.plot(x: year, y: sales).scale_y(logarithm)
+  |                                   ^^^^^^^^^ expected one of linear, log, sqrt, date
+
+== a_kind_in_quotes
+error[Z0403]: expected one of linear, log, sqrt, date, found text
+ --> scripts/main.zeff:3:35
+  |
+3 | d.plot(x: year, y: sales).scale_y("log")
+  |                                   ^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `log`
+
+== a_date_scale
+error[Z0401]: `scale_x(date)` is not built yet: an axis of dates comes with the next step of this release
+ --> scripts/main.zeff:3:35
+  |
+3 | d.plot(x: year, y: sales).scale_x(date)
+  |                                   ^^^^ not in this build
+  |
+  = help: the kinds of scale built so far are `linear`, `log` and `sqrt`
+
+== one_limit
+error[Z0401]: `limits:` of `scale_y` is a list of two numbers, the lower limit and the upper, but this list has 1
+ --> scripts/main.zeff:3:43
+  |
+3 | d.plot(x: year, y: sales).scale_y(limits: [0])
+  |                                           ^^^ not two limits
+  |
+  = help: write the lower limit and the upper, as in `scale_y(limits: [0, 100])`; `NA` leaves an end to the values drawn, as in `limits: [0, NA]`
+
+== limits_the_wrong_way
+error[Z0401]: the lower limit of `scale_y` must be below the upper, but they are 10 and 2
+ --> scripts/main.zeff:3:43
+  |
+3 | d.plot(x: year, y: sales).scale_y(limits: [10, 2])
+  |                                           ^^^^^^^ not two limits
+  |
+  = help: write the lower limit and the upper, as in `scale_y(limits: [0, 100])`; `NA` leaves an end to the values drawn, as in `limits: [0, NA]`
+
+== limits_of_text
+error[Z0401]: `limits:` of `scale_y` is a list of two numbers, the lower limit and the upper
+ --> scripts/main.zeff:3:43
+  |
+3 | d.plot(x: year, y: sales).scale_y(limits: ["a", "b"])
+  |                                           ^^^^^^^^^^ not two limits
+  |
+  = help: write the lower limit and the upper, as in `scale_y(limits: [0, 100])`; `NA` leaves an end to the values drawn, as in `limits: [0, NA]`
+
+== a_limit_off_the_scale
+error[Z0401]: a limit of 0 has no place on the `y` axis: a log scale holds the values above 0
+ --> scripts/main.zeff:3:48
+  |
+3 | g.plot(x: year, y: sales).scale_y(log, limits: [0, 100])
+  |                                                ^^^^^^^^ not two limits
+  |
+  = help: write the lower limit and the upper, as in `scale_y(limits: [0, 100])`; `NA` leaves an end to the values drawn, as in `limits: [0, NA]`
+
+== limits_that_are_a_number
+error[Z0401]: `limits` of `scale_y` must be a List, but this is an Int
+ --> scripts/main.zeff:3:43
+  |
+3 | d.plot(x: year, y: sales).scale_y(limits: 100)
+  |                                           ^^^ an Int
+  |
+  = help: usage: `p.scale_y(type: linear | log | sqrt | date = linear, limits: List, breaks: List, labels: List | Str)`
+
+== no_breaks
+error[Z0401]: `breaks:` of `scale_y` is a list of numbers, but this list is empty
+ --> scripts/main.zeff:3:43
+  |
+3 | d.plot(x: year, y: sales).scale_y(breaks: [])
+  |                                           ^^ not the breaks of an axis
+  |
+  = help: write the values at which the axis has a tick and a label, as in `scale_y(breaks: [0, 25, 50, 75, 100])`
+
+== a_break_off_the_scale
+error[Z0401]: a break at 0 has no place on the `y` axis: a log scale holds the values above 0
+ --> scripts/main.zeff:3:48
+  |
+3 | g.plot(x: year, y: sales).scale_y(log, breaks: [0, 10])
+  |                                                ^^^^^^^ not the breaks of an axis
+  |
+  = help: write the values at which the axis has a tick and a label, as in `scale_y(breaks: [0, 25, 50, 75, 100])`
+
+== labels_without_breaks
+error[Z0401]: `labels:` of `scale_y` names the breaks one by one, so it needs `breaks:` to say where they are
+ --> scripts/main.zeff:3:43
+  |
+3 | d.plot(x: year, y: sales).scale_y(labels: ["low", "high"])
+  |                                           ^^^^^^^^^^^^^^^ not a label for each break
+  |
+  = help: write `breaks:` and a label for each of them, in the same order, as in `scale_y(breaks: [0, 1], labels: ["no", "yes"])`
+
+== too_few_labels
+error[Z0401]: `scale_y` has 3 breaks and 2 labels: each break has one label
+ --> scripts/main.zeff:3:62
+  |
+3 | d.plot(x: year, y: sales).scale_y(breaks: [0, 1, 2], labels: ["low", "high"])
+  |                                                              ^^^^^^^^^^^^^^^ not a label for each break
+  |
+  = help: write `breaks:` and a label for each of them, in the same order, as in `scale_y(breaks: [0, 1], labels: ["no", "yes"])`
+
+== a_pattern_for_labels
+error[Z0401]: `labels:` of `scale_y` as one string is the pattern an axis of dates is written by, which is not built yet
+ --> scripts/main.zeff:3:43
+  |
+3 | d.plot(x: year, y: sales).scale_y(labels: "%Y")
+  |                                           ^^^^ a pattern for dates
+  |
+  = help: for an axis of numbers, write a label for each break, as in `scale_y(breaks: [0, 1], labels: ["no", "yes"])`
+
+== scale_of_a_frame
+error[Z0401]: `scale_y` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | d.scale_y(log)
+  | ^ this is a Frame
+  |
+  = help: `scale_y` takes a Plot first; `x.scale_y(...)` is `scale_y(x, ...)`

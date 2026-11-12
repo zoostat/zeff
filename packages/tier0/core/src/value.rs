@@ -96,6 +96,26 @@ pub struct PlotAxis {
     /// `Aesthetic::X` or `Aesthetic::Y`.
     pub aesthetic: Aesthetic,
     pub kind: AxisKind,
+    /// The limits the script sets, the lower and the upper; `None` for an end it leaves to
+    /// the values drawn. They are the visible range: nothing is dropped for them.
+    pub limits: (Option<f64>, Option<f64>),
+    /// The breaks the script sets, in increasing order; `None` for those the scale chooses.
+    pub breaks: Option<Vec<f64>>,
+    /// The labels of the breaks the script sets, one for each; `None` for the numbers.
+    pub labels: Option<Vec<String>>,
+}
+
+impl PlotAxis {
+    /// An axis of a kind, with everything else left to the scale.
+    pub fn of(aesthetic: Aesthetic, kind: AxisKind) -> PlotAxis {
+        PlotAxis {
+            aesthetic,
+            kind,
+            limits: (None, None),
+            breaks: None,
+            labels: None,
+        }
+    }
 }
 
 /// The kind of scale of an axis of numbers (section 7.6, "Scales").
@@ -124,11 +144,17 @@ impl AxisKind {
 impl Plot {
     /// The kind of scale the script asks of an axis, linear where it says nothing.
     pub fn axis(&self, aesthetic: Aesthetic) -> AxisKind {
+        self.axis_setting(aesthetic)
+            .map_or(AxisKind::Linear, |axis| axis.kind)
+    }
+
+    /// What the script says of the scale of an axis: the last it said, `None` where it said
+    /// nothing.
+    pub fn axis_setting(&self, aesthetic: Aesthetic) -> Option<&PlotAxis> {
         self.axes
             .iter()
             .rev()
             .find(|axis| axis.aesthetic == aesthetic)
-            .map_or(AxisKind::Linear, |axis| axis.kind)
     }
 }
 

@@ -3471,3 +3471,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 25a; section 7.6 of the Language Reference ("Scales"); Engine Specification, section 8.3, point 3.
+
+## 12 November 2026: `scale_x` and `scale_y` (release 0.7.0, step 25b)
+
+**Decision.** `p.scale_x(...)` and `p.scale_y(...)` say the scale of an axis of numbers: its kind, on the machinery of step 25a, written first and by itself as the sample script writes it (`.scale_y(log)`); `limits:`, `breaks:` and `labels:`. They are in a module of their own (`plot::scales`) and share one body. What they say is held with the plot (`PlotAxis`, which gains the limits, the breaks and the labels), and what is said last of an axis takes the place of all that was said before. The scene derives the scale: an end of the limits that is given is that end exactly, with no margin; the breaks given are those within the limits, with their labels or the numbers.
+
+**The rules.** (a) Decision #118, F5, as the owner adopted it: `limits:` sets the visible range and nothing more. No row is dropped; the marks stay in the scene, the edge of the panel cuts off what lies beyond, so a line runs on to the edge, and a note counts the marks beyond the limits ("N marks beyond the limits of the `y` axis are cut off at the edge of the panel"). ggplot2's `limits` drops the rows, which changes what a layer computes; its `coord_cartesian` is the behaviour here. (b) `limits:` is a list of two numbers with the lower below the upper; `NA` leaves an end to the values drawn. (c) `breaks:` is a list of numbers, put in order, each once; `labels:` is a list of text, one for each break, and needs `breaks:`. A break outside the limits is not shown and nothing is said of it, since no datum is lost. (d) Open decision #128, its second part: on an axis that the script gives no breaks, a variable with value labels has its breaks at the labelled values that the limits hold, written as their labels; `w.plot(x: union, y: wage)` reads `no` and `yes`. Two stored outputs of earlier steps follow. (e) A limit or a break with no place on the scale, zero on a log axis, is refused, and so is the plot whose values have none (step 25a's `axis_fault`), whether the scale or the layer comes last, with the first rows named. (f) An axis of categories is refused: it has its places and no other scale. (g) `date`, and a single string for `labels:`, the pattern an axis of dates is written by, are in the usage line since the catalogue was written and are refused with a message that says they come with the next step; step 25c builds them.
+
+**Tests.** `packages/tier1/plot/tests/printing.rs`: eleven plots, with the limits of the wages on a log and on a square-root axis against ggplot2 4.0.3 (2.92426 to 183.957; 1.83749 to 165.583), limits that cut off a mark, breaks and labels of the script's own, a scale said twice, bars on a square-root axis, and the labels of `union` on its axis; twenty-three messages, among them every refusal of step 25a's `misplaced`. The two help pages, their examples run. The conformance set gains five cases: what a script of scales prints and the wages on a log axis in SVG, PDF and PNG.
+
+**The specification.** The row "Scales" of section 7.6 gains F5 and the two rules of #128 (logged in `docs/spec_changes.md`); catalogue rows 476 and 477 are marked `implemented`.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 25b; section 7.6 of the Language Reference ("Scales"); open decisions #118 (F5) and #128.

@@ -538,3 +538,7 @@ Step 24c of release 0.7.0 builds `tile`. Under open decision #106 (option A) a m
 ## 12 November 2026 — zeff_functions.csv, row 467
 
 Step 24d of release 0.7.0 builds `text`. Under open decision #106 (option A) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer. The usage line of catalogue row 467 was `p.text(data: Frame, label: Var, size: Float, nudge: List)`; it is now `p.text(data: Frame, x: Var | Expr, y: Var | Expr, label: Var, color: Var | Str, size: Float = 8, nudge: List)`: the default of `size:` is written, 8 points, the size of the labels of an axis. Its status is `implemented`.
+
+## 12 November 2026 — Language Reference, section 7.6 (the row "Scales" of the grammar table)
+
+Three rules decided earlier are written into the section at the step that builds them, step 25b of release 0.7.0. (1) Decision #118, F5, adopted by the owner on 11 November 2026: "`limits:` sets the visible range only: marks outside are clipped and counted in a note, statistical layers use every row, and removing rows is `where`". (2) and (3) Open decision #128, option C, taken on 12 November 2026: "a Str or a Category variable makes an axis of categories, and a number with value labels a linear axis with its breaks at the labelled values, written as their labels". The catalogue rows 476 and 477 keep their usage lines and are marked `implemented`; `date` and a pattern for `labels:` are refused until step 25c builds the axis of dates.

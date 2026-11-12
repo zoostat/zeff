@@ -1847,14 +1847,8 @@ fn plot_cases() -> Vec<Line> {
                 Vec::new(),
             );
             plot.axes = vec![
-                PlotAxis {
-                    aesthetic: Aesthetic::Y,
-                    kind: AxisKind::Log,
-                },
-                PlotAxis {
-                    aesthetic: Aesthetic::X,
-                    kind: AxisKind::Sqrt,
-                },
+                PlotAxis::of(Aesthetic::Y, AxisKind::Log),
+                PlotAxis::of(Aesthetic::X, AxisKind::Sqrt),
             ];
             let layer = PlotLayer {
                 mark: Mark::Points,
@@ -1969,6 +1963,18 @@ fn plot_cases() -> Vec<Line> {
         let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/text/{name}"), &data));
+    }
+    // The scales of the axes (step 25b): the wages on a log axis, on square-root axes, within
+    // limits and with breaks and labels of the script's own; what the script prints and the
+    // log figure in the three formats.
+    let script = "let w = dataset(wages)\nlet p = w.plot(x: educ, y: wage, color: union).points(alpha: 0.3).scale_y(log)\np\nw.plot(x: educ, y: wage).points(alpha: 0.3).scale_y(sqrt).scale_x(sqrt)\nw.plot(x: educ, y: wage).points(alpha: 0.3).scale_y(limits: [0, 60], breaks: [0, 20, 40, 60], labels: [\"none\", \"20\", \"40\", \"60\"]).scale_x(limits: [10, NA])\nw.plot(x: union, y: wage).points(alpha: 0.3)\nexport(p, \"scales.svg\")\nexport(p, \"scales.pdf\")\nexport(p, \"scales.png\")\n";
+    let scaled_script = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/scales/stdout", &scaled_script.output.stdout));
+    fills.push(text("plot/scales/stderr", &scaled_script.output.stderr));
+    for name in ["scales.svg", "scales.pdf", "scales.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/scales/{name}"), &data));
     }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
