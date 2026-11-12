@@ -3,13 +3,13 @@ source: packages/tier1/plot/tests/printing.rs
 expression: all
 ---
 == nothing_said
-error[Z0406]: `facet` needs `by`
+error[Z0406]: `facet` needs `by`, or `rows` or `cols`
  --> scripts/main.zeff:3:3
   |
 3 | p.facet()
-  |   ^^^^^ `by` is missing
+  |   ^^^^^ no variable to part the plot by
   |
-  = help: a plot is parted into panels by a variable, one panel for each of its values, as in `facet(by: industry)`; `facet(by: [industry, union])` has a panel for each pair of values
+  = help: a plot is parted into panels by a variable, one panel for each of its values, as in `facet(by: industry)`; `facet(rows: union, cols: female)` is a grid, a row of panels for each value of one variable and a column for each value of another
 
 == an_empty_list
 error[Z0219]: `[]` alone has no type
@@ -74,23 +74,68 @@ error[Z0401]: `facet` cannot be called on a Frame
   |
   = help: `facet` takes a Plot first; `x.facet(...)` is `facet(x, ...)`
 
-== rows_not_built_yet
-error[Z0401]: `rows:` of `facet` is not built yet: it comes with a later step of this release
- --> scripts/main.zeff:3:15
-  |
-3 | p.facet(rows: site)
-  |               ^^^^ not in this build
-  |
-  = help: `facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share
-
-== cols_not_built_yet
-error[Z0401]: `cols:` of `facet` is not built yet: it comes with a later step of this release
+== a_grid_with_by
+error[Z0401]: `by:` of `facet` lays the panels one after another, and `rows:` and `cols:` lay them in a grid: a plot has one or the other
  --> scripts/main.zeff:3:25
   |
 3 | p.facet(by: site, cols: arm)
-  |                         ^^^ not in this build
+  |                         ^^^ a grid, with `by:`
   |
-  = help: `facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share
+  = help: for a grid write `facet(rows: union, cols: female)`; for a panel for each pair of values, one after another, write `facet(by: [union, female])`
+
+== rows_with_by
+error[Z0401]: `by:` of `facet` lays the panels one after another, and `rows:` and `cols:` lay them in a grid: a plot has one or the other
+ --> scripts/main.zeff:3:32
+  |
+3 | p.facet(by: [site, arm], rows: week)
+  |                                ^^^^ a grid, with `by:`
+  |
+  = help: for a grid write `facet(rows: union, cols: female)`; for a panel for each pair of values, one after another, write `facet(by: [union, female])`
+
+== one_variable_down_and_across
+error[Z0401]: `rows:` and `cols:` of `facet` both name `site`
+ --> scripts/main.zeff:3:27
+  |
+3 | p.facet(rows: site, cols: site)
+  |                           ^^^^ the variable of the rows
+  |
+  = help: a grid has one variable down the page and another across it; for one panel for each value of `site` write `facet(by: site)`
+
+== a_row_the_frame_lacks
+error[Z0101]: no variable `region` in `d`
+ --> scripts/main.zeff:3:15
+  |
+3 | p.facet(rows: region, cols: arm)
+  |               ^^^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: site, week, arm, count
+
+== a_column_in_quotation_marks
+error[Z0401]: `cols` of `facet` must be a Var, but this is a Str
+ --> scripts/main.zeff:3:15
+  |
+3 | p.facet(cols: "arm")
+  |               ^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+== two_variables_down
+error[Z0401]: `rows` of `facet` must be a Var, but this is a List<?>
+ --> scripts/main.zeff:3:15
+  |
+3 | p.facet(rows: [site, arm])
+  |               ^^^^^^^^^^^ a List<?>
+  |
+  = help: name a variable of the frame, without quotes
+
+== a_grid_too_large_for_the_page
+error[Z0401]: a page of 50 by 50 mm is too small for the 6 panels of this plot: however they are laid, it leaves each 14 by 7.7 mm
+ --> scripts/main.zeff:3:58
+  |
+3 | export(p.facet(rows: site, cols: arm), "grid.svg", size: [50, 50])
+  |                                                          ^^^^^^^^ too many panels for the page
+  |
+  = help: a panel needs 12.7 mm each way; give a larger `size:`, as `two_column` (183 by 110 mm) or a width and a height in millimetres, or part the plot by a variable with fewer values
 
 == free_scales_not_built_yet
 error[Z0401]: `scales: free_y` of `facet` is not built yet: it comes with a later step of this release

@@ -1770,8 +1770,18 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // A plot parted into panels has a grid of them in its room: every panel in a cell of
     // one size, with a gap between two cells and, over each, a line for what is written
     // over the panel. A plot of one panel has one cell, which is its room.
-    let strip_room = if scene.panels.iter().any(|panel| panel.strip.is_some()) {
-        label * theme.leading + theme.label_gap
+    // Panels that follow one another have what is written over them in every row; in a
+    // grid of two variables the values of the columns are written once, over the first row,
+    // and those of the rows once, beside the last column.
+    let strip_line = label * theme.leading + theme.label_gap;
+    let stripped = scene.panels.iter().any(|panel| panel.strip.is_some());
+    let (strip_room, head_room) = match (stripped, scene.wrapped) {
+        (false, _) => (0.0, 0.0),
+        (true, true) => (strip_line, 0.0),
+        (true, false) => (0.0, strip_line),
+    };
+    let side_room = if scene.panels.iter().any(|panel| panel.side.is_some()) {
+        strip_line
     } else {
         0.0
     };
@@ -1794,8 +1804,8 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let count = scene.panels.len().max(1);
     let cell_in = |(rows, columns): (f64, f64), wide: f64, high: f64| -> (f64, f64) {
         (
-            (wide - (columns - 1.0) * between_across) / columns,
-            (high - (rows - 1.0) * between_down) / rows - strip_room,
+            (wide - side_room - (columns - 1.0) * between_across) / columns,
+            (high - head_room - (rows - 1.0) * between_down) / rows - strip_room,
         )
     };
     let wrapped = scene.wrapped && count > 1;
@@ -1965,13 +1975,13 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // grid of them stands in the middle of the room; the axes, their titles and the legends
     // go with it. One panel is a grid of one.
     let grid = (
-        grid_columns * panel_width + (grid_columns - 1.0) * between_across,
-        grid_rows * (panel_height + strip_room) + (grid_rows - 1.0) * between_down,
+        grid_columns * panel_width + (grid_columns - 1.0) * between_across + side_room,
+        head_room + grid_rows * (panel_height + strip_room) + (grid_rows - 1.0) * between_down,
     );
     let (moved_across, moved_down) = ((room_width - grid.0) / 2.0, (room_height - grid.1) / 2.0);
     // Where the grid starts, and the first of its panels, which the legends stand beside.
     let (room_left, room_top) = (left + moved_across, top + moved_down);
-    let (left, top) = (room_left, room_top + strip_room);
+    let (left, top) = (room_left, room_top + head_room + strip_room);
     let (shift_across, shift_down) = (moved_across, moved_down);
     // The circle is in the middle of its panel.
     let rim_gap = theme.tick_length + theme.label_gap;
@@ -2014,15 +2024,20 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         let panel = scene.panels.get(at);
         let (row, column) = places[at];
         let left = room_left + (column - 1) as f64 * (panel_width + between_across);
-        let top =
-            room_top + (row - 1) as f64 * (panel_height + strip_room + between_down) + strip_room;
+        let top = room_top
+            + head_room
+            + (row - 1) as f64 * (panel_height + strip_room + between_down)
+            + strip_room;
         let labels_y = column == 1;
         let labels_x = !places
             .iter()
             .any(|other| other.1 == column && other.0 > row);
         let last = at + 1 == count;
         // The titles of the axes are centred on the grid of the panels.
-        let (title_across, title_down) = (room_left + grid.0 / 2.0, room_top + grid.1 / 2.0);
+        let (title_across, title_down) = (
+            room_left + (grid.0 - side_room) / 2.0,
+            room_top + grid.1 / 2.0,
+        );
         let centre = (left + panel_width / 2.0, top + panel_height / 2.0);
         let across = |s: &Scale, v: f64| left + scale::share(s.kind, s.limits, v) * panel_width;
         let down = |s: &Scale, v: f64| {
@@ -2035,6 +2050,23 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     (left + panel_width / 2.0, top - theme.label_gap),
                     Anchor::Middle,
                     0.0,
+                    words,
+                    label,
+                    theme,
+                ),
+            ));
+        }
+        // What is written beside the panel: at its right, read downwards.
+        if let Some(words) = panel.and_then(|panel| panel.side.as_ref()) {
+            items.push(named(
+                "strip",
+                text(
+                    (
+                        left + panel_width + theme.label_gap,
+                        top + panel_height / 2.0,
+                    ),
+                    Anchor::Middle,
+                    -90.0,
                     words,
                     label,
                     theme,

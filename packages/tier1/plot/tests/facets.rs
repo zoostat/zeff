@@ -27,6 +27,7 @@ fn parted(frame: Frame, x: &str, y: &str, by: &[&str]) -> Plot {
     if !by.is_empty() {
         plot.facet = Some(PlotFacet {
             by: by.iter().map(|name| (*name).to_string()).collect(),
+            ..PlotFacet::default()
         });
     }
     plot
@@ -213,6 +214,7 @@ fn bars_are_stacked_and_set_side_by_side_within_their_panel() {
     );
     plot.facet = Some(PlotFacet {
         by: vec!["site".to_string()],
+        ..PlotFacet::default()
     });
     let counted = with(&plot, Mark::Bars(Arrangement::Stack));
     assert_eq!(counted.panels[0].layers[0].y, [2.0]);
@@ -871,4 +873,191 @@ proptest! {
             Err(other) => prop_assert!(false, "{:?}", other),
         }
     }
+}
+
+// ----- a grid of panels (step 27e1) -----
+
+/// A plot of `x` and `y` of a frame, parted into a grid.
+fn gridded(frame: Frame, x: &str, y: &str, rows: Option<&str>, cols: Option<&str>) -> Plot {
+    let mut plot = parted(frame, x, y, &[]);
+    plot.facet = Some(PlotFacet {
+        by: Vec::new(),
+        rows: rows.map(str::to_string),
+        cols: cols.map(str::to_string),
+    });
+    plot
+}
+
+#[test]
+fn a_grid_has_a_row_for_each_value_of_one_variable_and_a_column_for_each_of_another() {
+    // Three sites down the page and two arms across it. No row of the east is of arm `b`
+    // in week 3, but every site has both arms: six panels.
+    let scene = with(
+        &gridded(sites(), "week", "count", Some("site"), Some("arm")),
+        Mark::Points,
+    );
+    assert!(!scene.wrapped);
+    assert_eq!((scene.rows, scene.columns), (3, 2));
+    let places: Vec<(usize, usize)> = scene.panels.iter().map(|p| (p.row, p.column)).collect();
+    assert_eq!(places, [(1, 1), (1, 2), (2, 1), (2, 2), (3, 1), (3, 2)]);
+    // The arms are written over the first row, and the sites beside the last column.
+    let strips: Vec<Option<&str>> = scene.panels.iter().map(|p| p.strip.as_deref()).collect();
+    assert_eq!(strips, [Some("a"), Some("b"), None, None, None, None]);
+    let sides: Vec<Option<&str>> = scene.panels.iter().map(|p| p.side.as_deref()).collect();
+    assert_eq!(
+        sides,
+        [None, Some("east"), None, Some("north"), None, Some("south")]
+    );
+    // Each panel holds the rows of its site and its arm.
+    let rows: Vec<&Vec<usize>> = scene.panels.iter().map(|p| &p.layers[0].rows).collect();
+    assert_eq!(
+        rows,
+        [
+            &vec![3, 9],
+            &vec![6],
+            &vec![1, 7],
+            &vec![4],
+            &vec![2, 8],
+            &vec![5]
+        ]
+    );
+    // The scales are those of the plot without facets.
+    let whole = with(&parted(sites(), "week", "count", &[]), Mark::Points);
+    assert_eq!(&scene.scales, &whole.scales);
+    let json = scene.json().write();
+    assert!(
+        json.contains("\"strips\": [\"a\", \"b\", \"\", \"\", \"\", \"\"]"),
+        "{json}"
+    );
+    assert!(json.contains("\"sides\": [\"\", \"east\", \"\", \"north\", \"\", \"south\"]"));
+    assert!(!json.contains("\"wrapped\""));
+    insta::assert_snapshot!("three_sites_by_two_arms", json);
+}
+
+#[test]
+fn a_cell_with_no_row_one_variable_alone_and_a_row_without_a_value() {
+    // The west has arm `a` alone, and one row has no site: a grid of three rows by two
+    // columns, of which two cells hold nothing.
+    let frame = frame(
+        "d",
+        vec![
+            (
+                "site",
+                Column::strs([Some("north"), Some("north"), Some("west"), None]),
+            ),
+            ("arm", Column::strs(["a", "b", "a", "b"].map(Some))),
+            ("week", numbers(&[1.0, 2.0, 3.0, 4.0])),
+            ("count", numbers(&[4.0, 5.0, 6.0, 7.0])),
+        ],
+    );
+    let scene = with(
+        &gridded(frame.clone(), "week", "count", Some("site"), Some("arm")),
+        Mark::Points,
+    );
+    assert_eq!((scene.rows, scene.columns), (3, 2));
+    let marks: Vec<usize> = scene.panels.iter().map(|p| p.layers[0].x.len()).collect();
+    assert_eq!(marks, [1, 1, 1, 0, 0, 1]);
+    let sides: Vec<&str> = scene
+        .panels
+        .iter()
+        .filter_map(|p| p.side.as_deref())
+        .collect();
+    assert_eq!(sides, ["north", "west", "NA"]);
+    // Rows alone: one column, the value of each row beside it and nothing over it.
+    let scene = with(
+        &gridded(frame.clone(), "week", "count", Some("arm"), None),
+        Mark::Points,
+    );
+    assert_eq!((scene.rows, scene.columns), (2, 1));
+    assert!(scene.panels.iter().all(|p| p.strip.is_none()));
+    let sides: Vec<&str> = scene
+        .panels
+        .iter()
+        .filter_map(|p| p.side.as_deref())
+        .collect();
+    assert_eq!(sides, ["a", "b"]);
+    // Columns alone: one row, the value of each column over it and nothing beside it.
+    let scene = with(
+        &gridded(frame.clone(), "week", "count", None, Some("arm")),
+        Mark::Points,
+    );
+    assert_eq!((scene.rows, scene.columns), (1, 2));
+    assert!(scene.panels.iter().all(|p| p.side.is_none()));
+    let strips: Vec<&str> = scene
+        .panels
+        .iter()
+        .filter_map(|p| p.strip.as_deref())
+        .collect();
+    assert_eq!(strips, ["a", "b"]);
+    // A layer that has not both variables is drawn in every panel; lines stay in their cell.
+    let plot = gridded(frame.clone(), "week", "count", Some("site"), Some("arm"));
+    let (plot, _) = with_layer(&plot, layer(Mark::Lines));
+    let mut level = layer(Mark::Hline);
+    level.constants = vec![PlotConstant {
+        aesthetic: Aesthetic::Y,
+        value: PlotSetting::Place(5.0),
+    }];
+    let (_, scene) = with_layer(&plot, level);
+    assert!(scene.panels.iter().all(|p| p.layers[1].y == [5.0]));
+    assert!(scene.panels.iter().all(|p| p.layers[0].x.is_empty()));
+    // A variable the frame lacks parts nothing.
+    let scene = with(
+        &gridded(frame, "week", "count", Some("nothing"), Some("arm")),
+        Mark::Points,
+    );
+    assert_eq!(scene.panels.len(), 1);
+    assert_eq!(
+        (
+            scene.panels[0].strip.as_ref(),
+            scene.panels[0].side.as_ref()
+        ),
+        (None, None)
+    );
+}
+
+#[test]
+fn a_grid_is_laid_as_it_is_with_its_columns_named_above_and_its_rows_at_the_right() {
+    let scene = with(
+        &gridded(sites(), "week", "count", Some("site"), Some("arm")),
+        Mark::Points,
+    );
+    let drawing = laid(&scene, Size::TwoColumn);
+    let panels = panels_of(&drawing);
+    assert_eq!(panels.len(), 6);
+    apart_and_alike(&panels);
+    // Three rows of two, as the scene has them.
+    for (i, panel) in panels.iter().enumerate() {
+        assert!((panel.0.0 - panels[i % 2].0.0).abs() < 1e-9);
+        assert!((panel.0.1 - panels[2 * (i / 2)].0.1).abs() < 1e-9);
+    }
+    // The arms over the two panels of the first row, upright; the sites at the right of the
+    // second column, each at the middle of its row and read downwards.
+    let strips = words_of(&drawing, "strip");
+    assert_eq!(strips.len(), 5);
+    for (words, at, turn) in &strips[..2] {
+        let panel = panels[usize::from(words == "b")];
+        assert_eq!(*turn, 0.0);
+        assert!((at.0 - (panel.0.0 + panel.1 / 2.0)).abs() < 1e-9 && at.1 < panel.0.1);
+    }
+    let right = panels[1].0.0 + panels[1].1;
+    for (i, name) in ["east", "north", "south"].iter().enumerate() {
+        let (words, at, turn) = strips
+            .iter()
+            .find(|strip| strip.0 == *name)
+            .unwrap_or_else(|| panic!("`{name}` is not written"));
+        let panel = panels[2 * i + 1];
+        assert_eq!((words.as_str(), *turn), (*name, -90.0));
+        assert!(at.0 > right && at.0 < right + 8.0);
+        assert!((at.1 - (panel.0.1 + panel.2 / 2.0)).abs() < 1e-9);
+    }
+    // The rows are closer than those of panels that each have their strip: the columns are
+    // named once.
+    let gap = panels[2].0.1 - (panels[0].0.1 + panels[0].2);
+    assert!((gap - 12.0).abs() < 1e-9, "{gap}");
+    // A grid is never laid otherwise: on a page too small for it, it is refused.
+    assert!(matches!(
+        layout(&scene, Size::Millimetres(60.0, 60.0), &JOURNAL),
+        Err(LayoutError::TooMany { panels: 6, .. })
+    ));
+    insta::assert_snapshot!("a_grid_of_six", drawing.describe());
 }

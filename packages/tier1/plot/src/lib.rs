@@ -790,9 +790,9 @@ pub fn functions() -> Vec<Function> {
                 diagnostics: vec![
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable named twice, and rows:, cols: and free scales, which are not built yet",
+                        "a variable named twice, by: with rows: or cols:, one variable for both, and free scales, which are not built yet",
                     ),
-                    DiagnosticDecl::new("Z0406", "no by:"),
+                    DiagnosticDecl::new("Z0406", "no by:, rows: or cols:"),
                 ],
                 help: include_str!("../help/facet.md"),
                 accuracy: None,

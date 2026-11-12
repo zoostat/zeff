@@ -912,11 +912,24 @@ pub fn facet(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("`facet(by: industry)` draws a panel for each value of a variable, on scales that all the panels share"),
         )
     };
-    for (slot, name) in [(FA_ROWS, "rows"), (FA_COLS, "cols")] {
-        if !matches!(args.get(slot), None | Some(Value::Na)) {
-            return Err(not_yet(ctx, slot, &format!("`{name}:` of `facet`")));
-        }
+    // The variable of the rows of a grid, and that of its columns.
+    let mut grid: [Option<String>; 2] = [None, None];
+    for (at, slot) in [FA_ROWS, FA_COLS].into_iter().enumerate() {
+        grid[at] = match args.get(slot) {
+            None | Some(Value::Na) => None,
+            Some(Value::Var(name)) => {
+                column(ctx, &plot.frame, name, ctx.span_of(slot))?;
+                Some(name.clone())
+            }
+            Some(_) => {
+                return Err(internal(
+                    ctx,
+                    "a row or column of facets that is no variable",
+                ));
+            }
+        };
     }
+    let [rows, cols] = grid;
     match args.get(FA_SCALES) {
         None | Some(Value::Na) => {}
         Some(Value::Word(word)) if word.as_str() == "fixed" => {}
@@ -929,19 +942,47 @@ pub fn facet(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
         Some(_) => return Err(internal(ctx, "scales of facets that are not a word")),
     }
+    let gridded = rows.is_some() || cols.is_some();
     let by: Vec<String> = match args.get(FA_BY) {
         Some(Value::Var(name)) => vec![name.clone()],
         Some(Value::Vars(names)) if !names.is_empty() => names.clone(),
+        None | Some(Value::Na) | Some(Value::Vars(_)) if gridded => Vec::new(),
         None | Some(Value::Na) | Some(Value::Vars(_)) => {
             return Err(fail(
-                Diagnostic::error("Z0406", "`facet` needs `by`")
+                Diagnostic::error("Z0406", "`facet` needs `by`, or `rows` or `cols`")
                     .in_file(ctx.script)
-                    .primary(ctx.callee_span, "`by` is missing")
-                    .help("a plot is parted into panels by a variable, one panel for each of its values, as in `facet(by: industry)`; `facet(by: [industry, union])` has a panel for each pair of values"),
+                    .primary(ctx.callee_span, "no variable to part the plot by")
+                    .help("a plot is parted into panels by a variable, one panel for each of its values, as in `facet(by: industry)`; `facet(rows: union, cols: female)` is a grid, a row of panels for each value of one variable and a column for each value of another"),
             ));
         }
         Some(_) => return Err(internal(ctx, "a `by:` of facets that names no variable")),
     };
+    // Panels that follow one another, or a grid: not both.
+    if gridded && !by.is_empty() {
+        let slot = if rows.is_some() { FA_ROWS } else { FA_COLS };
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`by:` of `facet` lays the panels one after another, and `rows:` and `cols:` lay them in a grid: a plot has one or the other",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(slot), "a grid, with `by:`")
+            .help("for a grid write `facet(rows: union, cols: female)`; for a panel for each pair of values, one after another, write `facet(by: [union, female])`"),
+        ));
+    }
+    if let (Some(down), Some(across)) = (&rows, &cols)
+        && down == across
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`rows:` and `cols:` of `facet` both name `{down}`"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(FA_COLS), "the variable of the rows")
+            .help(format!("a grid has one variable down the page and another across it; for one panel for each value of `{down}` write `facet(by: {down})`")),
+        ));
+    }
     // Each variable is one of the plot's frame, and is named once.
     for (i, name) in by.iter().enumerate() {
         column(ctx, &plot.frame, name, ctx.span_of(FA_BY))?;
@@ -956,7 +997,7 @@ pub fn facet(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     let mut next = (*plot).clone();
     // What is said last of the facets takes the place of what was said.
-    next.facet = Some(PlotFacet { by });
+    next.facet = Some(PlotFacet { by, rows, cols });
     let before = scene(&plot).notes;
     let after = describe(&mut next);
     announce(ctx, &before, &after.notes);

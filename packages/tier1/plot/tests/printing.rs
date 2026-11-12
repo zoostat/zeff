@@ -3498,8 +3498,22 @@ fn every_message_of_facet() {
         ("a_variable_in_quotation_marks", "p.facet(by: \"site\")\n"),
         ("a_number", "p.facet(by: 3)\n"),
         ("facets_of_a_frame", "d.facet(by: site)\n"),
-        ("rows_not_built_yet", "p.facet(rows: site)\n"),
-        ("cols_not_built_yet", "p.facet(by: site, cols: arm)\n"),
+        ("a_grid_with_by", "p.facet(by: site, cols: arm)\n"),
+        ("rows_with_by", "p.facet(by: [site, arm], rows: week)\n"),
+        (
+            "one_variable_down_and_across",
+            "p.facet(rows: site, cols: site)\n",
+        ),
+        (
+            "a_row_the_frame_lacks",
+            "p.facet(rows: region, cols: arm)\n",
+        ),
+        ("a_column_in_quotation_marks", "p.facet(cols: \"arm\")\n"),
+        ("two_variables_down", "p.facet(rows: [site, arm])\n"),
+        (
+            "a_grid_too_large_for_the_page",
+            "export(p.facet(rows: site, cols: arm), \"grid.svg\", size: [50, 50])\n",
+        ),
         (
             "free_scales_not_built_yet",
             "p.facet(by: site, scales: free_y)\n",
@@ -3516,4 +3530,51 @@ fn every_message_of_facet() {
         all.push_str(&format!("== {name}\n{stderr}\n"));
     }
     insta::assert_snapshot!("facet_messages", all);
+}
+
+// ----- facet(rows:, cols:) (step 27e1) -----
+
+#[test]
+fn a_grid_of_panels_reads_sensibly_as_text() {
+    let script = format!(
+        "{SITES}p.facet(rows: site, cols: arm)\n\
+         p.facet(rows: site)\n\
+         p.facet(cols: arm)\n\
+         p.facet(by: site).facet(rows: arm)\n\
+         p.facet(rows: arm).facet(by: site)\n\
+         d.plot(x: week, y: count, fill: arm).bars().facet(rows: site, cols: arm).coord(flip)\n"
+    );
+    let text = printed(&script);
+    let both = "panels: 6, 3 rows by site (east, north, south) and 2 columns by arm (a, b)\n";
+    assert_eq!(text.matches(both).count(), 2, "{text}");
+    assert_eq!(
+        text.matches("panels: 3, 3 rows by site (east, north, south)\n")
+            .count(),
+        1
+    );
+    assert_eq!(
+        text.matches("panels: 2, 2 columns by arm (a, b)\n").count(),
+        1
+    );
+    // What is said last of the facets takes the place of what was said: a grid after
+    // panels in rows, and panels in rows after a grid.
+    assert_eq!(text.matches("panels: 2, 2 rows by arm (a, b)\n").count(), 1);
+    assert_eq!(
+        text.matches("panels: 3 by site: east, north, south\n")
+            .count(),
+        1
+    );
+    insta::assert_snapshot!("grids_of_plots", text);
+}
+
+#[test]
+fn a_grid_of_panels_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{SITES}let q = p.facet(rows: site, cols: arm)\n\
+         export(q, \"grid.svg\", size: two_column)\n\
+         export(q, \"grid.pdf\", size: two_column)\n\
+         export(q, \"grid.png\", size: two_column)\n\
+         export(p.facet(rows: arm).legend(top), \"down.svg\")\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
 }

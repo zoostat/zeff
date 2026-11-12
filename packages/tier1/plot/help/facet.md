@@ -1,31 +1,33 @@
 # facet
 
 ## Summary
-A plot parted into panels, one for each value of a variable
+A plot parted into panels, one for each value of a variable, or a grid by two
 
 ## Description
 Small multiples: the same plot drawn once for each value of a variable, the panels side by
 side on the same scales. `p.facet(by: industry)` gives a panel for each industry, with the
 name of the industry written over it, and in each panel the marks of the rows of that
-industry alone. It gives the plot back, so it is written in the chain with the marks, before
-or after them.
+industry alone. `p.facet(rows: union, cols: female)` lays the panels in a grid: a row of
+panels for each value of one variable and a column for each value of another. It gives the
+plot back, so it is written in the chain with the marks, before or after them.
 
 Panels are for comparing groups that would hide one another in one panel: twelve clouds of
 points in twelve colours are a blur, and twelve small clouds side by side can be read. The
 panels share their axes, so the same place on the page is the same value in every panel, and
 a difference between two panels is a difference in the data.
 
-In R with ggplot2 this is `facet_wrap(~ industry)`. In Stata it is the option
-`by(industry)` of a graph.
+In R with ggplot2 `by:` is `facet_wrap(~ industry)` and the grid is
+`facet_grid(union ~ female)`. In Stata the nearest to both is the option `by()` of a graph,
+with one variable or two.
 
 ## Arguments
 - p: The plot that is parted.
 - by: The variable whose values part the rows, a bare name, or several in square brackets:
   `by: [industry, union]` has a panel for each pair of values that the frame holds.
-- rows: Kept for a grid of panels with a variable down the page. It is not built yet, and
-  is refused.
-- cols: Kept for a grid of panels with a variable across the page. It is not built yet, and
-  is refused.
+- rows: For a grid: the variable with a row of panels for each of its values, a bare name.
+  Alone, the panels stand one under another.
+- cols: For a grid: the variable with a column of panels for each of its values, a bare
+  name. Alone, the panels stand side by side. `rows:` and `cols:` are not given with `by:`.
 - scales: Whether the panels share their axes, a word without quotation marks. `fixed`, the
   default, is the one way built so far: every panel has the same two axes. `free`, `free_x`
   and `free_y` are refused.
@@ -41,6 +43,14 @@ and other values from the smallest up. Over each is written its value, by its va
 where the variable has one. A row with no value of the variable is not dropped: it is drawn
 in a panel of its own, the last, named `NA`. A value that only a layer with `data:` of its
 own holds is a panel more, after the others.
+
+The grid. With `rows:` and `cols:` there is a panel for every pair of a value of the one and
+a value of the other, whether a row of the data has that pair or not: a cell that no row falls
+in is drawn empty, so that the rows and the columns of the page each mean one value. The
+values of `cols:` are written over the panels of the first row, and those of `rows:` beside
+the panels of the last column, read downwards. `by: [union, female]` has the same panels where
+every pair is there, laid one after another with both values over each; the grid is the
+better choice where the two variables are to be compared along the rows and down the columns.
 
 The marks. Each panel is the plot of its own rows. Bars are stacked, or set side by side,
 among the bars of their panel; a line joins the rows of its panel and never crosses to the
@@ -59,17 +69,18 @@ rows as columns. The labels of `y` are written beside the first panel of each ro
 of `x` under the lowest panel of each column; each axis has its title once, and the legends
 stand beside the whole. Where that grid would leave each panel less than 12.7 mm wide or
 high on the page of the figure, the panels are laid in more columns or fewer, so that forty
-panels on a page of two columns are four rows of ten. Where no grid gives the panels their
-room, the figure is refused when it is written by `export`: give a larger `size:`.
+panels on a page of two columns are four rows of ten. A grid of `rows:` and `cols:` is laid
+as it is. Where the panels cannot have their room, the figure is refused when it is written
+by `export`: give a larger `size:`.
 
 With the other functions. `coord(flip)`, `coord(fixed)` and `coord(polar)` are applied in
 every panel. `legend(direct)` writes names at the ends of lines beside one panel, so with
 facets the legend is drawn at the right. `labels`, `theme` and the scales are those of the
 whole plot.
 
-The printed plot says the panels on a line of its own under the table of layers: how many
-they are, the variable, and what is written over them. Its table of layers counts the marks
-of each layer over all the panels.
+The printed plot says the panels on a line of its own under the table of layers: how many they
+are, the variable, and what is written over them; for a grid, its rows and its columns. Its
+table of layers counts the marks of each layer over all the panels.
 
 ## See also
 plot, coord, legend, scale, export
@@ -100,3 +111,15 @@ plot · d · count against week
       2   hline   d          2   at 6, width 0.5, style dashed
 
 panels: 2 by site: north, south
+> let g = frame(site = ["north", "south", "north", "south"], arm = ["a", "a", "b", "b"], week = [1, 1, 2, 2], count = [4, 7, 5, 9])
+> g.plot(x: week, y: count).points().facet(rows: site, cols: arm)
+plot · g · count against week
+
+  axis   title   scale    limits         breaks
+  x      week    linear   0.95 to 2.05   1, 1.2, 1.4, 1.6, 1.8, 2
+  y      count   linear   3.75 to 9.25   4, 5, 6, 7, 8, 9
+
+  layer   mark     data   marks   settings
+      1   points   g          4   size 4.5, alpha 1
+
+panels: 4, 2 rows by site (north, south) and 2 columns by arm (a, b)

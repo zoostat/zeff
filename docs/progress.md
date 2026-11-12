@@ -156,3 +156,13 @@ Step 27 was split into 27a to 27e, and 27c into 27c1 and 27c2. 27a `[engine]`: `
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: a variable named twice in `by:` is refused; what a later `facet` says replaces an earlier one. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 27e1 (`facet(rows:, cols:)`), and step 27e split in two
+
+**Done.** Step 27e was split into 27e1 (the grid) and 27e2 (free scales). `p.facet(rows: union, cols: female)` lays the panels in a grid: a row of panels for each value of one variable and a column for each value of another, or of one alone; a cell that no row of the data falls in is drawn empty. The values of the columns are written over the first row and those of the rows beside the last column, read downwards. A grid is laid as it is, never in other columns. `rows:` or `cols:` with `by:` is refused, and so is one variable for both.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 416 of 416; CI is read job by job after the push.
+
+**Next.** Step 27e2 `[engine]`: `scales: free | free_x | free_y`, panels with axes of their own, which completes step 27 and lets the specification's sample run.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the values of the rows are written at the right, read downwards, as ggplot2 writes them; a cell with no row is drawn empty and not left out; a layer is parted only where its frame holds both variables. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

@@ -265,6 +265,9 @@ pub struct Panel {
     /// variable it holds, by its value label where it has one. `None` where the plot is not
     /// parted.
     pub strip: Option<String>,
+    /// What is written beside the panel, at its right, in a grid of panels: the value of
+    /// the variable of its row, at the last panel of the row. `None` elsewhere.
+    pub side: Option<String>,
     pub x: Option<&'static str>,
     pub y: Option<&'static str>,
     pub layers: Vec<Layer>,
@@ -2119,7 +2122,11 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
 /// for each layer the panel of each row of its frame. A layer whose frame lacks a variable
 /// of the facets has no panel of its own (`None`), and is drawn in every one.
 struct Parting {
-    strips: Vec<String>,
+    /// Each panel: its row and its column from 1, what is written over it, and what is
+    /// written beside it.
+    panels: Vec<(usize, usize, Option<String>, Option<String>)>,
+    /// Whether the panels follow one another in rows, and are not a grid of two variables.
+    wrapped: bool,
     of: Vec<Option<Vec<usize>>>,
 }
 
@@ -2129,9 +2136,10 @@ struct Parting {
 /// a layer holds. A row without a value has a panel of its own, named `NA`, after the others
 /// of its frame. `None` where the plot has no facets, or its frame lacks a variable of them.
 fn parting(plot: &Plot) -> Option<Parting> {
-    let by = &plot.facet.as_ref()?.by;
+    let facet = plot.facet.as_ref()?;
+    let by = &facet.by;
     if by.is_empty() {
-        return None;
+        return grid_parting(plot, facet.rows.as_deref(), facet.cols.as_deref());
     }
     // The panels of a frame in their order, each with its strip, and the panel of each row.
     let parted = |frame: &Frame| -> Option<(Vec<String>, Vec<usize>)> {
@@ -2192,7 +2200,101 @@ fn parting(plot: &Plot) -> Option<Parting> {
             rows.into_iter().map(|panel| place[panel]).collect()
         }));
     }
-    Some(Parting { strips, of })
+    Some(Parting {
+        panels: rows_and_columns(strips.len())
+            .into_iter()
+            .zip(strips)
+            .map(|((row, column), strip)| (row, column, Some(strip), None))
+            .collect(),
+        wrapped: true,
+        of,
+    })
+}
+
+/// The parting of a plot into a grid: a row of panels for each value of one variable and a
+/// column for each value of another, or of one of the two alone. The values are those the
+/// plot's frame holds, in the order of their categories, a row without one last, as `NA`;
+/// then those that only the frame of a layer holds. Every cell of the grid is a panel,
+/// whether a row of the data falls in it or not. The values of the columns are written over
+/// the panels of the first row, and those of the rows beside the panels of the last
+/// column. `None` where neither variable is given, or the plot's frame lacks one.
+fn grid_parting(plot: &Plot, rows: Option<&str>, cols: Option<&str>) -> Option<Parting> {
+    if rows.is_none() && cols.is_none() {
+        return None;
+    }
+    // The values of a variable that a frame holds, in order, and the value of each row.
+    let values = |frame: &Frame, name: Option<&str>| -> Option<(Vec<String>, Vec<usize>)> {
+        let Some(name) = name else {
+            return Some((vec![String::new()], vec![0; frame.table.rows()]));
+        };
+        let all = categories(frame.table.column(name)?);
+        // The categories that a row has, in their order, and `NA` last.
+        let mut held: Vec<Option<usize>> = all.of.clone();
+        held.sort_by_key(|place| (place.is_none(), place.unwrap_or(0)));
+        held.dedup();
+        let labels = held
+            .iter()
+            .map(|place| match place {
+                Some(place) => all.labels[*place].clone(),
+                None => "NA".to_string(),
+            })
+            .collect();
+        let of = all
+            .of
+            .iter()
+            .map(|place| held.iter().position(|known| known == place).unwrap_or(0))
+            .collect();
+        Some((labels, of))
+    };
+    // The values of a layer's frame among those met so far: a new one is a row or column
+    // more.
+    let among = |known: &mut Vec<String>, (own, of): (Vec<String>, Vec<usize>)| -> Vec<usize> {
+        let place: Vec<usize> = own
+            .iter()
+            .map(|label| match known.iter().position(|k| k == label) {
+                Some(place) => place,
+                None => {
+                    known.push(label.clone());
+                    known.len() - 1
+                }
+            })
+            .collect();
+        of.into_iter().map(|value| place[value]).collect()
+    };
+    let (mut down, _) = values(&plot.frame, rows)?;
+    let (mut across, _) = values(&plot.frame, cols)?;
+    // For each layer whose frame has the variables, the row and the column of each of its
+    // rows.
+    let mut placed: Vec<Option<(Vec<usize>, Vec<usize>)>> = Vec::new();
+    for layer in &plot.layers {
+        let frame = frame_of(plot, layer);
+        placed.push(match (values(frame, rows), values(frame, cols)) {
+            (Some(r), Some(c)) => Some((among(&mut down, r), among(&mut across, c))),
+            _ => None,
+        });
+    }
+    let columns = across.len();
+    let mut panels = Vec::new();
+    for (r, row) in down.iter().enumerate() {
+        for (c, column) in across.iter().enumerate() {
+            panels.push((
+                r + 1,
+                c + 1,
+                (cols.is_some() && r == 0).then(|| column.clone()),
+                (rows.is_some() && c + 1 == columns).then(|| row.clone()),
+            ));
+        }
+    }
+    Some(Parting {
+        panels,
+        wrapped: false,
+        of: placed
+            .into_iter()
+            .map(|placed| {
+                placed.map(|(r, c)| r.iter().zip(&c).map(|(r, c)| r * columns + c).collect())
+            })
+            .collect(),
+    })
 }
 
 /// The layers of a scene of several panels, each with the marks it has in all of them, panel
@@ -2557,7 +2659,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                         // are built panel by panel, and their marks follow one another.
                         (Mark::Area(Stacking::Stack | Stacking::Share), Some(of), Some(parts)) => {
                             let mut all = Joined::default();
-                            for panel in 0..parts.strips.len() {
+                            for panel in 0..parts.panels.len() {
                                 let one = stacked(
                                     across.as_deref(),
                                     upper.as_deref(),
@@ -2592,7 +2694,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                             let mut keys = keys;
                             if let (Some(of), Some(parts)) = (panel_of(at), &parts) {
                                 keys.push(Categories {
-                                    labels: parts.strips.clone(),
+                                    labels: vec![String::new(); parts.panels.len()],
                                     of: of.iter().map(|panel| Some(*panel)).collect(),
                                 });
                             }
@@ -3230,6 +3332,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             row: 1,
             column: 1,
             strip: None,
+            side: None,
             x,
             y,
             layers,
@@ -3237,10 +3340,11 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             crs: None,
         }],
         // A frame with no row has no value to part it by: one panel, as without facets.
-        Some(parts) if parts.strips.is_empty() => vec![Panel {
+        Some(parts) if parts.panels.is_empty() => vec![Panel {
             row: 1,
             column: 1,
             strip: None,
+            side: None,
             x,
             y,
             layers,
@@ -3251,14 +3355,15 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             let of: Vec<Option<Vec<usize>>> = (0..layers.len())
                 .map(|at| panel_of(at).map(|rows| kept[at].iter().map(|row| rows[*row]).collect()))
                 .collect();
-            rows_and_columns(parts.strips.len())
-                .into_iter()
-                .zip(&parts.strips)
+            parts
+                .panels
+                .iter()
                 .enumerate()
-                .map(|(panel, ((row, column), strip))| Panel {
-                    row,
-                    column,
-                    strip: Some(strip.clone()),
+                .map(|(panel, (row, column, strip, side))| Panel {
+                    row: *row,
+                    column: *column,
+                    strip: strip.clone(),
+                    side: side.clone(),
                     x,
                     y,
                     layers: layers
@@ -3278,7 +3383,9 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
     Scene {
         rows: panels.iter().map(|panel| panel.row).max().unwrap_or(1),
         columns: panels.iter().map(|panel| panel.column).max().unwrap_or(1),
-        wrapped: parts.as_ref().is_some_and(|parts| !parts.strips.is_empty()),
+        wrapped: parts
+            .as_ref()
+            .is_some_and(|parts| parts.wrapped && !parts.panels.is_empty()),
         scales,
         axes,
         legends,
@@ -3755,6 +3862,23 @@ impl Scene {
                                     .map(|panel| {
                                         Json::text(panel.strip.clone().unwrap_or_default())
                                     })
+                                    .collect(),
+                            ),
+                        )
+                    }),
+            )
+            // What is written beside the panels of a grid, in the order of the panels.
+            .chain(
+                self.panels
+                    .iter()
+                    .any(|panel| panel.side.is_some())
+                    .then(|| {
+                        (
+                            "sides",
+                            Json::List(
+                                self.panels
+                                    .iter()
+                                    .map(|panel| Json::text(panel.side.clone().unwrap_or_default()))
                                     .collect(),
                             ),
                         )
@@ -4372,11 +4496,45 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
     }
     drawn.after.extend(placed.map(str::to_string));
     // The panels, where the plot is parted into them.
+    let said = |panel: &Panel| panel.strip.is_some() || panel.side.is_some();
     if let Some(facet) = plot
         .facet
         .as_ref()
-        .filter(|_| scene.panels.iter().any(|panel| panel.strip.is_some()))
+        .filter(|facet| facet.by.is_empty() && scene.panels.iter().any(said))
     {
+        // A grid: its rows and its columns, each with its variable and what is written.
+        let part = |name: &Option<String>, words: Vec<String>, one: &str, many: &str| {
+            name.as_ref().map(|name| {
+                format!(
+                    "{} {} by {name} ({})",
+                    count(words.len() as u64),
+                    if words.len() == 1 { one } else { many },
+                    listed(&words)
+                )
+            })
+        };
+        let down: Vec<String> = scene.panels.iter().filter_map(|p| p.side.clone()).collect();
+        let across: Vec<String> = scene
+            .panels
+            .iter()
+            .filter_map(|p| p.strip.clone())
+            .collect();
+        let parts: Vec<String> = [
+            part(&facet.rows, down, "row", "rows"),
+            part(&facet.cols, across, "column", "columns"),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        drawn.after.push(format!(
+            "panels: {}, {}",
+            count(scene.panels.len() as u64),
+            parts.join(" and ")
+        ));
+    }
+    if let Some(facet) = plot.facet.as_ref().filter(|facet| {
+        !facet.by.is_empty() && scene.panels.iter().any(|panel| panel.strip.is_some())
+    }) {
         // How many, by what, and what is written over them.
         let strips: Vec<String> = scene
             .panels

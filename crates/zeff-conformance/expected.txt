@@ -391,6 +391,12 @@ plot/facet/panels.pdf 767d9a4fd8c1d81a
 plot/facet/panels.png 326fccd0ce1ebcd8
 plot/facet/twelve.svg 8a9a13c75c666299
 plot/facet/lying.svg e8733a14bbb3742b
+plot/grid/stdout c10a237bf7079c8c
+plot/grid/stderr 72b9c9a74010d255
+plot/grid/grid.svg cb84d8f958478fb0
+plot/grid/grid.pdf 4cbca028a8892a24
+plot/grid/grid.png 833253ef02f8952c
+plot/grid/rows.svg bef5b97b29bd8598
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

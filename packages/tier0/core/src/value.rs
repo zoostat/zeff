@@ -122,7 +122,12 @@ pub struct PlotLabels {
 /// there.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PlotFacet {
+    /// The variables of panels that follow one another in rows; empty for a grid.
     pub by: Vec<String>,
+    /// For a grid: the variable with a row of panels for each of its values.
+    pub rows: Option<String>,
+    /// For a grid: the variable with a column of panels for each of its values.
+    pub cols: Option<String>,
 }
 
 /// The coordinates of a plot (section 7.6, "Coordinates": `coord`): how its two scales are

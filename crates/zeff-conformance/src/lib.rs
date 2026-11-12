@@ -2175,6 +2175,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/facet/{name}"), &data));
     }
+    // A grid of panels (step 27e1): the wage against schooling in 2015, a row of panels for
+    // union membership and a column for each sex; the rows alone; what the script prints,
+    // the grid in the three formats and the rows as a figure.
+    let script = "let y = dataset(wages).where(year == 2015)\nlet p = y.plot(x: educ, y: wage).points(alpha: 0.3).facet(rows: union, cols: female)\np\nlet q = y.plot(x: educ, y: wage, color: female).points(alpha: 0.3).facet(rows: union)\nq\nexport(p, \"grid.svg\", size: two_column)\nexport(p, \"grid.pdf\", size: two_column)\nexport(p, \"grid.png\", size: two_column)\nexport(q, \"rows.svg\")\n";
+    let gridded = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/grid/stdout", &gridded.output.stdout));
+    fills.push(text("plot/grid/stderr", &gridded.output.stderr));
+    for name in ["grid.svg", "grid.pdf", "grid.png", "rows.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/grid/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),
