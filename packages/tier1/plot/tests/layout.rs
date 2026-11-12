@@ -1046,3 +1046,68 @@ fn a_plot_is_written_as_the_figure_asked_for_and_what_cannot_be_drawn_is_said() 
         "the size of a figure is a width and a height above 0, in millimetres"
     );
 }
+
+// ----- the theme as the owner froze it (step 22) -----
+
+#[test]
+fn the_journal_theme_and_the_sizes_are_as_the_owner_froze_them() {
+    // Read by the owner on the six sample figures and frozen on 12 November 2026. A change
+    // here is a change to every figure Zeff writes, and is his to decide.
+    assert_eq!(Size::OneColumn.millimetres(), (89.0, 66.0));
+    assert_eq!(Size::TwoColumn.millimetres(), (183.0, 110.0));
+    assert_eq!(Size::Slide.millimetres(), (254.0, 143.0));
+    assert_eq!(
+        zeff_core::value::FigureSize::DEFAULT,
+        zeff_core::value::FigureSize::OneColumn
+    );
+    assert_eq!(
+        JOURNAL,
+        zeff_plot::layout::Theme {
+            name: "journal",
+            background: "#FFFFFF",
+            ink: "#222222",
+            grid: "#E3E3E3",
+            mark: "#222222",
+            label_size: 8.0,
+            title_size: 9.0,
+            leading: 1.25,
+            axis_width: 0.5,
+            grid_width: 0.35,
+            tick_length: 3.0,
+            margin: 4.0,
+            label_gap: 3.0,
+            title_gap: 5.0,
+            legend_gap: 10.0,
+            key_size: 4.5,
+            ramp_width: 8.0,
+            ramp_length: 72.0,
+        }
+    );
+    assert_eq!(SMALLEST_TEXT, 8.0);
+    assert_eq!(SMALLEST_PANEL, 36.0);
+    assert_eq!(zeff_plot::svg::MARK_STROKE, 0.9);
+    assert_eq!(zeff_plot::scene::POINT_SIZE, 4.5);
+    assert_eq!(zeff_plot::scene::LARGEST_SIZE, 18.0);
+    // The faces: labels in the regular face of IBM Plex Sans, as every text of the figures is.
+    let figure = layout(
+        &drawn(
+            small(),
+            &[(Aesthetic::X, "dose"), (Aesthetic::Y, "response")],
+            Vec::new(),
+        ),
+        Size::OneColumn,
+        &JOURNAL,
+    )
+    .unwrap();
+    for item in figure.primitives() {
+        if let Primitive::Text { spans, .. } = &item.primitive {
+            assert!(
+                spans
+                    .iter()
+                    .all(|span| span.face == FaceName::Sans && span.colour == "#222222")
+            );
+        }
+    }
+    // No ligature: `fi` is two glyphs.
+    assert_eq!(face(FaceName::Sans).shape("fi").glyphs.len(), 2);
+}

@@ -15,8 +15,10 @@
 //! The journal theme: a white page, the major gridlines alone in a light grey, the two axes
 //! as thin dark lines with their ticks outside the panel, text in IBM Plex Sans, 8 points for
 //! labels and 9 for titles, and no frame round the panel or the legend. No text is smaller
-//! than 8 points ([`SMALLEST_TEXT`]). Its constants are in one place, [`JOURNAL`], which the
-//! owner reads with the six figures at step 22.
+//! than 8 points ([`SMALLEST_TEXT`]). Its constants are in one place, [`JOURNAL`]. The owner
+//! read them on the six sample figures and froze them on 12 November 2026 (step 22): they,
+//! the three named sizes and the stroke of an outline shape change only by a decision of his,
+//! and a test holds them.
 //!
 //! A title that is longer than the side it runs along is broken between words. Labels of
 //! breaks that would touch are thinned, every second or third being written; the ticks and
@@ -111,7 +113,7 @@ pub struct Theme {
     pub ramp_length: f64,
 }
 
-/// The journal theme.
+/// The journal theme, frozen by the owner on 12 November 2026 (release 0.7.0, step 22).
 pub const JOURNAL: Theme = Theme {
     name: "journal",
     background: "#FFFFFF",

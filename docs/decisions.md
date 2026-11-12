@@ -3064,3 +3064,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's steps 21 and 21d; section 7.6 of the Language Reference ("Sizes", "Rendering and export"); open decision #118 (F7); section 8.1 of the Engine Specification, rules 2, 5 and 6.
 
+## 12 November 2026: the journal theme frozen (release 0.7.0, step 22)
+
+**The owner's decision.** The six figures of `samples/plots` (step 21d) were sent to the owner with the list of what was proposed in them. Asked "Step 22: are the six figures right as they are, so that I freeze the theme?", he answered "Yes, freeze it". No change was asked for. What follows is frozen: it changes only by a decision of his, and the test `the_journal_theme_and_the_sizes_are_as_the_owner_froze_them` fails if any of it is changed.
+
+**The sizes.** `one_column` 89 by 66 mm; `two_column` 183 by 110 mm; `slide` 254 by 143 mm; one column when `export` is given no `size:`.
+
+**The journal theme.** A white page (#FFFFFF). Text, axes and ticks in #222222. Major gridlines alone, #E3E3E3, 0.35 point wide. The two axes as lines of half a point, their ticks 3 points long outside the panel; no frame round the panel or the legend. Labels of breaks and of legend keys in 8 points and titles of axes and legends in 9, in IBM Plex Sans Regular, 1.25 of the size from one line to the next. A margin of 4 points round the figure; 3 points between a tick and its label and between a key and its label; 5 between the labels of an axis and its title; 10 between the panel and the legends. A mark with no colour of its own in #222222, 4.5 points across; the largest mark of a scale of sizes 18 points across; the bar of a continuous colour 8 points wide and 72 long. The legends at the right.
+
+**With it.** The three faces (Sans Regular for labels, Sans SemiBold for titles, which no figure draws yet, Mono Regular for code and aligned digits); no ligatures; an outline shape and a shape of lines stroked 0.9 point wide; a mark at the edge of the panel cut by it; no text below 8 points and no panel below 36 points each way.
+
+**What is not frozen by this.** Questions 1, 3, 4 and 5 of open decision #110 (where a scale of sizes starts, sizes of 0 and below, `group` and `label` before a mark reads them, shapes of equal area) stay in the register with their deadline, before step 25: the figures show them as built, and the owner was not asked about each. `theme(minimal | slide)` and the options of `theme` are step 26. A title of a plot is drawn from step 26, in the SemiBold face.
+
+**Reason.** The checklist's step 22; question 6 at the opening of the release ("the journal theme is drawn on six figures, read by the owner and then frozen").
+

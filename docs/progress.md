@@ -148,3 +148,13 @@ Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size 
 
 **For the owner to decide.** At step 22, on the six figures: the three sizes in millimetres (the heights are proposals), the journal theme (gridlines, axes, type sizes, the colour of a mark without one), the three faces, no ligatures, marks cut at the edge of the panel, the stroke of the outline shapes, one column as the size when none is given. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 22 (the theme frozen)
+
+**Done.** The owner read the six figures and answered "Yes, freeze it"; no change was asked for. The three sizes, the journal theme, the faces, the rule of no ligatures and the stroke of the outline shapes are frozen as drawn, written out in `docs/decisions.md` and held by a test that fails if any of them is changed.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 261 of 261; CI is read job by job after the push.
+
+**Next.** Step 22b `[engine]`: the PDF and PNG writers, so that the six figures export in the three formats.
+
+**For the owner to decide.** Nothing blocks step 22b. Open as before: questions 1, 3, 4 and 5 of #110 (recommended as built, before step 25), #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
