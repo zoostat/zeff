@@ -422,3 +422,26 @@ proptest! {
         prop_assert!(layout(&scene, Size::OneColumn, &JOURNAL).is_ok());
     }
 }
+
+#[test]
+fn bars_take_their_fill_from_the_colour_of_the_plot_as_the_specification_draws_them() {
+    // The sample script of the specification: `plot(means, x: industry, y: mean_lwage,
+    // color: female).bars(position: dodge)`. Nothing says anything of `fill`, so the bars
+    // are filled, and set side by side, by the colour.
+    let plot = start(
+        shops(),
+        vec![
+            mapped(Aesthetic::X, "shop"),
+            mapped(Aesthetic::Y, "units"),
+            mapped(Aesthetic::Color, "kind"),
+        ],
+        Vec::new(),
+    );
+    let (_, scene) = with_layer(&plot, bars(Arrangement::Dodge));
+    let layer = &scene.panels[0].layers[0];
+    assert_eq!(layer.fill, Paint::Scaled(vec![2.0, 1.0, 2.0, 1.0, 2.0]));
+    assert_eq!(scene.legends.len(), 1);
+    assert_eq!(scene.legends[0].scales, ["fill"]);
+    assert_eq!(scene.legends[0].marks, [Mark::Bars(Arrangement::Dodge)]);
+    close(&edges(&scene), &edges(&by_kind(Arrangement::Dodge)));
+}

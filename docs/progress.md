@@ -145,3 +145,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 24c `[function]`: `tile`.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: a bar is 0.9 of the gap wide and at most the gap; side by side, missing groups make the others wider, as R; no bars up to a category. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 24b2 (a filled mark takes its fill from `color`)
+
+**Done.** The specification's sample script draws its bars with `color: female` and a legend, and section 6 has `color:` colour bars; as built, a bar, an area and a band were filled by `fill:` alone. Now, where nothing says anything of `fill`, they take their fill from `color:` of the plot. `fill:` still comes first. This withdraws one ruling of step 23d1 (areas took no colour from `color`).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 313 of 313; CI is read job by job after the push.
+
+**Next.** Step 24c `[function]`: `tile`.
+
+**For the owner to decide.** Nothing waits for him. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

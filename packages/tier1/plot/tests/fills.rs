@@ -317,8 +317,9 @@ fn the_rows_are_parted_by_the_group_the_fill_and_the_colour_of_the_plot() {
         assert_eq!(shapes[0].1, "#E69F00");
         assert_eq!(shapes[1].1, "#56B4E9");
     }
-    // By the colour the plot gives its lines: an area under each, in the fill of the theme,
-    // and a legend of the lines alone.
+    // By the colour the plot gives its lines: an area under each, and, since nothing says
+    // anything of `fill`, filled in the colour of its line (section 6 of the Language
+    // Reference: `color:` colours "points, lines or bars by group"), with one legend.
     let plot = start(
         tried(&rows),
         vec![
@@ -331,8 +332,12 @@ fn the_rows_are_parted_by_the_group_the_fill_and_the_colour_of_the_plot() {
     let (plot, scene) = with_layer(&plot, area());
     let layer = &scene.panels[0].layers[0];
     assert_eq!(layer.line, [1, 1, 1, 2, 2]);
-    assert_eq!(layer.fill, Paint::Theme);
-    assert!(scene.legends.is_empty(), "no layer draws the colour yet");
+    assert_eq!(layer.fill, Paint::Scaled(vec![1.0, 1.0, 1.0, 2.0, 2.0]));
+    assert_eq!(layer.color, Paint::Theme);
+    assert_eq!(scene.legends.len(), 1);
+    assert_eq!(scene.legends[0].scales, ["fill"]);
+    assert_eq!(scene.legends[0].title, "g");
+    assert_eq!(shapes_of(&scene)[1].1, "#56B4E9");
     let (_, scene) = with_layer(
         &plot,
         PlotLayer {
@@ -340,8 +345,51 @@ fn the_rows_are_parted_by_the_group_the_fill_and_the_colour_of_the_plot() {
             ..points(1.0)
         },
     );
-    assert_eq!(scene.legends[0].marks, [Mark::Lines]);
-    // A colour of numbers parts nothing: one area through every row.
+    assert_eq!(scene.legends.len(), 1);
+    assert_eq!(scene.legends[0].scales, ["color", "fill"]);
+    assert_eq!(
+        scene.legends[0].marks,
+        [Mark::Lines, Mark::Area(Stacking::Overlay)]
+    );
+    // What the plot or the layer says of `fill` comes first: a fill of its own, and the
+    // areas are parted by the colour still.
+    let grey = PlotConstant {
+        aesthetic: Aesthetic::Fill,
+        value: PlotSetting::Colour {
+            hex: "#BEBEBE".to_string(),
+            written: "grey".to_string(),
+        },
+    };
+    let (_, scene) = with_layer(
+        &plot,
+        PlotLayer {
+            constants: vec![grey],
+            ..area()
+        },
+    );
+    let own = &scene.panels[0].layers[1];
+    assert_eq!(own.fill, Paint::Constant("#BEBEBE".to_string()));
+    assert_eq!(own.line, [1, 1, 1, 2, 2]);
+    // The one colour a plot sets is the fill of its filled marks too.
+    let red = PlotConstant {
+        aesthetic: Aesthetic::Color,
+        value: PlotSetting::Colour {
+            hex: "#B22222".to_string(),
+            written: "firebrick".to_string(),
+        },
+    };
+    let plain = start(
+        tried(&rows),
+        vec![mapped(Aesthetic::X, "x"), mapped(Aesthetic::Y, "y")],
+        vec![red],
+    );
+    let (_, scene) = with_layer(&plain, area());
+    assert_eq!(
+        scene.panels[0].layers[0].fill,
+        Paint::Constant("#B22222".to_string())
+    );
+    // A colour of numbers parts nothing and fills nothing: one area through every row, in
+    // the fill of the theme.
     let plot = start(
         tried(&rows),
         vec![
@@ -353,6 +401,7 @@ fn the_rows_are_parted_by_the_group_the_fill_and_the_colour_of_the_plot() {
     );
     let (_, scene) = with_layer(&plot, area());
     assert_eq!(scene.panels[0].layers[0].line, [1; 5]);
+    assert_eq!(scene.panels[0].layers[0].fill, Paint::Theme);
 }
 
 #[test]

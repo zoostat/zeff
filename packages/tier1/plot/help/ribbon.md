@@ -61,12 +61,14 @@ between the two, and nothing is said.
 
 Groups. The rows are parted by every variable that `group:` and `fill:` name, together. Where
 the plot maps a variable of categories to `color`, and the frame of the layer holds it, the
-rows are parted by it as well, so that a band lies around each line of the plot; the bands
-take their colour from `fill`, not from `color`.
+rows are parted by it as well, so that a band lies around each line of the plot.
 
-The fill. Without `fill:` a band is filled in the dark grey of the theme's marks, which an
-`alpha:` of 0.3 makes a light grey on a white page. The key of a legend is a patch of the
-fill, as see-through as the bands.
+The fill. Where neither the plot nor the layer says anything of `fill`, a band takes its
+fill from `color:` of the plot: the colour of its category, where the frame of the layer
+holds that variable, or the one colour the plot sets. `fill:` on the plot or on the layer
+comes first. With nothing to take a fill from, a band is filled in the dark grey of the
+theme's marks, which an `alpha:` of 0.3 makes a light grey on a white page. The key of a
+legend is a patch of the fill, as see-through as the bands.
 
 ## See also
 area, lines, plot

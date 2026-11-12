@@ -3413,3 +3413,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 24b; section 7.6 of the Language Reference ("Marks": "`bars` with `y` draws values and without `y` counts, and its baseline is always zero"); open decisions #106 and #128.
+
+## 12 November 2026: a filled mark takes its fill from `color` (release 0.7.0, step 24b2; a correction to steps 23d1 and 24b)
+
+**What was found.** When `bars` was registered, the tests that list the functions the specification's sample script still waits for lost one line, and reading the sample showed how it draws its bars: `plot(means, x: industry, y: mean_lwage, color: female).bars(position: dodge)`, with a legend. Section 6 of the Language Reference says the same of the shared argument `color:`: "Colour points, lines or bars by group within one panel". As built at step 24b a bar was filled by `fill:` alone and parted, but not coloured, by `color`; the sample drew twenty-four grey bars and no legend. Step 23d1 had ruled the same for `area` and `ribbon` ("the areas take no colour from `color`", its ruling d). Where the code and the specification disagree the specification wins.
+
+**Choice.** A filled mark, a bar, an area or a band, on a plot and in a layer that say nothing of `fill`, takes its fill from `color:` of the plot (`scene::borrows_colour`): the colour of each category where `color` maps a variable that shows categories in the frame the layer draws, and the one colour where `color` is set to a string. In the scene this is a mapping of `fill`: the plot has a scale `fill` of that variable beside its scale `color`, the two share one legend, as they do where a script writes both, and the JSON of the layer says `fill` as for any filled mark, so the layout and the writers needed nothing. `fill:` on the plot or on the layer comes first, a variable or one colour. A colour by a number, shown on a ramp, fills nothing, since one shape has one fill; the mark keeps the fill of the theme and the printed plot still says that no layer draws `color`. A layer's own frame that lacks the variable is not refused: its shapes have the fill of the theme. The rule is `ggplot2`'s where a script maps both `colour` and `fill` to one variable; ggplot2 itself fills in grey and draws the outline in the colour.
+
+**What changes.** Step 23d1's ruling (d) is withdrawn in its last sentence: an area and a band now take the colour of their line. `plot(x: year, y: wage, color: union).area().lines()` fills each area in the colour of its line, with one legend whose key is a patch with a piece of line on it. Nothing else of steps 23d1, 23d2 and 24b changes.
+
+**Tests.** `tests/fills.rs`: an area on a plot that maps `color` alone is filled by it, shares one legend with the lines, and a fill of its own, the plot's one colour and a colour by a number each do what is said above. `tests/bars.rs`: the sample's form, bars side by side filled by the colour. `tests/printing.rs`: the sample's bars on the shipped wages (twenty-four bars, a scale of `fill` by `Sex` with its legend), the area and the band of the yearly means, a fill that comes first, and no remark that no layer draws `color`. The help pages of `area`, `ribbon` and `bars` say the rule. The conformance case of bars gains a plot of the kind.
+
+**Dependencies.** None added.
+
+**Reason.** Language Reference, section 6 (`color:`) and section 7.6; `docs/spec/zeff_samples.zeff`; the rule that the specification wins.

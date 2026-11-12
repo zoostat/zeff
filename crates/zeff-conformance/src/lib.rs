@@ -1876,7 +1876,7 @@ fn plot_cases() -> Vec<Line> {
     // Bars (step 24b): the counts of the industries, stacked by union membership, side by
     // side and as shares, and the mean wage of each industry as a bar; what the script prints
     // and the stacked figure in the three formats.
-    let script = "let w = dataset(wages)\nw.plot(x: industry).bars()\nlet p = w.plot(x: industry, fill: union).bars()\np\nw.plot(x: industry, fill: union).bars(position: dodge, width: 0.8)\nw.plot(x: industry, fill: union).bars(position: fill)\nlet m = w.aggregate(wage = mean(wage), by: industry)\nm.plot(x: industry, y: wage).bars(fill: \"steelblue\", alpha: 0.8)\nw.plot(x: educ).bars()\nexport(p, \"bars.svg\")\nexport(p, \"bars.pdf\")\nexport(p, \"bars.png\")\n";
+    let script = "let w = dataset(wages)\nw.plot(x: industry).bars()\nlet p = w.plot(x: industry, fill: union).bars()\np\nw.plot(x: industry, fill: union).bars(position: dodge, width: 0.8)\nw.plot(x: industry, fill: union).bars(position: fill)\nlet m = w.aggregate(wage = mean(wage), by: industry)\nm.plot(x: industry, y: wage).bars(fill: \"steelblue\", alpha: 0.8)\nw.plot(x: educ).bars()\nw.plot(x: industry, color: union).bars(position: dodge)\nexport(p, \"bars.svg\")\nexport(p, \"bars.pdf\")\nexport(p, \"bars.png\")\n";
     let barred = run_script(&fs, &project, "scripts/main.zeff", script);
     fills.push(text("plot/bars/stdout", &barred.output.stdout));
     fills.push(text("plot/bars/stderr", &barred.output.stderr));

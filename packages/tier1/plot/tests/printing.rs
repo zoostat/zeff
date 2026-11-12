@@ -2019,3 +2019,26 @@ fn every_message_of_bars() {
     }
     insta::assert_snapshot!("bars_messages", all);
 }
+
+// ----- a filled mark takes its fill from the colour of the plot (step 24b2) -----
+
+#[test]
+fn the_bars_of_the_specifications_sample_are_coloured_by_color() {
+    // The sample script of the specification, on the shipped wages: the mean wage of each
+    // industry for each sex, as bars side by side, coloured by `color:` of the plot.
+    let text = printed(
+        "let w = dataset(wages).drop_missing([wage])\nlet means = w.aggregate(se = sd(wage) / sqrt(n()), mean_wage = mean(wage), by: [industry, female])\nplot(means, x: industry, y: mean_wage, color: female).bars(position: dodge)\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nu.plot(x: year, y: wage, color: union).area().lines()\nu.plot(x: year, y: wage, color: \"firebrick\").area().lines()\nu.plot(x: year, y: wage, color: union, fill: \"grey\").area().lines()\nu.plot(x: year, y: wage, color: union).ribbon(low: wage - 1, high: wage + 1).lines()\n",
+    );
+    for line in [
+        "  color       Sex     category   male, female   orange, sky blue\n",
+        "  fill        Sex     category   male, female   orange, sky blue\n",
+        "      1   bars   means      24   width 0.9, position dodge, alpha 1\n",
+        "  fill        Union member   category   no, yes   orange, sky blue\n",
+        "  fill                       constant   every mark   grey\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    // A colour that a filled mark draws is not said to be drawn by no layer.
+    assert!(!text.contains("no layer draws `color`"), "{text}");
+    insta::assert_snapshot!("fill_from_color", text);
+}

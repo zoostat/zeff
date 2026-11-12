@@ -79,8 +79,12 @@ Width. On numbers, the gap is the smallest distance between two values of `x` in
 so bars at 1, 2 and 4 are 0.9 wide and do not touch. The `x` axis is made wide enough for the
 whole of the first and the last bar.
 
-The fill. Without `fill:` a bar is filled in the dark grey of the theme's marks. A bar has no
-outline. The key of a legend is a patch of the fill.
+The fill. Where neither the plot nor the layer says anything of `fill`, a bar takes its fill
+from `color:` of the plot, so `plot(x: industry, y: wage, color: female).bars(position: dodge)`
+draws a bar for each sex in its colour, with a legend. A colour by a number, which is shown on
+a ramp, fills nothing, since a bar has one fill. `fill:` on the plot or on the layer comes
+first. With nothing to take a fill from, a bar is filled in the dark grey of the theme's
+marks. A bar has no outline. The key of a legend is a patch of the fill.
 
 ## See also
 plot, area, points, aggregate

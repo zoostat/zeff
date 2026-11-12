@@ -376,8 +376,35 @@ fn takes_from_plot(layer: &PlotLayer, aesthetic: Aesthetic) -> bool {
     layer_reads(layer, aesthetic) && layer.mapping(aesthetic).is_none() && !layer.mark.spans()
 }
 
+/// Whether a layer takes its fill from the colour of the plot: a filled mark, a bar, an area,
+/// a band, on a plot and in a layer that say nothing of `fill`. Section 6 of the Language
+/// Reference has `color:` colour "points, lines or bars by group", and the specification's
+/// sample draws `plot(..., color: female).bars(position: dodge)`.
+pub(crate) fn borrows_colour(plot: &Plot, layer: &PlotLayer) -> bool {
+    layer.mark.patches()
+        && layer.mapping(Aesthetic::Fill).is_none()
+        && !layer.sets(Aesthetic::Fill)
+        && plot.mapping(Aesthetic::Fill).is_none()
+        && plot.constant(Aesthetic::Fill).is_none()
+}
+
+/// The mapping of the plot's colour that such a layer fills by: a variable that shows
+/// categories in the frame the layer draws, since one shape has one fill. `None` where the
+/// layer does not borrow, the plot maps no colour, the frame lacks the variable, or the
+/// variable is shown on a ramp.
+fn borrowed_fill<'a>(plot: &'a Plot, layer: &PlotLayer) -> Option<&'a PlotMapping> {
+    if !borrows_colour(plot, layer) {
+        return None;
+    }
+    let mapping = plot.mapping(Aesthetic::Color)?;
+    let frame = layer.data.as_ref().unwrap_or(&plot.frame);
+    let column = frame.table.column(&mapping.variable)?;
+    (shading(column) == Some(Shading::Categories)).then_some(mapping)
+}
+
 /// What a layer draws an aesthetic from (open decision #106): its own mapping where it names
-/// one, nothing where it sets the aesthetic to one value, and the plot's mapping otherwise.
+/// one, nothing where it sets the aesthetic to one value, and the plot's mapping otherwise;
+/// for the fill of a filled mark, the plot's colour where nothing says anything of `fill`.
 pub fn mapping_of<'a>(
     plot: &'a Plot,
     layer: &'a PlotLayer,
@@ -388,7 +415,11 @@ pub fn mapping_of<'a>(
         None if layer.sets(aesthetic) => None,
         // A reference line takes nothing from the plot but its axes.
         None if layer.mark.spans() => None,
-        None => plot.mapping(aesthetic),
+        None => plot.mapping(aesthetic).or_else(|| {
+            (aesthetic == Aesthetic::Fill)
+                .then(|| borrowed_fill(plot, layer))
+                .flatten()
+        }),
     }
 }
 
@@ -422,12 +453,24 @@ fn first_mapping(
     } else {
         std::slice::from_ref(&aesthetic)
     };
-    plot.layers.iter().find_map(|layer| {
-        stands.iter().find_map(|each| {
-            let own = layer.mapping(*each)?;
-            reads(layer.mark, *each).then(|| (own, frame_of(plot, layer), Some(layer)))
+    plot.layers
+        .iter()
+        .find_map(|layer| {
+            stands.iter().find_map(|each| {
+                let own = layer.mapping(*each)?;
+                reads(layer.mark, *each).then(|| (own, frame_of(plot, layer), Some(layer)))
+            })
         })
-    })
+        .or_else(|| {
+            // The fill of a filled mark that takes it from the colour of the plot.
+            if aesthetic != Aesthetic::Fill {
+                return None;
+            }
+            plot.layers
+                .iter()
+                .find_map(|layer| borrowed_fill(plot, layer))
+                .map(|mapping| (mapping, &plot.frame, None))
+        })
 }
 
 /// How a variable mapped to a colour, a size or a shape is shown.
@@ -669,7 +712,16 @@ fn values<'a>(
     if layer.is_some_and(|layer| layer.mark.spans()) {
         return None;
     }
-    let mapping = plot.mapping(aesthetic)?;
+    let mapping = match (plot.mapping(aesthetic), layer) {
+        (Some(mapping), _) => mapping,
+        // The fill a filled mark takes from the colour of the plot.
+        (None, Some(layer)) if aesthetic == Aesthetic::Fill => borrowed_fill(plot, layer)?,
+        (None, None) if aesthetic == Aesthetic::Fill => plot
+            .layers
+            .iter()
+            .find_map(|layer| borrowed_fill(plot, layer))?,
+        (None, _) => return None,
+    };
     let own = layer.filter(|layer| layer.data.is_some());
     match (&mapping.computed, own) {
         (None, _) => {
@@ -1993,6 +2045,10 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             Some(own) => Some(own),
             None if layer.mapping(aesthetic).is_some() => None,
             None if layer.mark.spans() => None,
+            // A filled mark that says nothing of its fill has the one colour the plot sets.
+            None if aesthetic == Aesthetic::Fill && borrows_colour(plot, layer) => {
+                plot.constant(Aesthetic::Color)
+            }
             None => plot.constant(aesthetic),
         };
         let color = match set(Aesthetic::Color) {
@@ -2841,7 +2897,16 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             Some(_) => plot.mapping(aesthetic).is_some(),
             None => plot.mapping(aesthetic).is_some() || plot.constant(aesthetic).is_some(),
         };
-        if said && !layers.is_empty() && !plot.layers.iter().any(|l| takes_from_plot(l, aesthetic))
+        // A filled mark that takes its fill from the colour of the plot draws that colour.
+        let borrowed = aesthetic == Aesthetic::Color
+            && plot.layers.iter().any(|l| {
+                borrowed_fill(plot, l).is_some()
+                    || (plot.constant(Aesthetic::Color).is_some() && borrows_colour(plot, l))
+            });
+        if said
+            && !layers.is_empty()
+            && !borrowed
+            && !plot.layers.iter().any(|l| takes_from_plot(l, aesthetic))
         {
             // In the words of `points` while every layer is one; plainly otherwise.
             let only_points = plot.layers.iter().all(|l| l.mark == Mark::Points);

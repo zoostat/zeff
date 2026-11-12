@@ -69,7 +69,7 @@ left with no neighbour fills nothing, and a note counts such rows.
 Groups. The rows are parted by every variable that `group:` and `fill:` name, together. Where
 the plot maps a variable of categories to `color`, and the frame of the layer holds it, the
 rows are parted by it as well, so that `plot(x: year, y: wage, color: union).area().lines()`
-fills an area under each line; the areas take their colour from `fill`, not from `color`.
+fills an area under each line.
 
 Stacking. The groups are stacked in the order of their categories with the first on top, so
 that the areas read from top to bottom as the keys of the legend do. A value below zero is
@@ -81,9 +81,14 @@ to common values first. With `fill`, an `x` with a value below zero, or a total 
 above zero, has no shares to show and is left out in the same way. With one group, `stack`
 draws what `overlay` draws.
 
-The fill. Without `fill:` an area is filled in the dark grey of the theme's marks. With the
-usual `alpha:` of 0.6 the gridlines and the areas underneath show through. The key of a legend
-is a patch of the fill, as see-through as the areas.
+The fill. Where neither the plot nor the layer says anything of `fill`, an area takes its
+fill from `color:` of the plot: the colour of its category, or the one colour the plot sets,
+so that an area and the line over it have one colour and one key in the legend. A colour by a
+number, which is shown on a ramp, fills nothing, since an area has one fill. `fill:` on the
+plot or on the layer comes first. With nothing to take a fill from, an area is filled in the
+dark grey of the theme's marks. With the usual `alpha:` of 0.6 the gridlines and the areas
+underneath show through. The key of a legend is a patch of the fill, as see-through as the
+areas.
 
 ## See also
 ribbon, lines, step, plot
