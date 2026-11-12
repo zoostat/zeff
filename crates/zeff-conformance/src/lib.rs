@@ -1579,6 +1579,7 @@ fn plot_cases() -> Vec<Line> {
                 alpha: 0.3,
                 size: None,
                 jitter: 0.4,
+                nudge: (0.0, 0.0),
                 width: None,
                 stream: Some(Stream::new(20_261_111, 2, 0)),
                 computed: Vec::new(),
@@ -1632,6 +1633,7 @@ fn plot_cases() -> Vec<Line> {
                         alpha: 1.0,
                         size: None,
                         jitter: 0.0,
+                        nudge: (0.0, 0.0),
                         width: None,
                         stream: None,
                         computed: Vec::new(),
@@ -1667,6 +1669,7 @@ fn plot_cases() -> Vec<Line> {
                 alpha: 1.0,
                 size: None,
                 jitter: 0.0,
+                nudge: (0.0, 0.0),
                 width: None,
                 stream: None,
                 computed: Vec::new(),
@@ -1729,6 +1732,7 @@ fn plot_cases() -> Vec<Line> {
                 alpha: 1.0,
                 size,
                 jitter: 0.0,
+                nudge: (0.0, 0.0),
                 width: None,
                 stream: None,
                 computed: Vec::new(),
@@ -1788,6 +1792,7 @@ fn plot_cases() -> Vec<Line> {
                 alpha: 1.0,
                 size: None,
                 jitter: 0.0,
+                nudge: (0.0, 0.0),
                 width: Some(0.25),
                 stream: None,
                 computed: Vec::new(),
@@ -1897,6 +1902,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/tiles/{name}"), &data));
     }
+    // Text (step 24d): the mean wage of each industry as a bar with its value written on it,
+    // and the names of a few rows beside their points; what the script prints and the first
+    // figure in the three formats, where the labels are set in the embedded face.
+    let script = "let w = dataset(wages)\nlet m = w.aggregate(wage = mean(wage), by: industry).add(shown = round(wage, 1))\nlet p = m.plot(x: industry, y: wage).bars(fill: \"steelblue\").text(label: shown, nudge: [0, 5], size: 7)\np\nlet few = w.where(worker <= 3 && year == 2015)\nfew.plot(x: educ, y: wage, color: union).points().text(label: worker, nudge: [6, 0])\nexport(p, \"text.svg\")\nexport(p, \"text.pdf\")\nexport(p, \"text.png\")\n";
+    let written = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/text/stdout", &written.output.stdout));
+    fills.push(text("plot/text/stderr", &written.output.stderr));
+    for name in ["text.svg", "text.pdf", "text.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/text/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),
@@ -1960,6 +1977,7 @@ fn sample_drawings() -> Vec<(String, Result<zeff_plot::drawing::Drawing, String>
         alpha: 0.4,
         size: None,
         jitter: 0.0,
+        nudge: (0.0, 0.0),
         width: None,
         stream: None,
         computed: Vec::new(),
@@ -2103,6 +2121,7 @@ fn picture_figure(as_pdf: bool) -> Vec<u8> {
         alpha: 0.4,
         size: None,
         jitter: 0.0,
+        nudge: (0.0, 0.0),
         width: None,
         stream: None,
         computed: Vec::new(),

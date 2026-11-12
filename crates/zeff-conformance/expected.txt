@@ -299,6 +299,11 @@ plot/tiles/stderr 897d8d71ed5d8216
 plot/tiles/tiles.svg e314bc627ca9ca8f
 plot/tiles/tiles.pdf c43ef793c4cdfd62
 plot/tiles/tiles.png a835cdd28713eeec
+plot/text/stdout 7d07fc6fa68a7fcb
+plot/text/stderr 897d8d71ed5d8216
+plot/text/text.svg d034c7ccf037ccb1
+plot/text/text.pdf 531ecea1543832dc
+plot/text/text.png bc09785a7a4712de
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

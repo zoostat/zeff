@@ -1,0 +1,102 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_label
+error[Z0401]: `text` writes the `label` of each row at its place, but neither the plot nor this layer maps a variable to `label`
+ --> scripts/main.zeff:2:28
+  |
+2 | c.plot(x: income, y: life).text()
+  |                            ^^^^ needs `label`
+  |
+  = help: name the variable whose values are written, as in `text(label: name)`, or where the plot starts, as in `plot(x: educ, y: wage, label: name)`
+
+== no_y
+error[Z0401]: `text` places each mark by its `x` and its `y`, but the plot maps no variable to `y`
+ --> scripts/main.zeff:2:32
+  |
+2 | c.plot(x: income, label: name).text()
+  |                                ^^^^ needs both `x` and `y`
+  |
+  = help: map both where the plot starts, as in `plot(x: educ, y: wage)`
+
+== no_such_label
+error[Z0101]: no variable `nam` in `c`
+ --> scripts/main.zeff:2:40
+  |
+2 | c.plot(x: income, y: life).text(label: nam)
+  |                                        ^^^ not a variable of c
+  |
+  = help: did you mean `name`? If you meant a category level, write it in quotes: `"name"`
+
+== a_label_in_quotes
+error[Z0401]: `label` of `text` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:40
+  |
+2 | c.plot(x: income, y: life).text(label: "name")
+  |                                        ^^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+== no_size
+error[Z0401]: `size:` of `text` is the size of the type in points of 1/72 inch, above 0, but this is 0
+ --> scripts/main.zeff:2:52
+  |
+2 | c.plot(x: income, y: life).text(label: name, size: 0)
+  |                                                    ^ not a size
+  |
+  = help: write a size such as 8 or 10; without `size:` the text is 8 points, as the labels of the axes are
+
+== a_nudge_of_one
+error[Z0401]: `nudge:` of `text` is a list of two numbers: how far the labels are moved to the right and up, in points of 1/72 inch
+ --> scripts/main.zeff:2:53
+  |
+2 | c.plot(x: income, y: life).text(label: name, nudge: [3])
+  |                                                     ^^^ not two numbers
+  |
+  = help: write `nudge: [0, 6]` to write each label 6 points above its place, clear of a point drawn there; a number below zero moves it left or down
+
+== a_nudge_of_text
+error[Z0214]: a list holds one type: this one has a Str and an Int
+ --> scripts/main.zeff:2:60
+  |
+2 | c.plot(x: income, y: life).text(label: name, nudge: ["up", 3])
+  |                                                            ^ an Int
+  |
+  = help: put values of one type in a list; Int and Float join as Float
+
+== a_nudge_that_is_a_number
+error[Z0401]: `nudge` of `text` must be a List, but this is an Int
+ --> scripts/main.zeff:2:53
+  |
+2 | c.plot(x: income, y: life).text(label: name, nudge: 6)
+  |                                                     ^ an Int
+  |
+  = help: usage: `p.text(data: Frame, x: Var | Expr, y: Var | Expr, label: Var, color: Var | Str, size: Float = 8, nudge: List)`
+
+== not_a_colour
+error[Z0401]: `color:` of `text` is "redd", which is not the name of a colour
+ --> scripts/main.zeff:2:53
+  |
+2 | c.plot(x: income, y: life).text(label: name, color: "redd")
+  |                                                     ^^^^^^ not a colour
+  |
+  = help: did you mean "red"?
+
+== no_alpha_on_text
+error[Z0404]: `text` has no argument called `alpha`
+ --> scripts/main.zeff:2:46
+  |
+2 | c.plot(x: income, y: life).text(label: name, alpha: 0.5)
+  |                                              ^^^^^ unknown argument
+  |
+  = help: usage: `p.text(data: Frame, x: Var | Expr, y: Var | Expr, label: Var, color: Var | Str, size: Float = 8, nudge: List)`
+
+== text_of_a_frame
+error[Z0401]: `text` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | c.text(label: name)
+  | ^ this is a Frame
+  |
+  = help: `text` takes a Plot first; `x.text(...)` is `text(x, ...)`

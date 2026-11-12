@@ -93,6 +93,10 @@ pub const LINE_WIDTH: f64 = 1.0;
 /// nothing.
 pub const BAR_WIDTH: f64 = 0.9;
 
+/// The size of the type of a layer of text, in points of 1/72 inch, where the layer says
+/// nothing: that of the labels of an axis.
+pub const TEXT_SIZE: f64 = 8.0;
+
 /// The length of a tick of a rug, in points of 1/72 inch: the diameter of a point.
 pub const RUG_LENGTH: f64 = 4.5;
 
@@ -271,6 +275,11 @@ pub struct Layer {
     /// For a mark that is a bar: how far each reaches along `x`, in data coordinates, half to
     /// either side of its `x`. Empty for the other marks.
     pub span: Vec<f64>,
+    /// For a mark that is text: the text of each mark. Empty for the other marks.
+    pub label: Vec<String>,
+    /// For a mark that is text: how far each is moved from its place, to the right and up,
+    /// in points of 1/72 inch.
+    pub nudge: (f64, f64),
 }
 
 /// The type of the lines of a layer.
@@ -338,6 +347,11 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
         Mark::Bars(_) => matches!(
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Fill | Aesthetic::Group
+        ),
+        // A text is written at `x` and `y`: the `label` of its row, in its colour.
+        Mark::Text => matches!(
+            aesthetic,
+            Aesthetic::X | Aesthetic::Y | Aesthetic::Color | Aesthetic::Label
         ),
         // A tile stands at `x` and `y`, filled in the colour `fill` says for its row.
         Mark::Tile => matches!(aesthetic, Aesthetic::X | Aesthetic::Y | Aesthetic::Fill),
@@ -2040,6 +2054,34 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 _ => Drawn::default(),
             },
         };
+        // A text is the label of its row; a row without one writes nothing and is counted.
+        let mut label: Vec<String> = Vec::new();
+        if layer.mark == Mark::Text {
+            let written = named(Aesthetic::Label).zip(values(plot, Some(layer), Aesthetic::Label));
+            let mut kept = Drawn::default();
+            let mut without = 0;
+            if let Some((_, column)) = written {
+                for (i, &row) in points.rows.iter().enumerate() {
+                    let missing = match column.get(row) {
+                        None | Some(Cell::Na) => true,
+                        Some(Cell::Float(x)) => x.is_nan(),
+                        Some(_) => false,
+                    };
+                    if missing {
+                        without += 1;
+                        continue;
+                    }
+                    kept.x.push(points.x[i]);
+                    kept.y.push(points.y[i]);
+                    kept.rows.push(row);
+                    label.push(labelled_cell(column, row));
+                }
+            }
+            if let (Some((name, _)), true) = (written, without > 0) {
+                note(format!("{} with NA in {name} dropped", rows_text(without)));
+            }
+            points = kept;
+        }
         // A tile reaches half the gap between two places to each side of its own, along both
         // axes; on an axis of categories the gap is one place.
         if layer.mark == Mark::Tile {
@@ -2104,8 +2146,11 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             y: points.y,
             color,
             // The size of a rug is the length of its ticks.
+            // The size of a text is that of its type.
             size: Sizing::Constant(if matches!(layer.mark, Mark::Rug(_)) {
                 RUG_LENGTH
+            } else if layer.mark == Mark::Text {
+                layer.size.unwrap_or(TEXT_SIZE)
             } else {
                 size
             }),
@@ -2132,6 +2177,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             low,
             fill,
             span,
+            label,
+            nudge: layer.nudge,
         });
         kept.push(points.rows);
     }
@@ -2543,6 +2590,18 @@ impl Scene {
                                                                     None
                                                                 },
                                                             )
+                                                            // A layer of text says how far
+                                                            // its labels are moved.
+                                                            .chain(if l.mark == Mark::Text {
+                                                                Some((
+                                                                    "nudge",
+                                                                    Json::numbers(&[
+                                                                        l.nudge.0, l.nudge.1,
+                                                                    ]),
+                                                                ))
+                                                            } else {
+                                                                None
+                                                            })
                                                             // A layer of bars says the two
                                                             // ends of each along `y`, how
                                                             // far it reaches along `x`, and
@@ -2666,6 +2725,10 @@ impl Scene {
                                                                 Mark::Bars(how) => Some((
                                                                     "position",
                                                                     Json::text(how.name()),
+                                                                )),
+                                                                Mark::Text => Some((
+                                                                    "label",
+                                                                    Json::texts(&l.label),
                                                                 )),
                                                                 _ => None,
                                                             })
@@ -3063,6 +3126,20 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 count(lines as u64),
                 if lines == 1 { "line" } else { "lines" }
             ));
+            settings
+        } else if layer.mark == Mark::Text {
+            // A layer of text: what it writes, the size of its type, how far it is moved.
+            let mut settings = format!("label {}", by(Aesthetic::Label));
+            if let Sizing::Constant(points) = &layer.size {
+                settings.push_str(&format!(", size {}", format_float(*points)));
+            }
+            if layer.nudge != (0.0, 0.0) {
+                settings.push_str(&format!(
+                    ", nudge {}, {}",
+                    format_float(layer.nudge.0),
+                    format_float(layer.nudge.1)
+                ));
+            }
             settings
         } else if layer.mark == Mark::Tile {
             // A layer of tiles: how far they let through what is under them.

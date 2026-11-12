@@ -167,6 +167,7 @@ mod tests {
                 alpha: 1.0,
                 size: None,
                 jitter: 0.0,
+                nudge: (0.0, 0.0),
                 width: None,
                 stream: None,
                 computed: Vec::new(),

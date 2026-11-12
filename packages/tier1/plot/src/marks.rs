@@ -571,6 +571,7 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             alpha,
             size,
             jitter,
+            nudge: (0.0, 0.0),
             width: None,
             stream,
             computed,
@@ -752,6 +753,7 @@ fn joined(
             alpha: 1.0,
             size: None,
             jitter: 0.0,
+            nudge: (0.0, 0.0),
             width,
             stream: None,
             computed,
@@ -999,6 +1001,7 @@ fn filled(
             alpha,
             size: None,
             jitter: 0.0,
+            nudge: (0.0, 0.0),
             width: None,
             stream: None,
             computed,
@@ -1236,6 +1239,7 @@ fn spanning(
             alpha: 1.0,
             size: None,
             jitter: 0.0,
+            nudge: (0.0, 0.0),
             width: Some(width),
             stream: None,
             computed,
@@ -1379,6 +1383,7 @@ pub fn rug(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             alpha,
             size: None,
             jitter: 0.0,
+            nudge: (0.0, 0.0),
             width: Some(0.5),
             stream: None,
             computed,
@@ -1530,6 +1535,7 @@ pub fn bars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             alpha,
             size: None,
             jitter: 0.0,
+            nudge: (0.0, 0.0),
             width: Some(width),
             stream: None,
             computed,
@@ -1624,6 +1630,7 @@ pub fn tile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             alpha,
             size: None,
             jitter: 0.0,
+            nudge: (0.0, 0.0),
             width: None,
             stream: None,
             computed,
@@ -1637,4 +1644,154 @@ pub fn tile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
     }
     Ok(Value::Plot(Rc::new(next)))
+}
+
+// ----- text (step 24d) -----
+
+const X_LABEL: usize = 4;
+const X_COLOR: usize = 5;
+const X_SIZE: usize = 6;
+const X_NUDGE: usize = 7;
+
+/// `p.text(data: Frame, x: Var | Expr, y: Var | Expr, label: Var, color: Var | Str,
+/// size: Float = 8, nudge: List)`.
+pub fn text(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`text` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mappings, constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        "text",
+        &Slots {
+            x: Some(X),
+            y: Some(Y),
+            low: None,
+            high: None,
+            color: Some(X_COLOR),
+            fill: None,
+            size: None,
+            shape: None,
+            group: None,
+            label: Some(X_LABEL),
+            linetype: None,
+        },
+        own_data,
+    )?;
+    positions(ctx, &plot, &mappings, "text")?;
+    // What is written: the plot's `label`, or the layer's own.
+    if plot.mapping(Aesthetic::Label).is_none()
+        && !mappings.iter().any(|m| m.aesthetic == Aesthetic::Label)
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`text` writes the `label` of each row at its place, but neither the plot nor this layer maps a variable to `label`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "needs `label`")
+            .help("name the variable whose values are written, as in `text(label: name)`, or where the plot starts, as in `plot(x: educ, y: wage, label: name)`"),
+        ));
+    }
+    one_axis(ctx, &plot, &frame, &mappings, (X, Y), "text")?;
+    one_scale(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Color, X_COLOR),
+        "text",
+    )?;
+    let read: Vec<Aesthetic> = [
+        Aesthetic::X,
+        Aesthetic::Y,
+        Aesthetic::Color,
+        Aesthetic::Label,
+    ]
+    .into_iter()
+    .filter(|aesthetic| {
+        !mappings.iter().any(|m| m.aesthetic == *aesthetic)
+            && !constants.iter().any(|c| c.aesthetic == *aesthetic)
+    })
+    .collect();
+    let (data, computed) = own_frame(ctx, &args, &plot, "text", &read)?;
+    let size = number_option(ctx, &args, X_SIZE, "a `size:` that is not a number")?;
+    if let Some(given) = size
+        && !(given > 0.0 && given.is_finite())
+    {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`size:` of `text` is the size of the type in points of 1/72 inch, above 0, but this is {}",
+                    shown(given)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(X_SIZE), "not a size")
+            .help("write a size such as 8 or 10; without `size:` the text is 8 points, as the labels of the axes are"),
+        ));
+    }
+    // How far the labels are moved: to the right and up, in points.
+    let nudge = match args.get(X_NUDGE) {
+        None | Some(Value::Na) => (0.0, 0.0),
+        Some(Value::List(items)) => {
+            let number = |value: &Value| match value {
+                Value::Int(i) => Some(*i as f64),
+                Value::Float(x) if x.is_finite() => Some(*x),
+                _ => None,
+            };
+            match items.as_slice() {
+                [right, up] => match (number(right), number(up)) {
+                    (Some(right), Some(up)) => (right, up),
+                    _ => return Err(not_a_nudge(ctx)),
+                },
+                _ => return Err(not_a_nudge(ctx)),
+            }
+        }
+        Some(_) => return Err(not_a_nudge(ctx)),
+    };
+    let before = scene(&plot).notes;
+    let (next, after) = with_layer(
+        &plot,
+        PlotLayer {
+            mark: Mark::Text,
+            data,
+            alpha: 1.0,
+            size,
+            jitter: 0.0,
+            nudge,
+            width: None,
+            stream: None,
+            computed,
+            mappings,
+            constants,
+        },
+    );
+    for note in after.notes {
+        if !before.contains(&note) {
+            ctx.message(Diagnostic::plain_note(note));
+        }
+    }
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+/// The refusal of a `nudge:` that is not two finite numbers.
+fn not_a_nudge(ctx: &CallContext<'_>) -> Fail {
+    fail(
+        Diagnostic::error(
+            "Z0401",
+            "`nudge:` of `text` is a list of two numbers: how far the labels are moved to the right and up, in points of 1/72 inch",
+        )
+        .in_file(ctx.script)
+        .primary(ctx.span_of(X_NUDGE), "not two numbers")
+        .help("write `nudge: [0, 6]` to write each label 6 points above its place, clear of a point drawn there; a number below zero moves it left or down"),
+    )
 }

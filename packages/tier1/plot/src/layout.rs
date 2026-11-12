@@ -1231,8 +1231,37 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     start = end;
                 }
             }
-            let one_by_one =
-                !(layer.mark.joins() || layer.mark.patches() || matches!(layer.mark, Mark::Rug(_)));
+            if layer.mark == Mark::Text {
+                // A text: the label of its mark, centred on its place and moved by the
+                // layer's nudge, to the right and up, in its colour and the layer's size.
+                let type_size = match &layer.size {
+                    Sizing::Constant(points) => *points,
+                    Sizing::Scaled(_) => theme.label_size,
+                };
+                for i in 0..marks_of.min(layer.label.len()) {
+                    drawn.push(named(
+                        &name,
+                        Primitive::Text {
+                            at: (
+                                across(sx, layer.x[i]) + layer.nudge.0,
+                                down(sy, layer.y[i]) - layer.nudge.1 + capital(type_size) / 2.0,
+                            ),
+                            anchor: Anchor::Middle,
+                            turn: 0.0,
+                            spans: vec![Span {
+                                text: layer.label[i].clone(),
+                                face: FaceName::Sans,
+                                size: type_size,
+                                colour: colour_of(i),
+                            }],
+                            frame: None,
+                        },
+                    ));
+                }
+            }
+            let one_by_one = !(layer.mark.joins()
+                || layer.mark.patches()
+                || matches!(layer.mark, Mark::Rug(_) | Mark::Text));
             for i in 0..if one_by_one { marks_of } else { 0 } {
                 let colour = colour_of(i);
                 let across_mark = match &layer.size {

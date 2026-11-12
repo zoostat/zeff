@@ -286,6 +286,8 @@ pub enum Mark {
     /// A rectangle at each row's `x` and `y`, as wide and as high as the gap between two
     /// places, in the fill of the row.
     Tile,
+    /// The text of `label` at each row's `x` and `y`.
+    Text,
 }
 
 /// How the bars that share a value of `x` are arranged.
@@ -381,7 +383,7 @@ impl Stairs {
 
 impl Mark {
     /// The mark as the method that adds it is called: `points`, `lines`, `step`, `area`,
-    /// `ribbon`, `hline`, `vline`, `rug`, `bars`, `tile`.
+    /// `ribbon`, `hline`, `vline`, `rug`, `bars`, `tile`, `text`.
     pub fn name(self) -> &'static str {
         match self {
             Mark::Points => "points",
@@ -394,6 +396,7 @@ impl Mark {
             Mark::Rug(_) => "rug",
             Mark::Bars(_) => "bars",
             Mark::Tile => "tile",
+            Mark::Text => "text",
         }
     }
 
@@ -435,6 +438,9 @@ pub struct PlotLayer {
     /// How far a mark may be moved at random along each axis, as a share of the smallest gap
     /// between two values on that axis; 0 for no jitter.
     pub jitter: f64,
+    /// How far a mark that is text is moved from its place, to the right and up, in points
+    /// (1/72 inch); (0, 0) for the other marks.
+    pub nudge: (f64, f64),
     /// The width of a line in points (1/72 inch), for the marks that are lines, and for bars
     /// their width as a share of the gap between two values of `x`; `None` for the width the
     /// mark has when the layer says nothing, and for the marks that have none.

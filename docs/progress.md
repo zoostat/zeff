@@ -106,45 +106,9 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 
 23c2: `step`, lines with risers in three directions, its corners matching ggplot2's; a script's own function called `step` must be renamed (Z0109), noted for the release notes. 23d1: `area` and `ribbon`, filled shapes under a line and between two variables, a missing value breaking them, a legend of fills with a patch for its key. 23d2: `position: overlay | stack | fill` on `area`, matching ggplot2 where every group has every `x`, with nothing interpolated where they have not. 23e1: `hline` and `vline`, reference lines at a number or at a variable's values, taking nothing from the plot but its axes. 23e2: `rug`, a tick at the margin for each row. Step 23 was complete with it: seven marks, nine functions of `plot`. Beside them, a property test on CI found that the two ends of a colour scale from 0 to the smallest number above it were given the middle colour; `ramp_entry` was corrected and no published result changed. Catalogue rows 463, 465, 466, 469, 470 and 471 were brought up to date (logged).
 
-## 12 November 2026, release 0.7.0, step 23f (a name that is a variable or a bound value)
+## 12 November 2026, steps 23f to 24b of release 0.7.0 (folded)
 
-**Done.** Open decision #127, option B, is built: where an option takes a variable or a value, a bare name is the frame's variable where the frame has one, and otherwise a number or text bound to that name, so `let target = 1.5` and `p.hline(at: target)` draw the line. Both at once is the variable, with W0102. It holds for `at:`, `size:`, `color:`, `fill:`, `shape:` and `linetype:`. Section 3.7 of the Language Reference has the rule (logged).
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 303 of 303; CI is read job by job after the push.
-
-**Next.** Step 24 `[function]`: `bars`, `tile`, `text`.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation, his to overturn: #127 option B, and that it holds for text as for numbers. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 24 opened and split
-
-**Done.** No code. Step 24 was split in the checklist into 24a `[engine]` (an axis of categories), 24b (`bars`), 24c (`tile`) and 24d (`text`). Open decision #128 is raised, on which variables make an axis of categories, and taken as option C on the recommendation: a Str and a Category do, at step 24a; a number stays on a linear axis, with value labels or without, so that a 0/1 outcome and its fitted curve share an axis; and a linear axis of a labelled variable gets its breaks at the labels at step 25.
-
-**Next.** Step 24a `[engine]`: an axis of categories.
-
-**For the owner to decide.** Nothing waits for him; #128 as taken is his to overturn. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 24a (an axis of categories)
-
-**Done.** A Str or a Category variable mapped to `x` or `y` makes an axis of categories: the categories at the places 1, 2, 3 with a label under each, the limits as in ggplot2, the layers sharing the axis. `w.plot(x: industry, y: wage).points()` draws. A number stays on a linear axis, labelled or not (open decision #128). `area`, `ribbon`, `hline` and `vline` are refused on such an axis, since they stand at numbers.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 308 of 308; CI is read job by job after the push.
-
-**Next.** Step 24b `[function]`: `bars`.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation, his to overturn: #128 option C; a row without a category is dropped and counted; an axis shows every category of its variable. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 12 November 2026, release 0.7.0, step 24b (`bars`)
-
-**Done.** `p.bars()` draws a bar from zero at each value of `x`, as high as `y` or, where nothing is mapped to `y`, as the count of rows; `position:` stacks the bars of several groups, sets them side by side or shows them as shares; `width:`, `fill:`, `group:` and `alpha:`. On an axis of categories or of numbers. Every bar's edges and the limits match ggplot2's. Catalogue row 464 is brought up to date (logged). `plot` stands at ten functions built. The specification's sample script, which draws bars, has one function fewer to wait for.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 313 of 313; CI is read job by job after the push.
-
-**Known, for later steps.** Bars by a labelled number (`union`) stand on a linear axis that reads as numbers until step 25 gives a labelled variable its breaks (#128). An axis of many long categories writes only the labels that fit until step 26 wraps them.
-
-**Next.** Step 24c `[function]`: `tile`.
-
-**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: a bar is 0.9 of the gap wide and at most the gap; side by side, missing groups make the others wider, as R; no bars up to a category. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+23f `[engine]`: open decision #127, option B: where an option takes a variable or a value, a bare name is the frame's variable where the frame has one and otherwise a number or text bound to that name, so `hline(at: target)` draws at a bound number; both at once is the variable, with W0102; sections 3.7 and 7.6 amended (logged). Step 24 was split into 24a to 24d and open decision #128 taken as option C. 24a `[engine]`: a Str or a Category variable on `x` or `y` makes an axis of categories, the places and limits as in ggplot2; a number stays on a linear axis, labelled or not; `area`, `ribbon`, `hline` and `vline` are refused on such an axis. 24b: `bars`, a bar from zero at each `x`, of values or of counts, stacked, side by side or as shares, every edge matching ggplot2's; catalogue row 464 brought up to date (logged). Known for later steps: a labelled number on an axis reads as numbers until step 25 (#128), and an axis of many long categories writes only the labels that fit until step 26.
 
 ## 12 November 2026, release 0.7.0, step 24b2 (a filled mark takes its fill from `color`)
 
@@ -165,3 +129,15 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 24d `[function]`: `text`, which completes step 24.
 
 **For the owner to decide.** Nothing waits for him. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 24d (`text`), and step 24 complete
+
+**Done.** `p.text(label:)` writes the label of each row at its place, in a `size:` and a `color:`, moved by `nudge:` in points on the page. Catalogue row 467 is brought up to date (logged). With it step 24 is complete: an axis of categories, `bars`, `tile` and `text`. The eleven marks of section 7.6 are implemented; `plot` stands at twelve functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 323 of 323; CI is read job by job after the push.
+
+**Known, for later steps.** A label near an edge of the panel is cut there, as in ggplot2; room for labels belongs to steps 25 and 26.
+
+**Next.** Step 25 `[engine]`: scales and the legend. Before it is built the checklist asks the owner about open decisions #107 (what an expression in a mapping may call) and #110, questions 1, 3, 4 and 5; under his standing instruction they are taken on the recommendation, recorded and announced.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: `nudge:` in points, not in the units of the data; no `alpha:` on text. Open as before: questions 1, 3, 4 and 5 of #110 and #107 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

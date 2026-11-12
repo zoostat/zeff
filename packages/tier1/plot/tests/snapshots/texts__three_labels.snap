@@ -1,0 +1,45 @@
+---
+source: packages/tier1/plot/tests/texts.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 84.417,7.792 to 84.417,155.253 stroke #E3E3E3 0.35
+[grid] segment 134.746,7.792 to 134.746,155.253 stroke #E3E3E3 0.35
+[grid] segment 185.075,7.792 to 185.075,155.253 stroke #E3E3E3 0.35
+[grid] segment 35.85,120.328 to 218.543,120.328 stroke #E3E3E3 0.35
+[grid] segment 35.85,85.05 to 218.543,85.05 stroke #E3E3E3 0.35
+[grid] segment 35.85,49.772 to 218.543,49.772 stroke #E3E3E3 0.35
+[grid] segment 35.85,14.495 to 218.543,14.495 stroke #E3E3E3 0.35
+[panel] clip 35.85,7.792 182.693 by 147.461
+  [layer:1] point 44.154,148.55 circle 4.5 #E69F00 opacity 1
+  [layer:1] point 134.746,70.939 circle 4.5 #56B4E9 opacity 1
+  [layer:1] point 210.239,14.495 circle 4.5 #56B4E9 opacity 1
+  [layer:1] point 84.417,113.272 circle 4.5 #E69F00 opacity 1
+  [layer:2] text 47.154,145.04 middle "Aland" sans 10 #E69F00
+  [layer:2] text 137.746,67.429 middle "Borduria" sans 10 #56B4E9
+  [layer:2] text 213.239,10.985 middle "Carpania" sans 10 #56B4E9
+[axis:x] segment 35.85,155.253 to 218.543,155.253 stroke #222222 0.5
+[axis:x] segment 84.417,155.253 to 84.417,158.253 stroke #222222 0.5
+[axis:x] text 84.417,166.837 middle "20" sans 8 #222222
+[axis:x] segment 134.746,155.253 to 134.746,158.253 stroke #222222 0.5
+[axis:x] text 134.746,166.837 middle "30" sans 8 #222222
+[axis:x] segment 185.075,155.253 to 185.075,158.253 stroke #222222 0.5
+[axis:x] text 185.075,166.837 middle "40" sans 8 #222222
+[axis:x] text 127.197,180.837 middle "income" sans 9 #222222
+[axis:y] segment 35.85,7.792 to 35.85,155.253 stroke #222222 0.5
+[axis:y] segment 32.85,120.328 to 35.85,120.328 stroke #222222 0.5
+[axis:y] text 29.85,123.12 end "65" sans 8 #222222
+[axis:y] segment 32.85,85.05 to 35.85,85.05 stroke #222222 0.5
+[axis:y] text 29.85,87.842 end "70" sans 8 #222222
+[axis:y] segment 32.85,49.772 to 35.85,49.772 stroke #222222 0.5
+[axis:y] text 29.85,52.564 end "75" sans 8 #222222
+[axis:y] segment 32.85,14.495 to 35.85,14.495 stroke #222222 0.5
+[axis:y] text 29.85,17.287 end "80" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "life" sans 9 #222222
+[legend:color] text 228.543,14 start "rich" sans 9 #222222
+[legend:color] point 230.793,24.25 circle 4.5 #E69F00 opacity 1
+[legend:color] text 236.043,27.042 start "no" sans 8 #222222
+[legend:color] point 230.793,34.25 circle 4.5 #56B4E9 opacity 1
+[legend:color] text 236.043,37.042 start "yes" sans 8 #222222
+note: 1 row with NA in name dropped

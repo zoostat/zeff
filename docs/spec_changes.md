@@ -534,3 +534,7 @@ Step 24b of release 0.7.0 builds `bars`. Under open decision #106 (option A) a m
 ## 12 November 2026 — zeff_functions.csv, row 468
 
 Step 24c of release 0.7.0 builds `tile`. Under open decision #106 (option A) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer. The usage line of catalogue row 468 was `p.tile(data: Frame, fill: Var)`; it is now `p.tile(data: Frame, x: Var | Expr, y: Var | Expr, fill: Var | Str, alpha: Float = 1)`: `fill:` also takes a string for one colour, as on `plot`, and `alpha:` is added. Its status is `implemented`.
+
+## 12 November 2026 — zeff_functions.csv, row 467
+
+Step 24d of release 0.7.0 builds `text`. Under open decision #106 (option A) a mark takes `x:` and `y:` and each other aesthetic it draws for its own layer. The usage line of catalogue row 467 was `p.text(data: Frame, label: Var, size: Float, nudge: List)`; it is now `p.text(data: Frame, x: Var | Expr, y: Var | Expr, label: Var, color: Var | Str, size: Float = 8, nudge: List)`: the default of `size:` is written, 8 points, the size of the labels of an axis. Its status is `implemented`.

@@ -2114,3 +2114,85 @@ fn every_message_of_tile() {
     }
     insta::assert_snapshot!("tiles_messages", all);
 }
+
+// ----- text (step 24d) -----
+
+const LANDS: &str = "let c = frame(income = [12, 30, 45, 20], life = [61, 72, 80, 66], name = [\"Aland\", \"Borduria\", \"Carpania\", NA], rich = [\"no\", \"yes\", \"yes\", \"no\"])\n";
+
+#[test]
+fn text_reads_sensibly_as_text() {
+    let script = format!(
+        "{LANDS}c.plot(x: income, y: life).points().text(label: name, nudge: [0, 7])\n\
+         c.plot(x: income, y: life, label: name, color: rich).text(size: 10)\n\
+         c.plot(x: income, y: life).text(label: life, color: \"firebrick\", nudge: [-4, 0.5])\n\
+         c.plot(x: rich, y: life).points().text(label: name)\n\
+         c.plot(x: income, y: life).points().text(data: c.where(life > 70), label: name, color: rich)\n\
+         let w = dataset(wages)\n\
+         let m = w.aggregate(wage = mean(wage), by: industry)\n\
+         m.plot(x: industry, y: wage).bars().text(label: industry, nudge: [0, 5])\n"
+    );
+    let text = printed(&script);
+    // The limits are those of ggplot2 4.0.3 for `geom_point` and `geom_text` on the four
+    // rows, 10.35 to 46.65 and 60.05 to 80.95: a label counts for the axes as its point does,
+    // and a nudge in points moves nothing on them.
+    for line in [
+        "  x      income   linear   10.35 to 46.65   20, 30, 40\n",
+        "  y      life     linear   60.05 to 80.95   65, 70, 75, 80\n",
+        "      2   text     c          3   label name, size 8, nudge 0, 7\n",
+        "      1   text   c          3   label name, size 10\n",
+        "      1   text   c          4   color firebrick, label life, size 8, nudge -4, 0.5\n",
+        "note: 1 row with NA in name dropped (line 2)\n",
+        "      2   text   m         12   label industry, size 8, nudge 0, 5\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("text", text);
+}
+
+#[test]
+fn every_message_of_text() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_label", "c.plot(x: income, y: life).text()\n"),
+        ("no_y", "c.plot(x: income, label: name).text()\n"),
+        (
+            "no_such_label",
+            "c.plot(x: income, y: life).text(label: nam)\n",
+        ),
+        (
+            "a_label_in_quotes",
+            "c.plot(x: income, y: life).text(label: \"name\")\n",
+        ),
+        (
+            "no_size",
+            "c.plot(x: income, y: life).text(label: name, size: 0)\n",
+        ),
+        (
+            "a_nudge_of_one",
+            "c.plot(x: income, y: life).text(label: name, nudge: [3])\n",
+        ),
+        (
+            "a_nudge_of_text",
+            "c.plot(x: income, y: life).text(label: name, nudge: [\"up\", 3])\n",
+        ),
+        (
+            "a_nudge_that_is_a_number",
+            "c.plot(x: income, y: life).text(label: name, nudge: 6)\n",
+        ),
+        (
+            "not_a_colour",
+            "c.plot(x: income, y: life).text(label: name, color: \"redd\")\n",
+        ),
+        (
+            "no_alpha_on_text",
+            "c.plot(x: income, y: life).text(label: name, alpha: 0.5)\n",
+        ),
+        ("text_of_a_frame", "c.text(label: name)\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{LANDS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("text_messages", all);
+}

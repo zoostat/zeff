@@ -3441,3 +3441,19 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 24c; section 7.6 of the Language Reference ("Marks": `tile`; "`heatmap(vars)` computes the correlations and draws `.tile()`"); open decision #106.
+
+## 12 November 2026: `text` (release 0.7.0, step 24d), and step 24 complete
+
+**Decision.** `p.text(...)` writes the value of `label` of each row at its `x` and `y`. The plot value gains the mark `Text` and a layer gains `nudge`, how far its text is moved from its place, to the right and up, in points. In the scene a layer of text holds the text of each mark (`label`) and its `nudge`, the size of its type as `size`, and the colour of each mark as any mark's; its JSON says `label` and `nudge`. A value is written as it prints, a value with a value label as its label. The layout draws each as a text of one line in the sans-serif face of the theme, centred on its place in both directions and moved by the nudge, in the colour of its mark.
+
+**Rulings where the text is silent**, taken under the owner's standing instruction of 12 November 2026. (a) The options under open decision #106: `x:`, `y:`, `label:` and `color:`. `label:` of the layer takes the place of `label:` of the plot. (b) `nudge:` is in points on the page and not in the units of the data, as R's `nudge_x` and `nudge_y` are: a label is moved to clear a mark, whose size is in points, and the same nudge then serves on every scale and on an axis of categories. It moves nothing on the axes, where R's widens them. (c) `size:` is the size of the type in points, 8 unless given; it is not refused below the 8 points that the theme keeps to for its own text, since the script asks for it. (d) A row without a label writes nothing and is counted, as ggplot2 drops it; an empty text is written and shows nothing. (e) The axes take their limits from the places and not from the extent of the labels, as in ggplot2, so a label near an edge of the panel is cut there. Making room for labels is left to the scales and titles of steps 25 and 26. (f) No `alpha:`: a text of a drawing has no opacity of its own. (g) The key of a legend for text coloured by a variable is the point that marks have, since a letter as a key (ggplot2's "a") says less.
+
+**Tests.** `packages/tier1/plot/tests/texts.rs`: the labels, rows and places of a layer, a row without a label, a number written as it prints, and the limits of ggplot2 4.0.3 with `geom_point` and `geom_text` (10.35 to 46.65 and 60.05 to 80.95); each label on the page in its colour and size, three points right of and seven above where it would be centred; a property over 300 frames. `tests/printing.rs`: six plots, on an axis of categories and over bars too; eleven messages. The help page, its example run. The conformance set gains five cases: what a script of labelled bars and points prints and a figure in SVG, PDF and PNG, where the labels are set in the embedded face.
+
+**Step 24.** The four marks of step 24, on an axis of categories: `bars`, `tile` and `text` are built with their pages, and step 24 is ticked. The eleven marks of section 7.6 are implemented; `plot` stands at twelve functions.
+
+**The specification.** The usage line of catalogue row 467 gains the options (logged in `docs/spec_changes.md`).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 24d; section 7.6 of the Language Reference ("Marks": `text`); open decision #106.
