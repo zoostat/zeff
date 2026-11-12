@@ -2723,7 +2723,7 @@ impl Checker<'_> {
                         format!("an expression mapped to an aesthetic cannot use {what}"),
                     )
                     .primary(span, "not kept in a mapping")
-                    .help("a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable"),
+                    .help("a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable"),
                 );
                 return Expr::error(lowered.span);
             }
@@ -7790,7 +7790,10 @@ fn not_kept(expr: &Expr) -> Option<(Span, String)> {
             _ => not_kept(lhs).or_else(|| not_kept(rhs)),
         },
         ExprKind::Call(call) => {
-            if call.package != "core" {
+            // The functions that work row by row: those of `core`, `time` and `text` (open
+            // decision #107, option B). A reducer of `data` would be computed on the rows of
+            // one layer, and is left to `add`.
+            if !matches!(call.package.as_str(), "core" | "time" | "text") {
                 return Some((
                     call.callee_span,
                     format!("`{}`, a function of `{}`", call.name, call.package),

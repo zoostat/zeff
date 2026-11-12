@@ -665,8 +665,8 @@ fn instant(column: &Column, row: usize) -> Option<f64> {
 /// is named by: the plot's, or the first a layer names. `None` while nothing is mapped to it.
 pub(crate) fn placing_of(plot: &Plot, aesthetic: Aesthetic) -> Option<(Placing, &str)> {
     let (mapping, _, layer) = first_mapping(plot, aesthetic)?;
-    // The edges of a band, and an expression, are numbers.
-    if mapping.aesthetic != aesthetic || mapping.computed.is_some() {
+    // The edges of a band are numbers; an expression is placed by what it gives.
+    if mapping.aesthetic != aesthetic {
         return Some((Placing::Linear, mapping.variable.as_str()));
     }
     let kind = placing(values(plot, layer, aesthetic)?)?;

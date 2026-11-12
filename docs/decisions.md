@@ -3525,3 +3525,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 25c2; section 7.6 of the Language Reference ("Scales"); open decisions #118 (F5), #127 and #129.
+
+## 12 November 2026: the functions of `time` and `text` in a mapping (release 0.7.0, step 25c3a), and step 25c3 split in three
+
+**The split.** The widening of open decision #107, option B, is three pieces of work of different kinds: the functions of `time` and `text`, with what an expression may give (25c3a, here); the four functions of `core` written in Zeff, whose bodies only the interpreter runs (25c3b); and `case`, whose row-by-row code lives in the interpreter and must be shared (25c3c).
+
+**Decision.** The checker admits in a mapping the calls of `core`, `time` and `text` (`not_kept` in `crates/zeff-ir/src/check.rs`); a function of any other package, the reducers of `data` among them, is refused as before, with a help that names the three. The `plot` package finds the bodies in `zeff_time::functions()` and `zeff_text::functions()` beside those of `core`: it now depends on the two packages, which come before it in tier 1, so the tier check allows it. The expression is computed by the row-by-row kernel of `core` that `add` uses, so `x: year(founded)` has the values of `add(y = year(founded))`, which a test compares.
+
+**What an expression may give.** For `x` and `y`: numbers, as before; text or a category, which make an axis of categories; dates, which make a scale of dates; each as a variable of that type does. So `x: category(educ)`, which the advice of several messages already named, now draws, as do `x: upper(industry)` and `x: add_months(hired, 6)`. One value alone is that value in every row: `x: "all"` is one place for every row. The edges of a band, `low:` and `high:`, stay numbers. An axis is placed by what the expression gives (`placing_of` in the scene reads the computed column), so every rule of steps 24a and 25c1 holds for an expression: the layers share the axis, `area`, `ribbon` and `bars` keep numbers along `y`, a scale of dates is refused on numbers.
+
+**A layer with its own frame.** The plot's expression is computed again on the frame of the layer, and must come to the same kind of value there, numbers, text or dates: Z0401 otherwise, naming the two types. Before, the kind could only be numbers.
+
+**What changed on purpose in stored results.** Three cases of `every_message_of_an_expression` drew a refusal that the step ends (`upper(industry)`, one text for `y`, `category(educ)`): two are removed and one is replaced by the edge of a band that is text. One case of the conformance set changes: the script of `plot/expression` ends with `w.plot(x: category(educ), y: log(wage))`, which was a refusal and is now a plot on an axis of categories. The help of the refusal of a function of another package names `time` and `text`, which changes four stored snapshots by that sentence.
+
+**Found and not changed: an internal error in `add`.** A function of `time` or `text` given a column of a type it does not take stops with Z9001, "this is a bug in Zeff", in `add` since release 0.6.0 (`f.add(y = year(industry))`), and so now in a mapping. It is the question of open decision #108, where it is recorded with its examples; the step for it is planned for 0.8.0 and the rule is the owner's.
+
+**Tests.** `printing.rs`: twelve plots (the year of a date against the variable `add` makes, text of a category, a date moved by a year, bars by quarter, a logical result on 0 and 1, `category` of a number, one text, one date, a layer of its own frame with a category the plot lacks) and ten messages. The example of the page of `plot` is run. The conformance set gains five cases: what a script of such mappings prints and the firms against the year each was founded in SVG, PDF and PNG.
+
+**Dependencies.** None from outside; `zeff-time` and `zeff-text` join the `plot` package's own.
+
+**Reason.** The checklist's step 25c3a; open decision #107, option B; section 3.7 of the Language Reference ("Columns and scalars").

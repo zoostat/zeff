@@ -2000,6 +2000,19 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/datescale/{name}"), &data));
     }
+    // An expression in a mapping that calls the functions of `time` and `text` (step
+    // 25c3a): the year of a date on a linear axis, text made of a category on an axis of
+    // categories, a date moved by a year on a scale of dates; what the script prints and
+    // the first figure in the three formats.
+    let script = "let f = dataset(firms)\nlet p = f.plot(x: year(founded), y: size).points(alpha: 0.4)\np\nf.plot(x: slice(industry, 1, 3), y: size).points(alpha: 0.4)\nf.plot(x: add_days(founded, 365), y: size).points(alpha: 0.4)\nf.plot(x: quarter(founded)).bars()\nf.plot(x: size, y: contains(industry, \"a\")).points()\nexport(p, \"mapped.svg\")\nexport(p, \"mapped.pdf\")\nexport(p, \"mapped.png\")\n";
+    let widened = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/mapped/stdout", &widened.output.stdout));
+    fills.push(text("plot/mapped/stderr", &widened.output.stderr));
+    for name in ["mapped.svg", "mapped.pdf", "mapped.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/mapped/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

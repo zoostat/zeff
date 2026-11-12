@@ -244,8 +244,8 @@ plot/axes/scene f67228180965d589
 plot/points/stdout 0736444e0b43eec4
 plot/points/stderr 16a03371f268b2a8
 plot/points/scene.json 453ea0d06f195b15
-plot/expression/stdout 3b9fd5e3b6c515b1
-plot/expression/stderr b079f532d120ae17
+plot/expression/stdout a9fca7a646c92643
+plot/expression/stderr 47017cba151c025d
 plot/expression/scene.json d02d55c0b4f10f52
 plot/colour/stdout a2fd20b2ad32e7f4
 plot/colour/stderr 1f3c27af721c7c68
@@ -320,6 +320,11 @@ plot/datescale/stderr 9070de9ab0790af5
 plot/datescale/datescale.svg c44e0a391e9880be
 plot/datescale/datescale.pdf 9c47d2dbd4972e68
 plot/datescale/datescale.png d5b4e59a3f22df8c
+plot/mapped/stdout 9368d105fd77935f
+plot/mapped/stderr cbf29ce484222325
+plot/mapped/mapped.svg 897dc4d896803baa
+plot/mapped/mapped.pdf cfe2af9f51ead9f5
+plot/mapped/mapped.png 0ac4afedbb2846f2
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

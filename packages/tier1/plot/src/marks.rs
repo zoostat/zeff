@@ -172,12 +172,24 @@ fn one_axis(
             continue;
         };
         let name = mapping.variable.as_str();
-        // An expression gives numbers.
+        // An expression is placed by what it gives.
         let (ours, what) = match (&mapping.computed, frame.table.column(name)) {
-            (Some(_), _) => (
-                Placing::Linear,
-                "an expression, which gives numbers".to_string(),
-            ),
+            (Some(computed), _) => match placing(&computed.values) {
+                Some(Placing::Linear) => (
+                    Placing::Linear,
+                    "an expression, which gives numbers".to_string(),
+                ),
+                Some(Placing::Categories) => (
+                    Placing::Categories,
+                    "an expression that gives text, which is placed as categories".to_string(),
+                ),
+                Some(Placing::Dates) => (
+                    Placing::Dates,
+                    "an expression that gives dates, which are placed on a scale of dates"
+                        .to_string(),
+                ),
+                None => continue,
+            },
             (None, Some(found)) => match placing(found) {
                 Some(Placing::Linear) => (
                     Placing::Linear,
@@ -243,11 +255,15 @@ fn numbers_along(
                 .help(format!("`points`, `lines` and `step` are placed on a scale of dates; `{function}` needs a number along `{axis}`, and may have dates along the other axis")),
         )
     };
-    // The layer's own variable for the axis, where it names one.
+    // The layer's own variable for the axis, where it names one, or what its expression
+    // gives.
     let named = own
         .iter()
-        .find(|m| m.aesthetic == aesthetic && m.computed.is_none())
-        .and_then(|m| frame.table.column(&m.variable).map(|found| (m, found)));
+        .find(|m| m.aesthetic == aesthetic)
+        .and_then(|m| match &m.computed {
+            Some(computed) => Some((m, &*computed.values)),
+            None => frame.table.column(&m.variable).map(|found| (m, found)),
+        });
     if let Some((mapping, found)) = named {
         if placing(found) == Some(Placing::Dates) && !dates {
             return Err(no_dates(
@@ -350,6 +366,25 @@ fn own_frame(
             };
             let column = mapping::computed(ctx, &own, &asked)
                 .map_err(|refusal| Box::new((*refusal).secondary(layer, draws.clone())))?;
+            // The layers share the axis: the expression must come to the kind of value on
+            // this frame that it comes to on the plot's.
+            if placing(&column) != placing(&computed.values) {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "the plot maps `{name}` to `{}`, which gives {} on its own frame and {} on the frame of this layer",
+                            aesthetic.name(),
+                            a_type(&computed.values),
+                            a_type(&column)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(at, format!("`{name}` is of another kind here"))
+                    .secondary(layer, draws.clone())
+                    .help("the layers of a plot share one axis, so an expression must come to numbers, to text or to dates on the frame of every layer"),
+                ));
+            }
             values.push((*aesthetic, column));
             continue;
         }

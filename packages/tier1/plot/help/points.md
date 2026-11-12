@@ -36,10 +36,10 @@ variables on one plot are `twoway (scatter wage educ) (scatter fitted educ)`.
   variable or an expression to `x` and one to `y`.
 - data: A frame for this layer alone, in place of the frame of the plot. It must hold what the
   layer takes from the plot: the variables the plot maps to `x` and `y`, placed as the plot
-  places them, as numbers or as categories, those an expression it maps reads, as numbers, and
-  the variables the plot maps to `color:`, `size:` and `shape:`, each of the same kind as in
-  the frame of the plot. What the layer names itself
-  is read in this frame.
+  places them, as numbers, as categories or as dates, those an expression it maps reads, so
+  that the expression gives the same kind of value, and the variables the plot maps to
+  `color:`, `size:` and `shape:`, each of the same kind as in the frame of the plot. What the
+  layer names itself is read in this frame.
 - x: For this layer alone, the variable or the expression its points are placed by along `x`,
   in the place of the one the plot maps: a Bool, Int or Float variable of the layer's frame, or
   an expression over its variables.

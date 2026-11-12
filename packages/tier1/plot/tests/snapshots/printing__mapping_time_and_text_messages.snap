@@ -1,0 +1,94 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_reducer_of_data
+error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function of `data`
+ --> scripts/main.zeff:3:27
+  |
+3 | f.plot(x: size, y: size - mean(size)).points()
+  |                           ^^^^ not kept in a mapping
+  |
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+
+== a_function_that_takes_no_column
+error[Z0401]: `s` of `split` must be a Str, but this is a Column
+ --> scripts/main.zeff:3:26
+  |
+3 | f.plot(x: size, y: split(industry, "a")).points()
+  |                          ^^^^^^^^ a Column
+  |
+  = help: usage: `split(s, sep)`
+
+== an_edge_of_a_band_that_is_text
+error[Z0401]: `ribbon` draws `low` on a linear scale, so `upper(industry)` must give a Bool, Int or Float for each row, but it gives a Str
+ --> scripts/main.zeff:3:29
+  |
+3 | f.plot(x: size).ribbon(low: upper(industry), high: size)
+  |                             ^^^^^^^^^^^^^^^ not a value for each row
+  |
+  = help: a scale places a number, and on an axis text or a date; `f.describe()` lists the types of the variables
+
+== an_area_up_to_text
+error[Z0401]: `area` fills from its line down to zero, but the `y` axis of this plot holds the categories of `upper(industry)`
+ --> scripts/main.zeff:3:37
+  |
+3 | f.plot(x: size, y: upper(industry)).area()
+  |                                     ^^^^ needs numbers along `y`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `area` needs a number along `y`
+
+== bars_up_to_dates
+error[Z0401]: `bars` draws each bar from zero to its `y`, so `y` must be numbers, but `add_days(founded, 1)` is a Date, which is placed on a scale of dates
+ --> scripts/main.zeff:3:25
+  |
+3 | f.plot(x: size).bars(y: add_days(founded, 1))
+  |                         ^^^^^^^^^^^^^^^^^^^^ dates
+  |
+  = help: `points`, `lines` and `step` are placed on a scale of dates; `bars` needs a number along `y`, and may have dates along the other axis
+
+== a_date_on_an_axis_of_years
+error[Z0401]: the plot places `year(founded)` on a linear scale along `x`, but `founded`, which `points` maps to `x`, is a Date, which is placed on a scale of dates
+ --> scripts/main.zeff:3:54
+  |
+3 | f.plot(x: year(founded), y: size).points().points(x: founded)
+  |                                                      ^^^^^^^ `founded` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
+
+== years_on_an_axis_of_dates
+error[Z0401]: the plot places `founded` on a scale of dates along `x`, but `year(founded)`, which `points` maps to `x`, is an expression, which gives numbers
+ --> scripts/main.zeff:3:48
+  |
+3 | f.plot(x: founded, y: size).points().points(x: year(founded))
+  |                                                ^^^^^^^^^^^^^ `year(founded)` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
+
+== text_on_an_axis_of_numbers
+error[Z0401]: the plot places `size` on a linear scale along `x`, but `upper(industry)`, which `points` maps to `x`, is an expression that gives text, which is placed as categories
+ --> scripts/main.zeff:3:45
+  |
+3 | f.plot(x: size, y: size).points().points(x: upper(industry))
+  |                                             ^^^^^^^^^^^^^^^ `upper(industry)` is of another kind
+  |
+  = help: the layers of a plot share one axis, so what is mapped to `x` must all be categories (a Str or a Category), all be numbers or all be dates (a Date or a DateTime); `category(v)` makes categories of a number
+
+== another_kind_on_the_frame_of_a_layer
+error[Z0401]: the plot maps `coalesce(v, v)` to `x`, which gives an Int on its own frame and a Str on the frame of this layer
+ --> scripts/main.zeff:3:49
+  |
+3 | d.plot(x: coalesce(v, v), y: size).points(data: frame(v = ["p", "q"], size = [1, 2]))
+  |                                    ------ this layer draws `coalesce(v, v)`, which the plot maps to `x`
+  |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `coalesce(v, v)` is of another kind here
+  |
+  = help: the layers of a plot share one axis, so an expression must come to numbers, to text or to dates on the frame of every layer
+
+== a_scale_of_dates_on_years
+error[Z0401]: the `x` axis holds the numbers of `year(founded)`, which a scale of dates has no place for
+ --> scripts/main.zeff:3:43
+  |
+3 | f.plot(x: year(founded), y: size).scale_x(date)
+  |                                           ^^^^ a scale of dates is for dates
+  |
+  = help: a scale of dates holds a Date or a DateTime variable; `date(v)` reads dates from text

@@ -30,11 +30,11 @@ for each colour, size and shape, with its values and what they are shown as, and
 layer, with the number of marks it draws.
 
 A number mapped to an axis is placed on a linear scale: a Float, an Int, or a Bool, which is
-read as 0 and 1, and an expression must give one of these for each row. A Str or a Category
-variable makes an axis of categories, each at a place of its own. A Date or a DateTime
-variable makes an axis of dates, placed in proportion to the time. The title of an axis and of
-every other scale is the label of its variable, or the name of the variable when it has no
-label; the title of an expression is the expression as it is written.
+read as 0 and 1. A Str or a Category variable makes an axis of categories, each at a place of
+its own. A Date or a DateTime variable makes an axis of dates, placed in proportion to the
+time. An expression is placed by what it gives for each row, in the same way. The title of an
+axis and of every other scale is the label of its variable, or the name of the variable when
+it has no label; the title of an expression is the expression as it is written.
 
 In R with ggplot2 this is `ggplot(w, aes(x = educ, y = wage, colour = female))`, where
 `aes(y = log(wage))` maps an expression in the same way, and in Stata it is the start of a
@@ -198,8 +198,14 @@ Group and label. `group:` and `label:` take a variable of any type and need no s
 plot lists them, and says so when no layer draws them.
 
 Expressions. An expression mapped to an axis is computed for each row as `add` computes it,
-from the variables of the frame, numbers, the operators and the functions of `core`:
-`log(wage)`, `wage / hours`, `exper^2`. The axis shows its values and the frame is not changed.
+from the variables of the frame, numbers, text, the operators and the functions of `core`,
+`time` and `text`: `log(wage)`, `wage / hours`, `exper^2`, `year(hired)`, `upper(region)`. The
+axis shows its values and the frame is not changed. What the expression gives decides the
+axis: numbers a linear scale, text an axis of categories, dates a scale of dates. So
+`x: category(educ)` stands the years of schooling side by side as categories, and
+`x: add_months(hired, 6)` is an axis of dates. One text alone, as in `x: "all"`, puts every
+row at one place. Where a layer has a frame of its own, the expression must come to the same
+kind of value there.
 A row where it gives `NA` or an infinite value is not drawn, and the warnings of the
 computation, such as that of the logarithm of zero, count such rows. A name that is not a
 variable of the frame is read as a binding of the script, with the value it holds where `plot`
@@ -213,10 +219,11 @@ bound to that name earlier in the script, so `let shade = "firebrick"` and then 
 set one colour. Where both exist the variable is used, and a warning says so. The marks read
 their own options in the same way.
 
-What an expression cannot hold. A summary of a variable, such as `mean(wage)`, a function of
-another package, a function defined in the script, `case` and `if` are not computed inside a
-mapping, and neither are `clamp`, `logit`, `inv_logit` and `fill_missing`. Compute such a
-value with `add` first and map the new variable.
+What an expression cannot hold. A summary of a variable, such as `mean(wage)`, is not
+computed inside a mapping: its value would depend on the rows of each layer. Neither are a
+function of a package other than `core`, `time` and `text`, a function defined in the script,
+`case` and `if`, nor `clamp`, `logit`, `inv_logit` and `fill_missing`. Compute such a value
+with `add` first and map the new variable.
 
 The scene. A plot is kept as a scene: the marks in the units of the data, with the scales, the
 axes, the legends and the layout. It has one legend for each variable that a layer shows by a
@@ -412,3 +419,13 @@ plot · visits · level against day
   layer   mark     data     marks   settings
       1   lines    visits       3   width 1, 1 line
       2   points   visits       3   size 4.5, alpha 1
+> let f = dataset(firms)
+> f.plot(x: year(founded), y: size).points(alpha: 0.4)
+plot · f · size against year(founded)
+
+  axis   title                       scale    limits               breaks
+  x      year(founded)               linear   1947.05 to 2011.95   1950, 1960, 1970, 1980, 1990, 2000, 2010
+  y      Workers observed in wages   linear   -1.95 to 40.95       0, 10, 20, 30, 40
+
+  layer   mark     data   marks   settings
+      1   points   f        400   size 4.5, alpha 0.4

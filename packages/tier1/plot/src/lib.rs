@@ -75,7 +75,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "a variable mapped to x: or y: of a type that no axis holds; an expression that does not give a number for each row, or that holds what a mapping cannot compute; a string for color: or fill: that is not a colour; a Date or DateTime variable mapped to color: or fill:; a variable mapped to size: that is not an Int or a Float without value labels; a size: that is not above 0; a variable mapped to shape: that is not shown as categories; a string for shape: that is not the name of a shape; an expression given to color:, fill:, size:, shape:, group: or label:, which take a variable by its name",
+                        "a variable mapped to x: or y: of a type that no axis holds; an expression that does not give a number, text or a date for each row, or that holds what a mapping cannot compute; a string for color: or fill: that is not a colour; a Date or DateTime variable mapped to color: or fill:; a variable mapped to size: that is not an Int or a Float without value labels; a size: that is not above 0; a variable mapped to shape: that is not shown as categories; a string for shape: that is not the name of a shape; an expression given to color:, fill:, size:, shape:, group: or label:, which take a variable by its name",
                     ),
                 ],
                 help: include_str!("../help/plot.md"),
@@ -119,7 +119,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for color: that is not a colour, or for shape: that is not the name of a shape; a variable the layer names for color:, size: or shape: that the aesthetic cannot show; a variable the layer maps to color: of another kind than the one the scale already shows, or the variable the plot maps to color:, size: or shape: of another kind in data: than in the frame of the plot; an expression given to color:, size: or shape:, which take a variable by its name; alpha: outside [0, 1]; size: not above 0; jitter: below 0",
+                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for color: that is not a colour, or for shape: that is not the name of a shape; a variable the layer names for color:, size: or shape: that the aesthetic cannot show; a variable the layer maps to color: of another kind than the one the scale already shows, or the variable the plot maps to color:, size: or shape: of another kind in data: than in the frame of the plot; an expression given to color:, size: or shape:, which take a variable by its name; alpha: outside [0, 1]; size: not above 0; jitter: below 0",
                     ),
                 ],
                 help: include_str!("../help/points.md"),
@@ -162,7 +162,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for color: that is not a colour, or for linetype: that is not a type of line; a variable for linetype: that is not shown as categories; a colour by a number without value labels, where a line has one colour; a variable the layer maps to color: of another kind than the one the scale already shows; an expression given to color:, group: or linetype:, which take a variable by its name; width: not above 0",
+                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for color: that is not a colour, or for linetype: that is not a type of line; a variable for linetype: that is not shown as categories; a colour by a number without value labels, where a line has one colour; a variable the layer maps to color: of another kind than the one the scale already shows; an expression given to color:, group: or linetype:, which take a variable by its name; width: not above 0",
                     ),
                 ],
                 help: include_str!("../help/lines.md"),
@@ -206,7 +206,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for color: that is not a colour, or for linetype: that is not a type of line; a variable for linetype: that is not shown as categories; a colour by a number without value labels, where a line has one colour; a variable the layer maps to color: of another kind than the one the scale already shows; an expression given to color:, group: or linetype:, which take a variable by its name; width: not above 0",
+                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for color: that is not a colour, or for linetype: that is not a type of line; a variable for linetype: that is not shown as categories; a colour by a number without value labels, where a line has one colour; a variable the layer maps to color: of another kind than the one the scale already shows; an expression given to color:, group: or linetype:, which take a variable by its name; width: not above 0",
                     ),
                 ],
                 help: include_str!("../help/step.md"),
@@ -249,7 +249,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for fill: that is not a colour; a fill by a number without value labels, where an area has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; alpha: outside [0, 1]",
+                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for fill: that is not a colour; a fill by a number without value labels, where an area has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; alpha: outside [0, 1]",
                     ),
                 ],
                 help: include_str!("../help/area.md"),
@@ -292,7 +292,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to x; a variable the layer names for x:, low: or high:, or a mapped variable of data:, that is not numeric, or an expression that gives no number for each row; a string for fill: that is not a colour; a fill by a number without value labels, where a band has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; alpha: outside [0, 1]",
+                        "neither the plot nor the layer maps anything to x; a variable the layer names for x:, low: or high:, or a mapped variable of data:, that is not numeric, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for fill: that is not a colour; a fill by a number without value labels, where a band has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; alpha: outside [0, 1]",
                     ),
                     DiagnosticDecl::new("Z0406", "low: or high: is not given"),
                 ],
@@ -427,7 +427,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to the position of a side; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows; an expression given to color:, which takes a variable by its name; alpha: outside [0, 1]",
+                        "neither the plot nor the layer maps anything to the position of a side; a variable the layer names for x: or y:, or a mapped variable of data:, of another kind than the axis already has, or one that no axis holds, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows; an expression given to color:, which takes a variable by its name; alpha: outside [0, 1]",
                     ),
                 ],
                 help: include_str!("../help/rug.md"),
@@ -471,7 +471,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to x; a y that is categories or dates, where a bar is drawn from zero; a variable the layer names for x: or y: of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for fill: that is not a colour; a fill by a number without value labels, where a bar has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; width: not above 0 or above 1; alpha: outside [0, 1]",
+                        "neither the plot nor the layer maps anything to x; a y that is categories or dates, where a bar is drawn from zero; a variable the layer names for x: or y: of another kind than the axis already has, or one that no axis holds, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for fill: that is not a colour; a fill by a number without value labels, where a bar has one fill; a variable the layer maps to fill: of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill: or group:, which take a variable by its name; width: not above 0 or above 1; alpha: outside [0, 1]",
                     ),
                 ],
                 help: include_str!("../help/bars.md"),
@@ -512,7 +512,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y: of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for fill: that is not a colour; a variable for fill: that a colour cannot show, or of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill:, which takes a variable by its name; alpha: outside [0, 1]",
+                        "neither the plot nor the layer maps anything to x or to y; a variable the layer names for x: or y: of another kind than the axis already has, or one that no axis holds, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for fill: that is not a colour; a variable for fill: that a colour cannot show, or of another kind than the one the scale already shows, or the variable the plot maps to fill: of another kind in data: than in the frame of the plot; an expression given to fill:, which takes a variable by its name; alpha: outside [0, 1]",
                     ),
                 ],
                 help: include_str!("../help/tile.md"),
@@ -555,7 +555,7 @@ pub fn functions() -> Vec<Function> {
                     ),
                     DiagnosticDecl::new(
                         "Z0401",
-                        "neither the plot nor the layer maps anything to x, to y or to label; a variable the layer names for x: or y: of another kind than the axis already has, or one that no axis holds, or an expression that gives no number for each row; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows; an expression given to label: or color:, which take a variable by its name; size: not above 0; a nudge: that is not a list of two numbers",
+                        "neither the plot nor the layer maps anything to x, to y or to label; a variable the layer names for x: or y: of another kind than the axis already has, or one that no axis holds, or an expression that gives nothing an axis places for each row, or another kind of value on the frame of data: than on the frame of the plot; a string for color: that is not a colour; a variable for color: that a colour cannot show, or of another kind than the one the scale already shows; an expression given to label: or color:, which take a variable by its name; size: not above 0; a nudge: that is not a list of two numbers",
                     ),
                 ],
                 help: include_str!("../help/text.md"),

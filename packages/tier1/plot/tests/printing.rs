@@ -423,7 +423,6 @@ fn every_message_of_an_expression() {
         // What a mapping cannot hold.
         "let w = dataset(wages)\nw.plot(x: educ, y: mean(wage))\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: wage - w.mean(wage))\n",
-        "let w = dataset(wages)\nw.plot(x: upper(industry), y: wage)\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: case { wage > 10 => 1, _ => 0 })\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: if true { wage } else { educ })\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: w[\"wage\"])\n",
@@ -432,9 +431,8 @@ fn every_message_of_an_expression() {
         "let w = dataset(wages)\nw.plot(x: educ, y: logit(wage / 200))\n",
         "let w = dataset(wages)\n/// Twice a number.\nfn twice(x: Float) -> Float { x * 2 }\nw.plot(x: educ, y: twice(wage))\n",
         // What it does not come to.
-        "let w = dataset(wages)\nw.plot(x: educ, y: \"a\")\n",
+        "let w = dataset(wages)\nw.plot(x: educ).ribbon(low: upper(industry), high: wage)\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: [1, 2])\n",
-        "let w = dataset(wages)\nw.plot(x: category(educ), y: wage)\n",
         // The operators' own refusals, underlined at the mapping.
         "let w = dataset(wages)\nw.plot(x: educ, y: industry + 1)\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: !wage)\n",
@@ -2587,4 +2585,100 @@ fn every_message_of_a_scale_of_dates() {
         all.push_str(&format!("== {name}\n{stderr}\n"));
     }
     insta::assert_snapshot!("date_scales_messages", all);
+}
+
+// ----- the functions of time and text in a mapping (step 25c3a) -----
+
+const FIRMS: &str =
+    "let f = dataset(firms)\nlet d = frame(v = [1, 2], u = [\"a\", \"b\"], size = [1, 2])\n";
+
+#[test]
+fn a_mapping_calls_the_functions_of_time_and_text() {
+    let script = format!(
+        "{FIRMS}f.plot(x: year(founded), y: size).points(alpha: 0.4)\n\
+         f.add(y = year(founded)).plot(x: y, y: size).points(alpha: 0.4)\n\
+         f.plot(x: upper(industry), y: size).points()\n\
+         f.plot(x: add_days(founded, 365), y: size).points()\n\
+         f.plot(x: quarter(founded)).bars()\n\
+         f.plot(x: size, y: slice(industry, 1, 3)).points()\n\
+         f.plot(x: founded, y: size).points().points(x: add_months(founded, 6))\n\
+         f.plot(x: size, y: contains(industry, \"a\")).points()\n\
+         f.plot(x: category(size), y: size).points()\n\
+         f.plot(x: \"all\", y: size).points()\n\
+         f.plot(x: date(\"2020-01-01\"), y: size).points()\n\
+         d.plot(x: upper(u), y: size).points().points(data: frame(u = [\"c\"], size = [3]))\n"
+    );
+    let text = printed(&script);
+    // An expression is computed as `add` computes it: the year of each date on a linear
+    // axis, with the limits of the variable `add` makes.
+    for line in [
+        "  x      year(founded)               linear   1947.05 to 2011.95   1950, 1960, 1970, 1980, 1990, 2000, 2010\n",
+        "  x      y                           linear   1947.05 to 2011.95   1950, 1960, 1970, 1980, 1990, 2000, 2010\n",
+        "  x      upper(industry)             category   0.4 to 12.6\n",
+        "  x      add_days(founded, 365)      date     1948-01-17 to 2013-11-23   1950, 1960, 1970, 1980, 1990, 2000, 2010\n",
+        "  y      slice(industry, 1, 3)       category   0.4 to 12.6      Agr, Con, Edu, Fin, Hea and 7 more\n",
+        "      2   points   f        400   x add_months(founded, 6), size 4.5, alpha 1\n",
+        "  y      contains(industry, \"a\")     linear   -0.05 to 1.05    0, 0.2, 0.4, 0.6, 0.8, 1\n",
+        "  x      \"all\"                       category   0.4 to 1.6       all\n",
+        "  x      upper(u)   category   0.4 to 3.6   A, B, C\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("mapping_time_and_text", text);
+}
+
+#[test]
+fn every_message_of_a_widened_mapping() {
+    let mut all = String::new();
+    for (name, script) in [
+        // What a mapping still cannot call.
+        (
+            "a_reducer_of_data",
+            "f.plot(x: size, y: size - mean(size)).points()\n",
+        ),
+        (
+            "a_function_that_takes_no_column",
+            "f.plot(x: size, y: split(industry, \"a\")).points()\n",
+        ),
+        // What an expression comes to, and where.
+        (
+            "an_edge_of_a_band_that_is_text",
+            "f.plot(x: size).ribbon(low: upper(industry), high: size)\n",
+        ),
+        (
+            "an_area_up_to_text",
+            "f.plot(x: size, y: upper(industry)).area()\n",
+        ),
+        (
+            "bars_up_to_dates",
+            "f.plot(x: size).bars(y: add_days(founded, 1))\n",
+        ),
+        // The layers share the axis.
+        (
+            "a_date_on_an_axis_of_years",
+            "f.plot(x: year(founded), y: size).points().points(x: founded)\n",
+        ),
+        (
+            "years_on_an_axis_of_dates",
+            "f.plot(x: founded, y: size).points().points(x: year(founded))\n",
+        ),
+        (
+            "text_on_an_axis_of_numbers",
+            "f.plot(x: size, y: size).points().points(x: upper(industry))\n",
+        ),
+        (
+            "another_kind_on_the_frame_of_a_layer",
+            "d.plot(x: coalesce(v, v), y: size).points(data: frame(v = [\"p\", \"q\"], size = [1, 2]))\n",
+        ),
+        (
+            "a_scale_of_dates_on_years",
+            "f.plot(x: year(founded), y: size).scale_x(date)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{FIRMS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("mapping_time_and_text_messages", all);
 }

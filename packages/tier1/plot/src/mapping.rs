@@ -2,7 +2,9 @@
 //!
 //! `plot` is handed the expression with its names already resolved where the call stands
 //! (section 3.7, "Name lookup"): the variables of the frame it reads, constants, the operators
-//! and calls of the functions of `core`. It is computed here row by row, on the plot's frame
+//! and calls of the functions of `core`, `time` and `text` (open decision #107, option B). A
+//! position may come to numbers, to text, which is placed as categories, or to dates, as a
+//! variable of those types is. It is computed here row by row, on the plot's frame
 //! where the plot starts and on a layer's own frame where a mark names one, by the kernels of
 //! `core` that compute the same expression in `add` and in a formula, so that the values, and the
 //! counted warnings of the rows that gave none, are the same in all three. The values are kept
@@ -18,7 +20,7 @@ use zeff_core::value::{Aesthetic, ColumnExpr, Frame, TypeValue, Value};
 use zeff_diagnostics::messages::no_variable;
 use zeff_diagnostics::{Diagnostic, Span};
 
-use crate::scene::is_numeric;
+use crate::scene::{is_numeric, on_categories, on_dates};
 
 /// The variables of the frame an expression reads, each once, in the order written.
 pub(crate) fn variables(expr: &ColumnExpr) -> Vec<&str> {
@@ -56,7 +58,9 @@ pub(crate) enum Unplaced {
 }
 
 /// The values of `expr` on `frame`, one for each row, as a Bool, Int or Float column: what a
-/// linear scale places. A number alone stands for itself in every row, and `NA` alone for `NA`
+/// linear scale places. For a `position`, `x` or `y`, a Str or Category column, which an axis
+/// of categories places, or a Date or DateTime column, which a scale of dates places, will
+/// do as well. A value alone stands for itself in every row, and `NA` alone for `NA`
 /// in every row. A refusal of the kernels (section 3.3) is underlined at `span`, where the
 /// expression, or the frame it is computed on, is written; `Err(Ok(..))` says what else the
 /// expression came to, for the caller to refuse in its own words.
@@ -65,6 +69,7 @@ pub(crate) fn values(
     frame: &Frame,
     expr: &ColumnExpr,
     span: Span,
+    position: bool,
 ) -> Result<Rc<Column>, Result<Unplaced, Fail>> {
     // The bodies of `core` underline their own arguments; inside a mapping all of them are the
     // mapping.
@@ -83,18 +88,25 @@ pub(crate) fn values(
             format!("a {name}")
         }
     };
+    // What a scale places: numbers, and on an axis categories and dates too.
+    let placed = |column: &Column| {
+        is_numeric(column) || (position && (on_categories(column) || on_dates(column)))
+    };
     match result.map_err(Err)? {
-        Value::Column(column) if !is_numeric(&column) => {
+        Value::Column(column) if !placed(&column) => {
             Err(Ok(Unplaced::Type(article(column.ty().name()))))
         }
         Value::Column(column) if column.len() != rows => Err(Ok(Unplaced::Length(column.len()))),
         Value::Column(column) => Ok(Rc::new(column)),
-        scalar @ (Value::Int(_) | Value::Float(_) | Value::Bool(_)) => {
-            match lift::broadcast(&scalar, rows) {
-                Some(column) => Ok(Rc::new(column)),
-                None => Err(Ok(Unplaced::Type(article(scalar.type_name())))),
-            }
-        }
+        scalar @ (Value::Int(_)
+        | Value::Float(_)
+        | Value::Bool(_)
+        | Value::Str(_)
+        | Value::Date(_)
+        | Value::DateTime(_)) => match lift::broadcast(&scalar, rows) {
+            Some(column) if placed(&column) => Ok(Rc::new(column)),
+            _ => Err(Ok(Unplaced::Type(article(scalar.type_name())))),
+        },
         Value::Na => Ok(Rc::new(Column::floats(std::iter::repeat_n(None, rows)).0)),
         other => Err(Ok(Unplaced::Type(article(other.type_name())))),
     }
@@ -220,17 +232,22 @@ impl Evaluator<'_, '_> {
         Ok(value)
     }
 
-    /// The body of a function a mapping calls: those of `core`, which every package may call.
-    /// The checker admits no other, so anything else is a bug.
+    /// The body of a function a mapping calls: those of `core`, which every package may call,
+    /// and those of `time` and `text`, which come before `plot` in its tier. The checker
+    /// admits no other, so anything else is a bug.
     fn function(&self, package: &str, name: &str) -> Result<Body, Fail> {
-        if package == "core"
-            && let Some(f) = zeff_core::functions().iter().find(|f| f.spec.name == name)
-        {
+        let functions = match package {
+            "core" => zeff_core::functions(),
+            "time" => zeff_time::functions(),
+            "text" => zeff_text::functions(),
+            _ => Vec::new(),
+        };
+        if let Some(f) = functions.iter().find(|f| f.spec.name == name) {
             return Ok(f.body);
         }
         Err(crate::grammar::internal(
             self.ctx,
-            "a mapping calls a function that is not of `core`",
+            "a mapping calls a function that is not of `core`, `time` or `text`",
         ))
     }
 
@@ -281,7 +298,8 @@ pub(crate) fn computed(
         span,
         own,
     } = *asked;
-    let unplaced = match values(ctx, frame, expr, span) {
+    let position = matches!(aesthetic, Aesthetic::X | Aesthetic::Y);
+    let unplaced = match values(ctx, frame, expr, span, position) {
         Ok(column) => return Ok(column),
         Err(Err(mut refusal)) => {
             // The kernels speak of the operation where it is written; a mark is underlined at
@@ -302,6 +320,9 @@ pub(crate) fn computed(
         (None, true) => " of this frame".to_string(),
     };
     let message = match unplaced {
+        Unplaced::Type(what) if position => format!(
+            "`{function}` places `{axis}` on a linear scale, on an axis of categories or on a scale of dates, so `{text}` must give a number, text or a date for each row{whose}, but it gives {what}"
+        ),
         Unplaced::Type(what) => format!(
             "`{function}` draws `{axis}` on a linear scale, so `{text}` must give a Bool, Int or Float for each row{whose}, but it gives {what}"
         ),
@@ -314,15 +335,15 @@ pub(crate) fn computed(
     let diagnostic = Diagnostic::error("Z0401", message).in_file(ctx.script);
     Err(fail(if own {
         diagnostic
-            .primary(span, format!("`{text}` is not a number for each row here"))
+            .primary(span, format!("`{text}` is not a value for each row here"))
             .help(format!(
-                "the plot maps `{text}` to `{axis}`, so it must come to a number on the frame of every layer"
+                "the plot maps `{text}` to `{axis}`, so it must come to a value a scale places on the frame of every layer"
             ))
     } else {
         diagnostic
-            .primary(span, "not a number for each row")
+            .primary(span, "not a value for each row")
             .help(format!(
-                "the scales of categories, text and dates are not in this release yet; `{}.describe()` lists the types of the variables",
+                "a scale places a number, and on an axis text or a date; `{}.describe()` lists the types of the variables",
                 frame.shown_name()
             ))
     }))

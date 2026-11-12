@@ -1915,6 +1915,8 @@ dependencies = [
  "zeff-numeric",
  "zeff-registry",
  "zeff-testkit",
+ "zeff-text",
+ "zeff-time",
 ]
 
 [[package]]

@@ -133,3 +133,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25c3 `[engine]`: an expression in a mapping, widened to the scalar functions of `time` and `text`, the four Zeff-written functions of `core` and `case` (#107, option B).
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: a bare name given to `at:` reads a bound date as it reads a bound number (#127 extended). Open as before: #129 (how dates are written on an axis, taken as A), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25c3a (the functions of `time` and `text` in a mapping)
+
+**Done.** Step 25c3 was split into 25c3a (here), 25c3b (the four functions of `core` written in Zeff) and 25c3c (`case`). An expression mapped to `x` or `y` may now call the functions of `time` and `text`: `plot(x: year(founded), ...)` draws. An expression is placed by what it gives: numbers on a linear scale, text as categories, dates on a scale of dates, so `x: category(educ)` and `x: upper(industry)` draw too. The reducers of `data`, such as `mean`, stay refused.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 344 of 344; CI is read job by job after the push.
+
+**Next.** Step 25c3b `[engine]`: `logit`, `inv_logit`, `clamp` and `fill_missing` in a mapping.
+
+**For the owner to decide.** One thing found, not changed: `f.add(y = year(industry))`, a function of `time` or `text` given a variable of the wrong type, stops with "internal error: this is a bug in Zeff" and has done since 0.6.0; a mapping now reaches the same message. It is recorded under open decision #108 (due 0.8.0, recommendation A: refuse with a plain message). Open as before: #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

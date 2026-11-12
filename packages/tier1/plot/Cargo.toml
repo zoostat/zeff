@@ -17,6 +17,10 @@ zeff-diagnostics.workspace = true
 zeff-hash.workspace = true
 zeff-numeric.workspace = true
 zeff-registry.workspace = true
+# The functions an expression in a mapping may call beside those of `core` (open decision
+# #107): both packages come before `plot` in tier 1.
+zeff-time.workspace = true
+zeff-text.workspace = true
 # The composed form of a letter and its mark, before a text is set (the crate `data` uses already).
 unicode-normalization = "=0.1.26"
 # DEFLATE, for the streams of a PDF file and the dots of a PNG file (decisions.md, steps

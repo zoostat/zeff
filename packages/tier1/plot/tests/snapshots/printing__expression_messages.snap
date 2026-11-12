@@ -10,7 +10,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function
 2 | w.plot(x: educ, y: mean(wage))
   |                    ^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage - w.mean(wage))
@@ -20,17 +20,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function
 2 | w.plot(x: educ, y: wage - w.mean(wage))
   |                             ^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
-
-let w = dataset(wages)
-w.plot(x: upper(industry), y: wage)
-error[Z0401]: an expression mapped to an aesthetic cannot use `upper`, a function of `text`
- --> scripts/main.zeff:2:11
-  |
-2 | w.plot(x: upper(industry), y: wage)
-  |           ^^^^^ not kept in a mapping
-  |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: case { wage > 10 => 1, _ => 0 })
@@ -40,7 +30,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `case`
 2 | w.plot(x: educ, y: case { wage > 10 => 1, _ => 0 })
   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: if true { wage } else { educ })
@@ -50,7 +40,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `if`
 2 | w.plot(x: educ, y: if true { wage } else { educ })
   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: w["wage"])
@@ -60,7 +50,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use a part taken from 
 2 | w.plot(x: educ, y: w["wage"])
   |                    ^^^^^^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage..hours)
@@ -80,7 +70,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `seed`, which give
 2 | w.plot(x: educ, y: seed(3))
   |                    ^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: logit(wage / 200))
@@ -102,37 +92,27 @@ error[Z0401]: an expression mapped to an aesthetic cannot use a function of the 
 4 | w.plot(x: educ, y: twice(wage))
   |                    ^^^^^^^^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, as in `log(wage)` or `wage / hours`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
-w.plot(x: educ, y: "a")
-error[Z0401]: `plot` draws `y` on a linear scale, so `"a"` must give a Bool, Int or Float for each row, but it gives a Str
- --> scripts/main.zeff:2:20
+w.plot(x: educ).ribbon(low: upper(industry), high: wage)
+error[Z0401]: `ribbon` draws `low` on a linear scale, so `upper(industry)` must give a Bool, Int or Float for each row, but it gives a Str
+ --> scripts/main.zeff:2:29
   |
-2 | w.plot(x: educ, y: "a")
-  |                    ^^^ not a number for each row
+2 | w.plot(x: educ).ribbon(low: upper(industry), high: wage)
+  |                             ^^^^^^^^^^^^^^^ not a value for each row
   |
-  = help: the scales of categories, text and dates are not in this release yet; `w.describe()` lists the types of the variables
+  = help: a scale places a number, and on an axis text or a date; `w.describe()` lists the types of the variables
 
 let w = dataset(wages)
 w.plot(x: educ, y: [1, 2])
-error[Z0401]: `plot` draws `y` on a linear scale, so `[1, 2]` must give a Bool, Int or Float for each row, but it gives a List
+error[Z0401]: `plot` places `y` on a linear scale, on an axis of categories or on a scale of dates, so `[1, 2]` must give a number, text or a date for each row, but it gives a List
  --> scripts/main.zeff:2:20
   |
 2 | w.plot(x: educ, y: [1, 2])
-  |                    ^^^^^^ not a number for each row
+  |                    ^^^^^^ not a value for each row
   |
-  = help: the scales of categories, text and dates are not in this release yet; `w.describe()` lists the types of the variables
-
-let w = dataset(wages)
-w.plot(x: category(educ), y: wage)
-error[Z0401]: `plot` draws `x` on a linear scale, so `category(educ)` must give a Bool, Int or Float for each row, but it gives a Category
- --> scripts/main.zeff:2:11
-  |
-2 | w.plot(x: category(educ), y: wage)
-  |           ^^^^^^^^^^^^^^ not a number for each row
-  |
-  = help: the scales of categories, text and dates are not in this release yet; `w.describe()` lists the types of the variables
+  = help: a scale places a number, and on an axis text or a date; `w.describe()` lists the types of the variables
 
 let w = dataset(wages)
 w.plot(x: educ, y: industry + 1)
@@ -246,14 +226,14 @@ error[Z0102]: no variable `wage` in `d`; names are case-sensitive
 let w = dataset(wages)
 let d = frame(educ = [1, 2], wage = ["a", "b"])
 w.plot(x: educ, y: abs(wage)).points(data: d)
-error[Z0401]: `points` draws `y` on a linear scale, so `abs(wage)` must give a Bool, Int or Float for each row of `d`, but it gives a Str
+error[Z0401]: the plot maps `abs(wage)` to `y`, which gives a Float on its own frame and a Str on the frame of this layer
  --> scripts/main.zeff:3:44
   |
 3 | w.plot(x: educ, y: abs(wage)).points(data: d)
   |                               ------ this layer draws `abs(wage)`, which the plot maps to `y`
-  |                                            ^ `abs(wage)` is not a number for each row here
+  |                                            ^ `abs(wage)` is of another kind here
   |
-  = help: the plot maps `abs(wage)` to `y`, so it must come to a number on the frame of every layer
+  = help: the layers of a plot share one axis, so an expression must come to numbers, to text or to dates on the frame of every layer
 
 let w = dataset(wages)
 let d = frame(educ = [1, 2], wage = ["a", "b"])
