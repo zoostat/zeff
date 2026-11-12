@@ -672,5 +672,30 @@ pub fn functions() -> Vec<Function> {
             },
             body: scales::legend,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "labels",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("title", "Str"),
+                    ParamSpec::option("subtitle", "Str"),
+                    ParamSpec::option("x", "Str"),
+                    ParamSpec::option("y", "Str"),
+                    ParamSpec::option("color", "Str"),
+                    ParamSpec::option("caption", "Str"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0406",
+                    "none of title:, subtitle:, x:, y:, color: and caption: is given",
+                )],
+                help: include_str!("../help/labels.md"),
+                accuracy: None,
+            },
+            body: scales::labels,
+        },
     ]
 }

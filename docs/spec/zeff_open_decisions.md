@@ -2542,3 +2542,16 @@ Raised on 12 November 2026 at step 25d of release 0.7.0. Each function of a plot
 *Recommendation.* A for 0.7.0, where the remedy is one sentence of the help page, and B at 0.8.0, in a step of its own that first gives the interpreter a way to withdraw a message of the statement. It was tried at step 25d and taken back: removing the note shifted the positions the interpreter holds and stopped the run. Deadline: 0.8.0.
 
 **The decision (12 November 2026).** As recommended, taken under the owner's standing instruction of that day, which he may overturn: A stands for 0.7.0, and B is planned for 0.8.0.
+
+### 131. The titles of the legends of size, shape and fill
+
+Raised on 12 November 2026 at step 26a of release 0.7.0, where `labels` was built. The catalogue gives it six arguments, `labels(title:, subtitle:, x:, y:, color:, caption:)`: the two axes and the legend of colour can be titled in the words of the script, and no other legend. A plot that sizes its marks by one variable and colours them by another has two legends, and the second keeps the label of its variable; so does a legend of shapes or of fills by a variable of its own. The label of the variable is often a good title, and where it is not the only remedy today is to change the label in the frame.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. As the catalogue has it: `color:` alone, which also titles the legend of fills where nothing is mapped to `color` | Nothing to add; most plots have one legend | A legend of sizes or of shapes cannot be titled from the plot |
+| B. Add `fill:`, `size:` and `shape:` to `labels`, each the title of the legend of that aesthetic | Every legend can be titled where the figure is made; what ggplot2's `labs()` takes | Three more arguments in the usage line, which is a change to the catalogue |
+
+*Recommendation.* B, at 0.8.0: an addition that breaks no script. Until then A, as built. Deadline: 0.8.0.
+
+**The decision (12 November 2026).** As recommended, taken under the owner's standing instruction of that day ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A stands for 0.7.0, and the three arguments are planned for 0.8.0.

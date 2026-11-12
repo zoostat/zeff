@@ -3641,3 +3641,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 25e2; section 7.6 of the Language Reference ("Guides and theme": "direct labels the series at their ends" in the catalogue).
+
+## 12 November 2026: `labels` (release 0.7.0, step 26a), and step 26 split in three
+
+**The split.** Step 26 named three functions and the labels of a crowded axis: `labels` (26a), `theme` (26b), and `annotate` with the crowded axis (26c).
+
+**Decision.** `p.labels(title:, subtitle:, x:, y:, color:, caption:)` gives a plot its words. They are held with the plot (`Plot.labels`), and the scene derives from them: the titles of the scales `x`, `y` and of the legend of colour, in the place of the label of the variable, and three new parts of a scene, its title, subtitle and caption. In the scene's JSON the three are the key `titles`, written when one of them is set, so a scene with none reads as it did; each scale already has a key `labels`, the labels of its breaks, which is why the new key has another name.
+
+**Rulings where the text is silent**, each of which the owner may overturn. (a) The title, the subtitle and the caption start at the left margin of the page and are broken between words to the width of the page, not to that of the panel, so that their room does not depend on the labels of the `y` axis; ggplot2 starts them at the left edge of the panel by default and sets the caption at the right. (b) The type: the title at 10 points in IBM Plex Sans SemiBold, the face the theme of step 21a ships "for the titles"; the subtitle at 9 points and the caption at 8, in the regular face. The theme gains one value for it, `heading_size`; the values frozen at step 22 are as they were, and the test that pins them names the addition. (c) Order down the page: title, subtitle, a legend placed above, the panel, the title of the `x` axis, a legend placed under, the caption, the notes of a figure written with its notes. (d) An empty text, or one of spaces alone, takes a title away: `x: ""` leaves an axis untitled and gives the panel the room; `title: ""` takes back an earlier title. (e) What a later `labels` says of one of the six replaces what was said of it and leaves the other five, as `scale` does. (f) `color:` titles the legend of the variable mapped to `color`, and the legend of fills where nothing is mapped to `color` or the fill is borrowed from it; the legends of sizes and shapes by other variables keep the labels of their variables (open decision #131: the arguments for them at 0.8.0). (g) A title that leaves the panel less than its smallest size is refused at `export` by the existing refusal of a page too small. (h) The printed plot shows the titles of axes and legend in their rows and the title, subtitle and caption on its last lines.
+
+**The sample script.** The specification's sample writes `.labels(title: ..., y: "log wage")`. The two stored checks of that script lose the line "no function is called `labels`" and nothing else.
+
+**Tests.** `packages/tier1/plot/tests/titles.rs`: five tests (the label of a variable until the script says otherwise, with the marks and breaks unchanged; a title, subtitle and caption with their faces, sizes and places, and a snapshot of the drawing; an empty text; a long title broken between words, a word longer than its line, and a title that leaves no room; the legend of fills titled by `color:` and the count axis by `y:`). `printing.rs`: ten plots and six messages. The two examples of the page of `labels` are run. The conformance set gains five cases: what a script prints and a titled figure in SVG, PDF and PNG. No snapshot of an earlier step changes.
+
+**The specification.** Catalogue row 481 is marked `implemented`; open decision #131 added and decided.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 26a; section 7.6 of the Language Reference ("Guides and theme"; "A variable's label becomes its axis title").

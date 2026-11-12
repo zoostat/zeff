@@ -2069,6 +2069,18 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/direct/{name}"), &data));
     }
+    // The words of a plot (step 26a): a title, a subtitle and a caption, the titles of an
+    // axis and of the legend of colour in the words of the script, and a title taken away;
+    // what the script prints and the titled figure in the three formats.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet p = w.plot(x: educ, y: log(wage), color: union).points(alpha: 0.5).labels(title: \"Schooling and wages in 2015\", subtitle: \"Hourly wages of 2,152 workers\", y: \"log wage\", color: \"In a union\", caption: \"Source: the wages data shipped with the engine.\")\np\np.labels(x: \"\", title: \"\")\np.legend(top)\nexport(p, \"titled.svg\")\nexport(p, \"titled.pdf\")\nexport(p, \"titled.png\")\n";
+    let titled = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/titled/stdout", &titled.output.stdout));
+    fills.push(text("plot/titled/stderr", &titled.output.stderr));
+    for name in ["titled.svg", "titled.pdf", "titled.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/titled/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

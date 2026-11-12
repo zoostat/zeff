@@ -1,0 +1,62 @@
+---
+source: packages/tier1/plot/tests/titles.rs
+expression: drawing.describe()
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 46.403,36.542 to 46.403,140.253 stroke #E3E3E3 0.35
+[grid] segment 74.326,36.542 to 74.326,140.253 stroke #E3E3E3 0.35
+[grid] segment 102.249,36.542 to 102.249,140.253 stroke #E3E3E3 0.35
+[grid] segment 130.172,36.542 to 130.172,140.253 stroke #E3E3E3 0.35
+[grid] segment 158.095,36.542 to 158.095,140.253 stroke #E3E3E3 0.35
+[grid] segment 186.018,36.542 to 186.018,140.253 stroke #E3E3E3 0.35
+[grid] segment 213.941,36.542 to 213.941,140.253 stroke #E3E3E3 0.35
+[grid] segment 38.026,131.767 to 222.317,131.767 stroke #E3E3E3 0.35
+[grid] segment 38.026,112.911 to 222.317,112.911 stroke #E3E3E3 0.35
+[grid] segment 38.026,94.054 to 222.317,94.054 stroke #E3E3E3 0.35
+[grid] segment 38.026,75.198 to 222.317,75.198 stroke #E3E3E3 0.35
+[grid] segment 38.026,56.341 to 222.317,56.341 stroke #E3E3E3 0.35
+[grid] segment 38.026,37.485 to 222.317,37.485 stroke #E3E3E3 0.35
+[panel] clip 38.026,36.542 184.291 by 103.711
+  [layer:1] point 46.403,135.538 circle 4.5 #E69F00 opacity 1
+  [layer:1] point 102.249,109.139 circle 4.5 #56B4E9 opacity 1
+  [layer:1] point 158.095,63.884 circle 4.5 #E69F00 opacity 1
+  [layer:1] point 213.941,41.256 circle 4.5 #56B4E9 opacity 1
+[axis:x] segment 38.026,140.253 to 222.317,140.253 stroke #222222 0.5
+[axis:x] segment 46.403,140.253 to 46.403,143.253 stroke #222222 0.5
+[axis:x] text 46.403,151.837 middle "1" sans 8 #222222
+[axis:x] segment 74.326,140.253 to 74.326,143.253 stroke #222222 0.5
+[axis:x] text 74.326,151.837 middle "1.5" sans 8 #222222
+[axis:x] segment 102.249,140.253 to 102.249,143.253 stroke #222222 0.5
+[axis:x] text 102.249,151.837 middle "2" sans 8 #222222
+[axis:x] segment 130.172,140.253 to 130.172,143.253 stroke #222222 0.5
+[axis:x] text 130.172,151.837 middle "2.5" sans 8 #222222
+[axis:x] segment 158.095,140.253 to 158.095,143.253 stroke #222222 0.5
+[axis:x] text 158.095,151.837 middle "3" sans 8 #222222
+[axis:x] segment 186.018,140.253 to 186.018,143.253 stroke #222222 0.5
+[axis:x] text 186.018,151.837 middle "3.5" sans 8 #222222
+[axis:x] segment 213.941,140.253 to 213.941,143.253 stroke #222222 0.5
+[axis:x] text 213.941,151.837 middle "4" sans 8 #222222
+[axis:x] text 130.172,165.837 middle "Dose (mg)" sans 9 #222222
+[axis:y] segment 38.026,36.542 to 38.026,140.253 stroke #222222 0.5
+[axis:y] segment 35.026,131.767 to 38.026,131.767 stroke #222222 0.5
+[axis:y] text 32.026,134.559 end "0.5" sans 8 #222222
+[axis:y] segment 35.026,112.911 to 38.026,112.911 stroke #222222 0.5
+[axis:y] text 32.026,115.703 end "1" sans 8 #222222
+[axis:y] segment 35.026,94.054 to 38.026,94.054 stroke #222222 0.5
+[axis:y] text 32.026,96.846 end "1.5" sans 8 #222222
+[axis:y] segment 35.026,75.198 to 38.026,75.198 stroke #222222 0.5
+[axis:y] text 32.026,77.99 end "2" sans 8 #222222
+[axis:y] segment 35.026,56.341 to 38.026,56.341 stroke #222222 0.5
+[axis:y] text 32.026,59.133 end "2.5" sans 8 #222222
+[axis:y] segment 35.026,37.485 to 38.026,37.485 stroke #222222 0.5
+[axis:y] text 32.026,40.277 end "3" sans 8 #222222
+[axis:y] text 13,88.397 middle turned 90 "change" sans 9 #222222
+[legend:color] text 232.317,42.75 start "arm" sans 9 #222222
+[legend:color] point 234.567,53 circle 4.5 #E69F00 opacity 1
+[legend:color] text 239.817,55.792 start "a" sans 8 #222222
+[legend:color] point 234.567,63 circle 4.5 #56B4E9 opacity 1
+[legend:color] text 239.817,65.792 start "b" sans 8 #222222
+[title] text 4,14 start "Change by dose" semibold 10 #222222
+[subtitle] text 4,25.5 start "Four patients" sans 9 #222222
+[caption] text 4,181.087 start "Source: the trial." sans 8 #222222

@@ -86,6 +86,8 @@ pub struct Plot {
     pub scales: Vec<PlotScale>,
     /// Where the script puts the legends; at the right where it says nothing.
     pub legend: LegendPlace,
+    /// The titles the script gives the plot, its axes and its legend of colour.
+    pub labels: PlotLabels,
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
     pub summary: Table,
@@ -93,6 +95,20 @@ pub struct Plot {
     /// puts here when it makes a plot, so that `export`, in a package below it, can ask for the
     /// bytes without calling upwards (rule 5). `None` for a plot value made by hand in a test.
     pub figure: Option<FigureWriter>,
+}
+
+/// The words of the script for a plot: its title, subtitle and caption, and the titles of
+/// its two axes and of its legend of colour (section 7.6, "Guides and theme": `labels`).
+/// `None` where the script says nothing: an axis and a legend are then titled by the label
+/// of their variable. An empty text takes a title away.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PlotLabels {
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
+    pub x: Option<String>,
+    pub y: Option<String>,
+    pub color: Option<String>,
+    pub caption: Option<String>,
 }
 
 /// Where the legends of a plot stand (section 7.6, "Guides and theme": `legend`).

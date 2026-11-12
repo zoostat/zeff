@@ -1,0 +1,108 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · change against dose
+
+  axis   title             scale    limits           breaks
+  x      dose              linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      Change in score   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title              scale      values   shown as
+  color       Arm of the trial   category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+title: Change by dose
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+subtitle: Four patients
+caption: Source: the trial.
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x               linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      Dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+title: Second
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      Dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       Arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   color by arm, size 4.5, alpha 1
+plot · d · arm
+
+  axis   title      scale      limits        breaks
+  x      arm        category   0.4 to 2.6    a, b
+  y      Patients   linear     -0.1 to 2.1   0, 0.5, 1, 1.5, 2
+
+  aesthetic   title              scale      values   shown as
+  fill        Arm of the trial   category   a, b     orange, sky blue
+
+  layer   mark   data   marks   settings
+      1   bars   d          2   width 0.9, alpha 1
+plot · d · log(change) against dose
+
+  axis   title        scale    limits                breaks
+  x      dose         linear   0.85 to 4.15          1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      log change   linear   -1.01534 to 1.16376   -1, -0.5, 0, 0.5, 1
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+plot · w · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  layer   mark     data    marks   settings
+      1   points   w      18,201   size 4.5, alpha 0.2
+
+title: Schooling and wages
+---
+note: 211 rows with NA in educ or wage dropped (line 12)

@@ -97,8 +97,10 @@ pub struct Theme {
     pub mark: &'static str,
     /// The type of the labels of breaks and of legend keys.
     pub label_size: f64,
-    /// The type of the titles of axes and legends.
+    /// The type of the titles of axes and legends, and of the subtitle of a figure.
     pub title_size: f64,
+    /// The type of the title of a figure, which is set in the heavier face.
+    pub heading_size: f64,
     /// From one baseline to the next, as a multiple of the size of the type.
     pub leading: f64,
     pub axis_width: f64,
@@ -128,6 +130,7 @@ pub const JOURNAL: Theme = Theme {
     mark: "#222222",
     label_size: 8.0,
     title_size: 9.0,
+    heading_size: 10.0,
     leading: 1.25,
     axis_width: 0.5,
     grid_width: 0.35,
@@ -145,6 +148,7 @@ pub const JOURNAL: Theme = Theme {
 const _: () = assert!(
     JOURNAL.label_size >= SMALLEST_TEXT
         && JOURNAL.title_size >= SMALLEST_TEXT
+        && JOURNAL.heading_size >= SMALLEST_TEXT
         && JOURNAL.leading >= 1.0
 );
 
@@ -1112,9 +1116,34 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     let y_widths = widths(ys, &mut set);
     let widest_y = y_widths.iter().copied().fold(0.0, f64::max);
 
+    // The title of the figure and its subtitle, above everything, and its caption, under
+    // everything but the notes: each from the left margin of the page and broken to its
+    // width, the title in the heavier face.
+    let page_room = (width - 2.0 * theme.margin).max(1.0);
+    let mut broken = |words: &Option<String>, face: FaceName, size: f64| -> Vec<String> {
+        words
+            .as_deref()
+            .map_or(Vec::new(), |words| set.wrap(words, face, size, page_room))
+    };
+    let heading = broken(&scene.title, FaceName::SansSemiBold, theme.heading_size);
+    let subheading = broken(&scene.subtitle, FaceName::Sans, theme.title_size);
+    let caption = broken(&scene.caption, FaceName::Sans, label);
+    let heading_room = if heading.is_empty() && subheading.is_empty() {
+        0.0
+    } else {
+        heading.len() as f64 * theme.heading_size * theme.leading
+            + subheading.len() as f64 * title_line
+            + theme.title_gap
+    };
+    let caption_room = if caption.is_empty() {
+        0.0
+    } else {
+        caption.len() as f64 * label * theme.leading + theme.title_gap
+    };
     // The room each side takes. A label at the end of the x axis may reach past the panel by
     // half its width, and the top label of the y axis by half its height.
     let top = theme.margin
+        + heading_room
         + half_capital
         + 1.0
         + if place == LegendPlace::Top {
@@ -1150,6 +1179,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             };
         let bottom = theme.margin
             + noted_room
+            + caption_room
             + if place == LegendPlace::Bottom {
                 bands_height
             } else {
@@ -1771,9 +1801,9 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // The legends above or under the panel: each band from the left edge of the panel.
     if banded {
         let mut y = if place == LegendPlace::Top {
-            theme.margin
+            theme.margin + heading_room
         } else {
-            height - theme.margin - noted_room - bands_height + theme.legend_gap
+            height - theme.margin - noted_room - caption_room - bands_height + theme.legend_gap
         };
         for (tallest, members) in &bands {
             let mut x = left;
@@ -1793,6 +1823,53 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             y += plans[at].height + theme.legend_gap;
         }
         x += widest + theme.legend_gap;
+    }
+    // The title and the subtitle, from the top of the page, and the caption, over the notes.
+    let mut baseline = theme.margin;
+    for (lines, face, size, name) in [
+        (
+            &heading,
+            FaceName::SansSemiBold,
+            theme.heading_size,
+            "title",
+        ),
+        (&subheading, FaceName::Sans, theme.title_size, "subtitle"),
+    ] {
+        for line in lines {
+            baseline += size * theme.leading;
+            items.push(named(
+                name,
+                Primitive::Text {
+                    at: (theme.margin, baseline - size * (theme.leading - 1.0)),
+                    anchor: Anchor::Start,
+                    turn: 0.0,
+                    spans: vec![Span {
+                        text: line.clone(),
+                        face,
+                        size,
+                        colour: theme.ink.to_string(),
+                    }],
+                    frame: None,
+                },
+            ));
+        }
+    }
+    for (i, line) in caption.iter().enumerate() {
+        let baseline = height - theme.margin - noted_room - caption_room
+            + theme.title_gap
+            + (i + 1) as f64 * label * theme.leading
+            - label * (theme.leading - 1.0);
+        items.push(named(
+            "caption",
+            text(
+                (theme.margin, baseline),
+                Anchor::Start,
+                0.0,
+                line,
+                label,
+                theme,
+            ),
+        ));
     }
     // The notes, at the foot of the page.
     for (i, line) in noted_lines.iter().enumerate() {

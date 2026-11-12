@@ -36,8 +36,6 @@ error[Z0103]: no function is called `scatter`
  --> zeff_samples.zeff:237:7
 error[Z0103]: no function is called `facet`
  --> zeff_samples.zeff:240:6
-error[Z0103]: no function is called `labels`
- --> zeff_samples.zeff:242:6
 error[Z0103]: no function is called `theme`
  --> zeff_samples.zeff:243:6
 error[Z0103]: no function is called `errorbars`

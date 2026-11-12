@@ -348,6 +348,11 @@ plot/direct/stderr bf333aaa5a327a6b
 plot/direct/direct.svg 3cbcb37e405aee1d
 plot/direct/direct.pdf 083cfdb0a6eebd7f
 plot/direct/direct.png 9a897963731bd9ea
+plot/titled/stdout bf22c8f1fded0b48
+plot/titled/stderr 6e9f3677e9c3c861
+plot/titled/titled.svg 7dc4c34370e2962a
+plot/titled/titled.pdf c61b3d275df9a1be
+plot/titled/titled.png 29d979c87aa4b337
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

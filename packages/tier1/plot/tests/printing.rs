@@ -3057,3 +3057,60 @@ fn every_message_of_legend() {
     }
     insta::assert_snapshot!("legend_messages", all);
 }
+
+// ----- labels (step 26a) -----
+
+#[test]
+fn the_words_of_a_plot_read_sensibly_as_text() {
+    let script = format!(
+        "{ARMS}p.labels(title: \"Change by dose\", y: \"Change in score\", color: \"Arm of the trial\")\n\
+         p.labels(subtitle: \"Four patients\", caption: \"Source: the trial.\")\n\
+         p.labels(x: \"\")\n\
+         p.labels(title: \"First\").labels(title: \"Second\", x: \"Dose\")\n\
+         p.labels(title: \"Kept\").labels(title: \"\")\n\
+         d.plot(x: dose, y: change).labels(x: \"Dose\", color: \"Arm\").points(color: arm)\n\
+         d.plot(x: arm, fill: arm).bars().labels(color: \"Arm of the trial\", y: \"Patients\")\n\
+         d.plot(x: dose, y: log(change)).points().labels(y: \"log change\")\n\
+         let w = dataset(wages)\n\
+         w.plot(x: educ, y: wage).points(alpha: 0.2).labels(title: \"Schooling and wages\")\n"
+    );
+    let text = printed(&script);
+    for line in [
+        "  y      Change in score   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3\n",
+        "  color       Arm of the trial   category   a, b     orange, sky blue\n",
+        "title: Change by dose\n",
+        "subtitle: Four patients\ncaption: Source: the trial.\n",
+        "title: Second\n",
+        "  fill        Arm of the trial   category   a, b     orange, sky blue\n",
+        "  y      log change   linear",
+        // Where the script says nothing the label of the variable stands.
+        "  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    // A title taken back is not printed.
+    assert!(!text.contains("title: Kept") && !text.contains("title: First"));
+    insta::assert_snapshot!("labels_of_plots", text);
+}
+
+#[test]
+fn every_message_of_labels() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("nothing_said", "p.labels()\n"),
+        ("a_title_that_is_a_number", "p.labels(title: 3)\n"),
+        ("a_title_that_is_a_variable", "p.labels(x: dose)\n"),
+        ("a_label_it_does_not_take", "p.labels(size: \"Hours\")\n"),
+        ("labels_of_a_frame", "d.labels(title: \"A frame\")\n"),
+        (
+            "a_title_that_leaves_no_room",
+            "export(p.labels(title: \"A title of many words that runs on and on well past the right edge of a figure one column wide and then some more and more and more until the lines it takes fill the page from its top to its foot and leave nothing at all for the panel which is after all the point of a figure and should be given the room that these words take from it line after line after line after line after line after line after line after line after line after line after line after line after line after line after line\"), \"long.svg\")\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{ARMS}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("labels_messages", all);
+}

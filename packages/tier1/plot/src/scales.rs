@@ -697,3 +697,55 @@ pub fn legend(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     describe(&mut next);
     Ok(Value::Plot(Rc::new(next)))
 }
+
+const T_TITLE: usize = 1;
+const T_SUBTITLE: usize = 2;
+const T_X: usize = 3;
+const T_Y: usize = 4;
+const T_COLOR: usize = 5;
+const T_CAPTION: usize = 6;
+
+/// `p.labels(title: Str, subtitle: Str, x: Str, y: Str, color: Str, caption: Str)`: the
+/// words of the script for the plot, its two axes and its legend of colour.
+pub fn labels(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "labels reached its body without a plot"));
+    };
+    let mut next = (**plot).clone();
+    let mut said = false;
+    {
+        let own = &mut next.labels;
+        for (slot, place) in [
+            (T_TITLE, &mut own.title),
+            (T_SUBTITLE, &mut own.subtitle),
+            (T_X, &mut own.x),
+            (T_Y, &mut own.y),
+            (T_COLOR, &mut own.color),
+            (T_CAPTION, &mut own.caption),
+        ] {
+            match args.get(slot) {
+                None | Some(Value::Na) => {}
+                // What is said of one of the six takes the place of what was said of it,
+                // and leaves the others; an empty text takes a title away.
+                Some(Value::Str(text)) => {
+                    *place = Some(text.to_string());
+                    said = true;
+                }
+                Some(_) => return Err(internal(ctx, "a label that is not text")),
+            }
+        }
+    }
+    if !said {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0406",
+                "`labels` needs `title`, `subtitle`, `x`, `y`, `color` or `caption`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "nothing is said")
+            .help("`labels` gives a plot its words, as in `labels(title: \"Schooling and wages\", y: \"log wage\")`; an empty text, `x: \"\"`, takes a title away"),
+        ));
+    }
+    describe(&mut next);
+    Ok(Value::Plot(Rc::new(next)))
+}

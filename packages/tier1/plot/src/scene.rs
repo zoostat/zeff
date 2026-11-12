@@ -68,7 +68,7 @@ use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
     Aesthetic, Align, Arrangement, AxisKind, Frame, LegendPlace, Mark, Palette, Plot, PlotConstant,
-    PlotLayer, PlotMapping, PlotSetting, Sides, Stacking, Stairs, Table,
+    PlotLabels, PlotLayer, PlotMapping, PlotSetting, Sides, Stacking, Stairs, Table,
 };
 use zeff_diagnostics::count;
 
@@ -132,6 +132,11 @@ pub struct Scene {
     pub legends: Vec<Legend>,
     /// Where the script puts the legends: at the right where it says nothing.
     pub legend: LegendPlace,
+    /// The title of the figure, its subtitle and its caption, where the script gives them;
+    /// an empty text is none.
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
+    pub caption: Option<String>,
     pub panels: Vec<Panel>,
     /// What the reader must be told about the data drawn: the rows dropped and why, each
     /// sentence once.
@@ -1646,6 +1651,15 @@ pub fn palette_fault(plot: &Plot) -> Option<PaletteFault> {
     None
 }
 
+/// A title, a subtitle or a caption as the scene holds it: the words of the script, and
+/// nothing where they are empty.
+fn said(words: &Option<String>) -> Option<String> {
+    words
+        .as_ref()
+        .filter(|text| !text.trim().is_empty())
+        .cloned()
+}
+
 /// The name of a shape as the scene holds it: one of the names of the shape module.
 fn named_shape(name: &str) -> &'static str {
     shape::parse(name).unwrap_or(shape::DEFAULT)
@@ -1710,7 +1724,22 @@ struct Shaded {
 /// The scale of a colouring. `kept` holds, for each layer, the rows its marks are drawn from.
 fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded {
     let id = colouring.aesthetic.name();
-    let title = axis_title(colouring.frame, colouring.mapping);
+    // The legend of colour is titled by the words of the script where it gives them: the
+    // scale of `color`, and that of `fill` where the fills are the colours of the plot,
+    // nothing being mapped to `color` or the fill being borrowed from it.
+    let coloured = match colouring.aesthetic {
+        Aesthetic::Color => true,
+        Aesthetic::Fill => {
+            plot.mapping(Aesthetic::Fill).is_none() || plot.mapping(Aesthetic::Color).is_none()
+        }
+        _ => false,
+    };
+    let title = plot
+        .labels
+        .color
+        .clone()
+        .filter(|_| coloured)
+        .unwrap_or_else(|| axis_title(colouring.frame, colouring.mapping));
     let layers = || colouring.readers.iter().zip(kept);
     match colouring.kind {
         Shading::Ramp => {
@@ -2575,6 +2604,13 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             None if counting => "count".to_string(),
             None => continue,
         };
+        // The words of the script for the title of the axis come before the label of its
+        // variable; empty, they leave the axis without a title.
+        let title = match aesthetic {
+            Aesthetic::X => plot.labels.x.clone(),
+            _ => plot.labels.y.clone(),
+        }
+        .unwrap_or(title);
         // Along `y` a filled mark reaches from its lower edge to its upper one, and along `x`
         // a bar half its width to either side of its place.
         let edges: Vec<f64> = layers
@@ -2845,6 +2881,9 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         }],
         notes,
         legend: plot.legend,
+        title: said(&plot.labels.title),
+        subtitle: said(&plot.labels.subtitle),
+        caption: said(&plot.labels.caption),
         frame: None,
     }
 }
@@ -3288,6 +3327,24 @@ impl Scene {
                 ("notes", Json::texts(&self.notes)),
             ]
             .into_iter()
+            // The title, the subtitle and the caption of the script, when it gives one.
+            .chain(
+                (self.title.is_some() || self.subtitle.is_some() || self.caption.is_some()).then(
+                    || {
+                        let text = |words: &Option<String>| {
+                            words.as_deref().map_or(Json::Null, Json::text)
+                        };
+                        (
+                            "titles",
+                            Json::Object(vec![
+                                ("title", text(&self.title)),
+                                ("subtitle", text(&self.subtitle)),
+                                ("caption", text(&self.caption)),
+                            ]),
+                        )
+                    },
+                ),
+            )
             // Where the legends stand, when the script says: at the right is not written.
             .chain(
                 (self.legend != LegendPlace::Right)
@@ -3827,6 +3884,16 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             })
         }
     };
+    // The title, the subtitle and the caption of the script.
+    for (name, words) in [
+        ("title", &scene.title),
+        ("subtitle", &scene.subtitle),
+        ("caption", &scene.caption),
+    ] {
+        if let Some(words) = words {
+            drawn.after.push(format!("{name}: {words}"));
+        }
+    }
     drawn.after.extend(placed.map(str::to_string));
     table.more.push(drawn);
     table
@@ -3851,6 +3918,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         axes: Vec::new(),
         scales: Vec::new(),
         legend: LegendPlace::Right,
+        labels: PlotLabels::default(),
         summary: Table {
             title: String::new(),
             before: Vec::new(),

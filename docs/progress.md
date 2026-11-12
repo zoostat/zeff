@@ -137,3 +137,13 @@ Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engin
 **Next.** Step 26 of the checklist: `labels`, `theme` and `annotate`, where the titles of axes and legends are set and labels are given room.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the names of the lines stand in one column beside the panel, moved apart where they would touch, with no leader to the line. Open as before: #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 26a (`labels`)
+
+**Done.** Step 26 was split into 26a (`labels`), 26b (`theme`) and 26c (`annotate`, and the labels of a crowded axis). `p.labels(title:, subtitle:, x:, y:, color:, caption:)` gives a figure a title and a subtitle above the panel and a caption under it, and titles the two axes and the legend of colour in the words of the script; an empty text takes a title away; a long title is broken between words. The specification's sample line with `labels` now runs.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 372 of 372; CI is read job by job after the push.
+
+**Next.** Step 26b `[function]`: `theme(journal | minimal | slide, base_size:)`.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the title at 10 points in the heavier face, the subtitle at 9 and the caption at 8, all from the left margin of the page; #131, arguments of `labels` for the legends of size, shape and fill at 0.8.0. Open as before: #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
