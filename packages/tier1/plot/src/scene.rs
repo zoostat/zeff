@@ -1659,6 +1659,16 @@ pub fn palette_fault(plot: &Plot) -> Option<PaletteFault> {
     None
 }
 
+/// Whether a plot has a mark its coordinates cannot draw: a rug in polar coordinates. A rug
+/// is ticks along the straight edges of a panel, and a circle has none.
+pub fn rug_round_a_circle(plot: &Plot) -> bool {
+    plot.coord == Coord::Polar
+        && plot
+            .layers
+            .iter()
+            .any(|layer| matches!(layer.mark, Mark::Rug(_)))
+}
+
 /// The words and the place of a layer that `annotate` made: a layer of text of one row, in
 /// a frame of its own called `annotation` whose variables are `x`, `y` and `text`. The place
 /// is written as a script writes it: a number, the name of a category, a date.

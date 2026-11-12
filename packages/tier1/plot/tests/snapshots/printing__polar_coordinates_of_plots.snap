@@ -1,0 +1,79 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · change against dose
+
+  axis   title    scale    limits       breaks
+  x      dose     linear   1 to 4       1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.4 to 2.9   0.5, 1, 1.5, 2, 2.5
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+coordinates: polar, `x` as the angle and `y` as the distance from the centre
+plot · d · change against arm
+
+  axis   title    scale      limits       breaks
+  x      arm      category   0.5 to 2.5   a, b
+  y      change   linear     0 to 4       0, 1, 2, 3, 4
+
+  layer   mark   data   marks   settings
+      1   bars   d          4   width 0.9, alpha 1
+
+coordinates: polar, `x` as the angle and `y` as the distance from the centre
+plot · d · change against dose
+
+  axis   title    scale    limits           breaks
+  x      dose     linear   0.85 to 4.15     1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.275 to 3.025   0.5, 1, 1.5, 2, 2.5, 3
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+coordinates: flipped, `x` up the side and `y` along the foot
+plot · d · change against dose
+
+  axis   title    scale    limits       breaks
+  x      dose     linear   1 to 4       1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.4 to 2.9   0.5, 1, 1.5, 2, 2.5
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark     data   marks   settings
+      1   points   d          4   size 4.5, alpha 1
+
+coordinates: polar, `x` as the angle and `y` as the distance from the centre
+plot · d · change against dose
+
+  axis   title    scale    limits       breaks
+  x      dose     linear   0 to 8       0, 2, 4, 6, 8
+  y      change   linear   0.4 to 2.9   0.5, 1, 1.5, 2, 2.5
+
+  layer   mark    data   marks   settings
+      1   lines   d          4   width 1, 1 line
+
+coordinates: polar, `x` as the angle and `y` as the distance from the centre
+theme: minimal
+plot · d · change against dose
+
+  axis   title    scale    limits       breaks
+  x      dose     linear   1 to 4       1, 1.5, 2, 2.5, 3, 3.5, 4
+  y      change   linear   0.4 to 2.9   0.5, 1, 1.5, 2, 2.5
+
+  aesthetic   title   scale      values   shown as
+  color       arm     category   a, b     orange, sky blue
+
+  layer   mark    data   marks   settings
+      1   lines   d          4   width 1, 2 lines
+
+legend: the name of each line at its end
+coordinates: polar, `x` as the angle and `y` as the distance from the centre
+---

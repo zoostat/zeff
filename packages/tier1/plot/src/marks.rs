@@ -1900,6 +1900,9 @@ fn finish(ctx: &mut CallContext<'_>, plot: &Plot, layer: PlotLayer) -> Result<Va
     if let Some(fault) = crate::scene::palette_fault(&next) {
         return Err(crate::scales::unfit(ctx, &fault, ctx.callee_span));
     }
+    if crate::scene::rug_round_a_circle(&next) {
+        return Err(crate::scales::no_rug(ctx, ctx.callee_span));
+    }
     announce(ctx, &before, &after.notes);
     Ok(Value::Plot(Rc::new(next)))
 }

@@ -118,35 +118,9 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 
 Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engine]`: a Date or a DateTime variable on `x` or `y` is placed in proportion to the time, with breaks on the calendar written in the ISO form of tables (open decision #129, option A); the limits match ggplot2's to the day. 25c2 `[engine]`: `scale_x(date)` and `scale_y(date)` with limits and breaks as dates and `labels:` as a pattern (`"%b %Y"`); a reference line at one date; catalogue rows 470 and 471 and section 3.7 brought up to date (logged). 25c3a `[engine]`: a mapping may call the functions of `time` and `text`, and an expression is placed by what it gives, numbers, text or dates (#107, option B). 25c3b `[engine]`: `logit`, `inv_logit`, `clamp` and `fill_missing` in a mapping, their one-line bodies taken into the kept expression. 25c3c `[engine]`: `case` in a mapping, by a kernel of `core` (`zeff_core::cases`) that the interpreter and the `plot` package share; no earlier result changed. 25d `[engine]`: `scale(color:, fill:, size:, shape:)`, with lists of colours, `okabe_ito` and `viridis`, one size or two, and a list of shapes; #109 decided as recommended; `zeff selftest` at 356 of 356. Rulings taken then, the owner's to overturn: a break at every decade where ggplot2 marks every second one; a ramp mixes red, green and blue directly; fewer colours than categories repeat with a note; an axis mapped from a `case` is titled `case { … }`. Found and not changed: `f.add(y = year(industry))` stops with an internal error, recorded under #108. Put to the owner, due 0.8.0: an argument of `scale` to keep every level of a Category (#109, question 2) and the notes of a chain (#130). 25e1 `[engine]`: `legend(top | bottom | none | right)`, the legends above or under the panel side by side, starting at the left edge of the panel with the title above the keys (ruling). 25e2 `[engine]`: `legend(direct)`, the name of each line at its end in its colour, the names moved apart where they would touch, with no leader (ruling). Step 25 complete; `plot` at sixteen functions built.
 
-## 12 November 2026, release 0.7.0, step 26a (`labels`)
+## 12 and 13 November 2026, steps 26a to 26c of release 0.7.0 (folded)
 
-**Done.** Step 26 was split into 26a (`labels`), 26b (`theme`) and 26c (`annotate`, and the labels of a crowded axis). `p.labels(title:, subtitle:, x:, y:, color:, caption:)` gives a figure a title and a subtitle above the panel and a caption under it, and titles the two axes and the legend of colour in the words of the script; an empty text takes a title away; a long title is broken between words. The specification's sample line with `labels` now runs.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 372 of 372; CI is read job by job after the push.
-
-**Next.** Step 26b `[function]`: `theme(journal | minimal | slide, base_size:)`.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the title at 10 points in the heavier face, the subtitle at 9 and the caption at 8, all from the left margin of the page; #131, arguments of `labels` for the legends of size, shape and fill at 0.8.0. Open as before: #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 26b (`theme`)
-
-**Done.** `p.theme(journal | minimal | slide, base_size:)`: `journal` is the theme frozen at step 22; `minimal` leaves out the lines of the axes and their ticks; `slide` is twice the size, for a screen; `base_size:` sets the size of the type and every other size of the figure in proportion. No earlier figure changed by a byte. The specification's sample line with `theme` now runs.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 378 of 378; CI is read job by job after the push.
-
-**Next.** Step 26c `[function]`: `annotate`, and the labels of a crowded axis, which completes step 26.
-
-**For the owner to decide.** One thing to look at, not blocking: on a slide the type is twice as large and the points and lines keep their size in points, as in ggplot2; the figures of the step show it. Taken on the recommendation, his to overturn: what `minimal` and `slide` are; a base size below 9 refused. Open as before: #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 26c (`annotate`, and the labels of a crowded axis), and step 26 complete
-
-**Done.** `p.annotate(text:, x:, y:, size:)` writes a text at a place of the data: a number, the name of a category or a date, as the axis holds. The labels of an axis of categories that are wider than their places are broken between words onto two or three lines where every label can then be written; otherwise they stay whole and every second or third is written; two hundred categories never overlap. With it step 26 is complete: `labels`, `theme`, `annotate`. `plot` stands at nineteen functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 384 of 384; CI is read job by job after the push.
-
-**Next.** Step 27 `[engine]`: coordinates and facets (`coord`, `facet`).
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: an annotation widens the axes like a mark and is cut off at the edge of the panel; labels are broken only where all can then be written. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+Step 26 was split into 26a to 26c. 26a `[function]`: `labels(title:, subtitle:, x:, y:, color:, caption:)`, the title at 10 points in the heavier face, the subtitle at 9 and the caption at 8, all from the left margin of the page (ruling); #131 recorded (titles for the legends of size, shape and fill, at 0.8.0). 26b `[function]`: `theme(journal | minimal | slide, base_size:)`; a base size below 9 is refused; the marks keep their size in points on a slide, as in ggplot2 (flagged to the owner). 26c `[function]`: `annotate(text:, x:, y:, size:)`, which widens the axes like a mark and is cut off at the edge of the panel, and the labels of a crowded axis of categories broken between words where all can then be written. Step 26 complete; `plot` at nineteen functions built.
 
 ## 13 November 2026, release 0.7.0, step 27a (`coord(flip)`), and step 27 split in five
 
@@ -177,4 +151,14 @@ Step 25c was split into 25c1 to 25c3, and 25c3 into 25c3a to 25c3c. 25c1 `[engin
 **Next.** Step 27c2 `[engine]`: the labels of `x` round the rim, the axis of `y`, what polar coordinates refuse, and `coord(polar)` opened with its help page.
 
 **For the owner to decide.** #132, new: whether `coord(polar)` should also take `y` as the angle (pies), a starting angle and a direction, as ggplot2 does; taken on the recommendation as A, the catalogue's one form, with the rest a question for 0.8.0. Also taken, his to overturn: the lowest and the highest value of `x` stand together at the top, and the lowest value of `y` is at the centre, as in ggplot2. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 27c2 (the guides of a polar plot, `coord(polar)` opened), and step 27c complete
+
+**Done.** `p.coord(polar)` draws: the labels of `x` stand round the rim, each beside its tick and upright, a long one broken between words and crowded ones thinned; the two ends of an axis of numbers share the top and are written once, as `0/24`; the axis of `y` stands at the left, beside the upward radius, with its ticks at the heights of the circles; the circle is the largest the page has room for with its labels. A rug in polar coordinates is refused. The page of `coord` is complete, with its four forms, and catalogue row 479 is implemented: `plot` stands at twenty functions built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 403 of 403; CI is read job by job after the push.
+
+**Next.** Step 27d `[engine]`: `facet(by:)`, one panel for each group with shared scales and a strip over each.
+
+**For the owner to decide.** Nothing new waits for him beyond #132 (pies, a starting angle and a direction for `coord(polar)`, at 0.8.0). Taken on the recommendation at this step, his to overturn: the axis of `y` at the left of the panel, as in ggplot2, and not along a spoke; long labels round the rim broken at a quarter of the room; a rug refused in polar coordinates, as ggplot2 refuses it. Open as before: the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

@@ -803,6 +803,20 @@ pub fn theme(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     Ok(Value::Plot(Rc::new(next)))
 }
 
+/// The refusal of a rug in polar coordinates, where the call that brings the two together
+/// is written.
+pub(crate) fn no_rug(ctx: &CallContext<'_>, at: Span) -> Fail {
+    fail(
+        Diagnostic::error(
+            "Z0401",
+            "a rug has no place in polar coordinates: its ticks stand along the straight edges of a panel, and a circle has none",
+        )
+        .in_file(ctx.script)
+        .primary(at, "a rug round a circle")
+        .help("show the values as `points`, or leave out `rug` or `coord(polar)`"),
+    )
+}
+
 const C_TYPE: usize = 1;
 const C_RATIO: usize = 2;
 
@@ -814,17 +828,6 @@ pub fn coord(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             ctx,
             "coordinates reached their body without a plot",
         ));
-    };
-    let not_yet = |ctx: &CallContext<'_>, slot: usize, what: &str| {
-        fail(
-            Diagnostic::error(
-                "Z0401",
-                format!("{what} is not built yet: it comes with a later step of this release"),
-            )
-            .in_file(ctx.script)
-            .primary(ctx.span_of(slot), "not in this build")
-            .help("the coordinates built so far are `cartesian`, `flip` and `fixed`"),
-        )
     };
     // `ratio:` belongs to `fixed`: how many units of `x` are as long as one unit of `y`.
     let ratio = match args.get(C_RATIO) {
@@ -857,7 +860,7 @@ pub fn coord(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             "cartesian" => Coord::Cartesian,
             "flip" => Coord::Flip,
             "fixed" => Coord::Fixed(ratio.unwrap_or(1.0)),
-            "polar" => return Err(not_yet(ctx, C_TYPE, "`coord(polar)`")),
+            "polar" => Coord::Polar,
             _ => return Err(internal(ctx, "coordinates that are none of the four")),
         },
         Some(_) => return Err(internal(ctx, "coordinates that are not a word")),
@@ -878,6 +881,9 @@ pub fn coord(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     let mut next = (**plot).clone();
     next.coord = coord;
+    if crate::scene::rug_round_a_circle(&next) {
+        return Err(no_rug(ctx, ctx.span_of(C_TYPE)));
+    }
     describe(&mut next);
     Ok(Value::Plot(Rc::new(next)))
 }

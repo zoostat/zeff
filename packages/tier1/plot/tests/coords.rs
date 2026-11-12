@@ -13,7 +13,7 @@ use zeff_core::value::{
     Aesthetic, Arrangement, AxisKind, Coord, Frame, LegendPlace, Mark, Plot, PlotAxis,
     PlotConstant, PlotLayer, PlotSetting, Sides, Stacking, Stairs,
 };
-use zeff_plot::drawing::{Drawing, Primitive, Step};
+use zeff_plot::drawing::{Anchor, Drawing, Primitive, Step};
 use zeff_plot::layout::{JOURNAL, LayoutError, SMALLEST_PANEL, Size, layout};
 use zeff_plot::scale::share;
 use zeff_plot::scene::{Position, RUG_LENGTH, Scene, describe, start, with_layer};
@@ -887,16 +887,16 @@ fn the_axes_of_a_polar_scene_have_no_margin() {
 }
 
 #[test]
-fn the_grid_of_a_polar_plot_is_spokes_and_circles_in_a_square_panel() {
+fn the_grid_of_a_polar_plot_is_spokes_and_circles_in_the_middle_of_its_panel() {
     let scene = with(
         &plot_of(small("d"), "dose", "response", Coord::Polar),
         Mark::Points,
     );
     let drawing = drawn(&scene);
     let (panel, width, height, _) = panel_of(&drawing);
-    assert!((width - height).abs() < 1e-9);
     let (centre, radius) = circle_of(&drawing);
-    assert!(radius > 20.0 && 2.0 * radius < width);
+    // The panel holds the circle and, round it, the labels of `x`.
+    assert!(radius > 20.0 && 2.0 * radius < width && 2.0 * radius < height);
     let (x, y) = (scene.scale("x").unwrap(), scene.scale("y").unwrap());
     // A spoke from the centre to the rim at each break of `x`; its two ends, 1 and 6, are
     // one spoke.
@@ -955,15 +955,16 @@ fn the_grid_of_a_polar_plot_is_spokes_and_circles_in_a_square_panel() {
     for (found, wanted) in circles.iter().zip(&rings) {
         assert!((found - wanted).abs() < 1e-9);
     }
-    // The circle is in the middle of the panel, and the panel in the middle of its room.
+    // The circle is in the middle of the panel, and the panel in the middle of its room,
+    // which is as wide as the panel of the same plot in cartesian coordinates.
     let room = drawn(&with(
         &plot_of(small("d"), "dose", "response", Coord::Cartesian),
         Mark::Points,
     ));
-    let (at, wide, high, _) = panel_of(&room);
+    let (at, wide, _, _) = panel_of(&room);
     assert!((at.0 + wide / 2.0 - centre.0).abs() < 1e-9);
-    assert!((at.1 + high / 2.0 - centre.1).abs() < 1e-9);
     assert!((panel.0 + width / 2.0 - centre.0).abs() < 1e-9);
+    assert!((panel.1 + height / 2.0 - centre.1).abs() < 1e-9);
 }
 
 #[test]
@@ -1278,4 +1279,346 @@ proptest! {
             );
         }
     }
+}
+
+// ----- the guides of a polar plot (step 27c2) -----
+
+/// The texts of the axis of a scale with the side each is written from.
+fn axis_words(drawing: &Drawing, id: &str) -> Vec<(String, (f64, f64), Anchor, f64)> {
+    drawing
+        .items
+        .iter()
+        .filter(|item| item.name.as_deref() == Some(&format!("axis:{id}")))
+        .filter_map(|item| match &item.primitive {
+            Primitive::Text {
+                at,
+                anchor,
+                turn,
+                spans,
+                ..
+            } => spans
+                .first()
+                .map(|span| (span.text.clone(), *at, *anchor, *turn)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The straight lines of the axis of a scale.
+fn axis_lines(drawing: &Drawing, id: &str) -> Vec<((f64, f64), (f64, f64))> {
+    drawing
+        .items
+        .iter()
+        .filter(|item| item.name.as_deref() == Some(&format!("axis:{id}")))
+        .filter_map(|item| match &item.primitive {
+            Primitive::Segment { from, to, .. } => Some((*from, *to)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// A frame of a number for each of some names.
+fn named_values(names: &[&str]) -> Frame {
+    frame(
+        "d",
+        vec![
+            ("g", Column::strs(names.iter().copied().map(Some))),
+            (
+                "n",
+                numbers(
+                    &(0..names.len())
+                        .map(|i| (i % 4 + 1) as f64)
+                        .collect::<Vec<f64>>(),
+                ),
+            ),
+        ],
+    )
+}
+
+#[test]
+fn the_labels_of_x_stand_round_the_rim_each_beside_its_tick() {
+    // In the order of the alphabet, which is the order of the scale.
+    let names = [
+        "a east",
+        "b south east",
+        "c south",
+        "d south west",
+        "e west",
+        "f north",
+    ];
+    let scene = with(
+        &plot_of(named_values(&names), "g", "n", Coord::Polar),
+        Mark::Bars(Arrangement::Stack),
+    );
+    let drawing = drawn(&scene);
+    let (panel, width, height, _) = panel_of(&drawing);
+    let circle = circle_of(&drawing);
+    let x = scene.scale("x").unwrap();
+    // The rim is a circle of the radius, drawn as the line of the axis, with a tick
+    // outwards at each break.
+    let rims: Vec<f64> = drawing
+        .items
+        .iter()
+        .filter(|item| item.name.as_deref() == Some("axis:x"))
+        .filter_map(|item| match &item.primitive {
+            Primitive::Path { steps, .. } => match steps[..] {
+                [
+                    Step::Move(_),
+                    Step::Arc { radii, .. },
+                    Step::Arc { .. },
+                    Step::Close,
+                ] => Some(radii.0),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    assert_eq!(rims.len(), 1);
+    assert!((rims[0] - circle.1).abs() < 1e-9);
+    let ticks = axis_lines(&drawing, "x");
+    assert_eq!(ticks.len(), 6);
+    for (i, (from, to)) in ticks.iter().enumerate() {
+        let (turn, out) = round(*from, circle);
+        let wanted = share(x.kind, x.limits, x.breaks[i]);
+        assert!((turn - wanted).abs() < 1e-9 && (out - 1.0).abs() < 1e-9);
+        let (again, further) = round(*to, circle);
+        assert!((again - wanted).abs() < 1e-9 && further > 1.0);
+    }
+    // Every name is written, upright, in the panel and outside the rim: at the right of
+    // the circle from its tick onwards, at the left up to its tick, at the top and the
+    // foot centred on it.
+    let words = axis_words(&drawing, "x");
+    let labels: Vec<&(String, (f64, f64), Anchor, f64)> = words
+        .iter()
+        .filter(|(text, ..)| x.labels.contains(text))
+        .collect();
+    assert_eq!(labels.len(), 6);
+    for (text, at, anchor, turn) in labels {
+        assert_eq!(*turn, 0.0);
+        let i = x.labels.iter().position(|label| label == text).unwrap();
+        let wanted = share(x.kind, x.limits, x.breaks[i]);
+        let side = (2.0 * std::f64::consts::PI * wanted).sin();
+        assert_eq!(
+            *anchor,
+            if side.abs() < 0.2 {
+                Anchor::Middle
+            } else if side > 0.0 {
+                Anchor::Start
+            } else {
+                Anchor::End
+            },
+            "{text}"
+        );
+        // Its place is on the line from the centre through its tick.
+        let (turn, out) = round((at.0, at.1 - 3.0), circle);
+        assert!(out > 1.0, "{text} is inside the rim");
+        let apart = (turn - wanted).abs();
+        assert!(
+            apart.min(1.0 - apart) < 0.02,
+            "{text} at {turn}, not {wanted}"
+        );
+        assert!(at.0 > panel.0 && at.0 < panel.0 + width, "{text}");
+        assert!(at.1 > panel.1 && at.1 < panel.1 + height + 1e-9, "{text}");
+    }
+    insta::assert_snapshot!("six_winds", drawing.describe());
+}
+
+#[test]
+fn the_two_ends_of_an_axis_of_numbers_share_the_top_and_are_written_once() {
+    let hours: Vec<f64> = (0..=24).step_by(3).map(f64::from).collect();
+    let calls = [2.0, 1.0, 4.0, 12.0, 15.0, 11.0, 9.0, 5.0, 2.0];
+    let mut plot = plot_of(pairs(&hours, &calls), "x", "y", Coord::Polar);
+    let mut axis = PlotAxis::of(Aesthetic::X, AxisKind::Linear);
+    axis.breaks = Some(vec![0.0, 6.0, 12.0, 18.0, 24.0]);
+    plot.axes.push(axis);
+    let drawing = drawn(&with(&plot, Mark::Lines));
+    let circle = circle_of(&drawing);
+    let words: Vec<String> = axis_words(&drawing, "x")
+        .into_iter()
+        .map(|(text, ..)| text)
+        .collect();
+    // 0 and 24 are one place, the top: one tick, and one label that names both.
+    assert_eq!(axis_lines(&drawing, "x").len(), 4);
+    for wanted in ["0/24", "6", "12", "18"] {
+        assert!(
+            words.iter().any(|text| text == wanted),
+            "{wanted} in {words:?}"
+        );
+    }
+    assert!(!words.iter().any(|text| text == "0" || text == "24"));
+    let top = axis_words(&drawing, "x")
+        .into_iter()
+        .find(|(text, ..)| text == "0/24")
+        .unwrap();
+    assert!((top.1.0 - circle.0.0).abs() < 1e-9 && top.1.1 < circle.0.1 - circle.1);
+    assert_eq!(top.2, Anchor::Middle);
+}
+
+#[test]
+fn a_long_label_is_broken_and_crowded_labels_are_passed_over() {
+    // A name wider than a quarter of the room is written on two lines or three, and the
+    // circle keeps a size worth drawing.
+    let long = [
+        "Public administration and defence",
+        "Health",
+        "Education",
+        "Retail",
+    ];
+    let drawing = drawn(&with(
+        &plot_of(named_values(&long), "g", "n", Coord::Polar),
+        Mark::Bars(Arrangement::Stack),
+    ));
+    let words: Vec<String> = axis_words(&drawing, "x")
+        .into_iter()
+        .map(|(text, ..)| text)
+        .collect();
+    assert!(!words.iter().any(|text| text == long[0]), "{words:?}");
+    assert!(words.iter().any(|text| text.starts_with("Public")));
+    assert!(words.iter().any(|text| text.ends_with("defence")));
+    assert!(circle_of(&drawing).1 > 25.0);
+    // Two hundred categories: a tick for each, and of the labels every so many, none of
+    // those written touching another.
+    let many: Vec<String> = (0..200).map(|i| format!("unit {i:03}")).collect();
+    let names: Vec<&str> = many.iter().map(String::as_str).collect();
+    let drawing = drawn(&with(
+        &plot_of(named_values(&names), "g", "n", Coord::Polar),
+        Mark::Points,
+    ));
+    assert_eq!(axis_lines(&drawing, "x").len(), 200);
+    let written: Vec<(String, (f64, f64), Anchor, f64)> = axis_words(&drawing, "x")
+        .into_iter()
+        .filter(|(text, ..)| text.starts_with("unit "))
+        .collect();
+    assert!(
+        written.len() >= 8 && written.len() <= 100,
+        "{}",
+        written.len()
+    );
+    assert_eq!(written[0].0, "unit 000");
+    // Every so many: the same step from each to the next.
+    let places: Vec<usize> = written
+        .iter()
+        .map(|(text, ..)| text[5..].parse().unwrap())
+        .collect();
+    let step = places[1] - places[0];
+    assert!(places.windows(2).all(|pair| pair[1] - pair[0] == step));
+    // No two of them touch: a label is less than 32 points wide and 6 high.
+    let boxes: Vec<(f64, f64, f64, f64)> = written
+        .iter()
+        .map(|(_, at, anchor, _)| {
+            let wide = 30.0;
+            let left = match anchor {
+                Anchor::Start => at.0,
+                Anchor::End => at.0 - wide,
+                Anchor::Middle => at.0 - wide / 2.0,
+            };
+            (left, left + wide, at.1 - 5.5, at.1)
+        })
+        .collect();
+    for (i, a) in boxes.iter().enumerate() {
+        for b in &boxes[i + 1..] {
+            assert!(
+                a.1 <= b.0 || b.1 <= a.0 || a.3 <= b.2 || b.3 <= a.2,
+                "{a:?} and {b:?} touch"
+            );
+        }
+    }
+}
+
+#[test]
+fn the_axis_of_y_stands_beside_the_upward_radius() {
+    let scene = with(
+        &plot_of(small("d"), "dose", "response", Coord::Polar),
+        Mark::Points,
+    );
+    let drawing = drawn(&scene);
+    let (panel, _, height, _) = panel_of(&drawing);
+    let (centre, radius) = circle_of(&drawing);
+    let y = scene.scale("y").unwrap();
+    // Its line: at the left edge of the panel, from the height of the top of the rim to the
+    // height of the centre. Its ticks: at the heights of the circles of the grid.
+    let lines = axis_lines(&drawing, "y");
+    let (from, to) = lines[0];
+    assert!((from.0 - panel.0).abs() < 1e-9 && (to.0 - panel.0).abs() < 1e-9);
+    assert!((from.1 - (centre.1 - radius)).abs() < 1e-9 && (to.1 - centre.1).abs() < 1e-9);
+    assert_eq!(lines.len(), 1 + y.breaks.len());
+    for ((tick, _), value) in lines[1..].iter().zip(&y.breaks) {
+        let wanted = centre.1 - radius * share(y.kind, y.limits, *value);
+        assert!((tick.1 - wanted).abs() < 1e-9 && tick.0 < panel.0);
+    }
+    // Its labels end at the ticks, and its title is turned to read upwards, at the middle
+    // of the height of the panel.
+    let words = axis_words(&drawing, "y");
+    let title = words.iter().find(|(text, ..)| text == "response").unwrap();
+    assert_eq!(title.3, 90.0);
+    assert!((title.1.1 - (panel.1 + height / 2.0)).abs() < 1e-9);
+    assert!(
+        words
+            .iter()
+            .filter(|(text, ..)| text != "response")
+            .all(|(_, at, anchor, _)| *anchor == Anchor::End && at.0 < panel.0)
+    );
+    // The title of `x` is under the panel, centred on the circle.
+    let under = axis_words(&drawing, "x")
+        .into_iter()
+        .find(|(text, ..)| text == "dose")
+        .unwrap();
+    assert!((under.1.0 - centre.0).abs() < 1e-9 && under.1.1 > panel.1 + height);
+}
+
+#[test]
+fn a_minimal_polar_plot_has_no_rim_and_no_tick_and_names_at_line_ends_go_to_the_right() {
+    let scene = with(
+        &plot_of(small("d"), "dose", "response", Coord::Polar),
+        Mark::Points,
+    );
+    let theme = zeff_plot::layout::Theme::of(&zeff_core::value::PlotTheme {
+        name: zeff_core::value::ThemeName::Minimal,
+        base_size: None,
+    });
+    let drawing = layout(&scene, Size::OneColumn, &theme).unwrap();
+    assert!(axis_lines(&drawing, "x").is_empty() && axis_lines(&drawing, "y").is_empty());
+    assert!(!drawing.items.iter().any(|item| {
+        item.name.as_deref() == Some("axis:x") && matches!(item.primitive, Primitive::Path { .. })
+    }));
+    // The labels are all there.
+    assert!(axis_words(&drawing, "x").len() >= 4 && axis_words(&drawing, "y").len() >= 4);
+    // `direct` names lines at their right-hand ends, and a circle has none: the legend is
+    // at the right.
+    let mut plot: Plot = start(
+        small("d"),
+        vec![
+            mapped(Aesthetic::X, "dose"),
+            mapped(Aesthetic::Y, "response"),
+            mapped(Aesthetic::Color, "arm"),
+        ],
+        Vec::new(),
+    );
+    plot.coord = Coord::Polar;
+    plot.legend = LegendPlace::Direct;
+    let direct = drawn(&with(&plot, Mark::Lines));
+    plot.legend = LegendPlace::Right;
+    assert_eq!(
+        direct.describe(),
+        drawn(&with(&plot, Mark::Lines)).describe()
+    );
+}
+
+#[test]
+fn a_page_too_small_for_a_circle_and_its_labels_is_refused() {
+    let names = [
+        "a name of some considerable length",
+        "another name of considerable length",
+        "a third name of considerable length",
+        "a fourth name of considerable length",
+    ];
+    let scene = with(
+        &plot_of(named_values(&names), "g", "n", Coord::Polar),
+        Mark::Bars(Arrangement::Stack),
+    );
+    assert!(matches!(
+        layout(&scene, Size::Millimetres(40.0, 40.0), &JOURNAL),
+        Err(LayoutError::TooSmall { .. })
+    ));
+    assert!(layout(&scene, Size::TwoColumn, &JOURNAL).is_ok());
 }

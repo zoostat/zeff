@@ -2137,6 +2137,25 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/fixed/{name}"), &data));
     }
+    // Polar coordinates (step 27c2): the mean wage of each industry as wedges of one
+    // circle, every name round the rim; the calls of a day round a clock, whose two ends
+    // share the top; the wage by year and union as two rings; what the script prints, the
+    // wedges in the three formats and the two others as figures.
+    let script = "let w = dataset(wages)\nlet m = w.where(year == 2015).aggregate(wage = mean(wage), by: [industry])\nlet p = m.plot(x: industry, y: wage).bars().coord(polar)\np\nlet h = frame(hour = [0, 3, 6, 9, 12, 15, 18, 21, 24], calls = [2, 1, 4, 12, 15, 11, 9, 5, 2])\nlet q = h.plot(x: hour, y: calls).area(alpha: 0.4).lines().scale_x(breaks: [0, 6, 12, 18, 24]).coord(polar)\nq\nlet u = w.aggregate(wage = mean(wage), by: [year, union])\nlet r = u.plot(x: year, y: union, fill: wage).tile().coord(polar).theme(minimal)\nr\nexport(p, \"polar.svg\")\nexport(p, \"polar.pdf\")\nexport(p, \"polar.png\")\nexport(q, \"clock.svg\")\nexport(r, \"rings.svg\", size: two_column)\n";
+    let wound = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/polar/stdout", &wound.output.stdout));
+    fills.push(text("plot/polar/stderr", &wound.output.stderr));
+    for name in [
+        "polar.svg",
+        "polar.pdf",
+        "polar.png",
+        "clock.svg",
+        "rings.svg",
+    ] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/polar/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

@@ -3304,7 +3304,13 @@ fn every_message_of_coord() {
         ("coordinates_that_are_none", "p.coord(sideways)\n"),
         ("coordinates_in_quotation_marks", "p.coord(\"flip\")\n"),
         ("coordinates_of_a_frame", "d.coord(flip)\n"),
-        ("polar_not_built_yet", "p.coord(polar)\n"),
+        ("a_ratio_with_polar", "p.coord(polar, ratio: 2)\n"),
+        ("a_rug_then_polar", "p.rug().coord(polar)\n"),
+        ("polar_then_a_rug", "p.coord(polar).rug()\n"),
+        (
+            "a_circle_too_small",
+            "export(p.coord(polar), \"small.svg\", size: [30, 30])\n",
+        ),
         ("a_ratio_without_fixed", "p.coord(ratio: 2)\n"),
         ("a_ratio_with_flip", "p.coord(flip, ratio: 2)\n"),
         ("a_ratio_of_zero", "p.coord(fixed, ratio: 0)\n"),
@@ -3373,6 +3379,51 @@ fn a_plot_with_fixed_coordinates_is_exported_in_the_three_formats() {
          export(q, \"fixed.pdf\")\n\
          export(q, \"fixed.png\")\n\
          export(q.legend(top), \"fixed_top.svg\", size: two_column)\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
+}
+
+// ----- coord(polar) (step 27c2) -----
+
+#[test]
+fn polar_coordinates_read_sensibly_as_text() {
+    let script = format!(
+        "{ARMS}p.coord(polar)\n\
+         d.plot(x: arm, y: change).bars().coord(polar)\n\
+         p.coord(polar).coord(flip)\n\
+         p.coord(fixed).coord(polar)\n\
+         d.plot(x: dose, y: change).coord(polar).lines().scale_x(limits: [0, 8]).theme(minimal)\n\
+         d.plot(x: dose, y: change, color: arm).lines().legend(direct).coord(polar)\n"
+    );
+    let text = printed(&script);
+    let line = "coordinates: polar, `x` as the angle and `y` as the distance from the centre\n";
+    assert_eq!(text.matches(line).count(), 5, "{text}");
+    assert_eq!(text.matches("coordinates:").count(), 6);
+    // No axis of a polar plot has a margin: the limits are those of the data, a place for
+    // each category with half a place at each end, and bars from zero.
+    assert!(text.contains("x      dose     linear   1 to 4"), "{text}");
+    assert!(
+        text.contains("y      change   linear   0.4 to 2.9"),
+        "{text}"
+    );
+    assert!(
+        text.contains("x      arm      category   0.5 to 2.5"),
+        "{text}"
+    );
+    assert!(text.contains("y      change   linear     0 to 4"), "{text}");
+    // The limits the script sets are kept.
+    assert!(text.contains("x      dose     linear   0 to 8"), "{text}");
+    insta::assert_snapshot!("polar_coordinates_of_plots", text);
+}
+
+#[test]
+fn a_polar_plot_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{ARMS}let q = d.plot(x: arm, y: change).bars().coord(polar)\n\
+         export(q, \"rose.svg\")\n\
+         export(q, \"rose.pdf\")\n\
+         export(q, \"rose.png\")\n\
+         export(p.coord(polar).legend(top).theme(slide), \"rose_slide.svg\", size: slide)\n"
     ));
     assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
 }

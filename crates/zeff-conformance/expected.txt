@@ -377,6 +377,13 @@ plot/fixed/fixed.svg a22a1250fb3c3ec5
 plot/fixed/fixed.pdf 841dccbeb59d70b2
 plot/fixed/fixed.png 852f48ffed3b2859
 plot/fixed/fixed_wide.svg 31b3886b373a0da2
+plot/polar/stdout 484f1a5b62834dc9
+plot/polar/stderr 879959c581e5de42
+plot/polar/polar.svg 7b7d94fc9fe829e6
+plot/polar/polar.pdf bc51e52c13f13474
+plot/polar/polar.png 07347d80dd707e60
+plot/polar/clock.svg f3c87f2316ed7966
+plot/polar/rings.svg 396df71cb027d76b
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

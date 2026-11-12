@@ -824,6 +824,156 @@ fn spread(wanted: &[f64], apart: f64, top: f64, bottom: f64) -> Vec<f64> {
     out
 }
 
+/// Where a label round the rim stands on the page: where its first line is written from,
+/// how far it reaches across, from its left to its right, and how far down, from its top to
+/// its foot.
+type Placed = ((f64, f64), (f64, f64), (f64, f64));
+
+/// A label of `x` round the rim of a polar plot: its lines, the way from the centre to its
+/// place, across and up, as a length of one, the width of its widest line, the height of
+/// its lines together, and the side it is written from.
+struct RimLabel {
+    lines: Vec<String>,
+    towards: (f64, f64),
+    width: f64,
+    height: f64,
+    anchor: Anchor,
+}
+
+/// The labels round the rim: one at the angle of each break of the scale, clockwise from
+/// the top. The two ends of the scale are one place, the top, and a break at each is written
+/// there once, as the first and the last with a stroke between. A label wider than `limit`
+/// is broken between words, into three lines at most. A label near the top or the foot is
+/// centred on its tick; one at the right starts at its tick and one at the left ends there.
+fn rim_labels(s: &Scale, set: &mut Setter, theme: &Theme, limit: f64) -> Vec<RimLabel> {
+    let size = theme.label_size;
+    let shares: Vec<f64> = s
+        .breaks
+        .iter()
+        .map(|value| scale::share(s.kind, s.limits, *value).clamp(0.0, 1.0))
+        .collect();
+    let first = shares.iter().position(|share| *share <= 1e-12);
+    let mut placed: Vec<(String, (f64, f64))> = Vec::new();
+    for (i, &share) in shares.iter().enumerate() {
+        let Some(words) = s.labels.get(i) else {
+            continue;
+        };
+        if share >= 1.0 - 1e-12
+            && let Some(first) = first.filter(|first| *first != i)
+        {
+            // The label at the start of the round carries the one at its end.
+            if let (Some(start), Some(at)) = (
+                s.labels.get(first),
+                placed.iter_mut().find(|at| at.1 == (0.0, 1.0)),
+            ) && start != words
+            {
+                at.0 = format!("{start}/{words}");
+            }
+            continue;
+        }
+        let angle = 2.0 * std::f64::consts::PI * share;
+        let towards = if share <= 1e-12 {
+            (0.0, 1.0)
+        } else {
+            (
+                zeff_numeric::maths::sin(angle),
+                zeff_numeric::maths::cos(angle),
+            )
+        };
+        placed.push((words.clone(), towards));
+    }
+    placed
+        .into_iter()
+        .map(|(words, towards)| {
+            let whole = set.width(&words, FaceName::Sans, size);
+            let mut lines = if whole > limit && limit > 0.0 {
+                set.wrap(&words, FaceName::Sans, size, limit)
+            } else {
+                vec![words.clone()]
+            };
+            if lines.is_empty() || lines.len() > MOST_LINES {
+                lines = vec![words];
+            }
+            let width = lines
+                .iter()
+                .map(|line| set.width(line, FaceName::Sans, size))
+                .fold(0.0, f64::max);
+            RimLabel {
+                height: capital(size) + (lines.len() - 1) as f64 * size * theme.leading,
+                lines,
+                towards,
+                width,
+                anchor: if towards.0.abs() < 0.2 {
+                    Anchor::Middle
+                } else if towards.0 > 0.0 {
+                    Anchor::Start
+                } else {
+                    Anchor::End
+                },
+            }
+        })
+        .collect()
+}
+
+/// The circle of a polar plot in the room a page leaves it: the labels round its rim, its
+/// radius, and the panel, which holds the circle in its middle and the labels round it.
+struct Round {
+    rim: Vec<RimLabel>,
+    radius: f64,
+    panel: (f64, f64),
+}
+
+/// The largest circle that a room `wide` by `high` holds with the labels of `xs` round its
+/// rim, each a tick and a gap out from the rim. A label is broken where it is wider than a
+/// quarter of the room. The panel is as wide as the circle and its labels at the two sides
+/// need, and as high as they need at the top and the foot.
+fn round_in(xs: Option<&Scale>, set: &mut Setter, theme: &Theme, wide: f64, high: f64) -> Round {
+    let gap = theme.tick_length + theme.label_gap;
+    let line = capital(theme.label_size);
+    let rim = match xs {
+        Some(s) => rim_labels(s, set, theme, wide / 4.0),
+        None => Vec::new(),
+    };
+    // How far a label reaches sideways from its tick, with half a letter of room beyond it
+    // before the edge of the panel, where the axis of `y` stands.
+    let reach = |at: &RimLabel| {
+        theme.label_size / 2.0
+            + at.width
+                * if at.anchor == Anchor::Middle {
+                    0.5
+                } else {
+                    1.0
+                }
+    };
+    // A point on the rim is drawn whole: a gap at the sides, and a line of type at the top
+    // and the foot, where a label stands.
+    let mut radius = (wide / 2.0 - gap).min(high / 2.0 - gap - line);
+    for at in &rim {
+        let (across, up) = (at.towards.0.abs(), at.towards.1.abs());
+        if across > 1e-9 {
+            radius = radius.min((wide / 2.0 - reach(at)) / across - gap);
+        } else if reach(at) > wide / 2.0 {
+            radius = -1.0;
+        }
+        if up > 1e-9 {
+            radius = radius.min((high / 2.0 - at.height) / up - gap);
+        }
+    }
+    let across = rim
+        .iter()
+        .map(|at| (radius + gap) * at.towards.0.abs() + reach(at))
+        .fold(radius + gap, f64::max);
+    let up = rim
+        .iter()
+        .map(|at| (radius + gap) * at.towards.1.abs() + at.height)
+        .fold(radius + gap + line, f64::max);
+    Round {
+        rim,
+        radius,
+        panel: (2.0 * across, 2.0 * up),
+    }
+}
+
 /// The largest angle one straight piece of a wound mark spans: two degrees, at which a
 /// chord of a circle a hundred points across is a hundredth of a point from its arc.
 const WOUND_STEP: f64 = std::f64::consts::PI / 90.0;
@@ -1573,7 +1723,13 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                     };
                     // Each line of a label after the first takes a line of the type.
                     let more = x_rows.saturating_sub(1) as f64 * label * theme.leading;
-                    title + capital(label) + more + theme.label_gap + theme.tick_length
+                    if polar {
+                        // The labels of `x` are round the rim, inside the panel: under it
+                        // there is the title alone.
+                        title
+                    } else {
+                        title + capital(label) + more + theme.label_gap + theme.tick_length
+                    }
                 }
                 None => half_capital,
             };
@@ -1587,13 +1743,11 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     // The shape fixed coordinates give the panel, its height for a width of one: a unit of
     // `y` is as long as `ratio` units of `x`, so the height is to the width as the units
     // `y` runs over, times the ratio, are to the units `x` runs over.
-    // Polar coordinates draw a circle, whose panel is a square.
     let upright: Option<f64> = match (scene.coord, xs, ys) {
         (Coord::Fixed(ratio), Some(x), Some(y)) => {
             let shape = ratio * scale::units(y.kind, y.limits) / scale::units(x.kind, x.limits);
             (shape > 0.0 && shape.is_finite()).then_some(shape)
         }
-        (Coord::Polar, _, _) => Some(1.0),
         _ => None,
     };
     let shaped = |wide: f64, high: f64| -> (f64, f64) {
@@ -1610,13 +1764,25 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     };
     let (mut left, mut bottom) = sides(usize::from(titled(xs)), usize::from(titled(ys)), 1);
     for _ in 0..2 {
-        let (panel_width, panel_height) = shaped(width - left - right, height - top - bottom);
+        // In polar coordinates the panel is the circle with the labels round its rim.
+        let (panel_width, panel_height) = if polar {
+            round_in(
+                xs,
+                &mut set,
+                theme,
+                width - left - right,
+                height - top - bottom,
+            )
+            .panel
+        } else {
+            shaped(width - left - right, height - top - bottom)
+        };
         // On an axis of categories a label wider than its place is broken between words,
         // into three lines at most, a word longer than the place standing alone on its
         // line. The labels are written so where every one of them can then be written
         // without touching its neighbour; where some would still have to be passed over,
         // they are left whole, on one line, and every second or third is written.
-        if let Some(s) = xs.filter(|s| s.kind == ScaleKind::Category) {
+        if let Some(s) = xs.filter(|s| s.kind == ScaleKind::Category && !polar) {
             let places = s.limits.1 - s.limits.0;
             let slot = if places > 0.0 {
                 panel_width / places - label / 2.0
@@ -1688,7 +1854,21 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
     }
     // With fixed coordinates the panel is the largest of its shape that the room holds,
     // in the middle of that room: the axes go with it, and a legend at its right.
-    let (panel_width, panel_height) = shaped(room_width, room_height);
+    // In polar coordinates the panel holds the largest circle the room has room for, with
+    // the labels of `x` round its rim; it stands in the middle of the room like a fixed one.
+    let round = polar.then(|| round_in(xs, &mut set, theme, room_width, room_height));
+    if let Some(round) = round
+        .as_ref()
+        .filter(|round| 2.0 * round.radius < SMALLEST_PANEL)
+    {
+        return Err(LayoutError::TooSmall {
+            panel: (2.0 * round.radius.max(0.0), 2.0 * round.radius.max(0.0)),
+        });
+    }
+    let (panel_width, panel_height) = match &round {
+        Some(round) => round.panel,
+        None => shaped(room_width, room_height),
+    };
     if !(panel_width >= SMALLEST_PANEL && panel_height >= SMALLEST_PANEL) {
         let filling = match (scene.coord, upright) {
             (Coord::Fixed(ratio), Some(upright)) => ratio * (room_height / room_width) / upright,
@@ -1706,20 +1886,13 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
         (room_height - panel_height) / 2.0,
     );
     let (left, top) = (left + moved_across, top + moved_down);
-    // In polar coordinates the panel is a square and the marks a circle in its middle, with
-    // room between its rim and the square for the labels round the rim.
-    let rim_room = if polar {
-        theme.tick_length + theme.label_gap + label * theme.leading
-    } else {
-        0.0
+    // The circle is in the middle of its panel.
+    let rim_gap = theme.tick_length + theme.label_gap;
+    let (rim, radius): (&[RimLabel], f64) = match &round {
+        Some(round) => (&round.rim, round.radius),
+        None => (&[], 0.0),
     };
-    let radius = panel_width.min(panel_height) / 2.0 - rim_room;
     let centre = (left + panel_width / 2.0, top + panel_height / 2.0);
-    if polar && 2.0 * radius < SMALLEST_PANEL {
-        return Err(LayoutError::TooSmall {
-            panel: (2.0 * radius, 2.0 * radius),
-        });
-    }
     // A value is placed by the share of the way it stands between the limits of its axis, as
     // the kind of the axis has it: linear, log or square root.
     let across = |s: &Scale, v: f64| left + scale::share(s.kind, s.limits, v) * panel_width;
@@ -2268,6 +2441,182 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             items: marks,
         },
     ));
+    // The guides of a polar plot. The axis of `x` is the rim: its line, a tick outwards at
+    // each break, and the labels round it that do not touch, each beside its tick and
+    // upright; its title is under the panel.
+    if let Some(s) = xs.filter(|_| polar) {
+        let along = format!("axis:{}", s.id);
+        if theme.axis_lines {
+            let half = |to: (f64, f64)| Step::Arc {
+                radii: (radius, radius),
+                turn: 0.0,
+                larger: false,
+                clockwise: true,
+                to,
+            };
+            items.push(named(
+                &along,
+                Primitive::Path {
+                    steps: vec![
+                        Step::Move((centre.0, centre.1 - radius)),
+                        half((centre.0, centre.1 + radius)),
+                        half((centre.0, centre.1 - radius)),
+                        Step::Close,
+                    ],
+                    stroke: Some(line(theme.ink, theme.axis_width)),
+                    fill: None,
+                    opacity: 1.0,
+                },
+            ));
+        }
+        // Where each label stands: its box on the page, by its anchor. The lines of a
+        // label stand over the rim at the top, under it at the foot, and level with their
+        // tick at the sides.
+        let boxes: Vec<Placed> = rim
+            .iter()
+            .map(|at| {
+                let x = centre.0 + (radius + rim_gap) * at.towards.0;
+                let head = centre.1
+                    - (radius + rim_gap) * at.towards.1
+                    - at.height * (1.0 + at.towards.1) / 2.0;
+                let (from, to) = match at.anchor {
+                    Anchor::Start => (x, x + at.width),
+                    Anchor::End => (x - at.width, x),
+                    Anchor::Middle => (x - at.width / 2.0, x + at.width / 2.0),
+                };
+                (
+                    (x, head + capital(label)),
+                    (from, to),
+                    (head, head + at.height),
+                )
+            })
+            .collect();
+        let touch = |a: usize, b: usize| {
+            let ((_, across_a, down_a), (_, across_b, down_b)) = (boxes[a], boxes[b]);
+            across_a.0 < across_b.1 + label / 2.0
+                && across_b.0 < across_a.1 + label / 2.0
+                && down_a.0 < down_b.1 + label / 4.0
+                && down_b.0 < down_a.1 + label / 4.0
+        };
+        // Every label, or every second, or every third: the first step at which no two of
+        // those written touch, the last and the first of the round among them.
+        let step = (1..=rim.len().max(1))
+            .find(|&step| {
+                let kept: Vec<usize> = (0..rim.len()).step_by(step).collect();
+                kept.iter()
+                    .enumerate()
+                    .all(|(i, &a)| kept[i + 1..].iter().all(|&b| !touch(a, b)))
+            })
+            .unwrap_or(1);
+        for (i, at) in rim.iter().enumerate() {
+            if theme.axis_lines {
+                items.push(named(
+                    &along,
+                    segment(
+                        (
+                            centre.0 + radius * at.towards.0,
+                            centre.1 - radius * at.towards.1,
+                        ),
+                        (
+                            centre.0 + (radius + theme.tick_length) * at.towards.0,
+                            centre.1 - (radius + theme.tick_length) * at.towards.1,
+                        ),
+                        line(theme.ink, theme.axis_width),
+                    ),
+                ));
+            }
+            if i % step == 0 {
+                let (x, baseline) = boxes[i].0;
+                for (row, words) in at.lines.iter().enumerate() {
+                    let y = baseline + row as f64 * label * theme.leading;
+                    items.push(named(
+                        &along,
+                        text((x, y), at.anchor, 0.0, words, label, theme),
+                    ));
+                }
+            }
+        }
+        for (i, words) in x_title.iter().enumerate() {
+            let y = top + panel_height + theme.title_gap + (i + 1) as f64 * title_line
+                - theme.title_size * (theme.leading - 1.0);
+            items.push(named(
+                &along,
+                text(
+                    (left + panel_width / 2.0, y),
+                    Anchor::Middle,
+                    0.0,
+                    words,
+                    theme.title_size,
+                    theme,
+                ),
+            ));
+        }
+    }
+    // The axis of `y` of a polar plot stands at the left of the panel, beside the radius
+    // that goes up from the centre: its line from the height of the centre to that of the
+    // top of the rim, a tick at the height of each circle of the grid, and its labels.
+    if let Some(s) = ys.filter(|_| polar) {
+        let up = format!("axis:{}", s.id);
+        if theme.axis_lines {
+            items.push(named(
+                &up,
+                segment(
+                    (left, centre.1 - radius),
+                    (left, centre.1),
+                    line(theme.ink, theme.axis_width),
+                ),
+            ));
+        }
+        let centres: Vec<f64> = s
+            .breaks
+            .iter()
+            .map(|v| centre.1 - radius * scale::share(s.kind, s.limits, *v).clamp(0.0, 1.0))
+            .collect();
+        let heights = vec![capital(label); centres.len()];
+        let step = thinning(&centres, &heights, label / 4.0);
+        for (i, &y) in centres.iter().enumerate() {
+            if theme.axis_lines {
+                items.push(named(
+                    &up,
+                    segment(
+                        (left - theme.tick_length, y),
+                        (left, y),
+                        line(theme.ink, theme.axis_width),
+                    ),
+                ));
+            }
+            if i % step == 0
+                && let Some(words) = s.labels.get(i)
+            {
+                items.push(named(
+                    &up,
+                    text(
+                        (left - theme.tick_length - theme.label_gap, y + half_capital),
+                        Anchor::End,
+                        0.0,
+                        words,
+                        label,
+                        theme,
+                    ),
+                ));
+            }
+        }
+        for (i, words) in y_title.iter().enumerate() {
+            let x = theme.margin + moved_across + (i + 1) as f64 * title_line
+                - theme.title_size * (theme.leading - 1.0);
+            items.push(named(
+                &up,
+                text(
+                    (x, top + panel_height / 2.0),
+                    Anchor::Middle,
+                    90.0,
+                    words,
+                    theme.title_size,
+                    theme,
+                ),
+            ));
+        }
+    }
     // The x axis: its line, a tick at each break, the labels that do not touch, its title.
     if let Some(s) = xs.filter(|_| !polar) {
         // The axis is named by its scale: `axis:x`, or `axis:y` where the coordinates are
