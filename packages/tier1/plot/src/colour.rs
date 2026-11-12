@@ -36,14 +36,27 @@ pub fn category(position: usize) -> (&'static str, &'static str) {
 /// The entry of a ramp of `steps` colours for the value `v` on a scale from `lo` to `hi`: the
 /// share of the way from `lo` to `hi`, times `steps`, rounded down, and the last entry for `hi`
 /// itself, so that each entry takes an equal share of the scale (the rule of matplotlib's
-/// colour maps). The halves keep the widest scales from overflowing. Where the limits are one
-/// value, or the share cannot be computed, the middle entry.
+/// colour maps). Where the limits are one value, or the share cannot be computed, the middle
+/// entry.
+///
+/// The width of the scale is taken as it is where it can be held, and from the halves of the
+/// limits where it, or the distance of the value from the lower limit, would overflow, as
+/// from the lowest number to the highest. Halving is exact
+/// but for the very smallest numbers, where it would make two limits one; those are never
+/// halved, since their width never overflows. Both ways give the same share where both can
+/// be computed.
 pub fn ramp_entry(v: f64, lo: f64, hi: f64, steps: usize) -> usize {
     if steps == 0 {
         return 0;
     }
-    let width = hi / 2.0 - lo / 2.0;
-    let share = (v / 2.0 - lo / 2.0) / width;
+    let whole = hi - lo;
+    let direct = (v - lo) / whole;
+    let (width, share) = if whole.is_finite() && direct.is_finite() {
+        (whole, direct)
+    } else {
+        let width = hi / 2.0 - lo / 2.0;
+        (width, (v / 2.0 - lo / 2.0) / width)
+    };
     if !(width > 0.0 && share.is_finite()) {
         return steps / 2;
     }
@@ -381,6 +394,22 @@ mod tests {
         assert_eq!(ramp_entry(-f64::MAX, -f64::MAX, f64::MAX, 256), 0);
         assert_eq!(ramp_entry(0.0, -f64::MAX, f64::MAX, 256), 128);
         assert_eq!(ramp_entry(1.0, 0.0, 1.0, 0), 0);
+        // The narrowest scale there is, from zero to the smallest number above it, found by
+        // the property test of the scene on 12 November 2026: its two ends are its two ends.
+        assert_eq!(ramp_entry(0.0, 0.0, 5e-324, 256), 0);
+        assert_eq!(ramp_entry(5e-324, 0.0, 5e-324, 256), 255);
+        assert_eq!(ramp_entry(-5e-324, -5e-324, 5e-324, 256), 0);
+        assert_eq!(ramp_entry(0.0, -5e-324, 5e-324, 256), 128);
+        assert_eq!(ramp_entry(5e-324, -5e-324, 5e-324, 256), 255);
+        // A value so far beyond a limit that its distance overflows still takes the nearest end.
+        assert_eq!(ramp_entry(-f64::MAX, f64::MAX / 2.0, f64::MAX, 256), 0);
+        assert_eq!(ramp_entry(f64::MAX, -f64::MAX, -f64::MAX / 2.0, 256), 255);
+        // Where the width overflows, the halves: the two ways agree where both can be had.
+        assert_eq!(ramp_entry(f64::MAX / 2.0, -f64::MAX, f64::MAX, 256), 192);
+        for (v, lo, hi) in [(0.3, 0.1, 0.7), (12.5, -3.0, 40.0), (1e300, 1e299, 8e307)] {
+            let direct = ((v - lo) / (hi - lo) * 256.0_f64).floor() as usize;
+            assert_eq!(ramp_entry(v, lo, hi, 256), direct);
+        }
     }
 
     #[test]

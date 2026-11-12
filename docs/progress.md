@@ -153,3 +153,11 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 23f `[engine]`: a name bound to a number where an option takes a number or a variable (open decision #127, option B). Then step 24 `[function]`: `bars`, `tile`, `text`.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: `alpha:` on `rug`; ticks of 4.5 points, not a share of the panel; the bottom and the left only. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, a correction after step 23e2 (the colour ramp at the smallest numbers)
+
+**Done.** The `test` job on GitHub failed for the push of step 23e1 in a property test of step 20c, which drew a colour scale from 0 to the smallest number above it: both ends were given the middle colour. `ramp_entry` now takes the width of the scale as it is and halves the limits only where the width would overflow. No published result changes; the failing frame is kept as a permanent case. Steps 23e1 and 23e2 themselves were green locally and are unchanged.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 303 of 303; CI is read job by job after the push.
+
+**Next.** Step 23f `[engine]`: a name bound to a number where an option takes a number or a variable (open decision #127, option B).

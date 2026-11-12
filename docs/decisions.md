@@ -3353,3 +3353,13 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's steps 23e and 23e2; section 7.6 of the Language Reference ("Marks": `rug`); open decision #106.
+
+## 12 November 2026: a correction to the colour ramp, found by a property test on CI
+
+**What was found.** The push of step 23e1 failed the `test` job on GitHub, in a test that the step did not touch: the property `every_colour_lies_on_its_scale` of step 20c drew, among its random frames, two rows whose values on the colour scale were 0 and 5e-324, the smallest number above zero. The scale then runs from 0 to 5e-324, and `colour::ramp_entry` gave both values the middle colour where they are the two ends. It halved the limits before taking their width, so that the widest scales do not overflow, and half of the smallest number is zero: the scale had no width left.
+
+**Choice.** The width is taken as it is, `hi - lo`, and the share as `(v - lo) / (hi - lo)`; the halves are used only where one of the two would overflow. Halving is exact for every number but the very smallest, so the two ways give the same share wherever both can be computed, and no published result changes: the conformance report is identical. The failing frame is kept in `packages/tier1/plot/tests/scene.proptest-regressions`, which the property test reads first on every run, and the unit test of `ramp_entry` holds the narrowest scales and a value beyond a limit by more than can be held.
+
+**Why it was not seen before.** A property test draws other frames on every run, and this pair is rare; the local routine and the earlier runs on GitHub never drew it. No figure that anyone has made is affected: the fault needs a colour scale whose whole width is the smallest number a computer holds.
+
+**Reason.** Engine Specification, section 8.3 (a result is the same wherever it is computed, and right at the edges of the numbers); the testing handbook's rule that a failing case found by a property test is kept.
