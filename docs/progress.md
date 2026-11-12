@@ -171,3 +171,11 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 24 `[function]`: `bars`, `tile`, `text`.
 
 **For the owner to decide.** Nothing waits for him. Taken on the recommendation, his to overturn: #127 option B, and that it holds for text as for numbers. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 24 opened and split
+
+**Done.** No code. Step 24 was split in the checklist into 24a `[engine]` (an axis of categories), 24b (`bars`), 24c (`tile`) and 24d (`text`). Open decision #128 is raised, on which variables make an axis of categories, and taken as option C on the recommendation: a Str and a Category do, at step 24a; a number stays on a linear axis, with value labels or without, so that a 0/1 outcome and its fitted curve share an axis; and a linear axis of a labelled variable gets its breaks at the labels at step 25.
+
+**Next.** Step 24a `[engine]`: an axis of categories.
+
+**For the owner to decide.** Nothing waits for him; #128 as taken is his to overturn. Open as before: questions 1, 3, 4 and 5 of #110 (before step 25), #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
