@@ -78,6 +78,9 @@ pub struct Plot {
     /// The aesthetics set to one value for every mark (`color: "steelblue"`).
     pub constants: Vec<PlotConstant>,
     pub layers: Vec<PlotLayer>,
+    /// What the script says of the scale of an axis (`scale_x`, `scale_y`); an axis it says
+    /// nothing of is linear, or of categories, as its variable asks.
+    pub axes: Vec<PlotAxis>,
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
     pub summary: Table,
@@ -85,6 +88,48 @@ pub struct Plot {
     /// puts here when it makes a plot, so that `export`, in a package below it, can ask for the
     /// bytes without calling upwards (rule 5). `None` for a plot value made by hand in a test.
     pub figure: Option<FigureWriter>,
+}
+
+/// What a script says of the scale of one axis.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlotAxis {
+    /// `Aesthetic::X` or `Aesthetic::Y`.
+    pub aesthetic: Aesthetic,
+    pub kind: AxisKind,
+}
+
+/// The kind of scale of an axis of numbers (section 7.6, "Scales").
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AxisKind {
+    /// Equal distances on the page for equal differences.
+    #[default]
+    Linear,
+    /// Equal distances for equal ratios: for values above zero.
+    Log,
+    /// Distances in proportion to the square root: for values of zero or more.
+    Sqrt,
+}
+
+impl AxisKind {
+    /// The kind as it is written: `linear`, `log`, `sqrt`.
+    pub fn name(self) -> &'static str {
+        match self {
+            AxisKind::Linear => "linear",
+            AxisKind::Log => "log",
+            AxisKind::Sqrt => "sqrt",
+        }
+    }
+}
+
+impl Plot {
+    /// The kind of scale the script asks of an axis, linear where it says nothing.
+    pub fn axis(&self, aesthetic: Aesthetic) -> AxisKind {
+        self.axes
+            .iter()
+            .rev()
+            .find(|axis| axis.aesthetic == aesthetic)
+            .map_or(AxisKind::Linear, |axis| axis.kind)
+    }
 }
 
 /// The page a figure is written on (Language Reference, section 7.6, "Sizes").

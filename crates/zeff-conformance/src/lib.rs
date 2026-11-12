@@ -1822,6 +1822,62 @@ fn plot_cases() -> Vec<Line> {
         }
         None => "the wages did not load".to_string(),
     };
+    // The kinds of scale of an axis (step 25a): the wages against schooling with the wage on
+    // a log axis and the schooling on a square-root one, as a scene and as a drawing, where
+    // every place is the logarithm or the root of a value, computed by the engine's own
+    // functions.
+    let scaled = match zeff_datasets::table("wages") {
+        Some(table) => {
+            use std::rc::Rc;
+            use zeff_core::value::{
+                Aesthetic, AxisKind, Frame, Mark, PlotAxis, PlotLayer, PlotMapping,
+            };
+            use zeff_plot::layout::{JOURNAL, Size, layout};
+            let mapping = |aesthetic, variable: &str| PlotMapping {
+                aesthetic,
+                variable: variable.to_string(),
+                computed: None,
+            };
+            let mut plot = zeff_plot::scene::start(
+                Frame {
+                    table: Rc::new(table),
+                    name: Some("wages".to_string()),
+                },
+                vec![mapping(Aesthetic::X, "educ"), mapping(Aesthetic::Y, "wage")],
+                Vec::new(),
+            );
+            plot.axes = vec![
+                PlotAxis {
+                    aesthetic: Aesthetic::Y,
+                    kind: AxisKind::Log,
+                },
+                PlotAxis {
+                    aesthetic: Aesthetic::X,
+                    kind: AxisKind::Sqrt,
+                },
+            ];
+            let layer = PlotLayer {
+                mark: Mark::Points,
+                data: None,
+                alpha: 0.3,
+                size: None,
+                jitter: 0.0,
+                nudge: (0.0, 0.0),
+                width: None,
+                stream: None,
+                computed: Vec::new(),
+                mappings: Vec::new(),
+                constants: Vec::new(),
+            };
+            let scene = zeff_plot::scene::with_layer(&plot, layer).1;
+            let drawing = match layout(&scene, Size::TwoColumn, &JOURNAL) {
+                Ok(drawing) => drawing.describe(),
+                Err(why) => format!("{why:?}\n"),
+            };
+            format!("{}\n=== drawing\n{drawing}", scene.to_json())
+        }
+        None => "the wages did not load".to_string(),
+    };
     // Filled marks (step 23d): a band of two standard errors around the yearly means and an
     // area under the means of each group, what the script prints, and each figure as the
     // bytes of its SVG, its PDF and its PNG, where a see-through fill is drawn three ways.
@@ -1918,6 +1974,7 @@ fn plot_cases() -> Vec<Line> {
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),
         text("plot/lines/scene", &lines),
+        text("plot/axes/scene", &scaled),
         text("plot/points/stdout", &outcome.output.stdout),
         text("plot/points/stderr", &outcome.output.stderr),
         text("plot/points/scene.json", &scene),

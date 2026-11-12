@@ -18,16 +18,17 @@ use std::rc::Rc;
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, Arrangement, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping, PlotSetting,
-    Sides, Stacking, Stairs, Value,
+    Aesthetic, Arrangement, AxisKind, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping,
+    PlotSetting, Sides, Stacking, Stairs, Value,
 };
-use zeff_diagnostics::Diagnostic;
+use zeff_diagnostics::{Diagnostic, Span};
 
 use crate::drawing::LineType;
 use crate::grammar::{Slots, a_type, aesthetics, column, internal, number_option, shown};
 use crate::mapping::{self, variables};
 use crate::scene::{
-    Placing, Shading, is_numeric, kind_of, placing, placing_of, scene, shading, with_layer,
+    AxisFault, Misplaced, Placing, Shading, axis_fault, is_numeric, kind_of, placing, placing_of,
+    scene, shading, with_layer,
 };
 
 const P: usize = 0;
@@ -562,8 +563,8 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         None
     };
 
-    let before = scene(&plot).notes;
-    let (next, after) = with_layer(
+    finish(
+        ctx,
         &plot,
         PlotLayer {
             mark: Mark::Points,
@@ -578,13 +579,7 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             mappings,
             constants,
         },
-    );
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
-    }
-    Ok(Value::Plot(Rc::new(next)))
+    )
 }
 
 // ----- lines (step 23c) -----
@@ -744,8 +739,8 @@ fn joined(
             .help("write a width such as 0.5 or 2; without `width:` a line is 1 wide"),
         ));
     }
-    let before = scene(&plot).notes;
-    let (next, after) = with_layer(
+    finish(
+        ctx,
         &plot,
         PlotLayer {
             mark,
@@ -760,13 +755,7 @@ fn joined(
             mappings,
             constants,
         },
-    );
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
-    }
-    Ok(Value::Plot(Rc::new(next)))
+    )
 }
 
 // ----- area and ribbon (step 23d) -----
@@ -992,8 +981,8 @@ fn filled(
             )),
         ));
     }
-    let before = scene(&plot).notes;
-    let (next, after) = with_layer(
+    finish(
+        ctx,
         &plot,
         PlotLayer {
             mark,
@@ -1008,13 +997,7 @@ fn filled(
             mappings,
             constants,
         },
-    );
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
-    }
-    Ok(Value::Plot(Rc::new(next)))
+    )
 }
 
 // ----- hline and vline (step 23e) -----
@@ -1230,8 +1213,8 @@ fn spanning(
             .help("write a width such as 0.25 or 1; without `width:` a reference line is 0.5 wide"),
         ));
     }
-    let before = scene(&plot).notes;
-    let (next, after) = with_layer(
+    finish(
+        ctx,
         &plot,
         PlotLayer {
             mark,
@@ -1246,13 +1229,7 @@ fn spanning(
             mappings,
             constants,
         },
-    );
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
-    }
-    Ok(Value::Plot(Rc::new(next)))
+    )
 }
 
 // ----- rug (step 23e2) -----
@@ -1374,8 +1351,8 @@ pub fn rug(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("write 1 for solid ticks, or a share such as 0.2 so that ticks on one another show how many there are"),
         ));
     }
-    let before = scene(&plot).notes;
-    let (next, after) = with_layer(
+    finish(
+        ctx,
         &plot,
         PlotLayer {
             mark: Mark::Rug(sides),
@@ -1390,13 +1367,7 @@ pub fn rug(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             mappings,
             constants,
         },
-    );
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
-    }
-    Ok(Value::Plot(Rc::new(next)))
+    )
 }
 
 // ----- bars (step 24b) -----
@@ -1526,8 +1497,8 @@ pub fn bars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("write 1 for solid bars, or a share such as 0.5 so that what is under them shows through"),
         ));
     }
-    let before = scene(&plot).notes;
-    let (next, after) = with_layer(
+    finish(
+        ctx,
         &plot,
         PlotLayer {
             mark: Mark::Bars(how),
@@ -1542,13 +1513,7 @@ pub fn bars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             mappings,
             constants,
         },
-    );
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
-    }
-    Ok(Value::Plot(Rc::new(next)))
+    )
 }
 
 // ----- tile (step 24c) -----
@@ -1621,8 +1586,8 @@ pub fn tile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             .help("write 1 for solid tiles, or a share such as 0.5 so that what is under them shows through"),
         ));
     }
-    let before = scene(&plot).notes;
-    let (next, after) = with_layer(
+    finish(
+        ctx,
         &plot,
         PlotLayer {
             mark: Mark::Tile,
@@ -1637,13 +1602,7 @@ pub fn tile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             mappings,
             constants,
         },
-    );
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
-    }
-    Ok(Value::Plot(Rc::new(next)))
+    )
 }
 
 // ----- text (step 24d) -----
@@ -1758,8 +1717,8 @@ pub fn text(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         }
         Some(_) => return Err(not_a_nudge(ctx)),
     };
-    let before = scene(&plot).notes;
-    let (next, after) = with_layer(
+    finish(
+        ctx,
         &plot,
         PlotLayer {
             mark: Mark::Text,
@@ -1774,13 +1733,7 @@ pub fn text(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             mappings,
             constants,
         },
-    );
-    for note in after.notes {
-        if !before.contains(&note) {
-            ctx.message(Diagnostic::plain_note(note));
-        }
-    }
-    Ok(Value::Plot(Rc::new(next)))
+    )
 }
 
 /// The refusal of a `nudge:` that is not two finite numbers.
@@ -1794,4 +1747,100 @@ fn not_a_nudge(ctx: &CallContext<'_>) -> Fail {
         .primary(ctx.span_of(X_NUDGE), "not two numbers")
         .help("write `nudge: [0, 6]` to write each label 6 points above its place, clear of a point drawn there; a number below zero moves it left or down"),
     )
+}
+
+// ----- what every mark does last -----
+
+/// Add a layer to a plot and give the plot back: what every mark does last. The plot must
+/// still be one that its scales can draw: a value at or below zero has no place on a log
+/// axis, nor a value below zero on a square-root axis, and such a plot is refused with the
+/// rows named (Z0401; section 7.6, "Scales"). The notes of the rows the new layer does not
+/// draw are said once, where the layer is added.
+fn finish(ctx: &mut CallContext<'_>, plot: &Plot, layer: PlotLayer) -> Result<Value, Fail> {
+    let before = scene(plot).notes;
+    let (next, after) = with_layer(plot, layer);
+    if let Some(fault) = axis_fault(&next) {
+        return Err(misplaced(ctx, &fault, ctx.callee_span));
+    }
+    for note in after.notes {
+        if !before.contains(&note) {
+            ctx.message(Diagnostic::plain_note(note));
+        }
+    }
+    Ok(Value::Plot(Rc::new(next)))
+}
+
+/// The refusal of a plot that holds something with no place on the scale of an axis.
+pub(crate) fn misplaced(ctx: &CallContext<'_>, fault: &AxisFault, at: Span) -> Fail {
+    let axis = fault.axis;
+    let (scale, limit, keep) = match fault.kind {
+        AxisKind::Log => ("a log scale", "at or below 0", "above 0"),
+        _ => ("a square-root scale", "below 0", "of 0 or more"),
+    };
+    let other = match fault.kind {
+        AxisKind::Log => "; a square-root scale, `sqrt`, holds 0",
+        _ => "",
+    };
+    let diagnostic = match &fault.what {
+        Misplaced::Rows {
+            variable,
+            frame,
+            rows,
+            count,
+        } => {
+            let listed: Vec<String> = rows.iter().map(|row| count_of(*row)).collect();
+            let named = match (listed.split_last(), count - rows.len()) {
+                (Some((only, [])), 0) => format!("row {only}"),
+                (Some((last, rest)), 0) => format!("rows {} and {last}", rest.join(", ")),
+                (_, more) => format!("rows {} and {} more", listed.join(", "), count_of(more)),
+            };
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`{variable}` has {} {limit}, which {} no place on {scale}: {named} of {frame}",
+                    if *count == 1 {
+                        "1 value".to_string()
+                    } else {
+                        format!("{} values", count_of(*count))
+                    },
+                    if *count == 1 { "has" } else { "have" }
+                ),
+            )
+            .primary(at, format!("the `{axis}` axis is {scale}"))
+            .help(format!(
+                "keep the rows with a value {keep}, as in `where({variable} > 0)`{other}"
+            ))
+        }
+        Misplaced::Place(place) => Diagnostic::error(
+            "Z0401",
+            format!(
+                "a reference line at {} has no place on {scale}, which holds the values {keep}",
+                shown(*place)
+            ),
+        )
+        .primary(at, format!("the `{axis}` axis is {scale}"))
+        .help(format!("place the line at a value {keep}")),
+        Misplaced::Zero(mark) => Diagnostic::error(
+            "Z0401",
+            format!(
+                "`{mark}` reaches down to zero, and zero has no place on a log scale"
+            ),
+        )
+        .primary(at, format!("the `{axis}` axis is a log scale"))
+        .help("a square-root scale, `sqrt`, holds zero; on a log scale `points` or `lines` show the values"),
+        Misplaced::Categories(variable) => Diagnostic::error(
+            "Z0401",
+            format!(
+                "the `{axis}` axis holds the categories of `{variable}`, which have their places and no other scale"
+            ),
+        )
+        .primary(at, format!("{scale} is for numbers"))
+        .help("a log or a square-root scale is set on an axis of numbers"),
+    };
+    fail(diagnostic.in_file(ctx.script))
+}
+
+/// A count as the messages write it.
+fn count_of(n: usize) -> String {
+    zeff_diagnostics::count(n as u64)
 }

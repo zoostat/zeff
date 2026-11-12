@@ -240,6 +240,7 @@ export/sample.tex 79622a8e73235482
 plot/lines/stdout c69bf28498722bf2
 plot/lines/stderr 292ed9115946fd12
 plot/lines/scene 6a1463f916305adf
+plot/axes/scene f67228180965d589
 plot/points/stdout 0736444e0b43eec4
 plot/points/stderr 16a03371f268b2a8
 plot/points/scene.json 453ea0d06f195b15

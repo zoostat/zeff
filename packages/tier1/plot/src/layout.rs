@@ -35,6 +35,7 @@ use crate::colour;
 use crate::drawing::{Anchor, Drawing, Head, Item, LineType, Primitive, Span, Step, Stroke, rgb};
 use crate::font::{FaceName, face};
 use crate::raster;
+use crate::scale;
 use crate::scene::{
     Legend, Lining, Paint, Range, Scale, ScaleKind, Scene, Shaping, Sizing, diameter,
 };
@@ -906,11 +907,11 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
             panel: (panel_width, panel_height),
         });
     }
-    let across =
-        |s: &Scale, v: f64| left + (v - s.limits.0) / (s.limits.1 - s.limits.0) * panel_width;
-    let down = |s: &Scale, v: f64| {
-        top + panel_height - (v - s.limits.0) / (s.limits.1 - s.limits.0) * panel_height
-    };
+    // A value is placed by the share of the way it stands between the limits of its axis, as
+    // the kind of the axis has it: linear, log or square root.
+    let across = |s: &Scale, v: f64| left + scale::share(s.kind, s.limits, v) * panel_width;
+    let down =
+        |s: &Scale, v: f64| top + panel_height - scale::share(s.kind, s.limits, v) * panel_height;
     let line = |colour: &str, width: f64| Stroke {
         colour: colour.to_string(),
         width,

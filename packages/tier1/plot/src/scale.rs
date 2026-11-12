@@ -97,6 +97,130 @@ fn round_breaks(lo: f64, hi: f64) -> Option<Vec<f64>> {
     Some(found)
 }
 
+/// The limits of a log axis whose values, all above zero, run from `extent.0` to `extent.1`:
+/// the extent with 5% of its width added on each side, the width taken in the logarithm, so
+/// that the margin is the same share of the panel at both ends. An extent of one value is
+/// widened to a decade around it, and with no value the limits are 1 and 10. The logarithm
+/// and the power are the engine's own (Engine Specification, section 8.3, point 3).
+pub fn log_limits(extent: Option<(f64, f64)>) -> (f64, f64) {
+    let Some((lo, hi)) = extent else {
+        return (1.0, 10.0);
+    };
+    if !(lo.is_finite() && hi.is_finite() && lo > 0.0 && lo <= hi) {
+        return (1.0, 10.0);
+    }
+    let (a, b) = (
+        zeff_numeric::maths::log10(lo),
+        zeff_numeric::maths::log10(hi),
+    );
+    let pad = if lo == hi { 0.5 } else { MARGIN * (b - a) };
+    let (low, high) = (
+        zeff_numeric::pow(10.0, a - pad),
+        zeff_numeric::pow(10.0, b + pad),
+    );
+    // The smallest and the largest numbers above zero keep the limits apart and finite.
+    let low = if low > 0.0 {
+        low.min(lo)
+    } else {
+        f64::MIN_POSITIVE.min(lo)
+    };
+    let high = if high.is_finite() {
+        high.max(hi)
+    } else {
+        f64::MAX
+    };
+    (low, high)
+}
+
+/// The breaks of a log axis between its limits, in increasing order. Over three decades or
+/// more they are powers of ten, every one, or every second or third where there are many;
+/// from one decade to three, 1, 2 and 5 times a power of ten; under one decade the round
+/// numbers of a linear axis, since a power of ten may not fall between the limits at all.
+/// Each is read from its decimal text, as the breaks of a linear axis are.
+pub fn log_breaks(lo: f64, hi: f64) -> Vec<f64> {
+    if !(lo.is_finite() && hi.is_finite() && lo > 0.0 && lo < hi) {
+        return breaks(lo, hi);
+    }
+    let (a, b) = (
+        zeff_numeric::maths::log10(lo),
+        zeff_numeric::maths::log10(hi),
+    );
+    let decades = b - a;
+    if decades < 1.0 {
+        return breaks(lo, hi);
+    }
+    let (first, last) = (a.floor() as i32 - 1, b.ceil() as i32 + 1);
+    // Every power of ten, or one in `every` where more than seven fall between the limits.
+    let every = if decades >= 3.0 {
+        ((decades / 7.0).ceil() as i32).max(1)
+    } else {
+        1
+    };
+    let multipliers: &[u8] = if decades >= 3.0 { &[1] } else { &[1, 2, 5] };
+    let mut found: Vec<f64> = Vec::new();
+    for exponent in first..=last {
+        if exponent.rem_euclid(every) != 0 {
+            continue;
+        }
+        for multiplier in multipliers {
+            let Ok(value) = format!("{multiplier}e{exponent}").parse::<f64>() else {
+                continue;
+            };
+            if value >= lo && value <= hi {
+                found.push(value);
+            }
+        }
+    }
+    if found.len() < 2 {
+        return breaks(lo, hi);
+    }
+    found
+}
+
+/// The limits of a square-root axis whose values, none below zero, run from `extent.0` to
+/// `extent.1`: 5% of the width added on each side, the width taken in the square root, and
+/// never below zero. An extent of one value, or none, is that of a linear axis from zero.
+pub fn sqrt_limits(extent: Option<(f64, f64)>) -> (f64, f64) {
+    let Some((lo, hi)) = extent else {
+        return (0.0, 1.0);
+    };
+    if !(lo.is_finite() && hi.is_finite() && lo >= 0.0 && lo <= hi) {
+        return (0.0, 1.0);
+    }
+    if lo == hi {
+        let (low, high) = limits(Some((lo, hi)));
+        return (low.max(0.0), high);
+    }
+    let (a, b) = (lo.sqrt(), hi.sqrt());
+    let pad = MARGIN * (b - a);
+    let low = (a - pad).max(0.0);
+    let high = b + pad;
+    ((low * low).min(lo), (high * high).max(hi).min(f64::MAX))
+}
+
+/// Where a value stands between the limits of an axis, as a share of the way from the lower
+/// to the upper: in proportion to the value on a linear axis and on one of categories, to its
+/// logarithm on a log axis, and to its square root on a square-root axis. A value that has no
+/// place on the axis, zero on a log axis, is not a number.
+pub fn share(kind: crate::scene::ScaleKind, limits: (f64, f64), v: f64) -> f64 {
+    use crate::scene::ScaleKind;
+    let (lo, hi) = limits;
+    match kind {
+        ScaleKind::Log => {
+            let (a, b) = (
+                zeff_numeric::maths::log10(lo),
+                zeff_numeric::maths::log10(hi),
+            );
+            (zeff_numeric::maths::log10(v) - a) / (b - a)
+        }
+        ScaleKind::Sqrt => {
+            let (a, b) = (lo.sqrt(), hi.sqrt());
+            (v.sqrt() - a) / (b - a)
+        }
+        ScaleKind::Linear | ScaleKind::Category => (v - lo) / (hi - lo),
+    }
+}
+
 /// The labels of the breaks: each number as a table prints it, with six significant digits
 /// (section 3.8). Where that would give two neighbouring breaks one label, every label is the
 /// number in full.

@@ -62,8 +62,8 @@ use std::borrow::Cow;
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Arrangement, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping,
-    PlotSetting, Sides, Stacking, Stairs, Table,
+    Aesthetic, Align, Arrangement, AxisKind, Frame, Mark, Plot, PlotConstant, PlotLayer,
+    PlotMapping, PlotSetting, Sides, Stacking, Stairs, Table,
 };
 use zeff_diagnostics::count;
 
@@ -159,8 +159,11 @@ pub enum ScaleKind {
     /// Categories, each at its place in their order, counted from 1.
     Category,
     /// Numbers of 0 or more, drawn in proportion to the square root of their value: the scale
-    /// of sizes, on which the area of a mark is in proportion to the value.
+    /// of sizes, on which the area of a mark is in proportion to the value, and an axis that
+    /// the script asks to be one.
     Sqrt,
+    /// Numbers above 0, placed in proportion to their logarithm.
+    Log,
 }
 
 impl ScaleKind {
@@ -169,6 +172,7 @@ impl ScaleKind {
             ScaleKind::Linear => "linear",
             ScaleKind::Category => "category",
             ScaleKind::Sqrt => "sqrt",
+            ScaleKind::Log => "log",
         }
     }
 }
@@ -663,10 +667,26 @@ fn axis_categories(plot: &Plot, aesthetic: Aesthetic) -> Option<Vec<String>> {
 /// an axis of categories the place of each row's category, counted from 1, `NA` where the row
 /// has none. A variable that is no categories gives nothing on such an axis; the marks refuse
 /// it before it comes to this.
-fn placed<'a>(column: Option<&'a Column>, on: Option<&[String]>) -> Option<Cow<'a, Column>> {
+///
+/// On a log axis a value at or below zero has no place, nor has a value below zero on a
+/// square-root axis: such a row is given none here. The functions that add a layer or set a
+/// scale refuse a plot with such a row ([`axis_fault`]) before it comes to this.
+fn placed<'a>(
+    column: Option<&'a Column>,
+    on: Option<&[String]>,
+    kind: AxisKind,
+) -> Option<Cow<'a, Column>> {
     let column = column?;
     let Some(labels) = on else {
-        return Some(Cow::Borrowed(column));
+        if kind == AxisKind::Linear || !is_numeric(column) {
+            return Some(Cow::Borrowed(column));
+        }
+        let held = |v: f64| match kind {
+            AxisKind::Log => v > 0.0,
+            _ => v >= 0.0,
+        };
+        let places = (0..column.len()).map(|row| number(column, row).filter(|v| held(*v)));
+        return Some(Cow::Owned(Column::floats(places).0));
     };
     if !on_categories(column) {
         return None;
@@ -683,6 +703,102 @@ fn placed<'a>(column: Option<&'a Column>, on: Option<&[String]>) -> Option<Cow<'
             .map(|place| (place + 1) as f64)
     });
     Some(Cow::Owned(Column::floats(places).0))
+}
+
+/// Why a plot cannot be drawn on the scale the script asks of an axis.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AxisFault {
+    /// `x` or `y`.
+    pub axis: &'static str,
+    pub kind: AxisKind,
+    pub what: Misplaced,
+}
+
+/// What has no place on the scale.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Misplaced {
+    /// Rows of a variable: at or below zero on a log scale, below zero on a square-root one.
+    /// The first few rows, counted from 1, how many there are in all, and the frame.
+    Rows {
+        variable: String,
+        frame: String,
+        rows: Vec<usize>,
+        count: usize,
+    },
+    /// A reference line at such a place.
+    Place(f64),
+    /// A mark that starts at zero, on a log scale.
+    Zero(&'static str),
+    /// The axis is of categories, which have no kind of scale but their own.
+    Categories(String),
+}
+
+/// The first thing in a plot that has no place on the scale the script asks of an axis, or
+/// `None` where everything has: a log scale on a value at or below zero is an error naming
+/// the rows (section 7.6, "Scales"), and so is a square-root scale on a value below zero.
+pub fn axis_fault(plot: &Plot) -> Option<AxisFault> {
+    for aesthetic in [Aesthetic::X, Aesthetic::Y] {
+        let kind = plot.axis(aesthetic);
+        if kind == AxisKind::Linear {
+            continue;
+        }
+        let axis = aesthetic.name();
+        let fault = |what: Misplaced| Some(AxisFault { axis, kind, what });
+        if let Some((Placing::Categories, variable)) = placing_of(plot, aesthetic) {
+            return fault(Misplaced::Categories(variable.to_string()));
+        }
+        let held = |v: f64| match kind {
+            AxisKind::Log => v > 0.0,
+            _ => v >= 0.0,
+        };
+        for layer in &plot.layers {
+            // What the layer is placed by along this axis: its position, and for a band its
+            // two edges.
+            let along: &[Aesthetic] = match (aesthetic, layer.mark) {
+                (Aesthetic::Y, Mark::Ribbon) => &[Aesthetic::Low, Aesthetic::High],
+                (Aesthetic::Y, _) => &[Aesthetic::Y],
+                _ => &[Aesthetic::X],
+            };
+            for each in along {
+                if !reads(layer.mark, *each) {
+                    continue;
+                }
+                if let Some(PlotSetting::Place(at)) = layer.constant(*each) {
+                    if !held(*at) {
+                        return fault(Misplaced::Place(*at));
+                    }
+                    continue;
+                }
+                let Some(mapping) = mapping_of(plot, layer, *each) else {
+                    continue;
+                };
+                let Some(column) = values(plot, Some(layer), *each).filter(|c| is_numeric(c))
+                else {
+                    continue;
+                };
+                let off: Vec<usize> = (0..column.len())
+                    .filter(|row| number(column, *row).is_some_and(|v| !held(v)))
+                    .map(|row| row + 1)
+                    .collect();
+                if !off.is_empty() {
+                    return fault(Misplaced::Rows {
+                        variable: mapping.variable.clone(),
+                        frame: frame_of(plot, layer).shown_name(),
+                        count: off.len(),
+                        rows: off.into_iter().take(5).collect(),
+                    });
+                }
+            }
+            // A bar and an area reach down to zero.
+            if aesthetic == Aesthetic::Y
+                && kind == AxisKind::Log
+                && matches!(layer.mark, Mark::Bars(_) | Mark::Area(_))
+            {
+                return fault(Misplaced::Zero(layer.mark.name()));
+            }
+        }
+    }
+    None
 }
 
 /// A cell of a numeric column as a number, `None` where it is `NA`.
@@ -1701,7 +1817,12 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         } else {
             up_categories.as_deref()
         };
-        placed(values(plot, Some(layer), aesthetic), on)
+        let kind = plot.axis(if aesthetic == Aesthetic::X {
+            Aesthetic::X
+        } else {
+            Aesthetic::Y
+        });
+        placed(values(plot, Some(layer), aesthetic), on, kind)
     };
     let mut notes: Vec<String> = Vec::new();
     let mut note = |text: String| {
@@ -2140,6 +2261,26 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             }
             _ => Paint::Theme,
         };
+        // A bar and an area start at zero, which has no place on a log axis, and a bar whose
+        // width reaches zero or below along a log axis has none either: such a layer draws
+        // nothing ([`axis_fault`] refuses it before it comes to this).
+        let off_y = up_categories.is_none()
+            && plot.axis(Aesthetic::Y) == AxisKind::Log
+            && low.iter().any(|v| *v <= 0.0);
+        let off_x = across_categories.is_none()
+            && plot.axis(Aesthetic::X) == AxisKind::Log
+            && points
+                .x
+                .iter()
+                .zip(&span)
+                .any(|(x, span)| x - span / 2.0 <= 0.0);
+        if off_y || off_x {
+            points = Drawn::default();
+            low.clear();
+            span.clear();
+            line.clear();
+            label.clear();
+        }
         layers.push(Layer {
             mark: layer.mark,
             x: points.x,
@@ -2253,12 +2394,29 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             });
             continue;
         }
-        let (lo, hi) = scale::limits(marks.or_else(|| frame_extent(plot, aesthetic)));
-        let breaks = scale::breaks(lo, hi);
+        // The kind of scale the script asks of the axis: its limits, with their margin, and
+        // its breaks are taken as that kind places its values.
+        let asked = plot.axis(aesthetic);
+        let found = marks.or_else(|| frame_extent(plot, aesthetic));
+        let (kind, (lo, hi)) = match asked {
+            AxisKind::Linear => (ScaleKind::Linear, scale::limits(found)),
+            AxisKind::Log => (
+                ScaleKind::Log,
+                scale::log_limits(found.filter(|(lo, _)| *lo > 0.0)),
+            ),
+            AxisKind::Sqrt => (
+                ScaleKind::Sqrt,
+                scale::sqrt_limits(found.filter(|(lo, _)| *lo >= 0.0)),
+            ),
+        };
+        let breaks = match asked {
+            AxisKind::Log => scale::log_breaks(lo, hi),
+            _ => scale::breaks(lo, hi),
+        };
         let labels = scale::labels(&breaks);
         scales.push(Scale {
             id: aesthetic.name(),
-            kind: ScaleKind::Linear,
+            kind,
             title,
             limits: (lo, hi),
             breaks,
@@ -3238,6 +3396,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
         mappings,
         constants,
         layers: Vec::new(),
+        axes: Vec::new(),
         summary: Table {
             title: String::new(),
             before: Vec::new(),

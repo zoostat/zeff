@@ -149,3 +149,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25a `[engine]`: `scale_x` and `scale_y` with `linear`, `log` and `sqrt`.
 
 **For the owner to decide.** Nothing waits for him; the decisions above are his to overturn. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25a (the kinds of scale of an axis)
+
+**Done.** A plot can hold the kind of scale of each axis, linear, log or square root, and the scene and the layout place every mark by it, with the engine's own logarithm. The limits match ggplot2's. A value with no place on a log or a square-root scale is found and named, and every mark refuses such a plot. No script sets a scale yet: `scale_x` and `scale_y` are registered at step 25b.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 324 of 324; CI is read job by job after the push.
+
+**Next.** Step 25b `[engine]`: `scale_x` and `scale_y`, with `limits:`, `breaks:` and `labels:`, and the labels of a labelled variable on an axis.
+
+**For the owner to decide.** Nothing waits for him. Taken on the recommendation at this step, his to overturn: the breaks of a log axis (1, 2 and 5 times a power of ten, where R writes 1 and 3); bars and areas refused on a log axis. Open as before: #109, #108, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
