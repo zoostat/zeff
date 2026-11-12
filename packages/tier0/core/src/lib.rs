@@ -1,5 +1,6 @@
 //! Package core (tier 0): the language and the types every package shares.
 
+pub mod cases;
 pub mod collections;
 pub mod display;
 pub mod fused;

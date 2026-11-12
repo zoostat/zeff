@@ -86,7 +86,7 @@ pub fn broadcast(value: &Value, rows: usize) -> Option<Column> {
 }
 
 /// The values of one cell, as the body sees them.
-fn cell_value(column: &Column, row: usize) -> Value {
+pub fn cell_value(column: &Column, row: usize) -> Value {
     match column.get(row).unwrap_or(Cell::Na) {
         Cell::Na => Value::Na,
         Cell::Bool(b) => Value::Bool(b),

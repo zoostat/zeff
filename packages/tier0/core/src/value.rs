@@ -653,6 +653,18 @@ pub enum ColumnExpr {
         /// value.
         returns: String,
     },
+    /// `case { condition => value, _ => value }` (section 5.1), computed row by row where a
+    /// condition is a column: kept in a mapping (open decision #107, option B).
+    Case(Vec<CaseArm>),
+}
+
+/// One arm of a `case` kept in an expression: its condition, `None` for the catch-all `_`,
+/// with the condition as the script wrote it, for a message, and its value.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CaseArm {
+    pub condition: Option<ColumnExpr>,
+    pub written: String,
+    pub value: ColumnExpr,
 }
 
 impl fmt::Display for Formula {

@@ -1151,6 +1151,15 @@ impl Builder<'_, '_> {
             ColumnExpr::Str(s) => Value::Str(s.clone()),
             ColumnExpr::Bool(b) => Value::Bool(*b),
             ColumnExpr::Na => Value::Na,
+            // A term of a formula holds no `case`: the formula is refused before it is kept.
+            ColumnExpr::Case(_) => {
+                return Err(fail(
+                    Diagnostic::error("Z0401", "`case` cannot be computed inside a formula")
+                        .in_file(self.ctx.script)
+                        .primary(self.ctx.callee_span, "a term cannot choose by `case`")
+                        .help("a term calls the scalar functions of `core`, `category`, `base` and `interact`; compute anything else with `add` first"),
+                ));
+            }
             ColumnExpr::Word(w) => Value::Word(w.clone()),
             ColumnExpr::Type(name) => Value::Type(TypeValue {
                 name: name.clone(),
@@ -1926,6 +1935,12 @@ fn formula_variables(formula: &Formula, table: &Table) -> Vec<String> {
                 args.iter().flatten().for_each(|arg| of_expr(arg, out));
                 rest.iter().for_each(|arg| of_expr(arg, out));
             }
+            ColumnExpr::Case(arms) => {
+                for arm in arms {
+                    arm.condition.iter().for_each(|c| of_expr(c, out));
+                    of_expr(&arm.value, out);
+                }
+            }
             ColumnExpr::Int(_)
             | ColumnExpr::Float(_)
             | ColumnExpr::Str(_)
@@ -2159,6 +2174,7 @@ fn column_expr_text(expr: &ColumnExpr) -> String {
         ColumnExpr::Bool(b) => b.to_string(),
         ColumnExpr::Na => "NA".to_string(),
         ColumnExpr::Word(w) | ColumnExpr::Type(w) => w.clone(),
+        ColumnExpr::Case(_) => "case { ... }".to_string(),
         ColumnExpr::List(items) => format!(
             "[{}]",
             items

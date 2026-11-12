@@ -10,7 +10,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function
 2 | w.plot(x: educ, y: mean(wage))
   |                    ^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage - w.mean(wage))
@@ -20,17 +20,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function
 2 | w.plot(x: educ, y: wage - w.mean(wage))
   |                             ^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
-
-let w = dataset(wages)
-w.plot(x: educ, y: case { wage > 10 => 1, _ => 0 })
-error[Z0401]: an expression mapped to an aesthetic cannot use `case`
- --> scripts/main.zeff:2:20
-  |
-2 | w.plot(x: educ, y: case { wage > 10 => 1, _ => 0 })
-  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not kept in a mapping
-  |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: if true { wage } else { educ })
@@ -40,7 +30,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `if`
 2 | w.plot(x: educ, y: if true { wage } else { educ })
   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: w["wage"])
@@ -50,7 +40,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use a part taken from 
 2 | w.plot(x: educ, y: w["wage"])
   |                    ^^^^^^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ, y: wage..hours)
@@ -70,7 +60,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `seed`, which give
 2 | w.plot(x: educ, y: seed(3))
   |                    ^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 /// Twice a number.
@@ -82,7 +72,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use a function of the 
 4 | w.plot(x: educ, y: twice(wage))
   |                    ^^^^^^^^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 let w = dataset(wages)
 w.plot(x: educ).ribbon(low: upper(industry), high: wage)

@@ -423,7 +423,6 @@ fn every_message_of_an_expression() {
         // What a mapping cannot hold.
         "let w = dataset(wages)\nw.plot(x: educ, y: mean(wage))\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: wage - w.mean(wage))\n",
-        "let w = dataset(wages)\nw.plot(x: educ, y: case { wage > 10 => 1, _ => 0 })\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: if true { wage } else { educ })\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: w[\"wage\"])\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: wage..hours)\n",
@@ -2797,4 +2796,96 @@ fn every_message_of_a_function_written_in_zeff_in_a_mapping() {
         all.push_str(&format!("== {name}\n{stderr}\n"));
     }
     insta::assert_snapshot!("mapping_zeff_functions_messages", all);
+}
+
+// ----- case in a mapping (step 25c3c) -----
+
+#[test]
+fn a_mapping_computes_a_case_as_add_does() {
+    // A `case` in a mapping, and the same value made a variable with `add` first: the
+    // limits, the breaks, the warning of the rows no arm matches and the notes are the same.
+    const W: &str = "let w = dataset(wages)\n";
+    for case in [
+        "case { wage > 100 => 100, _ => wage }",
+        "case { wage > 20 => 1 }",
+        "case { educ < 12 => 0, educ == 12 => 0.5, _ => log(wage) }",
+        "case { is_missing(wage) => 0, wage > 50 => 50, _ => clamp(wage, 10, 40) }",
+    ] {
+        let mapped = printed(&format!("{W}w.plot(x: educ, y: {case}).points()\n"));
+        let added = printed(&format!(
+            "{W}w.add(v = {case}).plot(x: educ, y: v).points()\n"
+        ));
+        let ours: Vec<String> = drawn_lines(&mapped)
+            .iter()
+            .map(|line| line.replace("case { … }", "v"))
+            .collect();
+        let theirs = drawn_lines(&added);
+        assert_eq!(ours, theirs, "{case}");
+        // The two axes at the least, and the note of the rows not drawn where there is one
+        // (the last `case` fills the missing wages, so every row is drawn).
+        assert!(ours.len() >= 2, "{case}: {ours:?}");
+        assert_eq!(
+            mapped.contains("in educ or case { … } dropped"),
+            added.contains("in educ or v dropped"),
+            "{mapped}"
+        );
+    }
+    let script = format!(
+        "{W}w.plot(x: educ, y: case {{ wage > 100 => 100, _ => wage }}).points(alpha: 0.2)\n\
+         w.plot(x: case {{ educ < 12 => \"less\", educ == 12 => \"school\", educ > 12 => \"more\" }}, y: wage).points()\n\
+         w.plot(x: educ, y: case {{ wage > 20 => 1 }}).points()\n\
+         w.plot(x: educ, y: case {{ union == 1 => wage }}).points().points(data: w.where(year == 2015), color: \"firebrick\")\n\
+         let cut = 30\n\
+         w.plot(x: educ, y: case {{ wage > cut => cut, _ => wage }}).points()\n"
+    );
+    let text = printed(&script);
+    for line in [
+        "  y      case { … }           linear   -1.2935 to 104.823   0, 20, 40, 60, 80, 100\n",
+        "  x      case { … }    category   0.4 to 3.6          less, more, school\n",
+        "warning[W0208]: 6,451 rows matched no arm of the `case` and are NA (line 4)\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("mapping_case", text);
+}
+
+#[test]
+fn every_message_of_a_case_in_a_mapping() {
+    let mut all = String::new();
+    for (name, script) in [
+        (
+            "a_condition_that_is_a_number",
+            "w.plot(x: educ, y: case { wage => 1, _ => 0 }).points()\n",
+        ),
+        (
+            "arms_of_two_types",
+            "w.plot(x: educ, y: case { wage > 10 => 1, _ => \"a\" }).points()\n",
+        ),
+        (
+            "arms_of_two_types_across_the_rows",
+            "w.plot(x: educ, y: case { wage > 10 => educ, _ => to(industry, Str) }).points()\n",
+        ),
+        (
+            "an_arm_that_is_a_category",
+            "w.plot(x: educ, y: case { wage > 10 => industry, _ => industry }).points()\n",
+        ),
+        (
+            "a_reducer_in_an_arm",
+            "w.plot(x: educ, y: case { wage > 10 => mean(wage), _ => 0 }).points()\n",
+        ),
+        (
+            "a_frame_that_cannot_give_the_condition",
+            "w.plot(x: educ, y: case { wage > 10 => 1, _ => 0 }).points(data: frame(educ = [1], wage = [\"a\"]))\n",
+        ),
+        (
+            "an_if_in_a_mapping",
+            "w.plot(x: educ, y: if true { wage } else { educ }).points()\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("let w = dataset(wages)\n{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("mapping_case_messages", all);
 }

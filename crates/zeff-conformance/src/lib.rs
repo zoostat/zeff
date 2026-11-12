@@ -2020,6 +2020,18 @@ fn plot_cases() -> Vec<Line> {
     let inlined = run_script(&fs, &project, "scripts/main.zeff", script);
     fills.push(text("plot/zeffmapped/stdout", &inlined.output.stdout));
     fills.push(text("plot/zeffmapped/stderr", &inlined.output.stderr));
+    // `case` in a mapping (step 25c3c): a wage held at 100, three groups of schooling as
+    // text on an axis of categories, and a `case` with no catch-all, whose unmatched rows are
+    // counted; what the script prints and the first figure in the three formats.
+    let script = "let w = dataset(wages)\nlet p = w.plot(x: case { educ < 12 => \"less\", educ == 12 => \"school\", educ > 12 => \"more\" }, y: case { wage > 100 => 100, _ => wage }).points(alpha: 0.2)\np\nw.plot(x: educ, y: case { wage > 20 => 1 }).points()\nexport(p, \"case.svg\")\nexport(p, \"case.pdf\")\nexport(p, \"case.png\")\n";
+    let chosen = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/case/stdout", &chosen.output.stdout));
+    fills.push(text("plot/case/stderr", &chosen.output.stderr));
+    for name in ["case.svg", "case.pdf", "case.png"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/case/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

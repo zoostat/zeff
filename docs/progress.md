@@ -153,3 +153,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25c3c `[engine]`: `case` in a mapping, which completes step 25c.
 
 **For the owner to decide.** Nothing new. Open as before: the internal error of `add` under #108, #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25c3c (`case` in a mapping), and step 25c complete
+
+**Done.** `case` is computed inside a mapping: `plot(x: educ, y: case { wage > 100 => 100, _ => wage })` draws, with the values, the warning and the notes that `add` gives. The row-by-row code of `case` moved from the interpreter into a kernel of `core` that both use; no earlier result changed. With it step 25c is complete: the axis of dates, its scale, and wider expressions in a mapping (`time`, `text`, the four functions written in Zeff, `case`).
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 351 of 351; CI is read job by job after the push.
+
+**Next.** Step 25d `[engine]`: `scale(color:, fill:, size:, shape:)`.
+
+**For the owner to decide.** Nothing new. Taken on the recommendation at this step, his to overturn: an axis mapped from a `case` is titled `case { … }` until `labels` (step 26) gives it a title. Open as before: the internal error of `add` under #108, #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

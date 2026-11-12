@@ -3563,3 +3563,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None added.
 
 **Reason.** The checklist's step 25c3b; open decision #107, option B.
+
+## 12 November 2026: `case` in a mapping (release 0.7.0, step 25c3c), and step 25c complete
+
+**Decision.** `case` is computed inside a mapping, row by row, by the code that computes it in a script. That code was in the interpreter (`eval_case` and `eval_case_rows`); it is now a kernel of `core`, `zeff_core::cases`, which the interpreter and the `plot` package both call. The kernel decides which arm gives the value, for one value and for every row of a column, and asks its caller for the parts of the arms it needs, a condition or a value, so that the arms are evaluated by whoever holds them: the interpreter evaluates expressions of the script, the `plot` package the kept expression of a mapping. A value is still asked for only when its arm supplies a row. The warning of the rows no arm matches (W0208) and the five refusals (a condition that is not a Bool, a column of another length, a Category arm, an opaque arm, arms of more than one type across the rows) are built in the kernel, in the words they had.
+
+**Why a kernel and not a second copy.** Two copies of the rule would drift: the order of the arms, the row that `NA` leaves to the next arm, the join of Int and Float. One piece of code gives a mapping the values of `add` by construction, and a test compares them.
+
+**Nothing published changed.** The interpreter's tests of `case` pass with their stored messages untouched, and the conformance set shows no difference in any earlier case.
+
+**The kept expression.** `ColumnExpr` gains `Case`, a list of arms, each with its condition, the condition as the script wrote it (for the message of a condition that is not a Bool) and its value. The checker admits `case` in a mapping (`not_kept`) and looks into its arms, so a reducer of `data` in an arm is refused as anywhere else in a mapping; `if` stays refused, since it decides what a script does and takes one value. A formula keeps no `case`: the three places of the `results` package that read a kept expression give it a plain refusal or pass over it.
+
+**Rulings where the text is silent**, each of which the owner may overturn. (a) A refusal of a `case` in a mapping is underlined at the whole mapping, as every refusal inside a mapping is, and not at the arm. (b) The title of an axis mapped from a `case` is `case { … }`, the short form the engine already writes for a `case` wherever an expression is named; two such axes read alike, and so does a note that names them. A title of the script's own comes with `labels` at step 26.
+
+**Step 25c is complete**: an axis of dates (25c1), the scale of dates and a line at a date (25c2), and the widening of open decision #107, option B, in three parts (25c3a to 25c3c).
+
+**Tests.** Five unit tests of the kernel (the first true arm and the parts asked for, no arm matched, a column that turns the rest row-wise with Int joining Float, a catch-all and an arm that supplies no row, every refusal, a failure of the caller passed on). `printing.rs`: four comparisons of a `case` in a mapping with the same value made by `add` (limits, breaks, the warning and the notes), five plots (a wage held at 100, three groups of schooling as text on an axis of categories, a `case` with no catch-all, a layer of its own frame, a bound number in an arm) and seven messages; the case of `every_message_of_an_expression` that pinned the refusal of `case` is removed. The conformance set gains five cases: what a script of such mappings prints and one figure in SVG, PDF and PNG. The advice of the refusal of what a mapping cannot hold now names `case`, which changes six stored snapshots by that sentence.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 25c3c; open decision #107, option B; sections 3.7 and 5.1 of the Language Reference.

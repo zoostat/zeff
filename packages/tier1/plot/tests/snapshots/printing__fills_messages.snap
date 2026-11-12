@@ -174,4 +174,4 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function
 2 | d.plot(x: t, y: v).ribbon(low: lo, high: mean(hi))
   |                                          ^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable

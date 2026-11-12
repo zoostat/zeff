@@ -776,14 +776,6 @@ impl<'a> Interpreter<'a> {
                 "a column, not one value".to_string(),
                 "`if` decides what the script does and takes one Bool; a value chosen row by row is a `case`: `case { condition => a, _ => b }` (section 5.1)",
             ),
-            Value::Column(column) => (
-                format!(
-                    "{of}'s condition must be a Bool or a Bool column, but `{text}` is {} column",
-                    with_article(column.ty().name())
-                ),
-                "not a condition".to_string(),
-                "write a comparison, `x > 0`, or a Bool variable; the catch-all is `_`",
-            ),
             other => (
                 format!("{of} needs one Bool, but `{text}` is {}", other.type_word()),
                 "not a Bool".to_string(),
@@ -799,172 +791,46 @@ impl<'a> Interpreter<'a> {
     }
 
     /// `case` (section 5.1): the arms in order, the first true one winning and its value alone
-    /// evaluated; the first condition that is a column turns the rest row-wise.
+    /// evaluated; the first condition that is a column turns the rest row-wise (section 3.7,
+    /// "Columns and scalars"), and the rows no arm matches are `NA` with W0208. Which arm
+    /// gives the value is the kernel of `core` (`zeff_core::cases`), which a `case` kept in
+    /// a mapping runs as well; the arms are evaluated here.
     fn eval_case(
         &mut self,
         arms: &[Arm],
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<Value, Fail> {
-        for (k, arm) in arms.iter().enumerate() {
-            let Some(condition) = &arm.condition else {
-                return self.eval(&arm.value, printed, messages);
-            };
-            match self.eval(condition, printed, messages)? {
-                Value::Bool(true) => return self.eval(&arm.value, printed, messages),
-                Value::Bool(false) | Value::Na => {}
-                Value::Column(column) => {
-                    return self.eval_case_rows(arms, k, column, printed, messages);
-                }
-                other => return Err(self.not_one_bool("a `case` arm", &other, condition)),
+        use zeff_core::cases::{self, Failed, Part};
+        let conditions: Vec<bool> = arms.iter().map(|arm| arm.condition.is_some()).collect();
+        let outcome = cases::choose(&conditions, |part| match part {
+            Part::Condition(k) => match &arms[k].condition {
+                Some(condition) => self.eval(condition, printed, messages),
+                None => Ok(Value::Bool(true)),
+            },
+            Part::Value(k) | Part::Arm(k) => self.eval(&arms[k].value, printed, messages),
+        });
+        match outcome {
+            Ok(chosen) => {
+                messages.extend(chosen.warning());
+                Ok(chosen.value)
             }
-        }
-        messages.push(
-            Diagnostic::warning("W0208", "no arm of the `case` matched, so its value is NA")
-                .help("add a last arm for the rest, `_ => value`"),
-        );
-        Ok(Value::Na)
-    }
-
-    /// `case` row by row (section 3.7, "Columns and scalars"), from the arm whose condition is a
-    /// column: each later arm's condition is evaluated over every row and its value over every
-    /// row it supplies, the first true arm winning in each row; rows no arm matches are `NA`
-    /// with W0208.
-    fn eval_case_rows(
-        &mut self,
-        arms: &[Arm],
-        start: usize,
-        first: zeff_columns::Column,
-        printed: &mut String,
-        messages: &mut Vec<Diagnostic>,
-    ) -> Result<Value, Fail> {
-        let rows = first.len();
-        let mut chosen: Vec<Option<usize>> = vec![None; rows];
-        let mut remaining = rows;
-        let mut values: Vec<Option<Value>> = vec![None; arms.len()];
-        let mut first = Some(first);
-        for (k, arm) in arms.iter().enumerate().skip(start) {
-            if remaining == 0 {
-                break;
+            Err(Failed::Other(refusal)) => Err(refusal),
+            Err(Failed::Trouble(trouble)) => {
+                let at = |part: Part| match part {
+                    Part::Condition(k) => arms[k]
+                        .condition
+                        .as_ref()
+                        .map_or(arms[k].span, |condition| condition.span),
+                    Part::Value(k) => arms[k].value.span,
+                    Part::Arm(k) => arms[k].span,
+                };
+                let text = |k: usize| {
+                    let span = at(Part::Condition(k));
+                    self.source.text()[span.start..span.end].trim().to_string()
+                };
+                Err(fail(cases::diagnostic(&trouble, self.script, at, text)))
             }
-            let covers: Vec<usize> = match &arm.condition {
-                None => (0..rows).filter(|r| chosen[*r].is_none()).collect(),
-                Some(condition) => {
-                    let value = match first.take() {
-                        Some(column) => Value::Column(column),
-                        None => self.eval(condition, printed, messages)?,
-                    };
-                    match value {
-                        Value::Bool(true) => (0..rows).filter(|r| chosen[*r].is_none()).collect(),
-                        Value::Bool(false) | Value::Na => Vec::new(),
-                        Value::Column(column) => {
-                            let Some(bools) = column.as_bools() else {
-                                return Err(self.not_one_bool(
-                                    "a `case` arm",
-                                    &Value::Column(column),
-                                    condition,
-                                ));
-                            };
-                            if column.len() != rows {
-                                return Err(self.rows_differ(column.len(), rows, condition));
-                            }
-                            bools
-                                .enumerate()
-                                .filter(|(r, b)| *b == Some(true) && chosen[*r].is_none())
-                                .map(|(r, _)| r)
-                                .collect()
-                        }
-                        other => return Err(self.not_one_bool("a `case` arm", &other, condition)),
-                    }
-                }
-            };
-            if covers.is_empty() {
-                continue;
-            }
-            let value = self.eval(&arm.value, printed, messages)?;
-            if let Value::Column(column) = &value
-                && column.len() != rows
-            {
-                return Err(self.rows_differ(column.len(), rows, &arm.value));
-            }
-            remaining -= covers.len();
-            for r in covers {
-                chosen[r] = Some(k);
-            }
-            values[k] = Some(value);
-        }
-        if remaining > 0 {
-            messages.push(
-                Diagnostic::warning(
-                    "W0208",
-                    format!(
-                        "{} matched no arm of the `case` and {} NA",
-                        plural_rows(remaining),
-                        if remaining == 1 { "is" } else { "are" }
-                    ),
-                )
-                .help("add a last arm for the rest, `_ => value`"),
-            );
-        }
-        // The values of a `case` are the computable scalar types (section 4.3): a Category is
-        // refused rather than turned into its labels unasked (section 3.7, "No implicit
-        // conversion"), and an opaque column is not computed on.
-        let mut fallback: Option<zeff_columns::ColumnType> = None;
-        for (k, value) in values.iter().enumerate() {
-            if let Some(Value::Column(column)) = value {
-                let ty = column.ty();
-                match ty {
-                    zeff_columns::ColumnType::Bool
-                    | zeff_columns::ColumnType::Int
-                    | zeff_columns::ColumnType::Float
-                    | zeff_columns::ColumnType::Str
-                    | zeff_columns::ColumnType::Date
-                    | zeff_columns::ColumnType::DateTime => {}
-                    zeff_columns::ColumnType::Category => {
-                        return Err(fail(
-                            Diagnostic::error("Z0214", "a `case` arm gives a Category column, which does not combine row by row with the other arms")
-                                .in_file(self.script)
-                                .primary(arms[k].value.span, "a Category")
-                                .help("write `to(x, Str)` to use its labels, or `to(x, Int)` for its level positions (section 3.7, \"Conversions\")"),
-                        ));
-                    }
-                    other => {
-                        return Err(fail(
-                            Diagnostic::error("Z0304", format!("a `case` giving a {} column is not available in this release", other.name()))
-                                .in_file(self.script)
-                                .primary(arms[k].value.span, "an opaque column")
-                                .help("an opaque column is carried, not computed on, until the package that brings its functions (section 4.3 of the Language Reference)"),
-                        ));
-                    }
-                }
-                fallback.get_or_insert(ty);
-            }
-        }
-        let per_row: Vec<Value> = (0..rows)
-            .map(|r| match chosen[r] {
-                None => Value::Na,
-                Some(k) => match &values[k] {
-                    Some(Value::Column(column)) => cell_value(column, r),
-                    Some(scalar) => scalar.clone(),
-                    None => Value::Na,
-                },
-            })
-            .collect();
-        match zeff_core::lift::collect_column(&per_row) {
-            Some(column) => Ok(Value::Column(column)),
-            None if per_row.iter().all(|v| matches!(v, Value::Na)) => Ok(match fallback {
-                Some(ty) => Value::Column(zeff_columns::Column::missing(ty, rows)),
-                None => Value::Na,
-            }),
-            None => Err(fail(
-                Diagnostic::error(
-                    "Z0214",
-                    "the arms of a `case` give values of more than one type across the rows",
-                )
-                .in_file(self.script)
-                .primary(arms[start].span, "the first arm evaluated row by row")
-                .help("every arm must give one type: Int and Float join as Float, NA fits any type, and text needs `to(x, Str)`"),
-            )),
         }
     }
 
@@ -1682,23 +1548,6 @@ impl<'a> Interpreter<'a> {
         )
     }
 
-    /// Z0217: a column of another length than the rows a `case` runs over.
-    fn rows_differ(&self, found: usize, rows: usize, at: &Expr) -> Fail {
-        fail(
-            Diagnostic::error(
-                "Z0217",
-                format!(
-                    "this `case` runs over {}, but this arm gives {}",
-                    plural_rows(rows),
-                    plural_rows(found)
-                ),
-            )
-            .in_file(self.script)
-            .primary(at.span, "a column of another length")
-            .help("two columns combine only when they belong to the same frame or have the same length; `merge` joins frames first"),
-        )
-    }
-
     fn eval(
         &mut self,
         expr: &Expr,
@@ -2384,6 +2233,26 @@ impl<'a> Interpreter<'a> {
                     lhs,
                     rhs,
                 }
+            }
+            ExprKind::Case(arms) => {
+                let mut kept = Vec::with_capacity(arms.len());
+                for arm in arms {
+                    let condition = match &arm.condition {
+                        Some(condition) => Some(self.kept_expr(condition, renamed, messages)?),
+                        None => None,
+                    };
+                    let written = arm.condition.as_ref().map_or(String::new(), |condition| {
+                        self.source.text()[condition.span.start..condition.span.end]
+                            .trim()
+                            .to_string()
+                    });
+                    kept.push(zeff_core::value::CaseArm {
+                        condition,
+                        written,
+                        value: self.kept_expr(&arm.value, renamed, messages)?,
+                    });
+                }
+                ColumnExpr::Case(kept)
             }
             ExprKind::Call(call) => {
                 let mut args = Vec::with_capacity(call.args.len());

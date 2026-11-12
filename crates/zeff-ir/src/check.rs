@@ -2723,7 +2723,7 @@ impl Checker<'_> {
                         format!("an expression mapped to an aesthetic cannot use {what}"),
                     )
                     .primary(span, "not kept in a mapping")
-                    .help("a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable"),
+                    .help("a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable"),
                 );
                 return Expr::error(lowered.span);
             }
@@ -7815,7 +7815,13 @@ fn not_kept(expr: &Expr) -> Option<(Span, String)> {
                 .or_else(|| call.rest.iter().find_map(not_kept))
         }
         ExprKind::CallFn { .. } => Some((expr.span, "a function of the project".to_string())),
-        ExprKind::Case(_) => Some((expr.span, "`case`".to_string())),
+        // `case` chooses row by row, as it does in `add` (open decision #107, option B).
+        ExprKind::Case(arms) => arms.iter().find_map(|arm| {
+            arm.condition
+                .as_ref()
+                .and_then(not_kept)
+                .or_else(|| not_kept(&arm.value))
+        }),
         ExprKind::If { .. } => Some((expr.span, "`if`".to_string())),
         ExprKind::Index { .. } | ExprKind::Slice { .. } | ExprKind::Field { .. } => {
             Some((expr.span, "a part taken from another value".to_string()))

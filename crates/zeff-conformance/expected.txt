@@ -327,6 +327,11 @@ plot/mapped/mapped.pdf cfe2af9f51ead9f5
 plot/mapped/mapped.png 0ac4afedbb2846f2
 plot/zeffmapped/stdout 1401acaaa91258b6
 plot/zeffmapped/stderr c593718132b70c1d
+plot/case/stdout e66a3418966d51fa
+plot/case/stderr a1fe93256fcee796
+plot/case/case.svg 5b10b92c1da1ba2c
+plot/case/case.pdf 7ff1e9f5c0b7c0ef
+plot/case/case.png 132d327ed8ed5ac0
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

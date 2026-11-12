@@ -13,6 +13,7 @@
 use std::rc::Rc;
 
 use zeff_columns::Column;
+use zeff_core::cases::{self, Failed, Part};
 use zeff_core::lift;
 use zeff_core::operators::{self, Op, Operand};
 use zeff_core::runtime::{Args, Body, CallContext, Fail, fail};
@@ -40,6 +41,12 @@ pub(crate) fn variables(expr: &ColumnExpr) -> Vec<&str> {
             ColumnExpr::Call { args, rest, .. } => {
                 args.iter().flatten().for_each(|arg| collect(arg, out));
                 rest.iter().for_each(|arg| collect(arg, out));
+            }
+            ColumnExpr::Case(arms) => {
+                for arm in arms {
+                    arm.condition.iter().for_each(|c| collect(c, out));
+                    collect(&arm.value, out);
+                }
             }
             _ => {}
         }
@@ -203,6 +210,37 @@ impl Evaluator<'_, '_> {
                     lift::call_rowwise(body, self.ctx, call, returns)?
                 } else {
                     body(self.ctx, call)?
+                }
+            }
+            // `case`, by the kernel of `core` that computes it in a script: the same arm
+            // for each row, the same warning for the rows no arm matches, the same refusals.
+            ColumnExpr::Case(arms) => {
+                let conditions: Vec<bool> = arms.iter().map(|a| a.condition.is_some()).collect();
+                let outcome = cases::choose(&conditions, |part| match part {
+                    Part::Condition(k) => match &arms[k].condition {
+                        Some(condition) => self.value(condition),
+                        None => Ok(Value::Bool(true)),
+                    },
+                    Part::Value(k) | Part::Arm(k) => self.value(&arms[k].value),
+                });
+                match outcome {
+                    Ok(chosen) => {
+                        if let Some(warning) = chosen.warning() {
+                            self.ctx.message(warning);
+                        }
+                        chosen.value
+                    }
+                    Err(Failed::Other(refusal)) => return Err(refusal),
+                    Err(Failed::Trouble(trouble)) => {
+                        // Every part of a mapping is underlined at the mapping.
+                        let span = self.ctx.callee_span;
+                        return Err(fail(cases::diagnostic(
+                            &trouble,
+                            self.ctx.script,
+                            |_| span,
+                            |k| arms[k].written.clone(),
+                        )));
+                    }
                 }
             }
         })

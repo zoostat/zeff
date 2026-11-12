@@ -9,7 +9,7 @@ error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function
 3 | f.plot(x: size, y: size - mean(size)).points()
   |                           ^^^^ not kept in a mapping
   |
-  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
 
 == a_function_that_takes_no_column
 error[Z0401]: `s` of `split` must be a Str, but this is a Column

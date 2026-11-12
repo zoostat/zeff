@@ -1,0 +1,67 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_condition_that_is_a_number
+error[Z0203]: a `case` arm's condition must be a Bool or a Bool column, but `wage` is a Float column
+ --> scripts/main.zeff:2:20
+  |
+2 | w.plot(x: educ, y: case { wage => 1, _ => 0 }).points()
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ not a condition
+  |
+  = help: write a comparison, `x > 0`, or a Bool variable; the catch-all is `_`
+
+== arms_of_two_types
+error[Z0214]: the arms of a `case` must give one type: this one has a Str after an Int
+ --> scripts/main.zeff:2:48
+  |
+2 | w.plot(x: educ, y: case { wage > 10 => 1, _ => "a" }).points()
+  |                                                ^^^ a Str
+  |
+  = help: Int and Float join as Float and NA fits any type; other types need a conversion, `to(x, Str)`
+
+== arms_of_two_types_across_the_rows
+error[Z0214]: the arms of a `case` give values of more than one type across the rows
+ --> scripts/main.zeff:2:20
+  |
+2 | w.plot(x: educ, y: case { wage > 10 => educ, _ => to(industry, Str) }).points()
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the first arm evaluated row by row
+  |
+  = help: every arm must give one type: Int and Float join as Float, NA fits any type, and text needs `to(x, Str)`
+
+== an_arm_that_is_a_category
+error[Z0214]: a `case` arm gives a Category column, which does not combine row by row with the other arms
+ --> scripts/main.zeff:2:20
+  |
+2 | w.plot(x: educ, y: case { wage > 10 => industry, _ => industry }).points()
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ a Category
+  |
+  = help: write `to(x, Str)` to use its labels, or `to(x, Int)` for its level positions (section 3.7, "Conversions")
+
+== a_reducer_in_an_arm
+error[Z0401]: an expression mapped to an aesthetic cannot use `mean`, a function of `data`
+ --> scripts/main.zeff:2:40
+  |
+2 | w.plot(x: educ, y: case { wage > 10 => mean(wage), _ => 0 }).points()
+  |                                        ^^^^ not kept in a mapping
+  |
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+
+== a_frame_that_cannot_give_the_condition
+error[Z0221]: `>` compares values of one type, but these are text and a number
+ --> scripts/main.zeff:2:66
+  |
+2 | w.plot(x: educ, y: case { wage > 10 => 1, _ => 0 }).points(data: frame(educ = [1], wage = ["a"]))
+  |                                                     ------ this layer draws `case { … }`, which the plot maps to `y`
+  |                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `case { … }` cannot be computed on this frame
+  |
+  = help: Int and Float compare as numbers; text compares with text and Bool with Bool
+
+== an_if_in_a_mapping
+error[Z0401]: an expression mapped to an aesthetic cannot use `if`
+ --> scripts/main.zeff:2:20
+  |
+2 | w.plot(x: educ, y: if true { wage } else { educ }).points()
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not kept in a mapping
+  |
+  = help: a mapping is computed from variables, numbers, the operators, `case` and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
