@@ -1,0 +1,39 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_fill_of_another_type
+error[Z0214]: `coalesce` needs values of one type, but these are an Int and a Str (row 1)
+ --> scripts/main.zeff:2:17
+  |
+2 | d.plot(x: x, y: fill_missing(k, "a")).points()
+  |                 ^^^^^^^^^^^^^^^^^^^^ values of two types
+  |
+  = help: Int and Float join as Float, and NA fits any type; convert with `to` where a mixture is meant
+
+== an_argument_left_out
+error[Z0406]: `clamp` needs `high`
+ --> scripts/main.zeff:2:17
+  |
+2 | d.plot(x: x, y: clamp(x, 0)).points()
+  |                 ^^^^^ `high` is missing
+  |
+  = help: usage: `clamp(x, low, high)`
+
+== a_function_that_gives_no_value
+error[Z0401]: an expression mapped to an aesthetic cannot use `assert`, which gives no value
+ --> scripts/main.zeff:2:17
+  |
+2 | d.plot(x: x, y: assert(x > 0, "positive")).points()
+  |                 ^^^^^^ not kept in a mapping
+  |
+  = help: a mapping is computed from variables, numbers, the operators and the functions of `core`, `time` and `text`, as in `log(wage)`, `wage / hours` or `year(hired)`; compute anything else with `add` first and map the new variable
+
+== a_variable_the_frame_lacks
+error[Z0101]: no variable `shares` in `d`
+ --> scripts/main.zeff:2:23
+  |
+2 | d.plot(x: x, y: logit(shares)).points()
+  |                       ^^^^^^ not a variable of d
+  |
+  = help: did you mean `share`? If you meant a category level, write it in quotes: `"share"`

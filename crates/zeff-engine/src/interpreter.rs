@@ -2386,21 +2386,6 @@ impl<'a> Interpreter<'a> {
                 }
             }
             ExprKind::Call(call) => {
-                // A function of `core` written in Zeff runs in the interpreter alone, so the
-                // function that keeps the expression could not compute it: refused here, as a
-                // formula refuses it (open decision #107).
-                let key = (call.package.clone(), call.name.clone());
-                if self.zeff.and_then(|z| z.get(&key)).is_some() {
-                    return Err(fail(
-                        Diagnostic::error(
-                            "Z0401",
-                            format!("`{}` cannot be computed inside a mapping", call.name),
-                        )
-                        .in_file(self.script)
-                        .primary(call.callee_span, "a call a mapping cannot make")
-                        .help("`clamp`, `logit`, `inv_logit` and `fill_missing` are not computed inside a mapping in this release; compute the value with `add` first and map the new variable"),
-                    ));
-                }
                 let mut args = Vec::with_capacity(call.args.len());
                 for arg in &call.args {
                     args.push(match arg {
@@ -2408,29 +2393,138 @@ impl<'a> Interpreter<'a> {
                         None => None,
                     });
                 }
+                // A function of `core` written in Zeff runs in the interpreter alone, so the
+                // function that keeps the expression could not call it. Its body, one
+                // expression of its parameters, is taken into the kept expression here, with
+                // the arguments in the place of the parameters (open decision #107, option B).
+                let zeff = self.zeff;
+                let key = (call.package.clone(), call.name.clone());
+                if let Some(builtin) = zeff.and_then(|z| z.get(&key)) {
+                    return self.kept_body(builtin, call, args);
+                }
                 let mut rest = Vec::with_capacity(call.rest.len());
                 for arg in &call.rest {
                     rest.push(self.kept_expr(arg, renamed, messages)?);
                 }
-                // Row by row as the checker marked it, or as the names turned out when a column
-                // of the frame shadows a binding (section 3.7, "Name lookup"; W0102), which the
-                // checker cannot see.
-                let lifted =
-                    call.lifted
-                        || (call.liftable
-                            && (args.iter().zip(&call.scalar_params).any(|(a, scalar)| {
-                                *scalar && a.as_ref().is_some_and(gives_column)
-                            }) || (call.rest_scalar && rest.iter().any(gives_column))));
-                ColumnExpr::Call {
-                    package: call.package.clone(),
-                    name: call.name.clone(),
-                    args,
-                    rest,
-                    lifted,
-                    returns: call.returns.clone(),
-                }
+                kept_call(call, args, rest)
             }
             _ => return Err(self.internal(expr, "a kept expression the checker does not admit")),
+        })
+    }
+
+    /// Z0401 for a function written in Zeff that a kept expression cannot hold.
+    fn not_kept_body(&self, call: &Call) -> Fail {
+        fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`{}` cannot be computed inside a mapping", call.name),
+            )
+            .in_file(self.script)
+            .primary(call.callee_span, "a call a mapping cannot make")
+            .help("a mapping computes a function written in Zeff when its body is one expression of its arguments; compute the value with `add` first and map the new variable"),
+        )
+    }
+
+    /// A call of a built-in written in Zeff, inside a kept expression: the body of the
+    /// function with each parameter replaced by its argument, already kept. The body must be
+    /// one expression, as those of `logit`, `inv_logit`, `clamp` and `fill_missing` are; the
+    /// scalar form is taken, and its calls apply row by row where an argument is a column.
+    fn kept_body(
+        &self,
+        builtin: &ZeffBuiltin,
+        call: &Call,
+        args: Vec<Option<ColumnExpr>>,
+    ) -> Result<ColumnExpr, Fail> {
+        let Some(form) = builtin.forms.first() else {
+            return Err(self.not_kept_body(call));
+        };
+        let function = &form.program.functions[form.function];
+        let Some(tail) = &function.body.tail else {
+            return Err(self.not_kept_body(call));
+        };
+        if builtin.enclosing
+            || !function.body.statements.is_empty()
+            || !call.rest.is_empty()
+            || args.len() != function.params.len()
+        {
+            return Err(self.not_kept_body(call));
+        }
+        let mut bound: Vec<(zeff_ir::BindingId, ColumnExpr)> = Vec::new();
+        for (param, arg) in function.params.iter().zip(args) {
+            // An argument left out has a default, which only the interpreter evaluates.
+            let Some(arg) = arg else {
+                return Err(self.not_kept_body(call));
+            };
+            bound.push((param.binding, arg));
+        }
+        self.kept_in_body(tail, &bound, call)
+    }
+
+    /// An expression of the body of a built-in written in Zeff, with the parameters replaced
+    /// by the arguments of the call that a mapping keeps.
+    fn kept_in_body(
+        &self,
+        expr: &Expr,
+        bound: &[(zeff_ir::BindingId, ColumnExpr)],
+        outer: &Call,
+    ) -> Result<ColumnExpr, Fail> {
+        Ok(match &expr.kind {
+            ExprKind::Int(i) => ColumnExpr::Int(*i),
+            ExprKind::Float(x) => ColumnExpr::Float(*x),
+            ExprKind::Str(s) => ColumnExpr::Str(s.clone()),
+            ExprKind::Bool(b) => ColumnExpr::Bool(*b),
+            ExprKind::Na => ColumnExpr::Na,
+            ExprKind::Word(word) => ColumnExpr::Word(word.clone()),
+            ExprKind::TypeName { name, .. } => ColumnExpr::Type(name.clone()),
+            ExprKind::Binding(id) => match bound.iter().find(|(param, _)| param == id) {
+                Some((_, arg)) => arg.clone(),
+                None => return Err(self.not_kept_body(outer)),
+            },
+            ExprKind::List(items) => ColumnExpr::List(
+                items
+                    .iter()
+                    .map(|item| self.kept_in_body(item, bound, outer))
+                    .collect::<Result<_, _>>()?,
+            ),
+            ExprKind::Unary { op, operand } => ColumnExpr::Unary {
+                negate: *op == UnaryOp::Neg,
+                operand: Box::new(self.kept_in_body(operand, bound, outer)?),
+            },
+            ExprKind::Binary { op, lhs, rhs }
+                if !matches!(
+                    op,
+                    zeff_syntax::ast::BinaryOp::Range | zeff_syntax::ast::BinaryOp::Interact
+                ) =>
+            {
+                ColumnExpr::Binary {
+                    op: operator(*op),
+                    lhs: Box::new(self.kept_in_body(lhs, bound, outer)?),
+                    rhs: Box::new(self.kept_in_body(rhs, bound, outer)?),
+                }
+            }
+            ExprKind::Call(call)
+                if !call.implicit_receiver
+                    && call.definitions.is_empty()
+                    && call.spreads.is_empty() =>
+            {
+                let mut args = Vec::with_capacity(call.args.len());
+                for arg in &call.args {
+                    args.push(match arg {
+                        Some(arg) => Some(self.kept_in_body(arg, bound, outer)?),
+                        None => None,
+                    });
+                }
+                let key = (call.package.clone(), call.name.clone());
+                if let Some(builtin) = self.zeff.and_then(|z| z.get(&key)) {
+                    return self.kept_body(builtin, call, args);
+                }
+                let mut rest = Vec::with_capacity(call.rest.len());
+                for arg in &call.rest {
+                    rest.push(self.kept_in_body(arg, bound, outer)?);
+                }
+                kept_call(call, args, rest)
+            }
+            _ => return Err(self.not_kept_body(outer)),
         })
     }
 
@@ -3670,6 +3764,28 @@ enum Named<'e> {
     Binding(zeff_ir::BindingId, Frame),
     /// A constant of `core`, as the call the checker made of it.
     Constant(&'e Expr),
+}
+
+/// A call of a function in Rust as a kept expression holds it. It applies row by row as the
+/// checker marked it, or as the names turned out when a column of the frame shadows a binding
+/// (section 3.7, "Name lookup"; W0102), which the checker cannot see, or when the call stands
+/// in the body of a built-in written in Zeff and an argument of that built-in is a column.
+fn kept_call(call: &Call, args: Vec<Option<ColumnExpr>>, rest: Vec<ColumnExpr>) -> ColumnExpr {
+    let lifted = call.lifted
+        || (call.liftable
+            && (args
+                .iter()
+                .zip(&call.scalar_params)
+                .any(|(a, scalar)| *scalar && a.as_ref().is_some_and(gives_column))
+                || (call.rest_scalar && rest.iter().any(gives_column))));
+    ColumnExpr::Call {
+        package: call.package.clone(),
+        name: call.name.clone(),
+        args,
+        rest,
+        lifted,
+        returns: call.returns.clone(),
+    }
 }
 
 /// Whether a kept expression gives a column: it reads a variable of the frame, through the

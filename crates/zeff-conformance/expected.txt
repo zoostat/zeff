@@ -325,6 +325,8 @@ plot/mapped/stderr cbf29ce484222325
 plot/mapped/mapped.svg 897dc4d896803baa
 plot/mapped/mapped.pdf cfe2af9f51ead9f5
 plot/mapped/mapped.png 0ac4afedbb2846f2
+plot/zeffmapped/stdout 1401acaaa91258b6
+plot/zeffmapped/stderr c593718132b70c1d
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

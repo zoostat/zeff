@@ -205,7 +205,9 @@ axis: numbers a linear scale, text an axis of categories, dates a scale of dates
 `x: category(educ)` stands the years of schooling side by side as categories, and
 `x: add_months(hired, 6)` is an axis of dates. One text alone, as in `x: "all"`, puts every
 row at one place. Where a layer has a frame of its own, the expression must come to the same
-kind of value there.
+kind of value there. `logit`, `inv_logit`, `clamp` and `fill_missing` are computed as well,
+so `y: logit(share)` draws the log odds and `y: fill_missing(region, "none")` gives the rows
+with no region a place of their own.
 A row where it gives `NA` or an infinite value is not drawn, and the warnings of the
 computation, such as that of the logarithm of zero, count such rows. A name that is not a
 variable of the frame is read as a binding of the script, with the value it holds where `plot`
@@ -222,8 +224,7 @@ their own options in the same way.
 What an expression cannot hold. A summary of a variable, such as `mean(wage)`, is not
 computed inside a mapping: its value would depend on the rows of each layer. Neither are a
 function of a package other than `core`, `time` and `text`, a function defined in the script,
-`case` and `if`, nor `clamp`, `logit`, `inv_logit` and `fill_missing`. Compute such a value
-with `add` first and map the new variable.
+`case` and `if`. Compute such a value with `add` first and map the new variable.
 
 The scene. A plot is kept as a scene: the marks in the units of the data, with the scales, the
 axes, the legends and the layout. It has one legend for each variable that a layer shows by a

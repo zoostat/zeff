@@ -428,7 +428,6 @@ fn every_message_of_an_expression() {
         "let w = dataset(wages)\nw.plot(x: educ, y: w[\"wage\"])\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: wage..hours)\n",
         "let w = dataset(wages)\nw.plot(x: educ, y: seed(3))\n",
-        "let w = dataset(wages)\nw.plot(x: educ, y: logit(wage / 200))\n",
         "let w = dataset(wages)\n/// Twice a number.\nfn twice(x: Float) -> Float { x * 2 }\nw.plot(x: educ, y: twice(wage))\n",
         // What it does not come to.
         "let w = dataset(wages)\nw.plot(x: educ).ribbon(low: upper(industry), high: wage)\n",
@@ -2681,4 +2680,121 @@ fn every_message_of_a_widened_mapping() {
         all.push_str(&format!("== {name}\n{stderr}\n"));
     }
     insta::assert_snapshot!("mapping_time_and_text_messages", all);
+}
+
+// ----- the functions of core written in Zeff, in a mapping (step 25c3b) -----
+
+const SHARES: &str = "let d = frame(share = [0.1, 0.5, 0.9, 0, NA], x = [-2, 0.5, 7, 1, 2], k = [1, NA, 3, 4, 5], s = [\"a\", NA, \"b\", \"a\", \"b\"])\n";
+
+/// The lines of a printed plot that say what is drawn: the two axes without their titles,
+/// and the messages without their line numbers.
+fn drawn_lines(text: &str) -> Vec<String> {
+    text.lines()
+        .filter(|line| {
+            line.starts_with("  x ")
+                || line.starts_with("  y ")
+                || line.starts_with("warning")
+                || line.starts_with("note")
+        })
+        .map(|line| {
+            let line = line.split(" (line ").next().unwrap_or(line);
+            // The title is the second column: what follows the kind of scale is compared.
+            match line.find("linear") {
+                Some(at) if line.starts_with("  ") => format!("{} {}", &line[..4], &line[at..]),
+                _ => line.to_string(),
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn a_mapping_computes_the_functions_written_in_zeff_as_add_does() {
+    // Each of the four in a mapping, and the same value made a variable with `add` first:
+    // the limits, the breaks and the warnings are the same.
+    for (mapped, added) in [
+        (
+            "d.plot(x: x, y: logit(share)).points()",
+            "d.add(v = logit(share)).plot(x: x, y: v).points()",
+        ),
+        (
+            "d.plot(x: x, y: inv_logit(x)).points()",
+            "d.add(v = inv_logit(x)).plot(x: x, y: v).points()",
+        ),
+        (
+            "d.plot(x: x, y: clamp(x, 0, 3)).points()",
+            "d.add(v = clamp(x, 0, 3)).plot(x: x, y: v).points()",
+        ),
+        (
+            "d.plot(x: x, y: fill_missing(k, 0)).points()",
+            "d.add(v = fill_missing(k, 0)).plot(x: x, y: v).points()",
+        ),
+        (
+            "d.plot(x: x, y: logit(inv_logit(x)) + clamp(k, 2, 4)).points()",
+            "d.add(v = logit(inv_logit(x)) + clamp(k, 2, 4)).plot(x: x, y: v).points()",
+        ),
+    ] {
+        let ours = drawn_lines(&printed(&format!("{SHARES}{mapped}\n")));
+        let theirs = drawn_lines(&printed(&format!("{SHARES}{added}\n")));
+        let renamed: Vec<String> = theirs
+            .iter()
+            .map(|line| {
+                line.replace(
+                    " or v ",
+                    &format!(
+                        " or {} ",
+                        &mapped[mapped.find("y: ").unwrap() + 3..mapped.rfind(").points").unwrap()]
+                    ),
+                )
+            })
+            .collect();
+        assert_eq!(ours, renamed, "{mapped}");
+        assert!(ours.len() >= 2, "{mapped}: {ours:?}");
+    }
+    let script = format!(
+        "{SHARES}d.plot(x: x, y: logit(share)).points()\n\
+         d.plot(x: x, y: inv_logit(x)).lines()\n\
+         d.plot(x: clamp(x, low: 0, high: 3), y: x).points()\n\
+         d.plot(x: x, y: fill_missing(k, 0)).points()\n\
+         d.plot(x: x, y: fill_missing(s, \"none\")).points()\n\
+         d.plot(x: x, y: logit(0.5)).points()\n\
+         d.plot(x: x, y: share).points(data: frame(x = [1], share = [0.2]), y: logit(share))\n"
+    );
+    let text = printed(&script);
+    for line in [
+        "  y      logit(share)   linear   -2.41695 to 2.41695   -2, -1, 0, 1, 2\n",
+        "  y      fill_missing(s, \"none\")   category   0.4 to 3.6      a, b, none\n",
+        "warning[W0204]: log of zero gave -Inf in 1 row (line 2)\n",
+    ] {
+        assert!(text.contains(line), "{line}\n{text}");
+    }
+    insta::assert_snapshot!("mapping_zeff_functions", text);
+}
+
+#[test]
+fn every_message_of_a_function_written_in_zeff_in_a_mapping() {
+    let mut all = String::new();
+    for (name, script) in [
+        (
+            "a_fill_of_another_type",
+            "d.plot(x: x, y: fill_missing(k, \"a\")).points()\n",
+        ),
+        (
+            "an_argument_left_out",
+            "d.plot(x: x, y: clamp(x, 0)).points()\n",
+        ),
+        (
+            "a_function_that_gives_no_value",
+            "d.plot(x: x, y: assert(x > 0, \"positive\")).points()\n",
+        ),
+        (
+            "a_variable_the_frame_lacks",
+            "d.plot(x: x, y: logit(shares)).points()\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SHARES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("mapping_zeff_functions_messages", all);
 }

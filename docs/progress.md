@@ -143,3 +143,13 @@ Step 23 was split into 23a to 23e when open decision #106 was taken as option A 
 **Next.** Step 25c3b `[engine]`: `logit`, `inv_logit`, `clamp` and `fill_missing` in a mapping.
 
 **For the owner to decide.** One thing found, not changed: `f.add(y = year(industry))`, a function of `time` or `text` given a variable of the wrong type, stops with "internal error: this is a bug in Zeff" and has done since 0.6.0; a mapping now reaches the same message. It is recorded under open decision #108 (due 0.8.0, recommendation A: refuse with a plain message). Open as before: #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 12 November 2026, release 0.7.0, step 25c3b (the four functions written in Zeff, in a mapping)
+
+**Done.** `logit`, `inv_logit`, `clamp` and `fill_missing` are computed inside a mapping: `plot(x: x, y: logit(share))` draws the log odds, with the values and the warnings that `add` gives, which a test compares one by one.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 346 of 346; CI is read job by job after the push.
+
+**Next.** Step 25c3c `[engine]`: `case` in a mapping, which completes step 25c.
+
+**For the owner to decide.** Nothing new. Open as before: the internal error of `add` under #108, #129, #109, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

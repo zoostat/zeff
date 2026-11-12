@@ -2013,6 +2013,13 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/mapped/{name}"), &data));
     }
+    // The four functions of `core` written in Zeff, in a mapping (step 25c3b): the log odds
+    // of a share with the warning of a share of zero, a probability from a number, a value
+    // held in a range and a missing value filled; what the script prints.
+    let script = "let d = frame(share = [0.1, 0.5, 0.9, 0, NA], x = [-2, 0.5, 7, 1, 2], k = [1, NA, 3, 4, 5], s = [\"a\", NA, \"b\", \"a\", \"b\"])\nd.plot(x: x, y: logit(share)).points()\nd.plot(x: x, y: inv_logit(x)).lines()\nd.plot(x: clamp(x, 0, 3), y: x).points()\nd.plot(x: x, y: fill_missing(k, 0)).points()\nd.plot(x: x, y: fill_missing(s, \"none\")).points()\n";
+    let inlined = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/zeffmapped/stdout", &inlined.output.stdout));
+    fills.push(text("plot/zeffmapped/stderr", &inlined.output.stderr));
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

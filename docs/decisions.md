@@ -3545,3 +3545,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Dependencies.** None from outside; `zeff-time` and `zeff-text` join the `plot` package's own.
 
 **Reason.** The checklist's step 25c3a; open decision #107, option B; section 3.7 of the Language Reference ("Columns and scalars").
+
+## 12 November 2026: the four functions of `core` written in Zeff, in a mapping (release 0.7.0, step 25c3b)
+
+**Decision.** `logit`, `inv_logit`, `clamp` and `fill_missing` are computed inside a mapping. Their bodies run in the interpreter alone, and the `plot` package, which keeps a mapped expression to compute it on the frame of each layer, cannot call them. So the interpreter takes the body into the expression it hands over (`kept_body` in `crates/zeff-engine/src/interpreter.rs`): where a kept expression calls a built-in written in Zeff whose body is one expression of its parameters, the call is replaced by that expression with each parameter replaced by its argument. `logit(share)` is kept as `log(share / (1 - share))`, which the `plot` package computes with the kernels of `core` as it computes any other expression. The scalar form of the body is taken, and each call in it applies row by row where an argument is a column, by the rule the interpreter already has for a column that shadows a binding (`kept_call`, now shared).
+
+**Why not a second evaluator.** The other way was to let the `plot` package run Zeff bodies, which would bring the interpreter under a package (against section 8.1) or a second copy of it. Taking the body in keeps one evaluator of expressions and one of statements.
+
+**What is taken in, and what is not.** A body of one expression, with no statement before it, whose parameters are all given: the four of `core`. A body with statements (`assert`), a parameter left to its default, a body that reads the enclosing frame: refused with Z0401, "cannot be computed inside a mapping", and the advice to use `add`. None of the three can be reached by a script today: `assert` gives no value, which the checker refuses first, and the built-ins of `data` and `regress` written in Zeff are functions of packages a mapping does not call.
+
+**The values and the warnings are those of `add`.** A test draws each of the four in a mapping and beside it the same value made a variable with `add`, and compares the limits, the breaks, the warnings (W0204 for the log odds of a share of 0) and the notes. A message of the body names the function the body calls: a fill of another type is refused by `coalesce` (Z0214), as in `add`.
+
+**A formula still refuses the four** (`design.rs` of the `results` package), as open decision #107 recorded: that is not a mapping, and the decision widened mappings alone.
+
+**Tests.** `printing.rs`: the five comparisons with `add`, seven plots (a text variable filled, which gives an axis of categories with a place for the filled rows; one number for every row; a layer of its own frame that maps `logit` itself) and four messages; the case of `every_message_of_an_expression` that pinned the refusal of `logit` is removed. The conformance set gains two cases: what a script of the four prints, and its messages.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 25c3b; open decision #107, option B.
