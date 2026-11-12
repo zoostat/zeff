@@ -1,0 +1,25 @@
+plot · wages · wage against educ
+
+  axis   title                scale    limits              breaks
+  x      Years of schooling   linear   7.4 to 20.6         8, 10, 12, 14, 16, 18, 20
+  y      Hourly wage          linear   -3.913 to 159.833   0, 50, 100, 150
+
+  layer   mark     data     marks   settings
+      1   points   wages   18,201   size 4.5, alpha 0.2
+plot · w2010 · wage against exper
+
+  axis   title                                                             scale    limits
+  x      Potential labour-market experience: age less schooling less six   linear   -1.25 to 26.25
+  y      Hourly wage                                                       linear   -0.09 to 102.65
+
+  breaks
+  0, 5, 10, 15, 20, 25
+  0, 20, 40, 60, 80, 100
+
+  aesthetic   title          scale      values         shown as
+  color       Sex            category   male, female   orange, sky blue
+  size        Hours worked   sqrt       0 to 66.2      by area, up to 18 across
+  shape       Sex            category   male, female   circle, triangle
+
+  layer   mark     data    marks   settings
+      1   points   w2010     529   size by hours, shape by female, alpha 0.5

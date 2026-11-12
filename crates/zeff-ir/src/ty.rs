@@ -209,7 +209,24 @@ impl Ty {
             }) {
                 return Some(Ty::Words(parts.iter().map(|p| (*p).to_string()).collect()));
             }
-            return None;
+            // Words beside types (`one_column | two_column | slide | List<Float>`): a choice
+            // of the words, taken together where they are written together, and of each type.
+            let is_word = |p: &str| {
+                p.chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+            };
+            let mut options: Vec<Ty> = Vec::new();
+            for part in parts {
+                if is_word(part) {
+                    match options.last_mut() {
+                        Some(Ty::Words(words)) => words.push(part.to_string()),
+                        _ => options.push(Ty::Words(vec![part.to_string()])),
+                    }
+                } else {
+                    options.push(Ty::parse(part)?);
+                }
+            }
+            return Some(Ty::Union(options));
         }
         Some(match text {
             "Bool" => Ty::Bool,
@@ -463,6 +480,25 @@ mod tests {
             Some(Ty::Union(vec![Ty::Var, Ty::Vars]))
         );
         assert_eq!(Ty::parse("Str | Int").unwrap().to_string(), "Str | Int");
+        // Words beside types: the words together, then each type, written back as given.
+        assert_eq!(
+            Ty::parse("one_column | slide | List<Float>"),
+            Some(Ty::Union(vec![
+                Ty::Words(vec!["one_column".into(), "slide".into()]),
+                Ty::List(Box::new(Ty::Float)),
+            ]))
+        );
+        for text in [
+            "one_column | slide | List<Float>",
+            "Int | sturges | scott | fd",
+        ] {
+            assert_eq!(Ty::parse(text).unwrap().to_string(), text);
+        }
+        let size = Ty::parse("one_column | slide | List<Float>").unwrap();
+        assert_eq!(size.words(), ["one_column", "slide"]);
+        assert!(size.accepts(&Ty::Words(vec!["slide".into()])));
+        assert!(size.accepts(&Ty::List(Box::new(Ty::Int))));
+        assert!(!size.accepts(&Ty::Words(vec!["poster".into()])) && !size.accepts(&Ty::Str));
         for bad in ["", "Frame<Int>", "keep | Snake", "Column<", "Thing", "a | "] {
             assert_eq!(Ty::parse(bad), None, "{bad}");
         }

@@ -13,8 +13,19 @@ use zeff_core::display::{
     degrees_text, fixed, p_value_text, test_result_after, test_result_before,
 };
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{Align, Table, TestResult, Value};
+use zeff_core::value::{
+    Align, FigureFormat, FigureRequest, FigureSize, Plot, Table, TestResult, Value,
+};
 use zeff_diagnostics::Diagnostic;
+
+/// The slots of `export`: what is written, the path, and for a plot the size of its page and
+/// whether its notes are written under it.
+const PATH: usize = 1;
+const SIZE: usize = 2;
+const NOTES: usize = 3;
+
+/// The extensions of the formats a figure is written in, or will be.
+const FIGURE_EXTENSIONS: [&str; 3] = ["svg", "pdf", "png"];
 
 /// The formats a table is written in, chosen by the path's extension.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,12 +53,220 @@ impl Format {
     }
 }
 
+/// The name of a file without its folders, and its name and extension apart when it has both.
+fn parts(path: &str) -> (&str, Option<(&str, &str)>) {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    let split = name
+        .rsplit_once('.')
+        .filter(|(stem, extension)| !stem.is_empty() && !extension.is_empty());
+    (name, split)
+}
+
+/// The path a file is written at: `output/` by default (section 2, "Writes"), so a bare name
+/// is written there; a path with a folder, or one of the form `root:file`, goes to the
+/// project's rules as written.
+fn written_at(path: String) -> String {
+    if path.contains('/') || path.contains(':') {
+        path
+    } else {
+        format!("output/{path}")
+    }
+}
+
+/// `p.export(path, size:, notes:)` on a plot (release 0.7.0, step 21d; Language Reference,
+/// section 7.6): the plot laid out on a page of `size` and written as the figure the
+/// extension names. The plot value carries the writer of the `plot` package, which draws it.
+fn export_plot(
+    ctx: &mut CallContext<'_>,
+    plot: &Plot,
+    path: String,
+    args: &Args,
+) -> Result<Value, Fail> {
+    let span = ctx.span_of(PATH);
+    let (name, split) = parts(&path);
+    let extension = split.map(|(_, extension)| extension.to_ascii_lowercase());
+    let stem = split.map_or(name.trim_end_matches('.'), |(stem, _)| stem);
+    let stem = if stem.is_empty() || stem.starts_with('.') {
+        "figure"
+    } else {
+        stem
+    };
+    let instead = format!(
+        "write `output/{stem}.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture"
+    );
+    match extension.as_deref() {
+        Some("svg") => {}
+        Some(later @ ("pdf" | "png")) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0716",
+                    format!(
+                        "`{path}`: this version of Zeff writes a plot as `.svg`; `.{later}` is not written yet"
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(span, format!("`.{later}` comes in a later version"))
+                .help(instead),
+            ));
+        }
+        Some(table @ ("docx" | "tex")) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0716",
+                    format!("`{path}`: `.{table}` is the format of a table, and this is a plot"),
+                )
+                .in_file(ctx.script)
+                .primary(span, "not a format of a figure")
+                .help(instead),
+            ));
+        }
+        Some(other) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0716",
+                    format!("`{path}` has an extension Zeff does not write"),
+                )
+                .in_file(ctx.script)
+                .primary(span, format!("`.{other}` is not a format of `export`"))
+                .help(instead),
+            ));
+        }
+        None => {
+            let (message, label) = if name.starts_with('.') && name.len() > 1 {
+                (
+                    format!("`{path}` has no name before its extension"),
+                    "a name is needed",
+                )
+            } else {
+                (
+                    format!("`{path}` has no extension, so no format is chosen"),
+                    "which format?",
+                )
+            };
+            return Err(fail(
+                Diagnostic::error("Z0716", message)
+                    .in_file(ctx.script)
+                    .primary(span, label)
+                    .help(instead),
+            ));
+        }
+    }
+    let not_a_size = |ctx: &CallContext<'_>, what: String| {
+        fail(
+            Diagnostic::error(
+                "Z0401",
+                format!("`size:` of `export` is one of one_column, two_column and slide, or a width and a height in millimetres, but this is {what}"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(SIZE), "not a size")
+            .help("write `size: two_column`, or `size: [120, 80]` for 120 mm by 80 mm"),
+        )
+    };
+    let size = match args.get(SIZE) {
+        None | Some(Value::Na) => FigureSize::DEFAULT,
+        Some(Value::Word(word)) => match word.as_str() {
+            "one_column" => FigureSize::OneColumn,
+            "two_column" => FigureSize::TwoColumn,
+            "slide" => FigureSize::Slide,
+            other => return Err(not_a_size(ctx, format!("the word `{other}`"))),
+        },
+        Some(Value::List(items)) => {
+            let lengths: Vec<f64> = items
+                .iter()
+                .filter_map(|item| match item {
+                    Value::Int(n) => Some(*n as f64),
+                    Value::Float(x) => Some(*x),
+                    _ => None,
+                })
+                .collect();
+            match (lengths.as_slice(), items.len()) {
+                ([width, height], 2) => FigureSize::Millimetres(*width, *height),
+                (_, 2) => {
+                    return Err(not_a_size(
+                        ctx,
+                        "a list that holds something other than numbers".to_string(),
+                    ));
+                }
+                (_, n) => {
+                    return Err(not_a_size(
+                        ctx,
+                        format!("a list of {n} {}", if n == 1 { "item" } else { "items" }),
+                    ));
+                }
+            }
+        }
+        Some(other) => return Err(not_a_size(ctx, other.type_word())),
+    };
+    let notes = matches!(args.get(NOTES), Some(Value::Bool(true)));
+    let Some(writer) = plot.figure else {
+        return Err(fail(
+            Diagnostic::error(
+                "Z9001",
+                "internal error: this is a bug in Zeff, not in your script",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "a plot without the writer of its package"),
+        ));
+    };
+    let request = FigureRequest {
+        format: FigureFormat::Svg,
+        size,
+        notes,
+    };
+    let bytes = (writer.0)(plot, &request).map_err(|problem| {
+        let at = if problem.of_size && args.get(SIZE).is_some() {
+            ctx.span_of(SIZE)
+        } else {
+            ctx.callee_span
+        };
+        fail(
+            Diagnostic::error("Z0401", problem.message)
+                .in_file(ctx.script)
+                .primary(at, problem.label)
+                .help(problem.help),
+        )
+    })?;
+    ctx.files
+        .write(&written_at(path), &bytes, span, ctx.script)?;
+    Ok(Value::Nothing)
+}
+
 /// `x.export(path)` on a table or a result (catalogue row 165): the table with its title, or the
 /// result's summary table, as a Word or LaTeX file under the project folder. A bare file name
-/// goes to `output/`, which the project's file interface creates as needed; `size:` arrives with
-/// plots (0.7.0).
+/// goes to `output/`, which the project's file interface creates as needed. A plot is written
+/// as a figure, with `size:` and `notes:` ([`export_plot`]).
 pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> {
     let receiver = args.take(0);
+    if let Some(Value::Plot(plot)) = &receiver {
+        let path = match args.get(PATH) {
+            Some(Value::Str(path)) => path.clone(),
+            _ => String::new(),
+        };
+        return export_plot(ctx, plot, path, &args);
+    }
+    // The size of a page and the notes of a plot are not options of a table.
+    for (slot, option) in [(SIZE, "size"), (NOTES, "notes")] {
+        if args.get(slot).is_some() {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`{option}:` belongs to the export of a plot, and this is {}",
+                        receiver
+                            .as_ref()
+                            .map_or("nothing".to_string(), |v| v.type_word())
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(slot), "not used for a table or a result")
+                .help(if option == "size" {
+                    "leave `size:` out; a table takes the width of the page of the document it is put in"
+                } else {
+                    "leave `notes:` out; the notes of a table are the lines under it, and they are always written"
+                }),
+            ));
+        }
+    }
     let table = match receiver.as_ref().and_then(result_table) {
         Some(table) => table,
         None => {
@@ -64,11 +283,11 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
             ));
         }
     };
-    let path = match args.get(1) {
+    let path = match args.get(PATH) {
         Some(Value::Str(path)) => path.clone(),
         _ => String::new(),
     };
-    let span = ctx.span_of(1);
+    let span = ctx.span_of(PATH);
     let Some(format) = Format::of(&path) else {
         let name = path.rsplit('/').next().unwrap_or(&path).to_string();
         let d = match name.rsplit_once('.') {
@@ -80,6 +299,20 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
                 .primary(span, "a name is needed")
                 .help(format!(
                     "write a name before the extension: `output/table.{extension}`"
+                ))
+            }
+            Some((stem, extension))
+                if FIGURE_EXTENSIONS.contains(&extension.to_ascii_lowercase().as_str()) =>
+            {
+                Diagnostic::error(
+                    "Z0716",
+                    format!(
+                        "`{path}`: `.{extension}` is the format of a figure, and this is not a plot"
+                    ),
+                )
+                .primary(span, "not a format of a table")
+                .help(format!(
+                    "a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/{stem}.docx`"
                 ))
             }
             Some((stem, extension)) if !extension.is_empty() => Diagnostic::error(
@@ -110,14 +343,8 @@ pub fn export(ctx: &mut CallContext<'_>, mut args: Args) -> Result<Value, Fail> 
         Format::Docx => docx(&table),
         Format::Tex => tex(&table).into_bytes(),
     };
-    // `output/` by default (section 2, "Writes"): a bare name is written there; a path with a
-    // folder, or one of the form `root:file`, goes to the project's rules as written.
-    let written = if path.contains('/') || path.contains(':') {
-        path
-    } else {
-        format!("output/{path}")
-    };
-    ctx.files.write(&written, &bytes, span, ctx.script)?;
+    ctx.files
+        .write(&written_at(path), &bytes, span, ctx.script)?;
     Ok(Value::Nothing)
 }
 

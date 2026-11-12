@@ -12,7 +12,9 @@ use zeff_columns::{Column, Table};
 use zeff_core::value::{Aesthetic, Frame, Mark, PlotConstant, PlotLayer, PlotMapping, PlotSetting};
 use zeff_plot::drawing::{Anchor, Drawing, Item, Primitive};
 use zeff_plot::font::{FaceName, face};
-use zeff_plot::layout::{JOURNAL, LayoutError, MM, SMALLEST_PANEL, SMALLEST_TEXT, Size, layout};
+use zeff_plot::layout::{
+    JOURNAL, LayoutError, MM, SMALLEST_PANEL, SMALLEST_TEXT, Size, layout, layout_with_notes,
+};
 use zeff_plot::scene::{Scene, scene, start, with_layer};
 
 fn property_cases(usual: u32) -> u32 {
@@ -452,7 +454,7 @@ fn checks(figure: &Drawing, of: &Scene) -> Result<(), String> {
     // Every name tells what a thing is.
     for item in &all {
         let name = item.name.as_deref().unwrap_or("");
-        let known = ["background", "grid", "panel", "axis:x", "axis:y"].contains(&name)
+        let known = ["background", "grid", "panel", "axis:x", "axis:y", "notes"].contains(&name)
             || name.starts_with("layer:")
             || name.starts_with("legend:");
         if !known {
@@ -896,5 +898,151 @@ fn a_character_no_font_has_is_drawn_and_told_of() {
             .unwrap()
             .notes
             .is_empty()
+    );
+}
+
+// ----- the notes under a figure, and a plot as the bytes of one (step 21d) -----
+
+#[test]
+fn the_notes_are_written_under_the_figure_only_when_they_are_asked_for() {
+    let mut sample = drawn(
+        small(),
+        &[
+            (Aesthetic::X, "dose"),
+            (Aesthetic::Y, "response"),
+            (Aesthetic::Color, "arm"),
+        ],
+        Vec::new(),
+    );
+    sample.notes = vec![
+        "2 rows with NA in dose or response dropped".to_string(),
+        "`arm` has 12 categories and the palette 8 colours, so the colours repeat from the ninth category, which a reader of the figure must be told and which makes a line too long for a narrow page".to_string(),
+    ];
+    let plain = layout(&sample, Size::OneColumn, &JOURNAL).unwrap();
+    let noted = layout_with_notes(&sample, Size::OneColumn, &JOURNAL).unwrap();
+    checks(&plain, &sample).unwrap();
+    checks(&noted, &sample).unwrap();
+    // Beside the drawing either way; on it only when asked for.
+    assert_eq!(plain.notes, sample.notes);
+    assert_eq!(noted.notes, sample.notes);
+    assert!(!plain.describe().contains("[notes]"));
+    let lines: Vec<String> = noted
+        .describe()
+        .lines()
+        .filter(|l| l.starts_with("[notes]"))
+        .map(str::to_string)
+        .collect();
+    // Each note as the console prints it, the long one broken to the width of the page.
+    assert!(lines.len() >= 4, "{lines:?}");
+    assert!(
+        lines[0].contains("\"note: 2 rows with NA in dose or response dropped\""),
+        "{}",
+        lines[0]
+    );
+    assert!(
+        lines[1].contains("\"note: `arm` has 12 categories"),
+        "{}",
+        lines[1]
+    );
+    assert!(
+        lines
+            .iter()
+            .all(|l| l.contains(" start ") && l.contains(" sans 8 "))
+    );
+    // The notes are at the foot of the page, under one another, and on it.
+    let places: Vec<f64> = noted
+        .primitives()
+        .iter()
+        .filter(|item| item.name.as_deref() == Some("notes"))
+        .filter_map(|item| extent(item))
+        .map(|b| {
+            assert!(
+                b.0 >= 0.0 && b.2 <= noted.width + 0.5 && b.3 <= noted.height,
+                "{b:?}"
+            );
+            b.3
+        })
+        .collect();
+    assert!(places.windows(2).all(|pair| pair[0] < pair[1]));
+    // They take their room from the panel: it is lower by what they need, and as wide.
+    let panel = |figure: &Drawing| {
+        figure
+            .primitives()
+            .iter()
+            .find_map(|item| match &item.primitive {
+                Primitive::Clip { width, height, .. } => Some((*width, *height)),
+                _ => None,
+            })
+            .unwrap()
+    };
+    let (before, after) = (panel(&plain), panel(&noted));
+    assert_eq!(before.0, after.0);
+    assert!(
+        (before.1 - after.1 - (lines.len() as f64 * 10.0 + 5.0)).abs() < 1e-9,
+        "{before:?} {after:?}"
+    );
+    // A scene with nothing to tell is the same figure with or without.
+    sample.notes.clear();
+    assert_eq!(
+        layout_with_notes(&sample, Size::OneColumn, &JOURNAL),
+        layout(&sample, Size::OneColumn, &JOURNAL)
+    );
+}
+
+#[test]
+fn a_plot_is_written_as_the_figure_asked_for_and_what_cannot_be_drawn_is_said() {
+    use zeff_core::value::{FigureFormat, FigureRequest, FigureSize};
+    let plot = start(
+        small(),
+        vec![
+            mapped(Aesthetic::X, "dose"),
+            mapped(Aesthetic::Y, "response"),
+        ],
+        Vec::new(),
+    );
+    let (plot, sample) = with_layer(&plot, points(1.0));
+    // Every plot this package makes carries its writer.
+    let writer = plot.figure.expect("the writer of the package").0;
+    let request = |size: FigureSize, notes: bool| FigureRequest {
+        format: FigureFormat::Svg,
+        size,
+        notes,
+    };
+    // The bytes are those of the scene laid out at that size and written as SVG.
+    for (asked, laid) in [
+        (FigureSize::OneColumn, Size::OneColumn),
+        (FigureSize::TwoColumn, Size::TwoColumn),
+        (FigureSize::Slide, Size::Slide),
+        (
+            FigureSize::Millimetres(120.0, 80.0),
+            Size::Millimetres(120.0, 80.0),
+        ),
+    ] {
+        let bytes = writer(&plot, &request(asked, false)).unwrap();
+        let expected = zeff_plot::svg::write(&layout(&sample, laid, &JOURNAL).unwrap());
+        assert_eq!(String::from_utf8(bytes).unwrap(), expected, "{asked:?}");
+    }
+    assert_eq!(FigureSize::DEFAULT, FigureSize::OneColumn);
+    // What cannot be drawn, in the words of this package.
+    let small_page =
+        writer(&plot, &request(FigureSize::Millimetres(30.0, 20.0), false)).unwrap_err();
+    assert!(small_page.of_size);
+    assert!(
+        small_page.message.starts_with("a page of 30 by 20 mm is too small for this plot: its labels, never set below 8 points, leave "),
+        "{}",
+        small_page.message
+    );
+    assert!(
+        small_page
+            .help
+            .starts_with("a panel needs 12.7 mm each way"),
+        "{}",
+        small_page.help
+    );
+    let no_size = writer(&plot, &request(FigureSize::Millimetres(-5.0, 20.0), false)).unwrap_err();
+    assert!(no_size.of_size);
+    assert_eq!(
+        no_size.message,
+        "the size of a figure is a width and a height above 0, in millimetres"
     );
 }

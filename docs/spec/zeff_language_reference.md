@@ -1082,7 +1082,7 @@ wages.scatter(educ, lwage)                         // the shorthand: the same Pl
 | --- | --- |
 | Colour | Okabe–Ito for categories (eight colour-blind-safe colours, in a fixed order), viridis for continuous scales; never a rainbow; `scale(color: [...])` overrides |
 | Categories | Ordered categories keep their order; value labels appear as written; `NA` is its own category, labelled `NA` |
-| Missing values | Rows dropped for `NA` in a mapped variable are counted in a note on the plot, as everywhere else (principle 6) |
+| Missing values | Rows dropped for `NA` in a mapped variable are counted in a note on the plot, as everywhere else (principle 6). The note is printed with the plot and stays off an exported figure unless `export` is given `notes: true`, which writes it under the figure |
 | Bins and bandwidth | Freedman–Diaconis bins; Silverman's rule for densities; both overridable |
 | Randomness | Jitter and sampling for large plots draw from the seeded stream (section 8.3 of the Engine and Project Specification), so a figure re-renders identically |
 | Text | Sizes in points; never below 8 pt in exports; labels wrapped or thinned rather than overlapping |

@@ -20,7 +20,9 @@
 //!
 //! A title that is longer than the side it runs along is broken between words. Labels of
 //! breaks that would touch are thinned, every second or third being written; the ticks and
-//! gridlines stay. Marks are placed by their scales and clipped to the panel.
+//! gridlines stay. Marks are placed by their scales and clipped to the panel. The notes of the
+//! scene (the rows not drawn, and why) are not part of the figure; [`layout_with_notes`]
+//! writes them under it, for `export(notes: true)`.
 //!
 //! A drawing holds no row of the data (open decision #118, F2): of a mark it keeps the place,
 //! the shape, the size and the colour.
@@ -594,8 +596,19 @@ fn draw_legend(plan: &LegendPlan, at: (f64, f64), theme: &Theme, items: &mut Vec
     }
 }
 
-/// The drawing of `scene` on a page of `size` under `theme`.
+/// The drawing of `scene` on a page of `size` under `theme`. The notes of the scene travel
+/// beside the drawing and are not drawn (open decision #118, F7).
 pub fn layout(scene: &Scene, size: Size, theme: &Theme) -> Result<Drawing, LayoutError> {
+    lay(scene, size, theme, false)
+}
+
+/// The same, with the notes of the scene written under the figure, each as the console prints
+/// it: what `export(notes: true)` asks for.
+pub fn layout_with_notes(scene: &Scene, size: Size, theme: &Theme) -> Result<Drawing, LayoutError> {
+    lay(scene, size, theme, true)
+}
+
+fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing, LayoutError> {
     if let Some(why) = scene.undrawn() {
         return Err(LayoutError::Undrawn(why));
     }
@@ -612,14 +625,38 @@ pub fn layout(scene: &Scene, size: Size, theme: &Theme) -> Result<Drawing, Layou
     let title_line = theme.title_size * theme.leading;
     let half_capital = capital(label) / 2.0;
 
+    // The notes under the figure, when they are asked for: each broken to the width of the
+    // page, in the type of the labels, and the room they take.
+    let noted_lines: Vec<String> = if noted {
+        scene
+            .notes
+            .iter()
+            .flat_map(|note| {
+                set.wrap(
+                    &format!("note: {note}"),
+                    FaceName::Sans,
+                    label,
+                    (width - 2.0 * theme.margin).max(1.0),
+                )
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let noted_room = if noted_lines.is_empty() {
+        0.0
+    } else {
+        noted_lines.len() as f64 * label * theme.leading + theme.title_gap
+    };
+
     // The legends, at the right.
     let plans: Vec<LegendPlan> = scene
         .legends
         .iter()
-        .map(|legend| plan_legend(scene, legend, theme, &mut set, (width, height)))
+        .map(|legend| plan_legend(scene, legend, theme, &mut set, (width, height - noted_room)))
         .collect();
     // A legend that does not fit under the one before it starts a new column to its right.
-    let legends_room = height - 2.0 * theme.margin;
+    let legends_room = height - noted_room - 2.0 * theme.margin;
     let mut legend_columns: Vec<(f64, Vec<usize>)> = Vec::new();
     let mut used = 0.0;
     for (at, plan) in plans.iter().enumerate() {
@@ -674,6 +711,7 @@ pub fn layout(scene: &Scene, size: Size, theme: &Theme) -> Result<Drawing, Layou
                 None => x_widths.first().map_or(0.0, |w| w / 2.0),
             };
         let bottom = theme.margin
+            + noted_room
             + match xs {
                 Some(_) => {
                     let title = if x_lines > 0 {
@@ -941,6 +979,24 @@ pub fn layout(scene: &Scene, size: Size, theme: &Theme) -> Result<Drawing, Layou
             y += plans[at].height + theme.legend_gap;
         }
         x += widest + theme.legend_gap;
+    }
+    // The notes, at the foot of the page.
+    for (i, line) in noted_lines.iter().enumerate() {
+        let baseline = height - theme.margin - noted_room
+            + theme.title_gap
+            + (i + 1) as f64 * label * theme.leading
+            - label * (theme.leading - 1.0);
+        items.push(named(
+            "notes",
+            text(
+                (theme.margin, baseline),
+                Anchor::Start,
+                0.0,
+                line,
+                label,
+                theme,
+            ),
+        ));
     }
     let mut notes = scene.notes.clone();
     if !set.lacking.is_empty() {

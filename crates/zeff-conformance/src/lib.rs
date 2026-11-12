@@ -344,15 +344,28 @@ pub const PANEL: Sample = Sample {
     stderr: include_str!("../../../samples/panel/expected/stderr.txt"),
 };
 
+/// The sample of the plots of release 0.7.0 (step 21d): six figures of the shipped wages, each
+/// exported as SVG, whose digests prove that every target writes the same bytes.
+pub const PLOTS: Sample = Sample {
+    name: "plots",
+    manifest: include_str!("../../../samples/plots/zeff.toml"),
+    data: &[],
+    modules: &[],
+    script: include_str!("../../../samples/plots/scripts/main.zeff"),
+    stdout: include_str!("../../../samples/plots/expected/stdout.txt"),
+    stderr: include_str!("../../../samples/plots/expected/stderr.txt"),
+};
+
 /// Every sample project, oldest first; each adds three cases to the report, and one more for
 /// every file it writes under `output/`.
-pub const SAMPLES: [&Sample; 6] = [
+pub const SAMPLES: [&Sample; 7] = [
     &FIRST_ENGINE,
     &DATA_CLEANING,
     &SIMULATION,
     &REGRESSION,
     &USER_FUNCTIONS,
     &PANEL,
+    &PLOTS,
 ];
 
 /// Run a sample project on an in-memory copy of its files.

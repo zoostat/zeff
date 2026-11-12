@@ -1,0 +1,244 @@
+---
+source: crates/zeff-engine/tests/export.rs
+expression: text
+---
+== pdf_not_yet
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `wage.pdf`: this version of Zeff writes a plot as `.svg`; `.pdf` is not written yet
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export("wage.pdf")
+  |          ^^^^^^^^^^ `.pdf` comes in a later version
+  |
+  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+
+== png_not_yet
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `output/wage.PNG`: this version of Zeff writes a plot as `.svg`; `.png` is not written yet
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export("output/wage.PNG", size: slide)
+  |          ^^^^^^^^^^^^^^^^^ `.png` comes in a later version
+  |
+  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+
+== a_table_format
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `wage.docx`: `.docx` is the format of a table, and this is a plot
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export("wage.docx")
+  |          ^^^^^^^^^^^ not a format of a figure
+  |
+  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+
+== unknown_extension
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `wage.jpeg` has an extension Zeff does not write
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export("wage.jpeg")
+  |          ^^^^^^^^^^^ `.jpeg` is not a format of `export`
+  |
+  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+
+== no_extension
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `output/wage` has no extension, so no format is chosen
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export("output/wage")
+  |          ^^^^^^^^^^^^^ which format?
+  |
+  = help: write `output/wage.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+
+== dot_only
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `.svg` has no name before its extension
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export(".svg")
+  |          ^^^^^^ a name is needed
+  |
+  = help: write `output/figure.svg`; an SVG opens in every browser, and Word and PowerPoint place it as a vector picture
+
+== not_a_word
+error[Z0402]: `poster` is not one of the allowed words
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: poster)
+  |                            ^^^^^^ expected one of one_column, two_column, slide, or a List<Float>
+
+== a_near_word
+error[Z0402]: `one_colum` is not one of the allowed words
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: one_colum)
+  |                            ^^^^^^^^^ expected one of one_column, two_column, slide, or a List<Float>
+  |
+  = help: did you mean `one_column`?
+
+== a_number
+error[Z0401]: `size` of `export` must be a one_column | two_column | slide or List<Float>, but this is an Int
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: 89)
+  |                            ^^ an Int
+  |
+  = help: usage: `x.export(path, size: one_column | two_column | slide | List<Float>, notes: Bool = false)`
+
+== text
+error[Z0401]: `size` of `export` must be a one_column | two_column | slide or List<Float>, but this is a Str
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: "one_column")
+  |                            ^^^^^^^^^^^^ a Str
+  |
+  = help: usage: `x.export(path, size: one_column | two_column | slide | List<Float>, notes: Bool = false)`
+
+== one_length
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: `size:` of `export` is one of one_column, two_column and slide, or a width and a height in millimetres, but this is a list of 1 item
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: [89])
+  |                            ^^^^ not a size
+  |
+  = help: write `size: two_column`, or `size: [120, 80]` for 120 mm by 80 mm
+
+== three_lengths
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: `size:` of `export` is one of one_column, two_column and slide, or a width and a height in millimetres, but this is a list of 3 items
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: [89, 66, 2])
+  |                            ^^^^^^^^^^^ not a size
+  |
+  = help: write `size: two_column`, or `size: [120, 80]` for 120 mm by 80 mm
+
+== not_numbers
+error[Z0401]: `size` of `export` must be a one_column | two_column | slide or List<Float>, but this is a List<Str>
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: ["89", "66"])
+  |                            ^^^^^^^^^^^^ a List<Str>
+  |
+  = help: usage: `x.export(path, size: one_column | two_column | slide | List<Float>, notes: Bool = false)`
+
+== no_width
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: the size of a figure is a width and a height above 0, in millimetres
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: [0, 66])
+  |                            ^^^^^^^ not a width and a height
+  |
+  = help: write `size: [89, 66]` for 89 mm by 66 mm, or one of `one_column`, `two_column` and `slide`
+
+== a_negative_height
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: the size of a figure is a width and a height above 0, in millimetres
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: [89, -66])
+  |                            ^^^^^^^^^ not a width and a height
+  |
+  = help: write `size: [89, 66]` for 89 mm by 66 mm, or one of `one_column`, `two_column` and `slide`
+
+== too_small
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: a page of 30 by 20 mm is too small for this plot: its labels, never set below 8 points, leave 0 by 0 mm for the panel
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: [30, 20])
+  |                            ^^^^^^^^ too small a page
+  |
+  = help: a panel needs 12.7 mm each way; give a larger `size:`, as `one_column` (89 by 66 mm) or `two_column` (183 by 110 mm), or shorten the labels
+
+== too_low_for_the_notes
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: a page of 60 by 26 mm is too small for this plot: its labels, never set below 8 points, leave 21.1 by 0 mm for the panel
+ --> scripts/main.zeff:3:28
+  |
+3 | p.export("wage.svg", size: [60, 26], notes: true)
+  |                            ^^^^^^^^ too small a page
+  |
+  = help: a panel needs 12.7 mm each way; give a larger `size:`, as `one_column` (89 by 66 mm) or `two_column` (183 by 110 mm), or shorten the labels
+
+== notes_not_a_truth_value
+error[Z0401]: `notes` of `export` must be a Bool, but this is an Int
+ --> scripts/main.zeff:3:29
+  |
+3 | p.export("wage.svg", notes: 1)
+  |                             ^ an Int
+  |
+  = help: usage: `x.export(path, size: one_column | two_column | slide | List<Float>, notes: Bool = false)`
+
+== outside_the_project
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0707]: cannot write `../wage.svg`: it is outside the project
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export("../wage.svg")
+  |          ^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/wage.svg`
+
+== missing_folder
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0707]: cannot write `figures/wage.svg`: the folder `figures/` does not exist; `output/` is created as needed, another folder you create first
+ --> scripts/main.zeff:3:10
+  |
+3 | p.export("figures/wage.svg")
+  |          ^^^^^^^^^^^^^^^^^^ files are written only under the project folder
+  |
+  = help: write under the project, as in `output/wage.svg`
+
+== size_for_a_table
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: `size:` belongs to the export of a plot, and this is a Table
+ --> scripts/main.zeff:3:37
+  |
+3 | w.describe().export("w.docx", size: slide)
+  |                                     ^^^^^ not used for a table or a result
+  |
+  = help: leave `size:` out; a table takes the width of the page of the document it is put in
+
+== notes_for_a_table
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0401]: `notes:` belongs to the export of a plot, and this is a Table
+ --> scripts/main.zeff:3:38
+  |
+3 | w.describe().export("w.docx", notes: true)
+  |                                      ^^^^ not used for a table or a result
+  |
+  = help: leave `notes:` out; the notes of a table are the lines under it, and they are always written
+
+== a_figure_format_for_a_table
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `w.svg`: `.svg` is the format of a figure, and this is not a plot
+ --> scripts/main.zeff:3:21
+  |
+3 | w.describe().export("w.svg")
+  |                     ^^^^^^^ not a format of a table
+  |
+  = help: a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/w.docx`
+
+== a_figure_format_for_a_result
+note: 6 rows with NA in educ or wage dropped (line 2)
+error[Z0716]: `m.pdf`: `.pdf` is the format of a figure, and this is not a plot
+ --> scripts/main.zeff:3:27
+  |
+3 | w.reg(wage ~ educ).export("m.pdf")
+  |                           ^^^^^^^ not a format of a table
+  |
+  = help: a table is written as `.docx` (Word) or `.tex` (LaTeX): `output/m.docx`
+
+== a_frame
+error[Z0401]: `export` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | w.export("w.svg")
+  | ^ this is a Frame
+  |
+  = help: `export` takes a Table, Result or Plot first; `x.export(...)` is `export(x, ...)`

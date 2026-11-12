@@ -138,3 +138,13 @@ Step 20d `[engine]`: `size:`, `shape:`, `group:` and `label:` on `plot`; a size 
 
 **For the owner to decide.** Nothing blocks step 21d. Rulings he reads on the figures at step 22: the three sizes in millimetres, the journal theme, the three faces, no ligatures, marks clipped at the edge of the panel, the stroke of the outline shapes. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 21d (`export` of a plot), and step 21 complete
+
+**Done.** A script can now write a figure: `p.export("output/wage.svg", size: two_column)`. The size is one of the three names or a width and a height in millimetres, one column when it is left out; `notes: true` writes the plot's notes under the figure. `.pdf` and `.png` are refused with a message that says they come later. A page too small for labels of 8 points is refused. A new sample project, `samples/plots`, writes six figures of the shipped wages, and every target must write the same bytes. With this, step 21 is complete: the fonts, the layout, the SVG writer and the export. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 261 of 261 with the nine cases of the sample `plots`; CI is read job by job after the push.
+
+**Next.** Step 22 `[engine]`: the owner reads the six figures; the changes asked for are made and the theme is frozen. To see them: `zeff run scripts/main.zeff` in `samples/plots` writes them into `samples/plots/output/`. Then step 22b `[engine]`, the PDF and PNG writers.
+
+**For the owner to decide.** At step 22, on the six figures: the three sizes in millimetres (the heights are proposals), the journal theme (gridlines, axes, type sizes, the colour of a mark without one), the three faces, no ligatures, marks cut at the edge of the panel, the stroke of the outline shapes, one column as the size when none is given. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

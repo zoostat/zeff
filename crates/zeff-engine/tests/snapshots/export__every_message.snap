@@ -73,7 +73,7 @@ error[Z0401]: `export` cannot be called on a Frame
 2 | wages.export("wages.docx")
   | ^^^^^ this is a Frame
   |
-  = help: `export` takes a Table or Result first; `x.export(...)` is `export(x, ...)`
+  = help: `export` takes a Table, Result or Plot first; `x.export(...)` is `export(x, ...)`
 --- path_not_text
 error[Z0401]: `path` of `export` must be a Str, but this is an Int
  --> scripts/main.zeff:2:25
@@ -81,4 +81,4 @@ error[Z0401]: `path` of `export` must be a Str, but this is an Int
 2 | wages.describe().export(5)
   |                         ^ an Int
   |
-  = help: usage: `x.export(path)`
+  = help: usage: `x.export(path, size: one_column | two_column | slide | List<Float>, notes: Bool = false)`

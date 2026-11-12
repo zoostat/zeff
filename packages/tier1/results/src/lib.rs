@@ -301,19 +301,25 @@ pub fn functions() -> Vec<Function> {
                 package: "results",
                 method: true,
                 params: vec![
-                    ParamSpec::required("x", "Table | Result"),
+                    ParamSpec::required("x", "Table | Result | Plot"),
                     ParamSpec::required("path", "Str"),
+                    ParamSpec::option("size", "one_column | two_column | slide | List<Float>"),
+                    ParamSpec::option_with_default("notes", "Bool", "false"),
                 ],
                 rest: None,
                 returns: "Nothing",
                 diagnostics: vec![
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "size: or notes: given for a table or a result; a size that is not one of the three words or a width and a height in millimetres above 0; a page too small for the plot's labels at 8 points",
+                    ),
                     DiagnosticDecl::new(
                         "Z0707",
                         "a path outside the project or in a data root, a folder other than `output/` that does not exist, or a file that cannot be written",
                     ),
                     DiagnosticDecl::new(
                         "Z0716",
-                        "a path with no extension, or an extension that is not a format `export` writes",
+                        "a path with no extension, an extension that is not a format `export` writes, the format of a figure for a table or of a table for a plot, or `.pdf` or `.png`, which are not written yet",
                     ),
                 ],
                 help: include_str!("../help/export.md"),

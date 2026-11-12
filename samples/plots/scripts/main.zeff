@@ -1,0 +1,46 @@
+// The sample project of the plots of release 0.7.0: six figures of the shipped wages, each
+// written as an SVG file under output/. `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the script tests compare
+// both byte for byte on every target, and the conformance report carries the digest of every
+// figure, so that the four targets prove they write the same bytes. The figures are the ones
+// the journal theme is read on; marks other than points join them as their steps are built.
+
+// Jitter draws from the seeded stream, so the figures are the same on every run.
+seed(20261112)
+
+let wages = dataset(wages)
+let w2010 = wages.where(year == 2010)
+
+// 1. The plain scatter, at the width of one column of a journal: every worker and year, the
+//    points translucent so that the crowd shows.
+let schooling = wages.plot(x: educ, y: wage).points(alpha: 0.2)
+schooling
+schooling.export("output/fig1_wage_schooling.svg")
+
+// 2. An expression on an axis, and schooling moved a little sideways so that the columns of
+//    whole years open up; at the full width of a page.
+wages.plot(x: educ, y: log(wage))
+    .points(alpha: 0.15, jitter: 0.4)
+    .export("output/fig2_log_wage.svg", size: two_column)
+
+// 3. A category shown by colour, with its legend.
+wages.plot(x: exper, y: wage, color: union)
+    .points(alpha: 0.3)
+    .export("output/fig3_union.svg", size: one_column)
+
+// 4. A number shown on a ramp of colours.
+w2010.plot(x: educ, y: wage, color: hours)
+    .points(size: 6, jitter: 0.5)
+    .export("output/fig4_hours.svg", size: [120, 80])
+
+// 5. Size by area, and sex by colour and by shape at once: one legend for sex, one for hours.
+//    The notes on the rows that cannot be drawn are written under this figure.
+let sized = w2010.plot(x: exper, y: wage, size: hours, color: female, shape: female).points(alpha: 0.5)
+sized
+sized.export("output/fig5_size_shape.svg", size: two_column, notes: true)
+
+// 6. Twelve industries by shape and colour on a slide: there are eight of each, so they repeat
+//    from the ninth, and a note says so.
+w2010.plot(x: age, y: hours, color: industry, shape: industry)
+    .points(size: 7)
+    .export("output/fig6_industry.svg", size: slide)

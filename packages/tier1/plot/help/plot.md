@@ -181,6 +181,17 @@ axes, the legends and the layout. It has one legend for each variable that a lay
 colour, a size or a shape. It holds no size in pixels and no fonts, which belong to the program
 that draws it, so the same data give the same scene on every computer.
 
+A figure. `p.export("output/wage.svg", size: one_column)` writes the plot as a figure. The
+scene is laid out on a page of that size (`one_column`, `two_column`, `slide`, or a width and a
+height in millimetres), under one theme: a white page, the major gridlines in light grey, the
+two axes as thin lines with their ticks outside the panel, labels of 8 points and titles of 9
+in IBM Plex Sans, and the legends at the right. A title too long for its side is broken between
+words, and labels of breaks that would touch are thinned, the ticks and gridlines staying. A
+mark at the edge of the panel is cut by it. Shapes of one size have one area, so that no
+category looks heavier than another. The notes on the rows not drawn are printed with the plot
+and stay off the figure unless `export` is given `notes: true`. The page of `export` describes
+the file.
+
 Either `x:` or `y:` may be left out. A mark then says which of the two it needs.
 
 ## References
@@ -195,7 +206,7 @@ Wong (2011), Points of view: color blindness, Nature Methods 8, 441.
 Smith and van der Walt (2015), A better default colormap for Matplotlib, SciPy 2015.
 
 ## See also
-points, describe, label
+points, export, describe, label
 
 ## Examples
 > let w = dataset(wages)

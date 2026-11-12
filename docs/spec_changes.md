@@ -479,3 +479,7 @@ Step 21b of release 0.7.0 builds F1 of open decision #118, adopted by the owner 
 
 The owner decided open decision #126 ("Yes, outlines"). The sentence of section 7.6 on the embedded fonts said that a figure's SVG and PDF bytes are identical on every machine and did not say how an SVG carries its text. It now adds that a PDF carries the fonts inside it and that an SVG draws its text as the outlines of the embedded fonts and keeps the words in the file for search, so that it looks the same wherever it is opened. The register records the decision in a status paragraph, in the summary row and under the entry. Built at step 21c.
 
+## 12 November 2026 — Language Reference, section 7.6 ("Defaults"); zeff_functions.csv, row 165
+
+Step 21d of release 0.7.0 builds the export of a plot. F7 of open decision #118, adopted by the owner on 11 November 2026, enters section 7.6 with the step that builds it: the row "Missing values" of the table of defaults now says that the note on rows not drawn is printed with the plot and stays off an exported figure unless `export` is given `notes: true`. The usage line of catalogue row 165 was `x.export(path, size: one_column | two_column | slide)`; it gains the option of that rule, `notes: Bool = false`, and `List<Float>` beside the three words of `size:`, because section 7.6 gives the sizes as the three names "or a width and a height in millimetres" and the usage line had no way to write the two lengths. The note of the row records the step.
+

@@ -1630,6 +1630,7 @@ pub fn start(frame: Frame, mappings: Vec<PlotMapping>, constants: Vec<PlotConsta
             more: Vec::new(),
             rules: Vec::new(),
         },
+        figure: Some(zeff_core::value::FigureWriter(crate::figure::write)),
     };
     describe(&mut plot);
     plot

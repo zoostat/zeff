@@ -16,6 +16,7 @@
 
 pub mod colour;
 pub mod drawing;
+pub mod figure;
 pub mod font;
 pub mod grammar;
 pub mod json;

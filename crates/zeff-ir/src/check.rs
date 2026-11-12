@@ -2953,6 +2953,44 @@ impl Checker<'_> {
                     },
                 };
             }
+            // Where a parameter takes one of some words or a value of another type
+            // (`size: one_column | two_column | slide | List<Float>`), a bare name that is one
+            // of the words is the word; a name that is a binding is the binding, read below;
+            // any other name is refused as a word that is not allowed.
+            Some(Ty::Union(options))
+                if options.iter().any(|o| matches!(o, Ty::Words(_)))
+                    && (expected.is_some_and(|e| e.words().contains(&text))
+                        || self.lookup(&text).is_none()) =>
+            {
+                let words = expected.map(Ty::words).unwrap_or_default();
+                if words.contains(&text) {
+                    return Expr {
+                        ty: Ty::Words(vec![text.clone()]),
+                        span,
+                        kind: ExprKind::Word(text),
+                    };
+                }
+                let others: Vec<String> = options
+                    .iter()
+                    .filter(|o| !matches!(o, Ty::Words(_)))
+                    .map(Ty::with_article)
+                    .collect();
+                let mut d =
+                    Diagnostic::error("Z0402", format!("`{text}` is not one of the allowed words"))
+                        .primary(
+                            span,
+                            format!(
+                                "expected one of {}, or {}",
+                                words.join(", "),
+                                others.join(" or ")
+                            ),
+                        );
+                if let Some(near) = did_you_mean(&text, words.iter().map(String::as_str)) {
+                    d = d.help(format!("did you mean `{near}`?"));
+                }
+                self.report(d);
+                return Expr::error(span);
+            }
             Some(Ty::Words(words)) => {
                 if words.contains(&text) {
                     return Expr {

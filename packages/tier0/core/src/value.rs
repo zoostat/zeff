@@ -81,6 +81,70 @@ pub struct Plot {
     /// The printed form, the scene read as text, which the `plot` package writes whenever it makes
     /// or extends a plot and `core` prints as it stands (rule 5).
     pub summary: Table,
+    /// How the plot is written as a figure: the writer of the `plot` package, which that package
+    /// puts here when it makes a plot, so that `export`, in a package below it, can ask for the
+    /// bytes without calling upwards (rule 5). `None` for a plot value made by hand in a test.
+    pub figure: Option<FigureWriter>,
+}
+
+/// The page a figure is written on (Language Reference, section 7.6, "Sizes").
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum FigureSize {
+    OneColumn,
+    TwoColumn,
+    Slide,
+    /// A width and a height in millimetres.
+    Millimetres(f64, f64),
+}
+
+impl FigureSize {
+    /// The page `export` writes when it is given no `size:`: one column of a journal.
+    pub const DEFAULT: FigureSize = FigureSize::OneColumn;
+}
+
+/// The format of a figure's file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FigureFormat {
+    Svg,
+}
+
+/// What `export` asks of a plot.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FigureRequest {
+    pub format: FigureFormat,
+    pub size: FigureSize,
+    /// Whether the notes on the rows not drawn are written under the figure (open decision
+    /// #118, F7): off unless asked for.
+    pub notes: bool,
+}
+
+/// Why a plot cannot be written as asked, in the words of the package that draws it; the
+/// function that was called adds the code and the place in the script.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FigureProblem {
+    pub message: String,
+    pub label: String,
+    pub help: String,
+    /// Whether the fault is the size asked for, and not the plot.
+    pub of_size: bool,
+}
+
+/// The function that writes a plot as the bytes of a figure.
+#[derive(Clone, Copy)]
+pub struct FigureWriter(pub fn(&Plot, &FigureRequest) -> Result<Vec<u8>, FigureProblem>);
+
+impl fmt::Debug for FigureWriter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FigureWriter")
+    }
+}
+
+/// Two plots are the same plot whoever would write them: the writer is the package's, one for
+/// every plot.
+impl PartialEq for FigureWriter {
+    fn eq(&self, _: &FigureWriter) -> bool {
+        true
+    }
 }
 
 impl Plot {

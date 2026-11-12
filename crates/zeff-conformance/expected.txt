@@ -293,3 +293,13 @@ panel/stderr c73a4a9c2d0643ec
 panel/exit_code a8c7f832281a39c5
 # panel/exit_code bits 0000000000000000
 panel/output/industry_year.csv 4a627b56e0a02c82
+plots/stdout 8afbe7fa9286dfef
+plots/stderr 1a950e391d3fb0fe
+plots/exit_code a8c7f832281a39c5
+# plots/exit_code bits 0000000000000000
+plots/output/fig1_wage_schooling.svg ee2b114603f1fdbd
+plots/output/fig2_log_wage.svg b901d174d275c9f3
+plots/output/fig3_union.svg 86f1403b711a0c81
+plots/output/fig4_hours.svg 7cf1e01d0d25a93e
+plots/output/fig5_size_shape.svg 5b876fca7694c0c1
+plots/output/fig6_industry.svg 91aa9cee385c1b0c
