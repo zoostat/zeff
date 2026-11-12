@@ -249,6 +249,9 @@ plot/colour/scene.json 3f84f3b541460659
 plot/size_shape/stdout baee7e13689bfd62
 plot/size_shape/stderr 3de90dd466d7e82a
 plot/size_shape/scene.json aab4e77e48bffe36
+plot/fonts/metrics bebed91423abec50
+plot/fonts/texts 1ef6df97a647e193
+plot/fonts/outlines 2d1b1d03228c837c
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

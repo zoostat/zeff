@@ -15,6 +15,7 @@
 //! plot.
 
 pub mod colour;
+pub mod font;
 pub mod grammar;
 pub mod json;
 mod mapping;

@@ -1743,7 +1743,123 @@ fn plot_cases() -> Vec<Line> {
         text("plot/size_shape/stdout", &size_shape.output.stdout),
         text("plot/size_shape/stderr", &size_shape.output.stderr),
         text("plot/size_shape/scene.json", &sized),
+        text("plot/fonts/metrics", &font_metrics()),
+        text("plot/fonts/texts", &font_texts()),
+        text("plot/fonts/outlines", &font_outlines()),
     ]
+}
+
+/// The fonts of a figure (release 0.7.0, step 21a): for each embedded face, its heights, the
+/// glyph of every character it draws and the advance of every glyph.
+fn font_metrics() -> String {
+    use zeff_plot::font::{FaceName, face};
+    let mut out = String::new();
+    for name in FaceName::ALL {
+        let font = face(name);
+        out.push_str(&format!(
+            "{} em {} ascender {} descender {} gap {} capitals {} x {} glyphs {}\n",
+            name.file(),
+            font.units_per_em(),
+            font.ascender(),
+            font.descender(),
+            font.line_gap(),
+            font.cap_height(),
+            font.x_height(),
+            font.glyphs()
+        ));
+        for character in font.characters() {
+            let glyph = font.glyph(character).unwrap_or(0);
+            out.push_str(&format!("{:04X} {glyph}\n", u32::from(character)));
+        }
+        for glyph in 0..font.glyphs() {
+            out.push_str(&format!("{glyph} {}\n", font.advance(glyph)));
+        }
+    }
+    out
+}
+
+/// Texts set in each face: what a figure writes, pairs the fonts kern, letters with marks
+/// written joined and apart, a joined letter drawn by its parts, and characters no face has;
+/// each as its glyphs, their places and its width at three sizes.
+fn font_texts() -> String {
+    use zeff_plot::font::{FaceName, face};
+    let texts = [
+        "Hourly wage",
+        "Years of schooling",
+        "log(wage)",
+        "Coefficient and 95% confidence interval",
+        "0 20 40 60 80 100",
+        "\u{2212}0.25",
+        "p < 0.001",
+        "R\u{b2} = 0.47",
+        "AVATAR To Ty P. F, r. y, 7. (j f)",
+        "The quick brown fox jumps over the lazy dog",
+        "\u{c9}cole, Stra\u{df}e, Malm\u{f6}, \u{141}\u{f3}d\u{17a}",
+        "cafe\u{301} caf\u{e9}",
+        "\u{1e7} g\u{30c}",
+        "\u{3b1} \u{3b2} \u{3a3} \u{3c7}\u{b2}",
+        "\u{4e2d}\u{6587} a\tb",
+        "",
+    ];
+    let mut out = String::new();
+    for name in FaceName::ALL {
+        let font = face(name);
+        for text in texts {
+            let shaped = font.shape(text);
+            out.push_str(&format!("{} {text:?} width {}", name.file(), shaped.width));
+            for placed in &shaped.glyphs {
+                out.push_str(&format!(" {}@{}", placed.glyph, placed.x));
+            }
+            out.push_str(&format!(" lacking {:?}", shaped.missing));
+            for size in [8.0, 9.5, 24.0] {
+                out.push_str(&format!(" {:016x}", font.width(text, size).to_bits()));
+            }
+            out.push('\n');
+        }
+        // Every pair of the letters, digits and signs of ASCII, kerned.
+        let ascii: Vec<u16> = (33_u8..127)
+            .filter_map(|code| font.glyph(char::from(code)))
+            .collect();
+        for &left in &ascii {
+            for &right in &ascii {
+                let kern = font.kern(left, right);
+                if kern != 0 {
+                    out.push_str(&format!("{left} {right} {kern}\n"));
+                }
+            }
+        }
+    }
+    out
+}
+
+/// The outline of every glyph of every face, each coordinate by its bits.
+fn font_outlines() -> String {
+    use zeff_plot::font::{FaceName, Segment, face};
+    let mut out = String::new();
+    let bits = |x: f64, y: f64| format!("{:016x},{:016x}", x.to_bits(), y.to_bits());
+    for name in FaceName::ALL {
+        let font = face(name);
+        for glyph in 0..font.glyphs() {
+            out.push_str(&format!("{} {glyph}", name.file()));
+            match font.outline(glyph) {
+                Ok(steps) => {
+                    for step in steps {
+                        out.push_str(&match step {
+                            Segment::Move(x, y) => format!(" M{}", bits(x, y)),
+                            Segment::Line(x, y) => format!(" L{}", bits(x, y)),
+                            Segment::Curve(c, p) => {
+                                format!(" Q{} {}", bits(c.0, c.1), bits(p.0, p.1))
+                            }
+                            Segment::Close => " Z".to_string(),
+                        });
+                    }
+                }
+                Err(error) => out.push_str(&format!(" {error:?}")),
+            }
+            out.push('\n');
+        }
+    }
+    out
 }
 
 fn all_cases() -> Vec<Line> {

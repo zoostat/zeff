@@ -1118,6 +1118,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06bdbd8cfc056b8d2e2e85f29b56a3bdbecb527cef81eb39e3e7b98af4652770"
 
 [[package]]
+name = "ttf-parser"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
+
+[[package]]
 name = "unarray"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1559,9 +1565,12 @@ dependencies = [
  "insta",
  "proptest",
  "serde_json",
+ "ttf-parser",
+ "unicode-normalization",
  "zeff-columns",
  "zeff-core",
  "zeff-diagnostics",
+ "zeff-hash",
  "zeff-numeric",
  "zeff-registry",
  "zeff-testkit",

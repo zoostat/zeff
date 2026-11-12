@@ -148,3 +148,13 @@ Step 20 `[engine]`: the package `plot`; `w.plot(x: educ, y: wage)` starts a plot
 
 **For the owner to decide.** New: #126, due before step 21c (recommended: letters drawn as outlines, so that a figure looks the same in every program, with the words kept in the file for search; editable text as an option after 1.0). Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 12 November 2026, release 0.7.0, step 21a (the fonts)
+
+**Done.** The engine now carries its own fonts: IBM Plex Sans Regular and SemiBold and IBM Plex Mono Regular, embedded unchanged with their licence, and a reader written for the project that gives the glyph of each character, its width, its outline and the kerning of each pair. A text has the same width, to the last unit, on every machine. Checked against two independent tools: a second font parser used in the tests alone (every character, width, outline and 2.4 million kerning pairs) and HarfBuzz (110 texts in each face); all agree exactly. A letter and an accent written after it are joined as HarfBuzz joins them; `fi` is not made a ligature. Details in `docs/decisions.md`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 250 of 250 with three new cases for the fonts; CI is read job by job after the push.
+
+**Next.** Step 21b `[engine]`: the layout and the journal theme. Then 21c `[engine]`, the SVG writer, which waits on open decision #126.
+
+**For the owner to decide.** #126, before step 21c: how the text of an SVG is written (recommended: letters drawn as outlines). Rulings he may overturn, read with the figures at step 22: the three faces (Regular for labels, SemiBold for titles, Mono for code and aligned digits); no ligatures. Open as before: the other four questions of #110, #109, #108, #106 (before step 23), #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
