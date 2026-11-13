@@ -627,3 +627,7 @@ Step 38c of release 0.7.0 builds open decision #140 (option A, taken on the reco
 
 Step 38d of release 0.7.0 builds open decision #100 (option A, the owner's ruling of 13 November 2026). The usages of `statistic`, `df` and `effect_size` were `t.statistic()`, `t.df()` and `t.effect_size()`; they are now `t.statistic(term: Term?)`, `t.df(term: Term?)` and `t.effect_size(term: Term?)`, as `p_values` already was, and each description says that the figure is the whole test's or that of the row of the table named. The row "Result" of the types table gains one clause saying the same: where a test's result prints a table of several rows (the terms of a factorial `anova`, the comparisons of `posthoc`), the four methods read one row by its name, and without a name give the figure of the whole test. Nothing else changes: the four return what they returned without a name.
 
+## 14 November 2026 — zeff_functions.csv (row 171, `anova`)
+
+Step 38e of release 0.7.0 builds open decision #101 (option A, the owner's ruling of 13 November 2026). The usage of `anova` had `effect: eta | omega | epsilon = eta` in both forms; it now has `effect: eta | omega | omega_f | epsilon = eta`. The description gains one clause, that `effect: omega_f` gives the partial omega squared computed from F as Stata's `estat esize` and R's `F_to_omega2` give it, and the list of counterparts gains `F_to_omega2()`. `omega` stays the ruled formula and the default stays `eta`.
+

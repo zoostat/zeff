@@ -108,7 +108,11 @@ fn measure(frame: &Frame, word: &str, form: &[(usize, Value)]) -> f64 {
     slots.extend(form.iter().cloned());
     let result = call(frame, slots).unwrap();
     let estimate = result.effect.as_ref().unwrap();
-    assert_eq!(estimate.label, format!("{word} squared"));
+    let named = match word {
+        "omega_f" => "omega squared from F".to_string(),
+        word => format!("{word} squared"),
+    };
+    assert_eq!(estimate.label, named);
     assert!(estimate.ci.is_none());
     estimate.value
 }
@@ -437,6 +441,9 @@ proptest! {
             if classical_f > 1.0 + 1e-9 {
                 prop_assert!(omega > 0.0 && epsilon > 0.0);
             }
+            // With one term the omega squared from F is omega squared itself (open decision
+            // #101), under either F.
+            prop_assert_eq!(measure(&frame, "omega_f", &form).to_bits(), omega.to_bits());
             // A shuffle of the rows.
             let mut order: Vec<usize> = (0..values.len()).collect();
             let mut state = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
@@ -540,23 +547,34 @@ fn f_below_one_gives_a_negative_estimate_that_is_printed_with_a_note() {
     assert!(stdout.contains("eta squared = 0.0"), "{stdout}");
     assert!(stderr.is_empty(), "{stderr}");
     // The classical form: the F printed is the F below 1.
-    for word in ["omega", "epsilon"] {
+    for (word, named) in [
+        ("omega", "omega squared"),
+        ("omega_f", "omega squared from F"),
+        ("epsilon", "epsilon squared"),
+    ] {
         let (exit, stdout, stderr) = go(&format!(
             "{low}low.anova(x, group: g, equal_var: true, effect: {word})\n"
         ));
         assert_eq!(exit, 0, "{stderr}");
-        assert!(
-            stdout.contains(&format!("{word} squared = -0.")),
-            "{stdout}"
-        );
+        assert!(stdout.contains(&format!("{named} = -0.")), "{stdout}");
         assert!(!stdout.contains("eta squared"), "{stdout}");
         assert!(
             stderr.contains(&format!(
-                "note: F is below 1, so {word} squared is negative; read it as no evidence of an effect"
+                "note: F is below 1, so {named} is negative; read it as no evidence of an effect"
             )),
             "{stderr}"
         );
     }
+    // In the one-way form the two omegas are one figure, and the line under the table says so.
+    let (exit, stdout, stderr) = go(&format!(
+        "{low}let a = low.anova(x, group: g, equal_var: true, effect: omega)\nlet b = low.anova(x, group: g, equal_var: true, effect: omega_f)\na.effect_size() == b.effect_size()\nlow.anova(x, group: g, effect: omega_f).effect_size() == a.effect_size()\nb\n"
+    ));
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(stdout.starts_with("true\ntrue\n"), "{stdout}");
+    assert!(
+        stdout.contains("with one term it is omega squared itself"),
+        "{stdout}"
+    );
     // Welch's form prints another F, so the note gives the classical one.
     let (exit, stdout, stderr) = go(&format!("{low}low.anova(x, group: g, effect: omega)\n"));
     assert_eq!(exit, 0, "{stderr}");
@@ -576,7 +594,7 @@ fn f_below_one_gives_a_negative_estimate_that_is_printed_with_a_note() {
     let (exit, _, stderr) = go(&format!("{low}low.anova(x, group: g, effect: cohen)\n"));
     assert_eq!(exit, 1);
     assert!(stderr.contains("Z0402"), "{stderr}");
-    assert!(stderr.contains("eta, omega, epsilon"), "{stderr}");
+    assert!(stderr.contains("eta, omega, omega_f, epsilon"), "{stderr}");
 }
 
 #[test]

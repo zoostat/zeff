@@ -34,7 +34,11 @@ population, the more so the fewer the observations. `effect: omega` gives omega 
 `effect: epsilon` gives epsilon squared, which take the part expected by chance out of it. In
 the factorial form each is the partial measure of its term. R gives the two in
 `effectsize::omega_squared()` and `epsilon_squared()`, Stata in `estat esize, omega` and
-`estat esize, epsilon` after `anova`; Details says where their figures differ from these.
+`estat esize, epsilon` after `anova`. Stata's omega squared is another figure, computed from
+the F of the term alone, and `effect: omega_f` gives that one, as R's
+`effectsize::F_to_omega2()` does: use `omega` to agree with R's `omega_squared()` and `omega_f`
+to agree with Stata's `estat esize, omega`. Details gives both formulas and says where they
+part.
 
 In both forms rows with `NA` in a variable used are dropped and counted in a note.
 
@@ -54,8 +58,8 @@ In both forms rows with `NA` in a variable used are dropped and counted in a not
 - type: The sums of squares of the factorial form: 2, the default, 3 or 1. It belongs to the
   form that takes a formula.
 - effect: The effect size reported: `eta`, the default, for eta squared, `omega` for omega
-  squared or `epsilon` for epsilon squared; in the factorial form the partial measure of each
-  term. It belongs to both forms.
+  squared, `omega_f` for the omega squared that Stata computes from F, or `epsilon` for epsilon
+  squared; in the factorial form the partial measure of each term. It belongs to both forms.
 
 ## Value
 A `TestResult`, with the result interface (`summary`, `estimates`, `p_values`, `ci`, `n_obs`,
@@ -128,9 +132,14 @@ as it is; one note names every such row. None has an interval, for the reason gi
 these figures, a negative one printed as 0. In Stata, after `anova` or `regress`, `estat esize`
 gives partial eta squared and `estat esize, epsilon` partial epsilon squared by the same
 formulas. `estat esize, omega`, like R's `effectsize::F_to_omega2()`, computes partial omega
-squared from the F of the term alone, (SS − df × MS residual) / (SS + (df residual + 1) ×
-MS residual): the same figure on the row of the model and where the model has one term, and a
-figure slightly farther from zero for a term of a model with several terms.
+squared from the F of the term alone, (F − 1) / (F + (df residual + 1) / df), which is
+(SS − df × MS residual) / (SS + (df residual + 1) × MS residual): the same figure on the row of
+the model and where the model has one term, since N − df is then df residual + 1, and a figure
+farther from zero for a term of a model with several terms, where df residual + 1 is the
+smaller number. `effect: omega_f` reports it, under the name "partial omega squared from F";
+in the one-way form it is omega squared itself and the line under the table says so. Which to
+report is a matter of which program a reader will compare with: `omega` is the definition of
+Olejnik and Algina and of R's `omega_squared()`, `omega_f` the figure of Stata.
 
 When a combination of levels has no observations, or a term repeats the others, some columns of
 the model are determined by the rest. Types 1 and 2 still give the table: those columns carry
@@ -333,6 +342,22 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial omega squared = (SS − df × MS residual) / (SS + (N − df) × MS residual); N = 16
 note: F is below 1 for `dose:diet`, so its partial omega squared is negative; read it as no evidence of an effect (line 15)
+> trial.anova(gain ~ dose * diet, effect: omega_f)
+anova · factorial, type 2 · gain ~ dose * diet
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source      df       SS       MS       F   p value   partial omega squared from F
+  model        5   44.043    8.809    8.81     0.002                          0.709
+  dose         1   31.592   31.592   31.60    <0.001                          0.718
+  diet         2    6.482    3.241    3.24     0.082                          0.256
+  dose:diet    2    0.351    0.176    0.18     0.842                         -0.145
+  residual    10    9.997    1.000
+  ─────────────────────────────────────────────────────────────────────────────────
+  total       15   54.040
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial omega squared from F = (F − 1) / (F + (df residual + 1) / df); N = 16
+note: F is below 1 for `dose:diet`, so its partial omega squared from F is negative; read it as no evidence of an effect (line 16)
 > let a = trial.anova(gain ~ dose * diet)
 > a.p_values("diet")
 0.0821533

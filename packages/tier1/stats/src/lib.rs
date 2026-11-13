@@ -791,13 +791,17 @@ pub fn functions() -> Vec<Function> {
                         "sampling",
                     ),
                     ParamSpec::option_with_default("type", "Int", "2"),
-                    ParamSpec::option_with_default("effect", "eta | omega | epsilon", "eta"),
+                    ParamSpec::option_with_default(
+                        "effect",
+                        "eta | omega | omega_f | epsilon",
+                        "eta",
+                    ),
                 ],
                 rest: None,
                 returns: "TestResult",
                 diagnostics: vec![
                     DiagnosticDecl::note(
-                        "rows with NA in the variable or the groups dropped, with the count; with a formula, rows with NA in a model variable or a zero weight, a column determined by the others, a term left without degrees of freedom, and a model without a category; under effect: omega or epsilon, an estimate that is negative because F is below 1",
+                        "rows with NA in the variable or the groups dropped, with the count; with a formula, rows with NA in a model variable or a zero weight, a column determined by the others, a term left without degrees of freedom, and a model without a category; under effect: omega, omega_f or epsilon, an estimate that is negative because F is below 1",
                     ),
                     DiagnosticDecl::new("Z0101", "a variable the frame does not have"),
                     DiagnosticDecl::new(

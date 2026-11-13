@@ -53,6 +53,10 @@ pub struct GroupSummary {
 pub enum Effect {
     Eta,
     Omega,
+    /// Omega squared computed from F alone, (F − 1) / (F + (df error + 1) / df effect), as
+    /// Stata's `estat esize, omega` and R's `effectsize::F_to_omega2` give it (open decision
+    /// #101). In the one-way form it is omega squared itself.
+    OmegaF,
     Epsilon,
 }
 
@@ -62,6 +66,7 @@ impl Effect {
         match self {
             Effect::Eta => "eta squared",
             Effect::Omega => "omega squared",
+            Effect::OmegaF => "omega squared from F",
             Effect::Epsilon => "epsilon squared",
         }
     }
@@ -90,7 +95,8 @@ impl OneWay {
     pub fn effect(&self, which: Effect) -> f64 {
         match which {
             Effect::Eta => self.eta_squared,
-            Effect::Omega => self.omega_squared,
+            // One term: N − df effect is df error + 1, so the figure from F is omega squared.
+            Effect::Omega | Effect::OmegaF => self.omega_squared,
             Effect::Epsilon => self.epsilon_squared,
         }
     }
@@ -365,16 +371,17 @@ fn undefined(
     fail(diagnostic.in_file(ctx.script))
 }
 
-/// `effect:` of `anova`: eta squared unless omega or epsilon is asked for.
+/// `effect:` of `anova`: eta squared unless omega, omega from F or epsilon is asked for.
 pub(crate) fn effect(ctx: &CallContext<'_>, args: &Args) -> Result<Effect, Fail> {
     match args.get(EFFECT) {
         None | Some(Value::Na) => Ok(Effect::Eta),
         Some(Value::Word(w)) if w == "eta" => Ok(Effect::Eta),
         Some(Value::Word(w)) if w == "omega" => Ok(Effect::Omega),
+        Some(Value::Word(w)) if w == "omega_f" => Ok(Effect::OmegaF),
         Some(Value::Word(w)) if w == "epsilon" => Ok(Effect::Epsilon),
         Some(_) => Err(testing::internal(
             ctx,
-            "an effect size that is not one of the three words",
+            "an effect size that is not one of the four words",
         )),
     }
 }
@@ -536,6 +543,9 @@ pub fn anova(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         Effect::Eta => "eta squared = SS between / SS total",
         Effect::Omega => {
             "omega squared = (SS between − (k − 1) MS within) / (SS total + MS within)"
+        }
+        Effect::OmegaF => {
+            "omega squared from F = (F − 1) / (F + (df within + 1) / (k − 1)), F being the classical one; with one term it is omega squared itself"
         }
         Effect::Epsilon => "epsilon squared = (SS between − (k − 1) MS within) / SS total",
     };

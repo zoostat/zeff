@@ -232,6 +232,20 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial omega squared = (SS − df × MS residual) / (SS + (N − df) × MS residual); N = 12
+anova · factorial, type 2 · y ~ a * b
+each row tests H0: the population effect of the term is zero, against H1: it is not
+
+  source     df       SS      MS      F   p value   partial omega squared from F
+  model       5   13.794   2.759   0.94     0.516                         -0.025
+  a           2    2.052   1.026   0.35     0.718                         -0.169
+  b           1    5.741   5.741   1.96     0.211                          0.107
+  a:b         2    6.002   3.001   1.02     0.414                          0.005
+  residual    6   17.575   2.929
+  ──────────────────────────────────────────────────────────────────────────────
+  total      11   31.369
+
+type 2 sums of squares: each term adjusted for every other term that does not contain it
+partial omega squared from F = (F − 1) / (F + (df residual + 1) / df); N = 12
 anova · factorial, type 3 · y ~ a * b + x
 each row tests H0: the population effect of the term is zero, against H1: it is not
 
@@ -343,9 +357,10 @@ note: 211 rows with NA in a model variable dropped (line 13)
 note: 211 rows with NA in a model variable dropped (line 14)
 note: 7 rows with NA in a model variable dropped (line 15)
 note: F is below 1 for the model and `a`, so their partial omega squared is negative; read each as no evidence of an effect (line 25)
-note: F is below 1 for the model, `a`, `b` and `x`, so their partial epsilon squared is negative; read each as no evidence of an effect (line 26)
-note: 1 row with zero weight left out (line 27)
-note: F is below 1 for `a` and `x`, so their partial omega squared is negative; read each as no evidence of an effect (line 27)
-note: 211 rows with NA in a model variable dropped (line 29)
+note: F is below 1 for the model and `a`, so their partial omega squared from F is negative; read each as no evidence of an effect (line 26)
+note: F is below 1 for the model, `a`, `b` and `x`, so their partial epsilon squared is negative; read each as no evidence of an effect (line 27)
+note: 1 row with zero weight left out (line 28)
+note: F is below 1 for `a` and `x`, so their partial omega squared is negative; read each as no evidence of an effect (line 28)
 note: 211 rows with NA in a model variable dropped (line 30)
-note: F is below 1 for the model, `a` and `x`, so their partial epsilon squared is negative; read each as no evidence of an effect (line 31)
+note: 211 rows with NA in a model variable dropped (line 31)
+note: F is below 1 for the model, `a` and `x`, so their partial epsilon squared is negative; read each as no evidence of an effect (line 32)

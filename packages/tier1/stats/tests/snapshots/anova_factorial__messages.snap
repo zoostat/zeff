@@ -48,7 +48,7 @@ error[Z0401]: `type` of `anova` must be an Int, but this is a Str
 2 | d.anova(y ~ a * b, type: "2")
   |                          ^^^ a Str
   |
-  = help: usage: `data.anova(var, group: Var, equal_var: Bool = false, weights: Var, weight_type: frequency | analytic | sampling = sampling, type: Int = 2, effect: eta | omega | epsilon = eta)`
+  = help: usage: `data.anova(var, group: Var, equal_var: Bool = false, weights: Var, weight_type: frequency | analytic | sampling = sampling, type: Int = 2, effect: eta | omega | omega_f | epsilon = eta)`
 
 note: `a` replaced the variable of that name (line 1)
 note: `b` replaced the variable of that name (line 1)
@@ -225,12 +225,12 @@ error[Z0402]: `cohen` is not one of the allowed words
  --> scripts/main.zeff:2:28
   |
 2 | d.anova(y ~ a * b, effect: cohen)
-  |                            ^^^^^ expected one of eta, omega, epsilon
+  |                            ^^^^^ expected one of eta, omega, omega_f, epsilon
 
 error[Z0402]: `omga` is not one of the allowed words
  --> scripts/main.zeff:2:28
   |
 2 | d.anova(y ~ a * b, effect: omga)
-  |                            ^^^^ expected one of eta, omega, epsilon
+  |                            ^^^^ expected one of eta, omega, omega_f, epsilon
   |
   = help: did you mean `omega`?

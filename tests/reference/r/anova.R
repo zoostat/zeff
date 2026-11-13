@@ -12,6 +12,9 @@
 # that summary(lm()) reports, and is checked against it here. In the factorial form the partial
 # measures of a term are (SS - df MS residual) / (SS + (N - df) MS residual) and (SS - df MS
 # residual) / (SS + SS residual); for the whole model the second is again the adjusted R squared.
+# The partial omega squared from F (step 38e; open decision #101) is the formula of Stata's
+# `estat esize, omega` and of effectsize::F_to_omega2() written out on the F and the degrees of
+# freedom of each row of the same tables: (F - 1) / (F + (df residual + 1) / df).
 # Run with `Rscript tests/reference/r/anova.R`.
 source(file.path(dirname(sub("^--file=", "", commandArgs(FALSE)[grepl("^--file=", commandArgs(FALSE))])), "common.R"))
 options(warn = -1)
@@ -114,6 +117,9 @@ partial <- function(df, ss, rdf, rss, n) {
        epsilon = (ss - df * ms) / (ss + rss))
 }
 
+# Partial omega squared from F alone, as Stata's `estat esize, omega` computes it.
+from_f <- function(f, df, rdf) (f - 1) / (f + (rdf + 1) / df)
+
 table_rows <- function(tab, residual_row, n) {
   keep <- setdiff(rownames(tab), c("(Intercept)", residual_row))
   lapply(keep, function(term) {
@@ -124,6 +130,7 @@ table_rows <- function(tab, residual_row, n) {
          f = num(tab[term, "F value"]),
          p = num(tab[term, "Pr(>F)"]),
          omega = num(size$omega),
+         omega_f = num(from_f(tab[term, "F value"], tab[term, "Df"], tab[residual_row, "Df"])),
          epsilon = num(size$epsilon))
   })
 }
@@ -178,6 +185,7 @@ factorial <- function(d, text, factors, weights = NULL, weight_type = NULL, expa
        model_p = num(pf(fstat[1], fstat[2], fstat[3], lower.tail = FALSE)),
        r_squared = num(summary(m)$r.squared),
        model_omega = num(whole$omega),
+       model_omega_f = num(from_f(unname(fstat[1]), unname(fstat[2]), unname(fstat[3]))),
        model_epsilon = num(whole$epsilon),
        n = as.integer(nobs(m)))
 }

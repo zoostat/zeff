@@ -327,6 +327,11 @@ fn the_three_types_agree_with_anova_lm_and_with_car() {
             for (got, key, name) in [
                 (table.model.partial_omega_squared, "model_omega", "omega"),
                 (
+                    table.model.partial_omega_squared_f,
+                    "model_omega_f",
+                    "omega from F",
+                ),
+                (
                     table.model.partial_epsilon_squared,
                     "model_epsilon",
                     "epsilon",
@@ -374,6 +379,14 @@ fn the_three_types_agree_with_anova_lm_and_with_car() {
                     "{what}: {term}: partial omega squared {} against {omega}",
                     row.partial_omega_squared
                 );
+                // The figure from F alone, as Stata's `estat esize, omega` and R's
+                // `F_to_omega2` give it (open decision #101; step 38e).
+                let omega_f = number(&want["omega_f"]).unwrap();
+                assert!(
+                    close(row.partial_omega_squared_f, omega_f, 1e-9),
+                    "{what}: {term}: partial omega squared from F {} against {omega_f}",
+                    row.partial_omega_squared_f
+                );
                 let epsilon = number(&want["epsilon"]).unwrap();
                 assert!(
                     close(row.partial_epsilon_squared, epsilon, 1e-9),
@@ -383,7 +396,7 @@ fn the_three_types_agree_with_anova_lm_and_with_car() {
             }
             // The same figures through the function, as a script reads them.
             // Under `effect:` the rows carry the measure asked for, by its name.
-            for word in ["omega", "epsilon"] {
+            for word in ["omega", "omega_f", "epsilon"] {
                 let mut asked = slots.clone();
                 asked.push((EFFECT, Value::Word(word.to_string())));
                 let result = match call(&frame, text, asked) {
@@ -393,7 +406,16 @@ fn the_three_types_agree_with_anova_lm_and_with_car() {
                 assert_eq!(result.terms.len(), rows.len(), "{what}");
                 for (row, want) in result.terms.iter().zip(rows) {
                     let effect = row.effect.as_ref().unwrap();
-                    assert_eq!(effect.label, format!("partial {word} squared"));
+                    let named = match word {
+                        "omega_f" => "partial omega squared from F".to_string(),
+                        word => format!("partial {word} squared"),
+                    };
+                    assert_eq!(effect.label, named);
+                    // Read by its name, the row gives the same figure.
+                    assert_eq!(
+                        by_name(&result, &row.term).3.to_bits(),
+                        effect.value.to_bits()
+                    );
                     assert!(
                         close(effect.value, number(&want[word]).unwrap(), 1e-9),
                         "{what}: {}: partial {word} squared {}",
@@ -600,6 +622,22 @@ proptest! {
                 );
                 prop_assert!(epsilon <= eta, "{}: {epsilon} {eta}", row.label);
                 prop_assert!(omega.abs() <= epsilon.abs(), "{}: {omega} {epsilon}", row.label);
+                // The figure from F (open decision #101): the formula of Stata's manual on the
+                // row's F; never the smaller in size, of the sign of omega squared, and below 1.
+                let from_f = row.partial_omega_squared_f;
+                let written = (row.f - 1.0) / (row.f + (table.residual_df + 1.0) / row.df as f64);
+                prop_assert!(
+                    (from_f - written).abs() <= 1e-9 * (1.0 + written.abs()),
+                    "{}: {from_f} against {written}",
+                    row.label
+                );
+                prop_assert!(
+                    from_f.abs() >= omega.abs() - 1e-12,
+                    "{}: {from_f} {omega}",
+                    row.label
+                );
+                prop_assert!(from_f == 0.0 || omega == 0.0 || (from_f < 0.0) == (omega < 0.0));
+                prop_assert!(from_f < 1.0);
                 prop_assert!(omega == 0.0 || (omega < 0.0) == (epsilon < 0.0));
                 prop_assert!(epsilon < 1.0 && omega < 1.0);
                 if row.f < 1.0 - 1e-9 {
@@ -615,6 +653,15 @@ proptest! {
             let n = table.residual_df + table.rank as f64;
             let adjusted = 1.0 - (1.0 - r_squared) * (n - 1.0) / table.residual_df;
             prop_assert!((table.model.partial_eta_squared - r_squared).abs() <= 1e-9);
+            // On that row the two omegas are one figure: N less the model's degrees of freedom
+            // is the residual's plus one.
+            prop_assert!(
+                (table.model.partial_omega_squared_f - table.model.partial_omega_squared).abs()
+                    <= 1e-9 * (1.0 + table.model.partial_omega_squared.abs()),
+                "{} against {}",
+                table.model.partial_omega_squared_f,
+                table.model.partial_omega_squared
+            );
             prop_assert!(
                 (table.model.partial_epsilon_squared - adjusted).abs() <= 1e-9 * (1.0 + adjusted.abs()),
                 "{} against {adjusted}",
@@ -906,7 +953,8 @@ fn one_category_gives_the_measures_of_the_classical_one_way_form() {
         ),
     ]);
     let table = table_of(&design(&frame, "y ~ a", None), Kind::Marginal).unwrap();
-    for word in ["eta", "omega", "epsilon"] {
+    let mut omegas: Vec<f64> = Vec::new();
+    for word in ["eta", "omega", "omega_f", "epsilon"] {
         let asked = Value::Word(word.to_string());
         let factorial = call(&frame, "y ~ a", vec![(EFFECT, asked.clone())]).unwrap();
         let mut values: Vec<Option<Value>> = vec![None; SLOTS];
@@ -926,8 +974,16 @@ fn one_category_gives_the_measures_of_the_classical_one_way_form() {
         };
         let plain = one_way.effect.as_ref().unwrap();
         let partial = factorial.terms[0].effect.as_ref().unwrap();
-        assert_eq!(plain.label, format!("{word} squared"));
-        assert_eq!(partial.label, format!("partial {word} squared"));
+        let named = match word {
+            "omega_f" => "omega squared from F".to_string(),
+            word => format!("{word} squared"),
+        };
+        assert_eq!(plain.label, named);
+        assert_eq!(partial.label, format!("partial {named}"));
+        if word.starts_with("omega") {
+            omegas.push(plain.value);
+            omegas.push(partial.value);
+        }
         assert!(
             (plain.value - partial.value).abs() < 1e-12,
             "{word}: {} against {}",
@@ -937,10 +993,71 @@ fn one_category_gives_the_measures_of_the_classical_one_way_form() {
         let model = match word {
             "eta" => table.model.partial_eta_squared,
             "omega" => table.model.partial_omega_squared,
+            "omega_f" => table.model.partial_omega_squared_f,
             _ => table.model.partial_epsilon_squared,
         };
         assert!((model - partial.value).abs() < 1e-12, "{word}");
     }
+    // With one term the figure from F is omega squared itself (open decision #101): in the
+    // one-way form bit for bit, in a model of one term within rounding.
+    assert_eq!(omegas.len(), 4);
+    assert_eq!(omegas[0].to_bits(), omegas[2].to_bits());
+    assert!((omegas[1] - omegas[3]).abs() < 1e-12, "{omegas:?}");
+}
+
+/// `effect: omega_f` (open decision #101, option A; step 38e): the partial omega squared from
+/// F, beside `omega`, which stays the ruled formula.
+#[test]
+fn the_partial_omega_squared_from_f_is_named_and_is_the_larger_in_size() {
+    // For each term of a model of several terms the figure from F is the larger in size, and
+    // it is the formula of Stata's manual on the row's own F and degrees of freedom.
+    let script = [
+        "let w = d.anova(y ~ a * b, effect: omega)",
+        "let f = d.anova(y ~ a * b, effect: omega_f)",
+        "abs(f.effect_size(\"a\")) > abs(w.effect_size(\"a\"))",
+        "abs(f.effect_size(\"b\")) > abs(w.effect_size(\"b\"))",
+        "abs(f.effect_size(\"a:b\")) > abs(w.effect_size(\"a:b\"))",
+        "let stata = (f.statistic(\"b\") - 1) / (f.statistic(\"b\") + (f.df(\"b\")[2] + 1) / f.df(\"b\")[1])",
+        "abs(f.effect_size(\"b\") - stata) < 1e-12",
+        "f.effect_size()",
+        "f.estimates().where(term == \"partial omega squared from F (b)\").n_rows()",
+    ]
+    .join("\n");
+    let (exit, stdout, stderr) = with_d(&script);
+    assert_eq!(exit, 0, "{stderr}");
+    assert_eq!(
+        stdout.lines().collect::<Vec<_>>(),
+        ["true", "true", "true", "true", "NA", "1"],
+        "{stdout}"
+    );
+    // F below 1: the figure is negative, printed as it is, with the note of #99 under its name.
+    assert_eq!(
+        notes_of(&stderr),
+        vec![
+            "note: F is below 1 for the model and `a`, so their partial omega squared is negative; read each as no evidence of an effect (line 2)",
+            "note: F is below 1 for the model and `a`, so their partial omega squared from F is negative; read each as no evidence of an effect (line 3)",
+        ],
+        "{stderr}"
+    );
+    // The table names the measure in its heading and under it, with the formula.
+    let (exit, stdout, stderr) = with_d("d.anova(y ~ a * b, effect: omega_f)");
+    assert_eq!(exit, 0, "{stderr}");
+    assert!(
+        stdout.contains("p value   partial omega squared from F\n"),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains(
+            "partial omega squared from F = (F − 1) / (F + (df residual + 1) / df); N = 12"
+        ),
+        "{stdout}"
+    );
+    // The word is refused where it is misspelt, with the four words.
+    let (exit, _, stderr) = with_d("d.anova(y ~ a * b, effect: omega_g)");
+    assert_eq!(exit, 1);
+    assert!(stderr.contains("Z0402"), "{stderr}");
+    assert!(stderr.contains("eta, omega, omega_f, epsilon"), "{stderr}");
+    assert!(stderr.contains("did you mean `omega_f`?"), "{stderr}");
 }
 
 /// The notes of a run on `d` without the two its own first line raises, where `category`
@@ -1102,7 +1219,7 @@ fn a_term_of_the_table_is_read_by_its_name() {
 #[test]
 fn every_form_and_every_message() {
     let (exit, stdout, stderr) = go(&format!(
-        "{D}d.anova(y ~ a * b)\nd.anova(y ~ a * b + x, type: 1)\nd.anova(y ~ x + a * b, type: 1)\nd.anova(y ~ a * b + x, type: 3)\nd.anova(y ~ a + category(s))\nd.anova(y ~ a + x, weights: w, weight_type: frequency)\nd.anova(y ~ a + x, weights: w, weight_type: analytic)\nd.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b)\nd.add(x2 = 2 * x).anova(y ~ x + x2)\nd.anova(y ~ x)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage ~ industry * category(female) + educ)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3)\nwages.where(year == 2010).anova(lwage ~ industry + category(union) + educ * exper, type: 1)\nlet t = d.anova(y ~ a * b + x)\nt.statistic()\nt.df()\nt.p_values()\nt.n_obs()\nt.effect_size()\nt.estimates()\nt.ci()\nt.summary()\nd.anova(y ~ a * b, effect: omega)\nd.anova(y ~ a * b + x, type: 3, effect: epsilon)\nd.anova(y ~ a + x, weights: w, weight_type: frequency, effect: omega)\nd.anova(y ~ b, effect: epsilon)\nwages.anova(lwage ~ industry * category(female) + educ, effect: omega)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3, effect: epsilon)\nlet u = d.anova(y ~ a * b + x, effect: epsilon)\nu.estimates()\nu.summary()\n"
+        "{D}d.anova(y ~ a * b)\nd.anova(y ~ a * b + x, type: 1)\nd.anova(y ~ x + a * b, type: 1)\nd.anova(y ~ a * b + x, type: 3)\nd.anova(y ~ a + category(s))\nd.anova(y ~ a + x, weights: w, weight_type: frequency)\nd.anova(y ~ a + x, weights: w, weight_type: analytic)\nd.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b)\nd.add(x2 = 2 * x).anova(y ~ x + x2)\nd.anova(y ~ x)\nlet wages = dataset(wages).add(lwage = log(wage))\nwages.anova(lwage ~ industry * category(female) + educ)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3)\nwages.where(year == 2010).anova(lwage ~ industry + category(union) + educ * exper, type: 1)\nlet t = d.anova(y ~ a * b + x)\nt.statistic()\nt.df()\nt.p_values()\nt.n_obs()\nt.effect_size()\nt.estimates()\nt.ci()\nt.summary()\nd.anova(y ~ a * b, effect: omega)\nd.anova(y ~ a * b, effect: omega_f)\nd.anova(y ~ a * b + x, type: 3, effect: epsilon)\nd.anova(y ~ a + x, weights: w, weight_type: frequency, effect: omega)\nd.anova(y ~ b, effect: epsilon)\nwages.anova(lwage ~ industry * category(female) + educ, effect: omega)\nwages.anova(lwage ~ industry * category(female) + educ, type: 3, effect: epsilon)\nlet u = d.anova(y ~ a * b + x, effect: epsilon)\nu.estimates()\nu.summary()\n"
     ));
     assert_eq!(exit, 0, "{stderr}");
     insta::assert_snapshot!("forms", format!("{stdout}---\n{stderr}"));

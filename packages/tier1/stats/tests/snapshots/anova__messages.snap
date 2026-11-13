@@ -103,12 +103,12 @@ error[Z0402]: `cohen` is not one of the allowed words
  --> scripts/main.zeff:1:72
   |
 1 | frame(x = [1, 2, 3, 4.5], g = [1, 1, 2, 2]).anova(x, group: g, effect: cohen)
-  |                                                                        ^^^^^ expected one of eta, omega, epsilon
+  |                                                                        ^^^^^ expected one of eta, omega, omega_f, epsilon
 
-error[Z0401]: `effect` of `anova` must be a eta | omega | epsilon, but this is an Int
+error[Z0401]: `effect` of `anova` must be a eta | omega | omega_f | epsilon, but this is an Int
  --> scripts/main.zeff:1:72
   |
 1 | frame(x = [1, 2, 3, 4.5], g = [1, 1, 2, 2]).anova(x, group: g, effect: 2)
   |                                                                        ^ an Int
   |
-  = help: usage: `data.anova(var, group: Var, equal_var: Bool = false, weights: Var, weight_type: frequency | analytic | sampling = sampling, type: Int = 2, effect: eta | omega | epsilon = eta)`
+  = help: usage: `data.anova(var, group: Var, equal_var: Bool = false, weights: Var, weight_type: frequency | analytic | sampling = sampling, type: Int = 2, effect: eta | omega | omega_f | epsilon = eta)`

@@ -4901,3 +4901,17 @@ error[Z0001]: no rows to take the mean of
 
 **Reason.** The checklist's step 38d; open decision #100.
 
+## 14 November 2026: `anova(effect: omega_f)` (release 0.7.0, step 38e)
+
+**What is built.** Open decision #101, option A, the owner's ruling: a fourth word on `effect:`, for the partial omega squared computed from the F of a term alone, (F − 1) / (F + (df residual + 1) / df), which is (SS − df × MS residual) / (SS + (df residual + 1) × MS residual). It is the formula Stata documents for `estat esize, omega` and the one of R's `effectsize::F_to_omega2()`. `omega` stays the ruled formula, with N − df in the place of df residual + 1.
+
+**Its name in print.** "partial omega squared from F" in the table's heading, in the line under the table with its formula, in the note for a row whose F is below 1, and in the rows of `estimates()`. In the one-way form, where N − df is df residual + 1 and the two are one figure, the same number is returned bit for bit under the name "omega squared from F", and the line under the table says that with one term it is omega squared itself.
+
+**Tests.** Reference: `tests/reference/r/anova.R` writes the formula out on the F and the degrees of freedom of every row of its fifteen tables (`anova(lm())` for type 1, `car::Anova` for types 2 and 3; balanced and unbalanced, a covariate, three factors, weights) and of the whole model; the kernel and the function agree within 1e-9. The regenerated `anova.json` differs from the committed one by the new figures alone. Property: the figure is the formula on the row's own F; never the smaller in size than `omega`, of its sign, below 1; equal to `omega` on the row of the whole model, in a model of one term, and in the one-way form (bit for bit, under either F). Edge cases: F below 1 with the note of #99 under the new name; the word misspelt; the row read by name. Snapshots: the table, and the messages that list the words.
+
+**Stata.** No output of Stata stands behind the figure: the reference library holds none, and the formula is taken from Stata's documentation. The illustration in open decision #101 quoted figures from Stata's manual that could not be reproduced on R's copy of the data; the entry now says what the two formulas give there. Recorded for the owner, who can run Stata.
+
+**The page** of `anova` says under "Description" which word agrees with which program, gives both formulas under "Details", and shows the two tables one after the other. The editor grammar's option words are regenerated (`omega_f` after `effect:`).
+
+**Reason.** The checklist's step 38e; open decision #101.
+

@@ -91,6 +91,10 @@ pub struct Row {
     pub p: f64,
     pub partial_eta_squared: f64,
     pub partial_omega_squared: f64,
+    /// Partial omega squared from F alone (open decision #101): with r for the residual degrees
+    /// of freedom, (F − 1) / (F + (r + 1) / df), which is (SS − df × MS) / (SS + (r + 1) × MS).
+    /// It is the ruled figure where the model has one term, and the larger in size otherwise.
+    pub partial_omega_squared_f: f64,
     pub partial_epsilon_squared: f64,
 }
 
@@ -100,6 +104,7 @@ impl Row {
         match which {
             Effect::Eta => self.partial_eta_squared,
             Effect::Omega => self.partial_omega_squared,
+            Effect::OmegaF => self.partial_omega_squared_f,
             Effect::Epsilon => self.partial_epsilon_squared,
         }
     }
@@ -265,6 +270,7 @@ pub fn factorial(
                 p: f64::NAN,
                 partial_eta_squared: f64::NAN,
                 partial_omega_squared: f64::NAN,
+                partial_omega_squared_f: f64::NAN,
                 partial_epsilon_squared: f64::NAN,
             };
         }
@@ -278,6 +284,7 @@ pub fn factorial(
             p: upper_tail(f, df as f64, residual_df),
             partial_eta_squared: ss / (ss + residual_ss),
             partial_omega_squared: corrected / (ss + (n - df as f64) * residual_ms),
+            partial_omega_squared_f: corrected / (ss + (residual_df + 1.0) * residual_ms),
             partial_epsilon_squared: corrected / (ss + residual_ss),
         }
     };
@@ -466,6 +473,7 @@ pub fn anova(
     let definition = match which {
         Effect::Eta => "SS / (SS + SS residual)",
         Effect::Omega => "(SS − df × MS residual) / (SS + (N − df) × MS residual)",
+        Effect::OmegaF => "(F − 1) / (F + (df residual + 1) / df)",
         Effect::Epsilon => "(SS − df × MS residual) / (SS + SS residual)",
     };
     let Some(outcome) = &formula.outcome else {
