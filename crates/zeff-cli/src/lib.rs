@@ -113,6 +113,16 @@ pub struct Environment<'a> {
     pub stdin_is_terminal: bool,
     /// Standard input, for the console.
     pub input: &'a mut dyn BufRead,
+    /// The handle by which a run is cancelled from outside: an interrupt of `zeff run` cancels
+    /// it, and the run stops before its next step (Z0705).
+    pub cancel: zeff_engine::control::Control,
+}
+
+/// Whether the command these words give is one an interrupt cancels between its steps, and
+/// does not end at once: `zeff run`.
+pub fn interruptible(args: &[String]) -> bool {
+    let words: Vec<&str> = args.iter().map(String::as_str).collect();
+    take_options(&words).is_ok_and(|(words, _)| words.first() == Some(&"run"))
 }
 
 /// `--format text | json` (Engine and Project Specification, section 2.1).
@@ -770,8 +780,31 @@ fn run_command(
     };
     let started = Instant::now();
     zeff_regress::reg::reset_fixed_effect_work();
-    let outcome = run_script_with(command.fs, &project, &shown, &text, &command.run_options());
-    emit(command, &outcome, out, err);
+    // What each statement prints and says is written as the statement ends, so that a long
+    // run shows where it stands; the two streams hold what they held when written at the end.
+    let outcome = {
+        let streams = std::cell::RefCell::new((&mut *out, &mut *err));
+        let listener = |event: &zeff_engine::control::Event| {
+            if let zeff_engine::control::Event::Output { stdout, stderr } = event {
+                let mut streams = streams.borrow_mut();
+                let _ = streams.0.write_all(stdout.as_bytes());
+                let _ = streams.0.flush();
+                let _ = streams
+                    .1
+                    .write_all(command.messages.text(stderr).as_bytes());
+                let _ = streams.1.flush();
+            }
+        };
+        zeff_engine::run::run_script_under(
+            command.fs,
+            &project,
+            &shown,
+            &text,
+            &command.run_options(),
+            &command.env.cancel,
+            Some(&listener),
+        )
+    };
     if command.settings.verbose {
         // The reused fixed-effect work (Engine and Project Specification, section 8.3, point
         // 10): the sets of group indexes built for `fe:` and the fits that reused one, with the

@@ -4,8 +4,9 @@
 //! statement of the script and before each pass of a loop. When the run has been cancelled it
 //! stops there with Z0705 (Language Reference, section 11); what ran before stays.
 //!
-//! The handle can be cloned and sent to another thread, which is how the interface cancels a
-//! run from outside (the engine worker, step 33b).
+//! The handle can be cloned and sent to another thread, which is how a run is cancelled from
+//! outside: by the engine worker (`crate::worker`) for an interface, and by the interrupt of
+//! `zeff run`.
 
 use std::fmt;
 use std::sync::Arc;
@@ -28,9 +29,14 @@ pub enum Event {
         line: u32,
         failed: bool,
     },
+    /// What a statement printed and said, when it did either, before its `Finished`; and,
+    /// before the first statement, what the check of the script said. The pieces of a run, in
+    /// order, are the whole of its standard output and of its messages.
+    Output { stdout: String, stderr: String },
     /// A pass of a loop (`for`, `[for ...]` or `iterate`) is about to run: which, counted from
     /// 1, of how many where the loop knows, and the line of the script's statement the loop
-    /// runs under.
+    /// runs under. A long loop does not tell every pass: about a hundred of them, the first
+    /// and the last among them, so that a listener is not flooded.
     Pass {
         pass: usize,
         of: Option<usize>,
@@ -38,29 +44,20 @@ pub enum Event {
     },
 }
 
-/// What a listener is given: each event as it happens, on the thread of the run.
-pub type Listener = Arc<dyn Fn(&Event) + Send + Sync>;
+/// What a run tells as it goes: each event as it happens, on the thread of the run. It need
+/// not be sent to another thread, so it may write to what the caller holds.
+pub type Listener<'a> = &'a dyn Fn(&Event);
 
-/// The handle of a run: its listener, and the flag by which it is cancelled. A clone is the
-/// same run's handle.
+/// The handle by which a run is cancelled. A clone is the same run's handle, and may be held
+/// by another thread.
 #[derive(Clone, Default)]
 pub struct Control {
     cancelled: Arc<AtomicBool>,
-    listener: Option<Listener>,
 }
 
 impl Control {
-    /// A handle with no listener: the run can be cancelled, and reports to no one.
     pub fn new() -> Control {
         Control::default()
-    }
-
-    /// A handle whose listener is told each event.
-    pub fn with_listener(listener: impl Fn(&Event) + Send + Sync + 'static) -> Control {
-        Control {
-            cancelled: Arc::default(),
-            listener: Some(Arc::new(listener)),
-        }
     }
 
     /// Cancel the run: it stops before its next step.
@@ -71,19 +68,12 @@ impl Control {
     pub fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::SeqCst)
     }
-
-    pub(crate) fn report(&self, event: Event) {
-        if let Some(listener) = &self.listener {
-            listener(&event);
-        }
-    }
 }
 
 impl fmt::Debug for Control {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Control")
             .field("cancelled", &self.is_cancelled())
-            .field("listener", &self.listener.is_some())
             .finish()
     }
 }

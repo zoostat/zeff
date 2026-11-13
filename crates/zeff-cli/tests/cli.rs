@@ -1879,3 +1879,85 @@ fn zeff_test_takes_no_script_and_says_what_it_cannot_read() {
         "{usage}"
     );
 }
+
+// ----- the run as it goes, and its interrupt (release 0.7.0, step 33b) -----
+
+/// `zeff run` writes what a statement prints when the statement ends, and an interrupt
+/// cancels the run between two steps: what was printed stays, and the error is Z0705.
+#[cfg(unix)]
+#[test]
+fn zeff_run_prints_as_it_goes_and_an_interrupt_stops_it_between_steps() {
+    use std::io::{BufRead, BufReader, Read};
+    use std::process::Stdio;
+    let (_dir, project) = demo();
+    // A statement that prints, then a loop that would take minutes: few passes, so that its
+    // list of items is small, each of them reading a dataset.
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "print(\"started\")\nfor i in 1..200000 {\n    let rows = dataset(wages).where(year == 2015).n_rows()\n}\nprint(\"never\")\n",
+    )
+    .unwrap();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_zeff"))
+        .arg("run")
+        .current_dir(&project)
+        .env_remove("NO_COLOR")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("zeff starts");
+    // The first statement's output arrives while the run is still going.
+    let mut stdout = BufReader::new(child.stdout.take().unwrap());
+    let mut first = String::new();
+    stdout.read_line(&mut first).unwrap();
+    assert_eq!(first, "started\n");
+    assert!(
+        child.try_wait().unwrap().is_none(),
+        "the run ended by itself"
+    );
+    let interrupted = Command::new("kill")
+        .args(["-INT", &child.id().to_string()])
+        .status()
+        .expect("kill runs");
+    assert!(interrupted.success());
+    let status = child.wait().unwrap();
+    let mut rest = String::new();
+    stdout.read_to_string(&mut rest).unwrap();
+    let mut messages = String::new();
+    child
+        .stderr
+        .take()
+        .unwrap()
+        .read_to_string(&mut messages)
+        .unwrap();
+    assert_eq!(status.code(), Some(1), "{messages}");
+    assert_eq!(rest, "");
+    assert!(
+        messages.starts_with("error[Z0705]: the run was cancelled before pass "),
+        "{messages}"
+    );
+    assert!(messages.contains(" --> scripts/main.zeff:2:"), "{messages}");
+}
+
+#[test]
+fn only_zeff_run_is_cancelled_by_an_interrupt() {
+    let args = |words: &[&str]| -> Vec<String> { words.iter().map(|w| w.to_string()).collect() };
+    for words in [
+        &["run"][..],
+        &["run", "scripts/clean.zeff"],
+        &["--project", "demo", "run"],
+        &["-q", "run", "--deny-warnings"],
+    ] {
+        assert!(zeff_cli::interruptible(&args(words)), "{words:?}");
+    }
+    for words in [
+        &["repl"][..],
+        &["check"],
+        &["test"],
+        &["eval", "run"],
+        &["help", "run"],
+        &[],
+        &["--no-such-option", "run"],
+    ] {
+        assert!(!zeff_cli::interruptible(&args(words)), "{words:?}");
+    }
+}

@@ -342,9 +342,9 @@ pub fn run_script_with(
     )
 }
 
-/// [`run_script_with`] under a handle: the run tells it each statement and each pass of a
-/// loop, and stops with Z0705 before the next of them once the handle has been cancelled
-/// (section 8.3, point 7).
+/// [`run_script_with`] under a handle and a listener: the run tells the listener each
+/// statement, each pass of a loop and what each statement printed, and stops with Z0705 before
+/// its next step once the handle has been cancelled (section 8.3, point 7).
 pub fn run_script_under(
     fs: &dyn FileSystem,
     project: &Project,
@@ -352,6 +352,7 @@ pub fn run_script_under(
     text: &str,
     options: &RunOptions,
     control: &crate::control::Control,
+    listener: Option<crate::control::Listener<'_>>,
 ) -> Outcome {
     let registry = match registry::registry() {
         Ok(registry) => registry,
@@ -367,6 +368,7 @@ pub fn run_script_under(
         registry::bodies(),
         registry::zeff_bodies(),
         Some(control),
+        listener,
     )
 }
 
@@ -384,7 +386,7 @@ pub fn run_script_in(
     zeff: &ZeffBodies,
 ) -> Outcome {
     run_controlled(
-        fs, project, script, text, options, registry, bodies, zeff, None,
+        fs, project, script, text, options, registry, bodies, zeff, None, None,
     )
 }
 
@@ -399,7 +401,20 @@ fn run_controlled(
     bodies: &Bodies,
     zeff: &ZeffBodies,
     control: Option<&crate::control::Control>,
+    listener: Option<crate::control::Listener<'_>>,
 ) -> Outcome {
+    // What the check says before the run starts, and what stops it before it starts, is told
+    // as it is said, so that the pieces a listener is given are the whole of the messages.
+    let said = |output: &Output| {
+        if let Some(listener) = listener
+            && !output.stderr.is_empty()
+        {
+            listener(&crate::control::Event::Output {
+                stdout: String::new(),
+                stderr: output.stderr.clone(),
+            });
+        }
+    };
     let mut output = Output::default();
     let checked = check_in_project(fs, project, script, text, registry);
     let source = Source::new(script, text);
@@ -441,6 +456,7 @@ fn run_controlled(
             }
         }
         output.stderr.push_str(&first.render(&sources));
+        said(&output);
         let internal = first.code.starts_with("Z9");
         return Outcome {
             output,
@@ -458,6 +474,7 @@ fn run_controlled(
         output
             .stderr
             .push_str(&crate::pragmas::denied(first).render(&sources));
+        said(&output);
         return Outcome {
             output,
             exit_code: 3,
@@ -473,6 +490,7 @@ fn run_controlled(
     {
         output.stderr.push_str(&warning.render(&sources));
     }
+    said(&output);
     // The schema cache of the run: the data-root files it reads, and the columns of the
     // statements checked at run time, recorded for the next check (section 11).
     let schemas = crate::schemas::SchemaCache::new(fs, project);
@@ -488,7 +506,8 @@ fn run_controlled(
         .with_allows(&allows)
         .with_denied_warnings(options.deny_warnings)
         .with_checks(options.collect_checks)
-        .with_control(control);
+        .with_control(control)
+        .with_listener(listener);
     let result = interpreter.run(&mut output);
     for (statement, columns) in std::mem::take(&mut output.produced) {
         schemas.record_run(statement, columns);

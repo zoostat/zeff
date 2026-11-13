@@ -8,8 +8,8 @@ use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-/// The stack of the thread the command runs on.
-const STACK_SIZE: usize = 64 << 20;
+/// The stack of the thread the command runs on: that of the engine worker.
+const STACK_SIZE: usize = zeff_engine::worker::STACK_SIZE;
 
 /// `ZEFF_HOME`, or `.zeff` in the home folder (Engine and Project Specification, section 2.1).
 fn zeff_home() -> Option<PathBuf> {
@@ -84,6 +84,19 @@ fn main() -> ExitCode {
     // A failure inside the engine is reported as Z9001 by the interpreter (Language Reference,
     // section 11.1); the default hook's own report, with source paths, would only add noise.
     std::panic::set_hook(Box::new(|_| {}));
+    // An interrupt of `zeff run` cancels the run, which stops before its next step with what
+    // it has printed (Z0705; Engine and Project Specification, section 8.3, point 7); a second
+    // interrupt ends the program at once. Every other command ends at the first, as before.
+    let cancel = zeff_engine::control::Control::new();
+    if zeff_cli::interruptible(&args) {
+        let handle = cancel.clone();
+        let _ = ctrlc::set_handler(move || {
+            if handle.is_cancelled() {
+                std::process::exit(130);
+            }
+            handle.cancel();
+        });
+    }
     let worker = std::thread::Builder::new()
         .stack_size(STACK_SIZE)
         .spawn(move || {
@@ -96,6 +109,7 @@ fn main() -> ExitCode {
                 stderr_is_terminal: std::io::stderr().is_terminal(),
                 stdin_is_terminal: std::io::stdin().is_terminal(),
                 input: &mut input,
+                cancel,
             };
             let (mut out, mut err) = (std::io::stdout().lock(), std::io::stderr().lock());
             let code = zeff_cli::run(&args, &cwd, &fs, &mut env, &mut out, &mut err);

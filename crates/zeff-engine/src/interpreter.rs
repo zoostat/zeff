@@ -125,9 +125,11 @@ pub struct Interpreter<'a> {
     /// Under `zeff test`: the checks of the statement being run, each with the error of a
     /// failed one; `None` in a run, where a failed `assert` stops the script.
     checks: Option<Vec<Option<Diagnostic>>>,
-    /// The handle of the run, where it has one: told each step, and looked at before each for
-    /// a cancellation (section 8.3, point 7).
+    /// The handle of the run, where it has one: looked at before each step for a cancellation
+    /// (section 8.3, point 7).
     control: Option<&'a crate::control::Control>,
+    /// Who is told each step of the run, where someone is.
+    listener: Option<crate::control::Listener<'a>>,
     /// The line of the statement of the script being run, for the events of its loops.
     line: u32,
 }
@@ -206,6 +208,7 @@ impl<'a> Interpreter<'a> {
             deny_warnings: false,
             checks: None,
             control: None,
+            listener: None,
             line: 0,
         }
     }
@@ -217,19 +220,28 @@ impl<'a> Interpreter<'a> {
     }
 
     /// `--deny-warnings`: the first warning that no pragma allows stops the run.
-    /// The handle by which the run reports its steps and is cancelled between them.
+    /// The handle by which the run is cancelled between its steps.
     pub fn with_control(mut self, control: Option<&'a crate::control::Control>) -> Self {
         self.control = control;
         self
     }
 
+    /// Who is told each step of the run.
+    pub fn with_listener(mut self, listener: Option<crate::control::Listener<'a>>) -> Self {
+        self.listener = listener;
+        self
+    }
+
+    fn tell(&self, event: crate::control::Event) {
+        if let Some(listener) = self.listener {
+            listener(&event);
+        }
+    }
+
     /// Before a pass of a loop: the run's handle is told, and a run that has been cancelled
     /// stops here with Z0705, the passes before this one kept.
     fn pass_begins(&mut self, pass: usize, of: Option<usize>, span: Span) -> Result<(), Fail> {
-        let Some(control) = self.control else {
-            return Ok(());
-        };
-        if control.is_cancelled() {
+        if self.control.is_some_and(|c| c.is_cancelled()) {
             return Err(fail(
                 Diagnostic::error(
                     "Z0705",
@@ -240,11 +252,23 @@ impl<'a> Interpreter<'a> {
                 .help("the passes before it ran, and what they printed is above; nothing after this point ran"),
             ));
         }
-        control.report(crate::control::Event::Pass {
-            pass,
-            of,
-            line: self.line,
-        });
+        // A loop of millions of passes is looked at for a cancellation before each, but tells
+        // of itself about a hundred times: where the total is known, at the first pass, the
+        // last, and each pass that begins a new hundredth of it; where it is not, at each of
+        // the first hundred passes and then at each power of two.
+        let told = match of {
+            Some(total) if total > 0 => {
+                pass == 1 || pass == total || pass * 100 / total != (pass - 1) * 100 / total
+            }
+            _ => pass <= 100 || pass.is_power_of_two(),
+        };
+        if told {
+            self.tell(crate::control::Event::Pass {
+                pass,
+                of,
+                line: self.line,
+            });
+        }
         Ok(())
     }
 
@@ -352,8 +376,8 @@ impl<'a> Interpreter<'a> {
             // before it ran and keep their output; this one and those after it do not run.
             let of = self.program.statements.len();
             let cancelled = self.control.is_some_and(|c| c.is_cancelled());
-            if !cancelled && let Some(control) = self.control {
-                control.report(crate::control::Event::Started {
+            if !cancelled {
+                self.tell(crate::control::Event::Started {
                     statement: index + 1,
                     of,
                     line,
@@ -469,6 +493,12 @@ impl<'a> Interpreter<'a> {
                     });
                 }
             }
+            if !printed.is_empty() || !statement_errors.is_empty() {
+                self.tell(crate::control::Event::Output {
+                    stdout: printed.clone(),
+                    stderr: statement_errors.clone(),
+                });
+            }
             output.stdout.push_str(&printed);
             output.stderr.push_str(&statement_errors);
             output.statements.push(StatementOutput {
@@ -510,8 +540,8 @@ impl<'a> Interpreter<'a> {
             if self.free_bindings && !failed {
                 self.free_after(index, line, output);
             }
-            if !cancelled && let Some(control) = self.control {
-                control.report(crate::control::Event::Finished {
+            if !cancelled {
+                self.tell(crate::control::Event::Finished {
                     statement: index + 1,
                     of,
                     line,
