@@ -4318,6 +4318,8 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **After it.** The target ran 699,062 texts in ten minutes on this machine without a failure. Whether the night's failure on GitHub was this fault or another is read from its log when the run ends, and recorded then.
 
+**Read when the run ended (13 November 2026).** The job's log shows that the target that failed was `format` and that the six others ran their ten minutes clean (the lexer 1,762,918 texts, the parser 639,045, the checker 103,105). The log keeps only the last lines of each target, so it does not show the input; that is in the run's artefact `fuzz-logs`, which has not been fetched, a download being the owner's to allow. So it is established that the formatter's target failed on its first night and that this fault is one the target finds within minutes; that the night's input was this same fault is likely and not shown. The run of the next night, on a commit that has the correction, settles it.
+
 **Tests.** `crates/zeff-syntax/tests/format.rs`, `a_dot_never_meets_a_dot`: the field, the method, the range and a list of them on one line, and a call spread over lines.
 
 **Reason.** The two properties of step 31a; the Testing Handbook, section 1 (a crash input becomes a regression test).
