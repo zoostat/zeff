@@ -2271,6 +2271,29 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/errorbars/{name}"), &data));
     }
+    // The eight shorthands (step 29): each of the plots of a frame written in one call, on
+    // the hourly wages of 2015; what the script prints, and each as a figure, the scatter
+    // with its fitted line in the three formats.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet h = w.histogram(log(wage), bins: 40, by: female)\nh\nlet s = w.scatter(educ, wage, fit: linear, color: female)\ns\nlet l = w.aggregate(wage = mean(wage), by: [educ, union]).line(educ, wage, color: union)\nl\nlet b = w.bar(industry, color: union)\nb\nlet x = w.boxplot(wage, group: union)\nx\nlet d = w.density(wage, color: union)\nd\nlet q = w.qq_plot(log(wage))\nq\nlet m = w.heatmap([wage, educ, exper, age, hours])\nm\nexport(h, \"histogram.svg\", size: two_column)\nexport(s, \"scatter.svg\")\nexport(s, \"scatter.pdf\")\nexport(s, \"scatter.png\")\nexport(l, \"line.svg\")\nexport(b, \"bar.svg\", size: two_column)\nexport(x, \"boxplot.svg\")\nexport(d, \"density.svg\")\nexport(q, \"qq_plot.svg\")\nexport(m, \"heatmap.svg\")\n";
+    let short = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plots/shorthands/stdout", &short.output.stdout));
+    fills.push(text("plots/shorthands/stderr", &short.output.stderr));
+    for name in [
+        "histogram.svg",
+        "scatter.svg",
+        "scatter.pdf",
+        "scatter.png",
+        "line.svg",
+        "bar.svg",
+        "boxplot.svg",
+        "density.svg",
+        "qq_plot.svg",
+        "heatmap.svg",
+    ] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plots/shorthands/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

@@ -1,0 +1,64 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · row against column
+
+  axis   title   scale      limits       breaks
+  x              category   0.4 to 3.6   a, b, c
+  y              category   0.4 to 3.6   c, b, a
+
+  aesthetic   title         scale    values    shown as
+  fill        correlation   linear   -1 to 1   a ramp through #2B5C9E, #F4F4F4, #B5352B
+
+  layer   mark   data        marks   settings
+      1   tile   the frame       9   alpha 1
+plot · row against column
+
+  axis   title   scale      limits       breaks
+  x              category   0.4 to 2.6   c, a
+  y              category   0.4 to 2.6   a, c
+
+  aesthetic   title         scale    values    shown as
+  fill        correlation   linear   -1 to 1   a ramp through #2B5C9E, #F4F4F4, #B5352B
+
+  layer   mark   data        marks   settings
+      1   tile   the frame       4   alpha 1
+plot · row against column
+
+  axis   title   scale      limits       breaks
+  x              category   0.4 to 3.6   a, b, c
+  y              category   0.4 to 3.6   c, b, a
+
+  aesthetic   title         scale    values    shown as
+  fill        correlation   linear   -1 to 1   viridis, dark purple to yellow
+
+  layer   mark   data        marks   settings
+      1   tile   the frame       9   alpha 1
+
+title: Three variables
+plot · row against column
+
+  axis   title   scale      limits       breaks
+  x              category   0.4 to 3.6   a, b, k
+  y              category   0.4 to 3.6   k, b, a
+
+  aesthetic   title         scale    values    shown as
+  fill        correlation   linear   -1 to 1   a ramp through #2B5C9E, #F4F4F4, #B5352B
+
+  layer   mark   data        marks   settings
+      1   tile   the frame       4   alpha 1
+plot · row against column
+
+  axis   title   scale      limits       breaks
+  x              category   0.4 to 2.6   a, b
+  y              category   0.4 to 2.6   b, a
+
+  aesthetic   title         scale    values    shown as
+  fill        correlation   linear   -1 to 1   a ramp through #2B5C9E, #F4F4F4, #B5352B
+
+  layer   mark   data        marks   settings
+      1   tile   the frame       4   alpha 1
+---
+note: 5 rows with NA in column, row or correlation dropped (line 5)
+note: `k` has no correlation: it does not vary, or has fewer than two values (line 5)

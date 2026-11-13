@@ -2613,11 +2613,20 @@ fn shaded(plot: &Plot, colouring: &Colouring<'_>, kept: &[Vec<usize>]) -> Shaded
                 };
             }
             // The ramp runs from the smallest value to the largest, with no margin: a colour
-            // beyond the data would never be seen.
-            let (lo, hi) = match found {
+            // beyond the data would never be seen. Where the scale has fixed ends, as that
+            // of a heat map of correlations has, it runs between those.
+            let fixed = plot
+                .scales
+                .iter()
+                .rev()
+                .find(|scale| scale.aesthetic == colouring.aesthetic)
+                .and_then(|scale| scale.limits)
+                .filter(|(lo, hi)| lo < hi);
+            let (lo, hi) = match (fixed, found) {
+                (Some(ends), _) => ends,
                 // Adding zero makes the two zeros one limit, whichever row came first.
-                Some((lo, hi)) if lo < hi => (lo + 0.0, hi + 0.0),
-                other => scale::limits(other),
+                (None, Some((lo, hi))) if lo < hi => (lo + 0.0, hi + 0.0),
+                (None, other) => scale::limits(other),
             };
             let breaks = scale::breaks(lo, hi);
             let labels = scale::labels(&breaks);

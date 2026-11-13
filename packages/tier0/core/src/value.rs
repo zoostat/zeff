@@ -359,6 +359,11 @@ pub struct PlotScale {
     /// `Aesthetic::Color`, `Fill`, `Size` or `Shape`.
     pub aesthetic: Aesthetic,
     pub palette: Palette,
+    /// The two ends a continuous scale of colours runs between, where they are fixed and
+    /// are not the smallest and the largest value drawn: the scale of a heat map of
+    /// correlations runs from -1 to 1, so that its middle colour is zero whatever the
+    /// correlations are. `None` for every other scale.
+    pub limits: Option<(f64, f64)>,
 }
 
 /// What a scale shows its values as, where the script says.

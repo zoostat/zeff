@@ -4459,3 +4459,74 @@ fn every_message_of_qq_plot() {
     }
     insta::assert_snapshot!("qq_plot_messages", all);
 }
+
+// ----- the shorthand `heatmap` (step 29e) -----
+
+const THREE: &str = "let d = frame(a = [1, 2, 3, 4, 5], b = [2, 4, 5, 4, 5], c = [5, 3, 4, 2, 1], k = [7, 7, 7, 7, 7], name = [\"p\", \"q\", \"r\", \"s\", \"t\"])\n";
+
+#[test]
+fn a_heat_map_reads_sensibly_as_text() {
+    let script = format!(
+        "{THREE}d.heatmap([a, b, c])\n\
+         d.heatmap([c, a])\n\
+         d.heatmap([a, b, c]).scale(fill: viridis).labels(title: \"Three variables\")\n\
+         d.heatmap([a, b, k])\n\
+         heatmap(d, [a, b])\n"
+    );
+    let text = printed(&script);
+    // The scale of the fill runs from -1 to 1 through the three colours, and keeps its ends
+    // when the script gives it other colours.
+    assert!(
+        text.contains(
+            "fill        correlation   linear   -1 to 1   a ramp through #2B5C9E, #F4F4F4, #B5352B"
+        ),
+        "{text}"
+    );
+    assert!(
+        text.contains("fill        correlation   linear   -1 to 1   viridis"),
+        "{text}"
+    );
+    // The first variable is at the top.
+    assert!(
+        text.contains("  y              category   0.4 to 3.6   c, b, a"),
+        "{text}"
+    );
+    insta::assert_snapshot!("heat_maps", text);
+}
+
+#[test]
+fn a_heat_map_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{THREE}let q = d.heatmap([a, b, c])\n\
+         export(q, \"heat.svg\")\n\
+         export(q, \"heat.pdf\")\n\
+         export(q, \"heat.png\")\n\
+         export(q.coord(fixed), \"square.svg\")\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
+}
+
+#[test]
+fn every_message_of_heatmap() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_variables", "d.heatmap()\n"),
+        ("one_variable", "d.heatmap([a])\n"),
+        ("a_variable_alone_without_brackets", "d.heatmap(a)\n"),
+        ("a_variable_twice", "d.heatmap([a, b, a])\n"),
+        ("a_variable_of_text", "d.heatmap([a, name])\n"),
+        ("a_variable_not_there", "d.heatmap([a, bb])\n"),
+        ("a_variable_in_another_case", "d.heatmap([a, B])\n"),
+        (
+            "panels_which_it_does_not_take",
+            "d.heatmap([a, b], by: name)\n",
+        ),
+        ("a_heat_map_of_a_plot", "d.plot(x: a).heatmap([a, b])\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{THREE}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("heatmap_messages", all);
+}

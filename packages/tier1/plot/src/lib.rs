@@ -1155,6 +1155,36 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "heatmap",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("vars", "Vars"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the variables that have no correlation, since they do not vary or have fewer than two values; the pairs with no correlation, which have no tile",
+                    ),
+                    DiagnosticDecl::new("Z0101", "no such variable in the frame"),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "fewer than two variables; a variable given twice; a variable that is not numbers",
+                    ),
+                ],
+                help: include_str!("../help/heatmap.md"),
+                accuracy: None,
+            },
+            body: shorthands::heatmap,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "coord",
                 package: "plot",
                 method: true,

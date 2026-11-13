@@ -1,0 +1,84 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_variables
+error[Z0406]: `heatmap` needs `vars`
+ --> scripts/main.zeff:2:3
+  |
+2 | d.heatmap()
+  |   ^^^^^^^ `vars` is missing
+  |
+  = help: usage: `data.heatmap(vars)`
+
+== one_variable
+error[Z0401]: `heatmap` shows the correlations of variables with one another, so it needs two or more, but this is one
+ --> scripts/main.zeff:2:11
+  |
+2 | d.heatmap([a])
+  |           ^^^ fewer than two variables
+  |
+  = help: list the variables in brackets, in the order they are to stand, as in `heatmap([wage, educ, exper])`
+
+== a_variable_alone_without_brackets
+error[Z0401]: `heatmap` shows the correlations of variables with one another, so it needs two or more, but this is one
+ --> scripts/main.zeff:2:11
+  |
+2 | d.heatmap(a)
+  |           ^ fewer than two variables
+  |
+  = help: list the variables in brackets, in the order they are to stand, as in `heatmap([wage, educ, exper])`
+
+== a_variable_twice
+error[Z0401]: `heatmap` is given `a` twice
+ --> scripts/main.zeff:2:11
+  |
+2 | d.heatmap([a, b, a])
+  |           ^^^^^^^^^ one variable, twice
+  |
+  = help: a variable stands once in a heat map; leave the second out
+
+== a_variable_of_text
+error[Z0401]: `heatmap` shows correlations, which are of numbers, but `name` is a Str
+ --> scripts/main.zeff:2:11
+  |
+2 | d.heatmap([a, name])
+  |           ^^^^^^^^^ `name` is not numeric
+  |
+  = help: leave `name` out, or give a variable of numbers: a Float, an Int or a Bool; `d.describe()` lists the types of the variables
+
+== a_variable_not_there
+error[Z0101]: no variable `bb` in `d`
+ --> scripts/main.zeff:2:11
+  |
+2 | d.heatmap([a, bb])
+  |           ^^^^^^^ not a variable of d
+  |
+  = help: did you mean `b`? If you meant a category level, write it in quotes: `"b"`
+
+== a_variable_in_another_case
+error[Z0102]: no variable `B` in `d`; names are case-sensitive
+ --> scripts/main.zeff:2:11
+  |
+2 | d.heatmap([a, B])
+  |           ^^^^^^ differs only in case from `b`
+  |
+  = help: write `b`
+
+== panels_which_it_does_not_take
+error[Z0404]: `heatmap` has no argument called `by`
+ --> scripts/main.zeff:2:19
+  |
+2 | d.heatmap([a, b], by: name)
+  |                   ^^ unknown argument
+  |
+  = help: usage: `data.heatmap(vars)`
+
+== a_heat_map_of_a_plot
+error[Z0401]: `heatmap` cannot be called on a Plot
+ --> scripts/main.zeff:2:1
+  |
+2 | d.plot(x: a).heatmap([a, b])
+  | ^^^^^^^^^^^^ this is a Plot
+  |
+  = help: `heatmap` takes a Frame first; `x.heatmap(...)` is `heatmap(x, ...)`

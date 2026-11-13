@@ -467,8 +467,18 @@ pub fn scale(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let set = |next: &mut Plot, aesthetic: Aesthetic, palette: Palette| {
         // The scale of an aesthetic is said once: what is said last takes the place of what
         // was.
+        // Fixed ends, which a heat map of correlations has, stay with the scale.
+        let limits = next
+            .scales
+            .iter()
+            .find(|scale| scale.aesthetic == aesthetic)
+            .and_then(|scale| scale.limits);
         next.scales.retain(|scale| scale.aesthetic != aesthetic);
-        next.scales.push(PlotScale { aesthetic, palette });
+        next.scales.push(PlotScale {
+            aesthetic,
+            palette,
+            limits,
+        });
     };
     // The colours: a palette by its name, or a list of colours.
     for (slot, aesthetic) in [(S_COLOR, Aesthetic::Color), (S_FILL, Aesthetic::Fill)] {

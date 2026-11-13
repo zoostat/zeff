@@ -1,0 +1,84 @@
+---
+source: packages/tier1/plot/tests/shorthands.rs
+expression: drawn.json().write()
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "category",
+      "title": "",
+      "limits": [0.4, 3.6],
+      "breaks": [1, 2, 3],
+      "labels": ["a", "b", "c"],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "category",
+      "title": "",
+      "limits": [0.4, 3.6],
+      "breaks": [1, 2, 3],
+      "labels": ["c", "b", "a"],
+      "range": null
+    },
+    {
+      "id": "fill",
+      "kind": "linear",
+      "title": "correlation",
+      "limits": [-1, 1],
+      "breaks": [-1, -0.5, 0, 0.5, 1],
+      "labels": ["-1", "-0.5", "0", "0.5", "1"],
+      "range": ["#2B5C9E", "#2D5D9F", "#2E5E9F", "#3060A0", "#3161A1", "#3362A1", "#3463A2", "#3664A3", "#3866A3", "#3967A4", "#3B68A5", "#3C69A5", "#3E6AA6", "#3F6BA7", "#416DA7", "#436EA8", "#446FA9", "#4670A9", "#4771AA", "#4973AB", "#4B74AB", "#4C75AC", "#4E76AD", "#4F77AE", "#5179AE", "#527AAF", "#547BB0", "#567CB0", "#577DB1", "#597FB2", "#5A80B2", "#5C81B3", "#5D82B4", "#5F83B4", "#6185B5", "#6286B6", "#6487B6", "#6588B7", "#6789B8", "#688AB8", "#6A8CB9", "#6C8DBA", "#6D8EBA", "#6F8FBB", "#7090BC", "#7292BC", "#7493BD", "#7594BE", "#7795BE", "#7896BF", "#7A98C0", "#7B99C0", "#7D9AC1", "#7F9BC2", "#809CC2", "#829EC3", "#839FC4", "#85A0C4", "#86A1C5", "#88A2C6", "#8AA4C6", "#8BA5C7", "#8DA6C8", "#8EA7C8", "#90A8C9", "#91A9CA", "#93ABCB", "#95ACCB", "#96ADCC", "#98AECD", "#99AFCD", "#9BB1CE", "#9DB2CF", "#9EB3CF", "#A0B4D0", "#A1B5D1", "#A3B7D1", "#A4B8D2", "#A6B9D3", "#A8BAD3", "#A9BBD4", "#ABBDD5", "#ACBED5", "#AEBFD6", "#AFC0D7", "#B1C1D7", "#B3C3D8", "#B4C4D9", "#B6C5D9", "#B7C6DA", "#B9C7DB", "#BAC8DB", "#BCCADC", "#BECBDD", "#BFCCDD", "#C1CDDE", "#C2CEDF", "#C4D0DF", "#C5D1E0", "#C7D2E1", "#C9D3E1", "#CAD4E2", "#CCD6E3", "#CDD7E3", "#CFD8E4", "#D1D9E5", "#D2DAE5", "#D4DCE6", "#D5DDE7", "#D7DEE8", "#D8DFE8", "#DAE0E9", "#DCE2EA", "#DDE3EA", "#DFE4EB", "#E0E5EC", "#E2E6EC", "#E3E7ED", "#E5E9EE", "#E7EAEE", "#E8EBEF", "#EAECF0", "#EBEDF0", "#EDEFF1", "#EEF0F2", "#F0F1F2", "#F2F2F3", "#F3F3F4", "#F4F3F3", "#F3F2F2", "#F3F0F0", "#F2EFEE", "#F2EDED", "#F1ECEB", "#F1EAEA", "#F0E9E8", "#F0E7E7", "#EFE6E5", "#EFE4E3", "#EEE3E2", "#EEE1E0", "#EDE0DF", "#EDDEDD", "#ECDDDC", "#ECDBDA", "#EBDAD8", "#EBD8D7", "#EAD7D5", "#EAD5D4", "#E9D4D2", "#E9D2D1", "#E8D1CF", "#E8CFCD", "#E7CECC", "#E7CCCA", "#E6CBC9", "#E6C9C7", "#E5C8C5", "#E5C6C4", "#E4C5C2", "#E4C3C1", "#E3C2BF", "#E3C0BE", "#E2BFBC", "#E2BDBA", "#E1BCB9", "#E1BAB7", "#E0B9B6", "#E0B7B4", "#DFB6B3", "#DFB4B1", "#DFB3AF", "#DEB1AE", "#DEB0AC", "#DDAEAB", "#DDADA9", "#DCABA8", "#DCAAA6", "#DBA8A4", "#DBA7A3", "#DAA5A1", "#DAA4A0", "#D9A29E", "#D9A19D", "#D89F9B", "#D89E99", "#D79C98", "#D79B96", "#D69995", "#D69893", "#D59691", "#D59590", "#D4938E", "#D4928D", "#D3908B", "#D38F8A", "#D28D88", "#D28C86", "#D18A85", "#D18983", "#D08782", "#D08680", "#CF847F", "#CF837D", "#CE817B", "#CE807A", "#CD7E78", "#CD7D77", "#CC7B75", "#CC7A74", "#CB7872", "#CB7770", "#CA756F", "#CA746D", "#C9726C", "#C9716A", "#C86F68", "#C86E67", "#C76C65", "#C76B64", "#C66962", "#C66861", "#C5665F", "#C5655D", "#C4635C", "#C4625A", "#C36059", "#C35F57", "#C25D56", "#C25C54", "#C15A52", "#C15951", "#C0574F", "#C0564E", "#BF544C", "#BF534B", "#BE5149", "#BE5047", "#BD4E46", "#BD4D44", "#BC4B43", "#BC4A41", "#BB483F", "#BB473E", "#BA453C", "#BA443B", "#B94239", "#B94138", "#B83F36", "#B83E34", "#B73C33", "#B73B31", "#B63930", "#B6382E", "#B5362D", "#B5352B"]
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": [
+      {
+        "title": "correlation",
+        "scales": ["fill"],
+        "marks": ["tile"]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "tile",
+          "x": [1, 2, 3, 1, 2, 3, 1, 2, 3],
+          "y": [3.5, 3.5, 3.5, 2.5, 2.5, 2.5, 1.5, 1.5, 1.5],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": null,
+          "rows": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+          "low": [2.5, 2.5, 2.5, 1.5, 1.5, 1.5, 0.5, 0.5, 0.5],
+          "span": [1, 1, 1, 1, 1, 1, 1, 1, 1],
+          "fill": [1, 0.7745966692414834, -0.8999999999999998, 0.7745966692414834, 1, -0.6454972243679028, -0.8999999999999998, -0.6454972243679028, 1]
+        }
+      ]
+    }
+  ],
+  "notes": []
+}

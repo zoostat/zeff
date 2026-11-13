@@ -44,7 +44,11 @@ fn set(aesthetic: Aesthetic, variable: &str, palette: Option<Palette>) -> Plot {
         Vec::new(),
     );
     if let Some(palette) = palette {
-        plot.scales.push(PlotScale { aesthetic, palette });
+        plot.scales.push(PlotScale {
+            aesthetic,
+            palette,
+            limits: None,
+        });
     }
     plot
 }
@@ -199,6 +203,7 @@ fn a_fill_borrowed_from_the_colour_takes_the_palette_of_the_colour() {
     plot.scales.push(PlotScale {
         aesthetic: Aesthetic::Fill,
         palette: Palette::OkabeIto,
+        limits: None,
     });
     let bars = PlotLayer {
         mark: Mark::Bars(Arrangement::Dodge),

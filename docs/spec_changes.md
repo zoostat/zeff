@@ -583,3 +583,7 @@ Step 29c2 of release 0.7.0 builds the shorthands `histogram`, `boxplot` and `den
 
 Step 29d of release 0.7.0 builds the shorthand `qq_plot`. By open decision #133 (option A) its usage line gains `by:`: it is now `data.qq_plot(var, distribution, by: Var | Vars)`, and the row is `implemented`.
 
+## 13 November 2026 — zeff_functions.csv, row 236
+
+Step 29e of release 0.7.0 builds the shorthand `heatmap`. Its usage line, `data.heatmap(vars)`, is as it was; the row is `implemented`. With it rows 229 to 236, the eight shorthands, are all `implemented`, step 29 being complete.
+

@@ -916,3 +916,200 @@ proptest! {
         prop_assert_eq!(seen, finite);
     }
 }
+
+// ----- heatmap (step 29e) -----
+
+fn vars(names: &[&str]) -> Option<Value> {
+    Some(Value::Vars(
+        names.iter().map(|name| (*name).to_string()).collect(),
+    ))
+}
+
+/// `data.heatmap(vars)`.
+fn heat(frame: &Frame, names: &[&str]) -> Gave {
+    chain(
+        Value::Frame(frame.clone()),
+        vec![(shorthands::heatmap, vec![vars(names)])],
+    )
+}
+
+/// Three variables of five rows.
+fn three() -> Frame {
+    common::frame(
+        "d",
+        vec![
+            ("a", numbers(&[1.0, 2.0, 3.0, 4.0, 5.0])),
+            ("b", numbers(&[2.0, 4.0, 5.0, 4.0, 5.0])),
+            ("c", numbers(&[5.0, 3.0, 4.0, 2.0, 1.0])),
+        ],
+    )
+}
+
+#[test]
+fn a_heat_map_is_the_correlations_as_tiles_from_minus_one_to_one() {
+    use zeff_core::value::Mark;
+    use zeff_plot::scene::{Paint, Range};
+    let gave = heat(&three(), &["a", "b", "c"]);
+    let drawn = scene_of(&gave);
+    let layer = &drawn.panels[0].layers[0];
+    assert_eq!(layer.mark, Mark::Tile);
+    assert_eq!(layer.x.len(), 9);
+    // The variables along the foot in the order given, and down the side with the first at
+    // the top; neither axis has a title.
+    let (x, y) = (drawn.scale("x").unwrap(), drawn.scale("y").unwrap());
+    assert_eq!(x.labels, ["a", "b", "c"]);
+    assert_eq!(y.labels, ["c", "b", "a"]);
+    assert_eq!((x.title.as_str(), y.title.as_str()), ("", ""));
+    // The scale of the fill runs from -1 to 1 whatever the correlations are, through the
+    // three colours.
+    let fill = drawn.scale("fill").unwrap();
+    assert_eq!(fill.limits, (-1.0, 1.0));
+    assert_eq!(fill.title, "correlation");
+    let Range::Colours(ramp) = &fill.range else {
+        panic!("a ramp of colours")
+    };
+    assert_eq!(
+        ramp.first().map(String::as_str),
+        Some(shorthands::HEAT_COLOURS[0])
+    );
+    assert_eq!(
+        ramp.last().map(String::as_str),
+        Some(shorthands::HEAT_COLOURS[2])
+    );
+    // R 4.6.0: `cor(data.frame(a, b, c))` is 0.774597 for a and b, -0.9 for a and c and
+    // -0.645497 for b and c. Each tile is at its column and at the row of its variable,
+    // counted from the foot.
+    let Paint::Scaled(values) = &layer.fill else {
+        panic!("a fill on a scale")
+    };
+    let at = |column: f64, row: f64| -> f64 {
+        let found = (0..9)
+            .find(|k| layer.x[*k] == column && (layer.y[*k] + layer.low[*k]) / 2.0 == row)
+            .unwrap_or_else(|| panic!("no tile at {column}, {row}"));
+        values[found]
+    };
+    // `a` is the first column and the third row from the foot.
+    for (column, row, wanted) in [
+        (1.0, 3.0, 1.0),
+        (2.0, 3.0, 0.774597),
+        (3.0, 3.0, -0.9),
+        (1.0, 2.0, 0.774597),
+        (2.0, 2.0, 1.0),
+        (3.0, 2.0, -0.645497),
+        (1.0, 1.0, -0.9),
+        (2.0, 1.0, -0.645497),
+        (3.0, 1.0, 1.0),
+    ] {
+        assert!(
+            (at(column, row) - wanted).abs() < 1e-6,
+            "{column}, {row}: {}",
+            at(column, row)
+        );
+    }
+    assert!(gave.1.is_empty(), "{:?}", gave.1);
+    insta::assert_snapshot!("three_variables_correlated", drawn.json().write());
+    // Another order of the variables is another order of the tiles.
+    let drawn = scene_of(&heat(&three(), &["c", "a"]));
+    assert_eq!(drawn.scale("x").unwrap().labels, ["c", "a"]);
+    assert_eq!(drawn.scale("y").unwrap().labels, ["a", "c"]);
+    assert_eq!(drawn.panels[0].layers[0].x.len(), 4);
+}
+
+#[test]
+fn the_edge_cases_of_a_heat_map() {
+    // Each pair on the rows that have both; a variable that does not vary has no
+    // correlation, its tiles are left out, and a note names it.
+    let frame = common::frame(
+        "d",
+        vec![
+            (
+                "a",
+                floats(&[Some(1.0), Some(2.0), Some(3.0), Some(4.0), None]),
+            ),
+            (
+                "b",
+                floats(&[Some(2.0), None, Some(5.0), Some(4.0), Some(9.0)]),
+            ),
+            ("k", numbers(&[7.0, 7.0, 7.0, 7.0, 7.0])),
+        ],
+    );
+    let gave = heat(&frame, &["a", "b", "k"]);
+    let drawn = scene_of(&gave);
+    let layer = &drawn.panels[0].layers[0];
+    // The four tiles of `a` and `b`; the five of `k` are not drawn.
+    assert_eq!(layer.x.len(), 4);
+    let zeff_plot::scene::Paint::Scaled(values) = &layer.fill else {
+        panic!("a fill on a scale")
+    };
+    // `cor(c(1, 3, 4), c(2, 5, 4))` is 0.785714.
+    assert!(
+        values.iter().any(|value| (value - 0.785714).abs() < 1e-6),
+        "{values:?}"
+    );
+    assert!(
+        gave.1
+            .iter()
+            .any(|note| note.starts_with("`k` has no correlation")),
+        "{:?}",
+        gave.1
+    );
+    // The scale keeps its two ends all the same.
+    assert_eq!(drawn.scale("fill").unwrap().limits, (-1.0, 1.0));
+    // One variable, one given twice, one that is not there and one of text are refused.
+    for (names, words) in [
+        (vec!["a"], "it needs two or more"),
+        (vec!["a", "b", "a"], "is given `a` twice"),
+        (vec!["a", "w"], "no variable `w`"),
+    ] {
+        let refused = heat(&frame, &names).0.unwrap_err();
+        assert!(refused.contains(words), "{refused}");
+    }
+    let refused = heat(&doses(), &["x", "g"]).0.unwrap_err();
+    assert!(refused.contains("which are of numbers"), "{refused}");
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(96)))]
+
+    /// Whatever the rows: the tiles are the same above and below the diagonal, every
+    /// correlation is between -1 and 1, a variable that has a tile has the tile of one on
+    /// the diagonal, and the scale runs from -1 to 1.
+    #[test]
+    fn a_heat_map_is_the_same_above_and_below_its_diagonal(rows in rows()) {
+        let frame = tried(&rows);
+        let gave = heat(&frame, &["x", "y", "z"]);
+        prop_assert!(gave.0.is_ok(), "{:?}", gave.0);
+        let drawn = scene_of(&gave);
+        let layer = &drawn.panels[0].layers[0];
+        if let Some(fill) = drawn.scale("fill") {
+            prop_assert_eq!(fill.limits, (-1.0, 1.0));
+        }
+        let values: Vec<f64> = match &layer.fill {
+            zeff_plot::scene::Paint::Scaled(values) => values.clone(),
+            _ => Vec::new(),
+        };
+        prop_assert!(values.len() == layer.x.len() || layer.x.is_empty());
+        let tile = |column: usize, row: usize| -> Option<f64> {
+            (0..layer.x.len())
+                .find(|k| {
+                    layer.x[*k] == column as f64
+                        && (layer.y[*k] + layer.low[*k]) / 2.0 == row as f64
+                })
+                .map(|k| values[k])
+        };
+        for i in 1..=3usize {
+            for j in 1..=3usize {
+                // Variable `i` is column `i` and row `4 - i` from the foot.
+                let (here, there) = (tile(j, 4 - i), tile(i, 4 - j));
+                prop_assert_eq!(here.is_some(), there.is_some());
+                if let (Some(here), Some(there)) = (here, there) {
+                    prop_assert!((-1.0..=1.0).contains(&here));
+                    prop_assert!((here - there).abs() < 1e-12);
+                    if i == j {
+                        prop_assert_eq!(here, 1.0);
+                    }
+                }
+            }
+        }
+    }
+}

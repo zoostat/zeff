@@ -4034,3 +4034,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 29d; section 7.6 of the Language Reference ("Shorthands"); catalogue row 235; open decision #99.
 
+## 13 November 2026: the shorthand `heatmap` (release 0.7.0, step 29e; step 29 complete)
+
+**The plot.** Section 7.6 says that `heatmap(vars)` "computes the correlations and draws `.tile()`", and the catalogue that the variables stand "in the given order". The shorthand builds a frame with a row for each pair of the variables (`row`, `column`, `correlation`) and draws `plot(x: column, y: row, fill: correlation).tile()` by the functions of the grammar. `row` and `column` are categories whose order is the order given, `row` reversed, so that the first variable is at the top and at the left, as a correlation matrix is printed. The two axes have no title: they name their variables.
+
+**The correlations** are Pearson's, each pair on the rows that have both variables, by `zeff_stats::correlate`, the routine `correlation` uses, with its default `missing: pairwise`: the heat map is the picture of the table `correlation(vars)` prints. A variable has the correlation one with itself, set exactly, and a correlation is kept within -1 and 1 against the last digit of its arithmetic.
+
+**A scale with fixed ends.** A scale of colours ran from the smallest value drawn to the largest; a heat map of correlations must run from -1 to 1 whatever the correlations are, or its middle colour is not zero and two heat maps cannot be compared. `PlotScale` gains `limits`, the two ends a continuous scale of colours runs between where they are fixed, and the scene takes them in the place of the extent of the values. No script sets them at this release: `heatmap` does. `scale(fill: ...)` after a heat map changes the colours and keeps the ends.
+
+**Rulings where the text is silent** (each the owner's to overturn). (a) The colours run from a blue at -1 through a near-white at 0 to a red at 1 (`#2B5C9E`, `#F4F4F4`, `#B5352B`), the project's own choice of three plain colours: a diverging scale, which viridis is not, and one whose two ends are told apart by readers who do not tell red from green. The white is not quite white, so that a tile of no correlation is seen on the page. (b) Both halves of the square are drawn, each pair twice, as R's `corrplot` draws them by default; a triangle alone is a question for later. (c) The tiles hold no numbers: `correlation` prints them. (d) `heatmap` takes no `by:` (open decision #133): it draws correlations, not rows. (e) Two variables or more, each once, each of numbers: otherwise Z0401. (f) A variable that does not vary, or has fewer than two values, has no correlation: its tiles are left empty, and a note names it.
+
+**Against R** (4.6.0). `cor` of three variables of five rows (0.774597, -0.9, -0.645497), each tile at its place; a pair on the rows that have both, `cor(c(1, 3, 4), c(2, 5, 4))`, 0.785714. On the wages of 2015 the colours are those of the table `correlation` prints for the same five variables (experience and age 0.937, schooling and experience -0.342, hours near 0 with all).
+
+**Tests.** `packages/tier1/plot/tests/shorthands.rs`: the tiles, their order, the titles, the scale from -1 to 1 through the three colours and the correlations against R, with a snapshot of the scene; the edge cases (pairwise rows, a variable that does not vary, the four refusals); and a property (the square is the same above and below its diagonal, every correlation is within -1 and 1, the diagonal is one, the scale runs from -1 to 1). `tests/printing.rs`: five printed forms, among them other colours with the ends kept and the function form, the export in three formats and in fixed coordinates, and every message (nine). One verified example in the help page, which is complete, with its details and references. The conformance case `plots/shorthands` runs the eight shorthands on the wages of 2015 and stores what they print and each as a figure, twelve results, which brings `zeff selftest` to 461 of 461.
+
+**Step 29 is complete.** The eight shorthands of section 7.6 are built (`histogram`, `scatter`, `line`, `bar`, `boxplot`, `density`, `qq_plot`, `heatmap`), their eight help pages are complete, and catalogue rows 229 to 236 are `implemented`.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 29e; section 7.6 of the Language Reference ("Shorthands"); catalogue row 236.
+

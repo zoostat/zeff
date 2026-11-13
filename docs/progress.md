@@ -142,33 +142,16 @@ Step 28 was split in four. 28a `[function]`: `histogram`, the rows of `x` counte
 
 28d `[function]`: `errorbars(low:, high:, width:)`, an interval at each row's `x` with a cap at each end, over its own bar where bars stand side by side; the scene records what an interval is (`given`); the grammar table's `errorbars(ci:)` corrected and logged. Step 28 complete: the four statistical layers built, the grammar of section 7.6 at 25 of 25. Step 29 was then split in five. 29a `[function]`: `line` and `bar`; a shorthand calls the functions of the grammar themselves, so it gives the very `Plot` of its grammar form; `by:` parts any shorthand that draws rows into panels (open decision #133, option A, taken on the recommendation). 29b `[engine]`: `scatter`, and with `fit: linear` the least-squares line and its 95% confidence band, computed in `stats` by the kernel's QR and equal to R's `lm` and `predict` to nine places, one for each colour category and panel, fitted to the values as the axes show them; the scene records `ci 0.95` and the caption says what the band is. Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-## 13 November 2026, release 0.7.0, step 29c1 (one name, a function of a frame and one of a plot), and step 29c split in two
+## 13 November 2026, steps 29c1 to 29d of release 0.7.0 (folded)
 
-**Done.** Step 29c was split: the registry allowed a package one function of a name, and `histogram`, `density` and `boxplot` are already layers of a plot. 29c1 `[engine]`: a function is known by its package, its name and the type it is a method of, as rule 6 of section 8.1 of the Engine Specification has it; the registry, the checked call, the bodies and the interpreter follow, and a call written `f(x, a)` chooses by the type of `x` where `x` is a binding. Nothing a script could do before has changed.
+Step 29c was split in two. 29c1 `[engine]`: a function is known by its package, its name and the type it is a method of, as rule 6 of section 8.1 of the Engine Specification has it, so that a package may have one name on a frame and on a plot; the registry, the checked call, the bodies and the interpreter follow. 29c2 `[function]`: `histogram`, `density` and `boxplot` on a frame, each the plot of its grammar form, with the layer's options and `by:`; the sample script's `wages.histogram(lwage, bins: 40, by: female)` runs. 29d `[function]`: `qq_plot`, each value against the quantile a distribution puts at its rank, with the line through the quartiles, the standard normal where no distribution is given; the pairs and the line are R's `qqnorm` and `qqline` to eleven places. Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
+## 13 November 2026, release 0.7.0, step 29e (`heatmap`; step 29 complete)
 
-**Next.** Step 29c2 `[function]`: `histogram`, `density` and `boxplot` on a frame.
+**Done.** `data.heatmap([wage, educ, exper])` draws the correlations of the variables with one another as a square of tiles, in the order given, on a scale of colours fixed from -1 to 1 (a scale of colours may now have fixed ends). Step 29 is complete: the eight shorthands are built, their pages are complete, catalogue rows 229 to 236 are `implemented`, and the conformance case `plots/shorthands` runs all eight.
 
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: in the function form the choice between two functions of one name is made by the first argument only where it is a binding. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 461 of 461; CI is read job by job after the push.
 
-## 13 November 2026, release 0.7.0, step 29c2 (`histogram`, `density` and `boxplot` on a frame)
+**Next.** Step 30 `[function]`: the result plots, `fit.plot()` and `fit.coef_plot()`, and `design()`.
 
-**Done.** `wages.histogram(wage)`, `wages.density(wage, color: union)` and `wages.boxplot(wage, group: industry)` draw in one call what `plot(...)` and the layer of the same name draw, with the layer's options on `histogram` and `density` and `by:` for panels on all three. The specification's sample line `wages.histogram(lwage, bins: 40, by: female)` runs. Six of the eight shorthands are built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
-
-**Next.** Step 29d `[function]`: `qq_plot`.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the shorthand `histogram` takes no `color:` (groups go to panels with `by:`); the shorthand `boxplot` takes `group:` and `by:` only. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 29d (`qq_plot`)
-
-**Done.** `data.qq_plot(var)` draws each value against the quantile a distribution puts at its rank, with the reference line through the quartiles: the normal where none is given, any distribution of `dist` otherwise, in panels with `by:`. The pairs are R's `qqnorm` and the line R's `qqline`, to eleven places. Seven of the eight shorthands are built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
-
-**Next.** Step 29e `[function]`: `heatmap`, and the conformance case over the eight, which completes step 29.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the distribution may be left out and is then the standard normal; the axis of the quantiles is titled by the distribution; a frame that already has a variable called `theoretical` is refused. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the three colours of a heat map (blue, near-white, red); both halves of the square drawn; no numbers in the tiles. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
