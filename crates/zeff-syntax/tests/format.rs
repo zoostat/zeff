@@ -135,6 +135,23 @@ fn a_line_never_ends_with_the_lone_dot_of_a_formula() {
     );
 }
 
+/// Found by the fuzz target on the night of 13 November 2026. The lone `.` of a formula may
+/// be followed by a step, a range or more: `. .name` is a field of it. Written without the
+/// space the two dots are the token `..`, and the script is another script, so a dot never
+/// meets a dot in what the formatter writes.
+#[test]
+fn a_dot_never_meets_a_dot() {
+    assert_eq!(
+        formatted("let c = . .y\nlet e = . .m(1) .n\nlet r = . .. 3\nlet h = [. .. 2, . .q]\n"),
+        "let c = . .y\nlet e = . .m(1).n\nlet r = . ..3\nlet h = [. ..2, . .q]\n"
+    );
+    // In a call the author spread over lines, where the pieces are written one by one.
+    assert_eq!(
+        formatted("let g = f(x,\n  . .y, . .z(2))\n"),
+        "let g = f(x,\n          . .y,\n          . .z(2))\n"
+    );
+}
+
 #[test]
 fn a_script_that_does_not_parse_is_left_alone() {
     for text in [

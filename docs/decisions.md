@@ -4307,3 +4307,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Step 32 is complete.** The test run of a project (32a), `zeff test` (32b), the engine's own pages in the conformance suite (32c), the wrong results of `mad`, `skewness` and `kurtosis` put right (32d), the two lists (32e) and the fourteen pages (32f). Both known issues that waited for the step are resolved.
 
 **Reason.** The checklist's step 32f; section 9.1 of the Engine and Project Specification; open decision #139.
+
+## 13 November 2026: a dot never meets a dot in what the formatter writes (release 0.7.0, after step 31c)
+
+**How it was found.** The scheduled run of 13 November was the first with the formatter's fuzz target, and its fuzz job failed. GitHub gives the log of a job only when the whole run has ended, and the long property runs were still going, so the target was run on this machine for eight minutes in the meantime. It failed there too, with the formatter saying of one text that it could not vouch for its result: the formatted script had another tree.
+
+**The fault.** The lone `.` of a formula is an expression, and the parser lets a step follow it: `. .names` is the field `names` of it. The formatter wrote the two with nothing between, `..names`, and two dots are the token of a range and of a spread: the script written was another script. The formatter's own check saw it and gave nothing back, so in a project the file would have been left as it was, with an internal error; but a script that parses must come back formatted.
+
+**The correction.** Wherever the formatter writes one piece after another, a piece that begins with a dot is kept a space apart from one that ends with a dot: on the writer itself, for what is laid out over several lines, and in the one-line forms of a method, a field, a range and a spread. `. .y`, `. .m(1).n` and `. ..3` come back as they mean. No script of the repository changes, since none has a lone dot before a step.
+
+**After it.** The target ran 699,062 texts in ten minutes on this machine without a failure. Whether the night's failure on GitHub was this fault or another is read from its log when the run ends, and recorded then.
+
+**Tests.** `crates/zeff-syntax/tests/format.rs`, `a_dot_never_meets_a_dot`: the field, the method, the range and a list of them on one line, and a call spread over lines.
+
+**Reason.** The two properties of step 31a; the Testing Handbook, section 1 (a crash input becomes a regression test).

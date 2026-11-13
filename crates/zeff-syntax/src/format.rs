@@ -285,6 +285,12 @@ impl<'a> Printer<'a> {
             }
             self.fresh = false;
         }
+        // A dot never meets a dot: the lone `.` of a formula followed by a step or a range
+        // would read as another token (`. .name` is not `..name`).
+        if piece.starts_with('.') && self.out.ends_with('.') {
+            self.out.push(' ');
+            self.col += 1;
+        }
         self.out.push_str(piece);
         self.col += width(piece);
     }
@@ -773,13 +779,12 @@ impl<'a> Printer<'a> {
                 name,
                 args,
             } => format!(
-                "{}.{}({})",
-                self.flat(receiver)?,
-                self.path(name),
+                "{}({})",
+                beside(&self.flat(receiver)?, &format!(".{}", self.path(name))),
                 self.flat_args(args)?
             ),
             ExprKind::Field { receiver, name } => {
-                format!("{}.{}", self.flat(receiver)?, self.ident(name))
+                beside(&self.flat(receiver)?, &format!(".{}", self.ident(name)))
             }
             ExprKind::Index { receiver, index } => {
                 format!("{}[{}]", self.flat(receiver)?, self.flat(index)?)
@@ -795,7 +800,7 @@ impl<'a> Printer<'a> {
             ExprKind::Binary { op, lhs, rhs } => {
                 let (left, right) = (self.flat(lhs)?, self.flat(rhs)?);
                 if tight(*op) {
-                    format!("{left}{}{right}", op.symbol())
+                    beside(&beside(&left, op.symbol()), &right)
                 } else {
                     format!("{left} {} {right}", op.symbol())
                 }
@@ -917,7 +922,7 @@ impl<'a> Printer<'a> {
             Arg::Positional(value) => self.flat(value)?,
             Arg::Named { name, value } => format!("{}: {}", self.ident(name), self.flat(value)?),
             Arg::Define { name, value } => format!("{} = {}", self.ident(name), self.flat(value)?),
-            Arg::Spread(value) => format!("..{}", self.flat(value)?),
+            Arg::Spread(value) => beside("..", &self.flat(value)?),
         })
     }
 
@@ -926,7 +931,7 @@ impl<'a> Printer<'a> {
             RecordField::Named { name, value } => {
                 format!("{}: {}", self.ident(name), self.flat(value)?)
             }
-            RecordField::Spread(value) => format!("..{}", self.flat(value)?),
+            RecordField::Spread(value) => beside("..", &self.flat(value)?),
         })
     }
 
@@ -1299,7 +1304,7 @@ impl<'a> Printer<'a> {
             Member::Define(name, value) => {
                 format!("{} = {}", self.ident(name), self.flat(value)?)
             }
-            Member::Spread(value) => format!("..{}", self.flat(value)?),
+            Member::Spread(value) => beside("..", &self.flat(value)?),
             Member::Pair(key, value) => format!("{} => {}", self.flat(key)?, self.flat(value)?),
         })
     }
@@ -1607,6 +1612,16 @@ impl Member<'_> {
 }
 
 /// The operators written without spaces round them: `^`, `:` and `..`.
+/// Two pieces written one after the other, apart where a dot would meet a dot: the lone `.`
+/// of a formula beside a step, a range or a spread would read as another token.
+fn beside(left: &str, right: &str) -> String {
+    if left.ends_with('.') && right.starts_with('.') {
+        format!("{left} {right}")
+    } else {
+        format!("{left}{right}")
+    }
+}
+
 fn tight(op: BinaryOp) -> bool {
     matches!(op, BinaryOp::Pow | BinaryOp::Interact | BinaryOp::Range)
 }
