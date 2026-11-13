@@ -294,6 +294,10 @@ pub(crate) struct Parameter {
     pub help: String,
 }
 
+/// A parameter as a usage line writes it: its name, the bytes of the line it stands at, and
+/// its line of the help page.
+pub(crate) type InUsage = (String, (usize, usize), String);
+
 /// The function of a call, as an editor shows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Signature {
@@ -307,6 +311,79 @@ pub(crate) struct Signature {
     /// Whether what it takes beyond them names variables: definitions (`add(k = a + b)`), or
     /// further values of such a type.
     pub rest_names_variables: bool,
+    /// Every parameter as the usage line writes it, the first included where the function is
+    /// written after a value: its name, the bytes of the usage line it stands at, and its
+    /// line of the help page.
+    pub written: Vec<InUsage>,
+    /// How many of them the brackets of this call do not take: one where the function is
+    /// written after a value, which is the first.
+    pub skipped: usize,
+    /// Where the usage line writes what the function takes beyond its parameters, `...` or
+    /// `name = Type, ...`.
+    pub rest_written: Option<(usize, usize)>,
+}
+
+/// A parameter's line of a function's help page, or, for an argument the page leaves to the
+/// table of shared arguments (section 6), its meaning there.
+fn engine_help(f: &Registered, name: &str) -> String {
+    f.doc
+        .arguments
+        .iter()
+        .find(|(written, _)| written == name)
+        .map(|(_, text)| text.clone())
+        .or(zeff_registry::shared_argument(name).map(|s| s.meaning.to_string()))
+        .unwrap_or_default()
+}
+
+/// The usage line of an engine function, put together as the registry does it
+/// (`FunctionSpec::usage`), with where each parameter stands in it and where the rest does.
+fn engine_usage(f: &Registered) -> (String, Vec<InUsage>, Option<(usize, usize)>) {
+    let spec = &f.spec;
+    let mut usage = String::new();
+    let mut written = Vec::new();
+    let rest_of = match spec.receiver() {
+        Some(receiver) => {
+            usage.push_str(receiver.name);
+            written.push((
+                receiver.name.to_string(),
+                (0, usage.len()),
+                engine_help(f, receiver.name),
+            ));
+            usage.push('.');
+            &spec.params[1..]
+        }
+        None => &spec.params[..],
+    };
+    usage.push_str(spec.name);
+    usage.push('(');
+    let mut first = true;
+    let mut piece = |usage: &mut String, text: &str| -> (usize, usize) {
+        if !first {
+            usage.push_str(", ");
+        }
+        first = false;
+        let start = usage.len();
+        usage.push_str(text);
+        (start, usage.len())
+    };
+    for p in rest_of {
+        let text = match (p.option, p.default) {
+            (true, Some(default)) => format!("{}: {} = {default}", p.name, p.ty),
+            (true, None) => format!("{}: {}", p.name, p.ty),
+            (false, _) => p.name.to_string(),
+        };
+        let at = piece(&mut usage, &text);
+        written.push((p.name.to_string(), at, engine_help(f, p.name)));
+    }
+    let rest = match &spec.rest {
+        Some(zeff_registry::Rest::Values(_)) => Some(piece(&mut usage, "...")),
+        Some(zeff_registry::Rest::Definitions(ty)) => {
+            Some(piece(&mut usage, &format!("name = {ty}, ...")))
+        }
+        None => None,
+    };
+    usage.push(')');
+    (usage, written, rest)
 }
 
 /// Whether a bare name given for a parameter of this type is a variable of the frame.
@@ -329,8 +406,14 @@ fn only_words(ty: &Ty) -> bool {
 }
 
 fn of_engine(f: &Registered, skip: usize) -> Signature {
+    let (usage, written, rest_written) = engine_usage(f);
     Signature {
-        usage: f.spec.usage(),
+        usage,
+        written,
+        // A function registered in the method form and written before its value takes its
+        // first parameter in the brackets; the usage line shows it before the dot.
+        skipped: skip,
+        rest_written,
         summary: f.doc.summary.clone(),
         rest_names_variables: match &f.spec.rest {
             Some(zeff_registry::Rest::Definitions(_)) => true,
@@ -355,16 +438,7 @@ fn of_engine(f: &Registered, skip: usize) -> Signature {
                     words: ty.as_ref().map_or(Vec::new(), Ty::words),
                     only_words: ty.as_ref().is_some_and(only_words),
                     names_variables: ty.as_ref().is_some_and(names_variables),
-                    // Its line of the page, or, for an argument the page leaves to the
-                    // table of shared arguments (section 6), its meaning there.
-                    help: f
-                        .doc
-                        .arguments
-                        .iter()
-                        .find(|(name, _)| name == p.name)
-                        .map(|(_, text)| text.clone())
-                        .or(zeff_registry::shared_argument(p.name).map(|s| s.meaning.to_string()))
-                        .unwrap_or_default(),
+                    help: engine_help(f, p.name),
                 }
             })
             .collect(),
@@ -372,18 +446,34 @@ fn of_engine(f: &Registered, skip: usize) -> Signature {
 }
 
 fn of_project(f: &zeff_ir::Function, skip: usize) -> Signature {
-    let params: Vec<String> = f
-        .params
-        .iter()
-        .map(|p| format!("{}: {}", p.name, p.ty))
-        .collect();
-    let returns = match &f.returns {
-        Ty::Nothing => String::new(),
-        ty => format!(" -> {ty}"),
+    let help = |name: &str| -> String {
+        let line = format!("{name}:");
+        f.doc
+            .iter()
+            .find_map(|text| text.trim().strip_prefix(&line))
+            .map_or(String::new(), |text| text.trim().to_string())
     };
+    // `name(a: T, b: U) -> R`, with where each parameter stands.
+    let mut usage = format!("{}(", f.name);
+    let mut written = Vec::new();
+    for (place, p) in f.params.iter().enumerate() {
+        if place > 0 {
+            usage.push_str(", ");
+        }
+        let start = usage.len();
+        usage.push_str(&format!("{}: {}", p.name, p.ty));
+        written.push((p.name.clone(), (start, usage.len()), help(&p.name)));
+    }
+    usage.push(')');
+    if f.returns != Ty::Nothing {
+        usage.push_str(&format!(" -> {}", f.returns));
+    }
     Signature {
         rest_names_variables: false,
-        usage: format!("{}({}){returns}", f.name, params.join(", ")),
+        usage,
+        written,
+        skipped: skip,
+        rest_written: None,
         summary: f
             .doc
             .first()
@@ -392,20 +482,13 @@ fn of_project(f: &zeff_ir::Function, skip: usize) -> Signature {
             .params
             .iter()
             .skip(skip)
-            .map(|p| {
-                let line = format!("{}:", p.name);
-                Parameter {
-                    name: p.name.clone(),
-                    ty: p.ty.to_string(),
-                    words: p.ty.words(),
-                    only_words: only_words(&p.ty),
-                    names_variables: names_variables(&p.ty),
-                    help: f
-                        .doc
-                        .iter()
-                        .find_map(|text| text.trim().strip_prefix(&line))
-                        .map_or(String::new(), |text| text.trim().to_string()),
-                }
+            .map(|p| Parameter {
+                name: p.name.clone(),
+                ty: p.ty.to_string(),
+                words: p.ty.words(),
+                only_words: only_words(&p.ty),
+                names_variables: names_variables(&p.ty),
+                help: help(&p.name),
             })
             .collect(),
     }
@@ -577,6 +660,24 @@ mod tests {
                 .form,
             Form::Method { value_end: 19 }
         );
+    }
+
+    #[test]
+    fn the_usage_line_is_the_registrys_with_each_parameter_in_its_place() {
+        let registry = crate::registry::registry().expect("the registry");
+        for f in registry.functions() {
+            let (usage, written, rest) = engine_usage(f);
+            assert_eq!(usage, f.spec.usage(), "{}", f.spec.name);
+            assert_eq!(written.len(), f.spec.params.len(), "{}", f.spec.name);
+            for ((name, (start, end), _), p) in written.iter().zip(&f.spec.params) {
+                assert_eq!(name, p.name);
+                assert!(usage[*start..*end].starts_with(p.name), "{usage}");
+            }
+            assert_eq!(rest.is_some(), f.spec.rest.is_some(), "{}", f.spec.name);
+            if let Some((start, end)) = rest {
+                assert!(usage[start..end].ends_with("..."), "{usage}");
+            }
+        }
     }
 
     #[test]

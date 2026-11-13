@@ -1,0 +1,199 @@
+---
+source: crates/zeff-engine/tests/signature.rs
+expression: all
+---
+> let d = import("data/small.csv")
+> d.reg(|
+data.reg([[formula]], fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    formula: `y ~ terms`, written in the call or bound with `let`.
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a|
+data.reg([[formula]], fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    formula: `y ~ terms`, written in the call or bound with `let`.
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, |
+data.reg(formula, [[fe: Terms]], se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    fe: The fixed effects to absorb: a variable, `firm`; several joined by `+`, `firm + year`; an interacted effect joined by `:`, `industry:year`. Int, text, category and date variables all serve; `*`, a range, an expression and the intercept are refused, and so is an effect that is also a variable of the formula.
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, c, ro|
+data.reg(formula, fe: Terms, [[se: classical | robust | hc2 | hc3]], cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, cluster: |
+data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, [[cluster: Var]], weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    cluster: The variable whose values group the observations for clustered errors (CR1).
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, level: 0.9, se: rob|)
+data.reg(formula, fe: Terms, [[se: classical | robust | hc2 | hc3]], cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, nosuch: |
+data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    in no parameter
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> reg(|
+[[data]].reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    data: The frame.
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> reg(d, |
+data.reg([[formula]], fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    formula: `y ~ terms`, written in the call or bound with `let`.
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> d.n_rows(1, |
+data.n_rows()
+    in no parameter
+    (Number of rows)
+----
+> print(1, 2, |
+print(x, [[...]])
+    ...: 
+    (Print values)
+----
+> let d = import("data/small.csv")
+> d.add(k = a * 2, m = |
+data.add(by: Vars, [[name = Column | Bool | Int | Float | Str | Date | DateTime, ...]])
+    ...: 
+    (Add variables computed from the frame)
+----
+> let d = import("data/small.csv")
+> d.aggregate(m = mean(b), by: |
+data.aggregate([[by: Vars]], name = Bool | Int | Float | Str | Date | DateTime, ...)
+    by: The variable, or list of variables, that defines the groups; one group without it.
+    (One row per group with reducers such as mean(x), sd(x), n() or n_distinct(x))
+----
+> let d = import("data/small.csv")
+> print(d.mean(a, |
+data.mean(var, [[by: Vars]], weights: Var, weight_type: frequency | analytic | sampling = sampling)
+    by: Repeat the computation within each group; plots draw one panel per group.
+    (Mean of a variable)
+----
+> let d = import("data/small.csv")
+> print(d.mean(a), |
+print(x, [[...]])
+    ...: 
+    (Print values)
+----
+> let d = import("data/small.csv")
+> d.add(k = round(a / 3, |
+round(x, [[digits: Int = 0]], sig: Int, mode: even | away = even)
+    digits: The number of decimal places, an Int; 0 by default. Negative counts round to the left of the decimal point: `digits: -2` rounds to hundreds.
+    (Round to decimal places or significant digits)
+----
+> let d = import("data/small.csv")
+> d.summary([a, |
+data.summary([[vars: Vars]], stats: List<n | missing | mean | sd | min | max>, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
+    vars: The variables to summarise, in a list, as in `[wage, hours]`; one may be written alone. Omitted, every Bool, Int or Float variable.
+    (Table of N, missing, mean, SD, min and max)
+----
+> let d = import("data/sm|
+import([[path]], delim: Str, header: Bool = true, skip: Int = 0, na_values: List, types: Record, names: keep | snake = keep, quote: Str, decimal: Str, thousands: Str, encoding: Str = "utf-8")
+    path: The file, written with `/` from the project folder, or `root:file` for a data root. A path outside the project is refused (Z0701), and one that differs only in case from the file's real name is refused with the real spelling (Z0702).
+    (Read a data file into a frame)
+----
+> let z = dist.normal(0, |
+dist.normal(mean: Float = 0, [[sd: Float = 1]])
+    sd: The standard deviation, a positive number; 1 by default. Zero, a negative number or `NA` is refused (Z0413).
+    (The normal distribution with a mean and a standard deviation)
+----
+> let d = import("data/small.csv")
+> data::sd(d, |
+data.sd([[var]], by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
+    var: The variable, which must be Bool, Int or Float.
+    (Sample standard deviation)
+----
+> let d = import("data/small.csv")
+> d.histogram(a, |
+data.histogram(var, [[bins: Int | sturges | scott | fd = fd]], binwidth: Float, start: Float, scale: count | density | fraction | percent = count, by: Var | Vars)
+    bins: The number of bins, or the rule that chooses it: `fd`, Freedman and Diaconis's; `sturges`; or `scott`.
+    (A histogram of a variable of a frame: its values counted in bins)
+----
+> let d = import("data/small.csv")
+> d.plot(x: a).histogram(|
+p.histogram([[data: Frame]], bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float, scale: count | density | fraction | percent = count)
+    data: A frame for this layer alone, in place of the plot's. It holds the variable of `x`.
+    (A histogram layer: the rows counted in bins along `x`)
+----
+> use functions::clean
+> let d = import("data/small.csv")
+> d.share_gone(|
+share_gone(data: Frame, [[var: Var]], digits: Int) -> Float
+    var: The variable.
+    (The share of rows a variable is missing.)
+----
+> use functions::clean
+> let d = import("data/small.csv")
+> share_gone(d, b, |
+share_gone(data: Frame, var: Var, [[digits: Int]]) -> Float
+    digits: How many decimals to keep.
+    (The share of rows a variable is missing.)
+----
+> let d = import("data/small.csv")
+> clean::share_gone(d, digits: |
+share_gone(data: Frame, var: Var, [[digits: Int]]) -> Float
+    digits: How many decimals to keep.
+    (The share of rows a variable is missing.)
+----
+> let d = import("data/small.csv")
+> d
+>     .where(a > 1)
+>     .reg(b ~ a,
+>          se: |
+data.reg(formula, fe: Terms, [[se: classical | robust | hc2 | hc3]], cluster: Var, weights: Var, weight_type: frequency | analytic | sampling = sampling, level: Float = 0.95)
+    se: The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.
+    (Linear regression by least squares, with fixed effects)
+----
+> let d = import("data/small.csv")
+> d.me|
+no signature help
+----
+> let d = import("data/small.csv")
+> d.mean(a)|
+no signature help
+----
+> let d = import("data/small.csv")
+> // d.mean(|
+no signature help
+----
+> fn local(alpha: Float, |
+no signature help
+----
+> let x = (1 + |
+no signature help
+----
+> nosuch(|
+no signature help
+----
+in /work/demo/functions/clean.zeff
+> /// T.
+> fn share_gone(data: Frame, var: Var) -> Float {
+>     round(data.n_rows() / 3, |
+> }
+round(x, [[digits: Int = 0]], sig: Int, mode: even | away = even)
+    digits: The number of decimal places, an Int; 0 by default. Negative counts round to the left of the decimal point: `digits: -2` rounds to hundreds.
+    (Round to decimal places or significant digits)
+----
+in /elsewhere/try.zeff
+> let d = frame(x = [1.0, 2])
+> d.mean(x, by: |
+data.mean(var, [[by: Vars]], weights: Var, weight_type: frequency | analytic | sampling = sampling)
+    by: Repeat the computation within each group; plots draw one panel per group.
+    (Mean of a variable)
+----

@@ -4641,3 +4641,21 @@ error[Z0001]: no rows to take the mean of
 **Tests.** Snapshot: the corpus of variables, 45 places now, with eight on what is known through a chain (a step that keeps every row, two that do not, `rename`, `add` with a variable made anew and one redefined, a label written and one removed, a label on a file's variable, the groups of an aggregate). Unit: a frame never run, then run (the file's one missing value is counted where it is, the frame after `where` has the count of the one variable the script went on to use, a step that keeps every row keeps them, `where` loses them without a false mark, a changed statement has none, a second run writes nothing to the cache); every shipped dataset against the table of its page; the cache file written and read with its new section, and read without it; the reader that takes only what is gathered, on a table with pending columns.
 
 **Reason.** The checklist's step 35d; open decisions #77 and #145; Engine and Project Specification, section 12; Language Reference, section 11.
+
+## 13 November 2026: signature help (release 0.7.0, step 35e)
+
+**What was built.** `zeff_engine::language::signature_help`: for a place inside the brackets of a call, the usage line of the function called, the parameter the place is in, and that parameter's line of the function's help page (section 12: "the function's usage line and the current argument's help while typing"). With it come the summary of the page, and every parameter of the usage line with where it stands in the line, so that an editor can set the current one in bold.
+
+**One finding of the call, shared with completion.** The call, its arguments and its function are found by the module step 35b made (`language::call`): by the text, and where several functions share a name, by the type of the value the call is on. So signature help and completion cannot disagree on which function a call names: `histogram` after a frame shows the frame's usage line, after a plot the layer's.
+
+**The usage line is the registry's own.** It is put together here a second time only to know where each parameter stands in it; a test holds the two equal for every function of the engine. A function of the project is shown as `name(a: Type, b: Type) -> Type`, with the lines of its `///` page.
+
+**Which parameter the place is in.** The one named, where the argument is written `name: `. A value in its place is the parameter of that place, counted after the value before the dot: in `d.reg(b ~ a, ` the frame is `data`, written before the dot in the usage line, and the place is `fe`. The same function written before its frame, `reg(d, `, has the frame as its first value. A definition (`add(k = `) and a value beyond the last parameter of a function that takes more (`print(1, 2, `) are in the `...` the usage line ends with. A name the function has not, and more values than it takes, are in no parameter: the usage line is shown with none marked.
+
+**Where it is given.** Anywhere inside the brackets, at any depth of square brackets, and inside a text between quotes (`import("data/`), where completion offers nothing but the reader still wants the line. For the innermost call; past its closing bracket, for the call it stood in. Not in a comment, not in the brackets of a definition, not in round brackets that are no call, and not for a name that is no function.
+
+**Places in the usage line** are counted in UTF-16 code units, as the protocol will ask at step 35f.
+
+**Tests.** Snapshot: a corpus of 34 cursor places (each place of a method in turn; named arguments; a name the function has not; the function before its frame; more values than it takes; further values and definitions; a call inside a call and past it; inside a list and inside quotation marks; a namespace, a package, a name two functions share; a project function three ways; a chain over lines; the places with no help; a module; a file outside a project). Unit: the usage line, every parameter and where it stands, the parameter the place is in, in each of those cases; a project function by its own page, as typed in the editor and not as saved; where there is no help; the usage line against the registry's for every function.
+
+**Reason.** The checklist's step 35e; Engine and Project Specification, section 12.

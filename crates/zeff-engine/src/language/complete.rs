@@ -105,9 +105,17 @@ pub(crate) fn is_word(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
-/// Whether a byte of a text lies inside a text between quotes or a comment, judged from the
-/// start of its line: neither spans lines.
-fn in_text_or_comment(text: &str, byte: usize) -> bool {
+/// What a byte of a text lies inside, judged from the start of its line: neither a text
+/// between quotes nor a comment spans lines.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Inside {
+    Code,
+    /// A text between quotes.
+    Text,
+    Comment,
+}
+
+pub(crate) fn inside(text: &str, byte: usize) -> Inside {
     let start = text[..byte].rfind('\n').map_or(0, |end| end + 1);
     let mut chars = text[start..byte].chars().peekable();
     let mut quoted = false;
@@ -117,11 +125,11 @@ fn in_text_or_comment(text: &str, byte: usize) -> bool {
                 chars.next();
             }
             '"' => quoted = !quoted,
-            '/' if !quoted && chars.peek() == Some(&'/') => return true,
+            '/' if !quoted && chars.peek() == Some(&'/') => return Inside::Comment,
             _ => {}
         }
     }
-    quoted
+    if quoted { Inside::Text } else { Inside::Code }
 }
 
 /// The brackets a text leaves open, outermost first, each with the byte it stands at.
@@ -205,7 +213,7 @@ impl Doc<'_> {
     /// Check the document so that everything before `keep` is as typed: with `tail` after it
     /// where that parses (the rest of the document, the unfinished word set aside), and
     /// otherwise cut there, with what closes its open brackets.
-    fn typed_to(&self, keep: usize, tail: &str) -> Option<Check> {
+    pub(crate) fn typed_to(&self, keep: usize, tail: &str) -> Option<Check> {
         let whole = format!("{}{tail}", &self.text[..keep]);
         if !zeff_syntax::parse("document.zeff", &whole)
             .diagnostics
@@ -422,7 +430,7 @@ fn variables_of_the_frame(
 }
 
 /// The modules a document brings in with `use functions::<module>`.
-fn modules_used(text: &str) -> Vec<String> {
+pub(crate) fn modules_used(text: &str) -> Vec<String> {
     let parsed = zeff_syntax::parse("document.zeff", text);
     parsed
         .script
@@ -699,7 +707,7 @@ pub fn completions(
         text: &text,
     };
     let cursor = offset(&text, at);
-    if in_text_or_comment(&text, cursor) {
+    if inside(&text, cursor) != Inside::Code {
         return none;
     }
     // The word being typed: the letters before the place, and those after it, which a
