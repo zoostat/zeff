@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const engine = require(path.resolve(workerData.pkg, "zeff_web.js"));
 // A port in the form the browser gives: `postMessage`, and `onmessage` to be set.
 const port = {
-  postMessage: (message) => parentPort.postMessage(message),
+  postMessage: (message, transfer) => parentPort.postMessage(message, transfer),
   set onmessage(handler) {
     parentPort.on("message", handler);
   },

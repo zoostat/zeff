@@ -2103,6 +2103,7 @@ name = "zeff-web"
 version = "0.7.0-dev"
 dependencies = [
  "wasm-bindgen",
+ "zeff-columns",
  "zeff-diagnostics",
  "zeff-engine",
 ]

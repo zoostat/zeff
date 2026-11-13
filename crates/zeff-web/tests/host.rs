@@ -42,7 +42,7 @@ fn a_run_tells_each_event_as_a_line_of_json_and_gives_its_outcome() {
     );
     assert_eq!(
         done,
-        r#"{"type": "done", "exit_code": 0, "stdout": "one\n", "stderr": ""}"#
+        r#"{"type": "done", "exit_code": 0, "stdout": "one\n", "stderr": "", "frames": []}"#
     );
     // A pass of a loop, with its total where the loop knows it and `null` where it does not.
     assert_eq!(
@@ -161,4 +161,74 @@ fn a_window_of_the_browser_has_a_budget_by_default() {
         done.contains(r#""exit_code": 1"#) && done.contains("Z0709"),
         "{done}"
     );
+}
+
+// ----- the frames of a run, as Arrow bytes (step 33e2) -----
+
+#[test]
+fn a_frame_of_the_last_run_is_given_as_an_arrow_stream_with_its_labels_and_categories() {
+    let host = Host::new("demo");
+    let text = "let pay = frame(region = [\"north\", \"south\", \"north\"], wage = [23.5, NA, 31.25])\n    .add(region = category(region))\n    .label(wage, \"Hourly wage\")\nlet small = pay.where(wage > 30)\nlet n = pay.n_rows()\n";
+    let (_, done) = run(&host, text, None, never);
+    assert!(done.contains(r#""exit_code": 0"#), "{done}");
+    // The outcome lists the frames its bindings hold, with their shapes; a number is no frame.
+    assert!(
+        done.ends_with(
+            r#""frames": [{"name": "pay", "rows": 3, "variables": 2}, {"name": "small", "rows": 1, "variables": 2}]}"#
+        ),
+        "{done}"
+    );
+    let bytes = host.frame("pay").expect("the frame is there");
+    // The bytes are an Arrow stream: read back, the table is the frame, type by type, value
+    // by value, with the label and the category's levels.
+    let table = zeff_columns::read_ipc(&bytes).expect("an Arrow stream");
+    assert_eq!(table.names(), ["region", "wage"]);
+    assert_eq!(table.rows(), 3);
+    let region = table.column("region").unwrap();
+    assert_eq!(region.ty(), zeff_columns::ColumnType::Category);
+    assert_eq!(region.levels().unwrap(), ["north", "south"]);
+    let wage = table.column("wage").unwrap();
+    assert_eq!(wage.ty(), zeff_columns::ColumnType::Float);
+    assert_eq!(
+        wage.metadata().get(zeff_columns::MetadataKey::Label),
+        Some("Hourly wage")
+    );
+    assert!(wage.is_na(1), "the missing value stays missing");
+    assert!(!wage.is_na(0) && !wage.is_na(2));
+    // Written again, the table is the same bytes: nothing was lost on the way.
+    assert_eq!(zeff_columns::write_ipc(&table).unwrap(), bytes);
+    // The selection is a frame of its own.
+    let small = zeff_columns::read_ipc(&host.frame("small").unwrap()).unwrap();
+    assert_eq!(small.rows(), 1);
+    // A name that holds no frame gives none.
+    assert!(host.frame("n").is_none());
+    assert!(host.frame("nothing").is_none());
+}
+
+#[test]
+fn the_frames_are_those_of_the_last_run_and_stay_where_a_run_stops() {
+    let host = Host::new("demo");
+    // A run that stops: the frame bound before the error is there, the one after is not.
+    let (_, done) = run(
+        &host,
+        "let a = frame(x = [1, 2])\nerror(\"stop\")\nlet b = frame(y = [3])\n",
+        None,
+        never,
+    );
+    assert!(done.contains(r#""exit_code": 1"#), "{done}");
+    assert!(
+        done.ends_with(r#""frames": [{"name": "a", "rows": 2, "variables": 1}]}"#),
+        "{done}"
+    );
+    assert!(host.frame("a").is_some() && host.frame("b").is_none());
+    // The next run replaces them.
+    let (_, done) = run(&host, "let c = frame(z = [1.5])\n", None, never);
+    assert!(
+        done.ends_with(r#""frames": [{"name": "c", "rows": 1, "variables": 1}]}"#),
+        "{done}"
+    );
+    assert!(host.frame("a").is_none() && host.frame("c").is_some());
+    // A run with no frame has none.
+    let (_, done) = run(&host, "print(1)\n", None, never);
+    assert!(done.ends_with(r#""frames": []}"#), "{done}");
 }

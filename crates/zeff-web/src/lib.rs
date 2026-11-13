@@ -16,7 +16,7 @@ use zeff_diagnostics::json_string;
 use zeff_engine::control::{Control, Event};
 use zeff_engine::fs::MemoryFileSystem;
 use zeff_engine::project::Project;
-use zeff_engine::run::{RunOptions, run_script_under};
+use zeff_engine::run::{Frames, RunOptions, run_script_keeping};
 
 #[cfg(target_arch = "wasm32")]
 mod browser;
@@ -66,6 +66,8 @@ pub fn event_json(event: &Event) -> String {
 /// A project in memory, and the runs made in it.
 pub struct Host {
     fs: MemoryFileSystem,
+    /// The frames the bindings of the last run held when it ended, for the interface to show.
+    frames: std::cell::RefCell<Frames>,
 }
 
 impl Host {
@@ -80,7 +82,20 @@ impl Host {
                 zeff_engine::VERSION
             ),
         );
-        Host { fs }
+        Host {
+            fs,
+            frames: std::cell::RefCell::default(),
+        }
+    }
+
+    /// A frame of the last run as the bytes of an Arrow stream, with its column types, labels
+    /// and categories (section 8.3, point 5), or `None` where no binding of that name held a
+    /// frame. The worker passes the buffer of these bytes to the interface, which then owns
+    /// it: the bytes are not copied between the two (section 8.3, "Browser transfers").
+    pub fn frame(&self, name: &str) -> Option<Vec<u8>> {
+        let frames = self.frames.borrow();
+        let (_, frame) = frames.iter().find(|(bound, _)| bound == name)?;
+        zeff_columns::write_ipc(&frame.table).ok()
     }
 
     /// Put a file into the project, by its path from the project's folder (`data/wages.csv`,
@@ -105,7 +120,8 @@ impl Host {
         let project = match Project::open(&self.fs, Path::new(ROOT)) {
             Ok(project) => project,
             Err(_) => {
-                return done(
+                self.frames.borrow_mut().clear();
+                return self.done(
                     1,
                     "",
                     "error[Z0709]: the project's `zeff.toml` could not be read\n",
@@ -123,7 +139,7 @@ impl Host {
         };
         let control = Control::asking(cancelled);
         let listener = |event: &Event| tell(&event_json(event));
-        let outcome = run_script_under(
+        let (outcome, frames) = run_script_keeping(
             &self.fs,
             &project,
             script,
@@ -132,19 +148,36 @@ impl Host {
             &control,
             Some(&listener),
         );
-        done(
+        *self.frames.borrow_mut() = frames;
+        self.done(
             outcome.exit_code,
             &outcome.output.stdout,
             &outcome.output.stderr,
         )
     }
-}
 
-/// The outcome of a run as a line of JSON.
-fn done(exit_code: i32, stdout: &str, stderr: &str) -> String {
-    format!(
-        "{{\"type\": \"done\", \"exit_code\": {exit_code}, \"stdout\": {}, \"stderr\": {}}}",
-        json_string(stdout),
-        json_string(stderr)
-    )
+    /// The outcome of a run as a line of JSON, with the frames its bindings hold: each by
+    /// name with its rows and variables, which is what an interface lists before it asks for
+    /// one.
+    fn done(&self, exit_code: i32, stdout: &str, stderr: &str) -> String {
+        let frames: Vec<String> = self
+            .frames
+            .borrow()
+            .iter()
+            .map(|(name, frame)| {
+                format!(
+                    "{{\"name\": {}, \"rows\": {}, \"variables\": {}}}",
+                    json_string(name),
+                    frame.table.rows(),
+                    frame.table.names().len()
+                )
+            })
+            .collect();
+        format!(
+            "{{\"type\": \"done\", \"exit_code\": {exit_code}, \"stdout\": {}, \"stderr\": {}, \"frames\": [{}]}}",
+            json_string(stdout),
+            json_string(stderr),
+            frames.join(", ")
+        )
+    }
 }

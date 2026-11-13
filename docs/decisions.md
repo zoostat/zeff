@@ -4432,3 +4432,19 @@ error[Z0001]: no rows to take the mean of
 **Size.** The WebAssembly file of the new crate is 13.5 MB before compression at this commit; its compressed size and its cold start are measured against risk R4 at step 33e3.
 
 **Reason.** The checklist's step 33e1; section 8.3 of the Engine and Project Specification, point 7.
+
+## 13 November 2026: the frames of a run as Arrow buffers (release 0.7.0, step 33e2)
+
+**What the interface needs.** An interface shows the frames a run made: a list of them, then the rows of the one the user opens. Section 8.3 has results "move from the engine worker to the interface as Arrow buffers without copying".
+
+**Which frames, and when.** The outcome of a run in the worker now lists the frames its top-level bindings hold when the run ends, or where it stops, each by name with its rows and variables; a number or a fit is not a frame and is not listed. The worker keeps those frames until the next run, which replaces them. The interface asks for one by name when it wants its rows, so a frame nobody opens is never written out. For this the run frees no binding after its last use, as a session does not (`run::run_script_keeping`); `zeff run` still frees them, and is unchanged.
+
+**As what.** `Host::frame(name)` gives the frame as the bytes of an Arrow stream, by the column store's own writer: each column with its type's extension name, its label and value labels, a category with its levels (section 8.3, point 5). Read back by the column store's reader the table is the frame, and written again it is the same bytes, which the tests hold.
+
+**Passed, not copied.** The bytes leave WebAssembly's memory once, into a buffer of their own; that one copy cannot be avoided, since the memory of a WebAssembly module cannot be given away. The worker then names the buffer in the transfer list of its message, so the buffer is moved to the interface and the worker is left with nothing. The worker checks that it was: a buffer still in its hands after the message would mean a copy, and it says so as an error.
+
+**The messages.** In: `frame`, with a name. Out: `frame`, with the name and the bytes; `done` gains `frames`, the list. A name that holds no frame is answered with an error.
+
+**Tests.** Natively (`crates/zeff-web/tests/host.rs`): a frame with a category and a label read back by the column store, type by type, with its levels, its label and its missing value, and written again to the same bytes; a selection as a frame of its own; a name that holds none; the frames of a run that stops, and those of the next run in their place. Under a worker thread of Node (`js/worker.test.mjs`): the list in the outcome; the bytes received as a buffer of the interface's own, beginning as an Arrow stream begins and holding the names of the variables; the worker silent afterwards, which is its word that the buffer left it. No Arrow library reads the bytes on the JavaScript side: none is among the project's dependencies, and the reading belongs to the interface.
+
+**Reason.** The checklist's step 33e2; section 8.3 of the Engine and Project Specification, point 5 and the table of performance measures ("Browser transfers").

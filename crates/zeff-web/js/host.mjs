@@ -7,11 +7,15 @@
 //                                       SharedArrayBuffer of four bytes, the cancel flag
 //   { type: "file", path, bytes }       a file of the project, as a Uint8Array
 //   { type: "run", script, text }       run the text of a script of the project
+//   { type: "frame", name }             a frame of the last run, by the name of its binding
 // Messages out:
 //   { type: "ready", version }          once, when the engine is loaded
 //   { type: "opened", name }
 //   { type: "started" | "finished" | "pass" | "output", ... }   while a run goes
-//   { type: "done", exit_code, stdout, stderr }                 its outcome
+//   { type: "done", exit_code, stdout, stderr, frames }         its outcome, with the frames
+//                                       its bindings hold: [{ name, rows, variables }]
+//   { type: "frame", name, bytes }      the frame as an Arrow stream, in a Uint8Array whose
+//                                       buffer is passed to the interface and not copied
 //   { type: "error", message }          a message the worker could not act on
 //
 // A run is cancelled by the interface writing 1 into the flag: a worker that is computing
@@ -52,6 +56,20 @@ export function serve(engine, port, deviceBytes) {
         }
         port.postMessage(JSON.parse(project.run(said.script, said.text, deviceBytes ?? 0)));
         break;
+      case "frame": {
+        const bytes = project === null ? undefined : project.frame(said.name);
+        if (bytes === undefined) {
+          port.postMessage({ type: "error", message: `no frame called \`${String(said.name)}\` in the last run` });
+          break;
+        }
+        // The buffer goes to the interface: named in the transfer list it is moved, and the
+        // worker is left with nothing, which is how it is known not to have been copied.
+        port.postMessage({ type: "frame", name: said.name, bytes }, [bytes.buffer]);
+        if (bytes.byteLength !== 0) {
+          port.postMessage({ type: "error", message: `the frame \`${said.name}\` was copied, not passed` });
+        }
+        break;
+      }
       default:
         port.postMessage({ type: "error", message: `no such message: ${String(said.type)}` });
     }

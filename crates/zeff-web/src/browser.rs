@@ -53,6 +53,16 @@ impl Engine {
     }
 }
 
+#[wasm_bindgen]
+impl Engine {
+    /// A frame of the last run as the bytes of an Arrow stream, or nothing where no binding of
+    /// that name held a frame. The bytes arrive in a buffer of their own, which the worker
+    /// script passes to the interface without a copy.
+    pub fn frame(&self, name: &str) -> Option<Vec<u8>> {
+        self.host.frame(name)
+    }
+}
+
 /// The version of the engine in the worker.
 #[wasm_bindgen]
 pub fn version() -> String {

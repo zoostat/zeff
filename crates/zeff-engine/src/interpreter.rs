@@ -134,6 +134,9 @@ pub struct Interpreter<'a> {
     line: u32,
     /// The memory budget of the run, in bytes, where it has one (section 8.3, point 7).
     budget: Option<u64>,
+    /// Where the frames the run's bindings hold at its end are put, where someone wants
+    /// them: the interface of a worker, which shows them (step 33e2).
+    kept: Option<&'a std::cell::RefCell<Vec<(String, Frame)>>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -213,6 +216,7 @@ impl<'a> Interpreter<'a> {
             listener: None,
             line: 0,
             budget: None,
+            kept: None,
         }
     }
 
@@ -227,6 +231,31 @@ impl<'a> Interpreter<'a> {
     pub fn with_control(mut self, control: Option<&'a crate::control::Control>) -> Self {
         self.control = control;
         self
+    }
+
+    /// The frames the run's bindings hold when it ends, or stops, are put here by name, in
+    /// the order the bindings were made.
+    pub fn with_kept(mut self, kept: Option<&'a std::cell::RefCell<Vec<(String, Frame)>>>) -> Self {
+        self.kept = kept;
+        self
+    }
+
+    /// Put the frames of the top-level bindings where they were asked for.
+    fn keep_frames(&self) {
+        let Some(kept) = self.kept else {
+            return;
+        };
+        let mut ids: Vec<&usize> = self.env.keys().collect();
+        ids.sort_unstable();
+        let mut frames = kept.borrow_mut();
+        frames.clear();
+        for id in ids {
+            if self.program.bindings[*id].kind == zeff_ir::BindingKind::Let
+                && let Some(Value::Frame(frame)) = self.env.get(id)
+            {
+                frames.push((self.program.bindings[*id].name.clone(), frame.clone()));
+            }
+        }
     }
 
     /// The memory budget of the run: a statement whose estimate passes it is not started.
@@ -669,9 +698,11 @@ impl<'a> Interpreter<'a> {
                 });
             }
             if failed {
+                self.keep_frames();
                 return result.map(|_| ());
             }
         }
+        self.keep_frames();
         Ok(())
     }
 

@@ -137,6 +137,38 @@ test("the window has a memory budget by default, and the project's own comes fir
   await unknown.worker.terminate();
 });
 
+test("a frame of the last run is passed to the interface as an Arrow stream, not copied", async () => {
+  const { worker, said, next } = await opened(0);
+  worker.postMessage({
+    type: "run",
+    script: "scripts/main.zeff",
+    text: 'let pay = frame(region = ["north", "south", "north"], wage = [23.5, NA, 31.25])\nlet n = pay.n_rows()\n',
+  });
+  const done = await next("done");
+  assert.equal(done.exit_code, 0, done.stderr);
+  // The outcome lists the frames the run's bindings hold; a number is no frame.
+  assert.deepEqual(done.frames, [{ name: "pay", rows: 3, variables: 2 }]);
+  said.length = 0;
+  worker.postMessage({ type: "frame", name: "pay" });
+  const frame = await next("frame");
+  assert.equal(frame.name, "pay");
+  // The bytes are the interface's now: a plain buffer of its own, holding an Arrow stream,
+  // which begins with the mark of a message that follows.
+  assert.ok(frame.bytes instanceof Uint8Array);
+  assert.ok(frame.bytes.byteLength > 200, `only ${frame.bytes.byteLength} bytes`);
+  assert.deepEqual([...frame.bytes.subarray(0, 4)], [0xff, 0xff, 0xff, 0xff]);
+  assert.ok(!(frame.bytes.buffer instanceof SharedArrayBuffer));
+  // The names of the variables are in the stream's schema.
+  const text = new TextDecoder("latin1").decode(frame.bytes);
+  assert.ok(text.includes("region") && text.includes("wage"));
+  // A name that holds no frame is answered; and the worker, which checks that the buffer left
+  // it, has said nothing else: the frame was passed, not copied.
+  worker.postMessage({ type: "frame", name: "n" });
+  assert.deepEqual(await next("error"), { type: "error", message: "no frame called `n` in the last run" });
+  assert.deepEqual(said, []);
+  await worker.terminate();
+});
+
 test("a message the worker cannot act on is answered, not passed over", async () => {
   const { worker, said, next } = started(0);
   await next("ready");

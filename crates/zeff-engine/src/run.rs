@@ -381,7 +381,47 @@ pub fn run_script_under(
         registry::zeff_bodies(),
         Some(control),
         listener,
+        None,
     )
+}
+
+/// The frames a run's bindings held at its end, by name, in the order they were bound.
+pub type Frames = Vec<(String, zeff_core::value::Frame)>;
+
+/// [`run_script_under`] for a host that shows the frames of a run: no binding is freed after
+/// its last use, as in a session, and the frames the bindings hold when the run ends, or
+/// where it stops, come back with the outcome (step 33e2).
+pub fn run_script_keeping(
+    fs: &dyn FileSystem,
+    project: &Project,
+    script: &str,
+    text: &str,
+    options: &RunOptions,
+    control: &crate::control::Control,
+    listener: Option<crate::control::Listener<'_>>,
+) -> (Outcome, Frames) {
+    let kept = std::cell::RefCell::new(Vec::new());
+    let options = RunOptions {
+        free_bindings: false,
+        ..options.clone()
+    };
+    let outcome = match registry::registry() {
+        Ok(registry) => run_controlled(
+            fs,
+            project,
+            script,
+            text,
+            &options,
+            registry,
+            registry::bodies(),
+            registry::zeff_bodies(),
+            Some(control),
+            listener,
+            Some(&kept),
+        ),
+        Err(_) => run_script_with(fs, project, script, text, &options),
+    };
+    (outcome, kept.into_inner())
 }
 
 /// [`run_script_with`] against a given registry and the bodies that run its functions, Rust and
@@ -398,7 +438,7 @@ pub fn run_script_in(
     zeff: &ZeffBodies,
 ) -> Outcome {
     run_controlled(
-        fs, project, script, text, options, registry, bodies, zeff, None, None,
+        fs, project, script, text, options, registry, bodies, zeff, None, None, None,
     )
 }
 
@@ -414,6 +454,7 @@ fn run_controlled(
     zeff: &ZeffBodies,
     control: Option<&crate::control::Control>,
     listener: Option<crate::control::Listener<'_>>,
+    kept: Option<&std::cell::RefCell<Frames>>,
 ) -> Outcome {
     // What the check says before the run starts, and what stops it before it starts, is told
     // as it is said, so that the pieces a listener is given are the whole of the messages.
@@ -520,6 +561,7 @@ fn run_controlled(
         .with_checks(options.collect_checks)
         .with_control(control)
         .with_listener(listener)
+        .with_kept(kept)
         .with_budget(options.memory.or_else(|| {
             project
                 .manifest
