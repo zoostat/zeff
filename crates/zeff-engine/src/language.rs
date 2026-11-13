@@ -16,6 +16,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use zeff_diagnostics::{Diagnostic, Severity, Span};
 
+pub(crate) mod call;
 pub mod complete;
 
 pub use complete::{Completion, CompletionKind, Completions, completions};

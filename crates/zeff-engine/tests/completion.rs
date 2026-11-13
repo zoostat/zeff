@@ -84,6 +84,8 @@ fn shown(fs: &MemoryFileSystem, path: &str, marked: &str) -> String {
         found.items.len()
     ));
     for kind in [
+        CompletionKind::Word,
+        CompletionKind::Argument,
         CompletionKind::Field,
         CompletionKind::Method,
         CompletionKind::Function,
@@ -104,10 +106,18 @@ fn shown(fs: &MemoryFileSystem, path: &str, marked: &str) -> String {
             ));
         }
     }
-    if found.items.len() <= 6 {
-        for item in &found.items {
+    // Each in full where they are few; the words and the argument names always.
+    let few = found.items.len() <= 6;
+    for item in &found.items {
+        let of_the_call = matches!(item.kind, CompletionKind::Word | CompletionKind::Argument);
+        if few || of_the_call {
+            let written = if item.insert == item.label {
+                String::new()
+            } else {
+                format!(" (written `{}`)", item.insert)
+            };
             out.push_str(&format!(
-                "    {} | {} | {}\n",
+                "    {}{written} | {} | {}\n",
                 item.label, item.detail, item.summary
             ));
         }
@@ -222,6 +232,75 @@ fn the_corpus_of_cursor_places() {
         all.push_str("----\n");
     }
     insta::assert_snapshot!("corpus", all);
+}
+
+#[test]
+fn the_corpus_of_cursor_places_inside_a_call() {
+    let fs = project();
+    let data = "let d = import(\"data/small.csv\")\n";
+    let places: Vec<(&str, String)> = vec![
+        // Where an argument begins: the names of the arguments not yet given, then the
+        // names in reach.
+        (MAIN, format!("{data}d.reg(b ~ a, |\n")),
+        (MAIN, format!("{data}d.reg(b ~ a, cl|\n")),
+        // Less those given, before the place and after it.
+        (MAIN, format!("{data}d.reg(b ~ a, cluster: c, w|)\n")),
+        (MAIN, format!("{data}d.reg(b ~ a, s|, se: robust)\n")),
+        // After the name of an argument that takes one of a fixed list of words: those
+        // words and nothing else.
+        (MAIN, format!("{data}d.reg(b ~ a, se: |\n")),
+        (MAIN, format!("{data}d.reg(b ~ a, se: h|)\n")),
+        (MAIN, format!("{data}d.merge(d, on: a, join: |\n")),
+        (MAIN, format!("{data}d.mean(a, weight_type: |)\n")),
+        // An argument that takes a number or a word: the words, then the names in reach.
+        (MAIN, format!("{data}let k = 12\nd.histogram(a, bins: |)\n")),
+        // Words inside a list.
+        (MAIN, format!("{data}d.summary([a, b], stats: [|\n")),
+        (MAIN, format!("{data}d.summary([a, b], stats: [n, m|])\n")),
+        // The first place of a method, and of the same function written before its value.
+        (MAIN, format!("{data}d.mean(|\n")),
+        (MAIN, format!("{data}mean(d, |\n")),
+        (MAIN, format!("{data}mean(|\n")),
+        // A function of a namespace, one written with its package, and a call inside a call.
+        (MAIN, "let z = dist.normal(|\n".to_string()),
+        (MAIN, format!("{data}data::sd(d, a, w|\n")),
+        (MAIN, format!("{data}print(d.n_rows(), d.mean(a, |\n")),
+        // A name several functions share: the one that takes the value, a frame or a plot.
+        (MAIN, format!("{data}d.histogram(a, |\n")),
+        (MAIN, format!("{data}d.plot(x: a).histogram(|\n")),
+        (
+            MAIN,
+            format!("{data}let p = d.plot(x: a)\nhistogram(p, |\n"),
+        ),
+        // The project's functions: after a value, before it, and with their module.
+        (
+            MAIN,
+            format!("use functions::clean\n{data}d.share_gone(|\n"),
+        ),
+        (
+            MAIN,
+            format!("use functions::clean\n{data}share_gone(d, v|\n"),
+        ),
+        (MAIN, "let y = clean::twice(|\n".to_string()),
+        // Not where an argument begins: no argument names.
+        (MAIN, format!("{data}d.mean(a + s|\n")),
+        (MAIN, format!("{data}d.add(k = s|\n")),
+        // A chain broken over lines.
+        (
+            MAIN,
+            format!("{data}d\n    .where(a > 1)\n    .reg(b ~ a,\n         se: c|\n"),
+        ),
+        // A function that is not one, and brackets that are no call.
+        (MAIN, "nosuch(wh|\n".to_string()),
+        (MAIN, "let x = (wh|\n".to_string()),
+        (MAIN, "fn local(wh|\n".to_string()),
+    ];
+    let mut all = String::new();
+    for (path, marked) in &places {
+        all.push_str(&shown(&fs, path, marked));
+        all.push_str("----\n");
+    }
+    insta::assert_snapshot!("corpus_inside_a_call", all);
 }
 
 #[test]
@@ -449,4 +528,229 @@ fn the_text_in_the_editor_is_what_is_completed() {
     open.change(Path::new(CLEAN), MODULE.replace("twice", "_twice"), 3);
     let found = completions(&fs, &open, Path::new(MAIN), position(text, text.len()));
     assert!(!labels(&found).contains(&"_twice"));
+}
+
+/// The completions of one kind at a place, by their labels.
+fn of_kind(found: &Completions, kind: CompletionKind) -> Vec<&str> {
+    found
+        .items
+        .iter()
+        .filter(|item| item.kind == kind)
+        .map(|item| item.label.as_str())
+        .collect()
+}
+
+#[test]
+fn the_names_of_the_arguments_not_yet_given() {
+    let fs = project();
+    let data = "let d = import(\"data/small.csv\")\n";
+    // In the order of the usage line, before every other name, each written `name: `.
+    let found = at_cursor(&fs, MAIN, &format!("{data}d.reg(b ~ a, |\n"));
+    assert_eq!(
+        of_kind(&found, CompletionKind::Argument),
+        ["fe", "se", "cluster", "weights", "weight_type", "level"]
+    );
+    assert!(
+        found.items[..6]
+            .iter()
+            .all(|item| item.kind == CompletionKind::Argument)
+    );
+    let se = &found.items[1];
+    assert_eq!(
+        (se.insert.as_str(), se.detail.as_str()),
+        ("se: ", "classical | robust | hc2 | hc3")
+    );
+    assert!(
+        se.summary.starts_with("The kind of standard error"),
+        "{}",
+        se.summary
+    );
+    // The first place of a method is its second parameter; of the function written before
+    // its value, its first.
+    let found = at_cursor(&fs, MAIN, &format!("{data}d.reg(|\n"));
+    assert_eq!(of_kind(&found, CompletionKind::Argument)[0], "formula");
+    let found = at_cursor(&fs, MAIN, &format!("{data}reg(|\n"));
+    assert_eq!(
+        of_kind(&found, CompletionKind::Argument)[..2],
+        ["data", "formula"]
+    );
+    // Given by name before the place or after it, or in its place: not offered again.
+    let found = at_cursor(
+        &fs,
+        MAIN,
+        &format!("{data}d.reg(b ~ a, cluster: c, |, level: 0.9)\n"),
+    );
+    assert_eq!(
+        of_kind(&found, CompletionKind::Argument),
+        ["fe", "se", "weights", "weight_type"]
+    );
+    // Every name offered is one the checker knows as an argument.
+    for item in at_cursor(&fs, MAIN, &format!("{data}d.reg(b ~ a, |\n"))
+        .items
+        .iter()
+        .filter(|item| item.kind == CompletionKind::Argument)
+    {
+        let text = format!("{data}d.reg(b ~ a, {}1)\n", item.insert);
+        let mut open = Documents::new();
+        open.open(MAIN, text.clone(), 1);
+        for finding in diagnostics(&fs, &open, Path::new(MAIN)) {
+            assert!(
+                !finding.message.contains("has no argument called"),
+                "{text}: {}",
+                finding.message
+            );
+        }
+    }
+    // Not where the value of an argument is under way, nor inside a list, nor after `name:`.
+    for marked in [
+        format!("{data}d.mean(a + |\n"),
+        format!("{data}d.summary([a, |\n"),
+        format!("{data}d.reg(b ~ a, level: |\n"),
+    ] {
+        let found = at_cursor(&fs, MAIN, &marked);
+        assert_eq!(
+            of_kind(&found, CompletionKind::Argument),
+            Vec::<&str>::new(),
+            "{marked}"
+        );
+        // The names in reach are still offered there.
+        assert!(
+            of_kind(&found, CompletionKind::Binding).contains(&"d"),
+            "{marked}"
+        );
+    }
+}
+
+#[test]
+fn the_words_of_a_fixed_list() {
+    let fs = project();
+    let data = "let d = import(\"data/small.csv\")\n";
+    // After the name of an argument that takes only such a word: the words, in the order the
+    // function gives them, and nothing else.
+    let found = at_cursor(&fs, MAIN, &format!("{data}d.reg(b ~ a, se: |\n"));
+    assert_eq!(labels(&found), ["classical", "robust", "hc2", "hc3"]);
+    assert!(
+        found
+            .items
+            .iter()
+            .all(|item| item.kind == CompletionKind::Word && item.insert == item.label)
+    );
+    assert_eq!(found.items[0].detail, "se: classical | robust | hc2 | hc3");
+    // Each is accepted by the checker where it is offered.
+    for item in &found.items {
+        let text = format!("{data}d.reg(b ~ a, se: {})\n", item.label);
+        let mut open = Documents::new();
+        open.open(MAIN, text.clone(), 1);
+        let found = diagnostics(&fs, &open, Path::new(MAIN));
+        assert!(found.is_empty(), "{text}: {}", found[0].message);
+    }
+    // An argument that takes a number or a word: the words first, then what else may stand.
+    let found = at_cursor(&fs, MAIN, &format!("{data}d.histogram(a, bins: |)\n"));
+    assert_eq!(labels(&found)[..3], ["sturges", "scott", "fd"]);
+    assert!(of_kind(&found, CompletionKind::Binding).contains(&"d"));
+    // In its place, without its name.
+    let found = at_cursor(&fs, MAIN, &format!("{data}d.histogram(a, s|)\n"));
+    assert_eq!(of_kind(&found, CompletionKind::Word), ["sturges", "scott"]);
+    // Inside a list of words.
+    let found = at_cursor(
+        &fs,
+        MAIN,
+        &format!("{data}d.summary([a, b], stats: [mean, s|])\n"),
+    );
+    assert_eq!(labels(&found), ["sd"]);
+}
+
+/// Every fixed list of every function of the engine: after `name: ` of the argument, the
+/// words offered are the words its type gives, and the names offered at the first place are
+/// the function's parameters.
+#[test]
+fn every_fixed_list_of_every_function() {
+    let fs = project();
+    let registry = zeff_engine::registry::registry().expect("the registry");
+    let mut lists = 0;
+    let mut seen: Vec<&str> = Vec::new();
+    for f in registry.functions() {
+        // Of several functions of one name the first is the one a bare call names here.
+        // Inside `dataset(` the shipped datasets are offered, and nothing else.
+        if seen.contains(&f.spec.name) || f.spec.name == "dataset" {
+            continue;
+        }
+        seen.push(f.spec.name);
+        let found = at_cursor(&fs, MAIN, &format!("{}(|\n", f.spec.name));
+        let names: Vec<&str> = f.spec.params.iter().map(|p| p.name).collect();
+        assert_eq!(
+            of_kind(&found, CompletionKind::Argument),
+            names,
+            "{}",
+            f.spec.name
+        );
+        for p in &f.spec.params {
+            let words = zeff_ir::Ty::parse(p.ty).map_or(Vec::new(), |ty| ty.words());
+            if words.is_empty() {
+                continue;
+            }
+            lists += 1;
+            let found = at_cursor(&fs, MAIN, &format!("{}({}: |\n", f.spec.name, p.name));
+            assert_eq!(
+                of_kind(&found, CompletionKind::Word),
+                words,
+                "{}({}:",
+                f.spec.name,
+                p.name
+            );
+        }
+    }
+    assert!(lists >= 30, "{lists} fixed lists");
+}
+
+#[test]
+fn the_function_of_a_call_is_the_one_the_checker_would_choose() {
+    let fs = project();
+    let data = "let d = import(\"data/small.csv\")\n";
+    // `histogram` of a frame takes `by:`; the layer of a plot takes `data:` and no `by:`.
+    let frame = at_cursor(&fs, MAIN, &format!("{data}d.histogram(a, |\n"));
+    assert!(of_kind(&frame, CompletionKind::Argument).contains(&"by"));
+    for marked in [
+        format!("{data}d.plot(x: a).histogram(|\n"),
+        format!("{data}let p = d.plot(x: a)\np.histogram(|\n"),
+        format!("{data}let p = d.plot(x: a)\nhistogram(p, |\n"),
+    ] {
+        let layer = at_cursor(&fs, MAIN, &marked);
+        let names = of_kind(&layer, CompletionKind::Argument);
+        assert!(
+            names.contains(&"data") && !names.contains(&"by"),
+            "{marked}: {names:?}"
+        );
+    }
+    // A function of the project, by its own page; one that is not brought in is not known
+    // by its short name, and is by its module's.
+    let own = at_cursor(
+        &fs,
+        MAIN,
+        &format!("use functions::clean\n{data}d.share_gone(|\n"),
+    );
+    let var = own.items.first().expect("an argument");
+    assert_eq!(
+        (
+            var.label.as_str(),
+            var.insert.as_str(),
+            var.detail.as_str(),
+            var.summary.as_str()
+        ),
+        ("var", "var: ", "Var", "The variable.")
+    );
+    let unknown = at_cursor(&fs, MAIN, &format!("{data}share_gone(d, |\n"));
+    assert_eq!(
+        of_kind(&unknown, CompletionKind::Argument),
+        Vec::<&str>::new()
+    );
+    let by_module = at_cursor(&fs, MAIN, &format!("{data}clean::share_gone(d, |\n"));
+    assert_eq!(of_kind(&by_module, CompletionKind::Argument), ["var"]);
+    // The module as typed in the editor, not as saved.
+    let mut open = Documents::new();
+    open.open(CLEAN, MODULE.replace("var: Var", "which: Var"), 2);
+    let text = format!("use functions::clean\n{data}d.share_gone(");
+    open.open(MAIN, text.clone(), 1);
+    let found = completions(&fs, &open, Path::new(MAIN), position(&text, text.len()));
+    assert_eq!(of_kind(&found, CompletionKind::Argument), ["which"]);
 }

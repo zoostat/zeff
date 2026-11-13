@@ -1,12 +1,14 @@
 //! Completion (Engine and Project Specification, section 12): what may stand at a place in a
-//! document. This is part 1 (release 0.7.0, step 35a): after a dot, the functions that may be
-//! written as a method of the value before it, by the value's type; and at the start of a
-//! word, the names in reach: the bindings, the functions of the engine and of the project,
-//! and the shipped datasets inside `dataset(`.
+//! document. After a dot, the functions that may be written as a method of the value before
+//! it, by the value's type; at the start of a word, the names in reach: the bindings, the
+//! functions of the engine and of the project, and the shipped datasets inside `dataset(`
+//! (release 0.7.0, step 35a). Inside a call, before those: the words an argument takes where
+//! it takes one of a fixed list, and the names of the arguments not yet given (step 35b).
 //!
 //! The value before a dot is typed by the checker, on the document as typed with the
 //! unfinished word set aside. Nothing is run.
 
+use super::call::{self, Site};
 use super::{Check, Documents, Position, Range, Seen, check_document, offset, position};
 use crate::fs::FileSystem;
 use std::path::Path;
@@ -28,18 +30,39 @@ pub enum CompletionKind {
     Binding,
     /// A dataset shipped with the engine.
     Dataset,
+    /// The name of an argument of the call the place is in, written `name: `.
+    Argument,
+    /// One of the fixed list of words an argument takes, `robust`.
+    Word,
 }
 
 /// One thing that may stand at the place.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Completion {
-    /// What is written.
+    /// What is shown.
     pub label: String,
+    /// What is written: the label, and for the name of an argument `name: `.
+    pub insert: String,
     pub kind: CompletionKind,
-    /// A function's usage line; a binding's or a field's type; a dataset's size.
+    /// A function's usage line; a binding's or a field's type; a dataset's size; an
+    /// argument's type and default; for a word, the argument that takes it.
     pub detail: String,
-    /// The summary line of a function's or a dataset's help page; empty where there is none.
+    /// The summary line of a function's or a dataset's help page, or an argument's line of
+    /// its function's page; empty where there is none.
     pub summary: String,
+}
+
+impl Completion {
+    /// A completion written as it is shown.
+    fn new(label: &str, kind: CompletionKind, detail: String, summary: String) -> Completion {
+        Completion {
+            label: label.to_string(),
+            insert: label.to_string(),
+            kind,
+            detail,
+            summary,
+        }
+    }
 }
 
 /// The completions of a place.
@@ -52,7 +75,7 @@ pub struct Completions {
     pub items: Vec<Completion>,
 }
 
-fn is_word(c: char) -> bool {
+pub(crate) fn is_word(c: char) -> bool {
     c.is_alphanumeric() || c == '_'
 }
 
@@ -78,7 +101,7 @@ fn in_text_or_comment(text: &str, byte: usize) -> bool {
 /// The brackets a text leaves open, outermost first, each with the byte it stands at.
 /// Brackets inside texts between quotes and inside comments are not counted, and a closing
 /// bracket that closes nothing is passed over.
-fn open_brackets(text: &str) -> Vec<(char, usize)> {
+pub(crate) fn open_brackets(text: &str) -> Vec<(char, usize)> {
     let mut open: Vec<(char, usize)> = Vec::new();
     let mut chars = text.char_indices().peekable();
     while let Some((at, c)) = chars.next() {
@@ -131,34 +154,49 @@ fn closers(text: &str) -> String {
         .collect()
 }
 
-/// Check a document with a text in place of its own.
-fn check_as(disk: &dyn FileSystem, open: &Documents, path: &Path, text: &str) -> Option<Check> {
-    let mut with = open.clone();
-    with.open(path, text, 0);
-    let seen = Seen { disk, open: &with };
-    check_document(&seen, path, text)
+/// A document as an editor has it: the files, the documents open, and this one's path and
+/// text.
+#[derive(Clone, Copy)]
+pub(crate) struct Doc<'a> {
+    pub disk: &'a dyn FileSystem,
+    pub open: &'a Documents,
+    pub path: &'a Path,
+    pub text: &'a str,
 }
 
-/// Check the document so that everything before `keep` is as typed: with `tail` after it
-/// where that parses (the rest of the document, the unfinished word set aside), and otherwise
-/// cut there, with what closes its open brackets.
-fn typed_to(
-    disk: &dyn FileSystem,
-    open: &Documents,
-    path: &Path,
-    text: &str,
-    keep: usize,
-    tail: &str,
-) -> Option<Check> {
-    let whole = format!("{}{tail}", &text[..keep]);
-    if !zeff_syntax::parse("document.zeff", &whole)
-        .diagnostics
-        .has_errors()
-    {
-        return check_as(disk, open, path, &whole);
+impl Doc<'_> {
+    /// Check the document with a text in place of its own.
+    fn check_as(&self, text: &str) -> Option<Check> {
+        let mut with = self.open.clone();
+        with.open(self.path, text, 0);
+        let seen = Seen {
+            disk: self.disk,
+            open: &with,
+        };
+        check_document(&seen, self.path, text)
     }
-    let cut = format!("{}{}\n", &text[..keep], closers(&text[..keep]));
-    check_as(disk, open, path, &cut)
+
+    /// Check the document so that everything before `keep` is as typed: with `tail` after it
+    /// where that parses (the rest of the document, the unfinished word set aside), and
+    /// otherwise cut there, with what closes its open brackets.
+    fn typed_to(&self, keep: usize, tail: &str) -> Option<Check> {
+        let whole = format!("{}{tail}", &self.text[..keep]);
+        if !zeff_syntax::parse("document.zeff", &whole)
+            .diagnostics
+            .has_errors()
+        {
+            return self.check_as(&whole);
+        }
+        self.check_cut(keep)
+    }
+
+    /// Check the document cut at a byte, with what closes the brackets it leaves open:
+    /// enough to type whatever stands before the cut, since nothing after a place changes
+    /// the type of what stands before it.
+    pub(crate) fn check_cut(&self, keep: usize) -> Option<Check> {
+        let cut = format!("{}{}\n", &self.text[..keep], closers(&self.text[..keep]));
+        self.check_as(&cut)
+    }
 }
 
 /// Whether an expression is one a dot may follow as it stands: a name, a call, a literal, a
@@ -184,7 +222,7 @@ fn takes_a_dot(expr: &Expr) -> bool {
 
 /// The type of the value that ends at a byte of the document: of the widest expression a dot
 /// may follow that ends there. `None` where the checker typed none.
-fn type_ending_at(check: &Check, end: usize) -> Option<Ty> {
+pub(crate) fn type_ending_at(check: &Check, end: usize) -> Option<Ty> {
     let mut best: Option<&Expr> = None;
     walk(
         &check.checked.program,
@@ -233,6 +271,7 @@ fn project_function(function: &zeff_ir::Function) -> Completion {
     };
     Completion {
         label: function.name.clone(),
+        insert: function.name.clone(),
         kind: CompletionKind::Function,
         detail: format!("{}({}){returns}", function.name, params.join(", ")),
         summary: function
@@ -244,7 +283,7 @@ fn project_function(function: &zeff_ir::Function) -> Completion {
 
 /// The functions of the project a document may call by their short names: its own, and the
 /// public ones of the modules it brings in. Function literals are no such functions.
-fn project_functions<'p>(
+pub(crate) fn project_functions<'p>(
     program: &'p Program,
     check: &Check,
     used: &[String],
@@ -264,6 +303,7 @@ fn project_functions<'p>(
 fn engine_function(f: &zeff_registry::Registered, label: &str) -> Completion {
     Completion {
         label: label.to_string(),
+        insert: label.to_string(),
         kind: if f.spec.method {
             CompletionKind::Method
         } else {
@@ -290,6 +330,7 @@ fn after_a_value(
         for (name, ty) in fields {
             items.push(Completion {
                 label: name.clone(),
+                insert: name.clone(),
                 kind: CompletionKind::Field,
                 detail: ty.to_string(),
                 summary: String::new(),
@@ -358,6 +399,7 @@ fn bindings_in_reach(check: &Check, at: usize) -> Vec<Completion> {
         if items.iter().all(|item| item.label != binding.name) {
             items.push(Completion {
                 label: binding.name.clone(),
+                insert: binding.name.clone(),
                 kind: CompletionKind::Binding,
                 detail: binding.ty.to_string(),
                 summary: String::new(),
@@ -366,6 +408,64 @@ fn bindings_in_reach(check: &Check, at: usize) -> Vec<Completion> {
     }
     items.sort_by(|a, b| a.label.cmp(&b.label));
     items
+}
+
+/// What a place inside a call is offered before anything else (section 12: "inside a call:
+/// argument names, then for a fixed-list argument its allowed values"): where the argument
+/// at the place takes one of a fixed list of words, those words; and where a new argument
+/// begins there, the names of the arguments not yet given, each written `name: `. Whether
+/// nothing else may stand there: after `name: ` of an argument that takes only such a word.
+fn inside_a_call(
+    site: &Site<'_>,
+    signature: &call::Signature,
+    items: &mut Vec<Completion>,
+) -> bool {
+    let given: Vec<&str> = site
+        .before
+        .iter()
+        .filter_map(|a| match a {
+            call::Written::Named(name) => Some(*name),
+            _ => None,
+        })
+        .chain(site.named_after.iter().copied())
+        .collect();
+    let positional = site.positional_before();
+    // The parameter the place is in: the one named, or the one whose place it is.
+    let current = match site.named {
+        Some(name) => signature.parameters.iter().find(|p| p.name == name),
+        None => signature
+            .parameters
+            .get(positional)
+            .filter(|p| !given.contains(&p.name.as_str())),
+    };
+    if !site.at_start {
+        return false;
+    }
+    if let Some(parameter) = current {
+        for word in &parameter.words {
+            items.push(Completion::new(
+                word,
+                CompletionKind::Word,
+                format!("{}: {}", parameter.name, parameter.ty),
+                parameter.help.clone(),
+            ));
+        }
+    }
+    if site.named.is_none() && !site.in_list {
+        for (place, parameter) in signature.parameters.iter().enumerate() {
+            if place < positional || given.contains(&parameter.name.as_str()) {
+                continue;
+            }
+            items.push(Completion {
+                label: parameter.name.clone(),
+                insert: format!("{}: ", parameter.name),
+                kind: CompletionKind::Argument,
+                detail: parameter.ty.clone(),
+                summary: parameter.help.clone(),
+            });
+        }
+    }
+    site.named.is_some() && current.is_some_and(|p| p.only_words)
 }
 
 /// The call a text ends directly inside, if any: the name written before the innermost
@@ -408,6 +508,12 @@ pub fn completions(
     let Ok(registry) = crate::registry::registry() else {
         return none;
     };
+    let doc = Doc {
+        disk,
+        open,
+        path,
+        text: &text,
+    };
     let cursor = offset(&text, at);
     if in_text_or_comment(&text, cursor) {
         return none;
@@ -448,7 +554,7 @@ pub fn completions(
             return none;
         }
         let end = value.len();
-        let checked = typed_to(disk, open, path, &text, end, &text[word_end..]);
+        let checked = doc.typed_to(end, &text[word_end..]);
         let ty = checked
             .as_ref()
             .and_then(|check| type_ending_at(check, end));
@@ -480,6 +586,7 @@ pub fn completions(
             .iter()
             .map(|d| Completion {
                 label: d.spec.name.to_string(),
+                insert: d.spec.name.to_string(),
                 kind: CompletionKind::Dataset,
                 detail: format!(
                     "{} rows, {} variables",
@@ -489,26 +596,42 @@ pub fn completions(
                 summary: d.doc.summary.clone(),
             })
             .collect()
+    } else if call::defining(&text, word_start) {
+        // The names of parameters are given there, not chosen.
+        return none;
     } else {
+        let used = modules_used(&text);
+        let typed_doc = doc.typed_to(word_start, &text[word_start..]);
         let mut items = Vec::new();
-        if let Some(typed) = typed_to(disk, open, path, &text, word_start, &text[word_start..]) {
-            items.extend(bindings_in_reach(&typed, word_start));
-            let used = modules_used(&text);
-            let mut own: Vec<Completion> = project_functions(&typed.checked.program, &typed, &used)
-                .into_iter()
-                .map(project_function)
-                .collect();
-            own.sort_by(|a, b| a.label.cmp(&b.label));
-            items.extend(own);
+        // Inside a call: what the argument at the place takes, and the arguments not yet
+        // given.
+        let mut nothing_else = false;
+        if let Some(site) = call::site(&text, word_start, registry)
+            && let Some(signature) =
+                call::signature(&doc, &site, registry, typed_doc.as_ref(), &used)
+        {
+            nothing_else = inside_a_call(&site, &signature, &mut items);
         }
-        let mut engine: Vec<Completion> = registry
-            .functions()
-            .iter()
-            .map(|f| engine_function(f, f.spec.name))
-            .collect();
-        engine.sort_by(|a, b| a.label.cmp(&b.label));
-        engine.dedup_by(|a, b| a.label == b.label);
-        items.extend(engine);
+        if !nothing_else {
+            if let Some(typed) = &typed_doc {
+                items.extend(bindings_in_reach(typed, word_start));
+                let mut own: Vec<Completion> =
+                    project_functions(&typed.checked.program, typed, &used)
+                        .into_iter()
+                        .map(project_function)
+                        .collect();
+                own.sort_by(|a, b| a.label.cmp(&b.label));
+                items.extend(own);
+            }
+            let mut engine: Vec<Completion> = registry
+                .functions()
+                .iter()
+                .map(|f| engine_function(f, f.spec.name))
+                .collect();
+            engine.sort_by(|a, b| a.label.cmp(&b.label));
+            engine.dedup_by(|a, b| a.label == b.label);
+            items.extend(engine);
+        }
         items
     };
     Completions {
