@@ -961,7 +961,7 @@ pub fn axis_fault(plot: &Plot) -> Option<AxisFault> {
 }
 
 /// A cell of a numeric column as a number, `None` where it is `NA`.
-fn number(column: &Column, row: usize) -> Option<f64> {
+pub(crate) fn number(column: &Column, row: usize) -> Option<f64> {
     match column.get(row) {
         Some(Cell::Float(x)) if !x.is_nan() => Some(x),
         Some(Cell::Int(i)) => Some(i as f64),

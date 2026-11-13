@@ -1,0 +1,55 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · score against theoretical
+
+  axis   title                                 scale    limits              breaks
+  x      Quantiles of normal(mean: 0, sd: 1)   linear   -1.7013 to 1.7013   -1.5, -1, -0.5, 0, 0.5, 1, 1.5
+  y      score                                 linear   0.6 to 9.4          2, 4, 6, 8
+
+  layer   mark     data            marks   settings
+      1   points   d                  10   size 4.5, alpha 1
+      2   lines    its own frame       2   y line, width 1, 1 line
+plot · d · score against theoretical
+
+  axis   title                   scale    limits                breaks
+  x      Quantiles of t(df: 3)   linear   -2.35306 to 2.35306   -2, -1, 0, 1, 2
+  y      score                   linear   0.261814 to 9.4161    2, 4, 6, 8
+
+  layer   mark     data            marks   settings
+      1   points   d                  10   size 4.5, alpha 1
+      2   lines    its own frame       2   y line, width 1, 1 line
+plot · d · log(score) against theoretical
+
+  axis   title                                   scale    limits                 breaks
+  x      Quantiles of normal(mean: 1, sd: 0.5)   linear   0.351131 to 1.64887    0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6
+  y      log(score)                              linear   -0.109861 to 2.30709   0, 0.5, 1, 1.5, 2
+
+  layer   mark     data            marks   settings
+      1   points   d                  10   size 4.5, alpha 1
+      2   lines    its own frame       4   y line, width 1, 2 lines
+
+panels: 2 by arm: a, b
+plot · d · score against theoretical
+
+  axis   title      scale    limits                breaks
+  x      expected   linear   -1.29774 to 1.29774   -1, -0.5, 0, 0.5, 1
+  y      score      linear   0.6 to 9.4            2, 4, 6, 8
+
+  layer   mark     data            marks   settings
+      1   points   d                  10   size 4.5, alpha 1
+      2   lines    its own frame       4   y line, width 1, 2 lines
+
+title: Scores against the normal
+panels: 2 by arm: a, b
+plot · d · score against theoretical
+
+  axis   title                                 scale    limits              breaks
+  x      Quantiles of normal(mean: 0, sd: 1)   linear   -1.7013 to 1.7013   -1.5, -1, -0.5, 0, 0.5, 1, 1.5
+  y      score                                 linear   0.6 to 9.4          2, 4, 6, 8
+
+  layer   mark     data            marks   settings
+      1   points   d                  10   size 4.5, alpha 1
+      2   lines    its own frame       2   y line, width 1, 1 line
+---

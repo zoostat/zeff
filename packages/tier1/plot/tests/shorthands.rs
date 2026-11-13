@@ -686,3 +686,233 @@ proptest! {
         }
     }
 }
+
+// ----- qq_plot (step 29d) -----
+
+fn normal() -> zeff_core::value::Distribution {
+    zeff_core::value::Distribution::Family {
+        name: "normal",
+        params: vec![("mean", 0.0), ("sd", 1.0)],
+    }
+}
+
+/// `data.qq_plot(y, distribution, by:)`.
+fn qq(
+    frame: &Frame,
+    distribution: Option<zeff_core::value::Distribution>,
+    by: Option<&str>,
+) -> Gave {
+    chain(
+        Value::Frame(frame.clone()),
+        vec![(
+            shorthands::qq_plot,
+            vec![
+                var("y"),
+                distribution.map(Value::Distribution),
+                by.and_then(var),
+            ],
+        )],
+    )
+}
+
+/// Ten scores, out of order, of two arms.
+fn scores() -> Frame {
+    common::frame(
+        "d",
+        vec![
+            (
+                "y",
+                numbers(&[3.0, 1.0, 9.0, 2.0, 4.0, 3.0, 2.0, 5.0, 4.0, 3.0]),
+            ),
+            (
+                "g",
+                zeff_columns::Column::strs(
+                    ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"].map(Some),
+                ),
+            ),
+        ],
+    )
+}
+
+#[test]
+fn the_pairs_and_the_line_of_a_qq_plot_are_those_of_qqnorm_and_qqline() {
+    use zeff_core::value::Mark;
+    let gave = qq(&scores(), None, None);
+    let drawn = scene_of(&gave);
+    let layers = &drawn.panels[0].layers;
+    assert_eq!(
+        layers.iter().map(|l| l.mark).collect::<Vec<_>>(),
+        [Mark::Points, Mark::Lines]
+    );
+    // A point for each row, in the order of the rows, drawn from the frame given: the
+    // value along `y`, and along `x` the quantile of the rank of the value. R 4.6.0:
+    // `qqnorm(c(3, 1, 9, 2, 4, 3, 2, 5, 4, 3), plot.it = FALSE)$x`.
+    let points = &layers[0];
+    assert_eq!(points.y, [3.0, 1.0, 9.0, 2.0, 4.0, 3.0, 2.0, 5.0, 4.0, 3.0]);
+    assert_eq!(points.rows, (1..=10).collect::<Vec<_>>());
+    assert_eq!(points.data.as_deref(), Some("d"));
+    for (found, wanted) in points.x.iter().zip([
+        -0.375461770235518,
+        -1.54663527139923,
+        1.54663527139923,
+        -1.000490545619315,
+        0.375461770235518,
+        -0.122580843888802,
+        -0.655423505234427,
+        1.000490545619315,
+        0.655423505234427,
+        0.122580843888803,
+    ]) {
+        assert!((found - wanted).abs() < 1e-11, "{found} against {wanted}");
+    }
+    // The reference line: through the quartiles, 3.125 + 1.2972769411924 x, from the
+    // smallest quantile to the largest.
+    let line = &layers[1];
+    assert_eq!(line.x.len(), 2);
+    for k in 0..2 {
+        let at = line.x[k];
+        assert!((at.abs() - 1.54663527139923).abs() < 1e-11);
+        assert!((line.y[k] - (3.125 + 1.2972769411924 * at)).abs() < 1e-9);
+    }
+    // The axis of the quantiles names the distribution, and that of the values the
+    // variable.
+    assert_eq!(
+        drawn.scale("x").unwrap().title,
+        "Quantiles of normal(mean: 0, sd: 1)"
+    );
+    assert_eq!(drawn.scale("y").unwrap().title, "y");
+    assert!(gave.1.is_empty(), "{:?}", gave.1);
+    insta::assert_snapshot!("ten_scores_against_the_normal", drawn.json().write());
+
+    // Against another distribution: the quantiles are its own.
+    let t = zeff_core::value::Distribution::Family {
+        name: "t",
+        params: vec![("df", 3.0)],
+    };
+    let drawn = scene_of(&qq(&scores(), Some(t), None));
+    assert_eq!(drawn.scale("x").unwrap().title, "Quantiles of t(df: 3)");
+    let largest = drawn.panels[0].layers[0].x[2];
+    // `qt(ppoints(10)[10], 3)` is 2.13914803216.
+    assert!((largest - 2.13914803216).abs() < 1e-10, "{largest}");
+
+    // In panels by the arm: each panel has the pairs of its five rows, ranked among them,
+    // and its own line.
+    let drawn = scene_of(&qq(&scores(), Some(normal()), Some("g")));
+    assert_eq!(drawn.panels.len(), 2);
+    for panel in &drawn.panels {
+        assert_eq!(panel.layers[0].x.len(), 5);
+        assert_eq!(panel.layers[1].x.len(), 2);
+        let mut quantiles = panel.layers[0].x.clone();
+        quantiles.sort_by(f64::total_cmp);
+        // `qnorm(ppoints(5))`, to the twelve digits R prints.
+        for (found, wanted) in quantiles.iter().zip([
+            -1.179761117612,
+            -0.497200570682,
+            0.0,
+            0.497200570682,
+            1.179761117612,
+        ]) {
+            assert!((found - wanted).abs() < 1e-11, "{found}");
+        }
+    }
+    // The first arm is 3, 1, 9, 2, 4: its 9 has the largest quantile.
+    assert_eq!(drawn.panels[0].layers[0].y[2], 9.0);
+    assert!((drawn.panels[0].layers[0].x[2] - 1.179761117612).abs() < 1e-11);
+}
+
+#[test]
+fn the_edge_cases_of_a_qq_plot() {
+    // Rows without a value have no pair: they are left out and counted. One value has its
+    // point and no line; no value, nothing.
+    let frame = common::frame(
+        "d",
+        vec![
+            (
+                "y",
+                floats(&[Some(2.0), None, Some(5.0), Some(f64::INFINITY), Some(1.0)]),
+            ),
+            (
+                "g",
+                zeff_columns::Column::strs(["a", "a", "a", "a", "b"].map(Some)),
+            ),
+        ],
+    );
+    let gave = qq(&frame, None, None);
+    let drawn = scene_of(&gave);
+    assert_eq!(drawn.panels[0].layers[0].y, [2.0, 5.0, 1.0]);
+    assert_eq!(drawn.panels[0].layers[0].rows, [1, 3, 5]);
+    assert_eq!(gave.1.len(), 1, "{:?}", gave.1);
+    assert!(
+        gave.1[0].starts_with("2 rows with NA in theoretical or y dropped"),
+        "{:?}",
+        gave.1
+    );
+    // By the group: the second has one value, a point and no line.
+    let gave = qq(&frame, None, Some("g"));
+    let drawn = scene_of(&gave);
+    assert_eq!(drawn.panels[1].layers[0].x, [0.0]);
+    assert!(drawn.panels[1].layers[1].x.is_empty());
+    assert!(
+        gave.1
+            .contains(&"1 group with fewer than two values has no reference line".to_string()),
+        "{:?}",
+        gave.1
+    );
+    // Every value equal: the points lie level, and so does the line.
+    let level = common::frame("d", vec![("y", numbers(&[4.0, 4.0, 4.0, 4.0]))]);
+    let drawn = scene_of(&qq(&level, None, None));
+    assert_eq!(drawn.panels[0].layers[1].y, [4.0, 4.0]);
+    // A frame that has a variable called `theoretical` already is refused; so is a variable
+    // that is not numbers, and a panel by a variable that is not there.
+    let taken = common::frame(
+        "d",
+        vec![
+            ("y", numbers(&[1.0, 2.0])),
+            ("theoretical", numbers(&[1.0, 2.0])),
+        ],
+    );
+    let refused = qq(&taken, None, None).0.unwrap_err();
+    assert!(refused.contains("has one already"), "{refused}");
+    let refused = chain(
+        Value::Frame(scores()),
+        vec![(shorthands::qq_plot, vec![var("g")])],
+    )
+    .0
+    .unwrap_err();
+    assert!(refused.contains("so it must be numbers"), "{refused}");
+    let refused = qq(&scores(), None, Some("w")).0.unwrap_err();
+    assert!(refused.contains("no variable `w`"), "{refused}");
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(property_cases(96)))]
+
+    /// Whatever the rows, in panels or not: a point for each row with a finite value and for
+    /// no other, at its value; the quantiles of a panel rise with the values; and a
+    /// reference line where a panel has two values or more.
+    #[test]
+    fn a_qq_plot_has_a_point_for_each_value_and_they_rise_together(
+        rows in rows(),
+        by in prop::sample::select(vec![None, Some("g")]),
+    ) {
+        let frame = tried(&rows);
+        let gave = qq(&frame, None, by);
+        prop_assert!(gave.0.is_ok(), "{:?}", gave.0);
+        let drawn = scene_of(&gave);
+        let finite = rows.iter().filter(|row| row.1.is_some_and(f64::is_finite)).count();
+        let mut seen = 0;
+        for panel in &drawn.panels {
+            let points = &panel.layers[0];
+            seen += points.x.len();
+            let mut pairs: Vec<(f64, f64)> = points.y.iter().copied().zip(points.x.iter().copied()).collect();
+            pairs.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.total_cmp(&b.1)));
+            prop_assert!(pairs.windows(2).all(|pair| pair[0].1 < pair[1].1));
+            for (at, row) in points.rows.iter().enumerate() {
+                prop_assert_eq!(Some(points.y[at]), rows[row - 1].1);
+            }
+            let line = &panel.layers[1];
+            prop_assert_eq!(line.x.len(), if points.x.len() >= 2 { 2 } else { 0 });
+        }
+        prop_assert_eq!(seen, finite);
+    }
+}

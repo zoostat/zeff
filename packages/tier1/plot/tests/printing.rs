@@ -4377,3 +4377,85 @@ fn every_message_of_the_three_of_a_frame() {
     }
     insta::assert_snapshot!("the_three_of_a_frame_messages", all);
 }
+
+// ----- the shorthand `qq_plot` (step 29d) -----
+
+#[test]
+fn a_qq_plot_reads_sensibly_as_text() {
+    let script = format!(
+        "{SCORES}d.qq_plot(score)\n\
+         d.qq_plot(score, dist.t(df: 3))\n\
+         d.qq_plot(log(score), dist.normal(mean: 1, sd: 0.5), by: arm)\n\
+         d.qq_plot(score, by: arm).labels(title: \"Scores against the normal\", x: \"expected\")\n\
+         qq_plot(d, score)\n"
+    );
+    let text = printed(&script);
+    // Two layers: a point for each row, and the reference line with a frame of its own.
+    assert!(
+        text.contains("1   points   d                  10   size 4.5, alpha 1"),
+        "{text}"
+    );
+    assert!(
+        text.contains("2   lines    its own frame       2   y line, width 1, 1 line"),
+        "{text}"
+    );
+    // The axis of the quantiles names the distribution, unless the script names it.
+    assert!(
+        text.contains("Quantiles of normal(mean: 0, sd: 1)"),
+        "{text}"
+    );
+    assert!(text.contains("Quantiles of t(df: 3)"), "{text}");
+    assert!(
+        text.contains("Quantiles of normal(mean: 1, sd: 0.5)"),
+        "{text}"
+    );
+    assert!(text.contains("  x      expected "), "{text}");
+    insta::assert_snapshot!("qq_plots", text);
+}
+
+#[test]
+fn a_qq_plot_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{SCORES}let q = d.qq_plot(score)\n\
+         export(q, \"qq.svg\")\n\
+         export(q, \"qq.pdf\")\n\
+         export(q, \"qq.png\")\n\
+         export(d.qq_plot(score, by: arm).coord(flip), \"panels.svg\")\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
+}
+
+#[test]
+fn every_message_of_qq_plot() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_variable", "d.qq_plot()\n"),
+        ("a_variable_of_text", "d.qq_plot(name)\n"),
+        ("a_variable_of_dates", "d.qq_plot(day)\n"),
+        ("a_variable_not_there", "d.qq_plot(scores)\n"),
+        (
+            "a_distribution_that_is_a_word",
+            "d.qq_plot(score, normal)\n",
+        ),
+        ("a_distribution_that_is_a_number", "d.qq_plot(score, 3)\n"),
+        (
+            "panels_by_a_variable_not_there",
+            "d.qq_plot(score, by: site)\n",
+        ),
+        (
+            "panels_by_one_variable_twice",
+            "d.qq_plot(score, by: [arm, arm])\n",
+        ),
+        (
+            "a_frame_that_has_the_variable_already",
+            "d.add(theoretical = score).qq_plot(score)\n",
+        ),
+        ("a_qq_plot_of_a_plot", "p.qq_plot(score)\n"),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SCORES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("qq_plot_messages", all);
+}

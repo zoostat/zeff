@@ -1116,6 +1116,45 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "qq_plot",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var | Expr"),
+                    ParamSpec::option("distribution", "Distribution"),
+                    ParamSpec::option("by", "Var | Vars"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in var; the groups with fewer than two values, which have no reference line",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "no such variable in the frame, mapped, read by an expression or named by by:",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that is not numbers; a frame that already has a variable called theoretical; a variable named twice in by:",
+                    ),
+                ],
+                help: include_str!("../help/qq_plot.md"),
+                accuracy: None,
+            },
+            body: shorthands::qq_plot,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "coord",
                 package: "plot",
                 method: true,

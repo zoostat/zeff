@@ -162,3 +162,13 @@ Step 28 was split in four. 28a `[function]`: `histogram`, the rows of `x` counte
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the shorthand `histogram` takes no `color:` (groups go to panels with `by:`); the shorthand `boxplot` takes `group:` and `by:` only. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 29d (`qq_plot`)
+
+**Done.** `data.qq_plot(var)` draws each value against the quantile a distribution puts at its rank, with the reference line through the quartiles: the normal where none is given, any distribution of `dist` otherwise, in panels with `by:`. The pairs are R's `qqnorm` and the line R's `qqline`, to eleven places. Seven of the eight shorthands are built.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
+
+**Next.** Step 29e `[function]`: `heatmap`, and the conformance case over the eight, which completes step 29.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the distribution may be left out and is then the standard normal; the axis of the quantiles is titled by the distribution; a frame that already has a variable called `theoretical` is refused. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

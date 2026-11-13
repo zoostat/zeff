@@ -15,6 +15,7 @@ pub mod marginal;
 pub mod p_adjust;
 pub mod posthoc;
 pub mod proportion_test;
+pub mod qq;
 pub mod shapiro_test;
 pub mod t_test;
 pub mod testing;

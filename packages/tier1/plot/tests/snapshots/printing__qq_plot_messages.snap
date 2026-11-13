@@ -1,0 +1,91 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_variable
+error[Z0406]: `qq_plot` needs `var`
+ --> scripts/main.zeff:3:3
+  |
+3 | d.qq_plot()
+  |   ^^^^^^^ `var` is missing
+  |
+  = help: usage: `data.qq_plot(var, distribution: Distribution, by: Var | Vars)`
+
+== a_variable_of_text
+error[Z0401]: `qq_plot` compares the values of a variable with the quantiles of a distribution, so it must be numbers, but `name` is placed as categories
+ --> scripts/main.zeff:3:11
+  |
+3 | d.qq_plot(name)
+  |           ^^^^ categories
+  |
+  = help: give a variable of numbers, a Float, an Int or a Bool, or an expression that gives one, as in `qq_plot(log(wage))`
+
+== a_variable_of_dates
+error[Z0401]: `qq_plot` compares the values of a variable with the quantiles of a distribution, so it must be numbers, but `day` is placed on a scale of dates
+ --> scripts/main.zeff:3:11
+  |
+3 | d.qq_plot(day)
+  |           ^^^ dates
+  |
+  = help: give a variable of numbers, a Float, an Int or a Bool, or an expression that gives one, as in `qq_plot(log(wage))`
+
+== a_variable_not_there
+error[Z0101]: no variable `scores` in `d`
+ --> scripts/main.zeff:3:11
+  |
+3 | d.qq_plot(scores)
+  |           ^^^^^^ not a variable of d
+  |
+  = help: did you mean `score`? If you meant a category level, write it in quotes: `"score"`
+
+== a_distribution_that_is_a_word
+error[Z0101]: nothing is called `normal` here
+ --> scripts/main.zeff:3:18
+  |
+3 | d.qq_plot(score, normal)
+  |                  ^^^^^^ not a binding
+
+== a_distribution_that_is_a_number
+error[Z0401]: `distribution` of `qq_plot` must be a Distribution, but this is an Int
+ --> scripts/main.zeff:3:18
+  |
+3 | d.qq_plot(score, 3)
+  |                  ^ an Int
+  |
+  = help: usage: `data.qq_plot(var, distribution: Distribution, by: Var | Vars)`
+
+== panels_by_a_variable_not_there
+error[Z0101]: no variable `site` in `d`
+ --> scripts/main.zeff:3:22
+  |
+3 | d.qq_plot(score, by: site)
+  |                      ^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: score, arm, name, read, day
+
+== panels_by_one_variable_twice
+error[Z0401]: `by:` of `facet` names `arm` twice
+ --> scripts/main.zeff:3:22
+  |
+3 | d.qq_plot(score, by: [arm, arm])
+  |                      ^^^^^^^^^^ one variable, twice
+  |
+  = help: a plot is parted by each variable once; leave the second out
+
+== a_frame_that_has_the_variable_already
+error[Z0401]: `qq_plot` adds a variable called `theoretical` to the frame it draws, and this frame has one already
+ --> scripts/main.zeff:3:1
+  |
+3 | d.add(theoretical = score).qq_plot(score)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^ has `theoretical`
+  |
+  = help: give the variable another name first, as in `rename(expected = theoretical)`
+
+== a_qq_plot_of_a_plot
+error[Z0401]: `qq_plot` cannot be called on a Plot
+ --> scripts/main.zeff:3:1
+  |
+3 | p.qq_plot(score)
+  | ^ this is a Plot
+  |
+  = help: `qq_plot` takes a Frame first; `x.qq_plot(...)` is `qq_plot(x, ...)`

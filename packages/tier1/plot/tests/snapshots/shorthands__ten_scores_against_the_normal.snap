@@ -1,0 +1,80 @@
+---
+source: packages/tier1/plot/tests/shorthands.rs
+expression: drawn.json().write()
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "Quantiles of normal(mean: 0, sd: 1)",
+      "limits": [-1.7012987985391534, 1.701298798539153],
+      "breaks": [-1.5, -1, -0.5, 0, 0.5, 1, 1.5],
+      "labels": ["-1.5", "-1", "-0.5", "0", "0.5", "1", "1.5"],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "y",
+      "limits": [0.6, 9.4],
+      "breaks": [2, 4, 6, 8],
+      "labels": ["2", "4", "6", "8"],
+      "range": null
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "points",
+          "x": [-0.37546177023551847, -1.5466352713992304, 1.54663527139923, -1.0004905456193154, 0.37546177023551847, -0.12258084388880243, -0.6554235052344266, 1.0004905456193154, 0.6554235052344266, 0.12258084388880257],
+          "y": [3, 1, 9, 2, 4, 3, 2, 5, 4, 3],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": "d",
+          "rows": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        },
+        {
+          "mark": "lines",
+          "x": [-1.5466352713992304, 1.54663527139923],
+          "y": [1.1185857259789262, 5.131414274021073],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": null,
+          "rows": [1, 2],
+          "line": [1, 1],
+          "linetype": "solid",
+          "width": 1
+        }
+      ]
+    }
+  ],
+  "notes": []
+}
