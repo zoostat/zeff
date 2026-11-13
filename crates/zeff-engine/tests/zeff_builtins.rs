@@ -44,6 +44,8 @@ fn source(name: &'static str, text: &'static str) -> ZeffSource {
         name,
         file: Box::leak(format!("core/functions/{name}.zeff").into_boxed_str()),
         text,
+        cannot: &[],
+        also: &[],
     }
 }
 
@@ -249,5 +251,116 @@ proptest! {
         prop_assert_eq!(lines.len(), 4);
         prop_assert_eq!(lines[0], lines[1]);
         prop_assert_eq!(lines[2], lines[3]);
+    }
+}
+
+// ----- the two lists of a source (release 0.7.0, step 32e; open decision #139) -----
+
+/// A fixture whose body calls `log`, which declares W0204 and W0205, and divides.
+const RATIO: &str = "/// The log of a ratio.\n/// The logarithm of a number over one less than it, a fixture of the loader's tests.\n/// x: The number.\n/// returns: The logarithm, a Float.\n/// see also: log\n/// > log_ratio(2.0)\n/// 0.693147\nfn log_ratio(x: Float) -> Float { log(x / (x - 1)) }\n";
+
+fn listed(
+    cannot: &'static [(&'static str, &'static str)],
+    also: &'static [(&'static str, &'static str)],
+) -> Result<Vec<(String, String)>, String> {
+    let source = ZeffSource {
+        cannot,
+        also,
+        ..source("log_ratio", RATIO)
+    };
+    match build_with(&[source], &[&row("log_ratio", "log_ratio(x)")]) {
+        Ok(built) => Ok(built
+            .registry
+            .function("core", "log_ratio")
+            .expect("registered")
+            .spec
+            .diagnostics
+            .iter()
+            .map(|d| (d.code.to_string(), d.when.to_string()))
+            .collect()),
+        Err(errors) => Err(errors
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n")),
+    }
+}
+
+#[test]
+fn a_page_lists_what_the_called_functions_declare_less_what_the_body_cannot_raise() {
+    // As generated: everything `log` declares.
+    let codes = |list: &[(String, String)]| -> Vec<String> {
+        list.iter().map(|(code, _)| code.clone()).collect()
+    };
+    assert_eq!(codes(&listed(&[], &[]).unwrap()), ["W0204", "W0205"]);
+    // One taken off, with its reason; one put on, a code of the body's own condition.
+    let narrowed = listed(
+        &[(
+            "W0205",
+            "a fixture's reason: the argument is never negative",
+        )],
+        &[("Z0203", "the argument is NA")],
+    )
+    .unwrap();
+    assert_eq!(
+        narrowed,
+        [
+            ("Z0203".to_string(), "the argument is NA".to_string()),
+            (
+                "W0204".to_string(),
+                "log of zero gave -Inf (or Inf for a base below 1)".to_string()
+            ),
+        ]
+    );
+    // A called function's wording taken off and the function's own put in its place.
+    let reworded = listed(
+        &[("W0205", "the wording of `log` does not fit")],
+        &[("W0205", "the number is 1, so the ratio has no value")],
+    )
+    .unwrap();
+    assert_eq!(codes(&reworded), ["W0205", "W0204"]);
+    assert_eq!(reworded[0].1, "the number is 1, so the ratio has no value");
+    // A note has no code: it is put on with an empty one.
+    let noted = listed(&[], &[("", "the number was rounded")]).unwrap();
+    assert_eq!(
+        noted[0],
+        (String::new(), "the number was rounded".to_string())
+    );
+}
+
+#[test]
+fn a_list_that_is_out_of_date_unreasoned_or_idle_is_refused() {
+    for (cannot, also, said) in [
+        (
+            &[("Z0418", "no reason holds: `seq` is not called")][..],
+            &[][..],
+            "lists `Z0418` as a code its body cannot raise, but no function the body calls declares it: the line is out of date",
+        ),
+        (
+            &[("W0205", "  ")][..],
+            &[][..],
+            "lists `W0205` as a code its body cannot raise, without the reason",
+        ),
+        (
+            &[][..],
+            &[("Z0203", "")][..],
+            "lists `Z0203` as a code of its own, without saying when",
+        ),
+        (
+            &[][..],
+            &[("Z9876", "never")][..],
+            "lists `Z9876` as a code of its own, which no diagnostic of the engine has",
+        ),
+        (
+            &[][..],
+            &[("W0204", "a division by zero")][..],
+            "lists `W0204` as a code of its own, but a function its body calls declares it already",
+        ),
+    ] {
+        let text = listed(cannot, also).expect_err("the build is refused");
+        assert!(
+            text.contains("core::log_ratio") && text.contains(said),
+            "{text}"
+        );
     }
 }

@@ -13,6 +13,14 @@ pub struct ZeffSource {
     /// The file's path from the repository root, for diagnostics (`core/functions/clamp.zeff`).
     pub file: &'static str,
     pub text: &'static str,
+    /// The codes of the functions the body calls that the body cannot raise, each with the
+    /// reason in one line (open decision #139): they are left off the page's "Warnings and
+    /// notes", which is otherwise everything the called functions declare.
+    pub cannot: &'static [(&'static str, &'static str)],
+    /// The codes the body raises that no called function declares, each with when: those of
+    /// its own operators and conditions (a division, an `if` on `NA`). A note, which has no
+    /// code, is listed with an empty one, in either list.
+    pub also: &'static [(&'static str, &'static str)],
 }
 
 /// The `key: text` line of a `///` page, with its key in lower case: a parameter's name,

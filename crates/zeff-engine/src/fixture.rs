@@ -17,6 +17,8 @@ pub const FIXTURE_SOURCE: ZeffSource = ZeffSource {
     name: "builtin_fixture",
     file: "core/functions/builtin_fixture.zeff",
     text: FIXTURE_TEXT,
+    cannot: &[],
+    also: &[],
 };
 
 const FIXTURE_TEXT: &str = r#"/// Scale the absolute value of a number.

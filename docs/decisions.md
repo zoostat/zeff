@@ -4255,3 +4255,19 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **A question for the owner: a patch release.** Section 11.1 has a wrong-result fix ship as a patch release, here 0.6.1, beside the release it corrects. Cutting a release is the owner's command. The recommendation is to carry the correction in 0.7.0 and name it in its notes, since no engine has yet been published to anyone outside this repository; if 0.6.0 is in use anywhere, 0.6.1 is the three function files of this commit on the tag `v0.6.0`.
 
 **Reason.** The rule of `docs/known_issues.md` that a wrong result is fixed or the function withdrawn; section 6 of the Language Reference ("Names inside a frame's methods"); section 5.3 ("Scope").
+
+## 13 November 2026: the two lists of a built-in written in Zeff (release 0.7.0, step 32e; open decision #139)
+
+**The split.** The narrowing is built in two: the mechanism here (32e), and the lists of the fourteen functions with the scripts that show each code (32f). The mechanism changes no page, so it can be read and tested on its own.
+
+**The record.** `ZeffSource`, by which a package names a function it wrote in Zeff, gains two lists, empty unless filled: `cannot`, the codes of the functions the body calls that the body cannot raise, each with its reason in one line; and `also`, the codes the body raises that no called function declares, each with when. The second was not in the decision as first written. It is needed because the generated list is not only too long: it is also short of the codes of the body's own operators and conditions, which are not calls. `winsorize(x, at: NA)` stops with Z0203 (an `if` on `NA`, inside `assert`), and no function `winsorize` calls declares that code. The lists live in Rust, beside the `include_str!` of the file, so the language gains no syntax.
+
+**The page.** "Warnings and notes" of such a function is, in order: what it declares of its own (the Z0401 of an enclosing frame), the codes it gives `warn` and `note`, the codes of `also`, then everything the called functions declare less the codes of `cannot`. A code may stand in both lists: the called function's wording taken off and the function's own put in its place. A note has no code and is listed with an empty one. A function written in Zeff that calls another inherits the other's page as narrowed.
+
+**Held to what they say.** The build is refused when a line of `cannot` names a code that no called function declares (the line is out of date, which is how a change to a body shows), or one the body gives `warn` or `note` itself, or carries no reason; and when a line of `also` names a code no diagnostic of the engine has, or one a called function still on the page declares already, or does not say when.
+
+**What 32f adds, and this does not.** That the lists are true: each code left on a page raised through the function by a script, and no script raising a code off it. Until then the pages are as they were.
+
+**Tests.** `crates/zeff-engine/tests/zeff_builtins.rs`, on a fixture whose body calls `log` and divides: the generated list; one code taken off and one put on, in their order and wording; a code reworded through both lists; a note; and each of the five refusals with its message.
+
+**Reason.** The checklist's step 32e; section 9.1 of the Engine and Project Specification ("Warnings and notes"); open decision #139.

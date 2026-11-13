@@ -55,6 +55,8 @@ fn source(name: &'static str, text: &'static str) -> ZeffSource {
         name,
         file: Box::leak(format!("core/functions/{name}.zeff").into_boxed_str()),
         text,
+        cannot: &[],
+        also: &[],
     }
 }
 

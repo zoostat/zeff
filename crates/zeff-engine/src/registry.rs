@@ -244,6 +244,18 @@ pub fn build(
         .iter()
         .map(|key| (key.clone(), declared[key].clone()))
         .collect();
+    // The two lists a source may carry (open decision #139): the codes of the called
+    // functions that its body cannot raise, left off the page, and the codes its own operators
+    // and conditions raise, which no called function declares, put on it.
+    let lists_of: HashMap<(String, String), &ZeffSource> = parsed
+        .iter()
+        .map(|(source, _)| {
+            (
+                (source.package.to_string(), source.name.to_string()),
+                source,
+            )
+        })
+        .collect();
     for _ in 0..=keys.len() {
         let mut changed = false;
         for key in &keys {
@@ -253,9 +265,18 @@ pub fn build(
                     generated.push(decl.clone());
                 }
             }
+            for (code, when) in lists_of[key].also {
+                if !generated.iter().any(|g| g.code == *code) {
+                    generated.push(DiagnosticDecl::new(code, when));
+                }
+            }
             for callee in &calls_of[key] {
                 for decl in declared.get(callee).into_iter().flatten() {
-                    if !generated.iter().any(|g| g.code == decl.code) {
+                    let excluded = lists_of[key]
+                        .cannot
+                        .iter()
+                        .any(|(code, _)| *code == decl.code);
+                    if !excluded && !generated.iter().any(|g| g.code == decl.code) {
                         generated.push(decl.clone());
                     }
                 }
@@ -268,6 +289,76 @@ pub fn build(
         if !changed {
             break;
         }
+    }
+    // The lists are held to what they say: a code excluded is one a called function declares
+    // and the body does not raise itself; a code added is a code of the engine that no called
+    // function still on the page declares; each carries its reason.
+    for key in &keys {
+        let source = lists_of[key];
+        let mut problems: Vec<String> = Vec::new();
+        let from_callees = |code: &str, with_excluded: bool| {
+            calls_of[key].iter().any(|callee| {
+                declared.get(callee).into_iter().flatten().any(|decl| {
+                    decl.code == code
+                        && (with_excluded || !source.cannot.iter().any(|(c, _)| *c == code))
+                })
+            })
+        };
+        for (code, reason) in source.cannot {
+            if reason.trim().is_empty() {
+                problems.push(format!(
+                    "`{}` lists `{code}` as a code its body cannot raise, without the reason",
+                    source.name
+                ));
+            }
+            if !from_callees(code, true) {
+                problems.push(format!(
+                    "`{}` lists `{code}` as a code its body cannot raise, but no function the body calls declares it: the line is out of date",
+                    source.name
+                ));
+            }
+            if own_of[key]
+                .iter()
+                .chain(&codes_of[key])
+                .any(|d| d.code == *code)
+            {
+                problems.push(format!(
+                    "`{}` lists `{code}` as a code its body cannot raise, and raises it itself",
+                    source.name
+                ));
+            }
+        }
+        for (code, when) in source.also {
+            if when.trim().is_empty() {
+                problems.push(format!(
+                    "`{}` lists `{code}` as a code of its own, without saying when",
+                    source.name
+                ));
+            }
+            // A note has no code, and is listed with an empty one.
+            if !code.is_empty() && crate::explain::explain(code).is_err() {
+                problems.push(format!(
+                    "`{}` lists `{code}` as a code of its own, which no diagnostic of the engine has",
+                    source.name
+                ));
+            }
+            if from_callees(code, false) {
+                problems.push(format!(
+                    "`{}` lists `{code}` as a code of its own, but a function its body calls declares it already",
+                    source.name
+                ));
+            }
+        }
+        if !problems.is_empty() {
+            errors.push(RegistryError::ZeffBody {
+                package: source.package.to_string(),
+                name: source.name.to_string(),
+                problems,
+            });
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors);
     }
     for key in &keys {
         registry.declare_diagnostics(&key.0, &key.1, declared[key].clone());

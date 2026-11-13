@@ -122,7 +122,7 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   "Warnings and notes" is the union of the codes declared by the functions a body calls
   (`frame`'s and the reducers' for `center`, `skewness` and their kin), a message raised by an
   inner reducer names that reducer (`median` needs a Bool, Int or Float, from `mad`) and the
-  body's column (`value`, from `standardize`). The lists are narrowed at step 32e of 0.7.0,
+  body's column (`value`, from `standardize`). The lists are narrowed at step 32f of 0.7.0,
   by the rule of open decision #139. (Since 0.5.0; the warning of `skewness` and `kurtosis` for
   too few values carries W0205 from step 4.3 of 0.7.0.)
 - **The mean of values that cancel is within a rounding of the largest input, not of the
