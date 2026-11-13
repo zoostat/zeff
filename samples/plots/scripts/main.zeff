@@ -41,7 +41,9 @@ by_hours.export("output/fig4_hours.png", size: [120, 80])
 
 // 5. Size by area, and sex by colour and by shape at once: one legend for sex, one for hours.
 //    The notes on the rows that cannot be drawn are written under this figure.
-let sized = w2010.plot(x: exper, y: wage, size: hours, color: female, shape: female).points(alpha: 0.5)
+let sized = w2010
+    .plot(x: exper, y: wage, size: hours, color: female, shape: female)
+    .points(alpha: 0.5)
 sized
 sized.export("output/fig5_size_shape.svg", size: two_column, notes: true)
 sized.export("output/fig5_size_shape.pdf", size: two_column, notes: true)

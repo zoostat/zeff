@@ -8,7 +8,8 @@ seed(2026)
 // 2. Draws from several families into a frame. The scores follow a normal distribution, the
 //    waiting times an exponential one, the visits a Poisson one, and the wage index is a mixture
 //    of two kinds of worker.
-let wage_mix = dist.mixture([dist.lognormal(meanlog: 2.5, sdlog: 0.3), dist.lognormal(meanlog: 3.1, sdlog: 0.4)],
+let wage_mix = dist.mixture([dist.lognormal(meanlog: 2.5, sdlog: 0.3),
+                             dist.lognormal(meanlog: 3.1, sdlog: 0.4)],
                             probs: [0.6, 0.4])
 let sim = frame(score = dist.normal(mean: 100, sd: 15).draw(400),
                 wait = dist.exponential(rate: 0.5).draw(400),

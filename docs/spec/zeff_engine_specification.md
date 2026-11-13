@@ -111,7 +111,7 @@ survival = "^1.2"
 | `zeff new <name>` | Create a project folder with `zeff.toml`, `scripts/main.zeff`, `data/` and a `.gitignore` that leaves out the caches (`.zeff/cache/`, `.zeff/fetched/`), the run records (`.zeff/runs/`), the project lock file and `.zeff/session.zeff`, `.zemp/views.json` and `data/`, so a project can go into Git without its caches, its lock or, unless the user adds them, its data (Zemp Specification, section 5) |
 | `zeff run [script]` | Run `scripts/main.zeff` or the named script. `--fresh` ignores the result cache, `--replay` reuses the recorded values of `today()` and `now()` (section 3.8 of the Language Reference), `--deny-warnings` turns warnings into errors (section 11.1 of the Language Reference), `--no-external` refuses external steps (section 8.3), and `--refresh` and `--offline` repeat or forbid network requests (section 8.6); `--frozen` downloads nothing at all, and `--install` installs a missing pinned engine without asking (section 2.1) |
 | `zeff check [script]` | Parse, then check names, arguments, types and variables against the cached file schemas, without running any model (section 11 of the Language Reference) |
-| `zeff fmt` | Format every script in the project (no options) |
+| `zeff fmt` | Format every script in the project, the `.zeff` files of `scripts/` and `functions/` (section 3.5 of the Language Reference). The style has no settings. `--check` writes nothing, names the scripts that would change and exits with 1 if there is one |
 | `zeff test` | Run the project's `assert` checks and function tests |
 | `zeff lsp` | Start the language server used by editors (section 12) |
 | `zeff help <name>` | Print a function's help page (section 9.1); `zeff help regress` lists a package |

@@ -29,7 +29,8 @@ fn skewness(data: Frame, var: Var, adjusted: Bool = true) -> Float {
     let clean = data.where(!is_missing(var))
     let count = clean.n_rows()
     if adjusted && count < 3 {
-        warn("skewness needs at least three values for the adjusted form: the result is NA", code: W0205)
+        warn("skewness needs at least three values for the adjusted form: the result is NA",
+             code: W0205)
         return to(NA, Float)
     }
     if count < 2 {

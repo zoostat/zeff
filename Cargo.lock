@@ -1719,6 +1719,7 @@ dependencies = [
  "zeff-ir",
  "zeff-registry",
  "zeff-regress",
+ "zeff-syntax",
 ]
 
 [[package]]

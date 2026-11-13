@@ -67,8 +67,11 @@ fn settled(old: Record, new: Record) -> Bool {
     abs(new.mu - old.mu) < 1e-10
 }
 let k = 1.345 * complete.mad(lwage)
-let huber = iterate(start: {mu: complete.median(lwage)}, step: huber_step,
-                    args: {data: complete, k: k}, done: settled, max: 100)
+let huber = iterate(start: {mu: complete.median(lwage)},
+                    step: huber_step,
+                    args: {data: complete, k: k},
+                    done: settled,
+                    max: 100)
 print("median:", complete.median(lwage))
 print("mean:", complete.mean(lwage))
 print("Huber location:", huber.mu)

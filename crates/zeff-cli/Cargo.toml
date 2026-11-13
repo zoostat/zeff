@@ -22,6 +22,7 @@ zeff-regress.workspace = true
 zeff-conformance.workspace = true
 zeff-diagnostics.workspace = true
 zeff-ir.workspace = true
+zeff-syntax.workspace = true
 zeff-registry.workspace = true
 chrono = { version = "=0.4.45", default-features = false, features = ["clock"] }
 

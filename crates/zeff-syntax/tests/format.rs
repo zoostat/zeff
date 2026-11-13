@@ -187,6 +187,12 @@ fn every_script_of_the_repository_is_formatted_and_stays_so() {
             Err(why) => panic!("{name}: {why:?}"),
         };
         assert_eq!(formatted(&written), written, "{name} is not stable");
+        // From step 31b every script of the repository is kept formatted: `zeff fmt` in a
+        // sample project, and for the others the formatter through a project made for it.
+        assert!(
+            written == *text,
+            "{name} is not formatted; what the formatter writes:\n{written}"
+        );
         // The documentation lines of a function written in Zeff are its help page: they
         // come through as they are.
         for line in text
@@ -199,8 +205,6 @@ fn every_script_of_the_repository_is_formatted_and_stays_so() {
             );
         }
     }
-    let sample = &all[0];
-    insta::assert_snapshot!("sample_script_formatted", formatted(&sample.1));
 }
 
 fn property_cases(usual: u32) -> u32 {

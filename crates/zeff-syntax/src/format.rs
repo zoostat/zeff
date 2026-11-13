@@ -711,6 +711,15 @@ impl<'a> Printer<'a> {
             self.put(&flat);
             return;
         }
+        self.open_block(block);
+    }
+
+    /// A block over several lines, a statement to a line; an empty one stays `{}`.
+    fn open_block(&mut self, block: &Block) {
+        if block.statements.is_empty() && !self.commented(block.span.start, block.span.end) {
+            self.put("{}");
+            return;
+        }
         let base = self.indent;
         self.put("{");
         let things: Vec<(usize, usize)> = block
@@ -1038,27 +1047,7 @@ impl<'a> Printer<'a> {
                 self.block(&looped.body);
                 self.put("]");
             }
-            ExprKind::If {
-                cond,
-                then,
-                otherwise,
-            } => {
-                self.put("if ");
-                self.expr(cond);
-                self.put(" ");
-                self.block(then);
-                match otherwise.as_deref() {
-                    None => {}
-                    Some(Else::If(next)) => {
-                        self.put(" else ");
-                        self.expr(next);
-                    }
-                    Some(Else::Block(block)) => {
-                        self.put(" else ");
-                        self.block(block);
-                    }
-                }
-            }
+            ExprKind::If { .. } => self.branches(e),
             ExprKind::Case { arms } => self.case(arms, e.span),
             ExprKind::Model(lines) => self.model(lines, e.span),
             ExprKind::Dag(lines) => self.dag(lines, e.span),
@@ -1240,8 +1229,9 @@ impl<'a> Printer<'a> {
                 return;
             }
         }
-        // Under the first member; a comment before the first has no place there.
-        let comment_first = self.commented(span.start, first);
+        // Under the first member; a comment before the first has no place there, and where
+        // the author began the members on a line of their own they keep to that form.
+        let comment_first = self.commented(span.start, first) || self.broken(span.start, first);
         let mut under = self.apart();
         if !comment_first {
             under.put(open);
@@ -1378,6 +1368,35 @@ impl<'a> Printer<'a> {
             }
             self.expr(operand);
             before = operand.span.end;
+        }
+    }
+
+    /// An `if` that is not written on one line: each of its blocks, to the last `else`, is
+    /// written over several lines, so that the branches read alike.
+    fn branches(&mut self, e: &Expr) {
+        let ExprKind::If {
+            cond,
+            then,
+            otherwise,
+        } = &e.kind
+        else {
+            self.expr(e);
+            return;
+        };
+        self.put("if ");
+        self.expr(cond);
+        self.put(" ");
+        self.open_block(then);
+        match otherwise.as_deref() {
+            None => {}
+            Some(Else::If(next)) => {
+                self.put(" else ");
+                self.branches(next);
+            }
+            Some(Else::Block(block)) => {
+                self.put(" else ");
+                self.open_block(block);
+            }
         }
     }
 

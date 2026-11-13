@@ -59,7 +59,8 @@ let m2 = wages.reg(f, fe: industry + year, cluster: worker)
 let m3 = wages.reg(f + educ:female, fe: firm + year, cluster: firm)
 m2
 m3.r_squared()
-report([m1, m2, m3], stats: [n_obs, r_squared, r_squared_within],
+report([m1, m2, m3],
+       stats: [n_obs, r_squared, r_squared_within],
        title: "Table 1. The wage equation with and without fixed effects")
 
 // 6. An event study on a staggered policy: 60 units over ten years, adopting in 2013, 2015 or

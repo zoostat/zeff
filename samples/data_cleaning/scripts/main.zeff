@@ -6,8 +6,12 @@
 // 1. Import. The file has `;` between fields, a decimal comma, a point between groups of digits,
 //    Windows-1252 letters, -99 for a missing value, and headers with spaces, which `names: snake`
 //    turns into names a script can write.
-let raw = import("data/staff_de.csv", decimal: ",", thousands: ".", encoding: "windows-1252",
-                 na_values: [-99], names: snake)
+let raw = import("data/staff_de.csv",
+                 decimal: ",",
+                 thousands: ".",
+                 encoding: "windows-1252",
+                 na_values: [-99],
+                 names: snake)
 raw.describe()
 raw.head(5)
 
@@ -27,7 +31,12 @@ staff.sort([region, hourly]).select([region, hourly, hours, wage]).head(5)
 staff.summary([wage, hourly, hours, educ], by: female)
 staff.mean(wage, by: region)
 staff.quantile(hourly, p: [0.1, 0.5, 0.9])
-print("workers:", staff.n_rows(), "regions:", n_distinct(staff["region"]), "median hourly wage:", staff.median(hourly))
+print("workers:",
+      staff.n_rows(),
+      "regions:",
+      n_distinct(staff["region"]),
+      "median hourly wage:",
+      staff.median(hourly))
 
 // 4. A shipped dataset, loaded with its labels and categories, and the same statistics on it.
 let sleep = dataset(sleep)

@@ -22,7 +22,9 @@ wages.summary([wage, hours, educ])
 wages.summary(stats: [n, mean, sd])
 
 // A frame built in the script, and values printed together.
-let scores = frame(group = ["a", "b", "c", "d"], score = [1.5, NA, 3, 4.25], passed = [true, false, true, true])
+let scores = frame(group = ["a", "b", "c", "d"],
+                   score = [1.5, NA, 3, 4.25],
+                   passed = [true, false, true, true])
 scores
 scores.describe()
 scores.summary()

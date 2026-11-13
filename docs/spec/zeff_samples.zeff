@@ -14,7 +14,7 @@
 //     [data]
 //     lfs = { path = "D:/surveys/lfs" }          # data roots are always read-only
 
-use functions::robustness          // functions/robustness.zeff, shown in section 6; use comes first
+use functions::robustness                             // functions/robustness.zeff, shown in section 6; use comes first
 
 seed(20261015)
 
@@ -24,7 +24,7 @@ seed(20261015)
 let wages = import("data/wages.csv",
                    na_values: [-99, -98],
                    types: {hours: Str},
-                   names: snake)                     // "Gross Wage" becomes gross_wage
+                   names: snake)                      // "Gross Wage" becomes gross_wage
     .where(year >= 2010 && age >= 18)
     .add(lwage = log(gross_wage),
          exper2 = exper^2,
@@ -62,22 +62,22 @@ wages.scatter(educ, lwage, fit: linear, color: female).export("output/fig_educ.p
 let firms = import("data/firms.csv")
 let firm_sales = import("data/sales_wide.csv")
     .to_long("sales_", id: firm_id, names_to: "year", values_to: "sales")
-    .merge(firms, on: firm_id, relation: many_to_one)          // reports unmatched rows
+    .merge(firms, on: firm_id, relation: many_to_one)  // reports unmatched rows
     .add(log_sales = log1p(sales))
 
 let by_industry = firm_sales.aggregate(avg_sales = mean(sales),
                                        med_sales = median(sales),
                                        firms = n(),
-                                  by: [industry, year])
+                                       by: [industry, year])
 by_industry.sort([industry, year]).save("output/industry_year.csv")
 
 
 // ── 4. Panel variables ───────────────────────────────────────────────
 
-let wages = wages.add(wage_growth = diff(lwage),          // within each worker, in year order
+let wages = wages.add(wage_growth = diff(lwage),      // within each worker, in year order
                       lag_hours = lag(hours),
                       lwage_w = winsorize(lwage, at: 0.01))
-let wages = wages.add(dev_firm = lwage - mean(lwage), by: firm)   // deviation from firm mean
+let wages = wages.add(dev_firm = lwage - mean(lwage), by: firm)  // deviation from firm mean
 
 
 // ── 5. Regression ────────────────────────────────────────────────────
@@ -196,7 +196,7 @@ let slopes = [for m in sims {
     if m.is(Failed) { continue }
     m.coef(x)
 }]
-frame(b = slopes).summary([b])                         // sampling distribution of the slope
+frame(b = slopes).summary([b])                        // sampling distribution of the slope
 
 
 // ── 12. Reliability of a survey scale ────────────────────────────────
@@ -215,7 +215,7 @@ let g = dag {
     [age, region] -> training
     latent ability
 }
-g.adjustment_sets(exposure: training, outcome: productivity)   // none: ability is latent
+g.adjustment_sets(exposure: training, outcome: productivity)  // none: ability is latent
 g.implied_independencies()
 g.plot().export("output/fig_dag.pdf", size: one_column)
 
@@ -228,8 +228,8 @@ mt.check(g, exposure: training)                       // warns: tenure is a medi
 
 let wages = wages.add(industry = category(industry, contrast: sum))
 let m5 = wages.reg(lwage ~ educ + exper + exper2 + industry, se: robust)
-m5.derive(peak_exper = -exper / (2 * exper2),          // experience at peak earnings
-          educ_vs_exper = educ / exper)                // delta-method SEs
+m5.derive(peak_exper = -exper / (2 * exper2),         // experience at peak earnings
+          educ_vs_exper = educ / exper)               // delta-method SEs
 
 
 // ── 15. Layered plots: the grammar behind the quick plots ────────────
@@ -243,7 +243,9 @@ plot(wages, x: educ, y: lwage, color: female)         // a bare name maps a vari
     .theme(journal)
     .export("output/fig_wages.pdf", size: two_column)
 
-let means = wages.aggregate(mean_lwage = mean(lwage), se = sd(lwage) / sqrt(n()), by: [industry, female])
+let means = wages.aggregate(mean_lwage = mean(lwage),
+                            se = sd(lwage) / sqrt(n()),
+                            by: [industry, female])
 plot(means, x: industry, y: mean_lwage, color: female)
     .bars(position: dodge)                            // values, since y is mapped; the baseline is zero
     .errorbars(low: mean_lwage - 1.96 * se, high: mean_lwage + 1.96 * se)

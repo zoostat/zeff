@@ -4141,3 +4141,31 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **The specification.** The example of section 3.5 is corrected (`docs/spec_changes.md`); open decision #137 gains points 8 to 12.
 
 **Reason.** The checklist's step 31a; section 3.5 of the Language Reference; section 11.1 (pragmas); the testing handbook's kinds of test (snapshot, property).
+
+## 13 November 2026: `zeff fmt` and `zeff fmt --check` (release 0.7.0, step 31b)
+
+**The command.** `zeff fmt` formats every script of the project: each `.zeff` file of `functions/` and of `scripts/`, at any depth, in the order of their paths. A file is written only when it changes. `zeff fmt --check` writes nothing. Like `run` and `check` it needs a project (Z0709 outside one) and takes `--project`; it takes no script, since the specification has it format the project. `.zeff/session.zeff`, the console's own file, is not a script of the project and is left alone.
+
+**What it says.** All on standard error, as progress and diagnostics are (section 2.1): `formatted <path>` for each file written, or `would format <path>` under `--check`; then one closing line, `formatted 2 of 5 scripts`, `5 scripts: formatted already`, `2 of 5 scripts would change: `zeff fmt` formats them` or `5 scripts: formatted`. A script that does not parse is shown with the parser's own diagnostics and left as it is, and a last line counts such scripts. A project with no script says so.
+
+**Exit codes**, on the pattern of section 3.8 of the Language Reference: 0; 1 when a script does not parse, cannot be read or cannot be written, and under `--check` when a script would change; 2 when the formatter cannot vouch for a result (Z9001, an internal error, with the script named and left as it is). The other scripts are still formatted in each case: one bad file does not hold up the rest.
+
+**`--check`** is an option of `fmt` alone; with another command it is a usage error. `--format json` stays with the commands that have it.
+
+**A test hook.** `ZEFF_FMT_FORCE_INTERNAL`, naming a script, makes the formatter fail on it, so that the path of the internal error is exercised; it follows `ZEFF_SELFTEST_FORCE_MISMATCH` of the self-test.
+
+**Two layouts put right** on reading the formatted repository: an `if` with an `else` too long for one line has every branch over several lines, and members begun on a new line after their bracket keep that form (open decision #137, points 13 and 14).
+
+**Every script of the repository formatted.** Twelve of the 24 changed: the specification's sample script (11 lines, `docs/spec_changes.md`), the script of each of the seven sample projects (their two functions were in the style already), and four of the fourteen functions written in Zeff (`fill_missing`, `kurtosis`, `skewness`, `winsorize`), where lines longer than 100 characters are broken and nothing else. The sample projects were formatted with `zeff fmt --project`; the sample script and the package functions, which lie in no project, through a project made for the purpose outside the repository. The scripts held as text inside Rust sources (the conformance cases, the tests) are not files and are not rewritten; the formatter is tested on them in `crates/zeff-conformance/tests/format.rs`.
+
+**What moved with them.** Nothing any sample prints. The line numbers in the notes and warnings of four samples moved with the lines (`first_engine`, `data_cleaning`, `panel`, `plots`), so their `expected/stderr.txt` and four digests of the conformance list change (`sample/stderr`, `data_cleaning/stderr`, `panel/stderr`, `plots/stderr`); every other of the 469 digests is as it was. Each difference was read: the same messages, with other line numbers.
+
+**Held from now on.** The `lint` job builds the command and runs `zeff fmt --check` on every sample project; the test of the syntax crate that formats every script of the repository now also asks that each be formatted already, which covers the sample script and the package functions. The stored copy of the formatted sample script, added at step 31a, is removed: the file itself is now that text.
+
+**The dependency.** `zeff-cli` now depends on `zeff-syntax` directly (it reached it through the engine before); no crate is added.
+
+**Tests.** `crates/zeff-cli/tests/cli.rs`: the command on a project with an untidy script, an untidy function and a script with carriage returns in a folder of `scripts/` (what is written, what is said, a second run, `--project`, and that the formatted script still checks); `--check` (nothing written, exit 1, the counts of one and of several, a project of one script and of none); a script that does not parse (a snapshot, the file untouched, the others formatted); a file that is not text, a file that cannot be written, and the internal error; and every usage error with the usage text.
+
+**The specification.** The row of `zeff fmt` in section 2.1 of the Engine and Project Specification, and the form of `zeff_samples.zeff` (`docs/spec_changes.md`); open decision #137 gains points 13 and 14.
+
+**Reason.** The checklist's step 31b; section 2.1 of the Engine and Project Specification; section 3.5 of the Language Reference; the Testing Handbook, section 2 (the routine on every change).

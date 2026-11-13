@@ -1432,3 +1432,261 @@ fn deny_warnings_and_pragmas_through_the_program() {
         err(&o)
     );
 }
+
+// ----- zeff fmt (release 0.7.0, step 31b) -----
+
+const UNTIDY: &str = "// Wages and schooling\nlet w=dataset(wages).where(year>=2010&&age>=18).add(lwage=log(wage),exper2=exper^2)   // the sample\n\n\n\nlet m=w.reg(lwage~educ+exper+exper2,fe:firm+year,cluster:firm,se:robust)\nlet means = w.aggregate(mean_lwage=mean(lwage),se=sd(lwage)/sqrt(n()),by:[industry,female])\n";
+
+const TIDY: &str = "// Wages and schooling\nlet w = dataset(wages).where(year >= 2010 && age >= 18).add(lwage = log(wage), exper2 = exper^2)  // the sample\n\n\nlet m = w.reg(lwage ~ educ + exper + exper2, fe: firm + year, cluster: firm, se: robust)\nlet means = w.aggregate(mean_lwage = mean(lwage),\n                        se = sd(lwage) / sqrt(n()),\n                        by: [industry, female])\n";
+
+/// A project with an untidy script, an untidy function, a script in a folder of `scripts/`
+/// written with carriage returns, and the script of `zeff new`, which is tidy.
+fn untidy() -> (tempfile::TempDir, std::path::PathBuf) {
+    let (dir, project) = demo();
+    std::fs::write(project.join("scripts/wages.zeff"), UNTIDY).unwrap();
+    std::fs::create_dir_all(project.join("functions")).unwrap();
+    std::fs::write(
+        project.join("functions/twice.zeff"),
+        "/// Twice a number.\n///\n/// The number doubled.\n///\n/// x: The number.\n/// returns: The number times two, a Float.\n/// > twice(2.0)\n/// 4\nfn twice(x:Float)->Float{x*2}\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(project.join("scripts/old")).unwrap();
+    std::fs::write(
+        project.join("scripts/old/first.zeff"),
+        "let a = 1  \r\nlet b = a + 1\r\n",
+    )
+    .unwrap();
+    (dir, project)
+}
+
+#[test]
+fn zeff_fmt_writes_every_script_of_the_project_in_the_one_style() {
+    let (_dir, project) = untidy();
+    let read = |name: &str| std::fs::read_to_string(project.join(name)).unwrap();
+    let main = read("scripts/main.zeff");
+    let o = zeff(&project, &["fmt"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "");
+    assert_eq!(
+        err(&o),
+        "formatted functions/twice.zeff\nformatted scripts/old/first.zeff\n\
+         formatted scripts/wages.zeff\nformatted 3 of 4 scripts\n"
+    );
+    assert_eq!(read("scripts/wages.zeff"), TIDY);
+    assert_eq!(
+        read("functions/twice.zeff"),
+        "/// Twice a number.\n///\n/// The number doubled.\n///\n/// x: The number.\n/// returns: The number times two, a Float.\n/// > twice(2.0)\n/// 4\nfn twice(x: Float) -> Float { x * 2 }\n"
+    );
+    assert_eq!(read("scripts/old/first.zeff"), "let a = 1\nlet b = a + 1\n");
+    assert_eq!(read("scripts/main.zeff"), main);
+    // A second time there is nothing to do, from any folder of the project, or named.
+    let o = zeff(&project.join("scripts"), &["fmt"]);
+    assert_eq!(code(&o), 0);
+    assert_eq!(err(&o), "4 scripts: formatted already\n");
+    let parent = project.parent().unwrap();
+    let o = zeff(parent, &["fmt", "--check", "--project", "demo"]);
+    assert_eq!(code(&o), 0);
+    assert_eq!(err(&o), "4 scripts: formatted\n");
+    // The script still runs as it did: the formatter changed its spaces alone.
+    let o = zeff(&project, &["check", "scripts/wages.zeff"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+}
+
+#[test]
+fn zeff_fmt_check_writes_nothing_and_exits_1_when_a_script_would_change() {
+    let (_dir, project) = untidy();
+    let o = zeff(&project, &["fmt", "--check"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o), "");
+    assert_eq!(
+        err(&o),
+        "would format functions/twice.zeff\nwould format scripts/old/first.zeff\n\
+         would format scripts/wages.zeff\n\
+         3 of 4 scripts would change: `zeff fmt` formats them\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join("scripts/wages.zeff")).unwrap(),
+        UNTIDY
+    );
+    assert_eq!(
+        std::fs::read(project.join("scripts/old/first.zeff")).unwrap(),
+        b"let a = 1  \r\nlet b = a + 1\r\n"
+    );
+    // One script alone.
+    std::fs::remove_file(project.join("functions/twice.zeff")).unwrap();
+    std::fs::remove_file(project.join("scripts/old/first.zeff")).unwrap();
+    let o = zeff(&project, &["fmt", "--check"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(
+        err(&o),
+        "would format scripts/wages.zeff\n1 of 2 scripts would change: `zeff fmt` formats it\n"
+    );
+    // The option is before or after the command.
+    let o = zeff(&project, &["--check", "fmt"]);
+    assert_eq!(code(&o), 1);
+    // A project of one script.
+    std::fs::remove_file(project.join("scripts/wages.zeff")).unwrap();
+    let o = zeff(&project, &["fmt", "--check"]);
+    assert_eq!(code(&o), 0);
+    assert_eq!(err(&o), "1 script: formatted\n");
+    let o = zeff(&project, &["fmt"]);
+    assert_eq!(code(&o), 0);
+    assert_eq!(err(&o), "1 script: formatted already\n");
+    // And of none.
+    std::fs::remove_file(project.join("scripts/main.zeff")).unwrap();
+    for args in [&["fmt"][..], &["fmt", "--check"]] {
+        let o = zeff(&project, args);
+        assert_eq!(code(&o), 0);
+        assert_eq!(
+            err(&o),
+            "no scripts to format: the project has no `.zeff` file in `scripts/` or `functions/`\n"
+        );
+    }
+}
+
+#[test]
+fn zeff_fmt_leaves_a_script_that_does_not_parse_and_says_why() {
+    let (_dir, project) = untidy();
+    std::fs::write(project.join("scripts/broken.zeff"), "let a=1\nlet = 3\n").unwrap();
+    let o = zeff(&project, &["fmt"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o), "");
+    insta::assert_snapshot!("fmt_with_a_script_that_does_not_parse", err(&o));
+    // The script is as it was, and the others are formatted.
+    assert_eq!(
+        std::fs::read_to_string(project.join("scripts/broken.zeff")).unwrap(),
+        "let a=1\nlet = 3\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join("scripts/wages.zeff")).unwrap(),
+        TIDY
+    );
+    let o = zeff(&project, &["fmt", "--check"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).ends_with("4 scripts: formatted\n1 script does not parse and was left as it is\n"),
+        "{}",
+        err(&o)
+    );
+    // Two of them, and nothing else in the project.
+    std::fs::write(project.join("scripts/main.zeff"), "x.\n").unwrap();
+    std::fs::remove_file(project.join("scripts/wages.zeff")).unwrap();
+    std::fs::remove_file(project.join("scripts/old/first.zeff")).unwrap();
+    std::fs::remove_file(project.join("functions/twice.zeff")).unwrap();
+    let o = zeff(&project, &["fmt"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).ends_with("\n2 scripts do not parse and were left as they are\n"),
+        "{}",
+        err(&o)
+    );
+    assert!(!err(&o).contains("formatted"), "{}", err(&o));
+}
+
+#[test]
+fn zeff_fmt_says_what_it_could_not_read_or_write_or_vouch_for() {
+    let (_dir, project) = untidy();
+    // A file that is not text.
+    std::fs::write(project.join("scripts/latin.zeff"), b"let caf\xe9 = 1\n").unwrap();
+    let o = zeff(&project, &["fmt", "--check"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("error: cannot read scripts/latin.zeff: "),
+        "{}",
+        err(&o)
+    );
+    assert!(
+        err(&o).ends_with("3 of 4 scripts would change: `zeff fmt` formats them\n"),
+        "{}",
+        err(&o)
+    );
+    std::fs::remove_file(project.join("scripts/latin.zeff")).unwrap();
+    // A result the formatter cannot vouch for is not written: an internal error, exit code 2.
+    let o = zeff_env(
+        &project,
+        "ZEFF_FMT_FORCE_INTERNAL",
+        "scripts/wages.zeff",
+        &["fmt"],
+    );
+    assert_eq!(code(&o), 2);
+    assert!(
+        err(&o).contains(
+            "error[Z9001]: internal error: this is a bug in Zeff, not in your script\n  \
+             the formatter left scripts/wages.zeff as it is: forced by ZEFF_FMT_FORCE_INTERNAL\n"
+        ),
+        "{}",
+        err(&o)
+    );
+    assert!(
+        err(&o).ends_with("formatted 2 of 3 scripts\n"),
+        "{}",
+        err(&o)
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join("scripts/wages.zeff")).unwrap(),
+        UNTIDY
+    );
+    // A script that cannot be written (where the system refuses the owner of a read-only
+    // file, which it does not for an administrator).
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let path = project.join("scripts/wages.zeff");
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o444)).unwrap();
+        if std::fs::OpenOptions::new().write(true).open(&path).is_err() {
+            let o = zeff(&project, &["fmt"]);
+            assert_eq!(code(&o), 1);
+            assert!(
+                err(&o).starts_with("error: cannot write scripts/wages.zeff: "),
+                "{}",
+                err(&o)
+            );
+            assert!(
+                err(&o).ends_with("3 scripts: formatted already\n"),
+                "{}",
+                err(&o)
+            );
+        }
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+    }
+}
+
+#[test]
+fn zeff_fmt_takes_no_script_and_check_is_its_option_alone() {
+    let (_dir, project) = demo();
+    let o = zeff(&project, &["fmt", "scripts/main.zeff"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).starts_with(
+            "error: `zeff fmt` takes no script: it formats every script of the project\n"
+        ),
+        "{}",
+        err(&o)
+    );
+    for command in [&["check", "--check"][..], &["run", "--check"], &["--check"]] {
+        let o = zeff(&project, command);
+        assert_eq!(code(&o), 1);
+        assert!(
+            err(&o).starts_with("error: `--check` applies to `zeff fmt`\n"),
+            "{}",
+            err(&o)
+        );
+    }
+    let o = zeff(&project, &["fmt", "--format", "json"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("`--format json` applies to"),
+        "{}",
+        err(&o)
+    );
+    // The usage text names the command and its option.
+    let usage = out(&zeff(&project, &["help"]));
+    assert!(
+        usage.contains("\n  fmt               write every script of the project"),
+        "{usage}"
+    );
+    assert!(
+        usage.contains("\n  --check                 for `fmt`:"),
+        "{usage}"
+    );
+}

@@ -54,8 +54,10 @@ let empty = if a {} else {}
 /// data: The frame.
 /// > robustness(d)
 fn robustness(data: Frame, f: Formula, cluster: Var = firm) -> List<RegFit> {
-    [data.reg(f, se: robust),
-     data.reg(f, cluster: cluster)]
+    [
+        data.reg(f, se: robust),
+        data.reg(f, cluster: cluster),
+    ]
 }
 
 fn with_many_parameters(first_parameter: Column<Float>,
@@ -67,7 +69,9 @@ fn with_many_parameters(first_parameter: Column<Float>,
     for x in xs {
         if x > 1 {
             continue
-        } else if x < 0 { break } else {
+        } else if x < 0 {
+            break
+        } else {
             print(x)
         }
     }

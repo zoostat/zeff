@@ -46,7 +46,8 @@
 /// 9
 /// 91.81
 fn winsorize(x: Column<Float>, at: Float = 0.01) -> Column<Float> {
-    assert(at >= 0 && at <= 0.5, "`at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross")
+    assert(at >= 0 && at <= 0.5,
+           "`at:` of `winsorize` is a share between 0 and 0.5; above 0.5 the cut points would cross")
     let f = frame(value = x)
     clamp(x, f.quantile(value, at), f.quantile(value, 1 - at))
 }

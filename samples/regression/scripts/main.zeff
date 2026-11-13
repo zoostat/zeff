@@ -47,13 +47,19 @@ m5.derive(peak_exper = -exper / (2 * exper2), return_decade = exp(educ * 10) - 1
 // 6. Influence and prediction: the three most influential rows, and predictions for new
 //    workers.
 m3.influence().sort(cooks_distance, desc: true).head(3)
-m3.predict(newdata: frame(educ = [12, 16, 16], exper = [5, 5, 20], exper2 = [25, 25, 400], female = [0, 1, 1]))
+m3.predict(newdata: frame(educ = [12, 16, 16],
+                          exper = [5, 5, 20],
+                          exper2 = [25, 25, 400],
+                          female = [0, 1, 1]))
 
 // 7. The publication table, printed and exported to Word and LaTeX, and one model's summary
 //    exported on its own.
-let table1 = report([m1, m2, m3, m4], stats: [n_obs, r_squared],
-                   labels: {educ: "Years of schooling", exper: "Experience", exper2: "Experience squared"},
-                   title: "Table 1. Log hourly wage")
+let table1 = report([m1, m2, m3, m4],
+                    stats: [n_obs, r_squared],
+                    labels: {educ: "Years of schooling",
+                             exper: "Experience",
+                             exper2: "Experience squared"},
+                    title: "Table 1. Log hourly wage")
 table1
 table1.export("output/table1.docx")
 table1.export("output/table1.tex")

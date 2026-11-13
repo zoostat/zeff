@@ -462,11 +462,11 @@ milestone/stderr b9c8b38efbf6aca6
 milestone/exit_code a8c7f832281a39c5
 # milestone/exit_code bits 0000000000000000
 sample/stdout 60d5ee6c5a58ba4b
-sample/stderr 3dc14f8960d940fc
+sample/stderr 2a0b42a40dea3602
 sample/exit_code a8c7f832281a39c5
 # sample/exit_code bits 0000000000000000
 data_cleaning/stdout 04c6367e4ed6627d
-data_cleaning/stderr e7c4b6fde11ba657
+data_cleaning/stderr b1cb5de9be7c175f
 data_cleaning/exit_code a8c7f832281a39c5
 # data_cleaning/exit_code bits 0000000000000000
 simulation/stdout f3496c06ceb1594d
@@ -485,12 +485,12 @@ user_functions/stderr e520ab3d7c59acaf
 user_functions/exit_code a8c7f832281a39c5
 # user_functions/exit_code bits 0000000000000000
 panel/stdout 8f9eeec8e717e2a4
-panel/stderr c73a4a9c2d0643ec
+panel/stderr f599f45b43447c95
 panel/exit_code a8c7f832281a39c5
 # panel/exit_code bits 0000000000000000
 panel/output/industry_year.csv 4a627b56e0a02c82
 plots/stdout 8afbe7fa9286dfef
-plots/stderr a5d269993318b08c
+plots/stderr e14d55a6c7d63e5e
 plots/exit_code a8c7f832281a39c5
 # plots/exit_code bits 0000000000000000
 plots/output/fig1_wage_schooling.pdf 61461bef17db89b4

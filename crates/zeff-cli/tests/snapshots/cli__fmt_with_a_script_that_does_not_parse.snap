@@ -1,0 +1,15 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: err(&o)
+---
+formatted functions/twice.zeff
+error[Z0301]: expected a name, found `=`
+ --> scripts/broken.zeff:2:5
+  |
+2 | let = 3
+  |     ^ expected a name
+
+formatted scripts/old/first.zeff
+formatted scripts/wages.zeff
+formatted 3 of 4 scripts
+1 script does not parse and was left as it is

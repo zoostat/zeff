@@ -173,3 +173,13 @@ Step 29c was split in two. 29c1 `[engine]`: a function is known by its package, 
 **Next.** Step 31b `[engine]`: `zeff fmt` and `zeff fmt --check` over a project's `scripts/` and `functions/`, every script of the repository formatted (the specification's sample script among them, 11 lines of spacing, logged as a change of form), and `--check` in the `lint` job. Then 31c `[engine]`, the nightly fuzz target.
 
 **For the owner to decide.** Open decision #137 gained points 8 to 12 while building, each taken on the recommendation, his to overturn: lines the author broke are never joined; one method on a call starts a new line when the chain is too long; a comment is never moved or cut to keep to 100 characters; a pragma at the end of a line stays on the first line of its statement; a result the formatter cannot vouch for is not written. The example of section 3.5 was corrected (its line fitted in 100 characters). Open as before: #136, #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 31b (`zeff fmt`)
+
+**Done.** `zeff fmt` writes every script of a project (`scripts/` and `functions/`) in the one style; `zeff fmt --check` writes nothing and exits with 1 when a script would change. A script that does not parse is left as it is with its errors shown. Every script of the repository is formatted: 12 of the 24 changed, in spacing and line breaks alone, the specification's sample script on 11 lines. What the samples print is unchanged; the line numbers in the messages of four of them moved with their lines.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine, `zeff fmt --check` on the samples; `zeff selftest` at 469 of 469 (four digests of messages republished); CI is read job by job after the push.
+
+**Next.** Step 31c `[engine]`: the nightly fuzz target for the formatter's two properties, seeded with the scripts of the repository. Then step 32 `[engine]`, `zeff test`.
+
+**For the owner to decide.** Open decision #137 gained points 13 and 14, taken on the recommendation, his to overturn: every branch of a long `if` on its own lines; a list begun on a new line keeps that form. The row of `zeff fmt` in section 2.1 of the Engine Specification was corrected to name `--check`. Open as before: points 8 to 12 of #137, #136, #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

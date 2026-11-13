@@ -25,6 +25,7 @@
 /// 3
 /// > n_missing(fill_missing(d["x"], 0))
 /// 0
-fn fill_missing(x: Bool | Int | Float | Str | Date | DateTime, value: Bool | Int | Float | Str | Date | DateTime) -> Join {
+fn fill_missing(x: Bool | Int | Float | Str | Date | DateTime,
+                value: Bool | Int | Float | Str | Date | DateTime) -> Join {
     coalesce(x, value)
 }

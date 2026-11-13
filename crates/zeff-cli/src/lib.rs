@@ -26,6 +26,8 @@ Commands:
   run [script]      run scripts/main.zeff, or the script named
   check [script]    check a script's names, arguments and types without running it
                     (scripts/main.zeff unless another is named)
+  fmt               write every script of the project in the one style of the language
+                    (with --check: change nothing, and say which scripts would change)
   repl [script]     open the console: statements typed are kept in .zeff/session.zeff
                     (outside a project, in the scratch project; :help lists its commands)
   eval \"<statement>\"
@@ -47,6 +49,7 @@ Options:
   --width <n>             the width frames and tables wrap at (default 118, at least 40)
   --deny-warnings         for `run` and `check`: a warning that no `// zeff: allow(CODE) reason`
                           pragma allows is an error (exit code 3)
+  --check                 for `fmt`: write nothing; exit code 1 if a script would change
   -q, --quiet             hide notes
   -v, --verbose           show timings and build details
 ";
@@ -67,8 +70,7 @@ line ending with an operator, continues on the next line.
 ";
 
 /// Commands the specification names that this release does not have yet.
-const LATER: [&str; 13] = [
-    "fmt",
+const LATER: [&str; 12] = [
     "test",
     "lsp",
     "selftest",
@@ -132,6 +134,8 @@ struct Settings {
     verbose: bool,
     /// `--deny-warnings`: a warning that no pragma allows is an error (exit code 3).
     deny_warnings: bool,
+    /// `--check`, of `zeff fmt`: nothing is written.
+    check: bool,
 }
 
 impl Default for Settings {
@@ -145,6 +149,7 @@ impl Default for Settings {
             quiet: false,
             verbose: false,
             deny_warnings: false,
+            check: false,
         }
     }
 }
@@ -224,6 +229,7 @@ fn take_options<'a>(words: &[&'a str]) -> Result<(Vec<&'a str>, Settings), Strin
             "-q" | "--quiet" => settings.quiet = true,
             "-v" | "--verbose" => settings.verbose = true,
             "--deny-warnings" => settings.deny_warnings = true,
+            "--check" => settings.check = true,
             "--help" | "-h" | "--version" | "-V" => rest.push(word),
             later if LATER_OPTIONS.contains(&later) => {
                 return Err(format!("`{later}` is not available in this release yet"));
@@ -406,6 +412,9 @@ pub fn run(
             "`--deny-warnings` applies to `zeff run` and `zeff check` in this release",
         );
     }
+    if settings.check && words.first() != Some(&"fmt") {
+        return usage_error(&mut err, "`--check` applies to `zeff fmt`");
+    }
     let cwd = match &settings.project {
         Some(dir) => {
             let dir = cwd.join(dir);
@@ -474,7 +483,12 @@ pub fn run(
             &mut err,
             "`zeff repl` takes at most one script to load, as in `zeff repl scripts/clean.zeff`",
         ),
-        [word @ ("fmt" | "test"), ..] => needs_a_project(&command, word, &mut err),
+        ["fmt"] => fmt_command(&command, &mut err),
+        ["fmt", ..] => usage_error(
+            &mut err,
+            "`zeff fmt` takes no script: it formats every script of the project",
+        ),
+        [word @ "test", ..] => needs_a_project(&command, word, &mut err),
         [word, ..] if LATER.contains(word) => usage_error(
             &mut err,
             &format!("`zeff {word}` is not available in this release yet"),
@@ -950,6 +964,161 @@ fn check_command(
         );
     }
     exit_code
+}
+
+/// The scripts of a project, as their paths from its root with `/` between the parts, in
+/// order: every `.zeff` file of `functions/` and of `scripts/`, at any depth.
+fn scripts_of(fs: &dyn FileSystem, project: &Project) -> std::io::Result<Vec<String>> {
+    fn walk(
+        fs: &dyn FileSystem,
+        root: &Path,
+        folder: &str,
+        found: &mut Vec<String>,
+    ) -> std::io::Result<()> {
+        let mut names = fs.list(&root.join(folder))?;
+        names.sort();
+        for name in names {
+            let shown = format!("{folder}/{name}");
+            let path = root.join(&shown);
+            if fs.is_dir(&path) {
+                walk(fs, root, &shown, found)?;
+            } else if name.ends_with(".zeff") && fs.is_file(&path) {
+                found.push(shown);
+            }
+        }
+        Ok(())
+    }
+    let mut found = Vec::new();
+    for folder in ["functions", "scripts"] {
+        if fs.is_dir(&project.root.join(folder)) {
+            walk(fs, &project.root, folder, &mut found)?;
+        }
+    }
+    Ok(found)
+}
+
+/// `zeff fmt`: every script of the project written in the one style of the language (Language
+/// Reference, section 3.5), and with `--check` nothing written and the scripts that would
+/// change named. A script that does not parse is left as it is, with its errors shown. Exit
+/// code 0; 1 when a script does not parse or cannot be read or written, and under `--check`
+/// when a script would change; 2 when the formatter cannot vouch for what it wrote.
+fn fmt_command(command: &Command<'_, '_>, err: &mut dyn Write) -> i32 {
+    let fs = command.fs;
+    let project = match open_project(fs, &command.cwd, command.messages, err) {
+        Ok(project) => project,
+        Err(code) => return code,
+    };
+    let check = command.settings.check;
+    let scripts = match scripts_of(fs, &project) {
+        Ok(scripts) => scripts,
+        Err(error) => {
+            let _ = writeln!(
+                err,
+                "error: cannot list the scripts of the project: {error}"
+            );
+            return 1;
+        }
+    };
+    let count = |n: usize| {
+        if n == 1 {
+            "1 script".to_string()
+        } else {
+            format!("{n} scripts")
+        }
+    };
+    if scripts.is_empty() {
+        let _ = writeln!(
+            err,
+            "no scripts to format: the project has no `.zeff` file in `scripts/` or `functions/`"
+        );
+        return 0;
+    }
+    let (mut changed, mut unparsed, mut failed, mut internal) = (0usize, 0usize, 0usize, 0usize);
+    for shown in &scripts {
+        let path = project.root.join(shown);
+        let text = match fs.read_to_string(&path) {
+            Ok(text) => text,
+            Err(error) => {
+                let _ = writeln!(err, "error: cannot read {shown}: {error}");
+                failed += 1;
+                continue;
+            }
+        };
+        // `ZEFF_FMT_FORCE_INTERNAL`, naming a script, makes the formatter fail on it: a test
+        // hook, so that the path of a result the formatter cannot vouch for is exercised.
+        let formatted = if std::env::var("ZEFF_FMT_FORCE_INTERNAL").as_deref() == Ok(shown) {
+            Err(zeff_syntax::format::Unformatted::Internal(
+                "forced by ZEFF_FMT_FORCE_INTERNAL".to_string(),
+            ))
+        } else {
+            zeff_syntax::format::format(shown, &text)
+        };
+        match formatted {
+            Ok(written) if written == text => {}
+            Ok(_) if check => {
+                let _ = writeln!(err, "would format {shown}");
+                changed += 1;
+            }
+            Ok(written) => match fs.write(&path, written.as_bytes()) {
+                Ok(()) => {
+                    let _ = writeln!(err, "formatted {shown}");
+                    changed += 1;
+                }
+                Err(error) => {
+                    let _ = writeln!(err, "error: cannot write {shown}: {error}");
+                    failed += 1;
+                }
+            },
+            Err(zeff_syntax::format::Unformatted::Syntax(diagnostics)) => {
+                let mut sources = Sources::new();
+                sources.add(Source::new(shown.clone(), text));
+                for diagnostic in diagnostics.iter() {
+                    command.messages.show(err, diagnostic, &sources);
+                    let _ = writeln!(err);
+                }
+                unparsed += 1;
+            }
+            Err(zeff_syntax::format::Unformatted::Internal(what)) => {
+                let _ = writeln!(
+                    err,
+                    "error[Z9001]: internal error: this is a bug in Zeff, not in your script\n  \
+                     the formatter left {shown} as it is: {what}"
+                );
+                internal += 1;
+            }
+        }
+    }
+    // The closing line counts the scripts that could be read and parsed.
+    let all = scripts.len() - unparsed - failed - internal;
+    let _ = match (check, changed) {
+        _ if all == 0 => Ok(()),
+        (true, 0) => writeln!(err, "{}: formatted", count(all)),
+        (true, n) => writeln!(
+            err,
+            "{n} of {} would change: `zeff fmt` formats {}",
+            count(all),
+            if n == 1 { "it" } else { "them" }
+        ),
+        (false, 0) => writeln!(err, "{}: formatted already", count(all)),
+        (false, n) => writeln!(err, "formatted {n} of {}", count(all)),
+    };
+    if unparsed > 0 {
+        let _ = writeln!(
+            err,
+            "{} {} not parse and {} left as {}",
+            count(unparsed),
+            if unparsed == 1 { "does" } else { "do" },
+            if unparsed == 1 { "was" } else { "were" },
+            if unparsed == 1 { "it is" } else { "they are" },
+        );
+    }
+    if internal > 0 {
+        2
+    } else if unparsed > 0 || failed > 0 || (check && changed > 0) {
+        1
+    } else {
+        0
+    }
 }
 
 fn internal_error(err: &mut dyn Write, errors: Vec<zeff_registry::RegistryError>) -> i32 {

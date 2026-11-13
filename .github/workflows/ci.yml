@@ -85,6 +85,16 @@ jobs:
       - name: Clippy with warnings denied
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
+      # The scripts of the sample projects are kept in the one style of the language. The
+      # other scripts of the repository (the sample script of the specification and the
+      # functions written in Zeff) are held to it by a test of the syntax crate.
+      - name: Every script of the sample projects is formatted (zeff fmt --check)
+        run: |
+          cargo build --locked -p zeff-cli
+          for project in samples/*/; do
+            ./target/debug/zeff fmt --check --project "$project"
+          done
+
   test:
     name: test
     runs-on: ubuntu-latest
