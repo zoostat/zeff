@@ -107,36 +107,35 @@ fn the_rows_with_na_are_skipped_as_before() {
     );
 }
 
-/// What is still refused, and safely: a frame with a variable named as a parameter of the
-/// function that the body uses inside a method of that frame (`var` for the four, `type` for
-/// `iqr`). It is an error, never another number; open decision #140 is the rule that would
-/// lift it.
+/// A frame with a variable named as a parameter of the function is no obstacle (step 38c of
+/// 0.7.0; open decision #140): inside the body the function's own names come first, so `var`
+/// is the variable asked for and `type` the rule asked for, whatever the frame calls its
+/// variables. Until that step such a frame was refused (Z0106). R: `IQR(x, type = 6)` 6.25,
+/// `mad(x, constant = 1)` 1.
 #[test]
-fn a_variable_named_as_a_parameter_is_refused_and_never_another_number() {
-    for (function, _) in FUNCTIONS {
+fn a_variable_named_as_a_parameter_is_no_obstacle() {
+    for (function, value) in FUNCTIONS {
         let out = run(&format!(
             "let d = frame(x = [1.0, 2, 3, 9], var = [5.0, 7, 5, 6])\nd.{function}(x)\n"
         ));
-        assert_eq!(out.exit_code, 1, "{function}");
-        assert_eq!(out.output.stdout, "", "{function}");
-        assert!(
-            out.output.stderr.starts_with(
-                "error[Z0106]: `var` is both a loop variable or parameter and a variable of data"
-            ),
-            "{function}: {}",
-            out.output.stderr
-        );
+        assert_eq!(out.exit_code, 0, "{function}: {}", out.output.stderr);
+        assert_eq!(out.output.stdout, format!("{value}\n"), "{function}");
+        assert_eq!(out.output.stderr, "", "{function}");
+        // The variable called `var` is itself asked for.
+        let out = run(&format!(
+            "let d = frame(var = [1.0, 2, 3, 9], x = [5.0, 7, 5, 6])\nd.{function}(var)\n"
+        ));
+        assert_eq!(out.exit_code, 0, "{function}: {}", out.output.stderr);
+        assert_eq!(out.output.stdout, format!("{value}\n"), "{function}");
+        assert_eq!(out.output.stderr, "", "{function}");
     }
-    let out = run("let d = frame(x = [1.0, 2, 3, 9], `type` = [5.0, 7, 5, 6])\nd.iqr(x)\n");
-    assert_eq!(out.exit_code, 1);
-    assert!(
-        out.output
-            .stderr
-            .starts_with("error[Z0106]: `type` is both"),
-        "{}",
-        out.output.stderr
+    let out = run(
+        "let d = frame(x = [1.0, 2, 3, 9], `type` = [5.0, 7, 5, 6], constant = [0.0, 0, 0, 0])\nd.iqr(x)\nd.iqr(x, type: 6)\nd.mad(x, constant: 1)\n",
     );
-    // The other parameters are not used inside a method of the frame, and are no obstacle.
+    assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
+    assert_eq!(out.output.stdout, "2.75\n6.25\n1\n");
+    assert_eq!(out.output.stderr, "");
+    // Nor are the other parameters.
     for name in ["data", "constant", "adjusted", "excess"] {
         let out = run(&format!(
             "let d = frame(x = [1.0, 2, 3, 9], {name} = [5.0, 7, 5, 6])\nd.mad(x)\nd.skewness(x)\nd.kurtosis(x)\nd.iqr(x)\n"

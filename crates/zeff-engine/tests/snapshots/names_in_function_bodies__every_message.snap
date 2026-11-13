@@ -1,0 +1,39 @@
+---
+source: crates/zeff-engine/tests/names_in_function_bodies.rs
+expression: all
+---
+## same_result_on_a_frame_with_the_function_s_names (exit 0)
+1
+2
+4.75
+6.25
+9
+8
+4
+7.5
+15
+2
+
+## a_script_s_let_gives_way (exit 0)
+2
+warning[W0102]: `x` is both a variable of d and a binding; the variable was used (line 3)
+  = help: rename the binding, or write `d["x"]` and the binding apart; inside a frame method a bare name is the frame's variable first
+
+## a_script_s_loop_variable_clashes (exit 1)
+error[Z0106]: `v` is both a loop variable or parameter and a variable of d
+ --> scripts/main.zeff:3:18
+  |
+3 |     print(d.mean(v))
+  |                  ^ which one is meant?
+  |
+  = help: rename the loop variable, or the column with `rename`; inside a frame method a loop variable wins over a column, so a clash is never resolved silently
+
+## a_function_does_not_see_the_script (exit 1)
+error[Z0101]: no variable `limit` in `data`
+ --> scripts/main.zeff:3:20
+  |
+3 |     data.where(x > limit).n_rows()
+  |                    ^^^^^ not a variable of data
+  |
+  = in: `above(data: a frame of 4 rows × 1 variable)`, called at scripts/main.zeff:7:3
+  = help: the variables of `data` are: x

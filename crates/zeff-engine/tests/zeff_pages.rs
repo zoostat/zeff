@@ -14,7 +14,7 @@ use zeff_engine::registry::{registry, zeff_bodies};
 use zeff_engine::run::run_script;
 
 /// A function, a code of its page, and a script that raises the code through the function.
-const SHOWN: [(&str, &str, &str); 49] = [
+const SHOWN: [(&str, &str, &str); 45] = [
     ("assert", "Z0001", "assert(1 == 2, \"one is not two\")"),
     ("assert", "Z0203", "assert(NA, \"no condition\")"),
     (
@@ -111,20 +111,10 @@ const SHOWN: [(&str, &str, &str); 49] = [
     ),
     ("iqr", "Z0401", "frame(x = [1.0, 2, 3]).iqr(x, type: 12)"),
     ("iqr", "Z0101", "frame(x = [1.0, 2, 3]).iqr(nope)"),
-    (
-        "iqr",
-        "Z0106",
-        "frame(x = [1.0, 2, 3], var = [1.0, 2, 3]).iqr(x)",
-    ),
     ("iqr", "W0201", "frame(x = [1.0, NA, 3]).iqr(x)"),
     ("iqr", "W0205", "frame(x = [-Inf, Inf]).iqr(x)"),
     ("mad", "Z0401", "frame(x = [\"a\", \"b\"]).mad(x)"),
     ("mad", "Z0101", "frame(x = [1.0, 2, 3]).mad(nope)"),
-    (
-        "mad",
-        "Z0106",
-        "frame(x = [1.0, 2, 3], var = [1.0, 2, 3]).mad(x)",
-    ),
     ("mad", "W0201", "frame(x = [1.0, NA, 3]).mad(x)"),
     ("mad", "W0205", "frame(x = [-Inf, Inf]).mad(x)"),
     ("skewness", "W0205", "frame(x = [1.0, 2]).skewness(x)"),
@@ -137,11 +127,6 @@ const SHOWN: [(&str, &str, &str); 49] = [
         "skewness",
         "Z0203",
         "frame(x = [1.0, 2, 3, 9]).skewness(x, adjusted: NA)",
-    ),
-    (
-        "skewness",
-        "Z0106",
-        "frame(x = [1.0, 2, 3], var = [1.0, 2, 3]).skewness(x)",
     ),
     (
         "skewness",
@@ -165,11 +150,6 @@ const SHOWN: [(&str, &str, &str); 49] = [
         "kurtosis",
         "Z0203",
         "frame(x = [1.0, 2, 3, 9, 4]).kurtosis(x, excess: NA)",
-    ),
-    (
-        "kurtosis",
-        "Z0106",
-        "frame(x = [1.0, 2, 3], var = [1.0, 2, 3]).kurtosis(x)",
     ),
     (
         "kurtosis",

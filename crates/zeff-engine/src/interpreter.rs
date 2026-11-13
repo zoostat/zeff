@@ -2006,8 +2006,10 @@ impl<'a> Interpreter<'a> {
             }),
             ExprKind::Binding(id) => {
                 // A loop variable read inside a frame method, as a variable argument or a
-                // value, clashes with a column of its name (section 3.7, "Name lookup", rule 2).
+                // value, clashes with a column of its name (section 3.7, "Name lookup", rule 2);
+                // a name bound in the body of a function never does (open decision #140).
                 if self.program.bindings[*id].kind != BindingKind::Let
+                    && !self.program.bindings[*id].in_function
                     && let Some(receiver) = self.receivers.last()
                     && receiver
                         .current()
@@ -2551,6 +2553,7 @@ impl<'a> Interpreter<'a> {
     }
 
     /// What a bare name inside a frame method's argument names (section 3.7, "Name lookup"): a
+    /// name bound in the body of a function first, whatever the frame holds; in a script, a
     /// loop variable or a parameter first, a clash with a column being an error; then the
     /// receiver's column, with a warning when a binding has the name too; then a binding; then,
     /// for a name that is none of these, the constant of `core` of that name (`PI`, `E`).
@@ -2566,6 +2569,13 @@ impl<'a> Interpreter<'a> {
             return Err(self.internal(expr, "a frame name was read outside a frame method"));
         };
         let frame = receiver.current().clone();
+        // A name bound in the body of a function is that binding whatever the frame's variables
+        // are called, so that the function means the same on every frame (open decision #140).
+        if let Some(id) = binding
+            && self.program.bindings[id].in_function
+        {
+            return Ok(Named::Binding(id, frame));
+        }
         // A loop variable (or a parameter) in scope wins over a column, and a clash is an error
         // (section 3.7, "Name lookup", rule 2): `for y in vars(...)` must never regress a column
         // named `y`.

@@ -34,8 +34,6 @@ WARNINGS AND NOTES
     W0205   an operation with no value gave NA
     Z0401   the variable is not Bool, Int or Float
     Z0203   `adjusted:` is `NA`
-    Z0106   the frame has a variable called `var`, the name of a parameter of this function; rename the
-            variable
     W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
     W0204   Inf and -Inf both present, so the result is NA
     Z0101   no such variable in the frame

@@ -2811,6 +2811,8 @@ On a frame that has a variable called `centre`, `var - centre` subtracts that va
 
 **The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. It changes a rule of the language, so it is built as a step of its own (38c), late in the release, where a ruling for B or C before then costs nothing; the wrong results themselves are already corrected without it.
 
+**Built (14 November 2026, step 38c of release 0.7.0).** A binding carries whether it was made in the body of a function; inside a frame's methods such a name is the binding at once, with no Z0106 and no W0102, at the check and at the run. Sections 3.7, 5.3, 6 and 11 of the Language Reference say so (logged in `docs/spec_changes.md`). The pages of `iqr`, `mad`, `skewness` and `kurtosis` no longer list Z0106. One thing it does not reach is entered as #147: a name where a term of a fit is expected.
+
 ### 141. A `publish` package: reports written in Markdown, with HTML of Quarto's quality and HTML slides
 
 Raised on 13 November 2026 by the owner, in five requests: that Zeff create HTML as it creates PDF; "It should have quality like quarto"; HTML presentations; "I want using markdown"; and "Can we have a report package?".
@@ -2941,3 +2943,23 @@ Raised on 13 and 14 November 2026 by the owner, while the website of decision #1
 *What this changes in the specification.* Items 7 and 9 depart from section 5 of the Zemp Specification. In Zemp Lite, that section has the Objects panel take the Methods column on the right, with the console under the editor and the viewers in a bottom panel. It also says that everything beyond the top bar's word controls is reached through ⌘K "so it adds no buttons". Zemp Studio is not affected: its Methods panel keeps its column. Under the specification freeze (#40) the text is not edited now. Section 5 (the Zemp Lite paragraph and the top-bar table) is amended, and logged in `docs/spec_changes.md`, as the first step of Zemp 0.2 alpha, when Zemp Lite web is built. The other items are look and wording, which no normative text fixes. The Zeff side is untouched.
 
 **Decided (14 November 2026): the owner's rulings as above.** Deadline for the amendment: Zemp 0.2 alpha (Zeff 0.8.0).
+
+### 147. Inside a function's body, a parameter where a term of a fit is expected
+
+Raised on 14 November 2026 at step 38c of release 0.7.0, while testing #140. Where a parameter takes a term of a fit (`coef`, `std_errors`, `ci`, `p_values` and the tests on terms), a bare name is that term "whatever else bears the name" (Language Reference, section 3.7, "Resolution by parameter type"). In a script that is right. In the body of a function it means that the name of a parameter cannot stand for the term it holds:
+
+```
+fn slope(data: Frame, outcome: Var, on: Var) -> Float {
+    data.reg(outcome ~ on).coef(on)
+}
+```
+
+The formula regresses the variables the two parameters name, since #140 and before it; but `coef(on)` asks for a term called `on`, and the call stops with Z0414 ("`on` is not a term of this fit"), listing the terms. It is an error and never another number. The way round exists and is tested: `coef(name_of(on))`.
+
+| Option | What it is | For | Against |
+| --- | --- | --- | --- |
+| A. Inside a function's body, a bound name that holds a `Var` or a `Str` is the term it names | `coef(on)` in a function reads the coefficient of the variable `on` holds; a name the function does not bind is the term of that name, as now; scripts are unchanged | One rule with #140: in a function, the function's names come first everywhere | A second place where a function body and a script differ |
+| B. As now, and the pages of the term-taking methods show `name_of` | Nothing changes; `coef(name_of(on))` is the documented way | No new rule | A function author meets Z0414 first and must learn the way round |
+
+*Recommendation.* A, with the help line of Z0414 naming `name_of` until it is built. Deadline: 0.8.0, when the help-page contract is amended (#103) and the pages of these methods are reopened; nothing of it is built in 0.7.0.
+

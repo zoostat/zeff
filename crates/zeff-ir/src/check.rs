@@ -1071,6 +1071,7 @@ impl Checker<'_> {
             ty,
             span: name.span,
             kind,
+            in_function: self.current_function.is_some(),
         });
         self.scope.push((name.text.clone(), id));
         id
@@ -3041,8 +3042,9 @@ impl Checker<'_> {
                 // Where the parameter also takes a value, a number, text or a date, a binding holding
                 // such a value may be what the name means (open decision #127): a loop
                 // variable or a parameter is that value, as everywhere in a frame method, and
-                // for a `let` the frame's variable of the name comes first, which is known
-                // when the statement runs.
+                // so is every name a function binds in its own body (open decision #140); for
+                // a `let` of the script the frame's variable of the name comes first, which is
+                // known when the statement runs.
                 if let Some(id) = self.lookup(&text) {
                     let bound = self.bindings[id].ty.clone();
                     let taken = options.iter().any(|o| {
@@ -3055,7 +3057,9 @@ impl Checker<'_> {
                             Ty::Float | Ty::Int | Ty::Str | Ty::Date | Ty::DateTime
                         )
                     {
-                        let kind = if self.bindings[id].kind == BindingKind::Let {
+                        let kind = if self.bindings[id].kind == BindingKind::Let
+                            && !self.bindings[id].in_function
+                        {
                             ExprKind::VarOrBound {
                                 name: text,
                                 binding: id,
@@ -3235,7 +3239,9 @@ impl Checker<'_> {
                 };
             }
             // Inside a frame method's column argument: the receiver's column first, then a
-            // binding; which one is known only when the statement runs (section 3.7).
+            // binding; which one is known only when the statement runs (section 3.7). A name
+            // bound in the body of a function is that binding on every frame (open decision
+            // #140), which the interpreter settles by the binding's own record.
             let binding = self.lookup(&text);
             // With a binding of the name in scope the value may be either, so its type is not
             // known; without one it is a column; a binding that holds a `Var` (a parameter or a
@@ -7290,10 +7296,11 @@ impl Checker<'_> {
 
     /// A loop variable or parameter read inside a frame method that is also a column of the
     /// frame: Z0106, which the interpreter raises when the statement runs and the checker can
-    /// raise first with the schema in hand.
+    /// raise first with the schema in hand. A name bound in the body of a function is never a
+    /// clash: there the function's own names come first (open decision #140).
     fn clash(&mut self, id: BindingId, span: Span, schema: &FrameSchema, shown: &str) {
         let binding = &self.bindings[id];
-        if binding.kind != BindingKind::Let && schema.has(&binding.name) {
+        if binding.kind != BindingKind::Let && !binding.in_function && schema.has(&binding.name) {
             let name = binding.name.clone();
             let diagnostic = Diagnostic::error(
                 "Z0106",

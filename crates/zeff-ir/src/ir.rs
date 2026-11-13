@@ -17,6 +17,11 @@ pub struct Binding {
     /// Where the name is written in the `let` or the `for`.
     pub span: Span,
     pub kind: BindingKind,
+    /// Made in the body of a function (a parameter, a `let`, a loop variable, a parameter of a
+    /// function written inside it): inside a frame's methods the name is this binding whatever
+    /// the frame's variables are called, so that a function means the same on every frame
+    /// (section 3.7, "Name lookup"; open decision #140).
+    pub in_function: bool,
 }
 
 /// What made a binding (section 3.7, "Name lookup"): a `let`, or the variable of a `for` loop,

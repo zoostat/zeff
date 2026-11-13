@@ -4847,3 +4847,20 @@ error[Z0001]: no rows to take the mean of
 **Tests.** Unit: the short name in a body (called, as a method, passed by name, with the function above the `use` line), the two full forms, one function brought in alone, a name two modules share, a private name; each kind of suggestion, in a script, in a body and in a module. Snapshot: six new messages. The language-server test of a misspelt name now expects the suggestion.
 
 **Reason.** The checklist's step 38b; the two entries of `docs/known_issues.md`, now under "Resolved at 0.7.0".
+
+## 14 November 2026: inside a function's body, the function's own names come first (release 0.7.0, step 38c)
+
+**The rule built.** Open decision #140, option A (taken on the recommendation under the owner's standing instruction, his to overturn). Inside the body of a function, a name the function binds (a parameter, a `let`, a loop variable, the parameter of a function written inside the body) is that binding inside a frame's methods too, whatever the frame's variables are called. A script is unchanged.
+
+**How.** Each binding the checker makes records whether it was made while a function's body was being checked (`in_function`). Three places read it, and nothing else changes: where an option takes a variable or a value, the checker gives the binding and not the either-or form that the run settles; the check-time clash with a known frame (Z0106) is skipped; and at the run, the lookup of a bare name in a frame returns such a binding before it looks at the frame's variables, so neither Z0106 nor W0102 can arise. The lookup is the one place every path goes through (a column argument, a kept expression of `predict` and the like, a definition of `add`), which is why one change there is enough.
+
+**The type the checker gives such a name is unchanged** (unknown where it could be a value or a column, a column for a `Var`). Giving it the binding's own type would be more exact, but it would change what the checker infers in the fourteen built-ins written in Zeff and their lifted forms; nothing asks for that now.
+
+**The four built-ins.** `iqr`, `mad`, `skewness` and `kurtosis` keep the bodies of step 32d, which are right under either rule and give the same bits; their pages lose Z0106, which they can no longer raise, and the test that holds pages to the truth in both directions loses its four scripts for it (45 scripts, from 49).
+
+**What the rule does not cover.** A name the body defines inside `add` is a variable being made, not a binding: on a frame that already has a variable of that name it replaces it, under the note that says so, as in a script. And a name where a term of a fit is expected is still that term (entered as open decision #147, recommended for 0.8.0).
+
+**Tests.** Unit, on project functions (a new test file): seven kinds of binding, each on a plain frame and on a frame with a variable for every bound name, equal output and no message; a variable named as a parameter asked for by that name; a formula's names; `data["name"]`; an option that takes a variable or a value; a frame whose variables are known before the run; a module's function; and a script, unchanged (W0102, Z0106 for a loop variable and for the parameter of a function written in a statement). On the four built-ins: the same values as R on a frame with a variable called `var` or `type`. Snapshot: four messages. The values are R's (4.6.0).
+
+**Reason.** The checklist's step 38c; open decision #140; Language Reference, sections 3.7, 5.3 and 6.
+

@@ -91,14 +91,6 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   a run cannot be cancelled until the list exists. Under a memory budget such a loop is refused
   with Z0704 and its estimate. (Since 0.5.0; found on 13 November 2026 at step 33c of 0.7.0;
   put right at step 38g of 0.7.0, where a range is walked and not listed.)
-- **`iqr`, `mad`, `skewness` and `kurtosis` refuse a frame that has a variable called `var`**,
-  and `iqr` one that has a variable called `type`, with Z0106: those are names of their own
-  parameters, used inside a method of the frame given. It is an error and never another number;
-  renaming the variable (`rename(v = var)`) is the way round. The same holds for a function of a
-  project: a parameter named as a variable of the frame it is given is Z0106, and a `let` of
-  that name gives way to the variable under the warning W0102, so the function's result can
-  depend on the names of the frame's variables. (Since 0.5.0; found on 13 November 2026; open
-  decision #140, and step 38c of 0.7.0 if it is ruled as recommended.)
 - **The constructs the grammar has but this release does not run** are a `model { }` block
   (1.3), a `dag { }` block (0.10.0), a label written with `as` (1.3) and `use` of a third-party
   package (1.11); each is refused with Z0304, whose explained page lists them. Everything else of
@@ -290,6 +282,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   one of the three functions; such a run printed the warning or the note. Corrected at step
   32d of 0.7.0: on every other frame the three give the same bits as before. `iqr`, `center`,
   `standardize`, `winsorize` and `quantile_group` were not affected.
+- `iqr`, `mad`, `skewness` and `kurtosis` take a frame that has a variable called `var` or
+  `type` (listed at 0.6.0 as refused with Z0106), and a function of a project gives the same
+  result whatever the variables of the frame it is given are called (listed as depending on
+  them: Z0106 for a parameter, the variable under the warning W0102 for a `let`). Inside the
+  body of a function the names the function binds come first, inside a frame's methods too; a
+  script is unchanged. Since step 38c; open decision #140, option A.
 - A function written in a script sees, by its short name, a module function the script brought
   in with `use` (listed at 0.6.0 as refused with Z0103 unless written `checks::positive(x)`):
   the script's `use` lines are read before the bodies of its functions, so a body sees what the

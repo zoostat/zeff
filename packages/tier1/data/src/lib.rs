@@ -1466,10 +1466,6 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
                     "`type:` is not 1 to 9, or the variable is not numeric",
                 ),
                 ("Z0101", "the variable is not in the frame"),
-                (
-                    "Z0106",
-                    "the frame has a variable called `var` or `type`, the names of parameters of this function; rename the variable",
-                ),
             ],
         },
         zeff_registry::ZeffSource {
@@ -1510,10 +1506,6 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
                 ),
                 ("Z0401", "the variable is not numeric"),
                 ("Z0101", "the variable is not in the frame"),
-                (
-                    "Z0106",
-                    "the frame has a variable called `var`, the name of a parameter of this function; rename the variable",
-                ),
             ],
         },
         zeff_registry::ZeffSource {
@@ -1566,10 +1558,6 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             also: &[
                 ("Z0401", "the variable is not Bool, Int or Float"),
                 ("Z0203", "`adjusted:` is `NA`"),
-                (
-                    "Z0106",
-                    "the frame has a variable called `var`, the name of a parameter of this function; rename the variable",
-                ),
             ],
         },
         zeff_registry::ZeffSource {
@@ -1622,10 +1610,6 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             also: &[
                 ("Z0401", "the variable is not Bool, Int or Float"),
                 ("Z0203", "`excess:` or `adjusted:` is `NA`"),
-                (
-                    "Z0106",
-                    "the frame has a variable called `var`, the name of a parameter of this function; rename the variable",
-                ),
             ],
         },
         zeff_registry::ZeffSource {
