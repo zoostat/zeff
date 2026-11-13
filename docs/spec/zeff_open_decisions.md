@@ -72,6 +72,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (13 November 2026, release 0.7.0, #135).** The owner asked for a function that gives citation details, and chose its name, `cite`, over R's `citation`. Recorded as #135, due at 0.10.0, the release of the citation file and the DOI of #116, with no change to the normative text; its release is open.
 
+**Status (13 November 2026, release 0.7.0, #135 decided).** Asked to choose the release of `cite`, the owner answered "Option A". `cite` and its three formats arrive at 0.10.0 with the citation file and the DOI, and `zeff cite` at 0.11.0 with the run records it reads.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -163,7 +165,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
-| 135 | A function that gives citation details: `cite` | `cite()` for Zeff at the pinned engine version, `fit.cite()` for the methods and options a fit used, `cite(t_test)` for a function's references and `cite(wages)` for a dataset, with `format: text | bibtex | ris`; `zeff cite` for a project's whole bibliography; the references of the help pages kept as structured entries. At 0.10.0, the command at 0.11.0; the name decided 13 November 2026 | 0.10.0 |
+| 135 | A function that gives citation details: `cite` | `cite()` for Zeff at the pinned engine version, `fit.cite()` for the methods and options a fit used, `cite(t_test)` for a function's references and `cite(wages)` for a dataset, with `format: text | bibtex | ris`; `zeff cite` for a project's whole bibliography; the references of the help pages kept as structured entries. At 0.10.0, the command at 0.11.0 | decided 13 November 2026 (option A, named `cite`); `cite` at 0.10.0, `zeff cite` at 0.11.0 |
 | 134 | Making a manipulated analysis harder to hide in a replication package | Six measures: a stamp of the scripts before the data are read, for a preregistration; an optional run history whose records are chained by hash; the raw data checked against the checksums their archive publishes; signed and dated run records; specification curves; and each run record naming the Git commit it ran from, with any uncommitted changes. The fields of the run record at 0.11.0, the commands after 1.0 | 0.11.0 |
 | 126 | How the text of an exported SVG figure is written: as outlines, or as text with the font embedded | Outlines by default at 0.7.0, so that a figure looks the same in every program whether or not IBM Plex is installed, with the words kept in the file for search and for readers of the screen; text with the font embedded as an option of `export` after 1.0 | decided 12 November 2026 (outlines); built at step 21c of 0.7.0 |
 | 125 | Zemp Lite only, with Zemp Studio later | Build and release Zemp Lite alone; start Zemp Studio after Zeff 2.0.0, or decide that at a review at the close of 1.5; Zemp in a private repository from its first commit, Lite free of charge; the Document settings dialog of #124 in Lite; the Studio menu plan of 12 November kept for when Studio starts | decided 12 November 2026 (as recommended); the Zemp Specification amended the same day; settles #25 |
@@ -2639,4 +2641,10 @@ Engineering it needs, settled when the release is planned: the references of the
 
 *Recommendation.* A. The name is the owner's choice, made with this entry. Deadline: 0.10.0.
 
-**The owner's ruling on the name (13 November 2026).** "cite is better": the function is `cite`, and the command `zeff cite`. The release, option A, B or C, stays open, due at 0.10.0.
+**The owner's ruling on the name (13 November 2026).** "cite is better": the function is `cite`, and the command `zeff cite`.
+
+**The owner's decision (13 November 2026).** "Option A". What follows:
+
+- `cite()`, `fit.cite()`, `cite(function)` and `cite(dataset)`, with `format: text | bibtex | ris = text`, are built at 0.10.0, beside the citation file and the DOI of #116; the help pages' references become structured entries, one file per package, in the revision of the pages under #103, complete at 0.10.0, and each page's References section is generated from them.
+- `zeff cite` is built at 0.11.0, when the versioned run records it reads arrive.
+- The catalogue row of `cite`, the command's row in section 2.1 of the Engine and Project Specification, the rows of section 14 for 0.10.0 and 0.11.0, and the count of functions in 1.0 are amended when 0.10.0 is planned, and logged in `docs/spec_changes.md` then; the package that holds `cite` is chosen under the tier rules of section 8.1 at the same time.
