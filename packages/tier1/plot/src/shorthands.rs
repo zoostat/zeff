@@ -5,10 +5,11 @@
 //! and so are its refusals, which point at the shorthand's own arguments.
 
 use crate::grammar::{internal, plot};
+use crate::scene::{Placing, placing_of};
 use crate::{marks, scales};
-use zeff_core::runtime::{Args, Body, CallContext, Fail};
-use zeff_core::value::Value;
-use zeff_diagnostics::Span;
+use zeff_core::runtime::{Args, Body, CallContext, Fail, fail};
+use zeff_core::value::{Aesthetic, Mark, Plot, PlotLayer, Stat, Value};
+use zeff_diagnostics::{Diagnostic, Span};
 
 /// One argument of a call of the grammar made for a shorthand: its value, and where the
 /// shorthand's own argument that gave it is written.
@@ -96,5 +97,108 @@ pub fn bar(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let started = call(ctx, plot, mapped)?;
     let drawn = call(ctx, marks::bars, vec![(Some(started), None)])?;
     let by = handed(ctx, &args, B_BY);
+    parted(ctx, drawn, by)
+}
+
+// ----- scatter (step 29b) -----
+
+const S_X: usize = 1;
+const S_Y: usize = 2;
+const S_FIT: usize = 3;
+const S_COLOR: usize = 4;
+const S_BY: usize = 5;
+
+/// The level of the band of a fitted line.
+pub const BAND_LEVEL: f64 = zeff_stats::line::LEVEL;
+
+/// How far the band of a fitted line lets through what is under it.
+pub const BAND_ALPHA: f64 = 0.2;
+
+/// A layer that draws the fitted line of the plot: its band, or the line itself.
+fn fit_layer(mark: Mark, alpha: f64) -> PlotLayer {
+    PlotLayer {
+        mark,
+        data: None,
+        alpha,
+        size: None,
+        jitter: 0.0,
+        nudge: (0.0, 0.0),
+        width: None,
+        stream: None,
+        stat: Some(Stat::Line { level: BAND_LEVEL }),
+        computed: Vec::new(),
+        mappings: Vec::new(),
+        constants: Vec::new(),
+    }
+}
+
+/// `data.scatter(x, y, fit: none | linear = none, color: Var, by: Var | Vars)`:
+/// `data.plot(x: x, y: y, color:).points()`, parted into panels by `by:`. With `fit: linear`
+/// the least-squares line of `y` on `x` is drawn over the points, and its 95% confidence
+/// band under them, one for each category of `color:` and each panel.
+pub fn scatter(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    if !matches!(args.get(DATA), Some(Value::Frame(_))) {
+        return Err(internal(ctx, "`scatter` reached its body without a frame"));
+    }
+    let fit = match args.get(S_FIT) {
+        None | Some(Value::Na) => false,
+        Some(Value::Word(word)) => match word.as_str() {
+            "none" => false,
+            "linear" => true,
+            _ => return Err(internal(ctx, "a `fit:` that is neither none nor linear")),
+        },
+        Some(_) => return Err(internal(ctx, "a `fit:` that is not a word")),
+    };
+    let mapped = vec![
+        handed(ctx, &args, DATA),
+        handed(ctx, &args, S_X),
+        handed(ctx, &args, S_Y),
+        handed(ctx, &args, S_COLOR),
+    ];
+    let mut drawn = call(ctx, plot, mapped)?;
+    if fit {
+        let Value::Plot(started) = &drawn else {
+            return Err(internal(ctx, "`plot` gave no plot"));
+        };
+        let started: std::rc::Rc<Plot> = started.clone();
+        // A line is fitted to numbers: along `x` a date counts, in days, and along `y`
+        // nothing but a number does.
+        for (aesthetic, slot) in [(Aesthetic::X, S_X), (Aesthetic::Y, S_Y)] {
+            let (what, label) = match placing_of(&started, aesthetic) {
+                Some((Placing::Categories, variable)) => (
+                    format!("`{variable}` is placed as categories"),
+                    "categories",
+                ),
+                Some((Placing::Dates, variable)) if aesthetic == Aesthetic::Y => (
+                    format!("`{variable}` is placed on a scale of dates"),
+                    "dates",
+                ),
+                _ => continue,
+            };
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`fit: linear` of `scatter` fits a line of `y` on `x`, so `{}` must be numbers, but {what}",
+                        aesthetic.name()
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(slot), label)
+                .secondary(ctx.span_of(S_FIT), "a line is asked for here")
+                .help("a least-squares line needs a number along each axis; along `x` a date will do, and is counted in days. Leave `fit:` out for the points alone"),
+            ));
+        }
+        drawn = marks::finish(ctx, &started, fit_layer(Mark::Ribbon, BAND_ALPHA))?;
+    }
+    drawn = call(ctx, marks::points, vec![(Some(drawn), None)])?;
+    if fit {
+        let Value::Plot(pointed) = &drawn else {
+            return Err(internal(ctx, "`points` gave no plot"));
+        };
+        let pointed: std::rc::Rc<Plot> = pointed.clone();
+        drawn = marks::finish(ctx, &pointed, fit_layer(Mark::Lines, 1.0))?;
+    }
+    let by = handed(ctx, &args, S_BY);
     parted(ctx, drawn, by)
 }

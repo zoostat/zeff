@@ -337,6 +337,41 @@ pub struct Layer {
     /// For a mark that is a box: the values beyond the whiskers, each with the box it
     /// belongs to, counted from 0 among the boxes of the layer.
     pub beyond: Vec<(usize, f64)>,
+    /// For a layer that draws an interval: what the interval is (decision #118, F11).
+    /// `None` for the other layers.
+    pub interval: Option<Interval>,
+}
+
+/// What the interval a layer draws is (decision #118, F11): its kind, and its level where
+/// the engine computed it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Interval {
+    /// The two ends the script gives: the engine does not know what they are.
+    Given,
+    /// A confidence interval the engine computed, at this level.
+    Confidence(f64),
+}
+
+impl Interval {
+    /// The interval as the scene writes it: `given`, `ci 0.95`.
+    pub fn name(self) -> String {
+        match self {
+            Interval::Given => GIVEN.to_string(),
+            Interval::Confidence(level) => format!("ci {}", format_float(level)),
+        }
+    }
+
+    /// What a figure says of it under the panel, where the script gives no caption of its
+    /// own: nothing of an interval the script gave, whose kind the engine does not know.
+    pub fn caption(self) -> Option<String> {
+        match self {
+            Interval::Given => None,
+            Interval::Confidence(level) => Some(format!(
+                "Band: {}% confidence interval of the fitted line",
+                format_float(100.0 * level)
+            )),
+        }
+    }
 }
 
 /// The type of the lines of a layer.
@@ -2097,6 +2132,107 @@ fn smoothed(
     (out, few)
 }
 
+/// A value as an axis of this kind shows it: itself, its logarithm to the base ten, or its
+/// square root.
+fn shown_on(kind: AxisKind, value: f64) -> f64 {
+    match kind {
+        AxisKind::Linear | AxisKind::Date => value,
+        AxisKind::Log => zeff_numeric::maths::log10(value),
+        AxisKind::Sqrt => zeff_numeric::maths::sqrt(value),
+    }
+}
+
+/// The value an axis of this kind shows as `shown`: the way back from [`shown_on`]. Below
+/// the start of a square-root axis there is no value, and the start stands for it.
+fn value_of(kind: AxisKind, shown: f64) -> f64 {
+    match kind {
+        AxisKind::Linear | AxisKind::Date => shown,
+        AxisKind::Log => zeff_numeric::pow(10.0, shown),
+        AxisKind::Sqrt => {
+            let at = shown.max(0.0);
+            at * at
+        }
+    }
+}
+
+/// The fitted lines of a layer: for each group of the rows with a finite `x` and `y`, by
+/// panel and then in the order of their categories, the least-squares line of `y` on `x`
+/// (`zeff_stats::line`) at its 80 places from the smallest `x` of the group to the largest.
+/// The line is fitted to the values as the axes show them, so that on a log axis it is the
+/// line of the logarithms and is drawn straight. With `band` the marks are the confidence
+/// band at `level`, the upper limit in the place of `y` and the lower beside it; otherwise
+/// the fitted values. Each line is drawn from the first row of its group, which gives it
+/// its colour and its panel. The second value is the number of groups with no line: fewer
+/// than three rows, or one value of `x`.
+fn fitted(
+    (cx, cy): (Option<&Column>, Option<&Column>),
+    keys: &[Categories],
+    (level, band): (f64, bool),
+    (kind_x, kind_y): (AxisKind, AxisKind),
+    panels: Option<&[usize]>,
+) -> (Joined, usize) {
+    let mut out = Joined::default();
+    let (Some(cx), Some(cy)) = (cx, cy) else {
+        return (out, 0);
+    };
+    if !is_numeric(cx)
+        || !is_numeric(cy)
+        || cy.len() != cx.len()
+        || keys.iter().any(|key| key.of.len() != cx.len())
+        || panels.is_some_and(|panels| panels.len() != cx.len())
+    {
+        return (out, 0);
+    }
+    type Group = (usize, Vec<(bool, usize)>);
+    let mut groups: Vec<(Group, usize, Vec<f64>, Vec<f64>)> = Vec::new();
+    for row in 0..cx.len() {
+        let (Some(x), Some(y)) = (number(cx, row), number(cy, row)) else {
+            out.points.missing += 1;
+            continue;
+        };
+        let (x, y) = (shown_on(kind_x, x), shown_on(kind_y, y));
+        if !(x.is_finite() && y.is_finite()) {
+            out.points.infinite += 1;
+            continue;
+        }
+        let of: Group = (
+            panels.map_or(0, |panels| panels[row]),
+            keys.iter()
+                .map(|key| (key.of[row].is_none(), key.of[row].unwrap_or(0)))
+                .collect(),
+        );
+        match groups.iter_mut().find(|(known, _, _, _)| *known == of) {
+            Some((_, _, xs, ys)) => {
+                xs.push(x);
+                ys.push(y);
+            }
+            None => groups.push((of, row, vec![x], vec![y])),
+        }
+    }
+    groups.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut few = 0;
+    let mut lines = 0;
+    for (_, row, xs, ys) in &groups {
+        let Some(found) = zeff_stats::line::line(xs, ys, level) else {
+            few += 1;
+            continue;
+        };
+        lines += 1;
+        for k in 0..found.x.len() {
+            out.points.x.push(value_of(kind_x, found.x[k]));
+            if band {
+                out.points.y.push(value_of(kind_y, found.upper[k]));
+                out.low.push(value_of(kind_y, found.lower[k]));
+            } else {
+                out.points.y.push(value_of(kind_y, found.y[k]));
+            }
+            out.points.rows.push(*row);
+            out.line.push(lines);
+        }
+    }
+    (out, few)
+}
+
 /// The smallest gap between two different values, the unit of `jitter:`; `alone` when there
 /// are not two different values to take a gap between, which is 1 on an axis of numbers and a
 /// day on one of dates ([`alone`]).
@@ -2358,6 +2494,11 @@ fn colouring(plot: &Plot, aesthetic: Aesthetic) -> Option<Colouring<'_>> {
         .iter()
         .map(|layer| {
             if !layer_reads(layer, aesthetic) {
+                return None;
+            }
+            // A fitted line is one line for each category: a colour on a ramp, which is a
+            // colour for each row, is not read by it.
+            if matches!(layer.stat, Some(Stat::Line { .. })) && kind == Shading::Ramp {
                 return None;
             }
             values(plot, Some(layer), aesthetic).filter(|column| shading(column) == Some(kind))
@@ -3035,6 +3176,7 @@ fn dealt(layer: &Layer, of: &[usize], panel: usize) -> Layer {
         } else {
             layer.beyond.clone()
         },
+        interval: layer.interval,
     }
 }
 
@@ -3279,6 +3421,53 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 }
                 _ => Some(Drawn::default()),
             }
+        } else if let (Some(Stat::Line { level }), Some(x), Some(y)) =
+            (layer.stat, named(Aesthetic::X), named(Aesthetic::Y))
+        {
+            // A fitted line: the least-squares line of `y` on `x` for each group, as a line
+            // or as its confidence band, on the values as the axes show them.
+            let across = place(layer, Aesthetic::X);
+            let upper = place(layer, Aesthetic::Y);
+            let band = layer.mark == Mark::Ribbon;
+            let (drawn, few) = fitted(
+                (across.as_deref(), upper.as_deref()),
+                &parted(),
+                (level, band),
+                (plot.axis(Aesthetic::X), plot.axis(Aesthetic::Y)),
+                panel_of(at),
+            );
+            let needs = [x, y];
+            if drawn.points.missing > 0 {
+                note(format!(
+                    "{} with NA in {} dropped",
+                    rows_text(drawn.points.missing),
+                    either(&needs)
+                ));
+            }
+            if drawn.points.infinite > 0 {
+                note(format!(
+                    "{} with an infinite value in {} dropped",
+                    rows_text(drawn.points.infinite),
+                    either(&needs)
+                ));
+            }
+            if few > 0 {
+                note(if few == 1 {
+                    format!(
+                        "1 group with fewer than three rows, or with one value of {x}, has no fitted line"
+                    )
+                } else {
+                    format!(
+                        "{} groups with fewer than three rows, or with one value of {x}, have no fitted line",
+                        count(few as u64)
+                    )
+                });
+            }
+            line = drawn.line;
+            if band {
+                low = drawn.low;
+            }
+            Some(drawn.points)
         } else if let (Some(Stat::Density { .. }), Some(x)) = (layer.stat, named(Aesthetic::X)) {
             // A density: the kernel estimate of the density of `x`, a line for each group.
             let across = place(layer, Aesthetic::X);
@@ -3822,6 +4011,11 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             middle,
             whiskers,
             beyond,
+            interval: match (layer.mark, layer.stat) {
+                (Mark::Errorbars, _) => Some(Interval::Given),
+                (Mark::Ribbon, Some(Stat::Line { level })) => Some(Interval::Confidence(level)),
+                _ => None,
+            },
         });
         kept.push(points.rows);
     }
@@ -4026,7 +4220,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 .find_map(|layer| match layer.stat {
                     Some(Stat::Bins { scale, .. }) => Some(scale.name()),
                     Some(Stat::Density { .. }) => Some("density"),
-                    None => None,
+                    Some(Stat::Line { .. }) | None => None,
                 })
                 .unwrap_or("count")
                 .to_string(),
@@ -4311,6 +4505,13 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             }
         }
     }
+    // What the figure says of an interval the engine computed and drew, where the script
+    // gives no caption of its own (decision #118, F11).
+    let stated = panels
+        .iter()
+        .flat_map(|panel| &panel.layers)
+        .filter(|layer| !layer.x.is_empty())
+        .find_map(|layer| layer.interval.and_then(Interval::caption));
     Scene {
         rows: panels.iter().map(|panel| panel.row).max().unwrap_or(1),
         columns: panels.iter().map(|panel| panel.column).max().unwrap_or(1),
@@ -4325,7 +4526,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         theme: plot.theme,
         title: said(&plot.labels.title),
         subtitle: said(&plot.labels.subtitle),
-        caption: said(&plot.labels.caption),
+        caption: said(&plot.labels.caption).or(stated),
         frame: None,
     }
 }
@@ -4696,7 +4897,14 @@ impl Scene {
                                                                 vec![
                                                                     ("low", Json::numbers(&l.low)),
                                                                     ("span", Json::numbers(&l.span)),
-                                                                    ("interval", Json::text(GIVEN)),
+                                                                    (
+                                                                        "interval",
+                                                                        Json::text(
+                                                                            l.interval
+                                                                                .unwrap_or(Interval::Given)
+                                                                                .name(),
+                                                                        ),
+                                                                    ),
                                                                     ("width", Json::Number(l.width)),
                                                                 ]
                                                             } else {
@@ -4765,6 +4973,18 @@ impl Scene {
                                                             } else {
                                                                 Vec::new()
                                                             })
+                                                            // A band the engine computed
+                                                            // says what its interval is.
+                                                            .chain(
+                                                                l.interval
+                                                                    .filter(|_| l.mark.fills())
+                                                                    .map(|interval| {
+                                                                        (
+                                                                            "interval",
+                                                                            Json::text(interval.name()),
+                                                                        )
+                                                                    }),
+                                                            )
                                                             // And a layer of steps the way
                                                             // they go, a layer of areas how
                                                             // they are placed.
@@ -5371,6 +5591,12 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                     },
                     format_float(layer.width)
                 ),
+                Some(Stat::Line { .. }) => format!(
+                    "least squares of {} on {}, width {}",
+                    by(Aesthetic::Y),
+                    by(Aesthetic::X),
+                    format_float(layer.width)
+                ),
                 _ => format!("width {}", format_float(layer.width)),
             };
             if let Mark::Step(way) = layer.mark
@@ -5477,7 +5703,15 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             settings
         } else if layer.mark.fills() {
             // A filled layer: how far it lets through what is under it, its groups, how many.
-            let mut settings = format!("alpha {}", format_float(layer.alpha));
+            // A band the engine computed says what it is first.
+            let mut settings = match layer.interval {
+                Some(Interval::Confidence(level)) => format!(
+                    "{}% confidence band, alpha {}",
+                    format_float(100.0 * level),
+                    format_float(layer.alpha)
+                ),
+                _ => format!("alpha {}", format_float(layer.alpha)),
+            };
             if let Mark::Area(placed) = layer.mark
                 && placed != Stacking::Overlay
             {
@@ -5526,6 +5760,8 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             match written.and_then(|l| l.stat) {
                 Some(Stat::Bins { .. }) => "histogram".to_string(),
                 Some(Stat::Density { .. }) => "density".to_string(),
+                Some(Stat::Line { .. }) if layer.mark == Mark::Ribbon => "fit band".to_string(),
+                Some(Stat::Line { .. }) => "fit line".to_string(),
                 None => layer.mark.name().to_string(),
             },
             data,

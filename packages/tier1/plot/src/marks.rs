@@ -2484,7 +2484,11 @@ fn not_a_nudge(ctx: &CallContext<'_>) -> Fail {
 /// axis, nor a value below zero on a square-root axis, and such a plot is refused with the
 /// rows named (Z0401; section 7.6, "Scales"). The notes of the rows the new layer does not
 /// draw are said once, where the layer is added.
-fn finish(ctx: &mut CallContext<'_>, plot: &Plot, layer: PlotLayer) -> Result<Value, Fail> {
+pub(crate) fn finish(
+    ctx: &mut CallContext<'_>,
+    plot: &Plot,
+    layer: PlotLayer,
+) -> Result<Value, Fail> {
     let before = scene(plot).notes;
     let (next, after) = with_layer(plot, layer);
     if let Some(fault) = axis_fault(&next) {

@@ -10,6 +10,7 @@ pub mod density;
 pub mod fisher_test;
 pub mod kruskal_test;
 pub mod ks_test;
+pub mod line;
 pub mod marginal;
 pub mod p_adjust;
 pub mod posthoc;

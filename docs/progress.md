@@ -158,3 +158,13 @@ Step 28 was split in four. 28a `[function]`: `histogram`, the rows of `x` counte
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: open decision #133, `by:` on every shorthand that draws rows, meaning panels; a shorthand's refusals are the grammar's own, naming the grammar's function; the shorthands take only the options the catalogue gives them. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 29b (`scatter`)
+
+**Done.** `data.scatter(x, y)` is `plot(x:, y:).points()`. With `fit: linear` the least-squares line of `y` on `x` is drawn over the points and its 95% confidence band under them, for each category of `color:` and each panel of `by:`; the fit is computed in `stats` by the kernel's QR and matches R's `lm` and `predict` to nine places. The scene records the band as `ci 0.95` and the figure's caption says what it is.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
+
+**Next.** Step 29c `[function]`: `histogram`, `density` and `boxplot` on a frame.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: a 95% band with no option for the level; a line for each colour category and panel; no line for fewer than three rows; the line fitted to the values as the axes show them (the logarithms on a log axis); an automatic caption for the band unless the script gives its own. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

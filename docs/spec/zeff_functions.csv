@@ -229,7 +229,7 @@ id,name,package,tier,tier_order,group,kind,usage,description,equivalent,purpose,
 227,plot,plot,1,10,Result plots,result method,fit.plot(),"Default plot for the result, such as an event study",R plot(),exploratory;associational,0.7.0,planned,exact,Rust,
 228,coef_plot,plot,1,10,Result plots,result method,fit.coef_plot(),Coefficients with confidence intervals,Stata coefplot,exploratory;associational,0.7.0,planned,exact,Zeff,
 229,histogram,plot,1,10,Data plots,frame method,"data.histogram(var, bins: Int)",Histogram,R hist(); Stata histogram,exploratory,0.7.0,planned,exact,Rust,
-230,scatter,plot,1,10,Data plots,frame method,"data.scatter(x, y, fit: none | linear = none, color: Var)","Scatter plot with an optional least-squares line, fitted by the kernel's linear algebra",R plot(); Stata scatter,exploratory,0.7.0,planned,exact,Rust,fit: smooth arrives with loess
+230,scatter,plot,1,10,Data plots,frame method,"data.scatter(x, y, fit: none | linear = none, color: Var, by: Var | Vars)","Scatter plot with an optional least-squares line, fitted by the kernel's linear algebra",R plot(); Stata scatter,exploratory,0.7.0,implemented,exact,Rust,fit: smooth arrives with loess
 231,line,plot,1,10,Data plots,frame method,"data.line(x, y, color: Var, by: Var | Vars)",Line plot,Stata line,exploratory,0.7.0,implemented,exact,Rust,
 232,bar,plot,1,10,Data plots,frame method,"data.bar(var, color: Var, by: Var | Vars)",Bar chart,R barplot(); Stata graph bar,exploratory,0.7.0,implemented,exact,Rust,
 233,boxplot,plot,1,10,Data plots,frame method,"data.boxplot(var, group: Var)","Box plot, one box per group",R boxplot(); Stata graph box,exploratory,0.7.0,planned,exact,Rust,

@@ -191,6 +191,9 @@ pub enum Stat {
         adjust: f64,
         kernel: Kernel,
     },
+    /// A fitted line: the least-squares line of `y` on `x`, drawn as a line by a layer of
+    /// lines and as its confidence band at `level` by a layer of bands.
+    Line { level: f64 },
 }
 
 /// The kernel of a density estimate (`kernel:`), each scaled so that the bandwidth is its

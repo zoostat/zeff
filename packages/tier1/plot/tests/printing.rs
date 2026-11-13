@@ -4134,3 +4134,143 @@ fn every_message_of_line_and_bar() {
     }
     insta::assert_snapshot!("line_and_bar_messages", all);
 }
+
+// ----- the shorthand `scatter` (step 29b) -----
+
+const TRIAL: &str = "let d = frame(dose = [1, 2, 3, 4, 5, 6, 7, 8], response = [2.1, 3.9, 6.2, 7.8, 9.0, 11.5, 13.1, NA], arm = [\"a\", \"a\", \"a\", \"a\", \"b\", \"b\", \"b\", \"b\"], weight = [60, 72.5, 81, 55, 90, 68, 77, 64], read = [\"2024-01-15\", \"2024-01-16\", \"2024-01-17\", \"2024-01-18\", \"2024-01-19\", \"2024-01-20\", \"2024-01-21\", \"2024-01-22\"]).add(day = date(read))\n";
+
+#[test]
+fn a_scatter_prints_what_its_grammar_form_prints() {
+    for (short, long) in [
+        (
+            "d.scatter(dose, response)",
+            "d.plot(x: dose, y: response).points()",
+        ),
+        (
+            "d.scatter(dose, response, color: arm)",
+            "d.plot(x: dose, y: response, color: arm).points()",
+        ),
+        (
+            "d.scatter(dose, log(response), color: weight, by: arm)",
+            "d.plot(x: dose, y: log(response), color: weight).points().facet(by: arm)",
+        ),
+        (
+            "d.scatter(day, response, fit: none)",
+            "d.plot(x: day, y: response).points()",
+        ),
+        (
+            "d.scatter(arm, response).labels(title: \"By arm\")",
+            "d.plot(x: arm, y: response).points().labels(title: \"By arm\")",
+        ),
+    ] {
+        let (one, other) = (
+            printed(&format!("{TRIAL}{short}\n")),
+            printed(&format!("{TRIAL}{long}\n")),
+        );
+        assert_eq!(one, other, "{short}");
+    }
+}
+
+#[test]
+fn a_scatter_with_a_fitted_line_reads_sensibly_as_text() {
+    let script = format!(
+        "{TRIAL}d.scatter(dose, response, fit: linear)\n\
+         d.scatter(dose, response, fit: linear, color: arm)\n\
+         d.scatter(dose, response, fit: linear, color: weight)\n\
+         d.scatter(dose, response, fit: linear, by: arm)\n\
+         d.scatter(day, response, fit: linear)\n\
+         d.scatter(dose, response, fit: linear).scale_y(log)\n\
+         d.scatter(dose, response, fit: linear).labels(caption: \"A trial of eight doses\")\n\
+         d.where(dose < 3).scatter(dose, response, fit: linear)\n"
+    );
+    let text = printed(&script);
+    // The band says what it is, the line what it is fitted to, and the figure its caption.
+    assert!(
+        text.contains("1   fit band   d         80   95% confidence band, alpha 0.2, 1 band"),
+        "{text}"
+    );
+    assert!(
+        text.contains(
+            "3   fit line   d         80   least squares of response on dose, width 1, 1 line"
+        ),
+        "{text}"
+    );
+    assert!(
+        text.contains("caption: Band: 95% confidence interval of the fitted line"),
+        "{text}"
+    );
+    // The script's own caption takes its place.
+    assert!(text.contains("caption: A trial of eight doses"), "{text}");
+    insta::assert_snapshot!("scatters_with_a_fit", text);
+}
+
+#[test]
+fn a_scatter_with_a_fitted_line_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{TRIAL}let q = d.scatter(dose, response, fit: linear, color: arm)\n\
+         export(q, \"fit.svg\")\n\
+         export(q, \"fit.pdf\")\n\
+         export(q, \"fit.png\")\n\
+         export(d.scatter(dose, response, fit: linear, by: arm).coord(flip), \"lying.svg\")\n"
+    ));
+    // The one thing said, once for each plot built: the row without a response.
+    assert_eq!(
+        (code, stderr.as_str()),
+        (
+            0,
+            "note: 1 row with NA in dose or response dropped (line 2)\nnote: 1 row with NA in dose or response dropped (line 6)\n"
+        ),
+        "{stdout}"
+    );
+}
+
+#[test]
+fn every_message_of_scatter() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_y", "d.scatter(dose)\n"),
+        ("a_variable_not_there", "d.scatter(doses, response)\n"),
+        (
+            "a_fit_that_is_no_word_of_it",
+            "d.scatter(dose, response, fit: cubic)\n",
+        ),
+        (
+            "a_fit_that_is_a_string",
+            "d.scatter(dose, response, fit: \"linear\")\n",
+        ),
+        (
+            "a_line_through_categories_along_x",
+            "d.scatter(arm, response, fit: linear)\n",
+        ),
+        (
+            "a_line_through_categories_along_y",
+            "d.scatter(dose, arm, fit: linear)\n",
+        ),
+        (
+            "a_line_through_dates_along_y",
+            "d.scatter(dose, day, fit: linear)\n",
+        ),
+        (
+            "a_colour_that_is_a_string",
+            "d.scatter(dose, response, color: \"red\")\n",
+        ),
+        (
+            "panels_by_a_variable_not_there",
+            "d.scatter(dose, response, fit: linear, by: site)\n",
+        ),
+        (
+            "a_value_below_nothing_on_a_log_axis",
+            "d.scatter(dose, response - 5, fit: linear).scale_y(log)\n",
+        ),
+        (
+            "a_scatter_of_a_plot",
+            "d.plot(x: dose).scatter(dose, response)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{TRIAL}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("scatter_messages", all);
+}

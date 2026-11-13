@@ -4,8 +4,6 @@ expression: all
 ---
 error[Z0401]: `histogram` cannot be called on a Frame
  --> zeff_samples.zeff:56:1
-error[Z0103]: no function is called `scatter`
- --> zeff_samples.zeff:57:7
 error[Z0103]: no function is called `coef_plot`
  --> zeff_samples.zeff:102:4
 error[Z0103]: no function is called `ivreg`
@@ -32,5 +30,3 @@ error[Z0103]: no function is called `implied_independencies`
  --> zeff_samples.zeff:219:3
 error[Z0103]: no function is called `check`
  --> zeff_samples.zeff:224:4
-error[Z0103]: no function is called `scatter`
- --> zeff_samples.zeff:237:7

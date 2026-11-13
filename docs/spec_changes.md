@@ -571,3 +571,7 @@ Step 28d of release 0.7.0 builds the layer `errorbars`. The row of the grammar t
 
 Step 29a of release 0.7.0 builds the shorthands `line` and `bar`. The specification's sample script writes `wages.histogram(lwage, bins: 40, by: female)`, and no usage line of a shorthand had `by:`, nor did the text say what it means in a plot. By open decision #133 (option A, taken on 13 November 2026 under the owner's standing instruction, his to overturn) every shorthand that draws the rows of a frame takes `by: Var | Vars`, which parts the plot into panels as `facet(by:)` does. The usage lines are now `data.line(x, y, color: Var, by: Var | Vars)` and `data.bar(var, color: Var, by: Var | Vars)`, both rows `implemented`; the paragraph "Shorthands" of section 7.6 gains one sentence with the rule. The rows of the other shorthands are amended as steps 29b to 29d build them.
 
+## 13 November 2026 — zeff_functions.csv, row 230
+
+Step 29b of release 0.7.0 builds the shorthand `scatter`. By open decision #133 (option A) its usage line gains `by:`: it is now `data.scatter(x, y, fit: none | linear = none, color: Var, by: Var | Vars)`, and the row is `implemented`.
+

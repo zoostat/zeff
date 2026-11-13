@@ -944,6 +944,47 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "scatter",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("x", "Var | Expr"),
+                    ParamSpec::required("y", "Var | Expr"),
+                    ParamSpec::option_with_default("fit", "none | linear", "none"),
+                    ParamSpec::option("color", "Var"),
+                    ParamSpec::option("by", "Var | Vars"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in x or y; the groups too small for a fitted line; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "no such variable in the frame, mapped, read by an expression or named by by:",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable for x or y that no axis places; fit: linear with categories along x or y, or dates along y; a variable named twice in by:",
+                    ),
+                ],
+                help: include_str!("../help/scatter.md"),
+                accuracy: None,
+            },
+            body: shorthands::scatter,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "coord",
                 package: "plot",
                 method: true,

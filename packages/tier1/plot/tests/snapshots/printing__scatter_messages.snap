@@ -1,0 +1,104 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_y
+error[Z0406]: `scatter` needs `y`
+ --> scripts/main.zeff:2:3
+  |
+2 | d.scatter(dose)
+  |   ^^^^^^^ `y` is missing
+  |
+  = help: usage: `data.scatter(x, y, fit: none | linear = none, color: Var, by: Var | Vars)`
+
+== a_variable_not_there
+error[Z0101]: no variable `doses` in `d`
+ --> scripts/main.zeff:2:11
+  |
+2 | d.scatter(doses, response)
+  |           ^^^^^ not a variable of d
+  |
+  = help: did you mean `dose`? If you meant a category level, write it in quotes: `"dose"`
+
+== a_fit_that_is_no_word_of_it
+error[Z0402]: `cubic` is not one of the allowed words
+ --> scripts/main.zeff:2:32
+  |
+2 | d.scatter(dose, response, fit: cubic)
+  |                                ^^^^^ expected one of none, linear
+
+== a_fit_that_is_a_string
+error[Z0403]: expected one of none, linear, found text
+ --> scripts/main.zeff:2:32
+  |
+2 | d.scatter(dose, response, fit: "linear")
+  |                                ^^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `linear`
+
+== a_line_through_categories_along_x
+error[Z0401]: `fit: linear` of `scatter` fits a line of `y` on `x`, so `x` must be numbers, but `arm` is placed as categories
+ --> scripts/main.zeff:2:11
+  |
+2 | d.scatter(arm, response, fit: linear)
+  |           ^^^ categories
+  |                               ------ a line is asked for here
+  |
+  = help: a least-squares line needs a number along each axis; along `x` a date will do, and is counted in days. Leave `fit:` out for the points alone
+
+== a_line_through_categories_along_y
+error[Z0401]: `fit: linear` of `scatter` fits a line of `y` on `x`, so `y` must be numbers, but `arm` is placed as categories
+ --> scripts/main.zeff:2:17
+  |
+2 | d.scatter(dose, arm, fit: linear)
+  |                 ^^^ categories
+  |                           ------ a line is asked for here
+  |
+  = help: a least-squares line needs a number along each axis; along `x` a date will do, and is counted in days. Leave `fit:` out for the points alone
+
+== a_line_through_dates_along_y
+error[Z0401]: `fit: linear` of `scatter` fits a line of `y` on `x`, so `y` must be numbers, but `day` is placed on a scale of dates
+ --> scripts/main.zeff:2:17
+  |
+2 | d.scatter(dose, day, fit: linear)
+  |                 ^^^ dates
+  |                           ------ a line is asked for here
+  |
+  = help: a least-squares line needs a number along each axis; along `x` a date will do, and is counted in days. Leave `fit:` out for the points alone
+
+== a_colour_that_is_a_string
+error[Z0401]: `color` of `scatter` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:34
+  |
+2 | d.scatter(dose, response, color: "red")
+  |                                  ^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+== panels_by_a_variable_not_there
+error[Z0101]: no variable `site` in `d`
+ --> scripts/main.zeff:2:44
+  |
+2 | d.scatter(dose, response, fit: linear, by: site)
+  |                                            ^^^^ not a variable of d
+  |
+  = help: the variables of `d` are: dose, response, arm, weight, read, day
+
+== a_value_below_nothing_on_a_log_axis
+note: 1 row with NA in dose or response - 5 dropped (line 2)
+error[Z0401]: `response - 5` has 2 values at or below 0, which have no place on a log scale: rows 1 and 2 of d
+ --> scripts/main.zeff:2:52
+  |
+2 | d.scatter(dose, response - 5, fit: linear).scale_y(log)
+  |                                                    ^^^ the `y` axis is a log scale
+  |
+  = help: keep the rows with a value above 0, as in `where(response - 5 > 0)`; a square-root scale, `sqrt`, holds 0
+
+== a_scatter_of_a_plot
+error[Z0401]: `scatter` cannot be called on a Plot
+ --> scripts/main.zeff:2:1
+  |
+2 | d.plot(x: dose).scatter(dose, response)
+  | ^^^^^^^^^^^^^^^ this is a Plot
+  |
+  = help: `scatter` takes a Frame first; `x.scatter(...)` is `scatter(x, ...)`
