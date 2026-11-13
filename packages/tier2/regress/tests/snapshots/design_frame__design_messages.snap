@@ -1,0 +1,39 @@
+---
+source: packages/tier2/regress/tests/design_frame.rs
+expression: all
+---
+== of_a_frame
+error[Z0401]: `design` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | d.design()
+  | ^ this is a Frame
+  |
+  = help: `design` takes a RegFit first; `x.design(...)` is `design(x, ...)`
+
+== of_a_number
+error[Z0401]: `design` cannot be called on an Int
+ --> scripts/main.zeff:2:1
+  |
+2 | k.design()
+  | ^ this is an Int
+  |
+  = help: `design` takes a RegFit first; `x.design(...)` is `design(x, ...)`
+
+== of_a_test
+error[Z0401]: `design` cannot be called on a TestResult
+ --> scripts/main.zeff:2:1
+  |
+2 | d.t_test(y).design()
+  | ^^^^^^^^^^^ this is a TestResult
+  |
+  = help: `design` takes a RegFit first; `x.design(...)` is `design(x, ...)`
+
+== with_an_argument
+error[Z0407]: `design` takes 0 arguments, but more were given
+ --> scripts/main.zeff:2:21
+  |
+2 | d.reg(y ~ x).design(true)
+  |                     ^^^^ one too many
+  |
+  = help: usage: `fit.design()`

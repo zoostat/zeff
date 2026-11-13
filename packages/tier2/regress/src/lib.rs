@@ -213,6 +213,23 @@ pub fn functions() -> Vec<Function> {
             },
             body: diagnostics::vif,
         },
+        Function {
+            spec: FunctionSpec {
+                name: "design",
+                package: "regress",
+                method: true,
+                params: vec![ParamSpec::required("fit", "RegFit")],
+                rest: None,
+                returns: "Frame",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "the receiver is not a regression fit",
+                )],
+                help: include_str!("../help/design.md"),
+                accuracy: None,
+            },
+            body: diagnostics::design,
+        },
     ]
 }
 

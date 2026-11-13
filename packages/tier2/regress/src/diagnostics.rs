@@ -193,3 +193,54 @@ pub fn influence(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     })?;
     Ok(Value::Frame(Frame::new(table)))
 }
+
+/// The name of the variable of `fit.design()` that holds the weights of a weighted fit.
+pub const DESIGN_WEIGHTS: &str = "(weights)";
+
+/// `fit.design()` (open decision #71): the design the fit was computed on, as a frame of the
+/// fitted frame's full length, a variable for each term of the fit under the term's name,
+/// the intercept and the columns of the categories among them, with `NA` in the rows the fit
+/// dropped; and for a weighted fit the weights it used, in `(weights)`. The values are those
+/// of the model, unweighted; with fixed effects they are what is left of each column after
+/// the effects are projected out, the design the estimates were computed on. A term omitted
+/// as collinear has no estimate and no variable.
+pub fn design(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let fit = regression(ctx, &args, "design")?;
+    let unbuilt = |ctx: &CallContext<'_>, why: &str| {
+        fail(
+            Diagnostic::error(
+                "Z9001",
+                format!("internal error: this is a bug in Zeff, not in your script (the design of the fit: {why})"),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "the call that failed"),
+        )
+    };
+    let Some(built) = crate::reg::design_of(ctx, &fit) else {
+        return Err(unbuilt(ctx, "the fit keeps no frame"));
+    };
+    let built = built?;
+    // The design built again is the fit's own: the same rows, in the same order.
+    if built.rows != fit.rows {
+        return Err(unbuilt(ctx, "its rows are not the fit's"));
+    }
+    let full = |values: &[f64]| -> Column {
+        let mut all: Vec<Option<f64>> = vec![None; fit.frame_rows];
+        for (i, &row) in fit.rows.iter().enumerate() {
+            all[row] = Some(values[i]);
+        }
+        Column::floats(all).0
+    };
+    let mut columns: Vec<(String, Column)> = Vec::new();
+    for term in &fit.terms {
+        let Some(at) = built.names.iter().position(|name| name == term) else {
+            return Err(unbuilt(ctx, "a term of the fit is not a column of it"));
+        };
+        columns.push((term.clone(), full(&built.column_values(at))));
+    }
+    if let Some(weights) = &fit.weights {
+        columns.push((DESIGN_WEIGHTS.to_string(), full(weights)));
+    }
+    let table = Table::new(columns).map_err(|e| unbuilt(ctx, &format!("{e:?}")))?;
+    Ok(Value::Frame(Frame::new(table)))
+}

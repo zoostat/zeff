@@ -2271,6 +2271,13 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/errorbars/{name}"), &data));
     }
+    // The design of a fit (step 30a): its head for a model with a power and a category, the
+    // lengths of the frame and of the rows used, the means of two of its variables, and the
+    // head of the design left after fixed effects, with the weights.
+    let script = "let w = dataset(wages)\nlet m = w.reg(log(wage) ~ educ + exper^2 + industry)\nlet x = m.design()\nx.head(3)\nx.n_rows()\nm.n_obs()\nx.mean(`exper^2`)\nx.mean(`industry=Mining`)\nlet e = w.reg(log(wage) ~ exper + hours, fe: worker, weights: hours)\ne.design().head(5)\n";
+    let designed = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("regress/design/stdout", &designed.output.stdout));
+    fills.push(text("regress/design/stderr", &designed.output.stderr));
     // The eight shorthands (step 29): each of the plots of a frame written in one call, on
     // the hourly wages of 2015; what the script prints, and each as a figure, the scatter
     // with its fitted line in the three formats.

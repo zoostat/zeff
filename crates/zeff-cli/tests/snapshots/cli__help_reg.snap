@@ -1,6 +1,5 @@
 ---
 source: crates/zeff-cli/tests/cli.rs
-assertion_line: 472
 expression: reg
 ---
 reg — Linear regression by least squares, with fixed effects        regress · tier 2 · since 0.4.0 · 1.0 · closed form
@@ -57,7 +56,7 @@ ARGUMENTS
 VALUE
     A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci,
     n_obs, export. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted, compare, test,
-    derive. Result methods: r_squared, influence, vif.
+    derive. Result methods: r_squared, influence, vif, design.
 
 DETAILS
     Each regressor is scaled to unit norm before a blocked Householder QR of the design and the outcome

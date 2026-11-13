@@ -15,7 +15,9 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
-use zeff_core::value::{ColumnExpr, FixedEffect, Formula, Term, TermKind, Value, terms_text};
+use zeff_core::value::{
+    ColumnExpr, Fit, FitSource, FixedEffect, Formula, Term, TermKind, Value, terms_text,
+};
 use zeff_diagnostics::{Diagnostic, count};
 use zeff_kernels::demean::Options;
 use zeff_kernels::{Matrix, sum};
@@ -793,6 +795,13 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         singletons: fe.as_ref().map_or(0, |w| w.absorbed.singletons),
     };
     let mut fit = summary::linear_fit(&design, &fitted, &vcov, &setting);
+    // What `design` rebuilds the design from: the frame by its handle, and the variables
+    // that chose the rows beside the model's own.
+    fit.source = Some(FitSource {
+        frame: frame.clone(),
+        weights: weights.clone(),
+        cluster: cluster.clone(),
+    });
     fit.warnings = warnings;
     fit.notes.extend(notes);
     // The residuals and fitted values of the rows, unweighted.
@@ -825,6 +834,56 @@ pub fn reg(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
         ctx.message(Diagnostic::plain_note(text));
     }
     Ok(Value::Fit(Rc::new(fit)))
+}
+
+/// The design a fit was computed on, built again from what the fit keeps (open decision #71,
+/// `fit.design()`): the same frame, formula, weights, clusters and fixed effects, through the
+/// steps `reg` took, so that its rows and its columns are the fit's; with fixed effects the
+/// columns are those left after the effects are projected out. What the steps say on the
+/// way, the notes and warnings `reg` raised when the fit was made, is not said again.
+/// `None` for a fit that keeps no source.
+pub(crate) fn design_of(ctx: &mut CallContext<'_>, fit: &Fit) -> Option<Result<Design, Fail>> {
+    let source = fit.source.as_ref()?;
+    let extra: Vec<&str> = source
+        .weights
+        .iter()
+        .chain(source.cluster.iter())
+        .map(String::as_str)
+        .collect();
+    let weight_kind = fit.weight_kind.unwrap_or(WeightKind::Sampling);
+    let said = std::mem::take(ctx.messages);
+    let built = if fit.effects.is_empty() {
+        Design::build(ctx, &source.frame, &fit.model, &extra).and_then(|design| {
+            match &source.weights {
+                Some(name) => design.weighted(ctx, &source.frame, name, weight_kind),
+                None => Ok(design),
+            }
+        })
+    } else {
+        let specs: Vec<(String, Vec<String>)> = fit
+            .effects
+            .iter()
+            .map(|effect| (effect.name.clone(), effect.variables.clone()))
+            .collect();
+        let effects_text = specs
+            .iter()
+            .map(|(name, _)| name.as_str())
+            .collect::<Vec<_>>()
+            .join(" + ");
+        fit_with_effects(
+            ctx,
+            &source.frame,
+            &fit.model,
+            &extra,
+            &specs,
+            &effects_text,
+            source.weights.as_deref(),
+            weight_kind,
+        )
+        .map(|(design, _, _)| design)
+    };
+    *ctx.messages = said;
+    Some(built)
 }
 
 /// The positions of `reg`'s arguments after the frame and the formula.

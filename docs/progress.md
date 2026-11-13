@@ -152,6 +152,17 @@ Step 29c was split in two. 29c1 `[engine]`: a function is known by its package, 
 
 **Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 461 of 461; CI is read job by job after the push.
 
-**Next.** Step 30 `[function]`: the result plots, `fit.plot()` and `fit.coef_plot()`, and `design()`.
+**Next.** Step 30 was split in four on the same day: 30a `[engine]` `design()` on a fit, 30b `[function]` `vif` in Zeff, 30c `[function]` `coef_plot`, 30d `[function]` `fit.plot()`. The next is step 30a `[engine]`.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the three colours of a heat map (blue, near-white, red); both halves of the square drawn; no numbers in the tiles. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 30a (`design()` on a fit)
+
+**Done.** `fit.design()` gives the design a regression was computed on as a frame of the data's length: a variable for each term of the table (`(intercept)`, `educ`, `industry=Mining`, `exper^2`), `NA` in the rows the fit dropped, the weights of a weighted fit in `(weights)`, and with `fe:` the columns left after the effects are taken out. The fit keeps a handle to its frame and builds the design again when asked; nothing is copied when a model is fitted.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 463 of 463; CI is read job by job after the push.
+
+**Next.** Step 30b `[function]`: `vif` in Zeff on `design()`.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the fit keeps the frame by its handle and not a copy of the design; the frame of `design()` has the length of the data, with `NA` in the rows not used, as `residuals()` has; the values are unweighted, with the weights beside them. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

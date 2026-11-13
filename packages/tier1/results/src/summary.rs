@@ -196,6 +196,7 @@ pub fn linear_fit(design: &Design, fitted: &Fitted, vcov: &Matrix, setting: &Set
     Fit {
         kind: "RegFit",
         name: None,
+        source: None,
         method: setting.method.to_string(),
         formula: setting.formula.to_string(),
         terms,

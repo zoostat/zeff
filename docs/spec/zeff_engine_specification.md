@@ -578,10 +578,10 @@ packages/tier2/regress/          a first-party package crate
     src/lib.rs                   registers reg, ivreg, first_stage, r_squared, …
     src/ols.rs                   reg and its tall-skinny QR fit
     src/iv.rs                    ivreg, first_stage
-    src/diagnostics.rs           r_squared, influence, vif
+    src/diagnostics.rs           r_squared, influence, vif, design
     src/terms.rs                 interact, event
     help/reg.md  help/ivreg.md  help/first_stage.md  help/r_squared.md
-    help/influence.md  help/vif.md  help/interact.md  help/event.md
+    help/influence.md  help/vif.md  help/design.md  help/interact.md  help/event.md
     tests/                       reference, edge-case and property tests
     functions/                   functions of this package written in Zeff, one per file
 ```
@@ -683,7 +683,7 @@ fn share_missing(data: Frame, var: Var) -> Float {
 #### `regress` (tier 2) · 9 in 1.0, 0 proposed, 8 on the roadmap
 
 - **Models:** `reg`, `ivreg`
-- **Linear-model methods:** `r_squared`, `influence`, `vif`, `first_stage`, `ar_test` (the generic result methods are in `results`)
+- **Linear-model methods:** `r_squared`, `influence`, `vif`, `design`, `first_stage`, `ar_test` (the generic result methods are in `results`)
 - **Formula terms:** `interact`, `event`
 - **Roadmap:** `power.reg` (1.9), `wild_bootstrap`, `ivreg` method `liml`, `quantile_reg`, `het_test`, `reset_test`, `durbin_watson`, `ljung_box_test`
 
@@ -875,7 +875,7 @@ The 272 functions of 1.0 arrive over eleven minor releases, 0.1.0 to 0.11.0, the
 | 0.4.0 | Regression | 29: `reg` without fixed effects; the result and estimator interfaces of `results` (17 functions, `derive` and `report` among them); `r_squared` and `influence`; `interact`; types and categories with contrasts; `label`, `recode` | The `zeff-kernels` crate (tall-skinny QR, Cholesky, fixed SIMD width); formula parser and the model-matrix rules of section 7.2 of the Language Reference, with collinearity reporting; the column metadata store and its keys (section 4.3 of the Language Reference); the estimator trait and the variance layer (classical, HC, clustered); Word and LaTeX tables | Cross-sectional regression |
 | 0.5.0 | Language complete | 33: 14 collection functions (`equal` among them, open decision #5); `attempt`, `iterate`; 17 functions planned in Zeff, written in Zeff where the language of 0.5.0 expresses them (11) and in Rust otherwise (6, open decisions #68 to #71); `summary` stays in Rust until a table constructor exists (open decision #72) | `if`, `case`, `for`, `fn`, `use`, calling any function as a method; the `Failed` type | User-written functions |
 | 0.6.0 | Panels | 37: joins, reshaping, `aggregate`, `panel`, `save`; panel column functions; `event`; dates and `format`; `table` (open decision #72) | Grouped computation; `fe:` demeaning in `reg`; date types; shared Arrow columns and selection vectors; the schema pass behind `zeff check`; data roots in `zeff.toml` | Panel research |
-| 0.7.0 | Tests, plots and the language server | 65: `note` and `name_of` (open decision #70); `map`, `filter` and `reduce` (#79); `tabulate`; nine tests, `anova` with factorial tables, `posthoc` and `dist.tukey`; `p_adjust`; the plot grammar and its shorthands (35 functions, section 7.6 of the Language Reference); 12 text functions | Language server (completion, signature help, hover, live diagnostics), tree-sitter grammar, `zeff fmt` and `zeff test`, ready for Zemp's prototype (Zemp 0.1; its alpha follows at 0.8.0); layered-grammar plot renderer with the Okabe–Ito and viridis scales, redraw to fit and journal sizes; exact Wilcoxon distribution; engine worker with progress, cancellation and memory budget; `zeff completions` | Exploratory analysis; Zemp's interface starts |
+| 0.7.0 | Tests, plots and the language server | 66: `note` and `name_of` (open decision #70); `map`, `filter` and `reduce` (#79); `tabulate`; nine tests, `anova` with factorial tables, `posthoc` and `dist.tukey`; `p_adjust`; the plot grammar and its shorthands (35 functions, section 7.6 of the Language Reference); `design` on a fit (#71); 12 text functions | Language server (completion, signature help, hover, live diagnostics), tree-sitter grammar, `zeff fmt` and `zeff test`, ready for Zemp's prototype (Zemp 0.1; its alpha follows at 0.8.0); layered-grammar plot renderer with the Okabe–Ito and viridis scales, redraw to fit and journal sizes; exact Wilcoxon distribution; engine worker with progress, cancellation and memory budget; `zeff completions` | Exploratory analysis; Zemp's interface starts |
 | 0.8.0 | Instrumental variables | 3: `ivreg`, `first_stage`, `ar_test` | Two-stage least squares with `instruments:`; Kleibergen–Paap, Cragg–Donald and effective F; the Anderson–Rubin test and confidence set, valid when instruments are weak; `zeff report-bug` with shrinking; `zeff explain` | IV studies |
 | 0.9.0 | Binary outcomes | 6: `logistic`, `probit`, `margins`, `roc`, `confusion`, `timer` | The likelihood trait and shared optimiser; IRLS and Newton fitting; separation checks; robust and clustered SEs from the variance layer; marginal effects with delta-method standard errors for `reg`, `logistic` and `probit`; patch releases begin, with the launcher and engine split, `zeff engine`, `zeff doctor` and signed engine downloads (section 2.1); the known-issues list and `zeff audit`, which patch releases need from their first day | Binary outcomes |
 | 0.10.0 | Causal graphs and validation | 11: `reliability`; `dag`, `adjustment_sets`, `implied_independencies`, `check`, `exclusion_check`, `g.plot`; `dist.weibull`, `dist.logistic`, `dist.hypergeometric`; `mcnemar_test` | `merge` gains `join: semi \| anti`; `dag { }` parser; cycle detection, d-separation and back-door adjustment sets; the validation suite run in full for every function and published | Scale reliability; causal graphs; public validation results |

@@ -1081,6 +1081,9 @@ pub struct Fit {
     /// the influence measures need to weight a residual or to count a row's observations.
     pub weights: Option<Vec<f64>>,
     pub weight_kind: Option<WeightKind>,
+    /// What `design` rebuilds the fit's design from (open decision #71): the frame the fit was
+    /// computed on and the variables that chose its rows. `None` for a fit that keeps none.
+    pub source: Option<FitSource>,
     /// The Gram matrix XᵀX of the kept design (the weighted design under weights), one row of
     /// `terms.len()` values per term, in the units of the data; what `vif` and the diagnostics
     /// that need the design read without the design itself.
@@ -1112,6 +1115,17 @@ pub struct FixedEffect {
     pub variables: Vec<String>,
     pub keys: Vec<Vec<zeff_columns::Key>>,
     pub values: Vec<f64>,
+}
+
+/// Where a fit came from, kept so that its design can be given later (open decision #71,
+/// `fit.design()`): the frame, by its handle, which copies no data and keeps the frame's
+/// columns alive as long as the fit is; and the variables of the weights and of the
+/// clusters, whose rows with `NA` the fit dropped beside those of the model's variables.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FitSource {
+    pub frame: Frame,
+    pub weights: Option<String>,
+    pub cluster: Option<String>,
 }
 
 /// A test statistic with its degrees of freedom: `F(1, 18179)`, `t(23.4)`, `z`.

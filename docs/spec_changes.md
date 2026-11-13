@@ -587,3 +587,7 @@ Step 29d of release 0.7.0 builds the shorthand `qq_plot`. By open decision #133 
 
 Step 29e of release 0.7.0 builds the shorthand `heatmap`. Its usage line, `data.heatmap(vars)`, is as it was; the row is `implemented`. With it rows 229 to 236, the eight shorthands, are all `implemented`, step 29 being complete.
 
+## 13 November 2026 — zeff_functions.csv, row 545 (new); Engine and Project Specification, sections 9.1, 8.2 and 14
+
+Step 30a of release 0.7.0 builds `fit.design()`. Open decision #71 (decided 6 November 2026, option A) has it built at step 30 "its catalogue row added there". The row is added: `545,design,regress,…,fit.design(),"The design the fit was computed on, as a frame: a variable for each term, of the fitted frame's length",…,0.7.0,implemented,exact,Rust`. The Engine and Project Specification names the function where it lists the package: `src/diagnostics.rs` and `help/design.md` in the layout of `regress` (section 9.1), `design` among the linear-model methods (section 8.2), and the row of release 0.7.0 in the build order (section 14), whose count goes from 65 to 66 and which gains "`design` on a fit (#71)".
+

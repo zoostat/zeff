@@ -855,6 +855,15 @@ impl Design {
         self.dense.is_none()
     }
 
+    /// The values of column `column`, one for each row used, in the order of `rows`,
+    /// unweighted: the column as the model has it, and after the fixed effects have been
+    /// projected out the column less its part along them (`fit.design()`, open decision #71).
+    pub fn column_values(&self, column: usize) -> Vec<f64> {
+        (0..self.rows.len())
+            .map(|index| self.value_at(column, index))
+            .collect()
+    }
+
     /// The value of column `column` at the row used at `index`, unweighted: from the dense
     /// values when the design has been transformed, from the sources otherwise.
     pub(crate) fn value_at(&self, column: usize, index: usize) -> f64 {

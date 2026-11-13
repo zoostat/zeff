@@ -1,0 +1,17 @@
+---
+source: packages/tier2/regress/tests/design_frame.rs
+expression: "format!(\"{}---\\n{}\", outcome.output.stdout, outcome.output.stderr)"
+---
+dm · 5 rows × 3 variables
+
+      (intercept)    x   arm=b
+  1             1    1       0
+  2             1    2       1
+  3            NA   NA      NA
+  4             1    4       1
+  5             1    5       1
+4
+0.75
+---
+note: 1 row with NA in x dropped (line 5)
+warning[W0201]: 1 row with NA in arm=b was skipped (line 6)
