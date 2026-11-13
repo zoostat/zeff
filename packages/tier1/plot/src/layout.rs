@@ -998,6 +998,9 @@ fn round_in(xs: Option<&Scale>, set: &mut Setter, theme: &Theme, wide: f64, high
     }
 }
 
+/// The diameter of the point of a value beyond the whiskers of a box, in points.
+pub const OUTLIER_SIZE: f64 = 2.5;
+
 /// The largest angle one straight piece of a wound mark spans: two degrees, at which a
 /// chord of a circle a hundred points across is a hundredth of a point from its arc.
 const WOUND_STEP: f64 = std::f64::consts::PI / 90.0;
@@ -2446,6 +2449,82 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                                 opacity: layer.alpha,
                             },
                         ));
+                    }
+                }
+                if let Mark::Box(_) = layer.mark {
+                    // A box: its whiskers, from each hinge to the furthest value within its
+                    // reach; the box itself, from the lower hinge to the upper, in its fill,
+                    // or in the colour of the page where it has none, with a line round it;
+                    // a line across it at the median; and each value beyond the whiskers
+                    // as a small point.
+                    let boxes = marks_of
+                        .min(layer.low.len())
+                        .min(layer.span.len())
+                        .min(layer.middle.len())
+                        .min(layer.whiskers.len());
+                    for i in 0..boxes {
+                        let (near, far) = (
+                            m_across(sx, layer.x[i] - layer.span[i] / 2.0),
+                            m_across(sx, layer.x[i] + layer.span[i] / 2.0),
+                        );
+                        let mid = m_across(sx, layer.x[i]);
+                        let (lower, upper) = (m_down(sy, layer.low[i]), m_down(sy, layer.y[i]));
+                        let fill = match &layer.fill {
+                            Paint::Theme => theme.background.to_string(),
+                            Paint::Constant(hex) => hex.clone(),
+                            Paint::Scaled(values) => match (scene.scale("fill"), values.get(i)) {
+                                (Some(scale), Some(value)) => colour_on(scale, *value),
+                                _ => theme.background.to_string(),
+                            },
+                        };
+                        let (foot, head) = layer.whiskers[i];
+                        for (from, to) in [(foot, layer.low[i]), (layer.y[i], head)] {
+                            drawn.push(named(
+                                &name,
+                                segment(
+                                    (mid, m_down(sy, from)),
+                                    (mid, m_down(sy, to)),
+                                    line(theme.ink, theme.axis_width),
+                                ),
+                            ));
+                        }
+                        drawn.push(named(
+                            &name,
+                            Primitive::Polygon {
+                                rings: vec![vec![
+                                    (near, lower),
+                                    (far, lower),
+                                    (far, upper),
+                                    (near, upper),
+                                ]],
+                                fill: Some(fill),
+                                stroke: Some(line(theme.ink, theme.axis_width)),
+                                opacity: layer.alpha,
+                            },
+                        ));
+                        let median = m_down(sy, layer.middle[i]);
+                        drawn.push(named(
+                            &name,
+                            segment(
+                                (near, median),
+                                (far, median),
+                                line(theme.ink, 2.0 * theme.axis_width),
+                            ),
+                        ));
+                    }
+                    for (of, value) in &layer.beyond {
+                        if let Some(x) = layer.x.get(*of) {
+                            drawn.push(named(
+                                &name,
+                                Primitive::Point {
+                                    at: (m_across(sx, *x), m_down(sy, *value)),
+                                    shape: shape::DEFAULT,
+                                    size: OUTLIER_SIZE,
+                                    colour: theme.ink.to_string(),
+                                    opacity: 1.0,
+                                },
+                            ));
+                        }
                     }
                 }
                 if layer.mark.fills() {

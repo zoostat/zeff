@@ -3835,3 +3835,92 @@ fn every_message_of_density() {
     }
     insta::assert_snapshot!("density_messages", all);
 }
+
+// ----- boxplot (step 28c) -----
+
+#[test]
+fn a_box_plot_reads_sensibly_as_text() {
+    let script = format!(
+        "{SCORES}d.plot(x: arm, y: score).boxplot()\n\
+         d.plot(y: score).boxplot()\n\
+         d.plot(y: score).boxplot(outliers: false)\n\
+         d.plot(x: arm, y: score, fill: arm).boxplot()\n\
+         d.plot(x: arm, y: score).boxplot().points(alpha: 0.5)\n\
+         d.plot(x: arm, y: score).boxplot().coord(flip).labels(title: \"Scores by arm\")\n\
+         d.plot(y: score).boxplot().facet(by: arm)\n"
+    );
+    let text = printed(&script);
+    // The layer is named a box plot, with its boxes and the values beyond their whiskers.
+    assert!(
+        text.contains("1   boxplot   d          2   1 value beyond the whiskers"),
+        "{text}"
+    );
+    assert!(
+        text.contains("1   boxplot   d          1   1 value beyond the whiskers"),
+        "{text}"
+    );
+    assert!(
+        text.contains("1   boxplot   d          1   values beyond the whiskers not drawn"),
+        "{text}"
+    );
+    // One box stands on an axis of one place without a name.
+    assert!(
+        text.contains("  x              category   0.4 to 1.6"),
+        "{text}"
+    );
+    insta::assert_snapshot!("box_plots_of_plots", text);
+}
+
+#[test]
+fn a_box_plot_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{SCORES}let q = d.plot(x: arm, y: score, fill: arm).boxplot()\n\
+         export(q, \"box.svg\")\n\
+         export(q, \"box.pdf\")\n\
+         export(q, \"box.png\")\n\
+         export(d.plot(y: score).boxplot(outliers: false).coord(flip), \"lying.svg\")\n\
+         export(d.plot(x: arm, y: score).boxplot().coord(polar), \"round.svg\")\n"
+    ));
+    // The one thing said: the value that `outliers: false` leaves out.
+    assert_eq!(
+        (code, stderr.as_str()),
+        (
+            0,
+            "note: 1 value beyond the whiskers is not drawn (line 7)\n"
+        ),
+        "{stdout}"
+    );
+}
+
+#[test]
+fn every_message_of_boxplot() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_y", "d.plot(x: arm).boxplot()\n"),
+        ("a_y_of_text", "d.plot(x: arm, y: name).boxplot()\n"),
+        ("a_y_of_dates", "d.plot(x: arm, y: day).boxplot()\n"),
+        (
+            "outliers_that_are_a_number",
+            "d.plot(y: score).boxplot(outliers: 1)\n",
+        ),
+        (
+            "outliers_that_are_a_word",
+            "d.plot(y: score).boxplot(outliers: none)\n",
+        ),
+        ("a_box_plot_of_a_frame", "d.boxplot()\n"),
+        (
+            "a_fill_on_a_ramp",
+            "d.plot(x: arm, y: score, fill: score).boxplot()\n",
+        ),
+        (
+            "a_frame_without_the_variable",
+            "d.plot(x: arm, y: score).boxplot(data: frame(arm = [\"a\"], other = [1]))\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SCORES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("boxplot_messages", all);
+}

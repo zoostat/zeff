@@ -802,6 +802,27 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "boxplot",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option_with_default("outliers", "Bool", "true"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "no y, and a y that is not numbers",
+                )],
+                help: include_str!("../help/boxplot.md"),
+                accuracy: None,
+            },
+            body: marks::boxplot,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "coord",
                 package: "plot",
                 method: true,

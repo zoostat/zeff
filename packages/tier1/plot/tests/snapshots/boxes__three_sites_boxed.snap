@@ -1,0 +1,45 @@
+---
+source: packages/tier1/plot/tests/boxes.rs
+expression: "layout(&boxed(sites(), Some(\"site\"), \"v\", boxes(true)), Size::OneColumn,\n&JOURNAL).unwrap().describe()"
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 71.205,7.792 to 71.205,155.253 stroke #E3E3E3 0.35
+[grid] segment 138.131,7.792 to 138.131,155.253 stroke #E3E3E3 0.35
+[grid] segment 205.056,7.792 to 205.056,155.253 stroke #E3E3E3 0.35
+[grid] segment 31.05,129.399 to 245.211,129.399 stroke #E3E3E3 0.35
+[grid] segment 31.05,91.098 to 245.211,91.098 stroke #E3E3E3 0.35
+[grid] segment 31.05,52.796 to 245.211,52.796 stroke #E3E3E3 0.35
+[grid] segment 31.05,14.495 to 245.211,14.495 stroke #E3E3E3 0.35
+[panel] clip 31.05,7.792 214.161 by 147.461
+  [layer:1] segment 71.205,148.55 to 71.205,129.399 stroke #222222 0.5
+  [layer:1] segment 71.205,52.796 to 71.205,33.645 stroke #222222 0.5
+  [layer:1] polygon 46.108,129.399 96.302,129.399 96.302,52.796 46.108,52.796 fill #FFFFFF stroke #222222 0.5 opacity 1
+  [layer:1] segment 46.108,91.098 to 96.302,91.098 stroke #222222 1
+  [layer:1] segment 138.131,129.399 to 138.131,110.248 stroke #222222 0.5
+  [layer:1] segment 138.131,33.645 to 138.131,14.495 stroke #222222 0.5
+  [layer:1] polygon 113.034,110.248 163.228,110.248 163.228,33.645 113.034,33.645 fill #FFFFFF stroke #222222 0.5 opacity 1
+  [layer:1] segment 113.034,71.947 to 163.228,71.947 stroke #222222 1
+  [layer:1] segment 205.056,148.55 to 205.056,138.974 stroke #222222 0.5
+  [layer:1] segment 205.056,119.824 to 205.056,110.248 stroke #222222 0.5
+  [layer:1] polygon 179.959,138.974 230.153,138.974 230.153,119.824 179.959,119.824 fill #FFFFFF stroke #222222 0.5 opacity 1
+  [layer:1] segment 179.959,129.399 to 230.153,129.399 stroke #222222 1
+[axis:x] segment 31.05,155.253 to 245.211,155.253 stroke #222222 0.5
+[axis:x] segment 71.205,155.253 to 71.205,158.253 stroke #222222 0.5
+[axis:x] text 71.205,166.837 middle "n" sans 8 #222222
+[axis:x] segment 138.131,155.253 to 138.131,158.253 stroke #222222 0.5
+[axis:x] text 138.131,166.837 middle "s" sans 8 #222222
+[axis:x] segment 205.056,155.253 to 205.056,158.253 stroke #222222 0.5
+[axis:x] text 205.056,166.837 middle "w" sans 8 #222222
+[axis:x] text 138.131,180.837 middle "site" sans 9 #222222
+[axis:y] segment 31.05,7.792 to 31.05,155.253 stroke #222222 0.5
+[axis:y] segment 28.05,129.399 to 31.05,129.399 stroke #222222 0.5
+[axis:y] text 25.05,132.191 end "2" sans 8 #222222
+[axis:y] segment 28.05,91.098 to 31.05,91.098 stroke #222222 0.5
+[axis:y] text 25.05,93.89 end "4" sans 8 #222222
+[axis:y] segment 28.05,52.796 to 31.05,52.796 stroke #222222 0.5
+[axis:y] text 25.05,55.588 end "6" sans 8 #222222
+[axis:y] segment 28.05,14.495 to 31.05,14.495 stroke #222222 0.5
+[axis:y] text 25.05,17.287 end "8" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "v" sans 9 #222222
+note: 1 row with NA in site or v dropped

@@ -1,0 +1,71 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · score against arm
+
+  axis   title   scale      limits       breaks
+  x      arm     category   0.4 to 2.6   a, b
+  y      score   linear     0.6 to 9.4   2, 4, 6, 8
+
+  layer   mark      data   marks   settings
+      1   boxplot   d          2   1 value beyond the whiskers
+plot · d · score
+
+  axis   title   scale      limits       breaks
+  x              category   0.4 to 1.6
+  y      score   linear     0.6 to 9.4   2, 4, 6, 8
+
+  layer   mark      data   marks   settings
+      1   boxplot   d          1   1 value beyond the whiskers
+plot · d · score
+
+  axis   title   scale      limits       breaks
+  x              category   0.4 to 1.6
+  y      score   linear     0.8 to 5.2   1, 2, 3, 4, 5
+
+  layer   mark      data   marks   settings
+      1   boxplot   d          1   values beyond the whiskers not drawn
+plot · d · score against arm
+
+  axis   title   scale      limits       breaks
+  x      arm     category   0.4 to 2.6   a, b
+  y      score   linear     0.6 to 9.4   2, 4, 6, 8
+
+  aesthetic   title   scale      values   shown as
+  fill        arm     category   a, b     orange, sky blue
+
+  layer   mark      data   marks   settings
+      1   boxplot   d          2   1 value beyond the whiskers
+plot · d · score against arm
+
+  axis   title   scale      limits       breaks
+  x      arm     category   0.4 to 2.6   a, b
+  y      score   linear     0.6 to 9.4   2, 4, 6, 8
+
+  layer   mark      data   marks   settings
+      1   boxplot   d          2   1 value beyond the whiskers
+      2   points    d         10   size 4.5, alpha 0.5
+plot · d · score against arm
+
+  axis   title   scale      limits       breaks
+  x      arm     category   0.4 to 2.6   a, b
+  y      score   linear     0.6 to 9.4   2, 4, 6, 8
+
+  layer   mark      data   marks   settings
+      1   boxplot   d          2   1 value beyond the whiskers
+
+title: Scores by arm
+coordinates: flipped, `x` up the side and `y` along the foot
+plot · d · score
+
+  axis   title   scale      limits       breaks
+  x              category   0.4 to 1.6
+  y      score   linear     0.6 to 9.4   2, 4, 6, 8
+
+  layer   mark      data   marks   settings
+      1   boxplot   d          2   1 value beyond the whiskers
+
+panels: 2 by arm: a, b
+---
+note: 1 value beyond the whiskers is not drawn (line 5)

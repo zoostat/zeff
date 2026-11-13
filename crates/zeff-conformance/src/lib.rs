@@ -2244,6 +2244,19 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/density/{name}"), &data));
     }
+    // The box plot layer (step 28c): the hourly wages of 2015 by union membership; by
+    // industry, lying along the page; by union membership and sex, side by side; one box
+    // without the values beyond its whiskers; what the script prints, the first figure in
+    // the three formats and the lying and the filled boxes as figures.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet p = w.plot(x: union, y: wage).boxplot()\np\nlet q = w.plot(x: industry, y: wage).boxplot().coord(flip)\nq\nlet r = w.plot(x: union, y: wage, fill: female).boxplot()\nr\nw.plot(y: wage).boxplot(outliers: false)\nexport(p, \"box.svg\")\nexport(p, \"box.pdf\")\nexport(p, \"box.png\")\nexport(q, \"lying.svg\", size: two_column)\nexport(r, \"filled.svg\")\n";
+    let boxed = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/boxplot/stdout", &boxed.output.stdout));
+    fills.push(text("plot/boxplot/stderr", &boxed.output.stderr));
+    for name in ["box.svg", "box.pdf", "box.png", "lying.svg", "filled.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/boxplot/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

@@ -417,6 +417,13 @@ plot/density/density.pdf 82cb24c0b6056314
 plot/density/density.png a6faf0dac06c9104
 plot/density/groups.svg bd5053e20fb651ed
 plot/density/over.svg a43f327b0c4b9d09
+plot/boxplot/stdout 94ae02940cb57eea
+plot/boxplot/stderr 7f549ea340d7ee63
+plot/boxplot/box.svg 6fcecf4373b12bf6
+plot/boxplot/box.pdf 9db869627824bd75
+plot/boxplot/box.png c57f386ec66805d2
+plot/boxplot/lying.svg e5d2f318a59e8c1c
+plot/boxplot/filled.svg 571480829a892867
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

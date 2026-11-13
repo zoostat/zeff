@@ -3906,3 +3906,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 28b; section 7.6 of the Language Reference ("Statistical layers"); open decision #99, question 2; catalogue row 473.
 
+## 13 November 2026: `boxplot` (release 0.7.0, step 28c)
+
+**A mark of its own.** A box is five numbers and some points, which no mark built so far holds. The grammar gains the mark `Mark::Box`, which carries whether the values beyond the whiskers are drawn, and a layer of the scene gains three lists for it: the median of each box (`middle`), the two ends of its whiskers (`whiskers`) and the values beyond with their boxes (`beyond`); the middle of a box along `x`, its width, and its two hinges are where a bar has its place, its width and its two ends. The scene's JSON writes the three lists for a layer of boxes and for no other, so the scene of every other plot is as it was. The layout draws a box in the frame of the data like every mark, so boxes lie along the page under `coord(flip)` and wind round the centre under `coord(polar)` with nothing written for them.
+
+**The five numbers** (rulings where the text is silent, each the owner's to overturn). (a) The hinges are Tukey's, the medians of the lower and of the upper half of the values with the middle value in both where their number is odd, as R's `fivenum` and `boxplot.stats` have them, which is the reference the checklist names; ggplot2 takes quartiles by Hyndman and Fan's seventh definition, which differ in small groups. (b) A whisker runs from each hinge to the furthest value within one and a half times the height of the box from it; a value beyond is drawn as a point, 2.5 points across, in the colour of the text. (c) `outliers: false` leaves those values out of the scene altogether, so that the axis is that of the boxes and their whiskers, as ggplot2's `outliers = FALSE` does, and a note counts what is not drawn.
+
+**The picture** (rulings). (d) A box is three quarters of the smallest gap between two values of `x` wide, as ggplot2's. (e) Without a fill a box is in the colour of the page, with a line round it of the width of an axis line; with a fill, in its colour with the same line. The median is a line across the box, twice as wide. (f) A whisker has no line across its end, as Tukey drew it and as ggplot2 draws it; R's `boxplot` has one. (g) Where the plot fills by categories each value of `x` has a box for each category that is there, side by side, the first at the left, sharing the width of a box, as bars side by side do. (h) Where nothing is mapped to `x` there is one box, at the one place of an axis of categories that has no label and no title; without that axis a figure had nothing to place the box by. (i) In a plot parted into panels the boxes at one place are those of one panel, as bars are.
+
+**The printed plot** names the layer `boxplot` with the number of its boxes and of the values beyond their whiskers, or says that those are not drawn.
+
+**Against R** (4.6.0). `boxplot.stats` on nine series (200 values, 57 with ties, forty equal values with two apart, twelve with three far values, and one, two, three, four and five values): the five numbers to twelve places and the same values beyond. For the help page's ten scores by arm R has 1, 2, 3, 4, 5 with none beyond and 2, 3, 3, 4, 4 with 9 beyond, as here.
+
+**Tests.** `packages/tier1/plot/tests/boxes.rs`: four tests and one property (the five numbers and the values beyond against `boxplot.stats`; one box at one place without a name, its axis reaching the value beyond, and `outliers: false` with its note, with a snapshot of the scene; a box for each value of `x`, boxes side by side for a fill with the fill of each, and the boxes of each panel; a box drawn as its box, its median, its whiskers and its points, each at its place, with a snapshot of the drawing; and, whatever the rows, five numbers in order, a box for each group, and no value beyond the whiskers within their reach). `tests/printing.rs`: the printed plot in seven forms, an export in the three formats, lying and round, and every message of `boxplot` (eight). Two verified examples in the help page, which is complete. One conformance case (`plot/boxplot`), which brings `zeff selftest` to 443 of 443.
+
+**The specification.** The usage line of catalogue row 474 is as it was; the row stays `planned` until step 28 is complete.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 28c; section 7.6 of the Language Reference ("Statistical layers"); catalogue row 474.
+

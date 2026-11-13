@@ -329,6 +329,14 @@ pub struct Layer {
     /// For a mark that is text: how far each is moved from its place, to the right and up,
     /// in points of 1/72 inch.
     pub nudge: (f64, f64),
+    /// For a mark that is a box: the median of each.
+    pub middle: Vec<f64>,
+    /// For a mark that is a box: the two ends of the whiskers of each, the lower and the
+    /// upper.
+    pub whiskers: Vec<(f64, f64)>,
+    /// For a mark that is a box: the values beyond the whiskers, each with the box it
+    /// belongs to, counted from 0 among the boxes of the layer.
+    pub beyond: Vec<(usize, f64)>,
 }
 
 /// The type of the lines of a layer.
@@ -401,6 +409,12 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
         Mark::Text => matches!(
             aesthetic,
             Aesthetic::X | Aesthetic::Y | Aesthetic::Color | Aesthetic::Label
+        ),
+        // A box stands at `x`, over the values of `y`, filled in the colour `fill` says; the
+        // rows of one `group` are one set of boxes.
+        Mark::Box(_) => matches!(
+            aesthetic,
+            Aesthetic::X | Aesthetic::Y | Aesthetic::Fill | Aesthetic::Group
         ),
         // A tile stands at `x` and `y`, filled in the colour `fill` says for its row.
         Mark::Tile => matches!(aesthetic, Aesthetic::X | Aesthetic::Y | Aesthetic::Fill),
@@ -1679,6 +1693,170 @@ fn binned(
     (out, before, most)
 }
 
+/// The width of a box as a share of the gap between two values of `x`: three quarters.
+pub const BOX_WIDTH: f64 = 0.75;
+
+/// The boxes of a layer, and what was not drawn.
+#[derive(Default)]
+struct Boxes {
+    /// The middle of each box along `x`, its upper hinge, and the row it is drawn from.
+    points: Drawn,
+    /// The lower hinge of each box.
+    low: Vec<f64>,
+    span: Vec<f64>,
+    middle: Vec<f64>,
+    whiskers: Vec<(f64, f64)>,
+    beyond: Vec<(usize, f64)>,
+    /// The values beyond the whiskers that are not drawn, where the script asks for none.
+    hidden: usize,
+}
+
+/// The five numbers of a box, of values in order: the lower hinge, the median, the upper
+/// hinge, and the ends of the whiskers, the furthest values within one and a half times the
+/// height of the box from it; then the values beyond. The hinges are Tukey's, the medians of
+/// the lower and the upper half, as R's `fivenum` and `boxplot.stats` have them.
+fn five(sorted: &[f64]) -> ((f64, f64, f64), (f64, f64), Vec<f64>) {
+    let n = sorted.len();
+    // The value at a place counted from 1, which may be halfway between two.
+    let at = |place: f64| {
+        let (lo, hi) = (place.floor() as usize, place.ceil() as usize);
+        0.5 * (sorted[lo - 1] + sorted[hi - 1])
+    };
+    let quarter = ((n + 3) / 2) as f64 / 2.0;
+    let (lower, median, upper) = (
+        at(quarter),
+        at((n + 1) as f64 / 2.0),
+        at((n + 1) as f64 - quarter),
+    );
+    let reach = 1.5 * (upper - lower);
+    let within = |v: &f64| *v >= lower - reach && *v <= upper + reach;
+    let inside: Vec<f64> = sorted.iter().copied().filter(within).collect();
+    let ends = match (inside.first(), inside.last()) {
+        (Some(first), Some(last)) => (*first, *last),
+        _ => (lower, upper),
+    };
+    let outside = sorted.iter().copied().filter(|v| !within(v)).collect();
+    ((lower, median, upper), ends, outside)
+}
+
+/// The boxes of a layer. Each row with a `y`, and an `x` where one is mapped, belongs to the
+/// box of its `x` and its group; where nothing is mapped to `x` (`cx` is `None`) there is one
+/// place, and a box for each group there. The rows are parted into groups as for a bar, and
+/// the boxes that share an `x` stand side by side, the groups that are there sharing the
+/// width, the first at the left. A box is `width` of the smallest gap between two values of
+/// `x` wide. In a plot parted into panels the boxes at one place are those of one panel.
+/// Each box is drawn from the first row of its group, which gives it its fill and its panel.
+fn boxed(
+    cx: Option<Option<&Column>>,
+    cy: Option<&Column>,
+    keys: &[Categories],
+    (width, alone, outliers): (f64, f64, bool),
+    panels: Option<&[usize]>,
+) -> Boxes {
+    let mut out = Boxes::default();
+    let Some(cy) = cy else {
+        return out;
+    };
+    let cx = match cx {
+        Some(None) => return out,
+        Some(Some(cx)) => Some(cx),
+        None => None,
+    };
+    if !is_numeric(cy)
+        || cx.is_some_and(|cx| !is_numeric(cx) || cx.len() != cy.len())
+        || keys.iter().any(|key| key.of.len() != cy.len())
+        || panels.is_some_and(|panels| panels.len() != cy.len())
+    {
+        return out;
+    }
+    struct Item {
+        panel: usize,
+        x: f64,
+        group: Vec<(bool, usize)>,
+        value: f64,
+        row: usize,
+    }
+    let mut items: Vec<Item> = Vec::new();
+    for row in 0..cy.len() {
+        let x = match cx {
+            Some(cx) => number(cx, row),
+            None => Some(1.0),
+        };
+        let (Some(x), Some(y)) = (x, number(cy, row)) else {
+            out.points.missing += 1;
+            continue;
+        };
+        if !(x.is_finite() && y.is_finite()) {
+            out.points.infinite += 1;
+            continue;
+        }
+        items.push(Item {
+            panel: panels.map_or(0, |panels| panels[row]),
+            x: x + 0.0,
+            group: keys
+                .iter()
+                .map(|key| (key.of[row].is_none(), key.of[row].unwrap_or(0)))
+                .collect(),
+            value: y,
+            row,
+        });
+    }
+    items.sort_by(|a, b| {
+        a.panel
+            .cmp(&b.panel)
+            .then_with(|| a.x.total_cmp(&b.x))
+            .then_with(|| a.group.cmp(&b.group))
+            .then(a.row.cmp(&b.row))
+    });
+    let places: Vec<f64> = items.iter().map(|item| item.x).collect();
+    let wide = width * resolution(&places, alone);
+    let mut start = 0;
+    while start < items.len() {
+        // The rows of one place of one panel, and the groups that are there.
+        let mut end = start + 1;
+        while end < items.len()
+            && items[end].panel == items[start].panel
+            && items[end].x == items[start].x
+        {
+            end += 1;
+        }
+        let here = &items[start..end];
+        let mut groups: Vec<&Vec<(bool, usize)>> = Vec::new();
+        for item in here {
+            if groups.last() != Some(&&item.group) {
+                groups.push(&item.group);
+            }
+        }
+        let slot = wide / groups.len() as f64;
+        for (place, group) in groups.iter().enumerate() {
+            let of: Vec<&Item> = here.iter().filter(|item| &item.group == *group).collect();
+            let mut values: Vec<f64> = of.iter().map(|item| item.value).collect();
+            values.sort_by(f64::total_cmp);
+            let ((lower, median, upper), ends, outside) = five(&values);
+            let this = out.whiskers.len();
+            out.points
+                .x
+                .push(here[0].x - wide / 2.0 + (place as f64 + 0.5) * slot);
+            out.points.y.push(upper);
+            out.points
+                .rows
+                .push(of.iter().map(|item| item.row).min().unwrap_or(0));
+            out.low.push(lower);
+            out.span.push(slot);
+            out.middle.push(median);
+            out.whiskers.push(ends);
+            if outliers {
+                out.beyond
+                    .extend(outside.into_iter().map(|value| (this, value)));
+            } else {
+                out.hidden += outside.len();
+            }
+        }
+        start = end;
+    }
+    out
+}
+
 /// The lines of a density: for each group of the rows with a finite `x`, by panel and then
 /// in the order of their categories, the kernel estimate of the density of its values
 /// (`zeff_stats::density`), a line through its 512 places. Each group has its own bandwidth,
@@ -2550,6 +2728,14 @@ fn whole_layers(scene: &Scene) -> Vec<Layer> {
             all.low.extend(&more.low);
             all.span.extend(&more.span);
             all.label.extend(more.label.iter().cloned());
+            let boxes = all.whiskers.len();
+            all.middle.extend(&more.middle);
+            all.whiskers.extend(&more.whiskers);
+            all.beyond.extend(
+                more.beyond
+                    .iter()
+                    .map(|(of_box, value)| (of_box + boxes, *value)),
+            );
             if let (Paint::Scaled(all), Paint::Scaled(more)) = (&mut all.color, &more.color) {
                 all.extend(more);
             }
@@ -2655,6 +2841,35 @@ fn dealt(layer: &Layer, of: &[usize], panel: usize) -> Layer {
             layer.label.clone()
         },
         nudge: layer.nudge,
+        middle: pick(&layer.middle),
+        whiskers: if layer.whiskers.len() == marks {
+            layer
+                .whiskers
+                .iter()
+                .zip(of)
+                .filter(|(_, at)| **at == panel)
+                .map(|(ends, _)| *ends)
+                .collect()
+        } else {
+            layer.whiskers.clone()
+        },
+        // The values beyond the whiskers go with their boxes, which are counted again
+        // among those of the panel.
+        beyond: if layer.whiskers.len() == marks {
+            layer
+                .beyond
+                .iter()
+                .filter(|(of_box, _)| of.get(*of_box) == Some(&panel))
+                .map(|(of_box, value)| {
+                    (
+                        of[..*of_box].iter().filter(|at| **at == panel).count(),
+                        *value,
+                    )
+                })
+                .collect()
+        } else {
+            layer.beyond.clone()
+        },
     }
 }
 
@@ -2782,9 +2997,57 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         // For bars, how far each reaches along `x`, and whether they count rows.
         let mut span: Vec<f64> = Vec::new();
         let mut counted = false;
-        let mut points = if let (Some(Stat::Density { .. }), Some(x)) =
-            (layer.stat, named(Aesthetic::X))
-        {
+        // For boxes: the median of each, the ends of its whiskers, and the values beyond.
+        let mut middle: Vec<f64> = Vec::new();
+        let mut whiskers: Vec<(f64, f64)> = Vec::new();
+        let mut beyond: Vec<(usize, f64)> = Vec::new();
+        let mut points = if let (Mark::Box(outliers), Some(y)) = (layer.mark, named(Aesthetic::Y)) {
+            // A box for each value of `x`, or one box where nothing is mapped to `x`, over
+            // the values of `y` there.
+            let across = place(layer, Aesthetic::X);
+            let upper = place(layer, Aesthetic::Y);
+            counted = true;
+            let drawn = boxed(
+                named(Aesthetic::X).map(|_| across.as_deref()),
+                upper.as_deref(),
+                &parted(),
+                (BOX_WIDTH, alone(across_dates), outliers),
+                panel_of(at),
+            );
+            let mut needs: Vec<&str> = named(Aesthetic::X).into_iter().collect();
+            needs.push(y);
+            if drawn.points.missing > 0 {
+                note(format!(
+                    "{} with NA in {} dropped",
+                    rows_text(drawn.points.missing),
+                    either(&needs)
+                ));
+            }
+            if drawn.points.infinite > 0 {
+                note(format!(
+                    "{} with an infinite value in {} dropped",
+                    rows_text(drawn.points.infinite),
+                    either(&needs)
+                ));
+            }
+            if drawn.hidden > 0 {
+                note(format!(
+                    "{} beyond the whiskers {} not drawn",
+                    if drawn.hidden == 1 {
+                        "1 value".to_string()
+                    } else {
+                        format!("{} values", count(drawn.hidden as u64))
+                    },
+                    if drawn.hidden == 1 { "is" } else { "are" }
+                ));
+            }
+            low = drawn.low;
+            span = drawn.span;
+            middle = drawn.middle;
+            whiskers = drawn.whiskers;
+            beyond = drawn.beyond;
+            Some(drawn.points)
+        } else if let (Some(Stat::Density { .. }), Some(x)) = (layer.stat, named(Aesthetic::X)) {
             // A density: the kernel estimate of the density of `x`, a line for each group.
             let across = place(layer, Aesthetic::X);
             let (drawn, few) = smoothed(across.as_deref(), &parted(), layer.stat, panel_of(at));
@@ -3322,6 +3585,9 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             span,
             label,
             nudge: layer.nudge,
+            middle,
+            whiskers,
+            beyond,
         });
         kept.push(points.rows);
     }
@@ -3501,6 +3767,9 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             } else {
                 all.extend(&layer.y);
                 all.extend(&layer.low);
+                // A box reaches to the ends of its whiskers, and to the values beyond.
+                all.extend(layer.whiskers.iter().flat_map(|ends| [ends.0, ends.1]));
+                all.extend(layer.beyond.iter().map(|(_, value)| *value));
             }
         }
         extent(all.iter())
@@ -3527,6 +3796,30 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 })
                 .unwrap_or("count")
                 .to_string(),
+            // Boxes with nothing mapped to `x` stand at one place, which has no name: an
+            // axis of one category without a label or a title.
+            None if aesthetic == Aesthetic::X
+                && plot.layers.iter().any(|layer| {
+                    matches!(layer.mark, Mark::Box(_))
+                        && mapping_of(plot, layer, Aesthetic::Y).is_some()
+                }) =>
+            {
+                let beyond = if plot.coord == Coord::Polar { 0.5 } else { 0.6 };
+                scales.push(Scale {
+                    id: aesthetic.name(),
+                    kind: ScaleKind::Category,
+                    title: String::new(),
+                    limits: (1.0 - beyond, 1.0 + beyond),
+                    breaks: vec![1.0],
+                    labels: vec![String::new()],
+                    range: Range::Position,
+                });
+                axes.push(Axis {
+                    scale: aesthetic.name(),
+                    position,
+                });
+                continue;
+            }
             None => continue,
         };
         // The words of the script for the title of the axis come before the label of its
@@ -3538,33 +3831,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         .unwrap_or(title);
         // Along `y` a filled mark reaches from its lower edge to its upper one, and along `x`
         // a bar half its width to either side of its place.
-        let edges: Vec<f64> = layers
-            .iter()
-            .flat_map(|layer| {
-                layer
-                    .x
-                    .iter()
-                    .zip(&layer.span)
-                    .flat_map(|(x, span)| [x - span / 2.0, x + span / 2.0])
-            })
-            .collect();
-        let none: &[f64] = &[];
-        let marks = extent(
-            layers
-                .iter()
-                .flat_map(|layer| {
-                    if aesthetic == Aesthetic::X {
-                        layer.x.iter().chain(none)
-                    } else {
-                        layer.y.iter().chain(&layer.low)
-                    }
-                })
-                .chain(if aesthetic == Aesthetic::X {
-                    &edges[..]
-                } else {
-                    none
-                }),
-        );
+        let marks = reach(aesthetic, &layers.iter().collect::<Vec<&Layer>>());
         let categories = if aesthetic == Aesthetic::X {
             &across_categories
         } else {
@@ -4120,7 +4387,9 @@ impl Scene {
                                                             .chain(
                                                                 if matches!(
                                                                     l.mark,
-                                                                    Mark::Bars(_) | Mark::Tile
+                                                                    Mark::Bars(_)
+                                                                        | Mark::Tile
+                                                                        | Mark::Box(_)
                                                                 ) {
                                                                     vec![
                                                                         (
@@ -4154,6 +4423,35 @@ impl Scene {
                                                                     Vec::new()
                                                                 },
                                                             )
+                                                            // A layer of boxes says the
+                                                            // median of each, the ends of
+                                                            // its whiskers, and the values
+                                                            // beyond with their boxes.
+                                                            .chain(if matches!(l.mark, Mark::Box(_)) {
+                                                                vec![
+                                                                    ("middle", Json::numbers(&l.middle)),
+                                                                    (
+                                                                        "whiskers",
+                                                                        Json::List(
+                                                                            l.whiskers
+                                                                                .iter()
+                                                                                .map(|ends| Json::numbers(&[ends.0, ends.1]))
+                                                                                .collect(),
+                                                                        ),
+                                                                    ),
+                                                                    (
+                                                                        "beyond",
+                                                                        Json::List(
+                                                                            l.beyond
+                                                                                .iter()
+                                                                                .map(|(of, value)| Json::numbers(&[*of as f64, *value]))
+                                                                                .collect(),
+                                                                        ),
+                                                                    ),
+                                                                ]
+                                                            } else {
+                                                                Vec::new()
+                                                            })
                                                             .chain(if l.mark.spans() {
                                                                 vec![
                                                                     (
@@ -4888,6 +5186,26 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 ),
                 None => "no bin".to_string(),
             }
+        } else if let Mark::Box(outliers) = layer.mark {
+            // A layer of boxes: how many values lie beyond their whiskers, or that those
+            // values are not drawn.
+            let mut settings = if outliers {
+                let beyond = layer.beyond.len();
+                format!(
+                    "{} beyond the whiskers",
+                    if beyond == 1 {
+                        "1 value".to_string()
+                    } else {
+                        format!("{} values", count(beyond as u64))
+                    }
+                )
+            } else {
+                "values beyond the whiskers not drawn".to_string()
+            };
+            if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
+                settings.push_str(&format!(", group by {}", mapping.variable));
+            }
+            settings
         } else if let Mark::Bars(how) = layer.mark {
             // A layer of bars: their width, how they are arranged where it is not on one
             // another, how far they let through what is under them, their groups.

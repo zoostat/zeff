@@ -2052,6 +2052,80 @@ pub fn density(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     )
 }
 
+// ----- boxplot (step 28c) -----
+
+const BX_OUTLIERS: usize = 2;
+
+/// `p.boxplot(data: Frame, outliers: Bool = true)`: a box for each value of `x`, or each
+/// group there, over the values of `y`.
+pub fn boxplot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`boxplot` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    // A box is of the values of the variable the plot maps to `y`.
+    if plot.mapping(Aesthetic::Y).is_none() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`boxplot` draws a box over the values of `y`, but the plot maps no variable to `y`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "needs `y`")
+            .help("map it where the plot starts, as in `plot(x: industry, y: wage).boxplot()` for a box of `wage` for each industry, or `plot(y: wage).boxplot()` for one box"),
+        ));
+    }
+    numbers_along(
+        ctx,
+        &plot,
+        &frame,
+        &[],
+        (Aesthetic::Y, None),
+        ("boxplot", "draws a box over the values of `y`", false),
+    )?;
+    one_axis(ctx, &plot, &frame, &[], (X, Y), "boxplot")?;
+    one_fill_to_an_area(ctx, &plot, &frame, &[], (false, BX_OUTLIERS), "boxplot")?;
+    let outliers = match args.get(BX_OUTLIERS) {
+        None | Some(Value::Na) => true,
+        Some(Value::Bool(drawn)) => *drawn,
+        Some(_) => return Err(internal(ctx, "`outliers:` that is neither true nor false")),
+    };
+    let (data, computed) = own_frame(
+        ctx,
+        &args,
+        &plot,
+        "boxplot",
+        &[
+            Aesthetic::X,
+            Aesthetic::Y,
+            Aesthetic::Fill,
+            Aesthetic::Group,
+        ],
+    )?;
+    finish(
+        ctx,
+        &plot,
+        PlotLayer {
+            mark: Mark::Box(outliers),
+            data,
+            alpha: 1.0,
+            size: None,
+            jitter: 0.0,
+            nudge: (0.0, 0.0),
+            width: None,
+            stream: None,
+            stat: None,
+            computed,
+            mappings: Vec::new(),
+            constants: Vec::new(),
+        },
+    )
+}
+
 // ----- tile (step 24c) -----
 
 const T_FILL: usize = 4;

@@ -669,6 +669,11 @@ pub enum Mark {
     Tile,
     /// The text of `label` at each row's `x` and `y`.
     Text,
+    /// A box for each value of `x`, or each group there: the box from the lower hinge of
+    /// its values of `y` to the upper, a line at the median, whiskers to the furthest
+    /// values within one and a half times the height of the box from it, and the values
+    /// beyond as points, where `true`.
+    Box(bool),
 }
 
 /// How the bars that share a value of `x` are arranged.
@@ -778,6 +783,7 @@ impl Mark {
             Mark::Bars(_) => "bars",
             Mark::Tile => "tile",
             Mark::Text => "text",
+            Mark::Box(_) => "boxplot",
         }
     }
 
@@ -794,7 +800,7 @@ impl Mark {
 
     /// Whether a mark is a filled shape, whose key in a legend is a patch of its fill.
     pub fn patches(self) -> bool {
-        self.fills() || matches!(self, Mark::Bars(_) | Mark::Tile)
+        self.fills() || matches!(self, Mark::Bars(_) | Mark::Tile | Mark::Box(_))
     }
 
     /// Whether the marks of a layer are the corners of filled shapes, one for each run of rows
