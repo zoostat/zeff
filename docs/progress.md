@@ -148,3 +148,13 @@ Step 28 was split in four. 28a `[function]`: `histogram`, the rows of `x` counte
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: intervals in the colour of the text, not of their group; intervals follow bars side by side without a `position:` of their own; an interval with `low` above `high` is drawn and counted in a note, not refused; nothing is written on the figure about what a given interval is (the author says it in the caption). One error of the specification corrected and logged: the grammar table had `errorbars(ci:)`. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 29a (`line` and `bar`), and step 29 split in five
+
+**Done.** Step 29 was split into 29a (`line`, `bar`), 29b (`scatter` with its fitted line), 29c (`histogram`, `density`, `boxplot` on a frame), 29d (`qq_plot`) and 29e (`heatmap`). A shorthand calls the functions of the grammar themselves, so `m.line(year, rate, color: region)` is the very `Plot` of `m.plot(x: year, y: rate, color: region).lines()`, and `d.bar(arm)` that of `d.plot(x: arm).bars()`; `by:` parts either into panels, as `facet(by:)`.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
+
+**Next.** Step 29b `[engine]`: `scatter`, with `fit: linear`, the least-squares line and its band.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: open decision #133, `by:` on every shorthand that draws rows, meaning panels; a shorthand's refusals are the grammar's own, naming the grammar's function; the shorthands take only the options the catalogue gives them. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

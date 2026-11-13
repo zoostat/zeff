@@ -4039,3 +4039,98 @@ fn every_message_of_errorbars() {
     }
     insta::assert_snapshot!("errorbars_messages", all);
 }
+
+// ----- the shorthands `line` and `bar` (step 29a) -----
+
+const RATES: &str = "let m = frame(year = [2019, 2020, 2021, 2019, 2020, 2021], rate = [4.1, 6.3, NA, 3.2, 5.9, 4.4], region = [\"north\", \"north\", \"north\", \"south\", \"south\", \"south\"], arm = [\"a\", \"b\", \"a\", \"c\", \"a\", NA])\n";
+
+#[test]
+fn a_shorthand_prints_what_its_grammar_form_prints() {
+    // Each shorthand and its grammar form, one after the other: the two print the same.
+    for (short, long) in [
+        ("m.line(year, rate)", "m.plot(x: year, y: rate).lines()"),
+        (
+            "m.line(year, rate, color: region)",
+            "m.plot(x: year, y: rate, color: region).lines()",
+        ),
+        (
+            "m.line(year, log(rate), by: region)",
+            "m.plot(x: year, y: log(rate)).lines().facet(by: region)",
+        ),
+        (
+            "m.line(year, rate, color: region, by: [region, arm])",
+            "m.plot(x: year, y: rate, color: region).lines().facet(by: [region, arm])",
+        ),
+        ("m.bar(arm)", "m.plot(x: arm).bars()"),
+        (
+            "m.bar(arm, color: region)",
+            "m.plot(x: arm, color: region).bars()",
+        ),
+        (
+            "m.bar(year, by: region)",
+            "m.plot(x: year).bars().facet(by: region)",
+        ),
+        // What follows a shorthand in the chain follows its plot.
+        (
+            "m.bar(arm).coord(flip).labels(title: \"Arms\")",
+            "m.plot(x: arm).bars().coord(flip).labels(title: \"Arms\")",
+        ),
+        (
+            "m.line(year, rate).points()",
+            "m.plot(x: year, y: rate).lines().points()",
+        ),
+    ] {
+        let (one, other) = (
+            printed(&format!("{RATES}{short}\n")),
+            printed(&format!("{RATES}{long}\n")),
+        );
+        assert_eq!(one, other, "{short}");
+    }
+    let text = printed(&format!(
+        "{RATES}m.line(year, rate, color: region)\nm.bar(arm, color: region)\nm.bar(arm, by: region)\n"
+    ));
+    insta::assert_snapshot!("line_and_bar_of_frames", text);
+}
+
+#[test]
+fn every_message_of_line_and_bar() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("a_line_without_y", "m.line(year)\n"),
+        ("a_line_of_a_variable_not_there", "m.line(years, rate)\n"),
+        ("a_line_in_another_case", "m.line(year, Rate)\n"),
+        (
+            "a_line_coloured_by_a_number",
+            "m.line(year, rate, color: rate)\n",
+        ),
+        (
+            "a_line_coloured_by_a_string",
+            "m.line(year, rate, color: \"red\")\n",
+        ),
+        (
+            "a_line_in_panels_by_a_variable_not_there",
+            "m.line(year, rate, by: site)\n",
+        ),
+        (
+            "a_line_in_panels_by_one_variable_twice",
+            "m.line(year, rate, by: [region, region])\n",
+        ),
+        ("a_line_of_a_plot", "m.plot(x: year).line(year, rate)\n"),
+        ("a_bar_without_a_variable", "m.bar()\n"),
+        ("a_bar_of_a_variable_not_there", "m.bar(arms)\n"),
+        (
+            "a_bar_coloured_by_a_variable_not_there",
+            "m.bar(arm, color: sex)\n",
+        ),
+        (
+            "a_bar_in_panels_by_a_variable_not_there",
+            "m.bar(arm, by: site)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{RATES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("line_and_bar_messages", all);
+}

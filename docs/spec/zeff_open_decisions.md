@@ -2569,3 +2569,17 @@ Raised on 13 November 2026 at step 27c1 of release 0.7.0, where polar coordinate
 
 **The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A stands for 0.7.0, and the three arguments are a question for 0.8.0.
 
+### 133. `by:` on the shorthand plots
+
+Raised on 13 November 2026 at step 29 of release 0.7.0, where the shorthands are built. The specification's sample script writes `wages.histogram(lwage, bins: 40, by: female)`. The catalogue's usage line for the shorthand `histogram` (row 229) has no `by:`, and no other shorthand has one either; the Language Reference says only that `histogram(x)` is `plot(x:).histogram()`. So the sample and the catalogue disagree on `histogram`, and what `by:` means in a plot is nowhere said. Everywhere else in Zeff `by:` names the variable whose values part the rows into groups (`summary(by:)`, `aggregate(by:)`), and in the grammar the same word parts a plot into panels (`facet(by:)`).
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. Every shorthand that draws rows takes `by: Var \| Vars`, and it parts the plot into panels as `facet(by:)` does: `histogram`, `scatter`, `line`, `bar`, `boxplot`, `density`, `qq_plot`; not `heatmap`, which draws correlations and not rows | One rule for the family, the one `facet(by:)` already has; the sample script runs as written; Stata's `by()` works on every graph in the same way, and R's users write `facet_wrap` after any plot; the panels are built, so it costs one argument each | Seven usage lines of the catalogue gain an argument under the freeze |
+| B. `by:` on `histogram` alone, as the sample has it | The smallest change that makes the sample run | The owner learns `by:` on one plot and finds it missing on the next; a second round of the same change later |
+| C. `by:` fills by the variable in one panel, as `color:` does | Nothing | Two words for one thing, and stacked or overlaid histograms of groups are the hardest to read; `color:` is there for it on the shorthands that take it |
+
+*Recommendation.* A. Deadline: 0.7.0, step 29a.
+
+**The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. The usage lines of catalogue rows 229 to 235 gain `by: Var | Vars` as each shorthand is built at steps 29a to 29d, each logged in `docs/spec_changes.md`; the sentence on shorthands in section 7.6 of the Language Reference gains the rule at step 29a.
+

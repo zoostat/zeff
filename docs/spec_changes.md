@@ -567,3 +567,7 @@ Step 28b of release 0.7.0 builds the layer `density`. Its usage line had `p.dens
 
 Step 28d of release 0.7.0 builds the layer `errorbars`. The row of the grammar table had `errorbars(ci:)`, an option the layer does not have: the catalogue (row 475), the sample script (`.errorbars(low: mean_lwage - 1.96 * se, high: mean_lwage + 1.96 * se)`) and the checklist all give it `low:` and `high:`, the two ends of the interval, which the script computes. An error of the table, found while coding. The row now has `errorbars(low:, high:)`. The usage line of catalogue row 475 is as it was; rows 472 to 475 are now `implemented`, step 28 being complete.
 
+## 13 November 2026 — zeff_functions.csv, rows 231 and 232; Language Reference, section 7.6 ("Shorthands")
+
+Step 29a of release 0.7.0 builds the shorthands `line` and `bar`. The specification's sample script writes `wages.histogram(lwage, bins: 40, by: female)`, and no usage line of a shorthand had `by:`, nor did the text say what it means in a plot. By open decision #133 (option A, taken on 13 November 2026 under the owner's standing instruction, his to overturn) every shorthand that draws the rows of a frame takes `by: Var | Vars`, which parts the plot into panels as `facet(by:)` does. The usage lines are now `data.line(x, y, color: Var, by: Var | Vars)` and `data.bar(var, color: Var, by: Var | Vars)`, both rows `implemented`; the paragraph "Shorthands" of section 7.6 gains one sentence with the rule. The rows of the other shorthands are amended as steps 29b to 29d build them.
+

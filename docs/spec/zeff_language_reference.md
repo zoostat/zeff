@@ -1075,7 +1075,7 @@ wages.scatter(educ, lwage)                         // the shorthand: the same Pl
 | Composition and inspection | `arrange([p1, p2], cols:)` and `p.computed()` from 1.2 | `computed` returns each layer's computed data (the histogram's bins, the smooth's fitted values) as frames |
 | Result plots | `fit.plot()`, `fit.coef_plot()` | Built from the fit's estimates with `points` and `errorbars`; `plot` chooses the layers by result type (an event study for `did`, a coefficient plot for `reg`) |
 
-**Shorthands.** `histogram(x)` is `plot(x:).histogram()`; `scatter(x, y)` is `plot(x:, y:).points()`; `line` is `.lines()`; `bar` is `.bars()`; `boxplot(y, group:)` is `plot(x: group, y:).boxplot()`; `density` is `.density()`; `heatmap(vars)` computes the correlations and draws `.tile()`; `qq_plot` draws the quantile pairs with `points` and a reference `lines` layer. Zemp's quick plots write the shorthands; its plot dialog shows the layers.
+**Shorthands.** `histogram(x)` is `plot(x:).histogram()`; `scatter(x, y)` is `plot(x:, y:).points()`; `line` is `.lines()`; `bar` is `.bars()`; `boxplot(y, group:)` is `plot(x: group, y:).boxplot()`; `density` is `.density()`; `heatmap(vars)` computes the correlations and draws `.tile()`; `qq_plot` draws the quantile pairs with `points` and a reference `lines` layer. A shorthand that draws the rows of a frame, every one but `heatmap`, takes `by:`, which parts the plot into panels as `facet(by:)` does (`wages.histogram(lwage, by: female)`). Zemp's quick plots write the shorthands; its plot dialog shows the layers.
 
 **Defaults.** These are fixed, since they are where most of a plot's quality lies, and a figure re-renders identically on every machine.
 

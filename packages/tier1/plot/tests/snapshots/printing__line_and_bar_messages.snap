@@ -1,0 +1,114 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== a_line_without_y
+error[Z0406]: `line` needs `y`
+ --> scripts/main.zeff:2:3
+  |
+2 | m.line(year)
+  |   ^^^^ `y` is missing
+  |
+  = help: usage: `data.line(x, y, color: Var, by: Var | Vars)`
+
+== a_line_of_a_variable_not_there
+error[Z0101]: no variable `years` in `m`
+ --> scripts/main.zeff:2:8
+  |
+2 | m.line(years, rate)
+  |        ^^^^^ not a variable of m
+  |
+  = help: did you mean `year`? If you meant a category level, write it in quotes: `"year"`
+
+== a_line_in_another_case
+error[Z0102]: no variable `Rate` in `m`; names are case-sensitive
+ --> scripts/main.zeff:2:14
+  |
+2 | m.line(year, Rate)
+  |              ^^^^ differs only in case from `rate`
+  |
+  = help: write `rate`
+
+== a_line_coloured_by_a_number
+error[Z0401]: `lines` draws each line in one colour, so `color` must show categories, but `rate` is a Float without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:2:3
+  |
+2 | m.line(year, rate, color: rate)
+  |   ^^^^ a colour for each row, not for each line
+  |
+  = help: colour the lines by a variable of categories, as in `lines(color: union)`, or set one colour for this layer, as in `lines(color: "black")`
+
+== a_line_coloured_by_a_string
+error[Z0401]: `color` of `line` must be a Var, but this is a Str
+ --> scripts/main.zeff:2:27
+  |
+2 | m.line(year, rate, color: "red")
+  |                           ^^^^^ a Str
+  |
+  = help: name a variable of the frame, without quotes
+
+== a_line_in_panels_by_a_variable_not_there
+error[Z0101]: no variable `site` in `m`
+ --> scripts/main.zeff:2:24
+  |
+2 | m.line(year, rate, by: site)
+  |                        ^^^^ not a variable of m
+  |
+  = help: the variables of `m` are: year, rate, region, arm
+
+== a_line_in_panels_by_one_variable_twice
+note: 1 row with NA in year or rate dropped (line 2)
+note: 1 break in a line where rate is NA (line 2)
+note: 1 row with no neighbour to be joined to draws no line (line 2)
+error[Z0401]: `by:` of `facet` names `region` twice
+ --> scripts/main.zeff:2:24
+  |
+2 | m.line(year, rate, by: [region, region])
+  |                        ^^^^^^^^^^^^^^^^ one variable, twice
+  |
+  = help: a plot is parted by each variable once; leave the second out
+
+== a_line_of_a_plot
+error[Z0401]: `line` cannot be called on a Plot
+ --> scripts/main.zeff:2:1
+  |
+2 | m.plot(x: year).line(year, rate)
+  | ^^^^^^^^^^^^^^^ this is a Plot
+  |
+  = help: `line` takes a Frame first; `x.line(...)` is `line(x, ...)`
+
+== a_bar_without_a_variable
+error[Z0406]: `bar` needs `var`
+ --> scripts/main.zeff:2:3
+  |
+2 | m.bar()
+  |   ^^^ `var` is missing
+  |
+  = help: usage: `data.bar(var, color: Var, by: Var | Vars)`
+
+== a_bar_of_a_variable_not_there
+error[Z0101]: no variable `arms` in `m`
+ --> scripts/main.zeff:2:7
+  |
+2 | m.bar(arms)
+  |       ^^^^ not a variable of m
+  |
+  = help: did you mean `arm`? If you meant a category level, write it in quotes: `"arm"`
+
+== a_bar_coloured_by_a_variable_not_there
+error[Z0101]: no variable `sex` in `m`
+ --> scripts/main.zeff:2:19
+  |
+2 | m.bar(arm, color: sex)
+  |                   ^^^ not a variable of m
+  |
+  = help: the variables of `m` are: year, rate, region, arm
+
+== a_bar_in_panels_by_a_variable_not_there
+error[Z0101]: no variable `site` in `m`
+ --> scripts/main.zeff:2:16
+  |
+2 | m.bar(arm, by: site)
+  |                ^^^^ not a variable of m
+  |
+  = help: the variables of `m` are: year, rate, region, arm

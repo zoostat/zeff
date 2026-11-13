@@ -3946,3 +3946,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 28d; section 7.6 of the Language Reference ("Statistical layers"); catalogue row 475; decision #118, F11.
 
+## 13 November 2026: the shorthands `line` and `bar`, and step 29 split in five (release 0.7.0, step 29a)
+
+**The split.** Step 29 held eight functions, one of which fits a line and two of which compute what they draw. It is now five steps: 29a `[function]` `line` and `bar`, with the way a shorthand is built; 29b `[engine]` `scatter`, with its least-squares line and band; 29c `[function]` `histogram`, `density` and `boxplot` on a frame, whose names the layers share; 29d `[function]` `qq_plot`; 29e `[function]` `heatmap` and the conformance case over the eight.
+
+**How a shorthand is built.** A shorthand is a frame method in `packages/tier1/plot/src/shorthands.rs` that calls the functions of the grammar themselves, `plot`, then the layer, then `facet` where `by:` is given, handing each the shorthand's own arguments with the places where the script wrote them. So the `Plot` it gives is the grammar's value, not a copy of its logic: the scene is the same byte for byte, the notes are the same, and a refusal is the grammar's own, in its words, pointing at the argument of the shorthand that caused it. The cost, accepted: a refusal names the function of the grammar that made it (`lines`, `facet`), which is also what the help page of the shorthand tells the reader to write when the shorthand is not enough. No logic of a plot is written twice.
+
+**`by:` (open decision #133, option A, taken on the recommendation under the standing instruction, the owner's to overturn).** Every shorthand that draws the rows of a frame takes `by: Var | Vars` and it means `facet(by:)`. The sample script needs it on `histogram`; one rule for the family was preferred to one plot with the option and six without.
+
+**Rulings where the text is silent** (each the owner's to overturn). (a) `line(x, y, color:)` is `plot(x:, y:, color:).lines()`: `color:` is a variable of categories, a line for each; a number is refused, as `lines` refuses it. (b) `bar(var, color:)` is `plot(x: var, color:).bars()`: the bars count rows, and the categories of `color:` part each bar, stacked, as the plot's colour fills bars in the grammar. A number given to `color:` parts nothing, as in the grammar, and the printed plot says that no layer draws the colour; the help page says so. (c) `x`, `y` and `var` take a variable or an expression, as the positions of `plot` do; `color:` takes a variable only, as the catalogue has it, so one colour for all is written in the grammar form. (d) The options of the layers that the catalogue does not give the shorthands (the type and width of a line, bars side by side or as shares) are not added: the help pages show the grammar form for each.
+
+**Tests.** `packages/tier1/plot/tests/shorthands.rs`: one test and one property that call the bodies themselves: for `line` and for `bar`, with a colour or without, in panels or not, the shorthand gives the `Plot` of its grammar form, the scene as written byte for byte and the same notes, or the same refusal; with two snapshots of a scene. `tests/printing.rs`: nine pairs of a shorthand and its grammar form that print the same, a snapshot of three printed plots, and every message of the two (twelve). Two verified examples in each help page; the two pages are complete. The conformance case of the shorthands comes at step 29e, over the eight.
+
+**The specification.** Catalogue rows 231 and 232 gain `by:` and are `implemented`; section 7.6 of the Language Reference gains the sentence on `by:`; open decision #133 is recorded with its options (`docs/spec_changes.md`).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 29; section 7.6 of the Language Reference ("Shorthands"); catalogue rows 231 and 232; the sample script, line 56.
+

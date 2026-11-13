@@ -32,6 +32,7 @@ pub mod scale;
 pub mod scales;
 pub mod scene;
 pub mod shape;
+pub mod shorthands;
 pub mod svg;
 mod trace;
 
@@ -861,6 +862,85 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: marks::errorbars,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "line",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("x", "Var | Expr"),
+                    ParamSpec::required("y", "Var | Expr"),
+                    ParamSpec::option("color", "Var"),
+                    ParamSpec::option("by", "Var | Vars"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in x or y; the places where a line is broken because y is NA; the rows with no neighbour to be joined to; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "no such variable in the frame, mapped, read by an expression or named by by:",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable for x or y that no axis places; a colour by a number without value labels, where a line has one colour; a variable named twice in by:",
+                    ),
+                ],
+                help: include_str!("../help/line.md"),
+                accuracy: None,
+            },
+            body: shorthands::line,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "bar",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("data", "Frame"),
+                    ParamSpec::required("var", "Var | Expr"),
+                    ParamSpec::option("color", "Var"),
+                    ParamSpec::option("by", "Var | Vars"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not counted for NA, or for an infinite value, in var; more categories than the palette has colours",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "no such variable in the frame, mapped, read by an expression or named by by:",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "a variable that differs only in case from the name written",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "a variable that no axis places; a variable named twice in by:",
+                    ),
+                ],
+                help: include_str!("../help/bar.md"),
+                accuracy: None,
+            },
+            body: shorthands::bar,
         },
         Function {
             spec: FunctionSpec {
