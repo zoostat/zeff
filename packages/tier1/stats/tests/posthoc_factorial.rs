@@ -532,6 +532,45 @@ fn property_cases(usual: u32) -> u32 {
 
 const LEVELS: [&str; 3] = ["p", "q", "r"];
 
+/// The draw of the nightly run of 12 November 2026: sixteen rows in which the level `q` of
+/// `a` occurs only with the level `q` of `b`, and that level of `b` only with it. The two
+/// indicators are one column, so no marginal mean of `a` can be estimated, with or without an
+/// interaction, and the comparison is refused.
+#[test]
+fn levels_that_occur_only_together_leave_no_mean_to_compare() {
+    let cells: [(f64, i32, i32, f64, usize); 7] = [
+        (0.0, 0, 0, 0.0, 2),
+        (0.0, 0, 2, 0.0, 3),
+        (2.4414684488251956, 0, 2, 0.0, 1),
+        (0.0, 1, 1, 0.0, 1),
+        (0.0, 2, 0, -0.4591535732509786, 1),
+        (0.0, 2, 0, 0.0, 6),
+        (0.0, 2, 2, 0.0, 2),
+    ];
+    let lines: Vec<Line> = cells
+        .iter()
+        .flat_map(|(y, a, b, x, times)| std::iter::repeat_n((*y, *a, *b, *x, 1i64), *times))
+        .collect();
+    assert_eq!(lines.len(), 16);
+    let model = fit(&layout(&lines), "y ~ a + b + x", Vec::new()).unwrap();
+    for word in ["none", "tukey", "holm"] {
+        let refused = follow(&model, Some("a"), Some(word)).unwrap_err();
+        assert_eq!(refused.code, "Z0802", "{word}");
+        assert!(
+            refused
+                .message
+                .starts_with("fewer than two marginal means of `a` can be estimated"),
+            "{}",
+            refused.message
+        );
+    }
+    // The other category is in the same case.
+    assert_eq!(
+        follow(&model, Some("b"), Some("none")).unwrap_err().code,
+        "Z0802"
+    );
+}
+
 type Line = (f64, i32, i32, f64, i64);
 
 /// Rows of an outcome, two category codes, a covariate and a whole weight.
@@ -752,6 +791,14 @@ proptest! {
         let Ok(model) = fit(&frame, "y ~ a + b + x", Vec::new()) else {
             return Ok(());
         };
+        // Without the interaction a mean is lost in one way only: a level of `a` that occurs
+        // with one level of `b` alone cannot be told from it, and then no marginal mean of `a`
+        // is estimable. The comparison is refused (Z0802), rightly, and there is nothing to
+        // hold (the nightly run of 12 November 2026 met such a draw).
+        match follow(&model, Some("a"), Some("none")) {
+            Err(refused) if refused.code == "Z0802" => return Ok(()),
+            other => drop(other.unwrap()),
+        }
         let by = |word: &str| rows_of(&model, "a", word);
         let none = by("none");
         for word in Method::WORDS {

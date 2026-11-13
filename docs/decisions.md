@@ -4271,3 +4271,15 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** `crates/zeff-engine/tests/zeff_builtins.rs`, on a fixture whose body calls `log` and divides: the generated list; one code taken off and one put on, in their order and wording; a code reworded through both lists; a note; and each of the five refusals with its message.
 
 **Reason.** The checklist's step 32e; section 9.1 of the Engine and Project Specification ("Warnings and notes"); open decision #139.
+
+## 13 November 2026: the nightly failure of 12 November, a property of `posthoc` (release 0.7.0)
+
+**What failed.** The nightly long property run of 12 November 2026 (commit 7dd3ae9) failed in `packages/tier1/stats/tests/posthoc_factorial.rs`, in the property that every figure of `posthoc` is in range and the methods keep their order. It was seen on 13 November, when the scheduled runs were read for the new fuzz target; the run of 11 November was green. The property fits `y ~ a + b + x` on random rows and compares the marginal means of `a`, on the premise, written in the test, that "without the interaction every mean can be estimated, whatever cells are empty".
+
+**The engine was right.** The draw had sixteen rows in which one level of `a` occurred only with one level of `b`, and that level of `b` only with it. The two indicators are then one column: the effect of the one cannot be told from the effect of the other, and a marginal mean of `a`, which averages over every level of `b`, is not estimable for any level of `a`. `posthoc` refused with Z0802 ("fewer than two marginal means of `a` can be estimated, so there is no pair to compare"), which is the right answer. The premise of the test was false, not the function.
+
+**The correction** is to the test alone. The property steps over a draw that `posthoc` refuses with Z0802, and holds everything else as before; any other error still fails it. The draw is kept as a fixed test, which asks for the refusal, for `a` and for `b`, under three methods. Run as the nightly runs it (release mode, twenty-five times the usual number), the file passes.
+
+**Noted, not changed.** The help line of Z0802 speaks of an interaction in the model, which is the usual cause and was not the cause here. A second sentence for levels that occur only together would be more exact; the message is left as it is at this commit and the point is put to the owner with the other wording questions of `posthoc`.
+
+**Reason.** The Testing Handbook, section 2.2: a nightly failure is read and resolved, not left.
