@@ -2385,8 +2385,16 @@ fn each_shell_loads_its_file_and_completes_by_it() {
             // print them one to a line.
             let words: Vec<&str> = line.split(' ').collect();
             let mut command = std::process::Command::new(&path);
-            // The shells keep their own files in the temporary folder, not in the home.
+            // The shells keep their own files in the temporary folder, not in the home, and
+            // find the program whose command lines they complete.
+            let program_folder = Path::new(env!("CARGO_BIN_EXE_zeff"))
+                .parent()
+                .expect("the program is in a folder")
+                .to_path_buf();
+            let searched = std::env::var_os("PATH").unwrap_or_default();
+            let folders = std::iter::once(program_folder).chain(std::env::split_paths(&searched));
             command
+                .env("PATH", std::env::join_paths(folders).expect("a path"))
                 .current_dir(dir.path())
                 .env("HOME", dir.path())
                 .env("ZDOTDIR", dir.path())
@@ -2448,7 +2456,7 @@ words=({list}); CURRENT=$#words; _zeff; exit 0",
                         "-NonInteractive",
                         "-Command",
                         &format!(
-                            ". '{}'; (TabExpansion2 -inputScript '{line}' -cursorColumn {}).CompletionMatches | ForEach-Object {{ $_.CompletionText }}",
+                            "$ErrorActionPreference = 'Stop'; Get-Content -Raw -LiteralPath '{}' | Invoke-Expression; (TabExpansion2 -inputScript '{line}' -cursorColumn {}).CompletionMatches | ForEach-Object {{ $_.CompletionText }}",
                             file.display(),
                             line.len()
                         ),
