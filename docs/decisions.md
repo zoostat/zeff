@@ -4759,3 +4759,11 @@ error[Z0001]: no rows to take the mean of
 **Step 36 is complete.** Hover on a function and on a variable (36a), on a binding with the size of its frame (36b), formatting of a document and of a selection (36c), and all of it over the protocol (36d). With steps 34 and 35 the language server serves what the release's row asks: live diagnostics, completion, signature help, hover and formatting. No real editor has been tried yet.
 
 **Reason.** The checklist's step 36d; Engine and Project Specification, section 12.
+
+## 14 November 2026: step 37 split in three (release 0.7.0)
+
+**The split.** Step 37 (the tree-sitter grammar) is a grammar with a scanner of its own for the ends of lines, a comparison with the engine's parser on every script the repository holds, and the queries an editor colours by. 37a: the grammar, its generated parser and its own corpus. 37b: the grammar against the engine's parser on the sample and conformance scripts, in CI. 37c: the highlight queries, with the words of the fixed lists taken from the registry.
+
+**A tool.** The grammar is written in tree-sitter's own form and turned into a parser by its command-line tool, `tree-sitter-cli` 0.27.2 (MIT), installed with cargo as the standing instructions allow. The generated parser is kept in the repository, so that neither an editor nor the workspace's tests need the tool; CI installs it only to check that the generated parser is the grammar's.
+
+**Reason.** The standing instructions: a step that turns out too large is split in the checklist, not pushed through.
