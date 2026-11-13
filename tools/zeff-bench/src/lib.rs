@@ -414,3 +414,56 @@ pub fn mismatches(rows: usize, found: &[String; 7]) -> Vec<String> {
         .map(|((name, found), stored)| format!("{rows} rows, {name}: {found} (stored {stored})"))
         .collect()
 }
+
+// ----- the browser build (release 0.7.0, step 33e3; testing handbook, section 6) -----
+
+/// The sizes the browser build is timed at: the ten million rows of the native suite are a
+/// file of half a gigabyte, which a window of the browser cannot hold beside its columns.
+pub const BROWSER_SIZES: [usize; 2] = [10_000, 1_000_000];
+
+/// The cases of the browser build, each a script run through the engine's worker on the
+/// generated file as `data/bench.csv`: what an interface would ask for. Every script reads
+/// the file, so the first case is the cost the others share.
+pub const BROWSER_CASES: [(&str, &str); 6] = [
+    (
+        "import",
+        "let d = import(\"data/bench.csv\")\nprint(d.n_rows())\n",
+    ),
+    (
+        "summary_by_group",
+        "let d = import(\"data/bench.csv\")\nd.summary([y, x1, x2], by: g)\n",
+    ),
+    (
+        "mean_by_group",
+        "let d = import(\"data/bench.csv\")\nd.mean(y, by: g)\n",
+    ),
+    (
+        "aggregate_by_group",
+        "let d = import(\"data/bench.csv\")\nd.aggregate(m = mean(y), s = sd(x1), rows = n(), by: g)\n",
+    ),
+    (
+        "reg",
+        "let d = import(\"data/bench.csv\")\nd.reg(y ~ x1 + x2 + d)\n",
+    ),
+    ("chain", CHAIN_SCRIPT),
+];
+
+/// What a browser case prints and says when the native engine runs it: the text the
+/// WebAssembly build must give to the byte before its time counts.
+pub fn browser_expected(bytes: &[u8], script: &str) -> String {
+    use zeff_engine::fs::MemoryFileSystem;
+    use zeff_engine::project::Project;
+    let fs = MemoryFileSystem::new();
+    fs.add_file(
+        "/project/zeff.toml",
+        format!(
+            "[project]\nname = \"bench\"\nzeff = \"{}\"\nedition = \"preview\"\n",
+            zeff_engine::VERSION
+        ),
+    );
+    fs.add_file("/project/data/bench.csv", bytes);
+    let project =
+        Project::open(&fs, std::path::Path::new("/project")).expect("the bench project opens");
+    let outcome = zeff_engine::run::run_script(&fs, &project, "scripts/main.zeff", script);
+    format!("{}{}", outcome.output.stdout, outcome.output.stderr)
+}

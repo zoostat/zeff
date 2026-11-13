@@ -251,6 +251,18 @@ jobs:
           ZEFF_WEB_PKG: web-pkg
         run: node --test crates/zeff-web/js/worker.test.mjs
 
+      # What a browser loads is this build, so its size and its start are the figures of risk
+      # R4: 5 MB compressed, and a cold start within 1,000 ms.
+      - name: Measure the worker build's compressed bundle and cold start (risk R4)
+        run: node tools/bundle/measure.cjs web-pkg zeff_web bundle/web.json --web
+
+      - name: Keep the worker build's measurements
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-web
+          path: bundle/web.json
+
   identity-compare:
     name: identity (compare)
     needs: [identity, identity-wasm]

@@ -187,7 +187,8 @@ proptest! {
     /// zero, and the area under it is one wherever its 512 places are close enough to trace
     /// a kernel, less than half a bandwidth apart. One value far from all the others puts
     /// the places further apart than the peaks are wide, here as in R, and the line through
-    /// them is then no measure of the area.
+    /// them is then no measure of the area. The rectangular kernel, which is a step, is
+    /// held to one as closely as the places can tell where a step is.
     #[test]
     fn a_density_is_never_below_zero_and_has_area_one(
         rows in rows(),
@@ -211,9 +212,26 @@ proptest! {
             prop_assert!(layer.y.iter().all(|y| *y >= 0.0 && y.is_finite()));
             let values: Vec<f64> = rows.iter().filter_map(|row| row.0).collect();
             let bandwidth = zeff_stats::density::silverman(&values).unwrap() * adjust;
-            if layer.x[1] - layer.x[0] < bandwidth / 2.0 {
+            let step = layer.x[1] - layer.x[0];
+            if step < bandwidth / 2.0 {
                 let found = area(&layer.x, &layer.y);
-                prop_assert!((found - 1.0).abs() < 2e-2, "an area of {}", found);
+                // The rectangular kernel is a step: each value adds a box that is the square
+                // root of twelve bandwidths wide, and the line through the places can misjudge
+                // where a box begins and ends by a place's width in all. Its area is therefore
+                // within the share that one place is of a box, and the smooth kernels within
+                // the two hundredths alone (a draw of 13 November 2026, with the places a
+                // third of a bandwidth apart, gave 1.037).
+                let steps = if matches!(kernel, Kernel::Rectangular) {
+                    step / (12f64.sqrt() * bandwidth)
+                } else {
+                    0.0
+                };
+                prop_assert!(
+                    (found - 1.0).abs() < 2e-2 + steps,
+                    "an area of {}, {} allowed for the steps",
+                    found,
+                    steps
+                );
             }
         }
     }

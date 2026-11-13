@@ -3,7 +3,9 @@
 // stay inside its budget (docs/decisions.md records the thresholds).
 //
 // Usage: node measure.cjs <wasm-bindgen output folder> <entry module name> <output json>
-//          [--limit-bytes N] [--limit-ms N] [--runs N]
+//          [--limit-bytes N] [--limit-ms N] [--runs N] [--web]
+// With --web the folder is the engine's worker build (crates/zeff-web), what a browser loads:
+// its first call is a project opened and a one-line script run, and there is no report to time.
 // Writes a JSON report and a Markdown table (to $GITHUB_STEP_SUMMARY when set), prints both, and
 // exits 1 when a limit is exceeded.
 "use strict";
@@ -66,7 +68,7 @@ function kilobytes(bytes) {
 
 function markdown(report, limits, problems) {
   const lines = [
-    "### Browser engine bundle and cold start",
+    report.web ? "### The engine's worker build: bundle and cold start" : "### Browser engine bundle and cold start",
     "",
     "| File | Raw | Brotli | Gzip |",
     "| --- | ---: | ---: | ---: |",
@@ -75,8 +77,12 @@ function markdown(report, limits, problems) {
     "",
     `Cold start under Node ${report.node}: **${report.cold_start_ms.toFixed(1)} ms** (median of ${report.runs.length} fresh processes: load ${median(report.runs.map((r) => r.load_ms)).toFixed(1)} ms, first call ${median(report.runs.map((r) => r.first_call_ms)).toFixed(1)} ms, a one-line script).`,
     "",
-    `The whole conformance report, for information: ${report.report_ms.toFixed(1)} ms (not limited; it grows with every case).`,
-    "",
+    ...(report.web
+      ? ["This is the engine as a browser loads it: the first call opens a project and runs the script.", ""]
+      : [
+          `The whole conformance report, for information: ${report.report_ms.toFixed(1)} ms (not limited; it grows with every case).`,
+          "",
+        ]),
     `Limits: ${kilobytes(limits.bytes)} compressed (risk R4), ${limits.ms} ms cold start. ` +
       (problems.length ? `**Exceeded:** ${problems.join("; ")}.` : "Both hold."),
     "",
@@ -100,10 +106,23 @@ function once(folder, entry) {
   );
 }
 
-function coldStarts(folder, entry, count) {
+// One cold start of the engine's worker build, in a fresh process: load, then a project
+// opened and a one-line script run. The worker script's two functions are stood in for.
+function onceWeb(folder, entry) {
+  globalThis.zeffHost = { event() {}, cancelled: () => false };
+  const t0 = process.hrtime.bigint();
+  const engine = require(path.resolve(folder, `${entry}.js`));
+  const t1 = process.hrtime.bigint();
+  const done = JSON.parse(new engine.Engine("measure").run("scripts/main.zeff", "print(1 + 1)\n", 0));
+  const t2 = process.hrtime.bigint();
+  if (done.exit_code !== 0 || done.stdout !== "2\n") throw new Error(`the first run failed: ${JSON.stringify(done)}`);
+  process.stdout.write(JSON.stringify({ load_ms: Number(t1 - t0) / 1e6, first_call_ms: Number(t2 - t1) / 1e6, report_ms: 0 }));
+}
+
+function coldStarts(folder, entry, count, web) {
   const runs = [];
   for (let i = 0; i < count; i++) {
-    const child = spawnSync(process.execPath, [__filename, "--once", folder, entry], { encoding: "utf8" });
+    const child = spawnSync(process.execPath, [__filename, web ? "--once-web" : "--once", folder, entry], { encoding: "utf8" });
     if (child.status !== 0) throw new Error(`a cold-start run failed:\n${child.stderr}`);
     runs.push(JSON.parse(child.stdout));
   }
@@ -117,14 +136,17 @@ function option(args, name, fallback) {
 
 function main(args) {
   if (args[0] === "--once") return once(args[1], args[2]);
+  if (args[0] === "--once-web") return onceWeb(args[1], args[2]);
+  const web = args.includes("--web");
   const [folder, entry, output] = args;
   if (!folder || !entry || !output) {
     console.error("usage: node measure.cjs <folder> <entry module> <output json> [--limit-bytes N] [--limit-ms N] [--runs N]");
     process.exit(2);
   }
   const limits = { bytes: option(args, "--limit-bytes", DEFAULT_LIMIT_BYTES), ms: option(args, "--limit-ms", DEFAULT_LIMIT_MS) };
-  const runs = coldStarts(folder, entry, option(args, "--runs", DEFAULT_RUNS));
+  const runs = coldStarts(folder, entry, option(args, "--runs", DEFAULT_RUNS), web);
   const report = {
+    web,
     node: process.version,
     size: sizes(folder),
     runs,
