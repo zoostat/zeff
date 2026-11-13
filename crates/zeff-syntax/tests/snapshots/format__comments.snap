@@ -1,0 +1,91 @@
+---
+source: crates/zeff-syntax/tests/format.rs
+expression: "shown(\"// A header\\n//   with an indented line\\n\\n\\n\\n\\nlet a = 1 // why one\\nlet b = some_function(with_arguments, of_some_length, and_more)   // a comment at the end\\n\\n  // before c, wrongly indented\\nlet c = f(x, // the first\\n  y, // the second\\n  // before z\\n  z)\\nlet d = wages\\n  // before the where\\n  .where(year > 2010) // after the where\\n  .n_rows()\\n// zeff: allow(W0201) the sum skips rows by design\\nlet e = d.sum(x)\\nlet f = d.sum(y)  // zeff: allow(W0201) the same\\nfor i in 1..3 { // on the brace\\n  // inside\\n  print(i)\\n\\n\\n\\n  print(i + 1)\\n  // at the end of the block\\n}\\nlet g = [1, // one\\n  2]\\nfor j in 1..3{print(j)   // of the statement, not of the brace\\n}\\nlet h = if a {  // of the brace\\n1 } else { 2 // of the two\\n}\\nlet p = wages.where(year >= 2010 && age >= 18).add(lwage = log(wage)).aggregate(mean_lwage = mean(lwage), by: firm) // zeff: allow(W0201) stays on the first line of its statement\\nlet q = f( // on the bracket\\nx)\\n// the last line\\n\")"
+---
+// A header
+//   with an indented line
+
+
+
+
+let a = 1 // why one
+let b = some_function(with_arguments, of_some_length, and_more)   // a comment at the end
+
+  // before c, wrongly indented
+let c = f(x, // the first
+  y, // the second
+  // before z
+  z)
+let d = wages
+  // before the where
+  .where(year > 2010) // after the where
+  .n_rows()
+// zeff: allow(W0201) the sum skips rows by design
+let e = d.sum(x)
+let f = d.sum(y)  // zeff: allow(W0201) the same
+for i in 1..3 { // on the brace
+  // inside
+  print(i)
+
+
+
+  print(i + 1)
+  // at the end of the block
+}
+let g = [1, // one
+  2]
+for j in 1..3{print(j)   // of the statement, not of the brace
+}
+let h = if a {  // of the brace
+1 } else { 2 // of the two
+}
+let p = wages.where(year >= 2010 && age >= 18).add(lwage = log(wage)).aggregate(mean_lwage = mean(lwage), by: firm) // zeff: allow(W0201) stays on the first line of its statement
+let q = f( // on the bracket
+x)
+// the last line
+--------
+// A header
+//   with an indented line
+
+
+let a = 1                                             // why one
+let b = some_function(with_arguments, of_some_length, and_more)  // a comment at the end
+
+// before c, wrongly indented
+let c = f(x,                                          // the first
+          y,                                          // the second
+          // before z
+          z)
+let d = wages
+    // before the where
+    .where(year > 2010)                               // after the where
+    .n_rows()
+// zeff: allow(W0201) the sum skips rows by design
+let e = d.sum(x)
+let f = d.sum(y)                                      // zeff: allow(W0201) the same
+for i in 1..3 {                                       // on the brace
+    // inside
+    print(i)
+
+
+    print(i + 1)
+    // at the end of the block
+}
+let g = [1,                                           // one
+         2]
+for j in 1..3 {
+    print(j)                                          // of the statement, not of the brace
+}
+let h = if a {                                        // of the brace
+    1
+} else {
+    2                                                 // of the two
+}
+let p = wages                                         // zeff: allow(W0201) stays on the first line of its statement
+    .where(year >= 2010 && age >= 18)
+    .add(lwage = log(wage))
+    .aggregate(mean_lwage = mean(lwage), by: firm)
+let q = f(                                            // on the bracket
+    x,
+)
+// the last line

@@ -603,3 +603,6 @@ Step 30c of release 0.7.0 builds `fit.coef_plot()`. The row had its layer as Zef
 
 Step 30d of release 0.7.0 builds `fit.plot()`. The usage line and the layer of the row are as they were; the row is `implemented`. With it rows 227 and 228, the two result plots, are `implemented`, the package `plot` stands at 35 of 35 functions, and step 30 is complete.
 
+## 13 November 2026 — zeff_language_reference.md, section 3.5 (the example)
+
+Step 31a of release 0.7.0 builds the formatter, and its first test is the section's own "Before and after `zeff fmt`". The example was in error against the table above it: its one line, once spaced as the table says, is 96 characters long, which fits in the 100 the table allows, and the table breaks a chain only "that does not fit on one line". The after of the example nevertheless showed it broken. The example is lengthened so that it shows what it was written to show: the before is now `let m=wages.where(year>=2010).reg(lwage~educ+exper+exper^2,fe:firm+year,cluster:firm,se:robust)`, 109 characters once spaced, and the after is the same chain broken one method to a line. The table is unchanged. The formatter's test reads the two blocks from the section and asks that the first be formatted to the second, so the example cannot drift from the formatter again.

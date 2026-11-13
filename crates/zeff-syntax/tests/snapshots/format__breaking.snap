@@ -1,0 +1,72 @@
+---
+source: crates/zeff-syntax/tests/format.rs
+expression: "shown(\"let fits = wages.where(year >= 2010 && age >= 18).add(lwage = log(wage)).reg(lwage ~ educ + exper, fe: firm)\\nlet one = report([m1, m2, m3, m4], stats: [n_obs, r_squared], labels: {educ: \\\"Years of schooling\\\", exper: \\\"Experience\\\"})\\nlet short = wages\\n.where(year >= 2010)\\n.n_rows()\\nlet spread = frame(a = 1,\\n  b = 2)\\nlet kept = frame(a = 1, b = 2)\\nlet deep = some_function_with_a_long_name(another_function_with_a_long_name(yet_another_long_function_name(first_argument_long, second_argument_long), third_argument_also_long))\\nlet sum = first_long_operand_name + second_long_operand_name + third_long_operand_name + fourth_long_operand_name + fifth\\nlet sum2 = a +\\n b + c\\nlet text = \\\"a string that is far too long for one line of the page but which a formatter must never split in two, whatever its length may be\\\"\\nlet list = [alpha_alpha_alpha, beta_beta_beta, gamma_gamma_gamma, delta_delta_delta, epsilon_epsilon, zeta_zeta_zeta]\\nplot(means, x: industry, y: mean_lwage, color: female).bars(position: dodge).errorbars(low: mean_lwage - 1.96 * se, high: mean_lwage + 1.96 * se).legend(top)\\nwages.add(age_group = case {\\n age < 25 => \\\"young\\\",\\n age < 55 => \\\"prime\\\",\\n _ => \\\"older\\\",\\n})\\nlet nested = [for s in 1..500 {\\nlet d = frame(x = dist.normal().draw(n: size, seed: s), u = dist.uniform().draw(n: size, seed: s + 10000)).add(y = case { inv_logit(0.5 * x) > u => 1, _ => 0 })\\nattempt(d.logistic(y ~ x))\\n}]\\n\")"
+---
+let fits = wages.where(year >= 2010 && age >= 18).add(lwage = log(wage)).reg(lwage ~ educ + exper, fe: firm)
+let one = report([m1, m2, m3, m4], stats: [n_obs, r_squared], labels: {educ: "Years of schooling", exper: "Experience"})
+let short = wages
+.where(year >= 2010)
+.n_rows()
+let spread = frame(a = 1,
+  b = 2)
+let kept = frame(a = 1, b = 2)
+let deep = some_function_with_a_long_name(another_function_with_a_long_name(yet_another_long_function_name(first_argument_long, second_argument_long), third_argument_also_long))
+let sum = first_long_operand_name + second_long_operand_name + third_long_operand_name + fourth_long_operand_name + fifth
+let sum2 = a +
+ b + c
+let text = "a string that is far too long for one line of the page but which a formatter must never split in two, whatever its length may be"
+let list = [alpha_alpha_alpha, beta_beta_beta, gamma_gamma_gamma, delta_delta_delta, epsilon_epsilon, zeta_zeta_zeta]
+plot(means, x: industry, y: mean_lwage, color: female).bars(position: dodge).errorbars(low: mean_lwage - 1.96 * se, high: mean_lwage + 1.96 * se).legend(top)
+wages.add(age_group = case {
+ age < 25 => "young",
+ age < 55 => "prime",
+ _ => "older",
+})
+let nested = [for s in 1..500 {
+let d = frame(x = dist.normal().draw(n: size, seed: s), u = dist.uniform().draw(n: size, seed: s + 10000)).add(y = case { inv_logit(0.5 * x) > u => 1, _ => 0 })
+attempt(d.logistic(y ~ x))
+}]
+--------
+let fits = wages
+    .where(year >= 2010 && age >= 18)
+    .add(lwage = log(wage))
+    .reg(lwage ~ educ + exper, fe: firm)
+let one = report([m1, m2, m3, m4],
+                 stats: [n_obs, r_squared],
+                 labels: {educ: "Years of schooling", exper: "Experience"})
+let short = wages
+    .where(year >= 2010)
+    .n_rows()
+let spread = frame(a = 1,
+                   b = 2)
+let kept = frame(a = 1, b = 2)
+let deep = some_function_with_a_long_name(another_function_with_a_long_name(
+    yet_another_long_function_name(first_argument_long, second_argument_long),
+    third_argument_also_long,
+))
+let sum = first_long_operand_name + second_long_operand_name + third_long_operand_name +
+    fourth_long_operand_name + fifth
+let sum2 = a +
+    b + c
+let text = "a string that is far too long for one line of the page but which a formatter must never split in two, whatever its length may be"
+let list = [alpha_alpha_alpha,
+            beta_beta_beta,
+            gamma_gamma_gamma,
+            delta_delta_delta,
+            epsilon_epsilon,
+            zeta_zeta_zeta]
+plot(means, x: industry, y: mean_lwage, color: female)
+    .bars(position: dodge)
+    .errorbars(low: mean_lwage - 1.96 * se, high: mean_lwage + 1.96 * se)
+    .legend(top)
+wages.add(age_group = case {
+    age < 25 => "young",
+    age < 55 => "prime",
+    _        => "older",
+})
+let nested = [for s in 1..500 {
+    let d = frame(x = dist.normal().draw(n: size, seed: s),
+                  u = dist.uniform().draw(n: size, seed: s + 10000))
+        .add(y = case { inv_logit(0.5 * x) > u => 1, _ => 0 })
+    attempt(d.logistic(y ~ x))
+}]

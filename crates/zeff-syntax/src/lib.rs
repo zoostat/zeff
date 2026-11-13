@@ -1,6 +1,7 @@
 //! Lexer and parser for the Zeff grammar (Language Reference, section 3).
 
 pub mod ast;
+pub mod format;
 mod lexer;
 mod parser;
 mod pragma;

@@ -1,0 +1,2034 @@
+---
+source: crates/zeff-conformance/tests/format.rs
+expression: all
+---
+==== script 1
+dataset(wages).reg(log(wage) ~ educ + exper + exper^2 + female)
+==== script 2
+dataset(wages).reg(log(wage) ~ category(industry, contrast: sum) + educ * female, level: 0.9)
+==== script 3
+let w = dataset(wages).add(twice = educ * 2, big = hours * 1e9)
+w.reg(wage ~ educ + twice + big + exper - 1)
+==== script 4
+let w = dataset(wages)
+w.reg(log(wage) ~ educ + exper + female, cluster: worker)
+w.reg(log(wage) ~ educ + exper + female, se: hc3)
+==== script 5
+let w = dataset(wages)
+w.reg(log(wage) ~ educ + female, weights: hours)
+w.reg(log(wage) ~ educ + female, weights: exper, weight_type: frequency)
+==== script 6
+let w = dataset(wages)
+let m1 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: firm)
+m1
+let m2 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: industry + year, cluster: worker)
+m2
+let m3 = w.reg(log(wage) ~ educ + exper + exper^2 + female, fe: worker + year, cluster: worker)
+m3
+w.reg(log(wage) ~ educ + female, fe: industry:year, weights: hours)
+m2.r_squared()
+report([m1, m2, m3], stats: [n_obs, r_squared, r_squared_within])
+m1.predict(newdata: w.head(5))
+==== script 7
+let d = frame(unit = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
+              year = [2010,
+                      2011,
+                      2012,
+                      2013,
+                      2010,
+                      2011,
+                      2012,
+                      2013,
+                      2010,
+                      2011,
+                      2012,
+                      2013,
+                      2010,
+                      2011,
+                      2012,
+                      2013],
+              treat = [2011,
+                       2011,
+                       2011,
+                       2011,
+                       2012,
+                       2012,
+                       2012,
+                       2012,
+                       2013,
+                       2013,
+                       2013,
+                       2013,
+                       NA,
+                       NA,
+                       NA,
+                       NA],
+              y = [1.0, 2.1, 2.4, 2.6, 1.5, 1.4, 2.6, 2.9, 0.8, 0.9, 1.1, 2.0, 1.2, 1.3, 1.1, 1.4])
+let m = d.reg(y ~ event(year, treat), fe: unit + year)
+m
+report([m])
+d.reg(y ~ event(year, treat, ref: 0), fe: unit + year)
+d.reg(y ~ event(year, treat, ref: 9), fe: unit + year)
+==== script 8
+let m = dataset(wages).reg(log(wage) ~ educ + exper + exper^2 + female)
+m.summary(standardized: true, fit_measures: true)
+m.estimates()
+m.std_errors()
+m.p_values(educ)
+m.ci(educ, level: 0.9)
+m.ci()
+m.n_obs()
+==== script 9
+let w = dataset(wages)
+w.mean(wage)
+let f = frame(x = [1, 2], y = [3, 4])
+f.mean(x)
+let m = import("data/absent.csv")
+w.reg(log(wage) ~ educ + expr, fe: firm)
+==== script 10
+let w = dataset(wages)
+w.mean(wage)
+let s = w.where(year > 2015).add(lw = log(wage)).rename(pay = wage).select([worker, year, pay, lw])
+s.aggregate(m = mean(lw), by: year).mean(m)
+s.merge(dataset(firms).select([firm, size]), on: firm)
+==== script 11
+let w = dataset(wages)
+let reps = if w.n_rows() < 500 { 5000 } else { 1000 }
+reps
+let b = w.add(band = case { wage < 15 => "low", wage < 25 => "mid", _ => "high" },
+              k = case { hours > 45 => wage * 1.5, hours > 35 => wage, educ > 12 => 2.5 })
+b.summary([k])
+b.where(case { hours > 40 => true, _ => false }).mean(wage)
+case { w.n_rows() > 5 => "big", _ => "small" }
+==== script 12
+use functions::clean
+let w = dataset(wages)
+[w.share_missing(wage),
+ w.share_missing(hours),
+ quadruple(3),
+ clean::quadruple(1.5),
+ functions::share_missing(w, exper)]
+==== script 13
+let w = dataset(wages)
+w["wage"].log().is_missing().print()
+(-2.5).abs()
+16.sqrt()
+2.max(7, 3)
+/// Applies a function to a float.
+fn applyf(f: Fn(Float) -> Float, x: Float) -> Float { f(x) }
+/// Halves.
+fn half(x: Float) -> Float { x / 2 }
+[applyf(abs, -3), applyf(sqrt, 16), applyf(half, 9)]
+==== script 14
+let w = dataset(wages)
+/// Share of rows where a variable is missing.
+fn share_missing(data: Frame, var: Var) -> Float {
+    data.where(is_missing(var)).n_rows() / data.n_rows()
+}
+/// Three standard robustness checks for one specification.
+fn robustness(data: Frame, f: Formula, cluster: Var = worker) -> List<RegFit> {
+    [data.reg(f, se: robust),
+     data.reg(f, cluster: cluster),
+     data.where(year >= 2015).reg(f, se: robust)]
+}
+/// Winsorised share.
+fn band(x: Float, top: Float = x * 2) -> Str {
+    if x > top { return "above" }
+    "within"
+}
+w.share_missing(wage)
+report(w.robustness(log(wage) ~ educ + exper))
+[band(1), band(3, top: 2)]
+==== script 15
+let w = dataset(wages)
+let fits = [for cut in [10, 20, 30, 1000] {
+    attempt(w.where(wage > cut).reg(log(wage) ~ educ + female))
+}]
+fits[4]
+report(fits)
+[for m in fits {
+    if m.is(Failed) { continue }
+    m.coef(educ)
+}]
+==== script 16
+let xs = [3, 1, 2]
+len(xs)
+first(xs)
+last(xs)
+append(xs, 9)
+reversed(xs)
+len("caf\u{e9}")
+len("e\u{301}")
+len("\u{1F600}")
+let w = dataset(wages)
+len(w["wage"])
+len([1 => "a", 2 => "b"])
+append([1.5], 2)
+let d = frame(x = [1, 2, 3, 4, 5], y = [2, 4, 7, 8, 11])
+let fits = [for cut in [0, 2, 10] { attempt(d.where(x > cut).reg(y ~ x)) }]
+len(fits)
+==== script 17
+table(title: "sales by year",
+      columns: {year: [2010, 2011, 2012],
+                sales: [120.5, 130, NA],
+                region: ["North", "South", "West"],
+                flag: [true, false, true],
+                day: [date("2024-01-01"), NA, date("1999-12-31")]})
+let w = dataset(wages).where(worker <= 2)
+table(title: "two workers",
+      columns: {worker: w["worker"],
+                year: w["year"],
+                wage: w["wage"],
+                female: w["female"],
+                industry: w["industry"]})
+table(title: "one row", columns: {k: [1]})
+let m90 = dataset(wages).reg(log(wage) ~ educ + exper + female, level: 0.9)
+m90.ci()
+m90.ci(educ)
+m90.ci(educ, level: 0.95)
+==== script 18
+let w = dataset(wages)
+let m1 = w.reg(log(wage) ~ educ + exper + exper^2 + female)
+m1.vif()
+let m2 = w.reg(log(wage) ~ educ + industry)
+m2.vif()
+let m3 = w.reg(log(wage) ~ educ + exper - 1)
+m3.vif()
+w.reg(log(wage) ~ educ).vif()
+==== script 19
+let d = frame(x = [2, 4, 4, 4, 5, 5, 7, 9])
+d.skewness(x)
+d.skewness(x, adjusted: false)
+d.kurtosis(x)
+d.kurtosis(x, excess: false, adjusted: false)
+d.kurtosis(x, excess: false)
+frame(y = [-5, 0, 5, 0, -5, 5]).skewness(y)
+frame(y = [1, 2]).skewness(y)
+frame(y = [1, 2]).kurtosis(y, adjusted: false)
+frame(y = [3, 3, 3, 3]).skewness(y)
+let w = dataset(wages)
+w.skewness(wage)
+w.kurtosis(wage)
+w.skewness(educ, adjusted: false)
+==== script 20
+let d = frame(x = [1, 2, 4, 7, 11])
+d.iqr(x)
+d.iqr(x, type: 6)
+d.iqr(x, type: 8)
+d.mad(x)
+d.mad(x, constant: 1)
+frame(y = [5]).mad(y)
+frame(y = [1, 3]).mad(y, constant: 1)
+frame(y = [1, Inf, 3]).iqr(y)
+let w = dataset(wages)
+w.iqr(wage)
+w.mad(wage)
+w.iqr(educ, type: 2)
+==== script 21
+let d = frame(id = [1, 2, 3, 4], x = [1, NA, 3, 4], y = [NA, 2, 3, NA], z = [1, 1, 1, 1])
+d.drop_missing([x, y])
+d.drop_missing([x])
+d.drop_missing([z])
+d.drop_missing([id..z])
+d.where(is_missing(x)).drop_missing([x])
+let w = dataset(wages)
+w.drop_missing([wage, hours]).n_rows()
+==== script 22
+let d = frame(q1 = [5, 4, NA, 1.5], q2 = [3, NA, NA, 2.5], q3 = [4, 4, NA, 1e12])
+d.add(m = row_mean([q1, q2, q3]), m2 = row_mean([q1..q3], min_valid: 2), s = row_sum([q1, q2, q3]))
+let w = dataset(wages)
+w
+    .add(hw = row_sum([hours, wage]), pay = row_mean([wage, educ, exper], min_valid: 3))
+    .summary([hw, pay])
+==== script 23
+let d = frame(x = [2, 4, 9, NA])
+between(d["x"], 3, 9)
+center(d["x"])
+standardize(d["x"])
+d.add(c = center(x), z = standardize(x), inside = between(x, 3, 9))
+let w = dataset(wages)
+w.add(z = standardize(wage), c = center(educ), prime = between(age, 25, 54)).summary([z, c, prime])
+standardize(frame(k = [2, 2, 2])["k"])
+==== script 24
+assert(1 + 1 == 2, "arithmetic")
+n_missing([1, NA, 3, NA])
+n_missing([1, 2])
+let d = frame(x = [1, NA, 3], s = ["a", NA, "c"])
+n_missing(d["x"])
+fill_missing(d["x"], 0)
+fill_missing(d["s"], "none")
+fill_missing(2.5, 0)
+n_missing(fill_missing(d["x"], 0))
+let w = dataset(wages)
+n_missing(w["wage"])
+assert(n_missing(fill_missing(w["wage"], 0)) == 0, "filled")
+==== script 25
+clamp(5, 0, 3)
+clamp(-1.5, 0, 3)
+clamp(2, 5, 1)
+logit(0.5)
+logit(0.9)
+logit(0)
+logit(1)
+inv_logit(0)
+inv_logit(2.5)
+inv_logit(-800)
+inv_logit(40)
+let w = dataset(wages)
+w
+    .add(c = clamp(wage, 10, 50), p = inv_logit(educ - 12), q = logit(female * 0.5 + 0.25))
+    .summary([c, p, q])
+==== script 26
+any([false, NA])
+any([true, NA])
+all([true, NA])
+all([false, NA])
+any([])
+all([])
+let w = dataset(wages)
+any(w["wage"] > 100)
+all(w["educ"] >= 0)
+seq(1, 5)
+seq(0, 1, step: 0.25)
+seq(10, 0, step: -5)
+seq(0, 1, step: 0.1)
+seq(1e7, 1e7 + 1, step: 0.2)
+seq(1, 1)
+len(seq(0, 1e12, step: 1e11))
+seq(2, 11, step: 3)
+==== script 27
+let xs = [3, NA, 1, 3, -0.0, 0.0, 2, NA]
+unique(xs)
+sorted(xs)
+sorted(xs, desc: true)
+sorted(["b", "a", "\u{e9}", "B"])
+sorted([true, false, true])
+is_in(NA, [NA])
+is_in(2, xs)
+is_in(5, xs)
+keys({mu: 1, sd: 2})
+keys([2 => "b", 1 => "a"])
+equal([1, 2], [1, 2])
+equal({a: 1, b: 2}, {b: 2, a: 1})
+equal([1 => "a"], [1 => "b"])
+equal(1, "1")
+let w = dataset(wages)
+w.add(f = is_in(educ, [12, 16])).summary([f])
+==== script 28
+/// One Newton step.
+fn newton(s: Record, a: Float) -> Record { {x: (s.x + a / s.x) / 2} }
+/// Close enough.
+fn close(old: Record, new: Record) -> Bool { abs(new.x - old.x) < 1e-12 }
+iterate(start: {x: 1.0}, step: newton, args: {a: 2.0}, done: close)
+iterate(start: {x: 1.0}, step: newton, args: {a: 1e12}, done: close, keep: true)
+iterate(start: {x: 1.0}, step: newton, args: {a: 2.0}, done: close, max: 2)
+==== script 29
+seed(20261030)
+let draws = [for s in 1..3 { dist.normal().draw(4) }]
+draws[1]
+draws[2]
+draws[3]
+let picked = [for i in 1..20 {
+    if i > 12 { break }
+    if mod(i, 3) == 0 { continue }
+    i * i
+}]
+picked
+let w = dataset(wages)
+[for y in vars(wage, hours) { w.reg(log(y) ~ educ + y:female).coef(educ) }]
+==== script 30
+let d = to("2026-10-16", Date)
+d
+to("16/10/2026", Date("%d/%m/%Y"))
+to("2026-02-30", Date)
+to("2026-10-16T09:30:00+02:00", DateTime)
+d - to("1970-01-01", Date)
+d > to("2026-01-01", Date)
+to(d, DateTime)
+to(to("2026-10-16T23:59:59", DateTime), Date)
+let f = frame(id = [1, 2, 3], sold = [d, to("2024-02-29", Date), to("1999-12-31", Date)])
+f.where(sold > to("2000-01-01", Date)).add(days = sold - to("2000-01-01", Date))
+f.add(era = case { sold < to("2000-01-01", Date) => "old", _ => "new" },
+      d2 = case { id == 1 => to("1970-01-01", Date), _ => sold })
+f
+    .recode(sold, [to("1999-12-31", Date) => to("2000-01-01", Date)])
+    .update(sold = to("2030-01-01", Date), where: id == 2)
+    .sort(sold)
+sorted([d, to("0001-01-01", Date), to("9999-12-31", Date)])
+min(d, to("2024-02-29", Date))
+n_distinct(f["sold"])
+==== script 31
+let w = dataset(wages)
+// zeff: allow(W0204) a worker in the first year has no experience
+let a = w.add(l = log(exper))
+a.summary([l])
+let b = w.add(l = log(exper))                         // zeff: allow(W0204) the same, at the end of the line
+b.n_rows()
+for i in [1, 2] {
+    // zeff: allow(W0204) in each pass
+    print(w.add(l = log(exper) * i).n_rows())
+}
+/// The rows of a frame after its logarithm is taken.
+fn logged(f: Frame) -> Int {
+    // zeff: allow(W0204) inside a function
+    f.add(l = log(exper)).n_rows()
+}
+logged(w)
+print("allowed so far")
+let c = w.add(l = log(exper))
+c.n_rows()
+let d = w.add(l = log(exper - 1))
+==== script 32
+let w = dataset(wages)
+note("the wage data of the shipped example")
+note("one pass over the rows", code: W0703)
+warn("fewer than a thousand workers per industry", code: W0205)
+warn("the same, as text", code: "W0205")
+// zeff: allow(W0205) the industry counts are known to be small
+warn("allowed, so not printed", code: W0205)
+print(name_of(educ))
+/// Says which variable it looked at.
+fn looked_at(f: Frame, v: Var) -> Int {
+    note(name_of(v))
+    warn("a coded warning from a function", code: W0201)
+    f.n_rows()
+}
+w.looked_at(educ)
+==== script 33
+let d = frame(q1 = [5, 4, NA, 2],
+              q2 = [3, NA, NA, 2],
+              q3 = [4, 4, 2, NA],
+              s = [1.5, 2.5, NA, 4.5],
+              g = ["a", "a", "b", "b"])
+d.add(rows = n(), score = row_mean([q1, q2, q3]), total = row_sum([q1, q2, q3]))
+d.add(rows = n(), score = row_mean([q1, q2, q3], min_valid: 2), by: g)
+d.aggregate(rows = n(), by: g)
+d.update(s = row_sum([q1, q2, q3]) / n(), where: is_missing(s))
+d.where(row_sum([q1, q2, q3]) > n())
+let w = dataset(wages)
+w.aggregate(rows = n(), mean_wage = mean(wage), by: female)
+w.add(share = wage / n()).summary([share])
+/// The row count, through a function, which sees no frame.
+fn rows() -> Int {
+    n()
+}
+d.add(k = rows())
+==== script 34
+let k = 8
+map(seq(1, k - 1), fn(i) i / k)
+let offset = 10
+map([1, 2, 3], fn(i) i * i + offset)
+filter([3, NA, 1, 2], fn(x) !is_missing(x) && x > 1)
+print(reduce([1, 2, 3, 4], fn(acc, x) acc + x, 0))
+print(reduce([1.5, 2.5, 4], fn(acc, x) acc * x, 1.0))
+/// Twice.
+fn twice(x: Int) -> Int {
+    x * 2
+}
+[1, 2, 3].map(twice)
+[for m in 1..2 { map([1, 2], fn(i) i * m) }]
+map(["b", "aa"], len)
+let w = dataset(wages)
+map([1, 2], fn(i) i * w.n_rows())
+let failed = attempt([1][2])
+print(attempt(map([1, failed], fn(i) i)).is(Failed))
+filter([1, NA], fn(x) x > 0)
+==== script 35
+fill_missing(NA, 3)
+fill_missing(to(NA, Int), 0)
+fill_missing(true, false)
+fill_missing(to(NA, Bool), true)
+fill_missing("a", "b")
+fill_missing(to(NA, Str), "none")
+fill_missing(1, 2.5)
+fill_missing(2.5, 1)
+fill_missing(to(NA, Float), 1)
+fill_missing(to(NA, Int), 1.5)
+fill_missing(to("2026-01-01", Date), to("2000-01-01", Date))
+fill_missing(to(NA, Date), to("2000-01-01", Date))
+let d = frame(i = [1, NA, 3], f = [1.5, NA, 2], s = ["a", NA, "c"], b = [true, NA, false])
+fill_missing(d["i"], 0)
+fill_missing(d["f"], 0)
+fill_missing(d["i"], 0.5)
+fill_missing(d["s"], "none")
+fill_missing(d["b"], false)
+fill_missing(NA, d["i"])
+fill_missing(d["f"], d["i"])
+d.add(i2 = fill_missing(i, 0), f2 = fill_missing(f, i), s2 = fill_missing(s, "-"))
+let w = dataset(wages)
+w.add(wage2 = fill_missing(wage, 0)).summary([wage2])
+==== script 36
+date("2026-10-16")
+date("16/10/2026", format: "%d/%m/%Y")
+date("Oct 16, 2026", format: "%b %d, %Y")
+date("2026-02-30")
+datetime("2026-10-16T09:30:00.25")
+datetime("2026-10-16T09:30:00+02:00")
+datetime("2026-10-16")
+let d = date("2021-01-03")
+[year(d), month(d), day(d), weekday(d), quarter(d), week(d)]
+let t = datetime("1999-12-31T23:59:59")
+[year(t), month(t), day(t), weekday(t), quarter(t), week(t)]
+let f = frame(s = ["2026-01-01", "2024-12-30", "0001-01-01", "9999-12-31", "no"])
+f
+    .add(d = date(s))
+    .add(y = year(d), m = month(d), dd = day(d), wd = weekday(d), q = quarter(d), w = week(d))
+==== script 37
+let d = date("2026-01-31")
+add_days(d, 30)
+add_days(d, -31)
+add_months(d, 1)
+add_months(date("2024-01-31"), 1)
+add_months(d, -11)
+add_months(date("9999-12-31"), 1)
+days_between(d, date("2026-03-01"))
+days_between(datetime("2026-01-31T23:00"), datetime("2026-02-02T22:59"))
+months_between(d, date("2026-02-28"))
+months_between(date("2026-03-31"), d)
+add_days(datetime("2026-01-31T09:30"), 1)
+let f = frame(d = [d, date("2024-02-29"), date("0001-01-01")])
+f.add(later = add_months(d, 12), gap = days_between(d, date("2026-11-01")), back = add_days(d, -1))
+today()
+now()
+days_between(today(), date("2027-01-01"))
+==== script 38
+format(1234567.891, digits: 2)
+format(1234567.891, digits: 2, big_mark: ",")
+format(-0.0001, digits: 2)
+format(2.675, digits: 2)
+format(1e16, digits: 1)
+format(1 / 3)
+format(123456789, big_mark: " ")
+format(42, digits: 3)
+format(date("2026-10-16"), pattern: "%A %d %B %Y, day %j")
+format(datetime("2026-10-16T09:05:07.5"), pattern: "%y%m%d %H:%M:%S")
+format(date("0001-01-01"))
+let f = frame(x = [1250.5, 980, -3.14159],
+              d = [date("2026-01-05"), date("2024-02-29"), date("9999-12-31")])
+f.add(t = format(x, digits: 2, big_mark: ","), m = format(d, pattern: "%b %Y"), p = format(x))
+==== script 39
+upper("café Straße ﬁsh")
+lower("ÉCOLE Σίσυφος")
+len(upper("é"))
+trim("  padded	 ")
+starts_with("Hello, World", "Hello")
+ends_with("café", "é")
+slice("Hello, World", start: 8, len: 50)
+slice("日本語", start: 2, len: 2)
+pad("7", width: 3, fill: "0")
+pad("abcdef", width: 3)
+join(["a", NA, "c"], sep: "/")
+join(map([1.5, 2], fn(x) format(x, digits: 1)), sep: " and ")
+let d = frame(name = ["  Ada ", "grace", NA], code = ["ab-1", "cd-22", "ef-3"])
+d.add(clean = upper(trim(name)),
+      prefix = slice(code, start: 1, len: 2),
+      two = ends_with(code, "2"),
+      padded = pad(code, width: 6, fill: "."))
+d.where(starts_with(code, "c"))
+slice("abc", start: 0, len: 1)
+==== script 40
+contains("Hello, World", "World")
+contains("Hello, World", "WORLD", ignore_case: true)
+contains("abc123", "[0-9]+", regex: true)
+contains("Straße", "STRASSE", ignore_case: true)
+replace("a.b.c", ".", "-")
+replace("a.b.c", ".", "-", regex: true)
+replace("  two  words ", "\\s+", " ", regex: true)
+replace("abc", "", "-", regex: true)
+extract("abc123def45", "[0-9]+")
+extract("Hello", "xyz")
+split("a,b,", ",")
+split("abc", "")
+let d = frame(code = ["ab-1", "CD-22", NA, "ef-333"])
+d.add(digits = extract(code, "[0-9]+"),
+      letters = replace(code, "[^a-z]", "", regex: true),
+      has_two = contains(code, "2"),
+      cd = contains(code, "cd", ignore_case: true))
+d.where(contains(code, "^[a-z]+-\\d$", regex: true))
+contains("abc", "(ab", regex: true)
+==== script 41
+let sales = frame(firm = [2, 1, 2, 1, 3],
+                  year = [2021, 2020, 2020, 2021, 2020],
+                  revenue = [12.5, 8, 11, 9, NA])
+let p = sales.panel(unit: firm, time: year)
+p
+p.where(year > 2020).rename(company = firm)
+p.sort(revenue).head(3)
+p.drop(year)
+p.add(firm = 1)
+let w = dataset(wages).where(year >= 2019).panel(unit: worker, time: year)
+w.describe()
+w.select([worker, wage]).n_rows()
+let d = frame(firm = ["a", "a", "b"],
+              day = [to("2026-01-02", Date), to("2026-01-01", Date), to("2026-01-01", Date)])
+    .panel(unit: firm, time: day)
+d.sort(day)
+frame(firm = [1, 1], year = [2020, 2020]).panel(unit: firm, time: year)
+==== script 42
+let p = frame(firm = [2, 1, 2, 1, 3, 2],
+              year = [2021, 2020, 2020, 2021, 2020, 2023],
+              revenue = [12.5, 8, 11, NA, 7, 15])
+    .panel(unit: firm, time: year)
+p.add(prev = lag(revenue),
+      next = lead(revenue),
+      two = lag(revenue, n: 2),
+      change = diff(revenue),
+      filled = fill_forward(revenue))
+let d = frame(
+    firm = ["a", "a", "a", "b"],
+    day = [date("2026-01-01"), date("2026-01-02"), date("2026-01-04"), date("2026-01-01")],
+    v = [1, 2, 3, 4],
+)
+    .panel(unit: firm, time: day)
+d.add(prev = lag(v), change = diff(v))
+frame(g = [1, 1, 2, 2], v = [NA, 3, NA, NA]).add(f = fill_forward(v))
+frame(g = [1, 1, 2, 2], v = [5, NA, 7, NA]).add(f = fill_forward(v), by: g)
+let w = dataset(wages).where(worker <= 3)
+w.add(prev = lag(wage), growth = diff(wage)).select([worker, year, wage, prev, growth])
+frame(x = [1, 2]).add(y = lag(x))
+==== script 43
+let s = frame(shop = ["a", "a", "b", "b", "b"],
+              sales = [120, 80, NA, 150, 90],
+              growth = [1.1, 0.9, 1.25, 1.0, 0.8])
+s.add(to_date = running_sum(sales), index = running_product(growth))
+s.add(so_far = running_sum(sales), by: shop)
+let r = frame(name = ["Ann", "Bo", "Cy", "Di", "Ed"], score = [72.5, 90, 72.5, NA, 60])
+r.add(avg = rank(score),
+      low = rank(score, ties: min),
+      high = rank(score, ties: max),
+      first = rank(score, ties: first))
+let pay = frame(wage = [18.08, 8.5, 20.93, 15.68, 26.39, 33.07, NA])
+pay.add(band = bin(wage, breaks: [-Inf, 10, 20, Inf]),
+        left = bin(wage, breaks: [0, 10, 20], labels: ["low", "high"], closed: left),
+        narrow = bin(wage, breaks: [10, 20]),
+        fine = bin(wage, breaks: [0, 2.5, 1000, 123456, Inf]))
+frame(x = [9223372036854775800, 10]).add(s = running_sum(x))
+==== script 44
+let d = frame(g = [1, 1, 1, 1, 2, 2, 2, 2], x = [5, 1, 9, 3, 7, NA, 2, 8])
+d.add(quartile = quantile_group(x, n: 4),
+      third = quantile_group(x, n: 3, type: 1),
+      within = quantile_group(x, n: 2),
+      by: g)
+frame(x = [1, 1, 1, 1, 2]).add(q = quantile_group(x, n: 4))
+let w = dataset(wages).head(12)
+w
+    .add(decile = quantile_group(wage, n: 10),
+         capped = winsorize(wage, at: 0.1),
+         one = winsorize(wage))
+    .select([worker, year, wage, decile, capped, one])
+frame(x = [1.0, 2]).add(w = winsorize(x, at: 0.6))
+==== script 45
+let sales = frame(firm = [2, 1, 2, 1, 3, NA, NA],
+                  year = [2021, 2020, 2020, 2020, 2021, 2020, 2020],
+                  revenue = [12.5, 8, 11, 9, 7, 1, 1])
+sales.distinct(firm)
+sales.distinct([firm, year])
+sales.distinct([firm, year, revenue])
+sales.duplicates(firm)
+sales.duplicates([firm, year])
+sales.duplicates(revenue)
+let w = dataset(wages).where(worker <= 40)
+w.distinct(worker).select([worker, year, industry])
+w.duplicates(industry)
+==== script 46
+let w = dataset(wages)
+w.sample(n: 8, seed: 20261015).select([worker, year, wage])
+w.sample(frac: 0.0005, seed: 7).select([worker, year, wage])
+w.sample(n: 6, with_replacement: true, seed: 3).select([worker, year, wage])
+w.head(5).sample(n: 7, with_replacement: true, seed: 11).select([worker, year])
+w.sample(n: 0, seed: 1).n_rows()
+==== script 47
+let sales = frame(firm = [2, 1, 2, 1, 3, 1, NA],
+                  year = [2021, 2020, 2020, 2020, 2021, 2021, 2021],
+                  revenue = [12.5, 8, 11, 9, NA, 10, 4])
+sales.aggregate(total = sum(revenue), firms = n_distinct(firm), rows = n(), by: year)
+sales.aggregate(avg = mean(revenue), spread = sd(revenue), se = spread / sqrt(n()), by: firm)
+sales.aggregate(avg = mean(revenue), rows = n(), by: [firm, year])
+sales.aggregate(total = sum(revenue), rows = n())
+let w = dataset(wages).where(worker <= 30)
+w.aggregate(mean_wage = mean(wage),
+            median_hours = median(hours),
+            top = quantile(wage, p: 0.9),
+            workers = n_distinct(worker),
+            by: industry)
+w.aggregate(mean_wage = mean(wage), rows = n(), by: year)
+==== script 48
+let sales = frame(firm = [2, 1, 3, 1, NA],
+                  year = [2021, 2020, 2021, 2021, 2020],
+                  revenue = [12.5, 8, 7, 9, 1])
+let names = frame(firm = [1, 2, 4, NA],
+                  name = ["Acme", "Bolt", "Dyne", "None"],
+                  revenue = [0, 0, 0, 0])
+sales.merge(names.drop(revenue), on: firm)
+sales.merge(names.drop(revenue), on: firm, join: inner)
+sales.merge(names.drop(revenue), on: firm, join: full)
+sales.merge(names, on: firm, suffixes: ["_s", "_n"])
+let by_year = frame(firm = [1, 1, 2], year = [2020, 2021, 2021], target = [10, 11, 12])
+sales.merge(by_year, on: [firm, year], relation: many_to_one)
+let w = dataset(wages)
+    .where(worker <= 20)
+    .merge(dataset(firms), on: [firm, industry], relation: many_to_one)
+w.select([worker, year, firm, size, founded]).head(5)
+sales.merge(names, on: firm)
+sales.merge(by_year, on: firm)
+sales.merge(names.drop(revenue), on: firm, relation: one_to_one)
+==== script 49
+let this_year = frame(firm = [1, 2], revenue = [12.5, 8], region = ["North", "South"])
+let last_year = frame(firm = [1, 3],
+                      revenue = [11, 7],
+                      founded = [date("1990-01-05"), date("2001-11-30")])
+this_year.append(last_year)
+let sales = frame(firm = [1, 2],
+                  region = ["North", "South"],
+                  sales_2010 = [120, 80],
+                  sales_2011 = [130, NA])
+let long = sales.to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Int)
+long
+long.to_wide(values_from: sales, id: [firm, region], names_from: year)
+frame(unit = [3, 1, 3, 1, 2], period = [2, 1, 1, 2, 1], y = [0.5, 1.25, -2, 3.5, NA])
+    .to_wide(values_from: y, id: unit, names_from: period)
+sales.to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Date)
+frame(id = [1, 2], year = [2010, 2011]).append(frame(id = [3], year = ["2012"]))
+frame(firm = [1, 1], year = [2010, 2010], sales = [1, 2])
+    .to_wide(values_from: sales, id: firm, names_from: year)
+==== script 50
+let wages = dataset(wages)
+wages.tabulate(industry)
+wages.tabulate([female, union], percent: row)
+let small = frame(sex = ["f", "m", NA, "f", "m", "f"],
+                  smoker = [true, false, true, NA, false, false],
+                  day = [to("2026-01-02", Date),
+                         to("2026-01-01", Date),
+                         to("2026-01-02", Date),
+                         NA,
+                         to("2026-01-01", Date),
+                         to("2026-01-02", Date)])
+small.tabulate(sex)
+small.tabulate([sex, smoker])
+small.tabulate([sex, smoker], percent: col)
+small.tabulate([day, sex], percent: total)
+small.where(sex == "z").tabulate(sex)
+==== script 51
+let wages = dataset(wages).add(lwage = log(wage))
+wages.t_test(lwage, group: female)
+wages.t_test(lwage, mu: 3, alternative: greater)
+wages.t_test(lwage, group: union, equal_var: true, effect: d, level: 0.99)
+let pairs = frame(before = [0.7, -1.6, -0.2, -1.2, -0.1, 3.4, 3.7, 0.8, 0.0, 2.0],
+                  after = [1.9, 0.8, 1.1, 0.1, -0.1, 4.4, 5.5, 1.6, 4.6, 3.4])
+pairs.t_test(before, after, paired: true)
+pairs.t_test(before, after, paired: true, alternative: less, level: 0.9)
+let w = frame(x = [1.0, 2.0, 4.0, NA], f = [2, 1, 3, 1], s = ["a", "a", "b", "b"])
+w.t_test(x, mu: 1, weights: f, weight_type: frequency)
+w.t_test(x, group: s)
+==== script 52
+let wages = dataset(wages)
+wages.proportion_test(union, p: 0.3)
+wages.proportion_test(union, p: 0.3, correct: true, ci: exact, alternative: greater)
+wages.proportion_test(union, group: female)
+wages.proportion_test(union, group: female, ci: wald, correct: true, level: 0.99)
+wages.chi2_test(industry, female)
+wages.chi2_test(union, female, correct: true)
+wages.chi2_test(female, p: [0.5, 0.5])
+let small = frame(a = ["x", "x", "y", "y", "z", NA], b = [1, 2, 1, 2, 1, 2], w = [1, 1, 2, 1, 1, 1])
+small.chi2_test(a, b)
+small.chi2_test(a, b, weights: w, weight_type: frequency)
+let coin = frame(heads = [true, true, false, true, true, true, false, true, true, false])
+coin.proportion_test(heads, p: 0.5, ci: wald, alternative: less)
+==== script 53
+let d = frame(x = [1.83, 0.50, 1.62, 2.48, 1.68, 1.88, 1.55, 3.06, 1.30],
+              y = [0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29])
+d.wilcoxon_test(x, mu: 1)
+d.wilcoxon_test(x, mu: 1, exact: false, level: 0.99)
+d.wilcoxon_test(x, y, paired: true, alternative: greater)
+let t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9])
+t.wilcoxon_test(v, mu: 5)
+t.wilcoxon_test(v, mu: 5, exact: false, alternative: less)
+let g = frame(s = [0.80,
+                   0.83,
+                   1.89,
+                   1.04,
+                   1.45,
+                   1.38,
+                   1.91,
+                   1.64,
+                   0.73,
+                   1.46,
+                   1.15,
+                   0.88,
+                   0.90,
+                   0.74,
+                   1.21],
+              grp = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2])
+g.wilcoxon_test(s, group: grp)
+g.wilcoxon_test(s, group: grp, alternative: greater, level: 0.9, exact: false)
+let w = dataset(wages).where(worker <= 400).add(lwage = log(wage))
+w.wilcoxon_test(lwage, group: female)
+==== script 54
+let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0],
+              site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])
+g.kruskal_test(s, group: site)
+g.where(site < 3).kruskal_test(s, group: site)
+let t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9],
+              k = ["a", "b", "c", "a", "b", "c", "a", "b", "c", "a", "b", "c", "a", "b", "c"],
+              w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])
+t.kruskal_test(v, group: k)
+t.kruskal_test(v, group: k, weights: w, weight_type: frequency)
+let wages = dataset(wages).add(lwage = log(wage))
+wages.kruskal_test(lwage, group: industry)
+p_adjust([0.01, 0.04, 0.03, 0.005, 0.2])
+p_adjust([0.01, 0.04, 0.03, 0.005, 0.2], method: bonferroni)
+p_adjust([0.01, NA, 0.03, 0.005, 0.2], method: bh)
+p_adjust([0.01, NA, 0.03, 0.005, 0.2], method: by)
+p_adjust([0.01, 0.04, 0.03, 0.005, 0.2], method: hochberg)
+p_adjust([0.01, 0.04, 0.03, 0.005, 0.2], method: hommel)
+p_adjust([0.01, 0.04, 0.03, 0.005, 0.2], method: sidak)
+p_adjust([0.011, 0.012, 0.013, 0.014, 0.6, 0.6], method: hommel)
+p_adjust([0.01, NA, 0.03, 0.005, 0.2], method: none)
+let tests = frame(outcome = ["wage", "wage", "wage", "hours", "hours", "hours", "hours"],
+                  arm = [1, 2, 3, 1, 2, 3, 4],
+                  p = [0.01, 0.04, 0.03, 0.2, NA, 0.001, 0.02])
+tests.add(holm = p_adjust(p), bh = p_adjust(p, method: bh))
+tests.add(holm = p_adjust(p), hommel = p_adjust(p, method: hommel), by: outcome)
+tests
+    .where(arm < 4)
+    .add(sidak = p_adjust(p, method: sidak), fdr = p_adjust(p, method: by), by: outcome)
+p_adjust(tests["p"], method: hochberg)
+==== script 55
+let wages = dataset(wages)
+wages.fisher_test(union, female)
+wages.fisher_test(union, female, alternative: greater)
+let t = frame(a = ["x", "x", "x", "x", "y", "y", "y", "y"], b = [1, 1, 1, 2, 1, 2, 2, 2])
+t.fisher_test(a, b)
+t.fisher_test(a, b, alternative: less)
+let z = frame(a = ["x", "x", "x", "x", "x", "y", "y", "y", "y", "y", "y", "y"],
+              b = [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2])
+z.fisher_test(a, b)
+let m = frame(r = ["a", "a", "a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c", "c", "c"],
+              c = [1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 1, 2, 2, 2, 2, 2])
+m.fisher_test(r, c)
+let w = frame(r = ["a", "a", "b", "b", "c", "c"], c = [1, 2, 1, 2, 1, 2], w = [3, 1, 1, 3, 0, 0])
+w.fisher_test(r, c, weights: w, weight_type: frequency)
+let d = frame(a = ["x", "x", NA, "y", "y", "x"], b = [1, 2, 1, 1, 2, 1])
+d.fisher_test(a, b)
+==== script 56
+let wages = dataset(wages).add(lwage = log(wage))
+let t = wages.t_test(lwage, group: female)
+t.statistic()
+t.df()
+t.effect_size()
+t.h0()
+t.h1()
+t.alternative()
+t.estimates()
+let c = wages.chi2_test(union, female)
+c.df()
+c.effect_size()
+c.estimates()
+let m = wages.reg(lwage ~ educ + female)
+m.estimates()
+m.test(educ == 0).df()
+wages.fisher_test(union, female).statistic()
+join(["t(",
+      format(t.df()[1], digits: 1),
+      ") = ",
+      format(t.statistic(), digits: 2),
+      ", g = ",
+      format(t.effect_size(), digits: 3)])
+m.df()
+==== script 57
+let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0])
+g.shapiro_test(s)
+frame(x = [1.2, 3.4, 2.2]).shapiro_test(x)
+frame(x = [1, 1, 2]).shapiro_test(x)
+frame(x = [1, 2, 3, 4, 10]).shapiro_test(x)
+frame(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).shapiro_test(x)
+frame(x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 40]).shapiro_test(x)
+frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 2.0, 3.0, 9.0, 1.0, 2.5]).shapiro_test(x)
+let wages = dataset(wages).where(year == 2010).add(lwage = log(wage))
+wages.shapiro_test(lwage)
+wages.shapiro_test(educ).statistic()
+wages.shapiro_test(educ).p_values()
+dataset(wages).shapiro_test(educ)
+==== script 58
+let g = frame(u = [0.11, 0.32, 0.45, 0.58, 0.63, 0.77, 0.84, 0.92])
+g.ks_test(u, dist.uniform())
+g.ks_test(u, dist.normal(mean: 0.5, sd: 0.3))
+frame(x = [1.2, 3.4, 2.2, 2.2, 5.1]).ks_test(x, dist.normal(mean: 2, sd: 1))
+frame(x = [1.2, 3.4, 2.2, 0.8, 5.1, 2.9, 3.3]).ks_test(x, dist.normal(), estimated: true)
+frame(x = [0.4]).ks_test(x, dist.uniform())
+frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5]).ks_test(x, dist.exponential(rate: 0.25))
+let wages = dataset(wages).where(year == 2010).add(lwage = log(wage))
+wages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5))
+wages.ks_test(lwage, dist.normal(), estimated: true)
+wages.ks_test(lwage, dist.truncated(dist.normal(mean: 3, sd: 0.5), lower: 1.5, upper: 4.6))
+wages.ks_test(educ, dist.poisson(lambda: 12))
+wages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5)).statistic()
+wages.ks_test(lwage, dist.normal(mean: 3, sd: 0.5)).p_values()
+wages.ks_test(lwage, dist.exponential(), estimated: true)
+==== script 59
+let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0],
+              site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])
+g.anova(s, group: site)
+g.anova(s, group: site, equal_var: true)
+g.where(site < 3).anova(s, group: site)
+let t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9],
+              k = ["a", "b", "c", "a", "b", "c", "a", "b", "c", "a", "b", "c", "a", "b", "c"],
+              w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])
+t.anova(v, group: k, weights: w, weight_type: frequency)
+t.anova(v, group: k, weights: w, weight_type: analytic, equal_var: true)
+let m = frame(x = [1.5, 2.5, NA, 4.5, 5.5, 6.5, 7.5, 3.5], g = [1, 1, 2, 2, NA, 3, 3, 2])
+m.anova(x, group: g)
+frame(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g, equal_var: true)
+let wages = dataset(wages).add(lwage = log(wage))
+wages.anova(lwage, group: industry)
+let a = wages.where(year == 2010).anova(lwage, group: industry, equal_var: true)
+a
+a.df()
+a.effect_size()
+g.anova(s, group: site, effect: omega)
+g.anova(s, group: site, equal_var: true, effect: epsilon)
+t.anova(v, group: k, weights: w, weight_type: frequency, effect: omega)
+wages.anova(lwage, group: industry, effect: epsilon)
+wages.anova(lwage, group: industry, effect: omega).effect_size()
+frame(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3]).anova(x, group: g)
+==== script 60
+let d = frame(y = [3.1, 4.2, 5.0, 6.3, 2.2, 7.9, 4.4, 5.1, 6.6, 3.8, 4.9, 7.2],
+              a = ["p", "p", "p", "p", "q", "q", "q", "q", "r", "r", "r", "r"],
+              b = ["u", "v", "u", "v", "u", "v", "u", "v", "u", "v", "u", "v"],
+              x = [1.0, 2.5, 0.3, 4.1, 2.2, 3.3, 1.9, 0.7, 2.8, 3.9, 1.1, 2.0],
+              w = [1, 2, 1, 0, 1, 3, 1, 1, 2, 1, 1, 1])
+    .add(a = category(a), b = category(b))
+d.anova(y ~ a * b)
+d.anova(y ~ a * b + x, type: 1)
+d.anova(y ~ x + a * b, type: 1)
+d.anova(y ~ a * b + x, type: 3)
+d.anova(y ~ a + x, weights: w, weight_type: frequency)
+d.anova(y ~ a + x, weights: w, weight_type: analytic)
+d.where(!(a == "r" && b == "v")).anova(y ~ a * b)
+d.add(x2 = 2 * x).anova(y ~ x + x2)
+let wages = dataset(wages).add(lwage = log(wage))
+wages.anova(lwage ~ industry * category(female) + educ)
+wages.anova(lwage ~ industry * category(female) + educ, type: 3)
+let t = d.anova(y ~ a * b + x)
+t.statistic()
+t.df()
+t.p_values()
+t.estimates()
+d.anova(y ~ a * b, effect: omega)
+d.anova(y ~ a * b + x, type: 3, effect: epsilon)
+d.anova(y ~ a + x, weights: w, weight_type: frequency, effect: omega)
+wages.anova(lwage ~ industry * category(female) + educ, effect: omega)
+d.anova(y ~ a * b + x, effect: epsilon).estimates()
+d.where(!(a == "r" && b == "v")).anova(y ~ a * b, type: 3)
+==== script 61
+let g = frame(s = [2.9, 3.0, 2.5, 2.6, 3.2, 3.8, 2.7, 4.0, 2.4, 2.8, 3.4, 3.7, 2.2, 2.0],
+              site = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3])
+g.anova(s, group: site).posthoc()
+g.anova(s, group: site, equal_var: true).posthoc(method: scheffe)
+g.anova(s, group: site).posthoc(method: holm)
+g.anova(s, group: site).posthoc(method: sidak)
+g.anova(s, group: site, equal_var: true).posthoc(method: hommel)
+g.anova(s, group: site).posthoc(method: by)
+g.where(site < 3).anova(s, group: site).posthoc(method: none)
+let t = frame(v = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9],
+              k = ["a", "b", "c", "a", "b", "c", "a", "b", "c", "a", "b", "c", "a", "b", "c"],
+              w = [1, 2, 1, 1, 1, 3, 1, 1, 1, 2, 1, 1, 1, 1, 1])
+t.anova(v, group: k, weights: w, weight_type: frequency).posthoc(method: hochberg)
+t.anova(v, group: k, weights: w, weight_type: analytic, equal_var: true).posthoc(method: bonferroni)
+frame(x = [1.5, 2.5, 3.5, 4.5, 9.0], g = [1, 1, 2, 2, 3])
+    .anova(x, group: g, equal_var: true)
+    .posthoc()
+let wages = dataset(wages).add(lwage = log(wage))
+wages.anova(lwage, group: industry, equal_var: true).posthoc()
+wages.anova(lwage, group: industry).posthoc(method: bh)
+let p = g.anova(s, group: site, equal_var: true).posthoc(method: bonferroni)
+p.estimates()
+p.ci()
+p.statistic()
+p.df()
+p.p_values()
+let f = frame(gain = [4.2,
+                      3.9,
+                      4.6,
+                      4.1,
+                      4.4,
+                      5.1,
+                      5.6,
+                      4.9,
+                      5.4,
+                      5.8,
+                      4.5,
+                      4.0,
+                      4.8,
+                      4.3,
+                      5.0,
+                      4.7],
+              dose = ["low",
+                      "low",
+                      "low",
+                      "low",
+                      "mid",
+                      "mid",
+                      "mid",
+                      "mid",
+                      "mid",
+                      "high",
+                      "high",
+                      "high",
+                      "high",
+                      "high",
+                      "low",
+                      "mid"],
+              diet = ["a",
+                      "b",
+                      "a",
+                      "b",
+                      "a",
+                      "b",
+                      "a",
+                      "b",
+                      "a",
+                      "b",
+                      "a",
+                      "b",
+                      "a",
+                      "b",
+                      "b",
+                      "b"],
+              age = [3, 5, 4, 6, 5, 7, 6, 4, 5, 3, 6, 4, 7, 5, 4, 6])
+    .add(dose = category(dose, levels: ["low", "mid", "high"]), diet = category(diet))
+let m = f.anova(gain ~ dose * diet + age)
+m.posthoc(term: dose)
+m.posthoc(term: diet, method: scheffe)
+m.posthoc(term: "dose:diet", method: holm)
+f.anova(gain ~ dose * log(age)).posthoc(method: sidak)
+f
+    .where(!(dose == "high" && diet == "a"))
+    .anova(gain ~ dose * diet)
+    .posthoc(term: "dose:diet", method: bonferroni)
+wages.anova(lwage ~ industry * category(union) + exper).posthoc(term: industry)
+wages.anova(lwage ~ industry * exper).posthoc(method: by)
+g.kruskal_test(s, group: site).posthoc()
+==== script 62
+let s = frame(id = [1, 2, 3],
+              x = [1.5, -0.0, NA],
+              flag = [true, false, NA],
+              note = ["plain", "with, comma", "two\nlines"],
+              day = [date("2024-01-01"), date("1970-01-01"), NA],
+              level = ["low", "high", "mid"])
+    .add(level = category(level, levels: ["low", "mid", "high"]))
+s.save("sample.csv")
+s.save("output/sample.tsv")
+s.save("output/sample_bom.csv", bom: true, codes: true)
+s.save("output/sample.parquet")
+s.save("output/sample")
+==== script 63
+seed(20261111)
+let w = dataset(wages)
+w.plot(x: educ, y: wage)
+w.plot(x: educ, y: wage).points()
+w.plot(x: educ, y: wage).points(alpha: 0.3, jitter: 0.4)
+let top = w.where(wage > 100)
+w.plot(x: exper, y: hours).points(jitter: 0.25).points(data: top, size: 8)
+w.plot(x: hours)
+frame(a = [1000000, 3000000], b = [0.00001, 0.00003]).plot(x: a, y: b).points()
+w.plot(x: industry, y: wage)
+==== script 64
+seed(20261111)
+let w = dataset(wages)
+w.plot(x: educ, y: log(wage)).points()
+w.plot(x: exper^2, y: wage / hours).points()
+w.plot(x: sqrt(exper), y: exp(educ / 10)).points(jitter: 0.3)
+let top = w.where(wage > 100)
+w.plot(x: log10(hours), y: log(wage, base: 2)).points(alpha: 0.3).points(data: top, size: 8)
+w.plot(x: educ, y: log(wage - 20)).points()
+w.plot(x: category(educ), y: log(wage))
+==== script 65
+let w = dataset(wages)
+w.plot(x: educ, y: wage, color: female).points()
+w.plot(x: educ, y: wage, color: exper, fill: "#48b").points(alpha: 0.3)
+w.plot(x: educ, y: wage, color: industry).points()
+let top = w.where(wage > 100)
+w.plot(x: educ, y: wage, color: union, fill: female).points().points(data: top, size: 8)
+w.plot(x: educ, y: wage, color: "steelblue").points()
+w.plot(x: educ, y: wage, color: "steel blue")
+==== script 66
+let w = dataset(wages)
+w.plot(x: educ, y: wage, size: exper).points(alpha: 0.3)
+w.plot(x: educ, y: wage, shape: industry).points()
+let top = w.where(wage > 100)
+w
+    .plot(x: educ, y: wage, color: union, size: hours, shape: union)
+    .points(alpha: 0.2)
+    .points(data: top, size: 8)
+w.plot(x: educ, y: wage, size: 3, shape: "diamond_open", group: worker, label: firm).points()
+w.plot(x: educ, y: wage, shape: "circle open")
+==== script 67
+let w = dataset(wages)
+let u = w.aggregate(wage = mean(wage), by: [year, union])
+u.plot(x: year, y: wage, color: union).points().lines(linetype: union)
+let few = w.where(worker <= 40)
+few.plot(x: year, y: log(wage), group: worker).lines(width: 0.5)
+few.plot(x: exper, y: wage).lines(group: worker, color: female)
+few.plot(x: year, y: wage, group: worker).step(direction: mid, linetype: "dotted")
+==== script 68
+let w = dataset(wages).drop_missing([wage])
+let m = w.aggregate(se = sd(wage) / sqrt(n()), wage = mean(wage), by: year)
+let u = w.aggregate(wage = mean(wage), by: [year, union])
+let band = m.plot(x: year, y: wage).ribbon(low: wage - 2 * se, high: wage + 2 * se).lines()
+band
+let areas = u.plot(x: year, y: wage, color: union, fill: union).area().lines()
+areas
+u.plot(x: year).ribbon(low: wage * 0.9, high: wage * 1.1, group: union, fill: "steelblue")
+u.plot(x: year, y: wage, fill: union).area(position: stack)
+u.where(year != 2015 || union == 1).plot(x: year, y: wage, fill: union).area(position: fill)
+export(band, "band.svg")
+export(band, "band.pdf")
+export(band, "band.png")
+export(areas, "areas.svg")
+export(areas, "areas.pdf")
+export(areas, "areas.png")
+==== script 69
+let w = dataset(wages)
+let m = w.aggregate(wage = mean(wage), by: union)
+let few = w.where(worker <= 40)
+let p = few
+    .plot(x: educ, y: wage)
+    .points(alpha: 0.5)
+    .hline(data: m, at: wage, color: union)
+    .vline(at: 12)
+    .vline(at: 16, style: dash_dot, color: "firebrick", width: 1)
+p
+few.plot(x: educ).vline(at: educ, style: solid, width: 0.25)
+export(p, "rules.svg")
+export(p, "rules.pdf")
+export(p, "rules.png")
+==== script 70
+let w = dataset(wages).where(worker <= 60)
+let p = w.plot(x: educ, y: wage, color: union).points(alpha: 0.5).rug(sides: both, alpha: 0.4)
+p
+w.plot(x: wage).rug(alpha: 0.3)
+w.plot(x: educ, y: wage).rug(sides: y, color: "firebrick")
+export(p, "rug.svg")
+export(p, "rug.pdf")
+export(p, "rug.png")
+==== script 71
+seed(20261112)
+let w = dataset(wages).where(worker <= 200)
+let p = w.plot(x: industry, y: wage, color: union).points(alpha: 0.5, jitter: 0.25)
+p
+let m = w.aggregate(wage = mean(wage), by: industry)
+m.plot(x: industry, y: wage).points().lines()
+w.plot(x: wage, y: industry).rug()
+export(p, "categories.svg")
+export(p, "categories.pdf")
+export(p, "categories.png")
+==== script 72
+let w = dataset(wages)
+w.plot(x: industry).bars()
+let p = w.plot(x: industry, fill: union).bars()
+p
+w.plot(x: industry, fill: union).bars(position: dodge, width: 0.8)
+w.plot(x: industry, fill: union).bars(position: fill)
+let m = w.aggregate(wage = mean(wage), by: industry)
+m.plot(x: industry, y: wage).bars(fill: "steelblue", alpha: 0.8)
+w.plot(x: educ).bars()
+w.plot(x: industry, color: union).bars(position: dodge)
+export(p, "bars.svg")
+export(p, "bars.pdf")
+export(p, "bars.png")
+==== script 73
+let w = dataset(wages)
+let m = w.aggregate(wage = mean(wage), by: [year, industry])
+let p = m.plot(x: year, y: industry, fill: wage).tile()
+p
+m.add(high = wage > 28).plot(x: year, y: industry, fill: high).tile(alpha: 0.8)
+m.plot(x: year, y: wage).tile()
+export(p, "tiles.svg")
+export(p, "tiles.pdf")
+export(p, "tiles.png")
+==== script 74
+let w = dataset(wages)
+let m = w.aggregate(wage = mean(wage), by: industry).add(shown = round(wage, 1))
+let p = m
+    .plot(x: industry, y: wage)
+    .bars(fill: "steelblue")
+    .text(label: shown, nudge: [0, 5], size: 7)
+p
+let few = w.where(worker <= 3 && year == 2015)
+few.plot(x: educ, y: wage, color: union).points().text(label: worker, nudge: [6, 0])
+export(p, "text.svg")
+export(p, "text.pdf")
+export(p, "text.png")
+==== script 75
+let w = dataset(wages)
+let p = w.plot(x: educ, y: wage, color: union).points(alpha: 0.3).scale_y(log)
+p
+w.plot(x: educ, y: wage).points(alpha: 0.3).scale_y(sqrt).scale_x(sqrt)
+w
+    .plot(x: educ, y: wage)
+    .points(alpha: 0.3)
+    .scale_y(limits: [0, 60], breaks: [0, 20, 40, 60], labels: ["none", "20", "40", "60"])
+    .scale_x(limits: [10, NA])
+w.plot(x: union, y: wage).points(alpha: 0.3)
+export(p, "scales.svg")
+export(p, "scales.pdf")
+export(p, "scales.png")
+==== script 76
+let f = dataset(firms)
+let p = f.plot(x: founded, y: size).points(alpha: 0.4)
+p
+let c = f
+    .add(y = year(founded))
+    .aggregate(by: y, firms = n())
+    .add(start = add_months(date("1970-01-01"), (y - 1970) * 12))
+c.plot(x: start, y: firms).bars()
+let t = frame(read = ["2024-03-05 09:30:00", "2024-03-05 12:00:00", "2024-03-05 16:45:00"],
+              level = [1, 4, 2])
+    .add(when = datetime(read))
+t.plot(x: when, y: level).step().points()
+let e = frame(read = ["1973-10-17", "2008-09-15"]).add(day = date(read))
+f.plot(x: founded, y: size).points(alpha: 0.4).vline(data: e, at: day)
+export(p, "dates.svg")
+export(p, "dates.pdf")
+export(p, "dates.png")
+==== script 77
+let f = dataset(firms)
+let crash = date("2008-09-15")
+let p = f
+    .plot(x: founded, y: size)
+    .points(alpha: 0.4)
+    .scale_x(date, limits: [date("1970-01-01"), NA], labels: "%b %Y")
+    .vline(at: date("1973-10-17"))
+    .vline(at: crash, color: "firebrick", style: solid)
+p
+f
+    .plot(x: founded, y: size)
+    .points(alpha: 0.4)
+    .scale_x(breaks: [date("1973-10-17"), crash], labels: ["oil", "Lehman"])
+f
+    .plot(x: size, y: founded)
+    .points(alpha: 0.4)
+    .scale_y(date, limits: [date("1990-01-01"), date("1992-01-01")])
+export(p, "datescale.svg")
+export(p, "datescale.pdf")
+export(p, "datescale.png")
+==== script 78
+let f = dataset(firms)
+let p = f.plot(x: year(founded), y: size).points(alpha: 0.4)
+p
+f.plot(x: slice(industry, 1, 3), y: size).points(alpha: 0.4)
+f.plot(x: add_days(founded, 365), y: size).points(alpha: 0.4)
+f.plot(x: quarter(founded)).bars()
+f.plot(x: size, y: contains(industry, "a")).points()
+export(p, "mapped.svg")
+export(p, "mapped.pdf")
+export(p, "mapped.png")
+==== script 79
+let d = frame(share = [0.1, 0.5, 0.9, 0, NA],
+              x = [-2, 0.5, 7, 1, 2],
+              k = [1, NA, 3, 4, 5],
+              s = ["a", NA, "b", "a", "b"])
+d.plot(x: x, y: logit(share)).points()
+d.plot(x: x, y: inv_logit(x)).lines()
+d.plot(x: clamp(x, 0, 3), y: x).points()
+d.plot(x: x, y: fill_missing(k, 0)).points()
+d.plot(x: x, y: fill_missing(s, "none")).points()
+==== script 80
+let w = dataset(wages)
+let p = w
+    .plot(x: case { educ < 12 => "less", educ == 12 => "school", educ > 12 => "more" },
+          y: case { wage > 100 => 100, _ => wage })
+    .points(alpha: 0.2)
+p
+w.plot(x: educ, y: case { wage > 20 => 1 }).points()
+export(p, "case.svg")
+export(p, "case.pdf")
+export(p, "case.png")
+==== script 81
+let w = dataset(wages).where(year == 2015)
+w.plot(x: educ, y: wage, color: union).scale(color: ["grey", "firebrick"]).points(alpha: 0.5)
+let p = w.plot(x: educ, y: wage, color: hours).scale(color: ["white", "steelblue", "navy"]).points()
+p
+w.plot(x: educ, y: wage, color: industry).scale(color: viridis).points()
+w
+    .plot(x: educ, y: wage, size: hours, shape: union)
+    .scale(size: [2, 12], shape: ["circle_open", "cross"])
+    .points(alpha: 0.4)
+w.plot(x: industry, color: union).scale(color: ["grey", "black"]).bars(position: dodge)
+export(p, "palette.svg")
+export(p, "palette.pdf")
+export(p, "palette.png")
+==== script 82
+let w = dataset(wages).where(year == 2015)
+let p = w.plot(x: educ, y: wage, color: union).points(alpha: 0.5).legend(top)
+p
+w.plot(x: educ, y: wage, color: union).points(alpha: 0.5).legend(bottom)
+w.plot(x: educ, y: wage, color: union).points(alpha: 0.5).legend(none)
+let q = w.plot(x: educ, y: wage, color: hours).points().legend(top)
+export(p, "legend.svg")
+export(p, "legend.pdf")
+export(p, "legend.png")
+export(q, "legend_ramp.svg")
+==== script 83
+let w = dataset(wages)
+let m = w.aggregate(wage = mean(wage), by: [year, industry])
+let p = m.plot(x: year, y: wage, color: industry).scale(color: viridis).lines().legend(direct)
+p
+let u = w.aggregate(wage = mean(wage), by: [year, union])
+u.plot(x: year, y: wage, color: union).lines().points().legend(direct)
+u.plot(x: year, y: wage, color: union).points().legend(direct)
+export(p, "direct.svg")
+export(p, "direct.pdf")
+export(p, "direct.png")
+==== script 84
+let w = dataset(wages).where(year == 2015)
+let p = w
+    .plot(x: educ, y: log(wage), color: union)
+    .points(alpha: 0.5)
+    .labels(title: "Schooling and wages in 2015",
+            subtitle: "Hourly wages of 2,152 workers",
+            y: "log wage",
+            color: "In a union",
+            caption: "Source: the wages data shipped with the engine.")
+p
+p.labels(x: "", title: "")
+p.legend(top)
+export(p, "titled.svg")
+export(p, "titled.pdf")
+export(p, "titled.png")
+==== script 85
+let w = dataset(wages).where(year == 2015)
+let p = w
+    .plot(x: educ, y: wage, color: union)
+    .points(alpha: 0.5)
+    .labels(title: "Schooling and wages")
+let m = p.theme(minimal)
+m
+let s = p.theme(slide)
+s
+p.theme(base_size: 12)
+export(m, "theme.svg")
+export(m, "theme.pdf")
+export(m, "theme.png")
+export(s, "theme_slide.svg", size: slide)
+==== script 86
+let w = dataset(wages)
+let u = w.aggregate(wage = mean(wage), by: [year, union])
+let p = u
+    .plot(x: year, y: wage, color: union)
+    .lines()
+    .annotate(text: "the gap widens", x: 2017, y: 34, size: 10)
+p
+let f = dataset(firms)
+f
+    .plot(x: founded, y: size)
+    .points(alpha: 0.3)
+    .annotate(text: "oil crisis", x: date("1973-10-17"), y: 38)
+let s = frame(group = ["New south region",
+                       "Old north region",
+                       "Far east region",
+                       "Mid west region",
+                       "The islands"],
+              n = [12, 30, 22, 8, 15])
+let q = s.plot(x: group, y: n).bars().annotate(text: "largest", x: "Old north region", y: 31)
+q
+export(p, "annotated.svg")
+export(p, "annotated.pdf")
+export(p, "annotated.png")
+export(q, "wrapped.svg")
+==== script 87
+let w = dataset(wages)
+let m = w.where(year == 2015).aggregate(wage = mean(wage), by: [industry])
+let p = m.plot(x: industry, y: wage).bars().coord(flip)
+p
+let u = w.aggregate(wage = mean(wage), by: [year, union])
+let q = u
+    .plot(x: year, y: wage, color: union)
+    .lines()
+    .hline(at: 30)
+    .annotate(text: "thirty an hour", x: 2012, y: 31)
+    .coord(flip)
+q
+q.coord(cartesian)
+export(p, "flipped.svg")
+export(p, "flipped.pdf")
+export(p, "flipped.png")
+export(q, "turned.svg")
+==== script 88
+let w = dataset(wages).where(year == 2015)
+let p = w.plot(x: age, y: hours, color: union).points(alpha: 0.4).coord(fixed)
+p
+let q = p.coord(fixed, ratio: 2).legend(top)
+q
+w.plot(x: wage, y: educ).points().scale_x(log).coord(fixed, ratio: 0.1)
+export(p, "fixed.svg")
+export(p, "fixed.pdf")
+export(p, "fixed.png")
+export(q, "fixed_wide.svg", size: two_column)
+==== script 89
+let w = dataset(wages)
+let m = w.where(year == 2015).aggregate(wage = mean(wage), by: [industry])
+let p = m.plot(x: industry, y: wage).bars().coord(polar)
+p
+let h = frame(hour = [0, 3, 6, 9, 12, 15, 18, 21, 24], calls = [2, 1, 4, 12, 15, 11, 9, 5, 2])
+let q = h
+    .plot(x: hour, y: calls)
+    .area(alpha: 0.4)
+    .lines()
+    .scale_x(breaks: [0, 6, 12, 18, 24])
+    .coord(polar)
+q
+let u = w.aggregate(wage = mean(wage), by: [year, union])
+let r = u.plot(x: year, y: union, fill: wage).tile().coord(polar).theme(minimal)
+r
+export(p, "polar.svg")
+export(p, "polar.pdf")
+export(p, "polar.png")
+export(q, "clock.svg")
+export(r, "rings.svg", size: two_column)
+==== script 90
+let w = dataset(wages)
+let y = w.where(year == 2015)
+let p = y.plot(x: educ, y: wage, color: female).points(alpha: 0.4).facet(by: union)
+p
+let q = y.plot(x: educ, y: wage).points(alpha: 0.3).facet(by: industry)
+q
+let m = w.aggregate(wage = mean(wage), by: [year, union, female])
+let r = m.plot(x: year, y: wage, fill: female).bars().facet(by: union).coord(flip).legend(top)
+r
+export(p, "panels.svg")
+export(p, "panels.pdf")
+export(p, "panels.png")
+export(q, "twelve.svg", size: two_column)
+export(r, "lying.svg", size: two_column)
+==== script 91
+let y = dataset(wages).where(year == 2015)
+let p = y.plot(x: educ, y: wage).points(alpha: 0.3).facet(rows: union, cols: female)
+p
+let q = y.plot(x: educ, y: wage, color: female).points(alpha: 0.3).facet(rows: union)
+q
+export(p, "grid.svg", size: two_column)
+export(p, "grid.pdf", size: two_column)
+export(p, "grid.png", size: two_column)
+export(q, "rows.svg")
+==== script 92
+let y = dataset(wages).where(year == 2015)
+let p = y.plot(x: educ, y: wage).points(alpha: 0.3).facet(by: industry, scales: free_y)
+p
+let q = y.plot(x: educ, y: wage).points(alpha: 0.3).facet(rows: union, cols: female, scales: free)
+q
+export(p, "free.svg", size: two_column)
+export(p, "free.pdf", size: two_column)
+export(p, "free.png", size: two_column)
+export(q, "free_grid.svg", size: two_column)
+==== script 93
+let w = dataset(wages).where(year == 2015)
+let p = w.plot(x: wage).histogram()
+p
+w.plot(x: wage).histogram(bins: sturges, scale: density)
+let q = w.plot(x: wage, fill: union).histogram(binwidth: 10, start: 0)
+q
+let r = w.plot(x: wage).histogram(bins: 30, scale: percent).facet(by: union)
+r
+export(p, "histogram.svg")
+export(p, "histogram.pdf")
+export(p, "histogram.png")
+export(q, "stacked.svg")
+export(r, "panels.svg")
+==== script 94
+let w = dataset(wages).where(year == 2015)
+let p = w.plot(x: wage).density()
+p
+let q = w.plot(x: wage, color: union).density(adjust: 0.5, kernel: epanechnikov)
+q
+let r = w.plot(x: wage).histogram(scale: density).density(bandwidth: 3)
+r
+export(p, "density.svg")
+export(p, "density.pdf")
+export(p, "density.png")
+export(q, "groups.svg")
+export(r, "over.svg")
+==== script 95
+let w = dataset(wages).where(year == 2015)
+let p = w.plot(x: union, y: wage).boxplot()
+p
+let q = w.plot(x: industry, y: wage).boxplot().coord(flip)
+q
+let r = w.plot(x: union, y: wage, fill: female).boxplot()
+r
+w.plot(y: wage).boxplot(outliers: false)
+export(p, "box.svg")
+export(p, "box.pdf")
+export(p, "box.png")
+export(q, "lying.svg", size: two_column)
+export(r, "filled.svg")
+==== script 96
+let w = dataset(wages).where(year == 2015)
+let means = w.aggregate(mean_wage = mean(wage), se = sd(wage) / sqrt(n()), by: [industry, female])
+let p = plot(means, x: industry, y: mean_wage, color: female)
+    .bars(position: dodge)
+    .errorbars(low: mean_wage - 1.96 * se, high: mean_wage + 1.96 * se)
+    .legend(top)
+p
+let by_sex = w.aggregate(mean_wage = mean(wage), se = sd(wage) / sqrt(n()), by: female)
+let q = by_sex
+    .plot(x: female, y: mean_wage)
+    .points()
+    .errorbars(low: mean_wage - 1.96 * se, high: mean_wage + 1.96 * se)
+    .coord(flip)
+q
+by_sex.plot(x: female).errorbars(low: mean_wage - se, high: mean_wage + se, width: 0)
+export(p, "bars.svg", size: two_column)
+export(p, "bars.pdf", size: two_column)
+export(p, "bars.png", size: two_column)
+export(q, "lying.svg")
+==== script 97
+let w = dataset(wages)
+let m = w.reg(log(wage) ~ educ + exper^2 + industry)
+let x = m.design()
+x.head(3)
+x.n_rows()
+m.n_obs()
+x.mean(`exper^2`)
+x.mean(`industry=Mining`)
+let e = w.reg(log(wage) ~ exper + hours, fe: worker, weights: hours)
+e.design().head(5)
+==== script 98
+let w = dataset(wages).where(year == 2015)
+let m = w.reg(log(wage) ~ educ + female + industry, se: robust, level: 0.9)
+let c = m.coef_plot()
+c
+w.reg(log(wage) ~ educ + exper + union).plot()
+let d = frame(unit = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4],
+              year = [2010,
+                      2011,
+                      2012,
+                      2013,
+                      2010,
+                      2011,
+                      2012,
+                      2013,
+                      2010,
+                      2011,
+                      2012,
+                      2013,
+                      2010,
+                      2011,
+                      2012,
+                      2013],
+              treat = [2011,
+                       2011,
+                       2011,
+                       2011,
+                       2012,
+                       2012,
+                       2012,
+                       2012,
+                       2013,
+                       2013,
+                       2013,
+                       2013,
+                       NA,
+                       NA,
+                       NA,
+                       NA],
+              y = [1.0, 2.1, 2.4, 2.6, 1.5, 1.4, 2.6, 2.9, 0.8, 0.9, 1.1, 2.0, 1.2, 1.3, 1.1, 1.4])
+let e = d.reg(y ~ event(year, treat), fe: unit + year).plot()
+e
+export(c, "coef.svg")
+export(c, "coef.pdf")
+export(c, "coef.png")
+export(e, "event.svg")
+==== script 99
+let w = dataset(wages).where(year == 2015)
+let h = w.histogram(log(wage), bins: 40, by: female)
+h
+let s = w.scatter(educ, wage, fit: linear, color: female)
+s
+let l = w.aggregate(wage = mean(wage), by: [educ, union]).line(educ, wage, color: union)
+l
+let b = w.bar(industry, color: union)
+b
+let x = w.boxplot(wage, group: union)
+x
+let d = w.density(wage, color: union)
+d
+let q = w.qq_plot(log(wage))
+q
+let m = w.heatmap([wage, educ, exper, age, hours])
+m
+export(h, "histogram.svg", size: two_column)
+export(s, "scatter.svg")
+export(s, "scatter.pdf")
+export(s, "scatter.png")
+export(l, "line.svg")
+export(b, "bar.svg", size: two_column)
+export(x, "boxplot.svg")
+export(d, "density.svg")
+export(q, "qq_plot.svg")
+export(m, "heatmap.svg")
+==== script 100
+let wages = import("data/wages.csv")
+wages.mean(wage)
+wages.mean(hours)
+print(wages, [1, 2.5], 1e-7)
+wages.mean(id)
+let built = frame(x = [1, 2.5, NA], flag = [true, false, true], name = ["a", "b", "c"])
+built
+built.mean(x)
+built.mean(flag)
+wages.n_rows()
+wages.n_cols()
+wages.variables()
+built.variables()
+wages.describe()
+built.describe()
+wages.sd(wage)
+wages.sd(hours)
+wages.sd(id)
+built.sd(x)
+built.sd(flag)
+wages.summary()
+built.summary([x, flag], stats: [n, mean, max])
+print(wages.summary([wage]), NA, -0.0, 1e15, [true, NA])
+let a = 7
+let b = 2.5
+a / 3
+a^0.5
+b^a
+(a + b) * (a - b)
+1e300 * 1e10
+0.1 + 0.2 == 0.3
+2..6
+[1 => "one", 2 => "two"][2]
+{x: 1.5, y: [1, 2]}.y[2]
+print(-a)
+!(a > b)
+wages["wage"] * 2
+wages["hours"] / wages["id"]
+wages["wage"] > 25 && wages["id"] != 3
+frame(ratio = wages["wage"] / 10, big = wages["wage"] >= 27.75).describe()
+to(wages["wage"], Int)
+to(wages["id"], Str)
+to("42", Int)
+type_of(wages)
+wages["hours"].is(Int)
+to(built["name"], Category)
+levels(category(built["name"], levels: ["c", "b", "a"], ordered: true))
+to(base(category(built["name"]), "c"), Int)
+wages.label(id, [1 => "first", 2 => "second"]).describe()
+wages.recode(hours, [NA => 0, 99 => 98])
+built.add(name = category(name)).recode(name, ["a" => "b"]).describe()
+let f = wage ~ hours + hours^2 + id:hours - 1
+f
+f + log(hours) - hours^2
+type_of(f)
+wage ~ interact([hours, id], order: 2) + category(id, contrast: sum)
+==== script 101
+// The sample project of release 0.1.0: every function of the first engine on one data file.
+// `zeff run` in this folder prints what expected/stdout.txt holds, and its messages are
+// expected/stderr.txt; the script tests compare both byte for byte on every target.
+
+// Read the file and look at it.
+let wages = import("data/wages.csv")
+wages
+wages.n_rows()
+wages.n_cols()
+wages.variables()
+wages.describe()
+
+// One statistic at a time: the mean and the standard deviation, missing values counted.
+wages.mean(wage)
+wages.sd(wage)
+wages.mean(hours)
+wages.sd(hours)
+wages.mean(female)
+
+// The table of section 10.2, for chosen variables and chosen statistics.
+wages.summary([wage, hours, educ])
+wages.summary(stats: [n, mean, sd])
+
+// A frame built in the script, and values printed together.
+let scores = frame(group = ["a", "b", "c", "d"],
+                   score = [1.5, NA, 3, 4.25],
+                   passed = [true, false, true, true])
+scores
+scores.describe()
+scores.summary()
+print("rows:", scores.n_rows(), "mean score:", scores.mean(score))
+print(scores.variables(), 1e-7, 1234567.891, NA)
+==== script 102
+// The sample project of release 0.2.0: a data-cleaning script end to end, from a spreadsheet
+// export in German format to grouped summaries and a shipped dataset. `zeff run` in this folder
+// prints what expected/stdout.txt holds, and its messages are expected/stderr.txt; the script
+// tests compare both byte for byte on every target.
+
+// 1. Import. The file has `;` between fields, a decimal comma, a point between groups of digits,
+//    Windows-1252 letters, -99 for a missing value, and headers with spaces, which `names: snake`
+//    turns into names a script can write.
+let raw = import("data/staff_de.csv",
+                 decimal: ",",
+                 thousands: ".",
+                 encoding: "windows-1252",
+                 na_values: [-99],
+                 names: snake)
+raw.describe()
+raw.head(5)
+
+// 2. Clean. Keep the rows of working age with a recorded wage, give the variables short names,
+//    derive what the analysis needs, and compute each worker's log-wage gap within their region.
+let staff = raw
+    .where(age >= 18 && age <= 65 && !is_missing(monthly_wage))
+    .rename(wage = monthly_wage, hours = weekly_hours, educ = years_of_education)
+    .add(lwage = log(wage), hourly = wage / (hours * 4.33), exper = age - educ - 6)
+    .update(exper = 0, where: exper < 0)
+    .add(wage_gap = lwage - mean(lwage), by: region)
+staff.describe()
+
+// 3. Look. The highest wages, the cheapest hours by region, and the statistics by group.
+staff.sort(wage, desc: true).select([staff_id, region, wage, hours, educ]).head(5)
+staff.sort([region, hourly]).select([region, hourly, hours, wage]).head(5)
+staff.summary([wage, hourly, hours, educ], by: female)
+staff.mean(wage, by: region)
+staff.quantile(hourly, p: [0.1, 0.5, 0.9])
+print("workers:",
+      staff.n_rows(),
+      "regions:",
+      n_distinct(staff["region"]),
+      "median hourly wage:",
+      staff.median(hourly))
+
+// 4. A shipped dataset, loaded with its labels and categories, and the same statistics on it.
+let sleep = dataset(sleep)
+sleep
+sleep.mean(extra, by: group)
+dataset(wages).summary([wage, educ], by: union)
+==== script 103
+// The sample project of release 0.3.0: a simulation and its p-values end to end, with no data
+// file. `zeff run` in this folder prints what expected/stdout.txt holds, and its messages are
+// expected/stderr.txt; the script tests compare both byte for byte on every target.
+
+// 1. One seed for the whole run, set before any draw, so that the script repeats exactly.
+seed(2026)
+
+// 2. Draws from several families into a frame. The scores follow a normal distribution, the
+//    waiting times an exponential one, the visits a Poisson one, and the wage index is a mixture
+//    of two kinds of worker.
+let wage_mix = dist.mixture([dist.lognormal(meanlog: 2.5, sdlog: 0.3),
+                             dist.lognormal(meanlog: 3.1, sdlog: 0.4)],
+                            probs: [0.6, 0.4])
+let sim = frame(score = dist.normal(mean: 100, sd: 15).draw(400),
+                wait = dist.exponential(rate: 0.5).draw(400),
+                visits = dist.poisson(lambda: 3).draw(400),
+                wage = wage_mix.draw(400))
+sim.describe()
+sim.summary([score, wait, visits, wage])
+
+// 3. Association: the three correlation methods, with p-values for the Pearson one.
+sim.correlation([score, wait, visits, wage], p_values: true)
+sim.correlation([score, wage], method: spearman)
+sim.covariance([score, wait])
+
+// 4. A p-value from a tail. The z statistic of the mean score against 100, one-sided and
+//    two-sided, from the upper tail of the normal distribution computed directly.
+let z = (sim.mean(score) - 100) / (sim.sd(score) / sqrt(sim.n_rows()))
+print("z:", z)
+print("one-sided p:", dist.normal().cdf(z, upper: true))
+print("two-sided p:", 2 * dist.normal().cdf(abs(z), upper: true))
+
+// 5. A far tail keeps its digits, and the quantile inverts the distribution function.
+print("P(Z > 8):", dist.normal().cdf(8, upper: true))
+print("t 0.975 quantile, 24 df:", dist.t(df: 24).quantile(0.975))
+
+// 6. A truncated and a mixed distribution: values and draws.
+let cut = dist.truncated(dist.normal(mean: 100, sd: 15), lower: 70, upper: 130)
+cut
+print("P(X <= 100) in the truncated distribution:", cut.cdf(100))
+frame(cut = cut.draw(300, seed: 7)).describe()
+wage_mix
+print("mixture median:", wage_mix.quantile(0.5))
+print("mixture P(wage > 40):", wage_mix.cdf(40, upper: true))
+==== script 104
+// The sample project of release 0.4.0: a regression analysis end to end on the shipped wages,
+// from the data root to a publication table. `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the script tests compare
+// both byte for byte on every target, and the conformance report carries the digests of the
+// files the last section exports.
+
+// 1. Load and clean. The CSV form of the shipped dataset carries no labels or categories, so the
+//    script adds them: the log wage and squared experience the model needs, industry as a
+//    category coded by deviations from the mean (a sum contrast), the two smallest industries
+//    merged, and the codes of `female` labelled.
+let wages = import("zeff:wages.csv")
+    .add(lwage = log(wage), exper2 = exper^2, industry = category(industry, contrast: sum))
+    .recode(industry, ["Mining" => "Other", "Utilities" => "Other"])
+    .label(female, [0 => "male", 1 => "female"])
+
+// 2. Describe.
+wages.describe()
+wages.summary([lwage, educ, exper, hours], by: female)
+
+// 3. Four regressions of one model: classical, robust and clustered standard errors, and hours
+//    as sampling weights.
+let f = lwage ~ educ + exper + exper2 + female
+let m1 = wages.reg(f)
+let m2 = wages.reg(f, se: robust)
+let m3 = wages.reg(f, cluster: worker)
+let m4 = wages.reg(f, weights: hours)
+m3
+m3.summary(standardized: true, fit_measures: true)
+
+// 4. The result interface on the clustered fit: the estimates as a frame, one coefficient, its
+//    interval at another level, and the fit measures.
+m3.estimates().where(p_value < 0.05)
+print("return to schooling:", m3.coef(educ))
+m3.ci(educ, level: 0.9)
+m3.r_squared()
+m3.fit_measures()
+
+// 5. Tests, a nested comparison and a derived quantity. The restriction is written in
+//    coefficient space; the comparison adds union membership and the industry deviations; the
+//    turning point of the experience profile comes with its delta-method standard error.
+m3.test(educ == exper)
+m3.test(exper == 0, exper2 == 0)
+let m5 = wages.reg(lwage ~ educ + exper + exper2 + female + union + industry, cluster: worker)
+m5.compare(m3)
+m5.derive(peak_exper = -exper / (2 * exper2), return_decade = exp(educ * 10) - 1)
+
+// 6. Influence and prediction: the three most influential rows, and predictions for new
+//    workers.
+m3.influence().sort(cooks_distance, desc: true).head(3)
+m3.predict(newdata: frame(educ = [12, 16, 16],
+                          exper = [5, 5, 20],
+                          exper2 = [25, 25, 400],
+                          female = [0, 1, 1]))
+
+// 7. The publication table, printed and exported to Word and LaTeX, and one model's summary
+//    exported on its own.
+let table1 = report([m1, m2, m3, m4],
+                    stats: [n_obs, r_squared],
+                    labels: {educ: "Years of schooling",
+                             exper: "Experience",
+                             exper2: "Experience squared"},
+                    title: "Table 1. Log hourly wage")
+table1
+table1.export("output/table1.docx")
+table1.export("output/table1.tex")
+m5.export("output/model5.tex")
+==== script 105
+// The sample project of release 0.5.0: the language complete, with the project's own functions.
+// `zeff run` in this folder prints what expected/stdout.txt holds, and its messages are
+// expected/stderr.txt; the script tests compare both byte for byte on every target.
+
+// 1. The project's functions. `use` brings a module of `functions/` into the script; the two
+//    modules hold `share_missing` and `robustness`, each with its complete help page, which
+//    `zeff help share_missing` prints.
+use functions::share_missing
+use functions::robustness
+
+// 2. The data, with the columns the analysis derives. The shipped wages are a panel of workers
+//    with missing wages, experience values and hours.
+let wages = dataset(wages).add(lwage = log(wage), exper2 = exper^2)
+wages.describe()
+
+// 3. `if` decides what the script does; `case` decides values row by row.
+if wages.n_rows() < 30 {
+    warn("fewer than 30 rows: treat large-sample tests with care")
+}
+let reps = if wages.n_rows() < 500 { 5000 } else { 1000 }
+print("replications for a later bootstrap:", reps)
+let wages = wages.add(age_group = case {
+    age < 25 => "young",
+    age < 55 => "prime",
+    _        => "older",
+})
+wages.summary([lwage, exper], by: age_group)
+
+// 4. A loop over variables: the share of rows each variable is missing, through the project's
+//    own function, called as a method.
+[for v in vars(wage, exper, hours) { wages.share_missing(v) }]
+let complete = wages.drop_missing([wage, exper, hours])
+
+// 5. One model per outcome, collected into one table.
+let f = lwage ~ educ + exper + exper2 + female
+let fits = [for y in vars(lwage, hours, union) {
+    complete.reg(y ~ educ + exper + exper2 + female)
+}]
+report(fits, title: "Table 1. Three outcomes, one specification")
+
+// 6. The robustness checks of the module, clustered by the worker as its default says.
+report(complete.robustness(f), title: "Table 2. Robustness of the wage equation")
+
+// 7. Subsamples by experience, one of which has no rows: `attempt` keeps the failure as a
+//    value, `report` skips it and says so, and the loop over the fits steps over it.
+let cuts = [0, 10, 20, 40]
+let by_experience = [for cut in cuts {
+    attempt(complete.where(exper > cut).reg(f))
+}]
+report(by_experience, title: "Table 3. Workers with more than 0, 10, 20 and 40 years of experience")
+let slopes = [for m in by_experience {
+    if m.is(Failed) { continue }
+    m.coef(educ)
+}]
+slopes
+
+// 8. A fixed point by `iterate`: Huber's M-estimate of the location of the log wage, by
+//    iteratively reweighted means from the median, with the scale set once from the median
+//    absolute deviation.
+/// One reweighting step: weights of one within k of the current location, k / distance beyond.
+fn huber_step(s: Record, data: Frame, k: Float) -> Record {
+    let d = data.add(w = k / clamp(abs(lwage - s.mu), k, Inf))
+    {mu: d.mean(lwage, weights: w)}
+}
+/// True when a step moves the location by less than 1e-10.
+fn settled(old: Record, new: Record) -> Bool {
+    abs(new.mu - old.mu) < 1e-10
+}
+let k = 1.345 * complete.mad(lwage)
+let huber = iterate(start: {mu: complete.median(lwage)},
+                    step: huber_step,
+                    args: {data: complete, k: k},
+                    done: settled,
+                    max: 100)
+print("median:", complete.median(lwage))
+print("mean:", complete.mean(lwage))
+print("Huber location:", huber.mu)
+assert(abs(huber.mu - complete.median(lwage)) < 0.05, "the Huber location lies near the median")
+==== script 106
+// The sample project of release 0.6.0: panels end to end, on the shipped wages and firms and
+// three generated files (make_data.py). `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the script tests
+// compare both byte for byte on every target, and the conformance report carries the digest
+// of the file section 2 saves.
+
+// 1. The wages, read from the engine's own data root, with each worker's firm's size and
+//    founding date merged in from the firms dataset (the CSV form of the wages carries the
+//    industry as text, so the firms' category of it stays out of the merge), the variables the
+//    models need, and the panel declared: `lag`, `diff`, `fill_forward` and `fe:` then follow
+//    the worker and the year.
+let firms = dataset(firms)
+let wages = import("zeff:wages.csv")
+    .merge(firms.select([firm, size, founded]), on: firm, relation: many_to_one)
+    .add(lwage = log(wage), exper2 = exper^2)
+    .panel(unit: worker, time: year)
+wages.describe()
+
+// 2. Reshape, merge, aggregate and save: the yearly sales of each firm arrive in one row per
+//    firm with a column per year, as a spreadsheet keeps them; `to_long` makes one row per
+//    firm and year, the firms' industries are merged in, and the industry-year averages are
+//    saved as a CSV file under `output/`.
+let firm_sales = import("data/sales_wide.csv")
+    .to_long("sales_", id: firm, names_to: "year", values_to: "sales", names_type: Int)
+    .merge(firms, on: firm, relation: many_to_one)
+    .add(log_sales = log1p(sales))
+let by_industry = firm_sales.aggregate(avg_sales = mean(sales),
+                                       med_sales = median(sales),
+                                       firms = n(),
+                                       by: [industry, year])
+by_industry.sort([industry, year]).save("output/industry_year.csv")
+by_industry.where(industry == "Retail")
+
+// 3. Panel variables: the yearly growth of the log wage and the hours of the year before
+//    follow each worker in year order, with `NA` where a year is missing; the hours a worker
+//    did not report are carried forward from the last year that reported them; the log wage
+//    is winsorized at the first and last percentile; and the deviation from the firm's mean
+//    log wage is computed firm by firm with `by:`.
+let wages = wages.add(wage_growth = diff(lwage),
+                      lag_hours = lag(hours),
+                      hours_filled = fill_forward(hours),
+                      lwage_w = winsorize(lwage, at: 0.01))
+let wages = wages.add(dev_firm = lwage - mean(lwage), by: firm)
+wages.summary([wage_growth, lag_hours, hours_filled, lwage_w, dev_firm])
+
+// 4. Dates: the founding date of each firm, as a year, as the firm's age, and written as text.
+let firms = firms.add(founded_year = year(founded),
+                      firm_age = 2026 - year(founded),
+                      founded_text = format(founded, pattern: "%b %Y"))
+firms.head(5)
+firms.summary([firm_age], by: industry)
+
+// 5. Regressions: robust errors, then industry and year effects absorbed, then firm and year
+//    effects with the return to schooling allowed to differ by sex and the errors clustered by
+//    the firm; the within and overall R² of a fixed-effects fit, and the three in one table.
+let f = lwage ~ educ + exper + exper2 + female
+let m1 = wages.reg(f, se: robust)
+let m2 = wages.reg(f, fe: industry + year, cluster: worker)
+let m3 = wages.reg(f + educ:female, fe: firm + year, cluster: firm)
+m2
+m3.r_squared()
+report([m1, m2, m3],
+       stats: [n_obs, r_squared, r_squared_within],
+       title: "Table 1. The wage equation with and without fixed effects")
+
+// 6. An event study on a staggered policy: 60 units over ten years, adopting in 2013, 2015 or
+//    2017 or never; `event` makes an indicator for each year relative to adoption, the year
+//    before adoption the reference, and the never-adopting units are the controls.
+let policy = import("data/policy.csv").panel(unit: unit, time: year)
+let es = policy.reg(y ~ event(year, adopted), fe: unit + year, cluster: unit)
+es
+
+// 7. A two-period difference in differences: 80 counties observed in 2010 and 2015, half of
+//    them treated after 2010; the county and year effects absorb `treated` and `post`, and the
+//    interaction is the effect of the treatment.
+let counties = import("data/counties.csv").panel(unit: county, time: year)
+let dd = counties.reg(emp ~ treated * post, fe: county + year, cluster: county)
+dd
+==== script 107
+// The sample project of the plots of release 0.7.0: six figures of the shipped wages, each
+// written under output/ in the three formats of a figure: SVG and PDF, drawn with lines, and
+// PNG, drawn in dots at 300 to the inch. `zeff run` in this folder prints what
+// expected/stdout.txt holds, and its messages are expected/stderr.txt; the script tests compare
+// both byte for byte on every target, and the conformance report carries the digest of every
+// figure, so that the four targets prove they write the same bytes. The figures are the ones
+// the journal theme is read on; marks other than points join them as their steps are built.
+
+// Jitter draws from the seeded stream, so the figures are the same on every run.
+seed(20261112)
+
+let wages = dataset(wages)
+let w2010 = wages.where(year == 2010)
+
+// 1. The plain scatter, at the width of one column of a journal: every worker and year, the
+//    points translucent so that the crowd shows.
+let schooling = wages.plot(x: educ, y: wage).points(alpha: 0.2)
+schooling
+schooling.export("output/fig1_wage_schooling.svg")
+schooling.export("output/fig1_wage_schooling.pdf")
+schooling.export("output/fig1_wage_schooling.png")
+
+// 2. An expression on an axis, and schooling moved a little sideways so that the columns of
+//    whole years open up; at the full width of a page.
+let logged = wages.plot(x: educ, y: log(wage)).points(alpha: 0.15, jitter: 0.4)
+logged.export("output/fig2_log_wage.svg", size: two_column)
+logged.export("output/fig2_log_wage.pdf", size: two_column)
+logged.export("output/fig2_log_wage.png", size: two_column)
+
+// 3. A category shown by colour, with its legend.
+let by_union = wages.plot(x: exper, y: wage, color: union).points(alpha: 0.3)
+by_union.export("output/fig3_union.svg", size: one_column)
+by_union.export("output/fig3_union.pdf", size: one_column)
+by_union.export("output/fig3_union.png", size: one_column)
+
+// 4. A number shown on a ramp of colours.
+let by_hours = w2010.plot(x: educ, y: wage, color: hours).points(size: 6, jitter: 0.5)
+by_hours.export("output/fig4_hours.svg", size: [120, 80])
+by_hours.export("output/fig4_hours.pdf", size: [120, 80])
+by_hours.export("output/fig4_hours.png", size: [120, 80])
+
+// 5. Size by area, and sex by colour and by shape at once: one legend for sex, one for hours.
+//    The notes on the rows that cannot be drawn are written under this figure.
+let sized = w2010
+    .plot(x: exper, y: wage, size: hours, color: female, shape: female)
+    .points(alpha: 0.5)
+sized
+sized.export("output/fig5_size_shape.svg", size: two_column, notes: true)
+sized.export("output/fig5_size_shape.pdf", size: two_column, notes: true)
+sized.export("output/fig5_size_shape.png", size: two_column, notes: true)
+
+// 6. Twelve industries by shape and colour on a slide: there are eight of each, so they repeat
+//    from the ninth, and a note says so.
+let by_industry = w2010.plot(x: age, y: hours, color: industry, shape: industry).points(size: 7)
+by_industry.export("output/fig6_industry.svg", size: slide)
+by_industry.export("output/fig6_industry.pdf", size: slide)
+by_industry.export("output/fig6_industry.png", size: slide)

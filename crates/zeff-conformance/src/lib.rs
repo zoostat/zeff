@@ -190,7 +190,6 @@ fn milestone_run() -> Result<zeff_engine::run::Outcome, &'static str> {
     use std::path::Path;
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
-    use zeff_engine::run::run_script;
 
     let fs = MemoryFileSystem::new();
     fs.add_file(
@@ -382,7 +381,7 @@ pub fn sample_run_with_outputs(
     use zeff_engine::fs::{FileSystem, MemoryFileSystem};
     use zeff_engine::interpreter::Output;
     use zeff_engine::project::Project;
-    use zeff_engine::run::{Outcome, run_script};
+    use zeff_engine::run::Outcome;
 
     let fs = MemoryFileSystem::new();
     fs.add_file("/s/zeff.toml", sample.manifest);
@@ -935,7 +934,6 @@ fn regress_cases() -> Vec<Line> {
     use std::path::Path;
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
-    use zeff_engine::run::run_script;
     let fs = MemoryFileSystem::new();
     fs.add_file(
         "/r/zeff.toml",
@@ -1012,7 +1010,6 @@ fn control_cases() -> Vec<Line> {
     use std::path::Path;
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
-    use zeff_engine::run::run_script;
     let fs = MemoryFileSystem::new();
     fs.add_file(
         "/c/zeff.toml",
@@ -1203,6 +1200,7 @@ fn control_cases() -> Vec<Line> {
     }
     // The same script under `--deny-warnings`: it stops at the first warning that no pragma
     // allows, and what it printed and said up to there is digested.
+    kept(PRAGMA_SCRIPT);
     let denied = zeff_engine::run::run_script_with(
         &fs,
         &project,
@@ -1247,7 +1245,6 @@ fn time_cases() -> Vec<Line> {
     use std::path::Path;
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
-    use zeff_engine::run::run_script;
     let fs = MemoryFileSystem::new();
     fs.add_file(
         "/t/zeff.toml",
@@ -1301,7 +1298,6 @@ fn panel_cases() -> Vec<Line> {
     use std::path::Path;
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
-    use zeff_engine::run::run_script;
     let fs = MemoryFileSystem::new();
     fs.add_file(
         "/n/zeff.toml",
@@ -1541,7 +1537,6 @@ fn plot_cases() -> Vec<Line> {
     use zeff_core::value::{Aesthetic, Frame, Mark, PlotLayer, PlotMapping};
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
-    use zeff_engine::run::run_script;
     use zeff_numeric::random::Stream;
     let fs = MemoryFileSystem::new();
     fs.add_file(
@@ -2722,6 +2717,42 @@ fn font_outlines() -> String {
     out
 }
 
+thread_local! {
+    /// The scripts the cases have run, while `scripts` is collecting them.
+    static RUN: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Keep a script that a case runs, when they are being collected.
+fn kept(text: &str) {
+    RUN.with(|run| {
+        if let Some(scripts) = run.borrow_mut().as_mut()
+            && !scripts.iter().any(|script| script == text)
+        {
+            scripts.push(text.to_string());
+        }
+    });
+}
+
+/// Run a script of a case: the engine's `run_script`, through which every case goes, so that
+/// the scripts of the suite can be listed.
+fn run_script(
+    fs: &dyn zeff_engine::fs::FileSystem,
+    project: &zeff_engine::project::Project,
+    script: &str,
+    text: &str,
+) -> zeff_engine::run::Outcome {
+    kept(text);
+    zeff_engine::run::run_script(fs, project, script, text)
+}
+
+/// Every script the cases run, each once, in the order of the cases: what the formatter is
+/// tested on (release 0.7.0, step 31a). The cases are run to find them.
+pub fn scripts() -> Vec<String> {
+    RUN.with(|run| *run.borrow_mut() = Some(Vec::new()));
+    let _ = all_cases();
+    RUN.with(|run| run.borrow_mut().take().unwrap_or_default())
+}
+
 fn all_cases() -> Vec<Line> {
     let mut lines = reducer_cases();
     lines.extend(canary_cases());
@@ -2801,7 +2832,6 @@ pub fn start() -> String {
     use std::path::Path;
     use zeff_engine::fs::MemoryFileSystem;
     use zeff_engine::project::Project;
-    use zeff_engine::run::run_script;
     let fs = MemoryFileSystem::new();
     fs.add_file(
         "/s/zeff.toml",

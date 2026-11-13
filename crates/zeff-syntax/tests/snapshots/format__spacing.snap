@@ -1,0 +1,53 @@
+---
+source: crates/zeff-syntax/tests/format.rs
+expression: "shown(\"use   functions :: clean\\nlet a=1+2*3-4/5\\nlet b = x^2  +  y ^ -1\\nlet c=-a+!b\\nlet d = a<b&&c>=d||e!=f&&g==h\\nlet r=1 .. 10\\nlet f = y~x+a:b+exper ^ 2\\nlet g= ~z\\nlet h = wages [ \\\"educ\\\" ] [ 1 ]\\nlet i = {a:1,b:\\\"two\\\",..rest}\\nlet j=[1,2,  3]\\nlet k = [\\\"a\\\"=>1,\\\"b\\\"=>2]\\nlet l = f( x ,y:2, z=3 , ..opts )\\nlet m = d.add( `gross sales`=a*b ).mean( `gross sales` )\\nlet n = map(xs,fn(i)i/n)\\nlet o = map(xs, fn( i:Int , j ) i+j)\\nlet p = (a+b)*c\\nlet q = a - -b\\nlet s = pkg::f(1).g ( )\\nlet t = if a{1}else{2}\\nlet u = case{a>1=>\\\"x\\\",_=>\\\"y\\\"}\\nlet v = [for i in 1..3{i*2}]\\nlet w = r\\\"raw\\\\d\\\" + \\\"esc\\\\n\\\"\\nlet x = 1_000 + 1.5e3 + NA + Inf + true\\n\")"
+---
+use   functions :: clean
+let a=1+2*3-4/5
+let b = x^2  +  y ^ -1
+let c=-a+!b
+let d = a<b&&c>=d||e!=f&&g==h
+let r=1 .. 10
+let f = y~x+a:b+exper ^ 2
+let g= ~z
+let h = wages [ "educ" ] [ 1 ]
+let i = {a:1,b:"two",..rest}
+let j=[1,2,  3]
+let k = ["a"=>1,"b"=>2]
+let l = f( x ,y:2, z=3 , ..opts )
+let m = d.add( `gross sales`=a*b ).mean( `gross sales` )
+let n = map(xs,fn(i)i/n)
+let o = map(xs, fn( i:Int , j ) i+j)
+let p = (a+b)*c
+let q = a - -b
+let s = pkg::f(1).g ( )
+let t = if a{1}else{2}
+let u = case{a>1=>"x",_=>"y"}
+let v = [for i in 1..3{i*2}]
+let w = r"raw\d" + "esc\n"
+let x = 1_000 + 1.5e3 + NA + Inf + true
+--------
+use functions::clean
+let a = 1 + 2 * 3 - 4 / 5
+let b = x^2 + y^-1
+let c = -a + !b
+let d = a < b && c >= d || e != f && g == h
+let r = 1..10
+let f = y ~ x + a:b + exper^2
+let g = ~ z
+let h = wages["educ"][1]
+let i = {a: 1, b: "two", ..rest}
+let j = [1, 2, 3]
+let k = ["a" => 1, "b" => 2]
+let l = f(x, y: 2, z = 3, ..opts)
+let m = d.add(`gross sales` = a * b).mean(`gross sales`)
+let n = map(xs, fn(i) i / n)
+let o = map(xs, fn(i: Int, j) i + j)
+let p = (a + b) * c
+let q = a - -b
+let s = pkg::f(1).g()
+let t = if a { 1 } else { 2 }
+let u = case { a > 1 => "x", _ => "y" }
+let v = [for i in 1..3 { i * 2 }]
+let w = r"raw\d" + "esc\n"
+let x = 1_000 + 1.5e3 + NA + Inf + true

@@ -1,0 +1,99 @@
+---
+source: crates/zeff-syntax/tests/format.rs
+expression: "shown(\"/// Three checks.\\n///\\n///   an indented line of the page\\n/// data: The frame.\\n/// > robustness(d)\\nfn robustness(data:Frame,f:Formula,cluster:Var=firm)->List<RegFit>{\\n[\\ndata.reg(f, se: robust),\\ndata.reg(f, cluster: cluster),\\n]\\n}\\n\\nfn with_many_parameters(first_parameter: Column<Float>, second_parameter: Fn(Float, ..) -> Float, third: {a: Int, b: Str}, fourth: classical | robust = classical, fifth: Float? = NA) -> Nothing {\\nif first { return }\\nfor x in xs {\\nif x > 1 {\\ncontinue\\n} else if x < 0 { break } else {\\nprint(x)\\n}\\n}\\n}\\nlet m = model {\\nengagement =~ eng1 + eng2\\nsupport =~ sup1 + sup2 + sup3\\nengagement ~ support as a\\nturnover ~ engagement as b + support as c\\nindirect := a * b\\neng1 ~~ eng2\\n}\\nlet g = dag {\\nability->training->productivity\\n[age,region] -> training\\nx <-> y -- z\\nlatent ability,u\\nselected s\\n}\\nlet h = dag { a -> b }\\nlet k = case {\\nage < 25 => \\\"young\\\",\\nage < 55 && tenure > 10 => { let y = 2\\n y },\\n_ => \\\"older\\\"\\n}\\nlet empty = if a {} else {}\\n\")"
+---
+/// Three checks.
+///
+///   an indented line of the page
+/// data: The frame.
+/// > robustness(d)
+fn robustness(data:Frame,f:Formula,cluster:Var=firm)->List<RegFit>{
+[
+data.reg(f, se: robust),
+data.reg(f, cluster: cluster),
+]
+}
+
+fn with_many_parameters(first_parameter: Column<Float>, second_parameter: Fn(Float, ..) -> Float, third: {a: Int, b: Str}, fourth: classical | robust = classical, fifth: Float? = NA) -> Nothing {
+if first { return }
+for x in xs {
+if x > 1 {
+continue
+} else if x < 0 { break } else {
+print(x)
+}
+}
+}
+let m = model {
+engagement =~ eng1 + eng2
+support =~ sup1 + sup2 + sup3
+engagement ~ support as a
+turnover ~ engagement as b + support as c
+indirect := a * b
+eng1 ~~ eng2
+}
+let g = dag {
+ability->training->productivity
+[age,region] -> training
+x <-> y -- z
+latent ability,u
+selected s
+}
+let h = dag { a -> b }
+let k = case {
+age < 25 => "young",
+age < 55 && tenure > 10 => { let y = 2
+ y },
+_ => "older"
+}
+let empty = if a {} else {}
+--------
+/// Three checks.
+///
+///   an indented line of the page
+/// data: The frame.
+/// > robustness(d)
+fn robustness(data: Frame, f: Formula, cluster: Var = firm) -> List<RegFit> {
+    [data.reg(f, se: robust),
+     data.reg(f, cluster: cluster)]
+}
+
+fn with_many_parameters(first_parameter: Column<Float>,
+                        second_parameter: Fn(Float, ..) -> Float,
+                        third: {a: Int, b: Str},
+                        fourth: classical | robust = classical,
+                        fifth: Float? = NA) -> Nothing {
+    if first { return }
+    for x in xs {
+        if x > 1 {
+            continue
+        } else if x < 0 { break } else {
+            print(x)
+        }
+    }
+}
+let m = model {
+    engagement =~ eng1 + eng2
+    support    =~ sup1 + sup2 + sup3
+    engagement ~ support as a
+    turnover   ~ engagement as b + support as c
+    indirect   := a * b
+    eng1       ~~ eng2
+}
+let g = dag {
+    ability -> training -> productivity
+    [age, region] -> training
+    x <-> y -- z
+    latent ability, u
+    selected s
+}
+let h = dag { a -> b }
+let k = case {
+    age < 25                => "young",
+    age < 55 && tenure > 10 => {
+        let y = 2
+        y
+    },
+    _                       => "older",
+}
+let empty = if a {} else {}

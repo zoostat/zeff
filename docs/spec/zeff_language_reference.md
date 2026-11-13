@@ -243,13 +243,13 @@ One style, enforced by `zeff fmt`, which has no settings; Zemp runs it on save a
 Before and after `zeff fmt`:
 
 ```
-let m=wages.where(year>=2010).reg(lwage~educ+exper,fe:firm,cluster:firm,se:robust)
+let m=wages.where(year>=2010).reg(lwage~educ+exper+exper^2,fe:firm+year,cluster:firm,se:robust)
 ```
 
 ```
 let m = wages
     .where(year >= 2010)
-    .reg(lwage ~ educ + exper, fe: firm, cluster: firm, se: robust)
+    .reg(lwage ~ educ + exper + exper^2, fe: firm + year, cluster: firm, se: robust)
 ```
 
 ### 3.6 Names, case and source files

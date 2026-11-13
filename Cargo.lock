@@ -1739,6 +1739,7 @@ dependencies = [
 name = "zeff-conformance"
 version = "0.7.0-dev"
 dependencies = [
+ "insta",
  "wasm-bindgen",
  "zeff-columns",
  "zeff-core",
@@ -1749,6 +1750,7 @@ dependencies = [
  "zeff-numeric",
  "zeff-plot",
  "zeff-results",
+ "zeff-syntax",
 ]
 
 [[package]]
