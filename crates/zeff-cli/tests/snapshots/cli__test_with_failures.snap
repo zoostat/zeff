@@ -1,0 +1,31 @@
+---
+source: crates/zeff-cli/tests/cli.rs
+expression: text
+---
+failed: scripts/checks.zeff, 2 of 3 checks
+error[Z0001]: the wages file has rows
+ --> scripts/checks.zeff:2:1
+  |
+2 | assert(w.n_rows() == 12, "the wages file has rows")
+  | ^^^^^^ in this call
+error[Z0001]: wages are positive on average
+ --> scripts/checks.zeff:4:1
+  |
+4 | assert(w.mean(wage) > 1000, "wages are positive on average")
+  | ^^^^^^ in this call
+
+stopped: scripts/later.zeff, after 1 check
+error[Z0001]: the data are not ready
+ --> scripts/later.zeff:2:1
+  |
+2 | error("the data are not ready")
+  | ^^^^^ the script stops here
+
+failed: functions/clean.zeff:9, example 2 of `twice` prints something else than its page says
+    > twice(4) + 1
+  the page says:
+    10
+  it printed:
+    9
+
+7 tests: 3 passed, 4 failed

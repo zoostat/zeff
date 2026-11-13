@@ -178,12 +178,12 @@ Step 29c was split in two. 29c1 `[engine]`: a function is known by its package, 
 
 **For the owner to decide.** Nothing new at this step. Taken on the recommendation at step 31, his to overturn: open decision #137 and its points 8 to 14 (the layout `zeff fmt` writes), the corrected example of section 3.5 of the Language Reference, and the row of `zeff fmt` in section 2.1 of the Engine Specification, which now names `--check`. Open as before: #136, #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
-## 13 November 2026, release 0.7.0, step 32a (the test run of a project)
+## 13 November 2026, release 0.7.0, steps 32a and 32b (`zeff test`)
 
-**Done.** The engine can run the tests of a project: every `assert` of every script that calls one, and every `/// >` example of the functions of `functions/`, each example compared with what its page says. In a test run a failed `assert` is kept and the script carries on, so every check is reported at once. No command yet: `zeff test` itself is 32b.
+**Done.** 32a: the engine runs the tests of a project, every `assert` of every script that calls one and every `/// >` example of the functions of `functions/`, each example compared with what its page says; in a test run a failed `assert` is kept and the script carries on, so every check is reported at once. 32b: the command `zeff test` writes the run out: a line and the details for each failure, a closing count, `--verbose` for what passed, `--format json` for Zemp, `--deny-warnings`, and the exit codes 0, 1, 2 and 3 of section 3.8.
 
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine, `zeff fmt --check` on the samples; `zeff selftest` at 469 of 469; CI is read job by job after the push.
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine, `zeff fmt --check` on the samples; `zeff selftest` at 469 of 469; CI is read job by job after each push.
 
-**Next.** Step 32b `[engine]`: the command `zeff test`, with its text and JSON reports, `--deny-warnings` and the exit codes. Then 32c `[engine]`.
+**Next.** Step 32c `[engine]`: the engine's own help pages run by `zeff test` in CI, and the two known issues that wait for it (the examples of a module function's page; the "Warnings and notes" of the built-ins written in Zeff).
 
 **For the owner to decide.** Open decision #138, taken as option A on its four questions on the recommendation, his to overturn: `zeff test` runs the scripts that call `assert` and not the others; a failed `assert` does not stop the script under `zeff test`; the examples of a private function are not run; `--deny-warnings` is not applied to examples. Found in passing and entered in the known issues: a function written in a script cannot call a module function by its short name (since 0.5.0); its repair is step 38b. Open as before: #137 (points 8 to 14), #136, #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.

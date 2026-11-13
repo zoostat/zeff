@@ -26,6 +26,8 @@ Commands:
   run [script]      run scripts/main.zeff, or the script named
   check [script]    check a script's names, arguments and types without running it
                     (scripts/main.zeff unless another is named)
+  test              run the project's tests: every `assert` of its scripts and every example
+                    of the functions in functions/
   fmt               write every script of the project in the one style of the language
                     (with --check: change nothing, and say which scripts would change)
   repl [script]     open the console: statements typed are kept in .zeff/session.zeff
@@ -41,14 +43,14 @@ Commands:
 
 Options:
   -p, --project <dir>     the project to act on (default: the nearest folder with zeff.toml)
-  --format text|json      for `check`, `version` and `selftest`: text (the default), or JSON
-                          records for an editor
+  --format text|json      for `check`, `test`, `version` and `selftest`: text (the default),
+                          or JSON records for an editor
   --color auto|always|never
                           colour in messages; `auto` means a terminal, and NO_COLOR is honoured
   --ascii                 rules and symbols in ASCII, for fonts without them
   --width <n>             the width frames and tables wrap at (default 118, at least 40)
-  --deny-warnings         for `run` and `check`: a warning that no `// zeff: allow(CODE) reason`
-                          pragma allows is an error (exit code 3)
+  --deny-warnings         for `run`, `check` and `test`: a warning that no
+                          `// zeff: allow(CODE) reason` pragma allows is an error (exit code 3)
   --check                 for `fmt`: write nothing; exit code 1 if a script would change
   -q, --quiet             hide notes
   -v, --verbose           show timings and build details
@@ -70,8 +72,7 @@ line ending with an operator, continues on the next line.
 ";
 
 /// Commands the specification names that this release does not have yet.
-const LATER: [&str; 12] = [
-    "test",
+const LATER: [&str; 11] = [
     "lsp",
     "selftest",
     "engine",
@@ -398,18 +399,18 @@ pub fn run(
     if settings.format == Format::Json
         && !matches!(
             words.first(),
-            Some(&("check" | "version" | "--version" | "-V" | "selftest"))
+            Some(&("check" | "test" | "version" | "--version" | "-V" | "selftest"))
         )
     {
         return usage_error(
             &mut err,
-            "`--format json` applies to `zeff check`, `zeff version` and `zeff selftest` in this release",
+            "`--format json` applies to `zeff check`, `zeff test`, `zeff version` and `zeff selftest` in this release",
         );
     }
-    if settings.deny_warnings && !matches!(words.first(), Some(&("run" | "check"))) {
+    if settings.deny_warnings && !matches!(words.first(), Some(&("run" | "check" | "test"))) {
         return usage_error(
             &mut err,
-            "`--deny-warnings` applies to `zeff run` and `zeff check` in this release",
+            "`--deny-warnings` applies to `zeff run`, `zeff check` and `zeff test` in this release",
         );
     }
     if settings.check && words.first() != Some(&"fmt") {
@@ -488,7 +489,11 @@ pub fn run(
             &mut err,
             "`zeff fmt` takes no script: it formats every script of the project",
         ),
-        [word @ "test", ..] => needs_a_project(&command, word, &mut err),
+        ["test"] => test_command(&command, &mut out, &mut err),
+        ["test", ..] => usage_error(
+            &mut err,
+            "`zeff test` takes no script: it runs every test of the project",
+        ),
         [word, ..] if LATER.contains(word) => usage_error(
             &mut err,
             &format!("`zeff {word}` is not available in this release yet"),
@@ -682,16 +687,6 @@ fn open_project(
             messages.show(err, &not_in_project(), &Sources::new());
             Err(1)
         }
-    }
-}
-
-fn needs_a_project(command: &Command<'_, '_>, word: &str, err: &mut dyn Write) -> i32 {
-    match open_project(command.fs, &command.cwd, command.messages, err) {
-        Err(code) => code,
-        Ok(_) => usage_error(
-            err,
-            &format!("`zeff {word}` is not available in this release yet"),
-        ),
     }
 }
 
@@ -1089,6 +1084,160 @@ fn fmt_command(command: &Command<'_, '_>, err: &mut dyn Write) -> i32 {
     } else {
         0
     }
+}
+
+/// `zeff test`: the tests of the project (Engine and Project Specification, sections 2.1 and
+/// 12): every `assert` of the scripts that call one, a failed one kept so that all are
+/// reported, and every `/// >` example of the functions of `functions/`, compared with what its
+/// page says. The report goes to standard error, or as one JSON record to standard output; the
+/// exit code is that of Language Reference section 3.8.
+fn test_command(command: &Command<'_, '_>, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    let fs = command.fs;
+    let project = match open_project(fs, &command.cwd, command.messages, err) {
+        Ok(project) => project,
+        Err(code) => return code,
+    };
+    let tests = zeff_engine::testing::test_project(fs, &project, &command.run_options());
+    let (all, failed) = tests.counts();
+    if command.settings.format == Format::Json {
+        let text = zeff_diagnostics::json_string;
+        let list = |lines: &[String]| {
+            let items: Vec<String> = lines.iter().map(|line| text(line)).collect();
+            format!("[{}]", items.join(", "))
+        };
+        let _ = writeln!(out, "{{");
+        let _ = writeln!(out, "  \"tests\": {all},");
+        let _ = writeln!(out, "  \"failed\": {failed},");
+        let _ = writeln!(out, "  \"scripts\": [");
+        let last = tests.scripts.len().saturating_sub(1);
+        for (at, script) in tests.scripts.iter().enumerate() {
+            let _ = writeln!(
+                out,
+                "    {{\"file\": {}, \"checks\": {}, \"failed\": {}, \"stopped\": {}, \"exit_code\": {}}}{}",
+                text(&script.file),
+                script.checks,
+                list(&script.failed),
+                script.stopped.as_deref().map_or("null".to_string(), text),
+                script.exit_code,
+                if at < last { "," } else { "" }
+            );
+        }
+        let _ = writeln!(out, "  ],");
+        let _ = writeln!(out, "  \"examples\": [");
+        let last = tests.examples.len().saturating_sub(1);
+        for (at, example) in tests.examples.iter().enumerate() {
+            let _ = writeln!(
+                out,
+                "    {{\"file\": {}, \"function\": {}, \"example\": {}, \"line\": {}, \"passed\": {}, \"code\": {}, \"expected\": {}, \"found\": {}}}{}",
+                text(&example.file),
+                text(&example.function),
+                example.example,
+                example.line,
+                example.passed(),
+                list(&example.code),
+                list(&example.expected),
+                list(&example.found),
+                if at < last { "," } else { "" }
+            );
+        }
+        let _ = writeln!(out, "  ],");
+        let _ = writeln!(
+            out,
+            "  \"without_checks\": {},",
+            list(&tests.without_checks)
+        );
+        let _ = writeln!(out, "  \"problems\": {}", list(&tests.problems));
+        let _ = writeln!(out, "}}");
+        return tests.exit_code();
+    }
+    let count = |n: usize, one: &str, many: &str| {
+        if n == 1 {
+            format!("1 {one}")
+        } else {
+            format!("{n} {many}")
+        }
+    };
+    let show = |err: &mut dyn Write, messages: &str| {
+        let _ = err.write_all(command.messages.text(messages).as_bytes());
+    };
+    for problem in &tests.problems {
+        let _ = writeln!(err, "error: {problem}\n");
+    }
+    for script in &tests.scripts {
+        let checks = count(script.checks, "check", "checks");
+        if script.passed() {
+            if command.settings.verbose {
+                let _ = writeln!(err, "passed: {}, {checks}", script.file);
+            }
+            continue;
+        }
+        if !script.failed.is_empty() {
+            let _ = writeln!(
+                err,
+                "failed: {}, {} of {checks}",
+                script.file,
+                script.failed.len()
+            );
+            for failure in &script.failed {
+                show(err, failure);
+            }
+            let _ = writeln!(err);
+        }
+        if let Some(stopped) = &script.stopped {
+            let _ = writeln!(err, "stopped: {}, after {checks}", script.file);
+            show(err, stopped);
+            let _ = writeln!(err);
+        }
+    }
+    for example in &tests.examples {
+        let place = format!(
+            "{}:{}, example {} of `{}`",
+            example.file, example.line, example.example, example.function
+        );
+        if example.passed() {
+            if command.settings.verbose {
+                let _ = writeln!(err, "passed: {place}");
+            }
+            continue;
+        }
+        let _ = writeln!(
+            err,
+            "failed: {place} prints something else than its page says"
+        );
+        for line in &example.code {
+            let _ = writeln!(err, "    > {line}");
+        }
+        let _ = writeln!(err, "  the page says:");
+        for line in &example.expected {
+            let _ = writeln!(err, "    {line}");
+        }
+        let _ = writeln!(err, "  it printed:");
+        for line in &example.found {
+            let _ = writeln!(err, "    {line}");
+        }
+        let _ = writeln!(err);
+    }
+    if command.settings.verbose {
+        for file in &tests.without_checks {
+            let _ = writeln!(err, "not run: {file} calls no `assert`");
+        }
+    }
+    if all == 0 && tests.problems.is_empty() {
+        let _ = writeln!(
+            err,
+            "no tests: no script of the project calls `assert`, and no function of `functions/` has an example"
+        );
+    } else if failed == 0 {
+        let _ = writeln!(err, "{} passed", count(all, "test", "tests"));
+    } else {
+        let _ = writeln!(
+            err,
+            "{}: {} passed, {failed} failed",
+            count(all, "test", "tests"),
+            all - failed
+        );
+    }
+    tests.exit_code()
 }
 
 fn internal_error(err: &mut dyn Write, errors: Vec<zeff_registry::RegistryError>) -> i32 {

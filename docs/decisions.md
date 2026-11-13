@@ -4203,3 +4203,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** `crates/zeff-engine/tests/project_tests.rs`: every check of a script evaluated with two failing (a snapshot); checks in a loop, in a script function and in a module function counted where they are reached, a failure inside a module naming the module's file and line; a script that stops on an error after a check, and one refused by the check; a script without a check not run (and `assert` in a comment, a string or a page not counted); the examples of a module, one of which prints something else (a snapshot); an example that warns as its page says, one that stops at run time and the examples after it, a private function's examples, and an error of the check; a project without tests; `--deny-warnings` (exit code 3, the example untouched) and an internal error (exit code 2); a script that is not text.
 
 **Reason.** The checklist's step 32a; sections 2.1, 9.1 and 12 of the Engine and Project Specification; sections 3.8, 5.3 and 5.4 of the Language Reference.
+
+## 13 November 2026: `zeff test`, the command (release 0.7.0, step 32b)
+
+**The command.** `zeff test` runs the test run of step 32a on the project it stands in (Z0709 outside one; `--project` names one) and writes it out. It takes no script: it runs every test of the project.
+
+**The text report**, on standard error, as `zeff check` writes its own. A script whose checks all held and an example that printed what its page says are counted and not listed. A failure is listed with what is needed to put it right: `failed: scripts/checks.zeff, 2 of 3 checks` and under it each failed check as the error a run would have shown, with the file, the line and the call; `stopped: scripts/later.zeff, after 1 check` and the error that stopped the script; `failed: functions/clean.zeff:9, example 2 of `twice` prints something else than its page says`, with the statements, what the page says and what was printed. The closing line counts: `5 tests passed`, or `7 tests: 3 passed, 4 failed`. A test is one evaluation of an `assert`, one example, or a script that stopped. A project with none says so, in one line, and that is a success. `--verbose` lists each script and example that passed and each script not run because it calls no `assert`. What the scripts print is not shown: the report is of the checks.
+
+**`--format json`**: one record on standard output and nothing on standard error, with the counts (`tests`, `failed`), `scripts` (file, checks, the failed checks as text, the messages of a stop or null, the exit code of the run), `examples` (file, function, example, line, passed, code, expected, found), `without_checks` and `problems`. It is the `ProjectTests` of the engine field for field, so that Zemp reads what the command line prints.
+
+**`--deny-warnings`** is taken, as the ruling of release 0.6.0 said it would be: it holds for the scripts, a script stopping at its first warning that no pragma allows; the examples are compared with their pages as always (open decision #138, question 4).
+
+**Exit codes** are those of the test run (section 3.8 of the Language Reference): 0; 1 on a failure; 2 on an internal error; 3 when the only failures are warnings refused. The internal error has no way in from the command line; its exit code is tested in the engine (`project_tests.rs`), and the command passes the engine's code through.
+
+**The usage text and the option messages** name `test` beside `run` and `check`. `zeff test` was the last command to be answered with "not available in this release yet" while needing a project, so the helper that did so is removed.
+
+**Tests.** `crates/zeff-cli/tests/cli.rs`: a project whose five tests pass (the one line, `--verbose`, a project of one test and of none); a project with two failed checks, a script that stops and an example that prints something else (a snapshot of the report, exit code 1, and `zeff run` on the same script still stopping at the first failed check); the JSON record (a snapshot, and its head on a passing project); `--deny-warnings` (exit code 3); the usage error, a script that is not text, and the usage text.
+
+**Reason.** The checklist's step 32b; sections 2.1 and 12 of the Engine and Project Specification; section 3.8 of the Language Reference.

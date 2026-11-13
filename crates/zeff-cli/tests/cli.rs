@@ -107,7 +107,7 @@ fn format_json_gives_records_for_version_and_check() {
         (&["check", "--format", "xml"][..], "not a format"),
         (
             &["run", "--format", "json"][..],
-            "applies to `zeff check`, `zeff version` and `zeff selftest`",
+            "applies to `zeff check`, `zeff test`, `zeff version` and `zeff selftest`",
         ),
     ] {
         let o = zeff(&project, args);
@@ -1423,11 +1423,11 @@ fn deny_warnings_and_pragmas_through_the_program() {
         out(&o)
     );
 
-    // The option belongs to `run` and `check`.
+    // The option belongs to `run`, `check` and `test`.
     let o = zeff(&project, &["--deny-warnings", "eval", "1 + 1"]);
     assert_eq!(code(&o), 1);
     assert!(
-        err(&o).contains("`--deny-warnings` applies to `zeff run` and `zeff check`"),
+        err(&o).contains("`--deny-warnings` applies to `zeff run`, `zeff check` and `zeff test`"),
         "{}",
         err(&o)
     );
@@ -1687,6 +1687,195 @@ fn zeff_fmt_takes_no_script_and_check_is_its_option_alone() {
     );
     assert!(
         usage.contains("\n  --check                 for `fmt`:"),
+        "{usage}"
+    );
+}
+
+// ----- zeff test (release 0.7.0, step 32b) -----
+
+const TWICE: &str = "/// Twice a number.\n///\n/// The number doubled.\n///\n/// x: The number.\n/// returns: The number times two, a Float.\n/// > twice(2.5)\n/// 5\n/// > twice(4) + 1\n/// 9\nfn twice(x: Float) -> Float {\n    x * 2\n}\n";
+
+const CHECKS: &str = "let w = dataset(wages)\nassert(w.n_rows() > 0, \"the wages file has rows\")\nassert(w.min(educ) >= 0, \"schooling is never negative\")\nassert(w.mean(wage) > 0, \"wages are positive on average\")\n";
+
+/// A project whose tests pass: three checks in a script and two examples of a function.
+fn tested() -> (tempfile::TempDir, std::path::PathBuf) {
+    let (dir, project) = demo();
+    std::fs::create_dir_all(project.join("functions")).unwrap();
+    std::fs::write(project.join("functions/clean.zeff"), TWICE).unwrap();
+    std::fs::write(project.join("scripts/checks.zeff"), CHECKS).unwrap();
+    (dir, project)
+}
+
+#[test]
+fn zeff_test_runs_the_checks_and_the_examples_of_the_project() {
+    let (_dir, project) = tested();
+    let o = zeff(&project, &["test"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "");
+    assert_eq!(err(&o), "5 tests passed\n");
+    // With `--verbose`, each test, and the scripts that hold no check.
+    let o = zeff(&project, &["test", "--verbose"]);
+    assert_eq!(code(&o), 0);
+    assert_eq!(
+        err(&o),
+        "passed: scripts/checks.zeff, 3 checks\n\
+         passed: functions/clean.zeff:7, example 1 of `twice`\n\
+         passed: functions/clean.zeff:9, example 2 of `twice`\n\
+         not run: scripts/main.zeff calls no `assert`\n\
+         5 tests passed\n"
+    );
+    // One test.
+    std::fs::remove_file(project.join("functions/clean.zeff")).unwrap();
+    std::fs::write(
+        project.join("scripts/checks.zeff"),
+        "assert(1 + 1 == 2, \"arithmetic\")\n",
+    )
+    .unwrap();
+    let o = zeff(&project, &["test", "-v"]);
+    assert_eq!(code(&o), 0);
+    assert!(
+        err(&o).starts_with("passed: scripts/checks.zeff, 1 check\n")
+            && err(&o).ends_with("1 test passed\n"),
+        "{}",
+        err(&o)
+    );
+    // None: the project of `zeff new`.
+    let (_dir, project) = demo();
+    let o = zeff(&project, &["test"]);
+    assert_eq!(code(&o), 0);
+    assert_eq!(
+        err(&o),
+        "no tests: no script of the project calls `assert`, and no function of `functions/` has an example\n"
+    );
+}
+
+/// The same project with two checks that fail, an example that prints something else and a
+/// script that stops on an error after its first check.
+fn failing() -> (tempfile::TempDir, std::path::PathBuf) {
+    let (dir, project) = tested();
+    std::fs::write(
+        project.join("functions/clean.zeff"),
+        TWICE.replace("/// 9\n", "/// 10\n"),
+    )
+    .unwrap();
+    std::fs::write(
+        project.join("scripts/checks.zeff"),
+        CHECKS
+            .replace("w.n_rows() > 0", "w.n_rows() == 12")
+            .replace("w.mean(wage) > 0", "w.mean(wage) > 1000"),
+    )
+    .unwrap();
+    std::fs::write(
+        project.join("scripts/later.zeff"),
+        "assert(1 + 1 == 2, \"arithmetic\")\nerror(\"the data are not ready\")\nassert(false, \"never reached\")\n",
+    )
+    .unwrap();
+    (dir, project)
+}
+
+#[test]
+fn zeff_test_reports_every_failure_and_exits_1() {
+    let (_dir, project) = failing();
+    let o = zeff(&project, &["test"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o), "");
+    let text = err(&o);
+    // Both failed checks of the one script, the script that stopped, and the example.
+    assert!(
+        text.contains("failed: scripts/checks.zeff, 2 of 3 checks\n"),
+        "{text}"
+    );
+    assert!(
+        text.contains("stopped: scripts/later.zeff, after 1 check\n"),
+        "{text}"
+    );
+    assert!(
+        text.contains("failed: functions/clean.zeff:9, example 2 of `twice` prints something else than its page says\n"),
+        "{text}"
+    );
+    assert!(text.ends_with("\n7 tests: 3 passed, 4 failed\n"), "{text}");
+    insta::assert_snapshot!("test_with_failures", text);
+    // `zeff run` is as it was: the first failed check stops the script.
+    let o = zeff(&project, &["run", "scripts/checks.zeff"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("error[Z0001]: the wages file has rows")
+            && !err(&o).contains("wages are positive on average"),
+        "{}",
+        err(&o)
+    );
+}
+
+#[test]
+fn zeff_test_writes_its_report_as_json() {
+    let (_dir, project) = failing();
+    let o = zeff(&project, &["test", "--format", "json"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(err(&o), "");
+    insta::assert_snapshot!("test_json", out(&o));
+    let (_dir, project) = tested();
+    let o = zeff(&project, &["--format=json", "test"]);
+    assert_eq!(code(&o), 0);
+    assert!(
+        out(&o).starts_with("{\n  \"tests\": 5,\n  \"failed\": 0,\n"),
+        "{}",
+        out(&o)
+    );
+    assert!(
+        out(&o).contains("\"without_checks\": [\"scripts/main.zeff\"]"),
+        "{}",
+        out(&o)
+    );
+}
+
+#[test]
+fn zeff_test_under_deny_warnings_stops_a_script_at_its_first_warning() {
+    let (_dir, project) = tested();
+    std::fs::write(
+        project.join("scripts/checks.zeff"),
+        "let d = frame(x = [1, NA, 3])\nassert(d.n_rows() == 3, \"three rows\")\nlet m = d.mean(x)\nassert(m == 2, \"the mean of the values present\")\n",
+    )
+    .unwrap();
+    // The warning is a warning, and the checks hold.
+    let o = zeff(&project, &["test"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "4 tests passed\n");
+    // Refused, it stops the script: exit code 3, since nothing else failed.
+    let o = zeff(&project, &["test", "--deny-warnings"]);
+    assert_eq!(code(&o), 3);
+    let text = err(&o);
+    assert!(
+        text.starts_with("stopped: scripts/checks.zeff, after 1 check\n"),
+        "{text}"
+    );
+    assert!(text.contains("W0201"), "{text}");
+    assert!(text.ends_with("\n4 tests: 3 passed, 1 failed\n"), "{text}");
+}
+
+#[test]
+fn zeff_test_takes_no_script_and_says_what_it_cannot_read() {
+    let (_dir, project) = tested();
+    let o = zeff(&project, &["test", "scripts/checks.zeff"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o)
+            .starts_with("error: `zeff test` takes no script: it runs every test of the project\n"),
+        "{}",
+        err(&o)
+    );
+    std::fs::write(project.join("scripts/latin.zeff"), b"let caf\xe9 = 1\n").unwrap();
+    let o = zeff(&project, &["test"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).starts_with("error: cannot read scripts/latin.zeff: "),
+        "{}",
+        err(&o)
+    );
+    assert!(err(&o).ends_with("\n5 tests passed\n"), "{}", err(&o));
+    // The usage text names the command.
+    let usage = out(&zeff(&project, &["help"]));
+    assert!(
+        usage.contains("\n  test              run the project's tests"),
         "{usage}"
     );
 }
