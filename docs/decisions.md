@@ -4283,3 +4283,27 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Noted, not changed.** The help line of Z0802 speaks of an interaction in the model, which is the usual cause and was not the cause here. A second sentence for levels that occur only together would be more exact; the message is left as it is at this commit and the point is put to the owner with the other wording questions of `posthoc`.
 
 **Reason.** The Testing Handbook, section 2.2: a nightly failure is read and resolved, not left.
+
+## 13 November 2026: the "Warnings and notes" of the fourteen built-ins written in Zeff (release 0.7.0, step 32f; step 32 complete)
+
+**How each line was decided.** For every code on every page the question was put to the engine, not to the page: a script was written to raise it through the function, and run. A code that a script raises stays. A code that no script can raise, and whose cause the body rules out, is taken off with the reason written beside it (the body gives `frame` columns of one length; the body converts `NA` alone; the body gives `quantile` no weights). A code that a script raises and no page listed is put on. Of the ninety-odd lines of the generated lists, 49 codes are left on the fourteen pages.
+
+**What was missing, and is added.** Z0203 on `assert`, `winsorize`, `quantile_group`, `skewness` and `kurtosis` (a condition or an option that is `NA`); Z0106 on `iqr`, `mad`, `skewness` and `kurtosis` (a frame with a variable called `var`, or `type` for `iqr`: the refusal that is left after step 32d, said on the page until open decision #140 lifts it); Z0401 in the function's own words where the generated line was that of `frame` or `to`.
+
+**Own words where the called function's did not fit.** `logit` says when the logit is infinite or has no value, not what `log` does; `winsorize` and `quantile_group` say which argument stopped them, not that "the script stopped itself with the message given"; the reducers' lines no longer speak of weights and `by:` on functions that take neither.
+
+**`clamp`, `inv_logit`, `between` and `fill_missing`** needed no list: the first three raise nothing, and the one code of `fill_missing` is real.
+
+**The test that holds it.** `crates/zeff-engine/tests/zeff_pages.rs` has one script for each code of each page, 49 in all. It asks that the scripts for a function and the codes of its page be the same set, in both directions, so a code added to a page without a script fails, and so does a script for a code no longer on the page; that each script raises its code; and that no script raises a code the page of its function leaves out, which is "raised but not declared" as far as the scripts reach. A fifteenth function written in Zeff fails the test until it has its scripts. The fourteen lists are also a stored text.
+
+**What a list cannot promise.** That a code taken off can never be raised is an argument from the body, written beside the line and read at review; the test would catch a mistake only where one of its scripts reaches it. That is the cost named under option A of the decision.
+
+**Stored pages.** Four change, as intended: `assert`, `iqr`, `standardize` and `skewness`, each shorter and truer. No number changes anywhere; the conformance list is unchanged.
+
+**The known issues.** "The pages of built-ins written in Zeff list more warnings than they can raise" is under "Resolved at 0.7.0". Its second half stays as an issue of its own: a message raised inside such a body may name the inner function or the body's column.
+
+**The specification.** Section 9.1 of the Engine and Project Specification, the row "Warnings and notes", gains the two lists (`docs/spec_changes.md`).
+
+**Step 32 is complete.** The test run of a project (32a), `zeff test` (32b), the engine's own pages in the conformance suite (32c), the wrong results of `mad`, `skewness` and `kurtosis` put right (32d), the two lists (32e) and the fourteen pages (32f). Both known issues that waited for the step are resolved.
+
+**Reason.** The checklist's step 32f; section 9.1 of the Engine and Project Specification; open decision #139.

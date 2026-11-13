@@ -27,6 +27,7 @@ VALUE
     Nothing.
 
 WARNINGS AND NOTES
+    Z0203   the condition is `NA`
     Z0001   the script stopped itself with the message given
 
 ACCURACY

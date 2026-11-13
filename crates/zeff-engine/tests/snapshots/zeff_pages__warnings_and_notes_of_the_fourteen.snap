@@ -1,0 +1,66 @@
+---
+source: crates/zeff-engine/tests/zeff_pages.rs
+expression: all
+---
+core::assert
+    Z0203   the condition is `NA`
+    Z0001   the script stopped itself with the message given
+core::clamp
+core::fill_missing
+    Z0214   the arguments are of types that do not join
+core::inv_logit
+core::logit
+    W0204   `p` is 0 or 1, where the logit is infinite
+    W0205   `p` is below 0 or above 1, where the logit has no value
+data::between
+data::center
+    Z0401   `x` is not a column of numbers
+    W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
+    W0204   Inf and -Inf both present, so the result is NA
+data::iqr
+    W0201   rows with `NA` in the variable were skipped
+    Z0401   `type:` is not 1 to 9, or the variable is not numeric
+    Z0101   the variable is not in the frame
+    Z0106   the frame has a variable called `var` or `type`, the names of parameters of this function; rename the variable
+    W0205   the quantile falls between Inf and -Inf
+data::kurtosis
+    W0205   an operation with no value gave NA
+    Z0401   the variable is not Bool, Int or Float
+    Z0203   `excess:` or `adjusted:` is `NA`
+    Z0106   the frame has a variable called `var`, the name of a parameter of this function; rename the variable
+    W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
+    W0204   Inf and -Inf both present, so the result is NA
+    Z0101   no such variable in the frame
+    Z0102   a variable that differs only in case from the name written
+data::mad
+    W0201   rows with `NA` in the variable, or among its deviations, were skipped
+    Z0401   the variable is not numeric
+    Z0101   the variable is not in the frame
+    Z0106   the frame has a variable called `var`, the name of a parameter of this function; rename the variable
+    W0205   the quantile falls between Inf and -Inf
+data::quantile_group
+    Z0001   `n:` is missing or below 1, or `type:` is not 1 to 9
+    Z0203   `type:` is `NA`
+    Z0401   `x` is not a column of numbers
+    Z0418   `n:` is above ten million
+    W0205   the quantile falls between Inf and -Inf
+data::skewness
+    W0205   an operation with no value gave NA
+    Z0401   the variable is not Bool, Int or Float
+    Z0203   `adjusted:` is `NA`
+    Z0106   the frame has a variable called `var`, the name of a parameter of this function; rename the variable
+    W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
+    W0204   Inf and -Inf both present, so the result is NA
+    Z0101   no such variable in the frame
+    Z0102   a variable that differs only in case from the name written
+data::standardize
+    Z0401   `x` is not a column of numbers
+    W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
+    W0204   Inf and -Inf both present, so the result is NA
+    W0205   one value only, an infinite value, or squared deviations that overflow, so the result is NA
+data::winsorize
+    W0201   rows with `NA` in `x` were skipped
+    Z0001   `at:` is below 0 or above 0.5
+    Z0203   `at:` is `NA`
+    Z0401   `x` is not a column of numbers
+    W0205   the quantile falls between Inf and -Inf

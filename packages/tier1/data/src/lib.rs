@@ -1384,64 +1384,353 @@ pub fn zeff_sources() -> Vec<zeff_registry::ZeffSource> {
             name: "center",
             file: "data/functions/center.zeff",
             text: include_str!("../functions/center.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                (
+                    "Z0214",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0217",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0219",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0406",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                ("Z0401", "said below in the function's own words"),
+                (
+                    "Z0101",
+                    "the body names the variables of its own frame alone",
+                ),
+                (
+                    "Z0102",
+                    "the body names the variables of its own frame alone",
+                ),
+            ],
+            also: &[("Z0401", "`x` is not a column of numbers")],
         },
         zeff_registry::ZeffSource {
             package: "data",
             name: "standardize",
             file: "data/functions/standardize.zeff",
             text: include_str!("../functions/standardize.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                (
+                    "Z0214",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0217",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0219",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0406",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                ("Z0401", "said below in the function's own words"),
+                (
+                    "Z0101",
+                    "the body names the variables of its own frame alone",
+                ),
+                (
+                    "Z0102",
+                    "the body names the variables of its own frame alone",
+                ),
+            ],
+            also: &[("Z0401", "`x` is not a column of numbers")],
         },
         zeff_registry::ZeffSource {
             package: "data",
             name: "iqr",
             file: "data/functions/iqr.zeff",
             text: include_str!("../functions/iqr.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                ("W0201", "said below in the function's own words"),
+                ("", "the body gives `quantile` no weights"),
+                ("Z0406", "the body gives `quantile` its `p:`"),
+                ("Z0401", "said below in the function's own words"),
+                ("Z0101", "said below in the function's own words"),
+            ],
+            also: &[
+                ("W0201", "rows with `NA` in the variable were skipped"),
+                (
+                    "Z0401",
+                    "`type:` is not 1 to 9, or the variable is not numeric",
+                ),
+                ("Z0101", "the variable is not in the frame"),
+                (
+                    "Z0106",
+                    "the frame has a variable called `var` or `type`, the names of parameters of this function; rename the variable",
+                ),
+            ],
         },
         zeff_registry::ZeffSource {
             package: "data",
             name: "mad",
             file: "data/functions/mad.zeff",
             text: include_str!("../functions/mad.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                ("W0201", "said below in the function's own words"),
+                (
+                    "Z0211",
+                    "the deviations are Floats, which do not overflow as an Int does",
+                ),
+                (
+                    "Z0214",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0217",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0219",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0406",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                ("Z0401", "said below in the function's own words"),
+                ("", "the body gives `median` no weights"),
+                ("Z0101", "said below in the function's own words"),
+            ],
+            also: &[
+                (
+                    "W0201",
+                    "rows with `NA` in the variable, or among its deviations, were skipped",
+                ),
+                ("Z0401", "the variable is not numeric"),
+                ("Z0101", "the variable is not in the frame"),
+                (
+                    "Z0106",
+                    "the frame has a variable called `var`, the name of a parameter of this function; rename the variable",
+                ),
+            ],
         },
         zeff_registry::ZeffSource {
             package: "data",
             name: "skewness",
             file: "data/functions/skewness.zeff",
             text: include_str!("../functions/skewness.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                (
+                    "W0203",
+                    "the body converts `NA` alone, which every type has",
+                ),
+                (
+                    "W0202",
+                    "the body converts `NA` alone, which every type has",
+                ),
+                (
+                    "Z0409",
+                    "the body converts to a Float, which takes no format",
+                ),
+                (
+                    "W0702",
+                    "the body converts to a Float, not to a date and time",
+                ),
+                ("Z0401", "said below in the function's own words"),
+                (
+                    "",
+                    "the body's own warning carries W0205, and the condition it filters by is never `NA`",
+                ),
+                ("Z0206", "the body binds no result of `warn`"),
+                (
+                    "Z0214",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0217",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0219",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0406",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                ("W0102", "the condition names the parameter `var` alone"),
+                ("Z0203", "said below in the function's own words"),
+            ],
+            also: &[
+                ("Z0401", "the variable is not Bool, Int or Float"),
+                ("Z0203", "`adjusted:` is `NA`"),
+                (
+                    "Z0106",
+                    "the frame has a variable called `var`, the name of a parameter of this function; rename the variable",
+                ),
+            ],
         },
         zeff_registry::ZeffSource {
             package: "data",
             name: "kurtosis",
             file: "data/functions/kurtosis.zeff",
             text: include_str!("../functions/kurtosis.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                (
+                    "W0203",
+                    "the body converts `NA` alone, which every type has",
+                ),
+                (
+                    "W0202",
+                    "the body converts `NA` alone, which every type has",
+                ),
+                (
+                    "Z0409",
+                    "the body converts to a Float, which takes no format",
+                ),
+                (
+                    "W0702",
+                    "the body converts to a Float, not to a date and time",
+                ),
+                ("Z0401", "said below in the function's own words"),
+                (
+                    "",
+                    "the body's own warning carries W0205, and the condition it filters by is never `NA`",
+                ),
+                ("Z0206", "the body binds no result of `warn`"),
+                (
+                    "Z0214",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0217",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0219",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0406",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                ("W0102", "the condition names the parameter `var` alone"),
+                ("Z0203", "said below in the function's own words"),
+            ],
+            also: &[
+                ("Z0401", "the variable is not Bool, Int or Float"),
+                ("Z0203", "`excess:` or `adjusted:` is `NA`"),
+                (
+                    "Z0106",
+                    "the frame has a variable called `var`, the name of a parameter of this function; rename the variable",
+                ),
+            ],
         },
         zeff_registry::ZeffSource {
             package: "data",
             name: "winsorize",
             file: "data/functions/winsorize.zeff",
             text: include_str!("../functions/winsorize.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                ("W0201", "said below in the function's own words"),
+                ("Z0001", "said below in the function's own words"),
+                ("Z0203", "said below in the function's own words"),
+                (
+                    "Z0214",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0217",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0219",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0406",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                ("Z0401", "said below in the function's own words"),
+                ("", "the body gives `quantile` no weights"),
+                (
+                    "Z0101",
+                    "the body names the variables of its own frame alone",
+                ),
+            ],
+            also: &[
+                ("W0201", "rows with `NA` in `x` were skipped"),
+                ("Z0001", "`at:` is below 0 or above 0.5"),
+                ("Z0203", "`at:` is `NA`"),
+                ("Z0401", "`x` is not a column of numbers"),
+            ],
         },
         zeff_registry::ZeffSource {
             package: "data",
             name: "quantile_group",
             file: "data/functions/quantile_group.zeff",
             text: include_str!("../functions/quantile_group.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                ("Z0001", "said below in the function's own words"),
+                (
+                    "Z0220",
+                    "the lists given to `map` and `reduce` are made by the body, and hold no failed value",
+                ),
+                ("Z0418", "said below in the function's own words"),
+                (
+                    "W0203",
+                    "the body converts a Bool to an Int, which always has a value",
+                ),
+                (
+                    "W0202",
+                    "the body converts a Bool to an Int, which has no fraction",
+                ),
+                (
+                    "Z0409",
+                    "the body converts to an Int, which takes no format",
+                ),
+                (
+                    "W0702",
+                    "the body converts to an Int, not to a date and time",
+                ),
+                ("Z0401", "said below in the function's own words"),
+                (
+                    "Z0214",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0217",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0219",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "Z0406",
+                    "the body gives `frame` columns of numbers of one length",
+                ),
+                (
+                    "W0201",
+                    "allowed inside the body: the cut points are taken over the values present, as the page says",
+                ),
+                ("", "the body gives `quantile` no weights"),
+                (
+                    "Z0101",
+                    "the body names the variables of its own frame alone",
+                ),
+            ],
+            also: &[
+                (
+                    "Z0001",
+                    "`n:` is missing or below 1, or `type:` is not 1 to 9",
+                ),
+                ("Z0203", "`type:` is `NA`"),
+                ("Z0401", "`x` is not a column of numbers"),
+                ("Z0418", "`n:` is above ten million"),
+            ],
         },
     ]
 }

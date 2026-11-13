@@ -28,13 +28,12 @@ DETAILS
     computed, so the result agrees with `quantile` to the bit.
 
 WARNINGS AND NOTES
-    W0201   rows with NA in the variable, or in the weights, were skipped
+    W0201   rows with `NA` in the variable were skipped
+    Z0401   `type:` is not 1 to 9, or the variable is not numeric
+    Z0101   the variable is not in the frame
+    Z0106   the frame has a variable called `var` or `type`, the names of parameters of this function;
+            rename the variable
     W0205   the quantile falls between Inf and -Inf
-    Note    rows with zero weight were left out
-    Z0101   the variable, a `by:` variable or the weights variable is not in the frame
-    Z0401   p: is not a probability, type: is not 1 to 9, the variable is not numeric, or the weights are
-            unusable
-    Z0406   p: is missing
 
 ACCURACY
     Closed form.

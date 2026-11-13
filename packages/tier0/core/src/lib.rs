@@ -48,8 +48,17 @@ pub fn zeff_sources() -> Vec<ZeffSource> {
             name: "logit",
             file: "core/functions/logit.zeff",
             text: include_str!("../functions/logit.zeff"),
-            cannot: &[],
-            also: &[],
+            cannot: &[
+                ("W0204", "said below in the function's own words"),
+                ("W0205", "said below in the function's own words"),
+            ],
+            also: &[
+                ("W0204", "`p` is 0 or 1, where the logit is infinite"),
+                (
+                    "W0205",
+                    "`p` is below 0 or above 1, where the logit has no value",
+                ),
+            ],
         },
         ZeffSource {
             package: "core",
@@ -65,7 +74,7 @@ pub fn zeff_sources() -> Vec<ZeffSource> {
             file: "core/functions/assert.zeff",
             text: include_str!("../functions/assert.zeff"),
             cannot: &[],
-            also: &[],
+            also: &[("Z0203", "the condition is `NA`")],
         },
         ZeffSource {
             package: "core",

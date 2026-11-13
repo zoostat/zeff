@@ -118,13 +118,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   `n_missing`; anywhere else it is Z0220 reporting the failure it holds, so a list of fits made
   under `attempt` is read in a loop that steps over the failed ones. (Since 0.5.0; by design,
   section 3.7.)
-- **The pages of built-ins written in Zeff list more warnings than they can raise.** Their
-  "Warnings and notes" is the union of the codes declared by the functions a body calls
-  (`frame`'s and the reducers' for `center`, `skewness` and their kin), a message raised by an
-  inner reducer names that reducer (`median` needs a Bool, Int or Float, from `mad`) and the
-  body's column (`value`, from `standardize`). The lists are narrowed at step 32f of 0.7.0,
-  by the rule of open decision #139. (Since 0.5.0; the warning of `skewness` and `kurtosis` for
-  too few values carries W0205 from step 4.3 of 0.7.0.)
+- **A message raised inside a built-in written in Zeff may name what the body used, not what the
+  script wrote**: an inner function (`seq` would make 19,999,999 values, from
+  `quantile_group(x, n: 20000000)`; `median` needs a Bool, Int or Float, from `mad`) or the body's
+  own column (`value`, from `standardize`; `deviation`, from `mad`). The message is placed at the
+  script's call and its code is on the function's page. (Since 0.5.0; the warning of `skewness`
+  and `kurtosis` for too few values carries W0205 from step 4.3 of 0.7.0.)
 - **The mean of values that cancel is within a rounding of the largest input, not of the
   result.** The kernel's mean corrects the compensated quotient by the mean of the deviations,
   whose own rounding is the unit in the last place of the largest value: on a row holding 1e12,
@@ -277,6 +276,11 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## Resolved at 0.7.0
 
+- The pages of the built-ins written in Zeff list the warnings and errors they can raise, and
+  no others (listed at 0.5.0 as listing more than they can raise). Each of the fourteen carries
+  the codes of the functions it calls that its body cannot raise, with the reason, and the codes
+  of its own operators and conditions; the tests raise every code left on a page through the
+  function, and no test raises one a page leaves out. Since step 32f; open decision #139.
 - **A wrong result, corrected.** From 0.5.0 to 0.6.0, `mad`, `skewness` and `kurtosis` gave a
   wrong number on a frame that had a variable called `centre`, whatever variable was asked for:
   the bodies bound that name and used it inside a method of the frame, where the frame's

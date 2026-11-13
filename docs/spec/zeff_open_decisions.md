@@ -2766,6 +2766,8 @@ Raised on 13 November 2026 at step 32c of release 0.7.0. Section 9.1 of the Engi
 
 (Later on 13 November 2026: the narrowing is step 32e of the checklist; 32d became the correction of the wrong results of `mad`, `skewness` and `kurtosis`, found while preparing it.)
 
+**Built (13 November 2026, steps 32e and 32f).** As option A, with one thing more than the option said: besides the codes a body cannot raise, a function carries the codes of its own operators and conditions, which the generated list missed (an `if` on `NA` is Z0203; a variable of the frame called as a parameter is Z0106). Where the wording of a called function did not fit the caller, its line is taken off and the function's own put on: the page of `winsorize` says "`at:` is below 0 or above 0.5", not "the script stopped itself with the message given". The fourteen pages now list 49 codes between them, each raised by a script of `crates/zeff-engine/tests/zeff_pages.rs`.
+
 ### 140. Inside a function's body, which comes first: the function's own name or the frame's variable?
 
 Raised on 13 November 2026 at step 32d of release 0.7.0, from a wrong result. Section 6 of the Language Reference ("Names inside a frame's methods") has a bare name inside a frame's method be the frame's variable first; a binding of the same name gives way under the warning W0102, and a parameter or a loop variable of the same name is an error (Z0106). In a script this is right: the author sees the frame and names its variables. In the body of a function it is a trap, for built-ins and for a project's functions alike, because the function is written before the frame is known:

@@ -27,15 +27,9 @@ DETAILS
     population deviation is `center(x) / sqrt(mean(center(x)^2))`, not offered.
 
 WARNINGS AND NOTES
-    Z0214   a list holds values of more than one type
-    Z0217   the lists have different lengths
-    Z0219   a list has no value, or none but NA, so its type is unknown
-    Z0401   a definition is not a list, or a list holds a value a column cannot (a list, a record, a frame)
-    Z0406   no column is defined
+    Z0401   `x` is not a column of numbers
     W0201   missing values skipped, with the count; all missing, or no rows at all, gives NA
     W0204   Inf and -Inf both present, so the result is NA
-    Z0101   no such variable in the frame
-    Z0102   a variable that differs only in case from the name written
     W0205   one value only, an infinite value, or squared deviations that overflow, so the result is NA
 
 ACCURACY
