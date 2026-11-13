@@ -4542,3 +4542,11 @@ error[Z0001]: no rows to take the mean of
 **Step 34 is complete.** The language services as functions of the engine (34a), `zeff lsp` over the protocol (34b), and the nightly fuzz target on it (34c). An editor that speaks the protocol is told the checker's messages as one types; no real editor has been tried yet.
 
 **Reason.** The checklist's step 34c; the Testing Handbook, section 1 (fuzzing).
+
+## 13 November 2026: step 35 split in six (release 0.7.0)
+
+**The split.** Step 35 (completion and signature help) names five kinds of completion, signature help and their place in the protocol, each with its own tests; it is too large for one commit. 35a: completion after a dot and at the start of a word, in the engine. 35b: inside a call, the argument names and a fixed list's words. 35c: the variables of the frame at that point of the chain, with their types. 35d: their missing counts and labels (open decision #145, taken as A on the recommendation: what the engine knows without running and what the last run recorded). 35e: signature help. 35f: both over the protocol in `zeff lsp`, with the corpus of cursor places through the server.
+
+**The order.** The services first, in the engine, where Zemp in the browser calls them directly, as at step 34; the protocol last. The variables come after the two kinds of completion that need no schema, and the counts and labels after the variables, because they extend what a run records.
+
+**Reason.** The standing instructions: a step that turns out too large is split in the checklist, not pushed through.
