@@ -1,0 +1,109 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_x
+error[Z0401]: `density` estimates the density of the variable along `x`, but the plot maps no variable to `x`
+ --> scripts/main.zeff:3:18
+  |
+3 | d.plot(y: score).density()
+  |                  ^^^^^^^ needs `x`
+  |
+  = help: map it where the plot starts, as in `plot(x: wage).density()`
+
+== a_y
+error[Z0401]: `density` has a `y` of its own, the estimate, but the plot maps `y` to `score`
+ --> scripts/main.zeff:3:28
+  |
+3 | d.plot(x: score, y: score).density()
+  |                            ^^^^^^^ a density, with `y` mapped
+  |
+  = help: start the plot with `x` alone, as in `plot(x: score).density()`
+
+== an_x_of_text
+error[Z0401]: `density` estimates a density along `x`, but the `x` axis of this plot holds the categories of `name`
+ --> scripts/main.zeff:3:17
+  |
+3 | d.plot(x: name).density()
+  |                 ^^^^^^^ needs numbers along `x`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `density` needs a number along `x`
+
+== an_x_of_dates
+error[Z0401]: `density` estimates a density along `x`, but the `x` axis of this plot holds the dates of `day`
+ --> scripts/main.zeff:3:16
+  |
+3 | d.plot(x: day).density()
+  |                ^^^^^^^ needs numbers along `x`
+  |
+  = help: `points`, `lines` and `step` are placed on a scale of dates; `density` needs a number along `x`, and may have dates along the other axis
+
+== a_bandwidth_of_zero
+error[Z0401]: `bandwidth:` of `density` is the standard deviation of the kernel in the units of `x`, above 0, but this is 0
+ --> scripts/main.zeff:3:22
+  |
+3 | p.density(bandwidth: 0)
+  |                      ^ not above 0
+  |
+  = help: leave `bandwidth:` out for Silverman's rule of thumb; `adjust: 2` makes the estimate smoother and `adjust: 0.5` rougher
+
+== a_bandwidth_below_zero
+error[Z0401]: `bandwidth:` of `density` is the standard deviation of the kernel in the units of `x`, above 0, but this is -2
+ --> scripts/main.zeff:3:22
+  |
+3 | p.density(bandwidth: -2)
+  |                      ^^ not above 0
+  |
+  = help: leave `bandwidth:` out for Silverman's rule of thumb; `adjust: 2` makes the estimate smoother and `adjust: 0.5` rougher
+
+== a_bandwidth_that_is_text
+error[Z0401]: `bandwidth` of `density` must be a Float, but this is a Str
+ --> scripts/main.zeff:3:22
+  |
+3 | p.density(bandwidth: "wide")
+  |                      ^^^^^^ a Str
+  |
+  = help: usage: `p.density(data: Frame, bandwidth: Float, adjust: Float = 1, kernel: gaussian | epanechnikov | rectangular | triangular | biweight | cosine = gaussian)`
+
+== an_adjustment_of_zero
+error[Z0401]: `adjust:` of `density` is what the bandwidth is multiplied by, above 0, but this is 0
+ --> scripts/main.zeff:3:19
+  |
+3 | p.density(adjust: 0)
+  |                   ^ not above 0
+  |
+  = help: leave `bandwidth:` out for Silverman's rule of thumb; `adjust: 2` makes the estimate smoother and `adjust: 0.5` rougher
+
+== a_kernel_that_is_none
+error[Z0402]: `uniform` is not one of the allowed words
+ --> scripts/main.zeff:3:19
+  |
+3 | p.density(kernel: uniform)
+  |                   ^^^^^^^ expected one of gaussian, epanechnikov, rectangular, triangular, biweight, cosine
+
+== a_kernel_in_quotation_marks
+error[Z0403]: expected one of gaussian, epanechnikov, rectangular, triangular, biweight, cosine, found text
+ --> scripts/main.zeff:3:19
+  |
+3 | p.density(kernel: "gaussian")
+  |                   ^^^^^^^^^^ a word, not a string
+  |
+  = help: write the word without quotes: `gaussian`
+
+== a_density_of_a_frame
+error[Z0401]: `density` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | d.density()
+  | ^ this is a Frame
+  |
+  = help: `density` takes a Plot first; `x.density(...)` is `density(x, ...)`
+
+== a_colour_on_a_ramp
+error[Z0401]: `density` draws each line in one colour, so `color` must show categories, but `score` is an Int without value labels, which is shown on a continuous scale
+ --> scripts/main.zeff:3:32
+  |
+3 | d.plot(x: score, color: score).density()
+  |                                ^^^^^^^ a colour for each row, not for each line
+  |
+  = help: colour the lines by a variable of categories, as in `density(color: union)`, or set one colour for this layer, as in `density(color: "black")`

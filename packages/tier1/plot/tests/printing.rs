@@ -3740,3 +3740,98 @@ fn every_message_of_histogram() {
     }
     insta::assert_snapshot!("histogram_messages", all);
 }
+
+// ----- density (step 28b) -----
+
+#[test]
+fn a_density_reads_sensibly_as_text() {
+    let script = format!(
+        "{SCORES}p.density()\n\
+         p.density(kernel: epanechnikov)\n\
+         p.density(bandwidth: 2)\n\
+         p.density(adjust: 0.5)\n\
+         p.density(bandwidth: 2, adjust: 1.5, kernel: cosine)\n\
+         d.plot(x: score, color: arm).density()\n\
+         p.histogram(scale: density).density()\n\
+         p.density().facet(by: arm)\n"
+    );
+    let text = printed(&script);
+    // The layer is named a density, with its kernel and its bandwidth; the axis of `y`
+    // is named `density`.
+    assert!(
+        text.contains(
+            "1   density   d        512   gaussian kernel, Silverman's bandwidth, width 1, 1 line"
+        ),
+        "{text}"
+    );
+    assert!(
+        text.contains("epanechnikov kernel, Silverman's bandwidth, width 1, 1 line"),
+        "{text}"
+    );
+    assert!(
+        text.contains("gaussian kernel, bandwidth 2, width 1, 1 line"),
+        "{text}"
+    );
+    assert!(
+        text.contains("gaussian kernel, Silverman's bandwidth times 0.5, width 1"),
+        "{text}"
+    );
+    assert!(
+        text.contains("cosine kernel, bandwidth 2 times 1.5, width 1, 1 line"),
+        "{text}"
+    );
+    assert!(
+        text.contains(
+            "1   density   d      1,024   gaussian kernel, Silverman's bandwidth, width 1, 2 lines"
+        ),
+        "{text}"
+    );
+    assert_eq!(text.matches("  y      density").count(), 8, "{text}");
+    insta::assert_snapshot!("densities_of_plots", text);
+}
+
+#[test]
+fn a_density_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{SCORES}let q = d.plot(x: score, color: arm).density()\n\
+         export(q, \"density.svg\")\n\
+         export(q, \"density.pdf\")\n\
+         export(q, \"density.png\")\n\
+         export(p.histogram(scale: density).density(kernel: biweight), \"over.svg\")\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
+}
+
+#[test]
+fn every_message_of_density() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_x", "d.plot(y: score).density()\n"),
+        ("a_y", "d.plot(x: score, y: score).density()\n"),
+        ("an_x_of_text", "d.plot(x: name).density()\n"),
+        ("an_x_of_dates", "d.plot(x: day).density()\n"),
+        ("a_bandwidth_of_zero", "p.density(bandwidth: 0)\n"),
+        ("a_bandwidth_below_zero", "p.density(bandwidth: -2)\n"),
+        (
+            "a_bandwidth_that_is_text",
+            "p.density(bandwidth: \"wide\")\n",
+        ),
+        ("an_adjustment_of_zero", "p.density(adjust: 0)\n"),
+        ("a_kernel_that_is_none", "p.density(kernel: uniform)\n"),
+        (
+            "a_kernel_in_quotation_marks",
+            "p.density(kernel: \"gaussian\")\n",
+        ),
+        ("a_density_of_a_frame", "d.density()\n"),
+        (
+            "a_colour_on_a_ramp",
+            "d.plot(x: score, color: score).density()\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SCORES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("density_messages", all);
+}

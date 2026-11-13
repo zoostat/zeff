@@ -1914,6 +1914,7 @@ dependencies = [
  "zeff-hash",
  "zeff-numeric",
  "zeff-registry",
+ "zeff-stats",
  "zeff-testkit",
  "zeff-text",
  "zeff-time",

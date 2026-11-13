@@ -410,6 +410,13 @@ plot/histogram/histogram.pdf afdf80a3e87a76d2
 plot/histogram/histogram.png df5e99ffa821dcc8
 plot/histogram/stacked.svg 6ac75029148222de
 plot/histogram/panels.svg c5dc44b0d7aae8e3
+plot/density/stdout 16e1497009b26499
+plot/density/stderr 86a6829305094e48
+plot/density/density.svg 47a3526aca6a3c32
+plot/density/density.pdf 82cb24c0b6056314
+plot/density/density.png a6faf0dac06c9104
+plot/density/groups.svg bd5053e20fb651ed
+plot/density/over.svg a43f327b0c4b9d09
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

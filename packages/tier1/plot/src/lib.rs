@@ -775,6 +775,33 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "density",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("bandwidth", "Float"),
+                    ParamSpec::option_with_default("adjust", "Float", "1"),
+                    ParamSpec::option_with_default(
+                        "kernel",
+                        "gaussian | epanechnikov | rectangular | triangular | biweight | cosine",
+                        "gaussian",
+                    ),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "no x, a y, an x that is not numbers, a bandwidth or an adjustment not above 0",
+                )],
+                help: include_str!("../help/density.md"),
+                accuracy: None,
+            },
+            body: marks::density,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "coord",
                 package: "plot",
                 method: true,

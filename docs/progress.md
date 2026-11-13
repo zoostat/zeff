@@ -130,25 +130,9 @@ Step 27 was split into 27a to 27e, and 27c into 27c1 and 27c2. 27a `[engine]`: `
 
 Step 27d was split into 27d1 to 27d3. 27d1 `[engine]`: a scene of several panels, the marks built once and dealt to the panels by the row each comes from, with stacks, bars side by side and lines kept within their panel on scales shared by all; a row without a value in a panel named `NA` (ruling). 27d2 `[engine]`: the layout of several panels as one grid in the middle of the room, each under its name, labels at the outer panels, one title for each axis; wrapped panels laid in the nearest number of columns that fits the page, so that forty are four rows of ten on two columns (ruling). 27d3 `[engine]`: `facet(by:)` opened, with its messages, its help page begun and a conformance case; step 27d complete.
 
-## 13 November 2026, release 0.7.0, step 27e1 (`facet(rows:, cols:)`), and step 27e split in two
+## 13 November 2026, steps 27e1 and 27e2 of release 0.7.0 (folded)
 
-**Done.** Step 27e was split into 27e1 (the grid) and 27e2 (free scales). `p.facet(rows: union, cols: female)` lays the panels in a grid: a row of panels for each value of one variable and a column for each value of another, or of one alone; a cell that no row of the data falls in is drawn empty. The values of the columns are written over the first row and those of the rows beside the last column, read downwards. A grid is laid as it is, never in other columns. `rows:` or `cols:` with `by:` is refused, and so is one variable for both.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 416 of 416; CI is read job by job after the push.
-
-**Next.** Step 27e2 `[engine]`: `scales: free | free_x | free_y`, panels with axes of their own, which completes step 27 and lets the specification's sample run.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the values of the rows are written at the right, read downwards, as ggplot2 writes them; a cell with no row is drawn empty and not left out; a layer is parted only where its frame holds both variables. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 27e2 (`scales: free | free_x | free_y`); steps 27e and 27 complete
-
-**Done.** Panels can have axes of their own: with `scales: free_y` each panel of `facet(by:)` has the `y` axis of its own marks, with its labels beside it; `free_x` the same along `x`, `free` along both; in a grid each row has its own `y` and each column its own `x`. An axis of categories is never free. Free scales are refused in fixed and polar coordinates. The specification's sample, `.facet(by: industry, scales: free_y)`, draws its twelve panels. The help page of `facet` is complete and catalogue row 480 is implemented. With it step 27 is complete: `coord` in its four forms and `facet` in its three; `plot` stands at twenty-one functions built.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 422 of 422; CI is read job by job after the push.
-
-**Next.** Step 28 of the checklist.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: an axis of categories keeps every category in every panel, where ggplot2 drops those a panel lacks; free scales are refused with `coord(fixed)` and `coord(polar)`, as in ggplot2; the labels of a free axis are written wherever it differs from its neighbour's. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+Step 27e was split in two. 27e1 `[engine]`: `facet(rows:, cols:)`, a grid of panels with the values of the columns over the first row and those of the rows beside the last column, a cell with no row drawn empty, laid as it is. 27e2 `[engine]`: `scales: free | free_x | free_y`, each panel of `by:` with the axis of its own marks, each row of a grid with its own `y` and each column with its own `x`; an axis of categories never free; refused in fixed and polar coordinates. The specification's sample `facet(by: industry, scales: free_y)` draws. Step 27 complete: `coord` in four forms, `facet` in three; `plot` at twenty-one functions built.
 
 ## 13 November 2026, release 0.7.0, step 28a (`histogram`), and step 28 split in four
 
@@ -159,4 +143,14 @@ Step 27d was split into 27d1 to 27d3. 27d1 `[engine]`: a scene of several panels
 **Next.** Step 28b `[function]`: `density`, the kernel estimate computed in `stats` and the layer that draws it.
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the bins begin at the smallest value and are of one width, each holding its left edge, as Stata's, where R moves the edges to round numbers; a stack of several fills is the histogram of them all, so that under `density` the whole stack has area one; a thousand bins at most; an axis of dates has no histogram yet. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+
+## 13 November 2026, release 0.7.0, step 28b (`density`)
+
+**Done.** `p.density()` draws the kernel estimate of the density of `x` as a line, one for each category of a colour and for each panel. The estimate is computed in `stats` (`zeff_stats::density`), which `plot` now depends on: Silverman's bandwidth as R's `bw.nrd0`, `bandwidth:`, `adjust:`, and six kernels each scaled so that the bandwidth is its standard deviation, at 512 places from three bandwidths beyond the values. The bandwidth matches R to thirteen places and the estimate matches R's direct computation to twelve, with every kernel.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 436 of 436; CI is read job by job after the push.
+
+**Next.** Step 28c `[function]`: `boxplot`.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the estimate is computed exactly, value by value, where R bins the values first, so the two agree to about three places; each group has its own bandwidth and its own places, as R's `density` of that group alone; a density is drawn as a line and not as a filled area; a group with fewer than two values has no density. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

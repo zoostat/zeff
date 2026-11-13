@@ -2225,6 +2225,25 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/histogram/{name}"), &data));
     }
+    // The density layer (step 28b): the density of the hourly wages of 2015 by Silverman's
+    // rule; by union membership with the Epanechnikov kernel at half the bandwidth; over a
+    // histogram scaled as a density; what the script prints, the first figure in the three
+    // formats and the two others as figures.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet p = w.plot(x: wage).density()\np\nlet q = w.plot(x: wage, color: union).density(adjust: 0.5, kernel: epanechnikov)\nq\nlet r = w.plot(x: wage).histogram(scale: density).density(bandwidth: 3)\nr\nexport(p, \"density.svg\")\nexport(p, \"density.pdf\")\nexport(p, \"density.png\")\nexport(q, \"groups.svg\")\nexport(r, \"over.svg\")\n";
+    let smoothed = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/density/stdout", &smoothed.output.stdout));
+    fills.push(text("plot/density/stderr", &smoothed.output.stderr));
+    for name in [
+        "density.svg",
+        "density.pdf",
+        "density.png",
+        "groups.svg",
+        "over.svg",
+    ] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/density/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

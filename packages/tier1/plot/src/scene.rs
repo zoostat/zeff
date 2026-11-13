@@ -1679,6 +1679,81 @@ fn binned(
     (out, before, most)
 }
 
+/// The lines of a density: for each group of the rows with a finite `x`, by panel and then
+/// in the order of their categories, the kernel estimate of the density of its values
+/// (`zeff_stats::density`), a line through its 512 places. Each group has its own bandwidth,
+/// Silverman's of its values where the script gives none, and its own places, three
+/// bandwidths beyond its values at either end. Each line is drawn from the first row of its
+/// group, which gives it its colour and its panel. The second value is the number of groups
+/// with fewer than two values, which have no density.
+fn smoothed(
+    cx: Option<&Column>,
+    keys: &[Categories],
+    stat: Option<Stat>,
+    panels: Option<&[usize]>,
+) -> (Joined, usize) {
+    let mut out = Joined::default();
+    let (
+        Some(cx),
+        Some(Stat::Density {
+            bandwidth,
+            adjust,
+            kernel,
+        }),
+    ) = (cx, stat)
+    else {
+        return (out, 0);
+    };
+    if !is_numeric(cx)
+        || keys.iter().any(|key| key.of.len() != cx.len())
+        || panels.is_some_and(|panels| panels.len() != cx.len())
+    {
+        return (out, 0);
+    }
+    type Group = (usize, Vec<(bool, usize)>);
+    let mut groups: Vec<(Group, usize, Vec<f64>)> = Vec::new();
+    for row in 0..cx.len() {
+        let x = match number(cx, row) {
+            None => {
+                out.points.missing += 1;
+                continue;
+            }
+            Some(x) if !x.is_finite() => {
+                out.points.infinite += 1;
+                continue;
+            }
+            Some(x) => x,
+        };
+        let of: Group = (
+            panels.map_or(0, |panels| panels[row]),
+            keys.iter()
+                .map(|key| (key.of[row].is_none(), key.of[row].unwrap_or(0)))
+                .collect(),
+        );
+        match groups.iter_mut().find(|(known, _, _)| *known == of) {
+            Some((_, _, values)) => values.push(x),
+            None => groups.push((of, row, vec![x])),
+        }
+    }
+    groups.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut few = 0;
+    let mut lines = 0;
+    for (_, row, values) in &groups {
+        let Some(found) = zeff_stats::density::estimate(values, bandwidth, adjust, kernel) else {
+            few += 1;
+            continue;
+        };
+        lines += 1;
+        for (x, y) in found.x.iter().zip(&found.y) {
+            out.points.x.push(*x);
+            out.points.y.push(*y);
+            out.points.rows.push(*row);
+            out.line.push(lines);
+        }
+    }
+    (out, few)
+}
+
 /// The smallest gap between two different values, the unit of `jitter:`; `alone` when there
 /// are not two different values to take a gap between, which is 1 on an axis of numbers and a
 /// day on one of dates ([`alone`]).
@@ -2707,7 +2782,37 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         // For bars, how far each reaches along `x`, and whether they count rows.
         let mut span: Vec<f64> = Vec::new();
         let mut counted = false;
-        let mut points = if let Mark::Bars(how) = layer.mark {
+        let mut points = if let (Some(Stat::Density { .. }), Some(x)) =
+            (layer.stat, named(Aesthetic::X))
+        {
+            // A density: the kernel estimate of the density of `x`, a line for each group.
+            let across = place(layer, Aesthetic::X);
+            let (drawn, few) = smoothed(across.as_deref(), &parted(), layer.stat, panel_of(at));
+            if drawn.points.missing > 0 {
+                note(format!(
+                    "{} with NA in {x} dropped",
+                    rows_text(drawn.points.missing)
+                ));
+            }
+            if drawn.points.infinite > 0 {
+                note(format!(
+                    "{} with an infinite value in {x} dropped",
+                    rows_text(drawn.points.infinite)
+                ));
+            }
+            if few > 0 {
+                note(if few == 1 {
+                    format!("1 group with fewer than two values of {x} has no density")
+                } else {
+                    format!(
+                        "{} groups with fewer than two values of {x} have no density",
+                        count(few as u64)
+                    )
+                });
+            }
+            line = drawn.line;
+            Some(drawn.points)
+        } else if let Mark::Bars(how) = layer.mark {
             match (layer.stat, named(Aesthetic::X)) {
                 // A histogram: the rows counted in bins along `x`, a bar for each bin.
                 (Some(Stat::Bins { .. }), Some(x)) => {
@@ -3404,7 +3509,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         // Bars that count rows give the plot a `y` axis where nothing is mapped to `y`.
         let counting = aesthetic == Aesthetic::Y
             && plot.layers.iter().any(|layer| {
-                matches!(layer.mark, Mark::Bars(_))
+                (matches!(layer.mark, Mark::Bars(_))
+                    || matches!(layer.stat, Some(Stat::Density { .. })))
                     && mapping_of(plot, layer, Aesthetic::Y).is_none()
                     && mapping_of(plot, layer, Aesthetic::X).is_some()
             });
@@ -3416,7 +3522,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 .iter()
                 .find_map(|layer| match layer.stat {
                     Some(Stat::Bins { scale, .. }) => Some(scale.name()),
-                    _ => None,
+                    Some(Stat::Density { .. }) => Some("density"),
+                    None => None,
                 })
                 .unwrap_or("count")
                 .to_string(),
@@ -4695,8 +4802,29 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             format!("width {}, style {style}", format_float(layer.width))
         } else if layer.mark.joins() {
             // A layer of lines: their width, their type where it is not whole, how many; for
-            // steps, the way they go where it is not level first.
-            let mut settings = format!("width {}", format_float(layer.width));
+            // steps, the way they go where it is not level first. A density says its kernel
+            // and its bandwidth first.
+            let mut settings = match written.and_then(|l| l.stat) {
+                Some(Stat::Density {
+                    bandwidth,
+                    adjust,
+                    kernel,
+                }) => format!(
+                    "{} kernel, {}{}, width {}",
+                    kernel.name(),
+                    match bandwidth {
+                        Some(given) => format!("bandwidth {}", format_float(given)),
+                        None => "Silverman's bandwidth".to_string(),
+                    },
+                    if adjust == 1.0 {
+                        String::new()
+                    } else {
+                        format!(" times {}", format_float(adjust))
+                    },
+                    format_float(layer.width)
+                ),
+                _ => format!("width {}", format_float(layer.width)),
+            };
             if let Mark::Step(way) = layer.mark
                 && way != Stairs::LevelFirst
             {
@@ -4822,6 +4950,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             // A layer that counts its rows in bins is named by what it is, a histogram.
             match written.and_then(|l| l.stat) {
                 Some(Stat::Bins { .. }) => "histogram".to_string(),
+                Some(Stat::Density { .. }) => "density".to_string(),
                 None => layer.mark.name().to_string(),
             },
             data,

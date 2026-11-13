@@ -6,6 +6,7 @@
 pub mod anova;
 pub mod anova_factorial;
 pub mod chi2_test;
+pub mod density;
 pub mod fisher_test;
 pub mod kruskal_test;
 pub mod ks_test;

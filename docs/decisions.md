@@ -3886,3 +3886,23 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 28a; section 7.6 of the Language Reference ("Statistical layers"); open decision #99, question 2; catalogue row 472.
 
+## 13 November 2026: `density` (release 0.7.0, step 28b)
+
+**Where it is computed.** The kernel estimate is a module of the `stats` package (`zeff_stats::density`: `silverman`, `kernel`, `estimate`), as the Language Reference has it ("`loess` and `density` come from `stats`"), and the `plot` package now depends on `stats`, which comes before it in tier 1; the tier check passes. The kernel of a layer (`Kernel`) is a type of `core`, beside the other settings a layer holds (`Stat::Density`). No dependency outside the workspace is added.
+
+**The estimate** (rulings where the text is silent, each the owner's to overturn). (a) It is the mean of the kernel over the values at each place, computed exactly, value by value. R's `density` bins the values into 1,024 cells and convolves, which is faster and agrees with the exact estimate to about three places; the exact sum is 512 times the number of rows, which costs nothing at the sizes a figure is drawn from, and has no approximation to explain. (b) The bandwidth is Silverman's rule of thumb as R's `bw.nrd0`, with its fallbacks where the values have no spread; `bandwidth:` replaces it, and `adjust:` multiplies either. (c) The six kernels are R's, each scaled so that the bandwidth is its standard deviation (open decision #99, question 2); `cosine` is R's `cosine`. A unit test integrates each numerically and finds a mass of one and a second moment of the square of the bandwidth. (d) The places are 512, from three bandwidths below the smallest value to three above the largest, R's defaults. (e) The elementary functions are the engine's own (`exp`, `cos`, `sqrt`, `pow`).
+
+**The layer.** A density is drawn as a line, by the mark `lines`, from the variable the plot maps to `x`; a plot that maps `y` is refused. Each category of a colour, and each panel, has its own line, with the bandwidth and the places of its own values, each a density of area one: R's `density` of that group alone, which the tests check line by line. ggplot2 draws a filled shape and takes the places over the range of all the groups; a line was chosen because several densities are compared in one panel, and filled shapes hide one another. A group with fewer than two values has no density, and a note counts such groups. The axis of `y` is named `density`. The printed plot names the layer `density` with its kernel and its bandwidth.
+
+**A limit the property test found.** With one value very far from all the others the 512 places are further apart than a kernel is wide, and the line through them misses the peaks: the area under it is then not one, here as in R. The help page says so and what to do; the property asks for an area of one where the places are less than half a bandwidth apart.
+
+**Against R** (4.6.0). `bw.nrd0` on six series to thirteen places; for 57 values and each of the six kernels, at seven places, R's direct computation of the mean of the kernel to twelve places and `density()` itself to three; `density(adjust = 2)` for the bandwidth and the first place. For the help page's ten scores R has the bandwidth 0.7416 and the places from -1.2248 to 11.2248, as here.
+
+**Tests.** `packages/tier1/stats/src/density.rs`: five unit tests (the bandwidth; the estimate with each kernel; never below zero and of area one; a bandwidth of one's own, an adjustment and too few values; each kernel with the bandwidth as its standard deviation). `packages/tier1/plot/tests/densities.rs`: three tests and one property (the line against R at its 512 places, with the axis named and a snapshot of the scene; each group and each panel with its own line, equal to the group drawn alone; too few values, no spread and rows that are not used, with their notes; and, whatever the rows, the kernel and the adjustment, an estimate never below zero and of area one). `tests/printing.rs`: the printed plot in eight forms, an export in the three formats, and every message of `density` (twelve). Two verified examples in the help page, which is complete and says what R and Stata do by default. One conformance case (`plot/density`), which brings `zeff selftest` to 436 of 436.
+
+**The specification.** The usage line of catalogue row 473 gains `kernel:` (logged in `docs/spec_changes.md`); the row stays `planned` until step 28 is complete.
+
+**Dependencies.** None outside the workspace; `zeff-plot` now depends on `zeff-stats`.
+
+**Reason.** The checklist's step 28b; section 7.6 of the Language Reference ("Statistical layers"); open decision #99, question 2; catalogue row 473.
+

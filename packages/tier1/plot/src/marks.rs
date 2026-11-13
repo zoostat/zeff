@@ -18,7 +18,7 @@ use std::rc::Rc;
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, Arrangement, AxisKind, BinRule, BinScale, Frame, Mark, Plot, PlotConstant,
+    Aesthetic, Arrangement, AxisKind, BinRule, BinScale, Frame, Kernel, Mark, Plot, PlotConstant,
     PlotLayer, PlotMapping, PlotSetting, Sides, Stacking, Stairs, Stat, Value,
 };
 use zeff_diagnostics::{Diagnostic, Span};
@@ -1904,6 +1904,146 @@ pub fn histogram(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
                 binwidth,
                 start,
                 scale,
+            }),
+            computed,
+            mappings: Vec::new(),
+            constants: Vec::new(),
+        },
+    )
+}
+
+// ----- density (step 28b) -----
+
+const DN_BANDWIDTH: usize = 2;
+const DN_ADJUST: usize = 3;
+const DN_KERNEL: usize = 4;
+
+/// `p.density(data: Frame, bandwidth: Float, adjust: Float = 1, kernel: gaussian |
+/// epanechnikov | rectangular | triangular | biweight | cosine = gaussian)`: the kernel
+/// estimate of the density of `x`, drawn as a line.
+pub fn density(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`density` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    // A density is of the variable the plot maps to `x`, and has its own `y`.
+    let Some(of) = plot.mapping(Aesthetic::X) else {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`density` estimates the density of the variable along `x`, but the plot maps no variable to `x`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "needs `x`")
+            .help("map it where the plot starts, as in `plot(x: wage).density()`"),
+        ));
+    };
+    if let Some(up) = plot.mapping(Aesthetic::Y) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`density` has a `y` of its own, the estimate, but the plot maps `y` to `{}`",
+                    up.variable
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "a density, with `y` mapped")
+            .help(format!(
+                "start the plot with `x` alone, as in `plot(x: {}).density()`",
+                of.variable
+            )),
+        ));
+    }
+    numbers_along(
+        ctx,
+        &plot,
+        &frame,
+        &[],
+        (Aesthetic::X, None),
+        ("density", "estimates a density along `x`", false),
+    )?;
+    one_colour_to_a_line(ctx, &plot, &frame, &[], false, "density")?;
+    let positive = |ctx: &CallContext<'_>, slot: usize, name: &str, what: &str, value: f64| {
+        fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`{name}:` of `density` is {what}, above 0, but this is {}",
+                    shown(value)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(slot), "not above 0")
+            .help("leave `bandwidth:` out for Silverman's rule of thumb; `adjust: 2` makes the estimate smoother and `adjust: 0.5` rougher"),
+        )
+    };
+    let bandwidth = number_option(
+        ctx,
+        &args,
+        DN_BANDWIDTH,
+        "a `bandwidth:` that is not a number",
+    )?;
+    if let Some(given) = bandwidth.filter(|given| !(*given > 0.0 && given.is_finite())) {
+        return Err(positive(
+            ctx,
+            DN_BANDWIDTH,
+            "bandwidth",
+            "the standard deviation of the kernel in the units of `x`",
+            given,
+        ));
+    }
+    let adjust =
+        number_option(ctx, &args, DN_ADJUST, "an `adjust:` that is not a number")?.unwrap_or(1.0);
+    if !(adjust > 0.0 && adjust.is_finite()) {
+        return Err(positive(
+            ctx,
+            DN_ADJUST,
+            "adjust",
+            "what the bandwidth is multiplied by",
+            adjust,
+        ));
+    }
+    let kernel = match args.get(DN_KERNEL) {
+        None | Some(Value::Na) => Kernel::Gaussian,
+        Some(Value::Word(word)) => match word.as_str() {
+            "gaussian" => Kernel::Gaussian,
+            "epanechnikov" => Kernel::Epanechnikov,
+            "rectangular" => Kernel::Rectangular,
+            "triangular" => Kernel::Triangular,
+            "biweight" => Kernel::Biweight,
+            "cosine" => Kernel::Cosine,
+            _ => return Err(internal(ctx, "a kernel that is none of the six")),
+        },
+        Some(_) => return Err(internal(ctx, "a kernel that is not a word")),
+    };
+    let (data, computed) = own_frame(
+        ctx,
+        &args,
+        &plot,
+        "density",
+        &[Aesthetic::X, Aesthetic::Color, Aesthetic::Group],
+    )?;
+    finish(
+        ctx,
+        &plot,
+        PlotLayer {
+            mark: Mark::Lines,
+            data,
+            alpha: 1.0,
+            size: None,
+            jitter: 0.0,
+            nudge: (0.0, 0.0),
+            width: None,
+            stream: None,
+            stat: Some(Stat::Density {
+                bandwidth,
+                adjust,
+                kernel,
             }),
             computed,
             mappings: Vec::new(),

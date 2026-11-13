@@ -183,6 +183,41 @@ pub enum Stat {
         /// What the height of a bar shows.
         scale: BinScale,
     },
+    /// A density: the kernel estimate of the density of `x`, drawn as a line.
+    Density {
+        /// The bandwidth, where the script gives it: Silverman's where it does not.
+        bandwidth: Option<f64>,
+        /// What the bandwidth is multiplied by.
+        adjust: f64,
+        kernel: Kernel,
+    },
+}
+
+/// The kernel of a density estimate (`kernel:`), each scaled so that the bandwidth is its
+/// standard deviation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Kernel {
+    #[default]
+    Gaussian,
+    Epanechnikov,
+    Rectangular,
+    Triangular,
+    Biweight,
+    Cosine,
+}
+
+impl Kernel {
+    /// The word of the language.
+    pub fn name(self) -> &'static str {
+        match self {
+            Kernel::Gaussian => "gaussian",
+            Kernel::Epanechnikov => "epanechnikov",
+            Kernel::Rectangular => "rectangular",
+            Kernel::Triangular => "triangular",
+            Kernel::Biweight => "biweight",
+            Kernel::Cosine => "cosine",
+        }
+    }
 }
 
 /// How many bins a histogram has (`bins:`): a number, or a rule that gives one from the

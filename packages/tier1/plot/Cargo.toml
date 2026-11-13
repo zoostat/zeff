@@ -21,6 +21,10 @@ zeff-registry.workspace = true
 # #107): both packages come before `plot` in tier 1.
 zeff-time.workspace = true
 zeff-text.workspace = true
+# The kernel estimate of a density, which the layer `density` draws (Language Reference,
+# section 7.6: "`loess` and `density` come from `stats`"): `stats` comes before `plot` in
+# tier 1.
+zeff-stats.workspace = true
 # The composed form of a letter and its mark, before a text is set (the crate `data` uses already).
 unicode-normalization = "=0.1.26"
 # DEFLATE, for the streams of a PDF file and the dots of a PNG file (decisions.md, steps
