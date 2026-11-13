@@ -88,6 +88,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (13 November 2026, release 0.7.0, #144 decided).** Asked to settle #144 as recommended, the owner answered "Yes, option A". The six parts are built with `stream` at 1.7; the lazy chains of 1.1 are built to run row group by row group so that 1.7 adds to them. No normative text is changed now.
 
+**Status (13 November 2026, release 0.7.0, #27, hosting ruled).** Asked whether the website could go on GitHub instead of Cloudflare now that Zemp Studio is deferred, the owner was told that the website already goes on GitHub Pages and that Zemp Lite web still needs a host that sets the cross-origin isolation headers, from 0.8.0 rather than 1.1; asked to choose between Netlify and Cloudflare, he answered "Yes, record it" to Cloudflare Pages. Sync and a Zemp server stay open. No normative text is changed.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -118,7 +120,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 24 | Zemp interface framework | Svelte 5, after a two-week spike against Solid at 0.6.0 | decided 11 November 2026 (Svelte 5, without the spike) |
 | 25 | Zemp licence | Apache 2.0, as Zeff; a commercial path through services, not the licence. The business model assumes open core instead: decide the two together | settled by #125 (12 November 2026): a private repository, Lite free and not open source, Studio proprietary |
 | 26 | Start Zemp at 0.7.0 | Keep; the framework spike starts at 0.6.0 | decided 1 November 2026 |
-| 27 | Hosting Zemp web; sync; a Zemp server | A static host that sets cross-origin isolation headers; sync through the user's own folder sync, no server. The business model's paid sync, server compute and self-hosting need a server and a change to Zemp section 13: decide the two together | Zemp 0.2 alpha |
+| 27 | Hosting Zemp web; sync; a Zemp server | Hosting ruled 13 November 2026: Cloudflare Pages for Zemp web, the website on GitHub Pages. Sync through the user's own folder sync, no server. The business model's paid sync, server compute and self-hosting need a server and a change to Zemp section 13: decide the two together | Zemp 0.2 alpha (sync and server) |
 | 28 | AI assistance model | User's own key to a remote model, a local model as the private option, both off by default; whether Zemp also sells metered access of its own (the business model's Pro tier) is part of the same decision | Zemp 1.11 |
 | 29 | Zemp version coupling | Follow Zeff's minors until 1.11 | 1.0 |
 | 30 | Performance targets | Put the two stress cases in the benchmark suite now; set targets at first measurement, tighten each release | decided 23 October 2026 |
@@ -485,6 +487,10 @@ The plan requires these to be adopted or dropped by 0.7.0; deciding now removes 
 | A Zemp server: paid cloud sync and encrypted backup, server compute for heavy jobs, a self-hosted server for institutions, as the business model proposes | The Pro and Institution tiers exist; heavy jobs leave the laptop | Contradicts Zemp section 13 as written ("sends nothing to a server") and section 10; running costs; the privacy promise must be rewritten as opt-in, with what is sent, how it is encrypted and where it is held |
 
 *Recommendation.* A static host that sets the headers; sync through the user's own folder sync, no Zemp server. If the business model's paid tiers are adopted, the server option replaces this recommendation, local-only stays the default, and Zemp section 13 is rewritten before the alpha is public.
+
+**The need comes sooner than the table says (13 November 2026).** The table gives the headers as needed "from 1.1", for threads. The browser path built at step 33e1 of release 0.7.0 already needs them: a run is cancelled through four bytes of memory shared between the page and the engine's worker (a `SharedArrayBuffer`, `docs/decisions.md`, 13 November 2026), and a browser gives shared memory only to a page that is cross-origin isolated. Zemp Lite web therefore needs the headers from its preview at 0.8.0. The alternatives on GitHub Pages are a service worker that adds the headers itself, which the register calls fragile on first load (#48, option C), or a cancel that stops the worker and starts a new one, which loses the run's results each time.
+
+**The owner's ruling on hosting (13 November 2026).** Asked to choose between Netlify and Cloudflare for Zemp Lite web, the owner answered "Yes, record it" to the recommendation: Cloudflare Pages, whose free plan sets the headers through a headers file and does not cap traffic, which matters because every visit downloads the engine (2,535 kB compressed at step 33e3); the domain may be held at Cloudflare at cost, as recommended for `zeff-lang.dev` (`docs/decisions.md`, 6 November 2026). Zemp web is served at an address under `zeff-lang.dev`, its name to be agreed with Zemp's alpha; the website, the installer and the key list stay on GitHub Pages at 1.0, from their own repository. Cloudflare Pages accepts files of at most 25 MiB; the engine's WebAssembly file is 13.4 MB before compression at step 33e3, and if it nears the limit it is split so that packages load when a script uses them. The owner creates the account, with two-step sign-in, and points the address; the plan and its limits are checked again before the account is opened. Sync and a Zemp server stay open, due at Zemp 0.2 alpha.
 
 ### 28. AI assistance model
 
