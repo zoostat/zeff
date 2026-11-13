@@ -4685,3 +4685,21 @@ error[Z0001]: no rows to take the mean of
 **The order.** As at steps 34 and 35: the services in the engine first, where Zemp in the browser calls them directly, and the protocol last. Hover on a binding is a part of its own because it extends what the checker carries and what a run records, as step 35d did for the counts.
 
 **Reason.** The standing instructions: a step that turns out too large is split in the checklist, not pushed through.
+
+## 13 November 2026: hover on a function and on a variable (release 0.7.0, step 36a)
+
+**What was built.** `zeff_engine::language::hover`: for a place in a document, the word there and what is known of it. On the name of a function, its help page; on a variable of a frame, its type, its label and its count of missing values (section 12).
+
+**A function's page is the one `zeff help` prints.** The same text, to the character: a test compares them. A function of the project is shown its own page, made from its `///` lines as `zeff help` makes it inside the project. So there is one page of each function, and an editor shows it.
+
+**Which function.** Where the name is called, or written after a dot before its brackets are typed, the call decides, by the finding of the call that completion and signature help share: after a frame `histogram` is the frame's, after a plot the layer's, and written before its value it is chosen by that value. A function of a namespace (`dist.normal`) is marked with its namespace; one written with its package or its module is found by it. A name written and not called (`map(xs, sqrt)`) is the function of that name. The name in its own definition (`fn share_gone(`) shows the page being written above it.
+
+**A variable is what completion offers there.** Hover asks completion for the variables of the frame the place writes about, and shows the one named: so the two cannot say different things of a variable, and the variable is the frame's at that point of its chain (after `rename(z = a)`, `z` is a variable and `a` is not). Three lines at most: `wage: Float`, its label, and `211 missing`, the count marked `from last run` where it is. What is known is also given apart (`HoverKind::Variable`), for an interface that lays it out itself.
+
+**A variable before a binding.** Inside a frame's method a bare name is the frame's variable where the frame has one of that name (Language Reference, section 3.7), so a name that is both is shown as the variable.
+
+**Nothing is shown** on a word that is neither (a name bound in the script: step 36b), on a number, on a word of a fixed list or the name of an argument, in a comment, in a text between quotes, and where there is no word.
+
+**Tests.** Snapshot: a corpus of 37 cursor places (a method at its start, inside and at its end; before its brackets; a chain over lines; a function before its value, of a namespace, with its package; a name two functions share, three ways; a function named and not called; a project function four ways; a function inside an argument; a variable in an argument, a formula, a condition, a definition; under its new name and no longer under its old; a shipped dataset's label and count, a category, after `where`, after `label`; the places with nothing; a file outside a project). Unit: the page equal to `zeff help`'s for an engine function and for a project function; the word marked; the function chosen; a variable's lines and its facts apart; a variable before a binding of its name; a name the frame does not hold; where there is nothing.
+
+**Reason.** The checklist's step 36a; Engine and Project Specification, section 12.

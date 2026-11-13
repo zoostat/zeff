@@ -494,16 +494,26 @@ fn of_project(f: &zeff_ir::Function, skip: usize) -> Signature {
     }
 }
 
-/// The function a call names, with the parameters the call may give. `check` is the check of
-/// the document that the names in reach were taken from, and `used` the modules it brings in.
-pub(crate) fn signature(
+/// The function a call names: one of the engine's or one of the project's.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Callee<'a> {
+    Engine(&'a Registered),
+    Project(&'a zeff_ir::Function),
+}
+
+/// The function a call names, and how many of its parameters the brackets of the call do not
+/// take (one where it is written after a value, which is its first). `check` is the check of
+/// the document that the names in reach were taken from, and `used` the modules it brings
+/// in. Where several functions share the name, the one the checker would choose: by the type
+/// of the value before the dot, or of the first argument.
+pub(crate) fn callee<'a>(
     doc: &Doc<'_>,
     site: &Site<'_>,
-    registry: &Registry,
-    check: Option<&Check>,
+    registry: &'a Registry,
+    check: Option<&'a Check>,
     used: &[String],
-) -> Option<Signature> {
-    let project: Vec<&zeff_ir::Function> = check.map_or(Vec::new(), |check| {
+) -> Option<(Callee<'a>, usize)> {
+    let project: Vec<&'a zeff_ir::Function> = check.map_or(Vec::new(), |check| {
         project_functions(&check.checked.program, check, used)
     });
     // The type of the value that ends at a byte, by a check of the document cut there.
@@ -514,24 +524,24 @@ pub(crate) fn signature(
             if let Some(f) = project.iter().find(|f| {
                 f.name == site.name && f.params.first().is_some_and(|p| p.ty.accepts(&value))
             }) {
-                return Some(of_project(f, 1));
+                return Some((Callee::Project(f), 1));
             }
             let homes = registry.named(site.name);
             homes
                 .iter()
                 .find(|f| takes_first(&f.spec, &value))
                 .or(homes.first())
-                .map(|f| of_engine(f, 1))
+                .map(|f| (Callee::Engine(f), 1))
         }
         Form::Qualified { prefix, namespace } => {
             if namespace {
                 return registry
                     .named(&format!("{prefix}.{}", site.name))
                     .first()
-                    .map(|f| of_engine(f, 0));
+                    .map(|f| (Callee::Engine(f), 0));
             }
             if let Some(f) = registry.function(prefix, site.name) {
-                return Some(of_engine(f, 0));
+                return Some((Callee::Engine(f), 0));
             }
             // `clean::twice(` and `functions::twice(`: a function of the project, of a module
             // whether or not it is brought in.
@@ -541,15 +551,15 @@ pub(crate) fn signature(
                 .iter()
                 .filter(|f| f.name_span != f.span && f.name == site.name)
                 .find(|f| prefix == "functions" || f.module.as_deref() == Some(prefix))
-                .map(|f| of_project(f, 0))
+                .map(|f| (Callee::Project(f), 0))
         }
         Form::Bare => {
             if let Some(f) = project.iter().find(|f| f.name == site.name) {
-                return Some(of_project(f, 0));
+                return Some((Callee::Project(f), 0));
             }
             let homes = registry.named(site.name);
             if homes.len() < 2 {
-                return homes.first().map(|f| of_engine(f, 0));
+                return homes.first().map(|f| (Callee::Engine(f), 0));
             }
             // Several functions of one name: the one whose first parameter takes the first
             // argument, where one is written.
@@ -562,9 +572,23 @@ pub(crate) fn signature(
                 .iter()
                 .find(|f| value != Ty::Unknown && takes_first(&f.spec, &value))
                 .or(homes.first())
-                .map(|f| of_engine(f, 0))
+                .map(|f| (Callee::Engine(f), 0))
         }
     }
+}
+
+/// The function a call names, as an editor shows it, with the parameters the call may give.
+pub(crate) fn signature(
+    doc: &Doc<'_>,
+    site: &Site<'_>,
+    registry: &Registry,
+    check: Option<&Check>,
+    used: &[String],
+) -> Option<Signature> {
+    callee(doc, site, registry, check, used).map(|(function, skip)| match function {
+        Callee::Engine(f) => of_engine(f, skip),
+        Callee::Project(f) => of_project(f, skip),
+    })
 }
 
 #[cfg(test)]

@@ -18,9 +18,11 @@ use zeff_diagnostics::{Diagnostic, Severity, Span};
 
 pub(crate) mod call;
 pub mod complete;
+pub mod hover;
 pub mod signature;
 
 pub use complete::{Completion, CompletionKind, Completions, VariableFacts, completions};
+pub use hover::{Hover, HoverKind, hover};
 pub use signature::{SignatureHelp, SignatureParameter, signature_help};
 
 /// A place in a document as the Language Server Protocol counts it: the line from 0, and the

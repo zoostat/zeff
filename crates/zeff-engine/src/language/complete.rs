@@ -342,7 +342,7 @@ pub(crate) fn schema_ending_at(check: &Check, end: usize) -> Option<zeff_ir::Fra
 /// brackets and of calls inside it (`d.add(k = log(`). In the order of the frame, each with
 /// its type, from the schema the checker has of the frame at that point of its chain; those
 /// of a step whose columns depend on the data are the last run's, and say so.
-fn variables_of_the_frame(
+pub(crate) fn variables_of_the_frame(
     doc: &Doc<'_>,
     at: usize,
     registry: &Registry,

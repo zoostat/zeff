@@ -1,0 +1,262 @@
+---
+source: crates/zeff-engine/tests/hover.rs
+expression: all
+---
+> let d = import("data/small.csv")
+> d.|mean(a)
+1:2-1:6, a function
+    mean — Mean of a variable                                              data · tier 1 · since 0.1.0 · 1.0 · closed form
+    
+    USAGE
+        data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
+    (and 61 lines more)
+----
+> let d = import("data/small.csv")
+> d.me|an(a)
+1:2-1:6, a function
+    mean — Mean of a variable                                              data · tier 1 · since 0.1.0 · 1.0 · closed form
+    
+    USAGE
+        data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
+    (and 61 lines more)
+----
+> let d = import("data/small.csv")
+> d.mean|(a)
+1:2-1:6, a function
+    mean — Mean of a variable                                              data · tier 1 · since 0.1.0 · 1.0 · closed form
+    
+    USAGE
+        data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
+    (and 61 lines more)
+----
+> let d = import("data/small.csv")
+> d.summ|ary
+1:2-1:9, a function
+    summary — Table of N, missing, mean, SD, min and max                   data · tier 1 · since 0.1.0 · 1.0 · closed form
+    
+    USAGE
+        data.summary(vars: Vars, stats: List<n | missing | mean | sd | min | max>, by: Vars, weights: Var,
+    (and 79 lines more)
+----
+> let d = import("data/small.csv")
+> d
+>     .where(a > 1)
+>     .re|g(b ~ a)
+3:5-3:8, a function
+    reg — Linear regression by least squares, with fixed effects        regress · tier 2 · since 0.4.0 · 1.0 · closed form
+    
+    USAGE
+        data.reg(formula, fe: Terms, se: classical | robust | hc2 | hc3, cluster: Var, weights: Var,
+    (and 193 lines more)
+----
+> let x = sq|rt(2.0)
+0:8-0:12, a function
+    sqrt — Square root                                                     core · tier 0 · since 0.2.0 · 1.0 · closed form
+    
+    USAGE
+        sqrt(x)
+    (and 46 lines more)
+----
+> let z = dist.nor|mal(0, 1)
+0:8-0:19, a function
+    dist.normal — The normal distribution with a mean and a standard deviation  dist · tier 1 · since 0.3.0 · 1.0 · distribution
+    
+    USAGE
+        dist.normal(mean: Float = 0, sd: Float = 1)
+    (and 55 lines more)
+----
+> let d = import("data/small.csv")
+> data::s|d(d, a)
+1:6-1:8, a function
+    sd — Sample standard deviation                                         data · tier 1 · since 0.1.0 · 1.0 · closed form
+    
+    USAGE
+        data.sd(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling)
+    (and 55 lines more)
+----
+> let d = import("data/small.csv")
+> d.histo|gram(a)
+1:2-1:11, a function
+    histogram — A histogram of a variable of a frame: its values counted in bins  plot · tier 1 · since 0.7.0 · 1.0 · exact
+    
+    USAGE
+        data.histogram(var, bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float,
+    (and 84 lines more)
+----
+> let d = import("data/small.csv")
+> d.plot(x: a).histo|gram()
+1:13-1:22, a function
+    histogram — A histogram layer: the rows counted in bins along `x`      plot · tier 1 · since 0.7.0 · 1.0 · closed form
+    
+    USAGE
+        p.histogram(data: Frame, bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float,
+    (and 122 lines more)
+----
+> let d = import("data/small.csv")
+> let p = d.plot(x: a)
+> histo|gram(p, bins: 5)
+2:0-2:9, a function
+    histogram — A histogram layer: the rows counted in bins along `x`      plot · tier 1 · since 0.7.0 · 1.0 · closed form
+    
+    USAGE
+        p.histogram(data: Frame, bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float,
+    (and 122 lines more)
+----
+> let roots = map([1.0, 4], sq|rt)
+0:26-0:30, a function
+    sqrt — Square root                                                     core · tier 0 · since 0.2.0 · 1.0 · closed form
+    
+    USAGE
+        sqrt(x)
+    (and 46 lines more)
+----
+> use functions::clean
+> let d = import("data/small.csv")
+> d.share_|gone(b)
+2:2-2:12, a function
+    share_gone — The share of rows a variable is missing.                functions/clean.zeff · a function of this project
+    
+    USAGE
+        share_gone(data: Frame, var: Var)
+    (and 14 lines more)
+----
+> use functions::clean
+> let d = import("data/small.csv")
+> share_|gone(d, b)
+2:0-2:10, a function
+    share_gone — The share of rows a variable is missing.                functions/clean.zeff · a function of this project
+    
+    USAGE
+        share_gone(data: Frame, var: Var)
+    (and 14 lines more)
+----
+> let d = import("data/small.csv")
+> clean::share_|gone(d, b)
+1:7-1:17, a function
+    share_gone — The share of rows a variable is missing.                functions/clean.zeff · a function of this project
+    
+    USAGE
+        share_gone(data: Frame, var: Var)
+    (and 14 lines more)
+----
+in /work/demo/functions/clean.zeff
+> /// The share of rows a variable is missing.
+> ///
+> /// The missing values of the variable over the rows of the frame.
+> ///
+> /// data: The frame.
+> /// var: The variable.
+> /// returns: The share, a Float.
+> /// > frame(x = [1.0, NA]).share_gone(x)
+> /// 0.5
+> fn share_|gone(data: Frame, var: Var) -> Float {
+>     let values = data[name_of(var)]
+>     n_missing(values) / data.n_rows()
+> }
+9:3-9:13, a function
+    share_gone — The share of rows a variable is missing.                functions/clean.zeff · a function of this project
+    
+    USAGE
+        share_gone(data: Frame, var: Var)
+    (and 14 lines more)
+----
+> let d = import("data/small.csv")
+> d.add(k = lo|g(b))
+1:10-1:13, a function
+    log — Logarithm                                                        core · tier 0 · since 0.2.0 · 1.0 · closed form
+    
+    USAGE
+        log(x, base: Float = E)
+    (and 56 lines more)
+----
+> let d = import("data/small.csv")
+> d.mean(|b)
+1:7-1:8, a variable
+    b: Float
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ |a, cluster: c)
+1:10-1:11, a variable
+    a: Int
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, cluster: c|)
+1:22-1:23, a variable
+    c: Str
+----
+> let d = import("data/small.csv")
+> d.where(a > 1 & b| < 3)
+1:16-1:17, a variable
+    b: Float
+----
+> let d = import("data/small.csv")
+> d.add(k = log(b|) + a)
+1:14-1:15, a variable
+    b: Float
+----
+> let d = import("data/small.csv")
+> d.rename(z = a).mean(z|)
+1:21-1:22, a variable
+    z: Int
+----
+> let d = import("data/small.csv")
+> d.rename(z = a).mean(a|)
+nothing
+----
+> dataset(wages).reg(log(wa|ge) ~ educ)
+0:23-0:27, a variable
+    wage: Float
+    Hourly wage
+    211 missing
+----
+> dataset(wages).mean(indus|try)
+0:20-0:28, a variable
+    industry: Category
+    Industry
+    0 missing
+----
+> dataset(wages).where(year == 2015).mean(wa|ge)
+0:40-0:44, a variable
+    wage: Float
+    Hourly wage
+----
+> dataset(wages).label(wage, "Pay by the hour").mean(wa|ge)
+0:51-0:55, a variable
+    wage: Float
+    Pay by the hour
+    211 missing
+----
+> let d = import("data/small.csv")
+> let k = 3
+> print(k|)
+nothing
+----
+> let x = 12|3
+nothing
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, se: rob|ust)
+nothing
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, clus|ter: c)
+nothing
+----
+> // sq|rt(2)
+nothing
+----
+> let s = "sq|rt"
+nothing
+----
+> let x = 1 + | 2
+nothing
+----
+> nosu|ch(1)
+nothing
+----
+in /elsewhere/try.zeff
+> let d = frame(x = [1.0, NA])
+> d.mean(|x)
+1:7-1:8, a variable
+    x: Float
+----
