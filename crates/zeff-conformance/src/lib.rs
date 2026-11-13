@@ -2717,6 +2717,56 @@ fn font_outlines() -> String {
     out
 }
 
+/// The examples of the engine's own help pages (release 0.7.0, step 32c; Engine and Project
+/// Specification, section 9.1: "`zeff test` runs a project's, the conformance suite runs the
+/// built-ins', and the output is compared"). Every example of every page is run and what it
+/// prints compared with the lines under it. The case digests the examples that printed
+/// something else, each in full, so the published value is that of none: an installation
+/// whose help would show an output it does not print is not conformant. The counts are left
+/// out of the digest, which therefore does not move when a function is added.
+fn help_cases() -> Vec<Line> {
+    vec![text("help/examples", &help_examples().failures)]
+}
+
+/// The examples of the engine's own pages, run.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HelpExamples {
+    pub pages: usize,
+    pub examples: usize,
+    /// How many printed something else than their page says.
+    pub failed: usize,
+    /// Each of those in full; empty when there is none.
+    pub failures: String,
+}
+
+/// Run every example of every page of the engine's registry: what `help/examples` digests.
+pub fn help_examples() -> HelpExamples {
+    match zeff_engine::registry::registry() {
+        Ok(registry) => {
+            let pages = registry.functions().len() + registry.datasets().len();
+            let examples: usize = registry
+                .functions()
+                .iter()
+                .map(|f| f.doc.examples.len())
+                .chain(registry.datasets().iter().map(|d| d.doc.examples.len()))
+                .sum();
+            let failures = zeff_engine::examples::run_examples(registry);
+            HelpExamples {
+                pages,
+                examples,
+                failed: failures.len(),
+                failures: failures.iter().map(ToString::to_string).collect(),
+            }
+        }
+        Err(errors) => HelpExamples {
+            pages: 0,
+            examples: 0,
+            failed: errors.len(),
+            failures: format!("the registry does not build: {} problems\n", errors.len()),
+        },
+    }
+}
+
 thread_local! {
     /// The scripts the cases have run, while `scripts` is collecting them.
     static RUN: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) };
@@ -2770,6 +2820,7 @@ fn all_cases() -> Vec<Line> {
     lines.extend(kernels_cases());
     lines.extend(milestone_cases());
     lines.extend(sample_cases());
+    lines.extend(help_cases());
     lines
 }
 

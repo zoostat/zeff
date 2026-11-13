@@ -102,8 +102,6 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   written in Zeff applies to the column in one pass; a `Column` parameter or `[for ...]` is the
   way. A function may not call itself (Z0108) and sees its parameters and other functions only.
   (Since 0.5.0; by design, section 5.3.)
-- **The examples of a module function's page are parsed and syntax-checked but not run** until
-  `zeff test` at 0.7.0. (Since 0.5.0; the other half of this entry is under "Resolved at 0.6.0".)
 - **`case` over rows evaluates every arm on the whole frame**, as R's `ifelse` does, so a warning
   such as a division by zero may count rows the arm does not supply; a Category column is refused
   as a value of `case` (Z0214; `to(x, Str)` gives its labels). (Since 0.5.0; a Date or DateTime
@@ -116,9 +114,9 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   "Warnings and notes" is the union of the codes declared by the functions a body calls
   (`frame`'s and the reducers' for `center`, `skewness` and their kin), a message raised by an
   inner reducer names that reducer (`median` needs a Bool, Int or Float, from `mad`) and the
-  body's column (`value`, from `standardize`). The lists are narrowed when `zeff test` runs the
-  pages at 0.7.0. (Since 0.5.0; the warning of `skewness` and `kurtosis` for too few values
-  carries W0205 from step 4.3 of 0.7.0.)
+  body's column (`value`, from `standardize`). The lists are narrowed at step 32d of 0.7.0,
+  by the rule of open decision #139. (Since 0.5.0; the warning of `skewness` and `kurtosis` for
+  too few values carries W0205 from step 4.3 of 0.7.0.)
 - **The mean of values that cancel is within a rounding of the largest input, not of the
   result.** The kernel's mean corrects the compensated quotient by the mean of the deviations,
   whose own rounding is the unit in the last place of the largest value: on a row holding 1e12,
@@ -268,6 +266,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 - **The function catalogue's status column** is updated at each release close, not per function,
   so between releases it lags the registry; `zeff help <package>` shows what is shipped. (Since
   0.1.0.)
+
+## Resolved at 0.7.0
+
+- The examples of a module function's page are run: `zeff test` runs every `/// >` example of
+  every function of `functions/` in the project and compares what it prints with the lines under
+  it (listed at 0.5.0 as parsed and syntax-checked but not run). Since steps 32a and 32b.
 
 ## Resolved at 0.6.0
 

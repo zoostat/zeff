@@ -511,3 +511,4 @@ plots/output/fig5_size_shape.svg 5b876fca7694c0c1
 plots/output/fig6_industry.pdf 4ba569255c3d2002
 plots/output/fig6_industry.png 5e26bdfca51142ec
 plots/output/fig6_industry.svg 91aa9cee385c1b0c
+help/examples cbf29ce484222325

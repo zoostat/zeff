@@ -4221,3 +4221,19 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** `crates/zeff-cli/tests/cli.rs`: a project whose five tests pass (the one line, `--verbose`, a project of one test and of none); a project with two failed checks, a script that stops and an example that prints something else (a snapshot of the report, exit code 1, and `zeff run` on the same script still stopping at the first failed check); the JSON record (a snapshot, and its head on a passing project); `--deny-warnings` (exit code 3); the usage error, a script that is not text, and the usage text.
 
 **Reason.** The checklist's step 32b; sections 2.1 and 12 of the Engine and Project Specification; section 3.8 of the Language Reference.
+
+## 13 November 2026: the engine's own help pages in the conformance suite (release 0.7.0, step 32c; step 32d split off)
+
+**Where the engine's own examples are run.** The plan of the release said that `zeff test` would also run the engine's own help-page examples in CI. Section 9.1 of the Engine and Project Specification says otherwise, and is the authority: "`zeff test` runs a project's, the conformance suite runs the built-ins', and the output is compared". They are built as the section has it. The plan and the checklist carry a dated note.
+
+**The case.** `help/examples`, the 470th case of the conformance suite: every example of every page of the registry is run in the fixture project of the examples and what it prints is compared with the lines under it (`examples::run_examples`, the runner the engine's own test has used since 0.1.0, which stays). The case digests the examples that printed something else, each in full; with none, as published, it is the digest of nothing. The counts are left out of the digest on purpose, so that the published list does not change each time a function is added. At this commit there are 851 examples on 260 pages.
+
+**What it gives.** `zeff selftest` now says of an installation, beside its numbers, that its help prints what it shows: an engine built differently enough to print another digit in one example is not conformant. The identity job runs the same case on the five targets, WebAssembly among them. `zeff_conformance::help_examples()` gives the counts and the failures in words, for the test that reads the case and for a report.
+
+**The first known issue.** "The examples of a module function's page are parsed and syntax-checked but not run" is under "Resolved at 0.7.0": `zeff test` runs them (steps 32a and 32b).
+
+**The second, split off.** The "Warnings and notes" of the built-ins written in Zeff are narrowed at step 32d, by the rule of open decision #139 (reasoned exclusions kept beside each function, and a test that every code left on a page is raised through the function). The promise of 0.5.0 was to narrow them "when `zeff test` runs the pages"; running the pages does not by itself say what a body can raise, so the rule is put as a decision and the work as a step of its own.
+
+**Tests.** `crates/zeff-conformance/tests/help.rs` reads the case: no failure, at least as many examples as pages. The published list gains its one line; `zeff selftest` reports 470 of 470.
+
+**Reason.** The checklist's step 32c; section 9.1 of the Engine and Project Specification; the Testing Handbook, section 1 ("Cross-platform identity").

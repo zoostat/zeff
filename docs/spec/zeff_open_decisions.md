@@ -2727,3 +2727,17 @@ Raised on 13 November 2026 at step 32a of release 0.7.0, where the test run of a
 *Recommendation.* A on all four. Deadline: 0.7.0, step 32a.
 
 **The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A on the four questions. Question 1 is one function of the engine (`testing::calls_assert`) and question 2 one option of a run (`collect_checks`), so another ruling on either is a small change.
+
+### 139. How the "Warnings and notes" of a built-in written in Zeff is narrowed
+
+Raised on 13 November 2026 at step 32c of release 0.7.0. Section 9.1 of the Engine and Project Specification has the "Warnings and notes" of a page "generated from the diagnostics the implementation declares, and checked both ways: a code raised but not declared, or declared but never raised, fails the build. For a function written in Zeff, generated from the functions its body calls and from the codes it gives `warn` and `note`". For the fourteen built-ins written in Zeff the generated list is the union of everything the called functions declare, and it is too long: the page of `kurtosis` names fifteen codes, among them the warning of a data root's file that changed (W0702) and the error of binding `Nothing` (Z0206), neither of which its body can raise. The known-issues list has carried this since 0.5.0, with the promise to narrow the lists at this release. The specification does not say by what rule.
+
+| Option | What it is | For | Against |
+| --- | --- | --- | --- |
+| A. Reasoned exclusions, and a demonstration of what is left | Beside each function written in Zeff, in its package, a short list: each code of a called function that the body cannot raise, with one line saying why (the body gives `frame` one column, so the columns cannot differ in length). The page lists the union less these. A test holds both sides: every code left on a page is raised through that function by a script, and no excluded code is raised by any script of the tests | Sound in both directions, as the section asks of a Rust function; the reasons are read at review; fourteen functions make it a bounded piece of work | A list kept by hand, which a change to a body may make stale: the test catches a code that has become reachable only if some script reaches it |
+| B. What the examples and the tests raise | A page lists the codes that some example or test raises through the function, and nothing else | Wholly mechanical | Unsound: a code that no test happens to raise leaves the page, and is then raised at a user's desk, undeclared |
+| C. The union as it is | Nothing changes; the entry stays in the known issues | No work, and never an undeclared code | The pages go on naming errors that cannot happen, which a reader cannot tell from those that can |
+
+*Recommendation.* A. A page that under-declares is worse than one that over-declares, which rules out B; and fourteen pages that list impossible errors are a fault of the help that the release promised to mend, which rules out C. Deadline: 0.7.0, step 32d.
+
+**The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. The sentence of section 9.1 on a function written in Zeff is completed at step 32d to say so, and logged.
