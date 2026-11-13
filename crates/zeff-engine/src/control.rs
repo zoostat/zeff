@@ -53,11 +53,23 @@ pub type Listener<'a> = &'a dyn Fn(&Event);
 #[derive(Clone, Default)]
 pub struct Control {
     cancelled: Arc<AtomicBool>,
+    /// Asked as well, where the flag lives outside the engine: in the browser the interface
+    /// sets it in memory it shares with the worker, since a worker that is computing reads no
+    /// message (step 33e1).
+    asked: Option<fn() -> bool>,
 }
 
 impl Control {
     pub fn new() -> Control {
         Control::default()
+    }
+
+    /// A handle that is also cancelled when `asked` says so.
+    pub fn asking(asked: fn() -> bool) -> Control {
+        Control {
+            cancelled: Arc::default(),
+            asked: Some(asked),
+        }
     }
 
     /// Cancel the run: it stops before its next step.
@@ -66,7 +78,7 @@ impl Control {
     }
 
     pub fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::SeqCst)
+        self.cancelled.load(Ordering::SeqCst) || self.asked.is_some_and(|asked| asked())
     }
 }
 

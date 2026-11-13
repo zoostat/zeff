@@ -23,6 +23,7 @@ members = [
     "crates/zeff-engine",
     "crates/zeff-cli",
     "crates/zeff-conformance",
+    "crates/zeff-web",
     "tools/xtask",
     "tools/zeff-testkit",
     "tools/zeff-bench",

@@ -2099,6 +2099,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeff-web"
+version = "0.7.0-dev"
+dependencies = [
+ "wasm-bindgen",
+ "zeff-diagnostics",
+ "zeff-engine",
+]
+
+[[package]]
 name = "zerocopy"
 version = "0.8.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"

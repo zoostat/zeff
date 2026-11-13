@@ -236,6 +236,21 @@ jobs:
           name: bundle-wasm
           path: bundle/bundle.json
 
+      # The engine as a worker of the browser hosts it (section 8.3, point 7): the same
+      # WebAssembly build, started in a worker thread of Node, which has the browser's kind of
+      # worker and of shared memory.
+      - name: Build the engine's worker for WebAssembly
+        env:
+          RUSTFLAGS: -C target-feature=+simd128 -C link-arg=-zstack-size=8388608
+        run: |
+          cargo build --release --locked -p zeff-web --target wasm32-unknown-unknown
+          wasm-bindgen --target nodejs --out-dir web-pkg target/wasm32-unknown-unknown/release/zeff_web.wasm
+
+      - name: Run the worker's messages under a worker thread of Node
+        env:
+          ZEFF_WEB_PKG: web-pkg
+        run: node --test crates/zeff-web/js/worker.test.mjs
+
   identity-compare:
     name: identity (compare)
     needs: [identity, identity-wasm]
