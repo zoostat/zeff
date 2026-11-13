@@ -155,6 +155,9 @@ fn initialize_says_what_the_server_does() {
                         "triggerCharacters": ["(", ","],
                         "retriggerCharacters": [","],
                     },
+                    "hoverProvider": true,
+                    "documentFormattingProvider": true,
+                    "documentRangeFormattingProvider": true,
                 },
                 "serverInfo": {"name": "zeff", "version": VERSION},
             },
@@ -487,7 +490,13 @@ fn a_notification_that_cannot_be_acted_on_is_put_in_the_editors_log() {
 fn what_the_server_does_not_serve() {
     let mut session = Session::started();
     // A request it does not answer is answered so; the parts that follow in later steps too.
-    for method in ["textDocument/hover", "workspace/symbol", "$/unknown", ""] {
+    for method in [
+        "textDocument/definition",
+        "textDocument/rename",
+        "workspace/symbol",
+        "$/unknown",
+        "",
+    ] {
         let answers =
             session.send(&json!({"jsonrpc": "2.0", "id": 9, "method": method, "params": {}}));
         assert_eq!(answers.len(), 1);
@@ -890,5 +899,196 @@ fn the_two_requests_need_a_document_and_a_place() {
     let answers = early.send(
         &json!({"jsonrpc": "2.0", "id": 1, "method": "textDocument/completion", "params": saved}),
     );
+    assert_eq!(error_code(&answers[0]), -32002);
+}
+
+#[test]
+fn hover_is_answered_with_what_is_known_of_the_word() {
+    let mut session = Session::started();
+    // A binding and a variable: plain text, the word marked.
+    let text = "let w = dataset(wages)\nw.mean(wage)\nprint(w";
+    let answer = session.ask("textDocument/hover", text);
+    assert_eq!(
+        answer["result"],
+        json!({
+            "contents": {"kind": "plaintext", "value": "w: Frame\n18,412 rows, 11 variables"},
+            "range": {"start": {"line": 2, "character": 6}, "end": {"line": 2, "character": 7}},
+        })
+    );
+    let answer = session.ask("textDocument/hover", "dataset(wages).mean(wage");
+    assert_eq!(
+        answer["result"],
+        json!({
+            "contents": {"kind": "plaintext", "value": "wage: Float\nHourly wage\n211 missing"},
+            "range": {"start": {"line": 0, "character": 20}, "end": {"line": 0, "character": 24}},
+        })
+    );
+    // A function: its help page. This editor did not say it shows Markdown, so plain text.
+    let registry = zeff_engine::registry::registry().expect("the registry");
+    let page = zeff_engine::help::help_text(registry, "sqrt").expect("the page");
+    let answer = session.ask("textDocument/hover", "let x = sqrt");
+    assert_eq!(
+        answer["result"]["contents"],
+        json!({"kind": "plaintext", "value": page})
+    );
+    // Nothing known of the word: nothing, which the protocol writes as `null`.
+    let answer = session.ask("textDocument/hover", "print(nosuch");
+    assert_eq!(answer, json!({"jsonrpc": "2.0", "id": 7, "result": null}));
+
+    // An editor that says it shows Markdown is sent a function's page in a block that keeps
+    // its columns; the lines of a variable stay plain text, since `List<Str>` is no Markdown.
+    let mut session = Session::new();
+    session.send(&json!({
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": {"capabilities": {"textDocument": {"hover": {"contentFormat": ["markdown", "plaintext"]}}}},
+    }));
+    let answer = session.ask("textDocument/hover", "let x = sqrt");
+    assert_eq!(
+        answer["result"]["contents"],
+        json!({"kind": "markdown", "value": format!("````text\n{}\n````", page.trim_end())})
+    );
+    let answer = session.ask("textDocument/hover", "let names = [\"a\"]\nprint(names");
+    assert_eq!(
+        answer["result"]["contents"],
+        json!({"kind": "plaintext", "value": "names: List<Str>"})
+    );
+}
+
+#[test]
+fn formatting_is_answered_with_the_lines_to_replace() {
+    let mut session = Session::started();
+    let untidy = "let   x = 1\nprint( x )\nlet y = [1,2]\n";
+    session.open(MAIN, untidy);
+    let whole = session.send(&json!({
+        "jsonrpc": "2.0", "id": 3, "method": "textDocument/formatting",
+        "params": {"textDocument": {"uri": MAIN}, "options": {"tabSize": 8, "insertSpaces": false}},
+    }));
+    // One change of the three lines; the options of the editor change nothing, the language
+    // having one style.
+    assert_eq!(
+        whole,
+        [json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": [{
+                "range": {"start": {"line": 0, "character": 0}, "end": {"line": 3, "character": 0}},
+                "newText": "let x = 1\nprint(x)\nlet y = [1, 2]\n",
+            }],
+        })]
+    );
+    // A selection: the statement it stands in, and no other.
+    let part = session.send(&json!({
+        "jsonrpc": "2.0", "id": 4, "method": "textDocument/rangeFormatting",
+        "params": {
+            "textDocument": {"uri": MAIN},
+            "range": {"start": {"line": 1, "character": 2}, "end": {"line": 1, "character": 4}},
+            "options": {"tabSize": 4, "insertSpaces": true},
+        },
+    }));
+    assert_eq!(
+        part[0]["result"],
+        json!([{
+            "range": {"start": {"line": 1, "character": 0}, "end": {"line": 2, "character": 0}},
+            "newText": "print(x)\n",
+        }])
+    );
+    // Formatted already: no change, an empty list.
+    session.change(MAIN, 2, "let x = 1\nprint(x)\n");
+    let none = session.send(&json!({
+        "jsonrpc": "2.0", "id": 5, "method": "textDocument/formatting",
+        "params": {"textDocument": {"uri": MAIN}},
+    }));
+    assert_eq!(none, [json!({"jsonrpc": "2.0", "id": 5, "result": []})]);
+    // A script that does not parse: nothing is changed, and the editor's log says why.
+    session.change(MAIN, 3, "let x = 1\nprint( x\n");
+    for (method, params) in [
+        (
+            "textDocument/formatting",
+            json!({"textDocument": {"uri": MAIN}}),
+        ),
+        (
+            "textDocument/rangeFormatting",
+            json!({"textDocument": {"uri": MAIN}, "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 3}}}),
+        ),
+    ] {
+        let answers =
+            session.send(&json!({"jsonrpc": "2.0", "id": 6, "method": method, "params": params}));
+        assert_eq!(
+            answers,
+            [
+                json!({"jsonrpc": "2.0", "id": 6, "result": null}),
+                json!({
+                    "jsonrpc": "2.0",
+                    "method": "window/logMessage",
+                    "params": {
+                        "type": 2,
+                        "message": format!("{MAIN} was not formatted: it does not parse (line 2: this `(` is never closed)"),
+                    },
+                }),
+            ],
+            "{method}"
+        );
+    }
+    // A document that is nowhere.
+    let answers = session.send(&json!({
+        "jsonrpc": "2.0", "id": 8, "method": "textDocument/formatting",
+        "params": {"textDocument": {"uri": "file:///work/demo/scripts/none.zeff"}},
+    }));
+    assert_eq!(
+        answers[0],
+        json!({"jsonrpc": "2.0", "id": 8, "result": null})
+    );
+    assert_eq!(
+        answers[1]["params"]["message"],
+        "file:///work/demo/scripts/none.zeff was not formatted: it cannot be read"
+    );
+}
+
+#[test]
+fn hover_and_formatting_need_what_they_are_about() {
+    let mut session = Session::started();
+    let place = json!({"line": 0, "character": 0});
+    let stretch = json!({"start": place, "end": place});
+    for (method, needs, wrong) in [
+        (
+            "textDocument/hover",
+            "a document and a place in it",
+            vec![
+                json!({}),
+                json!({"textDocument": {"uri": MAIN}}),
+                json!({"position": place}),
+            ],
+        ),
+        (
+            "textDocument/formatting",
+            "a document",
+            vec![json!(null), json!({}), json!({"textDocument": {"uri": 7}})],
+        ),
+        (
+            "textDocument/rangeFormatting",
+            "a document and a range of it",
+            vec![
+                json!({}),
+                json!({"textDocument": {"uri": MAIN}}),
+                json!({"range": stretch}),
+                json!({"textDocument": {"uri": MAIN}, "range": {"start": place}}),
+            ],
+        ),
+    ] {
+        for params in wrong {
+            let answers = session
+                .send(&json!({"jsonrpc": "2.0", "id": 4, "method": method, "params": params}));
+            assert_eq!(answers.len(), 1, "{method} {params}");
+            assert_eq!(error_code(&answers[0]), -32602, "{method} {params}");
+            assert_eq!(
+                answers[0]["error"]["message"],
+                format!("`{method}` names {needs}")
+            );
+        }
+    }
+    // Before `initialize` they are refused as any request is.
+    let mut early = Session::new();
+    let answers = early
+        .send(&json!({"jsonrpc": "2.0", "id": 1, "method": "textDocument/hover", "params": {}}));
     assert_eq!(error_code(&answers[0]), -32002);
 }

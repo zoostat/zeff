@@ -39,6 +39,14 @@ def conversation(uri, text, changed):
             {"textDocument": {"uri": uri, "version": 3}, "contentChanges": [part]},
         ),
         message("textDocument/hover", {"textDocument": {"uri": uri}}, id=2),
+        # Hover at a place, and the formatting of the document and of a selection.
+        message("textDocument/hover", {"textDocument": {"uri": uri}, "position": {"line": 1, "character": 5}}, id=7),
+        message("textDocument/formatting", {"textDocument": {"uri": uri}}, id=8),
+        message(
+            "textDocument/rangeFormatting",
+            {"textDocument": {"uri": uri}, "range": {"start": {"line": 1, "character": 0}, "end": {"line": 4, "character": 2}}},
+            id=9,
+        ),
         # Completion and signature help at a place inside the document, and past its end.
         message("textDocument/completion", {"textDocument": {"uri": uri}, "position": {"line": 2, "character": 4}}, id=4),
         message("textDocument/signatureHelp", {"textDocument": {"uri": uri}, "position": {"line": 2, "character": 4}}, id=5),

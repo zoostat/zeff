@@ -7,7 +7,16 @@ expression: editor.told
   "jsonrpc": "2.0",
   "method": "initialize",
   "params": {
-    "capabilities": {},
+    "capabilities": {
+      "textDocument": {
+        "hover": {
+          "contentFormat": [
+            "markdown",
+            "plaintext"
+          ]
+        }
+      }
+    },
     "processId": null,
     "rootUri": "file:///s"
   }
@@ -25,6 +34,9 @@ expression: editor.told
           ":"
         ]
       },
+      "documentFormattingProvider": true,
+      "documentRangeFormattingProvider": true,
+      "hoverProvider": true,
       "positionEncoding": "utf-16",
       "signatureHelpProvider": {
         "retriggerCharacters": [
@@ -840,6 +852,300 @@ expression: editor.told
   "params": {
     "contentChanges": [
       {
+        "text": "(79 lines, the last: wages.where(wage > 20).share_missing(hours))"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 7
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 7
+  }
+}
+--> {
+  "id": 14,
+  "jsonrpc": "2.0",
+  "method": "textDocument/hover",
+  "params": {
+    "position": {
+      "character": 2,
+      "line": 78
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 14,
+  "jsonrpc": "2.0",
+  "result": {
+    "contents": {
+      "kind": "plaintext",
+      "value": "wages: Frame\n18,412 rows, 14 variables"
+    },
+    "range": {
+      "end": {
+        "character": 5,
+        "line": 78
+      },
+      "start": {
+        "character": 0,
+        "line": 78
+      }
+    }
+  }
+}
+--> {
+  "id": 15,
+  "jsonrpc": "2.0",
+  "method": "textDocument/hover",
+  "params": {
+    "position": {
+      "character": 14,
+      "line": 78
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 15,
+  "jsonrpc": "2.0",
+  "result": {
+    "contents": {
+      "kind": "plaintext",
+      "value": "wage: Float\nHourly wage\n211 missing"
+    },
+    "range": {
+      "end": {
+        "character": 16,
+        "line": 78
+      },
+      "start": {
+        "character": 12,
+        "line": 78
+      }
+    }
+  }
+}
+--> {
+  "id": 16,
+  "jsonrpc": "2.0",
+  "method": "textDocument/hover",
+  "params": {
+    "position": {
+      "character": 28,
+      "line": 78
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 16,
+  "jsonrpc": "2.0",
+  "result": {
+    "contents": {
+      "kind": "markdown",
+      "value": "````text\nshare_missing — Share of rows where a variable is missing.   functions/share_missing.zeff · a function of this project\n\nUSAGE\n    share_missing(data: Frame, var: Var)\n\n(and 18 lines more)"
+    },
+    "range": {
+      "end": {
+        "character": 36,
+        "line": 78
+      },
+      "start": {
+        "character": 23,
+        "line": 78
+      }
+    }
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(79 lines, the last: wages.where( wage>20 ).share_missing( hours ))"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 8
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 8
+  }
+}
+--> {
+  "id": 17,
+  "jsonrpc": "2.0",
+  "method": "textDocument/rangeFormatting",
+  "params": {
+    "options": {
+      "insertSpaces": true,
+      "tabSize": 4
+    },
+    "range": {
+      "end": {
+        "character": 3,
+        "line": 78
+      },
+      "start": {
+        "character": 3,
+        "line": 78
+      }
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 17,
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "newText": "wages.where(wage > 20).share_missing(hours)\n",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 79
+        },
+        "start": {
+          "character": 0,
+          "line": 78
+        }
+      }
+    }
+  ]
+}
+--> {
+  "id": 18,
+  "jsonrpc": "2.0",
+  "method": "textDocument/formatting",
+  "params": {
+    "options": {
+      "insertSpaces": true,
+      "tabSize": 4
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 18,
+  "jsonrpc": "2.0",
+  "result": [
+    {
+      "newText": "wages.where(wage > 20).share_missing(hours)\n",
+      "range": {
+        "end": {
+          "character": 0,
+          "line": 79
+        },
+        "start": {
+          "character": 0,
+          "line": 78
+        }
+      }
+    }
+  ]
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(79 lines, the last: wages.where(wage > 20)"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 9
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [
+      {
+        "code": "Z0302",
+        "message": "this `(` is never closed",
+        "range": {
+          "end": {
+            "character": 12,
+            "line": 78
+          },
+          "start": {
+            "character": 11,
+            "line": 78
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      }
+    ],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 9
+  }
+}
+--> {
+  "id": 19,
+  "jsonrpc": "2.0",
+  "method": "textDocument/formatting",
+  "params": {
+    "options": {
+      "insertSpaces": true,
+      "tabSize": 4
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "id": 19,
+  "jsonrpc": "2.0",
+  "result": null
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "window/logMessage",
+  "params": {
+    "message": "file:///s/user_functions/scripts/main.zeff was not formatted: it does not parse (line 79: this `(` is never closed)",
+    "type": 2
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
         "text": "(15 lines, the last: })"
       }
     ],
@@ -880,15 +1186,15 @@ expression: editor.told
         "source": "zeff"
       },
       {
-        "code": "Z0213",
-        "message": "`.sha` reads a record field, but this is a Frame\nhelp: a method call has parentheses: `.sha()`",
+        "code": "Z0302",
+        "message": "this `(` is never closed",
         "range": {
           "end": {
-            "character": 9,
+            "character": 12,
             "line": 78
           },
           "start": {
-            "character": 0,
+            "character": 11,
             "line": 78
           }
         },
@@ -897,7 +1203,7 @@ expression: editor.told
       }
     ],
     "uri": "file:///s/user_functions/scripts/main.zeff",
-    "version": 6
+    "version": 9
   }
 }
 --> {
@@ -930,15 +1236,15 @@ expression: editor.told
   "params": {
     "diagnostics": [
       {
-        "code": "Z0213",
-        "message": "`.sha` reads a record field, but this is a Frame\nhelp: a method call has parentheses: `.sha()`",
+        "code": "Z0302",
+        "message": "this `(` is never closed",
         "range": {
           "end": {
-            "character": 9,
+            "character": 12,
             "line": 78
           },
           "start": {
-            "character": 0,
+            "character": 11,
             "line": 78
           }
         },
@@ -947,7 +1253,7 @@ expression: editor.told
       }
     ],
     "uri": "file:///s/user_functions/scripts/main.zeff",
-    "version": 6
+    "version": 9
   }
 }
 --> {
@@ -961,7 +1267,7 @@ expression: editor.told
     ],
     "textDocument": {
       "uri": "file:///s/user_functions/scripts/main.zeff",
-      "version": 7
+      "version": 10
     }
   }
 }
@@ -971,7 +1277,7 @@ expression: editor.told
   "params": {
     "diagnostics": [],
     "uri": "file:///s/user_functions/scripts/main.zeff",
-    "version": 7
+    "version": 10
   }
 }
 --> {
@@ -1130,7 +1436,7 @@ expression: editor.told
 --> {
   "id": 20,
   "jsonrpc": "2.0",
-  "method": "textDocument/hover",
+  "method": "textDocument/definition",
   "params": {
     "position": {
       "character": 0,
@@ -1144,7 +1450,7 @@ expression: editor.told
 <-- {
   "error": {
     "code": -32601,
-    "message": "`textDocument/hover` is not a request this server answers"
+    "message": "`textDocument/definition` is not a request this server answers"
   },
   "id": 20,
   "jsonrpc": "2.0"

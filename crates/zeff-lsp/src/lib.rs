@@ -4,8 +4,9 @@
 //!
 //! The conversation is opened and closed, documents are opened, changed and closed, and
 //! after each the editor is told the checker's diagnostics (release 0.7.0, step 34b). An
-//! editor asks for completion and for signature help at a place in a document (step 35f).
-//! Hover and formatting follow.
+//! editor asks for completion and for signature help at a place in a document (step 35f),
+//! for what is known of the word under the cursor, and for a document or a selection to be
+//! formatted (step 36d).
 //!
 //! The reader and the writer of the messages are the engine's own: a loop that reads a
 //! message, answers it and reads the next, with nothing running beside it.

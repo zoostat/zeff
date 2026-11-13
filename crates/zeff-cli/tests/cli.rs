@@ -2212,6 +2212,14 @@ fn zeff_lsp_serves_an_editor_on_standard_input_and_output() {
         open("let d = dataset(wages)\nd.mean(wagee)\n"),
         ask(5, "textDocument/completion"),
         ask(6, "textDocument/signatureHelp"),
+        // What is known of `mean`, the function called at that place.
+        ask(7, "textDocument/hover"),
+        // The script typed untidily, and formatted.
+        change(2, "let   d = dataset( wages )\nd.mean(wage)\n"),
+        format!(
+            "{{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"textDocument/formatting\",\"params\":{{\"textDocument\":{{\"uri\":{}}},\"options\":{{\"tabSize\":4,\"insertSpaces\":true}}}}}}",
+            json_text(&uri)
+        ),
         conversation[5].clone(),
         conversation[6].clone(),
     ];
@@ -2238,6 +2246,23 @@ fn zeff_lsp_serves_an_editor_on_standard_input_and_output() {
     );
     assert!(
         answered.contains("{\"activeParameter\":1,\"activeSignature\":0,"),
+        "{answered}"
+    );
+    // Hover on a word that is no variable of the frame at that place (`wagee`): nothing.
+    assert!(
+        answered.contains("{\"id\":7,\"jsonrpc\":\"2.0\",\"result\":null}"),
+        "{answered}"
+    );
+    assert!(
+        answered.contains("\"hoverProvider\":true")
+            && answered.contains("\"documentFormattingProvider\":true"),
+        "{answered}"
+    );
+    // The one line that was untidy is the one line replaced.
+    assert!(
+        answered.contains(
+            "{\"id\":8,\"jsonrpc\":\"2.0\",\"result\":[{\"newText\":\"let d = dataset(wages)\\n\",\"range\":{\"end\":{\"character\":0,\"line\":1},\"start\":{\"character\":0,\"line\":0}}}]}"
+        ),
         "{answered}"
     );
     // It takes no arguments.

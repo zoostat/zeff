@@ -97,6 +97,18 @@ impl Conversation {
                 assert_eq!(version, zeff_engine::VERSION);
                 *version = json!("(the version of the engine)");
             }
+            // A help page in a hover: its first lines, and how many follow.
+            if let Some(page) = value.pointer_mut("/result/contents/value")
+                && let Some(text) = page.as_str()
+                && text.lines().count() > 6
+            {
+                let lines: Vec<&str> = text.lines().collect();
+                *page = json!(format!(
+                    "{}\n(and {} lines more)",
+                    lines[..6].join("\n"),
+                    lines.len() - 6
+                ));
+            }
             // A long list of completions: its first four, and how many follow.
             if let Some(items) = value
                 .pointer_mut("/result/items")
@@ -167,7 +179,11 @@ fn the_messages_exchanged_on_the_sample_scripts() {
         "jsonrpc": "2.0",
         "id": 1,
         "method": "initialize",
-        "params": {"processId": null, "rootUri": "file:///s", "capabilities": {}},
+        "params": {
+            "processId": null,
+            "rootUri": "file:///s",
+            "capabilities": {"textDocument": {"hover": {"contentFormat": ["markdown", "plaintext"]}}},
+        },
     }));
     editor.send(json!({"jsonrpc": "2.0", "method": "initialized", "params": {}}));
     // Every script and module of the samples opened: none has anything said of it.
@@ -231,6 +247,47 @@ fn the_messages_exchanged_on_the_sample_scripts() {
         "method": "textDocument/completion",
         "params": {"textDocument": {"uri": script}, "position": place},
     }));
+    // What is known of the word under the cursor: a frame bound in the script, a variable
+    // of it, and a function of the project.
+    let asked = format!("{script_text}wages.where(wage > 20).share_missing(hours)\n");
+    let line = asked.lines().count() - 1;
+    editor.change(script, 7, &asked);
+    for (id, character) in [(14, 2), (15, 14), (16, 28)] {
+        editor.send(json!({
+            "jsonrpc": "2.0",
+            "id": id,
+            "method": "textDocument/hover",
+            "params": {"textDocument": {"uri": script}, "position": {"line": line, "character": character}},
+        }));
+    }
+    // The last line typed untidily, and formatted: alone, by a selection that stands in
+    // it, and with the whole document, which changes nothing else.
+    let untidy = format!("{script_text}wages.where( wage>20 ).share_missing( hours )\n");
+    editor.change(script, 8, &untidy);
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 17,
+        "method": "textDocument/rangeFormatting",
+        "params": {
+            "textDocument": {"uri": script},
+            "range": {"start": {"line": line, "character": 3}, "end": {"line": line, "character": 3}},
+            "options": {"tabSize": 4, "insertSpaces": true},
+        },
+    }));
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 18,
+        "method": "textDocument/formatting",
+        "params": {"textDocument": {"uri": script}, "options": {"tabSize": 4, "insertSpaces": true}},
+    }));
+    // A script that does not parse is left as it is, and the editor's log says why.
+    editor.change(script, 9, &format!("{script_text}wages.where(wage > 20\n"));
+    editor.send(json!({
+        "jsonrpc": "2.0",
+        "id": 19,
+        "method": "textDocument/formatting",
+        "params": {"textDocument": {"uri": script}, "options": {"tabSize": 4, "insertSpaces": true}},
+    }));
     // The module's function renamed, not saved: the script is told what it now lacks.
     editor.change(
         module,
@@ -239,15 +296,15 @@ fn the_messages_exchanged_on_the_sample_scripts() {
     );
     // The module as it was, and the script as it was: nothing is left to say.
     editor.change(module, 3, &module_text);
-    editor.change(script, 7, &script_text);
+    editor.change(script, 10, &script_text);
     for (uri, _) in &documents {
         editor.close(uri);
     }
-    // A request for a part of the server that a later step builds.
+    // A request for a part of the server that a later release builds.
     editor.send(json!({
         "jsonrpc": "2.0",
         "id": 20,
-        "method": "textDocument/hover",
+        "method": "textDocument/definition",
         "params": {"textDocument": {"uri": script}, "position": {"line": 0, "character": 0}},
     }));
     editor.send(json!({"jsonrpc": "2.0", "id": 21, "method": "shutdown"}));

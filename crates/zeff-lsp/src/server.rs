@@ -13,8 +13,8 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use zeff_engine::fs::FileSystem;
 use zeff_engine::language::{
-    Completion, CompletionKind, Documents, Finding, Level, Position, Range, SignatureHelp,
-    completions, diagnostics, offset, signature_help,
+    Completion, CompletionKind, Documents, Finding, HoverKind, Level, NotFormatted, Position,
+    Range, SignatureHelp, completions, diagnostics, formatting, hover, offset, signature_help,
 };
 
 /// The errors of JSON-RPC and of the protocol that this server gives.
@@ -63,6 +63,9 @@ pub struct Server {
     uris: BTreeMap<PathBuf, String>,
     /// What the editor was last told of each open document.
     told: BTreeMap<PathBuf, Vec<Finding>>,
+    /// Whether the editor said, in `initialize`, that it shows Markdown in a hover; one that
+    /// did not is sent plain text.
+    markdown: bool,
 }
 
 impl Default for Server {
@@ -239,6 +242,7 @@ impl Server {
             documents: Documents::new(),
             uris: BTreeMap::new(),
             told: BTreeMap::new(),
+            markdown: false,
         }
     }
 
@@ -291,17 +295,33 @@ impl Server {
         };
         let params = message.get("params").unwrap_or(&Value::Null);
         match id {
-            Some(id) => answer.messages.push(self.request(fs, id, method, params)),
+            Some(id) => answer.messages.extend(self.request(fs, id, method, params)),
             None => self.notification(fs, method, params, &mut answer),
         }
         answer
     }
 
     /// A request, answered.
-    fn request(&mut self, fs: &dyn FileSystem, id: &Value, method: &str, params: &Value) -> String {
-        match (self.state, method) {
+    /// A request, answered: its answer, and with it what the editor's log is told where the
+    /// answer cannot say why it is empty.
+    fn request(
+        &mut self,
+        fs: &dyn FileSystem,
+        id: &Value,
+        method: &str,
+        params: &Value,
+    ) -> Vec<String> {
+        let answer = match (self.state, method) {
+            (
+                State::Running,
+                "textDocument/hover" | "textDocument/formatting" | "textDocument/rangeFormatting",
+            ) => return self.hover_or_format(fs, id, method, params),
             (State::New, "initialize") => {
                 self.state = State::Running;
+                self.markdown = params
+                    .pointer("/capabilities/textDocument/hover/contentFormat")
+                    .and_then(Value::as_array)
+                    .is_some_and(|formats| formats.iter().any(|format| format == "markdown"));
                 response(
                     id,
                     json!({
@@ -322,6 +342,12 @@ impl Server {
                                 "triggerCharacters": ["(", ","],
                                 "retriggerCharacters": [","],
                             },
+                            // What is known of the word under the cursor.
+                            "hoverProvider": true,
+                            // A document, and the statements a selection touches, put in
+                            // the one style of the language.
+                            "documentFormattingProvider": true,
+                            "documentRangeFormattingProvider": true,
                         },
                         "serverInfo": { "name": "zeff", "version": zeff_engine::VERSION },
                     }),
@@ -347,11 +373,11 @@ impl Server {
                     .and_then(Value::as_str);
                 let place = params.get("position").and_then(sent_position);
                 let (Some(uri), Some(at)) = (uri, place) else {
-                    return error(
+                    return vec![error(
                         id,
                         code::INVALID_PARAMS,
                         &format!("`{method}` names a document and a place in it"),
-                    );
+                    )];
                 };
                 let path = path_of(uri);
                 let documents = &self.documents;
@@ -390,6 +416,117 @@ impl Server {
                 code::INVALID_REQUEST,
                 &format!("`{method}` after `shutdown`: only `exit` is expected"),
             ),
+        };
+        vec![answer]
+    }
+
+    /// Hover, and the formatting of a document or of a selection.
+    fn hover_or_format(
+        &self,
+        fs: &dyn FileSystem,
+        id: &Value,
+        method: &str,
+        params: &Value,
+    ) -> Vec<String> {
+        let uri = params
+            .get("textDocument")
+            .and_then(|d| d.get("uri"))
+            .and_then(Value::as_str);
+        let place = params.get("position").and_then(sent_position);
+        let selection = params.get("range").and_then(sent_range);
+        // What each needs beside its document: hover a place, a selection its range.
+        let complete = match method {
+            "textDocument/hover" => place.is_some(),
+            "textDocument/rangeFormatting" => selection.is_some(),
+            _ => true,
+        };
+        let Some(uri) = uri.filter(|_| complete) else {
+            let needs = match method {
+                "textDocument/hover" => "a document and a place in it",
+                "textDocument/rangeFormatting" => "a document and a range of it",
+                _ => "a document",
+            };
+            return vec![error(
+                id,
+                code::INVALID_PARAMS,
+                &format!("`{method}` names {needs}"),
+            )];
+        };
+        let path = path_of(uri);
+        let documents = &self.documents;
+        let markdown = self.markdown;
+        let answered = catch_unwind(AssertUnwindSafe(|| -> (Value, Option<String>) {
+            if method == "textDocument/hover" {
+                let at = place.unwrap_or(Position {
+                    line: 0,
+                    character: 0,
+                });
+                let shown = hover(fs, documents, &path, at).map(|found| {
+                    // A help page is laid out in columns, which only a fixed-width block
+                    // keeps: a fenced block for an editor that shows Markdown. The lines
+                    // of a variable or a binding are plain text, since a type such as
+                    // `List<Str>` is no Markdown.
+                    let contents = if markdown && found.kind == HoverKind::Function {
+                        json!({
+                            "kind": "markdown",
+                            "value": format!("````text\n{}\n````", found.text.trim_end()),
+                        })
+                    } else {
+                        json!({ "kind": "plaintext", "value": found.text })
+                    };
+                    json!({ "contents": contents, "range": range(found.range) })
+                });
+                return (shown.unwrap_or(Value::Null), None);
+            }
+            match formatting(fs, documents, &path, selection) {
+                Ok(edits) => {
+                    let edits: Vec<Value> = edits
+                        .iter()
+                        .map(|edit| json!({ "range": range(edit.range), "newText": edit.text }))
+                        .collect();
+                    (Value::Array(edits), None)
+                }
+                // Nothing is changed, and the editor's log says why: an answer that was an
+                // error would be shown as a failure at every save of a half-typed script.
+                Err(NotFormatted::Syntax { at, message }) => (
+                    Value::Null,
+                    Some(log(
+                        2,
+                        &format!(
+                            "{uri} was not formatted: it does not parse (line {}: {message})",
+                            at.line + 1
+                        ),
+                    )),
+                ),
+                Err(NotFormatted::Unreadable) => (
+                    Value::Null,
+                    Some(log(
+                        2,
+                        &format!("{uri} was not formatted: it cannot be read"),
+                    )),
+                ),
+                Err(NotFormatted::Internal(what)) => (
+                    Value::Null,
+                    Some(log(
+                        1,
+                        &format!(
+                            "{uri} was not formatted: {what}; this is a bug in Zeff, not in your script (Z9001)"
+                        ),
+                    )),
+                ),
+            }
+        }));
+        match answered {
+            Ok((result, said)) => {
+                let mut out = vec![response(id, result)];
+                out.extend(said);
+                out
+            }
+            Err(_) => vec![error(
+                id,
+                code::INTERNAL_ERROR,
+                "internal error: this is a bug in Zeff, not in your script (Z9001)",
+            )],
         }
     }
 
