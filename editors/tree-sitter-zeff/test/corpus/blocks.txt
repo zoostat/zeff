@@ -1,0 +1,121 @@
+================================================================================
+A model block
+================================================================================
+
+let m = model {
+    ability =~ test1 + test2 + test3
+    wage ~ ability + educ
+    test1 ~~ test2
+    indirect := a * b
+    wage ~ a as educ
+    efa(f1, f2) =~ x1 + x2 + x3 + x4
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (model_block
+      (formula
+        (qualified_name
+          (identifier))
+        (binary_expression
+          (binary_expression
+            (qualified_name
+              (identifier))
+            (qualified_name
+              (identifier)))
+          (qualified_name
+            (identifier))))
+      (formula
+        (qualified_name
+          (identifier))
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (qualified_name
+            (identifier))))
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (defined_parameter
+        (identifier)
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (qualified_name
+            (identifier))))
+      (formula
+        (qualified_name
+          (identifier))
+        (label_expression
+          (qualified_name
+            (identifier))
+          (identifier)))
+      (formula
+        (call
+          (qualified_name
+            (identifier))
+          (arguments
+            (qualified_name
+              (identifier))
+            (qualified_name
+              (identifier))))
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (qualified_name
+                (identifier))
+              (qualified_name
+                (identifier)))
+            (qualified_name
+              (identifier)))
+          (qualified_name
+            (identifier)))))))
+
+================================================================================
+A causal graph
+================================================================================
+
+let g = dag {
+    educ -> wage
+    ability -> educ -> wage
+    ability <-> family
+    age -- cohort
+    [educ, exper] -> wage
+    latent ability, family
+    selected employed
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (dag_block
+      (path
+        (identifier)
+        (identifier))
+      (path
+        (identifier)
+        (identifier)
+        (identifier))
+      (path
+        (identifier)
+        (identifier))
+      (path
+        (identifier)
+        (identifier))
+      (path
+        (node_set
+          (identifier)
+          (identifier))
+        (identifier))
+      (node_roles
+        (identifier)
+        (identifier))
+      (node_roles
+        (identifier)))))

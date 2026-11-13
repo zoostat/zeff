@@ -1,0 +1,176 @@
+================================================================================
+Numbers
+================================================================================
+
+42
+1_000_000
+3.14
+1e-7
+2.5E+10
+1_0.2_5
+
+--------------------------------------------------------------------------------
+
+(script
+  (number)
+  (number)
+  (number)
+  (number)
+  (number)
+  (number))
+
+================================================================================
+Texts and their escapes
+================================================================================
+
+"plain"
+"a \"quoted\" word\n"
+""
+r"C:\data\wages.csv"
+r"\d+"
+
+--------------------------------------------------------------------------------
+
+(script
+  (string)
+  (string
+    (escape)
+    (escape)
+    (escape))
+  (string)
+  (raw_string)
+  (raw_string))
+
+================================================================================
+true, false, NA and Inf
+================================================================================
+
+true
+false
+NA
+Inf
+-Inf
+
+--------------------------------------------------------------------------------
+
+(script
+  (boolean)
+  (boolean)
+  (missing)
+  (infinity)
+  (unary_expression
+    (infinity)))
+
+================================================================================
+Lists
+================================================================================
+
+[]
+[1, 2, 3]
+[a, b,]
+[[1, 2], [3]]
+[
+    "north",
+    "south",
+]
+
+--------------------------------------------------------------------------------
+
+(script
+  (list)
+  (list
+    (number)
+    (number)
+    (number))
+  (list
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier)))
+  (list
+    (list
+      (number)
+      (number))
+    (list
+      (number)))
+  (list
+    (string)
+    (string)))
+
+================================================================================
+Mappings
+================================================================================
+
+[0 => "male", 1 => "female"]
+[school => 1 + x]
+["a" => [1, 2], "b" => []]
+
+--------------------------------------------------------------------------------
+
+(script
+  (mapping
+    (pair
+      (number)
+      (string))
+    (pair
+      (number)
+      (string)))
+  (mapping
+    (pair
+      (qualified_name
+        (identifier))
+      (binary_expression
+        (number)
+        (qualified_name
+          (identifier)))))
+  (mapping
+    (pair
+      (string)
+      (list
+        (number)
+        (number)))
+    (pair
+      (string)
+      (list))))
+
+================================================================================
+Records
+================================================================================
+
+{}
+{se: robust}
+{n: 3, name: "x",}
+{..defaults, level: 0.9}
+{type: Str, case: 1}
+
+--------------------------------------------------------------------------------
+
+(script
+  (record)
+  (record
+    (field
+      (identifier)
+      (qualified_name
+        (identifier))))
+  (record
+    (field
+      (identifier)
+      (number))
+    (field
+      (identifier)
+      (string)))
+  (record
+    (spread
+      (qualified_name
+        (identifier)))
+    (field
+      (identifier)
+      (number)))
+  (record
+    (field
+      (identifier)
+      (qualified_name
+        (identifier)))
+    (field
+      (identifier)
+      (number))))

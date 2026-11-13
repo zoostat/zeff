@@ -1,0 +1,311 @@
+================================================================================
+A function with its help lines
+================================================================================
+
+/// Twice a number.
+///
+/// x: The number.
+/// returns: Twice it.
+fn twice(x: Float) -> Float {
+    x * 2
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (doc_comment)
+  (doc_comment)
+  (doc_comment)
+  (doc_comment)
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_name
+          (qualified_name
+            (identifier)))))
+    (type_name
+      (qualified_name
+        (identifier)))
+    (block
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (number)))))
+
+================================================================================
+A body on the line of its braces
+================================================================================
+
+fn half(x: Float) -> Float { x / 2 }
+
+--------------------------------------------------------------------------------
+
+(script
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_name
+          (qualified_name
+            (identifier)))))
+    (type_name
+      (qualified_name
+        (identifier)))
+    (block
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (number)))))
+
+================================================================================
+Parameters with defaults and return
+================================================================================
+
+fn share(data: Frame, var: Var, digits: Int = 3) -> Float {
+    let n = data.n_rows()
+    if n == 0 { return NA }
+    return round(data.n_missing(var) / n, digits)
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_name
+          (qualified_name
+            (identifier))))
+      (parameter
+        (identifier)
+        (type_name
+          (qualified_name
+            (identifier))))
+      (parameter
+        (identifier)
+        (type_name
+          (qualified_name
+            (identifier)))
+        (number)))
+    (type_name
+      (qualified_name
+        (identifier)))
+    (block
+      (let_statement
+        (identifier)
+        (method_call
+          (qualified_name
+            (identifier))
+          (qualified_name
+            (identifier))
+          (arguments)))
+      (if_expression
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (number))
+        (block
+          (return_statement
+            (missing))))
+      (return_statement
+        (call
+          (qualified_name
+            (identifier))
+          (arguments
+            (binary_expression
+              (method_call
+                (qualified_name
+                  (identifier))
+                (qualified_name
+                  (identifier))
+                (arguments
+                  (qualified_name
+                    (identifier))))
+              (qualified_name
+                (identifier)))
+            (qualified_name
+              (identifier))))))))
+
+================================================================================
+Types: lists, records, words, optional, functions, nothing
+================================================================================
+
+fn f(a: List<Float>, b: {n: Int, name: Str}, c: left | inner | full, d: Float?, e: Fn(Float, ..) -> Float, g: Mapping<Str, List<Int>>, h: Int | Float) -> Nothing {
+    print(a)
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (generic_type
+          (qualified_name
+            (identifier))
+          (type_name
+            (qualified_name
+              (identifier)))))
+      (parameter
+        (identifier)
+        (record_type
+          (identifier)
+          (type_name
+            (qualified_name
+              (identifier)))
+          (identifier)
+          (type_name
+            (qualified_name
+              (identifier)))))
+      (parameter
+        (identifier)
+        (union_type
+          (type_name
+            (qualified_name
+              (identifier)))
+          (type_name
+            (qualified_name
+              (identifier)))
+          (type_name
+            (qualified_name
+              (identifier)))))
+      (parameter
+        (identifier)
+        (optional_type
+          (type_name
+            (qualified_name
+              (identifier)))))
+      (parameter
+        (identifier)
+        (function_type
+          (type_name
+            (qualified_name
+              (identifier)))
+          (type_name
+            (qualified_name
+              (identifier)))))
+      (parameter
+        (identifier)
+        (generic_type
+          (qualified_name
+            (identifier))
+          (type_name
+            (qualified_name
+              (identifier)))
+          (generic_type
+            (qualified_name
+              (identifier))
+            (type_name
+              (qualified_name
+                (identifier))))))
+      (parameter
+        (identifier)
+        (union_type
+          (type_name
+            (qualified_name
+              (identifier)))
+          (type_name
+            (qualified_name
+              (identifier))))))
+    (type_name
+      (qualified_name
+        (identifier)))
+    (block
+      (call
+        (qualified_name
+          (identifier))
+        (arguments
+          (qualified_name
+            (identifier)))))))
+
+================================================================================
+A function literal as an argument
+================================================================================
+
+let halves = map(xs, fn(x) x / 2)
+let sums = reduce(xs, fn(total: Float, x: Float) total + x, 0)
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (call
+      (qualified_name
+        (identifier))
+      (arguments
+        (qualified_name
+          (identifier))
+        (function_literal
+          (identifier)
+          (binary_expression
+            (qualified_name
+              (identifier))
+            (number))))))
+  (let_statement
+    (identifier)
+    (call
+      (qualified_name
+        (identifier))
+      (arguments
+        (qualified_name
+          (identifier))
+        (function_literal
+          (identifier)
+          (type_name
+            (qualified_name
+              (identifier)))
+          (identifier)
+          (type_name
+            (qualified_name
+              (identifier)))
+          (binary_expression
+            (qualified_name
+              (identifier))
+            (qualified_name
+              (identifier))))
+        (number)))))
+
+================================================================================
+A function that returns a function type
+================================================================================
+
+fn pick(up: Bool) -> Fn(Float) -> Float {
+    if up { ceil } else { floor }
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (type_name
+          (qualified_name
+            (identifier)))))
+    (function_type
+      (type_name
+        (qualified_name
+          (identifier)))
+      (type_name
+        (qualified_name
+          (identifier))))
+    (block
+      (if_expression
+        (qualified_name
+          (identifier))
+        (block
+          (qualified_name
+            (identifier)))
+        (block
+          (qualified_name
+            (identifier)))))))

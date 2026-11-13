@@ -1,0 +1,19 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "zeff",
+      "camelcase": "Zeff",
+      "scope": "source.zeff",
+      "path": ".",
+      "file-types": ["zeff"],
+      "highlights": "queries/highlights.scm"
+    }
+  ],
+  "metadata": {
+    "version": "0.7.0",
+    "license": "Apache-2.0",
+    "description": "The tree-sitter grammar of Zeff, a language for statistics",
+    "authors": [{ "name": "Sabyasachi Patra" }]
+  }
+}

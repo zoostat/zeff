@@ -1,0 +1,354 @@
+================================================================================
+A binding and a statement that prints
+================================================================================
+
+let n = 3
+n
+print(n)
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (number))
+  (qualified_name
+    (identifier))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier)))))
+
+================================================================================
+A script that ends without a line break
+================================================================================
+
+let n = 3
+print(n)
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (number))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier)))))
+
+================================================================================
+Blank lines and comments between statements
+================================================================================
+
+// The data.
+let d = dataset(wages)
+
+
+// Its rows.
+d.n_rows()   // counted
+
+--------------------------------------------------------------------------------
+
+(script
+  (comment)
+  (let_statement
+    (identifier)
+    (call
+      (qualified_name
+        (identifier))
+      (arguments
+        (qualified_name
+          (identifier)))))
+  (comment)
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments))
+  (comment))
+
+================================================================================
+A pragma above a statement and at its end
+================================================================================
+
+// zeff: allow(W0101) the name is meant
+let mean = 3
+let sd = 2 // zeff: allow(W0101) and this one
+
+--------------------------------------------------------------------------------
+
+(script
+  (pragma)
+  (let_statement
+    (identifier)
+    (number))
+  (let_statement
+    (identifier)
+    (number))
+  (pragma))
+
+================================================================================
+use before the statements
+================================================================================
+
+use functions::clean
+use functions::tables
+let x = 1
+
+--------------------------------------------------------------------------------
+
+(script
+  (use_declaration
+    (qualified_name
+      (identifier)
+      (identifier)))
+  (use_declaration
+    (qualified_name
+      (identifier)
+      (identifier)))
+  (let_statement
+    (identifier)
+    (number)))
+
+================================================================================
+A chain continued by lines that begin with a dot
+================================================================================
+
+let kept = wages
+    .where(year == 2015)
+    .select([wage, educ])
+kept.n_rows()
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (method_call
+      (method_call
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier))
+        (arguments
+          (binary_expression
+            (qualified_name
+              (identifier))
+            (number))))
+      (qualified_name
+        (identifier))
+      (arguments
+        (list
+          (qualified_name
+            (identifier))
+          (qualified_name
+            (identifier))))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments)))
+
+================================================================================
+A chain continued past a comment and a blank line
+================================================================================
+
+wages
+    // only the last year
+
+    .where(year == 2021)
+    .mean(wage)
+print(1)
+
+--------------------------------------------------------------------------------
+
+(script
+  (method_call
+    (method_call
+      (qualified_name
+        (identifier))
+      (comment)
+      (qualified_name
+        (identifier))
+      (arguments
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (number))))
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier))))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (number))))
+
+================================================================================
+A line that ends with an operator goes on
+================================================================================
+
+let total = first +
+    second -
+    third
+let same =
+    total
+print(total)
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (binary_expression
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (qualified_name
+        (identifier))))
+  (let_statement
+    (identifier)
+    (qualified_name
+      (identifier)))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier)))))
+
+================================================================================
+A call that closes on a later line
+================================================================================
+
+let fit = wages.reg(
+    log(wage) ~ educ + exper,
+    se: robust,
+)
+fit
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (method_call
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))
+      (arguments
+        (formula
+          (call
+            (qualified_name
+              (identifier))
+            (arguments
+              (qualified_name
+                (identifier))))
+          (binary_expression
+            (qualified_name
+              (identifier))
+            (qualified_name
+              (identifier))))
+        (named_argument
+          (identifier)
+          (qualified_name
+            (identifier))))))
+  (qualified_name
+    (identifier)))
+
+================================================================================
+A line that begins with two dots is no continuation
+================================================================================
+
+let a = f(
+    ..options
+)
+let b = 1
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (call
+      (qualified_name
+        (identifier))
+      (arguments
+        (spread
+          (qualified_name
+            (identifier))))))
+  (let_statement
+    (identifier)
+    (number)))
+
+================================================================================
+for, break and continue
+================================================================================
+
+for i in 1..10 {
+    if i == 3 { continue }
+    if i > 5 { break }
+    print(i)
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (for_loop
+    (identifier)
+    (range_expression
+      (number)
+      (number))
+    (block
+      (if_expression
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (number))
+        (block
+          (continue_statement)))
+      (if_expression
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (number))
+        (block
+          (break_statement)))
+      (call
+        (qualified_name
+          (identifier))
+        (arguments
+          (qualified_name
+            (identifier)))))))
+
+================================================================================
+Lines ended by a carriage return and a line feed
+================================================================================
+
+let a = 1
+print(a)
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (number))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier)))))

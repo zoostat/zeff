@@ -1,0 +1,299 @@
+================================================================================
+Arithmetic by precedence
+================================================================================
+
+a + b * c
+a * b + c
+a - b - c
+a / b * c
+-a + b
+
+--------------------------------------------------------------------------------
+
+(script
+  (binary_expression
+    (qualified_name
+      (identifier))
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))))
+  (binary_expression
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier)))
+    (qualified_name
+      (identifier)))
+  (binary_expression
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier)))
+    (qualified_name
+      (identifier)))
+  (binary_expression
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier)))
+    (qualified_name
+      (identifier)))
+  (binary_expression
+    (unary_expression
+      (qualified_name
+        (identifier)))
+    (qualified_name
+      (identifier))))
+
+================================================================================
+Power binds tighter than the sign and to the right
+================================================================================
+
+-a ^ 2
+a ^ b ^ c
+a ^ -b
+exper ^ 2 / 100
+
+--------------------------------------------------------------------------------
+
+(script
+  (unary_expression
+    (power_expression
+      (qualified_name
+        (identifier))
+      (number)))
+  (power_expression
+    (qualified_name
+      (identifier))
+    (power_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))))
+  (power_expression
+    (qualified_name
+      (identifier))
+    (unary_expression
+      (qualified_name
+        (identifier))))
+  (binary_expression
+    (power_expression
+      (qualified_name
+        (identifier))
+      (number))
+    (number)))
+
+================================================================================
+Comparison, logic and ranges
+================================================================================
+
+a < b && c >= d || !e
+x == 1 && y != 2
+1..n + 1
+
+--------------------------------------------------------------------------------
+
+(script
+  (binary_expression
+    (binary_expression
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier))))
+    (unary_expression
+      (qualified_name
+        (identifier))))
+  (binary_expression
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (number))
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (number)))
+  (range_expression
+    (number)
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (number))))
+
+================================================================================
+Methods, fields and indexing
+================================================================================
+
+fits[1].coef(educ)
+state.loglik
+wages["lwage"]
+m.summary().export("t.tex")
+record.list[2].name
+
+--------------------------------------------------------------------------------
+
+(script
+  (method_call
+    (index_expression
+      (qualified_name
+        (identifier))
+      (number))
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier))))
+  (field_access
+    (qualified_name
+      (identifier))
+    (identifier))
+  (index_expression
+    (qualified_name
+      (identifier))
+    (string))
+  (method_call
+    (method_call
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))
+      (arguments))
+    (qualified_name
+      (identifier))
+    (arguments
+      (string)))
+  (field_access
+    (index_expression
+      (field_access
+        (qualified_name
+          (identifier))
+        (identifier))
+      (number))
+    (identifier)))
+
+================================================================================
+Qualified names and namespaces
+================================================================================
+
+data::mean(wages, wage)
+functions::summary(d)
+dist.normal(0, 1).quantile(0.975)
+wages.survival::coxph(time ~ age)
+
+--------------------------------------------------------------------------------
+
+(script
+  (call
+    (qualified_name
+      (identifier)
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))))
+  (call
+    (qualified_name
+      (identifier)
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier))))
+  (method_call
+    (method_call
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))
+      (arguments
+        (number)
+        (number)))
+    (qualified_name
+      (identifier))
+    (arguments
+      (number)))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier)
+      (identifier))
+    (arguments
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier))))))
+
+================================================================================
+Brackets
+================================================================================
+
+(a + b) * c
+((a))
+-(a - b)
+
+--------------------------------------------------------------------------------
+
+(script
+  (binary_expression
+    (parenthesized
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier))))
+    (qualified_name
+      (identifier)))
+  (parenthesized
+    (parenthesized
+      (qualified_name
+        (identifier))))
+  (unary_expression
+    (parenthesized
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier))))))
+
+================================================================================
+Names between backticks
+================================================================================
+
+let `my var` = d.mean(`wage 2015`)
+d.rename(pay = `hourly wage`)
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (quoted_name)
+    (method_call
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))
+      (arguments
+        (qualified_name
+          (quoted_name)))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (definition
+        (identifier)
+        (qualified_name
+          (quoted_name))))))

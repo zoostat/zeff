@@ -1,0 +1,270 @@
+================================================================================
+Arguments in their places and by name
+================================================================================
+
+reg(wages, lwage ~ educ)
+wages.reg(lwage ~ educ, se: robust, cluster: firm)
+print()
+round(x, digits: 2,)
+
+--------------------------------------------------------------------------------
+
+(script
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier))
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (named_argument
+        (identifier)
+        (qualified_name
+          (identifier)))
+      (named_argument
+        (identifier)
+        (qualified_name
+          (identifier)))))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier))
+      (named_argument
+        (identifier)
+        (number)))))
+
+================================================================================
+A reserved word as the name of an argument
+================================================================================
+
+import("d.csv", types: {a: Str}, type: 1, case: 2, model: m, in: x)
+
+--------------------------------------------------------------------------------
+
+(script
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (string)
+      (named_argument
+        (identifier)
+        (record
+          (field
+            (identifier)
+            (qualified_name
+              (identifier)))))
+      (named_argument
+        (identifier)
+        (number))
+      (named_argument
+        (identifier)
+        (number))
+      (named_argument
+        (identifier)
+        (qualified_name
+          (identifier)))
+      (named_argument
+        (identifier)
+        (qualified_name
+          (identifier))))))
+
+================================================================================
+Definitions
+================================================================================
+
+wages.add(lwage = log(wage), dev = lwage - mean(lwage), by: firm)
+wages.rename(pay = wage)
+frame(x = [1, 2], y = ["a", "b"])
+
+--------------------------------------------------------------------------------
+
+(script
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (definition
+        (identifier)
+        (call
+          (qualified_name
+            (identifier))
+          (arguments
+            (qualified_name
+              (identifier)))))
+      (definition
+        (identifier)
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (call
+            (qualified_name
+              (identifier))
+            (arguments
+              (qualified_name
+                (identifier))))))
+      (named_argument
+        (identifier)
+        (qualified_name
+          (identifier)))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (definition
+        (identifier)
+        (qualified_name
+          (identifier)))))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (definition
+        (identifier)
+        (list
+          (number)
+          (number)))
+      (definition
+        (identifier)
+        (list
+          (string)
+          (string))))))
+
+================================================================================
+A spread of options
+================================================================================
+
+wages.reg(f, ..options)
+wages.reg(f, ..{se: robust}, level: 0.9)
+
+--------------------------------------------------------------------------------
+
+(script
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier))
+      (spread
+        (qualified_name
+          (identifier)))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier))
+      (spread
+        (record
+          (field
+            (identifier)
+            (qualified_name
+              (identifier)))))
+      (named_argument
+        (identifier)
+        (number)))))
+
+================================================================================
+An interaction given in its place stands in brackets
+================================================================================
+
+wages.tabulate((firm:year))
+wages.reg(y ~ x, fe: firm:year)
+
+--------------------------------------------------------------------------------
+
+(script
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (parenthesized
+        (interaction
+          (qualified_name
+            (identifier))
+          (qualified_name
+            (identifier))))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (named_argument
+        (identifier)
+        (interaction
+          (qualified_name
+            (identifier))
+          (qualified_name
+            (identifier)))))))
+
+================================================================================
+A call inside a call, over lines
+================================================================================
+
+print(
+    round(
+        wages.mean(wage),
+        2
+    ),
+    "dollars"
+)
+
+--------------------------------------------------------------------------------
+
+(script
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (call
+        (qualified_name
+          (identifier))
+        (arguments
+          (method_call
+            (qualified_name
+              (identifier))
+            (qualified_name
+              (identifier))
+            (arguments
+              (qualified_name
+                (identifier))))
+          (number)))
+      (string))))

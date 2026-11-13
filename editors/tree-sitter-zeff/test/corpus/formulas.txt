@@ -1,0 +1,238 @@
+================================================================================
+A formula
+================================================================================
+
+lwage ~ educ + exper
+log(wage) ~ educ + exper + exper^2
+y ~ a * b
+y ~ a + b + a:b
+y ~ x1..x9
+y ~ x - 1
+
+--------------------------------------------------------------------------------
+
+(script
+  (formula
+    (qualified_name
+      (identifier))
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))))
+  (formula
+    (call
+      (qualified_name
+        (identifier))
+      (arguments
+        (qualified_name
+          (identifier))))
+    (binary_expression
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (power_expression
+        (qualified_name
+          (identifier))
+        (number))))
+  (formula
+    (qualified_name
+      (identifier))
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))))
+  (formula
+    (qualified_name
+      (identifier))
+    (binary_expression
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (interaction
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))))
+  (formula
+    (qualified_name
+      (identifier))
+    (range_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))))
+  (formula
+    (qualified_name
+      (identifier))
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (number))))
+
+================================================================================
+One side, and every other variable
+================================================================================
+
+~ z
+y ~ .
+y ~ . - id
+wages.reg(wage ~ educ, zero: ~ union)
+
+--------------------------------------------------------------------------------
+
+(script
+  (formula
+    (qualified_name
+      (identifier)))
+  (formula
+    (qualified_name
+      (identifier))
+    (every_other))
+  (formula
+    (qualified_name
+      (identifier))
+    (binary_expression
+      (every_other)
+      (qualified_name
+        (identifier))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (named_argument
+        (identifier)
+        (formula
+          (qualified_name
+            (identifier)))))))
+
+================================================================================
+Terms without a formula
+================================================================================
+
+wages.reg(y ~ x, fe: firm + year)
+wages.reg(y ~ x, fe: industry:year + firm)
+
+--------------------------------------------------------------------------------
+
+(script
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (named_argument
+        (identifier)
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (qualified_name
+            (identifier))))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (named_argument
+        (identifier)
+        (binary_expression
+          (interaction
+            (qualified_name
+              (identifier))
+            (qualified_name
+              (identifier)))
+          (qualified_name
+            (identifier)))))))
+
+================================================================================
+A formula bound and extended
+================================================================================
+
+let base = lwage ~ educ
+let more = base + exper
+wages.reg(more)
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (formula
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))))
+  (let_statement
+    (identifier)
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (qualified_name
+        (identifier))))
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (qualified_name
+        (identifier)))))
+
+================================================================================
+A mapping from groups to terms
+================================================================================
+
+wages.mixed(lwage ~ educ, re: [firm => 1 + educ, region => 1])
+
+--------------------------------------------------------------------------------
+
+(script
+  (method_call
+    (qualified_name
+      (identifier))
+    (qualified_name
+      (identifier))
+    (arguments
+      (formula
+        (qualified_name
+          (identifier))
+        (qualified_name
+          (identifier)))
+      (named_argument
+        (identifier)
+        (mapping
+          (pair
+            (qualified_name
+              (identifier))
+            (binary_expression
+              (number)
+              (qualified_name
+                (identifier))))
+          (pair
+            (qualified_name
+              (identifier))
+            (number)))))))

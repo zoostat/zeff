@@ -1,0 +1,251 @@
+================================================================================
+if and else
+================================================================================
+
+if n < 30 {
+    warn("few rows")
+}
+let reps = if n < 500 { 5000 } else { 1000 }
+if a { 1 } else if b { 2 } else { 3 }
+
+--------------------------------------------------------------------------------
+
+(script
+  (if_expression
+    (binary_expression
+      (qualified_name
+        (identifier))
+      (number))
+    (block
+      (call
+        (qualified_name
+          (identifier))
+        (arguments
+          (string)))))
+  (let_statement
+    (identifier)
+    (if_expression
+      (binary_expression
+        (qualified_name
+          (identifier))
+        (number))
+      (block
+        (number))
+      (block
+        (number))))
+  (if_expression
+    (qualified_name
+      (identifier))
+    (block
+      (number))
+    (if_expression
+      (qualified_name
+        (identifier))
+      (block
+        (number))
+      (block
+        (number)))))
+
+================================================================================
+An else on the next line is no else
+================================================================================
+
+if a {
+    print(1)
+}
+print(2)
+
+--------------------------------------------------------------------------------
+
+(script
+  (if_expression
+    (qualified_name
+      (identifier))
+    (block
+      (call
+        (qualified_name
+          (identifier))
+        (arguments
+          (number)))))
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (number))))
+
+================================================================================
+case
+================================================================================
+
+let group = case {
+    age < 25 => "young",
+    age < 55 => "prime",
+    _        => "older",
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (case_expression
+      (arm
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (number))
+        (string))
+      (arm
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (number))
+        (string))
+      (arm
+        (catch_all)
+        (string)))))
+
+================================================================================
+An arm that is a block, and one that is a record
+================================================================================
+
+let v = case {
+    x > 1 => {
+        let y = x * 2
+        y + 1
+    },
+    x < 0 => {se: robust},
+    _ => { 0 },
+}
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (case_expression
+      (arm
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (number))
+        (block
+          (let_statement
+            (identifier)
+            (binary_expression
+              (qualified_name
+                (identifier))
+              (number)))
+          (binary_expression
+            (qualified_name
+              (identifier))
+            (number))))
+      (arm
+        (binary_expression
+          (qualified_name
+            (identifier))
+          (number))
+        (record
+          (field
+            (identifier)
+            (qualified_name
+              (identifier)))))
+      (arm
+        (catch_all)
+        (block
+          (number))))))
+
+================================================================================
+A list built by a loop
+================================================================================
+
+let squares = [for i in 1..5 { i ^ 2 }]
+let fits = [for v in vars(educ, exper) {
+    let f = lwage ~ v
+    wages.reg(f)
+}]
+
+--------------------------------------------------------------------------------
+
+(script
+  (let_statement
+    (identifier)
+    (list_for
+      (for_loop
+        (identifier)
+        (range_expression
+          (number)
+          (number))
+        (block
+          (power_expression
+            (qualified_name
+              (identifier))
+            (number))))))
+  (let_statement
+    (identifier)
+    (list_for
+      (for_loop
+        (identifier)
+        (call
+          (qualified_name
+            (identifier))
+          (arguments
+            (qualified_name
+              (identifier))
+            (qualified_name
+              (identifier))))
+        (block
+          (let_statement
+            (identifier)
+            (formula
+              (qualified_name
+                (identifier))
+              (qualified_name
+                (identifier))))
+          (method_call
+            (qualified_name
+              (identifier))
+            (qualified_name
+              (identifier))
+            (arguments
+              (qualified_name
+                (identifier)))))))))
+
+================================================================================
+A loop inside an argument
+================================================================================
+
+print(len([for i in 1..3 {
+    i
+}]), "items")
+
+--------------------------------------------------------------------------------
+
+(script
+  (call
+    (qualified_name
+      (identifier))
+    (arguments
+      (call
+        (qualified_name
+          (identifier))
+        (arguments
+          (list_for
+            (for_loop
+              (identifier)
+              (range_expression
+                (number)
+                (number))
+              (block
+                (qualified_name
+                  (identifier)))))))
+      (string))))
+================================================================================
+An else on a line of its own belongs to no if
+:error
+================================================================================
+
+if a { 1 }
+else { 2 }
+
+--------------------------------------------------------------------------------
