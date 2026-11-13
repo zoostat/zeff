@@ -4072,3 +4072,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 30; open decision #71; Engine and Project Specification, section 8.1, rule 5 (the result interface).
 
+## 13 November 2026: `vif` and the design (release 0.7.0, step 30b; open decision #136)
+
+**What was planned and what was found.** Open decision #71 returns `vif` to Zeff once the design is within reach of a script. With `design()` built, a script computes the factors: the columns of `m.design()` are read by name into a list, weighted by the square roots of the weights where the fit is weighted; for each column the others are made orthogonal to one another and its part along them is taken out; the factor is the column's sum of squares, centred on the intercept where there is one, over the sum of squares of what is left, which is 1 / (1 - R²). It uses nothing but `design`, `variables`, `fill_missing`, `filter`, `reduce`, `append`, `frame` and `sum`. So the purpose of #71 holds.
+
+**Why the function is not rewritten at this step (open decision #136, option A, taken on the recommendation under the standing instruction, the owner's to overturn).** Three things a Zeff body cannot do as the Rust function does them. (a) `vif` prints lines under its table, the terms omitted as collinear and the case of no regressor beside the intercept; `table(title:, columns:)` builds no line under its grid. (b) `vif` is titled by the name the fit is bound to, or its formula; nothing in the result interface gives a Zeff body either. (c) The Rust function reads the Gram matrix the fit keeps and makes no pass over the data; from the design a Zeff body makes of the order of k² passes for each column. A rewrite now would change the print of a shipped function or add two functions to `core` under the freeze, and make large models slower. `vif` stays in Rust at 0.7.0, unchanged; whether tables written in Zeff are to carry lines under their grids, and a result to give its name, is the question of #136 for 0.8.0, and `vif` follows that ruling.
+
+**What the step leaves.** A test that keeps the claim true: `the_factors_of_vif_are_computed_in_zeff_from_the_design` (`packages/tier2/regress/tests/design_frame.rs`) runs the script on the wages for four models, a textbook one, one with a category of twelve levels, one without an intercept (the uncentred factors) and one weighted by hours, and holds each factor equal to that of `vif` to the six digits a script prints. The tests of `vif` itself are unchanged and pass.
+
+**The specification.** The note of catalogue row 248 says why the layer is Rust still (`docs/spec_changes.md`); open decision #136 is recorded with its three options.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 30; open decisions #71 and #136.
+

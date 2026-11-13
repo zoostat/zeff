@@ -348,3 +348,108 @@ proptest! {
         agrees(&fit, &design);
     }
 }
+
+// ----- the factors of `vif` from the design, in Zeff (step 30b; open decision #136) -----
+
+/// A script that computes the variance inflation factors of a fit from `design()` alone:
+/// each column, weighted where the fit is, with its part along the other columns taken out
+/// by projection, and its sum of squares, centred on the intercept where there is one, over
+/// what is left.
+const FACTORS_IN_ZEFF: &str = "/// The sum of the products of two columns.
+fn dot(u: Column<Float>, v: Column<Float>) -> Float {
+    frame(p = u * v).sum(p)
+}
+
+/// What is left of a column after its parts along the columns of a list, which are
+/// orthogonal to one another, are taken out.
+fn left(v: Column<Float>, qs: List<Column<Float>>) -> Column<Float> {
+    reduce(qs, fn(r, q) r - q * (dot(q, r) / dot(q, q)), v)
+}
+
+/// The columns of a list made orthogonal to one another, each to those before it.
+fn orthogonal(cols: List<Column<Float>>) -> List<Column<Float>> {
+    reduce(cols, fn(qs, c) append(qs, left(c, qs)), filter(cols, fn(c) false))
+}
+
+/// The factor of column `j` of a list: with `centre` the place of the intercept among the
+/// columns, or 0 where there is none.
+fn factor(cols: List<Column<Float>>, j: Int, centre: Int) -> Float {
+    let others = [for i in filter(1..len(cols), fn(i) i != j) { cols[i] }]
+    let rest = left(cols[j], orthogonal(others))
+    let whole = dot(cols[j], cols[j])
+    let centred = if centre > 0 { whole - dot(cols[centre], cols[j])^2 / dot(cols[centre], cols[centre]) } else { whole }
+    centred / dot(rest, rest)
+}
+";
+
+/// The factors a script computes from the design of `model` (the text after `w.`), printed
+/// one to a line, the intercept's place given by `centre` and the columns weighted by the
+/// variable `(weights)` of the design where `weighted`.
+fn factors_in_zeff(model: &str, centre: usize, weighted: bool) -> Vec<f64> {
+    let root = if weighted {
+        "let root = sqrt(fill_missing(x[\"(weights)\"], 0.0))\n"
+    } else {
+        "let root = fill_missing(x[names[1]], 0.0) * 0.0 + 1.0\n"
+    };
+    let script = format!(
+        "{FACTORS_IN_ZEFF}\nlet w = dataset(wages)\nlet m = w.{model}\nlet x = m.design()\nlet names = filter(x.variables(), fn(name) name != \"(weights)\")\n{root}let cols = [for name in names {{ fill_missing(x[name], 0.0) * root }}]\nfor j in filter(1..len(cols), fn(j) j != {centre}) {{\n    print(factor(cols, j, {centre}))\n}}\n"
+    );
+    let outcome = run(&script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    outcome
+        .output
+        .stdout
+        .lines()
+        .map(|line| {
+            line.trim()
+                .parse::<f64>()
+                .unwrap_or_else(|_| panic!("not a number: {line}"))
+        })
+        .collect()
+}
+
+#[test]
+fn the_factors_of_vif_are_computed_in_zeff_from_the_design() {
+    for (formula_text, call, centre, weights) in [
+        (
+            "log(wage) ~ educ + exper + exper^2 + female",
+            "reg(log(wage) ~ educ + exper + exper^2 + female)",
+            1,
+            None,
+        ),
+        (
+            "log(wage) ~ educ + industry",
+            "reg(log(wage) ~ educ + industry)",
+            1,
+            None,
+        ),
+        (
+            "log(wage) ~ educ + exper - 1",
+            "reg(log(wage) ~ educ + exper - 1)",
+            0,
+            None,
+        ),
+        (
+            "log(wage) ~ educ + exper + female",
+            "reg(log(wage) ~ educ + exper + female, weights: hours)",
+            1,
+            Some("hours"),
+        ),
+    ] {
+        let (fit, _, _) = fitted(&wages(), formula_text, None, weights);
+        let kept = zeff_regress::diagnostics::vifs(&fit);
+        let found = factors_in_zeff(call, centre, weights.is_some());
+        assert_eq!(
+            found.len(),
+            kept.len(),
+            "{call}: {found:?} against {kept:?}"
+        );
+        for (value, (term, wanted)) in found.iter().zip(&kept) {
+            // The script prints six significant digits.
+            assert!(
+                (value - wanted).abs() <= 1e-5 * wanted.abs(),
+                "{call} / {term}: {value} in Zeff against {wanted}"
+            );
+        }
+    }
+}

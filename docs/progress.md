@@ -146,23 +146,17 @@ Step 28 was split in four. 28a `[function]`: `histogram`, the rows of `x` counte
 
 Step 29c was split in two. 29c1 `[engine]`: a function is known by its package, its name and the type it is a method of, as rule 6 of section 8.1 of the Engine Specification has it, so that a package may have one name on a frame and on a plot; the registry, the checked call, the bodies and the interpreter follow. 29c2 `[function]`: `histogram`, `density` and `boxplot` on a frame, each the plot of its grammar form, with the layer's options and `by:`; the sample script's `wages.histogram(lwage, bins: 40, by: female)` runs. 29d `[function]`: `qq_plot`, each value against the quantile a distribution puts at its rank, with the line through the quartiles, the standard normal where no distribution is given; the pairs and the line are R's `qqnorm` and `qqline` to eleven places. Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-## 13 November 2026, release 0.7.0, step 29e (`heatmap`; step 29 complete)
+## 13 November 2026, steps 29e and 30a of release 0.7.0 (folded)
 
-**Done.** `data.heatmap([wage, educ, exper])` draws the correlations of the variables with one another as a square of tiles, in the order given, on a scale of colours fixed from -1 to 1 (a scale of colours may now have fixed ends). Step 29 is complete: the eight shorthands are built, their pages are complete, catalogue rows 229 to 236 are `implemented`, and the conformance case `plots/shorthands` runs all eight.
+29e `[function]`: `heatmap`, the correlations of several variables as a square of tiles in the order given, on a scale of colours fixed from -1 to 1 (a scale of colours may now have fixed ends). Step 29 complete: the eight shorthands built, catalogue rows 229 to 236 `implemented`, the conformance case `plots/shorthands` over all eight. Step 30 was then split in four. 30a `[engine]`: `fit.design()`, the design a regression was computed on as a frame of the data's length, a variable for each term, `NA` in the rows not used, the weights beside them, and with `fe:` the columns left after the effects are taken out; a fit keeps a handle to its frame and builds the design again when asked (open decision #71, option A; catalogue row 545). Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 461 of 461; CI is read job by job after the push.
+## 13 November 2026, release 0.7.0, step 30b (`vif` on `design()`; open decision #136)
 
-**Next.** Step 30 was split in four on the same day: 30a `[engine]` `design()` on a fit, 30b `[function]` `vif` in Zeff, 30c `[function]` `coef_plot`, 30d `[function]` `fit.plot()`. The next is step 30a `[engine]`.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the three colours of a heat map (blue, near-white, red); both halves of the square drawn; no numbers in the tiles. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 30a (`design()` on a fit)
-
-**Done.** `fit.design()` gives the design a regression was computed on as a frame of the data's length: a variable for each term of the table (`(intercept)`, `educ`, `industry=Mining`, `exper^2`), `NA` in the rows the fit dropped, the weights of a weighted fit in `(weights)`, and with `fe:` the columns left after the effects are taken out. The fit keeps a handle to its frame and builds the design again when asked; nothing is copied when a model is fitted.
+**Done.** The variance inflation factors are computed in Zeff from `design()` in a test, for four models, and equal those of `vif`: the design is within reach of a script, as #71 meant. `vif` itself stays in Rust at this release, unchanged (open decision #136, option A): a Zeff body cannot print the lines under its table nor title it by the name of the fit, and would pass over the data where the Rust function makes no pass.
 
 **Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 463 of 463; CI is read job by job after the push.
 
-**Next.** Step 30b `[function]`: `vif` in Zeff on `design()`.
+**Next.** Step 30c `[function]`: `coef_plot`.
 
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the fit keeps the frame by its handle and not a copy of the design; the frame of `design()` has the length of the data, with `NA` in the rows not used, as `residuals()` has; the values are unweighted, with the weights beside them. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+**For the owner to decide.** Open decision #136, taken on the recommendation and his to overturn: it sets aside, for 0.7.0, the clause of #71 that returns `vif` to Zeff at step 30. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
