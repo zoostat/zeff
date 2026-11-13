@@ -4323,3 +4323,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **Tests.** `crates/zeff-syntax/tests/format.rs`, `a_dot_never_meets_a_dot`: the field, the method, the range and a list of them on one line, and a call spread over lines.
 
 **Reason.** The two properties of step 31a; the Testing Handbook, section 1 (a crash input becomes a regression test).
+
+## 13 November 2026: progress and cancellation between the steps of a run (release 0.7.0, step 33a; step 33 split in five)
+
+**The split.** The engine worker is built in five: progress and cancellation between steps (33a), the worker natively with `zeff run` through it (33b), the memory budget (33c), the traceback through module functions (33d, open decision #76) and the browser path (33e).
+
+**The handle.** `zeff_engine::control::Control` is the handle of one run: a flag by which the run is cancelled and, optionally, a listener that is told each event. It can be cloned and sent to another thread, a clone being the same handle, which is how the worker of step 33b will cancel a run from outside; the flag is an atomic Bool and the listener is called on the thread of the run. `run::run_script_under` runs a script under a handle. A run without one is the run it was: the option is absent and no check is made, and the conformance list is unchanged.
+
+**What a step is.** Section 8.3, point 7, has a run "cancelled between steps". A step is a statement of the script, and a pass of a loop: `for`, a list built by `[for ...]`, and `iterate`. The interpreter looks at the handle before each. A single call that takes long (a regression on ten million rows) is not interrupted inside; the cancel takes effect when it returns. Finer steps inside the long kernels are not of this release.
+
+**Z0705.** A cancelled run stops with the error of the Language Reference, section 11: "the run was cancelled before this statement", placed on the statement, or "the run was cancelled before pass 4 of this loop", placed on what the loop runs over (for `iterate`, on its name). The exit code is 1, with the other errors numbered Z01xx to Z08xx. What ran before stays, as the section says: the output of the earlier statements, and within the statement of a loop what its earlier passes printed. The pass that was running when the cancel arrived finishes. The code has its explained page (`codes/Z0705.md`).
+
+**The events.** `Started` and `Finished` for each statement (which, of how many, its line, whether it failed), and `Pass` for each pass of a loop (which, of how many where the loop knows, and the line of the script's statement it runs under). `iterate` gives no total, since `max:` is a limit and not a count. A loop inside a function reports under the line of the statement of the script that called it, which is what a progress bar shows. A run cancelled before it starts reports nothing.
+
+**Not yet.** No command uses the handle at this step; `zeff run` does at 33b. The session of the console is not touched.
+
+**Tests.** `crates/zeff-engine/tests/control.rs`: a run under a handle that is not cancelled equals the run without one, with its six events in order; a cancel before the first statement; between two statements (a snapshot; the first's output kept); inside a `for` (a snapshot; the passes before kept, the pass under way finished, the events); inside `[for ...]` and inside `iterate` (a snapshot; no total); a loop inside a function reporting under the script's line; a statement that fails reported as failed; a clone as the same handle.
+
+**Reason.** The checklist's step 33a; section 8.3 of the Engine and Project Specification, point 7; section 11 of the Language Reference (Z0705).

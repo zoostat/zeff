@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/control.rs
+expression: out.output.stderr
+---
+error[Z0705]: the run was cancelled before pass 4 of this loop
+ --> scripts/main.zeff:2:10
+  |
+2 | for i in 1..5 {
+  |          ^^^^ stopped here
+  |
+  = help: the passes before it ran, and what they printed is above; nothing after this point ran

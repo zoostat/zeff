@@ -342,6 +342,34 @@ pub fn run_script_with(
     )
 }
 
+/// [`run_script_with`] under a handle: the run tells it each statement and each pass of a
+/// loop, and stops with Z0705 before the next of them once the handle has been cancelled
+/// (section 8.3, point 7).
+pub fn run_script_under(
+    fs: &dyn FileSystem,
+    project: &Project,
+    script: &str,
+    text: &str,
+    options: &RunOptions,
+    control: &crate::control::Control,
+) -> Outcome {
+    let registry = match registry::registry() {
+        Ok(registry) => registry,
+        Err(_) => return run_script_with(fs, project, script, text, options),
+    };
+    run_controlled(
+        fs,
+        project,
+        script,
+        text,
+        options,
+        registry,
+        registry::bodies(),
+        registry::zeff_bodies(),
+        Some(control),
+    )
+}
+
 /// [`run_script_with`] against a given registry and the bodies that run its functions, Rust and
 /// Zeff: what the tests use to run a script with a fixture function beside the engine's own.
 #[allow(clippy::too_many_arguments)]
@@ -354,6 +382,23 @@ pub fn run_script_in(
     registry: &Registry,
     bodies: &Bodies,
     zeff: &ZeffBodies,
+) -> Outcome {
+    run_controlled(
+        fs, project, script, text, options, registry, bodies, zeff, None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_controlled(
+    fs: &dyn FileSystem,
+    project: &Project,
+    script: &str,
+    text: &str,
+    options: &RunOptions,
+    registry: &Registry,
+    bodies: &Bodies,
+    zeff: &ZeffBodies,
+    control: Option<&crate::control::Control>,
 ) -> Outcome {
     let mut output = Output::default();
     let checked = check_in_project(fs, project, script, text, registry);
@@ -442,7 +487,8 @@ pub fn run_script_in(
         .with_fusion(options.fused)
         .with_allows(&allows)
         .with_denied_warnings(options.deny_warnings)
-        .with_checks(options.collect_checks);
+        .with_checks(options.collect_checks)
+        .with_control(control);
     let result = interpreter.run(&mut output);
     for (statement, columns) in std::mem::take(&mut output.produced) {
         schemas.record_run(statement, columns);

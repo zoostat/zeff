@@ -125,6 +125,11 @@ pub struct Interpreter<'a> {
     /// Under `zeff test`: the checks of the statement being run, each with the error of a
     /// failed one; `None` in a run, where a failed `assert` stops the script.
     checks: Option<Vec<Option<Diagnostic>>>,
+    /// The handle of the run, where it has one: told each step, and looked at before each for
+    /// a cancellation (section 8.3, point 7).
+    control: Option<&'a crate::control::Control>,
+    /// The line of the statement of the script being run, for the events of its loops.
+    line: u32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -200,6 +205,8 @@ impl<'a> Interpreter<'a> {
             allowed: Vec::new(),
             deny_warnings: false,
             checks: None,
+            control: None,
+            line: 0,
         }
     }
 
@@ -210,6 +217,37 @@ impl<'a> Interpreter<'a> {
     }
 
     /// `--deny-warnings`: the first warning that no pragma allows stops the run.
+    /// The handle by which the run reports its steps and is cancelled between them.
+    pub fn with_control(mut self, control: Option<&'a crate::control::Control>) -> Self {
+        self.control = control;
+        self
+    }
+
+    /// Before a pass of a loop: the run's handle is told, and a run that has been cancelled
+    /// stops here with Z0705, the passes before this one kept.
+    fn pass_begins(&mut self, pass: usize, of: Option<usize>, span: Span) -> Result<(), Fail> {
+        let Some(control) = self.control else {
+            return Ok(());
+        };
+        if control.is_cancelled() {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0705",
+                    format!("the run was cancelled before pass {pass} of this loop"),
+                )
+                .in_file(self.script)
+                .primary(span, "stopped here")
+                .help("the passes before it ran, and what they printed is above; nothing after this point ran"),
+            ));
+        }
+        control.report(crate::control::Event::Pass {
+            pass,
+            of,
+            line: self.line,
+        });
+        Ok(())
+    }
+
     /// `zeff test`: a failed `assert` is kept in the output's checks and the script carries on.
     pub fn with_checks(mut self, collect: bool) -> Self {
         self.checks = collect.then(Vec::new);
@@ -309,9 +347,29 @@ impl<'a> Interpreter<'a> {
                 | Statement::Return { span, .. } => *span,
             };
             let line = self.source.line_of(span.start);
+            self.line = line;
+            // A run that has been cancelled stops before the statement (Z0705): the statements
+            // before it ran and keep their output; this one and those after it do not run.
+            let of = self.program.statements.len();
+            let cancelled = self.control.is_some_and(|c| c.is_cancelled());
+            if !cancelled && let Some(control) = self.control {
+                control.report(crate::control::Event::Started {
+                    statement: index + 1,
+                    of,
+                    line,
+                });
+            }
             // A failure inside the engine never crashes the run: it is Z9001 at the statement,
             // and the run stops as it would at any error (Language Reference, section 11.1).
             let evaluation = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                if cancelled {
+                    return Err(fail(
+                        Diagnostic::error("Z0705", "the run was cancelled before this statement")
+                            .in_file(self.script)
+                            .primary(span, "not run")
+                            .help("the statements before it ran, and what they printed is above; this one and those after it did not run"),
+                    ));
+                }
                 if self.panic_at_line == Some(line) {
                     panic!("a test panic injected at line {line}");
                 }
@@ -451,6 +509,14 @@ impl<'a> Interpreter<'a> {
             }
             if self.free_bindings && !failed {
                 self.free_after(index, line, output);
+            }
+            if !cancelled && let Some(control) = self.control {
+                control.report(crate::control::Event::Finished {
+                    statement: index + 1,
+                    of,
+                    line,
+                    failed,
+                });
             }
             if failed {
                 return result.map(|_| ());
@@ -624,7 +690,9 @@ impl<'a> Interpreter<'a> {
         messages: &mut Vec<Diagnostic>,
     ) -> Result<(), Fail> {
         let items = self.loop_items(iter, printed, messages)?;
-        for item in items {
+        let passes = items.len();
+        for (at, item) in items.into_iter().enumerate() {
+            self.pass_begins(at + 1, Some(passes), iter.span)?;
             self.random.pass += 1;
             self.bind(binding, item);
             let value = self.eval_block(body, printed, messages)?;
@@ -1161,6 +1229,13 @@ impl<'a> Interpreter<'a> {
         let mut passes: i64 = 0;
         let mut converged = false;
         for pass in 1..=max {
+            // `max:` is a limit and not a count, so the loop does not know how many passes
+            // it will make.
+            self.pass_begins(
+                usize::try_from(pass).unwrap_or(usize::MAX),
+                None,
+                call.callee_span,
+            )?;
             let mut given: Vec<Option<Value>> = Vec::with_capacity(1 + further.len());
             given.push(Some(Value::Record(state.clone())));
             given.extend(further.iter().cloned());

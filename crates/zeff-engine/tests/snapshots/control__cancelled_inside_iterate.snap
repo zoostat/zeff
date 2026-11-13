@@ -1,0 +1,11 @@
+---
+source: crates/zeff-engine/tests/control.rs
+expression: out.output.stderr
+---
+error[Z0705]: the run was cancelled before pass 5 of this loop
+ --> scripts/main.zeff:9:11
+  |
+9 | let end = iterate(start: {x: 1.0}, step: halve, done: small, max: 100)
+  |           ^^^^^^^ stopped here
+  |
+  = help: the passes before it ran, and what they printed is above; nothing after this point ran
