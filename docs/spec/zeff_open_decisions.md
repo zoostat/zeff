@@ -2648,3 +2648,22 @@ Engineering it needs, settled when the release is planned: the references of the
 - `cite()`, `fit.cite()`, `cite(function)` and `cite(dataset)`, with `format: text | bibtex | ris = text`, are built at 0.10.0, beside the citation file and the DOI of #116; the help pages' references become structured entries, one file per package, in the revision of the pages under #103, complete at 0.10.0, and each page's References section is generated from them.
 - `zeff cite` is built at 0.11.0, when the versioned run records it reads arrive.
 - The catalogue row of `cite`, the command's row in section 2.1 of the Engine and Project Specification, the rows of section 14 for 0.10.0 and 0.11.0, and the count of functions in 1.0 are amended when 0.10.0 is planned, and logged in `docs/spec_changes.md` then; the package that holds `cite` is chosen under the tier rules of section 8.1 at the same time.
+
+### 136. `vif` in Zeff: what the language lacks to print it as it prints now
+
+Raised on 13 November 2026 at step 30b of release 0.7.0. Open decision #71 (decided 6 November 2026) has `design()` built at step 30 and "`vif` returns to Zeff in the same step". `design()` is built (step 30a), and a script computes the factors from it: with the columns of `m.design()` read by name, each column's part along the others taken out by projection, and the centred sum of squares over what is left, the wages model `log(wage) ~ educ + exper + exper^2 + female` gives 1.118, 14.101, 14.008 and 1.001, the factors `vif` prints. So the arithmetic can be written in Zeff. Three things stand between that and the function as it is:
+
+1. *The lines under the table.* `vif` names the terms omitted as collinear, and says when there is no regressor beside the intercept, in lines under its grid. `table(title:, columns:)` (#72) builds a grid and a title and nothing under them.
+2. *The title.* `vif` is titled `vif · m`, by the name the fit is bound to, or by its formula. Nothing in the result interface gives a Zeff body the name or the formula of a fit; `name_of` is of a variable.
+3. *The cost.* The Rust function reads the Gram matrix the fit keeps and makes no pass over the data. From the design a Zeff body makes of the order of k² passes for each of k columns by projection, or k² in all by a QR and the inverse of its triangle written out in Zeff: for 50 columns on a million rows, seconds at best and minutes at worst, where there were none.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. `vif` stays in Rust at 0.7.0, its numbers and its print unchanged; a test computes the factors in Zeff from `design()` and holds them equal to it, so the purpose of #71, the design within reach of a script, is shown to hold; the rewrite waits for a ruling on what it needs | Nothing printed changes; no function is added to `core` before 1.0; no model becomes slower | The catalogue's `layer` for row 248 stays Rust, against the letter of #71 |
+| B. Add what Zeff lacks, then rewrite: `table(..., notes: List[Str])` for lines under a grid, and a way to title a table by a result (its bound name, or its formula) | `vif` in Zeff printing as now; every tabulating function written in Zeff gains the lines under its grid | Two additions to `core` under the freeze and before 1.0; the cost of point 3 remains |
+| C. Rewrite now with what there is: a table titled `vif`, and the omitted terms said in a `note` | No addition | The printed layout of a shipped function changes; the cost of point 3 |
+
+*Recommendation.* A for 0.7.0. B is the question for 0.8.0, with the other diagnostics over the design (partial residual and added-variable plots) that #71 names: if Zeff-written tables are to carry lines under their grids, that is decided once for all of them, and `vif` follows. Deadline: 0.8.0.
+
+**The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. It sets aside, for this release, the clause of #71 that returns `vif` to Zeff at step 30, and so it is named to him in the announcement of the step. The note of catalogue row 248 says why the layer is Rust still, logged in `docs/spec_changes.md`.
+
