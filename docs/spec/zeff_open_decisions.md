@@ -80,6 +80,8 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 
 **Status (13 November 2026, release 0.7.0, #141 decided).** Asked to settle #141 as recommended, the owner answered "Yes, A with .zmd". `publish` is created at 0.10.0 with `report()` and `cite()` in it; the Markdown documents, `render` and `zeff render` follow after 1.0, HTML first; the file extension is `.zmd`. #124 and #135 carry notes of what #141 changes in them.
 
+**Status (13 November 2026, release 0.7.0, #142).** Shown the sample report of #141 drawn as HTML, the owner asked that its figures be PNG and not sit on a white background in the dark theme. Recorded as #142, due with the HTML documents of #141, after 1.0; that the figures of an HTML document are PNG is the owner's ruling. No normative text is changed.
+
 ## Summary
 
 | # | Decision | Recommendation | Decide by |
@@ -171,6 +173,7 @@ Date: 17 October 2026 · Source: Zeff Specification section 15, Zemp Specificati
 | 85 | The Games–Howell comparison in `posthoc` | Add `games_howell` to `method:` in the first release after 0.7.0 with room; until then Tukey's HSD after Welch's ANOVA prints a note | 0.9.0 |
 | 86 | Folding, snippets and the statement ranges behind **Run** in the language server | At 0.8.0, with Zemp's alpha; formatting through the server is built at 0.7.0 | 0.8.0 |
 | 87 | A variable name in an option record | Accept a `Vars` of exactly one variable where a parameter takes a `Var`, so that `{ se: robust, cluster: vars(firm) }` can be named once and spread | 0.8.0 |
+| 142 | Figures of an HTML document in the light and the dark theme | `export(background: white | none = white)` for a transparent PNG, SVG or PDF; a dark form of each figure theme, `theme(mode: light | dark = light)`; `render` writes each figure of an HTML document twice, as PNG, light and dark, on no background, and the page shows the one its theme asks for | PNG ruled 13 November 2026; open, with the HTML documents of #141 |
 | 141 | A `publish` package: reports written in Markdown, with HTML of Quarto's quality and HTML slides | Markdown in Quarto's dialect, Typst underneath for PDF; HTML, HTML slides, PDF and Word from one document, each self-contained and identical on every machine; `publish` in tier 1 after `plot` with `render`, `zeff render`, `report()` moved from `results` and `cite()`; `pulldown-cmark`, a LaTeX-to-MathML converter, Hayagriva, reveal.js and Typst, no Pandoc; the package and its names at 0.10.0, the documents after 1.0, HTML first; `.zmd` | Markdown and the name `publish` ruled 13 November 2026; decided 13 November 2026 (option A, `.zmd`): `publish` at 0.10.0, the documents after 1.0 |
 | 135 | A function that gives citation details: `cite` | `cite()` for Zeff at the pinned engine version, `fit.cite()` for the methods and options a fit used, `cite(t_test)` for a function's references and `cite(wages)` for a dataset, with `format: text | bibtex | ris`; `zeff cite` for a project's whole bibliography; the references of the help pages kept as structured entries. At 0.10.0, the command at 0.11.0 | decided 13 November 2026 (option A, named `cite`); `cite` at 0.10.0, `zeff cite` at 0.11.0 |
 | 134 | Making a manipulated analysis harder to hide in a replication package | Six measures: a stamp of the scripts before the data are read, for a preregistration; an optional run history whose records are chained by hash; the raw data checked against the checksums their archive publishes; signed and dated run records; specification curves; and each run record naming the Git commit it ran from, with any uncommitted changes. The fields of the run record at 0.11.0, the commands after 1.0 | 0.11.0 |
@@ -2819,3 +2822,25 @@ What it amends, when its release is planned and logged in `docs/spec_changes.md`
 - A report document is a `.zmd` file.
 - `render` and `zeff render` are taken as proposed, under the owner's standing instruction of 12 November 2026, his to overturn.
 - The catalogue rows of `report` and `cite`, the package list of section 8.1 and the row of 0.10.0 in section 14 of the Engine and Project Specification are amended when 0.10.0 is planned; the rows of `render`, the command table of section 2.1 and section 8 of the Zemp Specification when the release after 1.0 that builds the documents is planned. Each is logged in `docs/spec_changes.md` then.
+
+### 142. Figures of an HTML document in the light and the dark theme
+
+Raised on 13 November 2026 by the owner, on seeing the sample report of #141 drawn as HTML: "figures should be in png not white background in dark theme". Every figure Zeff exports today is drawn on a white page: the PNG writer of step 22b2 of release 0.7.0 paints its page white, the SVG and PDF writers draw a white rectangle under the figure, and the themes of `theme(name: journal | minimal | slide = journal, base_size:)` (catalogue row of `theme`) set dark ink, light gridlines and nothing for a dark page. An HTML document that follows its reader's light or dark setting (#141, item 2) therefore shows each figure as a white box on a dark page.
+
+The mockup of the sample report shows what is wanted. Its three figures are PNG, each in a light and a dark version, both on no background: in the dark version the ink of the text, the axes and the caption line is light (#E6E2EE) and the gridlines dark (#3A3546), and the colours of the data are unchanged, since the Okabe–Ito colours and viridis read on both grounds. The page shows the version its theme asks for. The mockup's versions were made by changing those three colours in Zeff's own SVG and drawing it in a browser; Zeff can make neither today.
+
+The proposal, in the manner of #97 (one function with an option):
+
+1. *A page with no background.* `export(path, size:, notes:, background: white | none = white)`: with `none` the PNG has a transparent page (an alpha channel, written by the engine's own writer with the same fixed arithmetic), and the SVG and PDF draw no rectangle under the figure. The default leaves every export of today unchanged, byte for byte.
+2. *A dark form of each theme.* `theme(name: journal | minimal | slide = journal, base_size:, mode: light | dark = light)`: in `dark` the ink, the axes and the text are light and the gridlines dark, by constants named in one place for the owner's reading as #118 asks of the theme's constants; the scales of colour, the shapes and the 8-point rule are unchanged; `mode: dark` with `background: white` is refused with a message, since the light ink would not read on it.
+3. *In an HTML document.* `render` (#141) writes each figure twice, as PNG, light and dark, both on no background, at twice the resolution of the page, and the page shows the one its theme asks for, by the reader's system setting or by the page's switch. PDF and Word documents keep the light figure on a white page. The figures of HTML slides follow the same rule.
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The three parts, with the HTML documents of #141 after 1.0 | Figures that belong on the page in both themes; an export of today is unchanged; one option on each of two functions | An HTML document carries each figure twice, about twice the bytes; the PNG writer gains an alpha channel and the identity tests the new bytes |
+| B. Part 1 alone: transparent figures in the light theme, and in the dark theme each figure set on a light panel | Half the work | A light panel on a dark page is the white box the owner asked to remove, made smaller |
+| C. Nothing: figures on white in both themes | No work | What the owner asked to change |
+
+*Recommendation.* A, built with the HTML documents of #141 (after 1.0, HTML first). `background:` and `mode:` are new options on frozen usages (the catalogue rows of `export` and `theme`), amended and logged in `docs/spec_changes.md` when that release is planned. Deadline: the first release after 1.0 that builds the HTML documents of #141.
+
+**The owner's ruling (13 November 2026).** "figures should be in png": the figures of an HTML document are PNG. The rest is open.
