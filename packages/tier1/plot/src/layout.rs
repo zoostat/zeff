@@ -2527,6 +2527,36 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                         }
                     }
                 }
+                if layer.mark == Mark::Errorbars {
+                    // An interval: an upright line from its lower end to its upper one,
+                    // and a cap across each end, half its width to either side; in the
+                    // colour of the text, as wide as the line of an axis.
+                    let bars = marks_of.min(layer.low.len()).min(layer.span.len());
+                    for i in 0..bars {
+                        let mid = m_across(sx, layer.x[i]);
+                        let (foot, head) = (m_down(sy, layer.low[i]), m_down(sy, layer.y[i]));
+                        drawn.push(named(
+                            &name,
+                            segment((mid, foot), (mid, head), line(theme.ink, theme.axis_width)),
+                        ));
+                        if layer.span[i] > 0.0 {
+                            let (near, far) = (
+                                m_across(sx, layer.x[i] - layer.span[i] / 2.0),
+                                m_across(sx, layer.x[i] + layer.span[i] / 2.0),
+                            );
+                            for end in [foot, head] {
+                                drawn.push(named(
+                                    &name,
+                                    segment(
+                                        (near, end),
+                                        (far, end),
+                                        line(theme.ink, theme.axis_width),
+                                    ),
+                                ));
+                            }
+                        }
+                    }
+                }
                 if layer.mark.fills() {
                     // The shape under each line of the layer: along its upper edge in the order of
                     // the marks and back along its lower edge, in the fill of its first mark.
@@ -2676,7 +2706,7 @@ fn lay(scene: &Scene, size: Size, theme: &Theme, noted: bool) -> Result<Drawing,
                 }
                 let one_by_one = !(layer.mark.joins()
                     || layer.mark.patches()
-                    || matches!(layer.mark, Mark::Rug(_) | Mark::Text));
+                    || matches!(layer.mark, Mark::Rug(_) | Mark::Text | Mark::Errorbars));
                 for i in 0..if one_by_one { marks_of } else { 0 } {
                     let colour = colour_of(i);
                     let across_mark = match &layer.size {

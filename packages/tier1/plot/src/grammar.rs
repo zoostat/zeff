@@ -200,7 +200,8 @@ pub(crate) fn not_a_shape(
 pub(crate) struct Slots {
     pub x: Option<usize>,
     pub y: Option<usize>,
-    /// The two edges of a band, for the mark that has them.
+    /// The two edges of a band, or the two ends of an interval, for the marks that have
+    /// them.
     pub low: Option<usize>,
     pub high: Option<usize>,
     pub color: Option<usize>,
@@ -302,7 +303,12 @@ pub(crate) fn aesthetics(
                 .in_file(ctx.script)
                 .primary(ctx.span_of(slot), "not a numeric variable")
                 .help(format!(
-                    "the edges of a band are numbers; `{}.describe()` lists the types of the variables",
+                    "the {} are numbers; `{}.describe()` lists the types of the variables",
+                    if function == "errorbars" {
+                        "ends of an interval"
+                    } else {
+                        "edges of a band"
+                    },
                     frame.shown_name()
                 )),
             ));

@@ -134,33 +134,17 @@ Step 27d was split into 27d1 to 27d3. 27d1 `[engine]`: a scene of several panels
 
 Step 27e was split in two. 27e1 `[engine]`: `facet(rows:, cols:)`, a grid of panels with the values of the columns over the first row and those of the rows beside the last column, a cell with no row drawn empty, laid as it is. 27e2 `[engine]`: `scales: free | free_x | free_y`, each panel of `by:` with the axis of its own marks, each row of a grid with its own `y` and each column with its own `x`; an axis of categories never free; refused in fixed and polar coordinates. The specification's sample `facet(by: industry, scales: free_y)` draws. Step 27 complete: `coord` in four forms, `facet` in three; `plot` at twenty-one functions built.
 
-## 13 November 2026, release 0.7.0, step 28a (`histogram`), and step 28 split in four
+## 13 November 2026, steps 28a to 28c of release 0.7.0 (folded)
 
-**Done.** Step 28 was split into 28a (`histogram`), 28b (`density`), 28c (`boxplot`) and 28d (`errorbars`). `p.histogram()` counts the rows of `x` in bins of one width and draws a bar for each: by the rule of Freedman and Diaconis, by Sturges's or Scott's, by a number of bins or by a width, from the smallest value or from `start:`, as counts, densities, fractions or percentages; stacked by a fill; with the same bins in every panel of `facet`. The three rules give the numbers of bins of R, and the counts and densities are those of R's `hist` on the same breaks. A histogram has a thousand bins at most.
+Step 28 was split in four. 28a `[function]`: `histogram`, the rows of `x` counted in bins of one width by the rule of Freedman and Diaconis, Sturges's or Scott's, a number of bins or a width, from the smallest value or from `start:`, as counts, densities, fractions or percentages, a thousand bins at most; the numbers of bins and the counts are those of R. 28b `[function]`: `density`, the kernel estimate computed in `stats`, which `plot` now depends on, with Silverman's bandwidth, `bandwidth:`, `adjust:` and six kernels, computed exactly where R bins first; the bandwidth matches R to thirteen places. 28c `[function]`: `boxplot`, a box for each value of `x` or one box, with Tukey's hinges and the values beyond the whiskers as R's `boxplot.stats`, side by side for a fill, `outliers: false`. Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 429 of 429; CI is read job by job after the push.
+## 13 November 2026, release 0.7.0, step 28d (`errorbars`; step 28 complete)
 
-**Next.** Step 28b `[function]`: `density`, the kernel estimate computed in `stats` and the layer that draws it.
+**Done.** `p.errorbars(low:, high:)` draws an interval at each row's `x`, from `low` to `high`, with a cap across each end (`width:`, 0.3 of the gap; 0 for none). Over bars side by side, and beside boxes, each interval stands over its own bar. The scene records what the interval is (`given`: the two ends are the script's). The four statistical layers are built, catalogue rows 472 to 475 are `implemented`, and the grammar of section 7.6 stands at 25 of 25.
 
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the bins begin at the smallest value and are of one width, each holding its left edge, as Stata's, where R moves the edges to round numbers; a stack of several fills is the histogram of them all, so that under `density` the whole stack has area one; a thousand bins at most; an axis of dates has no histogram yet. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 449 of 449; CI is read job by job after the push.
 
-## 13 November 2026, release 0.7.0, step 28b (`density`)
+**Next.** Step 29 `[function]`: the eight shorthands (`histogram`, `scatter`, `line`, `bar`, `boxplot`, `density`, `qq_plot`, `heatmap`).
 
-**Done.** `p.density()` draws the kernel estimate of the density of `x` as a line, one for each category of a colour and for each panel. The estimate is computed in `stats` (`zeff_stats::density`), which `plot` now depends on: Silverman's bandwidth as R's `bw.nrd0`, `bandwidth:`, `adjust:`, and six kernels each scaled so that the bandwidth is its standard deviation, at 512 places from three bandwidths beyond the values. The bandwidth matches R to thirteen places and the estimate matches R's direct computation to twelve, with every kernel.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 436 of 436; CI is read job by job after the push.
-
-**Next.** Step 28c `[function]`: `boxplot`.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the estimate is computed exactly, value by value, where R bins the values first, so the two agree to about three places; each group has its own bandwidth and its own places, as R's `density` of that group alone; a density is drawn as a line and not as a filled area; a group with fewer than two values has no density. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
-## 13 November 2026, release 0.7.0, step 28c (`boxplot`)
-
-**Done.** `p.boxplot()` draws a box over the values of `y` for each value of `x`, or one box where nothing is mapped to `x`: the box from the lower hinge to the upper, a line at the median, whiskers to the furthest values within one and a half heights of the box, and the values beyond as points; boxes side by side for a fill; `outliers: false` leaves the values beyond out. The five numbers and the values beyond are those of R's `boxplot.stats`. A box is a mark of its own in the scene, with its median, its whiskers and its values beyond.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 443 of 443; CI is read job by job after the push.
-
-**Next.** Step 28d `[function]`: `errorbars`, which completes step 28 and the grammar at 25 of 25.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: Tukey's hinges, as R's `boxplot.stats`, where ggplot2 takes quartiles; no line across the end of a whisker; a box without a fill in the colour of the page with a line round it; a box three quarters of the gap wide; one box on an axis of one place without a name. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: intervals in the colour of the text, not of their group; intervals follow bars side by side without a `position:` of their own; an interval with `low` above `high` is drawn and counted in a note, not refused; nothing is written on the figure about what a given interval is (the author says it in the caption). One error of the specification corrected and logged: the grammar table had `errorbars(ci:)`. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 

@@ -424,6 +424,12 @@ plot/boxplot/box.pdf 9db869627824bd75
 plot/boxplot/box.png c57f386ec66805d2
 plot/boxplot/lying.svg e5d2f318a59e8c1c
 plot/boxplot/filled.svg 571480829a892867
+plot/errorbars/stdout 74f765505154f82b
+plot/errorbars/stderr ba604b22d30c979b
+plot/errorbars/bars.svg 1720ff803e66e453
+plot/errorbars/bars.pdf c3e26986d675065e
+plot/errorbars/bars.png 7915d15b69cdb9ae
+plot/errorbars/lying.svg 63e6e1cf3dafe64f
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

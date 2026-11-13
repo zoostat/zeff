@@ -1,0 +1,56 @@
+---
+source: packages/tier1/plot/tests/intervals.rs
+expression: "layout(&drawn_at(doses(), \"dose\", intervals(\"lower\", \"upper\", CAP_WIDTH)),\nSize::OneColumn, &JOURNAL).unwrap().describe()"
+---
+drawing 252.283 by 187.087
+[background] rectangle 0,0 252.283 by 187.087 fill #FFFFFF
+[grid] segment 47.443,7.792 to 47.443,155.253 stroke #E3E3E3 0.35
+[grid] segment 92.355,7.792 to 92.355,155.253 stroke #E3E3E3 0.35
+[grid] segment 137.267,7.792 to 137.267,155.253 stroke #E3E3E3 0.35
+[grid] segment 182.179,7.792 to 182.179,155.253 stroke #E3E3E3 0.35
+[grid] segment 227.091,7.792 to 227.091,155.253 stroke #E3E3E3 0.35
+[grid] segment 31.05,148.55 to 243.483,148.55 stroke #E3E3E3 0.35
+[grid] segment 31.05,121.739 to 243.483,121.739 stroke #E3E3E3 0.35
+[grid] segment 31.05,94.928 to 243.483,94.928 stroke #E3E3E3 0.35
+[grid] segment 31.05,68.117 to 243.483,68.117 stroke #E3E3E3 0.35
+[grid] segment 31.05,41.306 to 243.483,41.306 stroke #E3E3E3 0.35
+[grid] segment 31.05,14.495 to 243.483,14.495 stroke #E3E3E3 0.35
+[panel] clip 31.05,7.792 212.433 by 147.461
+  [layer:1] segment 47.443,148.55 to 47.443,94.928 stroke #222222 0.5
+  [layer:1] segment 40.706,148.55 to 54.18,148.55 stroke #222222 0.5
+  [layer:1] segment 40.706,94.928 to 54.18,94.928 stroke #222222 0.5
+  [layer:1] segment 92.355,108.333 to 92.355,81.522 stroke #222222 0.5
+  [layer:1] segment 85.618,108.333 to 99.092,108.333 stroke #222222 0.5
+  [layer:1] segment 85.618,81.522 to 99.092,81.522 stroke #222222 0.5
+  [layer:1] segment 137.267,121.739 to 137.267,14.495 stroke #222222 0.5
+  [layer:1] segment 130.53,121.739 to 144.004,121.739 stroke #222222 0.5
+  [layer:1] segment 130.53,14.495 to 144.004,14.495 stroke #222222 0.5
+  [layer:1] segment 227.091,68.117 to 227.091,54.711 stroke #222222 0.5
+  [layer:1] segment 220.354,68.117 to 233.827,68.117 stroke #222222 0.5
+  [layer:1] segment 220.354,54.711 to 233.827,54.711 stroke #222222 0.5
+[axis:x] segment 31.05,155.253 to 243.483,155.253 stroke #222222 0.5
+[axis:x] segment 47.443,155.253 to 47.443,158.253 stroke #222222 0.5
+[axis:x] text 47.443,166.837 middle "10" sans 8 #222222
+[axis:x] segment 92.355,155.253 to 92.355,158.253 stroke #222222 0.5
+[axis:x] text 92.355,166.837 middle "20" sans 8 #222222
+[axis:x] segment 137.267,155.253 to 137.267,158.253 stroke #222222 0.5
+[axis:x] text 137.267,166.837 middle "30" sans 8 #222222
+[axis:x] segment 182.179,155.253 to 182.179,158.253 stroke #222222 0.5
+[axis:x] text 182.179,166.837 middle "40" sans 8 #222222
+[axis:x] segment 227.091,155.253 to 227.091,158.253 stroke #222222 0.5
+[axis:x] text 227.091,166.837 middle "50" sans 8 #222222
+[axis:x] text 137.267,180.837 middle "dose" sans 9 #222222
+[axis:y] segment 31.05,7.792 to 31.05,155.253 stroke #222222 0.5
+[axis:y] segment 28.05,148.55 to 31.05,148.55 stroke #222222 0.5
+[axis:y] text 25.05,151.342 end "1" sans 8 #222222
+[axis:y] segment 28.05,121.739 to 31.05,121.739 stroke #222222 0.5
+[axis:y] text 25.05,124.531 end "2" sans 8 #222222
+[axis:y] segment 28.05,94.928 to 31.05,94.928 stroke #222222 0.5
+[axis:y] text 25.05,97.72 end "3" sans 8 #222222
+[axis:y] segment 28.05,68.117 to 31.05,68.117 stroke #222222 0.5
+[axis:y] text 25.05,70.909 end "4" sans 8 #222222
+[axis:y] segment 28.05,41.306 to 31.05,41.306 stroke #222222 0.5
+[axis:y] text 25.05,44.098 end "5" sans 8 #222222
+[axis:y] segment 28.05,14.495 to 31.05,14.495 stroke #222222 0.5
+[axis:y] text 25.05,17.287 end "6" sans 8 #222222
+[axis:y] text 13,81.522 middle turned 90 "lower" sans 9 #222222

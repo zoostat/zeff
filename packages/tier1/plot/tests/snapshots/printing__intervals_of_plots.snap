@@ -1,0 +1,81 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · m · mean against arm
+
+  axis   title   scale      limits         breaks
+  x      arm     category   0.4 to 2.6     a, b
+  y      mean    linear     1.33 to 5.07   2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   points      m          4   size 4.5, alpha 1
+      2   errorbars   m          4   low lower, high upper, interval given, width 0.3
+plot · m · mean against arm
+
+  axis   title   scale      limits             breaks
+  x      arm     category   0.4 to 2.6         a, b
+  y      mean    linear     1.3414 to 5.0506   2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   errorbars   m          4   low mean - 1.96 * se, high mean + 1.96 * se, interval given, width 0
+plot · m · mean against arm
+
+  axis   title   scale      limits            breaks
+  x      arm     category   0.4 to 2.6        a, b
+  y      mean    linear     -0.245 to 5.145   0, 1, 2, 3, 4, 5
+
+  aesthetic   title   scale      values   shown as
+  fill        sex     category   f, m     orange, sky blue
+
+  layer   mark        data   marks   settings
+      1   bars        m          4   width 0.9, position dodge, alpha 1
+      2   errorbars   m          4   low lower, high upper, interval given, width 0.3
+plot · m · lower against arm
+
+  axis   title   scale      limits         breaks
+  x      arm     category   0.4 to 2.6     a, b
+  y      lower   linear     1.33 to 5.07   2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   errorbars   m          4   low lower, high upper, interval given, width 0.3
+plot · m · mean against dose
+
+  axis   title   scale    limits           breaks
+  x      dose    linear   0.785 to 2.215   0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2
+  y      mean    linear   1.33 to 5.07     2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   points      m          4   size 4.5, alpha 1
+      2   errorbars   m          4   low lower, high upper, interval given, width 0.3
+
+coordinates: flipped, `x` up the side and `y` along the foot
+plot · m · mean against arm
+
+  axis   title   scale      limits         breaks
+  x      arm     category   0.4 to 2.6     a, b
+  y      mean    linear     1.33 to 5.07   2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   errorbars   m          4   low lower, high upper, interval given, width 0.3
+
+panels: 2 by sex: f, m
+plot · m · mean against arm
+
+  axis   title   scale      limits         breaks
+  x      arm     category   0.4 to 2.6     a, b
+  y      mean    linear     1.33 to 5.07   2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   errorbars   m          4   low upper, high lower, interval given, width 0.3
+plot · m · mean against arm
+
+  axis   title   scale      limits       breaks
+  x      arm     category   0.4 to 2.6   a, b
+  y      mean    linear     0.9 to 3.1   1, 1.5, 2, 2.5, 3
+
+  layer   mark        data            marks   settings
+      1   errorbars   its own frame       1   low from, high to, interval given, width 0.3
+---
+note: 4 intervals have upper above lower: they are drawn between the two (line 9)
+note: 1 row with NA in arm, from or to dropped (line 10)

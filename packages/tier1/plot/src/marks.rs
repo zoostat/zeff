@@ -2126,6 +2126,122 @@ pub fn boxplot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     )
 }
 
+// ----- errorbars (step 28d) -----
+
+const EB_LOW: usize = 2;
+const EB_HIGH: usize = 3;
+const EB_WIDTH: usize = 4;
+
+/// `p.errorbars(data: Frame, low: Var | Expr, high: Var | Expr, width: Float = 0.3)`: an
+/// interval at each row's `x`, from `low` to `high`, with a cap across each end.
+pub fn errorbars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`errorbars` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    let own_data = matches!(args.get(DATA), Some(Value::Frame(_)));
+    let (mappings, constants) = aesthetics(
+        ctx,
+        &args,
+        &frame,
+        "errorbars",
+        &Slots {
+            x: None,
+            y: None,
+            low: Some(EB_LOW),
+            high: Some(EB_HIGH),
+            color: None,
+            fill: None,
+            size: None,
+            shape: None,
+            group: None,
+            label: None,
+            linetype: None,
+        },
+        own_data,
+    )?;
+    // The two ends are the layer's own, and an interval has both.
+    let names = |aesthetic: Aesthetic| mappings.iter().any(|m| m.aesthetic == aesthetic);
+    let lacking = match (names(Aesthetic::Low), names(Aesthetic::High)) {
+        (true, true) => None,
+        (false, true) => Some(("`low`", "`low` is missing")),
+        (true, false) => Some(("`high`", "`high` is missing")),
+        (false, false) => Some(("`low` and `high`", "`low` and `high` are missing")),
+    };
+    if let Some((what, label)) = lacking {
+        return Err(fail(
+            Diagnostic::error("Z0406", format!("`errorbars` needs {what}"))
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, label)
+                .help("an interval reaches from `low:` to `high:` at each row: name the two, as in `errorbars(low: lower, high: upper)` or `errorbars(low: mean - 1.96 * se, high: mean + 1.96 * se)`"),
+        ));
+    }
+    if plot.mapping(Aesthetic::X).is_none() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`errorbars` places its intervals along `x`, but the plot maps no variable to `x`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "needs `x`")
+            .help("map it where the plot starts, as in `plot(x: arm, y: mean).errorbars(low: lower, high: upper)`"),
+        ));
+    }
+    numbers_along(
+        ctx,
+        &plot,
+        &frame,
+        &mappings,
+        (Aesthetic::Y, None),
+        ("errorbars", "places its two ends on a linear scale", false),
+    )?;
+    let (data, computed) = own_frame(
+        ctx,
+        &args,
+        &plot,
+        "errorbars",
+        &[Aesthetic::X, Aesthetic::Group],
+    )?;
+    let width =
+        number_option(ctx, &args, EB_WIDTH, "a `width:` that is not a number")?.unwrap_or(0.3);
+    if !(0.0..=1.0).contains(&width) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`width:` of `errorbars` is the width of a cap as a share of the gap between two values of `x`, from 0 to 1, but this is {}",
+                    shown(width)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(EB_WIDTH), "not a share")
+            .help("write 0 for intervals without caps, or a share such as 0.5 for caps half as wide as the gap; without `width:` a cap is 0.3 of the gap"),
+        ));
+    }
+    finish(
+        ctx,
+        &plot,
+        PlotLayer {
+            mark: Mark::Errorbars,
+            data,
+            alpha: 1.0,
+            size: None,
+            jitter: 0.0,
+            nudge: (0.0, 0.0),
+            width: Some(width),
+            stream: None,
+            stat: None,
+            computed,
+            mappings,
+            constants,
+        },
+    )
+}
+
 // ----- tile (step 24c) -----
 
 const T_FILL: usize = 4;

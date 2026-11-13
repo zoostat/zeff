@@ -2257,6 +2257,20 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/boxplot/{name}"), &data));
     }
+    // The layer of intervals (step 28d): the mean hourly wage of 2015 by industry and sex
+    // with two standard errors to either side, over bars side by side, as the sample script
+    // of the specification draws it; the means of the two sexes as points with their
+    // intervals, lying along the page; intervals without caps; what the script prints, the
+    // first figure in the three formats and the lying one as a figure.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet means = w.aggregate(mean_wage = mean(wage), se = sd(wage) / sqrt(n()), by: [industry, female])\nlet p = plot(means, x: industry, y: mean_wage, color: female).bars(position: dodge).errorbars(low: mean_wage - 1.96 * se, high: mean_wage + 1.96 * se).legend(top)\np\nlet by_sex = w.aggregate(mean_wage = mean(wage), se = sd(wage) / sqrt(n()), by: female)\nlet q = by_sex.plot(x: female, y: mean_wage).points().errorbars(low: mean_wage - 1.96 * se, high: mean_wage + 1.96 * se).coord(flip)\nq\nby_sex.plot(x: female).errorbars(low: mean_wage - se, high: mean_wage + se, width: 0)\nexport(p, \"bars.svg\", size: two_column)\nexport(p, \"bars.pdf\", size: two_column)\nexport(p, \"bars.png\", size: two_column)\nexport(q, \"lying.svg\")\n";
+    let barred = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/errorbars/stdout", &barred.output.stdout));
+    fills.push(text("plot/errorbars/stderr", &barred.output.stderr));
+    for name in ["bars.svg", "bars.pdf", "bars.png", "lying.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/errorbars/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),

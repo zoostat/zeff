@@ -563,3 +563,7 @@ Step 28a of release 0.7.0 builds the layer `histogram`. Its usage line had `p.hi
 
 Step 28b of release 0.7.0 builds the layer `density`. Its usage line had `p.density(data: Frame, bandwidth: Float, adjust: Float = 1)`. By the owner's ruling of 10 November 2026 on question 2 of open decision #99, which the checklist's step 28 carries, the layer takes the kernel. The line is now `p.density(data: Frame, bandwidth: Float, adjust: Float = 1, kernel: gaussian | epanechnikov | rectangular | triangular | biweight | cosine = gaussian)`. The status of the row stays `planned` until step 28 is complete; the usage line of the shorthand, row 234, is amended at step 29.
 
+## 13 November 2026 — Language Reference, section 7.6 (the row "Statistical layers" of the grammar table)
+
+Step 28d of release 0.7.0 builds the layer `errorbars`. The row of the grammar table had `errorbars(ci:)`, an option the layer does not have: the catalogue (row 475), the sample script (`.errorbars(low: mean_lwage - 1.96 * se, high: mean_lwage + 1.96 * se)`) and the checklist all give it `low:` and `high:`, the two ends of the interval, which the script computes. An error of the table, found while coding. The row now has `errorbars(low:, high:)`. The usage line of catalogue row 475 is as it was; rows 472 to 475 are now `implemented`, step 28 being complete.
+

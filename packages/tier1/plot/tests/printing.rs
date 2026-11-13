@@ -3924,3 +3924,118 @@ fn every_message_of_boxplot() {
     }
     insta::assert_snapshot!("boxplot_messages", all);
 }
+
+// ----- errorbars (step 28d) -----
+
+const ESTIMATES: &str = "let m = frame(arm = [\"a\", \"a\", \"b\", \"b\"], sex = [\"f\", \"m\", \"f\", \"m\"], dose = [1, 2, 1, 2], mean = [2.0, 3.0, 4.0, 2.5], se = [0.25, 0.4, 0.45, 0.3], lower = [1.5, 2.2, 3.1, 1.9], upper = [2.5, 3.8, 4.9, 3.1], name = [\"k\", \"l\", \"m\", \"n\"], read = [\"2024-01-15\", \"2024-01-16\", \"2024-01-17\", \"2024-01-18\"]).add(day = date(read))\nlet p = m.plot(x: arm, y: mean)\n";
+
+#[test]
+fn a_plot_with_intervals_reads_sensibly_as_text() {
+    let script = format!(
+        "{ESTIMATES}p.points().errorbars(low: lower, high: upper)\n\
+         p.errorbars(low: mean - 1.96 * se, high: mean + 1.96 * se, width: 0)\n\
+         m.plot(x: arm, y: mean, fill: sex).bars(position: dodge).errorbars(low: lower, high: upper)\n\
+         m.plot(x: arm).errorbars(low: lower, high: upper)\n\
+         m.plot(x: dose, y: mean).points().errorbars(low: lower, high: upper).coord(flip)\n\
+         p.errorbars(low: lower, high: upper).facet(by: sex)\n\
+         p.errorbars(low: upper, high: lower)\n\
+         p.errorbars(data: frame(arm = [\"a\", \"b\"], from = [1, 2], to = [3, NA]), low: from, high: to)\n"
+    );
+    let text = printed(&script);
+    // The layer says what its intervals are, and the width of their caps.
+    assert!(
+        text.contains("low lower, high upper, interval given, width 0.3"),
+        "{text}"
+    );
+    assert!(
+        text.contains("low mean - 1.96 * se, high mean + 1.96 * se, interval given, width 0"),
+        "{text}"
+    );
+    // Without a `y` the axis is named by the lower end.
+    assert!(text.contains("  y      lower   linear"), "{text}");
+    insta::assert_snapshot!("intervals_of_plots", text);
+}
+
+#[test]
+fn a_plot_with_intervals_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{ESTIMATES}let q = m.plot(x: arm, y: mean, fill: sex).bars(position: dodge).errorbars(low: lower, high: upper)\n\
+         export(q, \"bars.svg\")\n\
+         export(q, \"bars.pdf\")\n\
+         export(q, \"bars.png\")\n\
+         export(p.points().errorbars(low: lower, high: upper).coord(flip), \"lying.svg\")\n\
+         export(p.errorbars(low: lower, high: upper).coord(polar), \"round.svg\")\n\
+         export(p.errorbars(low: upper, high: lower), \"turned.svg\")\n"
+    ));
+    // The one thing said: the ends that are exchanged.
+    assert_eq!(
+        (code, stderr.as_str()),
+        (
+            0,
+            "note: 4 intervals have upper above lower: they are drawn between the two (line 9)\n"
+        ),
+        "{stdout}"
+    );
+}
+
+#[test]
+fn every_message_of_errorbars() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_low_and_no_high", "p.errorbars()\n"),
+        ("no_low", "p.errorbars(high: upper)\n"),
+        ("no_high", "p.errorbars(low: lower)\n"),
+        (
+            "no_x",
+            "m.plot(y: mean).errorbars(low: lower, high: upper)\n",
+        ),
+        ("a_low_of_text", "p.errorbars(low: name, high: upper)\n"),
+        ("a_high_of_dates", "p.errorbars(low: lower, high: day)\n"),
+        (
+            "a_y_axis_of_categories",
+            "m.plot(x: arm, y: name).errorbars(low: lower, high: upper)\n",
+        ),
+        (
+            "a_y_axis_of_dates",
+            "m.plot(x: arm, y: day).errorbars(low: lower, high: upper)\n",
+        ),
+        (
+            "a_low_that_is_not_there",
+            "p.errorbars(low: lowest, high: upper)\n",
+        ),
+        (
+            "a_low_in_another_case",
+            "p.errorbars(low: Lower, high: upper)\n",
+        ),
+        (
+            "a_width_below_nothing",
+            "p.errorbars(low: lower, high: upper, width: -0.1)\n",
+        ),
+        (
+            "a_width_above_one",
+            "p.errorbars(low: lower, high: upper, width: 1.5)\n",
+        ),
+        (
+            "a_width_that_is_a_word",
+            "p.errorbars(low: lower, high: upper, width: wide)\n",
+        ),
+        (
+            "an_end_below_nothing_on_a_log_axis",
+            "p.scale_y(log).errorbars(low: lower - 2, high: upper)\n",
+        ),
+        (
+            "intervals_of_a_frame",
+            "m.errorbars(low: lower, high: upper)\n",
+        ),
+        (
+            "a_frame_without_the_variable",
+            "p.errorbars(data: frame(site = [\"a\"], from = [1], to = [2]), low: from, high: to)\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{ESTIMATES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}\n{stderr}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("errorbars_messages", all);
+}

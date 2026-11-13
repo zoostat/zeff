@@ -418,6 +418,13 @@ pub fn reads(mark: Mark, aesthetic: Aesthetic) -> bool {
         ),
         // A tile stands at `x` and `y`, filled in the colour `fill` says for its row.
         Mark::Tile => matches!(aesthetic, Aesthetic::X | Aesthetic::Y | Aesthetic::Fill),
+        // An interval stands at `x` and reaches from `low` to `high`; the rows of one `group`
+        // are one set of intervals. It is drawn in the colour of the text, as the lines of a
+        // box are, and reads no colour.
+        Mark::Errorbars => matches!(
+            aesthetic,
+            Aesthetic::X | Aesthetic::Low | Aesthetic::High | Aesthetic::Group
+        ),
         // A rug has a tick for each row at its place on the axes of its sides, in its colour.
         Mark::Rug(sides) => match aesthetic {
             Aesthetic::X => sides != Sides::Y,
@@ -870,7 +877,9 @@ pub fn axis_fault(plot: &Plot) -> Option<AxisFault> {
             // What the layer is placed by along this axis: its position, and for a band its
             // two edges.
             let along: &[Aesthetic] = match (aesthetic, layer.mark) {
-                (Aesthetic::Y, Mark::Ribbon) => &[Aesthetic::Low, Aesthetic::High],
+                (Aesthetic::Y, Mark::Ribbon | Mark::Errorbars) => {
+                    &[Aesthetic::Low, Aesthetic::High]
+                }
                 (Aesthetic::Y, _) => &[Aesthetic::Y],
                 _ => &[Aesthetic::X],
             };
@@ -1553,6 +1562,162 @@ fn bars(
                     push(&mut out, item, x, low, high, wide);
                 }
             }
+        }
+        start = end;
+    }
+    out
+}
+
+/// The width of the cap of an interval where the layer says none, as a share of the gap
+/// between two values of `x`.
+pub const CAP_WIDTH: f64 = 0.3;
+
+/// What an interval is where the script gives its two ends and the engine computes neither:
+/// the kind the scene records for it (decision #118, F11). The kinds the engine computes, a
+/// confidence interval with its level among them, come with the plots of results.
+pub const GIVEN: &str = "given";
+
+/// The share of the gap between two values of `x` that the marks of a plot standing side by
+/// side take up together: the width of its first layer of bars side by side, or of its
+/// boxes. `None` where the plot has neither, and nothing stands side by side.
+fn beside(plot: &Plot) -> Option<f64> {
+    plot.layers.iter().find_map(|layer| match layer.mark {
+        Mark::Bars(Arrangement::Dodge) if layer.stat.is_none() => {
+            Some(layer.width.unwrap_or(BAR_WIDTH))
+        }
+        Mark::Box(_) => Some(BOX_WIDTH),
+        _ => None,
+    })
+}
+
+/// The intervals of a layer, as they are drawn.
+#[derive(Default)]
+struct Intervals {
+    /// The place of each interval along `x`, its upper end, and the row it is drawn from.
+    points: Drawn,
+    /// The lower end of each interval.
+    low: Vec<f64>,
+    /// How wide the cap of each is, along `x`.
+    span: Vec<f64>,
+    /// The intervals whose `low` is above their `high`.
+    turned: usize,
+}
+
+/// The intervals of a layer: one for each row with a finite `x`, `low` and `high`, from the
+/// smaller of the two ends to the larger, an interval whose `low` is above its `high` being
+/// counted. A cap is `width` of the smallest gap between two values of `x` wide. Where the
+/// plot has marks side by side (`beside` is the share of the gap they take up together) and
+/// the rows are parted into groups, the intervals at one `x` stand side by side as those
+/// marks do: the groups that are there, in the order of their categories, share the width
+/// equally, the first at the left, and a cap is as much narrower. In a plot parted into
+/// panels the intervals at one place are those of one panel.
+fn intervals(
+    cx: Option<&Column>,
+    (clow, chigh): (Option<&Column>, Option<&Column>),
+    keys: &[Categories],
+    (width, alone, beside): (f64, f64, Option<f64>),
+    panels: Option<&[usize]>,
+) -> Intervals {
+    let mut out = Intervals::default();
+    let (Some(cx), Some(clow), Some(chigh)) = (cx, clow, chigh) else {
+        return out;
+    };
+    if !is_numeric(cx) || !is_numeric(clow) || !is_numeric(chigh) {
+        return out;
+    }
+    if clow.len() != cx.len() || chigh.len() != cx.len() {
+        return out;
+    }
+    if keys.iter().any(|key| key.of.len() != cx.len()) {
+        return out;
+    }
+    if panels.is_some_and(|panels| panels.len() != cx.len()) {
+        return out;
+    }
+    struct Item {
+        panel: usize,
+        x: f64,
+        group: Vec<(bool, usize)>,
+        ends: (f64, f64),
+        row: usize,
+    }
+    let mut items: Vec<Item> = Vec::new();
+    for row in 0..cx.len() {
+        let (Some(x), Some(low), Some(high)) =
+            (number(cx, row), number(clow, row), number(chigh, row))
+        else {
+            out.points.missing += 1;
+            continue;
+        };
+        if !(x.is_finite() && low.is_finite() && high.is_finite()) {
+            out.points.infinite += 1;
+            continue;
+        }
+        if low > high {
+            out.turned += 1;
+        }
+        items.push(Item {
+            panel: panels.map_or(0, |panels| panels[row]),
+            // Adding zero makes the two zeros one place.
+            x: x + 0.0,
+            // In the order of the categories, a row without one after the others.
+            group: keys
+                .iter()
+                .map(|key| (key.of[row].is_none(), key.of[row].unwrap_or(0)))
+                .collect(),
+            ends: (low.min(high), low.max(high)),
+            row,
+        });
+    }
+    // By panel, by place, then by group, then in the order of the frame.
+    items.sort_by(|a, b| {
+        a.panel
+            .cmp(&b.panel)
+            .then_with(|| a.x.total_cmp(&b.x))
+            .then_with(|| a.group.cmp(&b.group))
+            .then(a.row.cmp(&b.row))
+    });
+    let places: Vec<f64> = items.iter().map(|item| item.x).collect();
+    let gap = resolution(&places, alone);
+    let side_by_side = beside.filter(|_| !keys.is_empty());
+    let mut start = 0;
+    while start < items.len() {
+        let mut end = start + 1;
+        while end < items.len()
+            && items[end].panel == items[start].panel
+            && items[end].x == items[start].x
+        {
+            end += 1;
+        }
+        let here = &items[start..end];
+        // The groups that are here, in their order.
+        let mut groups: Vec<&Vec<(bool, usize)>> = Vec::new();
+        for item in here {
+            if groups.last() != Some(&&item.group) {
+                groups.push(&item.group);
+            }
+        }
+        for item in here {
+            let (at, cap) = match side_by_side {
+                Some(share) => {
+                    let wide = share * gap;
+                    let slot = wide / groups.len() as f64;
+                    let place = groups
+                        .iter()
+                        .position(|group| **group == item.group)
+                        .unwrap_or(0);
+                    (
+                        item.x - wide / 2.0 + (place as f64 + 0.5) * slot,
+                        width * gap / groups.len() as f64,
+                    )
+                }
+                None => (item.x, width * gap),
+            };
+            out.points.x.push(at);
+            out.points.y.push(item.ends.1);
+            out.points.rows.push(item.row);
+            out.low.push(item.ends.0);
+            out.span.push(cap);
         }
         start = end;
     }
@@ -2992,6 +3157,19 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             {
                 keys.push(categories(column));
             }
+            // An interval reads no colour, but where the plot fills or colours by
+            // categories that the layer's frame holds, each category has its own
+            // intervals, in the order the bars and the boxes of the plot have theirs.
+            if layer.mark == Mark::Errorbars {
+                for aesthetic in [Aesthetic::Fill, Aesthetic::Color] {
+                    if plot.mapping(aesthetic).is_some()
+                        && let Some(column) = values(plot, Some(layer), aesthetic)
+                        && shading(column) == Some(Shading::Categories)
+                    {
+                        keys.push(categories(column));
+                    }
+                }
+            }
             keys
         };
         // For bars, how far each reaches along `x`, and whether they count rows.
@@ -3047,6 +3225,60 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             whiskers = drawn.whiskers;
             beyond = drawn.beyond;
             Some(drawn.points)
+        } else if layer.mark == Mark::Errorbars {
+            // An interval at each row's `x`, from `low` to `high`; side by side where the
+            // bars or the boxes of the plot stand side by side.
+            match (
+                named(Aesthetic::X),
+                named(Aesthetic::Low),
+                named(Aesthetic::High),
+            ) {
+                (Some(x), Some(from), Some(to)) => {
+                    let across = place(layer, Aesthetic::X);
+                    let lower = place(layer, Aesthetic::Low);
+                    let upper = place(layer, Aesthetic::High);
+                    let drawn = intervals(
+                        across.as_deref(),
+                        (lower.as_deref(), upper.as_deref()),
+                        &parted(),
+                        (
+                            layer.width.unwrap_or(CAP_WIDTH),
+                            alone(across_dates),
+                            beside(plot),
+                        ),
+                        panel_of(at),
+                    );
+                    let needs = [x, from, to];
+                    if drawn.points.missing > 0 {
+                        note(format!(
+                            "{} with NA in {} dropped",
+                            rows_text(drawn.points.missing),
+                            either(&needs)
+                        ));
+                    }
+                    if drawn.points.infinite > 0 {
+                        note(format!(
+                            "{} with an infinite value in {} dropped",
+                            rows_text(drawn.points.infinite),
+                            either(&needs)
+                        ));
+                    }
+                    if drawn.turned > 0 {
+                        note(if drawn.turned == 1 {
+                            format!("1 interval has {from} above {to}: it is drawn between the two")
+                        } else {
+                            format!(
+                                "{} intervals have {from} above {to}: they are drawn between the two",
+                                count(drawn.turned as u64)
+                            )
+                        });
+                    }
+                    low = drawn.low;
+                    span = drawn.span;
+                    Some(drawn.points)
+                }
+                _ => Some(Drawn::default()),
+            }
         } else if let (Some(Stat::Density { .. }), Some(x)) = (layer.stat, named(Aesthetic::X)) {
             // A density: the kernel estimate of the density of `x`, a line for each group.
             let across = place(layer, Aesthetic::X);
@@ -3577,6 +3809,8 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 .width
                 .unwrap_or(if matches!(layer.mark, Mark::Bars(_)) {
                     BAR_WIDTH
+                } else if layer.mark == Mark::Errorbars {
+                    CAP_WIDTH
                 } else {
                     LINE_WIDTH
                 }),
@@ -4452,6 +4686,22 @@ impl Scene {
                                                             } else {
                                                                 Vec::new()
                                                             })
+                                                            // A layer of intervals says the
+                                                                // lower end of each, how wide
+                                                                // its cap is along `x`, and
+                                                                // what the interval is: here
+                                                                // the two ends the script
+                                                                // gives (decision #118, F11).
+                                                            .chain(if l.mark == Mark::Errorbars {
+                                                                vec![
+                                                                    ("low", Json::numbers(&l.low)),
+                                                                    ("span", Json::numbers(&l.span)),
+                                                                    ("interval", Json::text(GIVEN)),
+                                                                    ("width", Json::Number(l.width)),
+                                                                ]
+                                                            } else {
+                                                                Vec::new()
+                                                            })
                                                             .chain(if l.mark.spans() {
                                                                 vec![
                                                                     (
@@ -5202,6 +5452,13 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             } else {
                 "values beyond the whiskers not drawn".to_string()
             };
+            if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
+                settings.push_str(&format!(", group by {}", mapping.variable));
+            }
+            settings
+        } else if layer.mark == Mark::Errorbars {
+            // A layer of intervals: what they are, the width of their caps, their groups.
+            let mut settings = format!("interval {GIVEN}, width {}", format_float(layer.width));
             if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
                 settings.push_str(&format!(", group by {}", mapping.variable));
             }

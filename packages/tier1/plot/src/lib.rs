@@ -823,6 +823,47 @@ pub fn functions() -> Vec<Function> {
         },
         Function {
             spec: FunctionSpec {
+                name: "errorbars",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option("low", "Var | Expr"),
+                    ParamSpec::option("high", "Var | Expr"),
+                    ParamSpec::option_with_default("width", "Float", "0.3"),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![
+                    DiagnosticDecl::note(
+                        "the rows not drawn for NA, or for an infinite value, in x, low or high; the intervals whose low is above their high",
+                    ),
+                    DiagnosticDecl::new(
+                        "W0102",
+                        "a name in an expression the layer maps is both a variable and a binding",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0101",
+                        "the frame the layer draws lacks a variable the layer names, or one an expression it maps reads; the frame of data: lacks a variable the plot maps, or one a mapped expression reads",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0102",
+                        "the frame the layer draws, or the frame of data:, has the variable in another case",
+                    ),
+                    DiagnosticDecl::new(
+                        "Z0401",
+                        "the plot maps nothing to x; a variable the layer names for low: or high:, or a mapped variable of data:, that is not numeric, or an expression that gives nothing an axis places for each row; a y axis of categories or of dates; width: outside [0, 1]",
+                    ),
+                    DiagnosticDecl::new("Z0406", "low: or high: is not given"),
+                ],
+                help: include_str!("../help/errorbars.md"),
+                accuracy: None,
+            },
+            body: marks::errorbars,
+        },
+        Function {
+            spec: FunctionSpec {
                 name: "coord",
                 package: "plot",
                 method: true,

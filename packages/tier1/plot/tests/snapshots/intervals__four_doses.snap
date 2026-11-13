@@ -1,0 +1,70 @@
+---
+source: packages/tier1/plot/tests/intervals.rs
+expression: json
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "dose",
+      "limits": [6.35, 53.65],
+      "breaks": [10, 20, 30, 40, 50],
+      "labels": ["10", "20", "30", "40", "50"],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "lower",
+      "limits": [0.75, 6.25],
+      "breaks": [1, 2, 3, 4, 5, 6],
+      "labels": ["1", "2", "3", "4", "5", "6"],
+      "range": null
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "errorbars",
+          "x": [10, 20, 30, 50],
+          "y": [3, 3.5, 6, 4.5],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": "d",
+          "rows": [1, 2, 3, 4],
+          "low": [1, 2.5, 2, 4],
+          "span": [3, 3, 3, 3],
+          "interval": "given",
+          "width": 0.3
+        }
+      ]
+    }
+  ],
+  "notes": []
+}

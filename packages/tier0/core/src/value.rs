@@ -674,6 +674,9 @@ pub enum Mark {
     /// values within one and a half times the height of the box from it, and the values
     /// beyond as points, where `true`.
     Box(bool),
+    /// An interval at each row's `x`, from `low` to `high`: an upright line with a cap
+    /// across each end.
+    Errorbars,
 }
 
 /// How the bars that share a value of `x` are arranged.
@@ -784,6 +787,7 @@ impl Mark {
             Mark::Tile => "tile",
             Mark::Text => "text",
             Mark::Box(_) => "boxplot",
+            Mark::Errorbars => "errorbars",
         }
     }
 
