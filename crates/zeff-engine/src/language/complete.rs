@@ -4,6 +4,8 @@
 //! functions of the engine and of the project, and the shipped datasets inside `dataset(`
 //! (release 0.7.0, step 35a). Inside a call, before those: the words an argument takes where
 //! it takes one of a fixed list, and the names of the arguments not yet given (step 35b).
+//! And before all of these, where a bare name is a variable of a frame, the variables of that
+//! frame at that point of its chain, with their types (step 35c; open decision #77).
 //!
 //! The value before a dot is typed by the checker, on the document as typed with the
 //! unfinished word set aside. Nothing is run.
@@ -34,6 +36,8 @@ pub enum CompletionKind {
     Argument,
     /// One of the fixed list of words an argument takes, `robust`.
     Word,
+    /// A variable of the frame the place writes about.
+    Variable,
 }
 
 /// One thing that may stand at the place.
@@ -44,11 +48,12 @@ pub struct Completion {
     /// What is written: the label, and for the name of an argument `name: `.
     pub insert: String,
     pub kind: CompletionKind,
-    /// A function's usage line; a binding's or a field's type; a dataset's size; an
-    /// argument's type and default; for a word, the argument that takes it.
+    /// A function's usage line; a binding's, a field's or a variable's type; a dataset's
+    /// size; an argument's type and default; for a word, the argument that takes it.
     pub detail: String,
     /// The summary line of a function's or a dataset's help page, or an argument's line of
-    /// its function's page; empty where there is none.
+    /// its function's page; for a variable, `from last run` where the last run is what is
+    /// known of it; empty where there is none.
     pub summary: String,
 }
 
@@ -197,6 +202,37 @@ impl Doc<'_> {
         let cut = format!("{}{}\n", &self.text[..keep], closers(&self.text[..keep]));
         self.check_as(&cut)
     }
+
+    /// The type of the value that ends at a byte, and its schema where it is a frame the
+    /// checker knows. By a check of the document cut there; and where that types nothing
+    /// (the statement the value stands in does not check without what follows it,
+    /// `d.add(k = other.mean(`), for a value that is a name, by the name on a line of its
+    /// own after what stands before it.
+    pub(crate) fn value_at(&self, end: usize) -> Option<(Ty, Option<zeff_ir::FrameSchema>)> {
+        if let Some(cut) = self.check_cut(end)
+            && let Some(ty) = type_ending_at(&cut, end)
+        {
+            return Some((ty, schema_ending_at(&cut, end)));
+        }
+        let start = self.text[..end]
+            .char_indices()
+            .rev()
+            .take_while(|(_, c)| is_word(*c))
+            .last()
+            .map_or(end, |(i, _)| i);
+        let name = &self.text[start..end];
+        if name.is_empty()
+            || name.starts_with(|c: char| c.is_ascii_digit())
+            || self.text[..start].trim_end().ends_with('.')
+        {
+            return None;
+        }
+        let before = &self.text[..start];
+        let alone = format!("{before}{}\n{name}\n", closers(before));
+        let at = alone.len() - 1;
+        let check = self.check_as(&alone)?;
+        type_ending_at(&check, at).map(|ty| (ty, schema_ending_at(&check, at)))
+    }
 }
 
 /// Whether an expression is one a dot may follow as it stands: a name, a call, a literal, a
@@ -240,6 +276,115 @@ pub(crate) fn type_ending_at(check: &Check, end: usize) -> Option<Ty> {
     );
     best.map(|expr| expr.ty.clone())
         .filter(|ty| *ty != Ty::Unknown)
+}
+
+/// The schema of the frame that ends at a byte of the document, where the checker knows it:
+/// of the widest expression a dot may follow that ends there, a bound frame by its binding.
+pub(crate) fn schema_ending_at(check: &Check, end: usize) -> Option<zeff_ir::FrameSchema> {
+    let mut best: Option<&Expr> = None;
+    let program = &check.checked.program;
+    walk(program, &check.name, check.of_script(), &mut |found| {
+        if let Found::Expr(expr) = found
+            && expr.span.end == end
+            && takes_a_dot(expr)
+            && best.is_none_or(|b| expr.span.start < b.span.start)
+        {
+            best = Some(expr);
+        }
+    });
+    let expr = best?;
+    match &expr.kind {
+        ExprKind::Binding(id) | ExprKind::VarOrBound { binding: id, .. } => program
+            .bound_schemas
+            .iter()
+            .find(|(bound, _)| bound == id)
+            .map(|(_, schema)| schema.clone()),
+        _ => program
+            .schemas
+            .iter()
+            .find(|(span, _)| *span == expr.span)
+            .map(|(_, schema)| schema.clone()),
+    }
+}
+
+/// The variables of the frame a place writes about, where a bare name written there is a
+/// variable (section 12; open decision #77): inside a call on a frame, in an argument that
+/// takes a variable, several, terms, a formula, a condition or a definition, at any depth of
+/// brackets and of calls inside it (`d.add(k = log(`). In the order of the frame, each with
+/// its type, from the schema the checker has of the frame at that point of its chain; those
+/// of a step whose columns depend on the data are the last run's, and say so.
+fn variables_of_the_frame(
+    doc: &Doc<'_>,
+    at: usize,
+    registry: &Registry,
+    check: Option<&Check>,
+    used: &[String],
+) -> Vec<Completion> {
+    for site in call::enclosing(doc.text, at, registry) {
+        // The value the call is on: before the dot, or the first argument.
+        let end = match site.form {
+            call::Form::Method { value_end } => Some(value_end),
+            _ => site.before.iter().find_map(|a| match a {
+                call::Written::Positional { end } => Some(*end),
+                _ => None,
+            }),
+        };
+        // A function written before its arguments with none yet, `log(`: the call it
+        // stands in may be on a frame.
+        let Some(end) = end else { continue };
+        let schema = match doc.value_at(end) {
+            Some((Ty::Frame, schema)) => schema,
+            // A call on a value that is no frame, `a.clamp(`: likewise.
+            Some(_) => continue,
+            // A call on a value the checker cannot type: nothing is known of it, and the
+            // variables of a frame further out would be a guess.
+            None if matches!(site.form, call::Form::Method { .. }) => return Vec::new(),
+            None => continue,
+        };
+        let Some(signature) = call::signature(doc, &site, registry, check, used) else {
+            return Vec::new();
+        };
+        let positional = site.positional_before();
+        let names = if site.defined {
+            true
+        } else {
+            let parameter = match site.named {
+                Some(name) => signature.parameters.iter().find(|p| p.name == name),
+                None => signature.parameters.get(positional),
+            };
+            match parameter {
+                Some(parameter) => parameter.names_variables,
+                None => site.named.is_none() && signature.rest_names_variables,
+            }
+        };
+        if !names {
+            return Vec::new();
+        }
+        let Some(schema) = schema else {
+            return Vec::new();
+        };
+        return schema
+            .columns
+            .iter()
+            .map(|(name, ty)| {
+                Completion::new(
+                    name,
+                    CompletionKind::Variable,
+                    match ty {
+                        // A category, or a column of values that are no simple type.
+                        Ty::Unknown => String::new(),
+                        ty => ty.to_string(),
+                    },
+                    if schema.from_last_run {
+                        "from last run".to_string()
+                    } else {
+                        String::new()
+                    },
+                )
+            })
+            .collect();
+    }
+    Vec::new()
 }
 
 /// The modules a document brings in with `use functions::<module>`.
@@ -557,7 +702,8 @@ pub fn completions(
         let checked = doc.typed_to(end, &text[word_end..]);
         let ty = checked
             .as_ref()
-            .and_then(|check| type_ending_at(check, end));
+            .and_then(|check| type_ending_at(check, end))
+            .or_else(|| doc.value_at(end).map(|(ty, _)| ty));
         // A namespace of the engine's functions, `dist.`, where no value of that name is
         // meant: the functions written with it.
         let namespace = format!("{last}.");
@@ -602,7 +748,9 @@ pub fn completions(
     } else {
         let used = modules_used(&text);
         let typed_doc = doc.typed_to(word_start, &text[word_start..]);
-        let mut items = Vec::new();
+        // Where a bare name is a variable of a frame: the frame's variables, before all else.
+        let mut items =
+            variables_of_the_frame(&doc, word_start, registry, typed_doc.as_ref(), &used);
         // Inside a call: what the argument at the place takes, and the arguments not yet
         // given.
         let mut nothing_else = false;

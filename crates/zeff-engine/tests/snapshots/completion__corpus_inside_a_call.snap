@@ -4,11 +4,15 @@ expression: all
 ---
 > let d = import("data/small.csv")
 > d.reg(b ~ a, |
-replace 1:13-1:13, 255 offered
+replace 1:13-1:13, 258 offered
+  Variable (3): a b c
   Argument (6): fe se cluster weights weight_type level
   Method (111): add aggregate alternative annotate anova area bar bars boxplot cdf chi2_test ci coef coef_plot compare coord correlation covariance density derive describe design df distinct draw drop drop_missing duplicates effect_size errorbars estimates export facet fisher_test fit_measures fitted h0 h1 head heatmap histogram hline influence iqr is kruskal_test ks_test kurtosis label labels legend line lines mad mean median merge n_cols n_obs n_rows p_values panel pdf plot points posthoc predict proportion_test qq_plot quantile r_squared recode reg rename residuals ribbon rug sample save scale scale_x scale_y scatter sd select shapiro_test skewness sort statistic std_errors step sum summary t_test tabulate tail test text theme tile to to_long to_wide update variables variance vcov vif vline where wilcoxon_test
   Function (137): E PI abs acos add_days add_months all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset datasets date datetime day days_between diff dist.beta dist.binomial dist.chi2 dist.exponential dist.f dist.gamma dist.lognormal dist.mixture dist.negbinomial dist.normal dist.poisson dist.t dist.truncated dist.tukey dist.uniform div ends_with equal error event exp expm1 extract factorial fill_forward fill_missing filter first floor format frame gamma import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min mod month months_between n n_distinct n_missing name_of note now p_adjust pad print quantile_group quarter rank reduce replace report reversed round row_mean row_sum running_product running_sum seed seq sign sin slice sorted split sqrt standardize starts_with table tan today trim truncate type_of unique upper vars warn week weekday winsorize year
   Binding (1): d
+    a | Int | 
+    b | Float | 
+    c | Str | 
     fe (written `fe: `) | Terms | The fixed effects to absorb: a variable, `firm`; several joined by `+`, `firm + year`; an interacted effect joined by `:`, `industry:year`. Int, text, category and date variables all serve; `*`, a range, an expression and the intercept are refused, and so is an effect that is also a variable of the formula.
     se (written `se: `) | classical | robust | hc2 | hc3 | The kind of standard error: `classical`, `robust` (HC1), `hc2` or `hc3`; `classical` unless sampling weights are given, when `robust`. With `fe:`, `hc2` and `hc3` are refused (Z0410), since an observation's leverage in the full design is not available.
     cluster (written `cluster: `) | Var | The variable whose values group the observations for clustered errors (CR1).
@@ -105,11 +109,15 @@ replace 1:29-1:30, 4 offered
 ----
 > let d = import("data/small.csv")
 > d.mean(|
-replace 1:7-1:7, 253 offered
+replace 1:7-1:7, 256 offered
+  Variable (3): a b c
   Argument (4): var by weights weight_type
   Method (111): add aggregate alternative annotate anova area bar bars boxplot cdf chi2_test ci coef coef_plot compare coord correlation covariance density derive describe design df distinct draw drop drop_missing duplicates effect_size errorbars estimates export facet fisher_test fit_measures fitted h0 h1 head heatmap histogram hline influence iqr is kruskal_test ks_test kurtosis label labels legend line lines mad mean median merge n_cols n_obs n_rows p_values panel pdf plot points posthoc predict proportion_test qq_plot quantile r_squared recode reg rename residuals ribbon rug sample save scale scale_x scale_y scatter sd select shapiro_test skewness sort statistic std_errors step sum summary t_test tabulate tail test text theme tile to to_long to_wide update variables variance vcov vif vline where wilcoxon_test
   Function (137): E PI abs acos add_days add_months all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset datasets date datetime day days_between diff dist.beta dist.binomial dist.chi2 dist.exponential dist.f dist.gamma dist.lognormal dist.mixture dist.negbinomial dist.normal dist.poisson dist.t dist.truncated dist.tukey dist.uniform div ends_with equal error event exp expm1 extract factorial fill_forward fill_missing filter first floor format frame gamma import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min mod month months_between n n_distinct n_missing name_of note now p_adjust pad print quantile_group quarter rank reduce replace report reversed round row_mean row_sum running_product running_sum seed seq sign sin slice sorted split sqrt standardize starts_with table tan today trim truncate type_of unique upper vars warn week weekday winsorize year
   Binding (1): d
+    a | Int | 
+    b | Float | 
+    c | Str | 
     var (written `var: `) | Var | The variable, which must be Bool, Int or Float.
     by (written `by: `) | Vars | Repeat the computation within each group; plots draw one panel per group.
     weights (written `weights: `) | Var | Weight variable.
@@ -117,11 +125,15 @@ replace 1:7-1:7, 253 offered
 ----
 > let d = import("data/small.csv")
 > mean(d, |
-replace 1:8-1:8, 253 offered
+replace 1:8-1:8, 256 offered
+  Variable (3): a b c
   Argument (4): var by weights weight_type
   Method (111): add aggregate alternative annotate anova area bar bars boxplot cdf chi2_test ci coef coef_plot compare coord correlation covariance density derive describe design df distinct draw drop drop_missing duplicates effect_size errorbars estimates export facet fisher_test fit_measures fitted h0 h1 head heatmap histogram hline influence iqr is kruskal_test ks_test kurtosis label labels legend line lines mad mean median merge n_cols n_obs n_rows p_values panel pdf plot points posthoc predict proportion_test qq_plot quantile r_squared recode reg rename residuals ribbon rug sample save scale scale_x scale_y scatter sd select shapiro_test skewness sort statistic std_errors step sum summary t_test tabulate tail test text theme tile to to_long to_wide update variables variance vcov vif vline where wilcoxon_test
   Function (137): E PI abs acos add_days add_months all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset datasets date datetime day days_between diff dist.beta dist.binomial dist.chi2 dist.exponential dist.f dist.gamma dist.lognormal dist.mixture dist.negbinomial dist.normal dist.poisson dist.t dist.truncated dist.tukey dist.uniform div ends_with equal error event exp expm1 extract factorial fill_forward fill_missing filter first floor format frame gamma import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min mod month months_between n n_distinct n_missing name_of note now p_adjust pad print quantile_group quarter rank reduce replace report reversed round row_mean row_sum running_product running_sum seed seq sign sin slice sorted split sqrt standardize starts_with table tan today trim truncate type_of unique upper vars warn week weekday winsorize year
   Binding (1): d
+    a | Int | 
+    b | Float | 
+    c | Str | 
     var (written `var: `) | Var | The variable, which must be Bool, Int or Float.
     by (written `by: `) | Vars | Repeat the computation within each group; plots draw one panel per group.
     weights (written `weights: `) | Var | Weight variable.
@@ -160,11 +172,15 @@ replace 1:15-1:16, 8 offered
 ----
 > let d = import("data/small.csv")
 > print(d.n_rows(), d.mean(a, |
-replace 1:28-1:28, 252 offered
+replace 1:28-1:28, 255 offered
+  Variable (3): a b c
   Argument (3): by weights weight_type
   Method (111): add aggregate alternative annotate anova area bar bars boxplot cdf chi2_test ci coef coef_plot compare coord correlation covariance density derive describe design df distinct draw drop drop_missing duplicates effect_size errorbars estimates export facet fisher_test fit_measures fitted h0 h1 head heatmap histogram hline influence iqr is kruskal_test ks_test kurtosis label labels legend line lines mad mean median merge n_cols n_obs n_rows p_values panel pdf plot points posthoc predict proportion_test qq_plot quantile r_squared recode reg rename residuals ribbon rug sample save scale scale_x scale_y scatter sd select shapiro_test skewness sort statistic std_errors step sum summary t_test tabulate tail test text theme tile to to_long to_wide update variables variance vcov vif vline where wilcoxon_test
   Function (137): E PI abs acos add_days add_months all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset datasets date datetime day days_between diff dist.beta dist.binomial dist.chi2 dist.exponential dist.f dist.gamma dist.lognormal dist.mixture dist.negbinomial dist.normal dist.poisson dist.t dist.truncated dist.tukey dist.uniform div ends_with equal error event exp expm1 extract factorial fill_forward fill_missing filter first floor format frame gamma import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min mod month months_between n n_distinct n_missing name_of note now p_adjust pad print quantile_group quarter rank reduce replace report reversed round row_mean row_sum running_product running_sum seed seq sign sin slice sorted split sqrt standardize starts_with table tan today trim truncate type_of unique upper vars warn week weekday winsorize year
   Binding (1): d
+    a | Int | 
+    b | Float | 
+    c | Str | 
     by (written `by: `) | Vars | Repeat the computation within each group; plots draw one panel per group.
     weights (written `weights: `) | Var | Weight variable.
     weight_type (written `weight_type: `) | frequency | analytic | sampling = sampling | Stata's fweight, aweight and pweight. In 1.0 the tests refuse `weights:` with `weight_type: sampling` (Z0411) and point to regression with robust errors.
@@ -216,11 +232,15 @@ replace 2:13-2:13, 255 offered
 > use functions::clean
 > let d = import("data/small.csv")
 > d.share_gone(|
-replace 2:13-2:13, 252 offered
+replace 2:13-2:13, 255 offered
+  Variable (3): a b c
   Argument (1): var
   Method (111): add aggregate alternative annotate anova area bar bars boxplot cdf chi2_test ci coef coef_plot compare coord correlation covariance density derive describe design df distinct draw drop drop_missing duplicates effect_size errorbars estimates export facet fisher_test fit_measures fitted h0 h1 head heatmap histogram hline influence iqr is kruskal_test ks_test kurtosis label labels legend line lines mad mean median merge n_cols n_obs n_rows p_values panel pdf plot points posthoc predict proportion_test qq_plot quantile r_squared recode reg rename residuals ribbon rug sample save scale scale_x scale_y scatter sd select shapiro_test skewness sort statistic std_errors step sum summary t_test tabulate tail test text theme tile to to_long to_wide update variables variance vcov vif vline where wilcoxon_test
   Function (139): share_gone twice E PI abs acos add_days add_months all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset datasets date datetime day days_between diff dist.beta dist.binomial dist.chi2 dist.exponential dist.f dist.gamma dist.lognormal dist.mixture dist.negbinomial dist.normal dist.poisson dist.t dist.truncated dist.tukey dist.uniform div ends_with equal error event exp expm1 extract factorial fill_forward fill_missing filter first floor format frame gamma import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min mod month months_between n n_distinct n_missing name_of note now p_adjust pad print quantile_group quarter rank reduce replace report reversed round row_mean row_sum running_product running_sum seed seq sign sin slice sorted split sqrt standardize starts_with table tan today trim truncate type_of unique upper vars warn week weekday winsorize year
   Binding (1): d
+    a | Int | 
+    b | Float | 
+    c | Str | 
     var (written `var: `) | Var | The variable.
 ----
 > use functions::clean

@@ -1,0 +1,199 @@
+---
+source: crates/zeff-engine/tests/completion.rs
+expression: all
+---
+> let d = import("data/small.csv")
+> d.mean(|
+variables: a Int, b Float, c Str
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.mean(b|)
+variables: b Float
+then: 0 words, 1 argument names, 0 names in reach, 7 functions
+----
+> let d = import("data/small.csv")
+> d.summary([a, |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.reg(|
+variables: a Int, b Float, c Str
+then: 0 words, 7 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a + |, se: robust)
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, fe: |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, cluster: |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.plot(x: a, y: |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> let other = d
+> d.merge(other, on: |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 2 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.where(|
+variables: a Int, b Float, c Str
+then: 0 words, 1 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.where(a > 1 & (b < 3 & |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.add(k = |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.add(k = log(|
+variables: a Int, b Float, c Str
+then: 0 words, 2 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.aggregate(m = mean(|), by: c)
+variables: a Int, b Float, c Str
+then: 0 words, 5 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.where(a > 1).mean(|
+variables: a Int, b Float, c Str
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.add(k = a * 2, when = date("2024-03-01")).mean(|
+variables: a Int, b Float, c Str, k, when Date
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.rename(z = a).mean(|
+variables: z Int, b Float, c Str
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.select([c, a]).mean(|
+variables: c Str, a Int
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.drop([a]).mean(|
+variables: b Float, c Str
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.aggregate(m = mean(b), n = n(), by: c).mean(|
+variables: c Str, m Float, n Int
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d
+>     .where(a > 1)
+>     .add(k = a * 2)
+>     .reg(k ~ |
+variables: a Int, b Float, c Str, k
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> let kept = d.where(a > 1).add(k = a * 2)
+> kept.mean(|
+variables: a Int, b Float, c Str, k
+then: 0 words, 4 argument names, 2 names in reach, 248 functions
+----
+> frame(x = [1.0, 2], who = ["a", "b"], ok = [true, false]).mean(|
+variables: x Float, who Str, ok Bool
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
+----
+> let w = dataset(wages)
+> w.reg(log(wage) ~ |
+variables: worker Int, year Int, wage Float, educ Int, exper Int, age Int, hours Float, union Int, female Int, industry, firm Int
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> mean(d, |
+variables: a Int, b Float, c Str
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> reg(d, b ~ a, cluster: |
+variables: a Int, b Float, c Str
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> use functions::clean
+> let d = import("data/small.csv")
+> d.share_gone(|
+variables: a Int, b Float, c Str
+then: 0 words, 1 argument names, 1 names in reach, 250 functions
+----
+> let d = import("data/small.csv")
+> d.head(|
+variables: none
+then: 0 words, 1 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, level: |
+variables: none
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.reg(b ~ a, se: |
+variables: none
+then: 4 words, 0 argument names, 0 names in reach, 0 functions
+----
+> let d = import("data/small.csv")
+> print(d.mean(a), |
+variables: none
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> let m = 3
+> let x = round(m|
+variables: none
+then: 0 words, 1 argument names, 1 names in reach, 10 functions
+----
+> import("data/none.csv").mean(|
+variables: none
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> let wide = d.to_wide(id: a, names_from: c, values_from: b)
+> wide.mean(|
+variables: none
+then: 0 words, 4 argument names, 2 names in reach, 248 functions
+----
+in /work/demo/functions/clean.zeff
+> /// T.
+> fn share_gone(data: Frame, var: Var) -> Float {
+>     data.mean(|
+> }
+variables: none
+then: 0 words, 4 argument names, 2 names in reach, 249 functions
+----
+in /elsewhere/try.zeff
+> let d = frame(x = [1.0, 2], y = [3, 4])
+> d.reg(y ~ |
+variables: x Float, y Int
+then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----

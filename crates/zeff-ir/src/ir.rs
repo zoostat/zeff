@@ -39,6 +39,9 @@ pub struct Program {
     /// The schema of every frame the checker knew (Engine and Project Specification, section
     /// 8.3, point 1), by the span of the expression that makes it, in order of position.
     pub schemas: Vec<(Span, crate::schema::FrameSchema)>,
+    /// The schema of every binding that holds a frame the checker knew, in order of binding:
+    /// what an editor offers after the binding's name (section 12).
+    pub bound_schemas: Vec<(BindingId, crate::schema::FrameSchema)>,
     /// The script's `let` statements whose frame's columns depend on the data (`to_wide`, an
     /// import of a file that does not exist yet), by span, with the hash of the statement's
     /// text under which the run records the columns it produced (section 11, "from last run").

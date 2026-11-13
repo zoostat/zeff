@@ -183,6 +183,12 @@ pub fn check_project_with(
         .map(|(span, schema)| (*span, (**schema).clone()))
         .collect();
     schemas.sort_by_key(|(span, _)| (span.start, span.end));
+    let mut bound_schemas: Vec<(BindingId, FrameSchema)> = checker
+        .binding_schemas
+        .iter()
+        .map(|(id, schema)| (*id, (**schema).clone()))
+        .collect();
+    bound_schemas.sort_by_key(|(id, _)| *id);
     let run_time_frames = checker.run_time_statements;
     Checked {
         program: Program {
@@ -190,6 +196,7 @@ pub fn check_project_with(
             bindings: checker.bindings,
             functions,
             schemas,
+            bound_schemas,
             run_time_frames,
         },
         diagnostics: checker.found,
@@ -777,6 +784,7 @@ pub fn check_builtin(
                     bindings: checker.bindings,
                     functions,
                     schemas: Vec::new(),
+                    bound_schemas: Vec::new(),
                     run_time_frames: Vec::new(),
                 },
                 function: main,

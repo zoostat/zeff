@@ -8,7 +8,7 @@
 //! the value before the dot, or of the first argument.
 
 use super::Check;
-use super::complete::{Doc, is_word, open_brackets, project_functions, type_ending_at};
+use super::complete::{Doc, is_word, open_brackets, project_functions};
 use zeff_ir::{Ty, takes_first};
 use zeff_registry::{Registered, Registry};
 
@@ -43,6 +43,8 @@ pub(crate) struct Site<'t> {
     pub before: Vec<Written<'t>>,
     /// The name of the argument the place is in, where it is written `name: `.
     pub named: Option<&'t str>,
+    /// Whether the argument the place is in is a definition, `name = `.
+    pub defined: bool,
     /// Whether the place is where its argument begins: nothing of the value is written yet
     /// but the word being typed.
     pub at_start: bool,
@@ -142,6 +144,36 @@ pub(crate) fn site<'t>(text: &'t str, at: usize, registry: &Registry) -> Option<
             _ => return None,
         }
     };
+    site_at(text, at, bracket, in_list, registry)
+}
+
+/// Every call the byte `at` of a text stands in, the innermost first: `log` and then `add`
+/// for `d.add(k = log(`. Round brackets that are no call are passed over; a block or a
+/// record ends the search.
+pub(crate) fn enclosing<'t>(text: &'t str, at: usize, registry: &Registry) -> Vec<Site<'t>> {
+    let mut found = Vec::new();
+    let mut in_list = false;
+    for (bracket, open) in open_brackets(&text[..at]).into_iter().rev() {
+        match bracket {
+            '[' => in_list = true,
+            '(' => {
+                found.extend(site_at(text, at, open, in_list, registry));
+                in_list = false;
+            }
+            _ => break,
+        }
+    }
+    found
+}
+
+/// The call whose round bracket stands at the byte `bracket`, as the place `at` is in it.
+fn site_at<'t>(
+    text: &'t str,
+    at: usize,
+    bracket: usize,
+    in_list: bool,
+    registry: &Registry,
+) -> Option<Site<'t>> {
     let (name, name_start) = last_word(&text[..bracket]);
     if name.is_empty() || name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
         return None;
@@ -226,6 +258,7 @@ pub(crate) fn site<'t>(text: &'t str, at: usize, registry: &Registry) -> Option<
         form,
         before,
         named: name_of_current,
+        defined: name_of_current.is_none() && defined(current),
         at_start,
         in_list,
         named_after,
@@ -254,6 +287,9 @@ pub(crate) struct Parameter {
     pub words: Vec<String>,
     /// Whether it takes nothing but one of those words.
     pub only_words: bool,
+    /// Whether it takes a variable of a frame, several, terms, a formula, or an expression
+    /// over a frame's variables: where a bare name is a variable.
+    pub names_variables: bool,
     /// Its line of the function's help page; empty where the page has none.
     pub help: String,
 }
@@ -268,6 +304,19 @@ pub(crate) struct Signature {
     /// The parameters the call may give: all of them, less the first where the function is
     /// written after a value, which is that first.
     pub parameters: Vec<Parameter>,
+    /// Whether what it takes beyond them names variables: definitions (`add(k = a + b)`), or
+    /// further values of such a type.
+    pub rest_names_variables: bool,
+}
+
+/// Whether a bare name given for a parameter of this type is a variable of the frame.
+fn names_variables(ty: &Ty) -> bool {
+    match ty {
+        Ty::Var | Ty::Vars | Ty::Terms | Ty::Formula | Ty::Expr | Ty::Column(_) => true,
+        Ty::Union(options) => options.iter().any(names_variables),
+        Ty::List(inner) => names_variables(inner),
+        _ => false,
+    }
 }
 
 fn only_words(ty: &Ty) -> bool {
@@ -283,6 +332,13 @@ fn of_engine(f: &Registered, skip: usize) -> Signature {
     Signature {
         usage: f.spec.usage(),
         summary: f.doc.summary.clone(),
+        rest_names_variables: match &f.spec.rest {
+            Some(zeff_registry::Rest::Definitions(_)) => true,
+            Some(zeff_registry::Rest::Values(ty)) => {
+                Ty::parse(ty).as_ref().is_some_and(names_variables)
+            }
+            None => false,
+        },
         parameters: f
             .spec
             .params
@@ -298,6 +354,7 @@ fn of_engine(f: &Registered, skip: usize) -> Signature {
                     },
                     words: ty.as_ref().map_or(Vec::new(), Ty::words),
                     only_words: ty.as_ref().is_some_and(only_words),
+                    names_variables: ty.as_ref().is_some_and(names_variables),
                     // Its line of the page, or, for an argument the page leaves to the
                     // table of shared arguments (section 6), its meaning there.
                     help: f
@@ -325,6 +382,7 @@ fn of_project(f: &zeff_ir::Function, skip: usize) -> Signature {
         ty => format!(" -> {ty}"),
     };
     Signature {
+        rest_names_variables: false,
         usage: format!("{}({}){returns}", f.name, params.join(", ")),
         summary: f
             .doc
@@ -341,6 +399,7 @@ fn of_project(f: &zeff_ir::Function, skip: usize) -> Signature {
                     ty: p.ty.to_string(),
                     words: p.ty.words(),
                     only_words: only_words(&p.ty),
+                    names_variables: names_variables(&p.ty),
                     help: f
                         .doc
                         .iter()
@@ -365,11 +424,7 @@ pub(crate) fn signature(
         project_functions(&check.checked.program, check, used)
     });
     // The type of the value that ends at a byte, by a check of the document cut there.
-    let type_at = |end: usize| -> Ty {
-        doc.check_cut(end)
-            .and_then(|check| type_ending_at(&check, end))
-            .unwrap_or(Ty::Unknown)
-    };
+    let type_at = |end: usize| -> Ty { doc.value_at(end).map_or(Ty::Unknown, |(ty, _)| ty) };
     match site.form {
         Form::Method { value_end } => {
             let value = type_at(value_end);
@@ -522,6 +577,33 @@ mod tests {
                 .form,
             Form::Method { value_end: 19 }
         );
+    }
+
+    #[test]
+    fn every_call_a_place_stands_in() {
+        let registry = crate::registry::registry().expect("the registry");
+        let names = |marked: &str| -> Vec<String> {
+            let cursor = marked.find('|').expect("a cursor");
+            let text = marked.replace('|', "");
+            enclosing(&text, cursor, registry)
+                .iter()
+                .map(|site| format!("{}{}", site.name, if site.defined { " =" } else { "" }))
+                .collect()
+        };
+        // The innermost first; brackets that are no call are passed over.
+        assert_eq!(names("d.add(k = log(|"), ["log", "add ="]);
+        assert_eq!(names("print(d.where(a > (b + |"), ["where", "print"]);
+        assert_eq!(names("d.summary([a, |"), ["summary"]);
+        assert_eq!(names("d.reg(b ~ a + |"), ["reg"]);
+        // A block or a record ends the search; a call closed is none.
+        assert_eq!(names("d.add(k = {a: f(|"), ["f"]);
+        assert_eq!(names("for i in 1..3 {\n    print(|"), ["print"]);
+        assert_eq!(names("print(1)\nlet x = |"), Vec::<String>::new());
+        // The argument the place is in, for a call further out.
+        let text = "d.reg(b ~ a, fe: c + f(";
+        let found = enclosing(text, text.len(), registry);
+        assert_eq!(found[1].named, Some("fe"));
+        assert_eq!(found[1].positional_before(), 1);
     }
 
     #[test]

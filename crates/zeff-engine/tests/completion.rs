@@ -36,8 +36,8 @@ fn twice(x: Float) -> Float {
 /// > frame(x = [1.0, NA]).share_gone(x)
 /// 0.5
 fn share_gone(data: Frame, var: Var) -> Float {
-    let n = data.n_rows()
-    data.n_missing(var) / n
+    let values = data[name_of(var)]
+    n_missing(values) / data.n_rows()
 }
 ";
 
@@ -52,6 +52,11 @@ fn project() -> MemoryFileSystem {
         "a,b,c\n1,2.5,x\n2,3.5,y\n3,,x\n",
     );
     fs.add_file(CLEAN, MODULE);
+    // The module is sound: nothing is said of it.
+    assert_eq!(
+        diagnostics(&fs, &Documents::new(), Path::new(CLEAN)),
+        Vec::new()
+    );
     fs
 }
 
@@ -84,6 +89,7 @@ fn shown(fs: &MemoryFileSystem, path: &str, marked: &str) -> String {
         found.items.len()
     ));
     for kind in [
+        CompletionKind::Variable,
         CompletionKind::Word,
         CompletionKind::Argument,
         CompletionKind::Field,
@@ -109,7 +115,10 @@ fn shown(fs: &MemoryFileSystem, path: &str, marked: &str) -> String {
     // Each in full where they are few; the words and the argument names always.
     let few = found.items.len() <= 6;
     for item in &found.items {
-        let of_the_call = matches!(item.kind, CompletionKind::Word | CompletionKind::Argument);
+        let of_the_call = matches!(
+            item.kind,
+            CompletionKind::Variable | CompletionKind::Word | CompletionKind::Argument
+        );
         if few || of_the_call {
             let written = if item.insert == item.label {
                 String::new()
@@ -301,6 +310,135 @@ fn the_corpus_of_cursor_places_inside_a_call() {
         all.push_str("----\n");
     }
     insta::assert_snapshot!("corpus_inside_a_call", all);
+}
+
+#[test]
+fn the_corpus_of_cursor_places_where_a_variable_is_written() {
+    let fs = project();
+    let data = "let d = import(\"data/small.csv\")\n";
+    let places: Vec<(&str, String)> = vec![
+        // An argument that takes a variable, several, terms, a formula.
+        (MAIN, format!("{data}d.mean(|\n")),
+        (MAIN, format!("{data}d.mean(b|)\n")),
+        (MAIN, format!("{data}d.summary([a, |\n")),
+        (MAIN, format!("{data}d.reg(|\n")),
+        (MAIN, format!("{data}d.reg(b ~ |\n")),
+        (MAIN, format!("{data}d.reg(b ~ a + |, se: robust)\n")),
+        (MAIN, format!("{data}d.reg(b ~ a, fe: |\n")),
+        (MAIN, format!("{data}d.reg(b ~ a, cluster: |\n")),
+        (MAIN, format!("{data}d.plot(x: a, y: |\n")),
+        (MAIN, format!("{data}let other = d\nd.merge(other, on: |\n")),
+        // A condition and a definition, at any depth of brackets and of calls inside them.
+        (MAIN, format!("{data}d.where(|\n")),
+        (MAIN, format!("{data}d.where(a > 1 & (b < 3 & |\n")),
+        (MAIN, format!("{data}d.add(k = |\n")),
+        (MAIN, format!("{data}d.add(k = log(|\n")),
+        (MAIN, format!("{data}d.aggregate(m = mean(|), by: c)\n")),
+        // At that point of the chain: after `where`, `add`, `rename`, `select`, `drop` and
+        // `aggregate`.
+        (MAIN, format!("{data}d.where(a > 1).mean(|\n")),
+        (
+            MAIN,
+            format!("{data}d.add(k = a * 2, when = date(\"2024-03-01\")).mean(|\n"),
+        ),
+        (MAIN, format!("{data}d.rename(z = a).mean(|\n")),
+        (MAIN, format!("{data}d.select([c, a]).mean(|\n")),
+        (MAIN, format!("{data}d.drop([a]).mean(|\n")),
+        (
+            MAIN,
+            format!("{data}d.aggregate(m = mean(b), n = n(), by: c).mean(|\n"),
+        ),
+        (
+            MAIN,
+            format!("{data}d\n    .where(a > 1)\n    .add(k = a * 2)\n    .reg(k ~ |\n"),
+        ),
+        // A frame bound under another name, a frame written out, a shipped dataset.
+        (
+            MAIN,
+            format!("{data}let kept = d.where(a > 1).add(k = a * 2)\nkept.mean(|\n"),
+        ),
+        (
+            MAIN,
+            "frame(x = [1.0, 2], who = [\"a\", \"b\"], ok = [true, false]).mean(|\n".to_string(),
+        ),
+        (
+            MAIN,
+            "let w = dataset(wages)\nw.reg(log(wage) ~ |\n".to_string(),
+        ),
+        // The function written before its frame.
+        (MAIN, format!("{data}mean(d, |\n")),
+        (MAIN, format!("{data}reg(d, b ~ a, cluster: |\n")),
+        // A function of the project that takes a variable.
+        (
+            MAIN,
+            format!("use functions::clean\n{data}d.share_gone(|\n"),
+        ),
+        // Where no variable is written: an argument that takes a number, a word or a text;
+        // a call that is on no frame.
+        (MAIN, format!("{data}d.head(|\n")),
+        (MAIN, format!("{data}d.reg(b ~ a, level: |\n")),
+        (MAIN, format!("{data}d.reg(b ~ a, se: |\n")),
+        (MAIN, format!("{data}print(d.mean(a), |\n")),
+        (MAIN, format!("{data}let m = 3\nlet x = round(m|\n")),
+        // A frame whose variables the checker does not know before a run: a file that is not
+        // there, a step whose columns depend on the data, a parameter of a function.
+        (MAIN, "import(\"data/none.csv\").mean(|\n".to_string()),
+        (
+            MAIN,
+            format!(
+                "{data}let wide = d.to_wide(id: a, names_from: c, values_from: b)\nwide.mean(|\n"
+            ),
+        ),
+        (
+            CLEAN,
+            "/// T.\nfn share_gone(data: Frame, var: Var) -> Float {\n    data.mean(|\n}\n"
+                .to_string(),
+        ),
+        // A file outside any project.
+        (
+            "/elsewhere/try.zeff",
+            "let d = frame(x = [1.0, 2], y = [3, 4])\nd.reg(y ~ |\n".to_string(),
+        ),
+    ];
+    let mut all = String::new();
+    for (path, marked) in &places {
+        if *path != MAIN {
+            all.push_str(&format!("in {path}\n"));
+        }
+        let found = at_cursor(&fs, path, marked);
+        let mut out = format!("> {}", marked.replace('\n', "\n> "));
+        out.truncate(out.trim_end_matches(['>', ' ']).len());
+        // The variables in full; of the rest, how many of each kind.
+        let variables: Vec<String> = found
+            .items
+            .iter()
+            .filter(|item| item.kind == CompletionKind::Variable)
+            .map(|item| match (item.detail.as_str(), item.summary.as_str()) {
+                ("", "") => item.label.clone(),
+                (detail, "") => format!("{} {detail}", item.label),
+                (detail, summary) => format!("{} {detail} ({summary})", item.label),
+            })
+            .collect();
+        out.push_str(&format!(
+            "variables: {}\n",
+            if variables.is_empty() {
+                "none".to_string()
+            } else {
+                variables.join(", ")
+            }
+        ));
+        let count = |kind: CompletionKind| found.items.iter().filter(|i| i.kind == kind).count();
+        out.push_str(&format!(
+            "then: {} words, {} argument names, {} names in reach, {} functions\n",
+            count(CompletionKind::Word),
+            count(CompletionKind::Argument),
+            count(CompletionKind::Binding),
+            count(CompletionKind::Method) + count(CompletionKind::Function),
+        ));
+        all.push_str(&out);
+        all.push_str("----\n");
+    }
+    insta::assert_snapshot!("corpus_of_variables", all);
 }
 
 #[test]
@@ -550,12 +688,21 @@ fn the_names_of_the_arguments_not_yet_given() {
         of_kind(&found, CompletionKind::Argument),
         ["fe", "se", "cluster", "weights", "weight_type", "level"]
     );
-    assert!(
-        found.items[..6]
-            .iter()
-            .all(|item| item.kind == CompletionKind::Argument)
-    );
-    let se = &found.items[1];
+    // The place takes terms (`fe:`), so the frame's variables come first; then the names.
+    let after: Vec<CompletionKind> = found
+        .items
+        .iter()
+        .map(|item| item.kind)
+        .filter(|kind| *kind != CompletionKind::Variable)
+        .take(7)
+        .collect();
+    assert_eq!(after[..6], [CompletionKind::Argument; 6]);
+    assert_ne!(after[6], CompletionKind::Argument);
+    let se = found
+        .items
+        .iter()
+        .find(|item| item.label == "se")
+        .expect("se");
     assert_eq!(
         (se.insert.as_str(), se.detail.as_str()),
         ("se: ", "classical | robust | hc2 | hc3")
@@ -729,7 +876,11 @@ fn the_function_of_a_call_is_the_one_the_checker_would_choose() {
         MAIN,
         &format!("use functions::clean\n{data}d.share_gone(|\n"),
     );
-    let var = own.items.first().expect("an argument");
+    let var = own
+        .items
+        .iter()
+        .find(|item| item.kind == CompletionKind::Argument)
+        .expect("an argument");
     assert_eq!(
         (
             var.label.as_str(),
@@ -753,4 +904,122 @@ fn the_function_of_a_call_is_the_one_the_checker_would_choose() {
     open.open(MAIN, text.clone(), 1);
     let found = completions(&fs, &open, Path::new(MAIN), position(&text, text.len()));
     assert_eq!(of_kind(&found, CompletionKind::Argument), ["which"]);
+}
+
+#[test]
+fn the_variables_of_the_frame_come_first_and_can_be_written_there() {
+    let fs = project();
+    let data = "let d = import(\"data/small.csv\")\n";
+    let found = at_cursor(&fs, MAIN, &format!("{data}d.mean(|\n"));
+    // In the order of the frame, before the argument names and everything else, each with
+    // its type.
+    let first: Vec<(&str, CompletionKind, &str)> = found.items[..4]
+        .iter()
+        .map(|item| (item.label.as_str(), item.kind, item.detail.as_str()))
+        .collect();
+    assert_eq!(
+        first,
+        [
+            ("a", CompletionKind::Variable, "Int"),
+            ("b", CompletionKind::Variable, "Float"),
+            ("c", CompletionKind::Variable, "Str"),
+            ("var", CompletionKind::Argument, "Var"),
+        ]
+    );
+    // Each is a variable the checker finds in the frame, at that point of the chain.
+    for chain in [
+        "d",
+        "d.rename(z = a)",
+        "d.aggregate(m = mean(b), by: c)",
+        "d.drop([b])",
+    ] {
+        let found = at_cursor(&fs, MAIN, &format!("{data}{chain}.select([|\n"));
+        let variables = of_kind(&found, CompletionKind::Variable);
+        assert!(!variables.is_empty(), "{chain}");
+        for variable in variables {
+            let text = format!("{data}{chain}.select([{variable}])\n");
+            let mut open = Documents::new();
+            open.open(MAIN, text.clone(), 1);
+            let said = diagnostics(&fs, &open, Path::new(MAIN));
+            assert!(said.is_empty(), "{text}: {}", said[0].message);
+        }
+    }
+    // After a dot a variable is not what follows.
+    let found = at_cursor(&fs, MAIN, &format!("{data}d.where(a.|\n"));
+    assert_eq!(
+        of_kind(&found, CompletionKind::Variable),
+        Vec::<&str>::new()
+    );
+}
+
+#[test]
+fn the_frame_is_the_one_of_the_innermost_call_on_a_frame() {
+    let fs = project();
+    let two = "let d = import(\"data/small.csv\")\nlet other = frame(p = [1.0, 2], q = [3, 4])\n";
+    // A call on another frame inside an argument: that frame's variables.
+    let found = at_cursor(&fs, MAIN, &format!("{two}d.add(k = other.mean(|\n"));
+    assert_eq!(of_kind(&found, CompletionKind::Variable), ["p", "q"]);
+    // A function of a number inside an argument: the frame of the call it stands in.
+    let found = at_cursor(&fs, MAIN, &format!("{two}other.add(k = sqrt(abs(|\n"));
+    assert_eq!(of_kind(&found, CompletionKind::Variable), ["p", "q"]);
+    // Past a call that is closed, the outer one again.
+    let found = at_cursor(&fs, MAIN, &format!("{two}d.add(k = other.mean(p) + |\n"));
+    assert_eq!(of_kind(&found, CompletionKind::Variable), ["a", "b", "c"]);
+    // An argument of the inner call that takes no variable: none, though the outer would.
+    let found = at_cursor(&fs, MAIN, &format!("{two}d.add(k = other.head(|\n"));
+    assert_eq!(
+        of_kind(&found, CompletionKind::Variable),
+        Vec::<&str>::new()
+    );
+}
+
+/// A step whose columns depend on the data has none before a run; after one, those the run
+/// recorded, marked (section 11, "from last run").
+#[test]
+fn the_variables_of_a_step_checked_at_run_time_are_those_of_the_last_run() {
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    let fs = project();
+    fs.set_clock(1_000);
+    fs.add_file(
+        "/work/demo/data/sales.csv",
+        "firm,year,sales\n1,2010,5\n1,2011,6\n2,2010,7\n2,2011,9\n",
+    );
+    let script = "let long = import(\"data/sales.csv\")\nlet wide = long.to_wide(id: firm, names_from: year, values_from: sales)\n";
+    let before = at_cursor(&fs, MAIN, &format!("{script}wide.mean(|\n"));
+    assert_eq!(
+        of_kind(&before, CompletionKind::Variable),
+        Vec::<&str>::new()
+    );
+    let project = Project::open(&fs, Path::new("/work/demo")).expect("the project");
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    let after = at_cursor(&fs, MAIN, &format!("{script}wide.mean(|\n"));
+    let variables: Vec<(&str, &str, &str)> = after
+        .items
+        .iter()
+        .filter(|item| item.kind == CompletionKind::Variable)
+        .map(|item| {
+            (
+                item.label.as_str(),
+                item.detail.as_str(),
+                item.summary.as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        variables,
+        [
+            ("firm", "Int", "from last run"),
+            ("sales_2010", "Int", "from last run"),
+            ("sales_2011", "Int", "from last run"),
+        ]
+    );
+    // The statement changed since the run: its record is of another statement.
+    let changed = script.replace("id: firm", "id: [firm]");
+    let found = at_cursor(&fs, MAIN, &format!("{changed}wide.mean(|\n"));
+    assert_eq!(
+        of_kind(&found, CompletionKind::Variable),
+        Vec::<&str>::new()
+    );
 }
