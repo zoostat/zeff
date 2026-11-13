@@ -49,6 +49,8 @@ Options:
                           colour in messages; `auto` means a terminal, and NO_COLOR is honoured
   --ascii                 rules and symbols in ASCII, for fonts without them
   --width <n>             the width frames and tables wrap at (default 118, at least 40)
+  --memory <size>         the memory budget of the run, as in 2GB (default: `memory` in zeff.toml,
+                          or none); a statement that would pass it is not started
   --deny-warnings         for `run`, `check` and `test`: a warning that no
                           `// zeff: allow(CODE) reason` pragma allows is an error (exit code 3)
   --check                 for `fmt`: write nothing; exit code 1 if a script would change
@@ -87,12 +89,11 @@ const LATER: [&str; 11] = [
 ];
 
 /// Options the specification names that this release does not have yet.
-const LATER_OPTIONS: [&str; 11] = [
+const LATER_OPTIONS: [&str; 10] = [
     "--frozen",
     "--install",
     "-y",
     "--yes",
-    "--memory",
     "--threads",
     "--fresh",
     "--replay",
@@ -147,6 +148,8 @@ struct Settings {
     deny_warnings: bool,
     /// `--check`, of `zeff fmt`: nothing is written.
     check: bool,
+    /// `--memory <size>`: the memory budget of the run, in bytes.
+    memory: Option<u64>,
 }
 
 impl Default for Settings {
@@ -161,6 +164,7 @@ impl Default for Settings {
             verbose: false,
             deny_warnings: false,
             check: false,
+            memory: None,
         }
     }
 }
@@ -241,6 +245,17 @@ fn take_options<'a>(words: &[&'a str]) -> Result<(Vec<&'a str>, Settings), Strin
             "-v" | "--verbose" => settings.verbose = true,
             "--deny-warnings" => settings.deny_warnings = true,
             "--check" => settings.check = true,
+            "--memory" => {
+                let written = value("a size")?;
+                settings.memory = match zeff_engine::budget::parse_size(written) {
+                    Some(bytes) => Some(bytes),
+                    None => {
+                        return Err(format!(
+                            "`--memory {written}` is not a size: write a number and KB, MB or GB, as in `--memory 2GB`"
+                        ));
+                    }
+                };
+            }
             "--help" | "-h" | "--version" | "-V" => rest.push(word),
             later if LATER_OPTIONS.contains(&later) => {
                 return Err(format!("`{later}` is not available in this release yet"));
@@ -377,6 +392,7 @@ impl Command<'_, '_> {
         RunOptions {
             width: self.settings.width,
             deny_warnings: self.settings.deny_warnings,
+            memory: self.settings.memory,
             ..RunOptions::default()
         }
     }

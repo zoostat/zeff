@@ -223,6 +223,33 @@ impl Table {
         size
     }
 
+    /// The bytes the table holds that are not yet in `seen`, which gains them: a column whose
+    /// buffers another table already counted is not counted again, nor is the list of rows of
+    /// a selection that several columns share. The sum over the frames of a run, with one
+    /// `seen`, is what the run holds, each buffer once.
+    pub fn bytes_not_in(&self, seen: &mut std::collections::HashSet<usize>) -> usize {
+        let mut bytes = 0;
+        for slot in &self.columns {
+            match slot.pending_of() {
+                Some((source, rows, _)) => {
+                    if seen.insert(source.identity()) {
+                        bytes += source.byte_size();
+                    }
+                    if seen.insert(Arc::as_ptr(&rows) as usize) {
+                        bytes += rows.len() * std::mem::size_of::<usize>();
+                    }
+                }
+                None => {
+                    let column = slot.column();
+                    if seen.insert(column.identity()) {
+                        bytes += column.byte_size();
+                    }
+                }
+            }
+        }
+        bytes
+    }
+
     pub fn new(columns: Vec<(String, Column)>) -> Result<Table, TableError> {
         let rows = columns.first().map_or(0, |(_, c)| c.len());
         let mut names: Vec<String> = Vec::with_capacity(columns.len());

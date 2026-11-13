@@ -1961,3 +1961,76 @@ fn only_zeff_run_is_cancelled_by_an_interrupt() {
         assert!(!zeff_cli::interruptible(&args(words)), "{words:?}");
     }
 }
+
+// ----- the memory budget (release 0.7.0, step 33c) -----
+
+#[test]
+fn zeff_run_under_a_memory_budget_refuses_a_statement_that_would_pass_it() {
+    let (_dir, project) = demo();
+    std::fs::write(
+        project.join("scripts/main.zeff"),
+        "print(\"start\")\nlet w = import(\"zeff:wages.csv\")\nprint(w.n_rows())\n",
+    )
+    .unwrap();
+    // No budget: the run it was.
+    let o = zeff(&project, &["run", "-q"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), "start\n18412\n");
+    // `--memory`: the file counts five times its 875 kB, which 2 MB does not hold.
+    let o = zeff(&project, &["run", "-q", "--memory", "2MB"]);
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o), "start\n");
+    insta::assert_snapshot!("run_over_the_memory_budget", err(&o));
+    let o = zeff(&project, &["--memory=64MB", "run", "-q"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    // `memory` of the project, and the option over it.
+    let manifest = std::fs::read_to_string(project.join("zeff.toml")).unwrap();
+    std::fs::write(
+        project.join("zeff.toml"),
+        manifest.replace("[project]\n", "[project]\nmemory = \"2MB\"\n"),
+    )
+    .unwrap();
+    let o = zeff(&project, &["run", "-q"]);
+    assert_eq!(code(&o), 1, "{}", err(&o));
+    assert!(
+        err(&o).contains("more than the budget of 2.0 MB"),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(&project, &["run", "-q", "--memory", "1GB"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    // The explained page.
+    let o = zeff(&project, &["help", "Z0704"]);
+    assert_eq!(code(&o), 0);
+    assert!(
+        out(&o).starts_with("Z0704 — a step would pass the memory budget\n"),
+        "{}",
+        out(&o)
+    );
+}
+
+#[test]
+fn memory_takes_a_size() {
+    let (_dir, project) = demo();
+    for (args, said) in [
+        (
+            &["run", "--memory", "2gb"][..],
+            "`--memory 2gb` is not a size: write a number and KB, MB or GB, as in `--memory 2GB`",
+        ),
+        (
+            &["run", "--memory", "lots"],
+            "`--memory lots` is not a size",
+        ),
+        (&["run", "--memory", "0GB"], "`--memory 0GB` is not a size"),
+        (&["run", "--memory"], "`--memory` needs a value: a size"),
+    ] {
+        let o = zeff(&project, args);
+        assert_eq!(code(&o), 1, "{args:?}");
+        assert!(err(&o).contains(said), "{args:?}: {}", err(&o));
+    }
+    let usage = out(&zeff(&project, &["help"]));
+    assert!(
+        usage.contains("\n  --memory <size>         the memory budget of the run"),
+        "{usage}"
+    );
+}

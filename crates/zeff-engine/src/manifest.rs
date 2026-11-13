@@ -79,14 +79,7 @@ pub fn is_exact_version(text: &str) -> bool {
 
 /// Whether `text` is a size such as `3.5GB`: a positive number and KB, MB or GB.
 fn is_size(text: &str) -> bool {
-    let digits_end = text
-        .find(|c: char| !(c.is_ascii_digit() || c == '.'))
-        .unwrap_or(text.len());
-    let (number, unit) = text.split_at(digits_end);
-    matches!(unit, "KB" | "MB" | "GB")
-        && number
-            .parse::<f64>()
-            .is_ok_and(|n| n > 0.0 && n.is_finite())
+    crate::budget::parse_size(text).is_some()
 }
 
 /// A name a data root may have: letters, digits and `_`, not starting with a digit.

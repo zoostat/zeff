@@ -43,6 +43,14 @@ impl Files for ProjectFiles<'_> {
         std::mem::take(&mut self.pending.borrow_mut())
     }
 
+    fn size(&self, written: &str) -> Option<u64> {
+        if let Some(name) = written.strip_prefix("zeff:") {
+            return zeff_datasets::file(name).map(|bytes| bytes.len() as u64);
+        }
+        let path = self.project.resolve_read(self.fs, written).ok()?;
+        self.fs.metadata(&path).ok().map(|info| info.size)
+    }
+
     fn read(&self, written: &str, span: Span, script: &str) -> Result<Vec<u8>, Fail> {
         // The `zeff:` data root: the files of the shipped datasets (section 8.5).
         if let Some(name) = written.strip_prefix("zeff:") {
@@ -288,6 +296,9 @@ pub struct RunOptions {
     /// `zeff test`: a failed `assert` is kept among the output's checks and the script
     /// carries on, so that every check is reported.
     pub collect_checks: bool,
+    /// `--memory`: the memory budget of the run, in bytes (section 8.3, point 7). `None`
+    /// leaves the budget to the project's `memory`, and a project that sets none has none.
+    pub memory: Option<u64>,
 }
 
 impl Default for RunOptions {
@@ -299,6 +310,7 @@ impl Default for RunOptions {
             fused: std::env::var_os("ZEFF_UNFUSED").is_none(),
             deny_warnings: false,
             collect_checks: false,
+            memory: None,
         }
     }
 }
@@ -507,7 +519,14 @@ fn run_controlled(
         .with_denied_warnings(options.deny_warnings)
         .with_checks(options.collect_checks)
         .with_control(control)
-        .with_listener(listener);
+        .with_listener(listener)
+        .with_budget(options.memory.or_else(|| {
+            project
+                .manifest
+                .memory
+                .as_deref()
+                .and_then(crate::budget::parse_size)
+        }));
     let result = interpreter.run(&mut output);
     for (statement, columns) in std::mem::take(&mut output.produced) {
         schemas.record_run(statement, columns);

@@ -1,0 +1,13 @@
+---
+source: crates/zeff-engine/tests/budget.rs
+expression: out.output.stderr
+---
+note: data/one.csv read as CSV: 10,000 rows × 1 variable, types guessed; CSV carries no labels, value labels or categories (line 1)
+error[Z0704]: this statement may need 320192 bytes of memory, more than the budget of 320191 bytes
+ --> scripts/main.zeff:2:1
+  |
+2 | let e = d.add(y = x * 2)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^ not run
+  |
+  = help: the estimate, an upper bound: 160.1 kB the run holds; 160.1 kB for a copy of the frames it reads
+  = help: keep fewer variables with `select`, or raise the budget with `--memory` or `memory` in zeff.toml

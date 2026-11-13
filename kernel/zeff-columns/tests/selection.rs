@@ -116,3 +116,44 @@ proptest! {
         prop_assert_eq!(&lazy, &eager);
     }
 }
+
+/// What several tables hold together, each buffer once (release 0.7.0, step 33c: the memory
+/// budget counts a column that two frames share one time).
+#[test]
+fn tables_that_share_columns_are_counted_once_together() {
+    use std::collections::HashSet;
+    let first = table(1000);
+    let whole = first.byte_size().own;
+    // A table with one column more keeps the columns it had.
+    let extra = Column::floats((0..1000).map(|k| Some(k as f64))).0;
+    let extra_bytes = extra.byte_size();
+    let second = first.with_column("extra", extra).unwrap();
+    assert_eq!(second.byte_size().own, whole + extra_bytes);
+    let mut seen = HashSet::new();
+    assert_eq!(first.bytes_not_in(&mut seen), whole);
+    // Counted after the first, the second adds its new column alone.
+    assert_eq!(second.bytes_not_in(&mut seen), extra_bytes);
+    // And nothing the second time round, in either order.
+    assert_eq!(first.bytes_not_in(&mut seen), 0);
+    assert_eq!(second.bytes_not_in(&mut seen), 0);
+    let mut seen = HashSet::new();
+    assert_eq!(second.bytes_not_in(&mut seen), whole + extra_bytes);
+    assert_eq!(first.bytes_not_in(&mut seen), 0);
+    // A table of the same values built apart shares nothing.
+    assert_eq!(table(1000).bytes_not_in(&mut seen), whole);
+    // A selection not yet gathered keeps its parent's columns: counted once with the parent.
+    let rows: Vec<usize> = (0..1000).filter(|k| k % 2 == 0).collect();
+    let lazy = first.select_rows(rows, first.token());
+    let mut seen = HashSet::new();
+    let parent = first.bytes_not_in(&mut seen);
+    let selection = lazy.bytes_not_in(&mut seen);
+    assert_eq!(parent, whole);
+    assert!(selection < whole, "{selection} against {whole}");
+    // A column's identity is its buffers': a clone is the same column, another is not.
+    let column = Column::ints((0..10).map(Some));
+    assert_eq!(column.identity(), column.clone().identity());
+    assert_ne!(
+        column.identity(),
+        Column::ints((0..10).map(Some)).identity()
+    );
+}

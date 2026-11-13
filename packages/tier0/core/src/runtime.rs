@@ -44,6 +44,14 @@ pub trait Files {
         ))
     }
 
+    /// The size in bytes of a file a script names, where it can be known without reading it:
+    /// what the memory budget estimates an `import` from (Engine and Project Specification,
+    /// section 8.3, point 7). `None` where the file is not there or the run cannot tell; the
+    /// read itself then says what is wrong.
+    fn size(&self, _written: &str) -> Option<u64> {
+        None
+    }
+
     /// The machine's local wall-clock time, as microseconds since 1970-01-01 00:00:00 with no
     /// zone (Language Reference, section 3.8: `now()` and `today()`), or `None` when the run
     /// has no clock. The command line reads the machine's clock; tests and the conformance

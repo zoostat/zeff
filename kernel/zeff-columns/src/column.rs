@@ -657,6 +657,18 @@ impl Column {
         self.to_arrow().get_array_memory_size()
     }
 
+    /// A number that two columns share exactly when they share their buffers: where the first
+    /// buffer of the column's array lies. A frame made from another keeps the columns it did
+    /// not change, so the memory budget counts such a column once (section 8.3, point 7). A
+    /// column with no buffer gives 0.
+    pub fn identity(&self) -> usize {
+        self.to_arrow()
+            .to_data()
+            .buffers()
+            .first()
+            .map_or(0, |buffer| buffer.as_ptr() as usize)
+    }
+
     pub fn to_arrow(&self) -> ArrayRef {
         match &self.data {
             Data::Bool(a) => Arc::new(a.clone()),

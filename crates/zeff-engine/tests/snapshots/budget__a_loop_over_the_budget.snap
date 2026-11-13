@@ -1,0 +1,12 @@
+---
+source: crates/zeff-engine/tests/budget.rs
+expression: out.output.stderr
+---
+error[Z0704]: this statement may need 184.0 MB of memory, more than the budget of 1.0 MB
+ --> scripts/main.zeff:1:1
+  |
+1 | for i in 1..1000000 {
+  | ^^^^^^^^^^^^^^^^^^^^^ not run
+  |
+  = help: the estimate, an upper bound: 0 B the run holds; 184.0 MB for the 1000000 items of its loop, which are listed before its first pass
+  = help: loop over a shorter range, or raise the budget with `--memory` or `memory` in zeff.toml

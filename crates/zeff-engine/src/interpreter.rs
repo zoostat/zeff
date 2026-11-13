@@ -132,6 +132,8 @@ pub struct Interpreter<'a> {
     listener: Option<crate::control::Listener<'a>>,
     /// The line of the statement of the script being run, for the events of its loops.
     line: u32,
+    /// The memory budget of the run, in bytes, where it has one (section 8.3, point 7).
+    budget: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -210,6 +212,7 @@ impl<'a> Interpreter<'a> {
             control: None,
             listener: None,
             line: 0,
+            budget: None,
         }
     }
 
@@ -224,6 +227,117 @@ impl<'a> Interpreter<'a> {
     pub fn with_control(mut self, control: Option<&'a crate::control::Control>) -> Self {
         self.control = control;
         self
+    }
+
+    /// The memory budget of the run: a statement whose estimate passes it is not started.
+    pub fn with_budget(mut self, budget: Option<u64>) -> Self {
+        self.budget = budget;
+        self
+    }
+
+    /// What the run holds: the bytes of the frames its bindings hold, each buffer once
+    /// however many frames share it.
+    fn held(&self) -> u64 {
+        let mut seen = std::collections::HashSet::new();
+        // The order of the bindings does not change the sum: a shared buffer is counted
+        // with whichever frame comes first.
+        self.env
+            .values()
+            .map(|value| match value {
+                Value::Frame(frame) => frame.table.bytes_not_in(&mut seen) as u64,
+                _ => 0,
+            })
+            .sum()
+    }
+
+    /// The statement about to run, against the budget (Z0704): what the run holds, and what
+    /// the statement may add by the rules of `crate::budget` (open decision #143). `None`
+    /// where the estimate is within the budget.
+    fn over_budget(&self, statement: &Statement, span: Span, budget: u64) -> Option<Fail> {
+        use crate::budget::{BYTES_OF_AN_ITEM, IMPORT_FACTOR, size_text};
+        let held = self.held();
+        let mut parts: Vec<String> = Vec::new();
+        // What the reader of the message can do about each part, said once each.
+        let mut ways: Vec<&str> = Vec::new();
+        let mut step: u64 = 0;
+        // Rule 1: a file imported, held as text and built into columns.
+        for path in crate::budget::imported(statement) {
+            if let Some(size) = self.files.size(path) {
+                let bytes = size.saturating_mul(IMPORT_FACTOR);
+                step = step.saturating_add(bytes);
+                parts.push(format!(
+                    "{} to read `{path}`, a file of {} held as text while its columns are built",
+                    size_text(bytes),
+                    size_text(size)
+                ));
+                ways.push("read fewer columns with `columns:`");
+            }
+        }
+        // Rule 2: a loop over a range written out, whose list of items is built first.
+        if let Some((items, collected)) = crate::budget::looped(statement) {
+            let lists = if collected { 2 } else { 1 };
+            let bytes = items.saturating_mul(BYTES_OF_AN_ITEM).saturating_mul(lists);
+            step = step.saturating_add(bytes);
+            parts.push(format!(
+                "{} for the {items} items of its loop, which are listed before its first pass",
+                size_text(bytes)
+            ));
+            ways.push("loop over a shorter range");
+        }
+        // Rule 3: the frames the statement reads, once more, which is what a statement that
+        // builds a frame, a list or a result from them needs at most while both stand. A
+        // statement whose value is one number, one text or nothing builds none of these.
+        let mut used: Vec<zeff_ir::BindingId> = Vec::new();
+        if crate::budget::may_build(statement) {
+            zeff_ir::uses::statement_uses(statement, &mut used);
+        }
+        used.sort_unstable();
+        used.dedup();
+        let mut seen = std::collections::HashSet::new();
+        let read: u64 = used
+            .iter()
+            .filter_map(|id| match self.env.get(id) {
+                Some(Value::Frame(frame)) => Some(frame.table.bytes_not_in(&mut seen) as u64),
+                _ => None,
+            })
+            .sum();
+        if read > 0 {
+            step = step.saturating_add(read);
+            parts.push(format!(
+                "{} for a copy of the frames it reads",
+                size_text(read)
+            ));
+            ways.push("keep fewer variables with `select`");
+        }
+        let estimate = held.saturating_add(step);
+        if estimate <= budget {
+            return None;
+        }
+        // Two sizes that print alike are given to the byte.
+        let (needed, allowed) = if size_text(estimate) == size_text(budget) {
+            (format!("{estimate} bytes"), format!("{budget} bytes"))
+        } else {
+            (size_text(estimate), size_text(budget))
+        };
+        let mut error = Diagnostic::error(
+            "Z0704",
+            format!(
+                "this statement may need {needed} of memory, more than the budget of {allowed}"
+            ),
+        )
+        .in_file(self.script)
+        .primary(span, "not run")
+        .help(format!(
+            "the estimate, an upper bound: {} the run holds{}",
+            size_text(held),
+            parts
+                .iter()
+                .map(|part| format!("; {part}"))
+                .collect::<String>()
+        ));
+        ways.push("raise the budget with `--memory` or `memory` in zeff.toml");
+        error = error.help(ways.join(", or "));
+        Some(fail(error))
     }
 
     /// Who is told each step of the run.
@@ -386,6 +500,12 @@ impl<'a> Interpreter<'a> {
             // A failure inside the engine never crashes the run: it is Z9001 at the statement,
             // and the run stops as it would at any error (Language Reference, section 11.1).
             let evaluation = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                if let Some(budget) = self.budget
+                    && !cancelled
+                    && let Some(over) = self.over_budget(statement, span, budget)
+                {
+                    return Err(over);
+                }
                 if cancelled {
                     return Err(fail(
                         Diagnostic::error("Z0705", "the run was cancelled before this statement")

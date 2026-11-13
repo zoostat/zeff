@@ -85,6 +85,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## As of 0.5.0
 
+- **A loop over a range holds its items in memory before its first pass**, at 184 bytes each:
+  `for i in 1..1000000` holds 184 MB, and ten million passes 1.8 GB, whatever the body does. A
+  list built by `[for ...]` holds as much again. The results are right; the cost is memory, and
+  a run cannot be cancelled until the list exists. Under a memory budget such a loop is refused
+  with Z0704 and its estimate. (Since 0.5.0; found on 13 November 2026 at step 33c of 0.7.0;
+  put right at step 38g of 0.7.0, where a range is walked and not listed.)
 - **`iqr`, `mad`, `skewness` and `kurtosis` refuse a frame that has a variable called `var`**,
   and `iqr` one that has a variable called `type`, with Z0106: those are names of their own
   parameters, used inside a method of the frame given. It is an error and never another number;

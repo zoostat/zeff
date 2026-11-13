@@ -1,0 +1,12 @@
+---
+source: crates/zeff-engine/tests/budget.rs
+expression: out.output.stderr
+---
+error[Z0704]: this statement may need 300.0 kB of memory, more than the budget of 64.0 kB
+ --> scripts/main.zeff:2:1
+  |
+2 | let d = import("data/one.csv")
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not run
+  |
+  = help: the estimate, an upper bound: 0 B the run holds; 300.0 kB to read `data/one.csv`, a file of 60.0 kB held as text while its columns are built
+  = help: read fewer columns with `columns:`, or raise the budget with `--memory` or `memory` in zeff.toml
