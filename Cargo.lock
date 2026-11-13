@@ -1743,9 +1743,11 @@ version = "0.7.0-dev"
 dependencies = [
  "serde_json",
  "zeff-columns",
+ "zeff-conformance",
  "zeff-data",
  "zeff-hash",
  "zeff-results",
+ "zeff-syntax",
 ]
 
 [[package]]

@@ -127,6 +127,48 @@ jobs:
       - name: Every diagnostic code has a snapshot of its wording (section 11)
         run: cargo run --locked -p xtask -- check-messages
 
+  # The tree-sitter grammar of editors/tree-sitter-zeff (Engine and Project Specification,
+  # section 12): the parser kept in the repository is the one the grammar gives, the grammar's
+  # own corpus passes, and on every script the repository holds the grammar finds no error and
+  # has the statements begin and end where the engine's parser has them.
+  grammar:
+    name: grammar
+    runs-on: ubuntu-latest
+    env:
+      # The tool keeps the parser it compiles in the build folder of the repository.
+      TREE_SITTER_LIBDIR: ${{ github.workspace }}/target/tree-sitter
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Restore the grammar tool
+        id: tool
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/tree-sitter
+          key: tree-sitter-cli-0.27.2-${{ runner.os }}
+
+      - name: Install the grammar tool at the pinned version
+        if: steps.tool.outputs.cache-hit != 'true'
+        run: cargo install tree-sitter-cli --version '=0.27.2' --locked
+
+      - name: The parser in the repository is the one the grammar gives
+        working-directory: editors/tree-sitter-zeff
+        run: |
+          mkdir -p "$TREE_SITTER_LIBDIR"
+          tree-sitter generate
+          git diff --exit-code -- src
+
+      - name: The grammar's own corpus
+        working-directory: editors/tree-sitter-zeff
+        run: tree-sitter test
+
+      - name: The grammar reads every script as the engine's parser does
+        run: cargo run --locked -p xtask -- check-grammar
+
   identity:
     name: identity (${{ matrix.name }})
     strategy:
