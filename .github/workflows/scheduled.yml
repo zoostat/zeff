@@ -187,7 +187,8 @@ jobs:
       github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'fuzz')
       || github.event.schedule == '17 2 * * *'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Eight targets of ten minutes each, and the build.
+    timeout-minutes: 110
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -220,23 +221,29 @@ jobs:
             # types) before the file.
             { printf '\000\001\000\000\000'; cat "$file"; } > "fuzz/corpus/csv/$(basename "$file")"
           done
+          # Conversations with the language server on the sample scripts, in the target's two forms.
+          python3 -I fuzz/lsp_seeds.py fuzz/corpus/lsp
 
       - name: Build the fuzz targets
         working-directory: fuzz
         # The runner's own target, named so that cargo-fuzz never picks a statically linked one.
         run: cargo +nightly fuzz build --target x86_64-unknown-linux-gnu
 
-      - name: Fuzz the lexer, the parser, the checker, the formatter, the CSV reader, the distributions and the formulas for ten minutes each
+      - name: Fuzz the lexer, the parser, the checker, the formatter, the CSV reader, the distributions, the formulas and the language server for ten minutes each
         working-directory: fuzz
         run: |
           # The status of the fuzzer, not of `tail`: a crash or a timeout fails the job.
           set -o pipefail
           status=0
-          for target in lexer parser checker format csv distribution formula; do
+          for target in lexer parser checker format csv distribution formula lsp; do
             echo "::group::$target"
-            # The language targets take the dictionary of the language's words.
+            # The language targets take the dictionary of the language's words, the language
+            # server that of its protocol.
             dict=""
-            case "$target" in lexer|parser|checker|format) dict="-dict=zeff.dict" ;; esac
+            case "$target" in
+              lexer|parser|checker|format) dict="-dict=zeff.dict" ;;
+              lsp) dict="-dict=lsp.dict" ;;
+            esac
             if ! cargo +nightly fuzz run --target x86_64-unknown-linux-gnu "$target" -- -max_total_time=600 -timeout=20 $dict 2>&1 | tee "fuzz-$target.log" | tail -5; then
               status=1
             fi
@@ -251,11 +258,11 @@ jobs:
           {
             echo "## Nightly: fuzzing"
             echo
-            echo "Each target ran for ten minutes under libFuzzer (nightly toolchain, fuzz targets only); the lexer, parser, checker and formatter with the dictionary of the language's words, the checker also on module-and-script inputs and with the schemas of a project in hand, the formatter held to its two properties (formatting twice changes nothing; the formatted script parses to the same tree), the CSV reader with declared types, date patterns, naming rules and encodings."
+            echo "Each target ran for ten minutes under libFuzzer (nightly toolchain, fuzz targets only); the lexer, parser, checker and formatter with the dictionary of the language's words, the checker also on module-and-script inputs and with the schemas of a project in hand, the formatter held to its two properties (formatting twice changes nothing; the formatted script parses to the same tree), the CSV reader with declared types, date patterns, naming rules and encodings, the language server on any bytes and on any bodies of messages, with the dictionary of its protocol (it must answer with messages of the protocol and never stop)."
             echo "A crash leaves its input under \`artifacts/<target>/\`; it becomes a regression test (testing handbook, section 1)."
             echo
             echo '```'
-            for target in lexer parser checker format csv distribution formula; do
+            for target in lexer parser checker format csv distribution formula lsp; do
               echo "$target: $(grep -E '^Done|^#[0-9]+ +DONE' "fuzz-$target.log" | tail -1)"
             done
             echo "crash inputs: $(find artifacts -type f 2>/dev/null | wc -l | tr -d ' ')"

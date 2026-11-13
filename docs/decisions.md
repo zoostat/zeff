@@ -4526,3 +4526,19 @@ error[Z0001]: no rows to take the mean of
 **Not seen yet.** A real editor. The server was driven by tests that speak the protocol, not by VS Code or another editor; the extension that starts it belongs to Zemp's line and to a later step.
 
 **Reason.** The checklist's step 34b; Engine and Project Specification, sections 2.1 and 12; Language Reference, section 11; the dependency rule of the standing instructions.
+
+## 13 November 2026: the nightly fuzz target on the language server (release 0.7.0, step 34c; step 34 complete)
+
+**The target.** An eighth target of the nightly fuzzer, `lsp`. Any bytes go to the server twice. First as they are, to the reader of the protocol's messages. Then as the bodies of messages, one for each piece between two NUL bytes, each under a true header and after an `initialize`: without this second form the mutator would spend its night on headers and seldom reach the server behind them.
+
+**What must hold.** The server ends with one of the two codes the protocol names. All it wrote is messages of the protocol: read back by its own reader with nothing between them or after the last, each a JSON object that says `"jsonrpc": "2.0"` and is an answer (an `id`, with a result or an error and not both) or a notification (a `method` and no `id`). A body is answered once at most. A crash, as always, is a failure.
+
+**Its first inputs and its words.** A small program, `fuzz/lsp_seeds.py`, writes conversations on the nine scripts and modules of the samples in both forms (opened, changed as a whole text and as a part, a request the server does not serve, closed, `shutdown`, `exit`) and one input that is no message at all; the nightly job runs it. A dictionary of the protocol's words, `fuzz/lsp.dict`, is given to the mutator. The documents are opened in a project held in memory, with a data file and a module, so that the checker behind the server has something to check against.
+
+**First run, here.** Five minutes, 20,912 inputs, no failure. The target is slow beside the others (some seventy inputs a second) because each input is served twice and each document opened is checked; ten minutes a night is some forty thousand conversations.
+
+**The job.** Eight targets of ten minutes need more than the ninety minutes the job had: its limit is now 110.
+
+**Step 34 is complete.** The language services as functions of the engine (34a), `zeff lsp` over the protocol (34b), and the nightly fuzz target on it (34c). An editor that speaks the protocol is told the checker's messages as one types; no real editor has been tried yet.
+
+**Reason.** The checklist's step 34c; the Testing Handbook, section 1 (fuzzing).

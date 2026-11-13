@@ -18,11 +18,14 @@ zeff-syntax = { path = "../crates/zeff-syntax" }
 zeff-ir = { path = "../crates/zeff-ir" }
 zeff-registry = { path = "../kernel/zeff-registry" }
 zeff-engine = { path = "../crates/zeff-engine" }
+zeff-lsp = { path = "../crates/zeff-lsp" }
 zeff-data = { path = "../packages/tier1/data" }
 zeff-datasets = { path = "../packages/tier1/datasets" }
 zeff-dates = { path = "../kernel/zeff-dates" }
 zeff-diagnostics = { path = "../kernel/zeff-diagnostics" }
 encoding_rs = "=0.8.42"
+# The `lsp` target reads back what the server wrote (MIT or Apache-2.0).
+serde_json = "=1.0.154"
 
 [[bin]]
 name = "lexer"
@@ -69,6 +72,13 @@ bench = false
 [[bin]]
 name = "format"
 path = "fuzz_targets/format.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "lsp"
+path = "fuzz_targets/lsp.rs"
 test = false
 doc = false
 bench = false
