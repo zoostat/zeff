@@ -432,6 +432,12 @@ plot/errorbars/bars.png 7915d15b69cdb9ae
 plot/errorbars/lying.svg 63e6e1cf3dafe64f
 regress/design/stdout 45c133f6afc9c89d
 regress/design/stderr 7281b31a4ea284c3
+plots/results/stdout 0f53304e4803df3e
+plots/results/stderr cbf29ce484222325
+plots/results/coef.svg 313c70c8c507870e
+plots/results/coef.pdf deac1d27d409190c
+plots/results/coef.png e5196ac8a8666971
+plots/results/event.svg 110dcb40fc5fe196
 plots/shorthands/stdout dc7dc5a33a6cbf6e
 plots/shorthands/stderr 7b937f7b6c81e924
 plots/shorthands/histogram.svg c3cb8f361fd5b005

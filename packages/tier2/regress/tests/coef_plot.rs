@@ -214,3 +214,202 @@ fn coef_plot_as_a_script_writes_it() {
     }
     insta::assert_snapshot!("coef_plot_messages", all);
 }
+
+// ----- `fit.plot()`, the default view of a fit (step 30d) -----
+
+/// The default plot of a fit, with its scene.
+fn default_plot(script: &str) -> String {
+    let outcome = run(script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    format!("{}---\n{}", outcome.output.stdout, outcome.output.stderr)
+}
+
+/// Sixteen rows: four units over four years, three of them treated in different years, as
+/// the help page of `event` has them.
+const PANEL: &str = "let d = frame(unit = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], year = [2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013], treat = [2011, 2011, 2011, 2011, 2012, 2012, 2012, 2012, 2013, 2013, 2013, 2013, NA, NA, NA, NA], y = [1.0, 2.1, 2.4, 2.6, 1.5, 1.4, 2.6, 2.9, 0.8, 0.9, 1.1, 2.0, 1.2, 1.3, 1.1, 1.4])\nlet m = d.reg(y ~ event(year, treat), fe: unit + year)\n";
+
+#[test]
+fn the_default_plot_of_a_regression_is_its_coefficient_plot() {
+    // `m.plot()` prints what `m.coef_plot()` prints, and exports the same figure.
+    let both = default_plot(
+        "let w = dataset(wages)\nlet m = w.reg(log(wage) ~ educ + exper + union)\nm.plot()\nm.coef_plot()\n",
+    );
+    let printed: Vec<&str> = both.split("plot · m · estimate against term").collect();
+    assert_eq!(printed.len(), 3, "{both}");
+    assert_eq!(
+        printed[1].trim_end(),
+        printed[2].split("---").next().unwrap().trim_end(),
+        "{both}"
+    );
+}
+
+#[test]
+fn the_default_plot_of_an_event_study_is_the_estimates_by_period() {
+    // The fit of the event study, by the script; and its numbers, by its table.
+    let text = default_plot(&format!(
+        "{PANEL}m.plot()\nm.estimates()\nm.plot().labels(title: \"Effect by year\")\nexport(m.plot(), \"event.svg\")\nexport(m.plot(), \"event.pdf\")\nexport(m.plot(), \"event.png\")\n"
+    ));
+    // The periods along the foot, each with its break, the base period among them; the
+    // estimates up the side; the intervals said to be what they are.
+    assert!(
+        text.contains("  x      period relative to the event   linear   -3.25 to 2.25          -3, -2, -1, 0, 1, 2"),
+        "{text}"
+    );
+    assert!(
+        text.contains(
+            "2   errorbars   m          5   low ci_lower, high ci_upper, interval ci 0.95, width 0"
+        ),
+        "{text}"
+    );
+    assert!(
+        text.contains("3   points      m          5   size 4.5, alpha 1"),
+        "{text}"
+    );
+    assert!(
+        text.contains("caption: Bars: 95% confidence intervals"),
+        "{text}"
+    );
+    assert!(!text.contains("coordinates: flipped"), "{text}");
+    insta::assert_snapshot!("an_event_study_plotted", text);
+}
+
+#[test]
+fn the_event_study_holds_the_estimates_of_its_fit() {
+    // Through the bodies: the point of each period is the estimate of its term, and its bar
+    // the interval of the fit.
+    let table = zeff_columns::Table::new(vec![
+        (
+            "unit".to_string(),
+            zeff_columns::Column::ints([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4].map(Some)),
+        ),
+        (
+            "year".to_string(),
+            zeff_columns::Column::ints(
+                [
+                    2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013, 2010,
+                    2011, 2012, 2013,
+                ]
+                .map(Some),
+            ),
+        ),
+        (
+            "treat".to_string(),
+            zeff_columns::Column::ints([
+                Some(2011),
+                Some(2011),
+                Some(2011),
+                Some(2011),
+                Some(2012),
+                Some(2012),
+                Some(2012),
+                Some(2012),
+                Some(2013),
+                Some(2013),
+                Some(2013),
+                Some(2013),
+                None,
+                None,
+                None,
+                None,
+            ]),
+        ),
+        (
+            "y".to_string(),
+            zeff_columns::Column::floats(
+                [
+                    1.0, 2.1, 2.4, 2.6, 1.5, 1.4, 2.6, 2.9, 0.8, 0.9, 1.1, 2.0, 1.2, 1.3, 1.1, 1.4,
+                ]
+                .map(Some),
+            )
+            .0,
+        ),
+    ])
+    .unwrap();
+    let (fit, _, _) = plotted(&table, "y ~ event(year, treat)", Some("unit + year"), None);
+    let mut output = String::new();
+    let mut messages: Vec<Diagnostic> = Vec::new();
+    let mut random = Randomness::default();
+    let mut ctx = CallContext {
+        files: &NoFiles,
+        script: "t.zeff",
+        text: "",
+        columns_used: Vec::new(),
+        frame: None,
+        group_rows: None,
+        callee_span: Span::new(0, 1),
+        arg_spans: vec![Some(Span::new(0, 1))],
+        rest_spans: Vec::new(),
+        definition_spans: Vec::new(),
+        output: &mut output,
+        messages: &mut messages,
+        random: &mut random,
+        statement: 1,
+    };
+    let Ok(Value::Plot(plot)) = zeff_plot::fits::plot_of_a_fit(
+        &mut ctx,
+        Args {
+            values: vec![Some(Value::Fit(std::rc::Rc::new(fit.clone())))],
+            rest: Vec::new(),
+            definitions: Vec::new(),
+        },
+    ) else {
+        panic!("no plot of the event study")
+    };
+    let scene = zeff_plot::scene(&plot);
+    let layers = &scene.panels[0].layers;
+    assert_eq!(
+        layers.iter().map(|l| l.mark).collect::<Vec<_>>(),
+        [Mark::Hline, Mark::Errorbars, Mark::Points]
+    );
+    assert_eq!(plot.coord, Coord::Cartesian);
+    let (bars, points) = (&layers[1], &layers[2]);
+    let mut seen = 0;
+    for (at, term) in fit.terms.iter().enumerate() {
+        let Some(period) = term
+            .strip_prefix("event=")
+            .and_then(|p| p.parse::<f64>().ok())
+        else {
+            continue;
+        };
+        seen += 1;
+        let i = (0..points.x.len())
+            .find(|&i| points.x[i] == period)
+            .unwrap();
+        assert_eq!(points.y[i], fit.estimates[at], "{term}");
+        let j = (0..bars.x.len()).find(|&j| bars.x[j] == period).unwrap();
+        assert_eq!((bars.low[j], bars.y[j]), fit.intervals[at], "{term}");
+    }
+    assert_eq!((seen, points.x.len()), (5, 5));
+    // The periods in their order along the axis, the base period having none.
+    assert_eq!(points.x, [-3.0, -2.0, 0.0, 1.0, 2.0]);
+    assert_eq!(bars.interval, Some(Interval::Confidence(0.95)));
+    assert_eq!(
+        scene.scale("x").unwrap().breaks,
+        [-3.0, -2.0, -1.0, 0.0, 1.0, 2.0]
+    );
+}
+
+#[test]
+fn every_message_of_the_plot_of_a_fit() {
+    let mut all = String::new();
+    for (name, script) in [
+        (
+            "of_a_test",
+            "let d = frame(y = [1.0, 2.0, 4.0, 3.0])\nd.t_test(y).plot()\n",
+        ),
+        (
+            "of_the_intercept_alone",
+            "let d = frame(y = [1.0, 3.0, 2.0, 5.0, 4.0, 6.0])\nd.reg(y ~ 1).plot()\n",
+        ),
+        (
+            "with_a_mapping_as_of_a_frame",
+            "let d = frame(y = [1.0, 3.0, 2.0, 5.0], x = [1, 2, 3, 4])\nd.reg(y ~ x).plot(x: x)\n",
+        ),
+        ("of_a_number", "let k = 3\nk.plot()\n"),
+    ] {
+        let outcome = run(script);
+        assert_eq!(outcome.exit_code, 1, "{name}\n{}", outcome.output.stdout);
+        all.push_str(&format!("== {name}\n{}\n", outcome.output.stderr));
+    }
+    insta::assert_snapshot!("plot_of_a_fit_messages", all);
+}

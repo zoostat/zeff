@@ -4104,3 +4104,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 30c; section 7.6 of the Language Reference ("Result plots"); catalogue row 228; decisions #118 (F11) and #120.
 
+## 13 November 2026: `fit.plot()` (release 0.7.0, step 30d; step 30 complete)
+
+**The default view of a fit.** Section 7.6 has `plot` choose "the layers by result type (an event study for `did`, a coefficient plot for `reg`)". `did` is not of this release, and an event study is written here as a regression with the term `event(time, treat)`, so the choice is made by the terms of the fit: where the fit has terms named `event=k`, the plot is the event study; otherwise it is the coefficient plot, the very plot `coef_plot` gives (`fits::coefficients`, shared). `plot` is registered in `plot` a second time, as a method of a `Result` beside the method of a `Frame`, which step 29c1 allows.
+
+**The event study.** A frame with a row for each period that has an estimate (`period`, `estimate`, `ci_lower`, `ci_upper`), in the order of the periods, drawn as `plot(x: period, y: estimate)` with `hline(at: 0)`, `errorbars(low:, high:, width: 0)` and `points()`; the intervals carry the level of the fit, the scene records `ci 0.95`, and the caption says what the bars are, as in `coef_plot`.
+
+**Rulings where the text is silent** (each the owner's to overturn). (a) The base period, which the model leaves out, has no estimate and no point: its place on the axis is empty. A point at zero there is a convention of some programs, but it is not an estimate, and it has no interval; the empty place says the same without drawing a number the fit did not compute. (b) Where the periods are whole numbers and fewer than twenty-four apart from end to end, each has its break on the axis, the base period among them; otherwise the scale chooses. (c) The points are not joined by a line: the estimates are of separate periods. (d) The other terms of the model are not drawn in the event study; `coef_plot` draws every term. (e) The axis is titled "period relative to the event". (f) The result of a test has no plot at this release and is refused with the message of `coef_plot`; a fit of the intercept alone likewise.
+
+**Tests.** `packages/tier2/regress/tests/coef_plot.rs`: the default plot of a regression prints what its `coef_plot` prints; the event study of the sixteen rows of the help page of `event`, through the bodies, each point the estimate of its term and each bar the interval of the fit, the periods in order with the base period's place empty, the breaks at the whole periods, and as a script writes it, printed, with a title and exported in the three formats, with a snapshot; and every message of `plot` on a result (four). One verified example in the help page, which is complete and states the convention of decision #120. One conformance case (`plots/results`, six results: what the script prints, the coefficient plot in three formats and the event study), which brings `zeff selftest` to 469 of 469. The stored help page of `reg` gains `plot` among the plots of its result.
+
+**Step 30 is complete.** `design()` on a fit (30a), the factors of `vif` from the design and open decision #136 (30b), `coef_plot` (30c) and `fit.plot()` (30d). The package `plot` stands at 35 of 35 functions: `plot`, the eleven marks, the four statistical layers, `scale_x`, `scale_y`, `scale`, `coord`, `facet`, `labels`, `legend`, `theme`, `annotate`, the eight shorthands and the two result plots.
+
+**The specification.** Catalogue row 227 is `implemented` (`docs/spec_changes.md`).
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 30; section 7.6 of the Language Reference ("Result plots"); catalogue row 227; decisions #118 (F11) and #120.
+

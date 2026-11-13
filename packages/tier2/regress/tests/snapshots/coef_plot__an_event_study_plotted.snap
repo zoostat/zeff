@@ -1,0 +1,38 @@
+---
+source: packages/tier2/regress/tests/coef_plot.rs
+expression: text
+---
+plot · m · estimate against period
+
+  axis   title                          scale    limits                 breaks
+  x      period relative to the event   linear   -3.25 to 2.25          -3, -2, -1, 0, 1, 2
+  y      estimate                       linear   -0.863747 to 2.29032   -0.5, 0, 0.5, 1, 1.5, 2
+
+  layer   mark        data   marks   settings
+      1   hline       m          1   at 0, width 0.5, style dashed
+      2   errorbars   m          5   low ci_lower, high ci_upper, interval ci 0.95, width 0
+      3   points      m          5   size 4.5, alpha 1
+
+caption: Bars: 95% confidence intervals
+frame · 5 rows × 9 variables
+
+      term          estimate   std_error    statistic   df   df2      p_value    ci_lower   ci_upper
+  1   event=-3     -0.131621    0.212055     -0.62069    4    NA     0.568421    -0.72038   0.457139
+  2   event=-2   -0.00632411    0.141106   -0.0448181    4    NA       0.9664   -0.398098   0.385449
+  3   event=0        1.02727    0.124244      8.26819    4    NA   0.00116762    0.682316    1.37223
+  4   event=1        1.31186    0.173787      7.54864    4    NA   0.00165006    0.829347    1.79437
+  5   event=2         1.4502    0.250952      5.77879    4    NA    0.0044537    0.753444    2.14695
+plot · m · estimate against period
+
+  axis   title                          scale    limits                 breaks
+  x      period relative to the event   linear   -3.25 to 2.25          -3, -2, -1, 0, 1, 2
+  y      estimate                       linear   -0.863747 to 2.29032   -0.5, 0, 0.5, 1, 1.5, 2
+
+  layer   mark        data   marks   settings
+      1   hline       m          1   at 0, width 0.5, style dashed
+      2   errorbars   m          5   low ci_lower, high ci_upper, interval ci 0.95, width 0
+      3   points      m          5   size 4.5, alpha 1
+
+title: Effect by year
+caption: Bars: 95% confidence intervals
+---

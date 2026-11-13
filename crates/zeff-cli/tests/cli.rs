@@ -585,7 +585,7 @@ fn zeff_help_prints_a_functions_page() {
         .replace("\n    ", " ");
     assert_eq!(
         value.trim(),
-        "A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci, n_obs, export. Result plots: coef_plot. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted, compare, test, derive. Result methods: r_squared, influence, vif, design.",
+        "A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci, n_obs, export. Result plots: plot, coef_plot. Estimator interface: coef, vcov, fit_measures, predict, residuals, fitted, compare, test, derive. Result methods: r_squared, influence, vif, design.",
         "{reg}"
     );
     insta::assert_snapshot!("help_reg", reg);

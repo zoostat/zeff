@@ -1,0 +1,39 @@
+---
+source: packages/tier2/regress/tests/coef_plot.rs
+expression: all
+---
+== of_a_test
+error[Z0401]: `plot` draws the coefficients of a fitted model, and a test has none
+ --> scripts/main.zeff:2:1
+  |
+2 | d.t_test(y).plot()
+  | ^^^^^^^^^^^ the result of a test
+  |
+  = help: a test prints its statistic and its p-value; fit a model with `reg` to plot its coefficients
+
+== of_the_intercept_alone
+error[Z0401]: `plot` of a fit draws its coefficients beside the intercept, and this fit has none
+ --> scripts/main.zeff:2:1
+  |
+2 | d.reg(y ~ 1).plot()
+  | ^^^^^^^^^^^^ a fit of the intercept alone
+  |
+  = help: `estimates()` gives the intercept with its interval as a frame
+
+== with_a_mapping_as_of_a_frame
+error[Z0404]: `plot` has no argument called `x`
+ --> scripts/main.zeff:2:19
+  |
+2 | d.reg(y ~ x).plot(x: x)
+  |                   ^ unknown argument
+  |
+  = help: usage: `fit.plot()`
+
+== of_a_number
+error[Z0401]: `plot` cannot be called on an Int
+ --> scripts/main.zeff:2:1
+  |
+2 | k.plot()
+  | ^ this is an Int
+  |
+  = help: `plot` takes a Frame or a Result first; `x.plot(...)` is `plot(x, ...)`

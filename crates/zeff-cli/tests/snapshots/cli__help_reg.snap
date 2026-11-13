@@ -55,7 +55,7 @@ ARGUMENTS
 
 VALUE
     A `RegFit`, which prints as its summary. Result interface: summary, estimates, std_errors, p_values, ci,
-    n_obs, export. Result plots: coef_plot. Estimator interface: coef, vcov, fit_measures, predict,
+    n_obs, export. Result plots: plot, coef_plot. Estimator interface: coef, vcov, fit_measures, predict,
     residuals, fitted, compare, test, derive. Result methods: r_squared, influence, vif, design.
 
 DETAILS

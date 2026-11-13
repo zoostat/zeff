@@ -599,3 +599,7 @@ Step 30b of release 0.7.0. The note of the row of `vif` said that its layer is R
 
 Step 30c of release 0.7.0 builds `fit.coef_plot()`. The row had its layer as Zeff. Decision #118, F11, adopted by the owner on 11 November 2026, has every layer that draws an interval record its kind and level in the scene and the caption state it; `errorbars` called from a script draws the two ends it is given and records `given`, and nothing a Zeff body can write tells it that the ends are a confidence interval at the level of the fit. The plot is therefore built in Rust, where the layer is told; the layer of the row is Rust, with a note saying why, and the row is `implemented`. The usage line is as it was.
 
+## 13 November 2026 — zeff_functions.csv, row 227
+
+Step 30d of release 0.7.0 builds `fit.plot()`. The usage line and the layer of the row are as they were; the row is `implemented`. With it rows 227 and 228, the two result plots, are `implemented`, the package `plot` stands at 35 of 35 functions, and step 30 is complete.
+

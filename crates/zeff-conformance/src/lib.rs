@@ -2278,6 +2278,19 @@ fn plot_cases() -> Vec<Line> {
     let designed = run_script(&fs, &project, "scripts/main.zeff", script);
     fills.push(text("regress/design/stdout", &designed.output.stdout));
     fills.push(text("regress/design/stderr", &designed.output.stderr));
+    // The plots of results (step 30): the coefficient plot of a regression with a category
+    // and robust errors at the 90% level, the default plot of a regression, which is the
+    // same view, and the default plot of an event study; what the script prints, the
+    // coefficient plot in the three formats and the event study as a figure.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet m = w.reg(log(wage) ~ educ + female + industry, se: robust, level: 0.9)\nlet c = m.coef_plot()\nc\nw.reg(log(wage) ~ educ + exper + union).plot()\nlet d = frame(unit = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4], year = [2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013, 2010, 2011, 2012, 2013], treat = [2011, 2011, 2011, 2011, 2012, 2012, 2012, 2012, 2013, 2013, 2013, 2013, NA, NA, NA, NA], y = [1.0, 2.1, 2.4, 2.6, 1.5, 1.4, 2.6, 2.9, 0.8, 0.9, 1.1, 2.0, 1.2, 1.3, 1.1, 1.4])\nlet e = d.reg(y ~ event(year, treat), fe: unit + year).plot()\ne\nexport(c, \"coef.svg\")\nexport(c, \"coef.pdf\")\nexport(c, \"coef.png\")\nexport(e, \"event.svg\")\n";
+    let results = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plots/results/stdout", &results.output.stdout));
+    fills.push(text("plots/results/stderr", &results.output.stderr));
+    for name in ["coef.svg", "coef.pdf", "coef.png", "event.svg"] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plots/results/{name}"), &data));
+    }
     // The eight shorthands (step 29): each of the plots of a frame written in one call, on
     // the hourly wages of 2015; what the script prints, and each as a figure, the scatter
     // with its fitted line in the three formats.

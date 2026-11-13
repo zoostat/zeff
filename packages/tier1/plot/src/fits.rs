@@ -173,3 +173,159 @@ pub fn coef_plot(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     }
     coefficients(ctx, &fit, &kept)
 }
+
+/// How the terms of an event study are named (section 7.2 of the Language Reference; `event`
+/// of `regress`): `event=-3`, `event=0`, the number the period relative to the event.
+const EVENT: &str = "event=";
+
+/// The variable of the frame an event study draws that holds the period of each estimate.
+pub const EVENT_PERIOD: &str = "period";
+
+/// The most periods an event study names one by one along its axis; beyond it the scale
+/// chooses its own breaks.
+const MOST_PERIODS: usize = 24;
+
+/// The plot of an event study: the estimate of each period relative to the event, in the
+/// order of the periods along `x`, as a point with its confidence interval at the level of
+/// the fit, and a line at zero. The base period has no estimate and leaves its place empty.
+fn event_study(
+    ctx: &mut CallContext<'_>,
+    fit: &Fit,
+    periods: &[(usize, f64)],
+) -> Result<Value, Fail> {
+    let unbuilt =
+        |ctx: &CallContext<'_>| internal(ctx, "the frame of the event study could not be built");
+    let of = |pick: &dyn Fn(usize) -> f64| {
+        Column::floats(periods.iter().map(|(at, _)| Some(pick(*at)))).0
+    };
+    let Ok(table) = Table::new(vec![
+        (
+            EVENT_PERIOD.to_string(),
+            Column::floats(periods.iter().map(|(_, period)| Some(*period))).0,
+        ),
+        (COEF_ESTIMATE.to_string(), of(&|at| fit.estimates[at])),
+        (COEF_LOWER.to_string(), of(&|at| fit.intervals[at].0)),
+        (COEF_UPPER.to_string(), of(&|at| fit.intervals[at].1)),
+    ]) else {
+        return Err(unbuilt(ctx));
+    };
+    let estimates = Frame {
+        table: Rc::new(table),
+        name: fit.name.clone(),
+    };
+    let var = |name: &str| (Some(Value::Var(name.to_string())), None);
+    let mut drawn = call(
+        ctx,
+        plot,
+        vec![
+            (
+                Some(Value::Frame(estimates)),
+                ctx.arg_spans.first().copied().flatten(),
+            ),
+            var(EVENT_PERIOD),
+            var(COEF_ESTIMATE),
+        ],
+    )?;
+    drawn = call(
+        ctx,
+        marks::hline,
+        vec![(Some(drawn), None), NONE, (Some(Value::Float(0.0)), None)],
+    )?;
+    drawn = call(
+        ctx,
+        marks::errorbars,
+        vec![
+            (Some(drawn), None),
+            NONE,
+            var(COEF_LOWER),
+            var(COEF_UPPER),
+            (Some(Value::Float(0.0)), None),
+        ],
+    )?;
+    let Value::Plot(with_intervals) = drawn else {
+        return Err(internal(ctx, "`errorbars` gave no plot"));
+    };
+    let mut marked: Plot = (*with_intervals).clone();
+    if let Some(layer) = marked.layers.last_mut() {
+        layer.stat = Some(Stat::Confidence { level: fit.level });
+    }
+    describe(&mut marked);
+    drawn = call(
+        ctx,
+        marks::points,
+        vec![(Some(Value::Plot(Rc::new(marked))), None)],
+    )?;
+    // The periods are whole numbers: where they are few, each has its break, the base
+    // period among them, which shows as the place without an estimate.
+    let (first, last) = periods
+        .iter()
+        .fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), p| {
+            (lo.min(p.1), hi.max(p.1))
+        });
+    let whole = periods.iter().all(|(_, period)| period.fract() == 0.0);
+    if whole && last - first < MOST_PERIODS as f64 {
+        let breaks: Vec<Value> = (0..=(last - first) as usize)
+            .map(|step| Value::Float(first + step as f64))
+            .collect();
+        drawn = call(
+            ctx,
+            scales::scale_x,
+            vec![
+                (Some(drawn), None),
+                NONE,
+                NONE,
+                (Some(Value::List(breaks)), None),
+            ],
+        )?;
+    }
+    call(
+        ctx,
+        scales::labels,
+        vec![
+            (Some(drawn), None),
+            NONE,
+            NONE,
+            (
+                Some(Value::Str("period relative to the event".to_string())),
+                None,
+            ),
+        ],
+    )
+}
+
+/// `fit.plot()`: the default view of a fitted model. Of a fit with the terms of an event
+/// study, the estimates of the periods relative to the event, in their order, with their
+/// confidence intervals; of any other, its coefficient plot, as `coef_plot` draws it.
+pub fn plot_of_a_fit(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let fit = fitted(ctx, &args, "plot")?;
+    let mut periods: Vec<(usize, f64)> = fit
+        .terms
+        .iter()
+        .enumerate()
+        .filter_map(|(at, term)| {
+            term.strip_prefix(EVENT)
+                .and_then(|period| period.parse::<f64>().ok())
+                .filter(|period| period.is_finite())
+                .map(|period| (at, period))
+        })
+        .collect();
+    if !periods.is_empty() {
+        periods.sort_by(|a, b| a.1.total_cmp(&b.1));
+        return event_study(ctx, &fit, &periods);
+    }
+    let kept: Vec<usize> = (0..fit.terms.len())
+        .filter(|&at| fit.terms[at] != INTERCEPT)
+        .collect();
+    if kept.is_empty() {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`plot` of a fit draws its coefficients beside the intercept, and this fit has none",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(0), "a fit of the intercept alone")
+            .help("`estimates()` gives the intercept with its interval as a frame"),
+        ));
+    }
+    coefficients(ctx, &fit, &kept)
+}

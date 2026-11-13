@@ -150,23 +150,16 @@ Step 29c was split in two. 29c1 `[engine]`: a function is known by its package, 
 
 29e `[function]`: `heatmap`, the correlations of several variables as a square of tiles in the order given, on a scale of colours fixed from -1 to 1 (a scale of colours may now have fixed ends). Step 29 complete: the eight shorthands built, catalogue rows 229 to 236 `implemented`, the conformance case `plots/shorthands` over all eight. Step 30 was then split in four. 30a `[engine]`: `fit.design()`, the design a regression was computed on as a frame of the data's length, a variable for each term, `NA` in the rows not used, the weights beside them, and with `fe:` the columns left after the effects are taken out; a fit keeps a handle to its frame and builds the design again when asked (open decision #71, option A; catalogue row 545). Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-## 13 November 2026, release 0.7.0, step 30b (`vif` on `design()`; open decision #136)
+## 13 November 2026, steps 30b and 30c of release 0.7.0 (folded)
 
-**Done.** The variance inflation factors are computed in Zeff from `design()` in a test, for four models, and equal those of `vif`: the design is within reach of a script, as #71 meant. `vif` itself stays in Rust at this release, unchanged (open decision #136, option A): a Zeff body cannot print the lines under its table nor title it by the name of the fit, and would pass over the data where the Rust function makes no pass.
+30b `[function]`: the variance inflation factors computed in Zeff from `design()` in a test, for four models, equal to those of `vif`; `vif` itself stays in Rust at this release (open decision #136, option A, taken on the recommendation, the owner's to overturn: it sets aside the clause of #71 that returns `vif` to Zeff at step 30). 30c `[function]`: `fit.coef_plot()`, the estimates as points with their confidence intervals, a term on each line; the intervals recorded as `ci 0.95` at the level of the fit and said in the caption; built in Rust so that the layer can say what its intervals are. Rulings taken on the recommendation at each step are in `docs/decisions.md` under the same dates.
 
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 463 of 463; CI is read job by job after the push.
+## 13 November 2026, release 0.7.0, step 30d (`fit.plot()`; step 30 complete)
 
-**Next.** Step 30c `[function]`: `coef_plot`.
+**Done.** `fit.plot()` is the default view of a fit: the coefficient plot of a regression, and for a regression with `event(...)` terms the event study, the estimate of each period with its confidence interval, the base period's place left empty. Step 30 is complete: `design()`, the factors of `vif` from it, `coef_plot` and `fit.plot()`; the package `plot` stands at 35 of 35 functions.
 
-**For the owner to decide.** Open decision #136, taken on the recommendation and his to overturn: it sets aside, for 0.7.0, the clause of #71 that returns `vif` to Zeff at step 30. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 469 of 469; CI is read job by job after the push.
 
-## 13 November 2026, release 0.7.0, step 30c (`coef_plot`)
+**Next.** Step 31 `[engine]`: `zeff fmt`.
 
-**Done.** `fit.coef_plot()` draws the estimates of a fitted model as points with their confidence intervals, a term on each line in the order of the table, with a line at zero. The numbers are the fit's own; the intervals are recorded in the scene as confidence intervals at the level of the fit, and the caption says "Bars: 95% confidence intervals". The sample script's `m3.coef_plot()` runs.
-
-**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 463 of 463; CI is read job by job after the push.
-
-**Next.** Step 30d `[function]`: `fit.plot()`, and the conformance case of the result plots, which completes step 30.
-
-**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: `coef_plot` is built in Rust and not in Zeff, so that its intervals can say what they are; the intercept is not drawn; the bars have no caps. Open as before: #136, #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
-
+**For the owner to decide.** Open decision #136 (`vif` in Zeff), taken as option A on the recommendation, his to overturn. Taken on the recommendation at this step, his to overturn: the base period of an event study is an empty place and not a point at zero; the points are not joined. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
