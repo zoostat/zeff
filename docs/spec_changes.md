@@ -554,3 +554,8 @@ Step 25c2 of release 0.7.0 lets a reference line stand at one date on an axis of
 ## 13 November 2026 — zeff_functions.csv, row 484
 
 Step 26c of release 0.7.0 builds `annotate`. Its usage line had `x: Float, y: Float`: a place on an axis of numbers alone. Since steps 24a and 25c1 an axis may hold categories or dates, and a text is as often wanted at a category or at the date of an event. The line is now `p.annotate(text: Str, x: Float | Str | Date | DateTime, y: Float | Str | Date | DateTime, size: Float)`: the name of a category on an axis of categories and a date on an axis of dates, as `hline` and `vline` take a date since step 25c2. The row is marked `implemented`.
+
+## 13 November 2026 — zeff_functions.csv, row 472
+
+Step 28a of release 0.7.0 builds the layer `histogram`. Its usage line had `p.histogram(data: Frame, bins: Int, binwidth: Float)`. By the owner's ruling of 10 November 2026 on question 2 of open decision #99 ("Yes, add them"), which the checklist's step 28 carries, the layer takes the rule for the number of bins, where the first bin begins, and what the height of a bar shows. The line is now `p.histogram(data: Frame, bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float, scale: count | density | fraction | percent = count)`. The status of the row stays `planned` until step 28 is complete and the row is marked with the others of the statistical layers; the usage line of the shorthand, row 229, is amended at step 29.
+

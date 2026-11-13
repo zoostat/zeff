@@ -169,6 +169,60 @@ impl FacetScales {
     }
 }
 
+/// What a layer computes from its rows before it draws (section 7.6, "Statistical layers").
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Stat {
+    /// A histogram: the rows counted in bins of one width along `x`.
+    Bins {
+        /// How many bins, where the script gives no width.
+        rule: BinRule,
+        /// The width of a bin, where the script gives it.
+        binwidth: Option<f64>,
+        /// Where the first bin begins: at the smallest value where the script says nothing.
+        start: Option<f64>,
+        /// What the height of a bar shows.
+        scale: BinScale,
+    },
+}
+
+/// How many bins a histogram has (`bins:`): a number, or a rule that gives one from the
+/// values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BinRule {
+    Count(usize),
+    Sturges,
+    Scott,
+    /// Freedman and Diaconis: the rule where the script says nothing.
+    #[default]
+    Fd,
+}
+
+/// What the height of a bar of a histogram shows (`scale:`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BinScale {
+    /// How many rows fall in the bin.
+    #[default]
+    Count,
+    /// The count over the number of rows and the width of the bin: the bars have area one.
+    Density,
+    /// The count over the number of rows: the heights sum to one.
+    Fraction,
+    /// The fraction times a hundred.
+    Percent,
+}
+
+impl BinScale {
+    /// The word of the language, which is also the title of the axis.
+    pub fn name(self) -> &'static str {
+        match self {
+            BinScale::Count => "count",
+            BinScale::Density => "density",
+            BinScale::Fraction => "fraction",
+            BinScale::Percent => "percent",
+        }
+    }
+}
+
 /// The coordinates of a plot (section 7.6, "Coordinates": `coord`): how its two scales are
 /// brought to the page.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -740,6 +794,9 @@ pub struct PlotLayer {
     /// The seeded stream the jitter draws from, at its start (section 8.3, point 3), kept with
     /// the layer so that the scene is the same however often it is derived.
     pub stream: Option<Stream>,
+    /// What the layer computes from its rows before it draws them: nothing, for a mark that
+    /// draws its rows as they are.
+    pub stat: Option<Stat>,
     /// The values, on the layer's own frame, of each aesthetic the plot maps from an expression;
     /// empty when the layer draws the plot's frame or the plot maps variables only.
     pub computed: Vec<(Aesthetic, Rc<Column>)>,

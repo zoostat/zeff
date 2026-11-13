@@ -14,6 +14,7 @@
 //! shapes, with their legends, one panel, and the scene as JSON and as the printed text of a
 //! plot.
 
+pub mod bins;
 pub mod colour;
 pub mod dates;
 pub mod drawing;
@@ -743,6 +744,34 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: marks::annotate,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "histogram",
+                package: "plot",
+                method: true,
+                params: vec![
+                    ParamSpec::required("p", "Plot"),
+                    ParamSpec::option("data", "Frame"),
+                    ParamSpec::option_with_default("bins", "Int | sturges | scott | fd", "fd"),
+                    ParamSpec::option("binwidth", "Float"),
+                    ParamSpec::option("start", "Float"),
+                    ParamSpec::option_with_default(
+                        "scale",
+                        "count | density | fraction | percent",
+                        "count",
+                    ),
+                ],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "no x, a y, an x that is not numbers, bins below 1, a width not above 0, a start above the smallest value",
+                )],
+                help: include_str!("../help/histogram.md"),
+                accuracy: None,
+            },
+            body: marks::histogram,
         },
         Function {
             spec: FunctionSpec {

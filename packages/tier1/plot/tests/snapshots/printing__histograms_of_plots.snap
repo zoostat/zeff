@@ -1,0 +1,93 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: text
+---
+plot · d · score
+
+  axis   title   scale    limits          breaks
+  x      score   linear   0.6 to 9.4      2, 4, 6, 8
+  y      count   linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   histogram   d          5   5 bins of 1.6 from 1
+plot · d · score
+
+  axis   title   scale    limits          breaks
+  x      score   linear   0.6 to 9.4      2, 4, 6, 8
+  y      count   linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   histogram   d          4   4 bins of 2 from 1
+plot · d · score
+
+  axis   title   scale    limits          breaks
+  x      score   linear   0.6 to 9.4      2, 4, 6, 8
+  y      count   linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   histogram   d          5   5 bins of 1.6 from 1
+plot · d · score
+
+  axis   title     scale    limits                breaks
+  x      score     linear   0.6 to 9.4            2, 4, 6, 8
+  y      density   linear   -0.01125 to 0.23625   0, 0.05, 0.1, 0.15, 0.2
+
+  layer   mark        data   marks   settings
+      1   histogram   d          3   3 bins of 2.66667 from 1
+plot · d · score
+
+  axis   title   scale    limits          breaks
+  x      score   linear   0.6 to 9.4      2, 4, 6, 8
+  y      count   linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   histogram   d          4   4 bins of 2 from 1
+plot · d · score
+
+  axis   title     scale    limits         breaks
+  x      score     linear   -0.5 to 10.5   0, 2, 4, 6, 8, 10
+  y      percent   linear   -2.5 to 52.5   0, 10, 20, 30, 40, 50
+
+  layer   mark        data   marks   settings
+      1   histogram   d          5   5 bins of 2 from 0
+plot · d · score
+
+  axis   title      scale    limits            breaks
+  x      score      linear   0.6 to 9.4        2, 4, 6, 8
+  y      fraction   linear   -0.025 to 0.525   0, 0.1, 0.2, 0.3, 0.4, 0.5
+
+  layer   mark        data   marks   settings
+      1   histogram   d          4   4 bins of 2 from 1
+plot · d · score
+
+  axis   title   scale    limits          breaks
+  x      score   linear   -0.5 to 10.5    0, 2, 4, 6, 8, 10
+  y      count   linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  aesthetic   title   scale      values   shown as
+  fill        arm     category   a, b     orange, sky blue
+
+  layer   mark        data   marks   settings
+      1   histogram   d         10   5 bins of 2 from 0
+plot · d · score
+
+  axis   title   scale    limits          breaks
+  x      score   linear   0.6 to 9.4      2, 4, 6, 8
+  y      count   linear   -0.15 to 3.15   0, 0.5, 1, 1.5, 2, 2.5, 3
+
+  layer   mark        data   marks   settings
+      1   histogram   d          8   4 bins of 2 from 1
+
+panels: 2 by arm: a, b
+plot · d · score
+
+  axis   title   scale    limits          breaks
+  x      score   linear   0.6 to 9.4      2, 4, 6, 8
+  y      count   linear   -0.25 to 5.25   0, 1, 2, 3, 4, 5
+
+  layer   mark        data   marks   settings
+      1   histogram   d          4   4 bins of 2 from 1
+
+title: Scores
+coordinates: flipped, `x` up the side and `y` along the foot
+---

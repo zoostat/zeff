@@ -67,12 +67,13 @@ use std::borrow::Cow;
 use zeff_columns::{Column, ColumnType, MetadataKey, Value as Cell};
 use zeff_core::display::{format_float, labelled_cell};
 use zeff_core::value::{
-    Aesthetic, Align, Arrangement, AxisKind, Coord, Frame, LegendPlace, Mark, Palette, Plot,
-    PlotConstant, PlotLabels, PlotLayer, PlotMapping, PlotSetting, PlotTheme, Sides, Stacking,
-    Stairs, Table,
+    Aesthetic, Align, Arrangement, AxisKind, BinScale, Coord, Frame, LegendPlace, Mark, Palette,
+    Plot, PlotConstant, PlotLabels, PlotLayer, PlotMapping, PlotSetting, PlotTheme, Sides,
+    Stacking, Stairs, Stat, Table,
 };
 use zeff_diagnostics::count;
 
+use crate::bins::Bins;
 use crate::colour;
 use crate::dates;
 use crate::drawing::LineType;
@@ -1544,6 +1545,140 @@ fn bars(
     out
 }
 
+/// The smallest and the largest finite value a layer has along an axis, where its variable
+/// is numbers and holds one.
+pub fn reach_of(plot: &Plot, layer: &PlotLayer, aesthetic: Aesthetic) -> Option<(f64, f64)> {
+    let column = values(plot, Some(layer), aesthetic)?;
+    let all: Vec<f64> = (0..column.len())
+        .filter_map(|row| number(column, row))
+        .collect();
+    extent(all.iter())
+}
+
+/// The bars of a histogram: the rows with a finite `x` counted in bins of one width
+/// ([`Bins`]), a bar for each bin of each group, as high as the count, or as its share of the
+/// rows of the panel (`scale:`). The groups are those of a bar, in the order of their
+/// categories, and the bars of one bin are stacked from the last group up. The bins are
+/// those of all the rows of the layer, so that every group and every panel has the same;
+/// under `density` the bars of a panel have area one, and under `fraction` and `percent`
+/// their heights sum to one and to a hundred. Each bar is drawn from the first row of its
+/// group, which gives it its colour and its panel. The second value is the number of rows
+/// before the first bin, which `start:` leaves out, and the third whether a rule asked for
+/// more bins than a histogram may have.
+fn binned(
+    cx: Option<&Column>,
+    keys: &[Categories],
+    stat: Option<Stat>,
+    panels: Option<&[usize]>,
+) -> (Bars, usize, bool) {
+    let mut out = Bars::default();
+    let (
+        Some(cx),
+        Some(Stat::Bins {
+            rule,
+            binwidth,
+            start,
+            scale,
+        }),
+    ) = (cx, stat)
+    else {
+        return (out, 0, false);
+    };
+    if !is_numeric(cx)
+        || keys.iter().any(|key| key.of.len() != cx.len())
+        || panels.is_some_and(|panels| panels.len() != cx.len())
+    {
+        return (out, 0, false);
+    }
+    // The rows that are counted, each with its value.
+    let mut before = 0;
+    let mut held: Vec<(usize, f64)> = Vec::new();
+    for row in 0..cx.len() {
+        match number(cx, row) {
+            None => out.points.missing += 1,
+            Some(x) if !x.is_finite() => out.points.infinite += 1,
+            Some(x) if start.is_some_and(|start| x < start) => before += 1,
+            Some(x) => held.push((row, x)),
+        }
+    }
+    let values: Vec<f64> = held.iter().map(|(_, x)| *x).collect();
+    let Some(bins) = Bins::of(&values, rule, binwidth, start) else {
+        return (out, before, false);
+    };
+    // A rule that asks for more bins than a histogram may have is given as many as it may.
+    let most = bins.count == crate::bins::MOST_BINS
+        && binwidth.is_none()
+        && !matches!(rule, zeff_core::value::BinRule::Count(_));
+    // The groups, by panel and then in the order of their categories, each with the row it
+    // is drawn from and its count in every bin.
+    type Group = (usize, Vec<(bool, usize)>);
+    let group = |row: usize| -> Group {
+        (
+            panels.map_or(0, |panels| panels[row]),
+            keys.iter()
+                .map(|key| (key.of[row].is_none(), key.of[row].unwrap_or(0)))
+                .collect(),
+        )
+    };
+    let mut groups: Vec<(Group, usize, Vec<usize>)> = Vec::new();
+    for (row, x) in &held {
+        let Some(bin) = bins.holding(*x) else {
+            continue;
+        };
+        let of = group(*row);
+        let at = match groups.iter().position(|(known, _, _)| *known == of) {
+            Some(at) => at,
+            None => {
+                groups.push((of, *row, vec![0; bins.count]));
+                groups.len() - 1
+            }
+        };
+        groups[at].2[bin] += 1;
+    }
+    groups.sort_by(|a, b| a.0.cmp(&b.0));
+    // Panel by panel, bin by bin: the bars of the groups of the panel, the first on top.
+    let mut from = 0;
+    while from < groups.len() {
+        let panel = groups[from].0.0;
+        let to = from
+            + groups[from..]
+                .iter()
+                .take_while(|(of, _, _)| of.0 == panel)
+                .count();
+        let here = &groups[from..to];
+        let rows: usize = here
+            .iter()
+            .map(|(_, _, counts)| counts.iter().sum::<usize>())
+            .sum();
+        let height = |count: usize| {
+            let count = count as f64;
+            match scale {
+                BinScale::Count => count,
+                BinScale::Density => count / (rows as f64 * bins.width),
+                BinScale::Fraction => count / rows as f64,
+                BinScale::Percent => 100.0 * count / rows as f64,
+            }
+        };
+        for bin in 0..bins.count {
+            let mut edges = vec![(0.0, 0.0); here.len()];
+            let mut above = 0usize;
+            for (i, (_, _, counts)) in here.iter().enumerate().rev() {
+                edges[i] = (height(above), height(above + counts[bin]));
+                above += counts[bin];
+            }
+            for ((_, row, _), (low, high)) in here.iter().zip(edges) {
+                out.points.x.push(bins.middle(bin));
+                out.points.y.push(high);
+                out.points.rows.push(*row);
+                out.low.push(low);
+                out.span.push(bins.width);
+            }
+        }
+        from = to;
+    }
+    (out, before, most)
+}
+
 /// The smallest gap between two different values, the unit of `jitter:`; `alone` when there
 /// are not two different values to take a gap between, which is 1 on an axis of numbers and a
 /// day on one of dates ([`alone`]).
@@ -2573,8 +2708,43 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         let mut span: Vec<f64> = Vec::new();
         let mut counted = false;
         let mut points = if let Mark::Bars(how) = layer.mark {
-            match named(Aesthetic::X) {
-                Some(x) => {
+            match (layer.stat, named(Aesthetic::X)) {
+                // A histogram: the rows counted in bins along `x`, a bar for each bin.
+                (Some(Stat::Bins { .. }), Some(x)) => {
+                    let across = place(layer, Aesthetic::X);
+                    counted = true;
+                    let (drawn, before, most) =
+                        binned(across.as_deref(), &parted(), layer.stat, panel_of(at));
+                    if most {
+                        note(format!(
+                            "the rule gives more bins of {x} than a histogram may have: {} are drawn",
+                            count(crate::bins::MOST_BINS as u64)
+                        ));
+                    }
+                    if drawn.points.missing > 0 {
+                        note(format!(
+                            "{} with NA in {x} dropped",
+                            rows_text(drawn.points.missing)
+                        ));
+                    }
+                    if drawn.points.infinite > 0 {
+                        note(format!(
+                            "{} with an infinite value in {x} dropped",
+                            rows_text(drawn.points.infinite)
+                        ));
+                    }
+                    if before > 0 {
+                        note(format!(
+                            "{} with {x} below `start:` {} in no bin",
+                            rows_text(before),
+                            if before == 1 { "is" } else { "are" }
+                        ));
+                    }
+                    low = drawn.low;
+                    span = drawn.span;
+                    Some(drawn.points)
+                }
+                (_, Some(x)) => {
                     let across = place(layer, Aesthetic::X);
                     let height = named(Aesthetic::Y);
                     let upper = place(layer, Aesthetic::Y);
@@ -2623,7 +2793,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                     span = drawn.span;
                     Some(drawn.points)
                 }
-                None => Some(Drawn::default()),
+                (_, None) => Some(Drawn::default()),
             }
         } else if single.is_none() {
             None
@@ -3240,7 +3410,16 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             });
         let title = match first_mapping(plot, aesthetic) {
             Some((mapping, frame, _)) => axis_title(frame, mapping),
-            None if counting => "count".to_string(),
+            // A histogram names its axis by what its bars show.
+            None if counting => plot
+                .layers
+                .iter()
+                .find_map(|layer| match layer.stat {
+                    Some(Stat::Bins { scale, .. }) => Some(scale.name()),
+                    _ => None,
+                })
+                .unwrap_or("count")
+                .to_string(),
             None => continue,
         };
         // The words of the script for the title of the axis come before the label of its
@@ -4565,6 +4744,22 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         } else if layer.mark == Mark::Tile {
             // A layer of tiles: how far they let through what is under them.
             format!("alpha {}", format_float(layer.alpha))
+        } else if let Some(Stat::Bins { .. }) = written.and_then(|l| l.stat) {
+            // A histogram: how many bins, how wide, and where the first begins.
+            let width = layer.span.first().copied().unwrap_or(0.0);
+            let mut middles: Vec<f64> = layer.x.clone();
+            middles.sort_by(f64::total_cmp);
+            middles.dedup();
+            match middles.first() {
+                Some(first) => format!(
+                    "{} {} of {} from {}",
+                    count(middles.len() as u64),
+                    if middles.len() == 1 { "bin" } else { "bins" },
+                    format_float(width),
+                    format_float(first - width / 2.0)
+                ),
+                None => "no bin".to_string(),
+            }
         } else if let Mark::Bars(how) = layer.mark {
             // A layer of bars: their width, how they are arranged where it is not on one
             // another, how far they let through what is under them, their groups.
@@ -4624,7 +4819,11 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
         }
         rows.push(vec![
             (i + 1).to_string(),
-            layer.mark.name().to_string(),
+            // A layer that counts its rows in bins is named by what it is, a histogram.
+            match written.and_then(|l| l.stat) {
+                Some(Stat::Bins { .. }) => "histogram".to_string(),
+                None => layer.mark.name().to_string(),
+            },
             data,
             count(layer.x.len().max(layer.y.len()) as u64),
             settings,

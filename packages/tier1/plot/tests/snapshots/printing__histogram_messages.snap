@@ -1,0 +1,144 @@
+---
+source: packages/tier1/plot/tests/printing.rs
+expression: all
+---
+== no_x
+error[Z0401]: `histogram` counts the rows in bins along `x`, but the plot maps no variable to `x`
+ --> scripts/main.zeff:3:18
+  |
+3 | d.plot(y: score).histogram()
+  |                  ^^^^^^^^^ needs `x`
+  |
+  = help: map it where the plot starts, as in `plot(x: wage).histogram()`
+
+== a_y
+error[Z0401]: `histogram` has a `y` of its own, the count of each bin, but the plot maps `y` to `score`
+ --> scripts/main.zeff:3:28
+  |
+3 | d.plot(x: score, y: score).histogram()
+  |                            ^^^^^^^^^ a histogram, with `y` mapped
+  |
+  = help: start the plot with `x` alone, as in `plot(x: score).histogram()`; a bar as high as a variable is `bars`
+
+== an_x_of_text
+error[Z0401]: `histogram` counts the rows in bins along `x`, but the `x` axis of this plot holds the categories of `name`
+ --> scripts/main.zeff:3:17
+  |
+3 | d.plot(x: name).histogram()
+  |                 ^^^^^^^^^ needs numbers along `x`
+  |
+  = help: `points` and `lines` are placed on an axis of categories; `histogram` needs a number along `x`
+
+== an_x_of_dates
+error[Z0401]: `histogram` counts the rows in bins along `x`, but the `x` axis of this plot holds the dates of `day`
+ --> scripts/main.zeff:3:16
+  |
+3 | d.plot(x: day).histogram()
+  |                ^^^^^^^^^ needs numbers along `x`
+  |
+  = help: `points`, `lines` and `step` are placed on a scale of dates; `histogram` needs a number along `x`, and may have dates along the other axis
+
+== no_bins
+error[Z0401]: `bins:` of `histogram` is how many bins there are, 1 or more, but this is 0
+ --> scripts/main.zeff:3:19
+  |
+3 | p.histogram(bins: 0)
+  |                   ^ not a number of bins
+  |
+  = help: write a whole number, as in `bins: 30`, or a rule that gives one from the values: `sturges`, `scott` or `fd`
+
+== too_many_bins
+error[Z0401]: `bins:` of `histogram` is at most 1,000, but this is 5,000
+ --> scripts/main.zeff:3:19
+  |
+3 | p.histogram(bins: 5000)
+  |                   ^^^^ more bins than a page shows apart
+  |
+  = help: a thousand bins are more than a figure shows apart; write fewer, or leave `bins:` out for the rule of Freedman and Diaconis
+
+== bins_that_are_text
+error[Z0401]: `bins` of `histogram` must be an Int or sturges | scott | fd, but this is a Str
+ --> scripts/main.zeff:3:19
+  |
+3 | p.histogram(bins: "ten")
+  |                   ^^^^^ a Str
+  |
+  = help: usage: `p.histogram(data: Frame, bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float, scale: count | density | fraction | percent = count)`
+
+== a_rule_that_is_none
+error[Z0402]: `rice` is not one of the allowed words
+ --> scripts/main.zeff:3:19
+  |
+3 | p.histogram(bins: rice)
+  |                   ^^^^ expected one of sturges, scott, fd, or an Int
+
+== a_width_of_zero
+error[Z0401]: `binwidth:` of `histogram` is the width of a bin in the units of `x`, above 0, but this is 0
+ --> scripts/main.zeff:3:23
+  |
+3 | p.histogram(binwidth: 0)
+  |                       ^ not a width
+  |
+  = help: write a width in the units of the variable, as in `binwidth: 5`, or leave it out and say how many bins with `bins:`
+
+== a_width_below_zero
+error[Z0401]: `binwidth:` of `histogram` is the width of a bin in the units of `x`, above 0, but this is -1
+ --> scripts/main.zeff:3:23
+  |
+3 | p.histogram(binwidth: -1)
+  |                       ^^ not a width
+  |
+  = help: write a width in the units of the variable, as in `binwidth: 5`, or leave it out and say how many bins with `bins:`
+
+== a_width_too_narrow
+error[Z0401]: `binwidth: 0.001` gives more bins than a histogram may have, 1,000: `score` runs from 1 to 9
+ --> scripts/main.zeff:3:23
+  |
+3 | p.histogram(binwidth: 0.001)
+  |                       ^^^^^ too narrow a bin
+  |
+  = help: write a width of 0.008 or more, or say how many bins with `bins:`
+
+== a_start_above_the_smallest_value
+error[Z0401]: `start:` of `histogram` is where the first bin begins, at or below the smallest value of `score`, which is 1, but this is 2
+ --> scripts/main.zeff:3:20
+  |
+3 | p.histogram(start: 2)
+  |                    ^ above the smallest value
+  |
+  = help: the rows below it would be in no bin; write `start: 1` or less, or keep the rows you want with `where` before the plot
+
+== a_start_that_is_text
+error[Z0401]: `start` of `histogram` must be a Float, but this is a Str
+ --> scripts/main.zeff:3:20
+  |
+3 | p.histogram(start: "zero")
+  |                    ^^^^^^ a Str
+  |
+  = help: usage: `p.histogram(data: Frame, bins: Int | sturges | scott | fd = fd, binwidth: Float, start: Float, scale: count | density | fraction | percent = count)`
+
+== a_scale_that_is_none
+error[Z0402]: `share` is not one of the allowed words
+ --> scripts/main.zeff:3:20
+  |
+3 | p.histogram(scale: share)
+  |                    ^^^^^ expected one of count, density, fraction, percent
+
+== a_histogram_of_a_frame
+error[Z0401]: `histogram` cannot be called on a Frame
+ --> scripts/main.zeff:3:1
+  |
+3 | d.histogram(bins: 4)
+  | ^ this is a Frame
+  |
+  = help: `histogram` takes a Plot first; `x.histogram(...)` is `histogram(x, ...)`
+
+== a_frame_without_the_variable
+error[Z0101]: no variable `score` in `the frame`
+ --> scripts/main.zeff:3:19
+  |
+3 | p.histogram(data: frame(other = [1, 2]))
+  |   --------- this layer draws `score`, which the plot maps to `x`
+  |                   ^^^^^^^^^^^^^^^^^^^^^ not a variable of the frame
+  |
+  = help: the variables of `the frame` are: other

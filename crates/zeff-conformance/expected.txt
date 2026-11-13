@@ -403,6 +403,13 @@ plot/free/free.svg ad0cb1d610456297
 plot/free/free.pdf ab1a8c62fc331b26
 plot/free/free.png 1080ba45145923c6
 plot/free/free_grid.svg 483788c52553aa3e
+plot/histogram/stdout a5d826f2c9fc5add
+plot/histogram/stderr a748773e076964c7
+plot/histogram/histogram.svg b0ddc2bad5dab340
+plot/histogram/histogram.pdf afdf80a3e87a76d2
+plot/histogram/histogram.png df5e99ffa821dcc8
+plot/histogram/stacked.svg 6ac75029148222de
+plot/histogram/panels.svg c5dc44b0d7aae8e3
 kernels/reductions 7a3f4eedc240791f
 kernels/demean 48d680e3a4eef16c
 kernels/least_squares 40ea244b286771b1

@@ -150,3 +150,13 @@ Step 27d was split into 27d1 to 27d3. 27d1 `[engine]`: a scene of several panels
 
 **For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: an axis of categories keeps every category in every panel, where ggplot2 drops those a panel lacks; free scales are refused with `coord(fixed)` and `coord(polar)`, as in ggplot2; the labels of a free axis are written wherever it differs from its neighbour's. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 28a (`histogram`), and step 28 split in four
+
+**Done.** Step 28 was split into 28a (`histogram`), 28b (`density`), 28c (`boxplot`) and 28d (`errorbars`). `p.histogram()` counts the rows of `x` in bins of one width and draws a bar for each: by the rule of Freedman and Diaconis, by Sturges's or Scott's, by a number of bins or by a width, from the smallest value or from `start:`, as counts, densities, fractions or percentages; stacked by a fill; with the same bins in every panel of `facet`. The three rules give the numbers of bins of R, and the counts and densities are those of R's `hist` on the same breaks. A histogram has a thousand bins at most.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 429 of 429; CI is read job by job after the push.
+
+**Next.** Step 28b `[function]`: `density`, the kernel estimate computed in `stats` and the layer that draws it.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: the bins begin at the smallest value and are of one width, each holding its left edge, as Stata's, where R moves the edges to round numbers; a stack of several fills is the histogram of them all, so that under `density` the whole stack has area one; a thousand bins at most; an axis of dates has no histogram yet. Open as before: #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

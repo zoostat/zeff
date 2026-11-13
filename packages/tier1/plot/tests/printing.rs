@@ -3649,3 +3649,94 @@ fn panels_with_axes_of_their_own_are_exported_in_the_three_formats() {
     ));
     assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
 }
+
+// ----- histogram (step 28a) -----
+
+const SCORES: &str = "let d = frame(score = [1, 2, 2, 3, 3, 3, 4, 4, 5, 9], arm = [\"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\"], name = [\"k\", \"l\", \"m\", \"n\", \"o\", \"p\", \"q\", \"r\", \"s\", \"t\"], read = [\"2024-01-15\", \"2024-01-16\", \"2024-01-17\", \"2024-01-18\", \"2024-01-19\", \"2024-01-20\", \"2024-01-21\", \"2024-01-22\", \"2024-01-23\", \"2024-01-24\"]).add(day = date(read))\nlet p = d.plot(x: score)\n";
+
+#[test]
+fn a_histogram_reads_sensibly_as_text() {
+    let script = format!(
+        "{SCORES}p.histogram()\n\
+         p.histogram(bins: 4)\n\
+         p.histogram(bins: sturges)\n\
+         p.histogram(bins: scott, scale: density)\n\
+         p.histogram(binwidth: 2)\n\
+         p.histogram(binwidth: 2, start: 0, scale: percent)\n\
+         p.histogram(bins: 4, scale: fraction)\n\
+         d.plot(x: score, fill: arm).histogram(binwidth: 2, start: 0)\n\
+         p.histogram(bins: 4).facet(by: arm)\n\
+         p.histogram(bins: 4).coord(flip).labels(title: \"Scores\")\n"
+    );
+    let text = printed(&script);
+    // The layer is named a histogram, with its bins: how many, how wide, from where.
+    assert!(
+        text.contains("1   histogram   d          4   4 bins of 2 from 1"),
+        "{text}"
+    );
+    assert!(
+        text.contains("1   histogram   d          4   4 bins of 2 from 1\n"),
+        "{text}"
+    );
+    assert!(text.contains("5 bins of 2 from 0"), "{text}");
+    // The axis of `y` is named by what the bars show.
+    for scale in ["count", "density", "fraction", "percent"] {
+        assert!(
+            text.contains(&format!("  y      {scale}")),
+            "{scale}\n{text}"
+        );
+    }
+    // Two fills: a bar of each in every bin.
+    assert!(
+        text.contains("1   histogram   d         10   5 bins of 2 from 0"),
+        "{text}"
+    );
+    insta::assert_snapshot!("histograms_of_plots", text);
+}
+
+#[test]
+fn a_histogram_is_exported_in_the_three_formats() {
+    let (code, stdout, stderr) = go(&format!(
+        "{SCORES}let q = d.plot(x: score, fill: arm).histogram(binwidth: 2, start: 0)\n\
+         export(q, \"hist.svg\")\n\
+         export(q, \"hist.pdf\")\n\
+         export(q, \"hist.png\")\n\
+         export(p.histogram(bins: 4, scale: density).facet(by: arm), \"hist_panels.svg\")\n"
+    ));
+    assert_eq!((code, stderr.as_str()), (0, ""), "{stdout}");
+}
+
+#[test]
+fn every_message_of_histogram() {
+    let mut all = String::new();
+    for (name, script) in [
+        ("no_x", "d.plot(y: score).histogram()\n"),
+        ("a_y", "d.plot(x: score, y: score).histogram()\n"),
+        ("an_x_of_text", "d.plot(x: name).histogram()\n"),
+        ("an_x_of_dates", "d.plot(x: day).histogram()\n"),
+        ("no_bins", "p.histogram(bins: 0)\n"),
+        ("too_many_bins", "p.histogram(bins: 5000)\n"),
+        ("bins_that_are_text", "p.histogram(bins: \"ten\")\n"),
+        ("a_rule_that_is_none", "p.histogram(bins: rice)\n"),
+        ("a_width_of_zero", "p.histogram(binwidth: 0)\n"),
+        ("a_width_below_zero", "p.histogram(binwidth: -1)\n"),
+        ("a_width_too_narrow", "p.histogram(binwidth: 0.001)\n"),
+        (
+            "a_start_above_the_smallest_value",
+            "p.histogram(start: 2)\n",
+        ),
+        ("a_start_that_is_text", "p.histogram(start: \"zero\")\n"),
+        ("a_scale_that_is_none", "p.histogram(scale: share)\n"),
+        ("a_histogram_of_a_frame", "d.histogram(bins: 4)\n"),
+        (
+            "a_frame_without_the_variable",
+            "p.histogram(data: frame(other = [1, 2]))\n",
+        ),
+    ] {
+        let (code, stdout, stderr) = go(&format!("{SCORES}{script}"));
+        assert_eq!(code, 1, "{name}\n{stdout}");
+        assert_eq!(stdout, "", "{name}");
+        all.push_str(&format!("== {name}\n{stderr}\n"));
+    }
+    insta::assert_snapshot!("histogram_messages", all);
+}

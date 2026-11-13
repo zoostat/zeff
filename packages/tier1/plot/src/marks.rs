@@ -18,8 +18,8 @@ use std::rc::Rc;
 use zeff_columns::Column;
 use zeff_core::runtime::{Args, CallContext, Fail, fail};
 use zeff_core::value::{
-    Aesthetic, Arrangement, AxisKind, Frame, Mark, Plot, PlotConstant, PlotLayer, PlotMapping,
-    PlotSetting, Sides, Stacking, Stairs, Value,
+    Aesthetic, Arrangement, AxisKind, BinRule, BinScale, Frame, Mark, Plot, PlotConstant,
+    PlotLayer, PlotMapping, PlotSetting, Sides, Stacking, Stairs, Stat, Value,
 };
 use zeff_diagnostics::{Diagnostic, Span};
 
@@ -660,6 +660,7 @@ pub fn points(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             nudge: (0.0, 0.0),
             width: None,
             stream,
+            stat: None,
             computed,
             mappings,
             constants,
@@ -836,6 +837,7 @@ fn joined(
             nudge: (0.0, 0.0),
             width,
             stream: None,
+            stat: None,
             computed,
             mappings,
             constants,
@@ -1078,6 +1080,7 @@ fn filled(
             nudge: (0.0, 0.0),
             width: None,
             stream: None,
+            stat: None,
             computed,
             mappings,
             constants,
@@ -1360,6 +1363,7 @@ fn spanning(
             nudge: (0.0, 0.0),
             width: Some(width),
             stream: None,
+            stat: None,
             computed,
             mappings,
             constants,
@@ -1498,6 +1502,7 @@ pub fn rug(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             nudge: (0.0, 0.0),
             width: Some(0.5),
             stream: None,
+            stat: None,
             computed,
             mappings,
             constants,
@@ -1644,9 +1649,265 @@ pub fn bars(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             nudge: (0.0, 0.0),
             width: Some(width),
             stream: None,
+            stat: None,
             computed,
             mappings,
             constants,
+        },
+    )
+}
+
+// ----- histogram (step 28a) -----
+
+const HG_BINS: usize = 2;
+const HG_BINWIDTH: usize = 3;
+const HG_START: usize = 4;
+const HG_SCALE: usize = 5;
+
+/// `p.histogram(data: Frame, bins: Int | sturges | scott | fd = fd, binwidth: Float, start:
+/// Float, scale: count | density | fraction | percent = count)`: the rows of `x` counted in
+/// bins of one width, a bar for each bin.
+pub fn histogram(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
+    let Some(Value::Plot(plot)) = args.get(P) else {
+        return Err(internal(ctx, "`histogram` reached its body without a plot"));
+    };
+    let plot: Rc<Plot> = plot.clone();
+    let frame: Frame = match args.get(DATA) {
+        Some(Value::Frame(own)) => own.clone(),
+        _ => plot.frame.clone(),
+    };
+    // A histogram is of the variable the plot maps to `x`, and has its own `y`.
+    let Some(of) = plot.mapping(Aesthetic::X) else {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                "`histogram` counts the rows in bins along `x`, but the plot maps no variable to `x`",
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "needs `x`")
+            .help("map it where the plot starts, as in `plot(x: wage).histogram()`"),
+        ));
+    };
+    if let Some(up) = plot.mapping(Aesthetic::Y) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`histogram` has a `y` of its own, the count of each bin, but the plot maps `y` to `{}`",
+                    up.variable
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.callee_span, "a histogram, with `y` mapped")
+            .help(format!(
+                "start the plot with `x` alone, as in `plot(x: {}).histogram()`; a bar as high as a variable is `bars`",
+                of.variable
+            )),
+        ));
+    }
+    numbers_along(
+        ctx,
+        &plot,
+        &frame,
+        &[],
+        (Aesthetic::X, None),
+        ("histogram", "counts the rows in bins along `x`", false),
+    )?;
+    one_fill_to_an_area(ctx, &plot, &frame, &[], (false, HG_SCALE), "histogram")?;
+    let rule = match args.get(HG_BINS) {
+        None | Some(Value::Na) => BinRule::Fd,
+        Some(Value::Int(n)) if *n >= 1 && *n <= crate::bins::MOST_BINS as i64 => {
+            BinRule::Count(*n as usize)
+        }
+        Some(Value::Int(n)) if *n >= 1 => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`bins:` of `histogram` is at most {}, but this is {}",
+                        count_of(crate::bins::MOST_BINS),
+                        count_of(*n as usize)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(HG_BINS), "more bins than a page shows apart")
+                .help("a thousand bins are more than a figure shows apart; write fewer, or leave `bins:` out for the rule of Freedman and Diaconis"),
+            ));
+        }
+        Some(Value::Int(n)) => {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!("`bins:` of `histogram` is how many bins there are, 1 or more, but this is {n}"),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(HG_BINS), "not a number of bins")
+                .help("write a whole number, as in `bins: 30`, or a rule that gives one from the values: `sturges`, `scott` or `fd`"),
+            ));
+        }
+        Some(Value::Word(word)) => match word.as_str() {
+            "sturges" => BinRule::Sturges,
+            "scott" => BinRule::Scott,
+            "fd" => BinRule::Fd,
+            _ => return Err(internal(ctx, "a rule of bins that is none of the three")),
+        },
+        Some(_) => return Err(internal(ctx, "bins that are neither a number nor a rule")),
+    };
+    let binwidth = number_option(
+        ctx,
+        &args,
+        HG_BINWIDTH,
+        "a `binwidth:` that is not a number",
+    )?;
+    if let Some(width) = binwidth.filter(|width| !(*width > 0.0 && width.is_finite())) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`binwidth:` of `histogram` is the width of a bin in the units of `x`, above 0, but this is {}",
+                    shown(width)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(HG_BINWIDTH), "not a width")
+            .help("write a width in the units of the variable, as in `binwidth: 5`, or leave it out and say how many bins with `bins:`"),
+        ));
+    }
+    let start = number_option(ctx, &args, HG_START, "a `start:` that is not a number")?;
+    if let Some(start) = start.filter(|start| !start.is_finite()) {
+        return Err(fail(
+            Diagnostic::error(
+                "Z0401",
+                format!(
+                    "`start:` of `histogram` is where the first bin begins, a number, but this is {}",
+                    shown(start)
+                ),
+            )
+            .in_file(ctx.script)
+            .primary(ctx.span_of(HG_START), "not a place")
+            .help("write a number at or below the smallest value of the variable"),
+        ));
+    }
+    let scale = match args.get(HG_SCALE) {
+        None | Some(Value::Na) => BinScale::Count,
+        Some(Value::Word(word)) => match word.as_str() {
+            "count" => BinScale::Count,
+            "density" => BinScale::Density,
+            "fraction" => BinScale::Fraction,
+            "percent" => BinScale::Percent,
+            _ => return Err(internal(ctx, "a scale of bins that is none of the four")),
+        },
+        Some(_) => return Err(internal(ctx, "a scale of bins that is not a word")),
+    };
+    let (data, computed) = own_frame(
+        ctx,
+        &args,
+        &plot,
+        "histogram",
+        &[Aesthetic::X, Aesthetic::Fill, Aesthetic::Group],
+    )?;
+    // The first bin begins at or below the smallest value: a bin that began above it would
+    // leave rows out of the count.
+    if let Some(start) = start {
+        let layer = PlotLayer {
+            mark: Mark::Bars(Arrangement::Stack),
+            data: data.clone(),
+            alpha: 1.0,
+            size: None,
+            jitter: 0.0,
+            nudge: (0.0, 0.0),
+            width: Some(1.0),
+            stream: None,
+            stat: None,
+            computed: computed.clone(),
+            mappings: Vec::new(),
+            constants: Vec::new(),
+        };
+        if let Some((smallest, _)) = crate::scene::reach_of(&plot, &layer, Aesthetic::X)
+            && start > smallest
+        {
+            return Err(fail(
+                Diagnostic::error(
+                    "Z0401",
+                    format!(
+                        "`start:` of `histogram` is where the first bin begins, at or below the smallest value of `{}`, which is {}, but this is {}",
+                        of.variable,
+                        shown(smallest),
+                        shown(start)
+                    ),
+                )
+                .in_file(ctx.script)
+                .primary(ctx.span_of(HG_START), "above the smallest value")
+                .help(format!(
+                    "the rows below it would be in no bin; write `start: {}` or less, or keep the rows you want with `where` before the plot",
+                    shown(smallest)
+                )),
+            ));
+        }
+    }
+    // A width so small that there would be more bins than a histogram may have.
+    if let Some(width) = binwidth {
+        let layer = PlotLayer {
+            mark: Mark::Bars(Arrangement::Stack),
+            data: data.clone(),
+            alpha: 1.0,
+            size: None,
+            jitter: 0.0,
+            nudge: (0.0, 0.0),
+            width: Some(1.0),
+            stream: None,
+            stat: None,
+            computed: computed.clone(),
+            mappings: Vec::new(),
+            constants: Vec::new(),
+        };
+        if let Some((smallest, largest)) = crate::scene::reach_of(&plot, &layer, Aesthetic::X) {
+            let bins = ((largest - start.unwrap_or(smallest)) / width).ceil();
+            if bins > crate::bins::MOST_BINS as f64 {
+                return Err(fail(
+                    Diagnostic::error(
+                        "Z0401",
+                        format!(
+                            "`binwidth: {}` gives more bins than a histogram may have, {}: `{}` runs from {} to {}",
+                            shown(width),
+                            count_of(crate::bins::MOST_BINS),
+                            of.variable,
+                            shown(smallest),
+                            shown(largest)
+                        ),
+                    )
+                    .in_file(ctx.script)
+                    .primary(ctx.span_of(HG_BINWIDTH), "too narrow a bin")
+                    .help(format!(
+                        "write a width of {} or more, or say how many bins with `bins:`",
+                        shown((largest - start.unwrap_or(smallest)) / crate::bins::MOST_BINS as f64)
+                    )),
+                ));
+            }
+        }
+    }
+    finish(
+        ctx,
+        &plot,
+        PlotLayer {
+            mark: Mark::Bars(Arrangement::Stack),
+            data,
+            alpha: 1.0,
+            size: None,
+            jitter: 0.0,
+            nudge: (0.0, 0.0),
+            // The bars of a histogram touch: each is as wide as its bin.
+            width: Some(1.0),
+            stream: None,
+            stat: Some(Stat::Bins {
+                rule,
+                binwidth,
+                start,
+                scale,
+            }),
+            computed,
+            mappings: Vec::new(),
+            constants: Vec::new(),
         },
     )
 }
@@ -1733,6 +1994,7 @@ pub fn tile(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             nudge: (0.0, 0.0),
             width: None,
             stream: None,
+            stat: None,
             computed,
             mappings,
             constants,
@@ -1864,6 +2126,7 @@ pub fn text(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             nudge,
             width: None,
             stream: None,
+            stat: None,
             computed,
             mappings,
             constants,
@@ -2206,6 +2469,7 @@ pub fn annotate(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
             nudge: (0.0, 0.0),
             width: None,
             stream: None,
+            stat: None,
             computed: Vec::new(),
             mappings: vec![
                 variable(Aesthetic::X, "x"),

@@ -1,0 +1,70 @@
+---
+source: packages/tier1/plot/tests/histograms.rs
+expression: "histogram(of(&series()), \"v\",\nbins(BinRule::Fd, None, None, BinScale::Count)).json().write()"
+---
+{
+  "zeff_scene": 1,
+  "layout": {
+    "rows": 1,
+    "columns": 1
+  },
+  "scales": [
+    {
+      "id": "x",
+      "kind": "linear",
+      "title": "v",
+      "limits": [-4.275, 106.275],
+      "breaks": [0, 20, 40, 60, 80, 100],
+      "labels": ["0", "20", "40", "60", "80", "100"],
+      "range": null
+    },
+    {
+      "id": "y",
+      "kind": "linear",
+      "title": "count",
+      "limits": [-1.75, 36.75],
+      "breaks": [0, 10, 20, 30],
+      "labels": ["0", "10", "20", "30"],
+      "range": null
+    }
+  ],
+  "guides": {
+    "axes": [
+      {
+        "scale": "x",
+        "position": "bottom"
+      },
+      {
+        "scale": "y",
+        "position": "left"
+      }
+    ],
+    "legends": []
+  },
+  "panels": [
+    {
+      "row": 1,
+      "column": 1,
+      "x": "x",
+      "y": "y",
+      "layers": [
+        {
+          "mark": "bars",
+          "x": [9.125, 25.875, 42.625, 59.375, 76.125, 92.875],
+          "y": [34, 33, 33, 32, 35, 33],
+          "color": null,
+          "size": 4.5,
+          "shape": "circle",
+          "alpha": 1,
+          "data": "d",
+          "rows": [],
+          "low": [0, 0, 0, 0, 0, 0],
+          "span": [16.75, 16.75, 16.75, 16.75, 16.75, 16.75],
+          "fill": null,
+          "position": "stack"
+        }
+      ]
+    }
+  ],
+  "notes": []
+}

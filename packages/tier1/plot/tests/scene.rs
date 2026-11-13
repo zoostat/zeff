@@ -79,6 +79,7 @@ fn points() -> PlotLayer {
         nudge: (0.0, 0.0),
         width: None,
         stream: None,
+        stat: None,
         computed: Vec::new(),
         mappings: Vec::new(),
         constants: Vec::new(),

@@ -2,8 +2,8 @@
 source: crates/zeff-engine/tests/script_tests.rs
 expression: all
 ---
-error[Z0103]: no function is called `histogram`
- --> zeff_samples.zeff:56:7
+error[Z0401]: `histogram` cannot be called on a Frame
+ --> zeff_samples.zeff:56:1
 error[Z0103]: no function is called `scatter`
  --> zeff_samples.zeff:57:7
 error[Z0103]: no function is called `coef_plot`

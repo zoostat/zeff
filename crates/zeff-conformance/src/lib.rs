@@ -1582,6 +1582,7 @@ fn plot_cases() -> Vec<Line> {
                 nudge: (0.0, 0.0),
                 width: None,
                 stream: Some(Stream::new(20_261_111, 2, 0)),
+                stat: None,
                 computed: Vec::new(),
                 mappings: Vec::new(),
                 constants: Vec::new(),
@@ -1636,6 +1637,7 @@ fn plot_cases() -> Vec<Line> {
                         nudge: (0.0, 0.0),
                         width: None,
                         stream: None,
+                        stat: None,
                         computed: Vec::new(),
                         mappings: Vec::new(),
                         constants: Vec::new(),
@@ -1672,6 +1674,7 @@ fn plot_cases() -> Vec<Line> {
                 nudge: (0.0, 0.0),
                 width: None,
                 stream: None,
+                stat: None,
                 computed: Vec::new(),
                 mappings: Vec::new(),
                 constants: Vec::new(),
@@ -1735,6 +1738,7 @@ fn plot_cases() -> Vec<Line> {
                 nudge: (0.0, 0.0),
                 width: None,
                 stream: None,
+                stat: None,
                 computed: Vec::new(),
                 mappings: Vec::new(),
                 constants: Vec::new(),
@@ -1795,6 +1799,7 @@ fn plot_cases() -> Vec<Line> {
                 nudge: (0.0, 0.0),
                 width: Some(0.25),
                 stream: None,
+                stat: None,
                 computed: Vec::new(),
                 mappings: vec![mapping(Aesthetic::Linetype, "female")],
                 constants: Vec::new(),
@@ -1859,6 +1864,7 @@ fn plot_cases() -> Vec<Line> {
                 nudge: (0.0, 0.0),
                 width: None,
                 stream: None,
+                stat: None,
                 computed: Vec::new(),
                 mappings: Vec::new(),
                 constants: Vec::new(),
@@ -2200,6 +2206,25 @@ fn plot_cases() -> Vec<Line> {
             .unwrap_or_default();
         fills.push(bytes(&format!("plot/free/{name}"), &data));
     }
+    // The histogram layer (step 28a): the hourly wages of 2015 in the bins of Freedman and
+    // Diaconis; by Sturges's rule as a density; in bins of 10 from zero, stacked by union
+    // membership; in thirty bins as percentages, a panel for each; what the script prints,
+    // the first figure in the three formats and the stack and the panels as figures.
+    let script = "let w = dataset(wages).where(year == 2015)\nlet p = w.plot(x: wage).histogram()\np\nw.plot(x: wage).histogram(bins: sturges, scale: density)\nlet q = w.plot(x: wage, fill: union).histogram(binwidth: 10, start: 0)\nq\nlet r = w.plot(x: wage).histogram(bins: 30, scale: percent).facet(by: union)\nr\nexport(p, \"histogram.svg\")\nexport(p, \"histogram.pdf\")\nexport(p, \"histogram.png\")\nexport(q, \"stacked.svg\")\nexport(r, \"panels.svg\")\n";
+    let counted = run_script(&fs, &project, "scripts/main.zeff", script);
+    fills.push(text("plot/histogram/stdout", &counted.output.stdout));
+    fills.push(text("plot/histogram/stderr", &counted.output.stderr));
+    for name in [
+        "histogram.svg",
+        "histogram.pdf",
+        "histogram.png",
+        "stacked.svg",
+        "panels.svg",
+    ] {
+        let data = zeff_engine::fs::FileSystem::read(&fs, Path::new(&format!("/g/output/{name}")))
+            .unwrap_or_default();
+        fills.push(bytes(&format!("plot/histogram/{name}"), &data));
+    }
     let mut cases = vec![
         text("plot/lines/stdout", &lined.output.stdout),
         text("plot/lines/stderr", &lined.output.stderr),
@@ -2267,6 +2292,7 @@ fn sample_drawings() -> Vec<(String, Result<zeff_plot::drawing::Drawing, String>
         nudge: (0.0, 0.0),
         width: None,
         stream: None,
+        stat: None,
         computed: Vec::new(),
         mappings: Vec::new(),
         constants: Vec::new(),
@@ -2411,6 +2437,7 @@ fn picture_figure(as_pdf: bool) -> Vec<u8> {
         nudge: (0.0, 0.0),
         width: None,
         stream: None,
+        stat: None,
         computed: Vec::new(),
         mappings: Vec::new(),
         constants: Vec::new(),

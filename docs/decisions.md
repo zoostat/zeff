@@ -3860,3 +3860,29 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 27e2; section 7.6 of the Language Reference ("Facets": "panels share scales unless told otherwise"); catalogue row 480.
 
+## 13 November 2026: `histogram` (release 0.7.0, step 28a), and step 28 split in four
+
+**The split.** Step 28 is four functions, each with its numbers checked against R: 28a `histogram`, 28b `density`, 28c `boxplot`, 28d `errorbars`. The grammar stands at 25 of 25 when the four are done.
+
+**A layer that computes.** A layer may now hold what it computes from its rows before it draws them (`PlotLayer.stat`); a histogram holds its rule, its width, its start and its scale (`Stat::Bins`). It is drawn as bars, by the mark `bars` and everything that draws it, so that nothing of the layout or of a writer changed; the scene builder counts the rows in bins where a layer of bars holds a `stat`. The bins themselves are a module of their own (`bins`).
+
+**The bins** (rulings where the text is silent, each the owner's to overturn). (a) They are of one width and begin at `start:`, which is the smallest value where the script says nothing, as Stata's `histogram` has them. R's `hist` moves the edges to round numbers (`pretty`), so that its bins are other bins even where their number is the same; the checklist's reference test, "`hist` on the same breaks", is met by giving `hist` these breaks. (b) With a number of bins, or a rule, the bins reach from the start to the largest value exactly; with `binwidth:` there are as many as reach it, and `bins:` is not read, as in ggplot2. (c) A bin holds its left edge and not its right, and the last holds both, as Stata's and as `hist(right = FALSE, include.lowest = TRUE)`. The end of the last bin is kept and not worked out again from the start and the width, so that the largest value is counted whatever the rounding: a property test found two values and one bin that lost the larger. (d) The three rules give the numbers of bins of `nclass.Sturges`, `nclass.scott` and `nclass.FD`, the last with R's rounding to five figures and its wider quantiles where the interquartile range is zero. The cube root is the engine's own power function. (e) Values that are all one value have one bin, one unit wide, round the value. (f) `start:` above the smallest value is refused, with the value: the rows below it would be in no bin. (g) A histogram has a thousand bins at most (`MOST_BINS`): a number or a width that asks for more is refused, and a rule that asks for more, as Freedman and Diaconis's does where one value lies far from all the others, is given a thousand with a note. Without a limit such a series asks for millions of bins, which the first run of the property test did.
+
+**The scale.** `count`, `density` (the count over the number of rows and the width), `fraction` and `percent`. The number of rows is that of the panel, over all its groups: where the plot fills by categories each bin has a bar for each, stacked, the first on top, and the stack is the histogram of all the rows, of area one under `density`. ggplot2 scales each group by itself, which makes a stack of area as many as there are groups. The axis of `y` is named by the scale.
+
+**What a histogram takes.** The variable the plot maps to `x`, which must be numbers; a plot that maps `y` is refused, for a histogram has its own. An axis of dates has no histogram yet: `binwidth:` would need a unit of time, which the usage line does not have. In a plot parted into panels the bins are those of all the rows of the layer, the same in every panel.
+
+**The printed plot** names the layer `histogram` and says its bins: "5 bins of 1.6 from 1".
+
+**Against R** (4.6.0). On five series (200 values, 57 with ties, forty equal values with two apart, a thousand spread evenly, ten equal) the three rules give `nclass.Sturges`, `nclass.scott` and `nclass.FD`; on the first, the counts and the densities are those of `hist` on the same breaks to thirteen places. For the help page's ten scores R gives five bins by Freedman and Diaconis, 1.6 wide from 1, as here.
+
+**Tests.** `packages/tier1/plot/src/bins.rs`: three unit tests (the three rules on the five series; the counts and densities of `hist`; a width, a start, an edge, values that are one value, no value, the limit, and the largest value in the last bin). `tests/histograms.rs`: four tests and one property (the layer against `hist`, with the axis named by the scale and a snapshot of the scene; a width, a start and rows that are not counted, with their notes; one value and no value; groups stacked and panels sharing their bins; and, whatever the rows and the bins, counts that sum to the rows, an area of one under `density`, fractions that sum to one and percentages to a hundred). `tests/printing.rs`: the printed plot in ten forms, an export in the three formats, and every message of `histogram` (sixteen). Three verified examples in the help page, which is complete and says what R, ggplot2 and Stata do by default. One conformance case (`plot/histogram`), which brings `zeff selftest` to 429 of 429.
+
+**The sample script.** The specification's sample writes `wages.histogram(lwage, bins: 40, by: female)`, the shorthand on a frame, which step 29 builds. Until then the two stored checks of that script say "`histogram` cannot be called on a Frame" where they said "no function is called `histogram`": the name is now a function, of a plot.
+
+**The specification.** The usage line of catalogue row 472 gains the options (logged in `docs/spec_changes.md`); the row stays `planned` until step 28 is complete.
+
+**Dependencies.** None added.
+
+**Reason.** The checklist's step 28a; section 7.6 of the Language Reference ("Statistical layers"); open decision #99, question 2; catalogue row 472.
+
