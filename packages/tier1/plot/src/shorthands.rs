@@ -18,15 +18,19 @@ use zeff_diagnostics::{Diagnostic, Span, count};
 
 /// One argument of a call of the grammar made for a shorthand: its value, and where the
 /// shorthand's own argument that gave it is written.
-type Given = (Option<Value>, Option<Span>);
+pub(crate) type Given = (Option<Value>, Option<Span>);
 
 /// Nothing given for an argument.
-const NONE: Given = (None, None);
+pub(crate) const NONE: Given = (None, None);
 
 /// A call of a function of the grammar on behalf of a shorthand: `given` are its arguments
 /// in the order of its parameters, each with the place of the shorthand's argument it comes
 /// from, so that a refusal points at what the script wrote.
-fn call(ctx: &mut CallContext<'_>, body: Body, given: Vec<Given>) -> Result<Value, Fail> {
+pub(crate) fn call(
+    ctx: &mut CallContext<'_>,
+    body: Body,
+    given: Vec<Given>,
+) -> Result<Value, Fail> {
     let (values, spans): (Vec<Option<Value>>, Vec<Option<Span>>) = given.into_iter().unzip();
     let own = std::mem::replace(&mut ctx.arg_spans, spans);
     let result = body(

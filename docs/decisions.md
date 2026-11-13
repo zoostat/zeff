@@ -4086,3 +4086,21 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 
 **Reason.** The checklist's step 30; open decisions #71 and #136.
 
+## 13 November 2026: `coef_plot` (release 0.7.0, step 30c)
+
+**The plot.** `fit.coef_plot()` builds a frame of the fit's own numbers, a row for each term but the intercept with `term`, `estimate`, `ci_lower` and `ci_upper` (what `estimates()` gives), and draws it with the functions of the grammar: `plot(x: term, y: estimate)`, `hline(at: 0)`, `errorbars(low: ci_lower, high: ci_upper, width: 0)`, `points()`, `coord(flip)`, and `labels(x: "")`. Section 7.6 has it "built from the fit's estimates with `points` and `errorbars`". It lives in `packages/tier1/plot/src/fits.rs`, which step 30d completes with `fit.plot()`.
+
+**How the intervals say what they are (decision #118, F11).** A layer of intervals may carry the statistic `Stat::Confidence { level }`: nothing is computed from its rows, and its ends are confidence intervals the engine computed, at that level. The scene then records `ci 0.95` (the level of the fit) where a script's `errorbars` records `given`, the printed plot shows it, and the caption reads "Bars: 95% confidence intervals" unless the script gives its own. The other routes were weighed and set aside: a new kind of metadata on the limits of `estimates()` would change the fixed list of section 4 of the Language Reference and the public profile of Zeff's files; an `interval:` option on `errorbars` would change a usage line under the freeze. With the layer told directly, nothing a script writes changes.
+
+**The layer of the function.** The catalogue planned `coef_plot` in Zeff. It is built in Rust, because the layer of the intervals must be told what they are and no Zeff body can tell it; the row's layer is Rust, with a note, logged. Engineering decision; named in the announcement of the step.
+
+**Rulings where the text is silent** (each the owner's to overturn). (a) The intercept is not drawn: it is on another scale than the slopes, and a figure with it shows little else; a fit of the intercept alone is refused (Z0401), `estimates()` giving it as a frame. (b) The terms stand in the order of the table, the first at the top, one to a line, each column of a category under its name. (c) The intervals are those of the fit: its level, its standard errors. The method takes no option; another level is another fit. (d) The bars have no caps, as the coefficient plots of Stata's `coefplot` and of `modelsummary` have none by default. (e) The line at zero is the dashed reference line of `hline`, under the intervals. (f) The frame of the plot bears the name of the fit, so the printed plot reads `plot · m · estimate against term`. (g) The receiver is any `Result`, as the estimator interface is; the result of a test is refused with its own message, since a test has no coefficients.
+
+**Tests.** `packages/tier2/regress/tests/coef_plot.rs`, with `plot` as a development dependency of `regress` (a lower tier): the plot held to its fit, the estimate and the two limits of every term exactly those the fit holds, each at the line of its term, the first term at the top, the intercept left out, the line at zero, the interval recorded and the caption, at the usual level, at 90%, with fixed effects and without an intercept, with a snapshot of the scene; and as a script writes it, three printed plots, the export in the three formats, the script's own caption taking the place of the engine's, and every message (four). One verified example in the help page, which is complete and states the convention of decision #120. The two stored checks of the sample script change: its `m3.coef_plot()` runs. The stored help page of `reg` gains `coef_plot` among the methods of its result. The conformance case of the result plots comes at step 30d.
+
+**The specification.** Catalogue row 228: layer Rust with its note, `implemented` (`docs/spec_changes.md`).
+
+**Dependencies.** None added from outside; `zeff-plot` becomes a development dependency of `zeff-regress`.
+
+**Reason.** The checklist's step 30c; section 7.6 of the Language Reference ("Result plots"); catalogue row 228; decisions #118 (F11) and #120.
+

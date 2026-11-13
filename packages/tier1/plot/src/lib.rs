@@ -19,6 +19,7 @@ pub mod colour;
 pub mod dates;
 pub mod drawing;
 pub mod figure;
+pub mod fits;
 pub mod font;
 pub mod grammar;
 pub mod json;
@@ -1182,6 +1183,23 @@ pub fn functions() -> Vec<Function> {
                 accuracy: None,
             },
             body: shorthands::heatmap,
+        },
+        Function {
+            spec: FunctionSpec {
+                name: "coef_plot",
+                package: "plot",
+                method: true,
+                params: vec![ParamSpec::required("fit", "Result")],
+                rest: None,
+                returns: "Plot",
+                diagnostics: vec![DiagnosticDecl::new(
+                    "Z0401",
+                    "the receiver is the result of a test, or no result; a fit of the intercept alone",
+                )],
+                help: include_str!("../help/coef_plot.md"),
+                accuracy: None,
+            },
+            body: fits::coef_plot,
         },
         Function {
             spec: FunctionSpec {

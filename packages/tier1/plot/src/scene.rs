@@ -362,12 +362,18 @@ impl Interval {
     }
 
     /// What a figure says of it under the panel, where the script gives no caption of its
-    /// own: nothing of an interval the script gave, whose kind the engine does not know.
-    pub fn caption(self) -> Option<String> {
+    /// own: nothing of an interval the script gave, whose kind the engine does not know;
+    /// of one the engine computed, what it is, as the band of a fitted line (`band`) or as
+    /// the bars of estimates.
+    pub fn caption(self, band: bool) -> Option<String> {
         match self {
             Interval::Given => None,
-            Interval::Confidence(level) => Some(format!(
+            Interval::Confidence(level) if band => Some(format!(
                 "Band: {}% confidence interval of the fitted line",
+                format_float(100.0 * level)
+            )),
+            Interval::Confidence(level) => Some(format!(
+                "Bars: {}% confidence intervals",
                 format_float(100.0 * level)
             )),
         }
@@ -4021,6 +4027,9 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
             whiskers,
             beyond,
             interval: match (layer.mark, layer.stat) {
+                (Mark::Errorbars, Some(Stat::Confidence { level })) => {
+                    Some(Interval::Confidence(level))
+                }
                 (Mark::Errorbars, _) => Some(Interval::Given),
                 (Mark::Ribbon, Some(Stat::Line { level })) => Some(Interval::Confidence(level)),
                 _ => None,
@@ -4229,7 +4238,7 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
                 .find_map(|layer| match layer.stat {
                     Some(Stat::Bins { scale, .. }) => Some(scale.name()),
                     Some(Stat::Density { .. }) => Some("density"),
-                    Some(Stat::Line { .. }) | None => None,
+                    Some(Stat::Line { .. } | Stat::Confidence { .. }) | None => None,
                 })
                 .unwrap_or("count")
                 .to_string(),
@@ -4520,7 +4529,11 @@ pub fn scene<'a>(plot: &'a Plot) -> Scene {
         .iter()
         .flat_map(|panel| &panel.layers)
         .filter(|layer| !layer.x.is_empty())
-        .find_map(|layer| layer.interval.and_then(Interval::caption));
+        .find_map(|layer| {
+            layer
+                .interval
+                .and_then(|interval| interval.caption(layer.mark.fills()))
+        });
     Scene {
         rows: panels.iter().map(|panel| panel.row).max().unwrap_or(1),
         columns: panels.iter().map(|panel| panel.column).max().unwrap_or(1),
@@ -5693,7 +5706,11 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
             settings
         } else if layer.mark == Mark::Errorbars {
             // A layer of intervals: what they are, the width of their caps, their groups.
-            let mut settings = format!("interval {GIVEN}, width {}", format_float(layer.width));
+            let mut settings = format!(
+                "interval {}, width {}",
+                layer.interval.unwrap_or(Interval::Given).name(),
+                format_float(layer.width)
+            );
             if let Some(mapping) = written.and_then(|l| l.mapping(Aesthetic::Group)) {
                 settings.push_str(&format!(", group by {}", mapping.variable));
             }
@@ -5771,7 +5788,7 @@ pub fn summary(plot: &Plot, scene: &Scene) -> Table {
                 Some(Stat::Density { .. }) => "density".to_string(),
                 Some(Stat::Line { .. }) if layer.mark == Mark::Ribbon => "fit band".to_string(),
                 Some(Stat::Line { .. }) => "fit line".to_string(),
-                None => layer.mark.name().to_string(),
+                Some(Stat::Confidence { .. }) | None => layer.mark.name().to_string(),
             },
             data,
             count(layer.x.len().max(layer.y.len()) as u64),

@@ -595,3 +595,7 @@ Step 30a of release 0.7.0 builds `fit.design()`. Open decision #71 (decided 6 No
 
 Step 30b of release 0.7.0. The note of the row of `vif` said that its layer is Rust because "the fitted design is not reachable through the result interface (open decision #71)". Since step 30a it is reachable, through `design()`. By open decision #136 (option A, taken on 13 November 2026 under the owner's standing instruction, his to overturn) the function stays in Rust at 0.7.0: a Zeff body can compute the factors from the design, and a test does, but it cannot print the lines under the table nor title it by the name of the fit, and it would pass over the data where the Rust function reads the Gram matrix the fit keeps. The note now says so. The usage, the release and the status of the row are as they were.
 
+## 13 November 2026 — zeff_functions.csv, row 228
+
+Step 30c of release 0.7.0 builds `fit.coef_plot()`. The row had its layer as Zeff. Decision #118, F11, adopted by the owner on 11 November 2026, has every layer that draws an interval record its kind and level in the scene and the caption state it; `errorbars` called from a script draws the two ends it is given and records `given`, and nothing a Zeff body can write tells it that the ends are a confidence interval at the level of the fit. The plot is therefore built in Rust, where the layer is told; the layer of the row is Rust, with a note saying why, and the row is `implemented`. The usage line is as it was.
+

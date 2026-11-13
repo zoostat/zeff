@@ -1,0 +1,41 @@
+---
+source: packages/tier2/regress/tests/coef_plot.rs
+expression: all
+---
+== of_a_test
+error[Z0401]: `coef_plot` draws the coefficients of a fitted model, and a test has none
+ --> scripts/main.zeff:2:1
+  |
+2 | d.t_test(y).coef_plot()
+  | ^^^^^^^^^^^ the result of a test
+  |
+  = help: a test prints its statistic and its p-value; fit a model with `reg` to plot its coefficients
+
+== of_a_frame
+error[Z0401]: `coef_plot` cannot be called on a Frame
+ --> scripts/main.zeff:2:1
+  |
+2 | d.coef_plot()
+  | ^ this is a Frame
+  |
+  = help: `coef_plot` takes a Result first; `x.coef_plot(...)` is `coef_plot(x, ...)`
+
+== of_the_intercept_alone
+warning[W1006]: 1 observation drives a coefficient: removing it moves an estimate by more than its standard error (row 4) (line 2)
+  = help: check the row's values; `influence()` lists leverage, Cook's distance and studentized residuals by row
+error[Z0401]: `coef_plot` draws the coefficients beside the intercept, and this fit has none
+ --> scripts/main.zeff:2:1
+  |
+2 | d.reg(y ~ 1).coef_plot()
+  | ^^^^^^^^^^^^ a fit of the intercept alone
+  |
+  = help: `estimates()` gives the intercept with its interval as a frame
+
+== with_an_argument
+error[Z0404]: `coef_plot` has no argument called `level`
+ --> scripts/main.zeff:2:24
+  |
+2 | d.reg(y ~ x).coef_plot(level: 0.9)
+  |                        ^^^^^ unknown argument
+  |
+  = help: usage: `fit.coef_plot()`

@@ -1942,6 +1942,7 @@ dependencies = [
  "zeff-dist",
  "zeff-kernels",
  "zeff-numeric",
+ "zeff-plot",
  "zeff-registry",
  "zeff-results",
  "zeff-testkit",

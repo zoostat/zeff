@@ -160,3 +160,13 @@ Step 29c was split in two. 29c1 `[engine]`: a function is known by its package, 
 
 **For the owner to decide.** Open decision #136, taken on the recommendation and his to overturn: it sets aside, for 0.7.0, the clause of #71 that returns `vif` to Zeff at step 30. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
 
+## 13 November 2026, release 0.7.0, step 30c (`coef_plot`)
+
+**Done.** `fit.coef_plot()` draws the estimates of a fitted model as points with their confidence intervals, a term on each line in the order of the table, with a line at zero. The numbers are the fit's own; the intervals are recorded in the scene as confidence intervals at the level of the fit, and the caption says "Bars: 95% confidence intervals". The sample script's `m3.coef_plot()` runs.
+
+**Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 463 of 463; CI is read job by job after the push.
+
+**Next.** Step 30d `[function]`: `fit.plot()`, and the conformance case of the result plots, which completes step 30.
+
+**For the owner to decide.** Nothing new waits for him. Taken on the recommendation at this step, his to overturn: `coef_plot` is built in Rust and not in Zeff, so that its intervals can say what they are; the intercept is not drawn; the bars have no caps. Open as before: #136, #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
+

@@ -1,0 +1,49 @@
+---
+source: packages/tier2/regress/tests/coef_plot.rs
+expression: "format!(\"{text}---\\n{}\", outcome.output.stderr)"
+---
+plot · m · estimate against term
+
+  axis   title      scale      limits                    breaks
+  x                 category   0.4 to 3.6                union, exper, educ
+  y      estimate   linear     -0.00506249 to 0.106312   0, 0.02, 0.04, 0.06, 0.08, 0.1
+
+  layer   mark        data   marks   settings
+      1   hline       m          1   at 0, width 0.5, style dashed
+      2   errorbars   m          3   low ci_lower, high ci_upper, interval ci 0.95, width 0
+      3   points      m          3   size 4.5, alpha 1
+
+caption: Bars: 95% confidence intervals
+coordinates: flipped, `x` up the side and `y` along the foot
+plot · m · estimate against term
+
+  axis   title      scale      limits                    breaks
+  x                 category   0.4 to 3.6                union, exper, educ
+  y      estimate   linear     -0.00506249 to 0.106312   0, 0.02, 0.04, 0.06, 0.08, 0.1
+
+  layer   mark        data   marks   settings
+      1   hline       m          1   at 0, width 0.5, style dashed
+      2   errorbars   m          3   low ci_lower, high ci_upper, interval ci 0.95, width 0
+      3   points      m          3   size 4.5, alpha 1
+
+title: Returns
+caption: Wages of 2010 to 2021
+coordinates: flipped, `x` up the side and `y` along the foot
+plot · estimate against term
+
+  axis   title      scale      limits
+  x                 category   0.4 to 12.6
+  y      estimate   linear     -0.0170839 to 0.358761
+
+  breaks
+  industry=Public administration, industry=Health, industry=Education, industry=Services, industry=Finance and 7 more
+  0, 0.1, 0.2, 0.3
+
+  layer   mark        data        marks   settings
+      1   hline       the frame       1   at 0, width 0.5, style dashed
+      2   errorbars   the frame      12   low ci_lower, high ci_upper, interval ci 0.99, width 0
+      3   points      the frame      12   size 4.5, alpha 1
+
+caption: Bars: 99% confidence intervals
+coordinates: flipped, `x` up the side and `y` along the foot
+---

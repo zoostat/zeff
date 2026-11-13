@@ -194,6 +194,11 @@ pub enum Stat {
     /// A fitted line: the least-squares line of `y` on `x`, drawn as a line by a layer of
     /// lines and as its confidence band at `level` by a layer of bands.
     Line { level: f64 },
+    /// Nothing is computed from the rows: the two ends a layer of intervals draws are those
+    /// of confidence intervals the engine computed, at `level`, as the plot of a fit's
+    /// coefficients has them. The scene records it and the figure says it (decision #118,
+    /// F11).
+    Confidence { level: f64 },
 }
 
 /// The kernel of a density estimate (`kernel:`), each scaled so that the bandwidth is its
