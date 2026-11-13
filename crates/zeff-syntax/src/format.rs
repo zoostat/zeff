@@ -714,6 +714,19 @@ impl<'a> Printer<'a> {
         self.open_block(block);
     }
 
+    /// The closing brace of a block written over several lines: on a line of its own. A line
+    /// may not end with the lone `.` of a formula (the parser refuses it), so after one the
+    /// brace stays on its line, where the script given had it.
+    fn close(&mut self, base: usize) {
+        if !self.fresh && self.out.ends_with('.') {
+            self.put(" }");
+            self.indent = base;
+        } else {
+            self.line(base);
+            self.put("}");
+        }
+    }
+
     /// A block over several lines, a statement to a line; an empty one stays `{}`.
     fn open_block(&mut self, block: &Block) {
         if block.statements.is_empty() && !self.commented(block.span.start, block.span.end) {
@@ -732,8 +745,7 @@ impl<'a> Printer<'a> {
         self.sequence(&things, inside, base + INDENT, false, |printer, at| {
             printer.statement(&block.statements[at]);
         });
-        self.line(base);
-        self.put("}");
+        self.close(base);
     }
 
     // ----- expressions on one line -----
@@ -1444,8 +1456,7 @@ impl<'a> Printer<'a> {
             }
             printer.put(",");
         });
-        self.line(base);
-        self.put("}");
+        self.close(base);
     }
 
     /// A model block: a line to a line, the operators aligned.
@@ -1515,8 +1526,7 @@ impl<'a> Printer<'a> {
                 }
             }
         });
-        self.line(base);
-        self.put("}");
+        self.close(base);
     }
 
     /// A graph: a line to a line.
@@ -1557,8 +1567,7 @@ impl<'a> Printer<'a> {
             let written = printer.dag_line(&lines[at]);
             printer.put(&written);
         });
-        self.line(base);
-        self.put("}");
+        self.close(base);
     }
 }
 

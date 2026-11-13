@@ -4169,3 +4169,17 @@ In `zeff run`, a `let` of the script's top level is freed after the last top-lev
 **The specification.** The row of `zeff fmt` in section 2.1 of the Engine and Project Specification, and the form of `zeff_samples.zeff` (`docs/spec_changes.md`); open decision #137 gains points 13 and 14.
 
 **Reason.** The checklist's step 31b; section 2.1 of the Engine and Project Specification; section 3.5 of the Language Reference; the Testing Handbook, section 2 (the routine on every change).
+
+## 13 November 2026: the fuzz target of the formatter (release 0.7.0, step 31c; step 31 complete)
+
+**The target.** `fuzz/fuzz_targets/format.rs`, the seventh target of the fuzzer. Any text goes to `zeff_syntax::format::format`. A text that does not parse is refused, which is the right answer. A text that parses must come back formatted, and the target then holds the two properties itself, apart from the formatter's own check: formatting the result again changes nothing, and the result parses to the tree of the text given. An answer of `Unformatted::Internal`, by which the formatter says it cannot vouch for its result, is a failure of the target, as a crash is: in a project that answer protects the script, but it is still a script the formatter should have been able to write.
+
+**The nightly job.** The `fuzz` job of `.github/workflows/scheduled.yml` seeds the target's corpus with the 24 scripts of the repository, as it does for the lexer, the parser and the checker, runs it for ten minutes with the dictionary of the language's words, and reports it in the note with the others. Seven targets at ten minutes each and the build no longer fit in 75 minutes, so the job's limit is 90.
+
+**What it found at once.** Run on this machine before the commit, the target found a fault in under three minutes. The parser refuses a line that ends with the lone `.` of a formula ("a line may not end with `.`"), yet accepts `. }`: a block whose last statement ends with that dot, the brace on the same line. The formatter moved the brace to a line of its own, and its own check then refused the result (in a project: an internal error, the script untouched). Now the closing brace of a block, a model or a graph stays on the line of such a dot. The case is a test of the syntax crate. After the correction the target ran 477,223 texts in seven minutes without a failure (coverage-guided, from the 24 scripts and the parser's corpus of earlier nights).
+
+**The lock file of the fuzz package.** `fuzz/Cargo.lock` had not been written since release 0.7.0 opened, and lacked what the engine has gained since: the package `plot`, and `regex`, `miniz_oxide` and their own dependencies, each at the version the workspace's lock file already pins and `docs/decisions.md` already records. Building the new target brought it up to date. No crate is added.
+
+**Step 31 is complete.** The formatter (31a), the command with `--check` and every script of the repository formatted (31b), the nightly fuzz target (31c). `zeff fmt --check` runs on every change in the `lint` job.
+
+**Reason.** The checklist's step 31c; the Testing Handbook, section 1 (fuzzing) and section 2.2 (the nightly jobs).

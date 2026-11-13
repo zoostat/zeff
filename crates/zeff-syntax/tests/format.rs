@@ -113,6 +113,28 @@ fn blocks_functions_models_and_graphs() {
     );
 }
 
+/// Found by the fuzz target of step 31c. The parser refuses a line that ends with the lone
+/// `.` of a formula, so a block whose last statement ends with one keeps its closing brace
+/// on that line: written on a line of its own, the script would no longer parse.
+#[test]
+fn a_line_never_ends_with_the_lone_dot_of_a_formula() {
+    assert_eq!(
+        formatted(
+            "fn f(n: Int) -> Int {\n    if n == 1 {\n        return 1 + n\n   . }\n    2\n}\n"
+        ),
+        "fn f(n: Int) -> Int {\n    if n == 1 {\n        return 1 + n\n        . }\n    2\n}\n"
+    );
+    assert_eq!(
+        formatted("let m = model {\n  y ~ x\n  z ~ . }\nlet b = [for i in xs {\n  i\n  . }]\n"),
+        "let m = model {\n    y ~ x\n    z ~ . }\nlet b = [for i in xs {\n    i\n    . }]\n"
+    );
+    // On one line there is nothing to keep.
+    assert_eq!(
+        formatted("let m = model { z ~ . }\n"),
+        "let m = model { z ~ . }\n"
+    );
+}
+
 #[test]
 fn a_script_that_does_not_parse_is_left_alone() {
     for text in [
