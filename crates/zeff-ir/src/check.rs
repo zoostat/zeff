@@ -5528,19 +5528,7 @@ impl Checker<'_> {
                 // is a scalar one of `core` (section 3.7, "Columns and scalars").
                 let fits: Vec<&&Registered> = homes
                     .iter()
-                    .filter(|f| {
-                        f.spec
-                            .params
-                            .first()
-                            .and_then(|p| Ty::parse(p.ty))
-                            .is_some_and(|t| {
-                                t.accepts(&r.ty)
-                                    || (f.spec.package == "core"
-                                        && !f.spec.method
-                                        && scalar_type(&t)
-                                        && matches!(&r.ty, Ty::Column(inner) if t.accepts(inner)))
-                            })
-                    })
+                    .filter(|f| takes_first(&f.spec, &r.ty))
                     .collect();
                 match fits.first() {
                     Some(f) => f,
@@ -7881,6 +7869,24 @@ fn variable_range(lhs: &ast::Expr, rhs: &ast::Expr) -> Option<String> {
 }
 
 /// A parameter type that names one row's value, so that a column may stand in for it.
+/// Whether a function may be written as a method of a value of this type, `x.f(a)` for
+/// `f(x, a)` (section 3.1, "Methods"): its first parameter takes the value, or takes each row
+/// of it when the function is a scalar one of `core` and the value a column (section 3.7,
+/// "Columns and scalars"). The checker chooses a function of a name by it, and an editor
+/// offers the functions after a dot by it.
+pub fn takes_first(spec: &zeff_registry::FunctionSpec, value: &Ty) -> bool {
+    spec.params
+        .first()
+        .and_then(|p| Ty::parse(p.ty))
+        .is_some_and(|t| {
+            t.accepts(value)
+                || (spec.package == "core"
+                    && !spec.method
+                    && scalar_type(&t)
+                    && matches!(value, Ty::Column(inner) if t.accepts(inner)))
+        })
+}
+
 fn scalar_type(ty: &Ty) -> bool {
     match ty {
         Ty::Bool | Ty::Int | Ty::Float | Ty::Str | Ty::Date | Ty::DateTime => true,

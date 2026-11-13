@@ -1,0 +1,295 @@
+---
+source: crates/zeff-engine/tests/completion.rs
+expression: all
+---
+> let d = import("data/small.csv")
+> d.|
+replace 1:2-1:2, 66 offered
+  Method (63): add aggregate anova append bar boxplot chi2_test correlation covariance density describe distinct drop drop_missing duplicates fisher_test head heatmap histogram iqr is kruskal_test ks_test kurtosis label line mad max mean median merge min n_cols n_rows panel plot proportion_test qq_plot quantile recode reg rename sample save scatter sd select shapiro_test skewness sort sum summary t_test tabulate tail to to_long to_wide update variables variance where wilcoxon_test
+  Function (3): attempt print type_of
+----
+> let d = import("data/small.csv")
+> let m = d.where(a > 1).|
+replace 1:23-1:23, 66 offered
+  Method (63): add aggregate anova append bar boxplot chi2_test correlation covariance density describe distinct drop drop_missing duplicates fisher_test head heatmap histogram iqr is kruskal_test ks_test kurtosis label line mad max mean median merge min n_cols n_rows panel plot proportion_test qq_plot quantile recode reg rename sample save scatter sd select shapiro_test skewness sort sum summary t_test tabulate tail to to_long to_wide update variables variance where wilcoxon_test
+  Function (3): attempt print type_of
+----
+> let d = import("data/small.csv")
+> d.me|
+replace 1:2-1:4, 3 offered
+  Method (3): mean median merge
+    mean | data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling) | Mean of a variable
+    median | data.median(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling) | Median
+    merge | data.merge(frame, on: Vars, join: left | inner | full = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>) | Join two frames on key variables
+----
+> let d = import("data/small.csv")
+> let m = d.mean(a)
+> m.|
+replace 2:2-2:2, 43 offered
+  Method (2): is to
+  Function (41): abs acos asin atan atan2 attempt beta ceil clamp coalesce cos div equal exp expm1 fill_missing floor format gamma inv_logit is_finite is_in is_missing log log10 log1p log2 log_gamma logit max min mod print round seq sign sin sqrt tan truncate type_of
+----
+> let s = "text"
+> s.|
+replace 1:2-1:2, 29 offered
+  Method (2): is to
+  Function (27): attempt coalesce contains date datetime ends_with equal error extract fill_missing import is_in is_missing len lower note pad print replace slice split starts_with table trim type_of upper warn
+----
+> let day = date("2024-03-01")
+> day.|
+replace 1:4-1:4, 23 offered
+  Method (2): is to
+  Function (21): add_days add_months attempt coalesce day days_between equal fill_missing format is_in is_missing max min month months_between print quarter type_of week weekday year
+----
+> let xs = [1.0, 2, 3]
+> xs.|
+replace 1:3-1:3, 19 offered
+  Method (2): is to
+  Function (17): append attempt equal filter first interact last len map n_missing p_adjust print reduce reversed sorted type_of unique
+----
+> let r = {n: 3, name: "x"}
+> r.|
+replace 1:2-1:2, 10 offered
+  Field (2): n name
+  Method (2): is to
+  Function (6): attempt equal iterate keys print type_of
+----
+> let r = {n: 3, name: "x"}
+> r.n|
+replace 1:2-1:3, 2 offered
+  Field (2): n name
+    n | Int | 
+    name | Str | 
+----
+> let d = import("data/small.csv")
+> d.add(k = a.|)
+replace 1:12-1:12, 71 offered
+  Method (2): is to
+  Function (69): abs acos all any asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce cos diff div error exp expm1 factorial fill_forward fill_missing floor gamma inv_logit is_finite is_in is_missing lag lead len levels log log10 log1p log2 log_gamma logit max min mod n_distinct n_missing note p_adjust print quantile_group rank round running_product running_sum seed seq sign sin sqrt standardize table tan truncate type_of warn winsorize
+----
+> let d = import("data/small.csv")
+> let col = d["b"]
+> col.|
+replace 2:4-2:4, 71 offered
+  Method (2): is to
+  Function (69): abs acos all any asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce cos diff div error exp expm1 factorial fill_forward fill_missing floor gamma inv_logit is_finite is_in is_missing lag lead len levels log log10 log1p log2 log_gamma logit max min mod n_distinct n_missing note p_adjust print quantile_group rank round running_product running_sum seed seq sign sin sqrt standardize table tan truncate type_of warn winsorize
+----
+> let d = import("data/small.csv")
+> let fit = d.reg(b ~ a)
+> fit.|
+replace 2:4-2:4, 27 offered
+  Method (24): ci coef coef_plot compare derive design estimates export fit_measures fitted influence is n_obs p_values plot predict r_squared residuals std_errors summary test to vcov vif
+  Function (3): attempt print type_of
+----
+> let d = import("data/small.csv")
+> let fit = d.reg(b ~ a)
+> fit.coef().|
+replace 2:11-2:11, 8 offered
+  Method (2): is to
+  Function (6): attempt equal keys len print type_of
+----
+> let d = import("data/small.csv")
+> d.t_test(b, mu: 3).|
+replace 1:19-1:19, 30 offered
+  Method (27): alternative ci coef coef_plot compare derive df effect_size estimates export fit_measures fitted h0 h1 is n_obs p_values plot posthoc predict residuals statistic std_errors summary test to vcov
+  Function (3): attempt print type_of
+----
+> let d = import("data/small.csv")
+> d.plot(x: a, y: b).|
+replace 1:19-1:19, 30 offered
+  Method (27): annotate area bars boxplot coord density errorbars export facet histogram hline is labels legend lines points ribbon rug scale scale_x scale_y step text theme tile to vline
+  Function (3): attempt print type_of
+----
+> let z = dist.normal(0, 1)
+> z.|
+replace 1:2-1:2, 9 offered
+  Method (6): cdf draw is pdf quantile to
+  Function (3): attempt print type_of
+----
+> nothing.|
+replace 0:8-0:8, 229 offered
+  Method (114): add aggregate alternative annotate anova append area bar bars boxplot cdf chi2_test ci coef coef_plot compare coord correlation covariance density derive describe design df distinct draw drop drop_missing duplicates effect_size errorbars estimates export facet fisher_test fit_measures fitted h0 h1 head heatmap histogram hline influence iqr is kruskal_test ks_test kurtosis label labels legend line lines mad max mean median merge min n_cols n_obs n_rows p_values panel pdf plot points posthoc predict proportion_test qq_plot quantile r_squared recode reg rename residuals ribbon rug sample save scale scale_x scale_y scatter sd select shapiro_test skewness sort statistic std_errors step sum summary t_test tabulate tail test text theme tile to to_long to_wide update variables variance vcov vif vline where wilcoxon_test
+  Function (115): abs acos add_days add_months all any append asin assert atan atan2 attempt base beta between bin category ceil center choose clamp coalesce contains cos dataset date datetime day days_between diff div ends_with equal error event exp expm1 extract factorial fill_forward fill_missing filter first floor format gamma import interact inv_logit is_finite is_in is_missing iterate join keys lag last lead len levels log log10 log1p log2 log_gamma logit lower map max min mod month months_between n_distinct n_missing name_of note p_adjust pad print quantile_group quarter rank reduce replace report reversed round row_mean row_sum running_product running_sum seed seq sign sin slice sorted split sqrt standardize starts_with table tan trim truncate type_of unique upper vars warn week weekday winsorize year
+----
+> let d = import("data/small.csv")
+> d
+>     .where(a > 1)
+>     .ag|
+replace 3:5-3:7, 1 offered
+  Method (1): aggregate
+    aggregate | data.aggregate(by: Vars, name = Bool | Int | Float | Str | Date | DateTime, ...) | One row per group with reducers such as mean(x), sd(x), n() or n_distinct(x)
+----
+> let d = import("data/small.csv")
+> print(d.mean(a), d.n_|
+replace 1:19-1:21, 2 offered
+  Method (2): n_cols n_rows
+    n_cols | data.n_cols() | Number of variables
+    n_rows | data.n_rows() | Number of rows
+----
+> let d = import("data/small.csv")
+> let xs = [d.n_rows(), d.n_c|
+replace 1:24-1:27, 1 offered
+  Method (1): n_cols
+    n_cols | data.n_cols() | Number of variables
+----
+> let d = import("data/small.csv")
+> d.me|an(a)
+replace 1:2-1:6, 3 offered
+  Method (3): mean median merge
+    mean | data.mean(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling) | Mean of a variable
+    median | data.median(var, by: Vars, weights: Var, weight_type: frequency | analytic | sampling = sampling) | Median
+    merge | data.merge(frame, on: Vars, join: left | inner | full = left, relation: one_to_one | many_to_one | one_to_many, suffixes: List<Str>) | Join two frames on key variables
+----
+> let d = import("data/small.csv")
+> let k = d.n_|
+> print(k)
+> let later = [1, 2
+replace 1:10-1:12, 2 offered
+  Method (2): n_cols n_rows
+    n_cols | data.n_cols() | Number of variables
+    n_rows | data.n_rows() | Number of rows
+----
+> let z = dist.|
+replace 0:13-0:13, 15 offered
+  Function (15): beta binomial chi2 exponential f gamma lognormal mixture negbinomial normal poisson t truncated tukey uniform
+----
+> let z = dist.no|
+replace 0:13-0:15, 1 offered
+  Function (1): normal
+    normal | dist.normal(mean: Float = 0, sd: Float = 1) | The normal distribution with a mean and a standard deviation
+----
+> use functions::clean
+> let d = import("data/small.csv")
+> d.sh|
+replace 2:2-2:4, 2 offered
+  Method (1): shapiro_test
+  Function (1): share_gone
+    shapiro_test | data.shapiro_test(var) | Shapiro–Wilk test of normality
+    share_gone | share_gone(data: Frame, var: Var) -> Float | The share of rows a variable is missing.
+----
+> use functions::clean
+> let x = 2.0
+> x.tw|
+replace 2:2-2:4, 1 offered
+  Function (1): twice
+    twice | twice(x: Float) -> Float | Twice a number.
+----
+> let x = 2.0
+> x.tw|
+replace 1:2-1:4, 0 offered
+----
+> let x = 1.|
+replace 0:10-0:10, 0 offered
+----
+> for i in 1..|
+replace 0:12-0:12, 0 offered
+----
+> let s = "d.|"
+replace 0:11-0:11, 0 offered
+----
+> // d.|
+replace 0:5-0:5, 0 offered
+----
+> let n = 12|
+replace 0:10-0:10, 0 offered
+----
+> let d = dataset(|
+replace 0:16-0:16, 3 offered
+  Dataset (3): firms sleep wages
+    firms | 400 rows, 4 variables | Synthetic firms of the wages panel: industry, size and founding date
+    sleep | 20 rows, 3 variables | Student's 1908 data on the extra sleep given by two drugs
+    wages | 18,412 rows, 11 variables | Synthetic hourly wages of 3,911 workers in 397 firms, 2010 to 2021
+----
+> let d = dataset(wa|)
+replace 0:16-0:18, 1 offered
+  Dataset (1): wages
+    wages | 18,412 rows, 11 variables | Synthetic hourly wages of 3,911 workers in 397 firms, 2010 to 2021
+----
+> use functions::clean
+> let y = tw|
+replace 1:8-1:10, 1 offered
+  Function (1): twice
+    twice | twice(x: Float) -> Float | Twice a number.
+----
+> let wages = dataset(wages)
+> let wide = 3
+> for i in 1..3 {
+>     let within = i
+>     print(w|)
+> }
+replace 4:10-4:11, 9 offered
+  Method (2): where wilcoxon_test
+  Function (4): warn week weekday winsorize
+  Binding (3): wages wide within
+----
+> let wide = 3
+> for index in 1..3 {
+>     let inner = index
+> }
+> print(in|)
+replace 4:6-4:8, 3 offered
+  Method (1): influence
+  Function (2): interact inv_logit
+    influence | fit.influence() | Leverage, Cook's distance and studentized residuals by observation
+    interact | interact(vars, order: Int = 2) | Every interaction of some variables up to an order, inside a formula
+    inv_logit | inv_logit(x) | Probability from log odds
+----
+> let total = 3
+> let total = "three"
+> print(tota|)
+replace 2:6-2:10, 1 offered
+  Binding (1): total
+    total | Str | 
+----
+> let alone = 1
+> fn local(alpha: Float, also: Int) -> Float {
+>     let always = alpha
+>     al|
+> }
+replace 3:4-3:6, 5 offered
+  Method (1): alternative
+  Function (1): all
+  Binding (3): alpha also always
+    alpha | Float | 
+    also | Int | 
+    always | Float | 
+    all | all(list) | True if every item is true
+    alternative | t.alternative() | The alternative a test was computed for
+----
+> let top = 1
+> let f = fn(tick) tick + t|
+replace 1:24-1:25, 17 offered
+  Method (10): t_test tabulate tail test text theme tile to to_long to_wide
+  Function (6): table tan today trim truncate type_of
+  Binding (1): top
+----
+in /work/demo/functions/clean.zeff
+> /// T.
+> fn share_gone(data: Frame, var: Var) -> Float {
+>     let n = data.n_|
+>     1.0
+> }
+replace 2:17-2:19, 2 offered
+  Method (2): n_cols n_rows
+    n_cols | data.n_cols() | Number of variables
+    n_rows | data.n_rows() | Number of rows
+----
+in /work/demo/functions/clean.zeff
+> /// T.
+> fn share_gone(data: Frame, var: Var) -> Float {
+>     let n = data.n_rows()
+>     d|
+> }
+replace 3:4-3:5, 34 offered
+  Method (10): density derive describe design df distinct draw drop drop_missing duplicates
+  Function (23): dataset datasets date datetime day days_between diff dist.beta dist.binomial dist.chi2 dist.exponential dist.f dist.gamma dist.lognormal dist.mixture dist.negbinomial dist.normal dist.poisson dist.t dist.truncated dist.tukey dist.uniform div
+  Binding (1): data
+----
+in /elsewhere/try.zeff
+> let d = frame(x = [1.0, 2])
+> d.n_|
+replace 1:2-1:4, 2 offered
+  Method (2): n_cols n_rows
+    n_cols | data.n_cols() | Number of variables
+    n_rows | data.n_rows() | Number of rows
+----

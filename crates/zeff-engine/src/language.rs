@@ -16,6 +16,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 use zeff_diagnostics::{Diagnostic, Severity, Span};
 
+pub mod complete;
+
+pub use complete::{Completion, CompletionKind, Completions, completions};
+
 /// A place in a document as the Language Server Protocol counts it: the line from 0, and the
 /// column in UTF-16 code units from 0 (a letter outside the basic plane counts two).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -187,9 +191,9 @@ impl Documents {
 
 /// The files as the editor sees them: those on disk, with each open document in place of its
 /// saved text, so that a script is checked against the module beside it as it is being typed.
-struct Seen<'a> {
-    disk: &'a dyn FileSystem,
-    open: &'a Documents,
+pub(crate) struct Seen<'a> {
+    pub(crate) disk: &'a dyn FileSystem,
+    pub(crate) open: &'a Documents,
 }
 
 impl FileSystem for Seen<'_> {
@@ -289,28 +293,73 @@ pub fn diagnostics(disk: &dyn FileSystem, open: &Documents, path: &Path) -> Vec<
     let Ok(text) = seen.read_to_string(path) else {
         return Vec::new();
     };
-    let Ok(registry) = crate::registry::registry() else {
+    let Some(check) = check_document(&seen, path, &text) else {
         return Vec::new();
     };
+    let mut found = of_file(check.checked.diagnostics.iter(), &check.name, &check.script);
+    if check.alone {
+        // Nothing is known of the files such a script reads, and nothing is said of them: the
+        // note that a file "does not exist yet" would be of the project in memory, not of the
+        // script.
+        found.retain(|diagnostic| !about_a_file(&text, diagnostic));
+    }
+    let mut findings: Vec<Finding> = found
+        .iter()
+        .map(|diagnostic| finding(&text, diagnostic))
+        .collect();
+    findings.sort_by(|a, b| a.range.cmp(&b.range).then(a.code.cmp(&b.code)));
+    findings
+}
+
+/// The check a document gets, and how the document is named in it.
+pub(crate) struct Check {
+    pub checked: zeff_ir::Checked,
+    /// The document in the check: its path from the project's folder, with `/` between the
+    /// parts.
+    pub name: String,
+    /// The script the check ran on: the document, or the empty one that stands in for a
+    /// module's.
+    pub script: String,
+    /// Whether the document was checked alone, outside any project.
+    pub alone: bool,
+}
+
+impl Check {
+    /// Whether the document is the script of the check, and not a module.
+    pub fn of_script(&self) -> bool {
+        self.name == self.script
+    }
+}
+
+/// Check a document whose text, as the files are seen, is `text`: a script in its project, a
+/// module with an empty script standing in, a file outside a project alone in a project of
+/// its own in memory. `None` where no check can be made at all.
+pub(crate) fn check_document(seen: &Seen<'_>, path: &Path, text: &str) -> Option<Check> {
+    let registry = crate::registry::registry().ok()?;
     let folder = path.parent().unwrap_or(Path::new("/"));
-    let found = match Project::open(&seen, folder) {
+    match Project::open(seen, folder) {
         Ok(project) => {
-            // The document by its path from the project's folder, with `/` between the parts.
             let name = path
                 .strip_prefix(&project.root)
                 .unwrap_or(path)
                 .to_string_lossy()
                 .replace('\\', "/");
-            if name.starts_with("functions/") {
-                // A module is checked with the project's modules, as any script has them; no
-                // script is needed for that, so an empty one stands in.
-                let checked =
-                    crate::run::check_in_project(&seen, &project, NO_SCRIPT, "", registry);
-                of_file(checked.checked.diagnostics.iter(), &name, NO_SCRIPT)
+            // A module is checked with the project's modules, as any script has them; no
+            // script is needed for that, so an empty one stands in.
+            let module = name.starts_with("functions/");
+            let (script, script_text) = if module {
+                (NO_SCRIPT.to_string(), "")
             } else {
-                let checked = crate::run::check_in_project(&seen, &project, &name, &text, registry);
-                of_file(checked.checked.diagnostics.iter(), &name, &name)
-            }
+                (name.clone(), text)
+            };
+            let checked =
+                crate::run::check_in_project(seen, &project, &script, script_text, registry);
+            Some(Check {
+                checked: checked.checked,
+                name,
+                script,
+                alone: false,
+            })
         }
         Err(_) => {
             // Outside a project, or in one whose `zeff.toml` cannot be read: the file alone,
@@ -328,27 +377,16 @@ pub fn diagnostics(disk: &dyn FileSystem, open: &Documents, path: &Path) -> Vec<
                 path.file_name()
                     .map_or("script.zeff".into(), |n| n.to_string_lossy())
             );
-            match Project::open(&alone, Path::new("/alone")) {
-                Ok(project) => {
-                    let checked =
-                        crate::run::check_in_project(&alone, &project, &name, &text, registry);
-                    let mut found = of_file(checked.checked.diagnostics.iter(), &name, &name);
-                    // Nothing is known of the files such a script reads, and nothing is said
-                    // of them: the note that a file "does not exist yet" would be of the
-                    // project in memory, not of the script.
-                    found.retain(|diagnostic| !about_a_file(&text, diagnostic));
-                    found
-                }
-                Err(_) => Vec::new(),
-            }
+            let project = Project::open(&alone, Path::new("/alone")).ok()?;
+            let checked = crate::run::check_in_project(&alone, &project, &name, text, registry);
+            Some(Check {
+                checked: checked.checked,
+                script: name.clone(),
+                name,
+                alone: true,
+            })
         }
-    };
-    let mut findings: Vec<Finding> = found
-        .iter()
-        .map(|diagnostic| finding(&text, diagnostic))
-        .collect();
-    findings.sort_by(|a, b| a.range.cmp(&b.range).then(a.code.cmp(&b.code)));
-    findings
+    }
 }
 
 /// The diagnostics that are of one file, among those of a check. One that names no file is of

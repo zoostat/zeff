@@ -4550,3 +4550,29 @@ error[Z0001]: no rows to take the mean of
 **The order.** The services first, in the engine, where Zemp in the browser calls them directly, as at step 34; the protocol last. The variables come after the two kinds of completion that need no schema, and the counts and labels after the variables, because they extend what a run records.
 
 **Reason.** The standing instructions: a step that turns out too large is split in the checklist, not pushed through.
+
+## 13 November 2026: completion after a dot and at the start of a word (release 0.7.0, step 35a)
+
+**What was built.** `zeff_engine::language::completions`: for a place in a document, the word being typed there and what may stand in its place. It is a function of the engine, as the diagnostics of step 34a are; the protocol comes at step 35f.
+
+**After a dot: one rule, the checker's.** Section 3.1 of the Language Reference has `x.f(a)` mean `f(x, a)` for every function. So what may follow a dot after a value is every function whose first parameter takes a value of that type, and a function of a number after a column of numbers (section 3.7). The checker already chose a function of a name by this rule; the rule now has one home (`zeff_ir::takes_first`), which the checker and the completion both call, so the two cannot drift apart. A test holds them together: everything offered after a frame, a number, a text, a list, a fit, a plot and a date is written there and checked, and none is refused as unknown or as not taking the value. After a frame 66 names are offered, after a fit 27, after a plot 30, after a text 29.
+
+**Order.** The fields of a record first; then the functions registered in the method form (`data.mean(var)`), which are the ones a reader of the catalogue expects after a dot; then the others (`print`, `type_of`, the project's own); each group by the letters. Each carries its usage line and the summary of its help page; a project's function carries its signature and the first line of its `///` page.
+
+**How the value before the dot is typed.** By the checker, on the document as typed with the unfinished word set aside. Where the rest of the document then parses, it is checked whole; where it does not (a bracket not yet closed, a statement half typed further down), the document is cut at the dot and the brackets left open are closed, which is enough because nothing after a place can change the type of what stands before it. The type is that of the widest expression ending at the dot that a dot may follow. A value the checker cannot type is offered every function that takes a first argument.
+
+**A namespace.** After `dist.`, where no value of that name is meant, the functions of the namespace are offered by their short names (`normal`, `binomial`).
+
+**At the start of a word.** The names bound in the document that are in reach, the nearest first of two of one name, with their types; then the project's functions the document may call by their short names (its own and the public ones of the modules it brings in with `use`); then the engine's functions. Inside `dataset(`, the shipped datasets with their sizes. Reach follows section 3.7: a name is in reach after it is bound, inside every block, loop and function that holds it; a function written with a name sees only its parameters and its own bindings; a function literal also sees what is bound where it is written.
+
+**Where nothing is offered.** Inside a text between quotes, inside a comment, after the dot of a number and in a range (`1..`), and while a number is being typed.
+
+**What is offered is cut to what is typed.** A completion is offered when its name begins with the letters before the cursor, capitals and small letters told apart; the letters after the cursor are replaced with them. An editor filters further as more is typed.
+
+**A walk over the checked program.** `zeff_ir::walk` tells of every expression of a file with its type and place, of the stretches of text that bound names, and of the names bound; hover (step 36) will use the same walk.
+
+**Left for the next parts.** Inside a call, the argument names and a fixed list's words (35b); the variables of a frame (35c), which is also where a bare word inside a frame's method will be offered the frame's variables before anything else.
+
+**Tests.** Snapshot: a corpus of 43 cursor places (a frame, a frame after a step, a number, a text, a date, a list, a record and its fields, a column inside a frame's method and bound, a fit, a table, a test, a plot, a distribution, a value of unknown type; a chain broken over lines; brackets not yet closed; a word with letters after the cursor; a broken statement further down; a namespace; the project's functions with and without `use`; the places with no completion; the datasets; names in reach in a loop, after it, shadowed, in a function, in a function literal; a module; a file outside a project). Unit: the methods of a frame and no others, their order and usage lines; a column and the functions of its values; what is offered is accepted by the checker; the word replaced, in UTF-16; no completion and unreadable documents; the text in the editor, not the file, is what is completed.
+
+**Reason.** The checklist's step 35a; Engine and Project Specification, section 12; Language Reference, sections 3.1 and 3.7.
