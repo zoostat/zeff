@@ -345,3 +345,40 @@ fn a_long_loop_tells_about_a_hundred_of_its_passes_and_is_cancelled_at_any() {
         out.output.stderr
     );
 }
+
+#[test]
+fn a_loop_over_a_long_range_is_cancelled_before_its_first_pass() {
+    // A range is walked and not listed (step 38g), so a loop of a hundred million passes is
+    // reached at once, tells its length, and is cancelled before any pass.
+    let script = "print(\"before\")\nfor i in 1..100000000 {\n    print(i)\n}\n";
+    let (out, _, _) = watched(script, false, |event| {
+        matches!(event, Event::Started { statement: 2, .. })
+    });
+    assert_eq!(out.exit_code, 1);
+    assert_eq!(out.output.stdout, "before\n");
+    assert!(
+        out.output
+            .stderr
+            .starts_with("error[Z0705]: the run was cancelled before pass 1 of this loop\n"),
+        "{}",
+        out.output.stderr
+    );
+    // Cancelled at its first pass, which tells how many there were to run, it has run one.
+    let (out, seen, _) = watched(script, false, |event| {
+        matches!(event, Event::Pass { pass: 1, .. })
+    });
+    assert_eq!(out.exit_code, 1);
+    assert_eq!(out.output.stdout, "before\n1\n");
+    assert!(
+        out.output
+            .stderr
+            .starts_with("error[Z0705]: the run was cancelled before pass 2 of this loop\n"),
+        "{}",
+        out.output.stderr
+    );
+    assert!(seen.contains(&Event::Pass {
+        pass: 1,
+        of: Some(100_000_000),
+        line: 2
+    }));
+}

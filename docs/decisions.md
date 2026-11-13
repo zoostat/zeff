@@ -4864,3 +4864,17 @@ error[Z0001]: no rows to take the mean of
 
 **Reason.** The checklist's step 38c; open decision #140; Language Reference, sections 3.7, 5.3 and 6.
 
+## 14 November 2026: a loop over a range walks it (release 0.7.0, step 38g)
+
+**The fault.** `for i in a..b` and `[for i in a..b { ... }]` built the list of every item before the first pass: 184 bytes an item, 1.8 GB for ten million passes, whatever the body did, and no cancelling until the list stood.
+
+**The choice.** Where the thing a loop runs over is written as a range, the interpreter evaluates the two ends once, as before (Z0207 where one is `NA`), and takes the next number at each pass. Nothing is listed. A range used as a value (`let r = 1..5`, `map(1..5, f)`) is still a list, as section 3.7 of the Language Reference has it, and a loop over such a held list is unchanged. The passes, the loop variable, `break`, `continue`, `return` and the count of passes that keys the random draws are the same, so every result and every draw is the same bit for bit; the samples and the conformance suite are the proof, with a test that sets a walked range against the same range held as a list. The loop tells its length as before (`pass 1 of 100000000`); a range longer than the machine counts tells its passes without a total.
+
+**The memory budget, rule 2 (open decision #143).** The rule counted the items of the loop, and as many again for a list built by it. It now counts one item for the loop (184 bytes, said in the message when a loop is refused for what its body reads) and, for a list built by the loop, three times its values. Three, and not one, because a list that grows by a value at a pass doubles its room when it is full and for a moment holds the old room beside the new: at most three times what it ends with. The earlier rule's "as many again" did not cover that moment; an estimate leans high. The message of Z0704 for such a list says so in words.
+
+**Measured** on the development machine, a debug build: `for i in 1..3000000 { ... }` holds 24 MB at its peak (the items alone were 552 MB before) and takes 2.1 s; a loop of a hundred million passes that leaves at its third pass ends at once under a budget of 64 kB.
+
+**Tests.** Unit: eight loop bodies (plain, a list built, ends below zero, one item, none, the jumps, a loop inside a loop, draws), each over a range written and over the same range held, equal output; computed ends; an `NA` end; a `return` out of a loop of a thousand million passes. Budget: a hundred million passes under 64 kB; a million passes run to the end under 1 MB; a list of a million values refused with its estimate (snapshot); a loop refused for the frames it reads names its one item. Control: a loop of a hundred million passes cancelled before its first pass, and after its first.
+
+**Reason.** The checklist's step 38g; the entry of `docs/known_issues.md`, now under "Resolved at 0.7.0".
+

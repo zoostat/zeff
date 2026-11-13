@@ -2885,6 +2885,8 @@ Raised on 13 November 2026 at step 33c of release 0.7.0, where the memory budget
 
 **The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. The rules are listed in `docs/decisions.md` when they are built, with what each was checked against.
 
+**Rule 2 amended (14 November 2026, step 38g of release 0.7.0).** A loop over a range no longer lists its items, so the rule counts one item for the loop; a list built by such a loop, `[for i in a..b { ... }]`, is counted at three times its values, which is the most a list holds while it grows by doubling. Recorded in `docs/decisions.md`.
+
 **Built (13 November 2026, step 33c).** Three rules, in `crates/zeff-engine/src/budget.rs`: a file imported counts five times its size on disk (an upper bound that the shipped `wages.csv` comes within a tenth of); a loop over a range written out counts the list of its items; a statement that may build a frame, a list or a result from the frames it reads counts those frames once more. What the run holds is counted with each shared column once. What no rule covers yet is listed in `docs/decisions.md` under the same date.
 
 ### 144. Reducing a file larger than memory before it is loaded

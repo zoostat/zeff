@@ -156,31 +156,60 @@ fn frames_that_share_their_columns_are_counted_once() {
 }
 
 #[test]
-fn a_loop_over_a_range_counts_the_list_of_its_items() {
-    // Rule 2: a million items, and for a list built by the loop as many again.
+fn a_loop_over_a_range_holds_one_item_and_a_list_it_builds_is_counted() {
+    // Rule 2 since step 38g: the range is walked, so a loop of a hundred million passes is
+    // within a budget of 64 kB (listed first, its items would be 18.4 GB), and it begins at
+    // once: this one leaves at its third pass.
     let out = run(
-        "for i in 1..1000000 {\n    let j = i\n}\n",
+        "for i in 1..100000000 {\n    if i == 3 {\n        break\n    }\n    print(i)\n}\n",
+        Some(64_000),
+        None,
+    );
+    assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
+    assert_eq!(out.output.stdout, "1\n2\n");
+    // A million passes run to the end within one megabyte.
+    let out = run(
+        "for i in 1..1000000 {\n    let j = i\n}\nprint(\"done\")\n",
         Some(1_000_000),
         None,
     );
-    assert_eq!(out.exit_code, 1);
-    insta::assert_snapshot!("a_loop_over_the_budget", out.output.stderr);
+    assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
+    assert_eq!(out.output.stdout, "done\n");
+    // A list built by the loop holds a value for each pass, and is counted with the room a
+    // growing list takes.
     let out = run(
         "let squares = [for i in 1..1000000 { i * i }]\n",
         Some(1_000_000),
         None,
     );
     assert_eq!(out.exit_code, 1);
+    insta::assert_snapshot!("a_loop_over_the_budget", out.output.stderr);
+    // The same list fits a budget above the estimate, and a short one any budget worth the
+    // name.
+    let out = run(
+        "let squares = [for i in 1..1000 { i * i }]\nprint(len(squares))\nprint(squares[1000])\n",
+        Some(1_000_000),
+        None,
+    );
+    assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
+    assert_eq!(out.output.stdout, "1000\n1000000\n");
+    let out = run("for i in 1..10 {\n    print(i)\n}\n", Some(64_000), None);
+    assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
+    // A loop that reads frames is still judged by rule 3, and its message counts the loop's
+    // one item.
+    let out = run(
+        "let d = import(\"data/one.csv\")\nlet e = d.add(y = x * 2, z = x * 3)\nfor i in 1..3 {\n    print(e.add(w = y * i).n_rows())\n}\n",
+        Some(400_000),
+        None,
+    );
+    assert_eq!(out.exit_code, 1, "{}", out.output.stdout);
     assert!(
         out.output
             .stderr
-            .contains("for the 1000000 items of its loop"),
+            .contains("184 B for the one item its loop holds at a time"),
         "{}",
         out.output.stderr
     );
-    // A short loop is within any budget worth the name.
-    let out = run("for i in 1..10 {\n    print(i)\n}\n", Some(64_000), None);
-    assert_eq!(out.exit_code, 0, "{}", out.output.stderr);
 }
 
 #[test]

@@ -85,12 +85,6 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## As of 0.5.0
 
-- **A loop over a range holds its items in memory before its first pass**, at 184 bytes each:
-  `for i in 1..1000000` holds 184 MB, and ten million passes 1.8 GB, whatever the body does. A
-  list built by `[for ...]` holds as much again. The results are right; the cost is memory, and
-  a run cannot be cancelled until the list exists. Under a memory budget such a loop is refused
-  with Z0704 and its estimate. (Since 0.5.0; found on 13 November 2026 at step 33c of 0.7.0;
-  put right at step 38g of 0.7.0, where a range is walked and not listed.)
 - **The constructs the grammar has but this release does not run** are a `model { }` block
   (1.3), a `dag { }` block (0.10.0), a label written with `as` (1.3) and `use` of a third-party
   package (1.11); each is refused with Z0304, whose explained page lists them. Everything else of
@@ -282,6 +276,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   one of the three functions; such a run printed the warning or the note. Corrected at step
   32d of 0.7.0: on every other frame the three give the same bits as before. `iqr`, `center`,
   `standardize`, `winsorize` and `quantile_group` were not affected.
+- A loop over a range walks it: `for i in a..b` and `[for i in a..b { ... }]` take the next
+  number at each pass and hold one item (listed at 0.5.0 as holding every item before the first
+  pass, 184 bytes each, 1.8 GB for ten million passes). A loop of three million passes now runs
+  in 24 MB; it begins at once and can be cancelled before its first pass; the results and the
+  draws of every pass are the same. Under a memory budget such a loop counts one item, and a
+  list built by one counts its values with the room a growing list takes. Since step 38g.
 - `iqr`, `mad`, `skewness` and `kurtosis` take a frame that has a variable called `var` or
   `type` (listed at 0.6.0 as refused with Z0106), and a function of a project gives the same
   result whatever the variables of the frame it is given are called (listed as depending on

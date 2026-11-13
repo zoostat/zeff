@@ -59,9 +59,15 @@ pub fn size_text(bytes: u64) -> String {
 /// text, makes 3.4 MB of columns, so its peak is 4.9 times the file.
 pub const IMPORT_FACTOR: u64 = 5;
 
-/// Rule 2. A loop over `a..b` builds the list of its items before its first pass, and a list
-/// built by a loop holds as many values again.
+/// Rule 2. A loop over `a..b` walks the range and holds one item at a time (since step 38g of
+/// 0.7.0; until then it listed its items before its first pass). A list built by such a loop,
+/// `[for i in a..b { ... }]`, holds a value for each pass.
 pub const BYTES_OF_AN_ITEM: u64 = std::mem::size_of::<zeff_core::value::Value>() as u64;
+
+/// A list that grows by a value at a pass doubles its room when it is full, and for a moment
+/// holds the old room beside the new: at most three times the values it ends with. The rule
+/// counts all three, since an estimate leans high.
+pub const LIST_GROWTH: u64 = 3;
 
 /// The calls of a statement that can be seen without running it: the statement's own call,
 /// and the calls among the arguments of a call, to any depth (a chain of methods, a call
@@ -106,7 +112,7 @@ pub fn imported(statement: &Statement) -> Vec<&str> {
         .collect()
 }
 
-/// The items of the loop a statement is, or builds its list by, where both ends of the range
+/// The passes of the loop a statement is, or builds its list by, where both ends of the range
 /// are written as numbers: how many, and whether a list of as many values is built.
 pub fn looped(statement: &Statement) -> Option<(u64, bool)> {
     let range = |iter: &Expr| -> Option<u64> {

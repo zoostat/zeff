@@ -291,7 +291,7 @@ impl<'a> Interpreter<'a> {
     /// the statement may add by the rules of `crate::budget` (open decision #143). `None`
     /// where the estimate is within the budget.
     fn over_budget(&self, statement: &Statement, span: Span, budget: u64) -> Option<Fail> {
-        use crate::budget::{BYTES_OF_AN_ITEM, IMPORT_FACTOR, size_text};
+        use crate::budget::{BYTES_OF_AN_ITEM, IMPORT_FACTOR, LIST_GROWTH, size_text};
         let held = self.held();
         let mut parts: Vec<String> = Vec::new();
         // What the reader of the message can do about each part, said once each.
@@ -310,16 +310,29 @@ impl<'a> Interpreter<'a> {
                 ways.push("read fewer columns with `columns:`");
             }
         }
-        // Rule 2: a loop over a range written out, whose list of items is built first.
-        if let Some((items, collected)) = crate::budget::looped(statement) {
-            let lists = if collected { 2 } else { 1 };
-            let bytes = items.saturating_mul(BYTES_OF_AN_ITEM).saturating_mul(lists);
-            step = step.saturating_add(bytes);
-            parts.push(format!(
-                "{} for the {items} items of its loop, which are listed before its first pass",
-                size_text(bytes)
-            ));
-            ways.push("loop over a shorter range");
+        // Rule 2: a loop over a range written out. The range is walked, so the loop holds one
+        // item; a list built by the loop holds a value for each pass, and while it grows, the
+        // room of a growing list.
+        match crate::budget::looped(statement) {
+            Some((items, true)) => {
+                let bytes = items
+                    .saturating_mul(BYTES_OF_AN_ITEM)
+                    .saturating_mul(LIST_GROWTH);
+                step = step.saturating_add(bytes);
+                parts.push(format!(
+                    "{} for the list its loop builds: {items} values, and up to twice as much again while the list grows",
+                    size_text(bytes)
+                ));
+                ways.push("loop over a shorter range");
+            }
+            Some((_, false)) => {
+                step = step.saturating_add(BYTES_OF_AN_ITEM);
+                parts.push(format!(
+                    "{} for the one item its loop holds at a time",
+                    size_text(BYTES_OF_AN_ITEM)
+                ));
+            }
+            None => {}
         }
         // Rule 3: the frames the statement reads, once more, which is what a statement that
         // builds a frame, a list or a result from them needs at most while both stand. A
@@ -913,6 +926,30 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    /// The two ends of a range `a..b` (Z0207 where one is `NA`).
+    fn range_ends(
+        &mut self,
+        range: &Expr,
+        start: &Expr,
+        end: &Expr,
+        printed: &mut String,
+        messages: &mut Vec<Diagnostic>,
+    ) -> Result<(i64, i64), Fail> {
+        let (a, b) = (
+            self.eval(start, printed, messages)?,
+            self.eval(end, printed, messages)?,
+        );
+        match (a, b) {
+            (Value::Int(a), Value::Int(b)) => Ok((a, b)),
+            _ => Err(fail(
+                Diagnostic::error("Z0207", "a range end is NA")
+                    .in_file(self.script)
+                    .primary(range.span, "both ends must be Ints")
+                    .help("a range runs from one whole number to another: `2..5`"),
+            )),
+        }
+    }
+
     /// A `for` loop (section 5.2): each pass binds the loop variable, counts as a pass of the
     /// random stream and runs the body; `continue` ends the pass and `break` the loop. With
     /// `collected` the body's value of every pass that does not `continue` is gathered, for
@@ -926,10 +963,23 @@ impl<'a> Interpreter<'a> {
         printed: &mut String,
         messages: &mut Vec<Diagnostic>,
     ) -> Result<(), Fail> {
-        let items = self.loop_items(iter, printed, messages)?;
-        let passes = items.len();
-        for (at, item) in items.into_iter().enumerate() {
-            self.pass_begins(at + 1, Some(passes), iter.span)?;
+        // A range is walked, one number at a pass, and never listed: a loop of ten million
+        // passes holds one item, and can be cancelled before its first (step 38g of 0.7.0).
+        let items: Box<dyn Iterator<Item = Value>> = match &iter.kind {
+            ExprKind::Range { start, end } => {
+                let (from, to) = self.range_ends(iter, start, end, printed, messages)?;
+                Box::new((from..=to).map(Value::Int))
+            }
+            _ => Box::new(self.loop_items(iter, printed, messages)?.into_iter()),
+        };
+        // An exact count where the items are held; for a range, its length, which may be
+        // more than a machine counts.
+        let passes = match items.size_hint() {
+            (low, Some(high)) if low == high => Some(high),
+            _ => None,
+        };
+        for (at, item) in items.enumerate() {
+            self.pass_begins(at + 1, passes, iter.span)?;
             self.random.pass += 1;
             self.bind(binding, item);
             let value = self.eval_block(body, printed, messages)?;
@@ -2266,23 +2316,8 @@ impl<'a> Interpreter<'a> {
                 value
             }
             ExprKind::Range { start, end } => {
-                let (a, b) = (
-                    self.eval(start, printed, messages)?,
-                    self.eval(end, printed, messages)?,
-                );
-                match (a, b) {
-                    (Value::Int(a), Value::Int(b)) => {
-                        Value::List((a..=b).map(Value::Int).collect())
-                    }
-                    _ => {
-                        return Err(fail(
-                            Diagnostic::error("Z0207", "a range end is NA")
-                                .in_file(self.script)
-                                .primary(expr.span, "both ends must be Ints")
-                                .help("a range runs from one whole number to another: `2..5`"),
-                        ));
-                    }
-                }
+                let (from, to) = self.range_ends(expr, start, end, printed, messages)?;
+                Value::List((from..=to).map(Value::Int).collect())
             }
             ExprKind::Index { receiver, index } => {
                 let target = self.eval(receiver, printed, messages)?;

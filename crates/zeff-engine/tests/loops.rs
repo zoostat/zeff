@@ -216,6 +216,68 @@ fn what_a_loop_may_run_over() {
     assert_eq!(error_code("for print in 1..2 { 1 }\n"), "Z0105");
 }
 
+// ----- a range is walked (release 0.7.0, step 38g) -----
+
+/// A loop over `a..b` takes the next number at each pass and never lists its items. It is the
+/// loop over the same numbers held as a list: the same passes, the same values, the same
+/// draws.
+#[test]
+fn a_range_walked_is_the_range_listed() {
+    let bodies = [
+        // A plain loop, and a list built by one.
+        ("1..5", "for i in R {\n    print(i)\n}\n"),
+        ("3..7", "let squares = [for i in R { i * i }]\nsquares\n"),
+        // Ends below zero, one item, and no item at all.
+        ("-2..2", "for i in R {\n    print(i)\n}\n"),
+        ("4..4", "for i in R {\n    print(i)\n}\n"),
+        ("5..2", "for i in R {\n    print(i)\n}\nprint(\"none\")\n"),
+        // The jumps.
+        (
+            "1..10",
+            "let kept = [for i in R {\n    if i > 6 { break }\n    if i == 3 { continue }\n    i * 2\n}]\nkept\n",
+        ),
+        // One loop inside another.
+        (
+            "1..3",
+            "for i in R {\n    for j in R {\n        if j > i { break }\n        print(i * 10 + j)\n    }\n}\n",
+        ),
+        // The draws of each pass.
+        (
+            "1..4",
+            "seed(42)\nlet draws = [for s in R { dist.normal().draw(2) }]\ndraws[1]\ndraws[4]\n",
+        ),
+    ];
+    for (range, body) in bodies {
+        let walked = prints(&body.replace('R', range));
+        let listed = prints(&format!(
+            "let held = {range}\n{}",
+            body.replace('R', "held")
+        ));
+        assert_eq!(walked, listed, "{range}: {body}");
+    }
+    // Ends that are computed, once, before the first pass.
+    assert_eq!(
+        prints("let top = 4\nfor i in (top - 2)..(top + 1) {\n    print(i)\n}\n"),
+        "2\n3\n4\n5\n"
+    );
+    assert_eq!(
+        prints("let xs = [10, 20, 30]\nfor i in 1..len(xs) {\n    print(xs[i])\n}\n"),
+        "10\n20\n30\n"
+    );
+    // An end that is `NA` is refused as before, and a `return` inside a loop over a range
+    // leaves the function.
+    assert_eq!(
+        error_code("for i in 1..[NA, 3][1] {\n    print(i)\n}\n"),
+        "Z0207"
+    );
+    assert_eq!(
+        prints(
+            "/// The first number whose square passes a limit.\nfn first_over(limit: Int) -> Int {\n    for i in 1..1000000000 {\n        if i * i > limit { return i }\n    }\n    0\n}\nfirst_over(50)\n"
+        ),
+        "8\n"
+    );
+}
+
 // ----- draws inside a loop (Engine and Project Specification, section 8.3, point 3) -----
 
 #[test]
