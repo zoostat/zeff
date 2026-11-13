@@ -550,8 +550,9 @@ fn after_a_value(
 
 /// The names bound in the document that are in reach at a byte: bound before it, in every
 /// block, loop and function that holds them also holding the byte; inside a function written
-/// with a name, only what the function binds. Of two of one name, the later.
-fn bindings_in_reach(check: &Check, at: usize) -> Vec<Completion> {
+/// with a name, only what the function binds. The nearest first, and of two of one name only
+/// the nearer.
+pub(crate) fn reach(check: &Check, at: usize) -> Vec<BindingId> {
     let program = &check.checked.program;
     let mut scopes: Vec<Span> = Vec::new();
     let mut closed: Vec<Span> = Vec::new();
@@ -576,27 +577,56 @@ fn bindings_in_reach(check: &Check, at: usize) -> Vec<Completion> {
     let here = Span::new(at, at);
     // The function written with a name that the place is in, if any.
     let inside = closed.iter().copied().find(|f| holds(*f, here));
-    let mut reach: Vec<&zeff_ir::Binding> = bound
+    let mut reach: Vec<(BindingId, &zeff_ir::Binding)> = bound
         .into_iter()
-        .filter_map(|id| program.bindings.get(id))
-        .filter(|b| b.span.end <= at)
-        .filter(|b| scopes.iter().all(|s| !holds(*s, b.span) || holds(*s, here)))
-        .filter(|b| inside.is_none_or(|f| holds(f, b.span)))
+        .filter_map(|id| program.bindings.get(id).map(|b| (id, b)))
+        .filter(|(_, b)| b.span.end <= at)
+        .filter(|(_, b)| scopes.iter().all(|s| !holds(*s, b.span) || holds(*s, here)))
+        .filter(|(_, b)| inside.is_none_or(|f| holds(f, b.span)))
         .collect();
-    reach.sort_by_key(|b| std::cmp::Reverse(b.span.start));
-    let mut items: Vec<Completion> = Vec::new();
-    for binding in reach {
-        if items.iter().all(|item| item.label != binding.name) {
-            items.push(Completion {
-                label: binding.name.clone(),
-                insert: binding.name.clone(),
-                variable: None,
-                kind: CompletionKind::Binding,
-                detail: binding.ty.to_string(),
-                summary: String::new(),
-            });
+    reach.sort_by_key(|(_, b)| std::cmp::Reverse(b.span.start));
+    let mut nearest: Vec<(BindingId, &zeff_ir::Binding)> = Vec::new();
+    for (id, binding) in reach {
+        if nearest.iter().all(|(_, b)| b.name != binding.name) {
+            nearest.push((id, binding));
         }
     }
+    nearest.into_iter().map(|(id, _)| id).collect()
+}
+
+/// The name bound in the document exactly at a stretch of its text: where a `let`, a `for`
+/// or a parameter writes it.
+pub(crate) fn bound_at(check: &Check, start: usize, end: usize) -> Option<BindingId> {
+    let program = &check.checked.program;
+    let mut found = None;
+    walk(program, &check.name, check.of_script(), &mut |seen| {
+        if let Found::Binding(id) = seen
+            && program
+                .bindings
+                .get(id)
+                .is_some_and(|b| b.span == Span::new(start, end))
+        {
+            found = Some(id);
+        }
+    });
+    found
+}
+
+/// The names in reach at a byte as completions, each with its type, by the letters.
+fn bindings_in_reach(check: &Check, at: usize) -> Vec<Completion> {
+    let program = &check.checked.program;
+    let mut items: Vec<Completion> = reach(check, at)
+        .into_iter()
+        .filter_map(|id| program.bindings.get(id))
+        .map(|binding| {
+            Completion::new(
+                &binding.name,
+                CompletionKind::Binding,
+                binding.ty.to_string(),
+                String::new(),
+            )
+        })
+        .collect();
     items.sort_by(|a, b| a.label.cmp(&b.label));
     items
 }

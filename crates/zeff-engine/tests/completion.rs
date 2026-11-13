@@ -214,7 +214,7 @@ fn the_corpus_of_cursor_places() {
         // A function literal sees what is bound where it is written.
         (
             MAIN,
-            "let top = 1\nlet f = fn(tick) tick + t|\n".to_string(),
+            "let top = 1\nlet moved = map([1.0, 2], fn(tick) tick + t|)\n".to_string(),
         ),
         // In a module, and in a file outside any project.
         (

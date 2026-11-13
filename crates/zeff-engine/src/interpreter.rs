@@ -755,6 +755,7 @@ impl<'a> Interpreter<'a> {
                 .collect();
             output.frames.push(crate::schemas::FrameRecord {
                 statement: hash,
+                rows: Some(frame.table.rows() as u64),
                 variables,
             });
         }

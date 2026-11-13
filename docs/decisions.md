@@ -4703,3 +4703,23 @@ error[Z0001]: no rows to take the mean of
 **Tests.** Snapshot: a corpus of 37 cursor places (a method at its start, inside and at its end; before its brackets; a chain over lines; a function before its value, of a namespace, with its package; a name two functions share, three ways; a function named and not called; a project function four ways; a function inside an argument; a variable in an argument, a formula, a condition, a definition; under its new name and no longer under its old; a shipped dataset's label and count, a category, after `where`, after `label`; the places with nothing; a file outside a project). Unit: the page equal to `zeff help`'s for an engine function and for a project function; the word marked; the function chosen; a variable's lines and its facts apart; a variable before a binding of its name; a name the frame does not hold; where there is nothing.
 
 **Reason.** The checklist's step 36a; Engine and Project Specification, section 12.
+
+## 14 November 2026: hover on a binding, its type and its size (release 0.7.0, step 36b)
+
+**What was built.** On a name bound by a `let`, a `for` or a parameter, hover shows its type; and for a frame its size, the number of its rows and of its variables (section 12, "a binding's type and size"; and the line open decision #77 asks for, of what a frame holds after its statement). Where the name is bound and where it is used: `wages: Frame`, `18,412 rows, 11 variables`.
+
+**The variables** of a frame are those the schema pass has for the binding, so they are known before any run wherever the columns are.
+
+**The rows** are known without running in three cases, as the counts of missing values are (open decision #145, option A, extended to the rows by the same reasoning). A shipped dataset's, when the engine is built. A frame written out with `frame(...)` as lists of one length. A frame the last run bound: the run's record of each bound frame gains the number of its rows, which a frame knows without gathering anything, so that even a frame bound after `where` has them once the script has run; they are marked `from last run`. They are carried through the steps that keep every row (`sort`, `select`, `drop`, `rename`, `add`, `update`, `label`, `panel`) and through no other: after `where` or `head` nothing is said of the rows, and the variables are still shown.
+
+**What is no frame** has its type alone: `names: List<Str>`, `fit: RegFit`, `year: Int` for the variable of a loop, `amount: Float` for a parameter inside its function.
+
+**Which name.** The name where it is bound, or the nearest of that name in reach, by the rule completion uses. A binding comes before a function of the same name, which it hides (W0101), and after a variable of the frame inside a frame's method, as the checker has it. A binding whose type the checker does not know has nothing to show, and nothing is shown.
+
+**The record.** A frame's entry in the last section of `.zeff/schemas/schemas.json` gains `rows`; an entry without it (one written by step 35d on a developer's machine) reads as rows unknown.
+
+**A correction to two test cases.** A function literal cannot be bound with `let` in Zeff (Z0205: it is the argument of a parameter typed `Fn(...)`). One corpus place of step 35a used that form to show what a literal sees; it now stands in `map(xs, fn(tick) ...)`, where it shows both the literal's parameter and the binding outside it. The engine did not change.
+
+**Tests.** Snapshot: the hover corpus, 51 places now, with fourteen on bindings (a number where used, a list where bound, a fit, the variable of a loop, a parameter; a shipped dataset where bound, a file's frame, a frame written out; through the steps that keep every row, after `where`, after `aggregate`; a frame the checker knows nothing of; of two of one name the nearer; a binding before the function it hides). Unit: the lines and the facts apart for a shipped dataset in three places; rows kept and lost; one row and one variable counted as one; what is no frame; the word marked; a variable before a binding and a binding where the frame has no such variable; a binding of unknown type; a name out of reach. With a run: a file's frame before and after, a frame bound after `where` with its own rows, the rows carried by `sort` and lost by `head`. The cache file written and read with rows and without.
+
+**Reason.** The checklist's step 36b; Engine and Project Specification, section 12; open decisions #77 and #145.

@@ -574,7 +574,7 @@ fn run_controlled(
         schemas.record_run(statement, columns);
     }
     for bound in std::mem::take(&mut output.frames) {
-        schemas.record_frame(bound.statement, bound.variables);
+        schemas.record_frame(bound);
     }
     let _ = schemas.save();
     match result {

@@ -229,6 +229,84 @@ nothing
 > let d = import("data/small.csv")
 > let k = 3
 > print(k|)
+2:6-2:7, a binding
+    k: Int
+----
+> let na|mes = ["a", "b"]
+0:4-0:9, a binding
+    names: List<Str>
+----
+> let d = import("data/small.csv")
+> let fit = d.reg(b ~ a)
+> fi|t.coef()
+2:0-2:3, a binding
+    fit: RegFit
+----
+> for ye|ar in 2010..2012 {
+>     print(year)
+> }
+0:4-0:8, a binding
+    year: Int
+----
+> /// Halves.
+> fn half(amount: Float) -> Float {
+>     amo|unt / 2
+> }
+2:4-2:10, a binding
+    amount: Float
+----
+> let wag|es = dataset(wages)
+0:4-0:9, a binding
+    wages: Frame
+    18,412 rows, 11 variables
+----
+> let d = import("data/small.csv")
+> d|.mean(b)
+1:0-1:1, a binding
+    d: Frame
+    3 variables
+----
+> let f = frame(x = [1.0, 2, 3], who = ["a", "b", "c"])
+> print(f|)
+1:6-1:7, a binding
+    f: Frame
+    3 rows, 2 variables
+----
+> let some = dataset(wages).select([wage, hours]).sort(wage).add(lw = log(wage))
+> print(so|me)
+1:6-1:10, a binding
+    some: Frame
+    18,412 rows, 3 variables
+----
+> let kept = dataset(wages).where(year == 2015)
+> print(ke|pt)
+1:6-1:10, a binding
+    kept: Frame
+    11 variables
+----
+> let by_year = dataset(wages).aggregate(pay = mean(wage), by: year)
+> print(by_|year)
+1:6-1:13, a binding
+    by_year: Frame
+    2 variables
+----
+> let m = import("data/none.csv")
+> print(m|)
+1:6-1:7, a binding
+    m: Frame
+----
+> let total = 3
+> let total = "three"
+> print(tot|al)
+2:6-2:11, a binding
+    total: Str
+----
+> let mean = 3
+> print(me|an)
+1:6-1:10, a binding
+    mean: Int
+----
+> print(unbou|nd)
 nothing
 ----
 > let x = 12|3

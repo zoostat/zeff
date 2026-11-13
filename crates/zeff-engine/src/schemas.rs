@@ -48,6 +48,8 @@ pub struct RunRecord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameRecord {
     pub statement: u64,
+    /// How many rows the frame had; `None` in a record written before they were kept.
+    pub rows: Option<u64>,
     /// Name, missing values, label (empty where the variable has none).
     pub variables: Vec<(String, u64, String)>,
 }
@@ -125,12 +127,9 @@ impl<'a> SchemaCache<'a> {
 
     /// Record the frame a `let` of the script bound, for the next check. A record that says
     /// what the last run's said changes nothing, and the cache is not written for it.
-    pub fn record_frame(&self, statement: u64, variables: Vec<(String, u64, String)>) {
+    pub fn record_frame(&self, record: FrameRecord) {
         let mut frames = self.frames.borrow_mut();
-        let record = FrameRecord {
-            statement,
-            variables,
-        };
+        let statement = record.statement;
         if frames.contains(&record) {
             return;
         }
@@ -289,12 +288,15 @@ impl Schemas for SchemaCache<'_> {
             .map(|r| r.columns.clone())
     }
 
-    fn last_frame(&self, statement: u64) -> Option<Vec<(String, u64, String)>> {
+    fn last_frame(&self, statement: u64) -> Option<zeff_ir::LastFrame> {
         self.frames
             .borrow()
             .iter()
             .find(|f| f.statement == statement)
-            .map(|f| f.variables.clone())
+            .map(|f| zeff_ir::LastFrame {
+                rows: f.rows,
+                variables: f.variables.clone(),
+            })
     }
 
     fn dataset(&self, name: &str) -> Option<FrameSchema> {
@@ -312,6 +314,7 @@ impl Schemas for SchemaCache<'_> {
                 })
                 .collect();
             let mut schema = FrameSchema::from_names(name, &columns);
+            schema.rows = Some(table.rows() as u64);
             // A shipped dataset is known whole when the engine is built: each variable's
             // count of missing values and its label (open decision #145).
             for (i, column) in table.names().iter().enumerate() {
@@ -456,8 +459,9 @@ pub fn write_cache(
             .collect::<Vec<_>>()
             .join(", ");
         out.push_str(&format!(
-            "    {{\"statement\": {}, \"variables\": [{variables}]}}{}\n",
+            "    {{\"statement\": {}, \"rows\": {}, \"variables\": [{variables}]}}{}\n",
             json_string(&format!("{:016x}", f.statement)),
+            f.rows.map_or("null".to_string(), |rows| rows.to_string()),
             if i + 1 < frames.len() { "," } else { "" }
         ));
     }
@@ -522,8 +526,13 @@ pub fn parse_cache(text: &str) -> Option<CacheContents> {
                     ))
                 })
                 .collect::<Option<Vec<_>>>()?;
+            let rows = match fields.field("rows") {
+                None | Some(Json::Null) => None,
+                Some(other) => Some(other.number()? as u64),
+            };
             frames.push(FrameRecord {
                 statement,
+                rows,
                 variables,
             });
         }
@@ -824,6 +833,7 @@ mod tests {
         let frames = vec![
             FrameRecord {
                 statement: 0xfedc_ba98_7654_3210,
+                rows: Some(18_412),
                 variables: vec![
                     (
                         "wage".to_string(),
@@ -835,6 +845,7 @@ mod tests {
             },
             FrameRecord {
                 statement: 7,
+                rows: None,
                 variables: Vec::new(),
             },
         ];

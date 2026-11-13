@@ -1,7 +1,7 @@
 //! Hover (Engine and Project Specification, section 12: "a function's help page, a binding's
 //! type and size, a variable's type and missing count"): what is known of the word at a
-//! place in a document. This is part 1 (release 0.7.0, step 36a): the name of a function,
-//! and a variable of a frame.
+//! place in a document: the name of a function, a variable of a frame (release 0.7.0, step
+//! 36a), and a name bound in the script, with the size of the frame it holds (step 36b).
 //!
 //! The function is the one the checker would choose where several share the name, found as
 //! completion and signature help find it; the variable is one of those completion offers at
@@ -9,7 +9,7 @@
 
 use super::call::{self, Callee};
 use super::complete::{
-    Doc, Inside, VariableFacts, inside, is_word, modules_used, project_functions,
+    Doc, Inside, VariableFacts, bound_at, inside, is_word, modules_used, project_functions, reach,
     variables_of_the_frame,
 };
 use super::{Documents, Position, Range, Seen, offset, position};
@@ -23,6 +23,52 @@ pub enum HoverKind {
     Function,
     /// A variable of a frame, with what is known of it apart; `text` says the same in lines.
     Variable(VariableFacts),
+    /// A name bound by a `let`, a `for` or a parameter, with what is known of it apart.
+    Binding(BindingFacts),
+}
+
+/// What is known of a name bound in the script (section 12: "a binding's type and size").
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BindingFacts {
+    /// Its type, `Frame`, `Float`, `List<Str>`.
+    pub ty: String,
+    /// For a frame the checker knows the columns of: how many variables it has.
+    pub variables: Option<usize>,
+    /// For a frame: how many rows it has, where that is known without running (a shipped
+    /// dataset's, a frame written out, a frame the last run bound, through the steps that
+    /// keep every row).
+    pub rows: Option<u64>,
+    /// Whether the number of rows is the last run's.
+    pub rows_from_last_run: bool,
+}
+
+/// The lines shown for a binding: `wages: Frame`, `18,412 rows, 11 variables`.
+fn binding_text(name: &str, facts: &BindingFacts) -> String {
+    let counted = |n: u64, one: &str, many: &str| {
+        format!(
+            "{} {}",
+            zeff_diagnostics::count(n),
+            if n == 1 { one } else { many }
+        )
+    };
+    let mut line = format!("{name}: {}", facts.ty);
+    let mut size: Vec<String> = Vec::new();
+    if let Some(rows) = facts.rows {
+        let rows = counted(rows, "row", "rows");
+        size.push(if facts.rows_from_last_run {
+            format!("{rows} (from last run)")
+        } else {
+            rows
+        });
+    }
+    if let Some(variables) = facts.variables {
+        size.push(counted(variables as u64, "variable", "variables"));
+    }
+    if !size.is_empty() {
+        line.push('\n');
+        line.push_str(&size.join(", "));
+    }
+    line
 }
 
 /// What is known of the word at a place.
@@ -33,7 +79,8 @@ pub struct Hover {
     pub range: Range,
     pub kind: HoverKind,
     /// What to show. For a function, its help page as `zeff help` prints it. For a variable,
-    /// a line with its name and type, then its label, then its count of missing values.
+    /// a line with its name and type, then its label, then its count of missing values. For
+    /// a binding, a line with its name and type, then for a frame its rows and variables.
     pub text: String,
 }
 
@@ -62,8 +109,8 @@ fn variable_text(name: &str, facts: &VariableFacts) -> String {
 }
 
 /// The hover of a place in a document: `None` where the word there is neither the name of a
-/// function nor a variable of a frame, on no word at all, and inside a comment or a text
-/// between quotes.
+/// function, nor a variable of a frame, nor a name bound in the script; on no word at all;
+/// and inside a comment or a text between quotes.
 pub fn hover(disk: &dyn FileSystem, open: &Documents, path: &Path, at: Position) -> Option<Hover> {
     let seen = Seen { disk, open };
     let text = seen.read_to_string(path).ok()?;
@@ -116,6 +163,40 @@ pub fn hover(disk: &dyn FileSystem, open: &Documents, path: &Path, at: Position)
                 range: range(start),
                 text: variable_text(word, &facts),
                 kind: HoverKind::Variable(facts),
+            });
+        }
+    }
+
+    // A name bound in the script: where it is bound, or the nearest of that name in reach;
+    // called or not, since a binding may hold a function. Before a function of the same
+    // name, which the binding hides (W0101).
+    if !after_a_dot && let Some(check) = &check {
+        let program = &check.checked.program;
+        let id = bound_at(check, start, end).or_else(|| {
+            reach(check, start)
+                .into_iter()
+                .find(|id| program.bindings.get(*id).is_some_and(|b| b.name == word))
+        });
+        // A binding whose type the checker does not know has nothing to show.
+        if let Some(id) = id
+            && let Some(binding) = program.bindings.get(id)
+            && binding.ty != zeff_ir::Ty::Unknown
+        {
+            let schema = program
+                .bound_schemas
+                .iter()
+                .find(|(bound, _)| *bound == id)
+                .map(|(_, schema)| schema);
+            let facts = BindingFacts {
+                ty: binding.ty.to_string(),
+                variables: schema.map(|s| s.columns.len()),
+                rows: schema.and_then(|s| s.rows),
+                rows_from_last_run: schema.is_some_and(|s| s.rows.is_some() && s.rows_last_run),
+            };
+            return Some(Hover {
+                range: range(start),
+                text: binding_text(word, &facts),
+                kind: HoverKind::Binding(facts),
             });
         }
     }

@@ -47,6 +47,20 @@ pub struct FrameSchema {
     pub from_last_run: bool,
     /// What else is known of the columns, by name: of some, of all or of none.
     pub facts: Vec<ColumnFacts>,
+    /// How many rows the frame has, where that is known without running: a shipped
+    /// dataset's, a frame written out, a frame the last run bound; carried through the steps
+    /// that keep every row. For an editor to show (section 12, "a binding's type and size").
+    pub rows: Option<u64>,
+    /// Whether the number of rows is the last run's.
+    pub rows_last_run: bool,
+}
+
+/// What the last run recorded of the frame a `let` bound (open decision #145): its rows, and
+/// of each variable the run had in hand its name, its count of missing values and its label.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct LastFrame {
+    pub rows: Option<u64>,
+    pub variables: Vec<(String, u64, String)>,
 }
 
 impl FrameSchema {
@@ -68,6 +82,8 @@ impl FrameSchema {
                     ..ColumnFacts::default()
                 })
                 .collect(),
+            rows: None,
+            rows_last_run: false,
         }
     }
 
@@ -188,9 +204,10 @@ pub trait Schemas {
         None
     }
 
-    /// The variables of the frame that the `let` with this hash bound in the last run, each
-    /// with its count of missing values and its label, if recorded (open decision #145).
-    fn last_frame(&self, statement_hash: u64) -> Option<Vec<(String, u64, String)>> {
+    /// The frame that the `let` with this hash bound in the last run: its rows, and its
+    /// variables each with its count of missing values and its label, if recorded (open
+    /// decision #145).
+    fn last_frame(&self, statement_hash: u64) -> Option<LastFrame> {
         let _ = statement_hash;
         None
     }

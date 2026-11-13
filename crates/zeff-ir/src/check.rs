@@ -942,9 +942,13 @@ impl Checker<'_> {
                 };
                 if let Some(schema) = self.schema_of(&value) {
                     let schema = match recorded {
-                        Some(variables) => {
+                        Some(last) => {
                             let mut known = (*schema).clone();
-                            for (name, missing, label) in variables {
+                            if known.rows.is_none() && last.rows.is_some() {
+                                known.rows = last.rows;
+                                known.rows_last_run = true;
+                            }
+                            for (name, missing, label) in last.variables {
                                 if !known.has(&name) {
                                     continue;
                                 }
@@ -6533,6 +6537,27 @@ impl Checker<'_> {
                 origin: "the frame".to_string(),
                 from_last_run: false,
                 facts: Vec::new(),
+                // Written out as lists of one length, the frame has that many rows.
+                rows: {
+                    let lengths: Vec<usize> = call
+                        .definitions
+                        .iter()
+                        .filter_map(|(_, value)| match &value.kind {
+                            ExprKind::List(items) => Some(items.len()),
+                            _ => None,
+                        })
+                        .collect();
+                    match lengths.first() {
+                        Some(first)
+                            if lengths.len() == call.definitions.len()
+                                && lengths.iter().all(|n| n == first) =>
+                        {
+                            Some(*first as u64)
+                        }
+                        _ => None,
+                    }
+                },
+                rows_last_run: false,
             }),
             ("data", "to_wide") => {
                 self.run_time_step(call, "`to_wide`", "its columns depend on the data")
@@ -7108,6 +7133,8 @@ impl Checker<'_> {
                 facts.missing = None;
                 facts.last_run = false;
             }
+            out.rows = None;
+            out.rows_last_run = false;
         }
         Some(out)
     }

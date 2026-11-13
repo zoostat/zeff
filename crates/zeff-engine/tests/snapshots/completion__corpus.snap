@@ -257,11 +257,11 @@ replace 3:4-3:6, 5 offered
     alternative | t.alternative() | The alternative a test was computed for
 ----
 > let top = 1
-> let f = fn(tick) tick + t|
-replace 1:24-1:25, 17 offered
+> let moved = map([1.0, 2], fn(tick) tick + t|)
+replace 1:42-1:43, 18 offered
   Method (10): t_test tabulate tail test text theme tile to to_long to_wide
   Function (6): table tan today trim truncate type_of
-  Binding (1): top
+  Binding (2): tick top
 ----
 in /work/demo/functions/clean.zeff
 > /// T.

@@ -1,7 +1,8 @@
-//! Hover, part 1 (release 0.7.0, step 36a; Engine and Project Specification, section 12):
-//! on the name of a function its help page, on a variable of a frame its type, its label and
-//! its count of missing values. A corpus of cursor places, each a text with `|` where the
-//! cursor stands, is a stored text.
+//! Hover (release 0.7.0, steps 36a and 36b; Engine and Project Specification, section 12):
+//! on the name of a function its help page; on a variable of a frame its type, its label and
+//! its count of missing values; on a name bound in the script its type and, for a frame, its
+//! size. A corpus of cursor places, each a text with `|` where the cursor stands, is a stored
+//! text.
 
 use std::path::Path;
 use zeff_engine::VERSION;
@@ -69,6 +70,7 @@ fn shown(fs: &MemoryFileSystem, path: &str, marked: &str) -> String {
     let kind = match &found.kind {
         HoverKind::Function => "a function",
         HoverKind::Variable(_) => "a variable",
+        HoverKind::Binding(_) => "a binding",
     };
     out.push_str(&format!(
         "{}:{}-{}:{}, {kind}\n",
@@ -155,9 +157,30 @@ fn the_corpus_of_cursor_places() {
             MAIN,
             "dataset(wages).label(wage, \"Pay by the hour\").mean(wa|ge)\n".to_string(),
         ),
-        // Nothing: a word that is neither, a number, a word of a fixed list, the name of an
-        // argument, a comment, a text between quotes, no word at all.
+        // A name bound in the script: its type; where it is bound, and where it is used.
         (MAIN, format!("{data}let k = 3\nprint(k|)\n")),
+        (MAIN, "let na|mes = [\"a\", \"b\"]\n".to_string()),
+        (MAIN, format!("{data}let fit = d.reg(b ~ a)\nfi|t.coef()\n")),
+        (MAIN, "for ye|ar in 2010..2012 {\n    print(year)\n}\n".to_string()),
+        (MAIN, "/// Halves.\nfn half(amount: Float) -> Float {\n    amo|unt / 2\n}\n".to_string()),
+        // A frame: its size. A shipped dataset's rows are known; a file's are not before a
+        // run; a frame written out has the rows it is written with.
+        (MAIN, "let wag|es = dataset(wages)\n".to_string()),
+        (MAIN, format!("{data}d|.mean(b)\n")),
+        (MAIN, "let f = frame(x = [1.0, 2, 3], who = [\"a\", \"b\", \"c\"])\nprint(f|)\n".to_string()),
+        // Through a step that keeps every row the rows are known still; after one that does
+        // not, only the variables.
+        (MAIN, "let some = dataset(wages).select([wage, hours]).sort(wage).add(lw = log(wage))\nprint(so|me)\n".to_string()),
+        (MAIN, "let kept = dataset(wages).where(year == 2015)\nprint(ke|pt)\n".to_string()),
+        (MAIN, "let by_year = dataset(wages).aggregate(pay = mean(wage), by: year)\nprint(by_|year)\n".to_string()),
+        // A frame the checker knows nothing of before a run.
+        (MAIN, "let m = import(\"data/none.csv\")\nprint(m|)\n".to_string()),
+        // Of two of one name the nearer; and a binding before the function it hides.
+        (MAIN, "let total = 3\nlet total = \"three\"\nprint(tot|al)\n".to_string()),
+        (MAIN, "let mean = 3\nprint(me|an)\n".to_string()),
+        // Nothing: a word that is none of these, a number, a word of a fixed list, the name
+        // of an argument, a comment, a text between quotes, no word at all.
+        (MAIN, "print(unbou|nd)\n".to_string()),
         (MAIN, "let x = 12|3\n".to_string()),
         (MAIN, format!("{data}d.reg(b ~ a, se: rob|ust)\n")),
         (MAIN, format!("{data}d.reg(b ~ a, clus|ter: c)\n")),
@@ -323,7 +346,7 @@ fn where_there_is_nothing_to_show() {
         "let s = \"sq|rt\"\n",
         "let x = 1 + | 2\n",
         "nosu|ch(1)\n",
-        "let k = 3\nprint(k|)\n",
+        "print(unbou|nd)\n",
         "|\n",
     ] {
         assert_eq!(at_cursor(&fs, MAIN, marked), None, "{marked}");
@@ -339,4 +362,120 @@ fn where_there_is_nothing_to_show() {
         },
     );
     assert_eq!(none, None);
+}
+
+#[test]
+fn on_a_binding_its_type_and_the_size_of_its_frame() {
+    use zeff_engine::language::BindingFacts;
+    let fs = project();
+    let facts = |marked: &str| -> (String, BindingFacts) {
+        let found = at_cursor(&fs, MAIN, marked).unwrap_or_else(|| panic!("no hover: {marked}"));
+        match found.kind {
+            HoverKind::Binding(facts) => (found.text, facts),
+            other => panic!("not a binding: {other:?}"),
+        }
+    };
+    // A shipped dataset is known whole: where it is bound and where it is used.
+    for marked in [
+        "let wag|es = dataset(wages)\n",
+        "let wages = dataset(wages)\nwag|es.mean(wage)\n",
+        "let wages = dataset(wages)\nprint(wages|)\n",
+    ] {
+        let (text, facts) = facts(marked);
+        assert_eq!(text, "wages: Frame\n18,412 rows, 11 variables", "{marked}");
+        assert_eq!(
+            (
+                facts.ty.as_str(),
+                facts.rows,
+                facts.variables,
+                facts.rows_from_last_run
+            ),
+            ("Frame", Some(18_412), Some(11), false),
+            "{marked}"
+        );
+    }
+    // The steps that keep every row keep the rows; `add` and `select` change the variables.
+    let (text, _) = facts(
+        "let some = dataset(wages).select([wage, hours]).add(lw = log(wage))\nprint(so|me)\n",
+    );
+    assert_eq!(text, "some: Frame\n18,412 rows, 3 variables");
+    // After `where` the rows are not known, and nothing is said in their place.
+    let (text, facts_after) =
+        facts("let kept = dataset(wages).where(year == 2015)\nprint(ke|pt)\n");
+    assert_eq!(text, "kept: Frame\n11 variables");
+    assert_eq!(facts_after.rows, None);
+    // One row and one variable are counted as one.
+    let (text, _) = facts("let f = frame(x = [1.0])\nprint(f|)\n");
+    assert_eq!(text, "f: Frame\n1 row, 1 variable");
+    // What is no frame has its type alone.
+    let (text, facts_of) = facts("let names = [\"a\", \"b\"]\nprint(na|mes)\n");
+    assert_eq!(text, "names: List<Str>");
+    assert_eq!((facts_of.rows, facts_of.variables), (None, None));
+    // The word marked is the name.
+    let found = at_cursor(&fs, MAIN, "let k = 3\nprint(k|)\n").expect("a hover");
+    assert_eq!(
+        found.range,
+        Range {
+            start: Position {
+                line: 1,
+                character: 6
+            },
+            end: Position {
+                line: 1,
+                character: 7
+            },
+        }
+    );
+    // Inside a frame's method a name that is a variable of the frame is the variable; a name
+    // that is not is the binding.
+    let both = "let wage = 3\nlet floor = 5\ndataset(wages).where(wage > flo|or)\n";
+    assert!(matches!(
+        at_cursor(&fs, MAIN, both).expect("a hover").kind,
+        HoverKind::Binding(_)
+    ));
+    // A binding whose type the checker does not know has nothing to show.
+    assert_eq!(at_cursor(&fs, MAIN, "let m = nosuch(1)\nprint(m|)\n"), None);
+    // A name out of reach is no binding: after the loop, its variable.
+    assert_eq!(
+        at_cursor(&fs, MAIN, "for i in 1..3 {\n    print(i)\n}\nprint(i|)\n"),
+        None
+    );
+}
+
+/// A file's frame has its rows after a run, marked as the last run's.
+#[test]
+fn the_rows_of_a_frame_the_last_run_bound() {
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    let fs = project();
+    fs.set_clock(1_000);
+    let script =
+        "let d = import(\"data/small.csv\")\nlet big = d.where(a > 1)\nprint(big.n_rows())\n";
+    let text = |marked: &str| at_cursor(&fs, MAIN, marked).expect("a hover").text;
+    assert_eq!(
+        text(&format!("{script}print(d|)\n")),
+        "d: Frame\n3 variables"
+    );
+    let project = Project::open(&fs, Path::new("/work/demo")).expect("the project");
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert_eq!(
+        text(&format!("{script}print(d|)\n")),
+        "d: Frame\n3 rows (from last run), 3 variables"
+    );
+    // The frame bound after `where` was recorded with its own rows, though the check alone
+    // could not know them.
+    assert_eq!(
+        text(&format!("{script}print(bi|g)\n")),
+        "big: Frame\n2 rows (from last run), 3 variables"
+    );
+    // Carried through a step that keeps every row, and lost at one that does not.
+    assert_eq!(
+        text(&format!("{script}let sorted = d.sort(a)\nprint(sor|ted)\n")),
+        "sorted: Frame\n3 rows (from last run), 3 variables"
+    );
+    assert_eq!(
+        text(&format!("{script}let few = d.head(2)\nprint(fe|w)\n")),
+        "few: Frame\n3 variables"
+    );
 }
