@@ -365,6 +365,20 @@ fn the_corpus_of_cursor_places_where_a_variable_is_written() {
             MAIN,
             "let w = dataset(wages)\nw.reg(log(wage) ~ |\n".to_string(),
         ),
+        // What else is known of a variable without running (open decision #145). A shipped
+        // dataset: the label and the count of missing values of each. Through a step that
+        // keeps every row the counts stay; after one that does not, the labels alone.
+        (MAIN, "dataset(wages).select([wage, hours, industry]).sort(wage).mean(|\n".to_string()),
+        (MAIN, "dataset(wages).where(year == 2015).select([wage, hours, industry]).mean(|\n".to_string()),
+        (MAIN, "dataset(wages).select([wage, hours]).head(100).mean(|\n".to_string()),
+        // Under a new name, the same variable; made anew, another of which nothing is known.
+        (MAIN, "dataset(wages).select([wage, hours]).rename(pay = wage).mean(|\n".to_string()),
+        (MAIN, "dataset(wages).select([wage, hours]).add(lwage = log(wage), hours = hours / 40).mean(|\n".to_string()),
+        // A label written in the script is known at once, and an empty one removes it.
+        (MAIN, "dataset(wages).select([wage, hours]).label(wage, \"Pay by the hour\").label(hours, \"\").mean(|\n".to_string()),
+        (MAIN, format!("{data}d.label(b, \"Score at entry\").mean(|\n")),
+        // The groups of an aggregate keep their labels; what it computes is new.
+        (MAIN, "dataset(wages).aggregate(pay = mean(wage), by: [industry, year]).mean(|\n".to_string()),
         // The function written before its frame.
         (MAIN, format!("{data}mean(d, |\n")),
         (MAIN, format!("{data}reg(d, b ~ a, cluster: |\n")),
@@ -1010,9 +1024,9 @@ fn the_variables_of_a_step_checked_at_run_time_are_those_of_the_last_run() {
     assert_eq!(
         variables,
         [
-            ("firm", "Int", "from last run"),
-            ("sales_2010", "Int", "from last run"),
-            ("sales_2011", "Int", "from last run"),
+            ("firm", "Int", "0 missing, from last run"),
+            ("sales_2010", "Int", "0 missing, from last run"),
+            ("sales_2011", "Int", "0 missing, from last run"),
         ]
     );
     // The statement changed since the run: its record is of another statement.
@@ -1022,4 +1036,159 @@ fn the_variables_of_a_step_checked_at_run_time_are_those_of_the_last_run() {
         of_kind(&found, CompletionKind::Variable),
         Vec::<&str>::new()
     );
+}
+
+/// What a run recorded of the frames its `let`s bound is shown at the next completion: each
+/// variable's count of missing values and its label, marked as the last run's (open decision
+/// #145). Before any run a file's variables have their types alone.
+#[test]
+fn the_counts_and_labels_of_a_frame_the_last_run_bound() {
+    use zeff_engine::project::Project;
+    use zeff_engine::run::run_script;
+    let fs = project();
+    fs.set_clock(1_000);
+    let script = "let d = import(\"data/small.csv\")\nlet named = d.label(a, \"Entry number\").where(a > 1)\nprint(named.mean(b))\n";
+    let said = |marked: &str| -> Vec<(String, String, String)> {
+        at_cursor(&fs, MAIN, marked)
+            .items
+            .iter()
+            .filter(|item| item.kind == CompletionKind::Variable)
+            .map(|item| {
+                (
+                    item.label.clone(),
+                    item.detail.clone(),
+                    item.summary.clone(),
+                )
+            })
+            .collect()
+    };
+    let row = |name: &str, ty: &str, summary: &str| {
+        (name.to_string(), ty.to_string(), summary.to_string())
+    };
+    // Never run: the types, and the label the script writes.
+    assert_eq!(
+        said(&format!("{script}d.mean(|\n")),
+        [
+            row("a", "Int", ""),
+            row("b", "Float", ""),
+            row("c", "Str", "")
+        ]
+    );
+    assert_eq!(
+        said(&format!("{script}named.mean(|\n")),
+        [
+            row("a", "Int", "Entry number"),
+            row("b", "Float", ""),
+            row("c", "Str", "")
+        ]
+    );
+    let project = Project::open(&fs, Path::new("/work/demo")).expect("the project");
+    let outcome = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    // Run: the file has one missing value, in `b`.
+    assert_eq!(
+        said(&format!("{script}d.mean(|\n")),
+        [
+            row("a", "Int", "0 missing, from last run"),
+            row("b", "Float", "1 missing, from last run"),
+            row("c", "Str", "0 missing, from last run"),
+        ]
+    );
+    // The frame bound after `where` is a selection of the first: of its variables the run
+    // gathered only `b`, which it took the mean of, and only what the run had in hand is
+    // recorded. Recording never makes a frame hold more than the run made it hold.
+    assert_eq!(
+        said(&format!("{script}named.mean(|\n")),
+        [
+            row("a", "Int", "Entry number"),
+            row("b", "Float", "1 missing, from last run"),
+            row("c", "Str", ""),
+        ]
+    );
+    // What is known apart, for an interface that shows it in columns of its own.
+    let found = at_cursor(&fs, MAIN, &format!("{script}d.mean(|\n"));
+    let b = found.items[1].variable.clone().expect("a variable");
+    assert_eq!(
+        (b.ty.as_str(), b.missing, b.label.as_str(), b.from_last_run),
+        ("Float", Some(1), "", true)
+    );
+    assert!(
+        found
+            .items
+            .iter()
+            .filter(|item| item.kind != CompletionKind::Variable)
+            .all(|item| item.variable.is_none())
+    );
+    // Through a step that keeps every row the counts stay; after `where` they are not known,
+    // and nothing is said in their place.
+    assert_eq!(
+        said(&format!("{script}d.select([b]).sort(b).mean(|\n")),
+        [row("b", "Float", "1 missing, from last run")]
+    );
+    assert_eq!(
+        said(&format!("{script}d.where(a > 1).mean(|\n")),
+        [
+            row("a", "Int", ""),
+            row("b", "Float", ""),
+            row("c", "Str", "")
+        ]
+    );
+    // The statement changed since the run: its record is another statement's.
+    let changed = script.replace(
+        "let d = import(\"data/small.csv\")",
+        "let d = import(\"data/small.csv\", header: true)",
+    );
+    assert_eq!(
+        said(&format!("{changed}d.mean(|\n")),
+        [
+            row("a", "Int", ""),
+            row("b", "Float", ""),
+            row("c", "Str", "")
+        ]
+    );
+    // A second run that binds the same frames writes nothing: the cache file is as it was.
+    let cache = Path::new("/work/demo/.zeff/schemas/schemas.json");
+    let before = zeff_engine::fs::FileSystem::read_to_string(&fs, cache).expect("the cache");
+    assert!(before.contains("\"frames\": ["), "{before}");
+    fs.set_clock(2_000);
+    let again = run_script(&fs, &project, "scripts/main.zeff", script);
+    assert_eq!(again.exit_code, 0);
+    assert_eq!(
+        zeff_engine::fs::FileSystem::read_to_string(&fs, cache).expect("the cache"),
+        before
+    );
+}
+
+/// A shipped dataset is known whole when the engine is built: what is offered of its
+/// variables is what the dataset holds.
+#[test]
+fn the_counts_and_labels_of_a_shipped_dataset_are_those_of_its_data() {
+    let fs = project();
+    let registry = zeff_engine::registry::registry().expect("the registry");
+    for dataset in registry.datasets() {
+        let name = dataset.spec.name;
+        let found = at_cursor(&fs, MAIN, &format!("dataset({name}).select([|\n"));
+        let variables: Vec<_> = found
+            .items
+            .iter()
+            .filter_map(|item| {
+                item.variable
+                    .as_ref()
+                    .map(|facts| (item.label.as_str(), facts))
+            })
+            .collect();
+        // Its page lists each variable with its type, its label and its missing values.
+        assert_eq!(variables.len(), dataset.spec.format.len(), "{name}");
+        for ((variable, facts), row) in variables.iter().zip(&dataset.spec.format) {
+            assert_eq!(*variable, row.name, "{name}");
+            // The page says more of a category: `Category (12 levels)`.
+            assert!(
+                row.ty.starts_with(&facts.ty) && !facts.ty.is_empty(),
+                "{name}.{variable}"
+            );
+            assert_eq!(facts.label, row.label, "{name}.{variable}");
+            assert_eq!(facts.missing, Some(row.missing as u64), "{name}.{variable}");
+            assert!(!facts.from_last_run);
+        }
+    }
 }

@@ -42,6 +42,16 @@ pub struct RunRecord {
     pub columns: Vec<(String, String)>,
 }
 
+/// The frame a `let` of the script bound in the last run, under the hash of the statement's
+/// text: each variable's count of missing values and its label, for an editor to show beside
+/// the variable (Engine and Project Specification, section 12; open decision #145).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FrameRecord {
+    pub statement: u64,
+    /// Name, missing values, label (empty where the variable has none).
+    pub variables: Vec<(String, u64, String)>,
+}
+
 /// A data root's file as the last run read it (Engine and Project Specification, section 2,
 /// "Data roots"): its hash and modification time, so that the next run can say it changed.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,6 +68,7 @@ pub struct SchemaCache<'a> {
     project: &'a Project,
     entries: RefCell<Vec<Entry>>,
     runs: RefCell<Vec<RunRecord>>,
+    frames: RefCell<Vec<FrameRecord>>,
     roots: RefCell<Vec<RootRead>>,
     dirty: Cell<bool>,
     datasets: RefCell<HashMap<String, Option<FrameSchema>>>,
@@ -77,6 +88,7 @@ impl<'a> SchemaCache<'a> {
             project,
             entries: RefCell::new(loaded.entries),
             runs: RefCell::new(loaded.runs),
+            frames: RefCell::new(loaded.frames),
             roots: RefCell::new(loaded.roots),
             dirty: Cell::new(false),
             datasets: RefCell::new(HashMap::new()),
@@ -103,6 +115,27 @@ impl<'a> SchemaCache<'a> {
         let mut runs = self.runs.borrow_mut();
         runs.retain(|r| r.statement != statement);
         runs.push(RunRecord { statement, columns });
+        self.dirty.set(true);
+    }
+
+    /// The last run's records of the frames the script's `let`s bound.
+    pub fn frames(&self) -> Vec<FrameRecord> {
+        self.frames.borrow().clone()
+    }
+
+    /// Record the frame a `let` of the script bound, for the next check. A record that says
+    /// what the last run's said changes nothing, and the cache is not written for it.
+    pub fn record_frame(&self, statement: u64, variables: Vec<(String, u64, String)>) {
+        let mut frames = self.frames.borrow_mut();
+        let record = FrameRecord {
+            statement,
+            variables,
+        };
+        if frames.contains(&record) {
+            return;
+        }
+        frames.retain(|f| f.statement != statement);
+        frames.push(record);
         self.dirty.set(true);
     }
 
@@ -151,6 +184,7 @@ impl<'a> SchemaCache<'a> {
             &self.entries.borrow(),
             &self.runs.borrow(),
             &self.roots.borrow(),
+            &self.frames.borrow(),
         );
         self.fs
             .write(&self.project.root.join(CACHE_FILE), text.as_bytes())?;
@@ -255,6 +289,14 @@ impl Schemas for SchemaCache<'_> {
             .map(|r| r.columns.clone())
     }
 
+    fn last_frame(&self, statement: u64) -> Option<Vec<(String, u64, String)>> {
+        self.frames
+            .borrow()
+            .iter()
+            .find(|f| f.statement == statement)
+            .map(|f| f.variables.clone())
+    }
+
     fn dataset(&self, name: &str) -> Option<FrameSchema> {
         if let Some(found) = self.datasets.borrow().get(name) {
             return found.clone();
@@ -269,7 +311,21 @@ impl Schemas for SchemaCache<'_> {
                     (column.clone(), ty.to_string())
                 })
                 .collect();
-            FrameSchema::from_names(name, &columns)
+            let mut schema = FrameSchema::from_names(name, &columns);
+            // A shipped dataset is known whole when the engine is built: each variable's
+            // count of missing values and its label (open decision #145).
+            for (i, column) in table.names().iter().enumerate() {
+                if let Some(data) = table.column_at(i) {
+                    let facts = schema.facts_mut(column);
+                    facts.missing = Some(data.n_missing() as u64);
+                    facts.label = data
+                        .metadata()
+                        .get(zeff_columns::MetadataKey::Label)
+                        .unwrap_or("")
+                        .to_string();
+                }
+            }
+            schema
         });
         self.datasets
             .borrow_mut()
@@ -348,6 +404,7 @@ pub struct CacheContents {
     pub entries: Vec<Entry>,
     pub runs: Vec<RunRecord>,
     pub roots: Vec<RootRead>,
+    pub frames: Vec<FrameRecord>,
 }
 
 fn columns_json(columns: &[(String, String)]) -> String {
@@ -358,9 +415,15 @@ fn columns_json(columns: &[(String, String)]) -> String {
         .join(", ")
 }
 
-/// The whole cache as the file's text: the schemas, the last run's records and the data-root
-/// reads.
-pub fn write_cache(entries: &[Entry], runs: &[RunRecord], roots: &[RootRead]) -> String {
+/// The whole cache as the file's text: the schemas, the last run's records, the data-root
+/// reads and the frames the last run bound. The frames come last, and a file without them
+/// (one written before release 0.7.0) is read as having none.
+pub fn write_cache(
+    entries: &[Entry],
+    runs: &[RunRecord],
+    roots: &[RootRead],
+    frames: &[FrameRecord],
+) -> String {
     let mut out = write_entries(entries);
     out.truncate(out.trim_end().trim_end_matches('}').trim_end().len());
     out.push_str(",\n  \"runs\": [\n");
@@ -380,6 +443,22 @@ pub fn write_cache(entries: &[Entry], runs: &[RunRecord], roots: &[RootRead]) ->
             json_string(&r.hash),
             r.modified.map_or("null".to_string(), |m| m.to_string()),
             if i + 1 < roots.len() { "," } else { "" }
+        ));
+    }
+    out.push_str("  ],\n  \"frames\": [\n");
+    for (i, f) in frames.iter().enumerate() {
+        let variables = f
+            .variables
+            .iter()
+            .map(|(name, missing, label)| {
+                format!("[{}, {missing}, {}]", json_string(name), json_string(label))
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        out.push_str(&format!(
+            "    {{\"statement\": {}, \"variables\": [{variables}]}}{}\n",
+            json_string(&format!("{:016x}", f.statement)),
+            if i + 1 < frames.len() { "," } else { "" }
         ));
     }
     out.push_str("  ]\n}\n");
@@ -425,10 +504,35 @@ pub fn parse_cache(text: &str) -> Option<CacheContents> {
             });
         }
     }
+    let mut frames = Vec::new();
+    if let Some(items) = object.field("frames").and_then(Json::array) {
+        for item in items {
+            let fields = item.object()?;
+            let statement = u64::from_str_radix(fields.field("statement")?.string()?, 16).ok()?;
+            let variables = fields
+                .field("variables")?
+                .array()?
+                .iter()
+                .map(|entry| {
+                    let entry = entry.array()?;
+                    Some((
+                        entry.first()?.string()?.to_string(),
+                        entry.get(1)?.number()? as u64,
+                        entry.get(2)?.string()?.to_string(),
+                    ))
+                })
+                .collect::<Option<Vec<_>>>()?;
+            frames.push(FrameRecord {
+                statement,
+                variables,
+            });
+        }
+    }
     Some(CacheContents {
         entries,
         runs,
         roots,
+        frames,
     })
 }
 
@@ -717,11 +821,36 @@ mod tests {
             hash: "ff".to_string(),
             modified: Some(1_000),
         }];
-        let text = write_cache(&entries, &runs, &roots);
+        let frames = vec![
+            FrameRecord {
+                statement: 0xfedc_ba98_7654_3210,
+                variables: vec![
+                    (
+                        "wage".to_string(),
+                        211,
+                        "Hourly \"wage\", in dollars".to_string(),
+                    ),
+                    ("firm".to_string(), 0, String::new()),
+                ],
+            },
+            FrameRecord {
+                statement: 7,
+                variables: Vec::new(),
+            },
+        ];
+        let text = write_cache(&entries, &runs, &roots, &frames);
         let contents = parse_cache(&text).unwrap();
         assert_eq!(contents.entries, entries);
         assert_eq!(contents.runs, runs);
         assert_eq!(contents.roots, roots);
+        assert_eq!(contents.frames, frames);
+        // A file written before the frames were recorded reads as having none.
+        let before = &text[..text.find(",\n  \"frames\"").unwrap()];
+        let contents = parse_cache(&format!("{before}\n}}\n")).unwrap();
+        assert_eq!(
+            (contents.roots, contents.frames),
+            (roots.clone(), Vec::new())
+        );
         // A file without the later sections still reads.
         assert_eq!(
             parse_cache(&write_entries(&entries)).unwrap().entries,

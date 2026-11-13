@@ -197,6 +197,7 @@ pub fn check_project_with(
             functions,
             schemas,
             bound_schemas,
+            frame_lets: checker.frame_lets,
             run_time_frames,
         },
         diagnostics: checker.found,
@@ -281,6 +282,8 @@ struct Checker<'a> {
     current_statement: Option<Span>,
     /// The script's statements that make such a frame, with their hashes.
     run_time_statements: Vec<(Span, u64)>,
+    /// The script's own `let` statements that bind a frame, with their hashes.
+    frame_lets: Vec<(Span, u64)>,
     /// How many project functions are being evaluated for their result's schema, one inside
     /// another; a bound, since a function may not call itself (Z0108).
     schema_depth: usize,
@@ -344,6 +347,7 @@ impl<'a> Checker<'a> {
             var_uses: Vec::new(),
             current_statement: None,
             run_time_statements: Vec::new(),
+            frame_lets: Vec::new(),
             schema_depth: 0,
             text,
             signatures: Vec::new(),
@@ -785,6 +789,7 @@ pub fn check_builtin(
                     functions,
                     schemas: Vec::new(),
                     bound_schemas: Vec::new(),
+                    frame_lets: Vec::new(),
                     run_time_frames: Vec::new(),
                 },
                 function: main,
@@ -920,7 +925,42 @@ impl Checker<'_> {
                 if matches!(value.kind, ExprKind::Attempt(_)) {
                     self.maybe_failed.insert(id);
                 }
+                // One of the script's own statements that binds a frame: a run records what
+                // it bound under the hash of its text, and what the last run recorded is
+                // added to what is known of the frame's variables.
+                let recorded = match (self.current_statement, self.text) {
+                    (Some(span), Some(text))
+                        if value.ty == Ty::Frame
+                            && span == statement.span
+                            && self.current_function.is_none() =>
+                    {
+                        let hash = statement_hash(text.get(span.start..span.end).unwrap_or(""));
+                        self.frame_lets.push((span, hash));
+                        self.schemas.and_then(|s| s.last_frame(hash))
+                    }
+                    _ => None,
+                };
                 if let Some(schema) = self.schema_of(&value) {
+                    let schema = match recorded {
+                        Some(variables) => {
+                            let mut known = (*schema).clone();
+                            for (name, missing, label) in variables {
+                                if !known.has(&name) {
+                                    continue;
+                                }
+                                let facts = known.facts_mut(&name);
+                                if facts.missing.is_none() {
+                                    facts.missing = Some(missing);
+                                    facts.last_run = true;
+                                }
+                                if facts.label.is_empty() && !label.is_empty() {
+                                    facts.label = label;
+                                }
+                            }
+                            Rc::new(known)
+                        }
+                        None => schema,
+                    };
                     self.binding_schemas.insert(id, schema);
                 }
                 Some(Statement::Let {
@@ -6492,6 +6532,7 @@ impl Checker<'_> {
                     .collect(),
                 origin: "the frame".to_string(),
                 from_last_run: false,
+                facts: Vec::new(),
             }),
             ("data", "to_wide") => {
                 self.run_time_step(call, "`to_wide`", "its columns depend on the data")
@@ -6863,7 +6904,20 @@ impl Checker<'_> {
         let mut out = (*input).clone();
         match call.name.as_str() {
             "head" | "tail" | "where" | "sort" | "sample" | "drop_missing" | "distinct"
-            | "panel" | "label" => {}
+            | "panel" => {}
+            "label" => {
+                // A label written as text in the script is known at once; an empty one
+                // removes it. A mapping labels the values, not the variable.
+                if let (Some(var), Some(text)) = (
+                    arg(1).and_then(names_of).and_then(|mut v| v.pop()),
+                    text_of(arg(2)),
+                ) && out.has(&var)
+                {
+                    let facts = out.facts_mut(&var);
+                    facts.label = text.trim().to_string();
+                    facts.last_run = false;
+                }
+            }
             "recode" => {
                 let var = names_of(arg(1)?)?.pop()?;
                 let value_ty = match arg(2).map(|e| &e.ty) {
@@ -6872,6 +6926,10 @@ impl Checker<'_> {
                 };
                 if let Some(column) = out.columns.iter_mut().find(|(n, _)| *n == var) {
                     column.1 = value_ty;
+                }
+                // Its values are others now: what was known of them is no longer.
+                if let Some(facts) = out.facts.iter_mut().find(|f| f.name == var) {
+                    facts.kind = String::new();
                 }
             }
             "select" => {
@@ -6891,6 +6949,11 @@ impl Checker<'_> {
                         && let Some(column) = out.columns.iter_mut().find(|(n, _)| n == old)
                     {
                         column.0 = new.clone();
+                        // What is known of the variable goes with it under its new name.
+                        out.facts.retain(|f| f.name != *new);
+                        if let Some(facts) = out.facts.iter_mut().find(|f| f.name == *old) {
+                            facts.name = new.clone();
+                        }
                     }
                 }
             }
@@ -7025,6 +7088,26 @@ impl Checker<'_> {
                 out.columns = columns;
             }
             _ => return None,
+        }
+        // What else was known of the variables (open decision #145): kept for those the step
+        // keeps and does not define anew; and their counts of missing values only through a
+        // step that keeps every row.
+        let defined: Vec<&String> = match call.name.as_str() {
+            "rename" => Vec::new(),
+            _ => call.definitions.iter().map(|(name, _)| name).collect(),
+        };
+        out.facts.retain(|f| {
+            out.columns.iter().any(|(n, _)| *n == f.name) && !defined.contains(&&f.name)
+        });
+        let keeps_every_row = matches!(
+            call.name.as_str(),
+            "sort" | "panel" | "label" | "select" | "drop" | "rename" | "add" | "update"
+        );
+        if !keeps_every_row {
+            for facts in &mut out.facts {
+                facts.missing = None;
+                facts.last_run = false;
+            }
         }
         Some(out)
     }

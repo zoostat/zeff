@@ -11,6 +11,27 @@
 use crate::Ty;
 use zeff_diagnostics::Diagnostic;
 
+/// What is known of a column beyond its name and the type of its values, for an editor to
+/// show beside the name (Engine and Project Specification, section 12; open decisions #77 and
+/// #145). Nothing here bears on whether a script is right: the check reads names and types.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ColumnFacts {
+    pub name: String,
+    /// The type as the column kernel names it, `Category` among them, which the type of the
+    /// column's values cannot say; empty where it is not known.
+    pub kind: String,
+    /// How many of its values are missing, where that is known without running: in a
+    /// shipped dataset, and in a frame the last run bound, carried through the steps that
+    /// keep every row.
+    pub missing: Option<u64>,
+    /// Its label; empty where it has none or none is known. It may be the script's own
+    /// (`label(var, "text")`), the dataset's, or what the last run found on the column.
+    pub label: String,
+    /// Whether the count is the last run's, which the data may since have left behind, and
+    /// not a fact of a shipped dataset.
+    pub last_run: bool,
+}
+
 /// The columns of a frame as the checker knows them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameSchema {
@@ -24,6 +45,8 @@ pub struct FrameSchema {
     /// the data (`to_wide`), so that a diagnostic resting on them is a warning marked
     /// `from last run`, never an error (section 11).
     pub from_last_run: bool,
+    /// What else is known of the columns, by name: of some, of all or of none.
+    pub facts: Vec<ColumnFacts>,
 }
 
 impl FrameSchema {
@@ -37,7 +60,35 @@ impl FrameSchema {
                 .collect(),
             origin: origin.to_string(),
             from_last_run: false,
+            facts: columns
+                .iter()
+                .map(|(name, ty)| ColumnFacts {
+                    name: name.clone(),
+                    kind: ty.clone(),
+                    ..ColumnFacts::default()
+                })
+                .collect(),
         }
+    }
+
+    /// What else is known of a column.
+    pub fn facts_of(&self, name: &str) -> Option<&ColumnFacts> {
+        self.facts.iter().find(|facts| facts.name == name)
+    }
+
+    /// What else is known of a column, to be added to: begun where nothing was known.
+    pub fn facts_mut(&mut self, name: &str) -> &mut ColumnFacts {
+        let at = match self.facts.iter().position(|facts| facts.name == name) {
+            Some(at) => at,
+            None => {
+                self.facts.push(ColumnFacts {
+                    name: name.to_string(),
+                    ..ColumnFacts::default()
+                });
+                self.facts.len() - 1
+            }
+        };
+        &mut self.facts[at]
     }
 
     /// The type of a column by name, when the frame has it.
@@ -133,6 +184,13 @@ pub trait Schemas {
 
     /// The columns the statement with this hash produced in the last run, if recorded.
     fn last_run(&self, statement_hash: u64) -> Option<Vec<(String, String)>> {
+        let _ = statement_hash;
+        None
+    }
+
+    /// The variables of the frame that the `let` with this hash bound in the last run, each
+    /// with its count of missing values and its label, if recorded (open decision #145).
+    fn last_frame(&self, statement_hash: u64) -> Option<Vec<(String, u64, String)>> {
         let _ = statement_hash;
         None
     }

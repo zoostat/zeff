@@ -344,6 +344,13 @@ impl Table {
         self.columns.get(index).map(|s| s.column())
     }
 
+    /// The column at a position where it is gathered already; `None` while it is pending,
+    /// which this never changes. For a reader that takes what is in hand and must not make
+    /// the table hold more than it does.
+    pub fn gathered_at(&self, index: usize) -> Option<&Column> {
+        self.columns.get(index).and_then(|s| s.ready.get())
+    }
+
     /// The 0-based position of the column called `name`.
     pub fn position(&self, name: &str) -> Option<usize> {
         self.names.iter().position(|n| n == name)

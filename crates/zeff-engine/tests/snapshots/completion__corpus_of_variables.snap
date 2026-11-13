@@ -128,8 +128,41 @@ then: 0 words, 4 argument names, 0 names in reach, 248 functions
 ----
 > let w = dataset(wages)
 > w.reg(log(wage) ~ |
-variables: worker Int, year Int, wage Float, educ Int, exper Int, age Int, hours Float, union Int, female Int, industry, firm Int
+variables: worker Int (Worker identifier, 0 missing), year Int (Calendar year, 0 missing), wage Float (Hourly wage, 211 missing), educ Int (Years of schooling, 0 missing), exper Int (Potential labour-market experience: age less schooling less six, 22 missing), age Int (Age, 0 missing), hours Float (Hours worked, 35 missing), union Int (Union member, 0 missing), female Int (Sex, 0 missing), industry Category (Industry, 0 missing), firm Int (Firm identifier, 0 missing)
 then: 0 words, 0 argument names, 1 names in reach, 248 functions
+----
+> dataset(wages).select([wage, hours, industry]).sort(wage).mean(|
+variables: wage Float (Hourly wage, 211 missing), hours Float (Hours worked, 35 missing), industry Category (Industry, 0 missing)
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
+----
+> dataset(wages).where(year == 2015).select([wage, hours, industry]).mean(|
+variables: wage Float (Hourly wage), hours Float (Hours worked), industry Category (Industry)
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
+----
+> dataset(wages).select([wage, hours]).head(100).mean(|
+variables: wage Float (Hourly wage), hours Float (Hours worked)
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
+----
+> dataset(wages).select([wage, hours]).rename(pay = wage).mean(|
+variables: pay Float (Hourly wage, 211 missing), hours Float (Hours worked, 35 missing)
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
+----
+> dataset(wages).select([wage, hours]).add(lwage = log(wage), hours = hours / 40).mean(|
+variables: wage Float (Hourly wage, 211 missing), hours, lwage Float
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
+----
+> dataset(wages).select([wage, hours]).label(wage, "Pay by the hour").label(hours, "").mean(|
+variables: wage Float (Pay by the hour, 211 missing), hours Float (35 missing)
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
+----
+> let d = import("data/small.csv")
+> d.label(b, "Score at entry").mean(|
+variables: a Int, b Float (Score at entry), c Str
+then: 0 words, 4 argument names, 1 names in reach, 248 functions
+----
+> dataset(wages).aggregate(pay = mean(wage), by: [industry, year]).mean(|
+variables: industry Category (Industry), year Int (Calendar year), pay Float
+then: 0 words, 4 argument names, 0 names in reach, 248 functions
 ----
 > let d = import("data/small.csv")
 > mean(d, |

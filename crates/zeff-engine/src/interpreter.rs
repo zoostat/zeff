@@ -46,6 +46,10 @@ pub struct Output {
     /// The columns each statement checked at run time produced (section 11, "from last run"),
     /// under the hash of the statement's text, for the schema cache.
     pub produced: Vec<(u64, Vec<(String, String)>)>,
+    /// The frame each `let` of the script bound, under the hash of the statement's text:
+    /// each variable's name, count of missing values and label, for the schema cache (open
+    /// decision #145).
+    pub frames: Vec<crate::schemas::FrameRecord>,
     /// The warnings a pragma silenced, in the order raised (Language Reference, section 11.1).
     pub allowed: Vec<Allowed>,
     /// Under `zeff test`: every `assert` the run evaluated, in order.
@@ -90,6 +94,9 @@ pub struct Interpreter<'a> {
     /// last use (`zeff run`; section 6, "Memory"); empty when they are kept.
     last_use: HashMap<usize, usize>,
     free_bindings: bool,
+    /// The frames the script bound whose record is still to be taken, each with the hash of
+    /// its statement.
+    bound_frames: Vec<(zeff_ir::BindingId, u64)>,
     program: &'a Program,
     /// A test hook: the statement at this line panics before it runs, to prove that a failure
     /// inside the engine becomes Z9001 and never a crash.
@@ -198,6 +205,7 @@ impl<'a> Interpreter<'a> {
             env: HashMap::new(),
             last_use: HashMap::new(),
             free_bindings: true,
+            bound_frames: Vec::new(),
             program,
             panic_at_line: None,
             width: PAGE_WIDTH,
@@ -675,6 +683,14 @@ impl<'a> Interpreter<'a> {
                     .collect();
                 output.produced.push((*hash, columns));
             }
+            // A frame bound by the script: what it holds is recorded when it is let go, or
+            // when the run ends (open decision #145).
+            if let Statement::Let { binding, span, .. } = statement
+                && matches!(self.env.get(binding), Some(Value::Frame(_)))
+                && let Some((_, hash)) = self.program.frame_lets.iter().find(|(s, _)| s == span)
+            {
+                self.bound_frames.push((*binding, *hash));
+            }
             if let Statement::Let { binding, .. } = statement
                 && let Some(Value::Frame(frame)) = self.env.get(binding)
             {
@@ -698,12 +714,50 @@ impl<'a> Interpreter<'a> {
                 });
             }
             if failed {
+                self.record_frames(None, output);
                 self.keep_frames();
                 return result.map(|_| ());
             }
         }
+        self.record_frames(None, output);
         self.keep_frames();
         Ok(())
+    }
+
+    /// Record what the frames the script bound hold, for an editor to show beside their
+    /// variables at the next check (open decision #145): each variable's count of missing
+    /// values and its label. Of one binding as it is let go, or of all that are left when
+    /// the run ends. Only the columns the run has gathered are read: a column still pending
+    /// on the frame it was selected from is left out, so that recording never makes a frame
+    /// hold more than the run made it hold.
+    fn record_frames(&mut self, only: Option<zeff_ir::BindingId>, output: &mut Output) {
+        let (now, later): (Vec<_>, Vec<_>) = std::mem::take(&mut self.bound_frames)
+            .into_iter()
+            .partition(|(binding, _)| only.is_none_or(|id| id == *binding));
+        self.bound_frames = later;
+        for (binding, hash) in now {
+            let Some(Value::Frame(frame)) = self.env.get(&binding) else {
+                continue;
+            };
+            let variables: Vec<(String, u64, String)> = frame
+                .table
+                .names()
+                .iter()
+                .enumerate()
+                .filter_map(|(i, name)| {
+                    let column = frame.table.gathered_at(i)?;
+                    let label = column
+                        .metadata()
+                        .get(zeff_columns::MetadataKey::Label)
+                        .unwrap_or("");
+                    Some((name.clone(), column.n_missing() as u64, label.to_string()))
+                })
+                .collect();
+            output.frames.push(crate::schemas::FrameRecord {
+                statement: hash,
+                variables,
+            });
+        }
     }
 
     /// Free every top-level binding whose last use is the statement at `index` (or that was never
@@ -720,6 +774,7 @@ impl<'a> Interpreter<'a> {
             })
             .collect();
         for id in dead {
+            self.record_frames(Some(id), output);
             let Some(value) = self.env.remove(&id) else {
                 continue;
             };

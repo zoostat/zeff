@@ -46,6 +46,10 @@ pub struct Program {
     /// import of a file that does not exist yet), by span, with the hash of the statement's
     /// text under which the run records the columns it produced (section 11, "from last run").
     pub run_time_frames: Vec<(Span, u64)>,
+    /// The script's own `let` statements that bind a frame, by span, with the hash of the
+    /// statement's text, under which a run records each variable's count of missing values
+    /// and its label for an editor to show (open decision #145).
+    pub frame_lets: Vec<(Span, u64)>,
 }
 
 /// A function by position in [`Program::functions`].

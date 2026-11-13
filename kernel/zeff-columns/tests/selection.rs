@@ -42,11 +42,26 @@ fn a_large_selection_is_pending_until_read_and_a_small_one_gathers_at_once() {
     let before = lazy.byte_size();
     assert_eq!(before.own, 0);
     assert!(before.kept > 0, "the parent's buffers are kept");
+    // A reader that takes what is in hand finds no column gathered, and leaves it so.
+    let position = lazy.position("i").unwrap();
+    assert!((0..lazy.n_cols()).all(|i| lazy.gathered_at(i).is_none()));
+    assert_eq!(lazy.byte_size(), before);
     // Reading one column gathers that column only.
     assert_eq!(lazy.column("i").unwrap().get(1), Some(Value::Int(2)));
     let after = lazy.byte_size();
     assert!(after.own > 0 && after.kept < before.kept);
     assert!(lazy.is_pending());
+    assert_eq!(
+        lazy.gathered_at(position).map(|column| column.len()),
+        Some(rows.len())
+    );
+    assert_eq!(
+        (0..lazy.n_cols())
+            .filter(|i| lazy.gathered_at(*i).is_some())
+            .count(),
+        1
+    );
+    assert!(lazy.gathered_at(99).is_none());
     lazy.compact();
     assert!(!lazy.is_pending());
     assert_eq!(lazy.byte_size().kept, 0);

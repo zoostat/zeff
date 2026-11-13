@@ -5,7 +5,9 @@
 //! (release 0.7.0, step 35a). Inside a call, before those: the words an argument takes where
 //! it takes one of a fixed list, and the names of the arguments not yet given (step 35b).
 //! And before all of these, where a bare name is a variable of a frame, the variables of that
-//! frame at that point of its chain, with their types (step 35c; open decision #77).
+//! frame at that point of its chain, with their types (step 35c; open decision #77), and
+//! with their labels and counts of missing values where those are known without running
+//! (step 35d; open decision #145).
 //!
 //! The value before a dot is typed by the checker, on the document as typed with the
 //! unfinished word set aside. Nothing is run.
@@ -52,9 +54,27 @@ pub struct Completion {
     /// size; an argument's type and default; for a word, the argument that takes it.
     pub detail: String,
     /// The summary line of a function's or a dataset's help page, or an argument's line of
-    /// its function's page; for a variable, `from last run` where the last run is what is
-    /// known of it; empty where there is none.
+    /// its function's page; for a variable, its label, its count of missing values and
+    /// `from last run` where the last run is what is known of it; empty where there is none.
     pub summary: String,
+    /// For a variable of a frame, what is known of it, apart; `None` for everything else.
+    pub variable: Option<VariableFacts>,
+}
+
+/// What is known of a variable offered (open decisions #77 and #145).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VariableFacts {
+    /// Its type: of its values where the check has it (`Float`), else as the column is kept
+    /// (`Category`); empty where neither is known, as for a variable made by `add`.
+    pub ty: String,
+    /// How many of its values are missing, where that is known without running: in a shipped
+    /// dataset, and in a frame the last run bound, through the steps that keep every row.
+    pub missing: Option<u64>,
+    /// Its label; empty where it has none or none is known.
+    pub label: String,
+    /// Whether the count is the last run's, or the variable itself is known only from the
+    /// last run.
+    pub from_last_run: bool,
 }
 
 impl Completion {
@@ -63,6 +83,7 @@ impl Completion {
         Completion {
             label: label.to_string(),
             insert: label.to_string(),
+            variable: None,
             kind,
             detail,
             summary,
@@ -367,20 +388,33 @@ fn variables_of_the_frame(
             .columns
             .iter()
             .map(|(name, ty)| {
-                Completion::new(
-                    name,
-                    CompletionKind::Variable,
-                    match ty {
-                        // A category, or a column of values that are no simple type.
-                        Ty::Unknown => String::new(),
+                let known = schema.facts_of(name);
+                let facts = VariableFacts {
+                    ty: match ty {
+                        // A category, or a column of values that are no simple type: as the
+                        // column is kept, where that is known.
+                        Ty::Unknown => known.map_or(String::new(), |k| k.kind.clone()),
                         ty => ty.to_string(),
                     },
-                    if schema.from_last_run {
-                        "from last run".to_string()
-                    } else {
-                        String::new()
-                    },
-                )
+                    missing: known.and_then(|k| k.missing),
+                    label: known.map_or(String::new(), |k| k.label.clone()),
+                    from_last_run: schema.from_last_run || known.is_some_and(|k| k.last_run),
+                };
+                // In one line: the label, the count, and whose they are.
+                let mut said: Vec<String> = Vec::new();
+                if !facts.label.is_empty() {
+                    said.push(facts.label.clone());
+                }
+                if let Some(missing) = facts.missing {
+                    said.push(format!("{} missing", zeff_diagnostics::count(missing)));
+                }
+                if facts.from_last_run {
+                    said.push("from last run".to_string());
+                }
+                Completion {
+                    variable: Some(facts.clone()),
+                    ..Completion::new(name, CompletionKind::Variable, facts.ty, said.join(", "))
+                }
             })
             .collect();
     }
@@ -417,6 +451,7 @@ fn project_function(function: &zeff_ir::Function) -> Completion {
     Completion {
         label: function.name.clone(),
         insert: function.name.clone(),
+        variable: None,
         kind: CompletionKind::Function,
         detail: format!("{}({}){returns}", function.name, params.join(", ")),
         summary: function
@@ -449,6 +484,7 @@ fn engine_function(f: &zeff_registry::Registered, label: &str) -> Completion {
     Completion {
         label: label.to_string(),
         insert: label.to_string(),
+        variable: None,
         kind: if f.spec.method {
             CompletionKind::Method
         } else {
@@ -476,6 +512,7 @@ fn after_a_value(
             items.push(Completion {
                 label: name.clone(),
                 insert: name.clone(),
+                variable: None,
                 kind: CompletionKind::Field,
                 detail: ty.to_string(),
                 summary: String::new(),
@@ -545,6 +582,7 @@ fn bindings_in_reach(check: &Check, at: usize) -> Vec<Completion> {
             items.push(Completion {
                 label: binding.name.clone(),
                 insert: binding.name.clone(),
+                variable: None,
                 kind: CompletionKind::Binding,
                 detail: binding.ty.to_string(),
                 summary: String::new(),
@@ -604,6 +642,7 @@ fn inside_a_call(
             items.push(Completion {
                 label: parameter.name.clone(),
                 insert: format!("{}: ", parameter.name),
+                variable: None,
                 kind: CompletionKind::Argument,
                 detail: parameter.ty.clone(),
                 summary: parameter.help.clone(),
@@ -733,6 +772,7 @@ pub fn completions(
             .map(|d| Completion {
                 label: d.spec.name.to_string(),
                 insert: d.spec.name.to_string(),
+                variable: None,
                 kind: CompletionKind::Dataset,
                 detail: format!(
                     "{} rows, {} variables",

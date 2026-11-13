@@ -16,5 +16,5 @@ pub use ir::{
     Binding, BindingId, BindingKind, Call, Expr, ExprKind, FnId, Function, FunctionValue, Param,
     Program, RecordField, Slot, Spread, Statement,
 };
-pub use schema::{FrameSchema, ImportRequest, SchemaLookup, Schemas, column_ty};
+pub use schema::{ColumnFacts, FrameSchema, ImportRequest, SchemaLookup, Schemas, column_ty};
 pub use ty::{ResultKind, Ty};

@@ -19,7 +19,7 @@ use zeff_diagnostics::{Diagnostic, Severity, Span};
 pub(crate) mod call;
 pub mod complete;
 
-pub use complete::{Completion, CompletionKind, Completions, completions};
+pub use complete::{Completion, CompletionKind, Completions, VariableFacts, completions};
 
 /// A place in a document as the Language Server Protocol counts it: the line from 0, and the
 /// column in UTF-16 code units from 0 (a letter outside the basic plane counts two).
