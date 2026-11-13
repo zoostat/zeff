@@ -2667,3 +2667,26 @@ Raised on 13 November 2026 at step 30b of release 0.7.0. Open decision #71 (deci
 
 **The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. It sets aside, for this release, the clause of #71 that returns `vif` to Zeff at step 30, and so it is named to him in the announcement of the step. The note of catalogue row 248 says why the layer is Rust still, logged in `docs/spec_changes.md`.
 
+### 137. The layout `zeff fmt` writes where section 3.5 is silent
+
+Raised on 13 November 2026 at step 31 of release 0.7.0, where `zeff fmt` is built. Section 3.5 of the Language Reference gives the style in eight rows and one example: four spaces, lines of at most 100 characters, a chain that does not fit broken one `.method()` to a line, `name: value`, long calls broken after a comma, the spacing of the operators, model blocks with their operators aligned. A formatter must also decide what the table does not say, and it decides for every script anyone writes, since it has no settings and Zemp runs it on save. The specification's own sample script (`zeff_samples.zeff`) is written in one consistent hand, and shows an answer to each question; the recommendation in each row is that answer.
+
+| # | Question | What the sample script does | Recommendation |
+| --- | --- | --- | --- |
+| 1 | A call too long for its line: how are its arguments laid out? | The first argument stays beside the opening parenthesis and each of the others has a line of its own, starting under the first (`import("data/wages.csv",` then `na_values: ...` under the quotation mark) | The same. Where even that does not fit in 100 characters, the arguments start on the next line, one to a line, four spaces in, with the closing parenthesis on a line of its own |
+| 2 | A comment at the end of a line of code: where does it start? | Most start at column 55, whatever the code beside them, so that they read as a column down the page | Column 55, or two spaces after the code where the code reaches further. A fixed column does not move when a neighbouring line changes, so a change to one line is a change to one line |
+| 3 | Blank lines between statements | One between related statements, two before each numbered section | Kept as written, two at most; none at the start or the end of a block, one at the end of the file |
+| 4 | The arms of a `case` written one to a line | The arrows `=>` are aligned | Aligned |
+| 5 | A chain: when is it broken? | Whenever it does not fit, every `.method()` on its own line, four spaces in; a chain of one method keeps to its line and its call is broken as in 1 | The same |
+| 6 | A line that cannot be made to fit (a long string, a long name) | Left long | Left long: a string is never split |
+| 7 | The specification's sample script itself, a normative file | It is a script of the repository | Formatted like every other; what changes is spacing alone, logged in `docs/spec_changes.md` as a change of form |
+
+| Option | For | Against |
+| --- | --- | --- |
+| A. The seven recommendations, which make the sample script the standard | The style is the one the specification already shows; the sample changes least | Arguments aligned under a parenthesis move when the name before it changes length, which a block indent would not |
+| B. As A, but a broken call always puts its arguments four spaces in, one to a line (question 1) | A change of a name never moves the lines under it; no deep indents | Not the hand of the sample: nearly every broken call in it would be rewritten, and so the text of sections 3 and 6 that quotes them |
+
+*Recommendation.* A. Deadline: 0.7.0, step 31a.
+
+**The decision (13 November 2026).** As recommended, taken under the owner's standing instruction of 12 November 2026 ("If at any point any decisions to be taken by me, I will go by your recommended decisions"), which he may overturn: A. The rules live in one place in the formatter, so a ruling for B, or another answer to any one question, is a change of that place and a second run of `zeff fmt` over the repository.
+

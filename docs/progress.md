@@ -160,6 +160,6 @@ Step 29c was split in two. 29c1 `[engine]`: a function is known by its package, 
 
 **Green.** Format, clippy with warnings denied, the tier and message checks, every test program of the routine; `zeff selftest` at 469 of 469; CI is read job by job after the push.
 
-**Next.** Step 31 `[engine]`: `zeff fmt`.
+**Next.** Step 31, `zeff fmt`, was split in three on the same day: 31a `[engine]` the formatter as a function of a script's text, 31b `[engine]` the command and `--check`, with every script of the repository formatted, 31c `[engine]` the nightly fuzz target. The layout it writes where section 3.5 is silent is open decision #137, taken as option A on the recommendation (the hand of the specification's sample script), the owner's to overturn. The next is step 31a `[engine]`.
 
 **For the owner to decide.** Open decision #136 (`vif` in Zeff), taken as option A on the recommendation, his to overturn. Taken on the recommendation at this step, his to overturn: the base period of an event study is an empty place and not a point at zero; the points are not joined. Open as before: #133, #132, the marks of a slide (step 26b), #131, #109 (question 2), #130, the internal error of `add` under #108, #129, #105, #102, #101, #100, the stray file `Rplots.pdf` and the permission to install `emmeans` 2.0.4.
