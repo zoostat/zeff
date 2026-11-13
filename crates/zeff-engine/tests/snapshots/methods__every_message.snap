@@ -54,6 +54,7 @@ error[Z0103]: no function is called `nope`
 7 | apply(nope, 1)
   |       ^^^^ not a function
   |
+  = help: did you mean `note`?
   = help: a parameter of type `Fn(Int) -> Int` takes the bare name of a function with that signature
 
 ## too_many_through_value (exit 1)

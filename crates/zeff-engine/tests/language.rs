@@ -202,11 +202,8 @@ fn a_script_is_checked_as_it_is_typed_not_as_it_was_saved() {
     assert_eq!(found[0].code, "Z0103");
     assert_eq!(found[0].level, Level::Error);
     assert_eq!(found[0].message, "no function is called `twise`");
-    assert_eq!(found[0].label, "not a function of Zeff");
-    assert_eq!(
-        found[0].help,
-        ["`zeff help` lists the functions of this release"]
-    );
+    assert_eq!(found[0].label, "not a function of Zeff or of this project");
+    assert_eq!(found[0].help, ["did you mean `twice`?"]);
     assert_eq!(
         found[0].range,
         Range {

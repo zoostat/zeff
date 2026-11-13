@@ -78,6 +78,176 @@ fn use_brings_a_module_s_public_functions_into_the_script() {
 }
 
 #[test]
+fn a_function_of_the_script_sees_what_use_brought_in() {
+    // By its short name, as the top level of the script does (section 5.3, "Scope"; step 38b of
+    // 0.7.0), wherever the function stands in the file.
+    assert_eq!(
+        prints(
+            "use functions::clean\n/// Eight times.\nfn eight(x: Float) -> Float { quadruple(x) * 2 }\neight(1)\n"
+        ),
+        "8\n"
+    );
+    assert_eq!(
+        prints(
+            "/// Eight times.\nfn eight(x: Float) -> Float { quadruple(x) * 2 }\nuse functions::clean::quadruple\neight(1.5)\n"
+        ),
+        "12\n"
+    );
+    // As a method, and as a function passed by its name.
+    assert_eq!(
+        prints(
+            "use functions::clean\n/// The share, in per cent.\nfn per_cent(d: Frame) -> Float { d.share_missing(wage) * 100 }\n/// Each, four times.\nfn fourfold(xs: List<Float>) -> List<Float> { map(xs, quadruple) }\ndataset(wages).per_cent()\nfourfold([1.0, 2])\n"
+        ),
+        "1.14599\n4\n8\n"
+    );
+    // The full forms, with and without `use`.
+    assert_eq!(
+        prints(
+            "/// Eight times.\nfn eight(x: Float) -> Float { clean::quadruple(x) * 2 }\neight(1)\n"
+        ),
+        "8\n"
+    );
+    assert_eq!(
+        prints(
+            "use functions::clean\n/// Eight times.\nfn eight(x: Float) -> Float { functions::quadruple(x) * 2 }\neight(1)\n"
+        ),
+        "8\n"
+    );
+    // One function brought in is one function: the module's others stay out of the body.
+    assert_eq!(
+        error_code(
+            "use functions::clean::quadruple\n/// A share.\nfn share(d: Frame) -> Float { d.share_missing(wage) }\n1\n"
+        ),
+        "Z0103"
+    );
+    // Not brought in, the short name is refused inside a body as at the top level.
+    assert_eq!(
+        error_code(
+            "/// Eight times.\nfn eight(x: Float) -> Float { quadruple(x) * 2 }\neight(1)\n"
+        ),
+        "Z0103"
+    );
+    // A private name stays in its file.
+    assert_eq!(
+        error_code(
+            "use functions::clean\n/// Twice.\nfn two(x: Float) -> Float { _twice(x) }\ntwo(1)\n"
+        ),
+        "Z0103"
+    );
+    // A name two modules share: one brought in alone is that one; written in full, either.
+    let both = [("clean", CLEAN), ("tidy", TIDY)];
+    let outcome = run_with(
+        &both,
+        "use functions::tidy::share_missing\n/// The share.\nfn share(d: Frame) -> Float { share_missing(d) }\n/// The other.\nfn other(d: Frame) -> Float { clean::share_missing(d, wage) }\nlet w = dataset(wages)\nshare(w)\nother(w)\n",
+    );
+    assert_eq!(outcome.exit_code, 0, "{}", outcome.output.stderr);
+    assert_eq!(outcome.output.stdout, "0.5\n0.0114599\n");
+    assert_eq!(
+        error_code_with(
+            &both,
+            "use functions::clean\nuse functions::tidy\n/// The share.\nfn share(d: Frame) -> Float { share_missing(d) }\n1\n"
+        ),
+        "Z0107"
+    );
+}
+
+/// The help line of the error that stopped a script.
+fn help_of(modules: &[(&str, &str)], script: &str) -> String {
+    let outcome = run_with(modules, script);
+    assert_eq!(outcome.exit_code, 1, "{script}:\n{}", outcome.output.stderr);
+    let stderr = &outcome.output.stderr;
+    assert!(stderr.contains("error[Z0103]"), "{stderr}");
+    let start = stderr.find("= help: ").expect(stderr) + 8;
+    stderr[start..].lines().next().unwrap().to_string()
+}
+
+#[test]
+fn a_misspelt_name_is_compared_with_the_project_s_functions() {
+    let clean = [("clean", CLEAN)];
+    // A function `use` brought in, at the top level and inside a body.
+    assert_eq!(
+        help_of(&clean, "use functions::clean\nquadrupel(2)\n"),
+        "did you mean `quadruple`?"
+    );
+    assert_eq!(
+        help_of(
+            &clean,
+            "use functions::clean\n/// Eight times.\nfn eight(x: Float) -> Float { quadrupel(x) * 2 }\neight(1)\n"
+        ),
+        "did you mean `quadruple`?"
+    );
+    // A function of the script itself, called and passed by its name.
+    assert_eq!(
+        help_of(
+            &clean,
+            "/// Twice.\nfn twice(x: Float) -> Float { x * 2 }\ntwise(2)\n"
+        ),
+        "did you mean `twice`?"
+    );
+    assert_eq!(
+        help_of(
+            &clean,
+            "/// Twice.\nfn twice(x: Float) -> Float { x * 2 }\nmap([1.0, 2], twise)\n"
+        ),
+        "did you mean `twice`?"
+    );
+    // A module's function the script has not brought in: the name itself, and near it.
+    assert_eq!(
+        help_of(&clean, "quadruple(2)\n"),
+        "`use functions::clean` brings it in, or write `clean::quadruple(...)`"
+    );
+    assert_eq!(
+        help_of(&clean, "quadrupel(2)\n"),
+        "did you mean `clean::quadruple`? `use functions::clean` brings it in by its short name"
+    );
+    // A private name of another file is never offered.
+    assert_eq!(
+        help_of(&clean, "use functions::clean\n_twise(2)\n"),
+        "`zeff help` lists the functions of this release"
+    );
+    assert_eq!(
+        help_of(&clean, "use functions::clean\n_twice(2)\n"),
+        "`_twice` is private to `functions/clean.zeff`: a name starting with `_` is seen in its own file only"
+    );
+    // A built-in function is still found, and a name far from every function gets none.
+    assert_eq!(
+        help_of(&clean, "use functions::clean\nmedain([1.0, 2])\n"),
+        "did you mean `median`?"
+    );
+    assert_eq!(
+        help_of(&clean, "use functions::clean\nzzzzzz(2)\n"),
+        "`zeff help` lists the functions of this release"
+    );
+    // Inside a module: its own functions, the private ones too, and the other modules' public
+    // ones.
+    let caller = |body: &str| {
+        format!(
+            "/// Calls another.\n/// x: The number.\n/// returns: A number.\n/// > call(1)\n/// 1\nfn call(x: Float) -> Float {{ {body} }}\n/// A helper.\n/// x: The number.\n/// returns: The number.\n/// > _helper(1)\n/// 1\nfn _helper(x: Float) -> Float {{ x }}\n"
+        )
+    };
+    let other = caller("quadrupel(x)");
+    assert_eq!(
+        help_of(&[("clean", CLEAN), ("other", &other)], "other::call(1)\n"),
+        "did you mean `quadruple`?"
+    );
+    let own = caller("_helpre(x)");
+    assert_eq!(
+        help_of(&[("clean", CLEAN), ("other", &own)], "other::call(1)\n"),
+        "did you mean `_helper`?"
+    );
+    let private = caller("_twise(x)");
+    assert_eq!(
+        help_of(&[("clean", CLEAN), ("other", &private)], "other::call(1)\n"),
+        "`zeff help` lists the functions of this release"
+    );
+    let private = caller("_twice(x)");
+    assert_eq!(
+        help_of(&[("clean", CLEAN), ("other", &private)], "other::call(1)\n"),
+        "`_twice` is private to `functions/clean.zeff`: a name starting with `_` is seen in its own file only"
+    );
+}
+
+#[test]
 fn a_private_function_stays_in_its_file() {
     assert_eq!(error_code("use functions::clean\n_twice(2)\n"), "Z0103");
     assert_eq!(error_code("use functions::clean::_twice\n"), "Z0103");
@@ -260,6 +430,36 @@ fn every_message_of_modules() {
         ),
         ("third_party_package", vec![("clean", CLEAN)], "use stats\n"),
         ("not_brought_in", vec![("clean", CLEAN)], "quadruple(2)\n"),
+        (
+            "not_brought_in_inside_a_function",
+            vec![("clean", CLEAN)],
+            "/// Eight times.\nfn eight(x: Float) -> Float { quadruple(x) * 2 }\neight(1)\n",
+        ),
+        (
+            "misspelt_after_use",
+            vec![("clean", CLEAN)],
+            "use functions::clean\n/// Eight times.\nfn eight(x: Float) -> Float { quadrupel(x) * 2 }\neight(1)\n",
+        ),
+        (
+            "misspelt_and_not_brought_in",
+            vec![("clean", CLEAN)],
+            "quadrupel(2)\n",
+        ),
+        (
+            "misspelt_function_of_the_script",
+            vec![("clean", CLEAN)],
+            "/// Twice.\nfn twice(x: Float) -> Float { x * 2 }\nmap([1.0, 2], twise)\n",
+        ),
+        (
+            "private_inside_a_function",
+            vec![("clean", CLEAN)],
+            "use functions::clean\n/// Twice.\nfn two(x: Float) -> Float { _twice(x) }\ntwo(1)\n",
+        ),
+        (
+            "shared_name_inside_a_function",
+            vec![("clean", CLEAN), ("tidy", TIDY)],
+            "use functions::clean\nuse functions::tidy\n/// The share.\nfn share(d: Frame) -> Float { share_missing(d) }\n1\n",
+        ),
         (
             "two_modules_one_name",
             vec![("clean", CLEAN), ("tidy", TIDY)],

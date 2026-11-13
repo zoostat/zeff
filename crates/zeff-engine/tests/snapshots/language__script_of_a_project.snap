@@ -33,7 +33,7 @@ expression: all
     here: not a variable of d
     help: did you mean `a`? If you meant a category level, write it in quotes: `"a"`
 2:2-2:6 error[Z0103]: no function is called `maen`
-    here: not a function of Zeff
+    here: not a function of Zeff or of this project
     help: did you mean `mean`?
 ----
 > let d = import("data/small.csv")

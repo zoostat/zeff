@@ -99,18 +99,6 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   that name gives way to the variable under the warning W0102, so the function's result can
   depend on the names of the frame's variables. (Since 0.5.0; found on 13 November 2026; open
   decision #140, and step 38c of 0.7.0 if it is ruled as recommended.)
-- **A function written in a script does not see, by its short name, a module function the
-  script brought in with `use`.** After `use functions::checks`, a call of `positive(x)` inside a
-  `fn` of the script is refused as an unknown function (Z0103), though the same call at the top
-  level of the script is accepted and section 5.3 of the Language Reference lets a function body
-  see the project's functions. Written with its module, `checks::positive(x)`, the call is
-  accepted. (Since 0.5.0; found on 13 November 2026 at step 32a of 0.7.0; put right at step 38b
-  of 0.7.0.)
-- **A misspelt name is not compared with the project's own functions.** After `use
-  functions::clean`, which holds `twice`, a call of `twise(2)` is refused as it should be
-  (Z0103), but the message offers no "did you mean `twice`?" and says "not a function of Zeff";
-  the suggestion is drawn from the engine's functions alone. Nothing wrong is computed. (Since
-  0.5.0; found on 13 November 2026 at step 34a of 0.7.0; put right at step 38b of 0.7.0.)
 - **The constructs the grammar has but this release does not run** are a `model { }` block
   (1.3), a `dag { }` block (0.10.0), a label written with `as` (1.3) and `use` of a third-party
   package (1.11); each is refused with Z0304, whose explained page lists them. Everything else of
@@ -302,6 +290,15 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
   one of the three functions; such a run printed the warning or the note. Corrected at step
   32d of 0.7.0: on every other frame the three give the same bits as before. `iqr`, `center`,
   `standardize`, `winsorize` and `quantile_group` were not affected.
+- A function written in a script sees, by its short name, a module function the script brought
+  in with `use` (listed at 0.6.0 as refused with Z0103 unless written `checks::positive(x)`):
+  the script's `use` lines are read before the bodies of its functions, so a body sees what the
+  top level sees, as section 5.3 of the Language Reference says. Since step 38b.
+- A misspelt name is compared with the project's own functions (listed at 0.6.0 as compared
+  with the engine's alone): after `use functions::clean`, `twise(2)` is answered with "did you
+  mean `twice`?". A public function of a module the script has not brought in is answered with
+  the `use` line that brings it in, and a private function of another file with the reason it
+  is not seen. Since step 38b.
 - The examples of a module function's page are run: `zeff test` runs every `/// >` example of
   every function of `functions/` in the project and compares what it prints with the lines under
   it (listed at 0.5.0 as parsed and syntax-checked but not run). Since steps 32a and 32b.

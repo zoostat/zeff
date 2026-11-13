@@ -4835,3 +4835,15 @@ error[Z0001]: no rows to take the mean of
 **Installed for the test.** The fish shell, 4.9.3, with Homebrew as the standing instructions allow; Homebrew upgraded one library it depends on, `pcre2`, from 10.46 to 10.49 as it did so. The shells are run with their own files kept in a temporary folder, so that nothing is written into the home folder.
 
 **Reason.** The checklist's step 38; Engine and Project Specification, section 2.1.
+
+## 14 November 2026: a script's functions see what `use` brought in, and a misspelt name is compared with the project's functions (release 0.7.0, step 38b)
+
+**The fault and its cause.** After `use functions::clean`, a function written in the script could not call `quadruple(x)` by its short name (Z0103), though the top level of the same script could. The checker read the bodies of the script's functions before the script's `use` lines, so the list of names brought in was still empty when a body was checked.
+
+**The choice.** The script's `use` lines are read after the signatures of its functions are collected and before any body. Nothing else moves: a `use` line still comes before the first statement (Z0309), a clash of names is still Z0107 at the second `use`, and a module still sees every other module's public functions without `use`. No specification text changes; the behaviour now follows section 5.3 of the Language Reference ("Scope", "Modules").
+
+**The suggestion.** For a bare name that is no function (Z0103), the help line is chosen in this order: (1) the name is a public function of a module the script has not brought in: the `use` line that brings it in, or the full form; (2) the name is a private function of another file: that it is private to that file; (3) the nearest name, by the same measure as every other suggestion, among the project's functions a bare name may mean at that place, then the built-in ones, then (in a script) the public functions of modules not brought in, which are suggested in their full form with the `use` line. On a tie the project's own function is preferred to a built-in one, since it is the name the author wrote. A private function of another file is never suggested. The mark under the name reads "not a function of Zeff or of this project" when the project has functions. A misspelt name passed as a function (`map(xs, twise)`) carries the suggestion and keeps its line about the signature needed.
+
+**Tests.** Unit: the short name in a body (called, as a method, passed by name, with the function above the `use` line), the two full forms, one function brought in alone, a name two modules share, a private name; each kind of suggestion, in a script, in a body and in a module. Snapshot: six new messages. The language-server test of a misspelt name now expects the suggestion.
+
+**Reason.** The checklist's step 38b; the two entries of `docs/known_issues.md`, now under "Resolved at 0.7.0".

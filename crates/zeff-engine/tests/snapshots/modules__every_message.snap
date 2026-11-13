@@ -61,9 +61,64 @@ error[Z0103]: no function is called `quadruple`
  --> scripts/main.zeff:1:1
   |
 1 | quadruple(2)
-  | ^^^^^^^^^ not a function of Zeff
+  | ^^^^^^^^^ not a function of Zeff or of this project
   |
-  = help: `zeff help` lists the functions of this release
+  = help: `use functions::clean` brings it in, or write `clean::quadruple(...)`
+
+## not_brought_in_inside_a_function (exit 1)
+error[Z0103]: no function is called `quadruple`
+ --> scripts/main.zeff:2:31
+  |
+2 | fn eight(x: Float) -> Float { quadruple(x) * 2 }
+  |                               ^^^^^^^^^ not a function of Zeff or of this project
+  |
+  = help: `use functions::clean` brings it in, or write `clean::quadruple(...)`
+
+## misspelt_after_use (exit 1)
+error[Z0103]: no function is called `quadrupel`
+ --> scripts/main.zeff:3:31
+  |
+3 | fn eight(x: Float) -> Float { quadrupel(x) * 2 }
+  |                               ^^^^^^^^^ not a function of Zeff or of this project
+  |
+  = help: did you mean `quadruple`?
+
+## misspelt_and_not_brought_in (exit 1)
+error[Z0103]: no function is called `quadrupel`
+ --> scripts/main.zeff:1:1
+  |
+1 | quadrupel(2)
+  | ^^^^^^^^^ not a function of Zeff or of this project
+  |
+  = help: did you mean `clean::quadruple`? `use functions::clean` brings it in by its short name
+
+## misspelt_function_of_the_script (exit 1)
+error[Z0103]: no function is called `twise`
+ --> scripts/main.zeff:3:15
+  |
+3 | map([1.0, 2], twise)
+  |               ^^^^^ not a function
+  |
+  = help: did you mean `twice`?
+  = help: a parameter of type `Fn(Float) -> ?` takes the bare name of a function with that signature
+
+## private_inside_a_function (exit 1)
+error[Z0103]: no function is called `_twice`
+ --> scripts/main.zeff:3:29
+  |
+3 | fn two(x: Float) -> Float { _twice(x) }
+  |                             ^^^^^^ not a function of Zeff or of this project
+  |
+  = help: `_twice` is private to `functions/clean.zeff`: a name starting with `_` is seen in its own file only
+
+## shared_name_inside_a_function (exit 1)
+error[Z0107]: `share_missing` is defined in both `functions/clean.zeff` and `functions/tidy.zeff`
+ --> scripts/main.zeff:2:1
+  |
+2 | use functions::tidy
+  | ^^^^^^^^^^^^^^^^^^^ brings in `share_missing` again
+  |
+  = help: write the one meant in full: `clean::share_missing(...)` or `tidy::share_missing(...)`
 
 ## two_modules_one_name (exit 1)
 error[Z0107]: `share_missing` is defined in both `functions/clean.zeff` and `functions/tidy.zeff`

@@ -148,6 +148,13 @@ pub fn check_project_with(
     for f in &definitions {
         checker.declare(f);
     }
+    // The script's `use` lines, before any body: a function of the script sees what they bring
+    // in as its top level does (section 5.3, "Scope" and "Modules").
+    for item in &script.items {
+        if let ast::Item::Use(u) = item {
+            checker.use_decl(u, true);
+        }
+    }
     let mut index = 0;
     for (i, f) in &module_definitions {
         checker.file = modules[*i].file.clone();
@@ -167,8 +174,7 @@ pub fn check_project_with(
     let mut statements = Vec::new();
     for item in &script.items {
         match item {
-            ast::Item::Use(u) => checker.use_decl(u, true),
-            ast::Item::Fn(_) => {}
+            ast::Item::Use(_) | ast::Item::Fn(_) => {}
             ast::Item::Statement(s) => {
                 if let Some(statement) = checker.statement(s) {
                     statements.push(statement);
@@ -2060,6 +2066,71 @@ impl Checker<'_> {
                 ids
             }
         }
+    }
+
+    /// The help of Z0103 for a bare name that is no function: the nearest name among the
+    /// project's functions a bare name may mean here, the built-in ones and, in a script, the
+    /// public functions of the modules it has not brought in; a public function of such a module
+    /// under this very name is answered with the `use` line that brings it in.
+    fn near_function(&self, name: &str) -> Option<String> {
+        let here = |s: &Signature| match &self.current_module {
+            Some(module) => {
+                s.module.is_some() && (s.module.as_deref() == Some(module.as_str()) || s.public)
+            }
+            None => s.module.is_none(),
+        };
+        // A module's function the script has not brought in, by the name written.
+        let elsewhere = |n: &str| {
+            self.signatures.iter().enumerate().find(|(id, s)| {
+                s.name == n
+                    && s.public
+                    && s.module.is_some()
+                    && !here(s)
+                    && !self.imported.iter().any(|(_, i)| i == id)
+            })
+        };
+        if let Some((_, s)) = elsewhere(name) {
+            let module = s.module.as_deref().unwrap_or_default();
+            return Some(format!(
+                "`use functions::{module}` brings it in, or write `{module}::{name}(...)`"
+            ));
+        }
+        // A private function of another file, by the name written.
+        if let Some(s) = self.signatures.iter().find(|s| {
+            s.name == name && !s.public && s.module.is_some() && s.module != self.current_module
+        }) {
+            let module = s.module.as_deref().unwrap_or_default();
+            return Some(format!(
+                "`{name}` is private to `functions/{module}.zeff`: a name starting with `_` is seen in its own file only"
+            ));
+        }
+        let mut names: Vec<&str> = self
+            .signatures
+            .iter()
+            .filter(|s| here(s))
+            .map(|s| s.name.as_str())
+            .collect();
+        names.extend(self.imported.iter().map(|(n, _)| n.as_str()));
+        names.extend(self.registry.functions().iter().map(|f| f.spec.name));
+        let known = names.len();
+        if self.current_module.is_none() {
+            names.extend(
+                self.signatures
+                    .iter()
+                    .filter(|s| s.public && s.module.is_some())
+                    .map(|s| s.name.as_str()),
+            );
+        }
+        let near = did_you_mean(name, names.iter().copied())?;
+        let at = names.iter().position(|n| *n == near)?;
+        if at < known {
+            return Some(format!("did you mean `{near}`?"));
+        }
+        let (_, s) = elsewhere(near)?;
+        let module = s.module.as_deref().unwrap_or_default();
+        Some(format!(
+            "did you mean `{module}::{near}`? `use functions::{module}` brings it in by its short name"
+        ))
     }
 
     /// Z0108: a function may not call itself directly or through other functions (section 3.7,
@@ -4784,11 +4855,12 @@ impl Checker<'_> {
                 )
             }
             (None, None) => {
-                self.report(
-                    Diagnostic::error("Z0103", format!("no function is called `{name}`"))
-                        .primary(span, "not a function")
-                        .help(format!("a parameter of type `{expected}` takes the bare name of a function with that signature")),
-                );
+                let mut d = Diagnostic::error("Z0103", format!("no function is called `{name}`"))
+                    .primary(span, "not a function");
+                if let Some(near) = self.near_function(name) {
+                    d = d.help(near);
+                }
+                self.report(d.help(format!("a parameter of type `{expected}` takes the bare name of a function with that signature")));
                 return Expr::error(span);
             }
         };
@@ -5551,16 +5623,29 @@ impl Checker<'_> {
             } else {
                 path_text(callee)
             };
+            let bare = callee.segments.len() == 1;
             let mut d = Diagnostic::error("Z0103", format!("no function is called `{written}`"))
-                .primary(callee_span, "not a function of Zeff");
-            let names: Vec<&str> = self
-                .registry
-                .functions()
-                .iter()
-                .map(|f| f.spec.name)
-                .collect();
-            if let Some(near) = did_you_mean(&name, names) {
-                d = d.help(format!("did you mean `{near}`?"));
+                .primary(
+                    callee_span,
+                    if bare && !self.signatures.is_empty() {
+                        "not a function of Zeff or of this project"
+                    } else {
+                        "not a function of Zeff"
+                    },
+                );
+            let near = if bare {
+                self.near_function(&name)
+            } else {
+                let names: Vec<&str> = self
+                    .registry
+                    .functions()
+                    .iter()
+                    .map(|f| f.spec.name)
+                    .collect();
+                did_you_mean(&name, names).map(|near| format!("did you mean `{near}`?"))
+            };
+            if let Some(help) = near {
+                d = d.help(help);
             } else if let Some((namespace, _)) = name.split_once('.') {
                 d = d.help(format!(
                     "`zeff help {namespace}` lists the functions of the `{namespace}` namespace"
