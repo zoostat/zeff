@@ -2274,3 +2274,224 @@ fn zeff_lsp_serves_an_editor_on_standard_input_and_output() {
         err(&o)
     );
 }
+
+// ----- zeff completions -----
+
+/// The file each shell completes a `zeff` command line by, written by one command. The four
+/// files are stored texts; the version in their heading is the engine's.
+#[test]
+fn zeff_completions_writes_the_file_of_each_shell() {
+    let dir = tempfile::tempdir().unwrap();
+    for shell in ["bash", "zsh", "fish", "powershell"] {
+        let o = zeff(dir.path(), &["completions", shell]);
+        assert_eq!(code(&o), 0, "{shell}: {}", err(&o));
+        assert_eq!(err(&o), "");
+        let text = out(&o);
+        assert!(
+            text.contains(&format!(
+                "Written by `zeff completions {shell}` of Zeff {VERSION}"
+            )),
+            "{text}"
+        );
+        // Every command of `zeff help`, a function with its namespace, a package, a code.
+        for word in ["selftest", "completions", "dist.normal", "regress", "Z0101"] {
+            assert!(text.contains(word), "{shell} lacks {word}");
+        }
+        // An option: fish names it without its two dashes.
+        assert!(
+            text.contains("deny-warnings"),
+            "{shell} lacks --deny-warnings"
+        );
+        insta::assert_snapshot!(
+            format!("completions_{shell}"),
+            text.replace(VERSION, "(the version of the engine)")
+        );
+    }
+    // A shell there is no file for, and no shell at all.
+    let o = zeff(dir.path(), &["completions", "ksh"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains(
+            "`ksh` is no shell `zeff completions` writes for: bash, zsh, fish or powershell"
+        ),
+        "{}",
+        err(&o)
+    );
+    let o = zeff(dir.path(), &["completions"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("`zeff completions` takes one shell: bash, zsh, fish or powershell"),
+        "{}",
+        err(&o)
+    );
+    // It needs no project, and writes nothing but its answer.
+    assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 0);
+}
+
+/// Where a program is, among the folders of `PATH`.
+fn program(name: &str) -> Option<std::path::PathBuf> {
+    std::env::var_os("PATH").and_then(|paths| {
+        std::env::split_paths(&paths)
+            .map(|folder| folder.join(name))
+            .find(|path| path.is_file())
+    })
+}
+
+/// Each shell loads its file and completes by it. Bash is on every machine the tests run on;
+/// zsh, fish and PowerShell are tried where they are installed, and must be where
+/// `ZEFF_SHELLS` names them (the CI job for this test names all four).
+#[test]
+fn each_shell_loads_its_file_and_completes_by_it() {
+    let dir = tempfile::tempdir().unwrap();
+    let required: Vec<String> = std::env::var("ZEFF_SHELLS")
+        .unwrap_or_else(|_| "bash".to_string())
+        .split(',')
+        .map(|shell| shell.trim().to_string())
+        .collect();
+    // The lines to complete, and what each must offer and must not.
+    let asked: [(&str, &[&str], &[&str]); 6] = [
+        ("zeff he", &["help"], &["new", "mean"]),
+        ("zeff help med", &["median"], &["mean", "help"]),
+        ("zeff help Z010", &["Z0101", "Z0103"], &["W0201", "median"]),
+        ("zeff --format ", &["text", "json"], &["help", "auto"]),
+        (
+            "zeff --color always completions ",
+            &["bash", "zsh", "fish", "powershell"],
+            &["help"],
+        ),
+        ("zeff --deny", &["--deny-warnings"], &["--format", "help"]),
+    ];
+    let mut tried = Vec::new();
+    for (shell, binary) in [
+        ("bash", "bash"),
+        ("zsh", "zsh"),
+        ("fish", "fish"),
+        ("powershell", "pwsh"),
+    ] {
+        let Some(path) = program(binary) else {
+            assert!(
+                !required.iter().any(|name| name == shell || name == binary),
+                "{binary} is required by ZEFF_SHELLS and is not installed"
+            );
+            continue;
+        };
+        tried.push(shell);
+        let file = dir.path().join(format!("zeff.{shell}"));
+        let written = zeff(dir.path(), &["completions", shell]);
+        assert_eq!(code(&written), 0);
+        std::fs::write(&file, &written.stdout).unwrap();
+        for (line, offered, not_offered) in asked {
+            // A driver for the shell: load the file, ask for the completions of the line,
+            // print them one to a line.
+            let words: Vec<&str> = line.split(' ').collect();
+            let mut command = std::process::Command::new(&path);
+            // The shells keep their own files in the temporary folder, not in the home.
+            command
+                .current_dir(dir.path())
+                .env("HOME", dir.path())
+                .env("ZDOTDIR", dir.path())
+                .env("XDG_CONFIG_HOME", dir.path())
+                .env("XDG_DATA_HOME", dir.path())
+                .env("XDG_CACHE_HOME", dir.path());
+            match shell {
+                "bash" => {
+                    let list = words
+                        .iter()
+                        .map(|word| format!("'{word}'"))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    command.args([
+                        "--noprofile",
+                        "--norc",
+                        "-c",
+                        &format!(
+                            "source '{}' && complete -p zeff >/dev/null && COMP_WORDS=({list}) && COMP_CWORD={} && _zeff && printf '%s\\n' \"${{COMPREPLY[@]}}\"",
+                            file.display(),
+                            words.len() - 1
+                        ),
+                    ]);
+                }
+                "zsh" => {
+                    // The function is run with the state zsh gives it; what it adds is
+                    // caught by standing in for the builtins it calls, with zsh's own
+                    // matching of the word being typed.
+                    let list = words
+                        .iter()
+                        .map(|word| format!("'{word}'"))
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    command.args([
+                        "-f",
+                        "-c",
+                        &format!(
+                            "autoload -Uz compinit && compinit -D -u && source '{}' && [[ \"${{_comps[zeff]}}\" == _zeff ]] || exit 3
+typed() {{ local word; for word in \"$@\"; do [[ \"$word\" == \"${{words[CURRENT]}}\"* ]] && print -r -- \"$word\"; done; }}
+compadd() {{ while [[ \"$1\" == -* ]]; do if [[ \"$1\" == -a ]]; then typed \"${{(P)2[@]}}\"; return; fi; shift; done; typed \"$@\"; }}
+_describe() {{ local -a kept; kept=(\"${{(P)2[@]}}\"); typed \"${{kept[@]%%:*}}\"; }}
+_files() {{ :; }}
+words=({list}); CURRENT=$#words; _zeff; exit 0",
+                            file.display()
+                        ),
+                    ]);
+                }
+                "fish" => {
+                    command.args([
+                        "--no-config",
+                        "--private",
+                        "-c",
+                        &format!("source '{}'; complete -C '{line}'", file.display()),
+                    ]);
+                }
+                _ => {
+                    command.args([
+                        "-NoProfile",
+                        "-NonInteractive",
+                        "-Command",
+                        &format!(
+                            ". '{}'; (TabExpansion2 -inputScript '{line}' -cursorColumn {}).CompletionMatches | ForEach-Object {{ $_.CompletionText }}",
+                            file.display(),
+                            line.len()
+                        ),
+                    ]);
+                }
+            }
+            let answer = command.output().expect("the shell runs");
+            let said = String::from_utf8_lossy(&answer.stdout);
+            // Fish writes what a completion says after a tab.
+            let got: Vec<&str> = said
+                .lines()
+                .map(|l| l.split('\t').next().unwrap_or(l).trim())
+                .filter(|l| !l.is_empty())
+                .collect();
+            assert!(
+                answer.status.success(),
+                "{shell} on `{line}`: {}",
+                String::from_utf8_lossy(&answer.stderr)
+            );
+            for word in offered {
+                assert!(
+                    got.contains(word),
+                    "{shell} on `{line}` lacks {word}: {got:?}"
+                );
+            }
+            for word in not_offered {
+                assert!(
+                    !got.contains(word),
+                    "{shell} on `{line}` offers {word}: {got:?}"
+                );
+            }
+        }
+    }
+    assert!(tried.contains(&"bash"), "bash was not found");
+    for name in &required {
+        let shell = if name == "pwsh" {
+            "powershell"
+        } else {
+            name.as_str()
+        };
+        assert!(
+            tried.contains(&shell),
+            "{name} is required by ZEFF_SHELLS and was not tried"
+        );
+    }
+}

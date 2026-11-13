@@ -4817,3 +4817,21 @@ error[Z0001]: no rows to take the mean of
 **Step 37 is complete.** The grammar with its scanner and corpus (37a), held to the engine's parser on 131 scripts in CI (37b), and the highlight queries with the registry's option words (37c). Not yet seen: the grammar in an editor.
 
 **Reason.** The checklist's step 37c; Engine and Project Specification, section 12.
+
+## 14 November 2026: `zeff completions` (release 0.7.0, step 38)
+
+**What was built.** `zeff completions bash | zsh | fish | powershell` writes, on standard output, the file by which that shell completes a `zeff` command line (Engine and Project Specification, section 2.1): the commands; the options, with the values of those that take one of a few (`--format text | json`, `--color auto | always | never`) and folders after `--project`; after `zeff help`, the names of every function, every package and every diagnostic code; after `zeff completions`, the four shells; after `run`, `check` and `repl`, the project's `.zeff` files. One command writes each of the four.
+
+**It cannot fall behind.** The file is written by the program from its own lists. The functions, packages and codes are the registry's and the explained pages'. The commands and options are two tables of the command line, which a test holds to the text of `zeff help` in both directions: a command or an option that is in one and not in the other fails the build. So a file names exactly what the installation that wrote it has; after an upgrade it is written again, and its heading says so.
+
+**The words are in the file.** The other way, a file that asks `zeff` for the names each time a key is pressed, is always current but starts a program at every completion and is harder to make work the same in four shells. A file with the words in it completes at once. It is some 4 to 6 kB.
+
+**Each shell in its own manner.** Bash: a function and `complete -F`, kept to what bash 3.2 has, the bash macOS ships. Zsh: a completion function with descriptions, which works loaded from `fpath` and sourced. Fish: `complete` lines with descriptions, and file names offered only where a command takes a script. PowerShell: a native argument completer. In all four the command is found the same way, as the first word that is neither an option nor what an option takes, so `zeff --color always help me` completes as `zeff help me` does.
+
+**Engine versions**, which the row of section 2.1 also names, are not among the words: the engines an installation holds arrive with `zeff engine` at 0.9.0, and are added to the files then.
+
+**Tests.** Snapshot: the four files. Unit: the tables against `zeff help`; that nothing written into a file needs an escape in any of the four shells; the names offered after `help`. Script test that each shell loads its file and completes by it: six command lines in each shell, with what must be offered and what must not (a command, a function, codes, the values of an option, the shells past an option and its value, an option). Bash is required everywhere; zsh, fish and PowerShell are tried where installed and required where `ZEFF_SHELLS` names them. Here: bash, zsh and fish. A CI job, `completions`, on macOS, requires all four; PowerShell is not on this machine (its installer needs an administrator's password, which the standing instructions rule out), so its file is run for the first time by that job.
+
+**Installed for the test.** The fish shell, 4.9.3, with Homebrew as the standing instructions allow; Homebrew upgraded one library it depends on, `pcre2`, from 10.46 to 10.49 as it did so. The shells are run with their own files kept in a temporary folder, so that nothing is written into the home folder.
+
+**Reason.** The checklist's step 38; Engine and Project Specification, section 2.1.

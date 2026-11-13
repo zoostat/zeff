@@ -169,6 +169,30 @@ jobs:
       - name: The grammar reads every script as the engine's parser does
         run: cargo run --locked -p xtask -- check-grammar
 
+  # `zeff completions` (Engine and Project Specification, section 2.1): each of the four
+  # shells loads the file written for it and completes a command line by it. On macOS, which
+  # has bash, zsh and PowerShell; fish is installed with Homebrew.
+  completions:
+    name: completions
+    runs-on: macos-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Install fish
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_ANALYTICS: "1"
+        run: brew install fish
+
+      - name: Each shell loads its file and completes by it
+        env:
+          ZEFF_SHELLS: bash,zsh,fish,pwsh
+        run: cargo test --locked -p zeff-cli --test cli completes_by_it
+
   identity:
     name: identity (${{ matrix.name }})
     strategy:

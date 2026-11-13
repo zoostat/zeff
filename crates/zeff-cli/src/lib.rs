@@ -16,7 +16,9 @@ use zeff_engine::project::{MANIFEST, OpenError, Project, exit_code, not_in_proje
 use zeff_engine::run::{Outcome, RunOptions, run_script_with};
 use zeff_engine::session::{Opened, SESSION_FILE, Session, is_incomplete, split_statements};
 
-const USAGE: &str = "\
+pub mod completions;
+
+pub(crate) const USAGE: &str = "\
 Zeff, a language for statistics
 
 Usage: zeff [options] <command>
@@ -41,6 +43,9 @@ Commands:
   version           print the version of Zeff
   selftest          run the conformance cases shipped with the engine against their published
                     results and say whether this installation is conformant
+  completions <shell>
+                    write the file by which bash, zsh, fish or powershell completes a zeff
+                    command line: commands, options, function names and diagnostic codes
   help              show this text
 
 Options:
@@ -77,17 +82,8 @@ line ending with an operator, continues on the next line.
 ";
 
 /// Commands the specification names that this release does not have yet.
-const LATER: [&str; 10] = [
-    "selftest",
-    "engine",
-    "runs",
-    "export",
-    "verify",
-    "doctor",
-    "app",
-    "self",
-    "completions",
-    "dataset",
+const LATER: [&str; 9] = [
+    "selftest", "engine", "runs", "export", "verify", "doctor", "app", "self", "dataset",
 ];
 
 /// Options the specification names that this release does not have yet.
@@ -531,6 +527,23 @@ pub fn run(
         ["lsp", ..] => usage_error(
             &mut err,
             "`zeff lsp` takes no arguments: an editor starts it and talks to it",
+        ),
+        // The completion file of a shell, on standard output.
+        ["completions", shell] => match completions::file(shell) {
+            Some(text) => {
+                let _ = out.write_all(text.as_bytes());
+                0
+            }
+            None => usage_error(
+                &mut err,
+                &format!(
+                    "`{shell}` is no shell `zeff completions` writes for: bash, zsh, fish or powershell"
+                ),
+            ),
+        },
+        ["completions", ..] => usage_error(
+            &mut err,
+            "`zeff completions` takes one shell: bash, zsh, fish or powershell",
         ),
         ["test"] => test_command(&command, &mut out, &mut err),
         ["test", ..] => usage_error(
