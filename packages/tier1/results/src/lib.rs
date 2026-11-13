@@ -71,6 +71,23 @@ fn test_method(
     }
 }
 
+/// A method of a test's result that reads one figure, of the whole test or of the row of its
+/// table that `term` names (open decision #100).
+fn row_method(
+    name: &'static str,
+    returns: &'static str,
+    help: &'static str,
+    body: zeff_core::runtime::Body,
+) -> Function {
+    let mut method = test_method(name, returns, help, body);
+    method.spec.params.push(ParamSpec::option("term", "Term"));
+    method.spec.diagnostics.push(DiagnosticDecl::new(
+        "Z0414",
+        "a name that is no row of the result's table",
+    ));
+    method
+}
+
 /// The functions of `results` in this release, with their help pages: `export` on a table, and
 /// the result interface on every result; `export` on a result arrives with step 19.
 pub fn functions() -> Vec<Function> {
@@ -131,19 +148,19 @@ pub fn functions() -> Vec<Function> {
             include_str!("../help/n_obs.md"),
             interface::n_obs,
         ),
-        test_method(
+        row_method(
             "statistic",
             "Float",
             include_str!("../help/statistic.md"),
             interface::statistic,
         ),
-        test_method(
+        row_method(
             "df",
             "List<Float>",
             include_str!("../help/df.md"),
             interface::df,
         ),
-        test_method(
+        row_method(
             "effect_size",
             "Float",
             include_str!("../help/effect_size.md"),

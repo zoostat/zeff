@@ -148,7 +148,7 @@ error[Z0401]: `statistic` cannot be called on a RegFit
 2 | statistic(m)
   |           ^ this is a RegFit
   |
-  = help: usage: `t.statistic()`
+  = help: usage: `t.statistic(term: Term)`
 [exit 1]
 
 > let t = dataset(wages).t_test(wage, group: female)
@@ -183,5 +183,5 @@ error[Z0401]: `statistic` cannot be called on an Int
 1 | statistic(3)
   |           ^ this is an Int
   |
-  = help: usage: `t.statistic()`
+  = help: usage: `t.statistic(term: Term)`
 [exit 1]

@@ -4000,19 +4000,47 @@ impl<'a> Interpreter<'a> {
                 .map(String::as_str)
                 .collect(),
             Value::TestResult(test) => {
+                // A row of the table read by its name (open decision #100): a term of a
+                // factorial `anova` or a comparison of `posthoc`, on the four methods that
+                // read one figure.
+                let by_row = call.package == "results"
+                    && matches!(
+                        call.name.as_str(),
+                        "p_values" | "statistic" | "df" | "effect_size"
+                    );
+                if by_row && test.row(name).is_some() {
+                    return Ok(());
+                }
+                let rows: Vec<&str> = test.terms.iter().map(|row| row.term.as_str()).collect();
+                let listed = rows
+                    .iter()
+                    .map(|row| format!("`{row}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 let (message, label, help) = if test.terms.is_empty() {
                     (
                         format!("`{name}` names a term, but a test's result has no terms"),
                         "a TestResult has no terms",
-                        "a test's result holds one statistic and one p-value; ask for them without naming a term",
+                        "a test's result holds one statistic and one p-value; ask for them without naming a term".to_string(),
+                    )
+                } else if by_row {
+                    let near = did_you_mean(name, rows.iter().copied())
+                        .map_or(String::new(), |near| format!("did you mean `{near}`? "));
+                    (
+                        format!("`{name}` is not a row of this table"),
+                        "unknown row",
+                        format!(
+                            "{near}the rows are {listed}; without a name the method gives the figure of the whole test"
+                        ),
                     )
                 } else {
                     (
                         format!(
-                            "`{name}` names a term, but the methods of a test's result take no term"
+                            "`{name}` names a row, but `{}` reads no row of a test's result",
+                            call.name
                         ),
-                        "no term is taken here",
-                        "without a term these give the whole model's F, its degrees of freedom and its p-value; `estimates()` gives one row for each term of the table",
+                        "no row is taken here",
+                        "`p_values`, `statistic`, `df` and `effect_size` read one row by its name; `estimates()` gives every row of the table as a frame".to_string(),
                     )
                 };
                 return Err(fail(

@@ -71,8 +71,12 @@ the limits in `ci_lower` and `ci_upper`, which are `NA` for a step-wise method; 
 the intervals as a table, or `NA` when the method has none. `statistic()`, `df()` and
 `p_values()` give the F of the `anova` followed, its two degrees of freedom and its p-value
 (after a formula, the F of the term compared, as the table of the `anova` has it), and
-`n_obs()` the number of observations. A set of comparisons has no single hypothesis or
-effect size, so `h0()`, `h1()` and `effect_size()` are `NA` and no decision line is printed.
+`n_obs()` the number of observations. One comparison is read by naming it as the table prints
+it: `p_values("a − b")`, `statistic("a − b")` and `df("a − b")` give its p-value under the
+method, its t and its degrees of freedom; the minus sign may be typed as a hyphen, `"a - b"`,
+and a name that is no row of the table is an error (Z0414) that lists the rows. A set of
+comparisons has no single hypothesis or effect size, so `h0()`, `h1()` and `effect_size()`
+are `NA` and no decision line is printed.
 
 ## Details
 With k groups of sizes nᵢ, means mᵢ and variances sᵢ², N = Σ nᵢ observations and
@@ -304,3 +308,11 @@ each row tests H0: the two marginal means of the population are equal, against H
 Bonferroni over 3 comparisons of 3 marginal means: each p-value multiplied by 3, each interval at the level 1 − 0.05/3
 each mean is the model's prediction for a level of dose, with the numeric variables at their means (age = 5)
 residual variance of the model on 14 degrees of freedom; N = 18
+> b.p_values("a − b")
+0.000608127
+> b.p_values("a - b")
+0.000608127
+> b.statistic("b − c")
+4.39931
+> b.df("b − c")
+11

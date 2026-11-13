@@ -65,9 +65,14 @@ p-value, the effect size `effect:` chose, and the hypotheses; its own methods `s
 factorial form `statistic()`, `df()` and `p_values()` give the F of the whole model, its two
 degrees of freedom and its p-value, and `estimates()` gives a frame with a row for each term
 (its F in `statistic`, its degrees of freedom in `df` and `df2`, its p-value) followed by a row
-for each term's partial effect size, named for the measure, as `partial omega squared (dose)`; a
-table of several terms has no single hypothesis, effect size or interval, so `h0()`, `h1()`,
-`effect_size()` and `ci()` are `NA` and no decision line is printed.
+for each term's partial effect size, named for the measure, as `partial omega squared (dose)`.
+One term is read by naming it: `p_values("dose")`, `statistic("dose")`, `df("dose")` and
+`effect_size("dose")` give the p-value, the F, the two degrees of freedom and the partial
+effect size of that row, a bare name reading as text does and an interaction named as the
+table prints it, `"dose:diet"`; a name that is no term of the table is an error (Z0414) that
+lists the terms. A table of several terms has no single hypothesis, effect size or interval, so
+`h0()`, `h1()`, `effect_size()` without a name and `ci()` are `NA` and no decision line is
+printed.
 
 ## Details
 One-way. With k groups of sizes nᵢ, means mᵢ and variances sᵢ², Welch's F weights each group by
@@ -328,3 +333,13 @@ each row tests H0: the population effect of the term is zero, against H1: it is 
 type 2 sums of squares: each term adjusted for every other term that does not contain it
 partial omega squared = (SS − df × MS residual) / (SS + (N − df) × MS residual); N = 16
 note: F is below 1 for `dose:diet`, so its partial omega squared is negative; read it as no evidence of an effect (line 15)
+> let a = trial.anova(gain ~ dose * diet)
+> a.p_values("diet")
+0.0821533
+> a.statistic(dose)
+31.6028
+> a.df("dose:diet")
+2
+10
+> a.effect_size("diet")
+0.393368

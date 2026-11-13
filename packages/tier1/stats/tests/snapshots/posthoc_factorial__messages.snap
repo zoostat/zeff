@@ -128,10 +128,33 @@ error[Z0802]: fewer than two marginal means of `diet` can be estimated, so there
 
 note: `dose` replaced the variable of that name (line 1)
 note: `diet` replaced the variable of that name (line 1)
-error[Z0414]: `dose` names a term, but the methods of a test's result take no term
- --> scripts/main.zeff:2:44
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 2)
+error[Z0414]: `mid − low` is not a row of this table
+ --> scripts/main.zeff:2:58
   |
-2 | d.anova(gain ~ dose * diet).p_values(term: dose)
-  |                                            ^^^^ no term is taken here
+2 | d.anova(gain ~ dose * diet).posthoc(term: dose).p_values("mid − low")
+  |                                                          ^^^^^^^^^^^ unknown row
   |
-  = help: without a term these give the whole model's F, its degrees of freedom and its p-value; `estimates()` gives one row for each term of the table
+  = help: the rows are `low − mid`, `low − high`, `mid − high`; without a name the method gives the figure of the whole test
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 2)
+error[Z0414]: `dose` is not a row of this table
+ --> scripts/main.zeff:2:59
+  |
+2 | d.anova(gain ~ dose * diet).posthoc(term: dose).statistic(dose)
+  |                                                           ^^^^ unknown row
+  |
+  = help: the rows are `low − mid`, `low − high`, `mid − high`; without a name the method gives the figure of the whole test
+
+note: `dose` replaced the variable of that name (line 1)
+note: `diet` replaced the variable of that name (line 1)
+note: `dose` is also part of `dose:diet`: its differences are averages over the levels of `diet` and may not be the same at each level (line 2)
+error[Z0414]: `low − mid` names a row, but `ci` reads no row of a test's result
+ --> scripts/main.zeff:2:52
+  |
+2 | d.anova(gain ~ dose * diet).posthoc(term: dose).ci("low − mid")
+  |                                                    ^^^^^^^^^^^ no row is taken here
+  |
+  = help: `p_values`, `statistic`, `df` and `effect_size` read one row by its name; `estimates()` gives every row of the table as a frame

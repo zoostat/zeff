@@ -7,6 +7,12 @@ is never listed here as accepted: it is fixed or the function is withdrawn.
 
 ## As of 0.6.0
 
+- **`zeff run` is silent when the engine's own registry does not build.** If a function of the
+  engine has a parameter that its help page or the catalogue lacks, `zeff check` prints the
+  internal error with the reason, but `zeff run` ends with exit code 2 and prints nothing. No
+  released engine can be in that state, since every test fails in it; it is met only while a
+  function is being built. (Since 0.7.0 in development; found on 14 November 2026 at step 38d;
+  to be put right with the pre-release routine of 0.7.0, step 40c.)
 - **`save` writes CSV and TSV only.** Parquet, Arrow, Stata, Excel and JSON are refused with
   Z0716, which names 0.11.0, the release of the reader and writer interface (SPSS 1.1); an
   opaque column is refused with the advice to drop it. What is written reads back bit for bit.

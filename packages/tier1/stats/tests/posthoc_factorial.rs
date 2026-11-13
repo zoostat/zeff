@@ -1074,6 +1074,63 @@ fn go(script: &str) -> (i32, String, String) {
 
 const DATA: &str = "let d = frame(gain = [4.2, 3.9, 4.6, 4.1, 4.4, 5.1, 5.6, 4.9, 5.4, 5.8, 4.5, 4.0, 4.8, 4.3, 5.0, 4.7], dose = [\"low\", \"low\", \"low\", \"low\", \"mid\", \"mid\", \"mid\", \"mid\", \"mid\", \"high\", \"high\", \"high\", \"high\", \"high\", \"low\", \"mid\"], diet = [\"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"a\", \"b\", \"b\", \"b\"], age = [3, 5, 4, 6, 5, 7, 6, 4, 5, 3, 6, 4, 7, 5, 4, 6], lot = [1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2], w = [1, 2, 1, 1, 3, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1]).add(dose = category(dose, levels: [\"low\", \"mid\", \"high\"]), diet = category(diet))\n";
 
+/// One comparison read by its name (open decision #100, option A, and its note of 11 November
+/// 2026; step 38d): named as the table prints it, with the minus sign of the table or the
+/// hyphen of a keyboard.
+#[test]
+fn a_comparison_is_read_by_its_name() {
+    let script = [
+        "let ph = d.anova(gain ~ dose * diet).posthoc(term: dose)",
+        "let e = ph.estimates()",
+        "let row = e.where(term == \"low − mid\")",
+        "ph.statistic(\"low − mid\") == row.max(statistic)",
+        "ph.p_values(\"low − mid\") == row.max(p_value)",
+        "ph.df(\"low − mid\")[1] == row.max(df)",
+        "len(ph.df(\"low − mid\"))",
+        "ph.effect_size(\"low − mid\")",
+        // Typed with a hyphen, with and without the spaces.
+        "ph.p_values(\"low - mid\") == ph.p_values(\"low − mid\")",
+        "ph.statistic(\"mid-high\") == ph.statistic(\"mid − high\")",
+        // Without a name: the F of the term it follows in the `anova`, as before.
+        "ph.statistic() == d.anova(gain ~ dose * diet).statistic(\"dose\")",
+        "ph.p_values() == d.anova(gain ~ dose * diet).p_values(dose)",
+        // The cells of an interaction, named as the table prints them.
+        "let cells = d.anova(gain ~ dose * diet).posthoc(term: \"dose:diet\")",
+        "cells.p_values(\"low:a - mid:a\") == cells.estimates().where(term == \"low:a − mid:a\").max(p_value)",
+        "cells.estimates().n_rows()",
+    ]
+    .join("\n");
+    let (exit, stdout, stderr) = go(&format!("{DATA}{script}\n"));
+    assert_eq!(exit, 0, "{stderr}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(
+        lines,
+        [
+            "true", "true", "true", "1", "NA", "true", "true", "true", "true", "true", "15"
+        ],
+        "{stdout}"
+    );
+    for (statement, said) in [
+        (
+            "d.anova(gain ~ dose * diet).posthoc(term: dose).p_values(\"mid − low\")",
+            "the rows are `low − mid`, `low − high`, `mid − high`",
+        ),
+        (
+            "d.anova(gain ~ dose * diet).posthoc(term: dose).statistic(dose)",
+            "`dose` is not a row of this table",
+        ),
+        (
+            "d.anova(gain ~ dose * diet).posthoc(term: dose).ci(\"low − mid\")",
+            "`estimates()` gives every row of the table as a frame",
+        ),
+    ] {
+        let (exit, _, stderr) = go(&format!("{DATA}{statement}\n"));
+        assert_eq!(exit, 1, "{statement}");
+        assert!(stderr.contains("error[Z0414]"), "{statement}: {stderr}");
+        assert!(stderr.contains(said), "{statement}: {stderr}");
+    }
+}
+
 #[test]
 fn every_form_and_every_message() {
     let (exit, stdout, stderr) = go(&format!(
@@ -1096,7 +1153,9 @@ fn every_form_and_every_message() {
         "d.anova(gain ~ dose * diet).posthoc(term: 3)",
         "d.anova(gain ~ dose * diet).posthoc(dose)",
         "d.where(!(dose == \"high\" && diet == \"a\") && dose != \"mid\").anova(gain ~ dose * diet).posthoc(term: diet)",
-        "d.anova(gain ~ dose * diet).p_values(term: dose)",
+        "d.anova(gain ~ dose * diet).posthoc(term: dose).p_values(\"mid − low\")",
+        "d.anova(gain ~ dose * diet).posthoc(term: dose).statistic(dose)",
+        "d.anova(gain ~ dose * diet).posthoc(term: dose).ci(\"low − mid\")",
     ] {
         let (exit, _, stderr) = go(&format!("{DATA}{statement}\n"));
         assert_eq!(exit, 1, "{statement}");

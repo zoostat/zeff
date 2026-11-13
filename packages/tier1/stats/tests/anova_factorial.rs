@@ -105,6 +105,40 @@ fn call(frame: &Frame, text: &str, slots: Vec<(usize, Value)>) -> Result<TestRes
     })
 }
 
+/// One row of a result read by its name, as a script reads it: `statistic(term)`, `df(term)`,
+/// `p_values(term)` and `effect_size(term)`.
+fn by_name(result: &TestResult, term: &str) -> (f64, Vec<f64>, f64, f64) {
+    use zeff_results::interface::{df, effect_size, p_values, statistic};
+    let read = |body: fn(&mut CallContext<'_>, Args) -> Result<Value, Fail>| {
+        let args = Args {
+            values: vec![
+                Some(Value::TestResult(std::rc::Rc::new(result.clone()))),
+                Some(Value::Term(term.to_string())),
+            ],
+            rest: Vec::new(),
+            definitions: Vec::new(),
+        };
+        match with_context("t.statistic(term)", |ctx| body(ctx, args)) {
+            Ok(value) => value,
+            Err(_) => panic!("the row `{term}` is not read"),
+        }
+    };
+    let float = |value: Value| match value {
+        Value::Float(x) => x,
+        other => panic!("`{term}`: not a number: {other:?}"),
+    };
+    let dfs = match read(df) {
+        Value::List(items) => items.into_iter().map(float).collect(),
+        other => panic!("`{term}`: not a list: {other:?}"),
+    };
+    (
+        float(read(statistic)),
+        dfs,
+        float(read(p_values)),
+        float(read(effect_size)),
+    )
+}
+
 fn frame_of(columns: Vec<(&str, Column)>) -> Frame {
     let table = Columns::new(
         columns
@@ -388,6 +422,31 @@ fn the_three_types_agree_with_anova_lm_and_with_car() {
                 1e-9
             ));
             assert_eq!(result.terms.len(), rows.len(), "{what}");
+            // Each row read by its name (open decision #100; step 38d): `statistic`, `df`,
+            // `p_values` and `effect_size` of a term are R's F, degrees of freedom and
+            // p-value of that term, and its partial eta squared.
+            for want in rows {
+                let term = want["term"].as_str().unwrap();
+                let ss = number(&want["ss"]).unwrap();
+                let (f, df, p, effect) = by_name(&result, term);
+                assert!(
+                    close(f, number(&want["f"]).unwrap(), 1e-9),
+                    "{what}: statistic(\"{term}\") {f}"
+                );
+                assert_eq!(
+                    df,
+                    vec![number(&want["df"]).unwrap(), table.residual_df],
+                    "{what}: df(\"{term}\")"
+                );
+                assert!(
+                    close(p, number(&want["p"]).unwrap(), 1e-9),
+                    "{what}: p_values(\"{term}\") {p}"
+                );
+                assert!(
+                    close(effect, ss / (ss + residual_ss), 1e-9),
+                    "{what}: effect_size(\"{term}\") {effect}"
+                );
+            }
             for (row, want) in result.terms.iter().zip(rows) {
                 assert_eq!(row.term, want["term"].as_str().unwrap(), "{what}");
                 assert!(close(
@@ -957,17 +1016,84 @@ fn the_methods_of_the_result_read_the_whole_model_and_estimates_reads_the_terms(
     assert_eq!(lines[2], "5", "{stdout}");
     assert_eq!(lines[3], "12", "{stdout}");
     assert_eq!(lines[4], "8", "{stdout}");
-    for line in [
-        "d.anova(y ~ a * b).p_values(\"a\")",
-        "d.anova(y ~ a * b).p_values(a)",
+}
+
+/// One term of the table read by its name (open decision #100, option A; step 38d).
+#[test]
+fn a_term_of_the_table_is_read_by_its_name() {
+    // Each figure is the one `estimates()` holds in the row of that term, bit for bit; a bare
+    // name reads as text does, and an interaction is named as the table prints it.
+    let script = [
+        "let t = d.anova(y ~ a * b + x)",
+        "let e = t.estimates()",
+        "let a = e.where(term == \"a\")",
+        "t.statistic(\"a\") == a.max(statistic)",
+        "t.p_values(\"a\") == a.max(p_value)",
+        "t.df(\"a\")[1] == a.max(df)",
+        "t.df(\"a\")[2] == a.max(df2)",
+        "t.effect_size(\"a\") == e.where(term == \"partial eta squared (a)\").max(estimate)",
+        "let ab = e.where(term == \"a:b\")",
+        "t.statistic(\"a:b\") == ab.max(statistic)",
+        "t.p_values(\"a:b\") == ab.max(p_value)",
+        "t.df(\"a:b\")[1] == ab.max(df)",
+        "t.effect_size(\"a:b\") == e.where(term == \"partial eta squared (a:b)\").max(estimate)",
+        "t.statistic(a) == t.statistic(\"a\")",
+        "t.p_values(b) == t.p_values(\"b\")",
+        "t.df(x)[1] == t.df(\"x\")[1]",
+        "t.effect_size(term: b) == t.effect_size(\"b\")",
+        "len(t.df(\"a\"))",
+    ]
+    .join("\n");
+    let (exit, stdout, stderr) = with_d(&script);
+    assert_eq!(exit, 0, "{stderr}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(lines[..13], ["true"; 13], "{stdout}");
+    assert_eq!(lines[13], "2", "{stdout}");
+    // Without a name the four are the whole model's, as before; under `effect:` the row's
+    // measure is the one asked for.
+    let (exit, stdout, stderr) = with_d(
+        "let t = d.anova(y ~ a * b, effect: omega)\nt.effect_size(\"a\") == t.estimates().where(term == \"partial omega squared (a)\").max(estimate)\nt.effect_size()\nt.statistic() == t.statistic(\"a\")\n",
+    );
+    assert_eq!(exit, 0, "{stderr}");
+    assert_eq!(stdout, "true\nNA\nfalse\n");
+    // A name that is no term of the table, with the terms; the row of the whole model is the
+    // call without a name.
+    for (line, said) in [
+        (
+            "d.anova(y ~ a * b).p_values(\"c\")",
+            "`c` is not a row of this table",
+        ),
+        (
+            "d.anova(y ~ a * b).statistic(\"a:c\")",
+            "did you mean `a:b`? the rows are `a`, `b`, `a:b`",
+        ),
+        (
+            "d.anova(y ~ a * b).df(\"model\")",
+            "without a name the method gives the figure of the whole test",
+        ),
+        (
+            "d.anova(y ~ a * b).effect_size(\"residual\")",
+            "`residual` is not a row of this table",
+        ),
+        // A one-way result has one row and no name for it.
+        (
+            "d.anova(y, group: a).statistic(\"a\")",
+            "a test's result has no terms",
+        ),
+        (
+            "d.anova(y, group: a).p_values(a)",
+            "a test's result has no terms",
+        ),
+        // The methods that read no row of a test's result say which do.
+        (
+            "d.anova(y ~ a * b).std_errors(\"a\")",
+            "`p_values`, `statistic`, `df` and `effect_size` read one row by its name",
+        ),
     ] {
         let (exit, _, stderr) = with_d(line);
         assert_eq!(exit, 1, "{line}");
         assert!(stderr.contains("error[Z0414]"), "{line}: {stderr}");
-        assert!(
-            stderr.contains("`estimates()` gives one row for each term of the table"),
-            "{line}: {stderr}"
-        );
+        assert!(stderr.contains(said), "{line}: {stderr}");
     }
 }
 
@@ -1000,7 +1126,10 @@ fn every_form_and_every_message() {
         "d.where(!(a == \"r\" && b == \"v\")).anova(y ~ a * b, type: 3)",
         "d.add(x2 = 2 * x).anova(y ~ x + x2, type: 3)",
         "d.anova(y ~ a + s)",
-        "d.anova(y ~ a * b).p_values(\"a\")",
+        "d.anova(y ~ a * b).p_values(\"c\")",
+        "d.anova(y ~ a * b).statistic(\"a:c\")",
+        "d.anova(y, group: a).df(\"a\")",
+        "d.anova(y ~ a * b).std_errors(\"a\")",
         "d.anova(y ~ a * b, effect: cohen)",
         "d.anova(y ~ a * b, effect: omga)",
     ] {

@@ -1212,6 +1212,25 @@ pub enum FollowUp {
     Factorial(ModelFit),
 }
 
+impl TestResult {
+    /// The row of the table a name asks for (open decision #100): a term of a factorial
+    /// `anova` (`dose`, `dose:diet`) or a comparison of `posthoc`, named as the table prints
+    /// it (`low − mid`). The minus sign of a comparison may be typed as the hyphen of a
+    /// keyboard, and the spaces round it left out.
+    pub fn row(&self, name: &str) -> Option<&TermTest> {
+        let plain = |text: &str| -> String {
+            text.chars()
+                .filter(|c| !c.is_whitespace())
+                .map(|c| if c == '\u{2212}' { '-' } else { c })
+                .collect()
+        };
+        self.terms.iter().find(|row| row.term == name).or_else(|| {
+            let wanted = plain(name);
+            self.terms.iter().find(|row| plain(&row.term) == wanted)
+        })
+    }
+}
+
 /// A fitted linear model as the call that follows it reads it (release 0.7.0, step 19b): the
 /// coding of its columns and the triangular factor of its design, which between them give the
 /// estimate and the variance of any linear function of the coefficients without the covariance

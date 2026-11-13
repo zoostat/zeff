@@ -107,6 +107,56 @@ struct Row {
     ci: Option<(f64, f64)>,
 }
 
+/// One comparison of a result read by its name, as a script reads it (open decision #100; step
+/// 38d): `statistic(name)`, `df(name)` and `p_values(name)`; `effect_size(name)` is `NA`, a
+/// comparison having none.
+fn by_name(result: &TestResult, name: &str) -> (f64, f64, f64) {
+    use zeff_results::interface::{df, effect_size, p_values, statistic};
+    let read = |body: Body| {
+        let args = Args {
+            values: vec![
+                Some(Value::TestResult(Rc::new(result.clone()))),
+                Some(Value::Term(name.to_string())),
+            ],
+            rest: Vec::new(),
+            definitions: Vec::new(),
+        };
+        let mut output = String::new();
+        let mut messages: Vec<Diagnostic> = Vec::new();
+        let mut random = Randomness::default();
+        let mut ctx = CallContext {
+            files: &NoFiles,
+            script: "t.zeff",
+            text: "t.statistic(name)",
+            columns_used: Vec::new(),
+            frame: None,
+            group_rows: None,
+            callee_span: Span::new(2, 11),
+            arg_spans: vec![None; 2],
+            rest_spans: Vec::new(),
+            definition_spans: Vec::new(),
+            output: &mut output,
+            messages: &mut messages,
+            random: &mut random,
+            statement: 1,
+        };
+        match body(&mut ctx, args) {
+            Ok(value) => value,
+            Err(_) => panic!("the comparison `{name}` is not read"),
+        }
+    };
+    let float = |value: Value| match value {
+        Value::Float(x) => x,
+        other => panic!("`{name}`: not a number: {other:?}"),
+    };
+    let one_df = match read(df) {
+        Value::List(items) if items.len() == 1 => float(items[0].clone()),
+        other => panic!("`{name}`: not one number of degrees of freedom: {other:?}"),
+    };
+    assert_eq!(read(effect_size), Value::Na, "{name}");
+    (float(read(statistic)), one_df, float(read(p_values)))
+}
+
 /// `posthoc` on a result, with its notes.
 fn follow_with_notes(
     test: &TestResult,
@@ -132,13 +182,25 @@ fn follow_with_notes(
             assert_eq!(estimate.label, row.term);
             assert_eq!(row.statistic.name, "t");
             assert!(row.effect.is_none());
+            // The comparison read by its name, as its table prints it and with the hyphen of
+            // a keyboard: the figures every reference below is held to.
+            let (t, df, p) = by_name(&result, &row.term);
+            let typed = row.term.replace('\u{2212}', "-");
+            assert_ne!(typed, row.term);
+            let (t2, df2, p2) = by_name(&result, &typed);
+            assert_eq!(
+                (t.to_bits(), df.to_bits(), p.to_bits()),
+                (t2.to_bits(), df2.to_bits(), p2.to_bits())
+            );
+            assert_eq!(t.to_bits(), row.statistic.value.to_bits());
+            assert_eq!(p.to_bits(), row.p_value.to_bits());
             Row {
                 term: row.term.clone(),
                 difference: estimate.value,
                 std_error: row.std_error.unwrap(),
-                t: row.statistic.value,
-                df: row.statistic.df[0],
-                p: row.p_value,
+                t,
+                df,
+                p,
                 ci: estimate.ci,
             }
         })

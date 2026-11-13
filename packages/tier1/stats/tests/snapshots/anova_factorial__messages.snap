@@ -183,13 +183,43 @@ error[Z0401]: `s` is text, and a model needs numbers or a category
 
 note: `a` replaced the variable of that name (line 1)
 note: `b` replaced the variable of that name (line 1)
-error[Z0414]: `a` names a term, but the methods of a test's result take no term
+error[Z0414]: `c` is not a row of this table
  --> scripts/main.zeff:2:29
   |
-2 | d.anova(y ~ a * b).p_values("a")
-  |                             ^^^ no term is taken here
+2 | d.anova(y ~ a * b).p_values("c")
+  |                             ^^^ unknown row
   |
-  = help: without a term these give the whole model's F, its degrees of freedom and its p-value; `estimates()` gives one row for each term of the table
+  = help: did you mean `a`? the rows are `a`, `b`, `a:b`; without a name the method gives the figure of the whole test
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0414]: `a:c` is not a row of this table
+ --> scripts/main.zeff:2:30
+  |
+2 | d.anova(y ~ a * b).statistic("a:c")
+  |                              ^^^^^ unknown row
+  |
+  = help: did you mean `a:b`? the rows are `a`, `b`, `a:b`; without a name the method gives the figure of the whole test
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0414]: `a` names a term, but a test's result has no terms
+ --> scripts/main.zeff:2:25
+  |
+2 | d.anova(y, group: a).df("a")
+  |                         ^^^ a TestResult has no terms
+  |
+  = help: a test's result holds one statistic and one p-value; ask for them without naming a term
+
+note: `a` replaced the variable of that name (line 1)
+note: `b` replaced the variable of that name (line 1)
+error[Z0414]: `a` names a row, but `std_errors` reads no row of a test's result
+ --> scripts/main.zeff:2:31
+  |
+2 | d.anova(y ~ a * b).std_errors("a")
+  |                               ^^^ no row is taken here
+  |
+  = help: `p_values`, `statistic`, `df` and `effect_size` read one row by its name; `estimates()` gives every row of the table as a frame
 
 error[Z0402]: `cohen` is not one of the allowed words
  --> scripts/main.zeff:2:28

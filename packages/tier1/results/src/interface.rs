@@ -85,11 +85,35 @@ pub fn std_errors(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> 
 }
 
 /// `fit.p_values(term?)`: the p-values by term, or one; a test's result gives its single
-/// p-value.
+/// p-value, or that of the row named.
 pub fn p_values(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     match receiver(ctx, &args, "p_values")? {
         Receiver::Fit(fit) => Ok(by_term(&fit, &args, &fit.p_values)),
-        Receiver::Test(test) => Ok(Value::Float(test.p_value)),
+        Receiver::Test(test) => match named_row(ctx, &test, &args)? {
+            Some(row) => Ok(finite(row.p_value).map_or(Value::Na, Value::Float)),
+            None => Ok(Value::Float(test.p_value)),
+        },
+    }
+}
+
+/// The row of a test's table that a `Term` argument names (open decision #100): a term of a
+/// factorial `anova`, a comparison of `posthoc`. `None` when no name is given. The interpreter
+/// has already checked the name against the rows (Z0414).
+fn named_row<'t>(
+    ctx: &CallContext<'_>,
+    test: &'t TestResult,
+    args: &Args,
+) -> Result<Option<&'t zeff_core::value::TermTest>, Fail> {
+    let Some(Value::Term(name)) = args.get(1) else {
+        return Ok(None);
+    };
+    match test.row(name) {
+        Some(row) => Ok(Some(row)),
+        None => Err(fail(
+            Diagnostic::error("Z9001", format!("internal error: this is a bug in Zeff, not in your script (the row `{name}` was not checked against the table)"))
+                .in_file(ctx.script)
+                .primary(ctx.callee_span, "the call that failed"),
+        )),
     }
 }
 
@@ -808,33 +832,45 @@ fn test_receiver(ctx: &CallContext<'_>, args: &Args, name: &str) -> Result<Rc<Te
     }
 }
 
-/// `t.statistic()`: the test statistic as a number; `NA` for a test that has none (the exact
-/// tests).
+/// `t.statistic(term?)`: the test statistic as a number, of the whole test or of the row named;
+/// `NA` for a test that has none (the exact tests).
 pub fn statistic(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let test = test_receiver(ctx, &args, "statistic")?;
-    Ok(finite(test.statistic.value).map_or(Value::Na, Value::Float))
+    let statistic = match named_row(ctx, &test, &args)? {
+        Some(row) => &row.statistic,
+        None => &test.statistic,
+    };
+    Ok(finite(statistic.value).map_or(Value::Na, Value::Float))
 }
 
-/// `t.df()`: the degrees of freedom as a list of one or two numbers, in the order the statistic
-/// writes them, `F(1, 18,179)`; `NA` for a statistic that has none.
+/// `t.df(term?)`: the degrees of freedom as a list of one or two numbers, in the order the
+/// statistic writes them, `F(1, 18,179)`, of the whole test or of the row named; `NA` for a
+/// statistic that has none.
 pub fn df(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let test = test_receiver(ctx, &args, "df")?;
-    if test.statistic.df.is_empty() {
+    let statistic = match named_row(ctx, &test, &args)? {
+        Some(row) => &row.statistic,
+        None => &test.statistic,
+    };
+    if statistic.df.is_empty() {
         return Ok(Value::Na);
     }
     Ok(Value::List(
-        test.statistic.df.iter().map(|d| Value::Float(*d)).collect(),
+        statistic.df.iter().map(|d| Value::Float(*d)).collect(),
     ))
 }
 
-/// `t.effect_size()`: the effect size the test printed, as a number; `NA` for a test that has
-/// none.
+/// `t.effect_size(term?)`: the effect size the test printed, as a number, of the whole test or
+/// of the row named; `NA` where there is none.
 pub fn effect_size(ctx: &mut CallContext<'_>, args: Args) -> Result<Value, Fail> {
     let test = test_receiver(ctx, &args, "effect_size")?;
-    Ok(test
-        .effect
-        .as_ref()
-        .map_or(Value::Na, |e| Value::Float(e.value)))
+    let effect = match named_row(ctx, &test, &args)? {
+        Some(row) => row.effect.as_ref(),
+        None => test.effect.as_ref(),
+    };
+    Ok(effect
+        .and_then(|e| finite(e.value))
+        .map_or(Value::Na, Value::Float))
 }
 
 /// `t.h0()`: the null hypothesis as the sentence the test printed; `NA` for a result that prints

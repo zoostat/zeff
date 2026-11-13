@@ -4878,3 +4878,26 @@ error[Z0001]: no rows to take the mean of
 
 **Reason.** The checklist's step 38g; the entry of `docs/known_issues.md`, now under "Resolved at 0.7.0".
 
+## 14 November 2026: one row of a test's table read by its name (release 0.7.0, step 38d)
+
+**What is built.** Open decision #100, option A, the owner's ruling. On the result of the factorial `anova`, `p_values("dose")`, `statistic("dose")`, `df("dose")` and `effect_size("dose")` read the row of that term; on the result of `posthoc` the same four read one comparison. Without a name the four are unchanged.
+
+**How.** The rows were already kept by name in the result, for `estimates()`. The result gains one lookup, `row(name)`, used by the interpreter's check of a term's name and by the four methods, so the two cannot disagree. `statistic`, `df` and `effect_size` gain the optional `term`, as `p_values` had.
+
+**Settled in the building, the owner's to overturn.**
+- *The minus sign.* The table of `posthoc` prints `low − mid` with the minus sign of print, which is on no keyboard. A name matches a row exactly, or after the minus sign is read as a hyphen and the spaces are taken out, so `"low - mid"` and `"low-mid"` name the same row. Two rows cannot be confused by it: both sides are treated alike.
+- *The order of a comparison* is the table's: `"mid − low"` is not a row when the table prints `low − mid`; the error lists the rows.
+- *The row `model`* of the factorial table is not a name: the whole model is what the four give without one, and `residual` and `total` have no F. The error says so.
+- *The other methods.* `std_errors`, `ci` and `coef` given a row's name on a test's result are refused as before (Z0414), with a message that names the four that read a row; they would otherwise answer `NA` in silence.
+- *A one-way result* has one row and no name for it: a name is Z0414, as before.
+
+**Messages.** Z0414 "`c` is not a row of this table", with the nearest row where one is near and the list of rows; the two older messages of Z0414 on a test's result are kept for a result without rows and reworded for the methods that read none.
+
+**Tests.** Reference: in the fifteen factorial cases of `tests/reference/r/anova.json`, each term read by name through the four methods equals R's F, degrees of freedom, p-value and partial eta squared within 1e-9 (`anova(lm())` for type 1, `car::Anova` for types 2 and 3); in every posthoc reference case the t, the degrees of freedom and the p-value that are held to `TukeyHSD`, `DescTools` and `emmeans` are now the ones read by name, with the hyphen form equal bit for bit. Edge cases: each figure equal to the same cell of `estimates()`; a bare name; an interaction; a cell comparison of an interaction; `effect:`; a name that is no row, the row `model`, a reversed comparison, a one-way result, a method that reads no row. Snapshots: seven messages. The examples of six pages, run by the conformance suite.
+
+**Pages.** `statistic`, `df`, `effect_size` and `p_values` say how a row is read and show it on the wages data; `anova` and `posthoc` say it under "Value" and end with examples. Catalogue rows 539 to 541 and one clause of section 4 of the Language Reference, logged in `docs/spec_changes.md`.
+
+**Found on the way, not corrected here.** When the engine's own registry does not build (a parameter a page or the catalogue lacks, which only a development build can have), `zeff run` ends with exit code 2 and prints nothing, where `zeff check` prints the reason. Entered in `docs/known_issues.md`.
+
+**Reason.** The checklist's step 38d; open decision #100.
+
