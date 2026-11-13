@@ -20,6 +20,7 @@ path = "src/main.rs"
 zeff-engine.workspace = true
 zeff-regress.workspace = true
 zeff-conformance.workspace = true
+zeff-lsp.workspace = true
 zeff-diagnostics.workspace = true
 zeff-ir.workspace = true
 zeff-syntax.workspace = true

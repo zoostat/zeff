@@ -1,0 +1,733 @@
+---
+source: crates/zeff-lsp/tests/samples.rs
+expression: editor.told
+---
+--> {
+  "id": 1,
+  "jsonrpc": "2.0",
+  "method": "initialize",
+  "params": {
+    "capabilities": {},
+    "processId": null,
+    "rootUri": "file:///s"
+  }
+}
+<-- {
+  "id": 1,
+  "jsonrpc": "2.0",
+  "result": {
+    "capabilities": {
+      "positionEncoding": "utf-16",
+      "textDocumentSync": {
+        "change": 1,
+        "openClose": true
+      }
+    },
+    "serverInfo": {
+      "name": "zeff",
+      "version": "(the version of the engine)"
+    }
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "initialized",
+  "params": {}
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(32 lines, the last: print(scores.variables(), 1e-7, 1234567.891, NA))",
+      "uri": "file:///s/first_engine/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/first_engine/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(45 lines, the last: dataset(wages).summary([wage, educ], by: union))",
+      "uri": "file:///s/data_cleaning/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/data_cleaning/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(66 lines, the last: m5.export(\"output/model5.tex\"))",
+      "uri": "file:///s/regression/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/regression/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(44 lines, the last: print(\"mixture P(wage > 40):\", wage_mix.cdf(40, upper: true)))",
+      "uri": "file:///s/simulation/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/simulation/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(78 lines, the last: assert(abs(huber.mu - complete.median(lwage)) < 0.05, \"the Huber location lies near the median\"))",
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(21 lines, the last: })",
+      "uri": "file:///s/user_functions/functions/robustness.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/functions/robustness.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(15 lines, the last: })",
+      "uri": "file:///s/user_functions/functions/share_missing.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/functions/share_missing.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(78 lines, the last: dd)",
+      "uri": "file:///s/panel/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/panel/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didOpen",
+  "params": {
+    "textDocument": {
+      "languageId": "zeff",
+      "text": "(57 lines, the last: by_industry.export(\"output/fig6_industry.png\", size: slide))",
+      "uri": "file:///s/plots/scripts/main.zeff",
+      "version": 1
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/plots/scripts/main.zeff",
+    "version": 1
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(79 lines, the last: wages.mean(wagee))"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 2
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [
+      {
+        "code": "Z0101",
+        "message": "no variable `wagee` in `wages`\nhelp: did you mean `wage`? If you meant a category level, write it in quotes: `\"wage\"`",
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 78
+          },
+          "start": {
+            "character": 11,
+            "line": 78
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      }
+    ],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 2
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(80 lines, the last: let half = wages.summary([lwage, exper)"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 3
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [
+      {
+        "code": "Z0101",
+        "message": "no variable `wagee` in `wages`\nhelp: did you mean `wage`? If you meant a category level, write it in quotes: `\"wage\"`",
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 78
+          },
+          "start": {
+            "character": 11,
+            "line": 78
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      },
+      {
+        "code": "Z0302",
+        "message": "this `(` is never closed",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 79
+          },
+          "start": {
+            "character": 24,
+            "line": 79
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      },
+      {
+        "code": "Z0302",
+        "message": "this `[` is never closed",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 79
+          },
+          "start": {
+            "character": 25,
+            "line": 79
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      }
+    ],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 3
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(15 lines, the last: })"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/functions/share_missing.zeff",
+      "version": 2
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/functions/share_missing.zeff",
+    "version": 2
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [
+      {
+        "code": "Z0103",
+        "message": "no function is called `share_missing`\nhelp: `zeff help` lists the functions of this release",
+        "range": {
+          "end": {
+            "character": 56,
+            "line": 30
+          },
+          "start": {
+            "character": 43,
+            "line": 30
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      },
+      {
+        "code": "Z0101",
+        "message": "no variable `wagee` in `wages`\nhelp: did you mean `wage`? If you meant a category level, write it in quotes: `\"wage\"`",
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 78
+          },
+          "start": {
+            "character": 11,
+            "line": 78
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      },
+      {
+        "code": "Z0302",
+        "message": "this `(` is never closed",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 79
+          },
+          "start": {
+            "character": 24,
+            "line": 79
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      },
+      {
+        "code": "Z0302",
+        "message": "this `[` is never closed",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 79
+          },
+          "start": {
+            "character": 25,
+            "line": 79
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      }
+    ],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 3
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(15 lines, the last: })"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/functions/share_missing.zeff",
+      "version": 3
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/functions/share_missing.zeff",
+    "version": 3
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [
+      {
+        "code": "Z0101",
+        "message": "no variable `wagee` in `wages`\nhelp: did you mean `wage`? If you meant a category level, write it in quotes: `\"wage\"`",
+        "range": {
+          "end": {
+            "character": 16,
+            "line": 78
+          },
+          "start": {
+            "character": 11,
+            "line": 78
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      },
+      {
+        "code": "Z0302",
+        "message": "this `(` is never closed",
+        "range": {
+          "end": {
+            "character": 25,
+            "line": 79
+          },
+          "start": {
+            "character": 24,
+            "line": 79
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      },
+      {
+        "code": "Z0302",
+        "message": "this `[` is never closed",
+        "range": {
+          "end": {
+            "character": 26,
+            "line": 79
+          },
+          "start": {
+            "character": 25,
+            "line": 79
+          }
+        },
+        "severity": 1,
+        "source": "zeff"
+      }
+    ],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 3
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didChange",
+  "params": {
+    "contentChanges": [
+      {
+        "text": "(78 lines, the last: assert(abs(huber.mu - complete.median(lwage)) < 0.05, \"the Huber location lies near the median\"))"
+      }
+    ],
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff",
+      "version": 4
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/scripts/main.zeff",
+    "version": 4
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/first_engine/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/first_engine/scripts/main.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/data_cleaning/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/data_cleaning/scripts/main.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/regression/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/regression/scripts/main.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/simulation/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/simulation/scripts/main.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/scripts/main.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/user_functions/functions/robustness.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/functions/robustness.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/user_functions/functions/share_missing.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/user_functions/functions/share_missing.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/panel/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/panel/scripts/main.zeff"
+  }
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "textDocument/didClose",
+  "params": {
+    "textDocument": {
+      "uri": "file:///s/plots/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "jsonrpc": "2.0",
+  "method": "textDocument/publishDiagnostics",
+  "params": {
+    "diagnostics": [],
+    "uri": "file:///s/plots/scripts/main.zeff"
+  }
+}
+--> {
+  "id": 2,
+  "jsonrpc": "2.0",
+  "method": "textDocument/hover",
+  "params": {
+    "position": {
+      "character": 0,
+      "line": 0
+    },
+    "textDocument": {
+      "uri": "file:///s/user_functions/scripts/main.zeff"
+    }
+  }
+}
+<-- {
+  "error": {
+    "code": -32601,
+    "message": "`textDocument/hover` is not a request this server answers"
+  },
+  "id": 2,
+  "jsonrpc": "2.0"
+}
+--> {
+  "id": 3,
+  "jsonrpc": "2.0",
+  "method": "shutdown"
+}
+<-- {
+  "id": 3,
+  "jsonrpc": "2.0",
+  "result": null
+}
+--> {
+  "jsonrpc": "2.0",
+  "method": "exit"
+}
+the server ends with 0

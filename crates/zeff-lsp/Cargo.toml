@@ -1,0 +1,19 @@
+[package]
+name = "zeff-lsp"
+description = "The language server: the engine's language services over the Language Server Protocol."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+zeff-engine.workspace = true
+# The messages of the protocol are JSON (MIT or Apache-2.0); nothing a result is computed from
+# passes through it.
+serde_json = "=1.0.154"
+
+[dev-dependencies]
+insta = "=1.49.0"

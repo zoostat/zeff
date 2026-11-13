@@ -30,6 +30,8 @@ Commands:
                     of the functions in functions/
   fmt               write every script of the project in the one style of the language
                     (with --check: change nothing, and say which scripts would change)
+  lsp               start the language server an editor talks to, on standard input and
+                    output (the Language Server Protocol)
   repl [script]     open the console: statements typed are kept in .zeff/session.zeff
                     (outside a project, in the scratch project; :help lists its commands)
   eval \"<statement>\"
@@ -54,6 +56,7 @@ Options:
   --deny-warnings         for `run`, `check` and `test`: a warning that no
                           `// zeff: allow(CODE) reason` pragma allows is an error (exit code 3)
   --check                 for `fmt`: write nothing; exit code 1 if a script would change
+  --stdio                 for `lsp`: talk on standard input and output, which it does anyway
   -q, --quiet             hide notes
   -v, --verbose           show timings and build details
 ";
@@ -74,8 +77,7 @@ line ending with an operator, continues on the next line.
 ";
 
 /// Commands the specification names that this release does not have yet.
-const LATER: [&str; 11] = [
-    "lsp",
+const LATER: [&str; 10] = [
     "selftest",
     "engine",
     "runs",
@@ -148,6 +150,9 @@ struct Settings {
     deny_warnings: bool,
     /// `--check`, of `zeff fmt`: nothing is written.
     check: bool,
+    /// `--stdio`, of `zeff lsp`: said by the editors that start a server so; it is the only
+    /// way this server talks.
+    stdio: bool,
     /// `--memory <size>`: the memory budget of the run, in bytes.
     memory: Option<u64>,
 }
@@ -164,6 +169,7 @@ impl Default for Settings {
             verbose: false,
             deny_warnings: false,
             check: false,
+            stdio: false,
             memory: None,
         }
     }
@@ -245,6 +251,7 @@ fn take_options<'a>(words: &[&'a str]) -> Result<(Vec<&'a str>, Settings), Strin
             "-v" | "--verbose" => settings.verbose = true,
             "--deny-warnings" => settings.deny_warnings = true,
             "--check" => settings.check = true,
+            "--stdio" => settings.stdio = true,
             "--memory" => {
                 let written = value("a size")?;
                 settings.memory = match zeff_engine::budget::parse_size(written) {
@@ -442,6 +449,9 @@ pub fn run(
     if settings.check && words.first() != Some(&"fmt") {
         return usage_error(&mut err, "`--check` applies to `zeff fmt`");
     }
+    if settings.stdio && words.first() != Some(&"lsp") {
+        return usage_error(&mut err, "`--stdio` applies to `zeff lsp`");
+    }
     let cwd = match &settings.project {
         Some(dir) => {
             let dir = cwd.join(dir);
@@ -514,6 +524,13 @@ pub fn run(
         ["fmt", ..] => usage_error(
             &mut err,
             "`zeff fmt` takes no script: it formats every script of the project",
+        ),
+        // The language server (section 12): the editor's messages come on standard input
+        // and the answers go to standard output, until the editor says `exit`.
+        ["lsp"] => zeff_lsp::serve(fs, &mut *command.env.input, &mut out),
+        ["lsp", ..] => usage_error(
+            &mut err,
+            "`zeff lsp` takes no arguments: an editor starts it and talks to it",
         ),
         ["test"] => test_command(&command, &mut out, &mut err),
         ["test", ..] => usage_error(

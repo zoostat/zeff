@@ -453,7 +453,7 @@ fn unknown_and_later_commands() {
     let o = zeff(dir.path(), &["frobnicate"]);
     assert_eq!(code(&o), 1);
     assert!(err(&o).contains("unknown command `frobnicate`") && err(&o).contains("zeff help"));
-    for later in ["lsp", "doctor", "engine", "verify"] {
+    for later in ["doctor", "engine", "verify"] {
         let o = zeff(dir.path(), &[later]);
         assert_eq!(code(&o), 1);
         assert!(
@@ -2032,5 +2032,179 @@ fn memory_takes_a_size() {
     assert!(
         usage.contains("\n  --memory <size>         the memory budget of the run"),
         "{usage}"
+    );
+}
+
+// ----- zeff lsp -----
+
+/// Messages of the Language Server Protocol, each with its header, one after another.
+fn lsp_messages(bodies: &[String]) -> String {
+    bodies
+        .iter()
+        .map(|body| format!("Content-Length: {}\r\n\r\n{body}", body.len()))
+        .collect()
+}
+
+/// A text as JSON writes it.
+fn json_text(text: &str) -> String {
+    let mut out = String::from("\"");
+    for c in text.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// The language server as an editor starts it: the conversation on standard input, the
+/// answers on standard output, each with its header; diagnostics for a script as it is typed,
+/// not as it is saved; and the exit codes the protocol names.
+#[test]
+fn zeff_lsp_serves_an_editor_on_standard_input_and_output() {
+    let (dir, project) = demo();
+    let uri = format!("file://{}/scripts/main.zeff", project.display());
+    let saved = std::fs::read_to_string(project.join("scripts/main.zeff")).unwrap();
+    let open = |text: &str| {
+        format!(
+            "{{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{{\"textDocument\":{{\"uri\":{},\"languageId\":\"zeff\",\"version\":1,\"text\":{}}}}}}}",
+            json_text(&uri),
+            json_text(text)
+        )
+    };
+    let change = |version: u32, text: &str| {
+        format!(
+            "{{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didChange\",\"params\":{{\"textDocument\":{{\"uri\":{},\"version\":{version}}},\"contentChanges\":[{{\"text\":{}}}]}}}}",
+            json_text(&uri),
+            json_text(text)
+        )
+    };
+    let initialize =
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"capabilities\":{}}}"
+            .to_string();
+    let conversation = [
+        initialize.clone(),
+        "{\"jsonrpc\":\"2.0\",\"method\":\"initialized\",\"params\":{}}".to_string(),
+        open(&saved),
+        change(2, "let s = \"😀\"; print(1)\n"),
+        change(3, "let d = dataset(wages)\nd.mean(wagee)\n"),
+        "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"shutdown\"}".to_string(),
+        "{\"jsonrpc\":\"2.0\",\"method\":\"exit\"}".to_string(),
+    ];
+    let o = zeff_with(&project, dir.path(), &lsp_messages(&conversation), &["lsp"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(err(&o), "");
+    let said = out(&o);
+    // Five answers, each under its header: the capabilities, the diagnostics of the script
+    // three times, and the answer to `shutdown`.
+    assert_eq!(said.matches("Content-Length: ").count(), 5, "{said}");
+    assert!(said.contains("\"positionEncoding\":\"utf-16\""), "{said}");
+    assert!(
+        said.contains(&format!(
+            "\"serverInfo\":{{\"name\":\"zeff\",\"version\":\"{VERSION}\"}}"
+        )),
+        "{said}"
+    );
+    // The script the project was made with has nothing said of it.
+    assert!(
+        said.contains(&format!(
+            "\"params\":{{\"diagnostics\":[],\"uri\":{},\"version\":1}}",
+            json_text(&uri)
+        )),
+        "{said}"
+    );
+    // The semicolon after the face, at the column the protocol counts: 12, not 11 and not 14.
+    assert!(
+        said.contains("\"code\":\"Z0315\"")
+            && said.contains("\"range\":{\"end\":{\"character\":13,\"line\":0},\"start\":{\"character\":12,\"line\":0}}"),
+        "{said}"
+    );
+    // The misspelt variable, with the suggestion, though the file on disk was never changed.
+    assert!(
+        said.contains("\"code\":\"Z0101\",\"message\":\"no variable `wagee` in `d`\\nhelp: did you mean `wage`?"),
+        "{said}"
+    );
+    assert!(
+        said.ends_with("{\"id\":2,\"jsonrpc\":\"2.0\",\"result\":null}"),
+        "{said}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join("scripts/main.zeff")).unwrap(),
+        saved
+    );
+
+    // The editor goes away without `exit`: what came is answered, and the program ends with 1.
+    let o = zeff_with(
+        &project,
+        dir.path(),
+        &lsp_messages(&conversation[..3]),
+        &["lsp"],
+    );
+    assert_eq!(code(&o), 1);
+    assert_eq!(out(&o).matches("Content-Length: ").count(), 2);
+    // `exit` without `shutdown` before it ends with 1 too.
+    let hasty = [initialize, conversation[6].clone()];
+    let o = zeff_with(&project, dir.path(), &lsp_messages(&hasty), &["lsp"]);
+    assert_eq!(code(&o), 1);
+    // Bytes that are no messages are answered with an error of the protocol, not with a
+    // failure of the program.
+    let o = zeff_with(
+        &project,
+        dir.path(),
+        "hello\r\n\r\nContent-Length: 3\r\n\r\n{{{",
+        &["lsp"],
+    );
+    assert_eq!(code(&o), 1);
+    assert_eq!(err(&o), "");
+    assert!(
+        out(&o).contains("{\"error\":{\"code\":-32700,\"message\":\"a header line without `:`\"},\"id\":null,\"jsonrpc\":\"2.0\"}"),
+        "{}",
+        out(&o)
+    );
+    assert!(
+        out(&o).contains("\"message\":\"the message is not JSON\""),
+        "{}",
+        out(&o)
+    );
+    // Outside any project it serves all the same: a file is checked alone.
+    let alone = [
+        conversation[0].clone(),
+        "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/didOpen\",\"params\":{\"textDocument\":{\"uri\":\"untitled:Untitled-1\",\"version\":1,\"text\":\"print(nope)\\n\"}}}".to_string(),
+        conversation[5].clone(),
+        conversation[6].clone(),
+    ];
+    let o = zeff_with(dir.path(), dir.path(), &lsp_messages(&alone), &["lsp"]);
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert!(
+        out(&o).contains("\"code\":\"Z0101\",\"message\":\"nothing is called `nope` here\""),
+        "{}",
+        out(&o)
+    );
+    // An editor that starts its servers with `--stdio` is served the same.
+    let o = zeff_with(
+        &project,
+        dir.path(),
+        &lsp_messages(&conversation),
+        &["lsp", "--stdio"],
+    );
+    assert_eq!(code(&o), 0, "{}", err(&o));
+    assert_eq!(out(&o), said);
+    let o = zeff(&project, &["check", "--stdio"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("`--stdio` applies to `zeff lsp`"),
+        "{}",
+        err(&o)
+    );
+    // It takes no arguments.
+    let o = zeff(&project, &["lsp", "now"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        err(&o).contains("`zeff lsp` takes no arguments: an editor starts it and talks to it"),
+        "{}",
+        err(&o)
     );
 }

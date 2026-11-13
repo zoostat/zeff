@@ -24,6 +24,7 @@ members = [
     "crates/zeff-cli",
     "crates/zeff-conformance",
     "crates/zeff-web",
+    "crates/zeff-lsp",
     "tools/xtask",
     "tools/zeff-testkit",
     "tools/zeff-bench",
@@ -67,6 +68,7 @@ zeff-syntax = { path = "crates/zeff-syntax" }
 zeff-ir = { path = "crates/zeff-ir" }
 zeff-engine = { path = "crates/zeff-engine" }
 zeff-conformance = { path = "crates/zeff-conformance" }
+zeff-lsp = { path = "crates/zeff-lsp" }
 zeff-testkit = { path = "tools/zeff-testkit" }
 zeff-bench = { path = "tools/zeff-bench" }
 

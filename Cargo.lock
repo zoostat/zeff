@@ -1777,6 +1777,7 @@ dependencies = [
  "zeff-diagnostics",
  "zeff-engine",
  "zeff-ir",
+ "zeff-lsp",
  "zeff-registry",
  "zeff-regress",
  "zeff-syntax",
@@ -1944,6 +1945,15 @@ dependencies = [
  "proptest",
  "serde_json",
  "zeff-numeric",
+]
+
+[[package]]
+name = "zeff-lsp"
+version = "0.7.0-dev"
+dependencies = [
+ "insta",
+ "serde_json",
+ "zeff-engine",
 ]
 
 [[package]]
